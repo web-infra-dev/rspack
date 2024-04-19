@@ -20,13 +20,13 @@ export class WatchRunner<
 		this.document = new FakeDocument(_watchOptions.dist);
 	}
 
-	createGlobalContext() {
+	protected createGlobalContext() {
 		const globalContext = super.createGlobalContext();
 		globalContext["document"] = this.document;
 		return globalContext;
 	}
 
-	createModuleScope(
+	protected createModuleScope(
 		requireFn: TRunnerRequirer,
 		m: any,
 		file: TBasicRunnerFile

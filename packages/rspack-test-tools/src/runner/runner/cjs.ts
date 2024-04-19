@@ -18,7 +18,7 @@ const define = function (...args: unknown[]) {
 export class CommonJsRunner<
 	T extends ECompilerType = ECompilerType.Rspack
 > extends BasicRunner<T> {
-	createGlobalContext(): IBasicGlobalContext {
+	protected createGlobalContext(): IBasicGlobalContext {
 		return {
 			console: console,
 			expect: expect,
@@ -35,7 +35,7 @@ export class CommonJsRunner<
 		};
 	}
 
-	createBaseModuleScope(): IBasicModuleScope {
+	protected createBaseModuleScope(): IBasicModuleScope {
 		const baseModuleScope: IBasicModuleScope = {
 			console: this.globalContext!.console,
 			expect: this.globalContext!.expect,
@@ -58,7 +58,7 @@ export class CommonJsRunner<
 		return baseModuleScope;
 	}
 
-	createModuleScope(
+	protected createModuleScope(
 		requireFn: TRunnerRequirer,
 		m: TModuleObject,
 		file: TBasicRunnerFile
@@ -75,7 +75,7 @@ export class CommonJsRunner<
 		};
 	}
 
-	createRunner() {
+	protected createRunner() {
 		this.requirers.set("miss", this.createMissRequirer());
 		this.requirers.set("entry", this.createCjsRequirer());
 	}

@@ -93,7 +93,7 @@ export class JSDOMWebRunner<
 		return new CustomResourceLoader();
 	}
 
-	createBaseModuleScope() {
+	protected createBaseModuleScope() {
 		const moduleScope = super.createBaseModuleScope();
 		moduleScope["EventSource"] = EventSource;
 		moduleScope["Worker"] = createFakeWorker({
@@ -197,7 +197,7 @@ export class JSDOMWebRunner<
 		};
 	}
 
-	createRunner() {
+	protected createRunner() {
 		super.createRunner();
 		this.requirers.set("entry", this.createJSDOMRequirer());
 	}

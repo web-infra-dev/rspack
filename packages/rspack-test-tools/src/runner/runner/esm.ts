@@ -9,7 +9,7 @@ import { CommonJsRunner } from "./cjs";
 export class EsmRunner<
 	T extends ECompilerType = ECompilerType.Rspack
 > extends CommonJsRunner<T> {
-	createRunner() {
+	protected createRunner() {
 		super.createRunner();
 		this.requirers.set("cjs", this.getRequire());
 		this.requirers.set("esm", this.createEsmRequirer());

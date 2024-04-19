@@ -38,7 +38,7 @@ export class FakeDocumentWebRunner<
 		return super.run(file);
 	}
 
-	createGlobalContext() {
+	protected createGlobalContext() {
 		const globalContext = super.createGlobalContext();
 		globalContext["document"] = this.document;
 		globalContext["getComputedStyle"] = this.document.getComputedStyle.bind(
@@ -90,7 +90,7 @@ export class FakeDocumentWebRunner<
 		return globalContext;
 	}
 
-	createModuleScope(
+	protected createModuleScope(
 		requireFn: TRunnerRequirer,
 		m: any,
 		file: TBasicRunnerFile
@@ -106,7 +106,7 @@ export class FakeDocumentWebRunner<
 		return subModuleScope;
 	}
 
-	createBaseModuleScope() {
+	protected createBaseModuleScope() {
 		const moduleScope = super.createBaseModuleScope();
 		moduleScope["window"] = this.globalContext;
 		moduleScope["self"] = this.globalContext;
@@ -139,7 +139,7 @@ export class FakeDocumentWebRunner<
 		};
 	}
 
-	createRunner() {
+	protected createRunner() {
 		super.createRunner();
 		this.requirers.set("cjs", this.getRequire());
 		this.requirers.set("json", this.createJsonRequirer());
@@ -163,13 +163,13 @@ export class FakeDocumentWebRunner<
 		});
 	}
 
-	preExecute(_: string, file: TBasicRunnerFile): void {
+	protected preExecute(_: string, file: TBasicRunnerFile): void {
 		this.oldCurrentScript = this.document.currentScript;
 		this.document.currentScript = new CurrentScript(file.subPath);
 		super.preExecute(_, file);
 	}
 
-	postExecute(_: Object, file: TBasicRunnerFile): void {
+	protected postExecute(_: Object, file: TBasicRunnerFile): void {
 		super.postExecute(_, file);
 		this.document.currentScript = this.oldCurrentScript;
 		this.oldCurrentScript = null;

@@ -80,15 +80,15 @@ export abstract class BasicRunner<
 		return this.requirers.get("entry")!;
 	}
 
-	abstract createGlobalContext(): IBasicGlobalContext;
-	abstract createBaseModuleScope(): IBasicModuleScope;
-	abstract createModuleScope(
+	protected abstract createGlobalContext(): IBasicGlobalContext;
+	protected abstract createBaseModuleScope(): IBasicModuleScope;
+	protected abstract createModuleScope(
 		requireFn: TRunnerRequirer,
 		m: TModuleObject,
 		file: TBasicRunnerFile
 	): IBasicModuleScope;
 
-	getFile(
+	protected getFile(
 		modulePath: string[] | string,
 		currentDirectory: string
 	): TBasicRunnerFile | null {
@@ -114,10 +114,10 @@ export abstract class BasicRunner<
 		}
 	}
 
-	preExecute(code: string, file: TBasicRunnerFile) {}
-	postExecute(m: Object, file: TBasicRunnerFile) {}
+	protected preExecute(code: string, file: TBasicRunnerFile) {}
+	protected postExecute(m: Object, file: TBasicRunnerFile) {}
 
-	createRunner() {
+	protected createRunner() {
 		this.requirers.set(
 			"entry",
 			(currentDirectory, modulePath, context = {}) => {
