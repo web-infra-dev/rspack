@@ -61,8 +61,8 @@ import WebpackLicense from '../../../components/webpack-license';
   ]}
 />
 
-自定义压缩器。默认使用 [`rspack.SwcJsMinimizerRspackPlugin`](/config/plugins.html#swcjsminimizerrspackplugin)
-和 [`rspack.SwcCssMinimizerRspackPlugin`](/config/plugins.html#swccssminimizerrspackplugin)。当声明了 `optimization.minimizer`，默认压缩器会被禁用。
+自定义压缩器。默认使用 [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin)
+和 [`rspack.SwcCssMinimizerRspackPlugin`](/plugins/rspack/swc-css-minimizer-rspack-plugin)。当声明了 `optimization.minimizer`，默认压缩器会被禁用。
 
 ```js title=rspack.config.js
 const minifyPlugin = require('@rspack/plugin-minify');

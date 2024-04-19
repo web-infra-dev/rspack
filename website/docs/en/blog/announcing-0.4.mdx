@@ -280,7 +280,7 @@ But we suggest you use `builtin:swc-loader` to transform files now. More details
 
 ### Migrating builtin options to builtin plugins
 
-In v0.4.0, Rspack deprecated some of the builtin options and migrated them to [internal plugins](/config/plugins.html#internal-plugins).
+In v0.4.0, Rspack deprecated some of the builtin options and migrated them to [builtin plugins](/config/plugins).
 
 Currently, Rspack's internal plugins are divided into two categories:
 
@@ -301,7 +301,7 @@ module.exports = {
 }
 ```
 
-For `builtins.html`, it can be directly migrated to [HtmlRspackPlugin](/config/plugins.html#htmlrspackplugin):
+For `builtins.html`, it can be directly migrated to [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin):
 
 ```diff
 + const rspack = require("@rspack/core")
@@ -327,9 +327,9 @@ module.exports = {
 };
 ```
 
-For `builtins.copy`, it can be directly migrated to [CopyRspackPlugin](/config/plugins.html#copyrspackplugin).
+For `builtins.copy`, it can be directly migrated to [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin).
 
-For the original `builtins.minifyOptions`, we provide [SwcJsMinimizerRspackPlugin](/config/plugins.html#swcjsminimizerrspackplugin):
+For the original `builtins.minifyOptions`, we provide [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin):
 
 ```js
 const rspack = require('@rspack/core');
@@ -344,4 +344,4 @@ module.exports = {
 };
 ```
 
-Other builtin options can be directly referred to the rspack [internal plugins](/config/plugins.html#internal-plugins) for migration, or completed according to the CLI prompts after upgrading to v0.4.0.
+Other builtin options can be directly referred to the rspack [builtin plugins](/config/plugins) for migration, or completed according to the CLI prompts after upgrading to v0.4.0.

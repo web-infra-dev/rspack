@@ -19,6 +19,7 @@ module.exports = {
     'package.json',
     'pnpm-lock.yaml',
     'rspack.mp3',
+    'doc_build',
   ],
   flagWords: banWords,
   caseSensitive: true,
