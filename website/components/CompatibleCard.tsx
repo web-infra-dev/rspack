@@ -60,6 +60,11 @@ export const PluginCompatibleCardList = ({ lang }: { lang: 'zh' | 'en' }) => {
       description: i18n[lang]['ignore-plugin-desc'],
     },
     {
+      name: 'webpack.NormalModuleReplacementPlugin',
+      url: 'https://webpack.js.org/plugins/normal-module-replacement-plugin/',
+      status: i18n[lang]['included'],
+    },
+    {
       name: 'html-webpack-plugin',
       url: 'https://www.npmjs.com/package/html-webpack-plugin',
       status: i18n[lang]['compatible'],

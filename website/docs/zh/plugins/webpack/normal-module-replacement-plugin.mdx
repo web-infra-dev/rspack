@@ -1,0 +1,102 @@
+import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+import WebpackLicense from '../../../../components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/plugins/normal-module-replacement-plugin/" />
+
+# NormalModuleReplacementPlugin
+
+<ApiMeta addedVersion="0.6.0" />
+
+`NormalModuleReplacementPlugin` 可以帮你把 `resourceRegExp` 匹配的 `import`/`require` 等模块请求（后面简称**请求**或 **request**）替换为 `newResource`。
+
+```js
+new rspack.NormalModuleReplacementPlugin(resourceRegExp, newResource);
+```
+
+如果 `newResource` 是相对路径，则会相对于先前的资源进行解析。
+
+如果 `newResource` 是一个函数，rspack 会传入请求数据，你应该在该函数中修改请求数据，比如 `resource.request = resource.request + '.ibm'`。
+
+这对于需要根据不同的情况使用不同的模块时非常有用。
+
+:::tip
+
+请注意，`resourceRegExp` 在 `beforeResolve` 阶段跟 `request` 做匹配，在 `afterResolve` 阶段跟 `resource` 做匹配。前者是你在代码里写的请求字符串，后者是解析后的真实完整路径。
+
+此外，请注意，在使用 Windows 时，你必须适应不同的路径分隔符。例如，`/src\/environments\/environment\.ts/` 在 Windows 上无法工作，相应的，你应该使用 `/src[\\/]environments[\\/]environment\.ts/`。
+:::
+
+## 基本用法示例
+
+以“为生产构建使用特定的模块”这个目标为例。
+
+假设你有一个用于开发的配置文件 `some/path/config.development.js` 和一个专门用于生产的版本 `some/path/config.production.js`。
+
+可以在生产构建时这样配置该插件：
+
+```javascript
+new rspack.NormalModuleReplacementPlugin(
+  /some\/path\/config\.development\.js/,
+  './config.production.js',
+);
+```
+
+## 高级用法示例
+
+根据指定的环境条件构建。
+
+假设你希望为不同的构建目标使用不同的配置：
+
+```javascript
+module.exports = function getRspackConfig(env) {
+  const appTarget = env.APP_TARGET || 'VERSION_A';
+  return {
+    plugins: [
+      new rspack.NormalModuleReplacementPlugin(
+        /(.*)-APP_TARGET(\.*)/,
+        function (resource) {
+          resource.request = resource.request.replace(
+            /-APP_TARGET/,
+            `-${appTarget}`,
+          );
+        },
+      ),
+    ],
+  };
+};
+```
+
+创建两个配置文件：
+
+**app/config-VERSION_A.js**
+
+```js
+export const config = {
+  title: '版本 A',
+};
+```
+
+**app/config-VERSION_B.js**
+
+```js
+export const config = {
+  title: '版本 B',
+};
+```
+
+然后根据插件配置中使用的 `APP_TARGET` 来 `import` 这个文件：
+
+```js
+import { config } from './app/config-APP_TARGET';
+console.log(config.title);
+```
+
+现在，根据你的构建目标，将导入相应的配置：
+
+```bash
+rspack --env APP_TARGET=VERSION_A
+=> '版本 A'
+
+rspack --env APP_TARGET=VERSION_B
+=> '版本 B'
+```

@@ -405,6 +405,10 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
             text: 'LimitChunkCountPlugin',
             link: getLink('/plugins/webpack/limit-chunk-count-plugin'),
           },
+          {
+            text: 'NormalModuleReplacementPlugin',
+            link: getLink('/plugins/webpack/normal-module-replacement-plugin'),
+          },
         ],
       },
       {
