@@ -6,4 +6,21 @@
 
 ## 代码压缩
 
-Rspack 默认使用内置的压缩器对 JavaScript 和 CSS 代码进行压缩，你可以使用 [builtins.minifyOptions](config/builtins#builtinsminifyoptions) 来进行配置。若内置压缩器无法满足需求，可以使用 [optimization.minimizer](config/optimization#optimizationminimizer) 设置自定义压缩器。
+在执行生产构建时，Rspack 默认使用内置的压缩器对 JavaScript 和 CSS 代码进行压缩，你可以使用 [SwcJsMinimizerRspackPlugin](plugins/rspack/swc-js-minimizer-rspack-plugin) 来进行配置。
+
+```js title=rspack.config.js
+const rspack = require('@rspack/core');
+
+module.exports = {
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin({
+        // JS minimizer 配置
+      }),
+      new rspack.SwcCssMinimizerRspackPlugin(),
+    ],
+  },
+};
+```
+
+如果内置压缩器无法满足需求，你也可以使用 [optimization.minimizer](/config/optimization#optimizationminimizer) 设置自定义压缩器。

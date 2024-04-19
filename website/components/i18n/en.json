@@ -11,7 +11,7 @@
   "banner-plugin-desc": "Support for this plugin was implemented in v0.3.3, before v0.3.3 you could use builtins.banner instead.",
   "ignore-plugin-desc": "Recommend using rspack.IgnorePlugin instead.",
   "mini-css-extract-plugin-desc": "use experiments.css or rspack.CssExtractRspackPlugin instead",
-  "terser-webpack-plugin-desc": "Use rspack.SwcJsMinimizerRspackPlugin or builtins.minifyOptions instead.",
+  "terser-webpack-plugin-desc": "Use rspack.SwcJsMinimizerRspackPlugin instead.",
   "progress-plugin-desc": "use builtins.progress instead",
   "tsconfig-paths-webpack-plugin-desc": "use resolve.tsconfigPath instead"
 }
