@@ -1,13 +1,9 @@
 import { ECompilerType } from "../../type";
-import { BasicRunner } from "./basic";
-import {
-	IBasicModuleScope,
-	IBasicRunnerOptions,
-	TBasicRunnerFile,
-	TRunnerRequirer
-} from "../type";
+import { IBasicRunnerOptions } from "./basic";
+import { IBasicModuleScope, TBasicRunnerFile, TRunnerRequirer } from "../type";
 import path from "path";
 import FakeDocument from "../../helper/legacy/FakeDocument";
+import { CommonJsRunner } from "./cjs";
 
 interface IWatchRunnerOptions<T extends ECompilerType = ECompilerType.Rspack>
 	extends IBasicRunnerOptions<T> {
@@ -16,7 +12,7 @@ interface IWatchRunnerOptions<T extends ECompilerType = ECompilerType.Rspack>
 
 export class WatchRunner<
 	T extends ECompilerType = ECompilerType.Rspack
-> extends BasicRunner<T> {
+> extends CommonJsRunner<T> {
 	private document: any;
 	private state: Record<string, any> = {};
 	constructor(protected _watchOptions: IWatchRunnerOptions<T>) {

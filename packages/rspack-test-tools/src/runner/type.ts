@@ -42,13 +42,4 @@ export interface IBasicGlobalContext {
 	[key: string]: any;
 }
 
-export interface IBasicRunnerOptions<T extends ECompilerType> {
-	env: ITestEnv;
-	stats?: TCompilerStatsCompilation<T>;
-	name: string;
-	runInNewContext?: boolean;
-	testConfig: TTestConfig<T>;
-	source: string;
-	dist: string;
-	compilerOptions: TCompilerOptions<T>;
-}
+export type TModuleObject = { exports: unknown };

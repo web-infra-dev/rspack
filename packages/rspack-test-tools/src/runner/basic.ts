@@ -60,7 +60,11 @@ export class BasicRunnerFactory<T extends ECompilerType>
 			compilerOptions.target === "web" ||
 			compilerOptions.target === "webworker"
 		) {
-			return new WebRunner<T>(runnerOptions);
+			return new WebRunner<T>({
+				...runnerOptions,
+				runInNewContext: true,
+				dom: "fake"
+			});
 		} else {
 			return new EsmRunner<T>(runnerOptions);
 		}

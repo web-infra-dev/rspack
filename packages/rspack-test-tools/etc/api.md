@@ -281,26 +281,6 @@ export interface IBasicProcessorOptions<T extends ECompilerType = ECompilerType.
 }
 
 // @public (undocumented)
-export interface IBasicRunnerOptions<T extends ECompilerType> {
-    // (undocumented)
-    compilerOptions: TCompilerOptions<T>;
-    // (undocumented)
-    dist: string;
-    // (undocumented)
-    env: ITestEnv;
-    // (undocumented)
-    name: string;
-    // (undocumented)
-    runInNewContext?: boolean;
-    // (undocumented)
-    source: string;
-    // (undocumented)
-    stats?: TCompilerStatsCompilation<T>;
-    // (undocumented)
-    testConfig: TTestConfig<T>;
-}
-
-// @public (undocumented)
 export interface ICompareOptions {
     // (undocumented)
     bootstrap?: boolean;
@@ -1092,6 +1072,11 @@ export type TFileCompareResult = TCompareResult & {
 // @public (undocumented)
 export type TModuleCompareResult = TCompareResult & {
     name: string;
+};
+
+// @public (undocumented)
+export type TModuleObject = {
+    exports: unknown;
 };
 
 // @public (undocumented)
