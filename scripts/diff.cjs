@@ -4,7 +4,6 @@ const rimraf = require("rimraf");
 const path = require("path");
 const fs = require("fs-extra");
 
-console.log("Hello World");
 process.env['RSPACK_DIFF'] = "true"; // enable rspack diff injection
 
 const CASE_DIR = path.resolve(__dirname, '../diffcases');
