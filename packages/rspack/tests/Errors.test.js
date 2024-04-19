@@ -158,3 +158,132 @@ it("should emit warnings for resolve failure in esm", async () => {
 		}
 	`);
 });
+
+it("Testing proxy methods on errors", async () => {
+	await expect(
+		compile({
+			entry: "./resolve-fail-esm",
+			plugins: [
+				compiler => {
+					compiler.hooks.afterCompile.tap("test push", compilation => {
+						compilation.errors.push("test push");
+					});
+				}
+			]
+		})
+	).resolves.toMatchInlineSnapshot(`
+		Object {
+		  "errors": Array [
+		    Object {
+		      "formatted": "  × test push\\n",
+		      "message": "  × test push\\n",
+		    },
+		    Object {
+		      "formatted": "  × Resolve error: Can't resolve './answer' in '<cwd>/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
+		      "message": "  × Resolve error: Can't resolve './answer' in '<cwd>/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
+		      "moduleId": "./resolve-fail-esm/index.js",
+		      "moduleIdentifier": "javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js",
+		      "moduleName": "./resolve-fail-esm/index.js",
+		    },
+		  ],
+		  "warnings": Array [],
+		}
+	`);
+
+	await expect(
+		compile({
+			entry: "./resolve-fail-esm",
+			plugins: [
+				compiler => {
+					compiler.hooks.afterCompile.tap("test pop", compilation => {
+						compilation.errors.pop();
+					});
+				}
+			]
+		})
+	).resolves.toMatchInlineSnapshot(`
+		Object {
+		  "errors": Array [],
+		  "warnings": Array [],
+		}
+	`);
+
+	await expect(
+		compile({
+			entry: "./resolve-fail-esm",
+			plugins: [
+				compiler => {
+					compiler.hooks.afterCompile.tap(
+						"test shift and unshift",
+						compilation => {
+							compilation.errors.shift();
+							compilation.errors.unshift("test unshift");
+						}
+					);
+				}
+			]
+		})
+	).resolves.toMatchInlineSnapshot(`
+		Object {
+		  "errors": Array [
+		    Object {
+		      "formatted": "  × test unshift\\n",
+		      "message": "  × test unshift\\n",
+		    },
+		  ],
+		  "warnings": Array [],
+		}
+	`);
+
+	await expect(
+		compile({
+			entry: "./resolve-fail-esm",
+			plugins: [
+				compiler => {
+					compiler.hooks.afterCompile.tap("test splice", compilation => {
+						compilation.errors.splice(0, 1, "test splice");
+					});
+				}
+			]
+		})
+	).resolves.toMatchInlineSnapshot(`
+		Object {
+		  "errors": Array [
+		    Object {
+		      "formatted": "  × test splice\\n",
+		      "message": "  × test splice\\n",
+		    },
+		  ],
+		  "warnings": Array [],
+		}
+	`);
+	await expect(
+		compile({
+			entry: "./resolve-fail-esm",
+			plugins: [
+				compiler => {
+					compiler.hooks.afterCompile.tap("test splice", compilation => {
+						compilation.errors.splice(0, 0, "test splice");
+					});
+				}
+			]
+		})
+	).resolves.toMatchInlineSnapshot(`
+		Object {
+		  "errors": Array [
+		    Object {
+		      "formatted": "  × test splice\\n",
+		      "message": "  × test splice\\n",
+		    },
+		    Object {
+		      "formatted": "  × Resolve error: Can't resolve './answer' in '<cwd>/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
+		      "message": "  × Resolve error: Can't resolve './answer' in '<cwd>/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
+		      "moduleId": "./resolve-fail-esm/index.js",
+		      "moduleIdentifier": "javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js",
+		      "moduleName": "./resolve-fail-esm/index.js",
+		    },
+		  ],
+		  "warnings": Array [],
+		}
+	`);
+});

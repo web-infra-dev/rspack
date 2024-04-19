@@ -547,48 +547,130 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	get errors() {
 		const inner = this.#inner;
-		return {
-			push: (...errs: (Error | JsStatsError | string)[]) => {
-				// compatible for javascript array
-				for (let i = 0; i < errs.length; i++) {
-					const error = errs[i];
-					if (isJsStatsError(error)) {
-						this.#inner.pushDiagnostic(
-							"error",
-							"Error",
-							concatErrorMsgAndStack(error)
-						);
-					} else if (typeof error === "string") {
-						this.#inner.pushDiagnostic("error", "Error", error);
-					} else {
-						this.#inner.pushDiagnostic(
-							"error",
-							error.name,
-							concatErrorMsgAndStack(error)
-						);
+		type ErrorType = Error | JsStatsError | string;
+		const errors = inner.getStats().getErrors() as any;
+		const proxyMethod = [
+			{
+				method: "push",
+				handler(
+					target: typeof Array.prototype.push,
+					thisArg: Array<ErrorType>,
+					errs: (Error | JsStatsError | string)[]
+				) {
+					for (let i = 0; i < errs.length; i++) {
+						const error = errs[i];
+						if (isJsStatsError(error)) {
+							inner.pushDiagnostic(
+								"error",
+								"Error",
+								concatErrorMsgAndStack(error)
+							);
+						} else if (typeof error === "string") {
+							inner.pushDiagnostic("error", "Error", error);
+						} else {
+							inner.pushDiagnostic(
+								"error",
+								error.name,
+								concatErrorMsgAndStack(error)
+							);
+						}
 					}
+					return Reflect.apply(target, thisArg, errs);
 				}
 			},
-			get length() {
-				return inner.getStats().getErrors().length;
+			{
+				method: "pop",
+				handler(target: typeof Array.prototype.pop, thisArg: Array<ErrorType>) {
+					inner.spliceDiagnostic(errors.length - 1, errors.length, []);
+					return Reflect.apply(target, thisArg, []);
+				}
 			},
-			[Symbol.iterator]() {
-				// TODO: this is obviously a bad design, optimize this after finishing angular prototype
-				const errors = inner.getStats().getErrors();
-				let index = 0;
-				return {
-					next() {
-						if (index >= errors.length) {
-							return { done: true };
+			{
+				method: "shift",
+				handler(
+					target: typeof Array.prototype.shift,
+					thisArg: Array<ErrorType>
+				) {
+					inner.spliceDiagnostic(0, 1, []);
+					return Reflect.apply(target, thisArg, []);
+				}
+			},
+			{
+				method: "unshift",
+				handler(
+					target: typeof Array.prototype.unshift,
+					thisArg: Array<ErrorType>,
+					errs: ErrorType[]
+				) {
+					const errList = errs.map(error => {
+						if (isJsStatsError(error)) {
+							return {
+								severity: "error" as const,
+								title: "Error",
+								message: concatErrorMsgAndStack(error)
+							};
+						} else if (typeof error === "string") {
+							return {
+								severity: "error" as const,
+								title: "Error",
+								message: error
+							};
+						} else {
+							return {
+								severity: "error" as const,
+								title: error.name,
+								message: concatErrorMsgAndStack(error)
+							};
 						}
-						return {
-							value: errors[index++],
-							done: false
-						};
-					}
-				};
+					});
+					inner.spliceDiagnostic(0, 0, errList);
+					return Reflect.apply(target, thisArg, errs);
+				}
+			},
+			{
+				method: "splice",
+				handler(
+					target: typeof Array.prototype.splice,
+					thisArg: Array<ErrorType>,
+					[startIdx, delCount, ...errors]: [number, number, ...ErrorType[]]
+				) {
+					const errList = errors.map(error => {
+						if (isJsStatsError(error)) {
+							return {
+								severity: "error" as const,
+								title: "Error",
+								message: concatErrorMsgAndStack(error)
+							};
+						} else if (typeof error === "string") {
+							return {
+								severity: "error" as const,
+								title: "Error",
+								message: error
+							};
+						} else {
+							return {
+								severity: "error" as const,
+								title: error.name,
+								message: concatErrorMsgAndStack(error)
+							};
+						}
+					});
+					inner.spliceDiagnostic(startIdx, startIdx + delCount, errList);
+					return Reflect.apply(target, thisArg, [
+						startIdx,
+						delCount,
+						...errors
+					]);
+				}
 			}
-		};
+		];
+		proxyMethod.forEach(item => {
+			const proxyedMethod = new Proxy(errors[item.method as any], {
+				apply: item.handler as any
+			});
+			errors[item.method as any] = proxyedMethod;
+		});
+		return errors;
 	}
 
 	get warnings() {

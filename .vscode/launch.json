@@ -1,105 +1,34 @@
 {
   "configurations": [
     {
-      "name": "debug-js",
-      "port": 9229,
+      "name": "attach:node",
       "request": "attach",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
-      "sourceMaps": true,
-      "continueOnAttach": true,
       "type": "node",
-      "presentation": {
-        "hidden": true
-      }
+      "port": 9229
     },
     {
-      "type": "lldb",
+      "name": "launch:rust-from-node",
       "request": "launch",
-      "sourceLanguages": [
-        "rust"
-      ],
-      "name": "debug-rust-jest",
+      "type": "lldb",
       "program": "node",
       "args": [
-        "--inspect-brk",
-        "../../node_modules/.bin/jest",
-        "--workerThreads"
-      ],
-      "cwd": "${workspaceFolder}/packages/rspack"
-    },
-    {
-      "type": "lldb",
-      "request": "attach",
-      "sourceLanguages": [
-        "rust"
-      ],
-      "pid": "${command:pickMyProcess}",
-      "name": "debug-rust-attach"
-    },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "sourceLanguages": [
-        "rust"
-      ],
-      "name": "debug-rust-basic",
-      "program": "node",
-      "args": [
-        "--inspect-brk",
+        "--inspect",
+        "--enable-source-maps",
         "${workspaceFolder}/packages/rspack-cli/bin/rspack",
+        "build",
         "-c",
-        "rspack.config.js"
+        "${workspaceFolder}/webpack-examples/error/webpack.config.js",
       ],
-      "cwd": "${workspaceFolder}/examples/issue-11673",
-      "presentation": {
-        "hidden": true
-      }
-    },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "sourceLanguages": [
-        "rust"
-      ],
-      "name": "debug-rust-angular",
-      "program": "node",
-      "args": [
-        "--inspect-brk",
-        "${workspaceFolder}/packages/rspack-cli/bin/rspack",
-        "-c",
-        "./rspack.config.js"
-      ],
-      "cwd": "${workspaceFolder}/examples/angular",
-      "presentation": {
-        "hidden": true
-      }
+      "cwd": "${workspaceFolder}/webpack-examples/error/"
     }
   ],
   "compounds": [
     {
-      "name": "debug-basic",
+      "name": "mix-debug",
       "configurations": [
-        "debug-js",
-        "debug-rust-basic"
-      ],
-      "stopAll": true,
-      "presentation": {
-        "group": "examples",
-        "order": 1
-      }
-    },
-    {
-      "name": "debug-angular",
-      "configurations": [
-        "debug-js",
-        "debug-rust-angular"
-      ],
-      "presentation": {
-        "group": "examples",
-        "order": 2
-      }
+        "attach:node",
+        "launch:rust-from-node"
+      ]
     }
   ]
 }

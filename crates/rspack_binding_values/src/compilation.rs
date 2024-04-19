@@ -61,6 +61,14 @@ impl DerefMut for JsCompilation {
   }
 }
 
+#[napi(object)]
+pub struct JsDiagnostic {
+  #[napi(ts_type = "'error' | 'warning'")]
+  pub severity: String,
+  pub title: String,
+  pub message: String,
+}
+
 #[napi]
 impl JsCompilation {
   #[napi(
@@ -314,6 +322,20 @@ impl JsCompilation {
       _ => rspack_error::Diagnostic::error(title, message),
     };
     self.0.push_diagnostic(diagnostic);
+  }
+
+  #[napi]
+  pub fn splice_diagnostic(&mut self, start: u32, end: u32, replace_with: Vec<JsDiagnostic>) {
+    let diagnostics = replace_with
+      .iter()
+      .map(|item| match item.severity.as_str() {
+        "warning" => rspack_error::Diagnostic::warn(item.title.clone(), item.message.clone()),
+        _ => rspack_error::Diagnostic::error(item.title.clone(), item.message.clone()),
+      })
+      .collect();
+    self
+      .0
+      .splice_diagnostic(start as usize, end as usize, diagnostics);
   }
 
   #[napi(ts_args_type = r#"diagnostics: ExternalObject<'Diagnostic[]'>"#)]
