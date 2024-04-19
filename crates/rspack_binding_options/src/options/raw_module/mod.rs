@@ -182,7 +182,6 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
           )
         })?;
         let reg = rspack_regex::RspackRegex::with_flags(&reg_matcher.source, &reg_matcher.flags)?;
-        tracing::debug!(regex_matcher = ?x.regexp_matcher, algo_type = ?reg.algo);
         Self::Regexp(reg)
       },
       "logical" => {
@@ -520,6 +519,7 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
 #[serde(rename_all = "camelCase")]
 #[napi(object, object_to_js = false)]
 pub struct RawAssetGeneratorOptions {
+  pub emit: Option<bool>,
   pub filename: Option<String>,
   pub public_path: Option<String>,
   #[derivative(Debug = "ignore")]
@@ -533,6 +533,7 @@ pub struct RawAssetGeneratorOptions {
 impl From<RawAssetGeneratorOptions> for AssetGeneratorOptions {
   fn from(value: RawAssetGeneratorOptions) -> Self {
     Self {
+      emit: value.emit,
       filename: value.filename.map(|i| i.into()),
       public_path: value.public_path.map(|i| i.into()),
       data_url: value
@@ -569,6 +570,7 @@ impl From<RawAssetInlineGeneratorOptions> for AssetInlineGeneratorOptions {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawAssetResourceGeneratorOptions {
+  pub emit: Option<bool>,
   pub filename: Option<String>,
   pub public_path: Option<String>,
 }
@@ -576,6 +578,7 @@ pub struct RawAssetResourceGeneratorOptions {
 impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
   fn from(value: RawAssetResourceGeneratorOptions) -> Self {
     Self {
+      emit: value.emit,
       filename: value.filename.map(|i| i.into()),
       public_path: value.public_path.map(|i| i.into()),
     }

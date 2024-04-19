@@ -1,0 +1,55 @@
+# Case banner: Step 1
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 550
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+		
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./file.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+global.bannerIndex = typeof global.bannerIndex === 'number' ? global.bannerIndex + 1 : 0;
+self["webpackHotUpdate"]('main', {
+"./file.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: function() { return value; }
+});
+const value = 1;
+}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+!function() {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+}();
+
+}
+);
+```

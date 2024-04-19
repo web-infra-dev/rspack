@@ -264,7 +264,7 @@ module.exports = {
 
 ### 迁移 builtin options 到 builtin plugins
 
-Rspack 在 v0.4.0 中废弃了部分 builtin options 并迁移至 rspack [内部插件](/config/plugins.html#%E5%86%85%E9%83%A8%E6%8F%92%E4%BB%B6)。
+Rspack 在 v0.4.0 中废弃了部分 builtin options 并迁移至 rspack [内部插件](/config/plugins)。
 
 目前，rspack 的内部插件分为两类：
 
@@ -285,7 +285,7 @@ module.exports = {
 }
 ```
 
-对于 `builtins.html` 可以直接迁移到 [HtmlRspackPlugin](/config/plugins.html#htmlrspackplugin)：
+对于 `builtins.html` 可以直接迁移到 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin)：
 
 ```diff
 + const rspack = require("@rspack/core")
@@ -311,9 +311,9 @@ module.exports = {
 };
 ```
 
-对于 `builtins.copy` 可以直接迁移到 [CopyRspackPlugin](/config/plugins.html#copyrspackplugin)。
+对于 `builtins.copy` 可以直接迁移到 [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)。
 
-原先的 `builtins.minifyOptions` 我们提供了 [SwcJsMinimizerRspackPlugin](/config/plugins.html#swcjsminimizerrspackplugin)：
+原先的 `builtins.minifyOptions` 我们提供了 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)：
 
 ```js
 const rspack = require('@rspack/core');
@@ -328,4 +328,4 @@ module.exports = {
 };
 ```
 
-其他内容可以直接参考 rspack [内部插件](/config/plugins.html#%E5%86%85%E9%83%A8%E6%8F%92%E4%BB%B6)进行迁移，也可以在升级到 v0.4.0 后根据 CLI 提示完成操作。
+其他内容可以直接参考 rspack [内部插件](/config/plugins)进行迁移，也可以在升级到 v0.4.0 后根据 CLI 提示完成操作。

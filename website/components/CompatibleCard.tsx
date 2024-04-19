@@ -54,6 +54,17 @@ export const PluginCompatibleCardList = ({ lang }: { lang: 'zh' | 'en' }) => {
       status: i18n[lang]['included'],
     },
     {
+      name: 'webpack.IgnorePlugin',
+      url: 'https://webpack.js.org/plugins/ignore-plugin/',
+      status: i18n[lang]['compatible'],
+      description: i18n[lang]['ignore-plugin-desc'],
+    },
+    {
+      name: 'webpack.NormalModuleReplacementPlugin',
+      url: 'https://webpack.js.org/plugins/normal-module-replacement-plugin/',
+      status: i18n[lang]['included'],
+    },
+    {
       name: 'html-webpack-plugin',
       url: 'https://www.npmjs.com/package/html-webpack-plugin',
       status: i18n[lang]['compatible'],
@@ -110,7 +121,7 @@ export const PluginCompatibleCardList = ({ lang }: { lang: 'zh' | 'en' }) => {
     .sort((item1, item2) => {
       return item1.status > item2.status ? 1 : -1;
     })
-    .map((item) => <CompatibleCardItem key={item.name} {...item} />);
+    .map(item => <CompatibleCardItem key={item.name} {...item} />);
 };
 
 export const LoaderCompatibleCardList = ({ lang }: { lang: 'zh' | 'en' }) => {
@@ -212,7 +223,7 @@ export const LoaderCompatibleCardList = ({ lang }: { lang: 'zh' | 'en' }) => {
       url: 'https://www.npmjs.com/package/node-loader',
     },
   ];
-  return loaderList.map((item) => (
+  return loaderList.map(item => (
     <CompatibleCardItem key={item.name} {...item} />
   ));
 };

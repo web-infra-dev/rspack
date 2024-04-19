@@ -4,47 +4,52 @@ import { Tabs, Tab, PackageManagerTabs } from '@theme';
 
 Get up to speed quickly with a new Rspack based project.
 
----
-
 ## Creating project using scaffolding
 
 ### Using Rsbuild
 
-You can scaffold a simple project setup using [Rsbuild](#rsbuild) directly. Invoke the following command:
+Rsbuild is a new generation build tool based on Rspack and developed by the Rspack team. It provides out-of-the-box build capabilities that can significantly improve the development experience and lower the barrier to get started.
+
+We recommend using [Rsbuild](https://rsbuild.dev/) to create new projects, simply run the following command:
 
 <PackageManagerTabs command="create rsbuild@latest" />
 
-Then follow the input prompts in your terminal.
+> For more information, refer to [Rsbuild - Quick Start](https://rsbuild.dev/guide/start/quick-start).
 
 ### Using the Rspack CLI
 
-You can scaffold a simple project setup using the Rspack CLI directly. Invoke the following command:
+Rspack CLI is a tool comparable to Webpack CLI, offering the basic `serve` and `build` commands.
+
+Run the following command to create an Rspack CLI project:
 
 <PackageManagerTabs command="create rspack@latest" />
 
-Then follow the input prompts in your terminal.
+Then follow the prompts in your terminal.
 
----
+## Online examples
 
-## Community Toolchain
+We provide an online example based on Rsbuild. The example gives an intuitive feel for the build performance of Rspack and the development experience of Rsbuild:
+
+- [Rsbuild codesandbox example](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
+
+## Migrating from existing projects
+
+If you need to migrate from an existing project to Rspack or Rsbuild, you can refer to the following guides:
+
+- [Migrating from Webpack to Rspack](/guide/migrate-from-webpack)
+- [Migrating from Webpack to Rsbuild](https://rsbuild.dev/guide/migration/webpack)
+- [Migrating from Vue CLI to Rsbuild](https://rsbuild.dev/guide/migration/vue-cli)
+- [Migrating from Create React App to Rsbuild](https://rsbuild.dev/guide/migration/cra)
+- [Migrating from Storybook](/guide/migrate-storybook)
+
+## Community toolchain
 
 There are already some Rspack-based toolchains in the community:
 
-- If you want to build a web application, we recommend using [Rsbuild](https://rsbuild.dev/).
 - If you want to build a static site, you can try [Rspress](https://rspress.dev).
 - If you want to analyze the build process and build artifacts, you can try [Rsdoctor](https://rsdoctor.dev).
 - If you're looking for a full-stack React framework, you can try [Modern.js](https://modernjs.dev/en/).
 - If you want a fast and production-ready setup that works in a monorepo, you can try [Nx](https://nx.dev).
-
-### Rsbuild
-
-**[Rsbuild](https://github.com/web-infra-dev/rsbuild) is an Rspack-based build tool for the web.** The main goal of Rsbuild is to provide out-of-the-box build capabilities for Rspack users, allowing developers to start a web project with zero configuration.
-
-Rsbuild integrates high-performance Rust-based tools from the community, including Rspack and SWC, to provide first-class build speed and development experience.
-
-Learn more about Rsbuild in the [official documentation](https://rsbuild.dev/).
-
-> If you need to migrate a Create React App (CRA) application to Rspack, you can follow the [CRA migration guide](/guide/migrate-from-cra) and use Rsbuild for a quick migration.
 
 ### Rspress
 

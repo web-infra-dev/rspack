@@ -1,21 +1,31 @@
+use std::path::PathBuf;
+
 use rspack_core::{ChunkGraph, Dependency, Module, ModuleGraph, ParserAndGenerator};
 use rspack_error::TWithDiagnosticArray;
 use rustc_hash::FxHashMap;
-use serde::Deserialize;
 
 use crate::css_dependency::CssDependency;
 
-#[derive(Deserialize)]
-struct CssExtractJsonData {
-  #[serde(rename = "css-extract-rspack-plugin")]
-  value: String,
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CssExtractJsonData {
+  pub identifier: String,
+  pub content: String,
+  pub context: String,
+  pub media: String,
+  pub supports: String,
+  pub source_map: String,
+  pub identifier_index: u32,
+  pub filepath: PathBuf,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CssExtractJsonDataList(pub Vec<CssExtractJsonData>);
 
 #[derive(Debug)]
 pub(crate) struct CssExtractParserAndGenerator {
   orig_parser_generator: Box<dyn ParserAndGenerator>,
   #[allow(clippy::vec_box)]
-  cache: FxHashMap<String, Vec<Box<CssDependency>>>,
+  cache: FxHashMap<CssExtractJsonDataList, Vec<Box<CssDependency>>>,
 }
 
 impl CssExtractParserAndGenerator {
@@ -46,51 +56,46 @@ impl ParserAndGenerator for CssExtractParserAndGenerator {
     &mut self,
     parse_context: rspack_core::ParseContext,
   ) -> rspack_error::Result<rspack_error::TWithDiagnosticArray<rspack_core::ParseResult>> {
-    let deps = if let Some(additional_data) = parse_context.additional_data.get::<String>() {
+    let deps = if let Some(additional_data) = parse_context
+      .additional_data
+      .get::<CssExtractJsonDataList>()
+    {
       if let Some(deps) = self.cache.get(additional_data) {
         deps.clone()
-      } else if let Ok(data) = serde_json::from_str::<CssExtractJsonData>(additional_data) {
-        // parse the css data from js loader
-        // data:
-        // [identifier]__RSPACK_CSS_EXTRACT_SEP__
-        // [content]__RSPACK_CSS_EXTRACT_SEP__
-        // [context]__RSPACK_CSS_EXTRACT_SEP__
-        // [media]__RSPACK_CSS_EXTRACT_SEP__
-        // [supports]__RSPACK_CSS_EXTRACT_SEP__
-        // [sourceMap]__RSPACK_CSS_EXTRACT_SEP__
-        // [identifier]__RSPACK_CSS_EXTRACT_SEP__ ... repeated
-        // [content]__RSPACK_CSS_EXTRACT_SEP__
-        let mut list = data.value.split("__RSPACK_CSS_EXTRACT_SEP__");
-
-        let mut deps = vec![];
-        let mut idx = 0;
-        while let Some(identifier) = list.next() {
-          #[allow(clippy::unwrap_in_result)]
-          {
-            deps.push(Box::new(CssDependency::new(
-              identifier.into(),
-              list.next().unwrap().into(),
-              list.next().unwrap().into(),
-              list.next().unwrap().into(),
-              list.next().unwrap().into(),
-              list.next().unwrap().into(),
-              list
-                .next()
-                .unwrap()
-                .parse()
-                .expect("Cannot parse identifier_index, this should never happen"),
-              idx,
-              list.next().unwrap().into(),
-            )));
-          }
-          idx += 1;
-        }
-
-        self.cache.insert(data.value.clone(), deps.clone());
-
-        deps
       } else {
-        vec![]
+        let mut idx = 0;
+        let deps = additional_data
+          .0
+          .iter()
+          .map(
+            |CssExtractJsonData {
+               identifier,
+               content,
+               context,
+               media,
+               supports,
+               source_map,
+               identifier_index,
+               filepath,
+             }| {
+              let dep = Box::new(CssDependency::new(
+                identifier.into(),
+                content.clone(),
+                context.clone(),
+                media.clone(),
+                supports.clone(),
+                source_map.clone(),
+                *identifier_index,
+                idx,
+                filepath.clone(),
+              ));
+              idx += 1;
+              dep
+            },
+          )
+          .collect::<Vec<_>>();
+        self.cache.insert(additional_data.clone(), deps.clone());
+        deps
       }
     } else {
       vec![]

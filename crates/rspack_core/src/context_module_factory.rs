@@ -93,7 +93,6 @@ impl ContextModuleFactory {
       .dependency
       .as_context_dependency()
       .expect("should be context dependency");
-    let factory_meta = Default::default();
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
     // let context_dependencies = Default::default();
@@ -181,8 +180,8 @@ impl ContextModuleFactory {
         ContextModuleOptions {
           addon: loader_request.to_string(),
           resource: resource.path.to_string_lossy().to_string(),
-          resource_query: Some(resource.query),
-          resource_fragment: Some(resource.fragment),
+          resource_query: resource.query,
+          resource_fragment: resource.fragment,
           resolve_options: data.resolve_options.clone(),
           context_options: dependency.options().clone(),
         },
@@ -211,7 +210,6 @@ impl ContextModuleFactory {
 
     Ok(ModuleFactoryResult {
       module: Some(module),
-      factory_meta,
       from_cache,
     })
   }

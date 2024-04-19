@@ -2,7 +2,8 @@ import {
 	ECompilerType,
 	ITestEnv,
 	ITestRunner,
-	TCompilerOptions
+	TCompilerOptions,
+	TCompilerStatsCompilation
 } from "../type";
 import { BasicRunnerFactory } from "./basic";
 import { NormalRunner } from "./runner/normal";
@@ -12,6 +13,7 @@ export class NormalRunnerFactory<
 > extends BasicRunnerFactory<T> {
 	protected createRunner(
 		file: string,
+		stats: TCompilerStatsCompilation<T>,
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {

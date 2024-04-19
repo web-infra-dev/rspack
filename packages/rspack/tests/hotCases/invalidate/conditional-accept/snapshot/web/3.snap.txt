@@ -1,0 +1,49 @@
+# Case conditional-accept: Step 3
+
+## Changed Files
+- data.json
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 285
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+		
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./data.json
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["webpackHotUpdate"]('main', {
+"./data.json": (function (module) {
+"use strict";
+module.exports = {"a":3,"b":3}}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+!function() {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+}();
+
+}
+);
+```

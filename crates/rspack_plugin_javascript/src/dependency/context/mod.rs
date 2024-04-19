@@ -8,7 +8,6 @@ pub use import_context_dependency::ImportContextDependency;
 pub use import_meta_context_dependency::ImportMetaContextDependency;
 pub use require_context_dependency::RequireContextDependency;
 use rspack_core::ContextOptions;
-use rspack_regex::regexp_as_str;
 
 fn create_resource_identifier_for_context_dependency(
   context: Option<&str>,
@@ -20,7 +19,7 @@ fn create_resource_identifier_for_context_dependency(
   let regexp = options
     .reg_exp
     .as_ref()
-    .map(regexp_as_str)
+    .map(|r| r.to_string())
     .unwrap_or_default();
   let include = options.include.as_deref().unwrap_or_default();
   let exclude = options.exclude.as_deref().unwrap_or_default();

@@ -34,7 +34,7 @@ function component() {
   const element = document.createElement('pre');
 
   element.innerHTML = ['Hello webpack!', '5 cubed is equal to ' + cube(5)].join(
-    '\n\n'
+    '\n\n',
   );
 
   return element;
@@ -197,7 +197,7 @@ export const multiply = (a, b) => a * b;
 
 ```js title=node_modules/math/add.js
 const randomDate = Date.now();
-export const addRandomDate = (a) => a + randomDate;
+export const addRandomDate = a => a + randomDate;
 export const add = (a, b) => a + b;
 ```
 
@@ -210,7 +210,7 @@ var __webpack_modules__ = {
   './node_modules/math/index.js': function (
     module,
     exports,
-    __webpack_require__
+    __webpack_require__,
   ) {
     'use strict';
     Object.defineProperty(exports, '__esModule', {
@@ -218,13 +218,13 @@ var __webpack_modules__ = {
     });
     __webpack_require__.es(
       __webpack_require__('./node_modules/math/multiply.js'),
-      exports
+      exports,
     );
   },
   './node_modules/math/multiply.js': function (
     module,
     exports,
-    __webpack_require__
+    __webpack_require__,
   ) {
     'use strict';
     Object.defineProperty(exports, '__esModule', {
@@ -373,7 +373,7 @@ console.log(a);
 
 ```diff title=a.js
 - import { b } from './sdk.js';
-+ import { b } from './a.js';
++ import { b } from './b.js';
 export const a = b;
 ```
 
@@ -389,4 +389,4 @@ console.log(a);
 
 这张图演示了重导出优化的过程：
 
-![](https://rsfamily-design-resources.netlify.app/rspack/assets/rspack-reexports-optimization.png)
+![](https://assets.rspack.dev/rspack/assets/rspack-reexports-optimization.png)

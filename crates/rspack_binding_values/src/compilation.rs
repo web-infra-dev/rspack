@@ -20,7 +20,7 @@ use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
 use crate::{
   chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup,
-  JsCompatSource, JsStats, PathData, ToJsCompatSource,
+  JsCompatSource, JsPathData, JsStats, ToJsCompatSource,
 };
 
 #[napi(object_from_js = false)]
@@ -355,9 +355,9 @@ impl JsCompilation {
   #[napi]
   pub fn get_asset_path(
     &self,
-    #[napi(ts_arg_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
+    #[napi(ts_arg_type = "string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string)")]
     filename: LocalJsFilename,
-    data: PathData,
+    data: JsPathData,
   ) -> napi::Result<String> {
     self
       .0
@@ -367,9 +367,9 @@ impl JsCompilation {
   #[napi]
   pub fn get_asset_path_with_info(
     &self,
-    #[napi(ts_arg_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
+    #[napi(ts_arg_type = "string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string)")]
     filename: LocalJsFilename,
-    data: PathData,
+    data: JsPathData,
   ) -> napi::Result<PathWithInfo> {
     let path_and_asset_info = self
       .0
@@ -380,9 +380,9 @@ impl JsCompilation {
   #[napi]
   pub fn get_path(
     &self,
-    #[napi(ts_arg_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
+    #[napi(ts_arg_type = "string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string)")]
     filename: LocalJsFilename,
-    data: PathData,
+    data: JsPathData,
   ) -> napi::Result<String> {
     self.0.get_path(&filename.into(), data.as_core_path_data())
   }
@@ -390,9 +390,9 @@ impl JsCompilation {
   #[napi]
   pub fn get_path_with_info(
     &self,
-    #[napi(ts_arg_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
+    #[napi(ts_arg_type = "string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string)")]
     filename: LocalJsFilename,
-    data: PathData,
+    data: JsPathData,
   ) -> napi::Result<PathWithInfo> {
     let path_and_asset_info = self
       .0

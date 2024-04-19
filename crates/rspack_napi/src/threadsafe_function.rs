@@ -56,7 +56,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> FromNapiValue for ThreadsafeFunction<
     Ok(Self {
       inner,
       env,
-      resolver: JsCallback::new(env)?,
+      resolver: unsafe { JsCallback::new(env) }?,
       _data: PhantomData,
     })
   }

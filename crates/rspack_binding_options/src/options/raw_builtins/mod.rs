@@ -10,7 +10,7 @@ mod raw_progress;
 mod raw_swc_js_minimizer;
 mod raw_to_be_deprecated;
 
-use napi::{bindgen_prelude::FromNapiValue, JsUnknown};
+use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use rspack_core::{BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin};
 use rspack_error::Result;
@@ -46,8 +46,8 @@ use rspack_plugin_library::enable_library_plugin;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
 use rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin;
 use rspack_plugin_mf::{
-  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ProvideSharedPlugin,
-  ShareRuntimePlugin,
+  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationRuntimePlugin,
+  ProvideSharedPlugin, ShareRuntimePlugin,
 };
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
@@ -77,9 +77,10 @@ use self::{
   raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
 };
 use crate::{
-  plugins::JsLoaderResolverPlugin, JsLoaderRunner, RawEntryPluginOptions,
-  RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
+  plugins::{CssExtractRspackAdditionalDataPlugin, JsLoaderResolverPlugin},
+  JsLoaderRunner, RawEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
+  RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions,
+  RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -113,6 +114,7 @@ pub enum BuiltinPluginName {
   ContainerReferencePlugin,
   ProvideSharedPlugin,
   ConsumeSharedPlugin,
+  ModuleFederationRuntimePlugin,
   NamedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   NamedChunkIdsPlugin,
@@ -163,7 +165,7 @@ pub struct BuiltinPlugin {
 }
 
 impl BuiltinPlugin {
-  pub fn append_to(self, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
+  pub fn append_to(self, env: Env, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
     match self.name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
@@ -295,6 +297,9 @@ impl BuiltinPlugin {
         )
         .boxed(),
       ),
+      BuiltinPluginName::ModuleFederationRuntimePlugin => {
+        plugins.push(ModuleFederationRuntimePlugin::default().boxed())
+      }
       BuiltinPluginName::NamedModuleIdsPlugin => {
         plugins.push(NamedModuleIdsPlugin::default().boxed())
       }
@@ -420,6 +425,8 @@ impl BuiltinPlugin {
         )
       }
       BuiltinPluginName::CssExtractRspackPlugin => {
+        let additional_data_plugin = CssExtractRspackAdditionalDataPlugin::new(env)?.boxed();
+        plugins.push(additional_data_plugin);
         let plugin = rspack_plugin_extract_css::plugin::PluginCssExtract::new(
           downcast_into::<RawCssExtractPluginOption>(self.options)?.into(),
         )

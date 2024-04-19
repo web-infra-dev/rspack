@@ -4,10 +4,10 @@ use std::path::PathBuf;
 use once_cell::sync::Lazy;
 use rspack_core::rspack_sources::Source;
 use rspack_core::{
-  impl_build_info_meta, impl_source_map_config, AsyncDependenciesBlockIdentifier, BuildContext,
+  impl_module_meta_info, impl_source_map_config, AsyncDependenciesBlockIdentifier, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, CompilerOptions,
-  ConcatenationScope, DependenciesBlock, DependencyId, DependencyType, Module, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, RuntimeSpec, SourceType,
+  ConcatenationScope, DependenciesBlock, DependencyId, DependencyType, FactoryMeta, Module,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic};
@@ -32,8 +32,9 @@ pub(crate) struct CssModule {
   pub(crate) source_map: String,
   pub(crate) identifier_index: u32,
 
-  pub build_info: Option<BuildInfo>,
-  pub build_meta: Option<BuildMeta>,
+  factory_meta: Option<FactoryMeta>,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
@@ -74,6 +75,7 @@ impl CssModule {
       identifier_index: dep.identifier_index,
       blocks: vec![],
       dependencies: vec![],
+      factory_meta: None,
       build_info: None,
       build_meta: None,
       source_map_kind: rspack_util::source_map::SourceMapKind::None,
@@ -95,7 +97,7 @@ impl CssModule {
 
 #[async_trait::async_trait]
 impl Module for CssModule {
-  impl_build_info_meta!();
+  impl_module_meta_info!();
 
   fn readable_identifier(&self, context: &rspack_core::Context) -> std::borrow::Cow<str> {
     std::borrow::Cow::Owned(format!(

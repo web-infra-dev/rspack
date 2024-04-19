@@ -419,8 +419,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
     } else {
       if !force_side_effects
-        && match mgm.factory_meta {
-          Some(ref meta) => meta.side_effect_free.unwrap_or_default(),
+        && match module.factory_meta() {
+          Some(meta) => meta.side_effect_free.unwrap_or_default(),
           None => false,
         }
       {

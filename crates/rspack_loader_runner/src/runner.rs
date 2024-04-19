@@ -464,7 +464,7 @@ impl<C> TryFrom<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
   }
 }
 
-pub async fn run_loaders<C: Send>(
+pub async fn run_loaders<C: 'static + Send>(
   loaders: &[Arc<dyn Loader<C>>],
   resource_data: &mut ResourceData,
   plugins: &[&dyn LoaderRunnerPlugin<Context = C>],

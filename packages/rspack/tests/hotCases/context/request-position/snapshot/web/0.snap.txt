@@ -1,0 +1,13 @@
+# Case request-position: Step 0
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: lib_a_js.chunk.CURRENT_HASH.js
+
+## Manifest
+
+		
+## Update

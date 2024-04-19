@@ -7,17 +7,16 @@ hero:
   name: Rspack
   text: A fast Rust-based web bundler
   tagline: Build a high-performance frontend toolchain
-  # TODO logo
   image:
-    src: /logo.png
+    src: https://assets.rspack.dev/rspack/rspack-logo.svg
     alt: logo
   actions:
     - theme: brand
-      text: Introduction
-      link: /guide/introduction
-    - theme: alt
-      text: Quick Start
+      text: Get Started
       link: /guide/quick-start
+    - theme: alt
+      text: Learn More
+      link: /guide/introduction
 
 features:
   - title: Fast Startup
@@ -35,7 +34,7 @@ features:
   - title: Batteries Included
     details: Out-of-the-box support for TypeScript, JSX, CSS, CSS Modules, Sass, and more.
     icon: 🎨
-    link: /guide/language-support
+    link: /guide/typescript
   - title: Production Optimizations
     details: Core optimizations such as tree shaking and minification have integrated implementations rather than deferring to plugins.
     icon: 🛠️

@@ -4,8 +4,25 @@ import { ApiMeta } from '../../../../components/ApiMeta.tsx';
 
 <ApiMeta addedVersion={'0.3.3'} />
 
-此插件用来添加热模块更新功能，添加后会在产物中加入热更所需的运行时模块。
+此插件用于实现 HMR（Hot Module Replacement）。
+
+:::warning 警告
+HMR **绝对不能**被用在生产环境。
+:::
+
+启用 HMR 很容易，且在大多数情况下不需要任何配置。
 
 ```js
-new rspack.HotModuleReplacementPlugin();
+new rspack.HotModuleReplacementPlugin({
+  // 选项...
+});
 ```
+
+## 选项
+
+### strictModuleErrorHandling
+
+按照 ES Module 规范处理 module 加载时的错误，会有性能损失。
+
+- **类型：** `boolean`
+- **默认值：** `false`

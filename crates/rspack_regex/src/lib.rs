@@ -1,6 +1,6 @@
 #![feature(let_chains)]
 
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use rspack_error::Error;
 use swc_core::ecma::ast::Regex as SwcRegex;
@@ -12,13 +12,16 @@ mod algo;
 /// Using wrapper type required by [TryFrom] trait
 #[derive(Clone, Hash)]
 pub struct RspackRegex {
-  pub algo: Algo,
-  raw: String,
+  algo: Box<Algo>,
+  source: String,
+  flags: String,
 }
 
 impl Debug for RspackRegex {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_tuple("RspackRegex").field(&self.raw).finish()
+    f.debug_tuple("RspackRegex")
+      .field(&self.to_string())
+      .finish()
   }
 }
 
@@ -38,19 +41,31 @@ impl RspackRegex {
   pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
     let mut chars = flags.chars().collect::<Vec<char>>();
     chars.sort_unstable();
-    let raw = if chars.is_empty() {
-      expr.to_string()
-    } else {
-      format!("{expr}|{}", chars.into_iter().collect::<String>())
-    };
     Ok(Self {
-      raw,
-      algo: Algo::new(expr, flags)?,
+      flags: chars.into_iter().collect::<String>(),
+      source: expr.to_string(),
+      algo: Box::new(Algo::new(expr, flags)?),
     })
   }
 
   pub fn new(expr: &str) -> Result<Self, Error> {
     Self::with_flags(expr, "")
+  }
+
+  pub fn to_pretty_string(&self, strip_slash: bool) -> String {
+    if strip_slash {
+      format!("{}{}", self.source, self.flags)
+    } else {
+      self.to_string()
+    }
+    .replace('!', "%21")
+    .replace('|', "%7C")
+  }
+}
+
+impl Display for RspackRegex {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "/{}/{}", self.source, self.flags)
   }
 }
 
@@ -68,8 +83,4 @@ impl TryFrom<SwcRegex> for RspackRegex {
   fn try_from(value: SwcRegex) -> Result<Self, Self::Error> {
     RspackRegex::with_flags(value.exp.as_ref(), value.flags.as_ref())
   }
-}
-
-pub fn regexp_as_str(reg: &RspackRegex) -> &str {
-  &reg.raw
 }

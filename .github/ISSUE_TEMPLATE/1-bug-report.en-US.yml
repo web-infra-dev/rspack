@@ -47,7 +47,7 @@ body:
       description: Please provide the simplest steps so that we can quickly reproduce the problem.
       placeholder: |
         For example:
-        1. run `yarn dev`
-        2. `xxx` error occurred
+        1. Run `npm run dev`
+        2. Find some error messages
     validations:
       required: true

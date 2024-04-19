@@ -20,13 +20,19 @@ use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
-use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::Atom};
+use swc_core::{
+  css::{parser::parser::ParserConfig, visit::VisitWith},
+  ecma::atoms::Atom,
+};
 
-use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
 use crate::{
   dependency::{CssComposeDependency, CssModuleExportDependency},
   swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig},
   utils::css_modules_exports_to_concatenate_module_string,
+};
+use crate::{
+  utils::{css_modules_exports_to_string, ModulesTransformConfig},
+  visitors::ExportsAnalyzer,
 };
 use crate::{
   utils::{export_locals_convention, stringify_css_modules_exports_elements},
@@ -120,10 +126,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let mut diagnostic_vec = vec![];
 
     let mut exports_pairs = vec![];
-    if is_enable_css_modules {
+    let mut presentational_dependencies = None;
+    let mut exports = if is_enable_css_modules {
       let mut stylesheet = swc_compiler.parse_file(
         &resource_path.to_string_lossy(),
-        source_code,
+        source_code.clone(),
         ParserConfig {
           css_modules: is_enable_css_modules,
           legacy_ie: true,
@@ -142,7 +149,38 @@ impl ParserAndGenerator for CssParserAndGenerator {
           compiler_options,
         ),
       );
-      let mut exports: IndexMap<Atom, _> = result.renamed.into_iter().collect();
+      let exports: IndexMap<Atom, _> = result.renamed.into_iter().collect();
+
+      let (code, map) = swc_compiler.codegen(
+        &stylesheet,
+        SwcCssSourceMapGenConfig {
+          enable: !matches!(module_source_map_kind, SourceMapKind::None),
+          inline_sources_content: false,
+          emit_columns: matches!(module_source_map_kind, SourceMapKind::SourceMap),
+        },
+      )?;
+      source_code = code;
+      source_map = map;
+      Some(exports)
+    } else {
+      None
+    };
+
+    let new_stylesheet_ast = SwcCssCompiler::default().parse_file(
+      &parse_context.resource_data.resource_path.to_string_lossy(),
+      source_code.clone(),
+      Default::default(),
+    )?;
+
+    if let Some(exports) = &mut exports {
+      let mut exports_analyzer = ExportsAnalyzer::new(&source_code);
+      new_stylesheet_ast.visit_with(&mut exports_analyzer);
+      presentational_dependencies = Some(exports_analyzer.presentation_deps);
+
+      for (key, value) in exports_analyzer.exports {
+        exports.insert(key, vec![value]);
+      }
+
       exports.sort_keys();
       let normalized_exports = IndexMap::from_iter(
         exports
@@ -155,30 +193,15 @@ impl ParserAndGenerator for CssParserAndGenerator {
           })
           .collect::<Vec<_>>(),
       );
+
       for (k, v) in normalized_exports.iter() {
         for kk in k {
           exports_pairs.push((kk.to_string(), v[0].0.to_owned()));
         }
       }
+
       self.exports = Some(normalized_exports);
-
-      let (code, map) = swc_compiler.codegen(
-        &stylesheet,
-        SwcCssSourceMapGenConfig {
-          enable: !matches!(module_source_map_kind, SourceMapKind::None),
-          inline_sources_content: false,
-          emit_columns: matches!(module_source_map_kind, SourceMapKind::SourceMap),
-        },
-      )?;
-      source_code = code;
-      source_map = map;
     }
-
-    let new_stylesheet_ast = SwcCssCompiler::default().parse_file(
-      &parse_context.resource_data.resource_path.to_string_lossy(),
-      source_code.clone(),
-      Default::default(),
-    )?;
 
     let mut dependencies = analyze_dependencies(
       &new_stylesheet_ast,
@@ -251,7 +274,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       ParseResult {
         dependencies,
         blocks: vec![],
-        presentational_dependencies: vec![],
+        presentational_dependencies: presentational_dependencies.unwrap_or_default(),
         source: new_source,
         analyze_result: Default::default(),
         side_effects_bailout: None,

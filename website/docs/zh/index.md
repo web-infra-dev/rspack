@@ -13,11 +13,11 @@ hero:
     alt: logo
   actions:
     - theme: brand
-      text: 介绍
-      link: /zh/guide/introduction
-    - theme: alt
       text: 快速开始
       link: /zh/guide/quick-start
+    - theme: alt
+      text: 深入了解
+      link: /zh/guide/introduction
 
 features:
   - title: 启动速度极快
@@ -35,7 +35,7 @@ features:
   - title: 内置常见构建能力
     details: 对 Typescript、JSX、CSS、CSS Modules、Sass 等提供开箱即用的支持。
     icon: 🎨
-    link: /zh/guide/language-support
+    link: /zh/guide/typescript
   - title: 默认生产优化
     details: 默认内置多种优化策略，如 Tree Shaking、代码压缩等等。
     icon: 🛠️

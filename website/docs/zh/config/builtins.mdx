@@ -19,12 +19,14 @@ _Builtins_ 提供的内置功能在未来可能会发生变化，或被更好的
 
 ## builtins.banner
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [`BannerPlugin`](/config/plugins.html#bannerplugin)。
+请迁移至 [`BannerPlugin`](/plugins/webpack/banner-plugin)。
 :::
 
 - **类型：**
@@ -131,9 +133,11 @@ module.exports = {
 
 ## builtins.emotion
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
 请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
@@ -239,9 +243,11 @@ export type ImportMap =
 
 ## builtins.presetEnv
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
 请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
@@ -328,12 +334,14 @@ module.exports = {
 
 ## builtins.html
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [`HtmlRspackPlugin`](/config/plugins.html#htmlrspackplugin)。
+请迁移至 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin)。
 :::
 
 该配置可以快速创建与 Rspack 产物关联的 HTML 文件。
@@ -475,12 +483,14 @@ type BuiltinsHtml = Array<{
 
 ## builtins.minifyOptions
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [`SwcJsMinimizerRspackPlugin`](/config/plugins.html#swcjsminimizerrspackplugin)。
+请迁移至 [`SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin)。
 :::
 
 设置内置压缩器配置。
@@ -576,12 +586,14 @@ type BuiltinsMinifyOptions = {
 
 ## builtins.define
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [`DefinePlugin`](/config/plugins.html#defineplugin)。
+请迁移至 [`DefinePlugin`](/plugins/webpack/define-plugin)。
 :::
 
 此选项将会在编译时将代码中的变量替换为其他值或表达式。
@@ -631,9 +643,11 @@ console.log(undefined === undefined);
 
 ## builtins.react
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
 请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
@@ -740,9 +754,11 @@ type ReactOptions = {
 
 ## builtins.decorator
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
 请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
@@ -883,12 +899,14 @@ type BuiltinsCssModules = {
 
 ## builtins.progress
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [`ProgressPlugin`](/config/plugins.html#progressplugin)。
+请迁移至 [`ProgressPlugin`](/plugins/webpack/progress-plugin)。
 :::
 
 此选项可以用来配置进度条，false 表示不显示进度条。
@@ -934,9 +952,11 @@ type BuiltinsCssModules = {
 
 ## builtins.devFriendlySplitChunks
 
-<ApiMeta deprecatedVersion="0.3.12" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.12"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 是否开启对开发友好的分包算法。
 
@@ -946,12 +966,14 @@ type BuiltinsCssModules = {
 
 ## builtins.copy
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [`CopyRspackPlugin`](/config/plugins.html#copyrspackplugin)。
+请迁移至 [`CopyRspackPlugin`](/plugins/rspack/copy-rspack-plugin)。
 :::
 
 import WebpackLicense from '../../../components/webpack-license';
@@ -1118,9 +1140,11 @@ module.exports = {
 
 ## builtins.relay
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
 请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
@@ -1147,9 +1171,11 @@ type RelayOptions =
 
 ## builtins.pluginImport
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
 请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
@@ -1263,12 +1289,14 @@ import 'antd/es/button/style';
 
 ## builtins.provide
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [`ProvidePlugin`](/config/plugins.html#provideplugin)。
+请迁移至 [`ProvidePlugin`](/plugins/webpack/provide-plugin)。
 :::
 
 自动的将全局变量转换为模块导入，如下配置：

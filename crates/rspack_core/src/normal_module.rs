@@ -28,12 +28,13 @@ use serde_json::json;
 
 use crate::{
   add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
-  impl_build_info_meta, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
+  impl_module_meta_info, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
   CompilerContext, ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
-  DependencyTemplate, GenerateContext, GeneratorOptions, LibIdentOptions, Module, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  ParserOptions, Resolve, RspackLoaderRunnerPlugin, RuntimeGlobals, RuntimeSpec, SourceType,
+  DependencyTemplate, FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -80,12 +81,14 @@ impl ModuleIssuer {
 define_hook!(NormalModuleReadResource: AsyncSeriesBail(resource_data: &mut ResourceData) -> Content);
 define_hook!(NormalModuleLoader: SyncSeries(loader_context: &mut LoaderContext<CompilerContext>));
 define_hook!(NormalModuleBeforeLoaders: SyncSeries(module: &mut NormalModule));
+define_hook!(NormalModuleAdditionalData: AsyncSeries(additional_data: &mut AdditionalData));
 
 #[derive(Debug, Default)]
 pub struct NormalModuleHooks {
   pub read_resource: NormalModuleReadResourceHook,
   pub loader: NormalModuleLoaderHook,
   pub before_loaders: NormalModuleBeforeLoadersHook,
+  pub additional_data: NormalModuleAdditionalDataHook,
 }
 
 #[impl_source_map_config]
@@ -138,6 +141,7 @@ pub struct NormalModule {
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
   presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
 
+  factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
   parsed: bool,
@@ -216,6 +220,7 @@ impl NormalModule {
       diagnostics: Mutex::new(Default::default()),
       code_generation_dependencies: None,
       presentational_dependencies: None,
+      factory_meta: None,
       build_info: None,
       build_meta: None,
       parsed: false,
@@ -331,7 +336,7 @@ pub struct LoadersShouldAlwaysGiveContent;
 
 #[async_trait::async_trait]
 impl Module for NormalModule {
-  impl_build_info_meta!();
+  impl_module_meta_info!();
 
   fn module_type(&self) -> &ModuleType {
     &self.module_type
@@ -408,7 +413,7 @@ impl Module for NormalModule {
       additional_data,
     )
     .await;
-    let (loader_result, ds) = match loader_result {
+    let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
       Err(e) => {
         let mut e = ModuleBuildError(e).boxed();
@@ -438,6 +443,12 @@ impl Module for NormalModule {
         });
       }
     };
+    build_context
+      .plugin_driver
+      .normal_module_hooks
+      .additional_data
+      .call(&mut loader_result.additional_data)
+      .await?;
     self.add_diagnostics(ds);
 
     let content = if self.module_type().is_binary() {
@@ -663,35 +674,33 @@ impl Module for NormalModule {
     module_graph: &ModuleGraph,
     module_chain: &mut HashSet<ModuleIdentifier>,
   ) -> ConnectionState {
-    if let Some(mgm) = module_graph.module_graph_module_by_identifier(&self.identifier()) {
-      if let Some(side_effect_free) = mgm.factory_meta.as_ref().and_then(|m| m.side_effect_free) {
-        return ConnectionState::Bool(!side_effect_free);
+    if let Some(side_effect_free) = self.factory_meta().and_then(|m| m.side_effect_free) {
+      return ConnectionState::Bool(!side_effect_free);
+    }
+    if let Some(side_effect_free) = self.build_meta().and_then(|m| m.side_effect_free)
+      && side_effect_free
+    {
+      // use module chain instead of is_evaluating_side_effects to mut module graph
+      if module_chain.contains(&self.identifier()) {
+        return ConnectionState::CircularConnection;
       }
-      if let Some(side_effect_free) = self.build_meta().as_ref().and_then(|m| m.side_effect_free)
-        && side_effect_free
-      {
-        // use module chain instead of is_evaluating_side_effects to mut module graph
-        if module_chain.contains(&self.identifier()) {
-          return ConnectionState::CircularConnection;
-        }
-        module_chain.insert(self.identifier());
-        let mut current = ConnectionState::Bool(false);
-        for dependency_id in self.get_dependencies().iter() {
-          if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
-            let state =
-              dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
-            if matches!(state, ConnectionState::Bool(true)) {
-              // TODO add optimization bailout
-              module_chain.remove(&self.identifier());
-              return ConnectionState::Bool(true);
-            } else if !matches!(state, ConnectionState::CircularConnection) {
-              current = add_connection_states(current, state);
-            }
+      module_chain.insert(self.identifier());
+      let mut current = ConnectionState::Bool(false);
+      for dependency_id in self.get_dependencies().iter() {
+        if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
+          let state =
+            dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
+          if matches!(state, ConnectionState::Bool(true)) {
+            // TODO add optimization bailout
+            module_chain.remove(&self.identifier());
+            return ConnectionState::Bool(true);
+          } else if !matches!(state, ConnectionState::CircularConnection) {
+            current = add_connection_states(current, state);
           }
         }
-        module_chain.remove(&self.identifier());
-        return current;
       }
+      module_chain.remove(&self.identifier());
+      return current;
     }
     ConnectionState::Bool(true)
   }

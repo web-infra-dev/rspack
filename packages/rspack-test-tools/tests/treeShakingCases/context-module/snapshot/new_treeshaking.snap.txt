@@ -16,7 +16,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 const value = "dynamic";
 }),
-"./child Sync  recursive ^\\.\\/.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
+"./child sync recursive ^\\.\\/.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
 var map = {"./child/index.js": "./child/child/index.js","./index.js": "./child/index.js",};
 function webpackContext(req) {
 var id = webpackContextResolve(req);
@@ -34,7 +34,7 @@ function webpackContextResolve(req) {
       return map[req];
     
 }
-webpackContext.id = '"./child Sync  recursive ^\\.\\/.*\\.js$"';
+webpackContext.id = '"./child sync recursive ^\\.\\/.*\\.js$"';
 
       webpackContext.keys = function webpackContextKeys() {
         return Object.keys(map);
@@ -44,7 +44,7 @@ webpackContext.id = '"./child Sync  recursive ^\\.\\/.*\\.js$"';
       }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 let a = "index";
-__webpack_require__(/*! ./child */"./child Sync  recursive ^\\.\\/.*\\.js$")((`./child/${a}.js`).replace('./child/', './'));
+__webpack_require__(/*! ./child */"./child sync recursive ^\\.\\/.*\\.js$")((`./child/${a}.js`).replace('./child/', './'));
 }),
 
 },function(__webpack_require__) {

@@ -5,11 +5,13 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
 
 # Node.js API
 
-> `@rspack/core` is designed based on Webpack's Node.js API to ensure functional consistency and a similar user experience.
-
 Rspack provides a Node.js API which can be used directly in Node.js runtime.
 
 The Node.js API is useful in scenarios in which you need to customize the build or development process since all the reporting and error handling must be done manually and webpack only does the compiling part. For this reason the [`stats`](/config/stats) configuration options will not have any effect in the `rspack()` call.
+
+:::tip
+`@rspack/core` is designed based on Webpack's Node.js API to ensure functional consistency and a similar user experience.
+:::
 
 ## Installation
 
@@ -79,7 +81,7 @@ const compiler = rspack({
 compiler.run((err, stats) => {
   // ...
 
-  compiler.close((closeErr) => {
+  compiler.close(closeErr => {
     // ...
   });
 });
@@ -113,7 +115,7 @@ const watching = compiler.watch(
   (err, stats) => {
     // Print watch/build result here...
     console.log(stats);
-  }
+  },
 );
 ```
 
@@ -128,7 +130,7 @@ Filesystem inaccuracies may trigger multiple builds for a single change. In the 
 The `watch` method returns a `Watching` instance that exposes `.close(callback)` method. Calling this method will end watching:
 
 ```js
-watching.close((closeErr) => {
+watching.close(closeErr => {
   console.log('Watching Ended.');
 });
 ```
@@ -218,9 +220,9 @@ rspack(
       stats.toString({
         chunks: false, // Makes the build much quieter
         colors: true, // Shows colors in the console
-      })
+      }),
     );
-  }
+  },
 );
 ```
 
@@ -238,7 +240,7 @@ rspack(
   ],
   (err, stats) => {
     process.stdout.write(stats.toString() + '\n');
-  }
+  },
 );
 ```
 
@@ -283,7 +285,7 @@ rspack(
     }
 
     // Log result...
-  }
+  },
 );
 ```
 
@@ -312,7 +314,7 @@ compiler.outputFileSystem = fs;
 compiler.run((err, stats) => {
   // Read the output later:
   const content = fs.readFileSync('...');
-  compiler.close((closeErr) => {
+  compiler.close(closeErr => {
     // ...
   });
 });

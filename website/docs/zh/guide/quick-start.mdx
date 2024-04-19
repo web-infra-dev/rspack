@@ -4,46 +4,52 @@ import { Tabs, Tab, PackageManagerTabs } from '@theme';
 
 通过本章节来了解如何快速上手并使用 Rspack。
 
----
-
 ## 使用脚手架快速创建
 
 ### 使用 Rsbuild
 
-我们推荐使用 [Rsbuild](#rsbuild) 创建新项目，调用如下命令即可：
+Rsbuild 是基于 Rspack 的新一代构建工具，由 Rspack 团队开发，它提供开箱即用的构建能力，能够显著提升开发体验、降低上手门槛。
+
+我们推荐使用 [Rsbuild](https://rsbuild.dev/) 来创建新项目，执行如下命令即可：
 
 <PackageManagerTabs command="create rsbuild@latest" />
 
-然后按照提示操作即可。
+> 更多信息参考 [Rsbuild - 快速上手](https://rsbuild.dev/zh/guide/start/quick-start)。
 
 ### 使用 Rspack CLI
 
-你可以直接使用 Rspack CLI 来创建一个基础项目，调用以下命令即可：
+Rspack CLI 是对标 Webpack CLI 的工具，提供基础的 `serve` 和 `build` 构建命令。
+
+执行如下命令即可创建基于 Rspack CLI 项目：
 
 <PackageManagerTabs command="create rspack@latest" />
-然后按照提示操作即可。
 
----
+然后按照提示操作。
+
+## 在线示例
+
+我们提供了基于 Rsbuild 的在线示例，通过示例项目，你可以直观感受 Rspack 的构建性能和 Rsbuild 的开发体验：
+
+- [Rsbuild codesandbox 示例](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
+
+## 从现有项目迁移
+
+如果你需要从一个现有项目迁移迁移到 Rspack 或 Rsbuild，可以参考以下指南：
+
+- [从 Webpack 迁移到 Rspack](/guide/migrate-from-webpack)
+- [从 Webpack 迁移到 Rsbuild](https://rsbuild.dev/zh/guide/migration/webpack)
+- [从 Vue CLI 迁移到 Rsbuild](https://rsbuild.dev/zh/guide/migration/vue-cli)
+- [从 Create React App 迁移到 Rsbuild](https://rsbuild.dev/zh/guide/migration/cra)
+- [从 Storybook 迁移](/guide/migrate-storybook)
 
 ## 社区工具链
 
 社区中已经有一些基于 Rspack 的工具链：
 
-- 如果你需要构建一个 Web 应用，推荐使用 [Rsbuild](https://rsbuild.dev/)。
 - 如果你需要开发一个静态站点（如文档站），你可以尝试 [Rspress](https://rspress.dev)。
 - 如果你需要分析构建过程和构建产物，你可以尝试 [Rsdoctor](https://rsdoctor.dev)。
 - 如果你需要一个 React 全栈框架来构建 Web 应用，你可以尝试 [Modern.js](https://modernjs.dev/)。
 - 如果你需要在 Monorepo 中使用 Rspack，打造快速、可扩展的构建系统，你可以尝试 [Nx](https://nx.dev)。
-
-### Rsbuild
-
-**[Rsbuild](https://github.com/web-infra-dev/rsbuild) 是一个基于 Rspack 的 web 构建工具**，它的目标是为 Rspack 用户提供开箱即用的构建能力，使开发者能够在零配置的情况下启动一个 web 项目。
-
-Rsbuild 集成了社区中基于 Rust 的高性能工具，包括 Rspack 和 SWC，以提供一流的构建速度和开发体验。
-
-你可以访问 [官网](https://rsbuild.dev) 了解更多关于 Rsbuild 的信息。
-
-> 如果你需要将一个 CRA（Create React App）应用迁移到 Rspack，可以按照 [CRA 迁移指南](/guide/migrate-from-cra)，使用 Rsbuild 来进行快速迁移。
 
 ### Rspress
 

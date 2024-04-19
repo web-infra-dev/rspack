@@ -62,7 +62,7 @@ module.exports = function loadLoader(loader, callback) {
 							Object.assign({}, this.__internal__context, {
 								content: isNil(content) ? undefined : toBuffer(content),
 								sourceMap: serializeObject(sourceMap),
-								additionalData: serializeObject(additionalData)
+								additionalData
 							})
 						);
 
@@ -83,9 +83,7 @@ module.exports = function loadLoader(loader, callback) {
 							isNil(context.sourceMap)
 								? undefined
 								: toObject(context.sourceMap),
-							isNil(context.additionalData)
-								? undefined
-								: toObject(context.additionalData)
+							isNil(context.additionalData) ? undefined : context.additionalData
 						);
 						// @ts-expect-error
 						this._compilation.__internal__pushNativeDiagnostics(

@@ -1,0 +1,41 @@
+# TypeScript
+
+Enabling TypeScript support can be done through [`builtin:swc-loader`](/guide/builtin-swc-loader).
+
+## Transpile-only
+
+For maximum speed, `builtin:swc-loader` transpiles TypeScript source code without performing any type checking. An external tool such as `tsc` must be used for type checking.
+
+## isolatedModules
+
+To maximize parallelism, `builtin:swc-loader` will transpile each module separately. This implies that [`isolatedModules`](https://www.typescriptlang.org/tsconfig#isolatedModules) must be enabled in your TypeScript configuration. Certain language features such as `const enum` rely on parsing the entire project, and thus cannot be used with isolated module transpilation. Enable `isolatedModules` in your `tsconfig.json ` file to ensure that your IDE hints and type checker accurately reflect Rspack's module handling behavior:
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "isolatedModules": true
+  }
+}
+```
+
+## TypeCheck
+
+You can use the [fork-ts-checker-webpack-plugin](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin) to perform TypeScript type checking during compilation. However, it’s important to note that TypeScript’s type checking can be time-consuming, especially for larger projects. This means that the time required for type checking may exceed the build time of Rspack itself.
+
+If you are using the plugin in development mode, it won’t block the build and you can continue with the build process. However, in build mode, the plugin will block the build until the type checking is complete.
+
+Based on your actual needs, you should decide whether to enable this plugin. If the type checking process becomes a bottleneck in your build process, we recommend using TypeScript’s incremental build feature. This feature can greatly speed up the type checking process by only analyzing the changed files since the last build.
+
+To enable TypeScript’s incremental build, you can use `tsc --incremental` independently or [enabling incremental mode](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin#enabling-incremental-mode) in the plugin.
+
+Enabling incremental build can help reduce type checking time, especially when only a few files have been modified. This way, you can optimize your build process without sacrificing the benefits of type checking.
+
+Remember to evaluate the trade-off between build speed and the accuracy of type checking in your specific project, and choose the best approach accordingly.
+
+## JSX and TSX
+
+Enabling TSX|JSX support can be done through [`builtin:swc-loader`](/guide/builtin-swc-loader).
+
+## Alias
+
+See [resolve.tsConfigPath](/config/resolve#resolvetsconfigpath) for details.

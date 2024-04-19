@@ -280,14 +280,11 @@ impl Compilation {
     self.id
   }
 
-  pub fn swap_make_module_graph(&mut self, other: &mut Compilation) {
+  pub fn swap_make_module_graph_with_compilation(&mut self, other: &mut Compilation) {
     std::mem::swap(&mut self.make_module_graph, &mut other.make_module_graph);
   }
-  pub fn swap_module_graph_with_module_executor(&mut self, module_executor: &mut ModuleExecutor) {
-    std::mem::swap(
-      &mut self.make_module_graph,
-      &mut module_executor.make_module_graph,
-    );
+  pub fn swap_make_module_graph(&mut self, module_graph_partial: &mut ModuleGraphPartial) {
+    std::mem::swap(&mut self.make_module_graph, module_graph_partial);
   }
 
   pub fn get_module_graph(&self) -> ModuleGraph {

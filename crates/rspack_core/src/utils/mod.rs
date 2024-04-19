@@ -23,6 +23,7 @@ mod property_name;
 mod queue;
 mod runtime;
 mod source;
+pub mod task_loop;
 mod template;
 mod to_path;
 mod visitor;

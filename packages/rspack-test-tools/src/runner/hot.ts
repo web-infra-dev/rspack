@@ -4,22 +4,23 @@ import {
 	ECompilerType,
 	ITestEnv,
 	ITestRunner,
-	TCompilerOptions
+	TCompilerOptions,
+	TCompilerStatsCompilation
 } from "../type";
 import { BasicRunnerFactory } from "./basic";
-import { HotRunner } from "./runner/hot";
+import { WebRunner } from "./runner/web";
 
 export class HotRunnerFactory<
 	T extends ECompilerType
 > extends BasicRunnerFactory<T> {
 	protected createRunner(
 		file: string,
+		stats: TCompilerStatsCompilation<T>,
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {
 		const compiler = this.context.getCompiler(this.name);
 		const testConfig = this.context.getTestConfig();
-		const stats = compiler.getStats();
 		const source = this.context.getSource();
 		const dist = this.context.getDist();
 		const hotUpdateContext = this.context.getValue(
@@ -28,7 +29,10 @@ export class HotRunnerFactory<
 		) as { updateIndex: number };
 
 		const next = (
-			callback: (error: Error | null, stats?: StatsCompilation) => void
+			callback: (
+				error: Error | null,
+				stats?: TCompilerStatsCompilation<T>
+			) => void
 		) => {
 			hotUpdateContext.updateIndex++;
 			compiler
@@ -68,15 +72,24 @@ export class HotRunnerFactory<
 				.catch(callback);
 		};
 
-		return new HotRunner({
+		return new WebRunner({
+			dom: "fake",
 			env,
-			stats: stats!,
+			stats,
 			name: this.name,
 			runInNewContext: false,
-			testConfig,
+			testConfig: {
+				...testConfig,
+				moduleScope(ms) {
+					if (typeof testConfig.moduleScope === "function") {
+						ms = testConfig.moduleScope(ms);
+					}
+					ms["NEXT"] = next;
+					return ms;
+				}
+			},
 			source,
 			dist,
-			next,
 			compilerOptions
 		});
 	}
