@@ -266,3 +266,4 @@ export type {
 } from "./builtin-loader/swc/index";
 export { RSCClientEntryPlugin } from "./builtin-plugin";
 export { RSCClientReferenceManifestRspackPlugin } from "./builtin-plugin";
+export { RSCServerReferenceManifestRspackPlugin } from "./builtin-plugin";

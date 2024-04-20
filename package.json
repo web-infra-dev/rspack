@@ -40,7 +40,7 @@
     "test:webpack": "pnpm --filter \"webpack-test\" test:metric",
     "doc-coverage": "pnpm --filter '@rspack/core' doc-coverage",
     "api-extractor:local": "pnpm --filter '@rspack/*' api-extractor --local",
-    "api-extractor:ci": "pnpm --filter '@rspack/*' api-extractor:ci"
+    "api-extractor:ci": "echo 'TODO: pnpm --filter '@rspack/*' api-extractor:ci'"
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",

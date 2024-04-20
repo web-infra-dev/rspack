@@ -66,6 +66,7 @@ export * from "./WorkerPlugin";
 export * from "./FetchCompileAsyncWasmPlugin";
 export * from "./RSCClientEntryPlugin";
 export * from "./RSCClientReferenceManifestRspackPlugin";
+export * from "./RSCServerReferenceManifestRspackPlugin";
 
 ///// DEPRECATED /////
 import { RawBuiltins } from "@rspack/binding";
