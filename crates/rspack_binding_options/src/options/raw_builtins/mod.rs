@@ -60,7 +60,10 @@ use rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
-use rspack_plugin_rsc::{RSCClientEntryRspackPlugin, RSCClientReferenceManifestRspackPlugin};
+use rspack_plugin_rsc::{
+  RSCClientEntryRspackPlugin, RSCClientReferenceManifestRspackPlugin,
+  RSCServerReferenceManifestRspackPlugin,
+};
 use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin,
   ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
@@ -177,6 +180,7 @@ pub enum BuiltinPluginName {
   LazyCompilationPlugin,
   RSCClientEntryRspackPlugin,
   RSCClientReferenceManifestRspackPlugin,
+  RSCServerReferenceManifestRspackPlugin,
 }
 
 #[napi(object)]
@@ -512,6 +516,9 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::RSCClientReferenceManifestRspackPlugin => {
         plugins.push(RSCClientReferenceManifestRspackPlugin::default().boxed())
+      }
+      BuiltinPluginName::RSCServerReferenceManifestRspackPlugin => {
+        plugins.push(RSCServerReferenceManifestRspackPlugin::default().boxed())
       }
     }
     Ok(())

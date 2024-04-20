@@ -67,4 +67,5 @@ export * from "./FetchCompileAsyncWasmPlugin";
 export * from "./NoEmitOnErrorsPlugin";
 export * from "./RSCClientEntryPlugin";
 export * from "./RSCClientReferenceManifestRspackPlugin";
+export * from "./RSCServerReferenceManifestRspackPlugin";
 

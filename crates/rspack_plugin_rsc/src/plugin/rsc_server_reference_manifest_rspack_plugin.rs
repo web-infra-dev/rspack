@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::time::Instant;
 
 use rspack_core::rspack_sources::{RawSource, SourceExt};
@@ -9,95 +8,56 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::path::relative;
 use serde_json::to_string;
-use sugar_path::SugarPath;
 
 use crate::utils::has_client_directive;
-use crate::utils::reference_manifest::{
-  ClientRef, ClientReferenceManifest, ServerRef, ServerReferenceManifest,
-};
+use crate::utils::reference_manifest::{ServerRef, ServerReferenceManifest};
 use crate::utils::shared_data::SHARED_DATA;
 
 #[plugin]
 #[derive(Debug, Default, Clone)]
-pub struct RSCClientReferenceManifestRspackPlugin;
+pub struct RSCServerReferenceManifestRspackPlugin;
 #[derive(Debug, Default, Clone)]
-pub struct RSCClientReferenceManifest;
+pub struct RSCServerReferenceManifest;
 
-#[plugin_hook(CompilationProcessAssets for RSCClientReferenceManifestRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
+#[plugin_hook(CompilationProcessAssets for RSCServerReferenceManifestRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let plugin = RSCClientReferenceManifest {};
+  let plugin = RSCServerReferenceManifest {};
   plugin.process_assets_stage_optimize_hash(compilation)
 }
 
-impl RSCClientReferenceManifest {
-  fn normalize_module_id(&self, module_path: &PathBuf) -> String {
-    let path_str = module_path.to_str().expect("TODO:");
-    if !path_str.starts_with(".") {
-      format!("./{}", path_str)
-    } else {
-      String::from(path_str)
-    }
-  }
-  fn get_client_ref_module_key(&self, filepath: &str, name: &str) -> String {
-    if name == "*" {
-      String::from(filepath)
-    } else {
-      format!("{}#{}", filepath, name)
-    }
-  }
+impl RSCServerReferenceManifest {
   fn add_server_ref(
     &self,
-    module_id: &str,
-    ssr_module_id: &str,
+    id: &str,
     name: &str,
-    shared_ssr_module_mapping: &HashMap<String, HashMap<String, ServerRef>>,
+    chunks: &Vec<&String>,
     ssr_module_mapping: &mut HashMap<String, HashMap<String, ServerRef>>,
   ) {
-    if ssr_module_mapping.get(module_id).is_none() {
-      ssr_module_mapping.insert(module_id.to_string(), HashMap::default());
+    if ssr_module_mapping.get(id).is_none() {
+      ssr_module_mapping.insert(id.to_string(), HashMap::default());
     }
-    let module_mapping = ssr_module_mapping.get_mut(module_id).unwrap();
-    let shared_module_mapping = shared_ssr_module_mapping.get(ssr_module_id);
-    match shared_module_mapping {
-      Some(smm) => {
-        let server_ref = smm.get(name);
-        match server_ref {
-          Some(server_ref) => {
-            module_mapping.insert(name.to_string(), server_ref.clone());
-          }
-          None => (),
-        }
+    let module_mapping = ssr_module_mapping.get_mut(id);
+    match module_mapping {
+      Some(mm) => {
+        mm.insert(
+          name.to_string(),
+          ServerRef {
+            id: id.to_string(),
+            name: name.to_string(),
+            chunks: chunks.iter().map(|&chunk| chunk.to_string()).collect(),
+          },
+        );
       }
       None => (),
     }
   }
-  fn add_client_ref(
-    &self,
-    filepath: &str,
-    id: &str,
-    name: &str,
-    chunks: &Vec<&String>,
-    client_modules: &mut HashMap<String, ClientRef>,
-  ) {
-    let key = self.get_client_ref_module_key(filepath, name);
-    client_modules.insert(
-      key,
-      ClientRef {
-        id: id.to_string(),
-        name: name.to_string(),
-        chunks: chunks.iter().map(|&chunk| chunk.to_string()).collect(),
-      },
-    );
-  }
   fn process_assets_stage_optimize_hash(&self, compilation: &mut Compilation) -> Result<()> {
     let now = Instant::now();
-    let mut client_manifest = ClientReferenceManifest::default();
-    let shared_server_manifest = SHARED_DATA.get().unwrap();
-    let mut server_manifest = ServerReferenceManifest::default();
+    let mut server_manifest = ServerReferenceManifest {
+      ssr_module_mapping: HashMap::default(),
+    };
     let mg = compilation.get_module_graph();
-    let context = &compilation.options.context;
 
     for chunk_group in compilation.chunk_group_by_ukey.values() {
       let chunks = chunk_group
@@ -127,7 +87,6 @@ impl RSCClientReferenceManifest {
           {
             continue;
           }
-          let resource = &resolved_data.unwrap().resource;
           if let Some(module_id) = module_id {
             let exports_info = mg.get_exports_info(&module.identifier());
             let module_exported_keys = exports_info.get_ordered_exports().filter_map(|id| {
@@ -141,51 +100,24 @@ impl RSCClientReferenceManifest {
                 None
               }
             });
-            let ssr_module_path = relative(context.as_path(), resource.as_path());
-            let ssr_module_id = self.normalize_module_id(&ssr_module_path);
-            println!("ssr_module_id: {:?}", ssr_module_id);
-            self.add_client_ref(
-              resource,
-              module_id,
-              "*",
-              &chunks,
-              &mut client_manifest.client_modules,
-            );
-            self.add_client_ref(
-              resource,
-              module_id,
-              "",
-              &chunks,
-              &mut client_manifest.client_modules,
-            );
             self.add_server_ref(
               module_id,
-              ssr_module_id.as_str(),
               "*",
-              &shared_server_manifest.ssr_module_mapping,
+              &chunks,
               &mut server_manifest.ssr_module_mapping,
             );
             self.add_server_ref(
               module_id,
-              ssr_module_id.as_str(),
               "",
-              &shared_server_manifest.ssr_module_mapping,
+              &chunks,
               &mut server_manifest.ssr_module_mapping,
             );
             for name in module_exported_keys {
               if let Some(name) = name {
-                self.add_client_ref(
-                  resource,
+                self.add_server_ref(
                   module_id,
                   name.as_str(),
                   &chunks,
-                  &mut client_manifest.client_modules,
-                );
-                self.add_server_ref(
-                  module_id,
-                  ssr_module_id.as_str(),
-                  name.as_str(),
-                  &shared_server_manifest.ssr_module_mapping,
                   &mut server_manifest.ssr_module_mapping,
                 );
               }
@@ -194,13 +126,13 @@ impl RSCClientReferenceManifest {
         }
       }
     }
-    client_manifest.ssr_module_mapping = server_manifest.ssr_module_mapping;
-    let content = to_string(&client_manifest);
+    let _ = SHARED_DATA.set(server_manifest.clone());
+    let content = to_string(&server_manifest);
     match content {
       Ok(content) => {
         // TODO: outputPath should be configable
         compilation.emit_asset(
-          String::from("../server/client-reference-manifest.json"),
+          String::from("server-reference-manifest.json"),
           CompilationAsset {
             source: Some(RawSource::from(content).boxed()),
             info: AssetInfo {
@@ -220,8 +152,9 @@ impl RSCClientReferenceManifest {
   }
 }
 
+// TODO: merge with rsc client entry rspack plugin
 #[async_trait::async_trait]
-impl Plugin for RSCClientReferenceManifestRspackPlugin {
+impl Plugin for RSCServerReferenceManifestRspackPlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
