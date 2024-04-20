@@ -74,4 +74,5 @@ export * from "./DllEntryPlugin";
 export * from "./DllReferenceAgencyPlugin";
 export * from "./RSCClientEntryPlugin";
 export * from "./RSCClientReferenceManifestRspackPlugin";
+export * from "./RSCServerReferenceManifestRspackPlugin";
 
