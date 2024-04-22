@@ -19,6 +19,7 @@ jobs:
         if: github.event.sender.type == 'User'
         env:
           REPO_OWNER: ${{ github.repository_owner }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           SENDER=${{ github.event.sender.login }}
           MEMBER=$(gh api /orgs/$REPO_OWNER/members/$SENDER | jq -r '.id')
