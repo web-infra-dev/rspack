@@ -1,0 +1,57 @@
+name: Notify Lark on Issue and PR
+
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  notify-lark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Notify Lark for Issue
+        if: github.event_name == 'issues'
+        env:
+          LARK_WEBHOOK_URL: ${{ secrets.LARK_WEBHOOK_URL }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          AUTHOR_ID: ${{ github.event.issue.user.login }}
+          BODY: ${{ github.event.issue.body }}
+          URL: ${{ github.server_url }}/${{ github.repository }}/issues/${{ github.event.issue.number }}
+        run: |
+          SHORT_BODY=$(echo "$BODY" | head -n 3)
+          TITLE="New Issue Opened: $ISSUE_TITLE"
+          DESCRIPTION="Issue by @$AUTHOR_ID: $SHORT_BODY. View more at $URL"
+          ./scripts/alert/lark.js
+
+      - name: Notify Lark for PR
+        if: github.event_name == 'pull_request'
+        env:
+          LARK_WEBHOOK_URL: ${{ secrets.LARK_WEBHOOK_URL }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          AUTHOR_ID: ${{ github.event.pull_request.user.login }}
+          BODY: ${{ github.event.pull_request.body }}
+          URL: ${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}
+        run: |
+          SHORT_BODY=$(echo "$BODY" | head -n 3)
+          TITLE="New PR Opened: $PR_TITLE"
+          DESCRIPTION="PR by @$AUTHOR_ID: $SHORT_BODY. Check it out at $URL"
+          ./scripts/alert/lark.js
+      
+      - name: Notify Lark for PR Comment
+        if: github.event_name == 'pull_request_review_comment'
+        env:
+          LARK_WEBHOOK_URL: ${{ secrets.LARK_WEBHOOK_URL }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          AUTHOR_ID: ${{ github.event.comment.user.login }}
+          URL: ${{ github.event.comment.html_url }}
+        run: |
+          SHORT_COMMENT=$(echo "$COMMENT_BODY" | head -n 3)
+          TITLE="New Comment on PR"
+          DESCRIPTION="Comment by @$AUTHOR_ID: $SHORT_COMMENT. View more at $URL"
+          ./scripts/alert/lark.js
