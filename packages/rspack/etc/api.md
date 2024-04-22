@@ -59,6 +59,8 @@ import type { RawLibraryOptions } from '@rspack/binding';
 import { RawLimitChunkCountPluginOptions } from '@rspack/binding';
 import type { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
+import type { RawReactOptions } from '@rspack/binding';
+import type { RawRelayConfig } from '@rspack/binding';
 import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
 import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
 import { ResolveRequest } from 'enhanced-resolve';
@@ -4889,6 +4891,132 @@ export type SwcJsMinimizerRspackPluginOptions = {
     include?: MinifyConditions;
 };
 
+// @public (undocumented)
+export interface SwcLoaderEnvConfig {
+    bugfixes?: boolean;
+    coreJs?: string;
+    // (undocumented)
+    debug?: boolean;
+    // (undocumented)
+    dynamicImport?: boolean;
+    // (undocumented)
+    exclude?: string[];
+    forceAllTransforms?: boolean;
+    // (undocumented)
+    include?: string[];
+    // (undocumented)
+    loose?: boolean;
+    // (undocumented)
+    mode?: "usage" | "entry";
+    // (undocumented)
+    path?: string;
+    // (undocumented)
+    shippedProposals?: boolean;
+    skip?: string[];
+    // (undocumented)
+    targets?: any;
+}
+
+// @public (undocumented)
+export interface SwcLoaderEsParserConfig {
+    decorators?: boolean;
+    decoratorsBeforeExport?: boolean;
+    exportDefaultFrom?: boolean;
+    functionBind?: boolean;
+    importAssertions?: boolean;
+    jsx?: boolean;
+    // (undocumented)
+    syntax: "ecmascript";
+}
+
+// @public (undocumented)
+export interface SwcLoaderJscConfig {
+    // (undocumented)
+    baseUrl?: string;
+    experimental?: {
+        optimizeHygiene?: boolean;
+        keepImportAttributes?: boolean;
+        emitAssertForImportAttributes?: boolean;
+        cacheRoot?: string;
+        plugins?: Array<[string, Record<string, any>]>;
+        disableBuiltinTransformsForInternalTesting?: boolean;
+    };
+    externalHelpers?: boolean;
+    keepClassNames?: boolean;
+    // (undocumented)
+    loose?: boolean;
+    parser?: SwcLoaderParserConfig;
+    // (undocumented)
+    paths?: {
+        [from: string]: [string];
+    };
+    // (undocumented)
+    preserveAllComments?: boolean;
+    // Warning: (ae-forgotten-export) The symbol "JscTarget" needs to be exported by the entry point index.d.ts
+    target?: JscTarget;
+    // (undocumented)
+    transform?: SwcLoaderTransformConfig;
+}
+
+// Warning: (ae-forgotten-export) The symbol "Es6Config" needs to be exported by the entry point index.d.ts
+// Warning: (ae-forgotten-export) The symbol "CommonJsConfig" needs to be exported by the entry point index.d.ts
+// Warning: (ae-forgotten-export) The symbol "UmdConfig" needs to be exported by the entry point index.d.ts
+// Warning: (ae-forgotten-export) The symbol "AmdConfig" needs to be exported by the entry point index.d.ts
+// Warning: (ae-forgotten-export) The symbol "NodeNextConfig" needs to be exported by the entry point index.d.ts
+// Warning: (ae-forgotten-export) The symbol "SystemjsConfig" needs to be exported by the entry point index.d.ts
+//
+// @public (undocumented)
+export type SwcLoaderModuleConfig = Es6Config | CommonJsConfig | UmdConfig | AmdConfig | NodeNextConfig | SystemjsConfig;
+
+// @public (undocumented)
+export type SwcLoaderOptions = {
+    test?: string | string[];
+    exclude?: string | string[];
+    env?: SwcLoaderEnvConfig;
+    jsc?: SwcLoaderJscConfig;
+    module?: SwcLoaderModuleConfig;
+    minify?: boolean;
+    sourceMaps?: boolean;
+    inlineSourcesContent?: boolean;
+    rspackExperiments?: {
+        relay?: RelayOptions;
+        emotion?: EmotionOptions;
+        import?: PluginImportOptions[];
+        styledComponents?: StyledComponentsOptions;
+    };
+};
+
+// @public (undocumented)
+export type SwcLoaderParserConfig = SwcLoaderTsParserConfig | SwcLoaderEsParserConfig;
+
+// @public (undocumented)
+export interface SwcLoaderTransformConfig {
+    // Warning: (ae-forgotten-export) The symbol "ConstModulesConfig" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    constModules?: ConstModulesConfig;
+    decoratorMetadata?: boolean;
+    decoratorVersion?: "2021-12" | "2022-03";
+    legacyDecorator?: boolean;
+    // Warning: (ae-forgotten-export) The symbol "OptimizerConfig" needs to be exported by the entry point index.d.ts
+    optimizer?: OptimizerConfig;
+    // Warning: (ae-forgotten-export) The symbol "ReactOptions" needs to be exported by the entry point index.d.ts
+    react?: ReactOptions;
+    // (undocumented)
+    treatConstEnumAsEnum?: boolean;
+    // (undocumented)
+    useDefineForClassFields?: boolean;
+}
+
+// @public (undocumented)
+export interface SwcLoaderTsParserConfig {
+    decorators?: boolean;
+    dynamicImport?: boolean;
+    // (undocumented)
+    syntax: "typescript";
+    tsx?: boolean;
+}
+
 // Warning: (ae-forgotten-export) The symbol "target" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
@@ -5024,6 +5152,10 @@ export type WorkerPublicPath = z.infer<typeof workerPublicPath>;
 // dist/NormalModuleFactory.d.ts:9:9 - (ae-forgotten-export) The symbol "ResourceDataWithData" needs to be exported by the entry point index.d.ts
 // dist/NormalModuleFactory.d.ts:10:9 - (ae-forgotten-export) The symbol "ResolveData" needs to be exported by the entry point index.d.ts
 // dist/NormalModuleFactory.d.ts:12:9 - (ae-forgotten-export) The symbol "NormalModuleCreateData" needs to be exported by the entry point index.d.ts
+// dist/builtin-loader/swc/types.d.ts:452:9 - (ae-forgotten-export) The symbol "RelayOptions" needs to be exported by the entry point index.d.ts
+// dist/builtin-loader/swc/types.d.ts:453:9 - (ae-forgotten-export) The symbol "EmotionOptions" needs to be exported by the entry point index.d.ts
+// dist/builtin-loader/swc/types.d.ts:454:9 - (ae-forgotten-export) The symbol "PluginImportOptions" needs to be exported by the entry point index.d.ts
+// dist/builtin-loader/swc/types.d.ts:455:9 - (ae-forgotten-export) The symbol "StyledComponentsOptions" needs to be exported by the entry point index.d.ts
 // dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:40:5 - (ae-forgotten-export) The symbol "ExtractCommentsOptions" needs to be exported by the entry point index.d.ts
 // dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:41:5 - (ae-forgotten-export) The symbol "TerserCompressOptions" needs to be exported by the entry point index.d.ts
 // dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:42:5 - (ae-forgotten-export) The symbol "TerserMangleOptions" needs to be exported by the entry point index.d.ts
