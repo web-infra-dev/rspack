@@ -143,7 +143,7 @@ impl RSCClientReferenceManifest {
             });
             let ssr_module_path = relative(context.as_path(), resource.as_path());
             let ssr_module_id = self.normalize_module_id(&ssr_module_path);
-            println!("ssr_module_id: {:?}", ssr_module_id);
+            // println!("ssr_module_id: {:?}", ssr_module_id);
             self.add_client_ref(
               resource,
               module_id,
