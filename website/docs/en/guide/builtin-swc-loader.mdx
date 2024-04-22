@@ -4,7 +4,7 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 <ApiMeta addedVersion="0.3.0" />
 
-`builtin:swc-loader` is the Rust version of [`swc-loader`](https://github.com/swc-project/pkgs/tree/main/packages/swc-loader), aiming to deliver better performance. The Loader's [configuration](https://swc.rs/docs/configuration/compilation) is aligned with the JS version of `swc-loader` (SWC plugins will be provided in future releases and are currently not supported).
+`builtin:swc-loader` is the Rust version of [`swc-loader`](https://github.com/swc-project/pkgs/tree/main/packages/swc-loader), aiming to deliver better performance. The Loader's [configuration](https://swc.rs/docs/configuration/compilation) is aligned with the JS version of `swc-loader`.
 
 ## Example
 
@@ -46,7 +46,7 @@ module.exports = {
         use: {
           loader: 'builtin:swc-loader',
           options: {
-            sourceMap: true,
+            sourceMaps: true,
             jsc: {
               parser: {
                 syntax: 'ecmascript',
