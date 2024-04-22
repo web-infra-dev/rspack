@@ -6,4 +6,21 @@ It is recommended to enable SourceMap for production environments to facilitate 
 
 ## Minification
 
-Rspack uses the built-in minimizer to compress JavaScript and CSS code by default, which can be configured by [builtins.minifyOptions](config/builtins#builtinsminifyoptions). If the built-in minimizer cannot meet your needs, you can use [optimization.minimizer](config/optimization#optimizationminimizer) to set a custom minimizer.
+During the production build, Rspack uses the built-in minimizer to minify JavaScript and CSS code by default. You can use [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) for configuration.
+
+```js title=rspack.config.js
+const rspack = require('@rspack/core');
+
+module.exports = {
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin({
+        // JS minimizer configuration
+      }),
+      new rspack.SwcCssMinimizerRspackPlugin(),
+    ],
+  },
+};
+```
+
+If the built-in minimizer cannot meet your needs, you can also use [optimization.minimizer](/config/optimization#optimizationminimizer) to set custom minimizers.
