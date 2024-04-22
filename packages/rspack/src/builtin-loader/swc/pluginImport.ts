@@ -1,4 +1,4 @@
-import { RawPluginImportConfig } from "@rspack/binding";
+import type { RawPluginImportConfig } from "@rspack/binding";
 
 type PluginImportConfig = {
 	libraryName: string;
@@ -9,8 +9,8 @@ type PluginImportConfig = {
 	styleLibraryDirectory?: string;
 	camelToDashComponentName?: boolean;
 	transformToDefaultImport?: boolean;
-	ignoreEsComponent?: Array<string>;
-	ignoreStyleComponent?: Array<string>;
+	ignoreEsComponent?: string[];
+	ignoreStyleComponent?: string[];
 };
 
 type PluginImportOptions = PluginImportConfig[] | undefined;
