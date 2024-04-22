@@ -491,7 +491,7 @@ export type SwcLoaderOptions = {
 	rspackExperiments?: {
 		relay?: RelayOptions;
 		emotion?: EmotionOptions;
-		import?: PluginImportOptions[];
+		import?: PluginImportOptions;
 		styledComponents?: StyledComponentsOptions;
 	};
 };
