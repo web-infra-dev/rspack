@@ -9,8 +9,8 @@ use crate::{
   compile_boolean_matcher_from_lists, property_access, to_comment, to_normal_comment,
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, DependenciesBlock, DependencyId,
   ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, TemplateContext,
+  InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment, OutputOptions,
+  PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
 };
 
 pub fn runtime_condition_expression(
@@ -251,10 +251,19 @@ pub fn get_exports_type_with_strict(
     .get_exports_type_readonly(module_graph, strict)
 }
 
-pub fn module_id_expr(request: &str, module_id: &str) -> String {
+fn comment(output: &OutputOptions, request: &str) -> String {
+  let content = request;
+  if matches!(output.pathinfo, PathInfo::Bool(true) | PathInfo::String(_)) {
+    format!("{} ", to_comment(content))
+  } else {
+    format!("{} ", to_normal_comment(content))
+  }
+}
+
+pub fn module_id_expr(output: &OutputOptions, request: &str, module_id: &str) -> String {
   format!(
     "{}{}",
-    to_comment(request),
+    comment(output, request),
     serde_json::to_string(module_id).expect("should render module id")
   )
 }
@@ -270,7 +279,7 @@ pub fn module_id(
     .module_identifier_by_dependency_id(id)
     && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier)
   {
-    module_id_expr(request, module_id)
+    module_id_expr(&compilation.options.output, request, module_id)
   } else if weak {
     "null /* weak dependency, without id */".to_string()
   } else {
@@ -507,7 +516,7 @@ pub fn module_raw(
     format!(
       "{}({})",
       RuntimeGlobals::REQUIRE,
-      module_id_expr(request, module_id)
+      module_id_expr(&compilation.options.output, request, module_id)
     )
   } else if weak {
     weak_error(request)
