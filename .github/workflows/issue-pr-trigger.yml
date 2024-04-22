@@ -24,7 +24,7 @@ jobs:
           BODY: ${{ github.event.issue.body }}
           URL: ${{ github.server_url }}/${{ github.repository }}/issues/${{ github.event.issue.number }}
         run: |
-          SHORT_BODY=$(echo "$BODY" | head -n 3) TITLE="New Issue Opened: $ISSUE_TITLE" DESCRIPTION="Issue by @$AUTHOR_ID: $SHORT_BODY. View more at $URL" ./scripts/alert/lark.js
+          SHORT_BODY=$(echo "$BODY" | head -n 3) TITLE="New Issue Opened: $ISSUE_TITLE" DESCRIPTION="Issue by @$AUTHOR_ID: $SHORT_BODY. View more at $URL" TPL_COLOR="blue" TPL_BTN_TYPE="primary"  ./scripts/alert/lark.js
 
       - name: Notify Lark for PR
         if: github.event_name == 'pull_request'
@@ -35,5 +35,5 @@ jobs:
           BODY: ${{ github.event.pull_request.body }}
           URL: ${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}
         run: |
-          SHORT_BODY=$(echo "$BODY" | head -n 3) TITLE="New PR Opened: $PR_TITLE" DESCRIPTION="PR by @$AUTHOR_ID: $SHORT_BODY. Check it out at $URL" ./scripts/alert/lark.js
+          SHORT_BODY=$(echo "$BODY" | head -n 3) TITLE="New PR Opened: $PR_TITLE" DESCRIPTION="PR by @$AUTHOR_ID: $SHORT_BODY. Check it out at $URL" TPL_COLOR="blue" TPL_BTN_TYPE="primary"  ./scripts/alert/lark.js
       
