@@ -578,10 +578,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     // if cgi.min_available_modules.contains(&item.module) {
-    if contains(&cgi.min_available_modules, &module_id) {
-      cgi.skipped_items.insert(item.module);
-      return;
-    }
+    // if contains(&cgi.min_available_modules, &module_id) {
+    //   cgi.skipped_items.insert(item.module);
+    //   return;
+    // }
 
     self.compilation.chunk_graph.connect_chunk_and_entry_module(
       item.chunk,
@@ -615,10 +615,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .get(&item.module)
       .expect("should have module id");
 
-    if &(cgi.min_available_modules.clone() & module_id) == module_id {
-      cgi.skipped_items.insert(item.module);
-      return;
-    }
+    // if &(cgi.min_available_modules.clone() & module_id) == module_id {
+    //   cgi.skipped_items.insert(item.module);
+    //   return;
+    // }
 
     self.compilation.chunk_graph.add_module(item.module);
     self
@@ -1261,16 +1261,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             if active_state.is_false() {
               continue;
             }
-            if active_state.is_true() {
-              active_connections.push(i);
-              if contains(
-                &cgi.min_available_modules,
-                self.module_ids.get(module).expect("should have module id"),
-              ) {
-                cgi.skipped_items.insert(*module);
-                continue;
-              }
-            }
+            // if active_state.is_true() {
+            //   active_connections.push(i);
+            //   if contains(
+            //     &cgi.min_available_modules,
+            //     self.module_ids.get(module).expect("should have module id"),
+            //   ) {
+            //     cgi.skipped_items.insert(*module);
+            //     continue;
+            //   }
+            // }
             self.queue.push(if active_state.is_true() {
               QueueAction::AddAndEnterModule(AddAndEnterModule {
                 module: *module,
