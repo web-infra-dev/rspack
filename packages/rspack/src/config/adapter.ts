@@ -208,6 +208,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 	const workerWasmLoading = output.workerWasmLoading!;
 	return {
 		path: output.path!,
+		pathinfo: output.pathinfo!,
 		publicPath: output.publicPath!,
 		clean: output.clean!,
 		assetModuleFilename: output.assetModuleFilename!,

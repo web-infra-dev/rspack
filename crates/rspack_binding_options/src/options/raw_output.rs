@@ -1,10 +1,17 @@
+use std::fmt;
+
+use napi::Either;
 use napi_derive::napi;
 use rspack_binding_values::JsFilename;
 use rspack_core::{
   CrossOriginLoading, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions,
+  PathInfo,
 };
 use rspack_core::{LibraryAuxiliaryComment, OutputOptions, TrustedTypes};
-use serde::Deserialize;
+use serde::{
+  de::{self, Visitor},
+  Deserialize, Deserializer,
+};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -146,11 +153,45 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
   }
 }
 
+struct PathInfoVisitor;
+
+impl<'de> Visitor<'de> for PathInfoVisitor {
+  type Value = Either<bool, String>;
+
+  fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    formatter.write_str("a boolean or a string")
+  }
+
+  fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
+  where
+    E: de::Error,
+  {
+    Ok(Either::A(value))
+  }
+
+  fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+  where
+    E: de::Error,
+  {
+    Ok(Either::B(value.to_string()))
+  }
+}
+
+fn deserialize_pathinfo<'de, D>(deserializer: D) -> Result<Either<bool, String>, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  deserializer.deserialize_any(PathInfoVisitor)
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[napi(object, object_to_js = false)]
 pub struct RawOutputOptions {
   pub path: String,
+  #[serde(deserialize_with = "deserialize_pathinfo")]
+  #[napi(ts_type = "boolean | \"verbose\"")]
+  pub pathinfo: Either<bool, String>,
   pub clean: bool,
   pub public_path: String,
   pub asset_module_filename: String,
@@ -198,8 +239,14 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
   type Error = rspack_error::Error;
 
   fn try_from(value: RawOutputOptions) -> rspack_error::Result<Self> {
+    let pathinfo = match value.pathinfo {
+      Either::A(b) => PathInfo::Bool(b),
+      Either::B(s) => PathInfo::String(s),
+    };
+
     Ok(OutputOptions {
       path: value.path.into(),
+      pathinfo,
       clean: value.clean,
       public_path: value.public_path.into(),
       asset_module_filename: value.asset_module_filename.into(),
