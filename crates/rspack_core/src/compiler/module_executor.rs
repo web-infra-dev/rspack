@@ -1,6 +1,7 @@
 use std::sync::{atomic::AtomicU32, Arc};
-use std::{collections::hash_map, hash::BuildHasherDefault, iter::once};
+use std::{hash::BuildHasherDefault, iter::once};
 
+use dashmap::DashMap;
 use rayon::prelude::*;
 use rspack_error::Result;
 use rspack_identifier::{Identifiable, IdentifierSet};
@@ -9,10 +10,10 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use crate::cache::Cache;
 use crate::{
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationResult, CompilationAssets, Dependency, DependencyType, EntryDependency,
-  EntryOptions, Entrypoint, ModuleFactory, ModuleGraphPartial, SourceType,
+  CodeGenerationResult, Dependency, DependencyType, EntryDependency, EntryOptions, Entrypoint,
+  ModuleFactory, SourceType,
 };
-use crate::{Compilation, CompilationAsset, DependencyId, MakeParam};
+use crate::{Compilation, CompilationAsset, MakeParam};
 use crate::{CompilerOptions, Context, ResolverFactory, SharedPluginDriver};
 
 static EXECUTE_MODULE_ID: AtomicU32 = AtomicU32::new(0);
@@ -24,27 +25,19 @@ pub struct ExecuteModuleResult {
   pub context_dependencies: HashSet<std::path::PathBuf>,
   pub missing_dependencies: HashSet<std::path::PathBuf>,
   pub build_dependencies: HashSet<std::path::PathBuf>,
-  pub assets: CompilationAssets,
+  pub assets: HashSet<String>,
   pub id: ExecuteModuleId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ModuleExecutor {
-  pub make_module_graph: ModuleGraphPartial,
-  request_dep_map: HashMap<String, DependencyId>,
+  pub assets: DashMap<String, CompilationAsset>,
 }
 
 impl ModuleExecutor {
-  pub fn new(is_new_treeshaking: bool) -> Self {
-    Self {
-      make_module_graph: ModuleGraphPartial::new(is_new_treeshaking),
-      request_dep_map: HashMap::default(),
-    }
-  }
-
   #[allow(clippy::too_many_arguments)]
   pub async fn import_module(
-    &mut self,
+    &self,
     options: Arc<CompilerOptions>,
     plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
@@ -67,21 +60,16 @@ impl ModuleExecutor {
       None,
     );
     compilation.dependency_factories = dependency_factories;
-    compilation.swap_make_module_graph(&mut self.make_module_graph);
 
     let mut mg = compilation.get_module_graph_mut();
-    let dep_id = match self.request_dep_map.entry(request.clone()) {
-      hash_map::Entry::Vacant(v) => {
-        let dep = EntryDependency::new(
-          request,
-          original_module_context.unwrap_or(Context::from("")),
-        );
-        let dep_id = *dep.id();
-        mg.add_dependency(Box::new(dep));
-        v.insert(dep_id);
-        dep_id
-      }
-      hash_map::Entry::Occupied(v) => *v.get(),
+    let dep_id = {
+      let dep = EntryDependency::new(
+        request,
+        original_module_context.unwrap_or(Context::from("")),
+      );
+      let dep_id = *dep.id();
+      mg.add_dependency(Box::new(dep));
+      dep_id
     };
 
     compilation
@@ -278,17 +266,15 @@ impl ModuleExecutor {
     };
 
     if let Ok(ref mut result) = execute_result {
-      std::mem::swap(&mut result.assets, compilation.assets_mut());
+      let assets = std::mem::take(compilation.assets_mut());
+      for (key, value) in assets {
+        result.assets.insert(key.clone());
+        self.assets.insert(key, value);
+      }
     }
 
-    let mut has_error = false;
     for error in compilation.get_errors() {
-      has_error = true;
       error.render_report(true)?;
-    }
-    if !has_error {
-      // save make module_graph for next import_module
-      compilation.swap_make_module_graph(&mut self.make_module_graph);
     }
 
     execute_result
