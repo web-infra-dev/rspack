@@ -11,6 +11,7 @@ mod raw_lightning_css_minimizer;
 mod raw_limit_chunk_count;
 mod raw_mf;
 mod raw_progress;
+mod raw_rsc;
 mod raw_runtime_chunk;
 mod raw_size_limits;
 mod raw_swc_js_minimizer;
@@ -96,6 +97,7 @@ pub use self::{
   raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
   raw_mf::RawContainerPluginOptions,
   raw_progress::RawProgressPluginOptions,
+  raw_rsc::RawRSCClientEntryRspackPluginOptions,
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
 use self::{
@@ -563,7 +565,9 @@ impl BuiltinPlugin {
         plugins.push(DllReferenceAgencyPlugin::new(options).boxed());
       }
       BuiltinPluginName::RSCClientEntryRspackPlugin => {
-        plugins.push(RSCClientEntryRspackPlugin::default().boxed())
+        let plugin_options: RawRSCClientEntryRspackPluginOptions =
+          downcast_into::<RawRSCClientEntryRspackPluginOptions>(self.options)?;
+        plugins.push(RSCClientEntryRspackPlugin::new(plugin_options.into()).boxed())
       }
       BuiltinPluginName::RSCClientReferenceManifestRspackPlugin => {
         plugins.push(RSCClientReferenceManifestRspackPlugin::default().boxed())
