@@ -4978,6 +4978,7 @@ export type SwcLoaderOptions = {
     minify?: boolean;
     sourceMaps?: boolean;
     inlineSourcesContent?: boolean;
+    isModule?: boolean | "unknown";
     rspackExperiments?: {
         relay?: RelayOptions;
         emotion?: EmotionOptions;
@@ -5152,10 +5153,10 @@ export type WorkerPublicPath = z.infer<typeof workerPublicPath>;
 // dist/NormalModuleFactory.d.ts:9:9 - (ae-forgotten-export) The symbol "ResourceDataWithData" needs to be exported by the entry point index.d.ts
 // dist/NormalModuleFactory.d.ts:10:9 - (ae-forgotten-export) The symbol "ResolveData" needs to be exported by the entry point index.d.ts
 // dist/NormalModuleFactory.d.ts:12:9 - (ae-forgotten-export) The symbol "NormalModuleCreateData" needs to be exported by the entry point index.d.ts
-// dist/builtin-loader/swc/types.d.ts:456:9 - (ae-forgotten-export) The symbol "RelayOptions" needs to be exported by the entry point index.d.ts
-// dist/builtin-loader/swc/types.d.ts:457:9 - (ae-forgotten-export) The symbol "EmotionOptions" needs to be exported by the entry point index.d.ts
-// dist/builtin-loader/swc/types.d.ts:458:9 - (ae-forgotten-export) The symbol "PluginImportOptions" needs to be exported by the entry point index.d.ts
-// dist/builtin-loader/swc/types.d.ts:459:9 - (ae-forgotten-export) The symbol "StyledComponentsOptions" needs to be exported by the entry point index.d.ts
+// dist/builtin-loader/swc/types.d.ts:457:9 - (ae-forgotten-export) The symbol "RelayOptions" needs to be exported by the entry point index.d.ts
+// dist/builtin-loader/swc/types.d.ts:458:9 - (ae-forgotten-export) The symbol "EmotionOptions" needs to be exported by the entry point index.d.ts
+// dist/builtin-loader/swc/types.d.ts:459:9 - (ae-forgotten-export) The symbol "PluginImportOptions" needs to be exported by the entry point index.d.ts
+// dist/builtin-loader/swc/types.d.ts:460:9 - (ae-forgotten-export) The symbol "StyledComponentsOptions" needs to be exported by the entry point index.d.ts
 // dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:40:5 - (ae-forgotten-export) The symbol "ExtractCommentsOptions" needs to be exported by the entry point index.d.ts
 // dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:41:5 - (ae-forgotten-export) The symbol "TerserCompressOptions" needs to be exported by the entry point index.d.ts
 // dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:42:5 - (ae-forgotten-export) The symbol "TerserMangleOptions" needs to be exported by the entry point index.d.ts

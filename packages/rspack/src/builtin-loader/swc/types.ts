@@ -483,6 +483,7 @@ export type SwcLoaderOptions = {
 	 */
 	sourceMaps?: boolean;
 	inlineSourcesContent?: boolean;
+	isModule?: boolean | "unknown";
 	/**
 	 * Experimental features provided by Rspack.
 	 * @experimental
