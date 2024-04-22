@@ -3523,7 +3523,9 @@ dependencies = [
 name = "rspack_plugin_swc_css_minimizer"
 version = "0.1.0"
 dependencies = [
+ "once_cell",
  "rayon",
+ "regex",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
