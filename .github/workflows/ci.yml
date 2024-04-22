@@ -329,6 +329,7 @@ jobs:
     if: github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
     steps:
       - name: Run Ecosystem CI
+        continue-on-error: true
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: ${{ github.repository_owner }}
@@ -337,6 +338,32 @@ jobs:
           github_token: ${{ secrets.ECOSYSTEM_CI_ACCESS_TOKEN }}
           ref: "main"
           client_payload: '{"commitSHA":"${{ github.sha }}","repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
+
+      - name: Set Success Flag
+        if: success()
+        run: echo "STEP_SUCCESS=true" >> $GITHUB_ENV
+        env:
+          STEP_SUCCESS: false
+
+      - name: Set Failure Flag
+        if: failure()
+        run: echo "STEP_SUCCESS=false" >> $GITHUB_ENV
+        env:
+          STEP_SUCCESS: false
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Failure Notification
+        shell: bash
+        run: ./scripts/alert/lark.js
+        env:
+          TITLE: Ecosystem CI failed on main branch
+          DESCRIPTION: |
+            commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
+          URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
+          LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
 
   failure_notification:
     name: Failure Notification
@@ -347,8 +374,7 @@ jobs:
         test-mac,
         rust_check,
         rust_test,
-        run_benchmark,
-        run_ecosystem_ci
+        run_benchmark
       ]
     if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
     runs-on: ubuntu-latest
