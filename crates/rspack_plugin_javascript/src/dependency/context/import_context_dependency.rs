@@ -1,6 +1,6 @@
-use rspack_core::{module_raw, parse_resource, AsModuleDependency, ContextDependency};
-use rspack_core::{normalize_context, DependencyCategory, DependencyId, DependencyTemplate};
+use rspack_core::{module_raw, AsModuleDependency, ContextDependency};
 use rspack_core::{ContextOptions, Dependency, TemplateReplaceSource};
+use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ErrorSpan, TemplateContext};
 
 use super::create_resource_identifier_for_context_dependency;
@@ -113,34 +113,10 @@ impl DependencyTemplate for ImportContextDependency {
       return;
     }
 
-    source.replace(self.callee_start, self.callee_end, &expr, None);
-
-    if !self.replaces.is_empty() {
-      for (content, start, end) in &self.replaces {
-        source.replace(*start, *end, content, None);
-      }
-    } else {
-      let context = normalize_context(&self.options.context);
-      let query = parse_resource(&self.options.request).and_then(|data| data.query);
-      if !context.is_empty() || query.is_some() {
-        source.insert(self.callee_end, "(", None);
-        if !context.is_empty() {
-          source.insert(
-            self.args_end,
-            format!(".replace('{context}', './')").as_str(),
-            None,
-          );
-        }
-        if let Some(query) = query {
-          source.insert(
-            self.args_end,
-            format!(".replace('{query}', '')").as_str(),
-            None,
-          );
-        }
-        source.insert(self.args_end, ")", None);
-      }
+    for (content, start, end) in &self.replaces {
+      source.replace(*start, *end - 1, content, None);
     }
+    source.replace(self.callee_start, self.callee_end, &expr, None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {

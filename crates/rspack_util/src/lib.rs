@@ -3,6 +3,7 @@
 mod merge;
 
 pub mod comparators;
+pub mod diff_mode;
 pub mod ext;
 pub mod fx_hash;
 pub mod identifier;
