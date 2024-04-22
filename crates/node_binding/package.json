@@ -24,7 +24,8 @@
     "build:release:x64": "cross-env RUST_TARGET=x86_64-apple-darwin node scripts/build.js --release",
     "build:release:linux": "cross-env RUST_TARGET=x86_64-unknown-linux-gnu node scripts/build.js --release",
     "build:release:win": "cross-env RUST_TARGET=x86_64-pc-windows-msvc node scripts/build.js --release",
-    "move-binding": "node scripts/move-binding"
+    "move-binding": "node scripts/move-binding",
+    "test": "tsc -p tsconfig.type-test.json"
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",

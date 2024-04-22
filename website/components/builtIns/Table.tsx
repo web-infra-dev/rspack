@@ -14,8 +14,10 @@ interface TableProps {
     name: string | JSX.Element;
     key: string;
     style?: React.CSSProperties;
+    className?: string;
   }[];
   tableStyle?: Record<string, string>;
+  className?: string;
 }
 
 // Use case example:
@@ -59,14 +61,16 @@ export function Table(props: TableProps) {
 
   // generate table tag
   return (
-    <ModernTable style={tableStyle}>
-      <ModernTableRow>
-        {header.map(item => (
-          <ModernTableHead key={item.key} style={item.style}>
-            {renderHeaderItem(item.name)}
-          </ModernTableHead>
-        ))}
-      </ModernTableRow>
+    <ModernTable style={tableStyle} className={props.className}>
+      <thead>
+        <ModernTableRow>
+          {header.map(item => (
+            <ModernTableHead key={item.key} style={item.style}>
+              {renderHeaderItem(item.name)}
+            </ModernTableHead>
+          ))}
+        </ModernTableRow>
+      </thead>
       <tbody>
         {compiledValue.map((item: any, index: number) => (
           <ModernTableRow key={index}>
