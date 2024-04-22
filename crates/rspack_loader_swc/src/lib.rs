@@ -19,6 +19,7 @@ use rspack_plugin_javascript::ast::{self, SourceMapConfig};
 use rspack_plugin_javascript::TransformOutput;
 use rspack_util::source_map::SourceMapKind;
 use swc_config::{config_types::MergingOption, merge::Merge};
+use swc_core::base::config::SourceMapsConfig;
 use swc_core::base::config::{InputSourceMap, OutputCharset, TransformConfig};
 
 #[derive(Debug)]
@@ -79,7 +80,11 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       swc_options
     };
 
-    let source_map_kind = &loader_context.context.module_source_map_kind;
+    let source_map_kind: &SourceMapKind = match swc_options.config.source_maps {
+      Some(SourceMapsConfig::Bool(false)) => &SourceMapKind::None,
+      _ => &loader_context.context.module_source_map_kind,
+    };
+
     let source = content.try_into_string()?;
     let c = SwcCompiler::new(resource_path.clone(), source.clone(), swc_options)
       .map_err(AnyhowError::from)?;

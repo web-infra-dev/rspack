@@ -4,8 +4,7 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 <ApiMeta addedVersion="0.3.0" />
 
-`builtin:swc-loader` 是 [`swc-loader`](https://github.com/swc-project/pkgs/tree/main/packages/swc-loader) 的 Rust 版本，旨在提供更优的性能，
-Loader 的[配置](https://swc.rs/docs/configuration/compilation)与 JS 版本的 `swc-loader` 保持对齐（SWC 插件将会在未来版本进行提供，暂不支持）。
+`builtin:swc-loader` 是 [`swc-loader`](https://github.com/swc-project/pkgs/tree/main/packages/swc-loader) 的 Rust 版本，旨在提供更优的性能，Loader 的[配置](https://swc.rs/docs/configuration/compilation)与 JS 版本的 `swc-loader` 保持对齐。
 
 ## 示例
 
@@ -36,7 +35,7 @@ module.exports = {
 };
 ```
 
-或是对 `js` 文件进行转译：
+或是对 `jsx` 文件进行转译：
 
 ```js
 module.exports = {
@@ -47,7 +46,7 @@ module.exports = {
         use: {
           loader: 'builtin:swc-loader',
           options: {
-            sourceMap: true,
+            sourceMaps: true,
             jsc: {
               parser: {
                 syntax: 'ecmascript',
