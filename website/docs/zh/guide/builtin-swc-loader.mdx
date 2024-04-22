@@ -7,9 +7,11 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 `builtin:swc-loader` 是 [`swc-loader`](https://github.com/swc-project/pkgs/tree/main/packages/swc-loader) 的 Rust 版本，旨在提供更优的性能，
 Loader 的[配置](https://swc.rs/docs/configuration/compilation)与 JS 版本的 `swc-loader` 保持对齐（SWC 插件将会在未来版本进行提供，暂不支持）。
 
-如需要在项目中使用 `builtin:swc-loader`，需进行如下配置。
+## 示例
 
-如对 `ts` 文件进行转译：
+如果需要在项目中使用 `builtin:swc-loader`，需进行如下配置。
+
+比如对 `ts` 文件进行转译：
 
 ```js
 module.exports = {
@@ -20,7 +22,7 @@ module.exports = {
         exclude: [/node_modules/],
         loader: 'builtin:swc-loader',
         options: {
-          sourceMap: true,
+          sourceMaps: true,
           jsc: {
             parser: {
               syntax: 'typescript',
@@ -34,7 +36,51 @@ module.exports = {
 };
 ```
 
-或是对 `jsx` 文件进行转译：
+或是对 `js` 文件进行转译：
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            sourceMap: true,
+            jsc: {
+              parser: {
+                syntax: 'ecmascript',
+                jsx: true,
+              },
+              transform: {
+                react: {
+                  pragma: 'React.createElement',
+                  pragmaFrag: 'React.Fragment',
+                  throwIfNamespace: true,
+                  development: false,
+                  useBuiltins: false,
+                },
+              },
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+另外，你也可以直接参考 [`example-builtin-swc-loader`](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/builtin-swc-loader) 查看更多使用指南。
+
+## 类型声明
+
+<ApiMeta addedVersion="0.6.3" />
+
+你可以使用 `@rspack/core` 导出的 `SwcLoaderOptions` 类型来开启类型提示：
+
+- `rspack.config.js`:
 
 ```js
 module.exports = {
@@ -44,19 +90,9 @@ module.exports = {
         test: /\.js$/,
         use: {
           loader: 'builtin:swc-loader',
+          /** @type {import('@rspack/core').SwcLoaderOptions} */
           options: {
-            jsc: {
-              experimental: {
-                plugins: [
-                  [
-                    '@swc/plugin-remove-console',
-                    {
-                      exclude: ['error'],
-                    },
-                  ],
-                ],
-              },
-            },
+            // some options
           },
         },
       },
@@ -65,13 +101,33 @@ module.exports = {
 };
 ```
 
-另外，你也可以直接参考 [`example-builtin-swc-loader`](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/builtin-swc-loader) 查看更多使用指南。
+- `rspack.config.ts`:
 
-## options
+```ts
+import type { SwcLoaderOptions } from '@rspack/core';
 
-参考 [SWC 配置](https://swc.rs/docs/configuration/swcrc)。
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            // some options
+          } satisfies SwcLoaderOptions,
+        },
+      },
+    ],
+  },
+};
+```
 
-### options.jsc.experimental.plugins
+## Options
+
+下面是部分 SWC 配置以及 Rspack 特有配置的介绍，完整选项请参考 [SWC 配置](https://swc.rs/docs/configuration/swcrc)。
+
+### jsc.experimental.plugins
 
 <ApiMeta addedVersion="0.5.8" stability={Stability.Experimental} />
 
@@ -110,11 +166,11 @@ Rspack 支持在 `builtin:swc-loader` 里加载 `swc` 的 `wasm` 插件, 你可�
 
 这是 wasm 插件的一个[示例](https://github.com/rspack-contrib/rspack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45)。
 
-### options.rspackExperiments
+### rspackExperiments
 
 Rspack 内置的实验性功能。
 
-### options.rspackExperiments.import
+### rspackExperiments.import
 
 <ApiMeta addedVersion="0.3.4" stability={Stability.Experimental} />
 
@@ -262,7 +318,7 @@ import Button from 'antd/es/button';
 import 'antd/es/button/style';
 ```
 
-### options.rspackExperiments.relay
+### rspackExperiments.relay
 
 <ApiMeta addedVersion="0.3.4" stability={Stability.Experimental} />
 
@@ -285,7 +341,7 @@ type RelayOptions =
 当该配置为 `true` 时，Rspack 会从依次尝试寻找 [context](/config/context) 目录下的 `relay.config.json`，`relay.config.js` 以及 `package.json`，详情可以参考 [relay-compiler](https://github.com/facebook/relay/tree/main/packages/relay-compiler) 文档，如果没找到则会使用默认配置。
 如果传入具体的配置则不会尝试查找任何 `relay` 配置文件，而是直接使用传入的配置。
 
-### options.rspackExperiments.emotion
+### rspackExperiments.emotion
 
 <ApiMeta addedVersion="0.3.4" stability={Stability.Experimental} />
 
@@ -393,7 +449,7 @@ export type ImportMap =
 
 此选项允许你告诉 Rspack 它应该查看哪些 import 语句，确定应该转换什么，因此如果你重导出 emotion 的方法，仍然可以转换。
 
-### options.rspackExperiments.styledComponents
+### rspackExperiments.styledComponents
 
 <ApiMeta addedVersion="0.3.7" stability={Stability.Experimental} />
 

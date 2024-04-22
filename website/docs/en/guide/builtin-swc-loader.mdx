@@ -6,6 +6,8 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 `builtin:swc-loader` is the Rust version of [`swc-loader`](https://github.com/swc-project/pkgs/tree/main/packages/swc-loader), aiming to deliver better performance. The Loader's [configuration](https://swc.rs/docs/configuration/compilation) is aligned with the JS version of `swc-loader` (SWC plugins will be provided in future releases and are currently not supported).
 
+## Example
+
 If you need to use `builtin:swc-loader` in your project, configure it as follows:
 
 To transpile `ts` files:
@@ -19,7 +21,7 @@ module.exports = {
         exclude: [/node_modules/],
         loader: 'builtin:swc-loader',
         options: {
-          sourceMap: true,
+          sourceMaps: true,
           jsc: {
             parser: {
               syntax: 'typescript',
@@ -71,11 +73,60 @@ module.exports = {
 
 Additionally, you can directly refer to [`example-builtin-swc-loader`](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/builtin-swc-loader) for more usage guidelines.
 
-## options
+## Type declaration
 
-See [SWC configuration](https://swc.rs/docs/configuration/swcrc).
+<ApiMeta addedVersion="0.6.3" />
 
-### options.jsc.experimental.plugins
+You can enable type hints using the `SwcLoaderOptions` type exported by `@rspack/core`:
+
+- `rspack.config.js`:
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          /** @type {import('@rspack/core').SwcLoaderOptions} */
+          options: {
+            // some options
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+- `rspack.config.ts`:
+
+```ts
+import type { SwcLoaderOptions } from '@rspack/core';
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            // some options
+          } satisfies SwcLoaderOptions,
+        },
+      },
+    ],
+  },
+};
+```
+
+## Options
+
+The following is an introduction to some SWC configurations and Rspack specific configurations. Please refer to the [SWC Configurations](https://swc.rs/docs/configuration/swcrc) for the complete options.
+
+### jsc.experimental.plugins
 
 <ApiMeta addedVersion="0.5.8" stability={Stability.Experimental} />
 
@@ -117,13 +168,13 @@ module.exports = {
 
 this is an [example](https://github.com/rspack-contrib/rspack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45) of wasm plugin usage.
 
-### options.rspackExperiments
+### rspackExperiments
 
 <ApiMeta stability={Stability.Experimental} addedVersion="0.4.0" />
 
 Experimental features provided by rspack.
 
-### options.rspackExperiments.import
+### rspackExperiments.import
 
 <ApiMeta addedVersion="0.3.4" stability={Stability.Experimental} />
 
@@ -269,7 +320,7 @@ import Button from 'antd/es/button';
 import 'antd/es/button/style';
 ```
 
-### options.rspackExperiments.relay
+### rspackExperiments.relay
 
 <ApiMeta addedVersion="0.3.4" stability={Stability.Experimental} />
 
@@ -292,7 +343,7 @@ export type RelayOptions =
 When this configuration is set to `true`, Rspack will attempt to locate `relay.config.json`, `relay.config.js`, and `package.json` files under the [context](/config/context) directory in order, as detailed in the [relay-compiler](https://github.com/facebook/relay/tree/main/packages/relay-compiler) documentation. If none of these files are found, Rspack will use the default configuration.
 If specific configuration is passed, Rspack will not attempt to locate any `relay` config file, but use the received configuration directly.
 
-### options.rspackExperiments.emotion
+### rspackExperiments.emotion
 
 <ApiMeta addedVersion="0.3.4" stability={Stability.Experimental} />
 
@@ -400,7 +451,7 @@ export type ImportMap =
 
 This option allows you to tell Rspack what imports it should look at to determine what it should transform so if you re-export Emotion's exports, you can still use the Babel transforms
 
-### options.rspackExperiments.styledComponents
+### rspackExperiments.styledComponents
 
 <ApiMeta stability={Stability.Experimental} addedVersion="0.3.7" />
 
