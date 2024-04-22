@@ -22,7 +22,10 @@ async function build() {
 			"--dts",
 			"binding.d.ts",
 			"--no-js",
-			"--no-const-enum"
+			"--no-const-enum",
+			"--no-dts-header",
+			"--pipe",
+			`"node ./scripts/dts-header.js"`
 		];
 		if (release) {
 			args.push("--release");
