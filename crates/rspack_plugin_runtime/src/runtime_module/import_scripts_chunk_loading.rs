@@ -6,7 +6,10 @@ use rspack_core::{
 use rspack_identifier::Identifier;
 use rspack_util::source_map::SourceMapKind;
 
-use super::utils::{chunk_has_js, get_output_dir};
+use super::{
+  is_hot_test,
+  utils::{chunk_has_js, get_output_dir},
+};
 use crate::{
   get_chunk_runtime_requirements,
   runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
@@ -175,10 +178,13 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
               .expect("failed to serde_json::to_string(hot_update_global)"),
           ),
       ));
-      source.add(RawSource::from(
+      source.add(RawSource::from(if is_hot_test() {
+        include_str!("runtime/javascript_hot_module_replacement_test.js")
+          .replace("$key$", "importScripts")
+      } else {
         include_str!("runtime/javascript_hot_module_replacement.js")
-          .replace("$key$", "importScripts"),
-      ));
+          .replace("$key$", "importScripts")
+      }));
     }
 
     if with_hmr_manifest {

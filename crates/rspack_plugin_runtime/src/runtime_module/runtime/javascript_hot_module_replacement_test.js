@@ -1,174 +1,9 @@
-# Case remove-chunk-with-shared-in-other-runtime: Step 1
-
-## Changed Files
-- module.js
-
-## Asset Files
-- Bundle: bundle.js
-- Bundle: chunk1_js.chunk.CURRENT_HASH.js
-- Manifest: [runtime of chunk2_js].LAST_HASH.hot-update.json, size: 65
-- Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: main.LAST_HASH.hot-update.js, size: 18215
-
-## Manifest
-
-### [runtime of chunk2_js].LAST_HASH.hot-update.json
-
-```json
-{"c":[],"r":["chunk1_js","chunk2_js","main"],"m":["./chunk2.js"]}
-```
-
-
-
-### main.LAST_HASH.hot-update.json
-
-```json
-{"c":["main"],"r":[],"m":["./chunk2.js"]}
-```
-
-		
-## Update
-
-
-### main.LAST_HASH.hot-update.js
-
-#### Changed Modules
-- ./module.js
-
-#### Changed Runtime Modules
-- webpack/runtime/get_full_hash
-- webpack/runtime/jsonp_chunk_loading
-
-#### Changed Content
-```js
-self["webpackHotUpdate"]('main', {
-"./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony default export */ __webpack_exports__["default"] = (42);
-}),
-
-},function(__webpack_require__) {
-// webpack/runtime/get_full_hash
-!function() {
-__webpack_require__.h = function () {
-	return "CURRENT_HASH";
-};
-
-}();
-// webpack/runtime/jsonp_chunk_loading
-!function() {
-
-      // object to store loaded and loading chunks
-      // undefined = chunk not loaded, null = chunk preloaded/prefetched
-      // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
-      var installedChunks = __webpack_require__.hmrS_jsonp = __webpack_require__.hmrS_jsonp || {"main": 0,};
-      
-        __webpack_require__.f.j = function (chunkId, promises) {
-          // JSONP chunk loading for javascript
-var installedChunkData = __webpack_require__.o(installedChunks, chunkId)
-	? installedChunks[chunkId]
-	: undefined;
-if (installedChunkData !== 0) {
-	// 0 means "already installed".
-
-	// a Promise means "currently loading".
-	if (installedChunkData) {
-		promises.push(installedChunkData[2]);
-	} else {
-		if (true) {
-			// setup Promise in chunk cache
-			var promise = new Promise(function (resolve, reject) {
-				installedChunkData = installedChunks[chunkId] = [resolve, reject];
-			});
-			promises.push((installedChunkData[2] = promise));
-
-			// start chunk loading
-			var url = __webpack_require__.p + __webpack_require__.u(chunkId);
-			// create error before stack unwound to get useful stacktrace later
-			var error = new Error();
-			var loadingEnded = function (event) {
-				if (__webpack_require__.o(installedChunks, chunkId)) {
-					installedChunkData = installedChunks[chunkId];
-					if (installedChunkData !== 0) installedChunks[chunkId] = undefined;
-					if (installedChunkData) {
-						var errorType =
-							event && (event.type === 'load' ? 'missing' : event.type);
-						var realSrc = event && event.target && event.target.src;
-						error.message =
-							'Loading chunk ' +
-							chunkId +
-							' failed.\n(' +
-							errorType +
-							': ' +
-							realSrc +
-							')';
-						error.name = 'ChunkLoadError';
-						error.type = errorType;
-						error.request = realSrc;
-						installedChunkData[1](error);
-					}
-				}
-			};
-			__webpack_require__.l(url, loadingEnded, "chunk-" + chunkId, chunkId);
-		} 
-	}
-}
-
-        }
-        var currentUpdatedModulesList;
-var waitingUpdateResolves = {};
-function loadUpdateChunk(chunkId, updatedModulesList) {
-	currentUpdatedModulesList = updatedModulesList;
-	return new Promise(function (resolve, reject) {
-		waitingUpdateResolves[chunkId] = resolve;
-		// start update chunk loading
-		var url = __webpack_require__.p + __webpack_require__.hu(chunkId);
-		// create error before stack unwound to get useful stacktrace later
-		var error = new Error();
-		var loadingEnded = function (event) {
-			if (waitingUpdateResolves[chunkId]) {
-				waitingUpdateResolves[chunkId] = undefined;
-				var errorType =
-					event && (event.type === 'load' ? 'missing' : event.type);
-				var realSrc = event && event.target && event.target.src;
-				error.message =
-					'Loading hot update chunk ' +
-					chunkId +
-					' failed.\n(' +
-					errorType +
-					': ' +
-					realSrc +
-					')';
-				error.name = 'ChunkLoadError';
-				error.type = errorType;
-				error.request = realSrc;
-				reject(error);
-			}
-		};
-		__webpack_require__.l(url, loadingEnded);
-	});
-}
-
-self["webpackHotUpdate"] = function (chunkId, moreModules, runtime) {
-	for (var moduleId in moreModules) {
-		if (__webpack_require__.o(moreModules, moduleId)) {
-			currentUpdate[moduleId] = moreModules[moduleId];
-			if (currentUpdatedModulesList) currentUpdatedModulesList.push(moduleId);
-		}
-	}
-	if (runtime) currentUpdateRuntime.push(runtime);
-	if (waitingUpdateResolves[chunkId]) {
-		waitingUpdateResolves[chunkId]();
-		waitingUpdateResolves[chunkId] = undefined;
-	}
-};
 var currentUpdateChunks;
 var currentUpdate;
 var currentUpdateRemovedChunks;
 var currentUpdateRuntime;
 function applyHandler(options) {
-	if (__webpack_require__.f) delete __webpack_require__.f.jsonpHmr;
+	if (__webpack_require__.f) delete __webpack_require__.f.$key$Hmr;
 	currentUpdateChunks = undefined;
 	function getAffectedModuleEffects(updateModuleId) {
 		var outdatedModules = [updateModuleId];
@@ -561,7 +396,7 @@ function applyHandler(options) {
 	};
 }
 
-__webpack_require__.hmrI.jsonp = function (moduleId, applyHandlers) {
+__webpack_require__.hmrI.$key$ = function (moduleId, applyHandlers) {
 	if (!currentUpdate) {
 		currentUpdate = {};
 		currentUpdateRuntime = [];
@@ -573,7 +408,7 @@ __webpack_require__.hmrI.jsonp = function (moduleId, applyHandlers) {
 	}
 };
 
-__webpack_require__.hmrC.jsonp = function (
+__webpack_require__.hmrC.$key$ = function (
 	chunkIds,
 	removedChunks,
 	removedModules,
@@ -601,7 +436,7 @@ __webpack_require__.hmrC.jsonp = function (
 		}
 	});
 	if (__webpack_require__.f) {
-		__webpack_require__.f.jsonpHmr = function (chunkId, promises) {
+		__webpack_require__.f.$key$Hmr = function (chunkId, promises) {
 			if (
 				currentUpdateChunks &&
 				__webpack_require__.o(currentUpdateChunks, chunkId) &&
@@ -613,61 +448,3 @@ __webpack_require__.hmrC.jsonp = function (
 		};
 	}
 };
-__webpack_require__.hmrM = function () {
-	if (typeof fetch === "undefined")
-		throw new Error("No browser support: need fetch API");
-	return fetch(__webpack_require__.p + __webpack_require__.hmrF()).then(
-		function (response) {
-			if (response.status === 404) return; // no update available
-			if (!response.ok)
-				throw new Error(
-					"Failed to fetch update manifest " + response.statusText
-				);
-			return response.json();
-		}
-	);
-};
-// install a JSONP callback for chunk loading
-var webpackJsonpCallback = function (parentChunkLoadingFunction, data) {
-	var chunkIds = data[0];
-	var moreModules = data[1];
-	var runtime = data[2];
-	// add "moreModules" to the modules object,
-	// then flag all "chunkIds" as loaded and fire callback
-	var moduleId,
-		chunkId,
-		i = 0;
-	if (chunkIds.some(function (id) { return installedChunks[id] !== 0 })) {
-		for (moduleId in moreModules) {
-			if (__webpack_require__.o(moreModules, moduleId)) {
-				__webpack_require__.m[moduleId] = moreModules[moduleId];
-			}
-		}
-		if (runtime) var result = runtime(__webpack_require__);
-	}
-	if (parentChunkLoadingFunction) parentChunkLoadingFunction(data);
-	for (; i < chunkIds.length; i++) {
-		chunkId = chunkIds[i];
-		if (
-			__webpack_require__.o(installedChunks, chunkId) &&
-			installedChunks[chunkId]
-		) {
-			installedChunks[chunkId][0]();
-		}
-		installedChunks[chunkId] = 0;
-	}
-	
-};
-
-var chunkLoadingGlobal = self["webpackChunk"] = self["webpackChunk"] || [];
-chunkLoadingGlobal.forEach(webpackJsonpCallback.bind(null, 0));
-chunkLoadingGlobal.push = webpackJsonpCallback.bind(
-	null,
-	chunkLoadingGlobal.push.bind(chunkLoadingGlobal)
-);
-
-}();
-
-}
-);
-```

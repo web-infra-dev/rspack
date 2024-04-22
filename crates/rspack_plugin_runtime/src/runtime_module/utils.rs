@@ -262,3 +262,8 @@ fn test_get_undo_path() {
     "../../"
   );
 }
+
+pub fn is_hot_test() -> bool {
+  let is_test_mode = std::env::var("RSPACK_HOT_TEST").ok().unwrap_or_default();
+  is_test_mode == "true"
+}

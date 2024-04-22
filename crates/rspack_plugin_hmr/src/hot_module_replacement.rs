@@ -6,6 +6,11 @@ use rspack_core::{
 use rspack_identifier::Identifier;
 use rspack_util::source_map::SourceMapKind;
 
+pub fn is_hot_test() -> bool {
+  let is_hot_test = std::env::var("RSPACK_HOT_TEST").ok().unwrap_or_default();
+  is_hot_test == "true"
+}
+
 #[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct HotModuleReplacementRuntimeModule {
@@ -28,6 +33,13 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
   }
 
   fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawSource::from(include_str!("runtime/hot_module_replacement.js")).boxed())
+    Ok(
+      RawSource::from(if is_hot_test() {
+        include_str!("runtime/hot_module_replacement_test.js")
+      } else {
+        include_str!("runtime/hot_module_replacement.js")
+      })
+      .boxed(),
+    )
   }
 }

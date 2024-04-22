@@ -196,6 +196,7 @@ export type TTestFilter<T extends ECompilerType> = (
 export interface ITestRunner {
 	run(file: string): Promise<unknown>;
 	getRequire(): TRunnerRequirer;
+	getGlobal(name: string): unknown;
 }
 
 export type TCompilerFactory<T extends ECompilerType> = (

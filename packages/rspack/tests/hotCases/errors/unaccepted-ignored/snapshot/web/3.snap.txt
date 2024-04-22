@@ -56,3 +56,48 @@ __webpack_require__.h = function () {
 }
 );
 ```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./c.js
+
+
+Outdated Dependencies:
+```json
+{
+  "./b.js": [
+    "./c.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./c.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+- ./c.js
+
+Disposed Callback:
