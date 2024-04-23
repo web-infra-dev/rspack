@@ -24,11 +24,11 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::plugin;
+use rspack_util::diff_mode::is_diff_mode;
 use rspack_util::fx_hash::{BuildFxHasher, FxDashMap};
 pub use side_effects_flag_plugin::*;
 
 use crate::runtime::{render_chunk_modules, render_iife, render_runtime_modules, stringify_array};
-use crate::utils::is_diff_mode;
 
 static COMPILATION_DRIVES_MAP: Lazy<FxDashMap<CompilationId, JavascriptModulesPluginPluginDrive>> =
   Lazy::new(Default::default);
