@@ -11,7 +11,7 @@ use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment,
-  OutputOptions, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
 };
 
 pub fn runtime_condition_expression(
