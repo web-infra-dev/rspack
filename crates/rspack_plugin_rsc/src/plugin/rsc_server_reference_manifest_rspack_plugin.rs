@@ -12,7 +12,7 @@ use serde_json::to_string;
 
 use crate::utils::has_client_directive;
 use crate::utils::reference_manifest::{ServerRef, ServerReferenceManifest};
-use crate::utils::shared_data::SHARED_DATA;
+use crate::utils::shared_data::{SHARED_CLIENT_IMPORTS, SHARED_DATA};
 
 #[plugin]
 #[derive(Debug, Default, Clone)]
@@ -52,6 +52,14 @@ impl RSCServerReferenceManifest {
       None => (),
     }
   }
+  fn is_client_request(&self, resource_path: &str) -> bool {
+    let client_imports = SHARED_CLIENT_IMPORTS.get();
+    if let Some(client_imports) = client_imports {
+      client_imports.values().any(|f| f.contains(resource_path))
+    } else {
+      true
+    }
+  }
   fn process_assets_stage_optimize_hash(&self, compilation: &mut Compilation) -> Result<()> {
     let now = Instant::now();
     let mut server_manifest = ServerReferenceManifest {
@@ -85,6 +93,14 @@ impl RSCServerReferenceManifest {
           if let Some(build_info) = module.build_info()
             && !has_client_directive(&build_info.directives)
           {
+            continue;
+          }
+          let resource = &resolved_data
+            .expect("TODO:")
+            .resource_path
+            .to_str()
+            .expect("TODO:");
+          if !self.is_client_request(&resource) {
             continue;
           }
           if let Some(module_id) = module_id {
