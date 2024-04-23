@@ -259,8 +259,6 @@ struct CommentOptions<'a> {
   request: Option<&'a str>,
   // name of the chunk referenced
   chunk_name: Option<&'a str>,
-  // reason information of the chunk
-  chunk_reason: Option<&'a str>,
   // additional message
   message: Option<&'a str>,
 }
@@ -276,14 +274,9 @@ fn comment(compiler_options: &CompilerOptions, comment_options: CommentOptions) 
       comment_options.message,
       comment_options.request,
       comment_options.chunk_name,
-      comment_options.chunk_reason,
     ]
   } else {
-    vec![
-      comment_options.message,
-      comment_options.chunk_name,
-      comment_options.chunk_reason,
-    ]
+    vec![comment_options.message, comment_options.chunk_name]
   }
   .iter()
   .filter_map(|&item| item)
