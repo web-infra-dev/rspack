@@ -751,6 +751,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../rspack-cli
+      '@rspack/plugin-minify':
+        specifier: workspace:*
+        version: link:../rspack-plugin-minify
       '@swc/jest':
         specifier: ^0.2.29
         version: 0.2.36(@swc/core@1.4.0)

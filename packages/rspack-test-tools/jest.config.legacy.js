@@ -11,6 +11,7 @@ module.exports = {
 		"TreeShaking.test.js",
 		"Builtin.test.js",
 		"HotTestStepWeb.test.js",
+		"ConfigTestCases.basictest.js",
 		".difftest.js"
 	]
 };
