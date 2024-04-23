@@ -251,19 +251,64 @@ pub fn get_exports_type_with_strict(
     .get_exports_type_readonly(module_graph, strict)
 }
 
-fn comment(output: &OutputOptions, request: &str) -> String {
-  let content = request;
-  if matches!(output.pathinfo, PathInfo::Bool(true) | PathInfo::String(_)) {
-    format!("{} ", to_comment(content))
+// information content of the comment
+#[derive(Default)]
+struct CommentOptions<'a> {
+  // request string used originally
+  request: Option<&'a str>,
+  // name of the chunk referenced
+  chunk_name: Option<&'a str>,
+  // reason information of the chunk
+  chunk_reason: Option<&'a str>,
+  // additional message
+  message: Option<&'a str>,
+}
+
+fn comment(output_options: &OutputOptions, comment_options: CommentOptions) -> String {
+  let content = if matches!(
+    output_options.pathinfo,
+    PathInfo::Bool(true) | PathInfo::String(_)
+  ) {
+    vec![
+      comment_options.message,
+      comment_options.request,
+      comment_options.chunk_name,
+      comment_options.chunk_reason,
+    ]
   } else {
-    format!("{} ", to_normal_comment(content))
+    vec![
+      comment_options.message,
+      comment_options.chunk_name,
+      comment_options.chunk_reason,
+    ]
+  }
+  .iter()
+  .filter_map(|&item| item)
+  // TODO
+  // .map(|item| self.request_shortener.shorten(item))
+  .collect::<Vec<_>>()
+  .join(" | ");
+
+  if matches!(
+    output_options.pathinfo,
+    PathInfo::Bool(true) | PathInfo::String(_)
+  ) {
+    format!("{} ", to_comment(&content))
+  } else {
+    format!("{} ", to_normal_comment(&content))
   }
 }
 
 pub fn module_id_expr(output: &OutputOptions, request: &str, module_id: &str) -> String {
   format!(
     "{}{}",
-    comment(output, request),
+    comment(
+      output,
+      CommentOptions {
+        request: Some(request),
+        ..Default::default()
+      }
+    ),
     serde_json::to_string(module_id).expect("should render module id")
   )
 }
