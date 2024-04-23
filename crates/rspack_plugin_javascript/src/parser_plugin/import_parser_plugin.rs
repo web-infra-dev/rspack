@@ -60,11 +60,11 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let chunk_prefetch = magic_comment_options
       .get_webpack_prefetch()
       .and_then(|x| parse_order_string(x.as_str()))
-      .or(dynamic_import_preload);
+      .or(dynamic_import_prefetch);
     let chunk_preload = magic_comment_options
       .get_webpack_preload()
       .and_then(|x| parse_order_string(x.as_str()))
-      .or(dynamic_import_prefetch);
+      .or(dynamic_import_preload);
 
     let param = parser.evaluate_expression(dyn_imported.expr.as_ref());
 
