@@ -101,7 +101,7 @@ jobs:
         with:
           issue-number: ${{ github.event.issue.number || github.event.pull_request.number }}
           body: |
-            **${{ contains(needs.test.outputs.testng, 'Test new runner failed') && '🔴🔴🔴 Test new runner failed' || '🟢🟢🟢 Test new runner successed' }}**
+            **🔴🔴🔴 Test new runner failed**
             
             > Task: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
     
