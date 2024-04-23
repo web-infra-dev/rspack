@@ -7,7 +7,10 @@ const fs = require("graceful-fs");
 const webpack = require("..");
 const prettyFormat = require("pretty-format").default;
 
-const CWD_PATTERN = new RegExp(process.cwd().replace(/\\/g, "/"), "gm");
+const CWD_PATTERN = new RegExp(
+	path.join(process.cwd(), "../../").replace(/\\/g, "/"),
+	"gm"
+);
 const ERROR_STACK_PATTERN = /(?:\n\s+at\s.*)+/gm;
 
 function cleanError(err) {
@@ -147,10 +150,10 @@ it("should emit warnings for resolve failure in esm", async () => {
 		Object {
 		  "errors": Array [
 		    Object {
-		      "formatted": "  × Resolve error: Can't resolve './answer' in '<cwd>/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
-		      "message": "  × Resolve error: Can't resolve './answer' in '<cwd>/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
+		      "formatted": "  × Resolve error: Can't resolve './answer' in '<cwd>packages/rspack/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
+		      "message": "  × Resolve error: Can't resolve './answer' in '<cwd>packages/rspack/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
 		      "moduleId": "./resolve-fail-esm/index.js",
-		      "moduleIdentifier": "javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js",
+		      "moduleIdentifier": "javascript/esm|<cwd>packages/rspack/tests/fixtures/errors/resolve-fail-esm/index.js",
 		      "moduleName": "./resolve-fail-esm/index.js",
 		    },
 		  ],
@@ -159,19 +162,20 @@ it("should emit warnings for resolve failure in esm", async () => {
 	`);
 });
 
-it("Testing proxy methods on errors", async () => {
-	await expect(
-		compile({
-			entry: "./resolve-fail-esm",
-			plugins: [
-				compiler => {
-					compiler.hooks.afterCompile.tap("test push", compilation => {
-						compilation.errors.push("test push");
-					});
-				}
-			]
-		})
-	).resolves.toMatchInlineSnapshot(`
+describe("Testing proxy methods on errors", () => {
+	it("test push", async () => {
+		await expect(
+			compile({
+				entry: "./resolve-fail-esm",
+				plugins: [
+					compiler => {
+						compiler.hooks.afterCompile.tap("test push", compilation => {
+							compilation.errors.push("test push");
+						});
+					}
+				]
+			})
+		).resolves.toMatchInlineSnapshot(`
 		Object {
 		  "errors": Array [
 		    Object {
@@ -179,51 +183,55 @@ it("Testing proxy methods on errors", async () => {
 		      "message": "  × test push\\n",
 		    },
 		    Object {
-		      "formatted": "  × Resolve error: Can't resolve './answer' in '<cwd>/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
-		      "message": "  × Resolve error: Can't resolve './answer' in '<cwd>/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
+		      "formatted": "  × Resolve error: Can't resolve './answer' in '<cwd>packages/rspack/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
+		      "message": "  × Resolve error: Can't resolve './answer' in '<cwd>packages/rspack/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
 		      "moduleId": "./resolve-fail-esm/index.js",
-		      "moduleIdentifier": "javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js",
+		      "moduleIdentifier": "javascript/esm|<cwd>packages/rspack/tests/fixtures/errors/resolve-fail-esm/index.js",
 		      "moduleName": "./resolve-fail-esm/index.js",
 		    },
 		  ],
 		  "warnings": Array [],
 		}
 	`);
+	});
 
-	await expect(
-		compile({
-			entry: "./resolve-fail-esm",
-			plugins: [
-				compiler => {
-					compiler.hooks.afterCompile.tap("test pop", compilation => {
-						compilation.errors.pop();
-					});
-				}
-			]
-		})
-	).resolves.toMatchInlineSnapshot(`
+	it("test pop", async () => {
+		await expect(
+			compile({
+				entry: "./resolve-fail-esm",
+				plugins: [
+					compiler => {
+						compiler.hooks.afterCompile.tap("test pop", compilation => {
+							compilation.errors.pop();
+						});
+					}
+				]
+			})
+		).resolves.toMatchInlineSnapshot(`
 		Object {
 		  "errors": Array [],
 		  "warnings": Array [],
 		}
 	`);
+	});
 
-	await expect(
-		compile({
-			entry: "./resolve-fail-esm",
-			plugins: [
-				compiler => {
-					compiler.hooks.afterCompile.tap(
-						"test shift and unshift",
-						compilation => {
-							compilation.errors.shift();
-							compilation.errors.unshift("test unshift");
-						}
-					);
-				}
-			]
-		})
-	).resolves.toMatchInlineSnapshot(`
+	it("test shift&unshift", async () => {
+		await expect(
+			compile({
+				entry: "./resolve-fail-esm",
+				plugins: [
+					compiler => {
+						compiler.hooks.afterCompile.tap(
+							"test shift and unshift",
+							compilation => {
+								compilation.errors.shift();
+								compilation.errors.unshift("test unshift");
+							}
+						);
+					}
+				]
+			})
+		).resolves.toMatchInlineSnapshot(`
 		Object {
 		  "errors": Array [
 		    Object {
@@ -234,19 +242,21 @@ it("Testing proxy methods on errors", async () => {
 		  "warnings": Array [],
 		}
 	`);
+	});
 
-	await expect(
-		compile({
-			entry: "./resolve-fail-esm",
-			plugins: [
-				compiler => {
-					compiler.hooks.afterCompile.tap("test splice", compilation => {
-						compilation.errors.splice(0, 1, "test splice");
-					});
-				}
-			]
-		})
-	).resolves.toMatchInlineSnapshot(`
+	it("test splice 1", async () => {
+		await expect(
+			compile({
+				entry: "./resolve-fail-esm",
+				plugins: [
+					compiler => {
+						compiler.hooks.afterCompile.tap("test splice", compilation => {
+							compilation.errors.splice(0, 1, "test splice");
+						});
+					}
+				]
+			})
+		).resolves.toMatchInlineSnapshot(`
 		Object {
 		  "errors": Array [
 		    Object {
@@ -257,18 +267,21 @@ it("Testing proxy methods on errors", async () => {
 		  "warnings": Array [],
 		}
 	`);
-	await expect(
-		compile({
-			entry: "./resolve-fail-esm",
-			plugins: [
-				compiler => {
-					compiler.hooks.afterCompile.tap("test splice", compilation => {
-						compilation.errors.splice(0, 0, "test splice");
-					});
-				}
-			]
-		})
-	).resolves.toMatchInlineSnapshot(`
+	});
+
+	it("test splice 2", async () => {
+		await expect(
+			compile({
+				entry: "./resolve-fail-esm",
+				plugins: [
+					compiler => {
+						compiler.hooks.afterCompile.tap("test splice", compilation => {
+							compilation.errors.splice(0, 0, "test splice");
+						});
+					}
+				]
+			})
+		).resolves.toMatchInlineSnapshot(`
 		Object {
 		  "errors": Array [
 		    Object {
@@ -276,143 +289,221 @@ it("Testing proxy methods on errors", async () => {
 		      "message": "  × test splice\\n",
 		    },
 		    Object {
-		      "formatted": "  × Resolve error: Can't resolve './answer' in '<cwd>/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
-		      "message": "  × Resolve error: Can't resolve './answer' in '<cwd>/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
+		      "formatted": "  × Resolve error: Can't resolve './answer' in '<cwd>packages/rspack/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
+		      "message": "  × Resolve error: Can't resolve './answer' in '<cwd>packages/rspack/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
 		      "moduleId": "./resolve-fail-esm/index.js",
-		      "moduleIdentifier": "javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js",
+		      "moduleIdentifier": "javascript/esm|<cwd>packages/rspack/tests/fixtures/errors/resolve-fail-esm/index.js",
 		      "moduleName": "./resolve-fail-esm/index.js",
 		    },
 		  ],
 		  "warnings": Array [],
 		}
 	`);
+	});
 });
 
-it("Testing proxy methods on warnings", async () => {
-	await expect(
-		compile({
-			entry: "data:text/javascript,require.include('aaa')",
-			plugins: [
-				compiler => {
-					compiler.hooks.afterCompile.tap("test push", compilation => {
-						compilation.warnings.push(new Error("test push"));
-					});
-				}
-			]
-		})
-	).resolves.toMatchInlineSnapshot(`
+describe("Testing proxy methods on warnings", () => {
+	it("test push", async () => {
+		await expect(
+			compile({
+				entry: "./require.main.require",
+				plugins: [
+					compiler => {
+						compiler.hooks.afterCompile.tap("test push", compilation => {
+							compilation.warnings.push(new Error("test push"));
+						});
+					}
+				]
+			})
+		).resolves.toMatchInlineSnapshot(`
 		Object {
 		  "errors": Array [],
 		  "warnings": Array [
 		    Object {
-		      "formatted": "  ⚠ Error: test push\\n  │     at <cwd>/tests/Errors.test.js:298:33\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
-		      "message": "  ⚠ Error: test push\\n  │     at <cwd>/tests/Errors.test.js:298:33\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
+		      "formatted": "  ⚠ Error: test push\\n  │     at <cwd>packages/rspack/tests/Errors.test.js:313:34\\n  │     at Hook.eval [as callAsync] (eval at create (<cwd>node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (<cwd>node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>packages/rspack/dist/Compiler.js:419:41\\n  │     at <cwd>packages/rspack/dist/Compiler.js:743:65\\n",
+		      "message": "  ⚠ Error: test push\\n  │     at <cwd>packages/rspack/tests/Errors.test.js:313:34\\n  │     at Hook.eval [as callAsync] (eval at create (<cwd>node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (<cwd>node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>packages/rspack/dist/Compiler.js:419:41\\n  │     at <cwd>packages/rspack/dist/Compiler.js:743:65\\n",
 		    },
 		    Object {
-		      "formatted": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Module parse failed: require.include() is not supported by Rspack.\\n         ╭────\\n       1 │ require.include('aaa');\\n         · ──────────────────────\\n         ╰────\\n      \\n",
-		      "message": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Module parse failed: require.include() is not supported by Rspack.\\n         ╭────\\n       1 │ require.include('aaa');\\n         · ──────────────────────\\n         ╰────\\n      \\n",
-		      "moduleId": "data:text/javascript,require.include('aaa')",
-		      "moduleIdentifier": "javascript/esm|data:text/javascript,require.include('aaa')",
-		      "moduleName": "data:text/javascript,require.include('aaa')",
+		      "formatted": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Module parse failed: require.main.require() is not supported by Rspack.\\n         ╭────\\n       1 │ require.main.require('./file');\\n         · ──────────────────────────────\\n         ╰────\\n      \\n",
+		      "message": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Module parse failed: require.main.require() is not supported by Rspack.\\n         ╭────\\n       1 │ require.main.require('./file');\\n         · ──────────────────────────────\\n         ╰────\\n      \\n",
+		      "moduleId": "./require.main.require.js",
+		      "moduleIdentifier": "<cwd>packages/rspack/tests/fixtures/errors/require.main.require.js",
+		      "moduleName": "./require.main.require.js",
 		    },
 		  ],
 		}
 	`);
+	});
 
-	await expect(
-		compile({
-			entry: "data:text/javascript,require.include('aaa')",
-			plugins: [
-				compiler => {
-					compiler.hooks.afterCompile.tap("test pop", compilation => {
-						compilation.warnings.pop();
-					});
-				}
-			]
-		})
-	).resolves.toMatchInlineSnapshot(`
+	it("test pop", async () => {
+		await expect(
+			compile({
+				entry: "./require.main.require",
+				plugins: [
+					compiler => {
+						compiler.hooks.afterCompile.tap("test pop", compilation => {
+							compilation.warnings.pop();
+						});
+					}
+				]
+			})
+		).resolves.toMatchInlineSnapshot(`
 		Object {
 		  "errors": Array [],
 		  "warnings": Array [],
 		}
 	`);
+	});
 
-	await expect(
-		compile({
-			entry: "data:text/javascript,require.include('aaa')",
-			plugins: [
-				compiler => {
-					compiler.hooks.afterCompile.tap(
-						"test shift and unshift",
-						compilation => {
-							compilation.warnings.shift();
-							compilation.warnings.unshift(new Error("test unshift"));
-						}
-					);
-				}
-			]
-		})
-	).resolves.toMatchInlineSnapshot(`
+	it("test shift&unshift", async () => {
+		await expect(
+			compile({
+				entry: "./require.main.require",
+				plugins: [
+					compiler => {
+						compiler.hooks.afterCompile.tap(
+							"test shift and unshift",
+							compilation => {
+								compilation.warnings.shift();
+								compilation.warnings.unshift(new Error("test unshift"));
+							}
+						);
+					}
+				]
+			})
+		).resolves.toMatchInlineSnapshot(`
 		Object {
 		  "errors": Array [],
 		  "warnings": Array [
 		    Object {
-		      "formatted": "  ⚠ Error: test unshift\\n  │     at <cwd>/tests/Errors.test.js:327:37\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
-		      "message": "  ⚠ Error: test unshift\\n  │     at <cwd>/tests/Errors.test.js:327:37\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
+		      "formatted": "  ⚠ Error: test unshift\\n  │     at <cwd>packages/rspack/tests/Errors.test.js:368:38\\n  │     at Hook.eval [as callAsync] (eval at create (<cwd>node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (<cwd>node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>packages/rspack/dist/Compiler.js:419:41\\n  │     at <cwd>packages/rspack/dist/Compiler.js:743:65\\n",
+		      "message": "  ⚠ Error: test unshift\\n  │     at <cwd>packages/rspack/tests/Errors.test.js:368:38\\n  │     at Hook.eval [as callAsync] (eval at create (<cwd>node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (<cwd>node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>packages/rspack/dist/Compiler.js:419:41\\n  │     at <cwd>packages/rspack/dist/Compiler.js:743:65\\n",
 		    },
 		  ],
 		}
 	`);
+	});
 
-	await expect(
-		compile({
-			entry: "data:text/javascript,require.include('aaa')",
-			plugins: [
-				compiler => {
-					compiler.hooks.afterCompile.tap("test splice", compilation => {
-						compilation.warnings.splice(0, 1, new Error("test splice"));
-					});
-				}
-			]
-		})
-	).resolves.toMatchInlineSnapshot(`
+	it("test splice 1", async () => {
+		await expect(
+			compile({
+				entry: "./require.main.require",
+				plugins: [
+					compiler => {
+						compiler.hooks.afterCompile.tap("test splice", compilation => {
+							compilation.warnings.splice(0, 1, new Error("test splice"));
+						});
+					}
+				]
+			})
+		).resolves.toMatchInlineSnapshot(`
 		Object {
 		  "errors": Array [],
 		  "warnings": Array [
 		    Object {
-		      "formatted": "  ⚠ Error: test splice\\n  │     at <cwd>/tests/Errors.test.js:341:41\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
-		      "message": "  ⚠ Error: test splice\\n  │     at <cwd>/tests/Errors.test.js:341:41\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
+		      "formatted": "  ⚠ Error: test splice\\n  │     at <cwd>packages/rspack/tests/Errors.test.js:394:42\\n  │     at Hook.eval [as callAsync] (eval at create (<cwd>node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (<cwd>node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>packages/rspack/dist/Compiler.js:419:41\\n  │     at <cwd>packages/rspack/dist/Compiler.js:743:65\\n",
+		      "message": "  ⚠ Error: test splice\\n  │     at <cwd>packages/rspack/tests/Errors.test.js:394:42\\n  │     at Hook.eval [as callAsync] (eval at create (<cwd>node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (<cwd>node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>packages/rspack/dist/Compiler.js:419:41\\n  │     at <cwd>packages/rspack/dist/Compiler.js:743:65\\n",
 		    },
 		  ],
 		}
 	`);
-	await expect(
-		compile({
-			entry: "data:text/javascript,require.include('aaa')",
-			plugins: [
-				compiler => {
-					compiler.hooks.afterCompile.tap("test splice", compilation => {
-						compilation.warnings.splice(0, 0, new Error("test splice"));
-					});
-				}
-			]
-		})
-	).resolves.toMatchInlineSnapshot(`
+	});
+
+	it("test splice 2", async () => {
+		await expect(
+			compile({
+				entry: "./require.main.require",
+				plugins: [
+					compiler => {
+						compiler.hooks.afterCompile.tap("test splice", compilation => {
+							compilation.warnings.splice(0, 0, new Error("test splice"));
+						});
+					}
+				]
+			})
+		).resolves.toMatchInlineSnapshot(`
 		Object {
 		  "errors": Array [],
 		  "warnings": Array [
 		    Object {
-		      "formatted": "  ⚠ Error: test splice\\n  │     at <cwd>/tests/Errors.test.js:353:41\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
-		      "message": "  ⚠ Error: test splice\\n  │     at <cwd>/tests/Errors.test.js:353:41\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
+		      "formatted": "  ⚠ Error: test splice\\n  │     at <cwd>packages/rspack/tests/Errors.test.js:419:42\\n  │     at Hook.eval [as callAsync] (eval at create (<cwd>node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (<cwd>node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>packages/rspack/dist/Compiler.js:419:41\\n  │     at <cwd>packages/rspack/dist/Compiler.js:743:65\\n",
+		      "message": "  ⚠ Error: test splice\\n  │     at <cwd>packages/rspack/tests/Errors.test.js:419:42\\n  │     at Hook.eval [as callAsync] (eval at create (<cwd>node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (<cwd>node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>packages/rspack/dist/Compiler.js:419:41\\n  │     at <cwd>packages/rspack/dist/Compiler.js:743:65\\n",
 		    },
 		    Object {
-		      "formatted": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Module parse failed: require.include() is not supported by Rspack.\\n         ╭────\\n       1 │ require.include('aaa');\\n         · ──────────────────────\\n         ╰────\\n      \\n",
-		      "message": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Module parse failed: require.include() is not supported by Rspack.\\n         ╭────\\n       1 │ require.include('aaa');\\n         · ──────────────────────\\n         ╰────\\n      \\n",
-		      "moduleId": "data:text/javascript,require.include('aaa')",
-		      "moduleIdentifier": "javascript/esm|data:text/javascript,require.include('aaa')",
-		      "moduleName": "data:text/javascript,require.include('aaa')",
+		      "formatted": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Module parse failed: require.main.require() is not supported by Rspack.\\n         ╭────\\n       1 │ require.main.require('./file');\\n         · ──────────────────────────────\\n         ╰────\\n      \\n",
+		      "message": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Module parse failed: require.main.require() is not supported by Rspack.\\n         ╭────\\n       1 │ require.main.require('./file');\\n         · ──────────────────────────────\\n         ╰────\\n      \\n",
+		      "moduleId": "./require.main.require.js",
+		      "moduleIdentifier": "<cwd>packages/rspack/tests/fixtures/errors/require.main.require.js",
+		      "moduleName": "./require.main.require.js",
 		    },
 		  ],
 		}
 	`);
+	});
+});
+
+describe("Testing map function on errors and warnings", () => {
+	it("test map of warnings", async () => {
+		const warnPromise = new Promise(resolve => {
+			compile({
+				entry: "./require.main.require",
+				plugins: [
+					compiler => {
+						compiler.hooks.afterCompile.tap(
+							"test warnings map",
+							compilation => {
+								resolve(
+									compilation.warnings.map((item, index) => ({
+										index,
+										...item
+									}))
+								);
+							}
+						);
+					}
+				]
+			});
+		});
+		await expect(warnPromise).resolves.toMatchInlineSnapshot(`
+		Array [
+		  Object {
+		  "formatted": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Module parse failed: require.main.require() is not supported by Rspack.\\n         ╭────\\n       1 │ require.main.require('./file');\\n         · ──────────────────────────────\\n         ╰────\\n      \\n",
+		  "index": 0,
+		  "message": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Module parse failed: require.main.require() is not supported by Rspack.\\n         ╭────\\n       1 │ require.main.require('./file');\\n         · ──────────────────────────────\\n         ╰────\\n      \\n",
+		  "moduleId": "./require.main.require.js",
+		  "moduleIdentifier": "<cwd>packages/rspack/tests/fixtures/errors/require.main.require.js",
+		  "moduleName": "./require.main.require.js",
+		},
+		]
+	`);
+	});
+
+	it("test map of errors", async () => {
+		const errorPromise = new Promise(resolve => {
+			compile({
+				entry: "./resolve-fail-esm",
+				plugins: [
+					compiler => {
+						compiler.hooks.afterCompile.tap("test errors map", compilation => {
+							resolve(
+								compilation.errors.map((item, index) => ({ index, ...item }))
+							);
+						});
+					}
+				]
+			});
+		});
+		await expect(errorPromise).resolves.toMatchInlineSnapshot(`
+		Array [
+		  Object {
+		  "formatted": "  × Resolve error: Can't resolve './answer' in '<cwd>packages/rspack/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
+		  "index": 0,
+		  "message": "  × Resolve error: Can't resolve './answer' in '<cwd>packages/rspack/tests/fixtures/errors/resolve-fail-esm'\\n   ╭────\\n 1 │ import { answer } from './answer';\\n   ·                        ──────────\\n   ╰────\\n  help: Did you mean './answer.js'?\\n        \\n        The request './answer' failed to resolve only because it was resolved as fully specified,\\n        probably because the origin is strict EcmaScript Module,\\n        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.\\n        \\n        The extension in the request is mandatory for it to be fully specified.\\n        Add the extension to the request.\\n",
+		  "moduleId": "./resolve-fail-esm/index.js",
+		  "moduleIdentifier": "javascript/esm|<cwd>packages/rspack/tests/fixtures/errors/resolve-fail-esm/index.js",
+		  "moduleName": "./resolve-fail-esm/index.js",
+		},
+		]
+	`);
+	});
 });
