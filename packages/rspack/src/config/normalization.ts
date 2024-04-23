@@ -436,6 +436,7 @@ export interface EntryDescriptionNormalized {
 
 export interface OutputNormalized {
 	path?: Path;
+	pathinfo?: boolean | "verbose";
 	clean?: Clean;
 	publicPath?: PublicPath;
 	filename?: Filename;

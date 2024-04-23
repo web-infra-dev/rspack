@@ -101,6 +101,7 @@ export const applyRspackOptionsDefaults = (
 			(Array.isArray(target) &&
 				target.some(target => target.startsWith("browserslist"))),
 		outputModule: options.experiments.outputModule,
+		development,
 		entry: options.entry,
 		futureDefaults
 	});
@@ -411,6 +412,7 @@ const applyOutputDefaults = (
 		outputModule,
 		targetProperties: tp,
 		isAffectedByBrowserslist,
+		development,
 		entry,
 		futureDefaults
 	}: {
@@ -418,6 +420,7 @@ const applyOutputDefaults = (
 		outputModule?: boolean;
 		targetProperties: any;
 		isAffectedByBrowserslist: boolean;
+		development: boolean;
 		entry: EntryNormalized;
 		futureDefaults: boolean;
 	}
@@ -511,6 +514,7 @@ const applyOutputDefaults = (
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));
+	F(output, "pathinfo", () => false);
 	D(
 		output,
 		"publicPath",
