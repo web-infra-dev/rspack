@@ -8,7 +8,7 @@
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: [runtime of chunk2_js].LAST_HASH.hot-update.json, size: 65
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: main.LAST_HASH.hot-update.js, size: 18215
+- Update: main.LAST_HASH.hot-update.js, size: 18238
 
 ## Manifest
 
@@ -297,10 +297,10 @@ function applyHandler(options) {
 					if (!options.ignoreDeclined)
 						abortError = new Error(
 							"Aborted because of declined dependency: " +
-							result.moduleId +
-							" in " +
-							result.parentId +
-							chainInfo
+								result.moduleId +
+								" in " +
+								result.parentId +
+								chainInfo
 						);
 					break;
 				case "unaccepted":
@@ -367,9 +367,9 @@ function applyHandler(options) {
 			});
 		}
 	}
-
-	self.__HMR_UPDATED_RUNTIME__.javascript.outdatedModules = outdatedModules;
-	self.__HMR_UPDATED_RUNTIME__.javascript.outdatedDependencies = outdatedDependencies;
+      self.__HMR_UPDATED_RUNTIME__.javascript.outdatedModules = outdatedModules;
+	    self.__HMR_UPDATED_RUNTIME__.javascript.outdatedDependencies = outdatedDependencies;
+      
 
 	var moduleOutdatedDependencies;
 	return {
@@ -390,9 +390,10 @@ function applyHandler(options) {
 
 				// Call dispose handlers
 				var disposeHandlers = module.hot._disposeHandlers;
-				if (disposeHandlers.length > 0) {
-					self.__HMR_UPDATED_RUNTIME__.javascript.disposedModules.push(moduleId);
-				}
+      if (disposeHandlers.length > 0) {
+        self.__HMR_UPDATED_RUNTIME__.javascript.disposedModules.push(moduleId);
+      }
+      
 				for (j = 0; j < disposeHandlers.length; j++) {
 					disposeHandlers[j].call(null, data);
 				}
@@ -434,19 +435,21 @@ function applyHandler(options) {
 			for (var updateModuleId in appliedUpdate) {
 				if (__webpack_require__.o(appliedUpdate, updateModuleId)) {
 					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId];
-					self.__HMR_UPDATED_RUNTIME__.javascript.updatedModules.push(updateModuleId);
+      self.__HMR_UPDATED_RUNTIME__.javascript.updatedModules.push(updateModuleId);
+      
 				}
 			}
 
 			// run new runtime modules
 			for (var i = 0; i < currentUpdateRuntime.length; i++) {
-				// currentUpdateRuntime[i](__webpack_require__);
-				currentUpdateRuntime[i](new Proxy(__webpack_require__, {
-					set(target, prop, value, receiver) {
-						self.__HMR_UPDATED_RUNTIME__.javascript.updatedRuntime.push(`__webpack_require__.${prop}`);
-						return Reflect.set(target, prop, value, receiver);
-					}
-				}));
+				
+      currentUpdateRuntime[i](new Proxy(__webpack_require__, {
+        set(target, prop, value, receiver) {
+          self.__HMR_UPDATED_RUNTIME__.javascript.updatedRuntime.push(`__webpack_require__.${prop}`);
+          return Reflect.set(target, prop, value, receiver);
+        }
+      }));
+      
 			}
 
 			// call accept handlers
@@ -466,7 +469,8 @@ function applyHandler(options) {
 								if (callbacks.indexOf(acceptCallback) !== -1) continue;
 								callbacks.push(acceptCallback);
 								errorHandlers.push(errorHandler);
-								self.__HMR_UPDATED_RUNTIME__.javascript.acceptedModules.push(dependency);
+      self.__HMR_UPDATED_RUNTIME__.javascript.acceptedModules.push(dependency);
+      
 								dependenciesForCallbacks.push(dependency);
 							}
 						}

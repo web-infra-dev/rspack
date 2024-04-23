@@ -4,9 +4,12 @@ use rspack_core::{
   BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
-use rspack_util::{source_map::SourceMapKind, test::is_hot_test};
+use rspack_util::source_map::SourceMapKind;
 
-use super::utils::{chunk_has_js, get_output_dir};
+use super::{
+  generate_javascript_hmr_runtime,
+  utils::{chunk_has_js, get_output_dir},
+};
 use crate::{
   get_chunk_runtime_requirements,
   runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
@@ -155,12 +158,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
       source.add(RawSource::from(include_str!(
         "runtime/require_chunk_loading_with_hmr.js"
       )));
-      source.add(RawSource::from(if is_hot_test() {
-        include_str!("runtime/javascript_hot_module_replacement_test.js")
-          .replace("$key$", "require")
-      } else {
-        include_str!("runtime/javascript_hot_module_replacement.js").replace("$key$", "require")
-      }));
+      source.add(RawSource::from(generate_javascript_hmr_runtime("require")));
     }
 
     if with_hmr_manifest {
