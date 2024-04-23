@@ -13,6 +13,8 @@ use rspack_hook::{plugin, plugin_hook};
 use serde_json::to_string;
 
 use crate::utils::has_client_directive;
+use crate::utils::reference_manifest::ClientImports;
+use crate::utils::shared_data::SHARED_CLIENT_IMPORTS;
 
 #[derive(Debug, Clone)]
 pub struct ReactRoute {
@@ -67,7 +69,7 @@ impl RSCClientEntryRspackPlugin {
     let module_type = module.module_type();
     if let Some(data) = data {
       let resource_path = &data.resource_path;
-      let resource_path_str = resource_path.to_str().expect("Should exits");
+      let resource_path_str = resource_path.to_str().expect("TODO:");
       if visited_modules.contains(resource_path_str) {
         return;
       }
@@ -119,8 +121,7 @@ impl RSCClientEntryRspackPlugin {
 #[plugin_hook(CompilerFinishMake for RSCClientEntryRspackPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   let now = Instant::now();
-  // println!("rsc options {:?}", self.options);
-  let mut client_imports: HashMap<String, IndexSet<String>> = HashMap::new();
+  let mut client_imports: ClientImports = HashMap::new();
   for (name, entry) in &compilation.entries {
     let mut entry_client_imports: IndexSet<String> = IndexSet::new();
     let mut visited_modules: HashSet<String> = HashSet::new();
@@ -140,6 +141,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   }
   // TODO: custom main entry name, all other entries depend on this entry
   let main_name = "server-entry";
+  let _ = SHARED_CLIENT_IMPORTS.set(client_imports.clone());
   let cc = client_imports.clone();
   let main = cc.get(main_name).unwrap();
   for (name, value) in client_imports.iter_mut() {
