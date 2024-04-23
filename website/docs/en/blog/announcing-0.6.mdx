@@ -16,7 +16,7 @@ Now you can use `rspack.CssExtractRspackPlugin` as a replacement for `mini-css-e
 
 This is very useful in some scenarios, for example when the built-in CSS parser cannot meet your needs, there are more customized CSS module names, or you want to use some loaders that depend on the output of css-loader, but still want to extract the CSS into a separate file.
 
-For more details, please see [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin.html#cssextractrspackplugin).
+For more details, please see [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin#cssextractrspackplugin).
 
 ```js
 const rspack = require('@rspack/core');
@@ -59,7 +59,7 @@ The `experiments.rspackFuture.disableApplyEntryLazily` option has been enabled b
 
 ### Remove builtins.css and introduce CSS related module.parser and module.generator options
 
-Remove `builtins.css`, please replace it with the CSS-related [`module.parser`](/config/module.html#moduleparsercssauto) and [`module.generator`](/config/module.html#modulegeneratorcssauto) options that have been introduced.
+Remove `builtins.css`, please replace it with the CSS-related [`module.parser`](/config/module#moduleparsercssauto) and [`module.generator`](/config/module#modulegeneratorcssauto) options that have been introduced.
 
 Also, starting from v0.6.0, Rspack's experiments CSS will align with webpack's experiments CSS as a target, which means that, like webpack experiments CSS, it will no longer support [browsers that do not support CSS variables](https://caniuse.com/css-variables) in the future. Therefore, for those projects that need to use configurations not yet supported by experiments CSS, or need to support older browsers, we recommend migrating to [`rspack.CssExtractRspackPlugin`](/plugins/rspack/css-extract-rspack-plugin.html).
 
@@ -187,7 +187,7 @@ module.exports = {
 }
 ```
 
-If it is necessary to configure some modules separately, you can use the [`rule.parser`](/config/module.html#ruleparser) and [`rule.generator`](/config/module.html#rulegenerator) options in `module.rules`.
+If it is necessary to configure some modules separately, you can use the [`rule.parser`](/config/module#ruleparser) and [`rule.generator`](/config/module#rulegenerator) options in `module.rules`.
 
 ### Migrate to compiler.run
 

@@ -89,7 +89,7 @@ module.exports = {
 
 <ApiMeta addedVersion={'0.3.5'} />
 
-带有 `{ root, amd, commonjs, ... }` 的对象只允许用于 [`libraryTarget: 'umd'`](/config/output.html#outputlibrarytarget) 和 [`externalsType: 'umd'`](#externalstype)。其他库的 target 不允许这样做。
+带有 `{ root, amd, commonjs, ... }` 的对象只允许用于 [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) 和 [`externalsType: 'umd'`](#externalstype)。其他库的 target 不允许这样做。
 
 ```javascript
 module.exports = {
@@ -117,7 +117,7 @@ module.exports = {
 - **类型：** `string`
 - **默认值：** `var`
 
-指定 externals 的默认类型。当 external 被设置为 `amd`，`umd`，`system` 以及 `jsonp` 时，[`output.libraryTarget`](/config/output.html#outputlibrarytarget) 的值也应相同。例如，你只能在 `amd` 库中使用 `amd` 的 externals。
+指定 externals 的默认类型。当 external 被设置为 `amd`，`umd`，`system` 以及 `jsonp` 时，[`output.libraryTarget`](/config/output#outputlibrarytarget) 的值也应相同。例如，你只能在 `amd` 库中使用 `amd` 的 externals。
 
 支持的类型如下：
 
@@ -168,7 +168,7 @@ const fs = require('fs-extra');
 
 ### externalsType.global
 
-将外部的默认类型指定为 `'global'`。Webpack 会将 external 作为全局变量读取到 [`globalObject`](/config/output.html#outputglobalobject)。
+将外部的默认类型指定为 `'global'`。Webpack 会将 external 作为全局变量读取到 [`globalObject`](/config/output#outputglobalobject)。
 
 ```javascript
 import jq from 'jquery';

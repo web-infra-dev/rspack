@@ -16,7 +16,7 @@ import { PackageManagerTabs } from '@theme';
 
 这在一些场景很实用，例如当内置的 CSS 处理不能满足你的需求，有更定制化的 CSS module name 等，或者你想要使用一些依赖 css-loader 的 loader，但仍然想要将 CSS 提取成单独文件。
 
-详细配置见 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin.html#cssextractrspackplugin)。
+详细配置见 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin#cssextractrspackplugin)。
 
 ```js
 const rspack = require('@rspack/core');
@@ -58,7 +58,7 @@ Rspack 在 0.1.0 支持了基本的 tree shaking 功能，由于最初的架构�
 
 ### 移除 builtins.css 并引入 CSS 相关 module.parser 和 module.generator 选项
 
-移除 `builtins.css`，请使用引入的 CSS 相关的 [`module.parser`](/config/module.html#moduleparsercssauto) 和 [`module.generator`](/config/module.html#modulegeneratorcssauto) 选项进行替代。
+移除 `builtins.css`，请使用引入的 CSS 相关的 [`module.parser`](/config/module#moduleparsercssauto) 和 [`module.generator`](/config/module#modulegeneratorcssauto) 选项进行替代。
 
 同时，从 v0.6.0 版本开始，Rspack 的 experiments css 将会以 webpack 的 experiments css 为目标进行对齐，这意味着和 webpack experiments css 一样在未来将不再支持[不支持 CSS 变量的浏览器](https://caniuse.com/css-variables)。因此，对于那些需要使用尚未得到 experiments css 支持的配置，或者需要兼容老版本浏览器的项目，我们推荐迁移至 [`rspack.CssExtractRspackPlugin`](/plugins/rspack/css-extract-rspack-plugin.html)。
 
@@ -186,7 +186,7 @@ module.exports = {
 }
 ```
 
-如需要对部分模块进行配置，可使用 `module.rules` 中的 [`rule.parser`](/config/module.html#ruleparser) 和 [`rule.generator`](/config/module.html#rulegenerator) 选项进行配置。
+如需要对部分模块进行配置，可使用 `module.rules` 中的 [`rule.parser`](/config/module#ruleparser) 和 [`rule.generator`](/config/module#rulegenerator) 选项进行配置。
 
 ### 调用 compiler.run 执行构建
 

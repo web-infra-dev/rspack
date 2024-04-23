@@ -40,12 +40,12 @@ module.exports = {
 
 启用原生 CSS 支持和 CSS 相关的 parser 和 generator options：
 
-- [`module.parser["css/auto"]`](/config/module.html#moduleparsercssauto)
-- [`module.parser.css`](/config/module.html#moduleparsercss)
-- [`module.parser["css/module"]`](/config/module.html#moduleparsercssmodule)
-- [`module.generator["css/auto"]`](/config/module.html#modulegeneratorcssauto)
-- [`module.generator.css`](/config/module.html#modulegeneratorcss)
-- [`module.generator["css/module"]`](/config/module.html#modulegeneratorcssmodule)
+- [`module.parser["css/auto"]`](/config/module#moduleparsercssauto)
+- [`module.parser.css`](/config/module#moduleparsercss)
+- [`module.parser["css/module"]`](/config/module#moduleparsercssmodule)
+- [`module.generator["css/auto"]`](/config/module#modulegeneratorcssauto)
+- [`module.generator.css`](/config/module#modulegeneratorcss)
+- [`module.generator["css/module"]`](/config/module#modulegeneratorcssmodule)
 
 :::warning
 如果你在使用 `style-loader` 和 `css-loader` 请关闭该配置，因为 `style-loader` 和 `css-loader` 和原生 CSS 功能冲突。
@@ -55,7 +55,7 @@ module.exports = {
 
 <ApiMeta addedVersion="0.3.8" />
 
-开启打包 [top level await](https://github.com/tc39/proposal-top-level-await) 的支持，`top level await` 仅能在 [ModuleType](/config/module.html#ruletype) 为 `javascript/esm` 的模块中使用。
+开启打包 [top level await](https://github.com/tc39/proposal-top-level-await) 的支持，`top level await` 仅能在 [ModuleType](/config/module#ruletype) 为 `javascript/esm` 的模块中使用。
 
 默认开启，可通过该配置关闭。
 
@@ -282,7 +282,7 @@ module.exports = {
 ```
 
 新的 resolver 同时提供了在 [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin#references-_string-defaultundefined) 中定义的[tsconfig project references](https://www.typescriptlang.org/docs/handbook/project-references.html) 功能。
-具体请参考 [resolve API](/config/resolve.html#resolvetsconfig).
+具体请参考 [resolve API](/config/resolve#resolvetsconfig).
 
 ```js title="rspack.config.js"
 module.exports = {
