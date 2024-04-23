@@ -580,6 +580,21 @@ function getRawParserOptions(
 			type: "javascript",
 			javascript: getRawJavascriptParserOptions(parser)
 		};
+	} else if (type === "javascript/auto") {
+		return {
+			type: "javascript/auto",
+			javascript: getRawJavascriptParserOptions(parser)
+		};
+	} else if (type === "javascript/dynamic") {
+		return {
+			type: "javascript/dynamic",
+			javascript: getRawJavascriptParserOptions(parser)
+		};
+	} else if (type === "javascript/esm") {
+		return {
+			type: "javascript/esm",
+			javascript: getRawJavascriptParserOptions(parser)
+		};
 	} else if (type === "css") {
 		return {
 			type: "css",
@@ -614,7 +629,7 @@ function getRawJavascriptParserOptions(
 					? parser.url
 					: "true",
 		exprContextCritical: parser.exprContextCritical ?? true,
-		wrappedContextCritical: parser.exprContextCritical ?? false
+		wrappedContextCritical: parser.wrappedContextCritical ?? false
 	};
 }
 

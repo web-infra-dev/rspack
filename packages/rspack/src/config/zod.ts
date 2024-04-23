@@ -576,7 +576,10 @@ const parserOptionsByModuleTypeKnown = z.strictObject({
 	css: cssParserOptions.optional(),
 	"css/auto": cssAutoParserOptions.optional(),
 	"css/module": cssModuleParserOptions.optional(),
-	javascript: javascriptParserOptions.optional()
+	javascript: javascriptParserOptions.optional(),
+	"javascript/auto": javascriptParserOptions.optional(),
+	"javascript/dynamic": javascriptParserOptions.optional(),
+	"javascript/esm": javascriptParserOptions.optional()
 });
 
 export type ParserOptionsByModuleTypeKnown = z.infer<

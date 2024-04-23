@@ -274,7 +274,9 @@ pub struct RawModuleRule {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawParserOptions {
-  #[napi(ts_type = r#""asset" | "css" | "css/auto" | "css/module" | "javascript""#)]
+  #[napi(
+    ts_type = r#""asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm""#
+  )]
   pub r#type: String,
   pub asset: Option<RawAssetParserOptions>,
   pub css: Option<RawCssParserOptions>,
@@ -292,12 +294,14 @@ impl From<RawParserOptions> for ParserOptions {
           .expect("should have an \"asset\" when RawParserOptions.type is \"asset\"")
           .into(),
       ),
-      "javascript" => Self::Javascript(
-        value
-          .javascript
-          .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"")
-          .into(),
-      ),
+      "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" => {
+        Self::Javascript(
+          value
+            .javascript
+            .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"")
+            .into(),
+        )
+      }
       "css" => Self::Css(
         value
           .css

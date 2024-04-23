@@ -1120,7 +1120,7 @@ export interface RawOutputOptions {
 }
 
 export interface RawParserOptions {
-  type: "asset" | "css" | "css/auto" | "css/module" | "javascript"
+  type: "asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm"
   asset?: RawAssetParserOptions
   css?: RawCssParserOptions
   cssAuto?: RawCssAutoParserOptions

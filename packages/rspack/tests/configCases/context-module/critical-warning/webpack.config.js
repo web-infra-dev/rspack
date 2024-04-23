@@ -7,5 +7,10 @@ module.exports = {
         wrappedContextCritical: true,
       }
     }
-  }
+  },
+  plugins: [
+    function (compiler) {
+      console.log(compiler.options)
+    }
+  ]
 }

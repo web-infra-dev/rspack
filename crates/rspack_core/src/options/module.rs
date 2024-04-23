@@ -41,10 +41,10 @@ pub enum ParserOptions {
 }
 
 macro_rules! get_variant {
-  ($fn_name:ident, $variant:ident, $module_variant:ident, $ret_ty:ident) => {
-    pub fn $fn_name(&self, module_type: &ModuleType) -> Option<&$ret_ty> {
+  ($fn_name:ident, $variant:ident, $ret_ty:ident) => {
+    pub fn $fn_name(&self) -> Option<&$ret_ty> {
       match self {
-        Self::$variant(value) if *module_type == ModuleType::$module_variant => Some(value),
+        Self::$variant(value) => Some(value),
         _ => None,
       }
     }
@@ -52,11 +52,11 @@ macro_rules! get_variant {
 }
 
 impl ParserOptions {
-  get_variant!(get_asset, Asset, Asset, AssetParserOptions);
-  get_variant!(get_css, Css, Css, CssParserOptions);
-  get_variant!(get_css_auto, CssAuto, CssAuto, CssAutoParserOptions);
-  get_variant!(get_css_module, CssModule, CssModule, CssModuleParserOptions);
-  get_variant!(get_javascript, Javascript, Js, JavascriptParserOptions);
+  get_variant!(get_asset, Asset, AssetParserOptions);
+  get_variant!(get_css, Css, CssParserOptions);
+  get_variant!(get_css_auto, CssAuto, CssAutoParserOptions);
+  get_variant!(get_css_module, CssModule, CssModuleParserOptions);
+  get_variant!(get_javascript, Javascript, JavascriptParserOptions);
 }
 
 #[derive(Debug, Clone, Copy, Default, MergeFrom)]
@@ -201,66 +201,47 @@ pub enum GeneratorOptions {
 }
 
 impl GeneratorOptions {
-  get_variant!(get_asset, Asset, Asset, AssetGeneratorOptions);
-  get_variant!(
-    get_asset_inline,
-    AssetInline,
-    AssetInline,
-    AssetInlineGeneratorOptions
-  );
+  get_variant!(get_asset, Asset, AssetGeneratorOptions);
+  get_variant!(get_asset_inline, AssetInline, AssetInlineGeneratorOptions);
   get_variant!(
     get_asset_resource,
     AssetResource,
-    AssetResource,
     AssetResourceGeneratorOptions
   );
-  get_variant!(get_css, Css, Css, CssGeneratorOptions);
-  get_variant!(get_css_auto, CssAuto, CssAuto, CssAutoGeneratorOptions);
-  get_variant!(
-    get_css_module,
-    CssModule,
-    CssModule,
-    CssModuleGeneratorOptions
-  );
+  get_variant!(get_css, Css, CssGeneratorOptions);
+  get_variant!(get_css_auto, CssAuto, CssAutoGeneratorOptions);
+  get_variant!(get_css_module, CssModule, CssModuleGeneratorOptions);
 
-  pub fn asset_filename(&self, module_type: &ModuleType) -> Option<&Filename> {
+  pub fn asset_filename(&self) -> Option<&Filename> {
     self
-      .get_asset(module_type)
+      .get_asset()
       .and_then(|x| x.filename.as_ref())
-      .or_else(|| {
-        self
-          .get_asset_resource(module_type)
-          .and_then(|x| x.filename.as_ref())
-      })
+      .or_else(|| self.get_asset_resource().and_then(|x| x.filename.as_ref()))
   }
 
-  pub fn asset_public_path(&self, module_type: &ModuleType) -> Option<&PublicPath> {
+  pub fn asset_public_path(&self) -> Option<&PublicPath> {
     self
-      .get_asset(module_type)
+      .get_asset()
       .and_then(|x| x.public_path.as_ref())
       .or_else(|| {
         self
-          .get_asset_resource(module_type)
+          .get_asset_resource()
           .and_then(|x| x.public_path.as_ref())
       })
   }
 
-  pub fn asset_data_url(&self, module_type: &ModuleType) -> Option<&AssetGeneratorDataUrl> {
+  pub fn asset_data_url(&self) -> Option<&AssetGeneratorDataUrl> {
     self
-      .get_asset(module_type)
+      .get_asset()
       .and_then(|x| x.data_url.as_ref())
-      .or_else(|| {
-        self
-          .get_asset_inline(module_type)
-          .and_then(|x| x.data_url.as_ref())
-      })
+      .or_else(|| self.get_asset_inline().and_then(|x| x.data_url.as_ref()))
   }
 
-  pub fn asset_emit(&self, module_type: &ModuleType) -> Option<bool> {
+  pub fn asset_emit(&self) -> Option<bool> {
     self
-      .get_asset(module_type)
+      .get_asset()
       .and_then(|x| x.emit)
-      .or_else(|| self.get_asset_resource(module_type).and_then(|x| x.emit))
+      .or_else(|| self.get_asset_resource().and_then(|x| x.emit))
   }
 }
 
