@@ -12,6 +12,7 @@ pub mod number_hash;
 pub mod path;
 pub mod source_map;
 pub mod swc;
+pub mod test;
 
 use std::future::Future;
 

@@ -5,9 +5,8 @@ use rspack_core::{
   RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
+use rspack_util::{source_map::SourceMapKind, test::is_hot_test};
 
-use super::is_hot_test;
 use crate::{
   get_chunk_runtime_requirements,
   runtime_module::utils::{chunk_has_js, get_initial_chunk_ids, stringify_chunks},

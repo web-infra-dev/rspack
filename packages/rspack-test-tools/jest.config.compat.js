@@ -9,6 +9,5 @@ module.exports = {
 		"<rootDir>/tests/Defaults.unittest.js",
 		"<rootDir>/tests/Stats.unittest.js",
 		"<rootDir>/tests/TreeShaking.test.js"
-	],
-	testPathIgnorePatterns: ["<rootDir>/tests/*.difftest.js"]
+	]
 };

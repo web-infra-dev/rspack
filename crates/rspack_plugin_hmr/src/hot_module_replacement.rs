@@ -4,12 +4,7 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
-
-pub fn is_hot_test() -> bool {
-  let is_hot_test = std::env::var("RSPACK_HOT_TEST").ok().unwrap_or_default();
-  is_hot_test == "true"
-}
+use rspack_util::{source_map::SourceMapKind, test::is_hot_test};
 
 #[impl_runtime_module]
 #[derive(Debug, Eq)]

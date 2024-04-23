@@ -821,6 +821,10 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 export class RspackHotStepProcessor extends RspackHotProcessor {
     constructor(_hotOptions: IRspackHotProcessorOptions);
     // (undocumented)
+    after(context: ITestContext): Promise<void>;
+    // (undocumented)
+    before(context: ITestContext): Promise<void>;
+    // (undocumented)
     check(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
     protected _hotOptions: IRspackHotProcessorOptions;
