@@ -68,8 +68,3 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
   )
   .with_kind(diagnostic_kind)
 }
-
-pub fn is_diff_mode() -> bool {
-  let is_diff_mode = std::env::var("RSPACK_DIFF").ok().unwrap_or_default();
-  is_diff_mode == "true"
-}

@@ -4,6 +4,9 @@ use rspack_core::{
   get_chunk_from_ukey, get_js_chunk_filename_template, stringify_map, Chunk, ChunkKind,
   ChunkLoading, ChunkUkey, Compilation, PathData, SourceType,
 };
+use rspack_util::test::{
+  HOT_TEST_ACCEPT, HOT_TEST_DISPOSE, HOT_TEST_OUTDATED, HOT_TEST_RUNTIME, HOT_TEST_UPDATED,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 pub fn get_initial_chunk_ids(
@@ -261,4 +264,14 @@ fn test_get_undo_path() {
     get_undo_path("static/js/a.js", "/a/b/c".to_string(), false),
     "../../"
   );
+}
+
+pub fn generate_javascript_hmr_runtime(method: &str) -> String {
+  include_str!("runtime/javascript_hot_module_replacement.js")
+    .replace("$key$", method)
+    .replace("$HOT_TEST_OUTDATED$", &HOT_TEST_OUTDATED)
+    .replace("$HOT_TEST_DISPOSE$", &HOT_TEST_DISPOSE)
+    .replace("$HOT_TEST_UPDATED$", &HOT_TEST_UPDATED)
+    .replace("$HOT_TEST_RUNTIME$", &HOT_TEST_RUNTIME)
+    .replace("$HOT_TEST_ACCEPT$", &HOT_TEST_ACCEPT)
 }

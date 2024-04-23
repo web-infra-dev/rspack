@@ -12,7 +12,6 @@ module.exports = {
 				test: /\.jsx$/,
 				loader: "builtin:swc-loader",
 				options: {
-					sourceMap: true,
 					jsc: {
 						parser: {
 							syntax: "ecmascript",

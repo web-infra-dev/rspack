@@ -3,6 +3,7 @@
 mod merge;
 
 pub mod comparators;
+pub mod diff_mode;
 pub mod ext;
 pub mod fx_hash;
 pub mod identifier;
@@ -11,6 +12,7 @@ pub mod number_hash;
 pub mod path;
 pub mod source_map;
 pub mod swc;
+pub mod test;
 
 use std::future::Future;
 

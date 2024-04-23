@@ -71,6 +71,10 @@ export class JSDOMWebRunner<
 		return super.run(file);
 	}
 
+	getGlobal(name: string): unknown {
+		return this.dom.window[name];
+	}
+
 	protected createResourceLoader() {
 		const urlToPath = (url: string) => {
 			if (url.startsWith("https://test.cases/path/")) url = url.slice(24);

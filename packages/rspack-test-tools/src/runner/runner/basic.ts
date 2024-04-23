@@ -80,6 +80,10 @@ export abstract class BasicRunner<
 		return this.requirers.get("entry")!;
 	}
 
+	getGlobal(name: string): unknown {
+		return ((this.globalContext || {}) as Record<string, unknown>)[name];
+	}
+
 	protected abstract createGlobalContext(): IBasicGlobalContext;
 	protected abstract createBaseModuleScope(): IBasicModuleScope;
 	protected abstract createModuleScope(

@@ -49,7 +49,6 @@ var value = 2;
 
 
 
-
 ### chunk_js.LAST_HASH.hot-update.js
 
 #### Changed Modules
@@ -72,7 +71,6 @@ var value = 2;
 
 });
 ```
-
 
 
 

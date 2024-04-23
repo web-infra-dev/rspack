@@ -687,6 +687,8 @@ export interface ITestReporter<T> {
 // @public (undocumented)
 export interface ITestRunner {
     // (undocumented)
+    getGlobal(name: string): unknown;
+    // (undocumented)
     getRequire(): TRunnerRequirer;
     // (undocumented)
     run(file: string): Promise<unknown>;
@@ -823,7 +825,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
     // (undocumented)
     protected _hotOptions: IRspackHotProcessorOptions;
     // (undocumented)
-    protected matchStepSnapshot(context: ITestContext, step: number, stats: StatsCompilation): void;
+    protected matchStepSnapshot(context: ITestContext, step: number, stats: StatsCompilation, runtime?: THotStepRuntimeData): void;
     // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
 }
@@ -1067,6 +1069,23 @@ export type TFileCompareResult = TCompareResult & {
         dist: string;
     };
     modules: Partial<Record<"modules" | "runtimeModules", TModuleCompareResult[]>>;
+};
+
+// @public (undocumented)
+export type THotStepRuntimeData = {
+    javascript: THotStepRuntimeLangData;
+    css: THotStepRuntimeLangData;
+    statusPath: string[];
+};
+
+// @public (undocumented)
+export type THotStepRuntimeLangData = {
+    outdatedModules: string[];
+    outdatedDependencies: Record<string, string[]>;
+    updatedModules: string[];
+    updatedRuntime: string[];
+    acceptedModules: string[];
+    disposedModules: string[];
 };
 
 // @public (undocumented)

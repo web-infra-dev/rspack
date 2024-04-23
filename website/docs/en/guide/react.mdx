@@ -77,16 +77,16 @@ There are currently two ways to enable React Fast Refresh in Rspack:
 
 In the early stage of Rspack, React Fast Refresh functionality was built into @rspack/dev-server and @rspack/core to provide an out-of-the-box experience for some projects. This means that if you are using @rspack/cli or @rspack/dev-server, React Fast Refresh is automatically enabled in development mode, ready for you to use directly in your projects. This enhanced the usability of Rspack for React projects but also led to various issues.
 
-This approach made Rspack not entirely framework-agnostic. If you were using other frameworks like Vue, you had to manually disable React Fast Refresh functionality using [builtins.react.refresh](config/builtins#builtinsreact) to avoid injecting React Fast Refresh-related code into some Vue modules.
+This approach made Rspack not entirely framework-agnostic. If you were using other frameworks like Vue, you had to manually disable React Fast Refresh functionality using [builtins.react.refresh](/config/builtins#builtinsreact) to avoid injecting React Fast Refresh-related code into some Vue modules.
 
-Recognizing this issue, we aim to gradually transition users to a more correct approach through [experiments.rspackFuture.disableTransformByDefault](/config/experiments.html#disabletransformbydefault) and [@rspack/plugin-react-refresh](/guide/react.html#rspackplugin-react-refresh), which represents the second method mentioned.
+Recognizing this issue, we aim to gradually transition users to a more correct approach through [experiments.rspackFuture.disableTransformByDefault](/config/experiments#disabletransformbydefault) and [@rspack/plugin-react-refresh](/guide/react#rspackplugin-react-refresh), which represents the second method mentioned.
 
 ### @rspack/plugin-react-refresh
 
 <ApiMeta addedVersion={'0.3.5'} />
 
 :::warning
-`@rspack/plugin-react-refresh` depends on [experiments.rspackFuture.disableTransformByDefault](/config/experiments.html#disabletransformbydefault)
+`@rspack/plugin-react-refresh` depends on [experiments.rspackFuture.disableTransformByDefault](/config/experiments#disabletransformbydefault)
 :::
 
 First you need to install the dependencies:

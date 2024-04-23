@@ -26,7 +26,7 @@ import { PackageManagerTabs } from '@theme';
 
 ### 移除默认转换
 
-之前默认转换是内置的，它将源文件（如 TypeScript）内部转换为兼容的源文件（如 JavaScript）。为了使转换更加可定制，我们通过使用 `builtin:swc-loader` 将此功能交给用户控制，并放弃了对几个 [rule.type](/config/module.html#ruletype) 的支持。这些 `rule.type` 已被删除：
+之前默认转换是内置的，它将源文件（如 TypeScript）内部转换为兼容的源文件（如 JavaScript）。为了使转换更加可定制，我们通过使用 `builtin:swc-loader` 将此功能交给用户控制，并放弃了对几个 [rule.type](/config/module#ruletype) 的支持。这些 `rule.type` 已被删除：
 
 - `"typescript"` 或 `"ts"`
 - `"tsx"`
@@ -45,7 +45,6 @@ module.exports = {
         exclude: /[\\/]node_modules[\\/]/,
         loader: 'builtin:swc-loader',
         options: {
-          sourceMaps: true,
           jsc: {
             parser: {
               syntax: 'ecmascript',
@@ -70,7 +69,6 @@ module.exports = {
         exclude: /[\\/]node_modules[\\/]/,
         loader: 'builtin:swc-loader',
         options: {
-          sourceMaps: true,
           jsc: {
             parser: {
               syntax: 'typescript',
@@ -95,7 +93,6 @@ module.exports = {
         exclude: /[\\/]node_modules[\\/]/,
         loader: 'builtin:swc-loader',
         options: {
-          sourceMaps: true,
           jsc: {
             parser: {
               syntax: 'typescript',
@@ -182,7 +179,7 @@ module.exports = {
 
 ### 废弃入口配置惰性生效这一行为
 
-该行为通过 [experiments.rspackFuture.disableApplyEntryLazily](/config/experiments.html#experimentsrspackfuturedisableapplyentrylazily) 进行废弃，该配置在 v0.4.5 中引入，在 v0.5.0 中默认启用，并将在 v0.6.0 中移除。
+该行为通过 [experiments.rspackFuture.disableApplyEntryLazily](/config/experiments#experimentsrspackfuturedisableapplyentrylazily) 进行废弃，该配置在 v0.4.5 中引入，在 v0.5.0 中默认启用，并将在 v0.6.0 中移除。
 
 当 `experiments.rspackFuture.disableApplyEntryLazily` 为 `false`，`options.entry` 仍然可以进行有效的修改在 `rspack(options)` 调用之后，但设置为 `true` 时将不能，并且该行为和 Webpack5 保持一致。
 

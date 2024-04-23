@@ -5,9 +5,9 @@ use rspack_core::{
   SourceType,
 };
 use rspack_error::{error, Result};
+use rspack_util::diff_mode::is_diff_mode;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::utils::is_diff_mode;
 use crate::{JsPlugin, RenderJsModuleContentArgs};
 
 pub fn render_chunk_modules(
@@ -28,8 +28,7 @@ pub fn render_chunk_modules(
   let mut module_code_array = ordered_modules
     .par_iter()
     .filter(|module| {
-      compilation.get_module_graph().is_new_treeshaking()
-        || include_module_ids.contains(&module.identifier())
+      compilation.options.is_new_tree_shaking() || include_module_ids.contains(&module.identifier())
     })
     .filter_map(|module| {
       let code_gen_result = compilation
@@ -141,7 +140,7 @@ fn render_module(
   if is_diff_mode() {
     sources.add(RawSource::from(format!(
       "\n{}\n",
-      to_normal_comment(&format!("start::{}::{}", module_id, module.identifier()))
+      to_normal_comment(&format!("start::{}", module.identifier()))
     )));
   }
   sources.add(RawSource::from(format!(
@@ -158,7 +157,7 @@ fn render_module(
   if is_diff_mode() {
     sources.add(RawSource::from(format!(
       "\n{}\n",
-      to_normal_comment(&format!("end::{}::{}", module_id, module.identifier()))
+      to_normal_comment(&format!("end::{}", module.identifier()))
     )));
   }
   sources.add(RawSource::from(",\n"));
