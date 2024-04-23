@@ -20,7 +20,7 @@ jobs:
         run: |
           SENDER=${{ github.event.sender.login }}
           TEAMS_FILE="./.github/teams.yml"
-          if grep -q -- "\"@$SENDER\"" $TEAMS_FILE; then
+          if grep -qi -- "\"@$SENDER\"" $TEAMS_FILE; then
             echo "::set-output name=skip::true"
             echo "Workflow triggered by a project member: $SENDER , will NOT trigger lark notify"
           else
