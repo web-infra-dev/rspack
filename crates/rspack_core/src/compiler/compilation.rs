@@ -219,13 +219,12 @@ impl Compilation {
     cache: Arc<Cache>,
     module_executor: Option<ModuleExecutor>,
   ) -> Self {
-    let make_module_graph = ModuleGraphPartial::new(options.is_new_tree_shaking());
     Self {
       id: CompilationId::new(),
       hot_index: 0,
       records,
       options,
-      make_module_graph,
+      make_module_graph: Default::default(),
       other_module_graph: None,
       dependency_factories: Default::default(),
       make_failed_dependencies: HashSet::default(),
@@ -891,7 +890,7 @@ impl Compilation {
 
   #[instrument(name = "compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    self.other_module_graph = Some(ModuleGraphPartial::new(self.options.is_new_tree_shaking()));
+    self.other_module_graph = Some(ModuleGraphPartial::default());
     let logger = self.get_logger("rspack.Compilation");
 
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
