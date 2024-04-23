@@ -454,7 +454,7 @@ impl JsCompilation {
   #[allow(clippy::too_many_arguments)]
   #[napi]
   pub fn import_module(
-    &'static mut self,
+    &'static self,
     env: Env,
     request: String,
     public_path: Option<String>,
@@ -474,7 +474,7 @@ impl JsCompilation {
       let module_executor = self
         .0
         .module_executor
-        .as_mut()
+        .as_ref()
         .expect("should have module executor");
       let result = module_executor
         .import_module(
@@ -513,12 +513,9 @@ impl JsCompilation {
               .into_iter()
               .map(|d| d.to_string_lossy().to_string())
               .collect(),
-            assets: res.assets.keys().cloned().collect(),
+            assets: res.assets.into_iter().collect(),
             id: res.id,
           };
-          for (filename, asset) in res.assets {
-            self.0.emit_asset(filename, asset)
-          }
           Ok(js_result)
         }
         Err(e) => Err(Error::new(napi::Status::GenericFailure, format!("{e}"))),

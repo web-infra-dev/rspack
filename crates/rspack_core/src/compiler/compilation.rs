@@ -1017,6 +1017,16 @@ impl Compilation {
     self.create_chunk_assets(plugin_driver.clone()).await?;
     logger.time_end(start);
 
+    // sync assets to compilation from module_executor
+    let assets = self
+      .module_executor
+      .as_mut()
+      .map(|module_executor| std::mem::take(&mut module_executor.assets))
+      .unwrap_or_default();
+    for (filename, asset) in assets {
+      self.emit_asset(filename, asset)
+    }
+
     let start = logger.time("process assets");
     plugin_driver
       .compilation_hooks

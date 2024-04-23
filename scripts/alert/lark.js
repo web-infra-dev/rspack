@@ -4,6 +4,8 @@ const TITLE = process.env.TITLE;
 const DESCRIPTION = process.env.DESCRIPTION;
 const URL = process.env.URL;
 const LARK_WEBHOOK_URL = process.env.LARK_WEBHOOK_URL;
+const TPL_COLOR = process.env.TPL_COLOR || "red";
+const TPL_BTN_TYPE = process.env.TPL_BTN_TYPE || "danger"; // default primary danger
 
 if (!TITLE || !DESCRIPTION) {
 	throw new Error("please input title and description");
@@ -18,7 +20,7 @@ const res = await fetch(LARK_WEBHOOK_URL, {
 		msg_type: "interactive",
 		card: {
 			header: {
-				template: "red",
+				template: TPL_COLOR,
 				title: {
 					content: TITLE,
 					tag: "plain_text"
@@ -39,7 +41,7 @@ const res = await fetch(LARK_WEBHOOK_URL, {
 								tag: "plain_text"
 							},
 							url: URL,
-							type: "danger"
+							type: TPL_BTN_TYPE
 						}
 					]
 				}
