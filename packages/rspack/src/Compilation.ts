@@ -20,7 +20,8 @@ import type {
 	JsRuntimeModule,
 	JsStatsChunk,
 	JsStatsError,
-	JsPathData
+	JsPathData,
+	JsStatsWarning
 } from "@rspack/binding";
 
 import {
@@ -557,7 +558,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				handler(
 					target: typeof Array.prototype.push,
 					thisArg: Array<ErrorType>,
-					errs: (Error | JsStatsError | string)[]
+					errs: ErrorType[]
 				) {
 					for (let i = 0; i < errs.length; i++) {
 						const error = errs[i];
@@ -677,37 +678,96 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	get warnings() {
 		const inner = this.#inner;
-		return {
-			// compatible for javascript array
-			push: (...warns: (Error | JsStatsError)[]) => {
-				// TODO: find a way to make JsStatsError be actual errors
-				warns = this.hooks.processWarnings.call(warns as any);
-				for (let i = 0; i < warns.length; i++) {
-					const warn = warns[i];
-					this.#inner.pushDiagnostic(
-						"warning",
-						isJsStatsError(warn) ? "Warning" : warn.name,
-						concatErrorMsgAndStack(warn)
-					);
+		type WarnType = Error | JsStatsWarning;
+		const processWarningsHook = this.hooks.processWarnings;
+		const warnings = inner.getStats().getWarnings();
+		const proxyMethod = [
+			{
+				method: "push",
+				handler(
+					target: typeof Array.prototype.push,
+					thisArg: Array<WarnType>,
+					warns: WarnType[]
+				) {
+					warns = processWarningsHook.call(warns as any);
+					for (let i = 0; i < warns.length; i++) {
+						const warn = warns[i];
+						inner.pushDiagnostic(
+							"warning",
+							isJsStatsError(warn) ? "Warning" : warn.name,
+							concatErrorMsgAndStack(warn)
+						);
+					}
+					return Reflect.apply(target, thisArg, warns);
 				}
 			},
-			[Symbol.iterator]() {
-				// TODO: this is obviously a bad design, optimize this after finishing angular prototype
-				const warnings = inner.getStats().getWarnings();
-				let index = 0;
-				return {
-					next() {
-						if (index >= warnings.length) {
-							return { done: true };
-						}
+			{
+				method: "pop",
+				handler(target: typeof Array.prototype.pop, thisArg: Array<WarnType>) {
+					inner.spliceDiagnostic(warnings.length - 1, warnings.length, []);
+					return Reflect.apply(target, thisArg, []);
+				}
+			},
+			{
+				method: "shift",
+				handler(
+					target: typeof Array.prototype.shift,
+					thisArg: Array<WarnType>
+				) {
+					inner.spliceDiagnostic(0, 1, []);
+					return Reflect.apply(target, thisArg, []);
+				}
+			},
+			{
+				method: "unshift",
+				handler(
+					target: typeof Array.prototype.unshift,
+					thisArg: Array<WarnType>,
+					warns: WarnType[]
+				) {
+					warns = processWarningsHook.call(warns as any);
+					const warnList = warns.map(warn => {
 						return {
-							value: [warnings[index++]],
-							done: false
+							severity: "warning" as const,
+							title: isJsStatsError(warn) ? "Warning" : warn.name,
+							message: concatErrorMsgAndStack(warn)
 						};
-					}
-				};
+					});
+					inner.spliceDiagnostic(0, 0, warnList);
+					return Reflect.apply(target, thisArg, warns);
+				}
+			},
+			{
+				method: "splice",
+				handler(
+					target: typeof Array.prototype.splice,
+					thisArg: Array<WarnType>,
+					[startIdx, delCount, ...warns]: [number, number, ...WarnType[]]
+				) {
+					warns = processWarningsHook.call(warns as any);
+					const warnList = warns.map(warn => {
+						return {
+							severity: "warning" as const,
+							title: isJsStatsError(warn) ? "Warning" : warn.name,
+							message: concatErrorMsgAndStack(warn)
+						};
+					});
+					inner.spliceDiagnostic(startIdx, startIdx + delCount, warnList);
+					return Reflect.apply(target, thisArg, [
+						startIdx,
+						delCount,
+						...warnList
+					]);
+				}
 			}
-		};
+		];
+		proxyMethod.forEach(item => {
+			const proxyedMethod = new Proxy(warnings[item.method as any], {
+				apply: item.handler as any
+			});
+			warnings[item.method as any] = proxyedMethod;
+		});
+		return warnings;
 	}
 
 	getPath(filename: Filename, data: PathData = {}) {

@@ -287,3 +287,132 @@ it("Testing proxy methods on errors", async () => {
 		}
 	`);
 });
+
+it("Testing proxy methods on warnings", async () => {
+	await expect(
+		compile({
+			entry: "data:text/javascript,require.include('aaa')",
+			plugins: [
+				compiler => {
+					compiler.hooks.afterCompile.tap("test push", compilation => {
+						compilation.warnings.push(new Error("test push"));
+					});
+				}
+			]
+		})
+	).resolves.toMatchInlineSnapshot(`
+		Object {
+		  "errors": Array [],
+		  "warnings": Array [
+		    Object {
+		      "formatted": "  ⚠ Error: test push\\n  │     at <cwd>/tests/Errors.test.js:298:33\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
+		      "message": "  ⚠ Error: test push\\n  │     at <cwd>/tests/Errors.test.js:298:33\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
+		    },
+		    Object {
+		      "formatted": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Module parse failed: require.include() is not supported by Rspack.\\n         ╭────\\n       1 │ require.include('aaa');\\n         · ──────────────────────\\n         ╰────\\n      \\n",
+		      "message": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Module parse failed: require.include() is not supported by Rspack.\\n         ╭────\\n       1 │ require.include('aaa');\\n         · ──────────────────────\\n         ╰────\\n      \\n",
+		      "moduleId": "data:text/javascript,require.include('aaa')",
+		      "moduleIdentifier": "javascript/esm|data:text/javascript,require.include('aaa')",
+		      "moduleName": "data:text/javascript,require.include('aaa')",
+		    },
+		  ],
+		}
+	`);
+
+	await expect(
+		compile({
+			entry: "data:text/javascript,require.include('aaa')",
+			plugins: [
+				compiler => {
+					compiler.hooks.afterCompile.tap("test pop", compilation => {
+						compilation.warnings.pop();
+					});
+				}
+			]
+		})
+	).resolves.toMatchInlineSnapshot(`
+		Object {
+		  "errors": Array [],
+		  "warnings": Array [],
+		}
+	`);
+
+	await expect(
+		compile({
+			entry: "data:text/javascript,require.include('aaa')",
+			plugins: [
+				compiler => {
+					compiler.hooks.afterCompile.tap(
+						"test shift and unshift",
+						compilation => {
+							compilation.warnings.shift();
+							compilation.warnings.unshift(new Error("test unshift"));
+						}
+					);
+				}
+			]
+		})
+	).resolves.toMatchInlineSnapshot(`
+		Object {
+		  "errors": Array [],
+		  "warnings": Array [
+		    Object {
+		      "formatted": "  ⚠ Error: test unshift\\n  │     at <cwd>/tests/Errors.test.js:327:37\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
+		      "message": "  ⚠ Error: test unshift\\n  │     at <cwd>/tests/Errors.test.js:327:37\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
+		    },
+		  ],
+		}
+	`);
+
+	await expect(
+		compile({
+			entry: "data:text/javascript,require.include('aaa')",
+			plugins: [
+				compiler => {
+					compiler.hooks.afterCompile.tap("test splice", compilation => {
+						compilation.warnings.splice(0, 1, new Error("test splice"));
+					});
+				}
+			]
+		})
+	).resolves.toMatchInlineSnapshot(`
+		Object {
+		  "errors": Array [],
+		  "warnings": Array [
+		    Object {
+		      "formatted": "  ⚠ Error: test splice\\n  │     at <cwd>/tests/Errors.test.js:341:41\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
+		      "message": "  ⚠ Error: test splice\\n  │     at <cwd>/tests/Errors.test.js:341:41\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
+		    },
+		  ],
+		}
+	`);
+	await expect(
+		compile({
+			entry: "data:text/javascript,require.include('aaa')",
+			plugins: [
+				compiler => {
+					compiler.hooks.afterCompile.tap("test splice", compilation => {
+						compilation.warnings.splice(0, 0, new Error("test splice"));
+					});
+				}
+			]
+		})
+	).resolves.toMatchInlineSnapshot(`
+		Object {
+		  "errors": Array [],
+		  "warnings": Array [
+		    Object {
+		      "formatted": "  ⚠ Error: test splice\\n  │     at <cwd>/tests/Errors.test.js:353:41\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
+		      "message": "  ⚠ Error: test splice\\n  │     at <cwd>/tests/Errors.test.js:353:41\\n  │     at Hook.eval [as callAsync] (eval at create (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:9:1)\\n  │     at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/xiaotian/personal/tech/github/rspack/node_modules/tapable/lib/Hook.js:18:14)\\n  │     at <cwd>/dist/Compiler.js:419:41\\n  │     at <cwd>/dist/Compiler.js:743:65\\n",
+		    },
+		    Object {
+		      "formatted": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Module parse failed: require.include() is not supported by Rspack.\\n         ╭────\\n       1 │ require.include('aaa');\\n         · ──────────────────────\\n         ╰────\\n      \\n",
+		      "message": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Module parse failed: require.include() is not supported by Rspack.\\n         ╭────\\n       1 │ require.include('aaa');\\n         · ──────────────────────\\n         ╰────\\n      \\n",
+		      "moduleId": "data:text/javascript,require.include('aaa')",
+		      "moduleIdentifier": "javascript/esm|data:text/javascript,require.include('aaa')",
+		      "moduleName": "data:text/javascript,require.include('aaa')",
+		    },
+		  ],
+		}
+	`);
+});
