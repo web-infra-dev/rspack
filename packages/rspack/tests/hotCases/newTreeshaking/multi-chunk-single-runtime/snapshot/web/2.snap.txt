@@ -47,7 +47,6 @@ module.exports = 3;
 
 
 
-
 ### b.LAST_HASH.hot-update.js
 
 #### Changed Modules
@@ -68,7 +67,6 @@ module.exports = 3;
 
 
 
-
 ### main.LAST_HASH.hot-update.js
 
 #### Changed Modules
@@ -86,7 +84,6 @@ module.exports = 3;
 
 });
 ```
-
 
 
 
@@ -114,3 +111,48 @@ __webpack_require__.h = function () {
 }
 );
 ```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./file.js
+
+
+Outdated Dependencies:
+```json
+{
+  "./main/index.js": [
+    "./file.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./file.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+- ./file.js
+
+Disposed Callback:

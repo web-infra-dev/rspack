@@ -8,6 +8,8 @@ const distDir = path.resolve(
 	`../../rspack/tests/js/hot-step-cases-web`
 );
 
+process.env["RSPACK_HOT_TEST"] = "true";
+
 describeByWalk(NAME, caseDir, distDir, (name, src, dist) => {
 	createHotStepCase(name, src, dist, "web");
 });
