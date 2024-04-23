@@ -22,12 +22,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           SENDER=${{ github.event.sender.login }}
-          API_ENDPOINT="https://api.github.com/orgs/$REPO_OWNER/members/$SENDER"
-          AUTH_HEADER="Authorization: token $GH_TOKEN"
-          HTTP_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -H "$AUTH_HEADER" "$API_ENDPOINT")
-          echo "HTTP response status: $HTTP_RESPONSE"
-
-          if [ "$HTTP_RESPONSE" -eq 204 ]; then
+          TEAMS_FILE="./.github/teams.yml"
+          if grep -q -- "\"@$SENDER\"" $TEAMS_FILE; then
             echo "::set-output name=skip::true"
             echo "Workflow triggered by a project member: $SENDER , will NOT trigger lark notify"
           else
