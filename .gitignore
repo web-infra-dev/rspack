@@ -166,7 +166,7 @@ webpack-dist
 
 .pnpm-store/
 
-!packages/rspack/tests/configCases/target
+!packages/rspack-test-tools/tests/configCases/target
 packages/rspack/tests/js
 packages/rspack/tests/fixtures/temp-*
 packages/rspack/tests/cssExtract/js
