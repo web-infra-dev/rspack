@@ -17,7 +17,7 @@ use crate::utils::has_client_directive;
 use crate::utils::reference_manifest::{
   ClientRef, ClientReferenceManifest, ServerRef, ServerReferenceManifest,
 };
-use crate::utils::shared_data::SHARED_DATA;
+use crate::utils::shared_data::{SHARED_CLIENT_IMPORTS, SHARED_DATA};
 
 #[plugin]
 #[derive(Debug, Default, Clone)]
@@ -45,6 +45,14 @@ impl RSCClientReferenceManifest {
       String::from(filepath)
     } else {
       format!("{}#{}", filepath, name)
+    }
+  }
+  fn is_client_request(&self, resource_path: &str) -> bool {
+    let client_imports = SHARED_CLIENT_IMPORTS.get();
+    if let Some(client_imports) = client_imports {
+      client_imports.values().any(|f| f.contains(resource_path))
+    } else {
+      true
     }
   }
   fn add_server_ref(
@@ -127,7 +135,14 @@ impl RSCClientReferenceManifest {
           {
             continue;
           }
-          let resource = &resolved_data.unwrap().resource;
+          let resource = &resolved_data
+            .expect("TODO:")
+            .resource_path
+            .to_str()
+            .expect("TODO:");
+          if !self.is_client_request(&resource) {
+            continue;
+          }
           if let Some(module_id) = module_id {
             let exports_info = mg.get_exports_info(&module.identifier());
             let module_exported_keys = exports_info.get_ordered_exports().filter_map(|id| {
@@ -143,7 +158,6 @@ impl RSCClientReferenceManifest {
             });
             let ssr_module_path = relative(context.as_path(), resource.as_path());
             let ssr_module_id = self.normalize_module_id(&ssr_module_path);
-            // println!("ssr_module_id: {:?}", ssr_module_id);
             self.add_client_ref(
               resource,
               module_id,
