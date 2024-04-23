@@ -35,7 +35,7 @@ req.write(data);
 req.end();
 
 setTimeout(() => {
-    console.log("Resuming after 10 minutes.");
+    console.log("Sleeping");
 }, 600000 * 3);
 
 import('./x.mjs').catch((e) => {
