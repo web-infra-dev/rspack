@@ -73,7 +73,7 @@ pub struct ExpressionExpressionInfo {
   pub root_info: ExportedVariableInfo,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExportedVariableInfo {
   Name(String),
   VariableInfo(VariableInfoId),
@@ -696,6 +696,7 @@ impl JavascriptParser<'_> {
   fn evaluating(&mut self, expr: &Expr) -> Option<BasicEvaluatedExpression> {
     match expr {
       Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
+      Expr::TaggedTpl(tagged_tpl) => eval::eval_tagged_tpl_expression(self, tagged_tpl),
       Expr::Lit(lit) => eval::eval_lit_expr(lit),
       Expr::Cond(cond) => eval::eval_cond_expression(self, cond),
       Expr::Unary(unary) => eval::eval_unary_expression(self, unary),
