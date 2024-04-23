@@ -332,6 +332,8 @@ pub struct RawJavascriptParserOptions {
   pub dynamic_import_preload: String,
   pub dynamic_import_prefetch: String,
   pub url: String,
+  pub expr_context_critical: bool,
+  pub wrapped_context_critical: bool,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
@@ -341,6 +343,8 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       dynamic_import_preload: JavascriptParserOrder::from(value.dynamic_import_preload.as_str()),
       dynamic_import_prefetch: JavascriptParserOrder::from(value.dynamic_import_prefetch.as_str()),
       url: JavascriptParserUrl::from(value.url.as_str()),
+      expr_context_critical: value.expr_context_critical,
+      wrapped_context_critical: value.wrapped_context_critical,
     }
   }
 }

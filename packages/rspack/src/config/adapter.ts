@@ -21,7 +21,8 @@ import type {
 	RawCssModuleParserOptions,
 	RawCssGeneratorOptions,
 	RawCssAutoGeneratorOptions,
-	RawCssModuleGeneratorOptions
+	RawCssModuleGeneratorOptions,
+	RawJavascriptParserOptions
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../Compiler";
@@ -599,7 +600,9 @@ function getRawParserOptions(
 	throw new Error(`unreachable: unknow module type: ${type}`);
 }
 
-function getRawJavascriptParserOptions(parser: JavascriptParserOptions) {
+function getRawJavascriptParserOptions(
+	parser: JavascriptParserOptions
+): RawJavascriptParserOptions {
 	return {
 		dynamicImportMode: parser.dynamicImportMode ?? "lazy",
 		dynamicImportPreload: parser.dynamicImportPreload?.toString() ?? "false",
@@ -609,7 +612,9 @@ function getRawJavascriptParserOptions(parser: JavascriptParserOptions) {
 				? "false"
 				: parser.url === "relative"
 					? parser.url
-					: "true"
+					: "true",
+		exprContextCritical: parser.exprContextCritical ?? true,
+		wrappedContextCritical: parser.exprContextCritical ?? false
 	};
 }
 

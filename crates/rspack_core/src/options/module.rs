@@ -139,6 +139,8 @@ pub struct JavascriptParserOptions {
   pub dynamic_import_preload: JavascriptParserOrder,
   pub dynamic_import_prefetch: JavascriptParserOrder,
   pub url: JavascriptParserUrl,
+  pub expr_context_critical: bool,
+  pub wrapped_context_critical: bool,
 }
 
 #[derive(Debug, Clone, MergeFrom)]

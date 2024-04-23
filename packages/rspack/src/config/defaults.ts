@@ -205,6 +205,11 @@ const applyJavascriptParserOptionsDefaults = (
 	parserOptions: JavascriptParserOptions
 ) => {
 	D(parserOptions, "dynamicImportMode", "lazy");
+	D(parserOptions, "dynamicImportPrefetch", false);
+	D(parserOptions, "dynamicImportPreload", false);
+	D(parserOptions, "url", true);
+	D(parserOptions, "exprContextCritical", true);
+	D(parserOptions, "wrappedContextCritical", false);
 };
 
 const applyModuleDefaults = (

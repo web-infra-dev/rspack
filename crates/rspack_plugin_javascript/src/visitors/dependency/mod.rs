@@ -80,7 +80,9 @@ pub fn scan_dependencies(
     // FIXME: p.get_javascript(&ModuleType::Js) should pass module_type
     // ParserOptions should have get_javascript_esm, get_javascript_dynamic, and get_javascript_auto
     // parserOptions.javascript is just a shortcut for setting options on these three
-    module_parser_options.and_then(|p| p.get_javascript(&ModuleType::Js)),
+    module_parser_options
+      .and_then(|p| p.get_javascript(&ModuleType::Js))
+      .expect("should at least have a global javascript parser options"),
     program.comments.as_ref().map(|c| c as &dyn Comments),
     &module_identifier,
     module_type,

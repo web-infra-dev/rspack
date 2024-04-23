@@ -929,6 +929,8 @@ export interface RawJavascriptParserOptions {
   dynamicImportPreload: string
   dynamicImportPrefetch: string
   url: string
+  exprContextCritical: boolean
+  wrappedContextCritical: boolean
 }
 
 export interface RawLibraryAuxiliaryComment {
