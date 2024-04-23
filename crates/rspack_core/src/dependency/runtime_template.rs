@@ -3,14 +3,15 @@ use std::ops::Sub;
 
 use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
+use sugar_path::SugarPath;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  compile_boolean_matcher_from_lists, property_access, to_comment, to_normal_comment,
-  AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, DependenciesBlock, DependencyId,
-  ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment, OutputOptions,
-  PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  compile_boolean_matcher_from_lists, contextify, property_access, to_comment, to_normal_comment,
+  AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
+  DependencyId, ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment,
+  OutputOptions, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
 };
 
 pub fn runtime_condition_expression(
@@ -264,11 +265,13 @@ struct CommentOptions<'a> {
   message: Option<&'a str>,
 }
 
-fn comment(output_options: &OutputOptions, comment_options: CommentOptions) -> String {
-  let content = if matches!(
-    output_options.pathinfo,
+// add a comment
+fn comment(compiler_options: &CompilerOptions, comment_options: CommentOptions) -> String {
+  let used_pathinfo = matches!(
+    compiler_options.output.pathinfo,
     PathInfo::Bool(true) | PathInfo::String(_)
-  ) {
+  );
+  let content = if used_pathinfo {
     vec![
       comment_options.message,
       comment_options.request,
@@ -284,26 +287,26 @@ fn comment(output_options: &OutputOptions, comment_options: CommentOptions) -> S
   }
   .iter()
   .filter_map(|&item| item)
-  // TODO
-  // .map(|item| self.request_shortener.shorten(item))
+  .map(|item| contextify(compiler_options.context.as_path(), item))
   .collect::<Vec<_>>()
   .join(" | ");
 
-  if matches!(
-    output_options.pathinfo,
-    PathInfo::Bool(true) | PathInfo::String(_)
-  ) {
+  if used_pathinfo {
     format!("{} ", to_comment(&content))
   } else {
     format!("{} ", to_normal_comment(&content))
   }
 }
 
-pub fn module_id_expr(output: &OutputOptions, request: &str, module_id: &str) -> String {
+pub fn module_id_expr(
+  compiler_options: &CompilerOptions,
+  request: &str,
+  module_id: &str,
+) -> String {
   format!(
     "{}{}",
     comment(
-      output,
+      compiler_options,
       CommentOptions {
         request: Some(request),
         ..Default::default()
@@ -324,7 +327,7 @@ pub fn module_id(
     .module_identifier_by_dependency_id(id)
     && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier)
   {
-    module_id_expr(&compilation.options.output, request, module_id)
+    module_id_expr(&compilation.options, request, module_id)
   } else if weak {
     "null /* weak dependency, without id */".to_string()
   } else {
@@ -561,7 +564,7 @@ pub fn module_raw(
     format!(
       "{}({})",
       RuntimeGlobals::REQUIRE,
-      module_id_expr(&compilation.options.output, request, module_id)
+      module_id_expr(&compilation.options, request, module_id)
     )
   } else if weak {
     weak_error(request)

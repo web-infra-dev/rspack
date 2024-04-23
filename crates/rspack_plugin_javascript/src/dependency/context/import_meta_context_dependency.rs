@@ -91,11 +91,7 @@ impl DependencyTemplate for ImportMetaContextDependency {
       .map(|m| m.id(&compilation.chunk_graph))
       .expect("should have dependency id");
 
-    let module_id_str = module_id_expr(
-      &compilation.options.output,
-      &self.options.request,
-      module_id,
-    );
+    let module_id_str = module_id_expr(&compilation.options, &self.options.request, module_id);
 
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     source.replace(
