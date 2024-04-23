@@ -17,9 +17,6 @@ jobs:
       - name: Check if triggered by project member
         id: check_member
         if: github.event.sender.type == 'User'
-        env:
-          REPO_OWNER: ${{ github.repository_owner }}
-          GH_TOKEN: ${{ github.token }}
         run: |
           SENDER=${{ github.event.sender.login }}
           TEAMS_FILE="./.github/teams.yml"
