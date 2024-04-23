@@ -12,6 +12,7 @@ module.exports = {
 		"Builtin.test.js",
 		"HotTestStepWeb.test.js",
 		"ConfigTestCases.basictest.js",
+		"TestCasesNormal.basictest.js",
 		".difftest.js"
 	]
 };
