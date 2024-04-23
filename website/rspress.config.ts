@@ -518,6 +518,9 @@ export default defineConfig({
   markdown: {
     checkDeadLinks: true,
   },
+  route: {
+    cleanUrls: true,
+  },
   plugins: [
     pluginFontOpenSans(),
     pluginRss({

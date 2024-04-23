@@ -64,16 +64,16 @@ Rspack no longer supports Node.js 14, Node.js 16+ is now required.
 
 `experiments.rspackFuture.disableTransformByDefault` is enabled by default in v0.4.0. For people that still need the legacy behavior, you may manually set this option to `false`.
 
-This feature primarily addresses three categories of problems: [builtins](https://www.rspack.dev/config/builtins) code transformation features, [target](https://www.rspack.dev/config/target), and custom [Rule.type](https://www.rspack.dev/config/module#ruletype).
+This feature primarily addresses three categories of problems: [builtins](/config/builtins) code transformation features, [target](/config/target), and custom [Rule.type](/config/module#ruletype).
 
-1. Removal of support for some [builtins](https://www.rspack.dev/config/builtins) features:
+1. Removal of support for some [builtins](/config/builtins) features:
 
-- [builtins.relay](https://www.rspack.dev/config/builtins#builtinsrelay): moved to `rspackExperiments.relay`
-- [builtins.react](https://www.rspack.dev/config/builtins#builtinsreact): moved to `jsc.transform.react`
-- [builtins.emotion](https://www.rspack.dev/config/builtins#builtinsemotion): moved to `rspackExperiments.emotion`
-- [builtins.pluginImport](https://www.rspack.dev/config/builtins#builtinspluginimport): moved to `rspackExperiments.import`
-- [builtins.decorator](https://www.rspack.dev/config/builtins#builtinsdecorator): moved to `jsc.parser.decorator`
-- [builtins.presetEnv](https://www.rspack.dev/config/builtins#builtinspresetenv): moved to `jsc.env`
+- [builtins.relay](/config/builtins#builtinsrelay): moved to `rspackExperiments.relay`
+- [builtins.react](/config/builtins#builtinsreact): moved to `jsc.transform.react`
+- [builtins.emotion](/config/builtins#builtinsemotion): moved to `rspackExperiments.emotion`
+- [builtins.pluginImport](/config/builtins#builtinspluginimport): moved to `rspackExperiments.import`
+- [builtins.decorator](/config/builtins#builtinsdecorator): moved to `jsc.parser.decorator`
+- [builtins.presetEnv](/config/builtins#builtinspresetenv): moved to `jsc.env`
 
 ```js
 module.exports = {
@@ -110,7 +110,7 @@ module.exports = {
 };
 ```
 
-2. [target](https://www.rspack.dev/config/target) will not downgrade user-side code(including `node_modules`)
+2. [target](/config/target) will not downgrade user-side code(including `node_modules`)
 
 ```diff
 module.exports = {
@@ -139,7 +139,7 @@ module.exports = {
 };
 ```
 
-3. Removed non-webpack compatible [Rule.type](https://www.rspack.dev/config/module#ruletype)
+3. Removed non-webpack compatible [Rule.type](/config/module#ruletype)
 
 These types have been removed:
 
@@ -153,7 +153,7 @@ For JS-related types, only the following will be retained:
 - `"javascript/esm"`
 - `"javascript/dynamic"`
 
-Refer to [this](https://www.rspack.dev/config/experiments.html#experimentsrspackfuturedisabletransformbydefault) for the complete migration guide.
+Refer to [this](/config/experiments#experimentsrspackfuturedisabletransformbydefault) for the complete migration guide.
 
 Check out our previous discussion [here](https://github.com/web-infra-dev/rspack/discussions/4070).
 
@@ -203,7 +203,7 @@ module.exports = {
 };
 ```
 
-Checkout [here](https://www.rspack.dev/zh/guide/react.html#fast-refresh) for more details.
+Checkout [here](/guide/react#fast-refresh) for more details.
 
 ### Deprecating builtin:sass-loader
 
@@ -231,7 +231,7 @@ In order to full migrate to Webpack's split chunks implementation, these fields 
 
 `oxc_resolver` is a module resolver written in Rust provided by the [oxc project](https://github.com/oxc-project/oxc). The new resolver has passed all of [enhanced-resolve](https://www.npmjs.com/package/enhanced-resolve)'s test suite. It is 5 times faster than previous implementation, and 28 times faster than enhanced-resolve.
 
-The new resolver can be configured to read `tsconfig.json`'s `compilerOptions.paths` and `references` field and provides better support for nested path alias. See API [resolve.tsConfig](https://www.rspack.dev/config/resolve.html#resolvetsconfig) for details.
+The new resolver can be configured to read `tsconfig.json`'s `compilerOptions.paths` and `references` field and provides better support for nested path alias. See API [resolve.tsConfig](/config/resolve#resolvetsconfig) for details.
 
 To opt out of the new resolver, set `experiments.rspackFuture.newResolver` to `false`.
 
