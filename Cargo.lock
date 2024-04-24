@@ -3650,6 +3650,7 @@ version = "0.1.0"
 dependencies = [
  "concat-string",
  "dashmap",
+ "indexmap 2.2.6",
  "once_cell",
  "regex",
  "rustc-hash",
