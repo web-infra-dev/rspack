@@ -146,6 +146,7 @@ pub struct ContextOptions {
   pub context: String,
   pub namespace_object: ContextNameSpaceObject,
   pub group_options: Option<GroupOptions>,
+  pub replaces: Vec<(String, u32, u32)>,
   pub start: u32,
   pub end: u32,
 }
