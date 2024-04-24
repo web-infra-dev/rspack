@@ -13,19 +13,19 @@ function useFooterData() {
       items: [
         {
           title: t('quickStart'),
-          link: getLink('/guide/quick-start'),
+          link: getLink('/guide/start/quick-start'),
         },
         {
           title: t('features'),
-          link: getLink('/guide/language-support'),
+          link: getLink('/guide/features/asset-module'),
         },
         {
           title: t('migration'),
-          link: getLink('/guide/migrate-from-webpack'),
+          link: getLink('/guide/migration/webpack'),
         },
         {
           title: t('compatibility'),
-          link: getLink('/guide/loader-compat'),
+          link: getLink('/guide/compatibility/loader'),
         },
       ],
     },

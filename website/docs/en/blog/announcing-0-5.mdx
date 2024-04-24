@@ -1,0 +1,263 @@
+---
+date: 2024-01-09 16:52:00
+---
+
+import { PackageManagerTabs } from '@theme';
+
+# Announcing Rspack v0.5
+
+> January 09, 2024
+
+## Major Feature Updates
+
+### Module Federation added to Rspack
+
+Checkout [this blog](/blog/module-federation-added-to-rspack) for more details.
+
+## Breaking Changes
+
+### optimization.chunkIds is deterministic in production mode by default
+
+`optimization.chunkIds` is `"deterministic"` now in production mode, which aligns with webpack's default behavior.
+
+### Support rspack.HotModuleReplacementPlugin
+
+Support `rspack.HotModuleReplacementPlugin` in Rspack. If you are not using `@rspack/dev-server` and using a custom dev server, you need to apply `HotModuleReplacementPlugin` to enable HMR instead of setting `devServer.hot` to `true`, which is the same in webpack. This provides more compatibility with the plugin which uses `HotModuleReplacementPlugin` internally.
+
+### Remove default transformation
+
+Default transformation is a builtin, which internally transforms source files (such as TypeScript), into compatible sources (such as JavaScript). To make the transformation more customizable, we handed out this feature to users by using `builtin:swc-loader` and dropped the support of several [rule.type](/config/module#ruletype). These `rule.type`s are dropped:
+
+- `"typescript"` or `"ts"`
+- `"tsx"`
+- `"jsx"`
+
+In order to achieve old behavior, please remove `rule.type` or change it to `"javascript/auto"` and apply your custom loader configurations.
+
+To transform a `.jsx` file:
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        exclude: /[\\/]node_modules[\\/]/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'ecmascript',
+              jsx: true,
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+To transform a `.tsx` file:
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.tsx$/,
+        exclude: /[\\/]node_modules[\\/]/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+              tsx: true,
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+To transform a `.ts` file:
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        exclude: /[\\/]node_modules[\\/]/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### target does not affect user code anymore
+
+Rspack aligns [target](/config/target) with webpack. Instead of transforming arbitrary user code, Rspack now lets loaders control the transformation of user land code. To transform user land code to which your target environment(s) needed, add `env` to `builtin:swc-loader`:
+
+```diff
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /[\\/]node_modules[\\/]/,
+        loader: "builtin:swc-loader",
+        options: {
+          jsc: {
+            parser: {
+              syntax: "ecmascript"
+            }
+          },
++         env: {
++           targets: "Chrome >= 48"
++         }
+        }
+      }
+    ]
+  }
+}
+```
+
+### Remove extended resolve extensions
+
+`resolve.extensions` helps us to omit certain file extensions during resolution. In previous versions, `.ts`, `.tsx`, `.jsx` are supported and these extensions are removed in the latest version, which aligns with webpack's behavior.
+
+In order to get the same behavior, change `resolve.extensions` to this:
+
+```js
+module.exports = {
+  resolve: {
+    extensions: ['...', '.tsx', '.ts', '.jsx'], // "..." means to extend from the default extensions
+  },
+};
+```
+
+### Make @swc/helpers and react-refresh as peerDependencies
+
+Before we remove default transformation, it's possible to use it to degrade your code to es5 by `target`, and insert the react refresh helper code into your react component by `builtin.react.refresh`, so we installed the `@swc/helpers` and `react-refresh` as the dependencies of `@rspack/core`, to provide the out-of-box experience. But since we removed the default transformation now, and recommend using rsbuild for the out-of-box experience, the `@swc/helpers` and `react-refresh` no longer need to be installed by `@rspack/core`, and we make them as peerDependencies of `@rspack/core`.
+
+If you are using `externalHelpers: true` with `builtin:swc-loader` or `swc-loader`, now you need to install `@swc/helpers` as dependencies of your project. If you are using `@rspack/plugin-react-refresh`, now you need to install `react-refresh` as devDependencies of your project.
+
+### Remove deprecated builtins options
+
+Some of the builtins options have been deprecated since v0.4.0.
+
+If you are still using `builtins.noEmitAssets`, `builtins.devFriendlySplitChunks`, `builtins.react`, `builtins.html`, `builtins.copy`, `builtins.minifyOptions`, checkout [migrating builtin options to builtin plugins](/blog/announcing-0-4#migrating-builtin-options-to-builtin-plugins) to migrate.
+
+And if you are still using `builtins.presetEnv`, `builtins.decorator`, `builtins.pluginImport`, `builtins.emotion`, `builtins.relay`, checkout the migration guide [here](/blog/announcing-0-4#deprecating-default-transformation).
+
+### Remove builtin:sass-loader
+
+`builtin:sass-loader` has been deprecated since v0.4.0. It's removed in v0.5.0. If you are still using it, migrate to `sass-loader`.
+
+### Remove experiments.incrementalRebuild options
+
+`experiments.incrementalRebuild` options has been deprecated since v0.4.0. It's removed in v0.5.0.
+
+### Remove builtins.devFriendlySplitChunks and experiments.newSplitChunks
+
+`experiments.newSplitChunks` and `builtins.devFriendlySplitChunks` has been deprecated since v0.4.0. It's removed in v0.5.0.
+
+### Remove experiments.rspackFuture.newResolver options
+
+`experiments.rspackFuture.newResolver` has been deprecated since v0.4.0. It's removed in v0.5.0.
+
+### Deprecating apply entry lazily
+
+Apply entry lazily is deprecating by rspackFuture: [experiments.rspackFuture.disableApplyEntryLazily](/config/experiments#experimentsrspackfuturedisableapplyentrylazily), which is introduced in v0.4.5, enabled by default in v0.5.0, and will be removed in v0.6.0.
+
+When `experiments.rspackFuture.disableApplyEntryLazily` is `false`, `options.entry` can still make valid changes after `rspack(options)` is called, but with `true` it can't, and it's behave the same as webpack5.
+
+This configuration has no effect on users developing applications in Rspack most of the time, but should be noted by developers of Rspack plugins or upper-level frameworks.
+
+## Migration Guide
+
+v0.5.0 removed lots of deprecated features, except that, v0.5.0 introduced four breaking changes, and you only need to notice two of them if you are developing applications using Rspack. So v0.5.0 is easy to migrate if you already migrate to v0.4+ with no deprecate warnings, if you haven't, checkout the [v0.4.0 migration guide](https://www.rspack.dev/blog/announcing-0.4#migration-guide).
+
+### Add resolve.extensions
+
+This is a breaking change that is most likely to affect you.
+
+After you upgrade `@rspack/core` to v0.5.0, if you build failed with error: `Can't resolve './src/foo.tsx'`, or `Can't resolve './src/foo.ts'`, or `Can't resolve './src/foo.jsx'`, you need to add `resolve.extensions = ['...', '.tsx', '.ts', '.jsx']` in your configuration.
+
+```diff
+const configuration = {
+  // ...
+  resolve: {
++   extensions: ['...', '.tsx', '.ts', '.jsx'],
+  },
+}
+```
+
+You only need to add the needed extensions to `resolve.extensions`. For example, if you are not using any `.tsx` or `.ts` files, only using `.js` or `.jsx` files, then you only need to add `'.jsx'` to resolve.extensions. `'.js'` is one of the default extensions and all default extensions (`['.js', '.json', '.wasm']`) are represented by `'...'`.
+
+### Install @swc/helpers or react-refresh
+
+This is a breaking change that is most likely to affect you.
+
+After you upgrade `@rspack/core` to v0.5.0, if you build failed with error: `Failed to resolve @swc/helpers/some-helper` or `Failed to resolve react-refresh/some-module`, you need to install `@swc/helpers` or `react-refresh` in your project.
+
+If you are using `externalHelpers: true` with `builtin:swc-loader` or `swc-loader`, now you need to install `@swc/helpers` as dependencies of your project.
+
+<PackageManagerTabs command="install @swc/helpers" />
+
+If you are using `@rspack/plugin-react-refresh`, now you need to install `react-refresh` as devDependencies of your project.
+
+<PackageManagerTabs command="install react-refresh" />
+
+### Apply rspack.HotModuleReplacementPlugin
+
+If you are using `@rspack/cli`, or rsbuild, or other upper-level framework of Rspack to develop applications, you don't need to worry about this. This should be well handled by the upper-level framework or cli. But if you are using `@rspack/core` with a custom dev server (not `@rspack/dev-server` or `webpack-dev-server`), or developing a custom dev server, you need to notice this.
+
+Before enabling HMR in Rspack is setting `devServer.hot` to `true`, but now you need to apply `HotModuleReplacementPlugin` by yourself in your custom dev server.
+
+```diff
+class CustomDevServer {
+  // ...
+  enableHMR(compiler) {
+-   compiler.options.devServer ??= {};
+-   compiler.options.devServer.hot = true;
++   new compiler.webpack.HotModuleReplacementPlugin().apply(compiler);
+  }
+}
+```
+
+### Do not change entry options after rspack(options)
+
+If you are using `@rspack/cli`, or rsbuild, or other upper-level framework of Rspack to develop applications, you don't need to worry about this. This should be well handled by the upper-level framework or cli. But if you are developing a plugin or upper-level framework, you need to notice this.
+
+Before prepending an extra entry in Rspack is prepending it to `compiler.options.entry`, but now you need to apply `EntryPlugin` by yourself.
+
+```diff
+const rspack = require('@rspack/core');
+const compiler = rspack(options);
+
+function prependEntry(compiler, additionalEntry) {
+-  for (const key in compiler.options.entry) {
+-    compiler.options.entry[key].import = [
+-      additionalEntry,
+-      ...(compiler.options.entry[key].import || []),
+-    ];
+-  }
++  new compiler.webpack.EntryPlugin(compiler.context, additionalEntry, {
++    name: undefined, // `name: undefined` to prepend the it to every entry, or add it to a specified entry with specified entry name
++  }).apply(compiler);
+}
+
+prependEntry(compiler, 'dev-client.js');
+```

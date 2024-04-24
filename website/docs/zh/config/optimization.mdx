@@ -1,6 +1,6 @@
 import PropertyType from '../../../components/property-type.tsx';
 
-import WebpackLicense from '../../../components/webpack-license';
+import WebpackLicense from '@components/webpack-license';
 
 <WebpackLicense from="https://webpack.docschina.org/configuration/optimization/" />
 
@@ -239,7 +239,7 @@ module.exports = {
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-开启后 Rspack 将会分析模块提供哪些导出，包括重导出模块，引用模块不存在的导出时会发出提示。默认情况下，`optimization.providedExports` 已启用，该分析会增加构建时间，你可以考虑在 development 模式中关闭该配置，关闭后有可能会遇到[SideEffects 章节](/guide/tree-shaking#reexports-optimization)运行时循环依赖的错误。
+开启后 Rspack 将会分析模块提供哪些导出，包括重导出模块，引用模块不存在的导出时会发出提示。默认情况下，`optimization.providedExports` 已启用，该分析会增加构建时间，你可以考虑在 development 模式中关闭该配置，关闭后有可能会遇到[SideEffects 章节](/guide/optimization/tree-shaking#reexports-optimization)运行时循环依赖的错误。
 
 ```js title=rspack.config.js
 module.exports = {

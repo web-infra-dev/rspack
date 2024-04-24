@@ -31,11 +31,11 @@ English | [简体中文](./README.zh-CN.md)
 - 🛠️ **Production Optimization**: Various optimization strategies are built in by default, such as tree shaking, minification, etc.
 - 🎯 **Framework Agnostic**: Not bound to any frontend framework, ensuring enough flexibility.
 
-Read [Introduction](https://rspack.dev/guide/introduction.html) for details.
+Read [Introduction](https://rspack.dev/guide/start/introduction) for details.
 
 ## Getting Started
 
-- [Quick Start](https://rspack.dev/guide/quick-start.html)
+- [Quick Start](https://rspack.dev/guide/start/quick-start)
 
 ## Contribution
 

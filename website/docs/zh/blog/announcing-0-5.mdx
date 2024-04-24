@@ -1,0 +1,263 @@
+---
+date: 2024-01-09 16:52:00
+---
+
+import { PackageManagerTabs } from '@theme';
+
+# Rspack v0.5 发布公告
+
+> 2024 年 1 月 9 日
+
+## 主要功能更新
+
+### Rspack 支持模块联邦
+
+请查看[此博客](/blog/module-federation-added-to-rspack)以获取更多详细信息。
+
+## 破坏性更新
+
+### 调整 optimization.chunkIds 生产环境默认值为 deterministic
+
+在生产模式下，`optimization.chunkIds` 默认值为 `"deterministic"`，这与 webpack 的默认行为一致。
+
+### 支持 rspack.HotModuleReplacementPlugin
+
+支持 `rspack.HotModuleReplacementPlugin`，如果您没有使用 `@rspack/dev-server` 而是使用自定义的开发服务器，则需要使用 `HotModuleReplacementPlugin` 来启用 HMR，而不再将 `devServer.hot` 设置为 `true`，这与 webpack 相同。这提供了更多在内部使用 `HotModuleReplacementPlugin` 的插件的兼容性。
+
+### 移除默认转换
+
+之前默认转换是内置的，它将源文件（如 TypeScript）内部转换为兼容的源文件（如 JavaScript）。为了使转换更加可定制，我们通过使用 `builtin:swc-loader` 将此功能交给用户控制，并放弃了对几个 [rule.type](/config/module#ruletype) 的支持。这些 `rule.type` 已被删除：
+
+- `"typescript"` 或 `"ts"`
+- `"tsx"`
+- `"jsx"`
+
+为了实现旧有的行为，请删除 `rule.type` 或将其更改为 `"javascript/auto"` 并应用您的自定义加载器配置。
+
+转译 `.jsx` 文件：
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        exclude: /[\\/]node_modules[\\/]/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'ecmascript',
+              jsx: true,
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+转译 `.tsx` 文件：
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.tsx$/,
+        exclude: /[\\/]node_modules[\\/]/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+              tsx: true,
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+转译 `.ts` 文件：
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        exclude: /[\\/]node_modules[\\/]/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### target 不再影响用户代码
+
+Rspack 将 [target](/config/target) 与 webpack 对齐。Rspack 不再转换任意用户代码，而是让 loader 来控制用户代码的转换。要将用户代码转换为目标环境所需的代码，请将 `env` 添加到 `builtin:swc-loader` 中：
+
+```diff
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /[\\/]node_modules[\\/]/,
+        loader: "builtin:swc-loader",
+        options: {
+          jsc: {
+            parser: {
+              syntax: "ecmascript"
+            }
+          },
++         env: {
++           targets: "Chrome >= 48"
++         }
+        }
+      }
+    ]
+  }
+}
+```
+
+### 移除扩展的 resolve extensions
+
+`resolve.extensions` 帮助我们在解析路径过程中省略某些文件扩展名。在之前的版本中，内置支持了 `.ts`、`.tsx`、`.jsx` 这些扩展名，在最新版本中删除了这些扩展名，以保持和 webpack 的行为一致。
+
+为了获得与原来相同的行为，请将 `resolve.extensions` 更改为以下内容：
+
+```js
+module.exports = {
+  resolve: {
+    extensions: ['...', '.tsx', '.ts', '.jsx'], // "..." 代表着默认的文件扩展名。
+  },
+};
+```
+
+### 将 @swc/helpers 和 react-refresh 调整为 peerDependencies
+
+在我们移除默认转换之前，可以通过 `target` 将您的代码降级为 es5，并通过 `builtin.react.refresh` 将 react 刷新助手代码插入到您的 react 组件中，因此我们安装了 `@swc/helpers` 和 `react-refresh` 作为 `@rspack/core` 的依赖项，以提供开箱即用的体验。但是现在我们已经移除了默认转换，并建议使用 rsbuild 来获得开箱即用的体验，因此 `@swc/helpers` 和 `react-refresh` 不再需要由 `@rspack/core` 安装，我们将它们调整为 `@rspack/core` 的 peerDependencies。
+
+如果您正在使用 `builtin:swc-loader` 或 `swc-loader` 的 `externalHelpers: true` 功能，现在您需要将 `@swc/helpers` 安装为项目的 dependencies。如果您正在使用 `@rspack/plugin-react-refresh`，现在您需要将 `react-refresh` 安装为项目的 devDependencies。
+
+### 移除已弃用的 builtins options
+
+一些 builtins options 自 v0.4.0 以来已被弃用，并在 v0.5.0 中被删除。
+
+如果你正在使用 `builtins.noEmitAssets`, `builtins.devFriendlySplitChunks`, `builtins.html`, `builtins.copy`, `builtins.minifyOptions`，请查看[这篇文档](/blog/announcing-0-4#%E8%BF%81%E7%A7%BB-builtin-options-%E5%88%B0-builtin-plugins)并进行迁移。
+
+而如果你正在使用 `builtins.presetEnv`, `builtins.decorator`, `builtins.react`, `builtins.pluginImport`, `builtins.emotion`, `builtins.relay`, 请查看[这篇文档](/blog/announcing-0-4#%E5%BA%9F%E5%BC%83%E9%BB%98%E8%AE%A4%E8%BD%AC%E6%8D%A2)并进行迁移。
+
+### 移除 builtin:sass-loader
+
+`builtin:sass-loader` 自 v0.4.0 以来已被弃用，并在 v0.5.0 中被删除。如果你仍在使用它，请迁移至 `sass-loader`。
+
+### 移除 experiments.incrementalRebuild 选项
+
+`experiments.incrementalRebuild` 选项自 v0.4.0 以来已被弃用，并在 v0.5.0 中被删除。
+
+### 移除 builtins.devFriendlySplitChunks 和 experiments.newSplitChunks
+
+`experiments.newSplitChunks` 和 `builtins.devFriendlySplitChunks` 自 v0.4.0 以来已被弃用，并在 v0.5.0 中被删除。
+
+### 移除 experiments.rspackFuture.newResolver 选项
+
+`experiments.rspackFuture.newResolver` 选项自 v0.4.0 以来已被弃用，并在 v0.5.0 中被删除。
+
+### 废弃入口配置惰性生效这一行为
+
+该行为通过 [experiments.rspackFuture.disableApplyEntryLazily](/config/experiments#experimentsrspackfuturedisableapplyentrylazily) 进行废弃，该配置在 v0.4.5 中引入，在 v0.5.0 中默认启用，并将在 v0.6.0 中移除。
+
+当 `experiments.rspackFuture.disableApplyEntryLazily` 为 `false`，`options.entry` 仍然可以进行有效的修改在 `rspack(options)` 调用之后，但设置为 `true` 时将不能，并且该行为和 Webpack5 保持一致。
+
+这个配置大部分情况对于使用 Rspack 开发应用的用户没有影响，但是应该被开发 Rspack 插件或上层框架的开发者注意。
+
+## 迁移指南
+
+v0.5.0 移除了许多已经弃用的功能，除此之外，v0.5.0 引入了四个破坏性更新，如果您正在使用 Rspack 开发应用，那么您只需要关注其中两个。因此，如果您已经迁移到 v0.4+ 并且没有弃用警告，那么 v0.5.0 将很容易迁移，如果您还没有，请查看 [v0.4.0 迁移指南](https://www.rspack.dev/blog/announcing-0.4#migration-guide).
+
+### 添加 resolve.extensions
+
+这是一个很可能会影响到您的破坏性更新。
+
+在将 `@rspack/core` 升级到 v0.5.0 后，如果构建失败并出现错误：`Can't resolve './src/foo.tsx'`，或者 `Can't resolve './src/foo.ts'`，或者 `Can't resolve './src/foo.jsx'`，则需要在配置中添加 `resolve.extensions = ['...', '.tsx', '.ts', '.jsx']`。
+
+```diff
+const configuration = {
+  // ...
+  resolve: {
++   extensions: ['...', '.tsx', '.ts', '.jsx'],
+  },
+}
+```
+
+你只需要将所需的扩展名添加到 `resolve.extensions` 中。例如，如果您没有使用任何 `.tsx` 或 `.ts` 文件，只使用 `.js` 或 `.jsx` 文件，则只需要添加 `'.jsx'` 到 `resolve.extensions` 中。`'.js'` 是默认扩展名之一，所有默认扩展名（`['.js', '.json', '.wasm']`）都由 `'...'` 表示。
+
+### 安装 @swc/helpers 或 react-refresh
+
+这是一个很可能会影响到您的破坏性更新。
+
+在将 `@rspack/core` 升级到 v0.5.0 后，如果构建失败并出现错误：`Failed to resolve @swc/helpers/some-helper` 或 `Failed to resolve react-refresh/some-module`，则需要在您的项目中安装 `@swc/helpers` 或 `react-refresh`。
+
+如果您正在使用 `builtin:swc-loader` 或 `swc-loader` 的 `externalHelpers: true` 功能，现在您需要将 `@swc/helpers` 安装为项目的 dependencies。
+
+<PackageManagerTabs command="install @swc/helpers" />
+
+如果您正在使用 `@rspack/plugin-react-refresh`，现在您需要将 `react-refresh` 安装为项目的 devDependencies。
+
+<PackageManagerTabs command="install react-refresh" />
+
+### 调用 rspack.HotModuleReplacementPlugin
+
+如果您正在使用 `@rspack/cli`、Rsbuild 或其他 Rspack 的上层框架来开发应用程序，您不需要担心这个问题。这应该由上层框架或 cli 处理好。但是，如果您正在使用 `@rspack/core` 与自定义开发服务器（不是 `@rspack/dev-server` 或 `webpack-dev-server`），或者正在开发自定义开发服务器，则需要注意这一点。
+
+之前，在 Rspack 中启用 HMR 需要将 `devServer.hot` 设置为 `true`，但现在您需要在自定义开发服务器中自己调用 `HotModuleReplacementPlugin`。
+
+```diff
+class CustomDevServer {
+  // ...
+  enableHMR(compiler) {
+-   compiler.options.devServer ??= {};
+-   compiler.options.devServer.hot = true;
++   new compiler.webpack.HotModuleReplacementPlugin().apply(compiler);
+  }
+}
+```
+
+### 不要在 rspack(options) 调用之后修改入口配置
+
+如果您正在使用 `@rspack/cli`、Rsbuild 或其他 Rspack 的上层框架来开发应用程序，您不需要担心这个问题。这应该由上层框架或 cli 处理好。但是如果您正在开发 Rspack 插件或上层框架，您需要注意这一点。
+
+之前，在 Rspack 中添加额外的入口，需要将其添加到 `compiler.options.entry` 中，但现在需要调用 `EntryPlugin`。
+
+```diff
+const rspack = require('@rspack/core');
+const compiler = rspack(options);
+
+function prependEntry(compiler, additionalEntry) {
+-  for (const key in compiler.options.entry) {
+-    compiler.options.entry[key].import = [
+-      additionalEntry,
+-      ...(compiler.options.entry[key].import || []),
+-    ];
+-  }
++  new compiler.webpack.EntryPlugin(compiler.context, additionalEntry, {
++    name: undefined, // `name: undefined` to prepend the it to every entry, or add it to a specified entry with specified entry name
++  }).apply(compiler);
+}
+
+prependEntry(compiler, 'dev-client.js');
+```
