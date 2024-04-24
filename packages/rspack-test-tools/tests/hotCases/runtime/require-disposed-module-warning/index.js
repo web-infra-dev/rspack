@@ -1,4 +1,4 @@
-const expectWarning = require("../../../helpers/expectWarningFactory")();
+const expectWarning = require("../../../../dist/helper/util/expectWarningFactory")();
 const getInner = require("./module");
 
 it("should print correct warning messages when a disposed module is required", done => {
