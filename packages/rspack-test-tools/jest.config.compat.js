@@ -14,6 +14,7 @@ module.exports = {
 		"<rootDir>/tests/HotTestCasesWeb.test.js",
 		"<rootDir>/tests/HotTestCasesNode.test.js",
 		"<rootDir>/tests/HotTestCasesWebWorker.test.js",
-		"<rootDir>/tests/Diagnostics.test.js"
+		"<rootDir>/tests/Diagnostics.test.js",
+		"<rootDir>/tests/StatsTestCases.basictest.js"
 	]
 };
