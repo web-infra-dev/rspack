@@ -1,4 +1,8 @@
+const { toMatchFileSnapshot } = require("./jestFileSnapshot");
+
 expect.extend({
+	// CHANGE: new test matcher for `rspack-test-tools`
+	toMatchFileSnapshot,
 	toBeTypeOf(received, expected) {
 		const objType = typeof received;
 		const pass = objType === expected;

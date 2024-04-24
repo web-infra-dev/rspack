@@ -26,6 +26,7 @@
   ],
   "files.associations": {
     "*.snap": "markdown",
+    "*.snap.txt": "markdown",
     "*.json": "jsonc"
   },
   "cSpell.words": [
