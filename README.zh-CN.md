@@ -31,11 +31,11 @@
 - 🛠️ **默认生产优化**: 默认内置多种优化策略，如 Tree Shaking、代码压缩等等。
 - 🎯 **框架无关**: 不和任何前端框架绑定，保证足够的灵活性。
 
-请阅读 [Rspack 介绍](https://rspack.dev/zh/guide/start/introduction.html) 章节来了解更多。
+请阅读 [Rspack 介绍](https://rspack.dev/zh/guide/start/introduction) 章节来了解更多。
 
 ## 快速上手
 
-- [快速上手](https://rspack.dev/zh/guide/start/quick-start.html)
+- [快速上手](https://rspack.dev/zh/guide/start/quick-start)
 
 ## 参与贡献
 
