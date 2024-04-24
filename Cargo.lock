@@ -2146,7 +2146,7 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 [[package]]
 name = "oxc_resolver"
 version = "1.6.7"
-source = "git+https://github.com/oxc-project/oxc-resolver.git?branch=main#87dc7f0e18d0f766b6c06a2e88d0bf4df97be7a9"
+source = "git+https://github.com/ahabhgk/oxc-resolver.git?branch=fix-roots-win#ef11a61b47d51b7b8724cbe0a2f60cbefa454cbb"
 dependencies = [
  "dashmap",
  "dunce",
