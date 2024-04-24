@@ -6,11 +6,6 @@
   },
   {
     "type": "dir",
-    "name": "migration",
-    "label": "迁移"
-  },
-  {
-    "type": "dir",
     "name": "features",
     "label": "特性"
   },
@@ -23,6 +18,11 @@
     "type": "dir",
     "name": "optimization",
     "label": "优化"
+  },
+  {
+    "type": "dir",
+    "name": "migration",
+    "label": "迁移"
   },
   {
     "type": "dir",

@@ -1,9 +1,13 @@
 import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
 
-# container.ModuleFederationPluginV1
+# ModuleFederationPluginV1
 
 <ApiMeta addedVersion={'0.4.5'} stability={Stability.Experimental} />
 
 该插件对应 Module Federation 1.0，即 [Webpack 中的 ModuleFederationPlugin](https://webpack.js.org/plugins/module-federation-plugin/)。
 
 配置与上面 ModuleFederationPlugin 配置一致，除了没有 `implementation` 和 `runtimePlugins` 两个字段。
+
+```js
+new rspack.container.ModuleFederationPluginV1();
+```

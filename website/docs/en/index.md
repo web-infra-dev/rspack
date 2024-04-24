@@ -30,17 +30,17 @@ features:
   - title: Webpack Compatible
     details: Interoperates with existing webpack plugins and config. No need to reinvent your ecosystem from scratch.
     icon: 📦
-    link: /guide/loader-compat
+    link: /guide/compatibility/loader
   - title: Batteries Included
     details: Out-of-the-box support for TypeScript, JSX, CSS, CSS Modules, Sass, and more.
     icon: 🎨
-    link: /guide/typescript
+    link: /guide/tech/typescript
   - title: Production Optimizations
     details: Core optimizations such as tree shaking and minification have integrated implementations rather than deferring to plugins.
     icon: 🛠️
-    link: /guide/production
+    link: /guide/optimization/production
   - title: Framework Agnostic
     details: Not bound to any frontend framework. Everyone can use it!
     icon: 🎯
-    link: /guide/react
+    link: /guide/tech/react
 ---
