@@ -17,138 +17,11 @@ function getI18nHelper(lang: 'zh' | 'en') {
   return { getText, getLink };
 }
 
-function getNavConfig(lang: 'zh' | 'en'): NavItem[] {
-  const { getText, getLink } = getI18nHelper(lang);
-  return [
-    {
-      text: getText('指南', 'Guide'),
-      link: getLink('/guide/introduction'),
-      activeMatch: '/guide/',
-    },
-    {
-      text: getText('配置', 'Config'),
-      link: getLink('/config'),
-      activeMatch: '/config',
-    },
-    {
-      text: getText('插件', 'Plugin'),
-      link: getLink('/plugins'),
-      activeMatch: '^(/zh|/en)?/plugins',
-    },
-    {
-      text: getText('API', 'API'),
-      link: getLink('/api'),
-      activeMatch: '/api',
-    },
-    {
-      text: getText('博客', 'Blog'),
-      link: getLink('/blog/announcing-0.6'),
-      activeMatch: '/blog',
-    },
-    {
-      text: getText('生态', 'Ecosystem'),
-      items: [
-        {
-          text: 'Rsbuild',
-          link: 'https://rsbuild.dev',
-        },
-        {
-          text: 'Rspress',
-          link: 'https://rspress.dev',
-        },
-        {
-          text: 'Rsdoctor',
-          link: 'https://rsdoctor.dev',
-        },
-        {
-          text: 'Modern.js',
-          link: 'https://modernjs.dev/en/',
-        },
-        {
-          text: 'Nx Rspack plugin',
-          link: 'https://nx.dev/packages/rspack/documents/overview',
-        },
-        {
-          text: 'Awesome Rspack',
-          link: 'https://github.com/web-infra-dev/awesome-rspack',
-        },
-        {
-          text: 'Rspack Compat',
-          link: 'https://github.com/web-infra-dev/rspack-compat',
-        },
-        {
-          text: 'Rspack Examples',
-          link: 'https://github.com/rspack-contrib/rspack-examples',
-        },
-        {
-          text: 'Rsfamily Design Resources',
-          link: 'https://github.com/rspack-contrib/rsfamily-design-resources',
-        },
-        {
-          text: 'Rspack Community Packages',
-          link: 'https://github.com/rspack-contrib',
-        },
-      ],
-    },
-    {
-      text: getText('关于', 'About'),
-      items: [
-        {
-          text: getText('加入我们', 'Join Us'),
-          link: getLink('/misc/join-us'),
-        },
-        {
-          text: getText('团队', 'Team'),
-          link: getLink('/misc/meet-the-team'),
-        },
-        {
-          text: getText('发布日志', 'Releases'),
-          link: 'https://github.com/web-infra-dev/rspack/releases',
-        },
-        {
-          text: getText(
-            '未来默认行为与功能废弃',
-            'Future behavior & Deprecation',
-          ),
-          link: getLink('/misc/future'),
-        },
-        {
-          text: getText('功能规划', 'Roadmap'),
-          link: getLink('/misc/roadmap'),
-        },
-        {
-          text: getText('基准测试', 'Benchmark'),
-          link: getLink('/misc/benchmark'),
-        },
-        {
-          text: getText('贡献指南', 'Contributing Guide'),
-          link: 'https://github.com/web-infra-dev/rspack/blob/main/CONTRIBUTING.md',
-        },
-        {
-          text: getText('品牌指南', 'Branding Guideline'),
-          link: getLink('/misc/branding'),
-        },
-      ],
-    },
-  ];
-}
-
 function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
   const { getText, getLink } = getI18nHelper(lang);
 
   return {
     [getLink('/guide/')]: [
-      {
-        collapsible: false,
-        text: getText('开始', 'Getting started'),
-        items: [
-          getLink('/guide/introduction'),
-          getLink('/guide/quick-start'),
-          getLink('/guide/migrate-from-webpack'),
-          getLink('/guide/migrate-from-cra'),
-          getLink('/guide/migrate-storybook'),
-        ],
-      },
       {
         collapsible: false,
         text: getText('特性', 'Features'),
@@ -581,16 +454,12 @@ export default defineConfig({
         lang: 'en',
         title: 'Rspack',
         description: 'A fast Rust-based web bundler',
-        nav: getNavConfig('en'),
-        sidebar: getSidebarConfig('en'),
         label: 'English',
       },
       {
         lang: 'zh',
         title: 'Rspack',
         description: '基于 Rust 的高性能 Web 构建工具',
-        nav: getNavConfig('zh'),
-        sidebar: getSidebarConfig('zh'),
         label: '简体中文',
       },
     ],

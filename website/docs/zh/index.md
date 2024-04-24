@@ -14,20 +14,20 @@ hero:
   actions:
     - theme: brand
       text: 快速开始
-      link: /zh/guide/quick-start
+      link: /zh/guide/start/quick-start
     - theme: alt
       text: 深入了解
-      link: /zh/guide/introduction
+      link: /zh/guide/start/introduction
 
 features:
   - title: 启动速度极快
     details: 基于 Rust，项目启动速度极快，带给你极致的开发体验。
     icon: 🚀
-    link: /zh/guide/introduction
+    link: /zh/guide/start/introduction
   - title: 闪电般的 HMR
     details: 内置增量编译机制，HMR 速度极快，完全胜任大型项目的开发。
     icon: ⚡
-    link: /zh/guide/introduction
+    link: /zh/guide/start/introduction
   - title: 兼容 webpack
     details: 针对 webpack 的架构和生态进行兼容，无需从头搭建生态。
     icon: 📦

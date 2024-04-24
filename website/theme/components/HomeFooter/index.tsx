@@ -13,7 +13,7 @@ function useFooterData() {
       items: [
         {
           title: t('quickStart'),
-          link: getLink('/guide/quick-start'),
+          link: getLink('/guide/start/quick-start'),
         },
         {
           title: t('features'),
@@ -21,7 +21,7 @@ function useFooterData() {
         },
         {
           title: t('migration'),
-          link: getLink('/guide/migrate-from-webpack'),
+          link: getLink('/guide/migration/webpack'),
         },
         {
           title: t('compatibility'),

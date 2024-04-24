@@ -13,20 +13,20 @@ hero:
   actions:
     - theme: brand
       text: Get Started
-      link: /guide/quick-start
+      link: /guide/start/quick-start
     - theme: alt
       text: Learn More
-      link: /guide/introduction
+      link: /guide/start/introduction
 
 features:
   - title: Fast Startup
     details: Combining TypeScript and Rust with a parallelized architecture to bring you the ultimate developer experience.
     icon: 🚀
-    link: /guide/introduction
+    link: /guide/start/introduction
   - title: Lightning HMR
     details: A built-in incremental compilation mechanism provides superior Hot Module Replacement performance for large-scale projects.
     icon: ⚡
-    link: /guide/introduction
+    link: /guide/start/introduction
   - title: Webpack Compatible
     details: Interoperates with existing webpack plugins and config. No need to reinvent your ecosystem from scratch.
     icon: 📦

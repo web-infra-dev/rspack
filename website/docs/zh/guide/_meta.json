@@ -1,0 +1,12 @@
+[
+  {
+    "type": "dir",
+    "name": "start",
+    "label": "Getting Started"
+  },
+  {
+    "type": "dir",
+    "name": "migration",
+    "label": "Migration"
+  }
+]
