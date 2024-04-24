@@ -17,6 +17,7 @@ module.exports = {
 		"HotTestCasesWebWorker.test.js",
 		"HotTestCasesNode.test.js",
 		"Diagnostics.test.js",
+		"StatsTestCases.basictest.js",
 		".difftest.js"
 	]
 };

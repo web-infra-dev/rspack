@@ -3,8 +3,8 @@ const fs = require("fs");
 const { createStatsCase } = require("..");
 
 const NAME = "StatsTestCases";
-const caseDir = path.resolve(__dirname, "../../rspack/tests/statsCases");
-const distDir = path.resolve(__dirname, `../../rspack/tests/js/stats`);
+const caseDir = path.resolve(__dirname, "./statsCases");
+const distDir = path.resolve(__dirname, `./js/stats`);
 
 const tests = fs
 	.readdirSync(caseDir)
