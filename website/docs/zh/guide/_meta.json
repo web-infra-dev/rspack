@@ -16,6 +16,11 @@
   },
   {
     "type": "dir",
+    "name": "tech",
+    "label": "语言和框架"
+  },
+  {
+    "type": "dir",
     "name": "optimization",
     "label": "优化"
   },

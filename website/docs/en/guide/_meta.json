@@ -16,6 +16,11 @@
   },
   {
     "type": "dir",
+    "name": "tech",
+    "label": "Languages and Frameworks"
+  },
+  {
+    "type": "dir",
     "name": "optimization",
     "label": "Optimization"
   },

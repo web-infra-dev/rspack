@@ -21,23 +21,6 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
   const { getText, getLink } = getI18nHelper(lang);
 
   return {
-    [getLink('/guide/')]: [
-      {
-        collapsible: false,
-        text: getText('语言和框架', 'Languages and Frameworks'),
-        items: [
-          getLink('/guide/typescript'),
-          getLink('/guide/css'),
-          getLink('/guide/json'),
-          getLink('/guide/nodejs'),
-          getLink('/guide/react'),
-          getLink('/guide/vue'),
-          getLink('/guide/solid'),
-          getLink('/guide/svelte'),
-          getLink('/guide/nestjs'),
-        ],
-      },
-    ],
     [getLink('/config/')]: [
       {
         text: getText('配置', 'Config'),
