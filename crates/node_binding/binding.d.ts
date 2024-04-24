@@ -40,6 +40,7 @@ export class JsCompilation {
   getMissingDependencies(): Array<string>
   getBuildDependencies(): Array<string>
   pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
+  spliceDiagnostic(start: number, end: number, replaceWith: Array<JsDiagnostic>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   getStats(): JsStats
   getAssetPath(filename: LocalJsFilename, data: JsPathData): string
@@ -294,6 +295,12 @@ export interface JsCreateData {
   request: string
   userRequest: string
   resource: string
+}
+
+export interface JsDiagnostic {
+  severity: 'error' | 'warning'
+  title: string
+  message: string
 }
 
 export interface JsExecuteModuleArg {
