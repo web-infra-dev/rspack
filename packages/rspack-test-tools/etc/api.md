@@ -229,8 +229,6 @@ export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
     constructor(hookOptions: IHookProcessorOptions<ECompilerType.Rspack>);
     // (undocumented)
     config(context: ITestContext): Promise<void>;
-    // Warning: (ae-forgotten-export) The symbol "IHookProcessorOptions" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     protected hookOptions: IHookProcessorOptions<ECompilerType.Rspack>;
 }
@@ -406,6 +404,12 @@ export interface IFormatCodeOptions {
 }
 
 // @public (undocumented)
+interface IHookProcessorOptions<T extends ECompilerType> extends ISnapshotProcessorOptions<T> {
+    // (undocumented)
+    options?: (context: ITestContext) => TCompilerOptions<T>;
+}
+
+// @public (undocumented)
 export interface IMultiTaskProcessorOptions<T extends ECompilerType = ECompilerType.Rspack> {
     // (undocumented)
     compilerType: ECompilerType.Rspack;
@@ -473,14 +477,10 @@ export interface IRspackStatsProcessorOptions<T extends ECompilerType.Rspack> {
 
 // @public (undocumented)
 export interface IRspackWatchProcessorOptions {
-    // Warning: (ae-forgotten-export) The symbol "TRspackExperiments" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     experiments?: TRspackExperiments;
     // (undocumented)
     name: string;
-    // Warning: (ae-forgotten-export) The symbol "TRspackOptimization" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     optimization?: TRspackOptimization;
     // (undocumented)
@@ -1105,6 +1105,12 @@ export type TModuleObject = {
 
 // @public (undocumented)
 export type TModuleTypeId = "normal" | "runtime";
+
+// @public (undocumented)
+type TRspackExperiments = TCompilerOptions<ECompilerType.Rspack>["experiments"];
+
+// @public (undocumented)
+type TRspackOptimization = TCompilerOptions<ECompilerType.Rspack>["optimization"];
 
 // @public (undocumented)
 export interface TRunnerFactory<T extends ECompilerType> {
