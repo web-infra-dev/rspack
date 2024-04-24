@@ -8,5 +8,10 @@
     "type": "dir",
     "name": "migration",
     "label": "Migration"
+  },
+  {
+    "type": "dir",
+    "name": "features",
+    "label": "特性"
   }
 ]

@@ -2,11 +2,16 @@
   {
     "type": "dir",
     "name": "start",
-    "label": "Getting Started"
+    "label": "Getting started"
   },
   {
     "type": "dir",
     "name": "migration",
     "label": "Migration"
+  },
+  {
+    "type": "dir",
+    "name": "features",
+    "label": "Features"
   }
 ]

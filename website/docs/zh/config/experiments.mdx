@@ -100,7 +100,7 @@ module.exports = {
 
   这部分配置项应当作用于被选中的相应模块，而使用 `builtins.(relay|react|emotion|pluginImport|decorator)` 则等于是全局开启，这种方案不被推崇，因此将被废弃。
 
-  在开启 `disableTransformByDefault` 后，上述配置项将失效，迁移指南可以参考 [builtin:swc-loader/options.rspackExperiments](/guide/loader#optionsrspackexperiments)。
+  在开启 `disableTransformByDefault` 后，上述配置项将失效，迁移指南可以参考 [builtin:swc-loader/options.rspackExperiments](/guide/features/loader#optionsrspackexperiments)。
 
   例如我们希望 `emotion` 的转换被应用于所有 `jsx` 文件：
 

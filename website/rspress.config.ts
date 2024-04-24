@@ -24,29 +24,6 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
     [getLink('/guide/')]: [
       {
         collapsible: false,
-        text: getText('特性', 'Features'),
-        items: [
-          {
-            link: getLink('/guide/asset-module'),
-            text: getText('资源模块', 'Asset modules'),
-          },
-          {
-            link: getLink('/guide/web-workers'),
-            text: getText('Web Workers', 'Web Workers'),
-          },
-          getLink('/guide/loader'),
-          getLink('/guide/builtin-swc-loader'),
-          {
-            link: getLink('/guide/plugin'),
-            text: getText('Plugin', 'Plugin'),
-          },
-          getLink('/guide/module-resolution'),
-          getLink('/guide/module-federation'),
-          getLink('/guide/dev-server'),
-        ],
-      },
-      {
-        collapsible: false,
         text: getText('优化', 'Optimization'),
         items: [
           getLink('/guide/production'),
