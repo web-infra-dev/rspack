@@ -37,8 +37,6 @@ downloadScript(url, filePath);
 // @ts-nocheck
 const { Tester, DiffProcessor, DiffStatsReporter, DiffHtmlReporter } = require("../packages/rspack-test-tools/dist");
 const rimraf = require("rimraf");
-const path = require("path");
-const fs = require("fs-extra");
 
 process.env['RSPACK_DIFF'] = "true"; // enable rspack diff injection
 
