@@ -37,30 +37,6 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
           getLink('/guide/nestjs'),
         ],
       },
-      {
-        collapsible: false,
-        text: getText('兼容性', 'Compatibility'),
-        items: [
-          getLink('/guide/loader-compat'),
-          getLink('/guide/plugin-compat'),
-          getLink('/guide/compat-others'),
-          getLink('/guide/config-diff'),
-        ],
-      },
-      {
-        collapsible: false,
-        text: getText('其他', 'Misc'),
-        items: [
-          getLink('/misc/glossary'),
-          getLink('/misc/faq'),
-          getLink('/misc/roadmap'),
-          getLink('/misc/join-us'),
-          getLink('/misc/meet-the-team'),
-          getLink('/misc/license'),
-          getLink('/misc/branding'),
-          getLink('/misc/benchmark'),
-        ],
-      },
     ],
     [getLink('/config/')]: [
       {

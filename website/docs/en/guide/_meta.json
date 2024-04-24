@@ -18,5 +18,10 @@
     "type": "dir",
     "name": "optimization",
     "label": "Optimization"
+  },
+  {
+    "type": "dir",
+    "name": "compatibility",
+    "label": "Compatibility"
   }
 ]

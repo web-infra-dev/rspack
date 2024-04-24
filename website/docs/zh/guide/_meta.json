@@ -2,12 +2,12 @@
   {
     "type": "dir",
     "name": "start",
-    "label": "Getting Started"
+    "label": "开始"
   },
   {
     "type": "dir",
     "name": "migration",
-    "label": "Migration"
+    "label": "迁移"
   },
   {
     "type": "dir",
@@ -18,5 +18,10 @@
     "type": "dir",
     "name": "optimization",
     "label": "优化"
+  },
+  {
+    "type": "dir",
+    "name": "compatibility",
+    "label": "兼容"
   }
 ]
