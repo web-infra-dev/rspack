@@ -21,96 +21,6 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
   const { getText, getLink } = getI18nHelper(lang);
 
   return {
-    [getLink('/config/')]: [
-      {
-        text: getText('配置', 'Config'),
-        link: getLink('/config'),
-      },
-      {
-        text: getText('Entry 入口', 'Entry'),
-        link: getLink('/config/entry'),
-      },
-      {
-        text: getText('Context 基础目录', 'Context'),
-        link: getLink('/config/context'),
-      },
-      {
-        text: getText('Mode 模式', 'Mode'),
-        link: getLink('/config/mode'),
-      },
-      {
-        text: getText('Output 输出', 'Output'),
-        link: getLink('/config/output'),
-      },
-      {
-        text: getText('Module 模块', 'Module'),
-        link: getLink('/config/module'),
-      },
-      {
-        text: getText('Resolve 模块解析', 'Resolve'),
-        link: getLink('/config/resolve'),
-      },
-      {
-        text: getText('ResolveLoader Loader解析', 'ResolveLoader'),
-        link: getLink('/config/resolve-loader'),
-      },
-      {
-        text: getText('Node 全局变量', 'Node'),
-        link: getLink('/config/node'),
-      },
-      {
-        text: getText('Optimization 优化', 'Optimization'),
-        link: getLink('/config/optimization'),
-      },
-      {
-        text: getText('Plugins 插件', 'Plugins'),
-        link: getLink('/config/plugins'),
-      },
-      {
-        text: getText('DevServer 开发服务器', 'DevServer'),
-        link: getLink('/config/dev-server'),
-      },
-      {
-        text: getText('Cache 缓存', 'Cache'),
-        link: getLink('/config/cache'),
-      },
-      {
-        text: getText('Snapshot 缓存快照', 'Snapshot'),
-        link: getLink('/config/snapshot'),
-      },
-      {
-        text: getText('Devtool 调试', 'Devtool'),
-        link: getLink('/config/devtool'),
-      },
-      {
-        text: getText('Target 目标环境与兼容性', 'Target'),
-        link: getLink('/config/target'),
-      },
-      {
-        text: getText('Watch 监听变更', 'Watch'),
-        link: getLink('/config/watch'),
-      },
-      {
-        text: getText('Externals 外部依赖', 'Externals'),
-        link: getLink('/config/externals'),
-      },
-      {
-        text: getText('Stats 打包信息', 'Stats'),
-        link: getLink('/config/stats'),
-      },
-      {
-        text: getText('Experiments 实验功能', 'Experiments'),
-        link: getLink('/config/experiments'),
-      },
-      {
-        text: getText('Builtins 内置功能', 'Builtins'),
-        link: getLink('/config/builtins'),
-      },
-      {
-        text: getText('其他配置', 'Other Options'),
-        link: getLink('/config/other-options'),
-      },
-    ],
     [getLink('/plugins/')]: [
       {
         text: getText('简介', 'Introduction'),
@@ -263,39 +173,6 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
       {
         text: getText('插件 API', 'Plugin API'),
         link: getLink('/api/plugin-api'),
-      },
-    ],
-    [getLink('/blog/')]: [
-      {
-        text: getText('0.6 发布公告', 'Announcing Rspack 0.6'),
-        link: getLink('/blog/announcing-0.6'),
-      },
-      {
-        text: getText('0.5 发布公告', 'Announcing Rspack 0.5'),
-        link: getLink('/blog/announcing-0.5'),
-      },
-      {
-        text: getText(
-          'Rspack 支持模块联邦',
-          'Module Federation added to Rspack',
-        ),
-        link: getLink('/blog/module-federation-added-to-rspack'),
-      },
-      {
-        text: getText('0.4 发布公告', 'Announcing Rspack 0.4'),
-        link: getLink('/blog/announcing-0.4'),
-      },
-      {
-        text: getText('0.3 发布公告', 'Announcing Rspack 0.3'),
-        link: getLink('/blog/announcing-0.3'),
-      },
-      {
-        text: getText('0.2 发布公告', 'Announcing Rspack 0.2'),
-        link: getLink('/blog/announcing-0.2'),
-      },
-      {
-        text: getText('发布公告', 'Announcing Rspack'),
-        link: getLink('/blog/announcement'),
       },
     ],
   };
