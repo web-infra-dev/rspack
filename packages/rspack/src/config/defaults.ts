@@ -930,7 +930,7 @@ const getResolveDefaults = ({
 		extensions: [],
 		aliasFields: [],
 		exportsFields: ["exports"],
-		roots: [context],
+		// roots: [context],
 		mainFields: ["main"],
 		byDependency: {
 			wasm: esmDeps(),

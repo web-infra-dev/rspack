@@ -1993,20 +1993,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
-name = "nodejs_package_json"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad444c78696e8b4de2de8a45468d0cc76630e2ed235c84e102c197b89d295a0b"
-dependencies = [
- "indexmap 2.2.6",
- "rustc-hash",
- "semver 1.0.20",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
 name = "nom"
 version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2160,13 +2146,11 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 [[package]]
 name = "oxc_resolver"
 version = "1.6.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cad753abd0769c10c20933651a75df3001188bca832b2f3e3088e91d73b4da3"
+source = "git+https://github.com/oxc-project/oxc-resolver.git?branch=main#87dc7f0e18d0f766b6c06a2e88d0bf4df97be7a9"
 dependencies = [
  "dashmap",
  "dunce",
  "json-strip-comments",
- "nodejs_package_json",
  "once_cell",
  "rustc-hash",
  "serde",
