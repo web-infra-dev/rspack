@@ -28,8 +28,7 @@ pub fn render_chunk_modules(
   let mut module_code_array = ordered_modules
     .par_iter()
     .filter(|module| {
-      compilation.get_module_graph().is_new_treeshaking()
-        || include_module_ids.contains(&module.identifier())
+      compilation.options.is_new_tree_shaking() || include_module_ids.contains(&module.identifier())
     })
     .filter_map(|module| {
       let code_gen_result = compilation

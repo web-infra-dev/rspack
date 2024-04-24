@@ -33,4 +33,8 @@ export class WebRunner<T extends ECompilerType = ECompilerType.Rspack>
 	getRequire() {
 		return this.implement.getRequire();
 	}
+
+	getGlobal(name: string): unknown {
+		return this.implement.getGlobal(name);
+	}
 }

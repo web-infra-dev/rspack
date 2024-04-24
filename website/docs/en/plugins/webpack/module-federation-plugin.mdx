@@ -22,13 +22,13 @@ This plugin implements [Module Federation 1.5](https://github.com/module-federat
   - Type: `string | false`
   - Usage: Define the runtime chunk for remote container entry.
 - library
-  - Type: [`LibraryOptions`](/config/output.html#outputlibrary)
+  - Type: [`LibraryOptions`](/config/output#outputlibrary)
   - Usage: Define the output format of remote container entry. The default libraryType is "var".
 - shareScope
   - Type: `string`
   - Usage: Define the namespace for shared dependencies in the current container. By configuring share scopes between different containers, the sharing behavior of modules can be controlled, including determining which modules are shared between different containers. The default share scope is `"default"`.
 - remoteType
-  - Type: [`ExternalsType`](/config/externals.html#externalstype)
+  - Type: [`ExternalsType`](/config/externals#externalstype)
   - Usage: Defines how to load remote containers, defaulting to `"script"`, which loads via the `<script />` tag.
 - remotes
   - Type:

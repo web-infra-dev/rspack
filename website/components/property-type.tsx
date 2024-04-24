@@ -22,7 +22,7 @@ const PropertyType: FC<{ type: string; defaultValueList?: DefaultValue[] }> & {
                   <>
                     <a
                       style={{ marginLeft: '4px' }}
-                      href={`/config/mode.html#${mode}`}
+                      href={`/config/mode#${mode}`}
                     >
                       {mode} mode
                     </a>{' '}
@@ -55,7 +55,7 @@ PropertyType.CN = ({ type, defaultValueList }) => {
                   <>
                     <a
                       style={{ marginLeft: '4px' }}
-                      href={`/config/mode.html#${mode}`}
+                      href={`/config/mode#${mode}`}
                     >
                       {mode} 模式
                     </a>{' '}
