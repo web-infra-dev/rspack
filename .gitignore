@@ -194,7 +194,6 @@ esbuild.cpuprofile
 !packages/rspack-test-tools/tests/treeShakingCases/node_modules
 !packages/rspack/tests/cssExtract/cases/**/node_modules
 
-
 # Binding artifacts
 artifacts
 

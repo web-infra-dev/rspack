@@ -225,6 +225,17 @@ export enum EEsmMode {
 export function formatCode(name: string, raw: string, options: IFormatCodeOptions): string;
 
 // @public (undocumented)
+export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
+    constructor(hookOptions: IHookProcessorOptions<ECompilerType.Rspack>);
+    // (undocumented)
+    config(context: ITestContext): Promise<void>;
+    // Warning: (ae-forgotten-export) The symbol "IHookProcessorOptions" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    protected hookOptions: IHookProcessorOptions<ECompilerType.Rspack>;
+}
+
+// @public (undocumented)
 export class HotRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
     // (undocumented)
     protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;

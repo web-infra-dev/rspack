@@ -62,12 +62,13 @@ const UNALIGNED_FIXTURES = [
 	"helpers/FakeDocument.js",
 	"helpers/warmup-webpack.js",
 	"hotCases/fake-update-loader.js",
+	"setupTestFramework.js",
 
-  // Additional tests
-  /^[^\\/]*test\.js/,
-  /^[^\\/]*basictest\.js/,
-  /^[^\\/]*unittest\.js/,
-  /^[^\\/]*longtest\.js/,
+	// Additional tests
+	/^[^\\/]*test\.js/,
+	/^[^\\/]*basictest\.js/,
+	/^[^\\/]*unittest\.js/,
+	/^[^\\/]*longtest\.js/
 ];
 
 // Only different in comments. For example, license information difference.

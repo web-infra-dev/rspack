@@ -1,0 +1,89 @@
+```js title=main.js
+(function() {
+var __webpack_modules__ = {
+"./a.js": (function (module) {
+module.exports = "a";
+}),
+"./c.js": (function (module) {
+module.exports = "c";
+}),
+"./duplicate.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+"use strict";
+/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a */"./a.js");
+/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_a__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./b */"./c.js");
+/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_b__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */var fs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! fs */"fs");
+/* harmony import */var fs__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(fs__WEBPACK_IMPORTED_MODULE_2__);
+
+ // b.js will be transform to c.js
+
+
+it("should remove duplicate request modules generate by after resolve hook", ()=>{
+    expect((_a__WEBPACK_IMPORTED_MODULE_0___default())).toBe("a");
+    expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("c");
+    expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("c");
+    const ext = ".js";
+    expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).not.toContain("./b" + ext);
+    expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).toContain("./c" + ext);
+    expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8").split("./c" + ext).length - 1).toBe(2);
+});
+}),
+"fs": (function (module) {
+module.exports = require('fs')}),
+
+}
+// The module cache
+ var __webpack_module_cache__ = {};
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+        var cachedModule = __webpack_module_cache__[moduleId];
+        if (cachedModule !== undefined) {
+      return cachedModule.exports;
+      }
+      // Create a new module (and put it into the cache)
+      var module = (__webpack_module_cache__[moduleId] = {
+       exports: {}
+      });
+      // Execute the module function
+      __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+// Return the exports of the module
+ return module.exports;
+
+}
+// webpack/runtime/compat_get_default_export
+!function() {
+// getDefaultExport function for compatibility with non-harmony modules
+__webpack_require__.n = function (module) {
+	var getter = module && module.__esModule ?
+		function () { return module['default']; } :
+		function () { return module; };
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+
+
+
+}();
+// webpack/runtime/define_property_getters
+!function() {
+__webpack_require__.d = function(exports, definition) {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+}();
+// webpack/runtime/has_own_property
+!function() {
+__webpack_require__.o = function (obj, prop) {
+	return Object.prototype.hasOwnProperty.call(obj, prop);
+};
+
+}();
+var __webpack_exports__ = __webpack_require__("./duplicate.js");
+})()
+
+```
