@@ -24,17 +24,6 @@ function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
     [getLink('/guide/')]: [
       {
         collapsible: false,
-        text: getText('优化', 'Optimization'),
-        items: [
-          getLink('/guide/production'),
-          getLink('/guide/code-splitting'),
-          getLink('/guide/tree-shaking'),
-          getLink('/guide/analysis'),
-          getLink('/guide/profile'),
-        ],
-      },
-      {
-        collapsible: false,
         text: getText('语言和框架', 'Languages and Frameworks'),
         items: [
           getLink('/guide/typescript'),

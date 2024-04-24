@@ -13,5 +13,10 @@
     "type": "dir",
     "name": "features",
     "label": "Features"
+  },
+  {
+    "type": "dir",
+    "name": "optimization",
+    "label": "Optimization"
   }
 ]

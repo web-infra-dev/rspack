@@ -1,14 +1,14 @@
-import WebpackLicense from '../../../components/webpack-license';
+import WebpackLicense from '@components/webpack-license';
 
 <WebpackLicense from="https://webpack.js.org/guides/tree-shaking" />
 
 # Tree shaking
 
-Rspack supports tree shaking, which is a term commonly used within a JavaScript context to describe the removal of dead code.
+Rspack 支持 tree shaking，这是在 JavaScript 上下文中常用的术语，用于描述死代码的删除。
 
-It relies on the import and export statements to detect if code modules are exported and imported for use between JavaScript files.
+它依赖于 import 和 export 语句来检测代码模块是否被导出和导入以在 JavaScript 文件之间使用。
 
-Tree shaking will be enable when you set `mode` into `production`.
+当你将 `mode` 设置为 `production` 时，Rspack 将默认启用 tree shaking。
 
 ## Basic tree shaking
 
@@ -53,12 +53,11 @@ export function cube(x) {
 }
 ```
 
-Note that we did not import the `square` method from the **src/math.js** module. That function is what's known as "dead code",
-meaning an unused export that should be dropped. Now let's build the project.
-This will yield the following result:
+注意到，我们没有从 **src/math.js** 模块导入 `square` 方法。该函数是“死代码”，表示应该被删除的未使用的导出。现在构建我们的项目
+将产生以下构建结果：
 
 ```js
-// ...skipping some trivial code
+// ... 省略一些不重要的代码
 var __webpack_modules__ = {
   './src/index.js': function (module, exports, __webpack_require__) {
     'use strict';
@@ -107,10 +106,8 @@ var __webpack_modules__ = {
 // ...
 ```
 
-As you can see, if we don't enable the treeShaking, all the code is kept as is, except wrapping with
-some runtime code.
-
-Now, we switch to production mode and rebuild the project. In order to make the output more readable, we also turn off the `minimize` option and switch the `moduleIds` to `named`. To compare with the later chapters, we turn off `optimization.sideEffects`.
+正如你所看到的，如果我们不启用 treeShaking，所有代码都保持不变，只是将代码包裹了一层运行时代码。
+现在，我们切换到 `production` 模式，重新构建项目，为了让产物更加可读，我们同时关闭 `minimize` 选项 以及切换 `moduleIds` 为 `named`，为了和后面章节对比，我们关闭 `optimization.sideEffects`。
 
 ```diff title=rspack.config.js
 /**
@@ -131,12 +128,12 @@ const config = {
 module.exports = config;
 ```
 
-Rebuilding the project, the `square` function got dropped.
+重新构建项目后，`square` 函数将会被删除。
 
 ## SideEffects
 
-In a 100% ESM module world, identifying side effects is straightforward. However, we aren't there quite yet (In real project we using different kinds of format of package cjs, esm, umd and so on.), so in the mean time, it's necessary to provide hints to rspack's compiler on the "pureness" of your code.
-The way this is accomplished is the "sideEffects" package.json property.
+在一个 100% ESM 模块化的世界里，识别副作用是比较直接的。然而，我们还没有达到那个阶段 (在实际的生产代码中有各种格式的代码混用，cjs、esm 和 umd 等等)，所以在此期间，需要在你的代码中提供“纯度”方面的提示给 Rspack 的编译器。
+该功能通常由 "sideEffects" package.json 属性来完成的。
 
 ```json title=package.json
 {
@@ -145,15 +142,14 @@ The way this is accomplished is the "sideEffects" package.json property.
 }
 ```
 
-The sideEffects field supports the following values:
+sideEffects 字段支持以下值：
 
-- `false` All files in this package have no side effects.
-- `string` A glob matching files that includes side effects.
-- `Array<string>` An array of globs matching files that include side effects.
-- `undefined` This is the default value of `sideEffects` when you don't provide any value to `sideEffects` field of `package.json`, When the `undefined` is set, Rspack will try to analyse if the code has sideEffects when `optimization.sideEffects` is `true`
-  (which is the default value when `mode` is `production`), or Rspack will treat all the modules in package has `sideEffect`
+- **false** 这个包中的所有文件都没有副作用。
+- **string** 匹配包含副作用文件的 glob。
+- **Array\<string\>** 匹配包含副作用文件的 glob 数组。
+- **undefined** 当你不设置 `package.json` 的 `sideEffects` 时的默认值。当 `optimization.sideEffects` 为 true 时，Rspack 将尝试分析代码是否具有副作用，当 `optimization.sideEffects` 为 'flag' 时，Rspack 将默认包中的所有模块均有副作用。
 
-This time, we use a more complicated demo.
+这次，我们使用一个更复杂的示例。
 
 ```js title=rspack.config.js
 /**
@@ -205,9 +201,8 @@ export const addRandomDate = a => a + randomDate;
 export const add = (a, b) => a + b;
 ```
 
-The variable `randomDate` would still be needed because it includes a side effect that runs during the module's initialization.
-However, because the package.json includes the `sideEffects` field and the value is `false`, and there are no export variable used in
-**add.js**, so the whole module could be skipped, same for **subtract.js**
+变量 `randomDate` 在默认情况下是需要被保留的，因为它在模块初始化时期包含副作用。
+但是，由于 package.json 中包含了 sideEffects 字段，且值为 false，除此之外在 add.js 中没有使用任何导出变量，因此整个模块都可以被跳过，subtract.js 同理。
 
 ```js
 //...
@@ -257,9 +252,9 @@ var __webpack_modules__ = {
 
 ### module.rule.sideEffects
 
-You could override some modules sideEffects by using `module.rule.sideEffects`.
-Why do we need such feature?
-Considering if the author of package `math` forgot to add `sideEffects` field in package.json:
+你可以使用 `module.rule.sideEffects` 覆盖某些模块的 sideEffects 选项。
+
+为什么我们需要这样的功能呢？我们仍然使用上面的例子，假设 math 包的作者忘记在 package.json 中添加 sideEffects 选项：
 
 ```diff title=node_modules/math/package.json
 {
@@ -269,10 +264,9 @@ Considering if the author of package `math` forgot to add `sideEffects` field in
 }
 ```
 
-Then Rspack will try to analyze the code safely and only mark the module is sideEffectFree when
-all toplevel statements are sideEffectFree. As you can see, `math/index.js`, `math/subtract.js` and `math/multiply.js` is sideEffectFree
-while `math/add.js` is not, because of `const randomDate = Date.now()`. When rebuilding the project,
-you could see the diff:
+Rspack 将尝试安全地分析代码，并仅在所有顶级语句均没有副作用时标记模块为无副作用。
+
+正如我们所看到的，**math/index.js**、**math/subtract.js** 和 **math/multiply.js** 都没有副作用，而 math/add.js 不是，因为 `const randomDate = Date.now()` 含有副作用。当我们重新构建项目时，你可以看到差异如下：
 
 ```diff
 //...
@@ -315,8 +309,8 @@ console.log((0, _indexJs.multiply)(2, 3));
 // ...
 ```
 
-That's not what we expect, then we could use `module.rule.sideEffects`, because it has higher priority than `sideEffects` in package.json.
-Since the initialization side effect is only meaningful when addRandomDate is utilized, we can safely override it. To do so, we can make the following modification to our rspack.config.js:
+由于`module.rule.sideEffects` 比 package.json 中的 `sideEffects` 优先级更高，我们可以使用 `module.rule.sideEffects` 来覆盖某些模块的 `sideEffects` 标识.
+由于初始化的副作用只在使用 addRandomDate 时才有意义，因此我们可以安全地覆盖它。为此，我们可以对 rspack.config.js 进行以下修改：
 
 ```diff title=rspack.config.js
 /**
@@ -343,11 +337,11 @@ const config = {
 module.exports = config;
 ```
 
-Rebuilding the project, we could got the same result as before, the whole **math/add.js** module got dropped.
+重新构建项目，我们得到和之前相同的结果，整个 **math/add.js** 模块都被删除了。
 
 ### Reexports optimization
 
-After enabling SideEffects optimization, Rspack tries to optimize re-exports modules.
+开启 SideEffects 优化后，Rspack 还会尝试对重导出模块进行优化。
 
 ```js title=sdk.js
 export { a } from './a.js';
@@ -361,9 +355,9 @@ import { a } from './sdk.js';
 console.log(a);
 ```
 
-If Rspack knows that module `sdk.js` has no side effects, Rspack will try to import `a` directly from `a.js` rather than imports the whole `sdk.js`.
+当 `sdk.js` 无副作用时，Rspack 会尝试直接从 `a.js` 中引入 `a`，而不引入 `sdk.js` 中重导出的其他模块。
 
-In some non-standard libraries, there may be circular dependencies, for example, `a.js` imports members from `b.js` via `sdk.js`.
+在某些不规范的库中可能存在循环依赖，例如 `a.js` 从 `sdk.js` 中引入 `b.js` 中的成员。
 
 ```js title=a.js
 import { b } from './sdk.js';
@@ -375,7 +369,7 @@ import { a } from './sdk.js';
 console.log(a);
 ```
 
-At this time, there is a circular dependency between `a.js` and `sdk.js`, which is not recommended to intentionally use circular dependencies like this. However, it can still be built successfully and run successfully. This is because Rspack will attempt to transform the above imports into:
+此时 `a.js` 和 `sdk.js` 之间存在循环依赖，很不推荐有意这样利用循环依赖，但仍然可以构建成功，并且成功运行。这是因为 Rspack 会尝试将上述的引用转换成：
 
 ```diff title=a.js
 - import { b } from './sdk.js';
@@ -389,10 +383,10 @@ export const a = b;
 console.log(a);
 ```
 
-After the transformation, the circular dependency is gone. However, if you try to turn off `optimization.providedExports` or `optimization.sideEffects`, the build will be successful, but errors due to circular dependencies will occur at runtime.
+转换后循环依赖没有了。但是如果你尝试关掉 `optimization.providedExports` 或 `optimization.sideEffects`，构建会成功，但运行时会因为循环依赖而遇到错误。
 
-> You can find above example [here](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/rspack/treeshaking-transform-imports).
+> 上述循环依赖的例子可以在[这里](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/rspack/treeshaking-transform-imports)找到。
 
-This diagram demonstrates the process of re-exports optimization:
+这张图演示了重导出优化的过程：
 
 ![](https://assets.rspack.dev/rspack/assets/rspack-reexports-optimization.png)

@@ -13,5 +13,10 @@
     "type": "dir",
     "name": "features",
     "label": "特性"
+  },
+  {
+    "type": "dir",
+    "name": "optimization",
+    "label": "优化"
   }
 ]
