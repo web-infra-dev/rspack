@@ -13,12 +13,7 @@ module.exports = {
 				.replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
 		"LOG from rspack.Compilation
-		<t> module add task: X ms
-		<t> module process dependencies task: X ms
-		<t> module factorize task: X ms
-		<t> module build task: X ms
 		<t> finish modules: X ms
-		<t> optimize dependencies: X ms
 		<t> optimize dependencies: X ms
 		<t> create chunks: X ms
 		<t> optimize: X ms
@@ -47,7 +42,6 @@ module.exports = {
 		<t> finish compilation: X ms
 		<t> seal compilation: X ms
 		<t> emitAssets: X ms
-		<t> done hook: X ms
 
 		LOG from rspack.EnsureChunkConditionsPlugin
 		<t> ensure chunk conditions: X ms
