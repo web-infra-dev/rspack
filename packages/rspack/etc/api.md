@@ -349,19 +349,7 @@ export class Compilation {
     // Warning: (ae-forgotten-export) The symbol "Entrypoint" needs to be exported by the entry point index.d.ts
     get entrypoints(): ReadonlyMap<string, Entrypoint>;
     // (undocumented)
-    get errors(): {
-        push: (...errs: (Error | JsStatsError | string)[]) => void;
-        readonly length: number;
-        [Symbol.iterator](): {
-            next(): {
-                done: boolean;
-                value?: undefined;
-            } | {
-                value: JsStatsError;
-                done: boolean;
-            };
-        };
-    };
+    get errors(): any;
     // (undocumented)
     fileDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
@@ -502,18 +490,7 @@ export class Compilation {
     unseal(): void;
     updateAsset(filename: string, newSourceOrFunction: Source | ((source: Source) => Source), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)): void;
     // (undocumented)
-    get warnings(): {
-        push: (...warns: (Error | JsStatsError)[]) => void;
-        [Symbol.iterator](): {
-            next(): {
-                done: boolean;
-                value?: undefined;
-            } | {
-                value: JsStatsWarning[];
-                done: boolean;
-            };
-        };
-    };
+    get warnings(): JsStatsWarning[];
 }
 
 // @public (undocumented)

@@ -480,6 +480,14 @@ impl Compilation {
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
     self.diagnostics.push(diagnostic);
   }
+  pub fn splice_diagnostic(
+    &mut self,
+    s: usize,
+    e: usize,
+    replace_with: Vec<Diagnostic>,
+  ) -> Vec<Diagnostic> {
+    self.diagnostics.splice(s..e, replace_with).collect()
+  }
 
   pub fn push_batch_diagnostic(&mut self, diagnostics: Vec<Diagnostic>) {
     self.diagnostics.extend(diagnostics);
