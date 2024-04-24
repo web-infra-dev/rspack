@@ -434,8 +434,6 @@ export interface IRspackConfigProcessorOptions<T extends ECompilerType.Rspack> {
 export interface IRspackDiagnosticProcessorOptions {
     // (undocumented)
     name: string;
-    // (undocumented)
-    root: string;
 }
 
 // @public (undocumented)
@@ -766,10 +764,6 @@ export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspa
 // @public (undocumented)
 export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
     constructor(_diagnosticOptions: IRspackDiagnosticProcessorOptions);
-    // (undocumented)
-    after(context: ITestContext): Promise<void>;
-    // (undocumented)
-    before(context: ITestContext): Promise<void>;
     // (undocumented)
     check(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
