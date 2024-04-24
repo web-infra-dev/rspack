@@ -1,6 +1,5 @@
 import path from 'node:path';
 import { defineConfig } from 'rspress/config';
-import type { NavItem, Sidebar } from '@rspress/shared';
 import { pluginRss } from '@rspress/plugin-rss';
 import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
@@ -8,51 +7,6 @@ import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 
 const PUBLISH_URL = 'https://rspack.dev';
 const COPYRIGHT = '© 2022-present ByteDance Inc. All Rights Reserved.';
-
-function getI18nHelper(lang: 'zh' | 'en') {
-  const isZh = lang === 'zh';
-  const prefix = isZh ? '/zh' : '';
-  const getLink = (str: string) => `${prefix}${str}`;
-  const getText = (zhText: string, enText: string) => (isZh ? zhText : enText);
-  return { getText, getLink };
-}
-
-function getSidebarConfig(lang: 'zh' | 'en'): Sidebar {
-  const { getText, getLink } = getI18nHelper(lang);
-
-  return {
-    [getLink('/api/')]: [
-      {
-        text: getText('简介', 'Introduction'),
-        link: getLink('/api'),
-      },
-      {
-        text: getText('CLI', 'CLI'),
-        link: getLink('/api/cli'),
-      },
-      {
-        text: getText('模块', 'Modules'),
-        link: getLink('/api/modules'),
-      },
-      {
-        text: getText('Node API', 'Node API'),
-        link: getLink('/api/node-api'),
-      },
-      {
-        text: getText('Hot Module Replacement', 'Hot Module Replacement'),
-        link: getLink('/api/hmr'),
-      },
-      {
-        text: getText('Loader API', 'Loader API'),
-        link: getLink('/api/loader-api'),
-      },
-      {
-        text: getText('插件 API', 'Plugin API'),
-        link: getLink('/api/plugin-api'),
-      },
-    ],
-  };
-}
 
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
