@@ -10,8 +10,6 @@ import { BasicTaskProcessor } from "./basic";
 import path from "path";
 import fs from "fs";
 
-const CWD = process.cwd();
-
 export interface IRspackNormalProcessorOptions {
 	name: string;
 	root: string;
@@ -31,15 +29,6 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 			name: _normalOptions.name,
 			runable: _normalOptions.runable
 		});
-	}
-
-	async before(context: ITestContext) {
-		//TODO: remove this
-		process.chdir(path.resolve(__dirname, "../../../rspack"));
-	}
-
-	async after(context: ITestContext) {
-		process.chdir(CWD);
 	}
 
 	static defaultOptions({

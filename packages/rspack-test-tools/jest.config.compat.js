@@ -9,6 +9,7 @@ module.exports = {
 		"<rootDir>/tests/Defaults.unittest.js",
 		"<rootDir>/tests/Stats.unittest.js",
 		"<rootDir>/tests/TreeShaking.test.js",
-		"<rootDir>/tests/ConfigTestCases.basictest.js"
+		"<rootDir>/tests/ConfigTestCases.basictest.js",
+		"<rootDir>/tests/TestCasesNormal.basictest.js"
 	]
 };
