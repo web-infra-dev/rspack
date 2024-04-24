@@ -32,7 +32,6 @@
     "test:diff": "pnpm --filter \"@rspack/*\" test:diff",
     "test:hot": "pnpm --filter \"@rspack/*\" test:hot",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
-    "test:ng": "pnpm --filter \"@rspack/*\" test:ng",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
     "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit && pnpm test:webpack",
     "test:webpack": "pnpm --filter \"webpack-test\" test:metric",

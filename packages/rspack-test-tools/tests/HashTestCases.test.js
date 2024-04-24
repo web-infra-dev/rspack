@@ -3,7 +3,7 @@ const fs = require("fs");
 const { createHashCase } = require("..");
 
 const NAME = "HashTestCases";
-const caseDir = path.resolve(__dirname, "../../rspack/tests/hashCases");
+const caseDir = path.resolve(__dirname, "./hashCases");
 
 const tests = fs
 	.readdirSync(caseDir)

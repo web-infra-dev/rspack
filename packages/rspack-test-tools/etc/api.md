@@ -926,10 +926,6 @@ export class StatsAPITaskProcessor<T extends ECompilerType> extends SimpleTaskPr
     // (undocumented)
     static addSnapshotSerializer(): void;
     // (undocumented)
-    after(context: ITestContext): Promise<void>;
-    // (undocumented)
-    before(context: ITestContext): Promise<void>;
-    // (undocumented)
     check(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
     compiler(context: ITestContext): Promise<void>;
