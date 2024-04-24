@@ -27,9 +27,9 @@ use crate::{
   BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
   ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope,
   ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory, DependencyId,
-  ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module,
-  ModuleType, Resolve, ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
+  LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
+  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -73,6 +73,17 @@ impl From<&str> for ContextMode {
       Some(m) => m,
       // TODO should give warning
       _ => panic!("unknown context mode"),
+    }
+  }
+}
+
+impl From<DynamicImportMode> for ContextMode {
+  fn from(value: DynamicImportMode) -> Self {
+    match value {
+      DynamicImportMode::Lazy => Self::Lazy,
+      DynamicImportMode::Weak => Self::AsyncWeak,
+      DynamicImportMode::Eager => Self::Eager,
+      DynamicImportMode::LazyOnce => Self::LazyOnce,
     }
   }
 }

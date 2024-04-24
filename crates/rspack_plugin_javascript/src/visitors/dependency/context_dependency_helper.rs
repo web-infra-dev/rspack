@@ -2,16 +2,20 @@ use std::borrow::Cow;
 
 use itertools::Itertools;
 use rspack_core::parse_resource;
+use rspack_error::Severity;
 use rspack_util::json_stringify;
 
 use super::context_helper::{quote_meta, split_context_from_prefix};
-use super::ContextModuleScanResult;
+use super::{create_traceable_error, ContextModuleScanResult};
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
 
 // FIXME: delete this after `parserOptions.wrappedContextRegExp.source`
 const DEFAULT_WRAPPED_CONTEXT_REGEXP: &str = ".*";
 
-pub fn create_context_dependency(param: &BasicEvaluatedExpression) -> ContextModuleScanResult {
+pub fn create_context_dependency(
+  param: &BasicEvaluatedExpression,
+  parser: &mut crate::visitors::JavascriptParser,
+) -> ContextModuleScanResult {
   if param.is_template_string() {
     let quasis = param.quasis();
     let Some(prefix) = quasis.first() else {
@@ -75,6 +79,19 @@ pub fn create_context_dependency(param: &BasicEvaluatedExpression) -> ContextMod
       }
     }
 
+    if parser.javascript_options.wrapped_context_critical {
+      let range = param.range();
+      parser.warning_diagnostics.push(Box::new(
+        create_traceable_error(
+          "Critical dependency".into(),
+          "a part of the request of a dependency is an expression".to_string(),
+          parser.source_file,
+          rspack_core::ErrorSpan::new(range.0, range.1),
+        )
+        .with_severity(Severity::Warn),
+      ));
+    }
+
     ContextModuleScanResult {
       context,
       reg,
@@ -82,7 +99,6 @@ pub fn create_context_dependency(param: &BasicEvaluatedExpression) -> ContextMod
       fragment,
       replaces,
     }
-    // TODO: `critical` in context module
   } else if param.is_wrapped()
     && let prefix_is_string = param
       .prefix()
@@ -131,6 +147,19 @@ pub fn create_context_dependency(param: &BasicEvaluatedExpression) -> ContextMod
       replaces.push((json_stringify(&postfix), postfix_range.0, postfix_range.1))
     }
 
+    if parser.javascript_options.wrapped_context_critical {
+      let range = param.range();
+      parser.warning_diagnostics.push(Box::new(
+        create_traceable_error(
+          "Critical dependency".into(),
+          "a part of the request of a dependency is an expression".to_string(),
+          parser.source_file,
+          rspack_core::ErrorSpan::new(range.0, range.1),
+        )
+        .with_severity(Severity::Warn),
+      ));
+    }
+
     ContextModuleScanResult {
       context,
       reg,
@@ -138,10 +167,20 @@ pub fn create_context_dependency(param: &BasicEvaluatedExpression) -> ContextMod
       fragment,
       replaces,
     }
-
-    // TODO: `critical` in context module
     // TODO: handle `param.wrappedInnerExpressions`
   } else {
+    if parser.javascript_options.expr_context_critical {
+      let range = param.range();
+      parser.warning_diagnostics.push(Box::new(
+        create_traceable_error(
+          "Critical dependency".into(),
+          "the request of a dependency is an expression".to_string(),
+          parser.source_file,
+          rspack_core::ErrorSpan::new(range.0, range.1),
+        )
+        .with_severity(Severity::Warn),
+      ));
+    }
     ContextModuleScanResult {
       context: String::from("."),
       reg: String::new(),

@@ -202,9 +202,31 @@ const applySnapshotDefaults = (
 };
 
 const applyJavascriptParserOptionsDefaults = (
-	parserOptions: JavascriptParserOptions
+	parserOptions: JavascriptParserOptions,
+	fallback?: JavascriptParserOptions
 ) => {
-	D(parserOptions, "dynamicImportMode", "lazy");
+	D(parserOptions, "dynamicImportMode", fallback?.dynamicImportMode ?? "lazy");
+	D(
+		parserOptions,
+		"dynamicImportPrefetch",
+		fallback?.dynamicImportPrefetch ?? false
+	);
+	D(
+		parserOptions,
+		"dynamicImportPreload",
+		fallback?.dynamicImportPreload ?? false
+	);
+	D(parserOptions, "url", fallback?.url ?? true);
+	D(
+		parserOptions,
+		"exprContextCritical",
+		fallback?.exprContextCritical ?? true
+	);
+	D(
+		parserOptions,
+		"wrappedContextCritical",
+		fallback?.wrappedContextCritical ?? false
+	);
 };
 
 const applyModuleDefaults = (
@@ -232,6 +254,27 @@ const applyModuleDefaults = (
 	F(module.parser, "javascript", () => ({}));
 	assertNotNill(module.parser.javascript);
 	applyJavascriptParserOptionsDefaults(module.parser.javascript);
+
+	F(module.parser, "javascript/auto", () => ({}));
+	assertNotNill(module.parser["javascript/auto"]);
+	applyJavascriptParserOptionsDefaults(
+		module.parser["javascript/auto"],
+		module.parser.javascript
+	);
+
+	F(module.parser, "javascript/dynamic", () => ({}));
+	assertNotNill(module.parser["javascript/dynamic"]);
+	applyJavascriptParserOptionsDefaults(
+		module.parser["javascript/dynamic"],
+		module.parser.javascript
+	);
+
+	F(module.parser, "javascript/esm", () => ({}));
+	assertNotNill(module.parser["javascript/esm"]);
+	applyJavascriptParserOptionsDefaults(
+		module.parser["javascript/esm"],
+		module.parser.javascript
+	);
 
 	if (css) {
 		F(module.parser, "css", () => ({}));

@@ -558,12 +558,16 @@ const dynamicImportMode = z.enum(["eager", "lazy"]);
 const dynamicImportPreload = z.union([z.boolean(), z.number()]);
 const dynamicImportPrefetch = z.union([z.boolean(), z.number()]);
 const javascriptParserUrl = z.union([z.literal("relative"), z.boolean()]);
+const exprContextCritical = z.boolean();
+const wrappedContextCritical = z.boolean();
 
 const javascriptParserOptions = z.strictObject({
 	dynamicImportMode: dynamicImportMode.optional(),
 	dynamicImportPreload: dynamicImportPreload.optional(),
 	dynamicImportPrefetch: dynamicImportPrefetch.optional(),
-	url: javascriptParserUrl.optional()
+	url: javascriptParserUrl.optional(),
+	exprContextCritical: exprContextCritical.optional(),
+	wrappedContextCritical: wrappedContextCritical.optional()
 });
 export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
 
@@ -572,7 +576,10 @@ const parserOptionsByModuleTypeKnown = z.strictObject({
 	css: cssParserOptions.optional(),
 	"css/auto": cssAutoParserOptions.optional(),
 	"css/module": cssModuleParserOptions.optional(),
-	javascript: javascriptParserOptions.optional()
+	javascript: javascriptParserOptions.optional(),
+	"javascript/auto": javascriptParserOptions.optional(),
+	"javascript/dynamic": javascriptParserOptions.optional(),
+	"javascript/esm": javascriptParserOptions.optional()
 });
 
 export type ParserOptionsByModuleTypeKnown = z.infer<

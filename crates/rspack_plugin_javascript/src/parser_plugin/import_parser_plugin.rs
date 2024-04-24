@@ -1,8 +1,8 @@
+use rspack_core::ChunkGroupOptions;
 use rspack_core::{
   context_reg_exp, AsyncDependenciesBlock, DependencyLocation, DynamicImportMode, ErrorSpan,
   GroupOptions,
 };
-use rspack_core::{ChunkGroupOptions, ContextMode};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Callee};
@@ -29,26 +29,18 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     if dyn_imported.spread.is_some() {
       return None;
     }
-    let dynamic_import_mode = parser
-      .javascript_options
-      .map(|o| o.dynamic_import_mode)
-      .unwrap_or_default();
-
-    let dynamic_import_preload = parser
-      .javascript_options
-      .map(|o| o.dynamic_import_preload)
-      .and_then(|o| o.get_order());
-
+    let dynamic_import_mode = parser.javascript_options.dynamic_import_mode;
+    let dynamic_import_preload = parser.javascript_options.dynamic_import_preload.get_order();
     let dynamic_import_prefetch = parser
       .javascript_options
-      .map(|o| o.dynamic_import_prefetch)
-      .and_then(|o| o.get_order());
+      .dynamic_import_prefetch
+      .get_order();
 
     let magic_comment_options = try_extract_webpack_magic_comment(
       parser.source_file,
       &parser.comments,
       node.span,
-      dyn_imported.expr.span(),
+      dyn_imported.span(),
       &mut parser.warning_diagnostics,
     );
     if magic_comment_options
@@ -60,25 +52,25 @@ impl JavascriptParserPlugin for ImportParserPlugin {
 
     let mode = magic_comment_options
       .get_webpack_mode()
-      .map(|x| DynamicImportMode::from(x.as_str()));
+      .map(|x| DynamicImportMode::from(x.as_str()))
+      .unwrap_or(dynamic_import_mode);
     let chunk_name = magic_comment_options
       .get_webpack_chunk_name()
       .map(|x| x.to_owned());
     let chunk_prefetch = magic_comment_options
       .get_webpack_prefetch()
-      .and_then(|x| parse_order_string(x.as_str()));
+      .and_then(|x| parse_order_string(x.as_str()))
+      .or(dynamic_import_prefetch);
     let chunk_preload = magic_comment_options
       .get_webpack_preload()
-      .and_then(|x| parse_order_string(x.as_str()));
+      .and_then(|x| parse_order_string(x.as_str()))
+      .or(dynamic_import_preload);
 
     let param = parser.evaluate_expression(dyn_imported.expr.as_ref());
 
     if param.is_string() {
       let span = ErrorSpan::from(node.span);
-      if matches!(
-        mode.unwrap_or(dynamic_import_mode),
-        DynamicImportMode::Eager
-      ) {
+      if matches!(mode, DynamicImportMode::Eager) {
         let dep = ImportEagerDependency::new(
           node.span.real_lo(),
           node.span.real_hi(),
@@ -106,8 +98,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       );
       block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
         chunk_name,
-        chunk_preload.or(dynamic_import_preload),
-        chunk_prefetch.or(dynamic_import_prefetch),
+        chunk_preload,
+        chunk_prefetch,
       )));
       parser.blocks.push(block);
       Some(true)
@@ -118,26 +110,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         query,
         fragment,
         replaces,
-      } = create_context_dependency(&param);
-      let magic_comment_options = try_extract_webpack_magic_comment(
-        parser.source_file,
-        &parser.comments,
-        node.span,
-        dyn_imported.span(),
-        &mut parser.warning_diagnostics,
-      );
-      let _mode = magic_comment_options
-        .get_webpack_mode()
-        .map(|x| DynamicImportMode::from(x.as_str()));
-      let chunk_name = magic_comment_options
-        .get_webpack_chunk_name()
-        .map(|x| x.to_owned());
-      let chunk_prefetch = magic_comment_options
-        .get_webpack_prefetch()
-        .and_then(|x| parse_order_string(x.as_str()));
-      let chunk_preload = magic_comment_options
-        .get_webpack_preload()
-        .and_then(|x| parse_order_string(x.as_str()));
+      } = create_context_dependency(&param, parser);
       parser
         .dependencies
         .push(Box::new(ImportContextDependency::new(
@@ -145,7 +118,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           import_call.span.real_hi(),
           node.span.real_hi(),
           ContextOptions {
-            mode: ContextMode::Lazy,
+            mode: mode.into(),
             recursive: true,
             reg_exp: context_reg_exp(&reg, ""),
             include: None,
@@ -160,8 +133,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             },
             group_options: Some(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
               chunk_name,
-              chunk_preload.or(dynamic_import_preload),
-              chunk_prefetch.or(dynamic_import_prefetch),
+              chunk_preload,
+              chunk_prefetch,
             ))),
             start: node.span().real_lo(),
             end: node.span().real_hi(),

@@ -3310,16 +3310,88 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
                 dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
                 url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
+                exprContextCritical: z.ZodOptional<z.ZodBoolean>;
+                wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
             }, "strict", z.ZodTypeAny, {
                 dynamicImportMode?: "eager" | "lazy" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
             }, {
                 dynamicImportMode?: "eager" | "lazy" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            }>>;
+            "javascript/auto": z.ZodOptional<z.ZodObject<{
+                dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy"]>>;
+                dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+                dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+                url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
+                exprContextCritical: z.ZodOptional<z.ZodBoolean>;
+                wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
+            }, "strict", z.ZodTypeAny, {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            }, {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            }>>;
+            "javascript/dynamic": z.ZodOptional<z.ZodObject<{
+                dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy"]>>;
+                dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+                dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+                url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
+                exprContextCritical: z.ZodOptional<z.ZodBoolean>;
+                wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
+            }, "strict", z.ZodTypeAny, {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            }, {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            }>>;
+            "javascript/esm": z.ZodOptional<z.ZodObject<{
+                dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy"]>>;
+                dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+                dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+                url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
+                exprContextCritical: z.ZodOptional<z.ZodBoolean>;
+                wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
+            }, "strict", z.ZodTypeAny, {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            }, {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
             }>>;
         }, "strict", z.ZodTypeAny, {
             asset?: {
@@ -3341,6 +3413,32 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/auto"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/dynamic"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/esm"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
             } | undefined;
         }, {
             asset?: {
@@ -3362,6 +3460,32 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/auto"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/dynamic"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/esm"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
             } | undefined;
         }>, z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>>]>>;
         generator: z.ZodOptional<z.ZodUnion<[z.ZodObject<{
@@ -3604,6 +3728,32 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/auto"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/dynamic"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/esm"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
         generator?: Record<string, Record<string, any>> | {
@@ -3672,6 +3822,32 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/auto"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/dynamic"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/esm"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
         generator?: Record<string, Record<string, any>> | {
@@ -4059,6 +4235,32 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/auto"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/dynamic"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/esm"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
         generator?: Record<string, Record<string, any>> | {
@@ -4446,6 +4648,32 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/auto"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/dynamic"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
+            } | undefined;
+            "javascript/esm"?: {
+                dynamicImportMode?: "eager" | "lazy" | undefined;
+                dynamicImportPreload?: number | boolean | undefined;
+                dynamicImportPrefetch?: number | boolean | undefined;
+                url?: boolean | "relative" | undefined;
+                exprContextCritical?: boolean | undefined;
+                wrappedContextCritical?: boolean | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
         generator?: Record<string, Record<string, any>> | {
@@ -5164,7 +5392,7 @@ export type WorkerPublicPath = z.infer<typeof workerPublicPath>;
 // dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:43:5 - (ae-forgotten-export) The symbol "ToSnakeCaseProperties" needs to be exported by the entry point index.d.ts
 // dist/builtin-plugin/SwcJsMinimizerPlugin.d.ts:45:5 - (ae-forgotten-export) The symbol "MinifyConditions" needs to be exported by the entry point index.d.ts
 // dist/config/adapterRuleUse.d.ts:145:5 - (ae-forgotten-export) The symbol "PitchLoaderDefinitionFunction" needs to be exported by the entry point index.d.ts
-// dist/config/zod.d.ts:5304:5 - (ae-forgotten-export) The symbol "oldBuiltins" needs to be exported by the entry point index.d.ts
+// dist/config/zod.d.ts:5734:5 - (ae-forgotten-export) The symbol "oldBuiltins" needs to be exported by the entry point index.d.ts
 // dist/exports.d.ts:103:5 - (ae-forgotten-export) The symbol "ContainerPlugin" needs to be exported by the entry point index.d.ts
 // dist/exports.d.ts:104:5 - (ae-forgotten-export) The symbol "ContainerReferencePlugin" needs to be exported by the entry point index.d.ts
 // dist/exports.d.ts:105:5 - (ae-forgotten-export) The symbol "ModuleFederationPlugin" needs to be exported by the entry point index.d.ts
