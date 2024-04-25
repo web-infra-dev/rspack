@@ -14,7 +14,6 @@ const tests = fs
 	);
 
 describe(NAME, () => {
-	jest.setTimeout(30000);
 	for (const name of tests) {
 		const src = path.join(caseDir, name);
 		createHashCase(name, src, path.join(src, "dist"));

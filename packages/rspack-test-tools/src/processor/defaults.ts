@@ -7,9 +7,8 @@ import {
 } from "../type";
 import { diff as jestDiff } from "jest-diff";
 import stripAnsi from "strip-ansi";
-import path from "path";
 
-const CASE_CWD = path.resolve(__dirname, "../../../rspack");
+const CASE_CWD = process.cwd();
 const CURRENT_CWD = process.cwd();
 
 const quoteMeta = (str: string) => str.replace(/[-[\]\\/{}()*+?.^$|]/g, "\\$&");
