@@ -1,7 +1,7 @@
 // Ideally we pass in patterns and confirm the resulting assets
 const fs = require("fs");
 const { rspack } = require("@rspack/core");
-const AsyncEventIterator = require("../../helpers/AsyncEventIterator");
+const AsyncEventIterator = require("./AsyncEventIterator");
 
 const removeIllegalCharacterForWindows = require("./removeIllegalCharacterForWindows");
 
@@ -152,7 +152,7 @@ function runForce(opts) {
 
 	new PreCopyPlugin({ options: opts }).apply(opts.compiler);
 
-	return runEmit(opts).then(() => {});
+	return runEmit(opts).then(() => { });
 }
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
