@@ -4,10 +4,13 @@ const root = path.resolve(__dirname, "../../");
 /** @type {import('jest').Config} */
 const config = {
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
-	setupFilesAfterEnv: ["../rspack/tests/setupTestFramework.js"],
+	setupFilesAfterEnv: ["./dist/helper/setupTestFramework.js"],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
-	testMatch: ["<rootDir>/tests/*.test.js"],
+	testMatch: [
+		"<rootDir>/tests/*.test.js",
+		"<rootDir>/tests/legacy-test/*.test.js"
+	],
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
 		slash: path.join(__dirname, "../../scripts/test/slash.cjs"),

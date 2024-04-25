@@ -778,6 +778,12 @@ importers:
       core-js:
         specifier: 3.36.1
         version: 3.36.1
+      filenamify:
+        specifier: 4.3.0
+        version: 4.3.0
+      mkdirp:
+        specifier: 0.5.6
+        version: 0.5.6
       monaco-editor:
         specifier: 0.47.0
         version: 0.47.0
