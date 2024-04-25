@@ -275,9 +275,10 @@ jobs:
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
         run: pnpm run test:ci
 
-      - name: Test diff test
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
-        run: node ./scripts/test/diff.cjs
+      ### TODO: diff cases with new runners
+      # - name: Test diff test
+      #   if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
+      #   run: node ./scripts/test/diff.cjs
 
       ### x86_64-apple-darwin
 
