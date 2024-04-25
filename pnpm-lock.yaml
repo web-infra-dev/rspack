@@ -633,8 +633,8 @@ importers:
         specifier: 2.1.35
         version: 2.1.35
       webpack-dev-middleware:
-        specifier: 6.0.2
-        version: 6.0.2(webpack@5.90.1)
+        specifier: 6.1.2
+        version: 6.1.2(webpack@5.90.1)
       webpack-dev-server:
         specifier: 4.13.1
         version: 4.13.1(webpack-cli@4.10.0)(webpack@5.90.1)
@@ -16191,8 +16191,8 @@ packages:
       schema-utils: 4.2.0
       webpack: 5.90.1(webpack-cli@4.10.0)
 
-  /webpack-dev-middleware@6.0.2(webpack@5.90.1):
-    resolution: {integrity: sha512-iOddiJzPcQC6lwOIu60vscbGWth8PCRcWRCwoQcTQf9RMoOWBHg5EyzpGdtSmGMrSPd5vHEfFXmVErQEmkRngQ==}
+  /webpack-dev-middleware@6.1.2(webpack@5.90.1):
+    resolution: {integrity: sha512-Wu+EHmX326YPYUpQLKmKbTyZZJIB8/n6R09pTmB03kJmnMsVPTo9COzHZFr01txwaCAuZvfBJE4ZCHRcKs5JaQ==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
       webpack: ^5.0.0
