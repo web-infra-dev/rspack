@@ -1,5 +1,5 @@
 // should receive warning from css-loader,
-// however we don't suppot loaderContext._module,
+// however we don't support loaderContext._module,
 // css-loader uses loaderContext._module.type to
 // decide bailout on builtin css module
 
