@@ -477,6 +477,9 @@ Object {
     "modules": Array [
       "node_modules",
     ],
+    "roots": Array [
+      "<cwd>",
+    ],
   },
   "resolveLoader": Object {
     "conditionNames": Array [
