@@ -28,7 +28,8 @@ impl Task<MakeTaskContext> for AddTask {
 
     let module_identifier = self.module.identifier();
     let is_new_treeshaking = context.compiler_options.is_new_tree_shaking();
-    let module_graph = &mut MakeTaskContext::get_module_graph(&mut context.module_graph_partial);
+    let module_graph =
+      &mut MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
 
     if self.module.as_self_module().is_some() {
       let issuer = self
