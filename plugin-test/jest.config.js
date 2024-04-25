@@ -17,7 +17,11 @@ const config = {
 	snapshotFormat: {
 		escapeString: true,
 		printBasicPrototype: true
-	}
+	},
+	globals: {
+		updateSnapshot:
+			process.argv.includes("-u") || process.argv.includes("--updateSnapshot")
+	},
 };
 
 module.exports = config;

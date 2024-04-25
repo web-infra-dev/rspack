@@ -8,7 +8,7 @@ const webpack = require("@rspack/core");
 const yn = require("./helpers/yn");
 
 const { CssExtractRspackPlugin } = webpack;
-const UPDATE_TEST = process.env.CSS_CASE_UPDATE;
+const UPDATE_TEST = global.updateSnapshot;
 
 function clearDirectory(dirPath) {
 	let files;
