@@ -19,6 +19,7 @@ export function getSimpleProcessorRunner(
 		});
 		const runner = async function run(name: string, processor: ITestProcessor) {
 			try {
+				await processor.beforeAll?.(context);
 				await processor.before?.(context);
 				await processor.config?.(context);
 				await processor.compiler?.(context);
@@ -29,6 +30,7 @@ export function getSimpleProcessorRunner(
 				await processor.run?.(env, context);
 				await processor.check?.(env, context);
 				await processor.after?.(context);
+				await processor.afterAll?.(context);
 			}
 		};
 		CONTEXT_MAP.set(key, runner);
