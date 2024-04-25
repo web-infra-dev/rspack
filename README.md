@@ -4,7 +4,7 @@
 </picture>
 
 <h2 align="center">A fast Rust-based web bundler</h2>
-
+ 
 <p align="center">
   <a href="https://discord.gg/79ZZ66GH9E">
     <img src="https://img.shields.io/discord/977448667919286283?logo=discord&label=discord&colorB=EDED91" alt="discord channel" />
