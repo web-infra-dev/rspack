@@ -8,22 +8,21 @@ import {
 import { diff as jestDiff } from "jest-diff";
 import stripAnsi from "strip-ansi";
 
-const CASE_CWD = process.cwd();
 const CURRENT_CWD = process.cwd();
 
 const quoteMeta = (str: string) => str.replace(/[-[\]\\/{}()*+?.^$|]/g, "\\$&");
 const cwdRegExp = new RegExp(
-	`${quoteMeta(CASE_CWD)}((?:\\\\)?(?:[a-zA-Z.\\-_]+\\\\)*)`,
+	`${quoteMeta(CURRENT_CWD)}((?:\\\\)?(?:[a-zA-Z.\\-_]+\\\\)*)`,
 	"g"
 );
-const escapedCwd = JSON.stringify(CASE_CWD).slice(1, -1);
+const escapedCwd = JSON.stringify(CURRENT_CWD).slice(1, -1);
 const escapedCwdRegExp = new RegExp(
 	`${quoteMeta(escapedCwd)}((?:\\\\\\\\)?(?:[a-zA-Z.\\-_]+\\\\\\\\)*)`,
 	"g"
 );
 const normalize = (str: string) => {
-	if (CASE_CWD.startsWith("/")) {
-		str = str.replace(new RegExp(quoteMeta(CASE_CWD), "g"), "<cwd>");
+	if (CURRENT_CWD.startsWith("/")) {
+		str = str.replace(new RegExp(quoteMeta(CURRENT_CWD), "g"), "<cwd>");
 	} else {
 		str = str.replace(cwdRegExp, (m, g) => `<cwd>${g.replace(/\\/g, "/")}`);
 		str = str.replace(
@@ -69,7 +68,7 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 			name: _defaultsConfigOptions.name
 		});
 		this.defaultConfig = DefaultsConfigTaskProcessor.getDefaultConfig(
-			CASE_CWD,
+			CURRENT_CWD,
 			{
 				mode: "none"
 			}
@@ -89,7 +88,7 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 	async check(env: ITestEnv, context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		const config = DefaultsConfigTaskProcessor.getDefaultConfig(
-			this._defaultsConfigOptions.cwd || CASE_CWD,
+			this._defaultsConfigOptions.cwd || CURRENT_CWD,
 			compiler.getOptions()
 		);
 		const diff = stripAnsi(
