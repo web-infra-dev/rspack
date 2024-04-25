@@ -1,5 +1,3 @@
-use std::fmt;
-
 use napi::Either;
 use napi_derive::napi;
 use rspack_binding_values::JsFilename;
@@ -8,13 +6,8 @@ use rspack_core::{
   PathInfo,
 };
 use rspack_core::{LibraryAuxiliaryComment, OutputOptions, TrustedTypes};
-use serde::{
-  de::{self, Visitor},
-  Deserialize, Deserializer,
-};
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawTrustedTypes {
   pub policy_name: Option<String>,
@@ -28,8 +21,7 @@ impl From<RawTrustedTypes> for TrustedTypes {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawLibraryName {
   #[napi(ts_type = r#""string" | "array" | "umdObject""#)]
@@ -63,8 +55,7 @@ impl From<RawLibraryName> for LibraryName {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawLibraryCustomUmdObject {
   pub amd: Option<String>,
@@ -82,8 +73,7 @@ impl From<RawLibraryCustomUmdObject> for LibraryCustomUmdObject {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawLibraryAuxiliaryComment {
   pub root: Option<String>,
@@ -103,8 +93,7 @@ impl From<RawLibraryAuxiliaryComment> for LibraryAuxiliaryComment {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawLibraryOptions {
   pub name: Option<RawLibraryName>,
@@ -129,8 +118,7 @@ impl From<RawLibraryOptions> for LibraryOptions {
   }
 }
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawCrossOriginLoading {
   #[napi(ts_type = r#""bool" | "string""#)]
@@ -153,43 +141,10 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
   }
 }
 
-struct PathInfoVisitor;
-
-impl<'de> Visitor<'de> for PathInfoVisitor {
-  type Value = Either<bool, String>;
-
-  fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-    formatter.write_str("a boolean or a string")
-  }
-
-  fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
-  where
-    E: de::Error,
-  {
-    Ok(Either::A(value))
-  }
-
-  fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-  where
-    E: de::Error,
-  {
-    Ok(Either::B(value.to_string()))
-  }
-}
-
-fn deserialize_pathinfo<'de, D>(deserializer: D) -> Result<Either<bool, String>, D::Error>
-where
-  D: Deserializer<'de>,
-{
-  deserializer.deserialize_any(PathInfoVisitor)
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawOutputOptions {
   pub path: String,
-  #[serde(deserialize_with = "deserialize_pathinfo")]
   #[napi(ts_type = "boolean | \"verbose\"")]
   pub pathinfo: Either<bool, String>,
   pub clean: bool,

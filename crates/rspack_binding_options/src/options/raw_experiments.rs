@@ -1,16 +1,13 @@
 use napi_derive::napi;
 use rspack_core::RspackFuture;
-use serde::Deserialize;
 
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawRspackFuture {
   pub new_treeshaking: bool,
 }
 
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawExperiments {
   pub new_split_chunks: bool,
