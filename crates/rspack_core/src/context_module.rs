@@ -314,7 +314,7 @@ impl ContextModule {
     &self,
     dependencies: impl IntoIterator<Item = &DependencyId>,
     compilation: &Compilation,
-  ) -> FxIndexMap<String, String> {
+  ) -> FxIndexMap<String, Option<String>> {
     let module_graph = compilation.get_module_graph();
     let dependencies = dependencies.into_iter();
     dependencies
@@ -329,7 +329,8 @@ impl ContextModule {
         let module_id = module_graph
           .module_identifier_by_dependency_id(dep_id)
           .and_then(|module| compilation.chunk_graph.get_module_id(*module).clone());
-        dep.zip(module_id)
+        // module_id could be None in weak mode
+        dep.map(|dep| (dep, module_id))
       })
       .sorted_by(|(a, _), (b, _)| a.cmp(b))
       .collect()
@@ -682,7 +683,7 @@ impl ContextModule {
     source.add(RawSource::from("\n}\n"));
 
     source.add(RawSource::from(format!(
-      "webpackContext.id = '{}';\n",
+      "webpackContext.id = {};\n",
       serde_json::to_string(self.id(&compilation.chunk_graph))
         .unwrap_or_else(|e| panic!("{}", e.to_string()))
     )));
