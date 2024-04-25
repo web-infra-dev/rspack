@@ -1,2 +1,2 @@
 import "./dynamic-import";
-// import "./require";
+import "./cjs-require";

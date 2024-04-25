@@ -33,7 +33,7 @@ impl DependencyTemplate for CachedConstDependency {
         format!("var {} = {};\n", self.identifier, self.content),
         InitFragmentStage::StageConstants,
         0,
-        InitFragmentKey::unique(),
+        InitFragmentKey::Const(self.identifier.to_string()),
         None,
       )
       .boxed(),

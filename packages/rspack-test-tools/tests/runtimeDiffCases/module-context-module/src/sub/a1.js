@@ -1,3 +1,6 @@
 export default function a1() {
-	return "a1" + __resourceQuery;
+	if (__resourceQuery) {
+		return "a1" + __resourceQuery;
+	}
+	return "a1";
 }
