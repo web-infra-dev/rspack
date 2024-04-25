@@ -800,6 +800,24 @@ importers:
         specifier: 0.14.0
         version: 0.14.0
 
+  plugin-test:
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../packages/rspack
+      '@rspack/plugin-minify':
+        specifier: workspace:^
+        version: link:../packages/rspack-plugin-minify
+      del:
+        specifier: ^6.0.0
+        version: 6.1.1
+      jsdom:
+        specifier: ^24.0.0
+        version: 24.0.0
+      memfs:
+        specifier: 4.7.7
+        version: 4.7.7
+
   scripts:
     devDependencies:
       '@actions/core':
@@ -11949,7 +11967,6 @@ packages:
     engines: {node: '>= 4.0.0'}
     dependencies:
       tslib: 2.6.2
-    dev: false
 
   /memfs@4.8.1:
     resolution: {integrity: sha512-7q/AdPzf2WpwPlPL4v1kE2KsJsHl7EF4+hAeVzlyanr2+YnR21NVn9mDqo+7DEaKDRsQy8nvxPlKH4WqMtiO0w==}

@@ -223,6 +223,8 @@ justfile
 !/webpack-test/**/target
 !/webpack-test/cases/**/node_modules
 
+/plugin-test/css-extract/js
+
 /webpack-examples/**/dist
 
 smoke-example
