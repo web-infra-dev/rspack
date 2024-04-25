@@ -2913,6 +2913,7 @@ name = "rspack_error"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "derivative",
  "futures",
  "miette 5.10.0",
  "once_cell",
