@@ -6,7 +6,7 @@ var __webpack_modules__ = {
   eslint-disable
   no-console,
   func-names
-*/ /** @typedef {any} TODO */ const normalizeUrl = __webpack_require__(/*! ./normalize-url */"../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/normalize-url.js");
+*/ /** @typedef {any} TODO */ const normalizeUrl = __webpack_require__(/*! ./normalize-url */ "../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/normalize-url.js");
 const srcByModuleId = Object.create(null);
 const noDocument = typeof document === "undefined";
 const { forEach } = Array.prototype;
@@ -213,7 +213,7 @@ __webpack_require__.r(__webpack_exports__);
 
 if (true) {
     // 
-    var cssReload = __webpack_require__(/*! ../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */"../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")(module.id, {
+    var cssReload = __webpack_require__(/*! ../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")(module.id, {
         "locals": false
     });
     module.hot.dispose(cssReload);

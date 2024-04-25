@@ -20,7 +20,7 @@ const b = {
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 
 console.log(_lib__WEBPACK_IMPORTED_MODULE_0__.getDocPermissionTextSendMe);
 }),
@@ -29,8 +29,8 @@ console.log(_lib__WEBPACK_IMPORTED_MODULE_0__.getDocPermissionTextSendMe);
 __webpack_require__.d(__webpack_exports__, {
   getDocPermissionTextSendMe: function() { return getDocPermissionTextSendMe; }
 });
-/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./enum.js */"./a.js");
-/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./enum.js */"./b.js");
+/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
+/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./b.js");
 
 function Record() {}
 const code2CreateChatDocPermission = {

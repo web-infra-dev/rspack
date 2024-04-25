@@ -19,7 +19,7 @@ const blue = "blue";
 __webpack_require__.d(__webpack_exports__, {
   result: function() { return /* reexport safe */ _result__WEBPACK_IMPORTED_MODULE_0__.result; }
 });
-/* harmony import */var _result__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./result */"./colors/result.js");
+/* harmony import */var _result__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./colors/result.js");
 
 }),
 "./colors/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -30,9 +30,9 @@ __webpack_require__.d(__webpack_exports__, {
   red: function() { return /* reexport safe */ _a__WEBPACK_IMPORTED_MODULE_0__.red; },
   result: function() { return /* reexport safe */ _c__WEBPACK_IMPORTED_MODULE_2__.result; }
 });
-/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a */"./colors/a.js");
-/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./b */"./colors/b.js");
-/* harmony import */var _c__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./c */"./colors/c.js");
+/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./colors/a.js");
+/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./colors/b.js");
+/* harmony import */var _c__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("./colors/c.js");
 
 
 
@@ -46,8 +46,8 @@ const result = "ssss";
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./export */"./colors/index.js");
-/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./export */"./something/Something.js");
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./colors/index.js");
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./something/Something.js");
 
 _export__WEBPACK_IMPORTED_MODULE_0__;
 _export__WEBPACK_IMPORTED_MODULE_1__.Something;

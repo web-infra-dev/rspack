@@ -25,13 +25,13 @@ function _create_class(Constructor, protoProps, staticProps) {
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _util_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./util.js */"./util.js");
+/* harmony import */var _util_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./util.js");
 
 }),
 "./util.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _swc_helpers_create_class__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @swc/helpers/_/_create_class */"../../../../../node_modules/@swc/helpers/esm/_create_class.js");
+/* harmony import */var _swc_helpers_create_class__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../../../../../node_modules/@swc/helpers/esm/_create_class.js");
 
 var ConsoleExporterWeb;
 ConsoleExporterWeb = function() {

@@ -6,7 +6,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   app: function() { return app; }
 });
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 
 function app() {}
 app.prototype.result = _lib__WEBPACK_IMPORTED_MODULE_0__.result;
@@ -14,8 +14,8 @@ app.prototype.result = _lib__WEBPACK_IMPORTED_MODULE_0__.result;
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./app */"./app.js");
-/* harmony import */var _src_a__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./src/a */"./src/a.js");
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./app.js");
+/* harmony import */var _src_a__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./src/a.js");
 
 
 }),
@@ -32,7 +32,7 @@ const something = function() {};
 "./src/a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../app */"./app.js");
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./app.js");
 
 _app__WEBPACK_IMPORTED_MODULE_0__.app;
 }),
