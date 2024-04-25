@@ -1,3 +1,6 @@
 export default function abc() {
-	return "abc" + __resourceQuery;
+	if (__resourceQuery) {
+		return "abc" + __resourceQuery;
+	}
+	return "abc";
 }

@@ -27,6 +27,7 @@ pub type InitFragmentKeyUKey = rspack_database::Ukey<InitFragmentKeyUnique>;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum InitFragmentKey {
+  Unique(InitFragmentKeyUKey),
   HarmonyImport(String),
   HarmonyExportStar(String), // TODO: align with webpack and remove this
   HarmonyExports,
@@ -35,8 +36,8 @@ pub enum InitFragmentKey {
   AwaitDependencies,
   HarmonyCompatibility,
   ModuleDecorator(String /* module_id */),
-  Unique(InitFragmentKeyUKey),
   HarmonyFakeNamespaceObjectFragment(String),
+  Const(String),
 }
 
 impl InitFragmentKey {
@@ -113,7 +114,8 @@ impl InitFragmentKey {
       | InitFragmentKey::HarmonyExportStar(_)
       | InitFragmentKey::ExternalModule(_)
       | InitFragmentKey::ModuleDecorator(_)
-      | InitFragmentKey::CommonJsExports(_) => first(fragments),
+      | InitFragmentKey::CommonJsExports(_)
+      | InitFragmentKey::Const(_) => first(fragments),
       InitFragmentKey::HarmonyCompatibility | InitFragmentKey::Unique(_) => {
         debug_assert!(fragments.len() == 1, "fragment = {:?}", self);
         first(fragments)

@@ -136,10 +136,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
               chunk_preload,
               chunk_prefetch,
             ))),
+            replaces,
             start: node.span().real_lo(),
             end: node.span().real_hi(),
           },
-          replaces,
           Some(node.span.into()),
         )));
       // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`

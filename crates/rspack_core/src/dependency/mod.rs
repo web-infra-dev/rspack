@@ -1,3 +1,4 @@
+mod cached_const_dependency;
 mod const_dependency;
 mod context_dependency;
 mod context_element_dependency;
@@ -17,6 +18,7 @@ mod static_exports_dependency;
 
 use std::sync::Arc;
 
+pub use cached_const_dependency::CachedConstDependency;
 pub use const_dependency::ConstDependency;
 pub use context_dependency::{AsContextDependency, ContextDependency};
 pub use context_element_dependency::ContextElementDependency;

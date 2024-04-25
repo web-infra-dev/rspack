@@ -84,6 +84,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
             context: request_expr.string().to_string(),
             namespace_object: rspack_core::ContextNameSpaceObject::Unset,
             group_options: None,
+            replaces: Vec::new(),
             start: expr.span().real_lo(),
             end: expr.span().real_hi(),
           },
