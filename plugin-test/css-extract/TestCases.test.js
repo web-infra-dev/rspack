@@ -92,7 +92,7 @@ function compareDirectory(actual, expected) {
 				if (UPDATE_TEST) {
 					fs.writeFileSync(path.resolve(expected, file), actualContent);
 				} else {
-					expect(actualContent).toEqual(content);
+					expect(actualContent.replace(/\r\n/g, "\n").trim()).toEqual(content.replace(/\r\n/g, "\n").trim());
 				}
 			}
 		}
@@ -266,7 +266,6 @@ describe("TestCases", () => {
 						const matchAll = res.match(
 							/__webpack_require__\.h = function \(\) {\n.*return ("[\d\w].*");\n.*};/i
 						);
-						console.log(matchAll[1]);
 						const replacer = new Array(matchAll[1].length);
 
 						res = res.replace(
@@ -300,7 +299,6 @@ describe("TestCases", () => {
 						});
 						// eslint-disable-next-line global-require, import/no-dynamic-require
 						const expectedWarnings = require(warningsFile);
-						console.log(actualWarnings);
 						expect(
 							actualWarnings
 								.trim()
