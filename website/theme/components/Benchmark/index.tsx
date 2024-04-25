@@ -93,7 +93,7 @@ export function Benchmark() {
       animate={inView ? 'animate' : 'initial'}
       variants={variants}
       transition={{ duration: 1 }}
-      className="relative flex flex-col justify-center py-10 mt-15 h-auto"
+      className="relative flex flex-col justify-center pt-20 pb-10 mt-15 h-auto"
     >
       {inView && (
         <>
@@ -101,7 +101,7 @@ export function Benchmark() {
             <h2 className={`${styles.title} font-bold text-2xl sm:text-4xl`}>
               {t('benchmarkTitle')}
             </h2>
-            <p className="mt-6 mx-6 text-center sm:text-lg text-gray-500 max-w-3xl">
+            <p className="mt-6 mb-3 mx-6 text-center sm:text-lg text-gray-500 max-w-3xl">
               {t('benchmarkDesc')}
             </p>
           </div>
