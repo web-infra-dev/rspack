@@ -18,8 +18,15 @@ use crate::{
 };
 
 #[derive(Debug)]
+pub enum PathInfo {
+  Bool(bool),
+  String(String),
+}
+
+#[derive(Debug)]
 pub struct OutputOptions {
   pub path: PathBuf,
+  pub pathinfo: PathInfo,
   pub clean: bool,
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,

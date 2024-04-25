@@ -1,12 +1,10 @@
 use better_scoped_tls::scoped_tls;
 use napi_derive::napi;
 use rspack_core::{MangleExportsOption, Optimization, SideEffectOption, UsedExportsOption};
-use serde::Deserialize;
 
 scoped_tls!(pub(crate) static IS_ENABLE_NEW_SPLIT_CHUNKS: bool);
 
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawOptimizationOptions {
   pub remove_available_modules: bool,

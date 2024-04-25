@@ -157,6 +157,42 @@ When use 'relative', rspack would generate relative URLs for `new URL()` syntax,
 <img src="file:///path/to/project/dist/icon.svg" />
 ```
 
+#### module.parser.javascript.exprContextCritical
+
+<ApiMeta addedVersion="0.6.3" />
+
+- **Type:** `boolean | undefined`
+- **Default:** `true`
+
+Enable warnings for full dynamic dependencies (`import(variable)`).
+
+#### module.parser.javascript.wrappedContextCritical
+
+<ApiMeta addedVersion="0.6.3" />
+
+- **Type:** `boolean | undefined`
+- **Default:** `false`
+
+Enable warnings for partial dynamic dependencies (`import("./path/to/" + variable)`).
+
+### module.parser["javascript/auto"]
+
+<ApiMeta addedVersion="0.6.3" />
+
+Parser options for `javascript/auto` modules, same as the [`javascript` parser options](#moduleparserjavascript).
+
+### module.parser["javascript/dynamic"]
+
+<ApiMeta addedVersion="0.6.3" />
+
+Parser options for `javascript/dynamic` modules, same as the [`javascript` parser options](#moduleparserjavascript).
+
+### module.parser["javascript/esm"]
+
+<ApiMeta addedVersion="0.6.3" />
+
+Parser options for `javascript/esm` modules, same as the [`javascript` parser options](#moduleparserjavascript).
+
 ### module.parser["css/auto"]
 
 Parser options for `css/auto` modules.
@@ -754,7 +790,7 @@ Used to mark the type of the matching module, which affects how the module is ha
 - `'css/module'`: CSS modules module
 - `'css/auto'`: CSS modules module if filename matches `/\.module(s)?\.[^.]+$/`, otherwise CSS module
 - `'json'`: JSON data module
-- `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`: See [Asset Module](/guide/asset-module)
+- `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`: See [Asset Module](/guide/features/asset-module)
 
 ### Rule.use
 

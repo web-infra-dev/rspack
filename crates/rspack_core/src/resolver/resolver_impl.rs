@@ -281,6 +281,7 @@ fn to_oxc_resolver_options(
     restrictions,
     roots,
     builtin_modules: false,
+    imports_fields: vec![vec!["imports".to_string()]],
   }
 }
 

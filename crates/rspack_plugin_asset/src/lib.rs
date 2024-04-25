@@ -13,7 +13,7 @@ use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetParserDataUrl, BuildExtraDataType,
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey, CodeGenerationDataAssetInfo,
   CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilationRenderManifest,
-  CompilerOptions, GenerateContext, Module, ModuleGraph, ModuleType, NormalModule, ParseContext,
+  CompilerOptions, GenerateContext, Module, ModuleGraph, NormalModule, ParseContext,
   ParserAndGenerator, PathData, Plugin, RenderManifestEntry, ResourceData, RuntimeGlobals,
   SourceType, NAMESPACE_OBJECT_EXPORT,
 };
@@ -274,7 +274,6 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       source,
       build_meta,
       build_info,
-      module_type,
       compiler_options,
       module_identifier,
       ..
@@ -291,7 +290,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         let limit_size = parse_context
           .module_parser_options
           .and_then(|x| {
-            x.get_asset(module_type)
+            x.get_asset()
               .and_then(|x| x.data_url_condition.as_ref())
               .and_then(|x| match x {
                 AssetParserDataUrl::Options(x) => x.max_size,
@@ -337,7 +336,6 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
     let compilation = generate_context.compilation;
-    let module_type = module.module_type();
     let parsed_asset_config = self
       .parsed_asset_config
       .as_ref()
@@ -352,7 +350,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           let resource_data: &ResourceData = normal_module.resource_resolved_data();
           let data_url = generate_context
             .module_generator_options
-            .and_then(|x| x.asset_data_url(module_type));
+            .and_then(|x| x.asset_data_url());
 
           let encoded_source: String;
 
@@ -381,7 +379,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           // Use [Rule.generator.filename] if it is set, otherwise use [output.assetModuleFilename].
           let asset_filename_template = generate_context
             .module_generator_options
-            .and_then(|x| x.asset_filename(module_type))
+            .and_then(|x| x.asset_filename())
             .unwrap_or(&compilation.options.output.asset_module_filename);
 
           let contenthash = self.hash_for_source(source, &compilation.options);
@@ -400,7 +398,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
           let asset_path = if let Some(public_path) = generate_context
             .module_generator_options
-            .and_then(|x| x.asset_public_path(module_type))
+            .and_then(|x| x.asset_public_path())
           {
             let public_path = public_path.render(compilation, &filename);
             serde_json::to_string(&format!("{public_path}{filename}"))
@@ -419,7 +417,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               filename,
               generate_context
                 .module_generator_options
-                .and_then(|x| x.asset_public_path(module_type))
+                .and_then(|x| x.asset_public_path())
                 .unwrap_or_else(|| &compilation.options.output.public_path)
                 .clone(),
             ));
@@ -596,11 +594,11 @@ impl Plugin for AssetPlugin {
       rspack_core::ModuleType::Asset,
       Box::new(move |parser_options, generator_options| {
         let data_url_condition = parser_options
-          .and_then(|x| x.get_asset(&ModuleType::Asset))
+          .and_then(|x| x.get_asset())
           .and_then(|x| x.data_url_condition.clone());
 
         let emit: Option<bool> = generator_options
-          .and_then(|x| x.get_asset(&ModuleType::Asset))
+          .and_then(|x| x.get_asset())
           .and_then(|x| x.emit);
 
         Box::new(AssetParserAndGenerator::with_auto(
@@ -619,7 +617,7 @@ impl Plugin for AssetPlugin {
       rspack_core::ModuleType::AssetResource,
       Box::new(move |_, generator_options| {
         let emit = generator_options
-          .and_then(|x| x.get_asset_resource(&ModuleType::AssetResource))
+          .and_then(|x| x.get_asset_resource())
           .and_then(|x| x.emit);
 
         Box::new(AssetParserAndGenerator::with_resource(emit.unwrap_or(true)))

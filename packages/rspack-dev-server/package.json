@@ -46,7 +46,7 @@
     "express": "4.19.2",
     "http-proxy-middleware": "2.0.6",
     "mime-types": "2.1.35",
-    "webpack-dev-middleware": "6.0.2",
+    "webpack-dev-middleware": "6.1.2",
     "webpack-dev-server": "4.13.1",
     "ws": "8.8.1"
   },

@@ -76,6 +76,9 @@ export function compareModules(modules: string[], sourceModules: Map<string, str
 export function createBuiltinCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
+export function createCompilerCase(name: string, src: string, dist: string, root: string): void;
+
+// @public (undocumented)
 export function createConfigCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
@@ -98,6 +101,9 @@ export function createHotStepCase(name: string, src: string, dist: string, targe
 
 // @public (undocumented)
 export function createNormalCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
+export function createStatsAPICase(name: string, src: string, dist: string, root: string): void;
 
 // @public (undocumented)
 export function createStatsCase(name: string, src: string, dist: string): void;
@@ -223,6 +229,18 @@ export enum EEsmMode {
 
 // @public (undocumented)
 export function formatCode(name: string, raw: string, options: IFormatCodeOptions): string;
+
+// @public (undocumented)
+export function getSimpleProcessorRunner(src: string, dist: string, env: ITestEnv): (name: string, processor: ITestProcessor) => Promise<void>;
+
+// @public (undocumented)
+export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
+    constructor(hookOptions: IHookProcessorOptions<ECompilerType.Rspack>);
+    // (undocumented)
+    config(context: ITestContext): Promise<void>;
+    // (undocumented)
+    protected hookOptions: IHookProcessorOptions<ECompilerType.Rspack>;
+}
 
 // @public (undocumented)
 export class HotRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
@@ -395,6 +413,12 @@ export interface IFormatCodeOptions {
 }
 
 // @public (undocumented)
+interface IHookProcessorOptions<T extends ECompilerType> extends ISnapshotProcessorOptions<T> {
+    // (undocumented)
+    options?: (context: ITestContext) => TCompilerOptions<T>;
+}
+
+// @public (undocumented)
 export interface IMultiTaskProcessorOptions<T extends ECompilerType = ECompilerType.Rspack> {
     // (undocumented)
     compilerType: ECompilerType.Rspack;
@@ -434,8 +458,6 @@ export interface IRspackConfigProcessorOptions<T extends ECompilerType.Rspack> {
 export interface IRspackDiagnosticProcessorOptions {
     // (undocumented)
     name: string;
-    // (undocumented)
-    root: string;
 }
 
 // @public (undocumented)
@@ -464,14 +486,10 @@ export interface IRspackStatsProcessorOptions<T extends ECompilerType.Rspack> {
 
 // @public (undocumented)
 export interface IRspackWatchProcessorOptions {
-    // Warning: (ae-forgotten-export) The symbol "TRspackExperiments" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     experiments?: TRspackExperiments;
     // (undocumented)
     name: string;
-    // Warning: (ae-forgotten-export) The symbol "TRspackOptimization" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     optimization?: TRspackOptimization;
     // (undocumented)
@@ -767,10 +785,6 @@ export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspa
 export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
     constructor(_diagnosticOptions: IRspackDiagnosticProcessorOptions);
     // (undocumented)
-    after(context: ITestContext): Promise<void>;
-    // (undocumented)
-    before(context: ITestContext): Promise<void>;
-    // (undocumented)
     check(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
     static defaultOptions(context: ITestContext): TCompilerOptions<ECompilerType.Rspack>;
@@ -920,10 +934,6 @@ export class StatsAPITaskProcessor<T extends ECompilerType> extends SimpleTaskPr
     constructor(_statsAPIOptions: IStatsAPITaskProcessorOptions<T>);
     // (undocumented)
     static addSnapshotSerializer(): void;
-    // (undocumented)
-    after(context: ITestContext): Promise<void>;
-    // (undocumented)
-    before(context: ITestContext): Promise<void>;
     // (undocumented)
     check(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
@@ -1100,6 +1110,12 @@ export type TModuleObject = {
 
 // @public (undocumented)
 export type TModuleTypeId = "normal" | "runtime";
+
+// @public (undocumented)
+type TRspackExperiments = TCompilerOptions<ECompilerType.Rspack>["experiments"];
+
+// @public (undocumented)
+type TRspackOptimization = TCompilerOptions<ECompilerType.Rspack>["optimization"];
 
 // @public (undocumented)
 export interface TRunnerFactory<T extends ECompilerType> {

@@ -89,7 +89,7 @@ where
         // make stage used
         self
           .compilation
-          .swap_make_module_graph_with_compilation(&mut new_compilation);
+          .swap_make_artifact_with_compilation(&mut new_compilation);
         new_compilation.make_failed_dependencies =
           std::mem::take(&mut self.compilation.make_failed_dependencies);
         new_compilation.make_failed_module =

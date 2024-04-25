@@ -22,7 +22,7 @@ use tracing::instrument;
 
 use super::{
   hmr::CompilationRecords,
-  make::{update_module_graph, MakeParam},
+  make::{update_module_graph, MakeArtifact, MakeParam},
   module_executor::ModuleExecutor,
 };
 use crate::{
@@ -137,7 +137,6 @@ pub struct Compilation {
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
   pub global_entry: EntryData,
-  make_module_graph: ModuleGraphPartial,
   other_module_graph: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub make_failed_dependencies: HashSet<BuildDependency>,
@@ -186,6 +185,8 @@ pub struct Compilation {
   import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
 
   pub module_executor: Option<ModuleExecutor>,
+
+  make_artifact: MakeArtifact,
 }
 
 impl Compilation {
@@ -224,7 +225,6 @@ impl Compilation {
       hot_index: 0,
       records,
       options,
-      make_module_graph: Default::default(),
       other_module_graph: None,
       dependency_factories: Default::default(),
       make_failed_dependencies: HashSet::default(),
@@ -272,6 +272,8 @@ impl Compilation {
       import_var_map: DashMap::new(),
 
       module_executor,
+
+      make_artifact: Default::default(),
     }
   }
 
@@ -279,26 +281,38 @@ impl Compilation {
     self.id
   }
 
-  pub fn swap_make_module_graph_with_compilation(&mut self, other: &mut Compilation) {
-    std::mem::swap(&mut self.make_module_graph, &mut other.make_module_graph);
+  pub fn swap_make_artifact_with_compilation(&mut self, other: &mut Compilation) {
+    std::mem::swap(&mut self.make_artifact, &mut other.make_artifact);
   }
-  pub fn swap_make_module_graph(&mut self, module_graph_partial: &mut ModuleGraphPartial) {
-    std::mem::swap(&mut self.make_module_graph, module_graph_partial);
+  pub fn swap_make_artifact(&mut self, make_artifact: &mut MakeArtifact) {
+    std::mem::swap(&mut self.make_artifact, make_artifact);
   }
 
   pub fn get_module_graph(&self) -> ModuleGraph {
     if let Some(other_module_graph) = &self.other_module_graph {
-      ModuleGraph::new(vec![&self.make_module_graph, other_module_graph], None)
+      ModuleGraph::new(
+        vec![
+          self.make_artifact.get_module_graph_partial(),
+          other_module_graph,
+        ],
+        None,
+      )
     } else {
-      ModuleGraph::new(vec![&self.make_module_graph], None)
+      ModuleGraph::new(vec![self.make_artifact.get_module_graph_partial()], None)
     }
   }
 
   pub fn get_module_graph_mut(&mut self) -> ModuleGraph {
     if let Some(other) = &mut self.other_module_graph {
-      ModuleGraph::new(vec![&self.make_module_graph], Some(other))
+      ModuleGraph::new(
+        vec![self.make_artifact.get_module_graph_partial()],
+        Some(other),
+      )
     } else {
-      ModuleGraph::new(vec![], Some(&mut self.make_module_graph))
+      ModuleGraph::new(
+        vec![],
+        Some(self.make_artifact.get_module_graph_partial_mut()),
+      )
     }
   }
 

@@ -1,7 +1,7 @@
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-__webpack_require__(/*! ./resources */"./resources sync recursive ^\\.\\/pre_.*\\.js$")((`./resources/pre_${i + 1}.js`).replace('./resources/', './'));
+__webpack_require__("./resources sync recursive ^\\.\\/pre_.*\\.js$")(`./pre_${i + 1}.js`);
 }),
 "./resources/pre_a.js": (function () {
 console.log("a");
@@ -13,31 +13,32 @@ console.log("a");
 console.log("a");
 }),
 "./resources sync recursive ^\\.\\/pre_.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
-var map = {"./pre_a.js": "./resources/pre_a.js","./pre_b.js": "./resources/pre_b.js","./pre_c.js": "./resources/pre_c.js",};
+var map = {
+  "./pre_a.js": "./resources/pre_a.js",
+  "./pre_b.js": "./resources/pre_b.js",
+  "./pre_c.js": "./resources/pre_c.js"
+};
+
+
 function webpackContext(req) {
-var id = webpackContextResolve(req);
-
-return __webpack_require__(id);
-
+  var id = webpackContextResolve(req);
+  return __webpack_require__(id);
 }
 function webpackContextResolve(req) {
-
-      if(!__webpack_require__.o(map, req)) {
-        var e = new Error("Cannot find module '" + req + "'");
-        e.code = 'MODULE_NOT_FOUND';
-        throw e;
-      }
-      return map[req];
-    
+  if(!__webpack_require__.o(map, req)) {
+    var e = new Error("Cannot find module '" + req + "'");
+    e.code = 'MODULE_NOT_FOUND';
+    throw e;
+  }
+  return map[req];
 }
-webpackContext.id = '"./resources sync recursive ^\\.\\/pre_.*\\.js$"';
-
-      webpackContext.keys = function webpackContextKeys() {
-        return Object.keys(map);
-      };
-      webpackContext.resolve = webpackContextResolve;
-      module.exports = webpackContext;
-      }),
+webpackContext.keys = function webpackContextKeys() {
+  return Object.keys(map);
+};
+webpackContext.resolve = webpackContextResolve;
+module.exports = webpackContext;
+webpackContext.id = "./resources sync recursive ^\\.\\/pre_.*\\.js$";
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

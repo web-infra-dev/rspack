@@ -3,7 +3,7 @@
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _test__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./test */"./test.js");
+/* harmony import */var _test__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./test.js");
 
 function myanswer() {
     _test__WEBPACK_IMPORTED_MODULE_0__["default"];
@@ -33,9 +33,9 @@ const answer = 30;
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./app */"./app.js");
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./app.js");
 
-const a = test(()=>__webpack_require__.e("lib_js").then(__webpack_require__.bind(__webpack_require__, /*! ./lib */"./lib.js")));
+const a = test(()=>__webpack_require__.e("lib_js").then(__webpack_require__.bind(__webpack_require__, "./lib.js")));
 (0, _app__WEBPACK_IMPORTED_MODULE_0__.answer)();
 a;
 }),

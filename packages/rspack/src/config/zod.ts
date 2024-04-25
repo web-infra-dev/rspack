@@ -198,6 +198,9 @@ export type Entry = z.infer<typeof entry>;
 const path = z.string();
 export type Path = z.infer<typeof path>;
 
+const pathinfo = z.boolean().or(z.literal("verbose"));
+export type Pathinfo = z.infer<typeof pathinfo>;
+
 const assetModuleFilename = z.string();
 export type AssetModuleFilename = z.infer<typeof assetModuleFilename>;
 
@@ -313,6 +316,7 @@ export type DevtoolFallbackModuleFilenameTemplate = z.infer<
 
 const output = z.strictObject({
 	path: path.optional(),
+	pathinfo: pathinfo.optional(),
 	clean: clean.optional(),
 	publicPath: publicPath.optional(),
 	filename: filename.optional(),
@@ -558,12 +562,16 @@ const dynamicImportMode = z.enum(["eager", "lazy"]);
 const dynamicImportPreload = z.union([z.boolean(), z.number()]);
 const dynamicImportPrefetch = z.union([z.boolean(), z.number()]);
 const javascriptParserUrl = z.union([z.literal("relative"), z.boolean()]);
+const exprContextCritical = z.boolean();
+const wrappedContextCritical = z.boolean();
 
 const javascriptParserOptions = z.strictObject({
 	dynamicImportMode: dynamicImportMode.optional(),
 	dynamicImportPreload: dynamicImportPreload.optional(),
 	dynamicImportPrefetch: dynamicImportPrefetch.optional(),
-	url: javascriptParserUrl.optional()
+	url: javascriptParserUrl.optional(),
+	exprContextCritical: exprContextCritical.optional(),
+	wrappedContextCritical: wrappedContextCritical.optional()
 });
 export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
 
@@ -572,7 +580,10 @@ const parserOptionsByModuleTypeKnown = z.strictObject({
 	css: cssParserOptions.optional(),
 	"css/auto": cssAutoParserOptions.optional(),
 	"css/module": cssModuleParserOptions.optional(),
-	javascript: javascriptParserOptions.optional()
+	javascript: javascriptParserOptions.optional(),
+	"javascript/auto": javascriptParserOptions.optional(),
+	"javascript/dynamic": javascriptParserOptions.optional(),
+	"javascript/esm": javascriptParserOptions.optional()
 });
 
 export type ParserOptionsByModuleTypeKnown = z.infer<

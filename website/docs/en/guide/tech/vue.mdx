@@ -1,0 +1,180 @@
+import { PackageManagerTabs } from '@theme';
+
+# Vue
+
+Vue is a very popular front-end framework, and you can start to use Vue with Rspack now.
+
+## How to Use
+
+Rspack provides two solutions to support Vue:
+
+- **Use Rsbuild**: Rsbuild provides out-of-the-box support for Vue 3 and Vue 2, allowing you to quickly create a Vue project. See ["Rsbuild - Vue 3"](https://rsbuild.dev/guide/framework/vue3) or ["Rsbuild - Vue 2"](https://rsbuild.dev/guide/framework/vue2) for details.
+- **Manual configuration**: You can refer to the current document to manually add configurations for Vue.
+
+## Vue 3
+
+Currently, Vue3 is supported by Rspack. Please make sure your [vue-loader](https://github.com/vuejs/vue-loader) version is >= 17.2.2 and configure as follows:
+
+```js title="rspack.config.js"
+const { VueLoaderPlugin } = require('vue-loader');
+
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
+  // ...
+  plugins: [new VueLoaderPlugin()],
+  module: {
+    rules: [
+      // ...
+      {
+        test: /\.vue$/,
+        loader: 'vue-loader',
+        options: {
+          // Note, for the majority of features to be available, make sure this option is `true`
+          experimentalInlineMatchResource: true,
+        },
+      },
+    ],
+  },
+};
+module.exports = config;
+```
+
+As Rspack natively supports the compilation of CSS modules, you do not need to configure loaders related to CSS. In addition, when you try to use a CSS preprocessor (such as: less), you only need to add the following configuration:
+
+```diff
+const config = {
+  module: {
+    rules: [
++      {
++        test: /\.less$/,
++        loader: "less-loader",
++        type: "css",
++      }
+    ],
+  },
+};
+module.exports = config;
+```
+
+At this time, Rspack will use the built-in CSS processor for post-processing.
+
+If you don't want to generate CSS files, you can also use a combination of [`css-loader`](https://github.com/webpack-contrib/css-loader) and [`vue-style-loader`](https://github.com/vuejs/vue-style-loader):
+
+```js
+const config = {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: ['vue-style-loader', 'css-loader', 'less-loader'],
+        type: 'javascript/auto',
+      },
+    ],
+  },
+  experiments: {
+    css: false, // At this point, you need to turn off `experiments.css` to adapt to the internal processing logic of `vue-loader`
+  },
+};
+module.exports = config;
+```
+
+Besides, as Rspack has built-in TS support, we also support `lang="ts"` configuration by default:
+
+```html
+<script lang="ts">
+  export default {
+    // ...
+  };
+</script>
+```
+
+You can refer to the related example [example-vue3](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/vue).
+
+## Vue 2
+
+Rspack has completed compatibility with Vue2 (using vue-loader@15).
+
+Please make sure to turn off `experiments.css` when configuring Vue2 projects or use `Rule.type = "javascript/auto"` in CSS-related rules:
+
+```js title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: ['vue-style-loader', 'css-loader'],
+        type: 'javascript/auto',
+      },
+      {
+        test: /\.ts$/, // add this rule when you use typescript in Vue SFC
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+  experiments: {
+    css: false,
+  },
+};
+```
+
+TypeScript is supported using Rspack's native `builtin:swc-loader`, see [this](/guide/features/loader#builtinswc-loader) for details.
+
+You can refer to the related example [example-vue2](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/vue2) and [example-vue2-ts](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/vue2-ts).
+
+## Vue 3 JSX
+
+Since Rspack supports using `babel-loader`, you can directly use the [@vue/babel-plugin-jsx](https://github.com/vuejs/babel-plugin-jsx) plugin to support Vue 3 JSX syntax.
+
+### Install
+
+First, you need to install [babel-loader](https://www.npmjs.com/package/babel-loader), [@babel/core](https://www.npmjs.com/package/@babel/core) and [@vue/babel-plugin-jsx](https://www.npmjs.com/package/@vue/babel-plugin-jsx):
+
+<PackageManagerTabs command="add babel-loader @babel/core @vue/babel-plugin-jsx -D" />
+
+### Configure
+
+Then add the following configuration to support Vue 3 JSX syntax in `.jsx` files:
+
+```js title="rspack.config.js"
+/**
+ * @type {import('@rspack/cli'). Configuration}
+ */
+module.exports = {
+  context: __dirname,
+  entry: {
+    main: './src/index.jsx',
+  },
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        use: [
+          {
+            loader: 'babel-loader',
+            options: {
+              plugins: ['@vue/babel-plugin-jsx'],
+            },
+          },
+        ],
+      },
+    ],
+  },
+  builtins: {
+    html: [
+      {
+        template: './index.html',
+      },
+    ],
+  },
+};
+```
+
+Rspack provides a [example](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/vue3-jsx) of Vue JSX for reference.

@@ -157,6 +157,42 @@ module.exports = {
 <img src="file:///path/to/project/dist/icon.svg" />
 ```
 
+#### module.parser.javascript.exprContextCritical
+
+<ApiMeta addedVersion="0.6.3" />
+
+- **类型：** `boolean | undefined`
+- **默认值：** `true`
+
+启用完全动态依赖（`import(variable)`）的警告。
+
+#### module.parser.javascript.wrappedContextCritical
+
+<ApiMeta addedVersion="0.6.3" />
+
+- **类型：** `boolean | undefined`
+- **默认值：** `false`
+
+启用部分动态依赖（`import("./path/to/" + variable)`）的警告。
+
+### module.parser["javascript/auto"]
+
+<ApiMeta addedVersion="0.6.3" />
+
+`javascript/auto` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
+
+### module.parser["javascript/dynamic"]
+
+<ApiMeta addedVersion="0.6.3" />
+
+`javascript/dynamic` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
+
+### module.parser["javascript/esm"]
+
+<ApiMeta addedVersion="0.6.3" />
+
+`javascript/esm` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
+
 ### module.parser["css/auto"]
 
 `css/auto` 模块的解析器选项。
@@ -756,7 +792,7 @@ module.exports = {
 - `'css/module'`：CSS Modules 模块。
 - `'css/auto'`：基于文件名判断，若匹配`/\.module(s)?\.[^.]+$/`则为 CSS Modules 模块，否则为 CSS 模块。
 - `'json'`：JSON data 模块。
-- `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`：参考[资源模块](/guide/asset-module)。
+- `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`：参考[资源模块](/guide/features/asset-module)。
 
 ### Rule.use
 

@@ -936,6 +936,8 @@ export interface RawJavascriptParserOptions {
   dynamicImportPreload: string
   dynamicImportPrefetch: string
   url: string
+  exprContextCritical: boolean
+  wrappedContextCritical: boolean
 }
 
 export interface RawLibraryAuxiliaryComment {
@@ -1086,6 +1088,7 @@ export interface RawOptions {
 
 export interface RawOutputOptions {
   path: string
+  pathinfo: boolean | "verbose"
   clean: boolean
   publicPath: string
   assetModuleFilename: string
@@ -1125,7 +1128,7 @@ export interface RawOutputOptions {
 }
 
 export interface RawParserOptions {
-  type: "asset" | "css" | "css/auto" | "css/module" | "javascript"
+  type: "asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm"
   asset?: RawAssetParserOptions
   css?: RawCssParserOptions
   cssAuto?: RawCssAutoParserOptions

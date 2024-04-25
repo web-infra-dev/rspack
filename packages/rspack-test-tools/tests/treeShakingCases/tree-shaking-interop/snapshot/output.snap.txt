@@ -20,7 +20,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; }
 });
-__webpack_require__.e("bar_js").then(__webpack_require__.bind(__webpack_require__, /*! ./bar */"./bar.js")).then((mod)=>{
+__webpack_require__.e("bar_js").then(__webpack_require__.bind(__webpack_require__, "./bar.js")).then((mod)=>{
     console.log(mod);
 });
 const a = "a";
@@ -28,14 +28,14 @@ exports.test = 30;
 }),
 "./foo.js": (function (module, __unused_webpack_exports, __webpack_require__) {
 {
-    const res = __webpack_require__(/*! ./a */"./a.js");
+    const res = __webpack_require__("./a.js");
     module.exports = res;
 } // export default function () {}
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./foo */"./foo.js");
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_foo__WEBPACK_IMPORTED_MODULE_0__);
 
 _foo__WEBPACK_IMPORTED_MODULE_0___default()();

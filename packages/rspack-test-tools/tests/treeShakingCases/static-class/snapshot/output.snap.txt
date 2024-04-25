@@ -6,7 +6,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; }
 });
-/* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./b.js */"./b.js");
+/* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./b.js");
 
 class Test {
     static c = (0, _b_js__WEBPACK_IMPORTED_MODULE_0__.bb)();
@@ -33,7 +33,7 @@ const cc = 3;
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a.js */"./a.js");
+/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
 
 _a_js__WEBPACK_IMPORTED_MODULE_0__.a;
 }),

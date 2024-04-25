@@ -20,9 +20,6 @@ summary {
   --rp-custom-block-info-border: rgba(250, 192, 61, 0.5);
 }
 
-:root {
-}
-
 .dark {
   --rp-code-title-bg: rgba(128, 128, 128, 0.2);
   --rp-code-block-bg: #242424;

@@ -13,7 +13,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return /* export default binding */ __WEBPACK_DEFAULT_EXPORT__; }
 });
-/* harmony import */var _dead__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./dead */"./dead.js");
+/* harmony import */var _dead__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dead.js");
 
 /* harmony default export */ function __WEBPACK_DEFAULT_EXPORT__() {
     return "foo";
@@ -25,7 +25,7 @@ function foodead() {
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./foo */"./foo.js");
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
 
 assert.equal((0, _foo__WEBPACK_IMPORTED_MODULE_0__["default"])(), "foo");
 }),

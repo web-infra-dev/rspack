@@ -43,7 +43,6 @@ export class CssExtractRspackPlugin {
 		}
 
 		if (
-			// @ts-expect-error rspack don't support pathinfo for now
 			compiler.options.output.pathinfo &&
 			this.options.pathinfo === undefined
 		) {

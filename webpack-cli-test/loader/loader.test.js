@@ -61,7 +61,7 @@ describe("loader command", () => {
       expect(existsSync(defaultLoaderPath, file)).toBeTruthy();
     });
 
-    // Check if the the generated loader works successfully
+    // Check if the generated loader works successfully
     const path = resolve(defaultLoaderPath, "./examples/simple/");
 
     ({ stdout } = await run(path, []));
@@ -93,7 +93,7 @@ describe("loader command", () => {
       expect(existsSync(loaderPath, file)).toBeTruthy();
     });
 
-    // Check if the the generated loader works successfully
+    // Check if the generated loader works successfully
     const path = resolve(loaderPath, "./examples/simple/");
 
     ({ stdout } = await run(path, []));
@@ -125,7 +125,7 @@ describe("loader command", () => {
       expect(existsSync(customLoaderPath, file)).toBeTruthy();
     });
 
-    // Check if the the generated loader works successfully
+    // Check if the generated loader works successfully
     const path = resolve(customLoaderPath, "./examples/simple/");
 
     ({ stdout } = await run(path, []));
@@ -158,7 +158,7 @@ describe("loader command", () => {
       expect(existsSync(customLoaderPath, file)).toBeTruthy();
     });
 
-    // Check if the the generated loader works successfully
+    // Check if the generated loader works successfully
     const path = resolve(customLoaderPath, "./examples/simple/");
 
     ({ stdout } = await run(path, []));
@@ -197,7 +197,7 @@ describe("loader command", () => {
       expect(existsSync(defaultLoaderPath, file)).toBeTruthy();
     });
 
-    // Check if the the generated loader works successfully
+    // Check if the generated loader works successfully
     const path = resolve(assetsPath, "./my-loader/examples/simple/");
 
     ({ stdout } = await run(path, []));
@@ -234,7 +234,7 @@ describe("loader command", () => {
       expect(existsSync(defaultLoaderPath, file)).toBeTruthy();
     });
 
-    // Check if the the generated loader works successfully
+    // Check if the generated loader works successfully
     const path = resolve(assetsPath, "./my-loader/examples/simple/");
 
     ({ stdout } = await run(path, []));

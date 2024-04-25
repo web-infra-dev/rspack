@@ -3,7 +3,7 @@ const fs = require("fs");
 const { createHashCase } = require("..");
 
 const NAME = "HashTestCases";
-const caseDir = path.resolve(__dirname, "../../rspack/tests/hashCases");
+const caseDir = path.resolve(__dirname, "./hashCases");
 
 const tests = fs
 	.readdirSync(caseDir)
@@ -14,7 +14,6 @@ const tests = fs
 	);
 
 describe(NAME, () => {
-	jest.setTimeout(30000);
 	for (const name of tests) {
 		const src = path.join(caseDir, name);
 		createHashCase(name, src, path.join(src, "dist"));

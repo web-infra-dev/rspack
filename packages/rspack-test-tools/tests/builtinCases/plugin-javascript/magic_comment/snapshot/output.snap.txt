@@ -46,14 +46,14 @@ console.log("123");
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-__webpack_require__.e("normal").then(__webpack_require__.t.bind(__webpack_require__, /*! ./normal */"./normal.js", 23));
-__webpack_require__.e("./sub/fold").then(__webpack_require__.t.bind(__webpack_require__, /*! ./sub_fold */"./sub_fold.js", 23));
-__webpack_require__.e("./sub/single").then(__webpack_require__.t.bind(__webpack_require__, /*! ./single_quote */"./single_quote.js", 23));
-__webpack_require__.e("./sub/other").then(__webpack_require__.t.bind(__webpack_require__, /*! ./other */"./other.js", 23));
-__webpack_require__.e("./user/[id]").then(__webpack_require__.t.bind(__webpack_require__, /*! ./user/1 */"./user/1.js", 23));
-__webpack_require__.e("user/[id]/page").then(__webpack_require__.t.bind(__webpack_require__, /*! ./user/page/2 */"./user/page/2.js", 23));
-__webpack_require__.e("user/(id)/page").then(__webpack_require__.t.bind(__webpack_require__, /*! ./user/page/3 */"./user/page/3.js", 23));
-__webpack_require__.e("bug_only_single_quote_js").then(__webpack_require__.t.bind(__webpack_require__, /*! ./bug_only_single_quote.js */"./bug_only_single_quote.js", 23));
+__webpack_require__.e("normal").then(__webpack_require__.t.bind(__webpack_require__, "./normal.js", 23));
+__webpack_require__.e("./sub/fold").then(__webpack_require__.t.bind(__webpack_require__, "./sub_fold.js", 23));
+__webpack_require__.e("./sub/single").then(__webpack_require__.t.bind(__webpack_require__, "./single_quote.js", 23));
+__webpack_require__.e("./sub/other").then(__webpack_require__.t.bind(__webpack_require__, "./other.js", 23));
+__webpack_require__.e("./user/[id]").then(__webpack_require__.t.bind(__webpack_require__, "./user/1.js", 23));
+__webpack_require__.e("user/[id]/page").then(__webpack_require__.t.bind(__webpack_require__, "./user/page/2.js", 23));
+__webpack_require__.e("user/(id)/page").then(__webpack_require__.t.bind(__webpack_require__, "./user/page/3.js", 23));
+__webpack_require__.e("bug_only_single_quote_js").then(__webpack_require__.t.bind(__webpack_require__, "./bug_only_single_quote.js", 23));
 }),
 
 },function(__webpack_require__) {

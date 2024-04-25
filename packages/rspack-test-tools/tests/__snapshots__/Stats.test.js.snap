@@ -28,6 +28,7 @@ Object {
   "chunks": Array [
     Object {
       "auxiliaryFiles": Array [],
+      "childrenByOrder": Object {},
       "entry": true,
       "files": Array [
         "main.js",
@@ -94,6 +95,7 @@ Object {
     Object {
       "auxiliaryFiles": Array [],
       "children": Array [],
+      "childrenByOrder": Object {},
       "entry": true,
       "files": Array [
         "main.js",
@@ -115,7 +117,9 @@ Object {
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-          "optimizationBailout": Array [],
+          "optimizationBailout": Array [
+            "Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2",
+          ],
           "orphan": false,
           "providedExports": Array [],
           "reasons": Array [
@@ -133,7 +137,7 @@ Object {
 };
 ",
           "type": "module",
-          "usedExports": null,
+          "usedExports": Array [],
         },
       ],
       "names": Array [
@@ -180,7 +184,9 @@ Object {
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-      "optimizationBailout": Array [],
+      "optimizationBailout": Array [
+        "Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2",
+      ],
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [
@@ -198,7 +204,7 @@ Object {
 };
 ",
       "type": "module",
-      "usedExports": null,
+      "usedExports": Array [],
     },
   ],
   "namedChunkGroups": Object {
@@ -253,6 +259,7 @@ Object {
     Object {
       "auxiliaryFiles": Array [],
       "children": Array [],
+      "childrenByOrder": Object {},
       "entry": true,
       "files": Array [
         "main.js",
@@ -460,7 +467,7 @@ Object {
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "90855ad020cd8866adbb",
+  "hash": "4b5e3314a79376e83a18",
   "logging": Object {},
   "modules": Array [
     Object {
@@ -740,7 +747,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 386,
+      "size": 378,
       "type": "asset",
     },
   ],
@@ -754,6 +761,7 @@ Object {
     Object {
       "auxiliaryFiles": Array [],
       "children": Array [],
+      "childrenByOrder": Object {},
       "entry": true,
       "files": Array [
         "main.js",
@@ -786,7 +794,9 @@ Object {
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-          "optimizationBailout": Array [],
+          "optimizationBailout": Array [
+            "Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2",
+          ],
           "orphan": false,
           "providedExports": Array [],
           "reasons": Array [
@@ -826,7 +836,9 @@ Object {
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js?a=1",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-          "optimizationBailout": Array [],
+          "optimizationBailout": Array [
+            "Statement with side_effects in source code at ./fixtures/a.js?a=1:1:0-3:2",
+          ],
           "orphan": false,
           "providedExports": Array [],
           "reasons": Array [
@@ -866,7 +878,9 @@ Object {
           "moduleType": "javascript/auto",
           "name": "./fixtures/c.js?c=3",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
-          "optimizationBailout": Array [],
+          "optimizationBailout": Array [
+            "Statement with side_effects in source code at ./fixtures/c.js?c=3:1:0-4:2",
+          ],
           "orphan": false,
           "providedExports": Array [],
           "reasons": Array [
@@ -901,9 +915,14 @@ Object {
           "moduleType": "javascript/auto",
           "name": "./fixtures/abc-query.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
-          "optimizationBailout": Array [],
+          "optimizationBailout": Array [
+            "Statement with side_effects in source code at ./fixtures/abc-query.js:1:0-31",
+          ],
           "orphan": false,
-          "providedExports": Array [],
+          "providedExports": Array [
+            "a",
+            "c",
+          ],
           "reasons": Array [
             Object {
               "moduleId": undefined,
@@ -919,7 +938,7 @@ Object {
 exports.c = require(\\"./c?c=3\\");
 ",
           "type": "module",
-          "usedExports": null,
+          "usedExports": Array [],
         },
       ],
       "names": Array [
@@ -936,10 +955,10 @@ exports.c = require(\\"./c?c=3\\");
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 386,
+          "size": 378,
         },
       ],
-      "assetsSize": 386,
+      "assetsSize": 378,
       "chunks": Array [
         "909",
       ],
@@ -949,7 +968,7 @@ exports.c = require(\\"./c?c=3\\");
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "d74b6e06f8e6041c6743",
+  "hash": "aa85e38b2dc3e3f7dbda",
   "logging": Object {},
   "modules": Array [
     Object {
@@ -977,7 +996,9 @@ exports.c = require(\\"./c?c=3\\");
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-      "optimizationBailout": Array [],
+      "optimizationBailout": Array [
+        "Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2",
+      ],
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [
@@ -1017,7 +1038,9 @@ exports.c = require(\\"./c?c=3\\");
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js?a=1",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-      "optimizationBailout": Array [],
+      "optimizationBailout": Array [
+        "Statement with side_effects in source code at ./fixtures/a.js?a=1:1:0-3:2",
+      ],
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [
@@ -1057,7 +1080,9 @@ exports.c = require(\\"./c?c=3\\");
       "moduleType": "javascript/auto",
       "name": "./fixtures/c.js?c=3",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
-      "optimizationBailout": Array [],
+      "optimizationBailout": Array [
+        "Statement with side_effects in source code at ./fixtures/c.js?c=3:1:0-4:2",
+      ],
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [
@@ -1092,9 +1117,14 @@ exports.c = require(\\"./c?c=3\\");
       "moduleType": "javascript/auto",
       "name": "./fixtures/abc-query.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
-      "optimizationBailout": Array [],
+      "optimizationBailout": Array [
+        "Statement with side_effects in source code at ./fixtures/abc-query.js:1:0-31",
+      ],
       "orphan": false,
-      "providedExports": Array [],
+      "providedExports": Array [
+        "a",
+        "c",
+      ],
       "reasons": Array [
         Object {
           "moduleId": undefined,
@@ -1110,7 +1140,7 @@ exports.c = require(\\"./c?c=3\\");
 exports.c = require(\\"./c?c=3\\");
 ",
       "type": "module",
-      "usedExports": null,
+      "usedExports": Array [],
     },
   ],
   "namedChunkGroups": Object {
@@ -1118,10 +1148,10 @@ exports.c = require(\\"./c?c=3\\");
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 386,
+          "size": 378,
         },
       ],
-      "assetsSize": 386,
+      "assetsSize": 378,
       "chunks": Array [
         "909",
       ],

@@ -65,10 +65,12 @@ export class SnapshotProcessor<
 			});
 		fileContents.sort();
 		const content = fileContents.join("\n\n").replace(/\r\n/g, "\n").trim();
-		const snapshotPath = path.resolve(
-			context.getSource(),
-			`./snapshot/${this._snapshotOptions.snapshot}`
-		);
+		const snapshotPath = path.isAbsolute(this._snapshotOptions.snapshot)
+			? this._snapshotOptions.snapshot
+			: path.resolve(
+					context.getSource(),
+					`./snapshot/${this._snapshotOptions.snapshot}`
+				);
 
 		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
 			fs.ensureDirSync(path.dirname(snapshotPath));

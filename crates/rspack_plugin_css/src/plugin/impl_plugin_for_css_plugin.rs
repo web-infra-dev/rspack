@@ -330,10 +330,10 @@ impl Plugin for CssPlugin {
       ModuleType::Css,
       Box::new(|p, g| {
         let p = p
-          .and_then(|p| p.get_css(&ModuleType::Css))
+          .and_then(|p| p.get_css())
           .expect("should have CssParserOptions");
         let g = g
-          .and_then(|g| g.get_css(&ModuleType::Css))
+          .and_then(|g| g.get_css())
           .expect("should have CssGeneratorOptions");
         Box::new(CssParserAndGenerator {
           exports: None,
@@ -350,10 +350,10 @@ impl Plugin for CssPlugin {
       ModuleType::CssModule,
       Box::new(|p, g| {
         let p = p
-          .and_then(|p| p.get_css_module(&ModuleType::CssModule))
+          .and_then(|p| p.get_css_module())
           .expect("should have CssModuleParserOptions");
         let g = g
-          .and_then(|g| g.get_css_module(&ModuleType::CssModule))
+          .and_then(|g| g.get_css_module())
           .expect("should have CssModuleGeneratorOptions");
         Box::new(CssParserAndGenerator {
           exports: None,
@@ -374,10 +374,10 @@ impl Plugin for CssPlugin {
       ModuleType::CssAuto,
       Box::new(|p, g| {
         let p = p
-          .and_then(|p| p.get_css_auto(&ModuleType::CssAuto))
+          .and_then(|p| p.get_css_auto())
           .expect("should have CssAutoParserOptions");
         let g = g
-          .and_then(|g| g.get_css_auto(&ModuleType::CssAuto))
+          .and_then(|g| g.get_css_auto())
           .expect("should have CssAutoGeneratorOptions");
         Box::new(CssParserAndGenerator {
           exports: None,

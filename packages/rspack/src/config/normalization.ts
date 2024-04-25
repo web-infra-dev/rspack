@@ -124,6 +124,7 @@ export const getNormalizedRspackOptions = (
 						: undefined;
 			return {
 				path: output.path,
+				pathinfo: output.pathinfo,
 				publicPath: output.publicPath,
 				filename: output.filename,
 				clean: output.clean,
@@ -436,6 +437,7 @@ export interface EntryDescriptionNormalized {
 
 export interface OutputNormalized {
 	path?: Path;
+	pathinfo?: boolean | "verbose";
 	clean?: Clean;
 	publicPath?: PublicPath;
 	filename?: Filename;
