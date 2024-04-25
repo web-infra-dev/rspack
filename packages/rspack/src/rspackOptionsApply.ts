@@ -62,7 +62,6 @@ import {
 	BundlerInfoRspackPlugin,
 	ModuleConcatenationPlugin,
 	EvalDevToolModulePlugin,
-	JsLoaderRspackPlugin,
 	CssModulesPlugin,
 	APIPlugin
 } from "./builtin-plugin";
