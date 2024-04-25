@@ -284,6 +284,10 @@ fn comment(compiler_options: &CompilerOptions, comment_options: CommentOptions) 
   .collect::<Vec<_>>()
   .join(" | ");
 
+  if content.is_empty() {
+    return String::new();
+  }
+
   if used_pathinfo {
     format!("{} ", to_comment(&content))
   } else {

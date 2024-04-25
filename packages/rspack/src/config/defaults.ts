@@ -514,7 +514,7 @@ const applyOutputDefaults = (
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));
-	F(output, "pathinfo", () => false);
+	F(output, "pathinfo", () => development);
 	D(
 		output,
 		"publicPath",

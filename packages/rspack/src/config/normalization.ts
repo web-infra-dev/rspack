@@ -124,6 +124,7 @@ export const getNormalizedRspackOptions = (
 						: undefined;
 			return {
 				path: output.path,
+				pathinfo: output.pathinfo,
 				publicPath: output.publicPath,
 				filename: output.filename,
 				clean: output.clean,
