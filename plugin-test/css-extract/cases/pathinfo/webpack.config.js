@@ -3,7 +3,7 @@ const { CssExtractRspackPlugin } = require("@rspack/core");
 module.exports = {
 	entry: "./index.js",
 	output: {
-		// pathinfo: true
+		pathinfo: true
 	},
 	module: {
 		rules: [

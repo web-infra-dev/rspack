@@ -3,12 +3,12 @@
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 // import assert from "assert";
 // import { equal } from "assert";
 
-const lib = __webpack_require__(/*! ./lib */"./lib.js");
-const { DO_NOT_CONVERTED9 } = __webpack_require__(/*! ./lib */"./lib.js");
+const lib = __webpack_require__("./lib.js");
+const { DO_NOT_CONVERTED9 } = __webpack_require__("./lib.js");
 equal(true, true);
 // require("assert").deepStrictEqual(FALSE, false);
 assert.deepStrictEqual(5, 5);

@@ -28,22 +28,22 @@ module.exports = {
 		expect(typeof stats?.hash).toBe("string");
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
-      "PublicPath: auto
-      asset main.js 784 bytes [emitted] (name: main)
-      Entrypoint main 784 bytes = main.js
-      runtime modules 3 modules
-      ./fixtures/esm/a.js
-        [exports: a, default]
-        [only some exports used: a]
-      ./fixtures/esm/b.js
-        [exports: b, default]
-        [only some exports used: default]
-      ./fixtures/esm/c.js
-        [exports: c, default]
-      ./fixtures/esm/abc.js
-        [no exports]
-        [no exports used]
-      Rspack compiled successfully (90855ad020cd8866adbb)"
-    `);
+		"PublicPath: auto
+		asset main.js 784 bytes [emitted] (name: main)
+		Entrypoint main 784 bytes = main.js
+		runtime modules 3 modules
+		./fixtures/esm/a.js
+		  [exports: a, default]
+		  [only some exports used: a]
+		./fixtures/esm/b.js
+		  [exports: b, default]
+		  [only some exports used: default]
+		./fixtures/esm/c.js
+		  [exports: c, default]
+		./fixtures/esm/abc.js
+		  [no exports]
+		  [no exports used]
+		Rspack compiled successfully (4b5e3314a79376e83a18)"
+	`);
 	}
 };

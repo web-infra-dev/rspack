@@ -16,6 +16,9 @@ module.exports = {
 		-     "nodeEnv": false,
 		+     "nodeEnv": "development",
 		@@ ... @@
+		-     "pathinfo": false,
+		+     "pathinfo": true,
+		@@ ... @@
 		-           "production",
 		+           "development",
 		@@ ... @@

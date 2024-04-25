@@ -4,10 +4,8 @@ use napi_derive::napi;
 use rspack_plugin_copy::{
   CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, Info, Related, ToType,
 };
-use serde::Deserialize;
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawCopyPattern {
   pub from: String,
@@ -21,8 +19,7 @@ pub struct RawCopyPattern {
   pub info: Option<RawInfo>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawInfo {
   pub immutable: Option<bool>,
@@ -35,15 +32,13 @@ pub struct RawInfo {
   pub version: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawRelated {
   pub source_map: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawCopyGlobOptions {
   pub case_sensitive_match: Option<bool>,
@@ -51,8 +46,7 @@ pub struct RawCopyGlobOptions {
   pub ignore: Option<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawCopyRspackPluginOptions {
   pub patterns: Vec<RawCopyPattern>,

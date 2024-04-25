@@ -5,10 +5,8 @@ use rspack_core::Builtins;
 use rspack_swc_visitors::{
   CustomTransform, ImportOptions, ReactOptions, RelayLanguageConfig, RelayOptions, StyleConfig,
 };
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawStyleConfig {
   pub style_library_directory: Option<String>,
@@ -33,7 +31,7 @@ impl From<RawStyleConfig> for StyleConfig {
   }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawPluginImportConfig {
   pub library_name: String,
@@ -77,8 +75,7 @@ impl From<RawPluginImportConfig> for ImportOptions {
 
 use swc_core::ecma::transforms::react::Runtime;
 
-#[derive(Deserialize, Debug, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default, Clone)]
 #[napi(object)]
 pub struct RawReactOptions {
   #[napi(ts_type = "\"automatic\" | \"classic\"")]
@@ -119,8 +116,7 @@ impl From<RawReactOptions> for ReactOptions {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawRelayConfig {
   pub artifact_directory: Option<String>,
@@ -141,8 +137,7 @@ impl From<RawRelayConfig> for RelayOptions {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawBuiltins {
   pub tree_shaking: String,

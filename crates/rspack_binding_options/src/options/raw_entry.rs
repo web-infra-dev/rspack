@@ -1,11 +1,9 @@
 use napi_derive::napi;
 use rspack_core::EntryOptions;
-use serde::Deserialize;
 
 use crate::RawLibraryOptions;
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawEntryPluginOptions {
   pub context: String,
@@ -13,8 +11,7 @@ pub struct RawEntryPluginOptions {
   pub options: RawEntryOptions,
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawEntryOptions {
   pub name: Option<String>,

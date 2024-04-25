@@ -4,7 +4,7 @@ module.exports = {
 	entry: "./index.js",
 	devtool: "source-map",
 	output: {
-		// pathinfo: true
+		pathinfo: true
 	},
 	module: {
 		rules: [

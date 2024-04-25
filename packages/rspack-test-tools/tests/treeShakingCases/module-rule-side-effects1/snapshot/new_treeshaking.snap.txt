@@ -13,8 +13,8 @@ const c = 300;
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a.js */"./a.js");
-/* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./c.js */"./c.js");
+/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
+/* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./c.js");
 
 
 

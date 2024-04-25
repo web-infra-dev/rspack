@@ -27,22 +27,22 @@ __webpack_require__.d(__webpack_exports__, {
   a: function() { return _a__WEBPACK_IMPORTED_MODULE_0__.a; },
   b: function() { return _b__WEBPACK_IMPORTED_MODULE_1__.b; }
 });
-/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a */"./a.js");
-/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./b */"./b.js");
+/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
+/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./b.js");
 
 
 }),
 "./enum.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _enum_old__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./enum-old */"./enum-old.js");
+/* harmony import */var _enum_old__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./enum-old.js");
 __webpack_require__.es(_enum_old__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports__);
 
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 
 console.log(_lib__WEBPACK_IMPORTED_MODULE_0__.getDocPermissionTextSendMe);
 }),
@@ -52,7 +52,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   getDocPermissionTextSendMe: function() { return getDocPermissionTextSendMe; }
 });
-/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./enum.js */"./enum.js");
+/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./enum.js");
 
 function Record() {}
 const code2CreateChatDocPermission = {

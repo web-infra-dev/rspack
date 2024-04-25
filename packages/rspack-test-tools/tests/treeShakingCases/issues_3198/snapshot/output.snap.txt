@@ -3,7 +3,7 @@
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _test__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./test */"./test.js");
+/* harmony import */var _test__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./test.js");
 
 _test__WEBPACK_IMPORTED_MODULE_0__.obj.test = 1;
 }),

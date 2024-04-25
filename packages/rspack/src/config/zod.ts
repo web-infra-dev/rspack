@@ -198,6 +198,9 @@ export type Entry = z.infer<typeof entry>;
 const path = z.string();
 export type Path = z.infer<typeof path>;
 
+const pathinfo = z.boolean().or(z.literal("verbose"));
+export type Pathinfo = z.infer<typeof pathinfo>;
+
 const assetModuleFilename = z.string();
 export type AssetModuleFilename = z.infer<typeof assetModuleFilename>;
 
@@ -313,6 +316,7 @@ export type DevtoolFallbackModuleFilenameTemplate = z.infer<
 
 const output = z.strictObject({
 	path: path.optional(),
+	pathinfo: pathinfo.optional(),
 	clean: clean.optional(),
 	publicPath: publicPath.optional(),
 	filename: filename.optional(),
