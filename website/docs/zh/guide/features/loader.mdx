@@ -1,0 +1,144 @@
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
+
+# Loader
+
+Loader 可以对文件内容进行转换，你可以借助 Loader，将 Rspack 中非一等公民支持的文件转换为一等公民类型，以被 Rspack 所正确识别。
+
+:::tip
+
+Loader 属于对资源的前处理，而 [Rule.type](/config/module#ruletype) 则属于对资源的后处理，后者定义了 Rspack 支持的一等公民类型。
+
+:::
+
+## 示例
+
+### 使用 Less
+
+CSS 为 Rspack 的一等公民，因此对于 CSS 文件的处理是原生支持的。而对于 `Less` 文件来说，则需要借助外部的 [less-loader](https://github.com/webpack-contrib/less-loader) 对文件的内容做相应的转换：
+
+```js title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'less-loader',
+          },
+        ],
+        type: 'css',
+      },
+    ],
+  },
+};
+```
+
+[less-loader](https://github.com/webpack-contrib/less-loader) 可以将 Less 文件转换为 Rspack 支持的 CSS 模块类型，因此你可以设置 type 为 `'css'` 以指示 Rspack 使用原生支持的 CSS 策略进行后处理。
+
+### 使用多个 Loader
+
+你可以对特定的 [Rule](/config/module#rule) 匹配项使用多个 loader 进行链式处理，loader 的执行顺序为**从右往左**。
+
+例如，你可以使用 [less-loader](https://github.com/webpack-contrib/less-loader) 完成 Less 到 CSS 类型之间的转换，并对转换后的源码使用 [postcss-loader](https://github.com/webpack-contrib/postcss-loader) 进行二次转换，并最终交给 Rspack 的 CSS 后处理器，完成进一步处理：
+
+```js title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'postcss-loader',
+          },
+          {
+            loader: 'less-loader',
+          },
+        ],
+        type: 'css',
+      },
+    ],
+  },
+};
+```
+
+### 传递配置项
+
+你可以使用 [Rule.use](/config/module#ruleuse) 给 loader 传递相关配置，例如：
+
+```js title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                // ...
+              },
+            },
+          },
+        ],
+        type: 'css',
+      },
+    ],
+  },
+};
+```
+
+### 使用自定义 Loader
+
+你可以在 Rspack 中使用自定义 loader，下面我们会编写一个简单的 banner-loader 作为示例。
+
+banner-loader 的作用是在每个模块的头部添加一个 banner 注释，例如添加一段 License 信息：
+
+```js
+/**
+ * MIT Licensed
+ * Copyright (c) 2022-present ByteDance, Inc. and its affiliates.
+ * https://github.com/web-infra-dev/rspack/blob/main/LICENSE
+ */
+```
+
+在项目的根目录新建一个 `banner-loader.js` 的文件，内容如下：
+
+```js title="banner-loader.js"
+const BANNER = `/**
+ * MIT Licensed
+ * Copyright (c) 2022-present ByteDance, Inc. and its affiliates.
+ * https://github.com/web-infra-dev/rspack/blob/main/LICENSE
+ */`;
+
+module.exports = function (content) {
+  return `${BANNER}\n${content}`;
+};
+```
+
+Loader 的第一个入参为文件的内容，我们可以在这里对文件内容进行处理，然后返回处理后的内容。编写完后，我们需要将这个 loader 使用 CommonJS 风格进行导出。
+
+上述示例中，我们会在所有匹配的文件的头部添加一个 banner 注释，如果我们希望将这个行为匹配所有以 `js` 结尾的文件，我们可以这样配置：
+
+```js title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: require.resolve('./banner-loader.js'),
+      },
+    ],
+  },
+};
+```
+
+更多关于 Loader API 的信息，请参考 [loader-api](/api/loader-api)
+
+### 使用内置 Loader
+
+内置 Loader 在不损失 JS Loader 的可组合性的同时，提供了比 JS Loader 更优的性能。一些内置的 Loader 包括：
+
+- [builtin:swc-loader](/guide/features/builtin-swc-loader)

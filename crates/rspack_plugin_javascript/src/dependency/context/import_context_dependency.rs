@@ -1,9 +1,11 @@
-use rspack_core::{module_raw, parse_resource, AsModuleDependency, ContextDependency};
-use rspack_core::{normalize_context, DependencyCategory, DependencyId, DependencyTemplate};
+use rspack_core::{AsModuleDependency, ContextDependency};
 use rspack_core::{ContextOptions, Dependency, TemplateReplaceSource};
+use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ErrorSpan, TemplateContext};
 
-use super::create_resource_identifier_for_context_dependency;
+use super::{
+  context_dependency_template_as_require_call, create_resource_identifier_for_context_dependency,
+};
 
 #[derive(Debug, Clone)]
 pub struct ImportContextDependency {
@@ -14,7 +16,6 @@ pub struct ImportContextDependency {
   options: ContextOptions,
   span: Option<ErrorSpan>,
   resource_identifier: String,
-  replaces: Vec<(String, u32, u32)>,
 }
 
 impl ImportContextDependency {
@@ -23,7 +24,6 @@ impl ImportContextDependency {
     callee_end: u32,
     args_end: u32,
     options: ContextOptions,
-    replaces: Vec<(String, u32, u32)>,
     span: Option<ErrorSpan>,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
@@ -35,7 +35,6 @@ impl ImportContextDependency {
       span,
       id: DependencyId::new(),
       resource_identifier,
-      replaces,
     }
   }
 }
@@ -90,57 +89,14 @@ impl DependencyTemplate for ImportContextDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext {
-      compilation,
-      runtime_requirements,
-      ..
-    } = code_generatable_context;
-
-    let expr = module_raw(
-      compilation,
-      runtime_requirements,
-      &self.id,
-      self.request(),
-      false,
+    context_dependency_template_as_require_call(
+      self,
+      source,
+      code_generatable_context,
+      self.callee_start,
+      self.callee_end,
+      self.args_end,
     );
-
-    if compilation
-      .get_module_graph()
-      .module_graph_module_by_dependency_id(&self.id)
-      .is_none()
-    {
-      source.replace(self.callee_start, self.args_end, &expr, None);
-      return;
-    }
-
-    source.replace(self.callee_start, self.callee_end, &expr, None);
-
-    if !self.replaces.is_empty() {
-      for (content, start, end) in &self.replaces {
-        source.replace(*start, *end, content, None);
-      }
-    } else {
-      let context = normalize_context(&self.options.context);
-      let query = parse_resource(&self.options.request).and_then(|data| data.query);
-      if !context.is_empty() || query.is_some() {
-        source.insert(self.callee_end, "(", None);
-        if !context.is_empty() {
-          source.insert(
-            self.args_end,
-            format!(".replace('{context}', './')").as_str(),
-            None,
-          );
-        }
-        if let Some(query) = query {
-          source.insert(
-            self.args_end,
-            format!(".replace('{query}', '')").as_str(),
-            None,
-          );
-        }
-        source.insert(self.args_end, ")", None);
-      }
-    }
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {

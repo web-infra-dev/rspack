@@ -43,12 +43,12 @@ module.exports = {
 
 Once enabled, Rspack will enable native CSS support, and CSS related parser and generator options.
 
-- [`module.parser["css/auto"]`](/config/module.html#moduleparsercssauto)
-- [`module.parser.css`](/config/module.html#moduleparsercss)
-- [`module.parser["css/module"]`](/config/module.html#moduleparsercssmodule)
-- [`module.generator["css/auto"]`](/config/module.html#modulegeneratorcssauto)
-- [`module.generator.css`](/config/module.html#modulegeneratorcss)
-- [`module.generator["css/module"]`](/config/module.html#modulegeneratorcssmodule)
+- [`module.parser["css/auto"]`](/config/module#moduleparsercssauto)
+- [`module.parser.css`](/config/module#moduleparsercss)
+- [`module.parser["css/module"]`](/config/module#moduleparsercssmodule)
+- [`module.generator["css/auto"]`](/config/module#modulegeneratorcssauto)
+- [`module.generator.css`](/config/module#modulegeneratorcss)
+- [`module.generator["css/module"]`](/config/module#modulegeneratorcssmodule)
 
 :::warning
 Note that if you're using `style-loader` and `css-loader`, you should disable this option because `style-loader` and `css-loader` will conflict with native CSS.
@@ -58,7 +58,7 @@ Note that if you're using `style-loader` and `css-loader`, you should disable th
 
 <ApiMeta addedVersion="0.3.8" />
 
-Enable support for [top level await](https://github.com/tc39/proposal-top-level-await), `top level await` can only be used in modules with [ModuleType](/config/module.html#ruletype) is `javascript/esm`.
+Enable support for [top level await](https://github.com/tc39/proposal-top-level-await), `top level await` can only be used in modules with [ModuleType](/config/module#ruletype) is `javascript/esm`.
 
 Enabled by default and can be turned off with this configuration.
 
@@ -99,7 +99,7 @@ Used to control whether to enable Rspack future default options, check out the d
 
   These configuration items should apply to the selected corresponding modules. Using `builtins.(relay|react|emotion|pluginImport|decorator)` is equivalent to enabling them globally. This approach is not recommended, so it will be deprecated.
 
-  After enabling `disableTransformByDefault`, the aforementioned configuration items will become invalid. For a migration guide, refer to [builtin:swc-loader/options.rspackExperiments](/guide/loader#optionsrspackexperiments).
+  After enabling `disableTransformByDefault`, the aforementioned configuration items will become invalid. For a migration guide, refer to [builtin:swc-loader/options.rspackExperiments](/guide/features/loader#optionsrspackexperiments).
 
   For instance, if we want the `emotion` transformation to apply to all `jsx` files:
 
@@ -274,7 +274,7 @@ module.exports = {
 };
 ```
 
-The new resolver also supports [tsconfig project references](https://www.typescriptlang.org/docs/handbook/project-references.html) defined in [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin#references-_string-defaultundefined). See [resolve API](/config/resolve.html#resolvetsconfig) for details.
+The new resolver also supports [tsconfig project references](https://www.typescriptlang.org/docs/handbook/project-references.html) defined in [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin#references-_string-defaultundefined). See [resolve API](/config/resolve#resolvetsconfig) for details.
 
 ```js title="rspack.config.js"
 module.exports = {

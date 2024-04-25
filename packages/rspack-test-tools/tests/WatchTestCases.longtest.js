@@ -2,9 +2,9 @@ const path = require("path");
 const { describeByWalk, createWatchCase } = require("..");
 
 const NAME = "WatchTestCases";
-const caseDir = path.resolve(__dirname, "../../rspack/tests/watchCases");
-const distDir = path.resolve(__dirname, `../../rspack/tests/js/${NAME}`);
-const tempDir = path.resolve(__dirname, `../../rspack/tests/js/${NAME}-src`);
+const caseDir = path.resolve(__dirname, "./watchCases");
+const distDir = path.resolve(__dirname, `./js/${NAME}`);
+const tempDir = path.resolve(__dirname, `./js/${NAME}-src`);
 
 describeByWalk(NAME, caseDir, distDir, (name, src, dist) => {
 	createWatchCase(

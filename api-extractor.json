@@ -182,7 +182,7 @@
      * SUPPORTED TOKENS: <projectFolder>, <packageName>, <unscopedPackageName>
      * DEFAULT VALUE: "<projectFolder>/temp/"
      */
-    "reportTempFolder": "<projectFolder>/temp/"
+    "reportTempFolder": "<projectFolder>/temp/",
 
     /**
      * Whether "forgotten exports" should be included in the API report file. Forgotten exports are declarations
@@ -191,7 +191,7 @@
      *
      * DEFAULT VALUE: "false"
      */
-    // "includeForgottenExports": false
+    "includeForgottenExports": true
   },
 
   /**
@@ -402,6 +402,10 @@
       },
       "ae-missing-release-tag": {
         "logLevel": "none"
+      },
+      "ae-forgotten-export": {
+        "logLevel": "none",
+        "addToApiReportFile": false
       }
 
       // "ae-extra-release-tag": {

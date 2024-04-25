@@ -3,6 +3,7 @@
 mod merge;
 
 pub mod comparators;
+pub mod diff_mode;
 pub mod ext;
 pub mod fx_hash;
 pub mod identifier;
@@ -11,6 +12,7 @@ pub mod number_hash;
 pub mod path;
 pub mod source_map;
 pub mod swc;
+pub mod test;
 
 use std::future::Future;
 
@@ -58,5 +60,6 @@ where
 }
 
 pub fn json_stringify<T: ?Sized + serde::Serialize + std::fmt::Debug>(v: &T) -> String {
-  serde_json::to_string(v).unwrap_or_else(|e| panic!("{e}: {v:?} should able to json stringify"))
+  serde_json::to_string_pretty(v)
+    .unwrap_or_else(|e| panic!("{e}: {v:?} should able to json stringify"))
 }

@@ -276,6 +276,8 @@ impl ExportsInfoId {
       let info = self.get_read_only_export_info(&name[0], mg);
       if let Some(exports_info) = info.exports_info {
         return exports_info.get_nested_exports_info(Some(name[1..].to_vec()), mg);
+      } else {
+        return None;
       }
     }
     Some(*self)

@@ -7,8 +7,7 @@ const creator = new BasicCaseCreator({
 	describe: true,
 	steps: ({ name }) => [
 		new RspackDiagnosticProcessor({
-			name,
-			root: path.resolve(__dirname, "../../../rspack")
+			name
 		})
 	]
 });

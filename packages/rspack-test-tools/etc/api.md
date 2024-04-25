@@ -225,6 +225,15 @@ export enum EEsmMode {
 export function formatCode(name: string, raw: string, options: IFormatCodeOptions): string;
 
 // @public (undocumented)
+export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
+    constructor(hookOptions: IHookProcessorOptions<ECompilerType.Rspack>);
+    // (undocumented)
+    config(context: ITestContext): Promise<void>;
+    // (undocumented)
+    protected hookOptions: IHookProcessorOptions<ECompilerType.Rspack>;
+}
+
+// @public (undocumented)
 export class HotRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
     // (undocumented)
     protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
@@ -395,6 +404,12 @@ export interface IFormatCodeOptions {
 }
 
 // @public (undocumented)
+interface IHookProcessorOptions<T extends ECompilerType> extends ISnapshotProcessorOptions<T> {
+    // (undocumented)
+    options?: (context: ITestContext) => TCompilerOptions<T>;
+}
+
+// @public (undocumented)
 export interface IMultiTaskProcessorOptions<T extends ECompilerType = ECompilerType.Rspack> {
     // (undocumented)
     compilerType: ECompilerType.Rspack;
@@ -434,8 +449,6 @@ export interface IRspackConfigProcessorOptions<T extends ECompilerType.Rspack> {
 export interface IRspackDiagnosticProcessorOptions {
     // (undocumented)
     name: string;
-    // (undocumented)
-    root: string;
 }
 
 // @public (undocumented)
@@ -464,14 +477,10 @@ export interface IRspackStatsProcessorOptions<T extends ECompilerType.Rspack> {
 
 // @public (undocumented)
 export interface IRspackWatchProcessorOptions {
-    // Warning: (ae-forgotten-export) The symbol "TRspackExperiments" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     experiments?: TRspackExperiments;
     // (undocumented)
     name: string;
-    // Warning: (ae-forgotten-export) The symbol "TRspackOptimization" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     optimization?: TRspackOptimization;
     // (undocumented)
@@ -687,6 +696,8 @@ export interface ITestReporter<T> {
 // @public (undocumented)
 export interface ITestRunner {
     // (undocumented)
+    getGlobal(name: string): unknown;
+    // (undocumented)
     getRequire(): TRunnerRequirer;
     // (undocumented)
     run(file: string): Promise<unknown>;
@@ -765,10 +776,6 @@ export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspa
 export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
     constructor(_diagnosticOptions: IRspackDiagnosticProcessorOptions);
     // (undocumented)
-    after(context: ITestContext): Promise<void>;
-    // (undocumented)
-    before(context: ITestContext): Promise<void>;
-    // (undocumented)
     check(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
     static defaultOptions(context: ITestContext): TCompilerOptions<ECompilerType.Rspack>;
@@ -823,7 +830,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
     // (undocumented)
     protected _hotOptions: IRspackHotProcessorOptions;
     // (undocumented)
-    protected matchStepSnapshot(context: ITestContext, step: number, stats: StatsCompilation): void;
+    protected matchStepSnapshot(context: ITestContext, step: number, stats: StatsCompilation, runtime?: THotStepRuntimeData): void;
     // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
 }
@@ -918,10 +925,6 @@ export class StatsAPITaskProcessor<T extends ECompilerType> extends SimpleTaskPr
     constructor(_statsAPIOptions: IStatsAPITaskProcessorOptions<T>);
     // (undocumented)
     static addSnapshotSerializer(): void;
-    // (undocumented)
-    after(context: ITestContext): Promise<void>;
-    // (undocumented)
-    before(context: ITestContext): Promise<void>;
     // (undocumented)
     check(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
@@ -1070,6 +1073,23 @@ export type TFileCompareResult = TCompareResult & {
 };
 
 // @public (undocumented)
+export type THotStepRuntimeData = {
+    javascript: THotStepRuntimeLangData;
+    css: THotStepRuntimeLangData;
+    statusPath: string[];
+};
+
+// @public (undocumented)
+export type THotStepRuntimeLangData = {
+    outdatedModules: string[];
+    outdatedDependencies: Record<string, string[]>;
+    updatedModules: string[];
+    updatedRuntime: string[];
+    acceptedModules: string[];
+    disposedModules: string[];
+};
+
+// @public (undocumented)
 export type TModuleCompareResult = TCompareResult & {
     name: string;
 };
@@ -1081,6 +1101,12 @@ export type TModuleObject = {
 
 // @public (undocumented)
 export type TModuleTypeId = "normal" | "runtime";
+
+// @public (undocumented)
+type TRspackExperiments = TCompilerOptions<ECompilerType.Rspack>["experiments"];
+
+// @public (undocumented)
+type TRspackOptimization = TCompilerOptions<ECompilerType.Rspack>["optimization"];
 
 // @public (undocumented)
 export interface TRunnerFactory<T extends ECompilerType> {

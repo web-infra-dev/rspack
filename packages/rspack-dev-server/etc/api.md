@@ -17,12 +17,53 @@ import WebpackDevServer from 'webpack-dev-server';
 export { Configuration }
 
 // @public (undocumented)
+interface ResolvedDevServer extends Configuration {
+    // (undocumented)
+    allowedHosts: "auto" | string[] | "all";
+    // (undocumented)
+    bonjour: false | Record<string, never> | WebpackDevServer.BonjourOptions;
+    // (undocumented)
+    client: WebpackDevServer.ClientConfiguration;
+    // (undocumented)
+    compress: boolean;
+    // (undocumented)
+    devMiddleware: Configuration["devMiddleware"];
+    // (undocumented)
+    historyApiFallback: false | WebpackDevServer.ConnectHistoryApiFallbackOptions;
+    // (undocumented)
+    host?: string;
+    // (undocumented)
+    hot: boolean | "only";
+    // (undocumented)
+    ipc: string | undefined;
+    // (undocumented)
+    liveReload: boolean;
+    // (undocumented)
+    magicHtml: boolean;
+    // (undocumented)
+    open: WebpackDevServer.Open[];
+    // (undocumented)
+    port: number | string;
+    // (undocumented)
+    proxy: WebpackDevServer.ProxyConfigArray;
+    // (undocumented)
+    server: WebpackDevServer.ServerConfiguration;
+    // (undocumented)
+    setupExitSignals: boolean;
+    // (undocumented)
+    static: false | Array<WebpackDevServer.NormalizedStatic>;
+    // (undocumented)
+    watchFiles: WebpackDevServer.WatchFiles[];
+    // (undocumented)
+    webSocketServer: false | WebpackDevServer.WebSocketServerConfiguration;
+}
+
+// @public (undocumented)
 export class RspackDevServer extends WebpackDevServer {
     constructor(options: Configuration, compiler: Compiler | MultiCompiler);
     compiler: Compiler | MultiCompiler;
     // (undocumented)
     initialize(): Promise<void>;
-    // Warning: (ae-forgotten-export) The symbol "ResolvedDevServer" needs to be exported by the entry point index.d.ts
     options: ResolvedDevServer;
     // (undocumented)
     server: Server;

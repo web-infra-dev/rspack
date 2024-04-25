@@ -4,7 +4,10 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
+use rspack_util::{
+  source_map::SourceMapKind,
+  test::{HOT_TEST_DEFINE_GLOBAL, HOT_TEST_STATUS_CHANGE},
+};
 
 #[impl_runtime_module]
 #[derive(Debug, Eq)]
@@ -28,6 +31,13 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
   }
 
   fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawSource::from(include_str!("runtime/hot_module_replacement.js")).boxed())
+    Ok(
+      RawSource::from(
+        include_str!("runtime/hot_module_replacement.js")
+          .replace("$HOT_TEST_GLOBAL$", &HOT_TEST_DEFINE_GLOBAL)
+          .replace("$HOT_TEST_STATUS$", &HOT_TEST_STATUS_CHANGE),
+      )
+      .boxed(),
+    )
   }
 }

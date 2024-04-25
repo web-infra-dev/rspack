@@ -53,23 +53,27 @@ jobs:
         run: pnpm run build:js
 
       - name: Test diff
-        id: testng
+        id: testdiff
         run: pnpm run test:diff
+
+      - name: Test Hot
+        id: testhot
+        run: pnpm run test:hot
 
       - name: Test new runner
         run: |
           set -e;
-          OUTPUT=$((pnpm run test:ng --no-colors --silent=true --force-exit 2>&1 && echo "Test new runner successed" || echo "Test new runner failed") | tail --bytes=50000)
+          OUTPUT=$((pnpm run test --no-colors --silent=true --force-exit 2>&1 && echo "Test new runner successed" || echo "Test new runner failed") | tail --bytes=50000)
           echo 'RESULT<<EOF' >> $GITHUB_ENV
           echo  "$OUTPUT"  >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
           echo ${OUTPUT}
 
-  comment:
-    name: Write a new comment
+  comment_success:
+    name: Write success comment
     needs: [test, get-runner-labels]
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
-    if: github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment'
+    if: success() && (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment')
     steps:
       - name: Write comment
         uses: peter-evans/create-or-update-comment@v4
@@ -84,12 +88,28 @@ jobs:
             ```
             ${{ needs.test.outputs.testng }}
             ```
+  
+  comment_fail:
+    name: Write failed comment
+    needs: [test, get-runner-labels]
+    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
+    if: failure() && !cancelled()
+    steps:
+      - name: Write comment
+        uses: peter-evans/create-or-update-comment@v4
+        continue-on-error: true
+        with:
+          issue-number: ${{ github.event.issue.number || github.event.pull_request.number }}
+          body: |
+            **🔴🔴🔴 Test new runner failed**
+            
+            > Task: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
     
   notify:
     name: Notify
     needs: [test, get-runner-labels]
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
-    if: ${{ github.event_name == 'schedule' && github.repository_owner == 'web-infra-dev' && contains(needs.test.outputs.testng, 'Test new runner failed') }}
+    if: ${{ github.event_name == 'schedule' && github.repository_owner == 'web-infra-dev' && (contains(needs.test.outputs.testng, 'Test new runner failed') || (failure() && !cancelled())) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

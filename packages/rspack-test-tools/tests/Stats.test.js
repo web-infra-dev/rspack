@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const srcDir = path.resolve(__dirname, "../../rspack/tests");
+const srcDir = __dirname;
 const caseDir = path.resolve(__dirname, "./statsAPICases");
 const { StatsAPITaskProcessor, TestContext, ECompilerType } = require("..");
 

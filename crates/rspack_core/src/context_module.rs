@@ -17,7 +17,7 @@ use rspack_identifier::{Identifiable, Identifier};
 use rspack_macros::impl_source_map_config;
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
-use rspack_util::{json_stringify, source_map::SourceMapKind};
+use rspack_util::{fx_hash::FxIndexMap, json_stringify, source_map::SourceMapKind};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -27,9 +27,9 @@ use crate::{
   BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
   ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope,
   ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory, DependencyId,
-  ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module,
-  ModuleType, Resolve, ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
+  LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
+  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -73,6 +73,17 @@ impl From<&str> for ContextMode {
       Some(m) => m,
       // TODO should give warning
       _ => panic!("unknown context mode"),
+    }
+  }
+}
+
+impl From<DynamicImportMode> for ContextMode {
+  fn from(value: DynamicImportMode) -> Self {
+    match value {
+      DynamicImportMode::Lazy => Self::Lazy,
+      DynamicImportMode::Weak => Self::AsyncWeak,
+      DynamicImportMode::Eager => Self::Eager,
+      DynamicImportMode::LazyOnce => Self::LazyOnce,
     }
   }
 }
@@ -135,6 +146,7 @@ pub struct ContextOptions {
   pub context: String,
   pub namespace_object: ContextNameSpaceObject,
   pub group_options: Option<GroupOptions>,
+  pub replaces: Vec<(String, u32, u32)>,
   pub start: u32,
   pub end: u32,
 }
@@ -262,6 +274,13 @@ impl ContextModule {
     }
   }
 
+  fn get_fake_map_init_statement(&self, fake_map: &FakeMapValue) -> String {
+    match fake_map {
+      FakeMapValue::Bit(_) => "".to_string(),
+      FakeMapValue::Map(map) => json_stringify(map),
+    }
+  }
+
   fn get_return_module_object_source(
     &self,
     fake_map: &FakeMapValue,
@@ -295,36 +314,26 @@ impl ContextModule {
     &self,
     dependencies: impl IntoIterator<Item = &DependencyId>,
     compilation: &Compilation,
-  ) -> HashMap<String, String> {
+  ) -> FxIndexMap<String, Option<String>> {
+    let module_graph = compilation.get_module_graph();
     let dependencies = dependencies.into_iter();
-    let mut map = HashMap::default();
-    for dependency in dependencies {
-      if let Some(module_identifier) = compilation
-        .get_module_graph()
-        .module_identifier_by_dependency_id(dependency)
-      {
-        if let Some(dependency) = compilation.get_module_graph().dependency_by_id(dependency) {
-          let request = if let Some(d) = dependency.as_module_dependency() {
+    dependencies
+      .filter_map(|dep_id| {
+        let dep = module_graph.dependency_by_id(dep_id).and_then(|dep| {
+          if let Some(d) = dep.as_module_dependency() {
             Some(d.user_request().to_string())
           } else {
-            dependency
-              .as_context_dependency()
-              .map(|d| d.request().to_string())
-          };
-          if let Some(request) = request {
-            map.insert(
-              request,
-              if let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier) {
-                format!("\"{module_id}\"")
-              } else {
-                "null".to_string()
-              },
-            );
+            dep.as_context_dependency().map(|d| d.request().to_string())
           }
-        }
-      }
-    }
-    map
+        });
+        let module_id = module_graph
+          .module_identifier_by_dependency_id(dep_id)
+          .and_then(|module| compilation.chunk_graph.get_module_id(*module).clone());
+        // module_id could be None in weak mode
+        dep.map(|dep| (dep, module_id))
+      })
+      .sorted_by(|(a, _), (b, _)| a.cmp(b))
+      .collect()
   }
 
   fn get_source_for_empty_async_context(&self, compilation: &Compilation) -> BoxSource {
@@ -342,6 +351,24 @@ impl ContextModule {
       webpackEmptyAsyncContext.resolve = webpackEmptyAsyncContext;
       webpackEmptyAsyncContext.id = {id};
       module.exports = webpackEmptyAsyncContext;
+      "#,
+      keys = returning_function("[]", ""),
+      id = json_stringify(self.id(&compilation.chunk_graph))
+    })
+    .boxed()
+  }
+
+  fn get_source_for_empty_context(&self, compilation: &Compilation) -> BoxSource {
+    RawSource::from(formatdoc! {r#"
+      function webpackEmptyContext(req) {{
+        var e = new Error("Cannot find module '" + req + "'");
+        e.code = 'MODULE_NOT_FOUND';
+        throw e;
+      }}
+      webpackEmptyContext.keys = {keys};
+      webpackEmptyContext.resolve = webpackEmptyContext;
+      webpackEmptyContext.id = {id};
+      module.exports = webpackEmptyContext;
       "#,
       keys = returning_function("[]", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
@@ -367,6 +394,13 @@ impl ContextModule {
           .expect("LazyOnce ContextModule should have first block");
         let block = module_graph.block_by_id(block).expect("should have block");
         self.generate_source(block.get_dependencies(), compilation)
+      }
+      ContextMode::Sync => {
+        if !self.get_dependencies().is_empty() {
+          self.get_sync_source(compilation)
+        } else {
+          self.get_source_for_empty_context(compilation)
+        }
       }
       _ => self.generate_source(self.get_dependencies(), compilation),
     }
@@ -519,11 +553,48 @@ impl ContextModule {
       webpackAsyncContext.id = {id};
       module.exports = webpackAsyncContext;
       "#,
-      map = stringify_map(&map),
+      map = json_stringify(&map),
       keys = returning_function("Object.keys(map)", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     }));
     source.boxed()
+  }
+
+  fn get_sync_source(&self, compilation: &Compilation) -> BoxSource {
+    let dependencies = self.get_dependencies();
+    let map = self.get_user_request_map(dependencies, compilation);
+    let fake_map = self.get_fake_map(dependencies, compilation);
+    let return_module_object =
+      self.get_return_module_object_source(&fake_map, false, "fakeMap[id]");
+    let source = formatdoc! {r#"
+      var map = {map};
+      {fake_map_init_statement}
+
+      function webpackContext(req) {{
+        var id = webpackContextResolve(req);
+        {return_module_object}
+      }}
+      function webpackContextResolve(req) {{
+        if(!{has_own_property}(map, req)) {{
+          var e = new Error("Cannot find module '" + req + "'");
+          e.code = 'MODULE_NOT_FOUND';
+          throw e;
+        }}
+        return map[req];
+      }}
+      webpackContext.keys = function webpackContextKeys() {{
+        return Object.keys(map);
+      }};
+      webpackContext.resolve = webpackContextResolve;
+      module.exports = webpackContext;
+      webpackContext.id = {id};
+      "#,
+      map = json_stringify(&map),
+      fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
+      has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
+      id = json_stringify(self.id(&compilation.chunk_graph))
+    };
+    RawSource::from(source).boxed()
   }
 
   fn generate_source(&self, dependencies: &[DependencyId], compilation: &Compilation) -> BoxSource {
@@ -550,7 +621,7 @@ impl ContextModule {
     let mut source = ConcatSource::default();
     source.add(RawSource::from(format!(
       "var map = {};\n",
-      stringify_map(&map)
+      json_stringify(&map)
     )));
     if let FakeMapValue::Map(map) = &fake_map {
       source.add(RawSource::from(format!(
@@ -612,7 +683,7 @@ impl ContextModule {
     source.add(RawSource::from("\n}\n"));
 
     source.add(RawSource::from(format!(
-      "webpackContext.id = '{}';\n",
+      "webpackContext.id = {};\n",
       serde_json::to_string(self.id(&compilation.chunk_graph))
         .unwrap_or_else(|e| panic!("{}", e.to_string()))
     )));

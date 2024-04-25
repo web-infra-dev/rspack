@@ -29,8 +29,8 @@
   },
   "devDependencies": {
     "@modern-js/tsconfig": "^2.46.1",
-    "@rspress/plugin-rss": "^1.18.2",
-    "@rspress/shared": "^1.18.2",
+    "@rspress/plugin-rss": "^1.18.3",
+    "@rspress/shared": "^1.18.3",
     "@types/node": "^18.11.18",
     "@types/react": "^18.0.27",
     "@types/semver": "^7.5.2",
@@ -41,7 +41,7 @@
     "prettier": "3.2.5",
     "rsbuild-plugin-google-analytics": "1.0.0",
     "rsbuild-plugin-open-graph": "1.0.0",
-    "rspress": "^1.18.2",
+    "rspress": "^1.18.3",
     "rspress-plugin-font-open-sans": "1.0.0",
     "typescript": "^5.0.4"
   }

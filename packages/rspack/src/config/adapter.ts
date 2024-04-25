@@ -21,7 +21,8 @@ import type {
 	RawCssModuleParserOptions,
 	RawCssGeneratorOptions,
 	RawCssAutoGeneratorOptions,
-	RawCssModuleGeneratorOptions
+	RawCssModuleGeneratorOptions,
+	RawJavascriptParserOptions
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../Compiler";
@@ -580,6 +581,21 @@ function getRawParserOptions(
 			type: "javascript",
 			javascript: getRawJavascriptParserOptions(parser)
 		};
+	} else if (type === "javascript/auto") {
+		return {
+			type: "javascript/auto",
+			javascript: getRawJavascriptParserOptions(parser)
+		};
+	} else if (type === "javascript/dynamic") {
+		return {
+			type: "javascript/dynamic",
+			javascript: getRawJavascriptParserOptions(parser)
+		};
+	} else if (type === "javascript/esm") {
+		return {
+			type: "javascript/esm",
+			javascript: getRawJavascriptParserOptions(parser)
+		};
 	} else if (type === "css") {
 		return {
 			type: "css",
@@ -600,7 +616,9 @@ function getRawParserOptions(
 	throw new Error(`unreachable: unknow module type: ${type}`);
 }
 
-function getRawJavascriptParserOptions(parser: JavascriptParserOptions) {
+function getRawJavascriptParserOptions(
+	parser: JavascriptParserOptions
+): RawJavascriptParserOptions {
 	return {
 		dynamicImportMode: parser.dynamicImportMode ?? "lazy",
 		dynamicImportPreload: parser.dynamicImportPreload?.toString() ?? "false",
@@ -610,7 +628,9 @@ function getRawJavascriptParserOptions(parser: JavascriptParserOptions) {
 				? "false"
 				: parser.url === "relative"
 					? parser.url
-					: "true"
+					: "true",
+		exprContextCritical: parser.exprContextCritical ?? true,
+		wrappedContextCritical: parser.wrappedContextCritical ?? false
 	};
 }
 

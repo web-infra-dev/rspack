@@ -36,7 +36,7 @@ const config = {
 				exclude: [/[\\/]node_modules[\\/]/],
 				loader: "builtin:swc-loader",
 				options: {
-					sourceMap: false,
+					sourceMaps: false,
 					jsc: {
 						parser: {
 							syntax: "typescript"
@@ -53,7 +53,7 @@ const config = {
 				loader: "builtin:swc-loader",
 				exclude: [/[\\/]node_modules[\\/]/],
 				options: {
-					sourceMap: false,
+					sourceMaps: false,
 					jsc: {
 						parser: {
 							syntax: "typescript",

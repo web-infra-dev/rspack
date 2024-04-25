@@ -1,5 +1,5 @@
 import PropertyType from '../../../components/property-type.tsx';
-import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
+import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
 import { Table } from '@builtIns';
 
 # Builtins
@@ -140,7 +140,7 @@ module.exports = {
 />
 
 :::warning
-请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+请迁移至 [builtin:swc-loader 配置](/guide/features/builtin-swc-loader)。
 :::
 
 用于设置对 emotion 的编译优化。
@@ -250,7 +250,7 @@ export type ImportMap =
 />
 
 :::warning
-请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+请迁移至 [builtin:swc-loader 配置](/guide/features/builtin-swc-loader)。
 :::
 
 该配置可以让你的代码运行在更老版本的浏览器上，你可以通过 [browserslist](https://github.com/browserslist/browserslist#queries) 来指定需要支持的所有浏览器。
@@ -650,7 +650,7 @@ console.log(undefined === undefined);
 />
 
 :::warning
-请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+请迁移至 [builtin:swc-loader 配置](/guide/features/builtin-swc-loader)。
 :::
 
 此选项可以用来配置 react 相关代码的转换。
@@ -761,7 +761,7 @@ type ReactOptions = {
 />
 
 :::warning
-请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+请迁移至 [builtin:swc-loader 配置](/guide/features/builtin-swc-loader)。
 :::
 
 此选项可以用来配置装饰器的转换行为，false 表示关闭装饰器转换。
@@ -976,7 +976,7 @@ type BuiltinsCssModules = {
 请迁移至 [`CopyRspackPlugin`](/plugins/rspack/copy-rspack-plugin)。
 :::
 
-import WebpackLicense from '../../../components/webpack-license';
+import WebpackLicense from '@components/webpack-license';
 
 <WebpackLicense from="https://webpack.js.org/plugins/copy-webpack-plugin/#root" />
 
@@ -1147,7 +1147,7 @@ module.exports = {
 />
 
 :::warning
-请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+请迁移至 [builtin:swc-loader 配置](/guide/features/builtin-swc-loader)。
 :::
 
 将项目中的 `graphql` 调用转换成相对应的 `require`。
@@ -1178,7 +1178,7 @@ type RelayOptions =
 />
 
 :::warning
-请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+请迁移至 [builtin:swc-loader 配置](/guide/features/builtin-swc-loader)。
 :::
 
 移植自 [babel-plugin-import](https://github.com/umijs/babel-plugin-import)，配置基本保持一致。

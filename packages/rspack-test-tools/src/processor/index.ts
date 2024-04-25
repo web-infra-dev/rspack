@@ -13,3 +13,4 @@ export * from "./stats-api";
 export * from "./snapshot";
 export * from "./builtin";
 export * from "./hot-step";
+export * from "./hook";

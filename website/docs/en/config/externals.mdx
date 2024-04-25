@@ -1,4 +1,4 @@
-import WebpackLicense from '../../../components/webpack-license';
+import WebpackLicense from '@components/webpack-license';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/configuration/externals/" />
@@ -89,7 +89,7 @@ module.exports = {
 
 <ApiMeta addedVersion={'0.3.5'} />
 
-An object with `{ root, amd, commonjs, ... }` is only allowed for [`libraryTarget: 'umd'`](/config/output.html#outputlibrarytarget) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
+An object with `{ root, amd, commonjs, ... }` is only allowed for [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
 
 ```javascript
 module.exports = {
@@ -115,7 +115,7 @@ module.exports = {
 - **Type:** `string`
 - **Default:** `var`
 
-Specify the default type of externals. `amd`, `umd`, `system` and `jsonp` externals **depend on the [`output.libraryTarget`](/config/output.html#outputlibrarytarget)** being set to the same value e.g. you can only consume `amd` externals within an `amd` library.
+Specify the default type of externals. `amd`, `umd`, `system` and `jsonp` externals **depend on the [`output.libraryTarget`](/config/output#outputlibrarytarget)** being set to the same value e.g. you can only consume `amd` externals within an `amd` library.
 
 Supported types:
 
@@ -167,7 +167,7 @@ Note that there will be a `require()` in the output bundle.
 
 ### externalsType.global
 
-Specify the default type of externals as `'global'`. Webpack will read the external as a global variable on the [`globalObject`](/config/output.html#outputglobalobject).
+Specify the default type of externals as `'global'`. Webpack will read the external as a global variable on the [`globalObject`](/config/output#outputglobalobject).
 
 ```javascript
 import jq from 'jquery';

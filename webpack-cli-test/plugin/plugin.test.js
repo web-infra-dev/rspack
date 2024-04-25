@@ -58,7 +58,7 @@ describe("plugin command", () => {
       expect(existsSync(join(defaultPluginPath, file))).toBeTruthy();
     });
 
-    // Check if the the generated plugin works successfully
+    // Check if the generated plugin works successfully
     const { stdout: stdout2 } = await run(defaultPluginPath, [
       "--config",
       "./examples/simple/webpack.config.js",
@@ -90,7 +90,7 @@ describe("plugin command", () => {
       expect(existsSync(join(pluginPath, file))).toBeTruthy();
     });
 
-    // Check if the the generated plugin works successfully
+    // Check if the generated plugin works successfully
     const { stdout: stdout2 } = await run(pluginPath, [
       "--config",
       "./examples/simple/webpack.config.js",
@@ -122,7 +122,7 @@ describe("plugin command", () => {
       expect(existsSync(join(customPluginPath, file))).toBeTruthy();
     });
 
-    // Check if the the generated plugin works successfully
+    // Check if the generated plugin works successfully
     const { stdout: stdout2 } = await run(customPluginPath, [
       "--config",
       "./examples/simple/webpack.config.js",
@@ -160,7 +160,7 @@ describe("plugin command", () => {
       expect(existsSync(join(customPluginPath, file))).toBeTruthy();
     });
 
-    // Check if the the generated plugin works successfully
+    // Check if the generated plugin works successfully
     const { stdout: stdout2 } = await run(customPluginPath, [
       "--config",
       "./examples/simple/webpack.config.js",
@@ -199,7 +199,7 @@ describe("plugin command", () => {
       expect(existsSync(join(defaultPluginPath, file))).toBeTruthy();
     });
 
-    // Check if the the generated plugin works successfully
+    // Check if the generated plugin works successfully
     const { stdout: stdout2 } = await run(defaultPluginPath, [
       "--config",
       "./examples/simple/webpack.config.js",
@@ -236,7 +236,7 @@ describe("plugin command", () => {
       expect(existsSync(join(defaultPluginPath, file))).toBeTruthy();
     });
 
-    // Check if the the generated plugin works successfully
+    // Check if the generated plugin works successfully
     const { stdout: stdout2 } = await run(defaultPluginPath, [
       "--config",
       "./examples/simple/webpack.config.js",

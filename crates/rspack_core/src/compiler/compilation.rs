@@ -219,13 +219,12 @@ impl Compilation {
     cache: Arc<Cache>,
     module_executor: Option<ModuleExecutor>,
   ) -> Self {
-    let make_module_graph = ModuleGraphPartial::new(options.is_new_tree_shaking());
     Self {
       id: CompilationId::new(),
       hot_index: 0,
       records,
       options,
-      make_module_graph,
+      make_module_graph: Default::default(),
       other_module_graph: None,
       dependency_factories: Default::default(),
       make_failed_dependencies: HashSet::default(),
@@ -480,6 +479,14 @@ impl Compilation {
 
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
     self.diagnostics.push(diagnostic);
+  }
+  pub fn splice_diagnostic(
+    &mut self,
+    s: usize,
+    e: usize,
+    replace_with: Vec<Diagnostic>,
+  ) -> Vec<Diagnostic> {
+    self.diagnostics.splice(s..e, replace_with).collect()
   }
 
   pub fn push_batch_diagnostic(&mut self, diagnostics: Vec<Diagnostic>) {
@@ -891,7 +898,7 @@ impl Compilation {
 
   #[instrument(name = "compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    self.other_module_graph = Some(ModuleGraphPartial::new(self.options.is_new_tree_shaking()));
+    self.other_module_graph = Some(ModuleGraphPartial::default());
     let logger = self.get_logger("rspack.Compilation");
 
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
@@ -1008,6 +1015,16 @@ impl Compilation {
     let start = logger.time("create chunk assets");
     self.create_chunk_assets(plugin_driver.clone()).await?;
     logger.time_end(start);
+
+    // sync assets to compilation from module_executor
+    let assets = self
+      .module_executor
+      .as_mut()
+      .map(|module_executor| std::mem::take(&mut module_executor.assets))
+      .unwrap_or_default();
+    for (filename, asset) in assets {
+      self.emit_asset(filename, asset)
+    }
 
     let start = logger.time("process assets");
     plugin_driver

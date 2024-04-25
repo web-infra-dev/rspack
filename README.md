@@ -31,11 +31,11 @@ English | [简体中文](./README.zh-CN.md)
 - 🛠️ **Production Optimization**: Various optimization strategies are built in by default, such as tree shaking, minification, etc.
 - 🎯 **Framework Agnostic**: Not bound to any frontend framework, ensuring enough flexibility.
 
-Read [Introduction](https://rspack.dev/guide/introduction.html) for details.
+Read [Introduction](https://rspack.dev/guide/start/introduction) for details.
 
 ## Getting Started
 
-- [Quick Start](https://rspack.dev/guide/quick-start.html)
+- [Quick Start](https://rspack.dev/guide/start/quick-start)
 
 ## Contribution
 
@@ -84,6 +84,8 @@ Thanks to:
 - The [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) project created by [@jantimon](https://github.com/jantimon), `@rspack/html-plugin` is a fork of [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) to avoid some webpack API usage not supported in Rspack.
 - The [Turbopack](https://github.com/vercel/turbo) project which inspired the AST path logic of Rspack.
 - The [react-refresh-webpack-plugin](https://github.com/pmmmwh/react-refresh-webpack-plugin) created by [@pmmmwh](https://github.com/pmmmwh), which inspires implement react refresh.
+- The [mini-css-extract-plugin] project created by [@sokra](https://github.com/sokra) which inspired implement css extract plugin.
+- The [copy-webpack-plugin] project created by [@kevlened](https://github.com/kevlened) which inspired implement copy rspack plugin.
 
 ## License
 

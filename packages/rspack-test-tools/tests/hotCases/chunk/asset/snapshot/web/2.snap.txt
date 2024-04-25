@@ -1,0 +1,101 @@
+# Case asset: Step 2
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 523
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+		
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./file.js
+- ./raw.png
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["webpackHotUpdate"]('main', {
+"./file.js": (function (module, __unused_webpack_exports, __webpack_require__) {
+__webpack_require__(/*! ./raw.png */"./raw.png");
+module.exports = 3;
+}),
+"./raw.png": (function (module, __unused_webpack_exports, __webpack_require__) {
+"use strict";
+module.exports = __webpack_require__.p + "f7f4f00355f310234f70.png";}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+!function() {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+}();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./file.js
+- ./raw.png
+
+
+Outdated Dependencies:
+```json
+{
+  "./index.js": [
+    "./file.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./file.js
+- ./raw.png
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+- ./file.js
+
+Disposed Callback:

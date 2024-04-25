@@ -7,6 +7,7 @@ use rspack_core::{
 use rspack_identifier::Identifier;
 use rspack_util::source_map::SourceMapKind;
 
+use super::generate_javascript_hmr_runtime;
 use crate::{
   get_chunk_runtime_requirements,
   runtime_module::utils::{chunk_has_js, get_initial_chunk_ids, stringify_chunks},
@@ -189,9 +190,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
               .expect("failed to serde_json::to_string(hot_update_global)"),
           ),
       ));
-      source.add(RawSource::from(
-        include_str!("runtime/javascript_hot_module_replacement.js").replace("$key$", "jsonp"),
-      ));
+      source.add(RawSource::from(generate_javascript_hmr_runtime("jsonp")));
     }
 
     if with_hmr_manifest {

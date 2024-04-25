@@ -157,6 +157,42 @@ When use 'relative', rspack would generate relative URLs for `new URL()` syntax,
 <img src="file:///path/to/project/dist/icon.svg" />
 ```
 
+#### module.parser.javascript.exprContextCritical
+
+<ApiMeta addedVersion="0.6.3" />
+
+- **Type:** `boolean | undefined`
+- **Default:** `true`
+
+Enable warnings for full dynamic dependencies (`import(variable)`).
+
+#### module.parser.javascript.wrappedContextCritical
+
+<ApiMeta addedVersion="0.6.3" />
+
+- **Type:** `boolean | undefined`
+- **Default:** `false`
+
+Enable warnings for partial dynamic dependencies (`import("./path/to/" + variable)`).
+
+### module.parser["javascript/auto"]
+
+<ApiMeta addedVersion="0.6.3" />
+
+Parser options for `javascript/auto` modules, same as the [`javascript` parser options](#moduleparserjavascript).
+
+### module.parser["javascript/dynamic"]
+
+<ApiMeta addedVersion="0.6.3" />
+
+Parser options for `javascript/dynamic` modules, same as the [`javascript` parser options](#moduleparserjavascript).
+
+### module.parser["javascript/esm"]
+
+<ApiMeta addedVersion="0.6.3" />
+
+Parser options for `javascript/esm` modules, same as the [`javascript` parser options](#moduleparserjavascript).
+
 ### module.parser["css/auto"]
 
 Parser options for `css/auto` modules.
@@ -340,7 +376,7 @@ A mimetype for data URI. Resolves from module resource extension by default. Onl
 
 - **Type:** `string`
 - **Default:** `undefined`
-- **Supported Template string：** checkout [`output.assetModuleFilename`](/config/output.html#outputassetmodulefilename)
+- **Supported Template string：** checkout [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
 
 Same as `output.assetModuleFilename`. Overrides `output.assetModuleFilename` and only works for `asset` and `asset/resource` module types.
 
@@ -361,7 +397,7 @@ module.exports = {
 - **Type:** `string`
 - **Default:** `undefined`
 
-Override [`output.publicPath`](/en/config/output.html#outputpublicpath), only for modules with module type `'asset'` or `'asset/resource'`.
+Override [`output.publicPath`](/config/output#outputpublicpath), only for modules with module type `'asset'` or `'asset/resource'`.
 
 ```ts title=rspack.config.js
 module.exports = {
@@ -473,7 +509,7 @@ Avoid generating and loading a stylesheet and only embed exports from css into o
 - **Type:** `string`
 - **Default:** `[uniqueName]-[id]-[local]`
 
-Customize the format of the local class names generated for css modules, besides the substitutions at [File-level](/config/output.html#file-context) and [Module-level](/config/output.html#module-context), also include `[uniqueName]` and `[local]`.
+Customize the format of the local class names generated for css modules, besides the substitutions at [File-level](/config/output#file-context) and [Module-level](/config/output#module-context), also include `[uniqueName]` and `[local]`.
 
 ### module.generator.css
 
@@ -578,63 +614,63 @@ The order of evaluation is as follows:
 
 ### Rule.exclude
 
-- **Type:** [`Condition`](/config/module.html#condition)
+- **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
 Excludes all modules that match this condition and will match against the absolute path of the resource (without query and fragment). This option cannot be present together with `Rule.resource`.
 
 ### Rule.include
 
-- **Type:** [`Condition`](/config/module.html#condition)
+- **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
 Matches all modules that match this condition against the absolute path of the resource (without query and fragment). This option cannot be present together with `Rule.resource`.
 
 ### Rule.resource
 
-- **Type:** [`Condition`](/config/module.html#condition)
+- **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
 Matches all modules that match this resource, and will match against Resource (the absolute path without query and fragment). This option cannot be present together with `Rule.test`.
 
 ### Rule.resourceQuery
 
-- **Type:** [`Condition`](/config/module.html#condition)
+- **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
 Matches all modules that match this resource against the Resource's query. Note: Containing `?`, when `Rule.resourceQuery` is `?raw`, it will match the resource request of `foo?raw`
 
 ### Rule.resourceFragment
 
-- **Type:** [`Condition`](/config/module.html#condition)
+- **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
 Matches all modules that match this resource against the Resource's fragment. Note: Containing `#`, when `Rule.resourceFragment` is `#abc`, it will match the resource request of `foo#abc`
 
 ### Rule.test
 
-- **Type:** [`Condition`](/config/module.html#condition)
+- **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
 Matches all modules that match this resource, and will match against Resource (the absolute path without query and fragment). This option cannot be present together with `Rule.resource`.
 
 ### Rule.issuer
 
-- **Type:** [`Condition`](/config/module.html#condition)
+- **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
 Matches all modules that match this resource, and will match against Resource (the absolute path without query and fragment) of the module that issued the current module.
 
 ### Rule.dependency
 
-- **Type:** [`Condition`](/config/module.html#condition)
+- **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
 Matches all modules that match this resource, and will match against the category of the dependency that introduced the current module, for example `esm` for `import` and `import()`, `cjs` for `require()`, `url` for `new URL()` and `url()`.
 
 ### Rule.scheme
 
-- **Type:** [`Condition`](/config/module.html#condition)
+- **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
 Matches all modules that match this resource, and will match against the Resource's scheme.
@@ -656,7 +692,7 @@ module.exports = {
 
 ### Rule.mimetype
 
-- **Type:** [`Condition`](/config/module.html#condition)
+- **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
 Matches all modules that match this resource, and will match against the Resource's mimetype.
@@ -678,11 +714,11 @@ This option is deprecated, please use `Rule.use` instead
 
 ### Rule.loader
 
-`Rule.loader` is a shortcut to `Rule.use: [ { loader } ]`. See [Rule.use](/config/module.html#ruleuse) for details.
+`Rule.loader` is a shortcut to `Rule.use: [ { loader } ]`. See [Rule.use](/config/module#ruleuse) for details.
 
 ### Rule.options
 
-`Rule.options` is a shortcut to `Rule.use: [ { options } ]`. See [Rule.use](/config/module.html#ruleuse) for details.
+`Rule.options` is a shortcut to `Rule.use: [ { options } ]`. See [Rule.use](/config/module#ruleuse) for details.
 
 ### Rule.parser
 
@@ -749,12 +785,12 @@ Used to mark the type of the matching module, which affects how the module is ha
 - `'javascript/auto'`: JavaScript modules, supported module systems: CommonJS, ESM, no plans for AMD module support at this time.
 - `'javascript/esm'`：JavaScript modules, treated as ES Module.
 - `'javascript/dynamic'`：JavaScript modules, treated as Script.
-- `'typescript'`: TypeScript module (🚧 deprecated, checkout [experiments.rspackFuture.disableTransformByDefault](/config/experiments.html#experimentsrspackfuturedisabletransformbydefault) for more details)
+- `'typescript'`: TypeScript module (🚧 deprecated, checkout [experiments.rspackFuture.disableTransformByDefault](/config/experiments#experimentsrspackfuturedisabletransformbydefault) for more details)
 - `'css'`: CSS module
 - `'css/module'`: CSS modules module
 - `'css/auto'`: CSS modules module if filename matches `/\.module(s)?\.[^.]+$/`, otherwise CSS module
 - `'json'`: JSON data module
-- `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`: See [Asset Module](/guide/asset-module)
+- `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`: See [Asset Module](/guide/features/asset-module)
 
 ### Rule.use
 

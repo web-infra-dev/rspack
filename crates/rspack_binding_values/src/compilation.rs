@@ -61,6 +61,14 @@ impl DerefMut for JsCompilation {
   }
 }
 
+#[napi(object)]
+pub struct JsDiagnostic {
+  #[napi(ts_type = "'error' | 'warning'")]
+  pub severity: String,
+  pub title: String,
+  pub message: String,
+}
+
 #[napi]
 impl JsCompilation {
   #[napi(
@@ -316,6 +324,20 @@ impl JsCompilation {
     self.0.push_diagnostic(diagnostic);
   }
 
+  #[napi]
+  pub fn splice_diagnostic(&mut self, start: u32, end: u32, replace_with: Vec<JsDiagnostic>) {
+    let diagnostics = replace_with
+      .iter()
+      .map(|item| match item.severity.as_str() {
+        "warning" => rspack_error::Diagnostic::warn(item.title.clone(), item.message.clone()),
+        _ => rspack_error::Diagnostic::error(item.title.clone(), item.message.clone()),
+      })
+      .collect();
+    self
+      .0
+      .splice_diagnostic(start as usize, end as usize, diagnostics);
+  }
+
   #[napi(ts_args_type = r#"diagnostics: ExternalObject<'Diagnostic[]'>"#)]
   pub fn push_native_diagnostics(&mut self, mut diagnostics: External<Vec<Diagnostic>>) {
     while let Some(diagnostic) = diagnostics.pop() {
@@ -333,7 +355,6 @@ impl JsCompilation {
   #[napi]
   pub fn get_asset_path(
     &self,
-    #[napi(ts_arg_type = "string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string)")]
     filename: LocalJsFilename,
     data: JsPathData,
   ) -> napi::Result<String> {
@@ -345,7 +366,6 @@ impl JsCompilation {
   #[napi]
   pub fn get_asset_path_with_info(
     &self,
-    #[napi(ts_arg_type = "string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string)")]
     filename: LocalJsFilename,
     data: JsPathData,
   ) -> napi::Result<PathWithInfo> {
@@ -356,19 +376,13 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_path(
-    &self,
-    #[napi(ts_arg_type = "string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string)")]
-    filename: LocalJsFilename,
-    data: JsPathData,
-  ) -> napi::Result<String> {
+  pub fn get_path(&self, filename: LocalJsFilename, data: JsPathData) -> napi::Result<String> {
     self.0.get_path(&filename.into(), data.as_core_path_data())
   }
 
   #[napi]
   pub fn get_path_with_info(
     &self,
-    #[napi(ts_arg_type = "string | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string)")]
     filename: LocalJsFilename,
     data: JsPathData,
   ) -> napi::Result<PathWithInfo> {
@@ -440,7 +454,7 @@ impl JsCompilation {
   #[allow(clippy::too_many_arguments)]
   #[napi]
   pub fn import_module(
-    &'static mut self,
+    &'static self,
     env: Env,
     request: String,
     public_path: Option<String>,
@@ -460,7 +474,7 @@ impl JsCompilation {
       let module_executor = self
         .0
         .module_executor
-        .as_mut()
+        .as_ref()
         .expect("should have module executor");
       let result = module_executor
         .import_module(
@@ -499,12 +513,9 @@ impl JsCompilation {
               .into_iter()
               .map(|d| d.to_string_lossy().to_string())
               .collect(),
-            assets: res.assets.keys().cloned().collect(),
+            assets: res.assets.into_iter().collect(),
             id: res.id,
           };
-          for (filename, asset) in res.assets {
-            self.0.emit_asset(filename, asset)
-          }
           Ok(js_result)
         }
         Err(e) => Err(Error::new(napi::Status::GenericFailure, format!("{e}"))),

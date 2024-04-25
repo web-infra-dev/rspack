@@ -1,8 +1,13 @@
+use once_cell::sync::Lazy;
 use rayon::prelude::*;
+use regex::Regex;
 use rspack_core::{rspack_sources::MapOptions, Compilation, CompilationProcessAssets, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig};
+
+static CSS_ASSET_REGEXP: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -13,7 +18,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   compilation
     .assets_mut()
     .par_iter_mut()
-    .filter(|(filename, _)| filename.ends_with(".css"))
+    .filter(|(filename, _)| CSS_ASSET_REGEXP.is_match(filename))
     .try_for_each(|(filename, original)| -> Result<()> {
       if original.get_info().minimized {
         return Ok(());

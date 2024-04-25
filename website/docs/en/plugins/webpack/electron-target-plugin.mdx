@@ -1,10 +1,10 @@
-import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+import { ApiMeta } from '@components/ApiMeta.tsx';
 
-# electron.ElectronTargetPlugin
+# ElectronTargetPlugin
 
 <ApiMeta addedVersion={'0.3.3'} />
 
-This plugin is used to external the Electron built-in modules during bundling, and is used by [`externalsPresets.electron`](/en/config/externals.html#electron), [`externalsPresets.electronMain`](/en/config/externals.html#electronmain), [`externalsPresets.electronRenderer`](/en/config/externals.html#electronrenderer), and [`externalsPresets.electronPreload`](/en/config/externals.html#electronpreload) under the hood.
+This plugin is used to external the Electron built-in modules during bundling, and is used by [`externalsPresets.electron`](/config/externals#electron), [`externalsPresets.electronMain`](/config/externals#electronmain), [`externalsPresets.electronRenderer`](/config/externals#electronrenderer), and [`externalsPresets.electronPreload`](/config/externals#electronpreload) under the hood.
 
 ```js
 new rspack.electron.ElectronTargetPlugin();

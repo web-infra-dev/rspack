@@ -9,6 +9,7 @@ version    = "0.1.0"
 
 [dependencies]
 anyhow            = { workspace = true, features = ["backtrace"] }
+derivative        = { workspace = true }
 futures           = { workspace = true }
 miette            = { version = "5", features = ["fancy"] }
 once_cell         = { workspace = true }

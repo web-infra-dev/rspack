@@ -1,5 +1,5 @@
-import WebpackLicense from '../../../../components/webpack-license';
-import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+import WebpackLicense from '@components/webpack-license';
+import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <WebpackLicense from="https://webpack.docschina.org/plugins/source-map-dev-tool-plugin/" />
 
@@ -7,7 +7,7 @@ import { ApiMeta } from '../../../../components/ApiMeta.tsx';
 
 <ApiMeta addedVersion={'0.5.2'} />
 
-本插件实现了对 source map 生成内容进行更细粒度的控制。它也可以根据 [`devtool`](/zh/config/devtool.html) 配置选项的某些设置来自动启用。
+本插件实现了对 source map 生成内容进行更细粒度的控制。它也可以根据 [`devtool`](/config/devtool.html) 配置选项的某些设置来自动启用。
 
 ```js
 new rspack.SourceMapDevToolPlugin(options);
@@ -22,9 +22,9 @@ new rspack.SourceMapDevToolPlugin(options);
 - `exclude` (`string` `RegExp` `[string, RegExp]`)：使匹配该值的模块不生成 source map。
 - `filename` (`string`)：定义生成的 source map 的名称（如果未提供值，则内联）。
 - `append` (`string` `function`)：原始资源后追加给定值。通常是 `#sourceMappingURL` 注释。`[url]` 被替换成 source map 文件的 URL。支持路径参数：`[chunk]`、`[filename]` 和 `[contenthash]`。将 `append` 设置为 `false` 可禁用附加操作。
-- `moduleFilenameTemplate`（`string`）：详见 [`output.devtoolModuleFilenameTemplate`](/zh/config/output.html#outputdevtoolmodulefilenametemplate)。
+- `moduleFilenameTemplate`（`string`）：详见 [`output.devtoolModuleFilenameTemplate`](/config/output#outputdevtoolmodulefilenametemplate)。
 - `fallbackModuleFilenameTemplate` (`string`)：详见上面的链接。
-- `namespace` (`string`)：详见 [`output.devtoolNamespace`](/zh/config/output.html#outputdevtoolnamespace).
+- `namespace` (`string`)：详见 [`output.devtoolNamespace`](/config/output#outputdevtoolnamespace).
 - `module = true` (`boolean`)：指示 loader 是否应该生成 source map 文件。
 - `columns = true` (`boolean`)：指示是否使用 column mapping。
 - `noSources = false` (`boolean`)：阻止源文件内容被包含在 source map 中。

@@ -46,7 +46,9 @@ export function ApiMeta(props: ApiMetaProps) {
       )}
       {props.stability && (
         <div
-          className={`${styles.tag} ${props.stability ? styles[props.stability.toLowerCase()] : ''}`}
+          className={`${styles.tag} ${
+            props.stability ? styles[props.stability.toLowerCase()] : ''
+          }`}
         >
           Stability: {props.stability}
         </div>

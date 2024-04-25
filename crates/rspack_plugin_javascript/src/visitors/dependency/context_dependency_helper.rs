@@ -2,19 +2,20 @@ use std::borrow::Cow;
 
 use itertools::Itertools;
 use rspack_core::parse_resource;
-use swc_core::ecma::ast::Expr;
+use rspack_error::Severity;
+use rspack_util::json_stringify;
 
 use super::context_helper::{quote_meta, split_context_from_prefix};
-use super::ContextModuleScanResult;
-use crate::utils::eval::BasicEvaluatedExpression;
+use super::{create_traceable_error, ContextModuleScanResult};
+use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
 
 // FIXME: delete this after `parserOptions.wrappedContextRegExp.source`
 const DEFAULT_WRAPPED_CONTEXT_REGEXP: &str = ".*";
 
 pub fn create_context_dependency(
   param: &BasicEvaluatedExpression,
-  _expr: &Expr,
-) -> Option<ContextModuleScanResult> {
+  parser: &mut crate::visitors::JavascriptParser,
+) -> ContextModuleScanResult {
   if param.is_template_string() {
     let quasis = param.quasis();
     let Some(prefix) = quasis.first() else {
@@ -44,19 +45,60 @@ pub fn create_context_dependency(
       DEFAULT_WRAPPED_CONTEXT_REGEXP,
       quasis[1..quasis.len() - 1]
         .iter()
-        .map(|q| quote_meta(q.string().as_str()))
+        .map(|q| quote_meta(q.string().as_str()) + DEFAULT_WRAPPED_CONTEXT_REGEXP)
         .join(""),
       quote_meta(&postfix)
     );
-    Some(ContextModuleScanResult {
+
+    let mut replaces = Vec::new();
+    let parts = param.parts();
+    for (i, part) in parts.iter().enumerate() {
+      if i % 2 == 0 {
+        if i == 0 {
+          let value = format!(
+            "{}{prefix}",
+            match param.template_string_kind() {
+              TemplateStringKind::Cooked => "`",
+              TemplateStringKind::Raw => "String.raw`",
+            }
+          );
+          replaces.push((value, param.range().0, part.range().1));
+        } else if i == parts.len() - 1 {
+          let value = format!("{postfix}`");
+          replaces.push((value, part.range().0, param.range().1));
+        } else {
+          let value = match param.template_string_kind() {
+            TemplateStringKind::Cooked => {
+              json_stringify(part.string()).trim_matches('"').to_owned()
+            }
+            TemplateStringKind::Raw => part.string().to_owned(),
+          };
+          let range = part.range();
+          replaces.push((value, range.0, range.1));
+        }
+      }
+    }
+
+    if parser.javascript_options.wrapped_context_critical {
+      let range = param.range();
+      parser.warning_diagnostics.push(Box::new(
+        create_traceable_error(
+          "Critical dependency".into(),
+          "a part of the request of a dependency is an expression".to_string(),
+          parser.source_file,
+          rspack_core::ErrorSpan::new(range.0, range.1),
+        )
+        .with_severity(Severity::Warn),
+      ));
+    }
+
+    ContextModuleScanResult {
       context,
       reg,
       query,
       fragment,
-      replaces: Vec::new(),
-    })
-    // TODO: `replaces` in context module
-    // TODO: `critical` in context module
+      replaces,
+    }
   } else if param.is_wrapped()
     && let prefix_is_string = param
       .prefix()
@@ -68,25 +110,17 @@ pub fn create_context_dependency(
       .unwrap_or_default()
     && (prefix_is_string || postfix_is_string)
   {
-    let prefix_raw = if prefix_is_string {
-      Cow::Borrowed(
-        param
-          .prefix()
-          .map(|prefix| prefix.string())
-          .expect("must exist"),
-      )
+    let (prefix_raw, prefix_range) = if prefix_is_string {
+      let prefix = param.prefix().expect("must exist");
+      (Cow::Borrowed(prefix.string()), Some(prefix.range()))
     } else {
-      Cow::Owned(String::new())
+      (Cow::Owned(String::new()), None)
     };
-    let postfix_raw = if postfix_is_string {
-      Cow::Borrowed(
-        param
-          .postfix()
-          .map(|prefix| prefix.string())
-          .expect("must exist"),
-      )
+    let (postfix_raw, postfix_range) = if postfix_is_string {
+      let postfix = param.postfix().expect("must exist");
+      (Cow::Borrowed(postfix.string()), Some(postfix.range()))
     } else {
-      Cow::Owned(String::new())
+      (Cow::Owned(String::new()), None)
     };
 
     let (context, prefix) = split_context_from_prefix(prefix_raw.to_string());
@@ -105,18 +139,54 @@ pub fn create_context_dependency(
       quote_meta(&postfix)
     );
 
-    Some(ContextModuleScanResult {
+    let mut replaces = Vec::new();
+    if let Some(prefix_range) = prefix_range {
+      replaces.push((json_stringify(&prefix), prefix_range.0, prefix_range.1))
+    }
+    if let Some(postfix_range) = postfix_range {
+      replaces.push((json_stringify(&postfix), postfix_range.0, postfix_range.1))
+    }
+
+    if parser.javascript_options.wrapped_context_critical {
+      let range = param.range();
+      parser.warning_diagnostics.push(Box::new(
+        create_traceable_error(
+          "Critical dependency".into(),
+          "a part of the request of a dependency is an expression".to_string(),
+          parser.source_file,
+          rspack_core::ErrorSpan::new(range.0, range.1),
+        )
+        .with_severity(Severity::Warn),
+      ));
+    }
+
+    ContextModuleScanResult {
       context,
       reg,
       query,
       fragment,
-      replaces: Vec::new(),
-    })
-
-    // TODO: `replaces` in context module
-    // TODO: `critical` in context module
+      replaces,
+    }
     // TODO: handle `param.wrappedInnerExpressions`
   } else {
-    None
+    if parser.javascript_options.expr_context_critical {
+      let range = param.range();
+      parser.warning_diagnostics.push(Box::new(
+        create_traceable_error(
+          "Critical dependency".into(),
+          "the request of a dependency is an expression".to_string(),
+          parser.source_file,
+          rspack_core::ErrorSpan::new(range.0, range.1),
+        )
+        .with_severity(Severity::Warn),
+      ));
+    }
+    ContextModuleScanResult {
+      context: String::from("."),
+      reg: String::new(),
+      query: String::new(),
+      fragment: String::new(),
+      replaces: Vec::new(),
+    }
   }
 }

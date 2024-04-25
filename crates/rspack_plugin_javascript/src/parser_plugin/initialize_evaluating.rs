@@ -5,6 +5,7 @@ use crate::utils::eval::BasicEvaluatedExpression;
 
 const SLICE_METHOD_NAME: &str = "slice";
 const REPLACE_METHOD_NAME: &str = "replace";
+const CONCAT_METHOD_NAME: &str = "concat";
 
 pub struct InitializeEvaluating;
 
@@ -66,6 +67,90 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       res.set_string(s);
       res.set_side_effects(param.could_have_side_effects());
       return Some(res);
+    } else if property == CONCAT_METHOD_NAME && (param.is_string() || param.is_wrapped()) {
+      let mut string_suffix: Option<BasicEvaluatedExpression> = None;
+      let mut has_unknown_params = false;
+      let mut inner_exprs = Vec::new();
+      for arg in expr.args.iter().rev() {
+        if arg.spread.is_some() {
+          return None;
+        }
+        let arg_expr = parser.evaluate_expression(&arg.expr);
+        if has_unknown_params || (!arg_expr.is_string() && !arg_expr.is_number()) {
+          has_unknown_params = true;
+          inner_exprs.push(arg_expr);
+          continue;
+        }
+        let mut new_string = if arg_expr.is_string() {
+          arg_expr.string().to_owned()
+        } else {
+          format!("{}", arg_expr.number())
+        };
+        if let Some(string_suffix) = &string_suffix {
+          new_string += string_suffix.string();
+        }
+        let mut eval = BasicEvaluatedExpression::with_range(
+          arg_expr.range().0,
+          string_suffix.as_ref().unwrap_or(&arg_expr).range().1,
+        );
+        eval.set_string(new_string);
+        eval.set_side_effects(
+          string_suffix
+            .as_ref()
+            .map(|s| s.could_have_side_effects())
+            .unwrap_or_else(|| arg_expr.could_have_side_effects()),
+        );
+        string_suffix = Some(eval);
+      }
+      if has_unknown_params {
+        let prefix = if param.is_string() {
+          Some(param)
+        } else {
+          param.prefix()
+        }
+        .cloned();
+        inner_exprs.reverse();
+        let inner = if param.is_wrapped()
+          && let Some(wrapped_inner_expressions) = param.wrapped_inner_expressions()
+        {
+          let mut wrapped_inner_exprs = wrapped_inner_expressions.to_vec();
+          wrapped_inner_exprs.extend(inner_exprs);
+          wrapped_inner_exprs
+        } else {
+          inner_exprs
+        };
+        let mut eval = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        eval.set_wrapped(prefix, string_suffix, inner);
+        return Some(eval);
+      } else if param.is_wrapped() {
+        let postfix = string_suffix.or_else(|| param.postfix().cloned());
+        let inner = if param.is_wrapped()
+          && let Some(wrapped_inner_expressions) = param.wrapped_inner_expressions()
+        {
+          let mut wrapped_inner_exprs = wrapped_inner_expressions.to_vec();
+          wrapped_inner_exprs.extend(inner_exprs);
+          wrapped_inner_exprs
+        } else {
+          inner_exprs
+        };
+        let mut eval = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        eval.set_wrapped(param.prefix().cloned(), postfix, inner);
+        return Some(eval);
+      } else {
+        let mut new_string = param.string().to_owned();
+        if let Some(string_suffix) = &string_suffix {
+          new_string += string_suffix.string();
+        }
+        let mut eval = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        eval.set_string(new_string);
+        eval.set_side_effects(
+          string_suffix
+            .as_ref()
+            .map(|s| s.could_have_side_effects())
+            .unwrap_or_else(|| param.could_have_side_effects()),
+        );
+        return Some(eval);
+      }
     }
 
     None

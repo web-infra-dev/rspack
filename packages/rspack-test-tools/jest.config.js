@@ -11,8 +11,7 @@ const config = {
 		"<rootDir>/tests/*.test.js",
 		"<rootDir>/tests/*.basictest.js",
 		"<rootDir>/tests/*.longtest.js",
-		"<rootDir>/tests/*.unittest.js",
-		"<rootDir>/tests/*.difftest.js"
+		"<rootDir>/tests/*.unittest.js"
 	],
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.

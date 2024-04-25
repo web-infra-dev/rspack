@@ -286,8 +286,8 @@ class Compiler {
 						filename,
 						targetPath,
 						outputPath
-					}: binding.JsAssetEmittedArgs) =>
-						await queried.promise(filename, {
+					}: binding.JsAssetEmittedArgs) => {
+						return queried.promise(filename, {
 							compilation: this.compilation!,
 							targetPath,
 							outputPath,
@@ -297,7 +297,8 @@ class Compiler {
 							get content() {
 								return this.source?.buffer();
 							}
-						})
+						});
+					}
 			),
 			registerCompilationRuntimeModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationRuntimeModule,

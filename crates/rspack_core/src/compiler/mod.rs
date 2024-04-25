@@ -88,7 +88,7 @@ where
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let cache = Arc::new(Cache::new(options.clone()));
     assert!(!(options.is_new_tree_shaking() && options.builtins.tree_shaking.enable()), "Can't enable builtins.tree_shaking and `experiments.rspack_future.new_treeshaking` at the same time");
-    let module_executor = ModuleExecutor::new(options.is_new_tree_shaking());
+    let module_executor = ModuleExecutor::default();
     Self {
       options: options.clone(),
       compilation: Compilation::new(
@@ -121,7 +121,7 @@ where
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.resolver_factory.clear_cache();
 
-    let module_executor = ModuleExecutor::new(self.options.is_new_tree_shaking());
+    let module_executor = ModuleExecutor::default();
     fast_set(
       &mut self.compilation,
       Compilation::new(

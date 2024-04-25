@@ -1,0 +1,166 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/guides/code-splitting/" />
+
+# Code splitting
+
+Rspack supports code splitting, which allows splitting the code into other chunks. You have the full control about size of generated assets, which allow you to gain performance improvements in loading time.
+
+There are three general approaches to code splitting available:
+
+- **Entry Points**: Manually split code using [entry](/config/entry) configuration.
+- **Prevent Duplication**: Use SplitChunksPlugin to dedupe and split chunks.
+- **Dynamic Imports**: Split code via inline function calls within modules.
+
+## Entry point
+
+This is the simplest and most intuitive way to split the code. However, this approach requires us to manually configure the Rspack and contains some pitfalls that we will address. Let's start by looking at how to split multiple Chunks from multiple entry points.
+
+```js title=rspack.config.js
+/**
+ * @type {import('@rspack/core').Configuration}
+ */
+const config = {
+  mode: 'development',
+  entry: {
+    index: './src/index.js',
+    another: './src/another-module.js',
+  },
+  output: {
+    filename: '[name].bundle.js',
+  },
+  stats: 'normal',
+};
+
+module.exports = config;
+```
+
+```js title=index.js
+import './shared';
+console.log('index.js');
+```
+
+```js title=another-module.js
+import './shared';
+console.log('another-module');
+```
+
+This will yield the following build result:
+
+```
+...
+            Asset      Size   Chunks             Chunk Names
+another.bundle.js  1.07 KiB  another  [emitted]  another
+  index.bundle.js  1.06 KiB    index  [emitted]  index
+Entrypoint another = another.bundle.js
+Entrypoint index = index.bundle.js
+[./src/index.js] 41 bytes {another} {index}
+[./src/shared.js] 24 bytes {another} {index}
+```
+
+As mentioned earlier, there are a some pitfalls to this approach:
+
+- If there are some shared modules between the import chains of multiple entry points, these shared modules will be repeatedly added to each entry chunk. The code of `shared.js` will be bundled into both `index.bundle.js` and `another.bundle.js` at the same time.
+- It isn't as flexible and can't be used to dynamically split code with the core application logic.
+
+The first of these two points is certainly a problem for our example, and in the next section we will talk about how to remove duplicate modules.
+
+## SplitChunksPlugin
+
+The SplitChunksPlugin can extract shared modules into a new generated chunk. Let's use this plugin to remove the duplicated `shared.js` module in the previous example:
+
+```diff title=rspack.config.js
+/**
+ * @type {import('@rspack/core').Configuration}
+ */
+const config = {
+  mode: 'development',
+  entry: {
+    index: './src/index.js',
+    another: './src/another-module.js',
+  },
+  output: {
+    filename: '[name].bundle.js',
+  },
++  optimization: {
++    splitChunks: {
++      chunks: 'all',
++      minSize: 1,
++    }
++  }
+};
+
+module.exports = config;
+```
+
+You should now see that the duplicate modules have been removed from `index.bundle.js` and `another.bundle.js`. Note that the plugin split `shared.js` into `another~index.bundle.js` and removes it from `index.bundle.js` and `another.bundle.js`.
+
+Build Results:
+
+```diff
+                  Asset       Size         Chunks             Chunk Names
+      another.bundle.js   3.27 KiB        another  [emitted]  another
+        index.bundle.js   3.27 KiB          index  [emitted]  index
++ another~index.bundle.js  462 bytes  another~index  [emitted]
+Entrypoint another = another.bundle.js another~index.bundle.js
+Entrypoint index = another~index.bundle.js index.bundle.js
+[./src/index.js] 41 bytes {another~index}
+[./src/shared.js] 24 bytes {another~index}
+```
+
+## Dynamic import
+
+Rspack use the `import()` syntax that conforms to the ECMAScript proposal for dynamic imports.
+
+:::info Inconsistent behaviors with Webpack
+
+- Rspack doesn't support `require.ensure`.
+
+:::
+
+Before we begin, let's remove the redundant entry and optimization.splitChunks from the configuration of the above example, as they are not needed for the rest of the demonstration.
+
+```diff title=rspack.config.js
+/**
+ * @type {import('@rspack/core').Configuration}
+ */
+const config = {
+  mode: 'development',
+  entry: {
+    'index': './src/index.js',
+-    'another': './src/another-module.js',
+  },
+  output: {
+    filename: '[name].bundle.js',
+  },
+-  optimization: {
+-    splitChunks: {
+-      chunks: 'all',
+-      minSize: 1,
+-    }
+-  }
+};
+
+module.exports = config;
+```
+
+Now, instead of import `shared.js` statically in `index.js`, we will import it dynamically via `import()`, thus split it into a new chunk.
+
+```diff title=index.js
+- import './shared'
++ import('./shared')
+console.log('index.js')
+```
+
+Let's run build command and see that `shared.js` is split into a separate `src_shared_js.bundle.js`
+
+```diff
+...
+                  Asset       Size         Chunks             Chunk Names
+        index.bundle.js   12.9 KiB          index  [emitted]  index
++ src_shared_js.bundle.js  245 bytes  src_shared_js  [emitted]
+Entrypoint index = index.bundle.js
+[./src/index.js] 42 bytes {index}
+[./src/shared.js] 24 bytes {src_shared_js}
+build: 67.303ms
+```

@@ -274,7 +274,9 @@ pub struct RawModuleRule {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawParserOptions {
-  #[napi(ts_type = r#""asset" | "css" | "css/auto" | "css/module" | "javascript""#)]
+  #[napi(
+    ts_type = r#""asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm""#
+  )]
   pub r#type: String,
   pub asset: Option<RawAssetParserOptions>,
   pub css: Option<RawCssParserOptions>,
@@ -292,12 +294,14 @@ impl From<RawParserOptions> for ParserOptions {
           .expect("should have an \"asset\" when RawParserOptions.type is \"asset\"")
           .into(),
       ),
-      "javascript" => Self::Javascript(
-        value
-          .javascript
-          .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"")
-          .into(),
-      ),
+      "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" => {
+        Self::Javascript(
+          value
+            .javascript
+            .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"")
+            .into(),
+        )
+      }
       "css" => Self::Css(
         value
           .css
@@ -332,6 +336,8 @@ pub struct RawJavascriptParserOptions {
   pub dynamic_import_preload: String,
   pub dynamic_import_prefetch: String,
   pub url: String,
+  pub expr_context_critical: bool,
+  pub wrapped_context_critical: bool,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
@@ -341,6 +347,8 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       dynamic_import_preload: JavascriptParserOrder::from(value.dynamic_import_preload.as_str()),
       dynamic_import_prefetch: JavascriptParserOrder::from(value.dynamic_import_prefetch.as_str()),
       url: JavascriptParserUrl::from(value.url.as_str()),
+      expr_context_critical: value.expr_context_critical,
+      wrapped_context_critical: value.wrapped_context_critical,
     }
   }
 }

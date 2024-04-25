@@ -1,10 +1,10 @@
-import { ApiMeta } from '../../../../components/ApiMeta.tsx';
+import { ApiMeta } from '@components/ApiMeta.tsx';
 
-# electron.ElectronTargetPlugin
+# ElectronTargetPlugin
 
 <ApiMeta addedVersion={'0.3.3'} />
 
-此插件用来在打包时将 Electron 的内置模块外置掉，[`externalsPresets.electron`](/zh/config/externals.html#electron)、[`externalsPresets.electronMain`](/zh/config/externals.html#electronmain)、[`externalsPresets.electronRenderer`](/zh/config/externals.html#electronrenderer) 和 [`externalsPresets.electronPreload`](/zh/config/externals.html#electronpreload) 底层使用了该插件。
+此插件用来在打包时将 Electron 的内置模块外置掉，[`externalsPresets.electron`](/config/externals#electron)、[`externalsPresets.electronMain`](/config/externals#electronmain)、[`externalsPresets.electronRenderer`](/config/externals#electronrenderer) 和 [`externalsPresets.electronPreload`](/config/externals#electronpreload) 底层使用了该插件。
 
 ```js
 new rspack.electron.ElectronTargetPlugin();

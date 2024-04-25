@@ -73,7 +73,7 @@ pub struct ExpressionExpressionInfo {
   pub root_info: ExportedVariableInfo,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExportedVariableInfo {
   Name(String),
   VariableInfo(VariableInfoId),
@@ -172,7 +172,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) compiler_options: &'parser CompilerOptions,
-  pub(crate) javascript_options: Option<&'parser JavascriptParserOptions>,
+  pub(crate) javascript_options: &'parser JavascriptParserOptions,
   pub(crate) module_type: &'parser ModuleType,
   pub(crate) module_identifier: &'parser ModuleIdentifier,
   // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
@@ -202,7 +202,7 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn new(
     source_file: &'parser SourceFile,
     compiler_options: &'parser CompilerOptions,
-    javascript_options: Option<&'parser JavascriptParserOptions>,
+    javascript_options: &'parser JavascriptParserOptions,
     comments: Option<&'parser dyn Comments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
@@ -274,15 +274,7 @@ impl<'parser> JavascriptParser<'parser> {
     }
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
-      let parse_url = &compiler_options
-        .module
-        .parser
-        .as_ref()
-        .and_then(|p| p.get(module_type))
-        .and_then(|p| p.get_javascript(module_type))
-        .map(|p| p.url)
-        .unwrap_or(JavascriptParserUrl::Enable);
-
+      let parse_url = javascript_options.url;
       if !matches!(parse_url, JavascriptParserUrl::Disable) {
         plugins.push(Box::new(parser_plugin::URLPlugin {
           relative: matches!(parse_url, JavascriptParserUrl::Relative),
@@ -696,6 +688,7 @@ impl JavascriptParser<'_> {
   fn evaluating(&mut self, expr: &Expr) -> Option<BasicEvaluatedExpression> {
     match expr {
       Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
+      Expr::TaggedTpl(tagged_tpl) => eval::eval_tagged_tpl_expression(self, tagged_tpl),
       Expr::Lit(lit) => eval::eval_lit_expr(lit),
       Expr::Cond(cond) => eval::eval_cond_expression(self, cond),
       Expr::Unary(unary) => eval::eval_unary_expression(self, unary),

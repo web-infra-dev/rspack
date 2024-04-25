@@ -64,6 +64,7 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
       namespace_object: ContextNameSpaceObject::Unset,
       group_options: None,
       mode,
+      replaces: Vec::new(),
       start: node.span().real_lo(),
       end: node.span().real_hi(),
     }
@@ -79,6 +80,7 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
       context,
       namespace_object: ContextNameSpaceObject::Unset,
       group_options: None,
+      replaces: Vec::new(),
       start: node.span().real_lo(),
       end: node.span().real_hi(),
     }

@@ -1,3 +1,2 @@
-const m = "module.js";
-import("./" + m);
-import("./empty/" + m);
+import "./dynamic-import";
+import "./cjs-require";

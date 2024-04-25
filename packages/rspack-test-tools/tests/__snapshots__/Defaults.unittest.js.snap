@@ -180,6 +180,35 @@ Object {
       },
       "javascript": Object {
         "dynamicImportMode": "lazy",
+        "dynamicImportPrefetch": false,
+        "dynamicImportPreload": false,
+        "exprContextCritical": true,
+        "url": true,
+        "wrappedContextCritical": false,
+      },
+      "javascript/auto": Object {
+        "dynamicImportMode": "lazy",
+        "dynamicImportPrefetch": false,
+        "dynamicImportPreload": false,
+        "exprContextCritical": true,
+        "url": true,
+        "wrappedContextCritical": false,
+      },
+      "javascript/dynamic": Object {
+        "dynamicImportMode": "lazy",
+        "dynamicImportPrefetch": false,
+        "dynamicImportPreload": false,
+        "exprContextCritical": true,
+        "url": true,
+        "wrappedContextCritical": false,
+      },
+      "javascript/esm": Object {
+        "dynamicImportMode": "lazy",
+        "dynamicImportPrefetch": false,
+        "dynamicImportPreload": false,
+        "exprContextCritical": true,
+        "url": true,
+        "wrappedContextCritical": false,
       },
     },
     "rules": Array [],
@@ -447,6 +476,9 @@ Object {
     ],
     "modules": Array [
       "node_modules",
+    ],
+    "roots": Array [
+      "<cwd>",
     ],
   },
   "resolveLoader": Object {
