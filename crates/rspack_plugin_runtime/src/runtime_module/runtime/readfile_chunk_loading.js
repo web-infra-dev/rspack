@@ -1,6 +1,4 @@
 var installChunk = function (chunk) {
-  // FIXME: 
-  console.log('installChunk', chunk)
   var moreModules = chunk.modules, chunkIds = chunk.ids,
     runtime = chunk.runtime;
   for (var moduleId in moreModules) {
