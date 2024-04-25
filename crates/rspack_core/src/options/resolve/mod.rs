@@ -23,7 +23,7 @@ pub(super) type Fallback = Alias;
 pub(super) type FullySpecified = bool;
 pub(super) type EnforceExtension = bool;
 pub(super) type ExportsField = Vec<Vec<String>>;
-pub(super) type ImportsField = Vec<Vec<String>>;
+pub(super) type ImportsFields = Vec<Vec<String>>;
 pub(super) type ExtensionAlias = Vec<(String, Vec<String>)>;
 pub(super) type Modules = Vec<String>;
 pub(super) type Roots = Vec<String>;
@@ -76,7 +76,9 @@ pub struct Resolve {
   /// A list of directories where requests of server-relative URLs (starting with '/') are resolved
   pub roots: Option<Roots>,
   /// A list of resolve restrictions to restrict the paths that a request can be resolved on.
-  pub restrictions: Option<Roots>,
+  pub restrictions: Option<Restrictions>,
+  /// Field names from the description file (usually package.json) which are used to provide internal request of a package (requests starting with # are considered as internal).
+  pub imports_fields: Option<ImportsFields>,
   /// Configure resolve options by the type of module request.
   pub by_dependency: Option<ByDependency>,
   /// The JSON files to use for descriptions
@@ -84,8 +86,6 @@ pub struct Resolve {
   pub description_files: Option<DescriptionFiles>,
   /// If enforce_extension is set to EnforceExtension::Enabled, resolution will not allow extension-less files. This means require('./foo.js') will resolve, while require('./foo') will not.
   pub enforce_extension: Option<EnforceExtension>,
-  /// Fields from package.json which are used to provide the internal requests of a package (requests starting with # are considered internal).
-  pub imports_field: Option<ImportsField>,
 }
 
 /// Tsconfig Options

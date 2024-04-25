@@ -202,7 +202,7 @@ fn to_oxc_resolver_options(
     .description_files
     .unwrap_or_else(|| vec!["package.json".to_string()]);
   let imports_fields = options
-    .imports_field
+    .imports_fields
     .unwrap_or_else(|| vec![vec!["imports".to_string()]]);
   let extensions = options.extensions.expect("should have extensions");
   let alias = options
@@ -270,6 +270,7 @@ fn to_oxc_resolver_options(
     .into_iter()
     .map(PathBuf::from)
     .collect();
+
   oxc_resolver::ResolveOptions {
     fallback,
     modules,

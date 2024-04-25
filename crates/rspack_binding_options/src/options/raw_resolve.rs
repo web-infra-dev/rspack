@@ -121,7 +121,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
     let roots = value.roots;
     let enforce_extension = value.enforce_extension;
     let description_files = value.description_files;
-    let imports_field = value
+    let imports_fields = value
       .imports_fields
       .map(|v| v.into_iter().map(|s| vec![s]).collect());
 
@@ -146,7 +146,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
       roots,
       enforce_extension,
       description_files,
-      imports_field,
+      imports_fields,
     })
   }
 }
