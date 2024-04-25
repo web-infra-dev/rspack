@@ -11,7 +11,7 @@ module.exports = {
 
 		@@ ... @@
 		-   "context": "<cwd>",
-		+   "context": "/Users/bytedance/rspack-dev/rspack/packages/rspack/tests/fixtures/browserslist",
+		+   "context": "<cwd>/tests/fixtures/browserslist",
 		@@ ... @@
 		-     "chunkLoadingGlobal": "webpackChunk_rspack_test_tools",
 		+     "chunkLoadingGlobal": "webpackChunkbrowserslist_test",
@@ -26,6 +26,6 @@ module.exports = {
 		+     "uniqueName": "browserslist-test",
 		@@ ... @@
 		-       "<cwd>",
-		+       "/Users/bytedance/rspack-dev/rspack/packages/rspack/tests/fixtures/browserslist",
+		+       "<cwd>/tests/fixtures/browserslist",
 	`)
 };
