@@ -13,16 +13,16 @@ module.exports = {
 		-   "context": "<cwd>",
 		+   "context": "<cwd>/tests/fixtures/browserslist",
 		@@ ... @@
-		-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
+		-     "chunkLoadingGlobal": "webpackChunk_rspack_test_tools",
 		+     "chunkLoadingGlobal": "webpackChunkbrowserslist_test",
 		@@ ... @@
-		-     "devtoolNamespace": "@rspack/core",
+		-     "devtoolNamespace": "@rspack/test-tools",
 		+     "devtoolNamespace": "browserslist-test",
 		@@ ... @@
-		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
+		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_test_tools",
 		+     "hotUpdateGlobal": "webpackHotUpdatebrowserslist_test",
 		@@ ... @@
-		-     "uniqueName": "@rspack/core",
+		-     "uniqueName": "@rspack/test-tools",
 		+     "uniqueName": "browserslist-test",
 		@@ ... @@
 		-       "<cwd>",

@@ -76,6 +76,9 @@ export function compareModules(modules: string[], sourceModules: Map<string, str
 export function createBuiltinCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
+export function createCompilerCase(name: string, src: string, dist: string, root: string): void;
+
+// @public (undocumented)
 export function createConfigCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
@@ -98,6 +101,9 @@ export function createHotStepCase(name: string, src: string, dist: string, targe
 
 // @public (undocumented)
 export function createNormalCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
+export function createStatsAPICase(name: string, src: string, dist: string, root: string): void;
 
 // @public (undocumented)
 export function createStatsCase(name: string, src: string, dist: string): void;
@@ -223,6 +229,9 @@ export enum EEsmMode {
 
 // @public (undocumented)
 export function formatCode(name: string, raw: string, options: IFormatCodeOptions): string;
+
+// @public (undocumented)
+export function getSimpleProcessorRunner(src: string, dist: string, env: ITestEnv): (name: string, processor: ITestProcessor) => Promise<void>;
 
 // @public (undocumented)
 export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {

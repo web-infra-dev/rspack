@@ -6,12 +6,12 @@ const {
 	isDirectory,
 	isValidCaseDirectory,
 	createDefaultsCase
-} = require("..");
+} = require("../dist");
 
 describe("snapshots", () => {
 	DefaultsConfigTaskProcessor.addSnapshotSerializer();
 	const baseConfig = DefaultsConfigTaskProcessor.getDefaultConfig(
-		path.resolve(__dirname, "../../rspack"),
+		path.resolve(__dirname, ".."),
 		{ mode: "none" }
 	);
 

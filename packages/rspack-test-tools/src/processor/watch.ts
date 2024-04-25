@@ -12,9 +12,10 @@ import fs from "fs";
 import copyDiff from "../helper/legacy/copyDiff";
 import { ECompilerEvent } from "../compiler";
 
+// This file is used to port step number to webpack.config.js
 const currentWatchStepModulePath = path.resolve(
 	__dirname,
-	"../../../rspack/tests/helpers/currentWatchStep"
+	"../helper/util/currentWatchStep"
 );
 
 type TRspackExperiments = TCompilerOptions<ECompilerType.Rspack>["experiments"];

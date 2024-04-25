@@ -1,5 +1,5 @@
 const path = require("path");
-const { describeByWalk, createWatchCase } = require("..");
+const { describeByWalk, createWatchCase } = require("../dist");
 
 const NAME = "WatchTestCases";
 const caseDir = path.resolve(__dirname, "./watchCases");
