@@ -11,7 +11,7 @@ const {
 describe("snapshots", () => {
 	DefaultsConfigTaskProcessor.addSnapshotSerializer();
 	const baseConfig = DefaultsConfigTaskProcessor.getDefaultConfig(
-		__dirname,
+		path.resolve(__dirname, ".."),
 		{ mode: "none" }
 	);
 
