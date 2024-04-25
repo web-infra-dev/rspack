@@ -13,6 +13,7 @@ import {
 	TUpdateOptions
 } from "./hot";
 import fs from "fs-extra";
+import { THotStepRuntimeData } from "../runner";
 
 const escapeLocalName = (str: string) => str.split(/[-<>:"/|?*.]/).join("_");
 
@@ -73,7 +74,8 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 			"hotUpdateStepChecker",
 			(
 				hotUpdateContext: TUpdateOptions,
-				stats: TCompilerStats<ECompilerType.Rspack>
+				stats: TCompilerStats<ECompilerType.Rspack>,
+				runtime: THotStepRuntimeData
 			) => {
 				const statsJson = stats.toJson({ assets: true, chunks: true });
 				for (let entry of (stats?.compilation.chunks || []).filter(i =>
@@ -86,7 +88,8 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 				this.matchStepSnapshot(
 					context,
 					hotUpdateContext.updateIndex,
-					statsJson
+					statsJson,
+					runtime
 				);
 				this.hashes.push(stats.hash!);
 			}
@@ -94,7 +97,11 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 		context.setValue(
 			this._options.name,
 			"hotUpdateStepErrorChecker",
-			(_: TUpdateOptions, stats: TCompilerStats<ECompilerType.Rspack>) => {
+			(
+				_: TUpdateOptions,
+				stats: TCompilerStats<ECompilerType.Rspack>,
+				runtime: THotStepRuntimeData
+			) => {
 				this.hashes.push(stats.hash!);
 			}
 		);
@@ -123,15 +130,14 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 		this.hashes.push(stats.hash!);
 		if (matchFailed) {
 			throw matchFailed;
-		} else {
-			await super.check(env, context);
 		}
 	}
 
 	protected matchStepSnapshot(
 		context: ITestContext,
 		step: number,
-		stats: StatsCompilation
+		stats: StatsCompilation,
+		runtime?: THotStepRuntimeData
 	) {
 		const compiler = this.getCompiler(context);
 		const compilerOptions = compiler.getOptions();
@@ -235,6 +241,19 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 		hotUpdateManifest.sort((a, b) => (a.name > b.name ? 1 : -1));
 		hotUpdateFile.sort((a, b) => (a.name > b.name ? 1 : -1));
 
+		if (runtime?.javascript) {
+			runtime.javascript.outdatedModules.sort();
+			runtime.javascript.updatedModules.sort();
+			runtime.javascript.updatedRuntime.sort();
+			runtime.javascript.acceptedModules.sort();
+			runtime.javascript.disposedModules.sort();
+			for (let value of Object.values(
+				runtime.javascript.outdatedDependencies
+			)) {
+				value.sort();
+			}
+		}
+
 		let content = `
 # ${title}
 
@@ -274,12 +293,63 @@ ${i.runtime.map(i => `- ${i}`).join("\n")}
 \`\`\`js
 ${i.content}
 \`\`\`
-
 `
 	)
 	.join("\n\n")}
 
-		`.trim();
+
+${
+	runtime
+		? `
+## Runtime
+### Status
+
+\`\`\`txt
+${runtime.statusPath.join(" => ")}
+\`\`\`
+
+${
+	runtime.javascript
+		? `
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+${runtime.javascript.outdatedModules.map(i => `- ${i}`).join("\n")}
+
+
+Outdated Dependencies:
+\`\`\`json
+${JSON.stringify(runtime.javascript.outdatedDependencies || {}, null, 2)}
+\`\`\`
+
+#### Updated
+
+Updated Modules:
+${runtime.javascript.updatedModules.map(i => `- ${i}`).join("\n")}
+
+Updated Runtime:
+${runtime.javascript.updatedRuntime.map(i => `- \`${i}\``).join("\n")}
+
+
+#### Callback
+
+Accepted Callback:
+${runtime.javascript.acceptedModules.map(i => `- ${i}`).join("\n")}
+
+Disposed Callback:
+${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
+`
+		: ""
+}
+
+`
+		: ""
+}
+
+				`.trim();
 
 		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
 			fs.ensureDirSync(path.dirname(snapshotPath));

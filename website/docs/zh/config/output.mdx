@@ -14,14 +14,14 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 - **类型：** `string`
 - **默认值：** `'[hash][ext][query]'`
 - **支持的 Template String：**
-  - [Module Context](/config/output.html#module-context)
-  - [File Context](/config/output.html#file-context)
+  - [Module Context](/config/output#module-context)
+  - [File Context](/config/output#file-context)
 
-Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename](/config/module.html#rulegeneratorfilename) 覆盖。
+Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename](/config/module#rulegeneratorfilename) 覆盖。
 
 :::info Asset module 作为一个单独的文件输出的情况
 
-- 模块类型为 `'asset'` 且 asset 为满足 [`Rule.parser.dataUrlCondition`](/config/module.html#ruleparserdataurlcondition) 设定值
+- 模块类型为 `'asset'` 且 asset 为满足 [`Rule.parser.dataUrlCondition`](/config/module#ruleparserdataurlcondition) 设定值
 - 模块类型为 `'asset/resource'`
 
 :::
@@ -108,15 +108,15 @@ module.exports = {
 };
 ```
 
-更多可以参考 [Template String](/config/output.html#template-string)。
+更多可以参考 [Template String](/config/output#template-string)。
 
 ## output.chunkFilename
 
 - **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
-- **默认值：** 根据 [`output.filename`](/config/output.html#outputfilename) 推断
+- **默认值：** 根据 [`output.filename`](/config/output#outputfilename) 推断
 - **支持的 Template String：**
-  - [Compilation Context](/config/output.html#compilation-context)
-  - [Chunk Context](/config/output.html#chunk-context)
+  - [Compilation Context](/config/output#compilation-context)
+  - [Chunk Context](/config/output#chunk-context)
 
 此选项决定了非初始（non-initial）JavaScript chunk 文件的名称。
 
@@ -124,7 +124,7 @@ module.exports = {
 
 - **类型：** `false | 'array-push' | 'commonjs' | 'module'`
 
-chunk 产物的格式，默认值会根据 [`target`](/zh/config/target.html) 和 [`output.module`](#outputmodule) 的配置而决定，一般来说，target 为 web 或 webworker 时会使用 `'array-push'` 格式；为 ESM 时会使用 `'module'` 格式；为 node.js 时会使用 `'commonjs'` 格式
+chunk 产物的格式，默认值会根据 [`target`](/config/target) 和 [`output.module`](#outputmodule) 的配置而决定，一般来说，target 为 web 或 webworker 时会使用 `'array-push'` 格式；为 ESM 时会使用 `'module'` 格式；为 node.js 时会使用 `'commonjs'` 格式
 
 ```ts title="rspack.config.js"
 module.exports = {
@@ -138,7 +138,7 @@ module.exports = {
 
 - **类型：** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import'`
 
-加载 chunk 的方式，默认值会根据 [`target`](/zh/config/target.html) 和 [`chunkFormat`](#outputchunkformat) 的配置而决定，一般来说，target 为 web 时会使用 `'jsonp'` 来加载 chunk；为 ESM 时会使用 `'import'` 来加载 chunk；为 webworker 时会使用 `'import-scripts'` 来加载 chunk；为 node.js 时会使用 `'require'` 来加载 chunk；为 async node.js 时会使用 `'async-node'`（`fs.readFile` + `vm.runInThisContext`）来加载 chunk
+加载 chunk 的方式，默认值会根据 [`target`](/config/target) 和 [`chunkFormat`](#outputchunkformat) 的配置而决定，一般来说，target 为 web 时会使用 `'jsonp'` 来加载 chunk；为 ESM 时会使用 `'import'` 来加载 chunk；为 webworker 时会使用 `'import-scripts'` 来加载 chunk；为 node.js 时会使用 `'require'` 来加载 chunk；为 async node.js 时会使用 `'async-node'`（`fs.readFile` + `vm.runInThisContext`）来加载 chunk
 
 ```ts title="rspack.config.js"
 module.exports = {
@@ -151,7 +151,7 @@ module.exports = {
 ## output.chunkLoadingGlobal
 
 - **类型：** `string`
-- **默认值：** 根据 [`output.uniqueName`](/config/output.html#outputuniquename) 推断
+- **默认值：** 根据 [`output.uniqueName`](/config/output#outputuniquename) 推断
   - `webpackChunk${output.uniqueName}`
 
 此选项决定了 Rspack 用于加载 chunk 的全局变量。
@@ -170,13 +170,13 @@ module.exports = {
 
 当模板字符串或函数产生重复时使用的备用内容。
 
-详见 [`output.devtoolModuleFilenameTemplate`](/zh/config/output.html#outputdevtoolmodulefilenametemplate).
+详见 [`output.devtoolModuleFilenameTemplate`](/config/output#outputdevtoolmodulefilenametemplate).
 
 ## output.devtoolModuleFilenameTemplate
 
 - **Type:** `string = 'webpack://[namespace]/[resource-path]?[loaders]'` | `function (info) => string`
 
-此选项仅在 [`devtool`](/zh/config/devtool.html) 使用了需要模块名称的选项时使用。
+此选项仅在 [`devtool`](/config/devtool.html) 使用了需要模块名称的选项时使用。
 
 自定义每个 source map 的 `sources` 数组中使用的名称。可以通过传递模板字符串或者函数来完成。例如，当使用 `devtool: 'eval'`，默认值是：
 
@@ -216,11 +216,11 @@ module.exports = {
 };
 ```
 
-如果多个模块产生相同的名称，使用 [`output.devtoolFallbackModuleFilenameTemplate`](/zh/config/output.html#outputdevtoolfallbackmodulefilenametemplate) 来代替这些模块。
+如果多个模块产生相同的名称，使用 [`output.devtoolFallbackModuleFilenameTemplate`](/config/output#outputdevtoolfallbackmodulefilenametemplate) 来代替这些模块。
 
 ## output.devtoolNamespace
 
-此选项确定 [`output.devtoolModuleFilenameTemplate`](/zh/config/output.html#outputdevtoolmodulefilenametemplate) 使用的模块名称空间。未指定时的默认值为：[`output.uniqueName`](/zh/config/output.html#outputuniquename)。在加载多个通过 Rspack 构建的 library 时，用于防止 source map 中源文件路径冲突。
+此选项确定 [`output.devtoolModuleFilenameTemplate`](/config/output#outputdevtoolmodulefilenametemplate) 使用的模块名称空间。未指定时的默认值为：[`output.uniqueName`](/config/output#outputuniquename)。在加载多个通过 Rspack 构建的 library 时，用于防止 source map 中源文件路径冲突。
 
 例如，如果你有两个 `library`，分别使用命名空间 `library1` 和 `library2`，并且都有一个文件 `./src/index.js`（可能具有不同内容），它们会将这些文件暴露为 `webpack://library1/./src/index.js` 和 `webpack://library2/./src/index.js`。
 
@@ -242,17 +242,17 @@ module.exports = {
 ## output.cssFilename
 
 - **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
-- **默认值：** 根据 [`output.filename`](/config/output.html#outputfilename) 推断
+- **默认值：** 根据 [`output.filename`](/config/output#outputfilename) 推断
 
 此选项决定了 CSS 文件的名称。
 
 ## output.cssChunkFilename
 
 - **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
-- **默认值：** 根据 [`output.chunkFilename`](/config/output.html#outputchunkfilename) 推断
+- **默认值：** 根据 [`output.chunkFilename`](/config/output#outputchunkfilename) 推断
 - **支持的 Template String：**
-  - [Compilation Context](/config/output.html#compilation-context)
-  - [Chunk Context](/config/output.html#chunk-context)
+  - [Compilation Context](/config/output#compilation-context)
+  - [Chunk Context](/config/output#chunk-context)
 
 此选项决定了非初始（non-initial）CSS chunk 文件的名称。
 
@@ -373,7 +373,7 @@ import './others.js';
 
 ## Template String
 
-可以用下方的模板字符串来替换对应文件名。不同的 context 对应了不同的可替换内容，如 [`output.assetModuleFilename`](/config/output.html#outputassetmodulefilename) 支持使用 [file context](/config/output.html#file-context) 和 [module context](/config/output.html#module-context)。
+可以用下方的模板字符串来替换对应文件名。不同的 context 对应了不同的可替换内容，如 [`output.assetModuleFilename`](/config/output#outputassetmodulefilename) 支持使用 [file context](/config/output#file-context) 和 [module context](/config/output#module-context)。
 
 ### Compilation Context
 
@@ -1239,13 +1239,13 @@ module.exports = {
 ## output.uniqueName
 
 - **类型：** `string`
-- **默认值：** 默认使用 [`output.library`](/config/output.html#outputlibrary) 名称或者上下文中的 package.json 的 包名称(package name)， 如果两者都不存在，值为 ''。
+- **默认值：** 默认使用 [`output.library`](/config/output#outputlibrary) 名称或者上下文中的 package.json 的 包名称(package name)， 如果两者都不存在，值为 ''。
 
 此选项决定了在全局环境下为防止多个 rspack 运行时 冲突所使用的唯一名称。
 
 `output.uniqueName` 将用于生成唯一全局变量:
 
-- [`output.chunkLoadingGlobal`](/config/output.html#outputchunkloadingglobal)
+- [`output.chunkLoadingGlobal`](/config/output#outputchunkloadingglobal)
 
 ```ts title="rspack.config.js"
 module.exports = {
@@ -1269,7 +1269,7 @@ module.exports = {
 - **类型：** `boolean`
 - **默认值：** `false`
 
-以 ESM 模块的形式输出 JavaScript 文件。由于此功能还处于实验阶段，默认关闭，想要使用的话必须将 [`experiments.outputModule`](zh/config/experiments.html#experimentsoutputmodule) 设置为 true
+以 ESM 模块的形式输出 JavaScript 文件。由于此功能还处于实验阶段，默认关闭，想要使用的话必须将 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) 设置为 true
 
 ## output.wasmLoading
 
@@ -1278,7 +1278,7 @@ module.exports = {
 
 用于设置加载 WebAssembly 模块的方式。默认方式包括 `'fetch'`（web/webworker）、`'async-node'`（Node.js）
 
-默认值会受不同 [`target`](/zh/config/target.html) 的影响：
+默认值会受不同 [`target`](/config/target) 的影响：
 
 - 如果目标设置为 `'web'`、`'webworker'`、`'electron-renderer'` 或 `'node-webkit'`，默认值为 `'fetch'`。
 - 如果目标设置为 `'node'`、`'async-node'`、`'electron-main'` 或 `'electron-preload'`，则默认为 `'async-node'`。
@@ -1323,4 +1323,4 @@ module.exports = {
 - **类型：** `string`
 - **默认值：** `"webpackHotUpdate" + output.uniqueName`
 
-只在 [chunkLoading](/config/output.html#outputchunkloading) 为 `"jsonp"` 或 `"import-scripts"` 时会被使用。该全局变量会用来请求并加载热更新文件。
+只在 [chunkLoading](/config/output#outputchunkloading) 为 `"jsonp"` 或 `"import-scripts"` 时会被使用。该全局变量会用来请求并加载热更新文件。

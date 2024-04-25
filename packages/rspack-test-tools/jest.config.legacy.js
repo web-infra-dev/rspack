@@ -10,6 +10,8 @@ module.exports = {
 		"Stats.test.js",
 		"TreeShaking.test.js",
 		"Builtin.test.js",
+		"HotTestStepWeb.test.js",
+		"ConfigTestCases.basictest.js",
 		".difftest.js"
 	]
 };

@@ -81,14 +81,14 @@ export function Button({ children }) {
 
 这样做导致 Rspack 并不是真正意义上的框架无关，如果你在使用 Vue 等其他框架时，就需要手动通过 [builtins.react.refresh](config/builtins#builtinsreact) 来禁用 React Fast Refresh 功能，以防止为一些 Vue 模块注入 React Fast Refresh 相关的代码。
 
-我们意识到这一问题，希望通过 [experiments.rspackFuture.disableTransformByDefault](/config/experiments.html#disabletransformbydefault) 和 [@rspack/plugin-react-refresh](/guide/react.html#rspackplugin-react-refresh) 来帮助用户逐渐地迁移到更为正确的方式上来，即第二种方式。
+我们意识到这一问题，希望通过 [experiments.rspackFuture.disableTransformByDefault](/config/experiments#disabletransformbydefault) 和 [@rspack/plugin-react-refresh](/guide/react#rspackplugin-react-refresh) 来帮助用户逐渐地迁移到更为正确的方式上来，即第二种方式。
 
 ### @rspack/plugin-react-refresh
 
 <ApiMeta addedVersion={'0.3.5'} />
 
 :::warning
-`@rspack/plugin-react-refresh` 依赖于 [experiments.rspackFuture.disableTransformByDefault](/config/experiments.html#disabletransformbydefault)
+`@rspack/plugin-react-refresh` 依赖于 [experiments.rspackFuture.disableTransformByDefault](/config/experiments#disabletransformbydefault)
 :::
 
 首先需要安装相关依赖：

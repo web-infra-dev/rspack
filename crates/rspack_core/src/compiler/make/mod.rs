@@ -138,7 +138,7 @@ impl UpdateModuleGraph {
       })
       .collect::<Vec<_>>();
 
-    let mut make_module_graph = ModuleGraphPartial::new(true);
+    let mut make_module_graph = ModuleGraphPartial::default();
     compilation.swap_make_module_graph(&mut make_module_graph);
     let mut ctx = MakeTaskContext::new(compilation, make_module_graph);
     let res = run_task_loop(&mut ctx, init_tasks);

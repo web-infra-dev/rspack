@@ -22,13 +22,13 @@ import { ApiMeta, Stability } from '../../../../components/ApiMeta.tsx';
   - 类型：`string | false`
   - 作用：定义远程应用入口的 runtime chunk。
 - library
-  - 类型：[`LibraryOptions`](/config/output.html#outputlibrary)
+  - 类型：[`LibraryOptions`](/config/output#outputlibrary)
   - 作用：定义远程应用入口的产物格式。默认的 libraryType 为 `"var"`。
 - shareScope
   - 类型：`string`
   - 作用：定义当前应用共享依赖的命名空间。通过在不同的应用之间配置命名空间，可以控制模块的共享行为，包括确定哪些模块在不同的应用之间是共享的。默认的命名空间为 `"default"`。
 - remoteType
-  - 类型：[`ExternalsType`](/config/externals.html#externalstype)
+  - 类型：[`ExternalsType`](/config/externals#externalstype)
   - 作用：定义如何加载远程应用，默认为 `"script"`，即通过 `<script />` 标签加载。
 - remotes
   - 类型：

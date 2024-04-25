@@ -62,7 +62,7 @@ node_modules/
 !webpack-test/*/**/node_modules
 !packages/rspack-cli/tests/**/node_modules
 !packages/rspack/tests/**/node_modules
-!packages/rspack/tests/configCases/less/resolve/node_modules
+!packages/rspack-test-tools/tests/**/node_modules
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)

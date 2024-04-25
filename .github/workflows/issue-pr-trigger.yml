@@ -17,14 +17,10 @@ jobs:
       - name: Check if triggered by project member
         id: check_member
         if: github.event.sender.type == 'User'
-        env:
-          REPO_OWNER: ${{ github.repository_owner }}
-          GH_TOKEN: ${{ github.token }}
         run: |
           SENDER=${{ github.event.sender.login }}
-          MEMBER=$(gh api /orgs/$REPO_OWNER/members/$SENDER | jq -r '.id')
-          
-          if [[ -n $MEMBER ]]; then
+          TEAMS_FILE="./.github/teams.yml"
+          if grep -qi -- "\"@$SENDER\"" $TEAMS_FILE; then
             echo "::set-output name=skip::true"
             echo "Workflow triggered by a project member: $SENDER , will NOT trigger lark notify"
           else

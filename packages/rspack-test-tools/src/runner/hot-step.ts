@@ -9,6 +9,7 @@ import {
 } from "../type";
 import { HotRunnerFactory } from "./hot";
 import { WebRunner } from "./runner/web";
+import { THotStepRuntimeData } from "./type";
 
 export class HotStepRunnerFactory<
 	T extends ECompilerType
@@ -51,9 +52,14 @@ export class HotStepRunnerFactory<
 								: "hotUpdateStepChecker"
 						) as (
 							context: { updateIndex: number },
-							stats: TCompilerStats<T>
+							stats: TCompilerStats<T>,
+							runtime: THotStepRuntimeData
 						) => void;
-						checker(hotUpdateContext, stats as TCompilerStats<T>);
+						checker(
+							hotUpdateContext,
+							stats as TCompilerStats<T>,
+							runner.getGlobal("__HMR_UPDATED_RUNTIME__") as THotStepRuntimeData
+						);
 						callback(null, jsonStats as StatsCompilation);
 					} catch (e) {
 						callback(e as Error);
@@ -62,7 +68,7 @@ export class HotStepRunnerFactory<
 				.catch(callback);
 		};
 
-		return new WebRunner({
+		const runner = new WebRunner({
 			dom: "jsdom",
 			env,
 			stats,
@@ -82,5 +88,7 @@ export class HotStepRunnerFactory<
 			dist,
 			compilerOptions
 		});
+
+		return runner;
 	}
 }

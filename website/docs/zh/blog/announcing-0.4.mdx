@@ -64,16 +64,16 @@ Rspack 不再支持 Node.js 14，现在需要 Node.js 16+。
 
 `experiments.rspackFuture.disableTransformByDefault` 在 v0.4.0 中默认启用。对于仍需要旧行为的用户，可以手动将此选项设置为 `false`。
 
-此功能主要解决三类问题：[内置](https://www.rspack.dev/config/builtins) 代码转换功能，[目标](https://www.rspack.dev/config/target)，和自定义 [Rule.type](https://www.rspack.dev/config/module#ruletype)。
+此功能主要解决三类问题：[内置](/config/builtins) 代码转换功能，[目标](/config/target)，和自定义 [Rule.type](/config/module#ruletype)。
 
-1. 移除对一些 [内置](https://www.rspack.dev/config/builtins) 功能的支持：
+1. 移除对一些 [内置](/config/builtins) 功能的支持：
 
-- [builtins.relay](https://www.rspack.dev/config/builtins#builtinsrelay)：移动到 `rspackExperiments.relay`
-- [builtins.react](https://www.rspack.dev/config/builtins#builtinsreact)：移动到 `jsc.transform.react`
-- [builtins.emotion](https://www.rspack.dev/config/builtins#builtinsemotion)：移动到 `rspackExperiments.emotion`
-- [builtins.pluginImport](https://www.rspack.dev/config/builtins#builtinspluginimport)：移动到 `rspackExperiments.import`
-- [builtins.decorator](https://www.rspack.dev/config/builtins#builtinsdecorator)：移动到 `jsc.parser.decorator`
-- [builtins.presetEnv](https://www.rspack.dev/config/builtins#builtinspresetenv)：移动到 `jsc.env`
+- [builtins.relay](/config/builtins#builtinsrelay)：移动到 `rspackExperiments.relay`
+- [builtins.react](/config/builtins#builtinsreact)：移动到 `jsc.transform.react`
+- [builtins.emotion](/config/builtins#builtinsemotion)：移动到 `rspackExperiments.emotion`
+- [builtins.pluginImport](/config/builtins#builtinspluginimport)：移动到 `rspackExperiments.import`
+- [builtins.decorator](/config/builtins#builtinsdecorator)：移动到 `jsc.parser.decorator`
+- [builtins.presetEnv](/config/builtins#builtinspresetenv)：移动到 `jsc.env`
 
 ```javascript
 module.exports = {
@@ -110,7 +110,7 @@ module.exports = {
 };
 ```
 
-2. [target](https://www.rspack.dev/config/target) 不再降级用户端代码（包含 node_modules）
+2. [target](/config/target) 不再降级用户端代码（包含 node_modules）
 
 ```diff
 module.exports = {
@@ -187,7 +187,7 @@ module.exports = {
 };
 ```
 
-查看更多详情，请访问 [这里](https://www.rspack.dev/zh/guide/react.html#fast-refresh)。
+查看更多详情，请访问 [这里](/guide/react#fast-refresh)。
 
 ### 废弃 builtin:sass-loader
 
@@ -215,7 +215,7 @@ module.exports = {
 
 `oxc_resolver` 是由 [oxc 项目](https://github.com/oxc-project/oxc) 提供的用 Rust 编写的模块解析器。新解析器已通过了 [enhanced-resolve](https://www.npmjs.com/package/enhanced-resolve) 的所有测试套件。它比以前的实现快 5 倍，比 enhanced-resolve 快 28 倍。
 
-新解析器可以配置为读取 `tsconfig.json` 的 `compilerOptions.paths` 和 `references` 字段,对 monorepo 的嵌套 alias 提供了内置支持。有关详细信息，请参阅 API [resolve.tsConfig](https://www.rspack.dev/config/resolve.html#resolvetsconfig)。
+新解析器可以配置为读取 `tsconfig.json` 的 `compilerOptions.paths` 和 `references` 字段,对 monorepo 的嵌套 alias 提供了内置支持。有关详细信息，请参阅 API [resolve.tsConfig](/config/resolve#resolvetsconfig)。
 
 要退出新解析器，请将 `experiments.rspackFuture.newResolver` 设置为 `false`。
 

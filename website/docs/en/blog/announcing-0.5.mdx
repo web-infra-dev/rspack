@@ -26,7 +26,7 @@ Support `rspack.HotModuleReplacementPlugin` in Rspack. If you are not using `@rs
 
 ### Remove default transformation
 
-Default transformation is a builtin, which internally transforms source files (such as TypeScript), into compatible sources (such as JavaScript). To make the transformation more customizable, we handed out this feature to users by using `builtin:swc-loader` and dropped the support of several [rule.type](https://www.rspack.dev/config/module.html#ruletype). These `rule.type`s are dropped:
+Default transformation is a builtin, which internally transforms source files (such as TypeScript), into compatible sources (such as JavaScript). To make the transformation more customizable, we handed out this feature to users by using `builtin:swc-loader` and dropped the support of several [rule.type](/config/module#ruletype). These `rule.type`s are dropped:
 
 - `"typescript"` or `"ts"`
 - `"tsx"`
@@ -179,7 +179,7 @@ And if you are still using `builtins.presetEnv`, `builtins.decorator`, `builtins
 
 ### Deprecating apply entry lazily
 
-Apply entry lazily is deprecating by rspackFuture: [experiments.rspackFuture.disableApplyEntryLazily](/config/experiments.html#experimentsrspackfuturedisableapplyentrylazily), which is introduced in v0.4.5, enabled by default in v0.5.0, and will be removed in v0.6.0.
+Apply entry lazily is deprecating by rspackFuture: [experiments.rspackFuture.disableApplyEntryLazily](/config/experiments#experimentsrspackfuturedisableapplyentrylazily), which is introduced in v0.4.5, enabled by default in v0.5.0, and will be removed in v0.6.0.
 
 When `experiments.rspackFuture.disableApplyEntryLazily` is `false`, `options.entry` can still make valid changes after `rspack(options)` is called, but with `true` it can't, and it's behave the same as webpack5.
 

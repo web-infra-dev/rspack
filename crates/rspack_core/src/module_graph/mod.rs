@@ -41,9 +41,6 @@ pub struct DependencyParents {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraphPartial {
-  // TODO: removed when new treeshaking is stable
-  is_new_treeshaking: bool,
-
   dependency_id_to_module_identifier: HashMap<DependencyId, Option<ModuleIdentifier>>,
 
   /// Module identifier to its module
@@ -69,16 +66,6 @@ pub struct ModuleGraphPartial {
   export_info_map: vec_map::VecMap<ExportInfo>,
   connection_to_condition: HashMap<ConnectionId, DependencyCondition>,
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
-}
-
-impl ModuleGraphPartial {
-  // TODO remove and use default() after new_treeshaking stable
-  pub fn new(is_new_treeshaking: bool) -> Self {
-    Self {
-      is_new_treeshaking,
-      ..Default::default()
-    }
-  }
 }
 
 #[derive(Debug, Default)]
@@ -136,18 +123,6 @@ impl<'a> ModuleGraph<'a> {
     }
 
     f_mut(active_partial)
-  }
-
-  // TODO: removed when new treeshaking is stable
-  pub fn is_new_treeshaking(&self) -> bool {
-    if let Some(active) = &self.active {
-      return active.is_new_treeshaking;
-    }
-    if let Some(p) = self.partials.last() {
-      p.is_new_treeshaking
-    } else {
-      panic!("can not get any partial module graph")
-    }
   }
 
   /// Return an unordered iterator of modules
@@ -705,13 +680,15 @@ impl<'a> ModuleGraph<'a> {
     original_module_identifier: Option<ModuleIdentifier>,
     dependency_id: DependencyId,
     module_identifier: ModuleIdentifier,
+    // TODO: removed when new treeshaking is stable
+    is_new_treeshaking: bool,
   ) -> Result<()> {
     let dependency = self
       .dependency_by_id(&dependency_id)
       .expect("should have dependency");
     let is_module_dependency =
       dependency.as_module_dependency().is_some() || dependency.as_context_dependency().is_some();
-    let condition = if self.is_new_treeshaking() {
+    let condition = if is_new_treeshaking {
       dependency
         .as_module_dependency()
         .and_then(|dep| dep.get_condition())
