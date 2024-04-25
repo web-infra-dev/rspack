@@ -1,8 +1,8 @@
 const path = require("path");
 const fs = require("fs");
 const { createCompilerCase } = require("../dist");
-const srcDir = path.resolve(__dirname, "../../rspack/tests/fixtures");
-const distDir = path.resolve(__dirname, "../../rspack/tests/js/compiler");
+const srcDir = path.resolve(__dirname, "./fixtures");
+const distDir = path.resolve(__dirname, "./js/compiler");
 const caseDir = path.resolve(__dirname, "./compilerCases");
 
 describe("Compiler", () => {

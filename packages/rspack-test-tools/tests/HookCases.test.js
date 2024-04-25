@@ -7,8 +7,8 @@ const prettyFormat = require("pretty-format");
 const createLazyTestEnv = require("../src/helper/legacy/createLazyTestEnv");
 const { Source } = require("webpack-sources");
 const normalizePaths = pathSerializer.normalizePaths;
-const srcDir = path.resolve(__dirname, "../../rspack/tests/fixtures");
-const distDir = path.resolve(__dirname, "../../rspack/tests/js/HookTestCases");
+const srcDir = path.resolve(__dirname, "./fixtures");
+const distDir = path.resolve(__dirname, "./js/HookTestCases");
 const caseDir = path.resolve(__dirname, "./hookCases");
 const {
 	HookTaskProcessor,
@@ -121,9 +121,9 @@ class HookCasesContext extends TestContext {
 		content = Buffer.isBuffer(content)
 			? content
 			: serialize(content, undefined, {
-					escapeString: true,
-					printBasicPrototype: true
-				}).replace(/\r\n/g, "\n");
+				escapeString: true,
+				printBasicPrototype: true
+			}).replace(/\r\n/g, "\n");
 		(this.snapshots[group] = this.snapshots[group] || []).push([content, name]);
 		if (!this.snapshotsList.includes(group)) {
 			this.snapshotsList.push(group);

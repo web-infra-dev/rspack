@@ -75,15 +75,9 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 		);
 	}
 
-	async compiler(context: ITestContext) {
-		throw new Error("Not support");
-	}
-	async build(context: ITestContext) {
-		throw new Error("Not support");
-	}
-	async run(env: ITestEnv, context: ITestContext) {
-		throw new Error("Not support");
-	}
+	async compiler(context: ITestContext) {}
+	async build(context: ITestContext) {}
+	async run(env: ITestEnv, context: ITestContext) {}
 
 	async check(env: ITestEnv, context: ITestContext) {
 		const compiler = this.getCompiler(context);
@@ -102,12 +96,8 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 
 	async before(context: ITestContext): Promise<void> {}
 	async after(context: ITestContext): Promise<void> {}
-	async beforeAll(context: ITestContext): Promise<void> {
-		throw new Error("Not support");
-	}
-	async afterAll(context: ITestContext) {
-		throw new Error("Not support");
-	}
+	async beforeAll(context: ITestContext): Promise<void> {}
+	async afterAll(context: ITestContext) {}
 
 	protected getCompiler(context: ITestContext) {
 		return context.getCompiler(this._options.name, this._options.compilerType);
