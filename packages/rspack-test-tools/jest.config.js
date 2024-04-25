@@ -7,12 +7,7 @@ const config = {
 	setupFilesAfterEnv: ["../rspack/tests/setupTestFramework.js"],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
-	testMatch: [
-		"<rootDir>/tests/*.test.js",
-		"<rootDir>/tests/*.basictest.js",
-		"<rootDir>/tests/*.longtest.js",
-		"<rootDir>/tests/*.unittest.js"
-	],
+	testMatch: ["<rootDir>/tests/*.test.js"],
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
 		slash: path.join(__dirname, "../../scripts/test/slash.cjs"),
