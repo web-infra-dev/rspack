@@ -190,6 +190,11 @@ export class JSDOMWebRunner<
           }
         });
         (function(window, self, globalThis, ${args.join(", ")}) {
+					var console = {
+						log: function() {},
+						error: function() {},
+						warn: function() {}
+					};
           ${file.content}
         })($$g$$, $$g$$, $$g$$, ${argValues});
       `;
