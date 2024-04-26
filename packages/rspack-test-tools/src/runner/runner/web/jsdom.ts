@@ -166,12 +166,10 @@ export class JSDOMWebRunner<
 				this._options.testConfig.moduleScope(currentModuleScope);
 			}
 
+			const scopeKey = file!.path.replace(path.win32.sep, path.posix.sep);
 			const args = Object.keys(currentModuleScope);
 			const argValues = args
-				.map(
-					arg =>
-						`window["${file!.path.replace(path.win32.sep, path.posix.sep)}"]["${arg}"]`
-				)
+				.map(arg => `window["${scopeKey}"]["${arg}"]`)
 				.join(", ");
 			const code = `
         // hijack document.currentScript for auto public path
@@ -198,7 +196,7 @@ export class JSDOMWebRunner<
       `;
 
 			this.preExecute(code, file);
-			this.dom.window[file.path] = currentModuleScope;
+			this.dom.window[scopeKey] = currentModuleScope;
 			try {
 				this.dom.window.eval(code);
 			} catch (e) {
