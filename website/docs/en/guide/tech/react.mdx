@@ -10,62 +10,52 @@ Rspack provides two solutions to support React:
 - **Use Rsbuild**: Rsbuild provides out-of-the-box support for React, allowing you to quickly create a React project. See ["Rsbuild - React"](https://rsbuild.dev/guide/framework/react) for details.
 - **Manual configuration**: You can refer to the current document to manually add configurations for React.
 
-## Configure JSX
+## Configure JSX/TSX
 
-Rspack has built-in support for JSX, which allows you to use JSX syntax directly in .jsx and .tsx files in your project. If you need to use JSX in .js or .ts files, you will need to configure it as follows:
+Rspack leverages SWC transformer for JSX/TSX.
+
+Add `builtin:swc-loader` loader to support `jsx` and `tsx`:
 
 ```js title=rspack.config.js
 module.exports = {
   module: {
     rules: [
       {
-        test: /\.js$/,
-        type: 'jsx',
+        test: /\.jsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: 'ecmascript',
+                jsx: true,
+              },
+            },
+          },
+        },
+        type: 'javascript/auto',
       },
       {
-        test: /\.ts$/,
-        type: 'tsx',
+        test: /\.tsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: 'typescript',
+                tsx: true,
+              },
+            },
+          },
+        },
+        type: 'javascript/auto',
       },
     ],
   },
 };
 ```
 
-## Emotion
-
-Rspack has built-in support for emotion, which allows you to use emotion syntax directly in .jsx and .tsx files in your project. You can use emotion functionality through the following configuration:
-
-```js title=rspack.config.js
-module.exports = {
-  builtins: {
-    emotion: true,
-    react: {
-      importSource: '@emotion/react',
-    },
-  },
-};
-```
-
-```js title=src/index.tsx
-import { css } from '@emotion/react';
-
-export function Button({ children }) {
-  return (
-    <button
-      css={css`
-        background: hotpink;
-        &:hover {
-          background: purple;
-        }
-      `}
-    >
-      {children}
-    </button>
-  );
-}
-```
-
-Other CSS-in-JS solutions can be used by configuring the babel-loader.
+Refer to [Builtin swc-loader](guide/features/builtin-swc-loader) for detailed configurations.
 
 ## Fast Refresh
 

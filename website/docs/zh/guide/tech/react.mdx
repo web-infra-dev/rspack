@@ -10,64 +10,52 @@ Rspack 提供两种方案来支持 React：
 - **使用 Rsbuild**：Rsbuild 提供对 React 开箱即用的支持，能够快速创建一个 React 项目，详见 ["Rsbuild - React"](https://rsbuild.dev/zh/guide/framework/react)。
 - **手动配置**：你可以参考当前文档，手动添加 React 相关的配置。
 
-## JSX
+## 配置 JSX/TSX
 
-Rspack 内置了对 JSX 的支持，你可以直接在项目中的 .jsx 和 .tsx 文件中使用 JSX 语法。
+Rspack 使用 SWC 转译器支持 JSX/TSX。
 
-如果你需要在 .js 或者 .ts 文件中使用 JSX，则需要如下配置：
+添加 `builtin:swc-loader` 以支持 `jsx` 和 `tsx`:
 
 ```js title=rspack.config.js
 module.exports = {
   module: {
     rules: [
       {
-        test: /\.js$/,
-        type: 'jsx',
+        test: /\.jsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: 'ecmascript',
+                jsx: true,
+              },
+            },
+          },
+        },
+        type: 'javascript/auto',
       },
       {
-        test: /\.ts$/,
-        type: 'tsx',
+        test: /\.tsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: 'typescript',
+                tsx: true,
+              },
+            },
+          },
+        },
+        type: 'javascript/auto',
       },
     ],
   },
 };
 ```
 
-## emotion
-
-Rspack 内置了对 emotion 的支持，你可以直接在项目中的 .jsx 和 .tsx 文件中使用 emotion 语法。通过如下配置使用 emotion 功能。
-
-```js title=rspack.config.js
-module.exports = {
-  builtins: {
-    emotion: true,
-    react: {
-      importSource: '@emotion/react',
-    },
-  },
-};
-```
-
-```js title=src/index.tsx
-import { css } from '@emotion/react';
-
-export function Button({ children }) {
-  return (
-    <button
-      css={css`
-        background: hotpink;
-        &:hover {
-          background: purple;
-        }
-      `}
-    >
-      {children}
-    </button>
-  );
-}
-```
-
-其他的 CSS-in-JS 方案，则可以通过配置 babel-loader 进行使用。
+关于配置项的更多信息请参考 [内置 swc-loader](guide/features/builtin-swc-loader)。
 
 ## Fast Refresh
 
