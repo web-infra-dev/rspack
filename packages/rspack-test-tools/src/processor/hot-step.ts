@@ -162,7 +162,8 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 		).map((i: string) =>
 			path
 				.relative(context.getSource(), i)
-				.replace(path.win32.sep, path.posix.sep)
+				.split(path.win32.sep)
+				.join(path.posix.sep)
 		);
 
 		const hashes: Record<string, string> = {
