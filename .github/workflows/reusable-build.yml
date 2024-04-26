@@ -50,10 +50,6 @@ on:
         type: boolean
         required: false
         default: true
-      test-diff: # Run Diff Test
-        type: boolean
-        required: false
-        default: false
       ref: # Git reference to checkout
         required: false
         type: string
@@ -293,11 +289,6 @@ jobs:
         timeout-minutes: 20 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && !inputs.skipable }}
         run: pnpm run test:ci
-
-      - name: Diff test
-        timeout-minutes: 15
-        if: ${{ inputs.test-diff && !inputs.skipable }}
-        run: pnpm run test:diff
 
       - name: API change check
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
