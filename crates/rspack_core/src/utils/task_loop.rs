@@ -29,8 +29,8 @@ pub enum TaskType {
 pub trait Task<Ctx>: Send {
   /// Return the task type
   ///
-  /// return `TaskType::Sync` will run `self::sync_run`
-  /// return `TaskType::Async` will run `self::async_run`
+  /// Return `TaskType::Sync` will run `self::sync_run`
+  /// Return `TaskType::Async` will run `self::async_run`
   fn get_task_type(&self) -> TaskType;
 
   /// Sync task process
@@ -50,6 +50,15 @@ pub trait Task<Ctx>: Send {
 pub fn run_task_loop<Ctx: 'static>(
   ctx: &mut Ctx,
   init_tasks: Vec<Box<dyn Task<Ctx>>>,
+) -> Result<()> {
+  run_task_loop_with_event(ctx, init_tasks, |res| res)
+}
+
+/// Run task loop with event
+pub fn run_task_loop_with_event<Ctx: 'static>(
+  ctx: &mut Ctx,
+  init_tasks: Vec<Box<dyn Task<Ctx>>>,
+  on_task_finish: impl Fn(TaskResult<Ctx>) -> TaskResult<Ctx>,
 ) -> Result<()> {
   // create channel to receive async task result
   let (tx, mut rx) = mpsc::unbounded_channel::<TaskResult<Ctx>>();
@@ -79,7 +88,7 @@ pub fn run_task_loop<Ctx: 'static>(
         }
         TaskType::Sync => {
           // merge sync task result directly
-          match task.sync_run(ctx) {
+          match on_task_finish(task.sync_run(ctx)) {
             Ok(r) => queue.extend(r),
             Err(e) => {
               is_expected_shutdown.store(true, Ordering::Relaxed);
@@ -94,7 +103,7 @@ pub fn run_task_loop<Ctx: 'static>(
       Ok(r) => {
         active_task_count -= 1;
         // merge async task result
-        match r {
+        match on_task_finish(r) {
           Ok(r) => queue.extend(r),
           Err(e) => {
             is_expected_shutdown.store(true, Ordering::Relaxed);
