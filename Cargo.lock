@@ -3146,6 +3146,8 @@ name = "rspack_plugin_copy"
 version = "0.1.0"
 dependencies = [
  "dashmap",
+ "derivative",
+ "futures",
  "glob",
  "lazy_static",
  "pathdiff",
