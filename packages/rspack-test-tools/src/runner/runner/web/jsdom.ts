@@ -189,14 +189,9 @@ export class JSDOMWebRunner<
             return Reflect.get(target, prop, receiver);
           }
         });
-        (function(window, self, globalThis, ${args.join(", ")}) {
-					var console = {
-						log: function() {},
-						error: function() {},
-						warn: function() {}
-					};
+        (function(window, self, globalThis, console, ${args.join(", ")}) {
           ${file.content}
-        })($$g$$, $$g$$, $$g$$, ${argValues});
+        })($$g$$, $$g$$, $$g$$, window["console"], ${argValues});
       `;
 
 			this.preExecute(code, file);
