@@ -197,12 +197,7 @@ export class JSDOMWebRunner<
 
 			this.preExecute(code, file);
 			this.dom.window[scopeKey] = currentModuleScope;
-			try {
-				this.dom.window.eval(code);
-			} catch (e) {
-				console.error(e);
-				throw e;
-			}
+			this.dom.window.eval(code);
 
 			this.postExecute(m, file);
 			return m.exports;
