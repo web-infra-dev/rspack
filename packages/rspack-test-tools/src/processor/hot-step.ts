@@ -159,7 +159,12 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 		const hotUpdateManifest: Array<{ name: string; content: string }> = [];
 		const changedFiles: string[] = require(
 			context.getSource("changed-file.js")
-		).map((i: string) => path.relative(context.getSource(), i));
+		).map((i: string) =>
+			path
+				.relative(context.getSource(), i)
+				.split(path.win32.sep)
+				.join(path.posix.sep)
+		);
 
 		const hashes: Record<string, string> = {
 			[lastHash || "LAST_HASH"]: "LAST_HASH",

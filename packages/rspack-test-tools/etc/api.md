@@ -19,6 +19,8 @@ import { Stats } from '@rspack/core';
 import type { Stats as Stats_2 } from 'webpack';
 import { StatsCompilation } from '@rspack/core';
 import type { StatsCompilation as StatsCompilation_2 } from 'webpack';
+import { StatsError } from '@rspack/core';
+import { StatsWarnings } from '@rspack/core';
 import { WebpackOptionsNormalized } from 'webpack';
 
 // @public (undocumented)
@@ -89,6 +91,9 @@ export function createDiagnosticCase(name: string, src: string, dist: string): v
 
 // @public (undocumented)
 export function createDiffCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
+export function createErrorCase(name: string, src: string, dist: string, root: string): void;
 
 // @public (undocumented)
 export function createHashCase(name: string, src: string, dist: string): void;
@@ -225,6 +230,21 @@ export enum EEsmMode {
     Unknown = 0,
     // (undocumented)
     Unlinked = 2
+}
+
+// @public (undocumented)
+export class ErrorTaskProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
+    constructor(_errorOptions: IErrorTaskProcessor<T>);
+    // (undocumented)
+    static addSnapshotSerializer(): void;
+    // (undocumented)
+    check(env: ITestEnv, context: ITestContext): Promise<void>;
+    // (undocumented)
+    compiler(context: ITestContext): Promise<void>;
+    // (undocumented)
+    protected _errorOptions: IErrorTaskProcessor<T>;
+    // (undocumented)
+    run(env: ITestEnv, context: ITestContext): Promise<void>;
 }
 
 // @public (undocumented)
@@ -388,6 +408,20 @@ export interface IDiffStatsReporterOptions {
     header?: string[];
     // (undocumented)
     report?: boolean;
+}
+
+// @public (undocumented)
+export interface IErrorTaskProcessor<T extends ECompilerType> {
+    // (undocumented)
+    build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
+    // (undocumented)
+    check?: (stats: TStatsDiagnostics) => Promise<void>;
+    // (undocumented)
+    compilerType: T;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    options?: (options: TCompilerOptions<T>, context: ITestContext) => TCompilerOptions<T>;
 }
 
 // @public (undocumented)
@@ -1128,6 +1162,12 @@ export type TRunnerRequirer = (currentDirectory: string, modulePath: string[] | 
     file?: TBasicRunnerFile;
     esmMode?: EEsmMode;
 }) => Object | Promise<Object>;
+
+// @public (undocumented)
+type TStatsDiagnostics = {
+    errors: StatsError[];
+    warnings: StatsWarnings[];
+};
 
 // @public (undocumented)
 export type TTestConfig<T extends ECompilerType> = {
