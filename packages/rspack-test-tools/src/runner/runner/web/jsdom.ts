@@ -165,7 +165,7 @@ export class JSDOMWebRunner<
 				this._options.testConfig.moduleScope(currentModuleScope);
 			}
 
-			const scopeKey = file!.path.replace(path.win32.sep, path.posix.sep);
+			const scopeKey = file!.path.split(path.win32.sep).join(path.posix.sep);
 			const args = Object.keys(currentModuleScope);
 			const argValues = args
 				.map(arg => `window["${scopeKey}"]["${arg}"]`)
@@ -179,7 +179,7 @@ export class JSDOMWebRunner<
                 get(target, prop, receiver) {
                   if (prop === "currentScript") {
                     var script = target.createElement("script");
-                    script.src = "https://test.cases/path/${file.subPath}index.js";
+                    script.src = "https://test.cases/path/${file.subPath.split(path.win32.sep).join(path.posix.sep)}index.js";
                     return script;
                   }
                   return Reflect.get(target, prop, receiver);
