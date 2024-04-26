@@ -7,8 +7,8 @@ __webpack_require__.d(__webpack_exports__, {
   bar: function() { return /* reexport module object */ _foo__WEBPACK_IMPORTED_MODULE_0__; },
   c: function() { return /* reexport safe */ _result__WEBPACK_IMPORTED_MODULE_1__.c; }
 });
-/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./foo */"./foo.js");
-/* harmony import */var _result__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./result */"./result.js");
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
+/* harmony import */var _result__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./result.js");
 function b() {}
 
 
@@ -23,8 +23,8 @@ __webpack_require__.d(__webpack_exports__, {
   c: function() { return /* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.c; },
   foo: function() { return foo; }
 });
-/* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./bar */"./bar.js");
-/* harmony import */var _result__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./result */"./result.js");
+/* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./bar.js");
+/* harmony import */var _result__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./result.js");
 const a = 3;
 const foo = 3;
 
@@ -32,7 +32,7 @@ const foo = 3;
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./foo */"./foo.js");
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
 
 _foo__WEBPACK_IMPORTED_MODULE_0__.bar.a;
 (0, _foo__WEBPACK_IMPORTED_MODULE_0__.c)();
@@ -42,8 +42,8 @@ _foo__WEBPACK_IMPORTED_MODULE_0__.bar.a;
 __webpack_require__.d(__webpack_exports__, {
   c: function() { return c; }
 });
-/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./foo */"./foo.js");
-/* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./bar */"./bar.js");
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
+/* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./bar.js");
 const c = 103330;
 
 

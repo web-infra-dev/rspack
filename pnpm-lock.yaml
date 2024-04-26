@@ -633,8 +633,8 @@ importers:
         specifier: 2.1.35
         version: 2.1.35
       webpack-dev-middleware:
-        specifier: 6.0.2
-        version: 6.0.2(webpack@5.90.1)
+        specifier: 6.1.2
+        version: 6.1.2(webpack@5.90.1)
       webpack-dev-server:
         specifier: 4.13.1
         version: 4.13.1(webpack-cli@4.10.0)(webpack@5.90.1)
@@ -778,6 +778,12 @@ importers:
       core-js:
         specifier: 3.36.1
         version: 3.36.1
+      filenamify:
+        specifier: 4.3.0
+        version: 4.3.0
+      mkdirp:
+        specifier: 0.5.6
+        version: 0.5.6
       monaco-editor:
         specifier: 0.47.0
         version: 0.47.0
@@ -799,6 +805,24 @@ importers:
       react-refresh:
         specifier: 0.14.0
         version: 0.14.0
+
+  plugin-test:
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../packages/rspack
+      '@rspack/plugin-minify':
+        specifier: workspace:^
+        version: link:../packages/rspack-plugin-minify
+      del:
+        specifier: ^6.0.0
+        version: 6.1.1
+      jsdom:
+        specifier: ^24.0.0
+        version: 24.0.0
+      memfs:
+        specifier: 4.7.7
+        version: 4.7.7
 
   scripts:
     devDependencies:
@@ -11949,7 +11973,6 @@ packages:
     engines: {node: '>= 4.0.0'}
     dependencies:
       tslib: 2.6.2
-    dev: false
 
   /memfs@4.8.1:
     resolution: {integrity: sha512-7q/AdPzf2WpwPlPL4v1kE2KsJsHl7EF4+hAeVzlyanr2+YnR21NVn9mDqo+7DEaKDRsQy8nvxPlKH4WqMtiO0w==}
@@ -16191,8 +16214,8 @@ packages:
       schema-utils: 4.2.0
       webpack: 5.90.1(webpack-cli@4.10.0)
 
-  /webpack-dev-middleware@6.0.2(webpack@5.90.1):
-    resolution: {integrity: sha512-iOddiJzPcQC6lwOIu60vscbGWth8PCRcWRCwoQcTQf9RMoOWBHg5EyzpGdtSmGMrSPd5vHEfFXmVErQEmkRngQ==}
+  /webpack-dev-middleware@6.1.2(webpack@5.90.1):
+    resolution: {integrity: sha512-Wu+EHmX326YPYUpQLKmKbTyZZJIB8/n6R09pTmB03kJmnMsVPTo9COzHZFr01txwaCAuZvfBJE4ZCHRcKs5JaQ==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
       webpack: ^5.0.0

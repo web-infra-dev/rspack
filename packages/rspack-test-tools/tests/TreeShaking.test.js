@@ -16,7 +16,6 @@ const tests = fs
 	);
 
 describe(NAME, () => {
-	jest.setTimeout(30000);
 	for (const name of tests) {
 		const src = path.join(caseDir, name);
 		createTreeShakingCase(name, src, path.join(distDir, name));

@@ -42,7 +42,7 @@ export class StatsAPITaskProcessor<
 		}
 	}
 	async run(env: ITestEnv, context: ITestContext) {
-		throw new Error("Not support");
+		// do nothing
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {

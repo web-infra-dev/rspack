@@ -6607,6 +6607,7 @@ export type Output = z.infer<typeof output>;
 // @public (undocumented)
 const output: z.ZodObject<{
     path: z.ZodOptional<z.ZodString>;
+    pathinfo: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"verbose">]>>;
     clean: z.ZodOptional<z.ZodBoolean>;
     publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodString]>>;
     filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
@@ -6754,6 +6755,7 @@ const output: z.ZodObject<{
     devtoolFallbackModuleFilenameTemplate: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodAny], null>, z.ZodAny>]>>;
 }, "strict", z.ZodTypeAny, {
     path?: string | undefined;
+    pathinfo?: boolean | "verbose" | undefined;
     clean?: boolean | undefined;
     publicPath?: string | undefined;
     filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -6829,6 +6831,7 @@ const output: z.ZodObject<{
     devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
 }, {
     path?: string | undefined;
+    pathinfo?: boolean | "verbose" | undefined;
     clean?: boolean | undefined;
     publicPath?: string | undefined;
     filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -6972,6 +6975,8 @@ export interface OutputNormalized {
     module?: OutputModule;
     // (undocumented)
     path?: Path;
+    // (undocumented)
+    pathinfo?: boolean | "verbose";
     // (undocumented)
     publicPath?: PublicPath;
     // (undocumented)
@@ -7466,6 +7471,12 @@ const path: z.ZodString;
 type PathData = JsPathData;
 
 // @public (undocumented)
+export type Pathinfo = z.infer<typeof pathinfo>;
+
+// @public (undocumented)
+const pathinfo: z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"verbose">]>;
+
+// @public (undocumented)
 const pitch: LoaderDefinition["pitch"];
 
 // @public (undocumented)
@@ -7951,6 +7962,7 @@ declare namespace rspackExports {
         EntryStatic,
         Entry,
         Path,
+        Pathinfo,
         AssetModuleFilename,
         WebassemblyModuleFilename,
         ChunkFilename,
@@ -8379,6 +8391,7 @@ export const rspackOptions: z.ZodObject<{
     }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>>]>>;
     output: z.ZodOptional<z.ZodObject<{
         path: z.ZodOptional<z.ZodString>;
+        pathinfo: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"verbose">]>>;
         clean: z.ZodOptional<z.ZodBoolean>;
         publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodString]>>;
         filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
@@ -8526,6 +8539,7 @@ export const rspackOptions: z.ZodObject<{
         devtoolFallbackModuleFilenameTemplate: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodAny], null>, z.ZodAny>]>>;
     }, "strict", z.ZodTypeAny, {
         path?: string | undefined;
+        pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
         publicPath?: string | undefined;
         filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -8601,6 +8615,7 @@ export const rspackOptions: z.ZodObject<{
         devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
     }, {
         path?: string | undefined;
+        pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
         publicPath?: string | undefined;
         filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -10030,6 +10045,7 @@ export const rspackOptions: z.ZodObject<{
     }>) | undefined;
     output?: {
         path?: string | undefined;
+        pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
         publicPath?: string | undefined;
         filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -10443,6 +10459,7 @@ export const rspackOptions: z.ZodObject<{
     }>) | undefined;
     output?: {
         path?: string | undefined;
+        pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
         publicPath?: string | undefined;
         filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;

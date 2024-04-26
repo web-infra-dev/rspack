@@ -23,7 +23,6 @@ use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
 use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use serde::Deserialize;
 use tokio::runtime::Handle;
 
 pub use self::js_loader::JsLoaderAdapter;
@@ -57,8 +56,6 @@ pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
 ///   - a `Some(string)` on rust side, deserialized by `serde_json::from_str`
 /// and passed to rust side loader in [get_builtin_loader] when using with
 /// `builtin_loader`.
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawModuleRuleUse {
   pub loader: String,
@@ -74,14 +71,11 @@ impl Debug for RawModuleRuleUse {
   }
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 #[napi(object, object_to_js = false)]
 pub struct RawModuleRuleUses {
   #[napi(ts_type = r#""array" | "function""#)]
   pub r#type: String,
   pub array_use: Option<Vec<RawModuleRuleUse>>,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "(arg: RawFuncUseCtx) => RawModuleRuleUse[]")]
   pub func_use: Option<ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>>,
 }
@@ -96,16 +90,13 @@ impl Debug for RawModuleRuleUses {
   }
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawRegexMatcher {
   pub source: String,
   pub flags: String,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 #[napi(object, object_to_js = false)]
 pub struct RawRuleSetCondition {
   #[napi(ts_type = r#""string" | "regexp" | "logical" | "array" | "function""#)]
@@ -114,7 +105,6 @@ pub struct RawRuleSetCondition {
   pub regexp_matcher: Option<RawRegexMatcher>,
   pub logical_matcher: Option<Vec<RawRuleSetLogicalConditions>>,
   pub array_matcher: Option<Vec<RawRuleSetCondition>>,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = r#"(value: string) => boolean"#)]
   pub func_matcher: Option<ThreadsafeFunction<String, bool>>,
 }
@@ -132,8 +122,7 @@ impl Debug for RawRuleSetCondition {
   }
 }
 
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawRuleSetLogicalConditions {
   pub and: Option<Vec<RawRuleSetCondition>>,
@@ -233,9 +222,8 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
   }
 }
 
-#[derive(Derivative, Deserialize)]
+#[derive(Derivative)]
 #[derivative(Debug, Default)]
-#[serde(rename_all = "camelCase")]
 #[napi(object, object_to_js = false)]
 pub struct RawModuleRule {
   /// A conditional match matching an absolute path + query + fragment.
@@ -270,8 +258,7 @@ pub struct RawModuleRule {
   pub enforce: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawParserOptions {
   #[napi(
@@ -328,8 +315,7 @@ impl From<RawParserOptions> for ParserOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawJavascriptParserOptions {
   pub dynamic_import_mode: String,
@@ -353,8 +339,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawAssetParserOptions {
   pub data_url_condition: Option<RawAssetParserDataUrl>,
@@ -368,8 +353,7 @@ impl From<RawAssetParserOptions> for AssetParserOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawAssetParserDataUrl {
   #[napi(ts_type = r#""options""#)]
@@ -395,9 +379,8 @@ impl From<RawAssetParserDataUrl> for AssetParserDataUrl {
   }
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Default)]
 #[napi(object)]
-#[serde(rename_all = "camelCase")]
 pub struct RawAssetParserDataUrlOptions {
   pub max_size: Option<u32>,
 }
@@ -410,9 +393,8 @@ impl From<RawAssetParserDataUrlOptions> for AssetParserDataUrlOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Default)]
 #[napi(object)]
-#[serde(rename_all = "camelCase")]
 pub struct RawCssParserOptions {
   pub named_exports: Option<bool>,
 }
@@ -425,9 +407,8 @@ impl From<RawCssParserOptions> for CssParserOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Default)]
 #[napi(object)]
-#[serde(rename_all = "camelCase")]
 pub struct RawCssAutoParserOptions {
   pub named_exports: Option<bool>,
 }
@@ -440,9 +421,8 @@ impl From<RawCssAutoParserOptions> for CssAutoParserOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Default)]
 #[napi(object)]
-#[serde(rename_all = "camelCase")]
 pub struct RawCssModuleParserOptions {
   pub named_exports: Option<bool>,
 }
@@ -455,8 +435,7 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawGeneratorOptions {
   #[napi(
@@ -522,16 +501,14 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
   }
 }
 
-#[derive(Derivative, Deserialize, Default)]
+#[derive(Derivative, Default)]
 #[derivative(Debug)]
-#[serde(rename_all = "camelCase")]
 #[napi(object, object_to_js = false)]
 pub struct RawAssetGeneratorOptions {
   pub emit: Option<bool>,
   pub filename: Option<String>,
   pub public_path: Option<String>,
   #[derivative(Debug = "ignore")]
-  #[serde(skip_deserializing)]
   #[napi(
     ts_type = "RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)"
   )]
@@ -551,13 +528,11 @@ impl From<RawAssetGeneratorOptions> for AssetGeneratorOptions {
   }
 }
 
-#[derive(Derivative, Deserialize, Default)]
+#[derive(Derivative, Default)]
 #[derivative(Debug)]
-#[serde(rename_all = "camelCase")]
 #[napi(object, object_to_js = false)]
 pub struct RawAssetInlineGeneratorOptions {
   #[derivative(Debug = "ignore")]
-  #[serde(skip_deserializing)]
   #[napi(
     ts_type = "RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)"
   )]
@@ -574,8 +549,7 @@ impl From<RawAssetInlineGeneratorOptions> for AssetInlineGeneratorOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawAssetResourceGeneratorOptions {
   pub emit: Option<bool>,
@@ -599,8 +573,7 @@ type RawAssetGeneratorDataUrl = Either<
 >;
 struct RawAssetGeneratorDataUrlWrapper(RawAssetGeneratorDataUrl);
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawAssetGeneratorDataUrlFnArgs {
   pub filename: String,
@@ -626,8 +599,7 @@ impl From<RawAssetGeneratorDataUrlWrapper> for AssetGeneratorDataUrl {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawAssetGeneratorDataUrlOptions {
   #[napi(ts_type = r#""base64" | "false" | undefined"#)]
@@ -644,8 +616,7 @@ impl From<RawAssetGeneratorDataUrlOptions> for AssetGeneratorDataUrlOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawCssGeneratorOptions {
   #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
@@ -662,8 +633,7 @@ impl From<RawCssGeneratorOptions> for CssGeneratorOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawCssAutoGeneratorOptions {
   #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
@@ -682,8 +652,7 @@ impl From<RawCssAutoGeneratorOptions> for CssAutoGeneratorOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawCssModuleGeneratorOptions {
   #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
@@ -702,8 +671,6 @@ impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
   }
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 #[napi(object, object_to_js = false)]
 pub struct RawModuleOptions {
   pub rules: Vec<RawModuleRule>,
@@ -712,7 +679,6 @@ pub struct RawModuleOptions {
   #[napi(
     ts_type = "string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]"
   )]
-  #[serde(skip_deserializing)]
   pub no_parse: Option<RawModuleNoParseRules>,
 }
 
@@ -727,8 +693,7 @@ impl Debug for RawModuleOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawFuncUseCtx {
   pub resource: Option<String>,

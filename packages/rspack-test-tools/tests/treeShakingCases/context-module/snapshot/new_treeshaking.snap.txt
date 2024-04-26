@@ -17,34 +17,34 @@ __webpack_require__.d(__webpack_exports__, {
 const value = "dynamic";
 }),
 "./child sync recursive ^\\.\\/.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
-var map = {"./child/index.js": "./child/child/index.js","./index.js": "./child/index.js",};
+var map = {
+  "./child/index.js": "./child/child/index.js",
+  "./index.js": "./child/index.js"
+};
+
+
 function webpackContext(req) {
-var id = webpackContextResolve(req);
-
-return __webpack_require__(id);
-
+  var id = webpackContextResolve(req);
+  return __webpack_require__(id);
 }
 function webpackContextResolve(req) {
-
-      if(!__webpack_require__.o(map, req)) {
-        var e = new Error("Cannot find module '" + req + "'");
-        e.code = 'MODULE_NOT_FOUND';
-        throw e;
-      }
-      return map[req];
-    
+  if(!__webpack_require__.o(map, req)) {
+    var e = new Error("Cannot find module '" + req + "'");
+    e.code = 'MODULE_NOT_FOUND';
+    throw e;
+  }
+  return map[req];
 }
-webpackContext.id = '"./child sync recursive ^\\.\\/.*\\.js$"';
-
-      webpackContext.keys = function webpackContextKeys() {
-        return Object.keys(map);
-      };
-      webpackContext.resolve = webpackContextResolve;
-      module.exports = webpackContext;
-      }),
+webpackContext.keys = function webpackContextKeys() {
+  return Object.keys(map);
+};
+webpackContext.resolve = webpackContextResolve;
+module.exports = webpackContext;
+webpackContext.id = "./child sync recursive ^\\.\\/.*\\.js$";
+}),
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 let a = "index";
-__webpack_require__(/*! ./child */"./child sync recursive ^\\.\\/.*\\.js$")((`./child/${a}.js`).replace('./child/', './'));
+__webpack_require__("./child sync recursive ^\\.\\/.*\\.js$")(`./${a}.js`);
 }),
 
 },function(__webpack_require__) {

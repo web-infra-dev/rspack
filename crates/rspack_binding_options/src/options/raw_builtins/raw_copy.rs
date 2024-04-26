@@ -8,7 +8,6 @@ use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_copy::{
   CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, Info, Related, ToType, Transformer,
 };
-use serde::Deserialize;
 
 type RawTransformer = ThreadsafeFunction<(String, String), Either<String, Buffer>>;
 
@@ -30,8 +29,7 @@ pub struct RawCopyPattern {
   pub transform: Option<RawTransformer>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawInfo {
   pub immutable: Option<bool>,
@@ -44,15 +42,13 @@ pub struct RawInfo {
   pub version: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawRelated {
   pub source_map: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawCopyGlobOptions {
   pub case_sensitive_match: Option<bool>,

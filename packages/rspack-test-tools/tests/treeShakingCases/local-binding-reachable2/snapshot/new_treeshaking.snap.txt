@@ -14,7 +14,7 @@ const defaults = {
 __webpack_require__.d(__webpack_exports__, {
   Something: function() { return Something; }
 });
-/* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Layout */"./Layout.js");
+/* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./Layout.js");
 
 class Test {
     test = _Layout__WEBPACK_IMPORTED_MODULE_0__.defaults.test + 20000;
@@ -24,7 +24,7 @@ var Something = 333;
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./export */"./export.js");
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./export.js");
 
 (0, _export__WEBPACK_IMPORTED_MODULE_0__.Something)();
 }),

@@ -8,8 +8,8 @@
 - Bundle: file_js.chunk.CURRENT_HASH.js
 - Bundle: vendors-node_modules_vue_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 94
-- Update: file_js.LAST_HASH.hot-update.js, size: 449
-- Update: main.LAST_HASH.hot-update.js, size: 692
+- Update: file_js.LAST_HASH.hot-update.js, size: 450
+- Update: main.LAST_HASH.hot-update.js, size: 693
 
 ## Manifest
 
@@ -40,7 +40,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   Vue: function() { return /* reexport safe */ vue__WEBPACK_IMPORTED_MODULE_0__.Vue; }
 });
-/* harmony import */var vue__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vue */"./node_modules/vue.js");
+/* harmony import */var vue__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vue */ "./node_modules/vue.js");
 
 }),
 
@@ -67,7 +67,7 @@ __webpack_require__.d(__webpack_exports__, {
   test: function() { return test; }
 });
 function test(count) {
-    return Promise.all([__webpack_require__.e("vendors-node_modules_vue_js"), __webpack_require__.e("file_js")]).then(__webpack_require__.bind(__webpack_require__, /*! ./file */"./file.js")).then(({ React, Vue })=>count === 0 ? React : Vue);
+    return Promise.all([__webpack_require__.e("vendors-node_modules_vue_js"), __webpack_require__.e("file_js")]).then(__webpack_require__.bind(__webpack_require__, /*! ./file */ "./file.js")).then(({ React, Vue })=>count === 0 ? React : Vue);
 }
 }),
 

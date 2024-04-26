@@ -33,7 +33,8 @@
     "test:hot": "pnpm --filter \"@rspack/*\" test:hot",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
-    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit && pnpm test:webpack",
+    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit && npm run test:plugin && pnpm test:webpack",
+    "test:plugin": "pnpm --filter \"plugin-test\" test",
     "test:webpack": "pnpm --filter \"webpack-test\" test:metric",
     "api-extractor:local": "pnpm --filter '@rspack/*' api-extractor --local",
     "api-extractor:ci": "pnpm --filter '@rspack/*' api-extractor:ci"

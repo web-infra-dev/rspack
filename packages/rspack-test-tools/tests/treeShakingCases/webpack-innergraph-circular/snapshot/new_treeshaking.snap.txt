@@ -3,7 +3,7 @@
 "./chunk.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./inner */"./inner.js");
+/* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./inner.js");
 
 }),
 
@@ -14,8 +14,8 @@ __webpack_require__.r(__webpack_exports__);
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-/* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./inner */"./inner.js");
-/* harmony import */var _module__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./module */"./module.js");
+/* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./inner.js");
+/* harmony import */var _module__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./module.js");
 
 
 it("export should be unused when only unused functions use it", ()=>{
@@ -23,7 +23,7 @@ it("export should be unused when only unused functions use it", ()=>{
     expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportAUsed).toBe(true);
     expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportBUsed).toBe(true);
     expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportCUsed).toBe(false);
-    return __webpack_require__.e("chunk_js").then(__webpack_require__.bind(__webpack_require__, /*! ./chunk */"./chunk.js"));
+    return __webpack_require__.e("chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
 });
 }),
 "./inner.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -53,7 +53,7 @@ const exportCUsed = false;
 __webpack_require__.d(__webpack_exports__, {
   y: function() { return y; }
 });
-/* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./inner */"./inner.js");
+/* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./inner.js");
 
 function x(type) {
     switch(type){

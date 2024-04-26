@@ -1,9 +1,7 @@
 use napi_derive::napi;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPluginOptions;
-use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Debug, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawLimitChunkCountPluginOptions {
   // Constant overhead for a chunk.

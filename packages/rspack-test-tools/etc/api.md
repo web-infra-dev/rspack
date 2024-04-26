@@ -19,6 +19,8 @@ import { Stats } from '@rspack/core';
 import type { Stats as Stats_2 } from 'webpack';
 import { StatsCompilation } from '@rspack/core';
 import type { StatsCompilation as StatsCompilation_2 } from 'webpack';
+import { StatsError } from '@rspack/core';
+import { StatsWarnings } from '@rspack/core';
 import { WebpackOptionsNormalized } from 'webpack';
 
 // @public (undocumented)
@@ -76,6 +78,9 @@ export function compareModules(modules: string[], sourceModules: Map<string, str
 export function createBuiltinCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
+export function createCompilerCase(name: string, src: string, dist: string, root: string): void;
+
+// @public (undocumented)
 export function createConfigCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
@@ -88,6 +93,9 @@ export function createDiagnosticCase(name: string, src: string, dist: string): v
 export function createDiffCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
+export function createErrorCase(name: string, src: string, dist: string, root: string): void;
+
+// @public (undocumented)
 export function createHashCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
@@ -98,6 +106,9 @@ export function createHotStepCase(name: string, src: string, dist: string, targe
 
 // @public (undocumented)
 export function createNormalCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
+export function createStatsAPICase(name: string, src: string, dist: string, root: string): void;
 
 // @public (undocumented)
 export function createStatsCase(name: string, src: string, dist: string): void;
@@ -222,7 +233,25 @@ export enum EEsmMode {
 }
 
 // @public (undocumented)
+export class ErrorTaskProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
+    constructor(_errorOptions: IErrorTaskProcessor<T>);
+    // (undocumented)
+    static addSnapshotSerializer(): void;
+    // (undocumented)
+    check(env: ITestEnv, context: ITestContext): Promise<void>;
+    // (undocumented)
+    compiler(context: ITestContext): Promise<void>;
+    // (undocumented)
+    protected _errorOptions: IErrorTaskProcessor<T>;
+    // (undocumented)
+    run(env: ITestEnv, context: ITestContext): Promise<void>;
+}
+
+// @public (undocumented)
 export function formatCode(name: string, raw: string, options: IFormatCodeOptions): string;
+
+// @public (undocumented)
+export function getSimpleProcessorRunner(src: string, dist: string, env: ITestEnv): (name: string, processor: ITestProcessor) => Promise<void>;
 
 // @public (undocumented)
 export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
@@ -379,6 +408,20 @@ export interface IDiffStatsReporterOptions {
     header?: string[];
     // (undocumented)
     report?: boolean;
+}
+
+// @public (undocumented)
+export interface IErrorTaskProcessor<T extends ECompilerType> {
+    // (undocumented)
+    build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
+    // (undocumented)
+    check?: (stats: TStatsDiagnostics) => Promise<void>;
+    // (undocumented)
+    compilerType: T;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    options?: (options: TCompilerOptions<T>, context: ITestContext) => TCompilerOptions<T>;
 }
 
 // @public (undocumented)
@@ -1119,6 +1162,12 @@ export type TRunnerRequirer = (currentDirectory: string, modulePath: string[] | 
     file?: TBasicRunnerFile;
     esmMode?: EEsmMode;
 }) => Object | Promise<Object>;
+
+// @public (undocumented)
+type TStatsDiagnostics = {
+    errors: StatsError[];
+    warnings: StatsWarnings[];
+};
 
 // @public (undocumented)
 export type TTestConfig<T extends ECompilerType> = {

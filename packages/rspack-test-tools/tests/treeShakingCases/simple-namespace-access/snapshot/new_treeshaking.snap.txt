@@ -2,7 +2,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-/* harmony import */var _maths_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./maths.js */"./maths.js");
+/* harmony import */var _maths_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./maths.js");
 /* TREE-SHAKING */ 
 console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0__.xxx.test);
 console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0__.square);
@@ -13,7 +13,7 @@ __webpack_require__.d(__webpack_exports__, {
   square: function() { return square; },
   xxx: function() { return /* reexport module object */ _test_js__WEBPACK_IMPORTED_MODULE_0__; }
 });
-/* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./test.js */"./test.js");
+/* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./test.js");
 // maths.js
 // This function isn't used anywhere, so
 // Rollup excludes it from the bundle...

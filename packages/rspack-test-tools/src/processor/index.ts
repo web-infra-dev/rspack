@@ -14,3 +14,4 @@ export * from "./snapshot";
 export * from "./builtin";
 export * from "./hot-step";
 export * from "./hook";
+export * from "./error";

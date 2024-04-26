@@ -3,8 +3,8 @@ import path from "path";
 import { ITestEnv, ITestProcessor } from "../type";
 import { DefaultsConfigTaskProcessor } from "../processor";
 
-const srcDir = path.resolve(__dirname, "../../../rspack/tests/fixtures");
-const distDir = path.resolve(__dirname, "../../../rspack/tests/js/compiler");
+const srcDir = path.resolve(__dirname, "../../tests/fixtures");
+const distDir = path.resolve(__dirname, "../../tests/js/defaults");
 
 const context = new TestContext({
 	src: srcDir,

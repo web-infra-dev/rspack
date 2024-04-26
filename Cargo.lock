@@ -1993,20 +1993,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
-name = "nodejs_package_json"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad444c78696e8b4de2de8a45468d0cc76630e2ed235c84e102c197b89d295a0b"
-dependencies = [
- "indexmap 2.2.6",
- "rustc-hash",
- "semver 1.0.20",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
 name = "nom"
 version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2159,14 +2145,13 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
 name = "oxc_resolver"
-version = "1.6.7"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cad753abd0769c10c20933651a75df3001188bca832b2f3e3088e91d73b4da3"
+checksum = "ab805c61c1758a7bf350c52ab8962307d1c0fe9677ffa0ac5007789c2e98858f"
 dependencies = [
  "dashmap",
  "dunce",
  "json-strip-comments",
- "nodejs_package_json",
  "once_cell",
  "rustc-hash",
  "serde",
@@ -2928,6 +2913,7 @@ name = "rspack_error"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "derivative",
  "futures",
  "miette 5.10.0",
  "once_cell",
@@ -3652,6 +3638,7 @@ version = "0.1.0"
 dependencies = [
  "concat-string",
  "dashmap",
+ "indexmap 2.2.6",
  "once_cell",
  "regex",
  "rustc-hash",

@@ -1,7 +1,7 @@
 mod if_stmt;
 mod logic_expr;
 
-use rspack_core::{ConstDependency, SpanExt};
+use rspack_core::{CachedConstDependency, ConstDependency, SpanExt};
 use swc_core::common::Spanned;
 
 pub use self::logic_expr::is_logic_op;
@@ -89,13 +89,13 @@ impl JavascriptParserPlugin for ConstPlugin {
           .unwrap_or("");
         parser
           .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
+          .push(Box::new(CachedConstDependency::new(
             ident.span.real_lo(),
             ident.span.real_hi(),
+            "__resourceFragment".into(),
             serde_json::to_string(resource_fragment)
               .expect("should render module id")
               .into(),
-            None,
           )));
         Some(true)
       }
@@ -103,13 +103,13 @@ impl JavascriptParserPlugin for ConstPlugin {
         let resource_query = parser.resource_data.resource_query.as_deref().unwrap_or("");
         parser
           .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
+          .push(Box::new(CachedConstDependency::new(
             ident.span.real_lo(),
             ident.span.real_hi(),
+            "__resourceQuery".into(),
             serde_json::to_string(resource_query)
               .expect("should render module id")
               .into(),
-            None,
           )));
         Some(true)
       }

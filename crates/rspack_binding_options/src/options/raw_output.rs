@@ -1,13 +1,13 @@
+use napi::Either;
 use napi_derive::napi;
 use rspack_binding_values::JsFilename;
 use rspack_core::{
   CrossOriginLoading, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions,
+  PathInfo,
 };
 use rspack_core::{LibraryAuxiliaryComment, OutputOptions, TrustedTypes};
-use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawTrustedTypes {
   pub policy_name: Option<String>,
@@ -21,8 +21,7 @@ impl From<RawTrustedTypes> for TrustedTypes {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawLibraryName {
   #[napi(ts_type = r#""string" | "array" | "umdObject""#)]
@@ -56,8 +55,7 @@ impl From<RawLibraryName> for LibraryName {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawLibraryCustomUmdObject {
   pub amd: Option<String>,
@@ -75,8 +73,7 @@ impl From<RawLibraryCustomUmdObject> for LibraryCustomUmdObject {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawLibraryAuxiliaryComment {
   pub root: Option<String>,
@@ -96,8 +93,7 @@ impl From<RawLibraryAuxiliaryComment> for LibraryAuxiliaryComment {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawLibraryOptions {
   pub name: Option<RawLibraryName>,
@@ -122,8 +118,7 @@ impl From<RawLibraryOptions> for LibraryOptions {
   }
 }
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawCrossOriginLoading {
   #[napi(ts_type = r#""bool" | "string""#)]
@@ -146,11 +141,12 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
   }
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawOutputOptions {
   pub path: String,
+  #[napi(ts_type = "boolean | \"verbose\"")]
+  pub pathinfo: Either<bool, String>,
   pub clean: bool,
   pub public_path: String,
   pub asset_module_filename: String,
@@ -194,8 +190,14 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
   type Error = rspack_error::Error;
 
   fn try_from(value: RawOutputOptions) -> rspack_error::Result<Self> {
+    let pathinfo = match value.pathinfo {
+      Either::A(b) => PathInfo::Bool(b),
+      Either::B(s) => PathInfo::String(s),
+    };
+
     Ok(OutputOptions {
       path: value.path.into(),
+      pathinfo,
       clean: value.clean,
       public_path: value.public_path.into(),
       asset_module_filename: value.asset_module_filename.into(),

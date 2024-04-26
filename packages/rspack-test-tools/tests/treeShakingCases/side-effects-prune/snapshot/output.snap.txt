@@ -3,7 +3,7 @@
 "./app.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 __webpack_require__.es(_lib__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports__);
 
  // export {
@@ -13,7 +13,7 @@ __webpack_require__.es(_lib__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports__);
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./app */"./app.js");
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./app.js");
 
 (0, _app__WEBPACK_IMPORTED_MODULE_0__.something)(); // a;
 }),

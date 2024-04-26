@@ -101,6 +101,7 @@ export const applyRspackOptionsDefaults = (
 			(Array.isArray(target) &&
 				target.some(target => target.startsWith("browserslist"))),
 		outputModule: options.experiments.outputModule,
+		development,
 		entry: options.entry,
 		futureDefaults
 	});
@@ -128,6 +129,7 @@ export const applyRspackOptionsDefaults = (
 
 	options.resolve = cleverMerge(
 		getResolveDefaults({
+			context: options.context!,
 			targetProperties,
 			mode: options.mode,
 			css: options.experiments.css!
@@ -454,6 +456,7 @@ const applyOutputDefaults = (
 		outputModule,
 		targetProperties: tp,
 		isAffectedByBrowserslist,
+		development,
 		entry,
 		futureDefaults
 	}: {
@@ -461,6 +464,7 @@ const applyOutputDefaults = (
 		outputModule?: boolean;
 		targetProperties: any;
 		isAffectedByBrowserslist: boolean;
+		development: boolean;
 		entry: EntryNormalized;
 		futureDefaults: boolean;
 	}
@@ -554,6 +558,7 @@ const applyOutputDefaults = (
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));
+	F(output, "pathinfo", () => development);
 	D(
 		output,
 		"publicPath",
@@ -876,10 +881,12 @@ const getResolveLoaderDefaults = () => {
 // The values are aligned with webpack
 // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/config/defaults.js#L1431
 const getResolveDefaults = ({
+	context,
 	targetProperties,
 	mode,
 	css
 }: {
+	context: string;
 	targetProperties: any;
 	mode?: Mode;
 	css: boolean;
@@ -927,6 +934,7 @@ const getResolveDefaults = ({
 		extensions: [],
 		aliasFields: [],
 		exportsFields: ["exports"],
+		roots: [context],
 		mainFields: ["main"],
 		byDependency: {
 			wasm: esmDeps(),

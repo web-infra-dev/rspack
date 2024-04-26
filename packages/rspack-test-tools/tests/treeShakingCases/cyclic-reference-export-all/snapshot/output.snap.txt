@@ -3,7 +3,7 @@
 "./src/App.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./containers */"./src/containers/index.js");
+/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/index.js");
 
 const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0__.containers;
 const Index = ()=>{
@@ -15,7 +15,7 @@ const Index = ()=>{
 "./src/containers/containers.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _platform_container__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./platform-container */"./src/containers/platform-container/index.js");
+/* harmony import */var _platform_container__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/platform-container/index.js");
 __webpack_require__.es(_platform_container__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports__);
 
 
@@ -26,7 +26,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   containers: function() { return _containers__WEBPACK_IMPORTED_MODULE_0__; }
 });
-/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./containers */"./src/containers/containers.js");
+/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/containers.js");
 
 
 }),
@@ -43,7 +43,7 @@ const PlatformProvider = 1000;
 "./src/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _App__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./App */"./src/App.js");
+/* harmony import */var _App__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/App.js");
 
 (0, _App__WEBPACK_IMPORTED_MODULE_0__["default"])();
 }),

@@ -69,7 +69,7 @@ export class HotStepRunnerFactory<
 		};
 
 		const runner = new WebRunner({
-			dom: "jsdom",
+			dom: process.platform === "win32" ? "fake" : "jsdom",
 			env,
 			stats,
 			name: this.name,
