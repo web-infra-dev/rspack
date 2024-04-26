@@ -34,7 +34,6 @@ export class JSDOMWebRunner<
 			}
 		);
 
-		this.dom.window.console = console;
 		// compat with FakeDocument
 		this.dom.window.eval(`
       Object.defineProperty(document.head, "_children", {
@@ -192,7 +191,7 @@ export class JSDOMWebRunner<
         });
         (function(window, self, globalThis, console, ${args.join(", ")}) {
           ${file.content}
-        })($$g$$, $$g$$, $$g$$, window.console, ${argValues});
+        })($$g$$, $$g$$, $$g$$, { log: function() {}, error: function() {}, warn: function() {} }, ${argValues});
       `;
 
 			this.preExecute(code, file);
