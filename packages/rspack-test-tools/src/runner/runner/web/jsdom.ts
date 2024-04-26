@@ -34,6 +34,7 @@ export class JSDOMWebRunner<
 			}
 		);
 
+		this.dom.window.console = console;
 		// compat with FakeDocument
 		this.dom.window.eval(`
       Object.defineProperty(document.head, "_children", {
