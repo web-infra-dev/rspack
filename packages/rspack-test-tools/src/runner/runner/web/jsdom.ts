@@ -34,6 +34,7 @@ export class JSDOMWebRunner<
 			}
 		);
 
+		this.dom.window.console = console;
 		// compat with FakeDocument
 		this.dom.window.eval(`
       Object.defineProperty(document.head, "_children", {
@@ -188,14 +189,20 @@ export class JSDOMWebRunner<
             return Reflect.get(target, prop, receiver);
           }
         });
-        (function(window, self, globalThis, ${args.join(", ")}) {
+        (function(window, self, globalThis, console, ${args.join(", ")}) {
           ${file.content}
-        })($$g$$, $$g$$, $$g$$, ${argValues});
+        })($$g$$, $$g$$, $$g$$, window.console, ${argValues});
       `;
 
 			this.preExecute(code, file);
 			this.dom.window[file.path] = currentModuleScope;
-			this.dom.window.eval(code);
+			try {
+				this.dom.window.eval(code);
+			} catch (e) {
+				console.log(code);
+				throw e;
+			}
+
 			this.postExecute(m, file);
 			return m.exports;
 		};
