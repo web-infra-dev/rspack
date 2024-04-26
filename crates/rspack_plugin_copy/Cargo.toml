@@ -7,8 +7,6 @@ version    = "0.1.0"
 
 [dependencies]
 dashmap        = { workspace = true }
-derivative     = { workspace = true }
-futures        = { workspace = true }
 glob           = { workspace = true }
 lazy_static    = "1.4.0"
 pathdiff       = { workspace = true }

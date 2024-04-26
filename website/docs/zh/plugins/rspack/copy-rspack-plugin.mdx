@@ -35,10 +35,6 @@ new rspack.CopyRspackPlugin(options);
             dot?: boolean; // 默认 true
             ignore?: string[]; // 忽略特定路径
           };
-          transform?: (
-            input: string,
-            absoluteFilename: string,
-          ) => string | Buffer;
         }
     )[];
   };
@@ -118,12 +114,6 @@ new rspack.CopyRspackPlugin(options);
         default: 'undefined',
         description:
           'glob 查询选项，`caseSensitiveMatch` 决定是否大小写敏感，`dot` 决定是否匹配以 `.` 开头的文件，`ignore` 是 glob 形式的字符串数组，可以使用该配置忽略部分特定路径。',
-      },
-      {
-        name: '`transform`',
-        type: '`function`',
-        default: 'undefined',
-        description: '允许修改文件内容。',
       },
     ]}
   />

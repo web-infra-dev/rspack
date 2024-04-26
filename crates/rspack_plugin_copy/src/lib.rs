@@ -8,8 +8,6 @@ use std::{
 };
 
 use dashmap::DashSet;
-use derivative::Derivative;
-use futures::future::BoxFuture;
 use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
@@ -22,7 +20,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::infallible::ResultInfallibleExt as _;
 use sugar_path::SugarPath;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CopyRspackPluginOptions {
   pub patterns: Vec<CopyPattern>,
 }
@@ -68,16 +66,7 @@ impl Display for ToType {
   }
 }
 
-pub type TransformerFn =
-  Box<dyn for<'a> Fn(String, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
-
-#[derive(Derivative)]
-pub enum Transformer {
-  Fn(TransformerFn),
-}
-
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug, Clone)]
 pub struct CopyPattern {
   pub from: String,
   pub to: Option<String>,
@@ -88,8 +77,6 @@ pub struct CopyPattern {
   pub force: bool,
   pub priority: i32,
   pub glob_options: CopyGlobOptions,
-  #[derivative(Debug = "ignore")]
-  pub transform: Option<Transformer>,
 }
 
 #[derive(Debug, Clone)]
@@ -240,7 +227,7 @@ impl CopyRspackPlugin {
     logger.debug(format!("reading '{}'...", absolute_filename.display()));
     // TODO inputFileSystem
 
-    let mut source = match tokio::fs::read(absolute_filename.clone()).await {
+    let source = match tokio::fs::read(absolute_filename.clone()).await {
       Ok(data) => {
         logger.debug(format!("read '{}'...", absolute_filename.display()));
 
@@ -256,23 +243,6 @@ impl CopyRspackPlugin {
         return None;
       }
     };
-
-    if let Some(transform) = &pattern.transform {
-      if let Some(absolute_filename) = absolute_filename.to_str() {
-        let content = match source {
-          RawSource::Source(code) => code,
-          RawSource::Buffer(buffer) => String::from_utf8(buffer).unwrap(),
-        };
-
-        match transform {
-          Transformer::Fn(transformer) => {
-            source = transformer(content, absolute_filename)
-              .await
-              .expect("run copy transformer error");
-          }
-        }
-      }
-    }
 
     let filename = if matches!(&to_type, ToType::Template) {
       logger.log(format!(
@@ -330,25 +300,15 @@ impl CopyRspackPlugin {
   ) -> Option<Vec<Option<RunPatternResult>>> {
     let orig_from = &pattern.from;
     let normalized_orig_from = PathBuf::from(orig_from);
-
-    let pattern_context = if pattern.context.is_none() {
-      Some(compilation.options.context.as_path().into())
-    } else if let Some(ctx) = pattern.context.clone()
-      && !ctx.is_absolute()
-    {
-      Some(compilation.options.context.as_path().join(ctx))
-    } else {
-      pattern.context.clone()
-    };
-
-    let mut context = pattern_context
+    let mut context = pattern
+      .context
       .clone()
       .unwrap_or(compilation.options.context.as_path().to_path_buf());
 
     logger.log(format!(
       "starting to process a pattern from '{}' using '{:?}' context",
       normalized_orig_from.display(),
-      pattern_context.as_ref().map(|p| p.display())
+      pattern.context.as_ref().map(|p| p.display())
     ));
 
     let abs_from = if normalized_orig_from.is_absolute() {
@@ -560,6 +520,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .iter()
     .enumerate()
     .map(|(index, pattern)| {
+      let mut pattern = pattern.clone();
+      if pattern.context.is_none() {
+        pattern.context = Some(compilation.options.context.as_path().into());
+      } else if let Some(ctx) = pattern.context.clone()
+        && !ctx.is_absolute()
+      {
+        pattern.context = Some(compilation.options.context.as_path().join(ctx))
+      };
+
       CopyRspackPlugin::run_patter(
         compilation,
         &pattern,
