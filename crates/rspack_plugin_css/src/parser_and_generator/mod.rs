@@ -355,9 +355,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
               module,
               generate_context.compilation,
               generate_context.runtime_requirements,
-              &ns_obj,
-              &left,
-              &right,
+              ns_obj,
+              left,
+              right,
             )?
           } else if generate_context.compilation.options.dev_server.hot {
             format!(
