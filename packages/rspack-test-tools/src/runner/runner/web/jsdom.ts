@@ -168,7 +168,10 @@ export class JSDOMWebRunner<
 
 			const args = Object.keys(currentModuleScope);
 			const argValues = args
-				.map(arg => `window["${file!.path.replace("\\", "\\\\")}"]["${arg}"]`)
+				.map(
+					arg =>
+						`window["${file!.path.replace(path.win32.sep, path.posix.sep)}"]["${arg}"]`
+				)
 				.join(", ");
 			const code = `
         // hijack document.currentScript for auto public path
@@ -179,7 +182,7 @@ export class JSDOMWebRunner<
                 get(target, prop, receiver) {
                   if (prop === "currentScript") {
                     var script = target.createElement("script");
-                    script.src = "https://test.cases/path/${file.subPath}index.js";
+                    script.src = "https://test.cases/path/${file.subPath.replace(path.win32.sep, path.posix.sep)}index.js";
                     return script;
                   }
                   return Reflect.get(target, prop, receiver);
@@ -199,7 +202,7 @@ export class JSDOMWebRunner<
 			try {
 				this.dom.window.eval(code);
 			} catch (e) {
-				console.log(code);
+				console.error(e);
 				throw e;
 			}
 
