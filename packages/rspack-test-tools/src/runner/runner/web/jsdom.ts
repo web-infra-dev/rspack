@@ -179,7 +179,7 @@ export class JSDOMWebRunner<
                 get(target, prop, receiver) {
                   if (prop === "currentScript") {
                     var script = target.createElement("script");
-                    script.src = "https://test.cases/path/${file.subPath.replace(path.win32.sep, path.posix.sep)}index.js";
+                    script.src = "https://test.cases/path/${file.subPath}index.js";
                     return script;
                   }
                   return Reflect.get(target, prop, receiver);
