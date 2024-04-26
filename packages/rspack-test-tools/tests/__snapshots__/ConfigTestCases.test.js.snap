@@ -313,6 +313,28 @@ div {
 "
 `;
 
+exports[`ConfigTestCases optimization minimizer-swc-extract-comments exported tests should keep the extracted license file stable 1`] = `
+"/**
+ * bar
+ * @license MIT
+ */
+
+/**
+ * baz
+ * @license MIT
+ */
+
+/**
+ * foo
+ * @license MIT
+ */
+
+/**
+ * relative
+ * @license MIT
+ */"
+`;
+
 exports[`ConfigTestCases plugins chunk-modules exported tests chunk-modules 1`] = `
 Object {
   "515": Object {
