@@ -168,7 +168,7 @@ export class JSDOMWebRunner<
 
 			const args = Object.keys(currentModuleScope);
 			const argValues = args
-				.map(arg => `window["${file!.path}"]["${arg}"]`)
+				.map(arg => `window["${file!.path.replace("\\", "\\\\")}"]["${arg}"]`)
 				.join(", ");
 			const code = `
         // hijack document.currentScript for auto public path
