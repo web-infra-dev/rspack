@@ -766,7 +766,8 @@ function getRawCssGeneratorOptions(
 ): RawCssGeneratorOptions {
 	return {
 		exportsConvention: options.exportsConvention,
-		exportsOnly: options.exportsOnly
+		exportsOnly: options.exportsOnly,
+		esModule: options.esModule!
 	};
 }
 
@@ -776,7 +777,8 @@ function getRawCssAutoOrModuleGeneratorOptions(
 	return {
 		localIdentName: options.localIdentName,
 		exportsConvention: options.exportsConvention,
-		exportsOnly: options.exportsOnly
+		exportsOnly: options.exportsOnly,
+		esModule: options.esModule!
 	};
 }
 

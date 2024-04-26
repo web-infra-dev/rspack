@@ -337,6 +337,7 @@ impl From<String> for DataUrlEncoding {
 pub struct CssGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
+  pub es_module: bool,
 }
 
 #[derive(Debug, Clone, MergeFrom)]
@@ -344,6 +345,7 @@ pub struct CssAutoGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
   pub local_ident_name: Option<LocalIdentName>,
+  pub es_module: bool,
 }
 
 #[derive(Debug, Clone, MergeFrom)]
@@ -351,6 +353,7 @@ pub struct CssModuleGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
   pub local_ident_name: Option<LocalIdentName>,
+  pub es_module: bool,
 }
 
 #[derive(Debug, Clone, MergeFrom)]

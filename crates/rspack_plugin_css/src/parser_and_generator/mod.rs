@@ -60,6 +60,7 @@ pub struct CssParserAndGenerator {
   pub exports_only: bool,
   pub named_exports: bool,
   pub exports: Option<CssExportsType>,
+  pub es_module: bool,
 }
 
 impl ParserAndGenerator for CssParserAndGenerator {
@@ -342,30 +343,39 @@ impl ParserAndGenerator for CssParserAndGenerator {
             )?;
           }
           return Ok(concate_source.boxed());
-        } else if let Some(exports) = &self.exports {
-          css_modules_exports_to_string(
-            exports,
-            module,
-            generate_context.compilation,
-            generate_context.runtime_requirements,
-          )?
-        } else if generate_context.compilation.options.dev_server.hot {
-          format!(
-            "module.hot.accept();\n{}(module.exports = {{}});\n",
-            RuntimeGlobals::MAKE_NAMESPACE_OBJECT
-          )
         } else {
-          format!(
-            "{}(module.exports = {{}})\n",
-            RuntimeGlobals::MAKE_NAMESPACE_OBJECT
-          )
+          let (ns_obj, left, right) = if self.es_module {
+            (RuntimeGlobals::MAKE_NAMESPACE_OBJECT.name(), "(", ")")
+          } else {
+            ("", "", "")
+          };
+          if let Some(exports) = &self.exports {
+            css_modules_exports_to_string(
+              exports,
+              module,
+              generate_context.compilation,
+              generate_context.runtime_requirements,
+              &ns_obj,
+              &left,
+              &right,
+            )?
+          } else if generate_context.compilation.options.dev_server.hot {
+            format!(
+              "module.hot.accept();\n{}{}module.exports = {{}}{};\n",
+              ns_obj, left, right
+            )
+          } else {
+            format!("{}{}module.exports = {{}}{};\n", ns_obj, left, right)
+          }
         };
         generate_context
           .runtime_requirements
           .insert(RuntimeGlobals::MODULE);
-        generate_context
-          .runtime_requirements
-          .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+        if self.es_module {
+          generate_context
+            .runtime_requirements
+            .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+        }
         Ok(RawSource::from(exports).boxed())
       }
       _ => panic!(

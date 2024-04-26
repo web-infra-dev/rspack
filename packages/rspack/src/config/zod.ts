@@ -657,23 +657,29 @@ export type CssGeneratorLocalIdentName = z.infer<
 	typeof cssGeneratorLocalIdentName
 >;
 
+const cssGeneratorEsModule = z.boolean();
+export type CssGeneratorEsModule = z.infer<typeof cssGeneratorEsModule>;
+
 const cssGeneratorOptions = z.strictObject({
 	exportsConvention: cssGeneratorExportsConvention.optional(),
-	exportsOnly: cssGeneratorExportsOnly.optional()
+	exportsOnly: cssGeneratorExportsOnly.optional(),
+	esModule: cssGeneratorEsModule.optional()
 });
 export type CssGeneratorOptions = z.infer<typeof cssGeneratorOptions>;
 
 const cssAutoGeneratorOptions = z.strictObject({
 	exportsConvention: cssGeneratorExportsConvention.optional(),
 	exportsOnly: cssGeneratorExportsOnly.optional(),
-	localIdentName: cssGeneratorLocalIdentName.optional()
+	localIdentName: cssGeneratorLocalIdentName.optional(),
+	esModule: cssGeneratorEsModule.optional()
 });
 export type CssAutoGeneratorOptions = z.infer<typeof cssAutoGeneratorOptions>;
 
 const cssModuleGeneratorOptions = z.strictObject({
 	exportsConvention: cssGeneratorExportsConvention.optional(),
 	exportsOnly: cssGeneratorExportsOnly.optional(),
-	localIdentName: cssGeneratorLocalIdentName.optional()
+	localIdentName: cssGeneratorLocalIdentName.optional(),
+	esModule: cssGeneratorEsModule.optional()
 });
 export type CssModuleGeneratorOptions = z.infer<
 	typeof cssModuleGeneratorOptions
