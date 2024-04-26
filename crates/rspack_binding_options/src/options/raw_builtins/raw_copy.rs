@@ -122,7 +122,7 @@ impl From<RawCopyPattern> for CopyPattern {
           Box::pin(async move {
             f.call((input.to_owned(), absolute_filename.to_owned()))
               .await
-              .map(|i| convert_to_enum(i))
+              .map(convert_to_enum)
           })
         }))
       }),

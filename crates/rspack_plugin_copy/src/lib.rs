@@ -260,14 +260,16 @@ impl CopyRspackPlugin {
       if let Some(absolute_filename) = absolute_filename.to_str() {
         let content = match source {
           RawSource::Source(code) => code,
-          RawSource::Buffer(buffer) => String::from_utf8(buffer).unwrap(),
+          RawSource::Buffer(buffer) => {
+            String::from_utf8(buffer).unwrap_or_else(|_| panic!("Transform buffer source error"))
+          }
         };
 
         match transform {
           Transformer::Fn(transformer) => {
             source = transformer(content, absolute_filename)
               .await
-              .expect("run copy transformer error");
+              .unwrap_or_else(|e| panic!("Run copy transformer error: {e:?}"));
           }
         }
       }
@@ -561,7 +563,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .map(|(index, pattern)| {
       CopyRspackPlugin::run_patter(
         compilation,
-        &pattern,
+        pattern,
         index,
         &file_dependencies,
         &context_dependencies,
