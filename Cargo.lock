@@ -3642,6 +3642,7 @@ version = "0.1.0"
 dependencies = [
  "once_cell",
  "regex",
+ "rspack_error",
  "serde",
  "styled_components",
  "swc_core",

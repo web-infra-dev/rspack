@@ -152,7 +152,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .0
       };
 
-    run_before_pass(&mut ast, compiler_options)?;
+    run_before_pass(&mut ast, compiler_options, &mut diagnostics)?;
 
     let output: crate::TransformOutput = crate::ast::stringify(
       &ast,
