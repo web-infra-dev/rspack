@@ -15,6 +15,7 @@ pub struct RawContainerPluginOptions {
   pub name: String,
   pub share_scope: String,
   pub library: RawLibraryOptions,
+  #[napi(ts_type = "false | string")]
   pub runtime: Option<RawEntryRuntime>,
   pub filename: Option<String>,
   pub exposes: Vec<RawExposeOptions>,

@@ -714,7 +714,7 @@ export interface RawContainerPluginOptions {
   name: string
   shareScope: string
   library: RawLibraryOptions
-  runtime?: RawEntryRuntime
+  runtime?: false | string
   filename?: string
   exposes: Array<RawExposeOptions>
   enhanced: boolean
