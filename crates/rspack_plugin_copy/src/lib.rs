@@ -258,18 +258,31 @@ impl CopyRspackPlugin {
 
     if let Some(transform) = &pattern.transform {
       if let Some(absolute_filename) = absolute_filename.to_str() {
-        let content = match source {
-          RawSource::Source(code) => code,
-          RawSource::Buffer(buffer) => {
-            String::from_utf8(buffer).unwrap_or_else(|_| panic!("Transform buffer source error"))
-          }
-        };
-
         match transform {
           Transformer::Fn(transformer) => {
-            source = transformer(content, absolute_filename)
-              .await
-              .unwrap_or_else(|e| panic!("Run copy transformer error: {e:?}"));
+            let transformed = transformer(
+              match &source {
+                RawSource::Source(code) => code.to_owned(),
+                RawSource::Buffer(buffer) => String::from_utf8(buffer.to_owned())
+                  .unwrap_or_else(|err| panic!("Transform buffer source error: {err}")),
+              },
+              absolute_filename,
+            )
+            .await;
+            match transformed {
+              Ok(code) => {
+                source = code;
+              }
+              Err(e) => {
+                diagnostics
+                  .lock()
+                  .expect("failed to obtain lock of `diagnostics`")
+                  .push(Diagnostic::error(
+                    "Run copy transform fn error".into(),
+                    e.to_string(),
+                  ));
+              }
+            };
           }
         }
       }
