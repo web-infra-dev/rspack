@@ -57,17 +57,20 @@
 .icon {
   width: 22px;
   height: 22px;
-  opacity: 0.6;
   transition: 0.3s all;
 
   svg {
     width: 22px;
     height: 22px;
+    fill: var(--rp-c-text-2);
   }
 
   &:hover {
-    opacity: 1;
     transform: scale(1.15);
+
+    svg {
+      fill: var(--rp-c-text-1);
+    }
   }
 
   &:not(:last-child) {
