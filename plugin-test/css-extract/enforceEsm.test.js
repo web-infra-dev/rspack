@@ -65,8 +65,5 @@ it('should keep empty module when options.esModule is equal "false"', async () =
 	expect(
 		modules.filter(m => m.moduleType !== "runtime" && !m.orphan).length
 	).toBe(2);
-	expect(source("./simple.css", stats)).toMatchInlineSnapshot(`
-		"// extracted by css-extract-rspack-plugin
-		"
-	`);
+	expect(source("./simple.css", stats)).toMatchInlineSnapshot(`""`);
 });
