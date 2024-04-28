@@ -419,7 +419,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'RuntimeChunkPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'SideEffectsFlagPlugin',

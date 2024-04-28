@@ -114,7 +114,16 @@ Remove empty chunks generated in the compilation.
 
 ## optimization.runtimeChunk
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType
+  type="boolean | string | ((entrypoint: { name: string }) => string)"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+Used to control how the runtime chunk is generated.
+
+Setting it to `true` or `'multiple'` will add an additional chunk containing only the runtime for each entry point.
+
+Setting it to `'single'` will extract the runtime code of all entry points into a single separate chunk.
 
 ## optimization.sideEffects
 
