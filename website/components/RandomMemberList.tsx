@@ -174,7 +174,7 @@ export const RandomMemberList = ({ list = coreTeam }: { list: Member[] }) => {
               {item.x ? (
                 <a
                   className={style.icon}
-                  href={`https://github.com/${item.id}`}
+                  href={item.x}
                   target="_blank"
                   rel="noreferrer"
                 >
