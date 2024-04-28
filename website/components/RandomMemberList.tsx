@@ -92,7 +92,7 @@ const coreTeam: Member[] = [
     id: 'chenjiahan',
     avatar: 'https://avatars.githubusercontent.com/u/7237365?s=120&v=4',
     x: 'https://twitter.com/jait_chen',
-    desc: 'Rspack / Rsbuild / Vant contributor',
+    desc: 'Rspack / Rsbuild / Rspress contributor',
   },
   {
     id: 'JSerFeng',
@@ -149,7 +149,7 @@ const coreTeam: Member[] = [
     id: 'xc2',
     avatar: 'https://avatars.githubusercontent.com/u/18117084?v=4',
     x: 'https://twitter.com/kfll',
-    desc: 'Rspack contributor',
+    desc: 'Rspack / Rsbuild / Rspress contributor',
   },
 ];
 
