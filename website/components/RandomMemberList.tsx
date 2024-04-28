@@ -76,7 +76,7 @@ const coreTeam: Member[] = [
     name: 'Hana',
     avatar: 'https://avatars.githubusercontent.com/u/10465670?s=120&v=4',
     x: 'https://twitter.com/_h_ana___',
-    desc: 'Rspack contributor',
+    desc: 'Rspack / NAPI contributor',
   },
   {
     id: 'IWANABETHATGUY',
