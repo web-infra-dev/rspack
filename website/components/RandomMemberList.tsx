@@ -138,6 +138,7 @@ const coreTeam: Member[] = [
     id: 'ScriptedAlchemy',
     avatar: 'https://avatars.githubusercontent.com/u/25274700?v=4',
     desc: 'Inventor of Module Federation, Rspack / Webpack contributor',
+    x: 'https://twitter.com/ScriptedAlchemy',
   },
   {
     id: 'SyMind',
