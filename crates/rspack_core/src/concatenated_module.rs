@@ -617,7 +617,7 @@ impl Module for ConcatenatedModule {
       generation_runtime
         .intersection(runtime)
         .cloned()
-        .collect::<HashSet<Arc<str>>>()
+        .collect::<RuntimeSpec>()
     } else {
       generation_runtime
     };

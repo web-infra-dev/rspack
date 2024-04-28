@@ -7,7 +7,7 @@ use rspack_plugin_mf::{
   ContainerReferencePluginOptions, ExposeOptions, ProvideOptions, ProvideVersion, RemoteOptions,
 };
 
-use crate::RawLibraryOptions;
+use crate::{RawEntryRuntime, RawEntryRuntimeWrapper, RawLibraryOptions};
 
 #[derive(Debug)]
 #[napi(object)]
@@ -15,7 +15,7 @@ pub struct RawContainerPluginOptions {
   pub name: String,
   pub share_scope: String,
   pub library: RawLibraryOptions,
-  pub runtime: Option<String>,
+  pub runtime: Option<RawEntryRuntime>,
   pub filename: Option<String>,
   pub exposes: Vec<RawExposeOptions>,
   pub enhanced: bool,
@@ -27,7 +27,7 @@ impl From<RawContainerPluginOptions> for ContainerPluginOptions {
       name: value.name,
       share_scope: value.share_scope,
       library: value.library.into(),
-      runtime: value.runtime,
+      runtime: value.runtime.map(|r| RawEntryRuntimeWrapper(r).into()),
       filename: value.filename.map(|f| f.into()),
       exposes: value.exposes.into_iter().map(|e| e.into()).collect(),
       enhanced: value.enhanced,
