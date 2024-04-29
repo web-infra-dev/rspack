@@ -4,7 +4,7 @@ import { PackageManagerTabs } from '@theme';
 
 CSS 是 Rspack 的一等公民，Rspack 内置了对 CSS 的处理能力，你无需额外的配置即可使用。
 
-我们默认会将 `*.css` 结尾的文件视为 CSS 模块类型，将 `*.module.css` 结尾的文件视为 CSS Modules 模块类型。
+我们默认会将 `*.css` 结尾的文件视为 CSS 模块类型，将 `*.module.css` 结尾的文件视为 [CSS Modules](https://github.com/css-modules/css-modules) 模块类型。
 
 如果你打算从 Webpack 进行迁移，那么你可以去除配置中的 `css-loader` 或 `style-loader` 以使用 Rspack 内置的 CSS 处理能力，详情可以参考[迁移指南](/guide/migration/webpack#去除-css-loader-和-style-loader-和-mini-css-extract-plugin)。
 
@@ -38,7 +38,7 @@ document.getElementById('element').className = red;
 module.exports = {
   module: {
     parser: {
-      "css/auto": {
+      'css/auto': {
         namedExports: false,
       },
     },
