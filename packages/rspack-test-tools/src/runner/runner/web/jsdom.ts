@@ -34,6 +34,7 @@ export class JSDOMWebRunner<
 			}
 		);
 
+		this.dom.window.console = console;
 		// compat with FakeDocument
 		this.dom.window.eval(`
       Object.defineProperty(document.head, "_children", {
@@ -165,7 +166,7 @@ export class JSDOMWebRunner<
 				this._options.testConfig.moduleScope(currentModuleScope);
 			}
 
-			const scopeKey = file!.path.replace(path.win32.sep, path.posix.sep);
+			const scopeKey = file!.path.split(path.win32.sep).join(path.posix.sep);
 			const args = Object.keys(currentModuleScope);
 			const argValues = args
 				.map(arg => `window["${scopeKey}"]["${arg}"]`)
@@ -179,7 +180,7 @@ export class JSDOMWebRunner<
                 get(target, prop, receiver) {
                   if (prop === "currentScript") {
                     var script = target.createElement("script");
-                    script.src = "https://test.cases/path/${file.subPath}index.js";
+                    script.src = "https://test.cases/path/${file.subPath.split(path.win32.sep).join(path.posix.sep)}index.js";
                     return script;
                   }
                   return Reflect.get(target, prop, receiver);
@@ -189,9 +190,9 @@ export class JSDOMWebRunner<
             return Reflect.get(target, prop, receiver);
           }
         });
-        (function(window, self, globalThis, ${args.join(", ")}) {
+        (function(window, self, globalThis, console, ${args.join(", ")}) {
           ${file.content}
-        })($$g$$, $$g$$, $$g$$, ${argValues});
+        })($$g$$, $$g$$, $$g$$, window["console"], ${argValues});
       `;
 
 			this.preExecute(code, file);

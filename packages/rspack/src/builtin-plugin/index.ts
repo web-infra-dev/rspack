@@ -50,6 +50,7 @@ export * from "./BundlerInfoRspackPlugin";
 export * from "./ModuleConcatenationPlugin";
 export * from "./CssModulesPlugin";
 export * from "./APIPlugin";
+export * from "./RuntimeChunkPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";

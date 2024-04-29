@@ -2810,6 +2810,7 @@ dependencies = [
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
+ "rspack_plugin_runtime_chunk",
  "rspack_plugin_schemes",
  "rspack_plugin_split_chunks",
  "rspack_plugin_swc_css_minimizer",
@@ -3470,6 +3471,16 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+]
+
+[[package]]
+name = "rspack_plugin_runtime_chunk"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]

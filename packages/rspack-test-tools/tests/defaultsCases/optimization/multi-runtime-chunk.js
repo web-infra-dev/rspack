@@ -3,13 +3,13 @@ module.exports = {
 	options: () => ({ optimization: { runtimeChunk: "multiple" } }),
 	diff: e =>
 		e.toMatchInlineSnapshot(`
-			- Expected
-			+ Received
+		- Expected
+		+ Received
 
-			@@ ... @@
-			-     "runtimeChunk": false,
-			+     "runtimeChunk": Object {
-			+       "name": [Function name],
-			+     },
-		`)
+		@@ ... @@
+		-     "runtimeChunk": false,
+		+     "runtimeChunk": Object {
+		+       "name": "multiple",
+		+     },
+	`)
 };

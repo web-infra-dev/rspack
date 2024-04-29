@@ -219,13 +219,11 @@ impl Task<MakeTaskContext> for BuildResultTask {
     module.set_build_info(build_result.build_info);
     module.set_build_meta(build_result.build_meta);
 
-    let resolve_options = module.get_resolve_options();
     module_graph.add_module(module);
 
     Ok(vec![Box::new(ProcessDependenciesTask {
       dependencies: all_dependencies,
       original_module_identifier: module_identifier,
-      resolve_options,
     })])
   }
 }

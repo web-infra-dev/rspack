@@ -1,5 +1,6 @@
+use napi::Either;
 use napi_derive::napi;
-use rspack_core::EntryOptions;
+use rspack_core::{EntryOptions, EntryRuntime};
 
 use crate::RawLibraryOptions;
 
@@ -11,11 +12,27 @@ pub struct RawEntryPluginOptions {
   pub options: RawEntryOptions,
 }
 
+pub type RawEntryRuntime = Either<bool, String>;
+pub struct RawEntryRuntimeWrapper(pub RawEntryRuntime);
+
+impl From<RawEntryRuntimeWrapper> for EntryRuntime {
+  fn from(value: RawEntryRuntimeWrapper) -> Self {
+    match value.0 {
+      Either::A(b) => {
+        assert!(!b, "RawEntryRuntime should be false or string");
+        Self::False
+      }
+      Either::B(s) => Self::String(s),
+    }
+  }
+}
+
 #[derive(Debug)]
 #[napi(object)]
 pub struct RawEntryOptions {
   pub name: Option<String>,
-  pub runtime: Option<String>,
+  #[napi(ts_type = "false | string")]
+  pub runtime: Option<RawEntryRuntime>,
   pub chunk_loading: Option<String>,
   pub async_chunks: Option<bool>,
   pub public_path: Option<String>,
@@ -29,7 +46,7 @@ impl From<RawEntryOptions> for EntryOptions {
   fn from(value: RawEntryOptions) -> Self {
     Self {
       name: value.name,
-      runtime: value.runtime,
+      runtime: value.runtime.map(|r| RawEntryRuntimeWrapper(r).into()),
       chunk_loading: value.chunk_loading.as_deref().map(Into::into),
       async_chunks: value.async_chunks,
       public_path: value.public_path.map(Into::into),

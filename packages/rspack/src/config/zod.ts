@@ -1074,7 +1074,12 @@ const optimizationRuntimeChunk = z
 		z.strictObject({
 			name: z
 				.string()
-				.or(z.function().returns(z.string().or(z.undefined())))
+				.or(
+					z
+						.function()
+						.args(z.strictObject({ name: z.string() }))
+						.returns(z.string())
+				)
 				.optional()
 		})
 	);

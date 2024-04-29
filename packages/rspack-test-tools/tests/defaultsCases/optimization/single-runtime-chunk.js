@@ -9,7 +9,7 @@ module.exports = {
 		@@ ... @@
 		-     "runtimeChunk": false,
 		+     "runtimeChunk": Object {
-		+       "name": [Function name],
+		+       "name": "single",
 		+     },
 	`)
 };
