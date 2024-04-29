@@ -1912,7 +1912,7 @@ export type DevtoolNamespace = z.infer<typeof devtoolNamespace>;
 const devtoolNamespace: z.ZodString;
 
 // @public (undocumented)
-const DynamicEntryPlugin: {
+export const DynamicEntryPlugin: {
     new (context: string, entry: EntryDynamicNormalized): {
         name: BuiltinPluginName;
         _options: RawDynamicEntryPluginOptions;
@@ -7900,6 +7900,7 @@ declare namespace rspackExports {
         ProgressPluginArgument,
         EntryPlugin,
         EntryOptions,
+        DynamicEntryPlugin,
         ExternalsPlugin,
         HotModuleReplacementPlugin,
         LoaderOptionsPlugin,
