@@ -191,26 +191,14 @@ const applySnapshotDefaults = (
 	snapshot: SnapshotOptions,
 	{ production }: { production: boolean }
 ) => {
-	if (typeof snapshot.module === "object") {
-		D(snapshot.module, "timestamp", false);
-		D(snapshot.module, "hash", false);
-	} else {
-		F(snapshot, "module", () =>
-			production
-				? { timestamp: true, hash: true }
-				: { timestamp: true, hash: false }
-		);
-	}
-	if (typeof snapshot.resolve === "object") {
-		D(snapshot.resolve, "timestamp", false);
-		D(snapshot.resolve, "hash", false);
-	} else {
-		F(snapshot, "resolve", () =>
-			production
-				? { timestamp: true, hash: true }
-				: { timestamp: true, hash: false }
-		);
-	}
+	D(snapshot, "module", {});
+	assertNotNill(snapshot.module);
+	D(snapshot.module, "timestamp", true);
+	D(snapshot.module, "hash", production);
+	D(snapshot, "resolve", {});
+	assertNotNill(snapshot.resolve);
+	D(snapshot.resolve, "timestamp", true);
+	D(snapshot.resolve, "hash", production);
 };
 
 const applyJavascriptParserOptionsDefaults = (
