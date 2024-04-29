@@ -2,15 +2,7 @@ import { PackageManagerTabs } from '@theme';
 
 # CSS
 
-CSS is a first-class citizen with Rspack. Rspack has the ability to handle CSS out-of-box, so additional configuration isn't required.
-
-By default, files ending in `*.css` are treated as CSS module types. Files ending in `*.module.css` are treated as [CSS Modules](https://github.com/css-modules/css-modules) module types.
-
-If you're migrating from Webpack, you can remove the `css-loader` or `style-loader` components from your configuration to use Rspack's built-in CSS processing capabilities, as described in [migration guide](/guide/migration/webpack#removing-css-loader-and-style-loader-and-mini-css-extract-plugin).
-
-## CSS Modules
-
-A "CSS Modules" file can be referenced in Rspack like this:
+By default, Rspack treats files with a `*.module.css` extension as CSS Modules. You can import them into your JavaScript files, and then access each class defined in the CSS file as an export from the module.
 
 ```ts title="index.module.css"
 .red {
@@ -18,18 +10,42 @@ A "CSS Modules" file can be referenced in Rspack like this:
 }
 ```
 
-In the example above, the module will be converted to a JavaScript object, which you can reference in JavaScript:
+You can use namespace import:
 
 ```ts title="index.js"
+import * as styles from './index.module.css';
+document.getElementById('element').className = styles.red;
+```
+
+You can also use named import:
+
+```ts
 import { red } from './index.module.css';
 document.getElementById('element').className = red;
 ```
 
-{
-// TODO: link to builtin
-}
+To enable default imports in Rspack, you need to set `namedExports` to `false` in your `rspack.config.js` file. This allows you, when using CSS Modules, to import the whole style module by default, in addition to namespace and named imports:
 
-For more information on configuring CSS Modules, see [builtins.css.modules](config/builtins#builtinscssmodules).
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      css: {
+        namedExports: false,
+      },
+    },
+  },
+};
+```
+
+Now you can use default import:
+
+```js
+import styles from './index.module.css';
+document.getElementById('element').className = styles.red;
+```
+
+For more on CSS Modules configuration, please refer to [module.parser.css](/config/module#moduleparsercss).
 
 ## PostCSS
 
