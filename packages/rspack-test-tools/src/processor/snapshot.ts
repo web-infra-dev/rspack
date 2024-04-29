@@ -7,6 +7,7 @@ import {
 	type Compilation as WebpackCompilation,
 	type Compiler as WebpackCompiler
 } from "webpack";
+import { escapeEOL } from "../helper";
 
 declare var global: {
 	updateSnapshot: boolean;
@@ -64,7 +65,7 @@ export class SnapshotProcessor<
 					.toString()}\n\`\`\``;
 			});
 		fileContents.sort();
-		const content = fileContents.join("\n\n").replace(/\r\n/g, "\n").trim();
+		const content = escapeEOL(fileContents.join("\n\n"));
 		const snapshotPath = path.isAbsolute(this._snapshotOptions.snapshot)
 			? this._snapshotOptions.snapshot
 			: path.resolve(
@@ -77,10 +78,7 @@ export class SnapshotProcessor<
 			fs.writeFileSync(snapshotPath, content, "utf-8");
 			return;
 		}
-		const snapshotContent = fs
-			.readFileSync(snapshotPath, "utf-8")
-			.replace(/\r\n/g, "\n")
-			.trim();
+		const snapshotContent = escapeEOL(fs.readFileSync(snapshotPath, "utf-8"));
 		expect(content).toBe(snapshotContent);
 	}
 }

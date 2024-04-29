@@ -1,1 +1,16 @@
-ERROR in ./lib.js× Module build failed:╰─▶   × Error: Failed to loadat Object.<anonymous>.module.exports (<PROJECT_ROOT>/tests/diagnosticsCases/module-build-failed/loader-throw-error/my-loader.js:2:9)at LOADER_EXECUTION (<RSPACK_ROOT>/dist/loader-runner/index.js:617:23)at runSyncOrAsync (<RSPACK_ROOT>/dist/loader-runner/index.js:618:11)at <RSPACK_ROOT>/dist/loader-runner/index.js:722:9at handleResult (<RSPACK_ROOT>/dist/loader-runner/loadLoader.js:126:5)at loadLoader (<RSPACK_ROOT>/dist/loader-runner/loadLoader.js:107:16)at iterateNormalLoaders (<RSPACK_ROOT>/dist/loader-runner/index.js:711:5)at <RSPACK_ROOT>/dist/loader-runner/index.js:538:13at new Promise (<anonymous>)at runLoaders (<RSPACK_ROOT>/dist/loader-runner/index.js:513:12)help: File was processed with this loader: '<PROJECT_ROOT>/tests/diagnosticsCases/module-build-failed/loader-throw-error/my-loader.js'
+ERROR in ./lib.js
+  × Module build failed:
+  ╰─▶   × Error: Failed to load
+             at Object.<anonymous>.module.exports (<PROJECT_ROOT>/tests/diagnosticsCases/module-build-failed/loader-throw-error/my-loader.js:2:9)
+             at LOADER_EXECUTION (<RSPACK_ROOT>/dist/loader-runner/index.js:617:23)
+             at runSyncOrAsync (<RSPACK_ROOT>/dist/loader-runner/index.js:618:11)
+             at <RSPACK_ROOT>/dist/loader-runner/index.js:722:9
+             at handleResult (<RSPACK_ROOT>/dist/loader-runner/loadLoader.js:126:5)
+             at loadLoader (<RSPACK_ROOT>/dist/loader-runner/loadLoader.js:107:16)
+             at iterateNormalLoaders (<RSPACK_ROOT>/dist/loader-runner/index.js:711:5)
+             at <RSPACK_ROOT>/dist/loader-runner/index.js:538:13
+             at new Promise (<anonymous>)
+             at runLoaders (<RSPACK_ROOT>/dist/loader-runner/index.js:513:12)
+        
+      
+  help: File was processed with this loader: '<PROJECT_ROOT>/tests/diagnosticsCases/module-build-failed/loader-throw-error/my-loader.js'

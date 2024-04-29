@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { escapeSep } from ".";
 
 export const isDirectory = (p: string) => fs.lstatSync(p).isDirectory();
 export const isFile = (p: string) => fs.lstatSync(p).isFile();
@@ -46,12 +47,9 @@ export function describeByWalk(
 				if (currentLevel > 1) {
 					describeDirectory(caseName, currentLevel - 1);
 				} else {
-					const name = path
-						.join(testId, caseName)
-						.split(".")
-						.shift()!
-						.split(path.win32.sep)
-						.join(path.posix.sep);
+					const name = escapeSep(
+						path.join(testId, caseName).split(".").shift()!
+					);
 					describe(name, () => {
 						let source = path.join(sourceBase, caseName);
 						let dist = "";

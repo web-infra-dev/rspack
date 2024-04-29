@@ -251,6 +251,12 @@ export class ErrorTaskProcessor<T extends ECompilerType> extends SimpleTaskProce
 }
 
 // @public (undocumented)
+export function escapeEOL(str: string): string;
+
+// @public (undocumented)
+export function escapeSep(str: string): string;
+
+// @public (undocumented)
 export function formatCode(name: string, raw: string, options: IFormatCodeOptions): string;
 
 // @public (undocumented)
