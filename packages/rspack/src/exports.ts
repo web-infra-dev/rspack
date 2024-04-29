@@ -154,10 +154,12 @@ interface Webworker {
 export const webworker: Webworker = { WebWorkerTemplatePlugin };
 
 import { LimitChunkCountPlugin } from "./builtin-plugin";
+import { RuntimeChunkPlugin } from "./builtin-plugin";
 interface Optimize {
 	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
+	RuntimeChunkPlugin: typeof RuntimeChunkPlugin;
 }
-export const optimize: Optimize = { LimitChunkCountPlugin };
+export const optimize: Optimize = { LimitChunkCountPlugin, RuntimeChunkPlugin };
 
 import { ModuleFederationPlugin } from "./container/ModuleFederationPlugin";
 export type { ModuleFederationPluginOptions } from "./container/ModuleFederationPlugin";

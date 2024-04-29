@@ -11,7 +11,6 @@ import {
 	LibraryOptions,
 	PublicPath,
 	getRawChunkLoading,
-	getRawEntryRuntime,
 	getRawLibrary
 } from "../config";
 import { isNil } from "../util";
@@ -52,7 +51,7 @@ function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
 		name: entry.name,
 		publicPath: entry.publicPath,
 		baseUri: entry.baseUri,
-		runtime: !isNil(runtime) ? getRawEntryRuntime(runtime) : undefined,
+		runtime,
 		chunkLoading: !isNil(chunkLoading)
 			? getRawChunkLoading(chunkLoading)
 			: undefined,

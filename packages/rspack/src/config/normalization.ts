@@ -359,19 +359,20 @@ const getNormalizedOptimizationRuntimeChunk = (
 	if (runtimeChunk === false) return false;
 	if (runtimeChunk === "single") {
 		return {
-			name: () => "runtime"
+			name: "single"
 		};
 	}
 	if (runtimeChunk === true || runtimeChunk === "multiple") {
 		return {
-			name: (entrypoint: { name: string }) => `runtime~${entrypoint.name}`
+			name: "multiple"
 		};
 	}
-	const { name } = runtimeChunk;
-	const opts: OptimizationRuntimeChunkNormalized = {
-		name: typeof name === "function" ? name : () => name
-	};
-	return opts;
+	if (runtimeChunk.name) {
+		const opts: OptimizationRuntimeChunkNormalized = {
+			name: runtimeChunk.name
+		};
+		return opts;
+	}
 };
 
 const nestedConfig = <T, R>(value: T | undefined, fn: (value: T) => R) =>
@@ -507,7 +508,7 @@ export type IgnoreWarningsNormalized = ((
 export type OptimizationRuntimeChunkNormalized =
 	| false
 	| {
-			name: (...args: any[]) => string | undefined;
+			name: string | ((entrypoint: { name: string }) => string);
 	  };
 
 export interface RspackOptionsNormalized {

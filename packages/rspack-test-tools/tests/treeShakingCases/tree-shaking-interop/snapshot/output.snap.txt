@@ -30,8 +30,7 @@ exports.test = 30;
 {
     const res = __webpack_require__("./a.js");
     module.exports = res;
-} // export default function () {}
-}),
+}}),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);

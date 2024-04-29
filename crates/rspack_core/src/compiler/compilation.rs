@@ -46,6 +46,7 @@ pub type BuildDependency = (
   Option<ModuleIdentifier>, /* parent module */
 );
 
+define_hook!(CompilationAddEntry: AsyncSeries(compilation: &mut Compilation, entry_name: Option<&str>));
 define_hook!(CompilationBuildModule: AsyncSeries(module: &mut BoxModule));
 define_hook!(CompilationStillValidModule: AsyncSeries(module: &mut BoxModule));
 define_hook!(CompilationSucceedModule: AsyncSeries(module: &mut BoxModule));
@@ -77,6 +78,7 @@ define_hook!(CompilationAfterSeal: AsyncSeries(compilation: &mut Compilation));
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
+  pub add_entry: CompilationAddEntryHook,
   pub build_module: CompilationBuildModuleHook,
   pub still_valid_module: CompilationStillValidModuleHook,
   pub succeed_module: CompilationSucceedModuleHook,
@@ -344,11 +346,12 @@ impl Compilation {
     import_var
   }
 
-  pub fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
+  pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
+    let entry_name = options.name.clone();
     self.get_module_graph_mut().add_dependency(entry);
-    if let Some(name) = options.name.clone() {
-      if let Some(data) = self.entries.get_mut(&name) {
+    if let Some(name) = &entry_name {
+      if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
         data.options.merge(options)?;
       } else {
@@ -357,11 +360,19 @@ impl Compilation {
           include_dependencies: vec![],
           options,
         };
-        self.entries.insert(name, data);
+        self.entries.insert(name.to_owned(), data);
       }
     } else {
       self.global_entry.dependencies.push(entry_id);
     }
+
+    self
+      .plugin_driver
+      .clone()
+      .compilation_hooks
+      .add_entry
+      .call(self, entry_name.as_deref())
+      .await?;
     Ok(())
   }
 
