@@ -1,7 +1,7 @@
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-Promise.resolve().then(__webpack_require__.t.bind(__webpack_require__, "./index.js", 23));
+Promise.resolve(/* import() */ ).then(__webpack_require__.t.bind(__webpack_require__, "./index.js", 23));
 console.log("index");
 }),
 

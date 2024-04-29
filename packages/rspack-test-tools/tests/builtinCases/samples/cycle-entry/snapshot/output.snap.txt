@@ -5,7 +5,7 @@
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
-Promise.resolve().then(__webpack_require__.bind(__webpack_require__, "./index.js"));
+Promise.resolve(/* import() */ ).then(__webpack_require__.bind(__webpack_require__, "./index.js"));
 
 console.log("index1");
 }),
@@ -27,7 +27,7 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 "use strict";
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
-__webpack_require__.e("index_js").then(__webpack_require__.bind(__webpack_require__, "./index.js"));
+__webpack_require__.e(/* import() */ "index_js").then(__webpack_require__.bind(__webpack_require__, "./index.js"));
 
 console.log("index2");
 }),
@@ -50,7 +50,7 @@ var __webpack_exports__ = (__webpack_exec__("./index2.js"));
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
-Promise.resolve().then(__webpack_require__.bind(__webpack_require__, "./index.js"));
+Promise.resolve(/* import() */ ).then(__webpack_require__.bind(__webpack_require__, "./index.js"));
 
 console.log("index1");
 }),
