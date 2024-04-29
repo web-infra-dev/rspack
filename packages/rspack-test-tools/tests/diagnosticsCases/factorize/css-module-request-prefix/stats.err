@@ -1,10 +1,1 @@
-WARNING in ./index.css
-  ⚠ Module parse warning:
-  ╰─▶   ⚠ CSS parsing warning: '@import' or 'url()' with a request starts with '~' is deprecated.
-         ╭─[1:1]
-       1 │ @import "~normalize.css";
-         ·          ─
-       2 │
-       3 │ .class {
-         ╰────
-        help: Remove '~' from the request.
+WARNING in ./index.css⚠ Module parse warning:╰─▶   ⚠ CSS parsing warning: '@import' or 'url()' with a request starts with '~' is deprecated.╭─[1:1]1  @import "~normalize.css";·          ─23  .class {╰────help: Remove '~' from the request.

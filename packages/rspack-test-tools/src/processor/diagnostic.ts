@@ -52,14 +52,11 @@ export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.
 			})
 		);
 		// TODO: change to stats.errorStack
-		if (context.getSource().includes("module-build-failed")) {
-			// Replace potential loader stack
-			output = output
-				.replaceAll("│", "")
-				.split(/\r?\n/)
-				.map((s: string) => s.trim())
-				.join("");
-		}
+		output = output
+			.replaceAll("│", "")
+			.split(/\r?\n/)
+			.map((s: string) => s.trim())
+			.join("");
 
 		const errorOutputPath = path.resolve(context.getSource(), `./stats.err`);
 		if (!fs.existsSync(errorOutputPath) || global.updateSnapshot) {

@@ -1,10 +1,1 @@
-WARNING in ./index.js
-  ⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/missing-module'
-   ╭─[2:1]
- 2 │     let errored = false;
- 3 │     try {
- 4 │         require("./missing-module");
-   ·         ───────────────────────────
- 5 │     } catch (err) {
- 6 │         errored = true;
-   ╰────
+WARNING in ./index.js⚠ Resolve error: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/missing-module'╭─[2:1]2      let errored = false;3      try {4          require("./missing-module");·         ───────────────────────────5      } catch (err) {6          errored = true;╰────
