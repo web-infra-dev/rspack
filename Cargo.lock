@@ -3066,8 +3066,10 @@ dependencies = [
 name = "rspack_macros_test"
 version = "0.1.0"
 dependencies = [
+ "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rspack_identifier",
  "rspack_macros",
  "rspack_util",
  "tokio",
