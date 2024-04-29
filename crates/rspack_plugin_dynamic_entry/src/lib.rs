@@ -55,7 +55,7 @@ async fn make(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>)
     for entry in import {
       let dependency: BoxDependency = Box::new(EntryDependency::new(entry, self.context.clone()));
       let dependency_id = *dependency.id();
-      compilation.add_entry(dependency, options.clone())?;
+      compilation.add_entry(dependency, options.clone()).await?;
 
       params.push(MakeParam::new_force_build_dep_param(dependency_id, None));
     }
