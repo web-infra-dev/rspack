@@ -24,7 +24,7 @@ export const DynamicEntryPlugin = create(
 						desc
 					);
 					return {
-						import: desc.import,
+						import: desc.import!,
 						options: getRawEntryOptions(options)
 					};
 				});

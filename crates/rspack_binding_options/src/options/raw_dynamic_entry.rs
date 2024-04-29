@@ -17,7 +17,7 @@ pub type RawEntryDynamic = ThreadsafeFunction<(), Vec<RawEntryDynamicResult>>;
 #[napi(object, object_to_js = false)]
 pub struct RawDynamicEntryPluginOptions {
   pub context: String,
-  #[napi(ts_type = "() => Promise<Vec<RawEntryDynamicResult>>")]
+  #[napi(ts_type = "() => Promise<RawEntryDynamicResult[]>")]
   pub entry: RawEntryDynamic,
 }
 

@@ -798,7 +798,7 @@ export interface RawCssParserOptions {
 
 export interface RawDynamicEntryPluginOptions {
   context: string
-  entry: () => Promise<Vec<RawEntryDynamicResult>>
+  entry: () => Promise<RawEntryDynamicResult[]>
 }
 
 export interface RawEntryDynamicResult {
