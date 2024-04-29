@@ -150,7 +150,7 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 
 // @public (undocumented)
 export function describeByWalk(testFile: string, createCase: (name: string, src: string, dist: string) => void, options?: {
-    type?: 'file' | 'directory';
+    type?: "file" | "directory";
     level?: number;
     source?: string;
     dist?: string;

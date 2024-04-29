@@ -1,19 +1,19 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`config config/builtins/css-auto css-auto exported tests css/auto can handle css module correctly 1`] = `
+exports[`config config/builtins/css-auto exported tests css/auto can handle css module correctly 1`] = `
 Object {
   "style": "-_921b05f8c9c16ca9ea84-style",
 }
 `;
 
-exports[`config config/builtins/css-modules-composes css-modules-composes exported tests css modules composes 1`] = `
+exports[`config config/builtins/css-modules-composes exported tests css modules composes 1`] = `
 Object {
   "simple-bar": "-_273d87445e861b3031dc-simple-bar -_9d368fc847854456bea3-imported-simple",
   "simple-foo": "-_273d87445e861b3031dc-simple-foo -_9d368fc847854456bea3-imported-simple",
 }
 `;
 
-exports[`config config/builtins/css-modules-composes-preprocessers css-modules-composes-preprocessers exported tests css modules with css preprocessers 1`] = `
+exports[`config config/builtins/css-modules-composes-preprocessers exported tests css modules with css preprocessers 1`] = `
 Object {
   "class": "-_273d87445e861b3031dc-class -_11a6d6ffb863bd538fe5-lessClass",
   "ghi": "-_273d87445e861b3031dc-ghi",
@@ -22,27 +22,27 @@ Object {
 }
 `;
 
-exports[`config config/builtins/css-modules-composes-sass css-modules-composes-sass exported tests css modules in scss 1`] = `
+exports[`config config/builtins/css-modules-composes-sass exported tests css modules in scss 1`] = `
 Object {
   "bar": "-_735885c5e37059075f0c-bar -_3dd446eb32b4cceede74-foo",
 }
 `;
 
-exports[`config config/builtins/css-modules-dedupe css-modules-dedupe exported tests css modules dedupe 1`] = `
+exports[`config config/builtins/css-modules-dedupe exported tests css modules dedupe 1`] = `
 Object {
   "backButton": "-d4f5f65e6ec5e3abc2cc-backButton -_0f182db74b24b91ce53c-secondaryButton -ed3ce9538ce4b9c8f8ab-button",
   "nextButton": "-d4f5f65e6ec5e3abc2cc-nextButton -_73af08fa9da07d8b8412-primaryButton -ed3ce9538ce4b9c8f8ab-button",
 }
 `;
 
-exports[`config config/builtins/css-modules-exports-only css-modules-exports-only exported tests css modules exportsOnly 1`] = `
+exports[`config config/builtins/css-modules-exports-only exported tests css modules exportsOnly 1`] = `
 Object {
   "simple-bar": "-_273d87445e861b3031dc-simple-bar -_9d368fc847854456bea3-imported-simple",
   "simple-foo": "-_273d87445e861b3031dc-simple-foo -_9d368fc847854456bea3-imported-simple",
 }
 `;
 
-exports[`config config/builtins/css-modules-local-ident-name-hash css-modules-local-ident-name-hash exported tests css modules localIdentName with hash 1`] = `
+exports[`config config/builtins/css-modules-local-ident-name-hash exported tests css modules localIdentName with hash 1`] = `
 Object {
   "#": "_2d1f13069a34dadb8112",
   "##": "ae8301fd6f3598539bfd",
@@ -95,7 +95,7 @@ Object {
 }
 `;
 
-exports[`config config/builtins/css-modules-local-ident-name-path css-modules-local-ident-name-path exported tests css modules localIdentName with path 1`] = `
+exports[`config config/builtins/css-modules-local-ident-name-path exported tests css modules localIdentName with path 1`] = `
 Object {
   "#": "src_index__#",
   "##": "src_index__##",
@@ -148,7 +148,7 @@ Object {
 }
 `;
 
-exports[`config config/builtins/css-modules-locals-convention-camelCase css-modules-locals-convention-camelCase exported tests css modules localsConvention with camelCase 1`] = `
+exports[`config config/builtins/css-modules-locals-convention-camelCase exported tests css modules localsConvention with camelCase 1`] = `
 Object {
   "btn--info_is-disabled_1": "-_273d87445e861b3031dc-btn--info_is-disabled_1",
   "btn-info_is-disabled": "-_273d87445e861b3031dc-btn-info_is-disabled",
@@ -160,7 +160,7 @@ Object {
 }
 `;
 
-exports[`config config/builtins/css-modules-locals-convention-camelCaseOnly css-modules-locals-convention-camelCaseOnly exported tests css modules localsConvention with camelCaseOnly 1`] = `
+exports[`config config/builtins/css-modules-locals-convention-camelCaseOnly exported tests css modules localsConvention with camelCaseOnly 1`] = `
 Object {
   "btnInfoIsDisabled": "-_273d87445e861b3031dc-btn-info_is-disabled",
   "btnInfoIsDisabled1": "-_273d87445e861b3031dc-btn--info_is-disabled_1",
@@ -169,7 +169,7 @@ Object {
 }
 `;
 
-exports[`config config/builtins/css-modules-locals-convention-dashes css-modules-locals-convention-dashes exported tests css modules localsConvention with dashes 1`] = `
+exports[`config config/builtins/css-modules-locals-convention-dashes exported tests css modules localsConvention with dashes 1`] = `
 Object {
   "btn--info_is-disabled_1": "-_273d87445e861b3031dc-btn--info_is-disabled_1",
   "btn-info-is-disabled": "-_273d87445e861b3031dc-btn-info_is-disabled",
@@ -181,7 +181,7 @@ Object {
 }
 `;
 
-exports[`config config/builtins/css-modules-pseudo css-modules-pseudo exported tests css modules pseudo syntax 1`] = `
+exports[`config config/builtins/css-modules-pseudo exported tests css modules pseudo syntax 1`] = `
 Object {
   "bar": "-_273d87445e861b3031dc-bar",
   "bav": "-_273d87445e861b3031dc-bav",
@@ -193,13 +193,13 @@ Object {
 }
 `;
 
-exports[`config config/builtins/css-modules-simple css-modules-simple exported tests css modules simple test 1`] = `
+exports[`config config/builtins/css-modules-simple exported tests css modules simple test 1`] = `
 Object {
   "style": "-_921b05f8c9c16ca9ea84-style",
 }
 `;
 
-exports[`config config/chunk-index/available-modules-order-index available-modules-order-index exported tests should compile 1`] = `
+exports[`config config/chunk-index/available-modules-order-index exported tests should compile 1`] = `
 ".m {
   color: red;
 }
@@ -209,7 +209,7 @@ exports[`config config/chunk-index/available-modules-order-index available-modul
 "
 `;
 
-exports[`config config/css/at-import-in-the-top at-import-in-the-top exported tests at-import-in-the-top 1`] = `
+exports[`config config/css/at-import-in-the-top exported tests at-import-in-the-top 1`] = `
 "@import url(\\"https://fonts.googleapis.com/css2?family=Roboto\\");
 @import url(\\"https://fonts.googleapis.com/css2?family=Inter\\");
 .c {
@@ -232,7 +232,7 @@ exports[`config config/css/at-import-in-the-top at-import-in-the-top exported te
 "
 `;
 
-exports[`config config/css/export-selector export-selector exported tests should have correct css result 1`] = `
+exports[`config config/css/export-selector exported tests should have correct css result 1`] = `
 "/* #region \\"./style.module.css?imported\\" */
 /*
 - type: css/auto
@@ -245,19 +245,19 @@ exports[`config config/css/export-selector export-selector exported tests should
 "
 `;
 
-exports[`config config/css/rewrite-url rewrite-url exported tests should rewrite the css url() 1`] = `"eb587e4780c414fe3a22.png"`;
+exports[`config config/css/rewrite-url exported tests should rewrite the css url() 1`] = `"eb587e4780c414fe3a22.png"`;
 
-exports[`config config/css/rewrite-url rewrite-url exported tests should rewrite the css url() 2`] = `"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAOCAYAAAAbvf3sAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAEWSURBVHgBjZFRSsNAEIb/3fQAOUK9gfpe6YIovjU3UE+gJ2g8gTcw3sC+itUFrW+BeAN7ATFSKAjbHWcSC+mSlszLDrvfzvzzj0LHmNpZBtBQd4Gf7fuYgHPPueoCe1DK1UsHd7Dzw+P0daQj/SC5h09OzdGktw221vZXUBlVMN0ILPd6O9yzBBXX8CBdv6kWOGa4YLivQJNjM0ia73oTLsBwJjCB5gu4i7CgbsIey5ThEcOfKziTGFOGHypJeZ7jZ/Gbst4x2/fN9h2eGTNvgk92VrDEWLNmfJXLpIYrRy5b4Fs+9v2/pL0oUncI7FuHLI6PK5lJZGoe8qXNvrry27DesoRLpLPmNkTw9yEcxPWJMR+S/AFbfpAZqxwUNQAAAABJRU5ErkJggg=="`;
+exports[`config config/css/rewrite-url exported tests should rewrite the css url() 2`] = `"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAOCAYAAAAbvf3sAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAEWSURBVHgBjZFRSsNAEIb/3fQAOUK9gfpe6YIovjU3UE+gJ2g8gTcw3sC+itUFrW+BeAN7ATFSKAjbHWcSC+mSlszLDrvfzvzzj0LHmNpZBtBQd4Gf7fuYgHPPueoCe1DK1UsHd7Dzw+P0daQj/SC5h09OzdGktw221vZXUBlVMN0ILPd6O9yzBBXX8CBdv6kWOGa4YLivQJNjM0ia73oTLsBwJjCB5gu4i7CgbsIey5ThEcOfKziTGFOGHypJeZ7jZ/Gbst4x2/fN9h2eGTNvgk92VrDEWLNmfJXLpIYrRy5b4Fs+9v2/pL0oUncI7FuHLI6PK5lJZGoe8qXNvrry27DesoRLpLPmNkTw9yEcxPWJMR+S/AFbfpAZqxwUNQAAAABJRU5ErkJggg=="`;
 
-exports[`config config/css/rewrite-url-css-variables rewrite-url-css-variables exported tests should rewrite the css url() in css variables 1`] = `"eb587e4780c414fe3a22.png"`;
+exports[`config config/css/rewrite-url-css-variables exported tests should rewrite the css url() in css variables 1`] = `"eb587e4780c414fe3a22.png"`;
 
-exports[`config config/css/rewrite-url-css-variables rewrite-url-css-variables exported tests should rewrite the css url() in css variables 2`] = `"eb587e4780c414fe3a22.png"`;
+exports[`config config/css/rewrite-url-css-variables exported tests should rewrite the css url() in css variables 2`] = `"eb587e4780c414fe3a22.png"`;
 
-exports[`config config/css/rewrite-url-with-css-filename rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath and ~@ prefix 1`] = `"/image/logo.eb587e47.png"`;
+exports[`config config/css/rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath and ~@ prefix 1`] = `"/image/logo.eb587e47.png"`;
 
-exports[`config config/css/rewrite-url-with-css-filename rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath when output.cssFilename is set 1`] = `"/image/logo.eb587e47.png"`;
+exports[`config config/css/rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath when output.cssFilename is set 1`] = `"/image/logo.eb587e47.png"`;
 
-exports[`config config/css/urls urls exported tests css urls should works 1`] = `
+exports[`config config/css/urls exported tests css urls should works 1`] = `
 "/* @supports (background-image: url(\\"unknown.png\\")) {
 	div {
 		a195: url(\\"img.png\\");
@@ -313,7 +313,7 @@ div {
 "
 `;
 
-exports[`config config/optimization/minimizer-swc-extract-comments minimizer-swc-extract-comments exported tests should keep the extracted license file stable 1`] = `
+exports[`config config/optimization/minimizer-swc-extract-comments exported tests should keep the extracted license file stable 1`] = `
 "/**
  * bar
  * @license MIT
@@ -335,7 +335,7 @@ exports[`config config/optimization/minimizer-swc-extract-comments minimizer-swc
  */"
 `;
 
-exports[`config config/plugins/chunk-modules chunk-modules exported tests chunk-modules 1`] = `
+exports[`config config/plugins/chunk-modules exported tests chunk-modules 1`] = `
 Object {
   "515": Object {
     "entryModules": Array [],
@@ -372,7 +372,7 @@ Object {
 }
 `;
 
-exports[`config config/schemes/data-imports data-imports exported tests data imports 1`] = `
+exports[`config config/schemes/data-imports exported tests data imports 1`] = `
 ".red{color: red;}
 .b{color: green}
 .a { color: palegreen; };;;
