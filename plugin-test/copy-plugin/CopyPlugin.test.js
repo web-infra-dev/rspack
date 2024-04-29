@@ -429,6 +429,39 @@ describe("CopyPlugin", () => {
 				);
 			});
 		});
+
+		it("should work with transform fn", async () => {
+			const compiler = rspack([
+				{
+					mode: "development",
+					context: path.resolve(__dirname, "./fixtures"),
+					plugins: [
+						new rspack.CopyRspackPlugin({
+							patterns: [
+								{
+									from: path.resolve(__dirname, "./fixtures/directory"),
+									transform: source => {
+										return source + "transform aaaa";
+									}
+								}
+							]
+						})
+					],
+					entry: path.resolve(__dirname, "./helpers/enter.js"),
+					output: {
+						path: path.resolve(__dirname, "./outputs/dist/b")
+					}
+				}
+			]);
+
+			const { stats } = await compile(compiler);
+
+			stats.stats.forEach((item, index) => {
+				expect(readAssets(compiler.compilers[index], item)).toMatchSnapshot(
+					"assets"
+				);
+			});
+		});
 	});
 
 	describe("watch mode", () => {
