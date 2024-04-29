@@ -103,6 +103,8 @@ export type { ProgressPluginArgument } from "./builtin-plugin";
 export { EntryPlugin } from "./builtin-plugin";
 export type { EntryOptions } from "./builtin-plugin";
 
+export { DynamicEntryPlugin } from "./builtin-plugin";
+
 export { ExternalsPlugin } from "./builtin-plugin";
 
 export { HotModuleReplacementPlugin } from "./builtin-plugin";

@@ -105,9 +105,12 @@ export const getNormalizedRspackOptions = (
 		entry:
 			config.entry === undefined
 				? { main: {} }
-				: getNormalizedEntryStatic(
-						typeof config.entry === "function" ? config.entry() : config.entry
-					),
+				: typeof config.entry === "function"
+					? (
+							fn => () =>
+								Promise.resolve().then(fn).then(getNormalizedEntryStatic)
+						)(config.entry)
+					: getNormalizedEntryStatic(config.entry),
 		output: nestedConfig(config.output, output => {
 			const { library } = output;
 			const libraryAsName = library;
@@ -420,7 +423,10 @@ const keyedNestedConfig = <T, R>(
 	return result;
 };
 
-export type EntryNormalized = EntryStaticNormalized;
+export type EntryDynamicNormalized = () => Promise<EntryStaticNormalized>;
+
+export type EntryNormalized = EntryDynamicNormalized | EntryStaticNormalized;
+
 export interface EntryStaticNormalized {
 	[k: string]: EntryDescriptionNormalized;
 }

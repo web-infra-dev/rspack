@@ -29,6 +29,7 @@ use rspack_plugin_devtool::{
   SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
   SourceMapDevToolPluginOptions,
 };
+use rspack_plugin_dynamic_entry::DynamicEntryPlugin;
 use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_externals::{
@@ -81,9 +82,9 @@ use self::{
 };
 use crate::{
   plugins::{CssExtractRspackAdditionalDataPlugin, JsLoaderResolverPlugin},
-  JsLoaderRunner, RawEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
-  RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions,
-  RawSplitChunksOptions,
+  JsLoaderRunner, RawDynamicEntryPluginOptions, RawEntryPluginOptions,
+  RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
+  RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -96,6 +97,7 @@ pub enum BuiltinPluginName {
   IgnorePlugin,
   ProgressPlugin,
   EntryPlugin,
+  DynamicEntryPlugin,
   ExternalsPlugin,
   NodeTargetPlugin,
   ElectronTargetPlugin,
@@ -203,6 +205,13 @@ impl BuiltinPlugin {
         let entry_request = plugin_options.entry;
         let options = plugin_options.options.into();
         let plugin = EntryPlugin::new(context, entry_request, options).boxed();
+        plugins.push(plugin);
+      }
+      BuiltinPluginName::DynamicEntryPlugin => {
+        let plugin = DynamicEntryPlugin::new(
+          downcast_into::<RawDynamicEntryPluginOptions>(self.options)?.into(),
+        )
+        .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::ExternalsPlugin => {

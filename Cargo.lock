@@ -2793,6 +2793,7 @@ dependencies = [
  "rspack_plugin_copy",
  "rspack_plugin_css",
  "rspack_plugin_devtool",
+ "rspack_plugin_dynamic_entry",
  "rspack_plugin_ensure_chunk_conditions",
  "rspack_plugin_entry",
  "rspack_plugin_externals",
@@ -3211,6 +3212,18 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+]
+
+[[package]]
+name = "rspack_plugin_dynamic_entry"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "derivative",
+ "futures",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]

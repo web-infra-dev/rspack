@@ -31,6 +31,7 @@ rspack_plugin_banner                  = { path = "../rspack_plugin_banner" }
 rspack_plugin_copy                    = { path = "../rspack_plugin_copy" }
 rspack_plugin_css                     = { path = "../rspack_plugin_css" }
 rspack_plugin_devtool                 = { path = "../rspack_plugin_devtool" }
+rspack_plugin_dynamic_entry           = { path = "../rspack_plugin_dynamic_entry" }
 rspack_plugin_ensure_chunk_conditions = { path = "../rspack_plugin_ensure_chunk_conditions" }
 rspack_plugin_entry                   = { path = "../rspack_plugin_entry" }
 rspack_plugin_externals               = { path = "../rspack_plugin_externals" }
