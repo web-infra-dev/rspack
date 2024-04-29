@@ -4,14 +4,13 @@ use super::{factorize::FactorizeTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
   ContextDependency, DependencyId, DependencyType, ErrorSpan, Module, ModuleIdentifier,
-  ModuleProfile, NormalModuleSource, Resolve,
+  ModuleProfile, NormalModuleSource,
 };
 
 #[derive(Debug)]
 pub struct ProcessDependenciesTask {
   pub original_module_identifier: ModuleIdentifier,
   pub dependencies: Vec<DependencyId>,
-  pub resolve_options: Option<Box<Resolve>>,
 }
 
 impl Task<MakeTaskContext> for ProcessDependenciesTask {
@@ -23,7 +22,6 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
     let Self {
       original_module_identifier,
       dependencies,
-      resolve_options,
     } = *self;
     let mut sorted_dependencies = HashMap::default();
     let module_graph =
@@ -114,7 +112,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
         dependency,
         dependencies,
         is_entry: false,
-        resolve_options: resolve_options.clone(),
+        resolve_options: module.get_resolve_options(),
         resolver_factory: context.resolver_factory.clone(),
         loader_resolver_factory: context.loader_resolver_factory.clone(),
         options: context.compiler_options.clone(),

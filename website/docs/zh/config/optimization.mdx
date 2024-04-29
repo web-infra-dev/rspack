@@ -111,6 +111,19 @@ module.exports = {
 
 移除打包过程中产生的空 Chunk。
 
+## optimization.runtimeChunk
+
+<PropertyType
+  type="boolean | string | ((entrypoint: { name: string }) => string)"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+用来控制 runtime chunk 如何生成。
+
+设置为 `true` 或 `'multiple'` 会为每个入口点添加一个仅包含运行时的额外 chunk。
+
+设置为 `'single'` 会将所有入口点的运行时代码抽离到一个单独的 chunk。
+
 ## optimization.sideEffects
 
 <PropertyType.CN

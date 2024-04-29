@@ -272,6 +272,7 @@ pub fn minify(
 
             // if not matched comments, we don't need to emit .License.txt file
             if !extracted_comments.is_empty() {
+              extracted_comments.sort();
               all_extract_comments
                 .lock()
                 .expect("all_extract_comments lock failed")

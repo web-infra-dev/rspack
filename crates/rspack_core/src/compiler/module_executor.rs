@@ -11,7 +11,7 @@ use crate::cache::Cache;
 use crate::{
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationResult, Dependency, DependencyType, EntryDependency, EntryOptions, Entrypoint,
-  ModuleFactory, SourceType,
+  ModuleFactory, RuntimeSpec, SourceType,
 };
 use crate::{Compilation, CompilationAsset, MakeParam};
 use crate::{CompilerOptions, Context, ResolverFactory, SharedPluginDriver};
@@ -111,7 +111,7 @@ impl ModuleExecutor {
     chunk.id = chunk.name.clone();
     chunk.ids = vec![chunk.id.clone().expect("id is set")];
     let runtime = {
-      let mut runtime = HashSet::default();
+      let mut runtime = RuntimeSpec::default();
       runtime.insert("build time".into());
       runtime
     };

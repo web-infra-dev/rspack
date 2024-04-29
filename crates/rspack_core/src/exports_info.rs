@@ -1537,7 +1537,7 @@ impl ExportInfo {
     if let Some(used_in_runtime) = self.used_in_runtime.as_ref() {
       let mut max = UsageState::Unused;
       if let Some(runtime) = runtime {
-        for item in runtime {
+        for item in runtime.iter() {
           let Some(usage) = used_in_runtime.get(item.as_ref()) else {
             continue;
           };

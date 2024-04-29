@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::ops::Sub;
 
 use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
@@ -68,7 +67,7 @@ fn subtract_runtime(a: Option<&RuntimeSpec>, b: Option<&RuntimeSpec>) -> Option<
     (Some(a), None) => Some(a.clone()),
     (None, None) => None,
     (None, Some(b)) => Some(b.clone()),
-    (Some(a), Some(b)) => Some(a.sub(b)),
+    (Some(a), Some(b)) => Some(a.subtract(b)),
   }
 }
 
@@ -86,7 +85,7 @@ where
           f(Some(&r.to_string()));
         }
       } else {
-        for r in runtime {
+        for r in runtime.iter() {
           f(Some(&r.to_string()));
         }
       }

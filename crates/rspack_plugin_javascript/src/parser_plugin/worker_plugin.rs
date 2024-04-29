@@ -93,7 +93,7 @@ impl JavascriptParser<'_> {
     );
     block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
       name,
-      runtime: Some(runtime),
+      runtime: Some(runtime.into()),
       chunk_loading: Some(output_options.worker_chunk_loading.clone()),
       async_chunks: None,
       public_path: None,
