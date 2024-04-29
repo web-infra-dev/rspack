@@ -5,9 +5,5 @@ export function escapeSep(str: string) {
 }
 
 export function escapeEOL(str: string) {
-	return str
-		.split("\r\n")
-		.map(i => i.trim())
-		.join("\n")
-		.trim();
+	return str.split("\r\n").join("\n").trim();
 }
