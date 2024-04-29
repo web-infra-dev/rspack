@@ -1,5 +1,4 @@
 import { ECompilerType } from "../type";
-import path from "path";
 import { getSimpleProcessorRunner } from "../test/simple";
 import { ErrorTaskProcessor } from "../processor";
 
@@ -9,13 +8,13 @@ export function createErrorCase(
 	name: string,
 	src: string,
 	dist: string,
-	root: string
+	testConfig: string
 ) {
 	if (!addedSerializer) {
 		ErrorTaskProcessor.addSnapshotSerializer();
 		addedSerializer = true;
 	}
-	const caseConfig = require(path.join(root, name));
+	const caseConfig = require(testConfig);
 	const runner = getSimpleProcessorRunner(src, dist, {
 		it,
 		beforeEach,

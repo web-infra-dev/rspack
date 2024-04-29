@@ -8,6 +8,7 @@ import path from "path";
 import EventSource from "../../../helper/legacy/EventSourceForNode";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
 import { CommonJsRunner } from "../cjs";
+import { escapeSep } from "../../../helper";
 
 export class JSDOMWebRunner<
 	T extends ECompilerType = ECompilerType.Rspack
@@ -166,7 +167,7 @@ export class JSDOMWebRunner<
 				this._options.testConfig.moduleScope(currentModuleScope);
 			}
 
-			const scopeKey = file!.path.split(path.win32.sep).join(path.posix.sep);
+			const scopeKey = escapeSep(file!.path);
 			const args = Object.keys(currentModuleScope);
 			const argValues = args
 				.map(arg => `window["${scopeKey}"]["${arg}"]`)
@@ -180,7 +181,7 @@ export class JSDOMWebRunner<
                 get(target, prop, receiver) {
                   if (prop === "currentScript") {
                     var script = target.createElement("script");
-                    script.src = "https://test.cases/path/${file.subPath.split(path.win32.sep).join(path.posix.sep)}index.js";
+                    script.src = "https://test.cases/path/${escapeSep(file.subPath)}index.js";
                     return script;
                   }
                   return Reflect.get(target, prop, receiver);
