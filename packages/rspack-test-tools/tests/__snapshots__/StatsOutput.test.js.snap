@@ -1,4 +1,4 @@
-// Jest Snapshot v1, <https://goo.gl/fbAQLP>
+// Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats for auxiliary-files-test 1`] = `
 "PublicPath: auto
@@ -46,7 +46,7 @@ exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print cor
   │     │    :        ^^^^^
   │     │    \`----
   │     │
-  │
+  │   
   ╰─▶ Syntax Error
   help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
 
@@ -104,8 +104,8 @@ exports[`statsOutput statsOutput/let-keyword-as-variable-name-error should print
        1 │ let let = let;
          ·           ───
          ╰────
-
-  help:
+      
+  help: 
         You may need an appropriate loader to handle this file type.
 
 ERROR in ./index.js
@@ -115,8 +115,8 @@ ERROR in ./index.js
        1 │ let let = let;
          ·     ───
          ╰────
-
-  help:
+      
+  help: 
         You may need an appropriate loader to handle this file type.
 
 Rspack compiled with 2 errors"
@@ -205,6 +205,7 @@ exports[`statsOutput statsOutput/minify-error should print correct stats for min
 Rspack compiled with 1 error"
 `;
 
+exports[`statsOutput statsOutput/named-chunk-group should print correct stats for named-chunk-group 1`] = `
 "Entrypoint main 8.72 KiB = main.js
 Chunk Group cimanyd 335 bytes = cimanyd.js"
 `;
@@ -267,8 +268,8 @@ exports[`statsOutput statsOutput/parse-error should print correct stats for pars
        7 │ error
        8 │ in
          ╰────
-
-  help:
+      
+  help: 
         You may need an appropriate loader to handle this file type.
 
 Rspack compiled with 1 error"
