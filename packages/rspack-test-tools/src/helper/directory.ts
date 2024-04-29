@@ -2,45 +2,71 @@ import fs from "fs";
 import path from "path";
 
 export const isDirectory = (p: string) => fs.lstatSync(p).isDirectory();
+export const isFile = (p: string) => fs.lstatSync(p).isFile();
 export const isValidCaseDirectory = (name: string) =>
-	!name.startsWith("_") && !name.startsWith(".");
+	!name.startsWith("_") && !name.startsWith(".") && name !== "node_modules";
 
 export function describeByWalk(
-	name: string,
-	sourceBase: string,
-	distBase: string,
+	testFile: string,
 	createCase: (name: string, src: string, dist: string) => void,
-	whitelist: {
-		cat?: RegExp;
-		case?: RegExp;
+	options: {
+		type?: "file" | "directory";
+		level?: number;
+		source?: string;
+		dist?: string;
+		absoluteDist?: boolean;
 	} = {}
 ) {
-	const categories = fs
-		.readdirSync(sourceBase)
-		.filter(isValidCaseDirectory)
-		.filter(folder => isDirectory(path.join(sourceBase, folder)))
-		.filter(i => (whitelist?.cat ? whitelist.cat.test(i) : true))
-		.map(cat => {
-			return {
-				name: cat,
-				tests: fs
-					.readdirSync(path.join(sourceBase, cat))
-					.filter(isValidCaseDirectory)
-					.filter(folder => isDirectory(path.join(sourceBase, cat, folder)))
-					.filter(i => (whitelist?.case ? whitelist.case.test(i) : true))
-					.sort()
-			};
-		});
-	describe(name, () => {
-		for (let { name: catName, tests } of categories) {
-			if (tests.length === 0) continue;
-			describe(catName, () => {
-				for (const testName of tests) {
-					const src = path.join(sourceBase, catName, testName);
-					const dist = path.join(distBase, catName, testName);
-					createCase(testName, src, dist);
+	const testBasename = path
+		.basename(testFile)
+		.replace(/\.(diff|hot)?test\.js/, "");
+	const testId = testBasename.charAt(0).toLowerCase() + testBasename.slice(1);
+	const sourceBase =
+		options.source || path.join(path.dirname(testFile), `${testId}Cases`);
+	const distBase =
+		options.dist || path.join(path.dirname(testFile), "js", testId);
+	const level = options.level || 2;
+	const type = options.type || "directory";
+	const absoluteDist = options.absoluteDist ?? true;
+	function describeDirectory(dirname: string, currentLevel: number) {
+		fs.readdirSync(path.join(sourceBase, dirname))
+			.filter(isValidCaseDirectory)
+			.filter(folder => {
+				const p = path.join(sourceBase, dirname, folder);
+				if (type === "file" && currentLevel === 1) {
+					return isFile(p);
+				} else if (type === "directory" || currentLevel > 1) {
+					return isDirectory(p);
+				} else {
+					return false;
+				}
+			})
+			.map(folder => {
+				const caseName = path.join(dirname, folder);
+				if (currentLevel > 1) {
+					describeDirectory(caseName, currentLevel - 1);
+				} else {
+					const name = path.join(testId, caseName).split(".").shift()!;
+					describe(name, () => {
+						let source = path.join(sourceBase, caseName);
+						let dist = "";
+						if (absoluteDist) {
+							dist = path.join(distBase, caseName);
+						} else {
+							const relativeDist = options.dist || "dist";
+							if (path.isAbsolute(relativeDist)) {
+								dist = path.join(relativeDist, caseName);
+							} else {
+								dist = path.join(sourceBase, caseName, relativeDist);
+							}
+						}
+						createCase(folder, source, dist);
+					});
 				}
 			});
-		}
+	}
+
+	describe(testId, () => {
+		describeDirectory("", level);
 	});
 }

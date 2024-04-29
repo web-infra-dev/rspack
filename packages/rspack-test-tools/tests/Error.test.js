@@ -1,13 +1,10 @@
 const path = require("path");
-const fs = require("fs");
-const { createErrorCase } = require("../dist");
-const srcDir = __dirname;
-const distDir = path.join(__dirname, "./js/error");
+const { createErrorCase, describeByWalk } = require("../dist");
 const caseDir = path.resolve(__dirname, "./errorCases");
 
-describe("Error", () => {
-	const cases = fs.readdirSync(caseDir);
-	for (let file of cases) {
-		createErrorCase(file, srcDir, distDir, caseDir);
-	}
+describeByWalk(__filename, (name, testConfig, dist) => {
+	createErrorCase(name, caseDir, dist, testConfig);
+}, {
+	level: 1,
+	type: 'file'
 });

@@ -1,6 +1,0 @@
-ERROR in ./index.js
-  × Resolve error: Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnostics/factorize/cannot-resolve'
-   ╭────
- 1 │ import "./a";
-   ·        ─────
-   ╰────

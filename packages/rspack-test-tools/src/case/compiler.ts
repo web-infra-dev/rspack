@@ -7,9 +7,9 @@ export function createCompilerCase(
 	name: string,
 	src: string,
 	dist: string,
-	root: string
+	testConfig: string
 ) {
-	const caseConfig = require(path.join(root, name));
+	const caseConfig = require(testConfig);
 
 	const runner = getSimpleProcessorRunner(src, dist, {
 		it,

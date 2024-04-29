@@ -19,7 +19,7 @@ class Plugin {
 
 			const filePath = path.resolve(
 				__dirname,
-				"../../../js/ConfigTestCases/hooks/should-emit-2",
+				"../../../js/config/hooks/should-emit-2",
 				"bundle0.js"
 			);
 			fs.writeFileSync(filePath, customBundleFile);

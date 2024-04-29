@@ -78,7 +78,7 @@ export function compareModules(modules: string[], sourceModules: Map<string, str
 export function createBuiltinCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createCompilerCase(name: string, src: string, dist: string, root: string): void;
+export function createCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
 
 // @public (undocumented)
 export function createConfigCase(name: string, src: string, dist: string): void;
@@ -93,7 +93,7 @@ export function createDiagnosticCase(name: string, src: string, dist: string): v
 export function createDiffCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createErrorCase(name: string, src: string, dist: string, root: string): void;
+export function createErrorCase(name: string, src: string, dist: string, testConfig: string): void;
 
 // @public (undocumented)
 export function createHashCase(name: string, src: string, dist: string): void;
@@ -108,10 +108,10 @@ export function createHotStepCase(name: string, src: string, dist: string, targe
 export function createNormalCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createStatsAPICase(name: string, src: string, dist: string, root: string): void;
+export function createStatsAPICase(name: string, src: string, dist: string, testConfig: string): void;
 
 // @public (undocumented)
-export function createStatsCase(name: string, src: string, dist: string): void;
+export function createStatsOutputCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
 export function createTreeShakingCase(name: string, src: string, dist: string): void;
@@ -149,9 +149,12 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 }
 
 // @public (undocumented)
-export function describeByWalk(name: string, sourceBase: string, distBase: string, createCase: (name: string, src: string, dist: string) => void, whitelist?: {
-    cat?: RegExp;
-    case?: RegExp;
+export function describeByWalk(testFile: string, createCase: (name: string, src: string, dist: string) => void, options?: {
+    type?: 'file' | 'directory';
+    level?: number;
+    source?: string;
+    dist?: string;
+    absoluteDist?: boolean;
 }): void;
 
 // @public (undocumented)
@@ -548,6 +551,9 @@ export interface IRspackWatchStepProcessorOptions {
 
 // @public (undocumented)
 export const isDirectory: (p: string) => boolean;
+
+// @public (undocumented)
+export const isFile: (p: string) => boolean;
 
 // @public (undocumented)
 export interface ISimpleProcessorOptions<T extends ECompilerType = ECompilerType.Rspack> {
