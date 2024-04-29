@@ -343,7 +343,11 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'EntryOptionPlugin',
-    status: SupportStatus.FullySupported,
+    status: SupportStatus.PartiallySupported,
+    notes: {
+      en: '`layer`, `chunkLoading`, `wasmLoading`, `library` options are not supported, and `entry` and `filename` cannot accept a function as a value',
+      zh: '不支持 `layer`、`chunkLoading`、`wasmLoading`、`library` 选项，`entry` 和 `filename` 无法接受函数作为值',
+    },
   },
   {
     name: 'ExternalsPlugin',
