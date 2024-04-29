@@ -54,17 +54,15 @@ export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.
 		// TODO: change to stats.errorStack
 		if (context.getSource().includes("module-build-failed")) {
 			// Replace potential loader stack
-			output = escapeEOL(output.replaceAll("│", ""));
+			output = output.replaceAll("│", "");
 		}
 
 		const errorOutputPath = path.resolve(context.getSource(), `./stats.err`);
 		if (!fs.existsSync(errorOutputPath) || global.updateSnapshot) {
 			fs.writeFileSync(errorOutputPath, output);
 		} else {
-			const expectContent = escapeEOL(
-				fs.readFileSync(errorOutputPath, "utf-8")
-			);
-			expect(output).toBe(expectContent);
+			const expectContent = fs.readFileSync(errorOutputPath, "utf-8");
+			expect(escapeEOL(output)).toBe(escapeEOL(expectContent));
 		}
 	}
 
