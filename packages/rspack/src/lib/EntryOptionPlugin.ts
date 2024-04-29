@@ -10,7 +10,11 @@
 
 import assert from "assert";
 import { Compiler, EntryDescriptionNormalized, EntryNormalized } from "..";
-import { DynamicEntryPlugin, EntryOptions, EntryPlugin } from "../builtin-plugin";
+import {
+	DynamicEntryPlugin,
+	EntryOptions,
+	EntryPlugin
+} from "../builtin-plugin";
 
 export default class EntryOptionPlugin {
 	apply(compiler: Compiler) {
