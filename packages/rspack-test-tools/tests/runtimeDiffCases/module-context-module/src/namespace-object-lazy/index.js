@@ -1,5 +1,3 @@
-// non-mjs-namespace-object-lazy
-
 it("should receive a namespace object when importing commonjs", function(done) {
 	import("./cjs").then(function(result) {
 		expect(result).toEqual(nsObj({ named: "named", default: { named: "named", default: "default" } }));
@@ -18,12 +16,12 @@ function contextCJS(name) {
 	return Promise.all([
 		import(`./dir-cjs/${name}`),
 		import(/* webpackMode: "lazy-once", webpackChunkName: "dir-cjs-1" */`./dir-cjs?1/${name}`),
-		// import(/* webpackMode: "eager" */`./dir-cjs?2/${name}`)
+		import(/* webpackMode: "eager", webpackChunkName: "dir-cjs-2" */`./dir-cjs?2/${name}`)
 	]).then(function(results) {
-		// return import(/* webpackMode: "weak" */`./dir-cjs/${name}`).then(function(r) {
-		// 	results.push(r);
-		// 	return results;
-		// });
+		return import(/* webpackMode: "weak" */`./dir-cjs/${name}`).then(function(r) {
+			results.push(r);
+			return results;
+		});
 	});
 }
 
@@ -31,12 +29,12 @@ function contextHarmony(name) {
 	return Promise.all([
 		import(`./dir-harmony/${name}`),
 		import(/* webpackMode: "lazy-once", webpackChunkName: "dir-harmony-1" */`./dir-harmony?1/${name}`),
-		// import(/* webpackMode: "eager" */`./dir-harmony?2/${name}`)
+		import(/* webpackMode: "eager", webpackChunkName: "dir-harmony-2" */`./dir-harmony?2/${name}`)
 	]).then(function(results) {
-		// return import(/* webpackMode: "weak" */`./dir-harmony/${name}`).then(function(r) {
-		// 	results.push(r);
-		// 	return results;
-		// });
+		return import(/* webpackMode: "weak" */`./dir-harmony/${name}`).then(function(r) {
+			results.push(r);
+			return results;
+		});
 	});
 }
 
@@ -44,12 +42,12 @@ function contextMixed(name) {
 	return Promise.all([
 		import(`./dir-mixed/${name}`),
 		import(/* webpackMode: "lazy-once", webpackChunkName: "dir-mixed-1" */`./dir-mixed?1/${name}`),
-		// import(/* webpackMode: "eager" */`./dir-mixed?2/${name}`)
+		import(/* webpackMode: "eager", webpackChunkName: "dir-mixed-2" */`./dir-mixed?2/${name}`)
 	]).then(function(results) {
-		// return import(/* webpackMode: "weak" */`./dir-mixed/${name}`).then(function(r) {
-		// 	results.push(r);
-		// 	return results;
-		// });
+		return import(/* webpackMode: "weak" */`./dir-mixed/${name}`).then(function(r) {
+			results.push(r);
+			return results;
+		});
 	});
 }
 
