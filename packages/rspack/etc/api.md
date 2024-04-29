@@ -63,6 +63,7 @@ import type { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import type { RawReactOptions } from '@rspack/binding';
 import type { RawRelayConfig } from '@rspack/binding';
+import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
 import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
 import { ResolveRequest } from 'enhanced-resolve';
@@ -3733,9 +3734,6 @@ export function getRawChunkLoading(chunkLoading: ChunkLoading): string;
 function getRawEntryOptions(entry: EntryOptions): RawEntryOptions;
 
 // @public (undocumented)
-export function getRawEntryRuntime(runtime: EntryRuntime): string | undefined;
-
-// @public (undocumented)
 export function getRawLibrary(library: LibraryOptions): RawLibraryOptions;
 
 // @public (undocumented)
@@ -6012,6 +6010,8 @@ declare namespace oldBuiltins {
         ModuleConcatenationPlugin,
         CssModulesPlugin,
         APIPlugin,
+        RuntimeChunkPluginOptions,
+        RuntimeChunkPlugin,
         HtmlRspackPluginOptions,
         HtmlRspackPlugin,
         CopyRspackPluginOptions,
@@ -6214,11 +6214,21 @@ const optimization: z.ZodObject<{
         hidePathInfo?: boolean | undefined;
     }>]>>;
     runtimeChunk: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["single", "multiple"]>, z.ZodBoolean]>, z.ZodObject<{
-        name: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodString, z.ZodUndefined]>>]>>;
+        name: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+            name: z.ZodString;
+        }, "strict", z.ZodTypeAny, {
+            name: string;
+        }, {
+            name: string;
+        }>], z.ZodUnknown>, z.ZodString>]>>;
     }, "strict", z.ZodTypeAny, {
-        name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+        name?: string | ((args_0: {
+            name: string;
+        }, ...args_1: unknown[]) => string) | undefined;
     }, {
-        name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+        name?: string | ((args_0: {
+            name: string;
+        }, ...args_1: unknown[]) => string) | undefined;
     }>]>>;
     removeAvailableModules: z.ZodOptional<z.ZodBoolean>;
     removeEmptyChunks: z.ZodOptional<z.ZodBoolean>;
@@ -6277,7 +6287,9 @@ const optimization: z.ZodObject<{
         hidePathInfo?: boolean | undefined;
     } | undefined;
     runtimeChunk?: boolean | "single" | "multiple" | {
-        name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+        name?: string | ((args_0: {
+            name: string;
+        }, ...args_1: unknown[]) => string) | undefined;
     } | undefined;
     removeAvailableModules?: boolean | undefined;
     removeEmptyChunks?: boolean | undefined;
@@ -6336,7 +6348,9 @@ const optimization: z.ZodObject<{
         hidePathInfo?: boolean | undefined;
     } | undefined;
     runtimeChunk?: boolean | "single" | "multiple" | {
-        name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+        name?: string | ((args_0: {
+            name: string;
+        }, ...args_1: unknown[]) => string) | undefined;
     } | undefined;
     removeAvailableModules?: boolean | undefined;
     removeEmptyChunks?: boolean | undefined;
@@ -6355,16 +6369,28 @@ export type OptimizationRuntimeChunk = z.infer<typeof optimizationRuntimeChunk>;
 
 // @public (undocumented)
 const optimizationRuntimeChunk: z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["single", "multiple"]>, z.ZodBoolean]>, z.ZodObject<{
-    name: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodString, z.ZodUndefined]>>]>>;
+    name: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+        name: z.ZodString;
+    }, "strict", z.ZodTypeAny, {
+        name: string;
+    }, {
+        name: string;
+    }>], z.ZodUnknown>, z.ZodString>]>>;
 }, "strict", z.ZodTypeAny, {
-    name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+    name?: string | ((args_0: {
+        name: string;
+    }, ...args_1: unknown[]) => string) | undefined;
 }, {
-    name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+    name?: string | ((args_0: {
+        name: string;
+    }, ...args_1: unknown[]) => string) | undefined;
 }>]>;
 
 // @public (undocumented)
 export type OptimizationRuntimeChunkNormalized = false | {
-    name: (...args: any[]) => string | undefined;
+    name: string | ((entrypoint: {
+        name: string;
+    }) => string);
 };
 
 // @public (undocumented)
@@ -6605,6 +6631,8 @@ const optimizationSplitChunksOptions: z.ZodObject<{
 interface Optimize {
     // (undocumented)
     LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
+    // (undocumented)
+    RuntimeChunkPlugin: typeof RuntimeChunkPlugin;
 }
 
 // @public (undocumented)
@@ -8102,7 +8130,6 @@ declare namespace rspackExports {
         applyRspackOptionsDefaults,
         applyRspackOptionsBaseDefaults,
         getRawLibrary,
-        getRawEntryRuntime,
         getRawChunkLoading,
         LoaderContext,
         LoaderDefinition,
@@ -9234,11 +9261,21 @@ export const rspackOptions: z.ZodObject<{
             hidePathInfo?: boolean | undefined;
         }>]>>;
         runtimeChunk: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["single", "multiple"]>, z.ZodBoolean]>, z.ZodObject<{
-            name: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodString, z.ZodUndefined]>>]>>;
+            name: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+                name: z.ZodString;
+            }, "strict", z.ZodTypeAny, {
+                name: string;
+            }, {
+                name: string;
+            }>], z.ZodUnknown>, z.ZodString>]>>;
         }, "strict", z.ZodTypeAny, {
-            name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+            name?: string | ((args_0: {
+                name: string;
+            }, ...args_1: unknown[]) => string) | undefined;
         }, {
-            name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+            name?: string | ((args_0: {
+                name: string;
+            }, ...args_1: unknown[]) => string) | undefined;
         }>]>>;
         removeAvailableModules: z.ZodOptional<z.ZodBoolean>;
         removeEmptyChunks: z.ZodOptional<z.ZodBoolean>;
@@ -9297,7 +9334,9 @@ export const rspackOptions: z.ZodObject<{
             hidePathInfo?: boolean | undefined;
         } | undefined;
         runtimeChunk?: boolean | "single" | "multiple" | {
-            name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+            name?: string | ((args_0: {
+                name: string;
+            }, ...args_1: unknown[]) => string) | undefined;
         } | undefined;
         removeAvailableModules?: boolean | undefined;
         removeEmptyChunks?: boolean | undefined;
@@ -9356,7 +9395,9 @@ export const rspackOptions: z.ZodObject<{
             hidePathInfo?: boolean | undefined;
         } | undefined;
         runtimeChunk?: boolean | "single" | "multiple" | {
-            name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+            name?: string | ((args_0: {
+                name: string;
+            }, ...args_1: unknown[]) => string) | undefined;
         } | undefined;
         removeAvailableModules?: boolean | undefined;
         removeEmptyChunks?: boolean | undefined;
@@ -10306,7 +10347,9 @@ export const rspackOptions: z.ZodObject<{
             hidePathInfo?: boolean | undefined;
         } | undefined;
         runtimeChunk?: boolean | "single" | "multiple" | {
-            name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+            name?: string | ((args_0: {
+                name: string;
+            }, ...args_1: unknown[]) => string) | undefined;
         } | undefined;
         removeAvailableModules?: boolean | undefined;
         removeEmptyChunks?: boolean | undefined;
@@ -10720,7 +10763,9 @@ export const rspackOptions: z.ZodObject<{
             hidePathInfo?: boolean | undefined;
         } | undefined;
         runtimeChunk?: boolean | "single" | "multiple" | {
-            name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+            name?: string | ((args_0: {
+                name: string;
+            }, ...args_1: unknown[]) => string) | undefined;
         } | undefined;
         removeAvailableModules?: boolean | undefined;
         removeEmptyChunks?: boolean | undefined;
@@ -11061,6 +11106,20 @@ const ruleSetUseItem: z.ZodUnion<[z.ZodString, z.ZodObject<{
     ident?: string | undefined;
     options?: string | Record<string, any> | undefined;
 }>]>;
+
+// @public (undocumented)
+const RuntimeChunkPlugin: {
+    new (options: RawRuntimeChunkOptions): {
+        name: BuiltinPluginName;
+        _options: RawRuntimeChunkOptions;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
+type RuntimeChunkPluginOptions = RawRuntimeChunkOptions;
 
 // @public
 export const RuntimeGlobals: {
