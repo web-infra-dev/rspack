@@ -1,12 +1,12 @@
 use std::{marker::PhantomData, sync::Arc};
 
+use rspack_core::{rspack_sources::Source, Compilation};
+use rspack_error::Result;
 use rspack_identifier::Identifier;
 use rspack_macros::impl_runtime_module;
-use rspack_sources::Source;
 
 #[test]
-#[allow(unused)]
-fn macro_should_compile() {
+fn with_generic() {
   #[impl_runtime_module]
   #[derive(Debug, Eq)]
   struct Foo<T: std::fmt::Debug + Send + Sync + Eq + 'static> {
@@ -17,11 +17,7 @@ fn macro_should_compile() {
     fn name(&self) -> Identifier {
       String::new().into()
     }
-    fn as_str(&self) {}
-    fn generate_with_custom(
-      &self,
-      _compilation: &rspack_core::Compilation,
-    ) -> rspack_error::Result<Arc<dyn Source>> {
+    fn generate_with_custom(&self, _compilation: &Compilation) -> Result<Arc<dyn Source>> {
       todo!()
     }
   }
