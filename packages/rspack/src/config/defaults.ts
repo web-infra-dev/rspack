@@ -693,6 +693,9 @@ const applyOutputDefaults = (
 	}
 
 	const forEachEntry = (fn: (desc: EntryDescriptionNormalized) => void) => {
+		if (typeof entry === 'function') {
+			return;
+		}
 		for (const name of Object.keys(entry)) {
 			fn(entry[name]);
 		}

@@ -10,7 +10,7 @@
 
 import assert from "assert";
 import { Compiler, EntryDescriptionNormalized, EntryNormalized } from "..";
-import { EntryOptions, EntryPlugin } from "../builtin-plugin";
+import { DynamicEntryPlugin, EntryOptions, EntryPlugin } from "../builtin-plugin";
 
 export default class EntryOptionPlugin {
 	apply(compiler: Compiler) {
@@ -25,10 +25,8 @@ export default class EntryOptionPlugin {
 		context: string,
 		entry: EntryNormalized
 	) {
-		// TODO: dynamic entry is not supported yet
 		if (typeof entry === "function") {
-			// const DynamicEntryPlugin = require("./DynamicEntryPlugin");
-			// new DynamicEntryPlugin(context, entry).apply(compiler);
+			new DynamicEntryPlugin(context, entry).apply(compiler);
 		} else {
 			for (const name of Object.keys(entry)) {
 				const desc = entry[name];

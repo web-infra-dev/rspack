@@ -45,7 +45,7 @@ export const EntryPlugin = create(
 	"make"
 );
 
-function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
+export function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
 	const runtime = entry.runtime;
 	const chunkLoading = entry.chunkLoading;
 	return {

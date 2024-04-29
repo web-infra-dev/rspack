@@ -113,6 +113,7 @@ export enum BuiltinPluginName {
   IgnorePlugin = 'IgnorePlugin',
   ProgressPlugin = 'ProgressPlugin',
   EntryPlugin = 'EntryPlugin',
+  DynamicEntryPlugin = 'DynamicEntryPlugin',
   ExternalsPlugin = 'ExternalsPlugin',
   NodeTargetPlugin = 'NodeTargetPlugin',
   ElectronTargetPlugin = 'ElectronTargetPlugin',
@@ -792,6 +793,16 @@ export interface RawCssModuleParserOptions {
 
 export interface RawCssParserOptions {
   namedExports?: boolean
+}
+
+export interface RawDynamicEntryPluginOptions {
+  context: string
+  entry: () => Promise<Vec<RawEntryDynamicResult>>
+}
+
+export interface RawEntryDynamicResult {
+  import: Array<string>
+  options: RawEntryOptions
 }
 
 export interface RawEntryOptions {

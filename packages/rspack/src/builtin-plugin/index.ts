@@ -6,6 +6,7 @@ export * from "./BannerPlugin";
 export * from "./IgnorePlugin";
 export * from "./ProgressPlugin";
 export * from "./EntryPlugin";
+export * from "./DynamicEntryPlugin";
 export * from "./ExternalsPlugin";
 export * from "./NodeTargetPlugin";
 export * from "./ElectronTargetPlugin";
