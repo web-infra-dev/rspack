@@ -46,7 +46,12 @@ export function describeByWalk(
 				if (currentLevel > 1) {
 					describeDirectory(caseName, currentLevel - 1);
 				} else {
-					const name = path.join(testId, caseName).split(".").shift()!;
+					const name = path
+						.join(testId, caseName)
+						.split(".")
+						.shift()!
+						.split(path.win32.sep)
+						.join(path.posix.sep);
 					describe(name, () => {
 						let source = path.join(sourceBase, caseName);
 						let dist = "";
