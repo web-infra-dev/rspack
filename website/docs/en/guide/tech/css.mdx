@@ -10,7 +10,7 @@ If you're migrating from Webpack, you can remove the `css-loader` or `style-load
 
 ## CSS Modules
 
-A "CSS Modules" file can be referenced in Rspack like this:
+By default, Rspack treats files with a `*.module.css` extension as CSS Modules. You can import them into your JavaScript files, and then access each class defined in the CSS file as an export from the module.
 
 ```ts title="index.module.css"
 .red {
@@ -18,18 +18,42 @@ A "CSS Modules" file can be referenced in Rspack like this:
 }
 ```
 
-In the example above, the module will be converted to a JavaScript object, which you can reference in JavaScript:
+You can use namespace import:
 
 ```ts title="index.js"
+import * as styles from './index.module.css';
+document.getElementById('element').className = styles.red;
+```
+
+You can also use named import:
+
+```ts
 import { red } from './index.module.css';
 document.getElementById('element').className = red;
 ```
 
-{
-// TODO: link to builtin
-}
+To enable default imports in Rspack, you need to set `namedExports` to `false` in your `rspack.config.js` file. This allows you, when using CSS Modules, to import the entire style module by default import, in addition to namespace imports and named imports:
 
-For more information on configuring CSS Modules, see [builtins.css.modules](config/builtins#builtinscssmodules).
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      'css/auto': {
+        namedExports: false,
+      },
+    },
+  },
+};
+```
+
+Now you can use default import:
+
+```js
+import styles from './index.module.css';
+document.getElementById('element').className = styles.red;
+```
+
+For more on CSS Modules configuration, please refer to [module.parser.css](/config/module#moduleparsercss).
 
 ## PostCSS
 
