@@ -49,6 +49,8 @@ import { RawBundlerInfoPluginOptions } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCopyRspackPluginOptions } from '@rspack/binding';
 import type { RawCssExtractPluginOption } from '@rspack/binding';
+import { RawDynamicEntryPluginOptions } from '@rspack/binding';
+import { RawEntryOptions } from '@rspack/binding';
 import { RawEntryPluginOptions } from '@rspack/binding';
 import { RawExternalsPluginOptions } from '@rspack/binding';
 import { RawFuncUseCtx } from '@rspack/binding';
@@ -1909,6 +1911,17 @@ export type DevtoolNamespace = z.infer<typeof devtoolNamespace>;
 const devtoolNamespace: z.ZodString;
 
 // @public (undocumented)
+const DynamicEntryPlugin: {
+    new (context: string, entry: EntryDynamicNormalized): {
+        name: BuiltinPluginName;
+        _options: RawDynamicEntryPluginOptions;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
 interface Electron {
     // (undocumented)
     ElectronTargetPlugin: typeof ElectronTargetPlugin;
@@ -2446,6 +2459,9 @@ export interface EntryDescriptionNormalized {
 }
 
 // @public (undocumented)
+export type EntryDynamicNormalized = () => Promise<EntryStaticNormalized>;
+
+// @public (undocumented)
 export type EntryFilename = z.infer<typeof entryFilename>;
 
 // @public (undocumented)
@@ -2458,7 +2474,7 @@ export type EntryItem = z.infer<typeof entryItem>;
 const entryItem: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
 
 // @public (undocumented)
-export type EntryNormalized = EntryStaticNormalized;
+export type EntryNormalized = EntryDynamicNormalized | EntryStaticNormalized;
 
 // @public (undocumented)
 export type EntryObject = z.infer<typeof entryObject>;
@@ -3712,6 +3728,9 @@ export const getNormalizedRspackOptions: (config: RspackOptions) => RspackOption
 
 // @public (undocumented)
 export function getRawChunkLoading(chunkLoading: ChunkLoading): string;
+
+// @public (undocumented)
+function getRawEntryOptions(entry: EntryOptions): RawEntryOptions;
 
 // @public (undocumented)
 export function getRawEntryRuntime(runtime: EntryRuntime): string | undefined;
@@ -5941,8 +5960,10 @@ declare namespace oldBuiltins {
         IgnorePlugin,
         ProgressPluginArgument,
         ProgressPlugin,
+        getRawEntryOptions,
         EntryOptions,
         EntryPlugin,
+        DynamicEntryPlugin,
         ExternalsPlugin,
         NodeTargetPlugin,
         ElectronTargetPlugin,
@@ -7917,6 +7938,7 @@ declare namespace rspackExports {
         SwcLoaderTsParserConfig,
         SwcLoaderTransformConfig,
         getNormalizedRspackOptions,
+        EntryDynamicNormalized,
         EntryNormalized,
         EntryStaticNormalized,
         EntryDescriptionNormalized,
