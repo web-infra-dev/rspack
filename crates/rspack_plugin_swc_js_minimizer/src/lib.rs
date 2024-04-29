@@ -220,6 +220,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       true
     })
     .try_for_each_with(tx,|tx, (filename, original)| -> Result<()>  {
+      let filename = filename.split('?').next().expect("Should have filename");
       if let Some(original_source) = original.get_source() {
         let input = original_source.source().to_string();
         let input_source_map = original_source.map(&MapOptions::default());
