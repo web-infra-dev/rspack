@@ -66,12 +66,12 @@ Rspack x.x.x compiled with 1 error in X s (6a173f34164e1af948e4)"
 exports[`StatsTestCases should print correct stats for filename 1`] = `
 "PublicPath: auto
 asset 521.xxxx.js 335 bytes [emitted]
-asset 909.xxxx.js 8.72 KiB [emitted] (name: main)
-Entrypoint main 8.72 KiB = 909.xxxx.js
+asset 909.xxxx.js 8.73 KiB [emitted] (name: main)
+Entrypoint main 8.73 KiB = 909.xxxx.js
 runtime modules 11 modules
 ./index.js
 ./dynamic.js
-Rspack x.x.x compiled successfully in X s (a605a17d8616567b9f8b)"
+Rspack x.x.x compiled successfully in X s (185b80456c181897fcd5)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -125,19 +125,19 @@ Rspack compiled with 2 errors"
 exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 1`] = `
 "1 chunks:
   PublicPath: auto
-  asset bundle1.js 3.45 KiB [emitted] (name: main)
-  Entrypoint main 3.45 KiB = bundle1.js
+  asset bundle1.js 3.5 KiB [emitted] (name: main)
+  Entrypoint main 3.5 KiB = bundle1.js
   chunk bundle1.js (main) <{909}> >{909}< [entry]
     ./b.js
     ./c.js
     ./d.js
     ./e.js
     ./index.js
-  1 chunks (Rspack x.x.x) compiled successfully in X s (0c10f85791d2b49cd72e)
+  1 chunks (Rspack x.x.x) compiled successfully in X s (0d76b7dadd0c657ad341)
 
 2 chunks:
   PublicPath: auto
-  asset 76.bundle2.js 465 bytes [emitted] (name: c)
+  asset 76.bundle2.js 495 bytes [emitted] (name: c)
   asset bundle2.js 10.1 KiB [emitted] (name: main)
   Entrypoint main 10.1 KiB = bundle2.js
   chunk 76.bundle2.js (c) <{76}> <{909}> >{76}<
@@ -147,12 +147,12 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle2.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  2 chunks (Rspack x.x.x) compiled successfully in X s (9fdb65a92ff09f5c7e0a)
+  2 chunks (Rspack x.x.x) compiled successfully in X s (a80080d4a166d3a145b2)
 
 3 chunks:
   PublicPath: auto
   asset 345.bundle3.js 182 bytes [emitted]
-  asset 76.bundle3.js 359 bytes [emitted] (name: c)
+  asset 76.bundle3.js 389 bytes [emitted] (name: c)
   asset bundle3.js 10.1 KiB [emitted] (name: main)
   Entrypoint main 10.1 KiB = bundle3.js
   chunk 345.bundle3.js <{76}>
@@ -163,13 +163,13 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle3.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  3 chunks (Rspack x.x.x) compiled successfully in X s (2528b9b2df61ea01f70c)
+  3 chunks (Rspack x.x.x) compiled successfully in X s (0e854af4043d4cced12b)
 
 4 chunks:
   PublicPath: auto
   asset 697.bundle4.js 128 bytes [emitted]
   asset 753.bundle4.js 128 bytes [emitted]
-  asset 76.bundle4.js 359 bytes [emitted] (name: c)
+  asset 76.bundle4.js 389 bytes [emitted] (name: c)
   asset bundle4.js 10.1 KiB [emitted] (name: main)
   Entrypoint main 10.1 KiB = bundle4.js
   chunk 697.bundle4.js <{76}>
@@ -181,7 +181,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle4.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  4 chunks (Rspack x.x.x) compiled successfully in X s (2551584c072908e69932)"
+  4 chunks (Rspack x.x.x) compiled successfully in X s (4525b2f4f1626b91a6f4)"
 `;
 
 exports[`StatsTestCases should print correct stats for logging-loader 1`] = `
@@ -206,7 +206,7 @@ Rspack compiled with 1 error"
 `;
 
 exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
-"Entrypoint main 8.7 KiB = main.js
+"Entrypoint main 8.72 KiB = main.js
 Chunk Group cimanyd 335 bytes = cimanyd.js"
 `;
 

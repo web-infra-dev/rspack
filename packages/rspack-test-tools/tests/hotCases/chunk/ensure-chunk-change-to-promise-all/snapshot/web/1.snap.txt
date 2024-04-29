@@ -9,7 +9,7 @@
 - Bundle: vendors-node_modules_vue_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 94
 - Update: file_js.LAST_HASH.hot-update.js, size: 450
-- Update: main.LAST_HASH.hot-update.js, size: 693
+- Update: main.LAST_HASH.hot-update.js, size: 709
 
 ## Manifest
 
@@ -67,7 +67,7 @@ __webpack_require__.d(__webpack_exports__, {
   test: function() { return test; }
 });
 function test(count) {
-    return Promise.all([__webpack_require__.e("vendors-node_modules_vue_js"), __webpack_require__.e("file_js")]).then(__webpack_require__.bind(__webpack_require__, /*! ./file */ "./file.js")).then(({ React, Vue })=>count === 0 ? React : Vue);
+    return Promise.all(/*! import() */ [__webpack_require__.e("vendors-node_modules_vue_js"), __webpack_require__.e("file_js")]).then(__webpack_require__.bind(__webpack_require__, /*! ./file */ "./file.js")).then(({ React, Vue })=>count === 0 ? React : Vue);
 }
 }),
 

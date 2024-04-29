@@ -30,8 +30,8 @@ function test() {
 it("should generate correct code when pure expressions are in dead branches", ()=>{
     __webpack_require__("./import-module.js")/* .test */.test();
     return Promise.all([
-        Promise.resolve().then(__webpack_require__.bind(__webpack_require__, "./some-module.js")),
-        __webpack_require__.e("chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"))
+        Promise.resolve(/* import() */ ).then(__webpack_require__.bind(__webpack_require__, "./some-module.js")),
+        __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"))
     ]);
 });
 }),

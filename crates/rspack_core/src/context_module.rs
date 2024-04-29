@@ -576,6 +576,7 @@ impl ContextModule {
       Some(block_id),
       &mut code_gen_result.runtime_requirements,
       compilation,
+      "lazy-once context",
     );
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
