@@ -46,7 +46,9 @@ async fn make(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>)
     this.context.clone(),
   ));
   let dependency_id = *dependency.id();
-  compilation.add_entry(dependency, this.options.clone())?;
+  compilation
+    .add_entry(dependency, this.options.clone())
+    .await?;
 
   params.push(MakeParam::new_force_build_dep_param(dependency_id, None));
   Ok(())

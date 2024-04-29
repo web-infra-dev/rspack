@@ -1,0 +1,21 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# RuntimeChunkPlugin
+
+<ApiMeta addedVersion={'0.6.4'} />
+
+此插件用来控制 runtime chunk 如何生成，[`optimization.runtimeChunk`](/config/optimization#optimizationruntimechunk) 底层使用了该插件。
+
+## 选项
+
+### name
+
+用来配置 runtime chunk 的名字，可以是字符串也可以是个返回字符串函数，函数参数为入口的名字。
+
+- **类型：** `string | ((entrypoint: { name: string }) => string)`
+
+```js
+new rspack.optimize.RuntimeChunkPlugin({
+  name: ({ name }) => `runtime~${name}`,
+});
+```

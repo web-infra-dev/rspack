@@ -326,7 +326,35 @@ impl ChunkGroupKind {
   }
 }
 
-pub type EntryRuntime = String;
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EntryRuntime {
+  String(String),
+  #[default]
+  False,
+}
+
+impl From<&str> for EntryRuntime {
+  fn from(value: &str) -> Self {
+    Self::String(value.to_owned())
+  }
+}
+
+impl From<String> for EntryRuntime {
+  fn from(value: String) -> Self {
+    Self::String(value)
+  }
+}
+
+impl EntryRuntime {
+  pub fn as_string(&self) -> Option<&str> {
+    match self {
+      EntryRuntime::String(s) => Some(s),
+      EntryRuntime::False => None,
+    }
+  }
+}
+
+// pub type EntryRuntime = String;
 
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntryOptions {

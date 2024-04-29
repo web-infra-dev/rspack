@@ -717,7 +717,7 @@ impl ModuleConcatenationPlugin {
       if used_as_inner.contains(current_root) {
         continue;
       }
-      let mut chunk_runtime = HashSet::default();
+      let mut chunk_runtime = Default::default();
       for r in compilation
         .chunk_graph
         .get_module_runtimes(*current_root, &compilation.chunk_by_ukey)
