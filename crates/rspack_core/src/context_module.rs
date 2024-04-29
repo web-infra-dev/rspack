@@ -699,6 +699,7 @@ impl ContextModule {
       {fake_map_init_statement}
 
       function webpackContext(req) {{
+        var id = webpackContextResolve(req);
         if(!{module_factories}[id]) {{
           var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
           e.code = 'MODULE_NOT_FOUND';
