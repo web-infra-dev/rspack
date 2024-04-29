@@ -36,7 +36,7 @@ new rspack.CopyRspackPlugin(options);
             ignore?: string[]; // 忽略特定路径
           };
           transform?: (
-            input: string,
+            input: string | Buffer,
             absoluteFilename: string,
           ) => string | Buffer;
         }

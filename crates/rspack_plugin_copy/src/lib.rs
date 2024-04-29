@@ -69,7 +69,7 @@ impl Display for ToType {
 }
 
 pub type TransformerFn =
-  Box<dyn for<'a> Fn(String, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
+  Box<dyn for<'a> Fn(RawSource, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
 
 pub enum Transformer {
   Fn(TransformerFn),
@@ -260,15 +260,7 @@ impl CopyRspackPlugin {
       if let Some(absolute_filename) = absolute_filename.to_str() {
         match transform {
           Transformer::Fn(transformer) => {
-            let transformed = transformer(
-              match &source {
-                RawSource::Source(code) => code.to_owned(),
-                RawSource::Buffer(buffer) => String::from_utf8(buffer.to_owned())
-                  .unwrap_or_else(|err| panic!("Transform buffer source error: {err}")),
-              },
-              absolute_filename,
-            )
-            .await;
+            let transformed = transformer(source.clone(), absolute_filename).await;
             match transformed {
               Ok(code) => {
                 source = code;
