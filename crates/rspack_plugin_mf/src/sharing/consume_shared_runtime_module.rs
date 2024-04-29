@@ -86,6 +86,9 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       for module in modules {
         add_module(module.identifier(), chunk, &mut ids);
       }
+      if ids.is_empty() {
+        continue;
+      }
       chunk_to_module_mapping.insert(
         chunk
           .id
