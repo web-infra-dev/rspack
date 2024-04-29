@@ -7,6 +7,7 @@ use rspack_core::{
 mod raw_builtins;
 mod raw_cache;
 mod raw_devtool;
+mod raw_dynamic_entry;
 mod raw_entry;
 mod raw_experiments;
 mod raw_external;
@@ -23,6 +24,7 @@ mod raw_stats;
 pub use raw_builtins::*;
 pub use raw_cache::*;
 pub use raw_devtool::*;
+pub use raw_dynamic_entry::*;
 pub use raw_entry::*;
 pub use raw_experiments::*;
 pub use raw_external::*;
