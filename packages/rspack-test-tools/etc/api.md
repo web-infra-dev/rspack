@@ -237,7 +237,7 @@ export enum EEsmMode {
 
 // @public (undocumented)
 export class ErrorTaskProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
-    constructor(_errorOptions: IErrorTaskProcessor<T>);
+    constructor(_errorOptions: IErrorTaskProcessorOptions<T>);
     // (undocumented)
     static addSnapshotSerializer(): void;
     // (undocumented)
@@ -245,7 +245,7 @@ export class ErrorTaskProcessor<T extends ECompilerType> extends SimpleTaskProce
     // (undocumented)
     compiler(context: ITestContext): Promise<void>;
     // (undocumented)
-    protected _errorOptions: IErrorTaskProcessor<T>;
+    protected _errorOptions: IErrorTaskProcessorOptions<T>;
     // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
 }
@@ -420,7 +420,7 @@ export interface IDiffStatsReporterOptions {
 }
 
 // @public (undocumented)
-export interface IErrorTaskProcessor<T extends ECompilerType> {
+export interface IErrorTaskProcessorOptions<T extends ECompilerType> {
     // (undocumented)
     build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
     // (undocumented)
@@ -1023,6 +1023,11 @@ export type TCompareResult = {
 export type TCompiler<T> = T extends ECompilerType.Rspack ? Compiler : Compiler_2;
 
 // @public (undocumented)
+export type TCompilerCaseConfig = Omit<ISimpleProcessorOptions, "name" | "compilerType"> & {
+    description: string;
+};
+
+// @public (undocumented)
 export type TCompilerFactory<T extends ECompilerType> = (options: TCompilerOptions<T> | TCompilerOptions<T>[]) => TCompiler<T>;
 
 // @public (undocumented)
@@ -1053,6 +1058,11 @@ export type TDiffStatsItem = {
 
 // @public (undocumented)
 export type TDimenTypeId = "modules" | "lines" | "lines-in-common";
+
+// @public (undocumented)
+export type TErrorCaseConfig = Omit<IErrorTaskProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
+    description: string;
+};
 
 // @public (undocumented)
 export class TestContext implements ITestContext {
@@ -1174,6 +1184,11 @@ export type TRunnerRequirer = (currentDirectory: string, modulePath: string[] | 
     file?: TBasicRunnerFile;
     esmMode?: EEsmMode;
 }) => Object | Promise<Object>;
+
+// @public (undocumented)
+export type TStatsAPICaseConfig = Omit<IStatsAPITaskProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
+    description: string;
+};
 
 // @public (undocumented)
 type TStatsDiagnostics = {

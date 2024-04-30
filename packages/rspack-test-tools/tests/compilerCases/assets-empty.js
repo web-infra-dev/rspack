@@ -24,6 +24,8 @@ class MyPlugin {
 }
 
 const outputFileSystem = createFsFromVolume(new Volume());
+
+/** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
 	description: "should emit assets correctly",
 	options(context) {

@@ -1,3 +1,4 @@
+/** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have time log when logging verbose",
 	options(context) {

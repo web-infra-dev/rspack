@@ -12,6 +12,7 @@ class MyPlugin {
 	}
 }
 
+/** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
 	description: "should have error if the asset to be emitted is exist",
 	options(context) {

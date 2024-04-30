@@ -1,5 +1,6 @@
 let warnings = [];
 
+/** @type {import('../..').TErrorCaseConfig} */
 module.exports = {
 	description:
 		"Testing map function on errors and warnings: test map of warnings",

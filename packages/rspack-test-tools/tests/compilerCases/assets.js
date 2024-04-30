@@ -16,6 +16,7 @@ class MyPlugin {
 	}
 }
 
+/** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
 	description: "should get assets with both `getAssets` and `assets`(getter)",
 	options(context) {

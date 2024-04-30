@@ -1,4 +1,6 @@
 const { Stats } = require("@rspack/core");
+
+/** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
 	description:
 		"should have any cache hits log of modules in incremental rebuild mode",
