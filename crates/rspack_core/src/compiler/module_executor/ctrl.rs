@@ -63,7 +63,7 @@ pub enum Event {
 pub struct CtrlTask {
   pub event_receiver: UnboundedReceiver<Event>,
   execute_task_map: HashMap<DependencyId, ExecuteTask>,
-  finish_module_map: HashMap<ModuleIdentifier, UnfinishCounter>,
+  running_module_map: HashMap<ModuleIdentifier, UnfinishCounter>,
 }
 
 impl CtrlTask {
@@ -71,7 +71,7 @@ impl CtrlTask {
     Self {
       event_receiver,
       execute_task_map: Default::default(),
-      finish_module_map: Default::default(),
+      running_module_map: Default::default(),
     }
   }
 }
@@ -87,16 +87,15 @@ impl Task<MakeTaskContext> for CtrlTask {
       match event {
         Event::StartBuild(module_identifier) => {
           self
-            .as_mut()
-            .finish_module_map
+            .running_module_map
             .insert(module_identifier, UnfinishCounter::new());
         }
         Event::FinishDeps(origin_module_identifier, dep_id, target_module_graph) => {
           if let Some(target_module_graph) = target_module_graph {
-            if let Some(value) = self.as_ref().finish_module_map.get(&target_module_graph) {
-              if !value.is_finished() {
-                continue;
-              }
+            if self.running_module_map.contains_key(&target_module_graph)
+              && Some(target_module_graph) != origin_module_identifier
+            {
+              continue;
             }
           }
 
@@ -104,7 +103,6 @@ impl Task<MakeTaskContext> for CtrlTask {
           let Some(origin_module_identifier) = origin_module_identifier else {
             // origin_module_identifier is none means entry dep
             let execute_task = self
-              .as_mut()
               .execute_task_map
               .remove(&dep_id)
               .expect("should have execute task");
@@ -112,8 +110,7 @@ impl Task<MakeTaskContext> for CtrlTask {
           };
 
           let value = self
-            .as_mut()
-            .finish_module_map
+            .running_module_map
             .get_mut(&origin_module_identifier)
             .expect("should have counter");
           value.minus_one();
@@ -126,8 +123,7 @@ impl Task<MakeTaskContext> for CtrlTask {
         }
         Event::FinishModule(mid, size) => {
           let value = self
-            .as_mut()
-            .finish_module_map
+            .running_module_map
             .get_mut(&mid)
             .expect("should have counter");
           value.set_unfinished_child_module_count(size);
@@ -191,20 +187,17 @@ impl Task<MakeTaskContext> for FinishModuleTask {
       match event {
         Event::StartBuild(module_identifier) => {
           ctrl_task
-            .as_mut()
-            .finish_module_map
+            .running_module_map
             .insert(module_identifier, UnfinishCounter::new());
         }
         Event::FinishDeps(origin_module_identifier, dep_id, target_module_graph) => {
           if let Some(target_module_graph) = target_module_graph {
-            if let Some(value) = ctrl_task
-              .as_ref()
-              .finish_module_map
-              .get(&target_module_graph)
+            if ctrl_task
+              .running_module_map
+              .contains_key(&target_module_graph)
+              && Some(target_module_graph) != origin_module_identifier
             {
-              if !value.is_finished() {
-                continue;
-              }
+              continue;
             }
           }
 
@@ -212,7 +205,6 @@ impl Task<MakeTaskContext> for FinishModuleTask {
           let Some(origin_module_identifier) = origin_module_identifier else {
             // origin_module_identifier is none means entry dep
             let execute_task = ctrl_task
-              .as_mut()
               .execute_task_map
               .remove(&dep_id)
               .expect("should have execute task");
@@ -221,8 +213,7 @@ impl Task<MakeTaskContext> for FinishModuleTask {
           };
 
           let value = ctrl_task
-            .as_mut()
-            .finish_module_map
+            .running_module_map
             .get_mut(&origin_module_identifier)
             .expect("should have counter");
           value.minus_one();
@@ -232,8 +223,7 @@ impl Task<MakeTaskContext> for FinishModuleTask {
         }
         Event::FinishModule(mid, size) => {
           let value = ctrl_task
-            .as_mut()
-            .finish_module_map
+            .running_module_map
             .get_mut(&mid)
             .expect("should have counter");
           value.set_unfinished_child_module_count(size);
@@ -256,6 +246,8 @@ impl Task<MakeTaskContext> for FinishModuleTask {
     }
 
     while let Some(module_identifier) = queue.pop_front() {
+      ctrl_task.running_module_map.remove(&module_identifier);
+
       let mgm = module_graph
         .module_graph_module_by_identifier(&module_identifier)
         .expect("should have mgm");
@@ -270,7 +262,6 @@ impl Task<MakeTaskContext> for FinishModuleTask {
         } else {
           // entry
           let execute_task = ctrl_task
-            .as_mut()
             .execute_task_map
             .remove(&connection.dependency_id)
             .expect("should have execute task");
@@ -280,8 +271,7 @@ impl Task<MakeTaskContext> for FinishModuleTask {
 
       for id in original_module_identifiers {
         let value = ctrl_task
-          .as_mut()
-          .finish_module_map
+          .running_module_map
           .get_mut(&id)
           .expect("should have counter");
         value.minus_one();
