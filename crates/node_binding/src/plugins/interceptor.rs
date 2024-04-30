@@ -11,37 +11,40 @@ use napi::{
 };
 use rspack_binding_values::{
   CompatSource, JsAfterResolveData, JsAfterResolveOutput, JsAssetEmittedArgs, JsBeforeResolveArgs,
-  JsBeforeResolveOutput, JsChunk, JsChunkAssetArgs, JsCompilation, JsCreateData,
+  JsBeforeResolveOutput, JsChunk, JsChunkAssetArgs, JsCompilation,
+  JsContextModuleFactoryAfterResolveArgs, JsContextModuleFactoryAfterResolveResult, JsCreateData,
   JsExecuteModuleArg, JsModule, JsNormalModuleFactoryCreateModuleArgs, JsResolveForSchemeArgs,
   JsResolveForSchemeOutput, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
 };
 use rspack_core::{
-  rspack_sources::SourceExt, AssetEmittedInfo, BoxModule, Chunk, ChunkUkey, CodeGenerationResults,
-  Compilation, CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
-  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
-  CompilationAfterSealHook, CompilationBuildModule, CompilationBuildModuleHook,
-  CompilationChunkAsset, CompilationChunkAssetHook, CompilationExecuteModule,
-  CompilationExecuteModuleHook, CompilationFinishModules, CompilationFinishModulesHook,
-  CompilationOptimizeChunkModules, CompilationOptimizeChunkModulesHook, CompilationOptimizeModules,
-  CompilationOptimizeModulesHook, CompilationOptimizeTree, CompilationOptimizeTreeHook,
-  CompilationParams, CompilationProcessAssets, CompilationProcessAssetsHook,
-  CompilationRuntimeModule, CompilationRuntimeModuleHook, CompilationStillValidModule,
-  CompilationStillValidModuleHook, CompilationSucceedModule, CompilationSucceedModuleHook,
-  CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted, CompilerAssetEmittedHook,
-  CompilerCompilation, CompilerCompilationHook, CompilerEmit, CompilerEmitHook, CompilerFinishMake,
-  CompilerFinishMakeHook, CompilerMake, CompilerMakeHook, CompilerShouldEmit,
-  CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
-  ContextModuleFactoryAfterResolve, ContextModuleFactoryAfterResolveHook,
-  ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
-  MakeParam, ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
-  NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
-  NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
-  NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
-  NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook, ResourceData,
+  rspack_sources::SourceExt, AfterResolveResult, AssetEmittedInfo, BoxModule, Chunk, ChunkUkey,
+  CodeGenerationResults, Compilation, CompilationAfterOptimizeModules,
+  CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
+  CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
+  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
+  CompilationChunkAssetHook, CompilationExecuteModule, CompilationExecuteModuleHook,
+  CompilationFinishModules, CompilationFinishModulesHook, CompilationOptimizeChunkModules,
+  CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
+  CompilationOptimizeTree, CompilationOptimizeTreeHook, CompilationParams,
+  CompilationProcessAssets, CompilationProcessAssetsHook, CompilationRuntimeModule,
+  CompilationRuntimeModuleHook, CompilationStillValidModule, CompilationStillValidModuleHook,
+  CompilationSucceedModule, CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook,
+  CompilerAssetEmitted, CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook,
+  CompilerEmit, CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerMake,
+  CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
+  CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
+  ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
+  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, MakeParam, ModuleFactoryCreateData,
+  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
+  NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolve,
+  NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModule,
+  NormalModuleFactoryCreateModuleHook, NormalModuleFactoryResolveForScheme,
+  NormalModuleFactoryResolveForSchemeHook, ResourceData,
 };
 use rspack_hook::{Hook, Interceptor};
 use rspack_identifier::IdentifierSet;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use rspack_regex::RspackRegex;
 
 #[napi(object)]
 pub struct JsTap {
@@ -441,8 +444,10 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<boolean | undefined>); stage: number; }>"
   )]
-  pub register_context_module_factory_after_resolve_taps:
-    RegisterFunction<JsAfterResolveData, Promise<Option<bool>>>,
+  pub register_context_module_factory_after_resolve_taps: RegisterFunction<
+    JsContextModuleFactoryAfterResolveArgs,
+    Promise<JsContextModuleFactoryAfterResolveResult>,
+  >,
 }
 
 /* Compiler Hooks */
@@ -670,7 +675,7 @@ define_register!(
 );
 define_register!(
   RegisterContextModuleFactoryAfterResolveTaps,
-  tap = ContextModuleFactoryAfterResolveTap<JsAfterResolveData, Promise<Option<bool>>> @ ContextModuleFactoryAfterResolveHook,
+  tap = ContextModuleFactoryAfterResolveTap<JsContextModuleFactoryAfterResolveArgs, Promise<JsContextModuleFactoryAfterResolveResult>> @ ContextModuleFactoryAfterResolveHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::ContextModuleFactoryAfterResolve,
@@ -1231,37 +1236,20 @@ impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap 
 
 #[async_trait]
 impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
-  async fn run(&self, data: &mut ModuleFactoryCreateData) -> rspack_error::Result<Option<bool>> {
-    let dependency = data
-      .dependency
-      .as_context_dependency_mut()
-      .expect("should be context dependency");
-    self
+  async fn run(&self, result: &mut AfterResolveResult) -> rspack_error::Result<Option<bool>> {
+    let (ret, res) = self
       .function
-      .call_with_promise(JsAfterResolveData {
-        request: dependency.request().to_string(),
-        context: data.context.to_string(),
-        file_dependencies: data
-          .file_dependencies
-          .clone()
-          .into_iter()
-          .map(|item| item.to_string_lossy().to_string())
-          .collect::<Vec<_>>(),
-        context_dependencies: data
-          .context_dependencies
-          .clone()
-          .into_iter()
-          .map(|item| item.to_string_lossy().to_string())
-          .collect::<Vec<_>>(),
-        missing_dependencies: data
-          .missing_dependencies
-          .clone()
-          .into_iter()
-          .map(|item| item.to_string_lossy().to_string())
-          .collect::<Vec<_>>(),
-        create_data: None,
+      .call_with_promise(JsContextModuleFactoryAfterResolveArgs {
+        resource: result.resource.to_owned(),
+        reg_exp: result.reg_exp.clone().map(|r| r.to_string()),
       })
-      .await
+      .await?;
+    result.resource = res.resource;
+    result.reg_exp = match res.reg_exp {
+      Some(r) => Some(RspackRegex::new(&r)?),
+      None => None,
+    };
+    Ok(ret)
   }
 
   fn stage(&self) -> i32 {

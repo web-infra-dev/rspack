@@ -3103,6 +3103,7 @@ dependencies = [
  "rspack_hook",
  "rspack_identifier",
  "rspack_napi",
+ "rspack_regex",
  "rspack_tracing",
  "tokio",
  "tracing",

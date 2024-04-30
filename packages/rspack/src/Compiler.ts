@@ -47,7 +47,7 @@ import { assertNotNill } from "./util/assertNotNil";
 import { FileSystemInfoEntry } from "./FileSystemInfo";
 import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
-import { CodeGenerationResult, Module, ResolveData } from "./Module";
+import { CodeGenerationResult, ContextModuleFactoryResolveData, Module, ResolveData } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 import { Chunk } from "./Chunk";
@@ -546,16 +546,18 @@ class Compiler {
 				this.#createHookRegisterTaps(
 					binding.RegisterJsTapKind.ContextModuleFactoryAfterResolve,
 					() => this.compilationParams!.contextModuleFactory.hooks.afterResolve,
-					queried => async (arg: binding.JsAfterResolveData) => {
-						const data: ResolveData = {
-							request: arg.request,
-							context: arg.context,
-							fileDependencies: arg.fileDependencies,
-							missingDependencies: arg.missingDependencies,
-							contextDependencies: arg.contextDependencies,
-							createData: arg.createData
+					queried => async (args: binding.JsContextModuleFactoryAfterResolveArgs) => {
+						const resolveData: ContextModuleFactoryResolveData = {
+							resource: args.resource,
+							regExp: args.regExp ? new RegExp(args.regExp) : undefined
+							// request: arg.request,
+							// context: arg.context,
+							// fileDependencies: arg.fileDependencies,
+							// missingDependencies: arg.missingDependencies,
+							// contextDependencies: arg.contextDependencies,
+							// createData: arg.createData
 						};
-						return await queried.promise(data);
+						return await queried.promise(resolveData);
 					}
 				)
 		};

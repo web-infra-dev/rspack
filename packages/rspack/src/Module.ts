@@ -26,6 +26,11 @@ export type ResolveData = {
 	createData?: CreateData;
 };
 
+export type ContextModuleFactoryResolveData = {
+	resource: string;
+	regExp?: RegExp;
+}
+
 export class Module {
 	#inner: JsModule;
 	_originalSource?: Source;

@@ -151,7 +151,7 @@ pub struct ContextOptions {
   pub end: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ContextModuleOptions {
   pub addon: String,
   pub resource: String,
