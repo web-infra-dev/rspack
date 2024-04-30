@@ -32,9 +32,12 @@ export type {
 
 export { MultiStats } from "./MultiStats";
 
+export type { Chunk } from "./Chunk";
 export type { ChunkGroup } from "./ChunkGroup";
 
 export type { NormalModuleFactory } from "./NormalModuleFactory";
+
+export type { Module } from "./Module";
 
 export { NormalModule } from "./NormalModule";
 
