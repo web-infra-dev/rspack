@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const assert = require("assert");
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	// USE `development` as `production` will be failed.
 	// See: https://github.com/web-infra-dev/rspack/issues/5738

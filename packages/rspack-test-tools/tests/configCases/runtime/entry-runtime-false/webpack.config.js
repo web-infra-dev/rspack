@@ -1,3 +1,4 @@
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
 		e1: "./e1.js",

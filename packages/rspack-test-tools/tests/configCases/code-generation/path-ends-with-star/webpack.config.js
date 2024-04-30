@@ -10,6 +10,7 @@ it("should generate valid code", async () => {
 });
 `;
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: `data:text/javascript,${entry}`,
 	plugins: [
