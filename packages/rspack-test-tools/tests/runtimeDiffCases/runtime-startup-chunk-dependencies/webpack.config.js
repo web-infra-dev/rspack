@@ -1,3 +1,4 @@
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
 		bundle: "./src/index.js",

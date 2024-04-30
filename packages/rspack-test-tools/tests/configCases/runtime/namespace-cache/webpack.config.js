@@ -1,4 +1,5 @@
 const path = require("path");
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.mjs",
 	resolve: {
