@@ -76,11 +76,11 @@ Rspack x.x.x compiled successfully in X s (185b80456c181897fcd5)"
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 "PublicPath: auto
-asset main.js 32.2 KiB [emitted] (name: main)
-Entrypoint main 32.2 KiB = main.js
+asset main.js 32.1 KiB [emitted] (name: main)
+Entrypoint main 32.1 KiB = main.js
 runtime modules 11 modules
 ./index.js
-Rspack x.x.x compiled successfully in X s (68e01ffb94a6b5683661)"
+Rspack x.x.x compiled successfully in X s (db903683225d0fe50e7b)"
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
