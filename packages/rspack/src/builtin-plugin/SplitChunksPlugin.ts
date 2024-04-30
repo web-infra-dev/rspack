@@ -39,6 +39,8 @@ function toRawSplitChunksOptions(
 	function getName(name: any) {
 		interface Context {
 			module: JsModule;
+			chunks: JsChunk[];
+			cacheGroupKey: string;
 		}
 
 		if (typeof name === "function") {
@@ -46,7 +48,11 @@ function toRawSplitChunksOptions(
 				if (typeof ctx.module === "undefined") {
 					return name(undefined);
 				} else {
-					return name(Module.__from_binding(ctx.module));
+					return name(
+						Module.__from_binding(ctx.module),
+						getChunks(ctx.chunks),
+						ctx.cacheGroupKey
+					);
 				}
 			};
 		} else {
