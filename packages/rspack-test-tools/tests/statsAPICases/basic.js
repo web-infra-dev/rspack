@@ -1,3 +1,4 @@
+/** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have stats",
 	options(context) {

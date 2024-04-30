@@ -1,3 +1,4 @@
+/** @type {import('../..').TErrorCaseConfig} */
 module.exports = {
 	description: "Testing proxy methods on warnings: test push",
 	options() {

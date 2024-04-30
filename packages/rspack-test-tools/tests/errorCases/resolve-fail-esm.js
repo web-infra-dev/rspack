@@ -1,3 +1,4 @@
+/** @type {import('../..').TErrorCaseConfig} */
 module.exports = {
 	description: "should emit warnings for resolve failure in esm",
 	options() {

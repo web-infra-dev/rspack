@@ -1,8 +1,15 @@
 import { ECompilerType } from "../type";
 import { getSimpleProcessorRunner } from "../test/simple";
-import { ErrorTaskProcessor } from "../processor";
+import { ErrorTaskProcessor, IErrorTaskProcessorOptions } from "../processor";
 
 let addedSerializer = false;
+
+export type TErrorCaseConfig = Omit<
+	IErrorTaskProcessorOptions<ECompilerType.Rspack>,
+	"name" | "compilerType"
+> & {
+	description: string;
+};
 
 export function createErrorCase(
 	name: string,

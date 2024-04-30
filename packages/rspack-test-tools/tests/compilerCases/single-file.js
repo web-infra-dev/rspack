@@ -1,4 +1,6 @@
 let error;
+
+/** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
 	description:
 		"should bubble up errors when wrapped in a promise and bail is true (empty dependency)",

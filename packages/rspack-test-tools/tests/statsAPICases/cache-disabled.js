@@ -1,4 +1,6 @@
 const { Stats } = require("@rspack/core");
+
+/** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should not have any cache hits log when cache is disabled",
 	options(context) {
