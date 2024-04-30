@@ -542,8 +542,8 @@ importers:
         specifier: 1.56.2
         version: 1.56.2
       sass-loader:
-        specifier: 13.2.0
-        version: 13.2.0(sass@1.56.2)(webpack@5.90.1)
+        specifier: 14.2.1
+        version: 14.2.1(@rspack/core@packages+rspack)(sass@1.56.2)(webpack@5.90.1)
       source-map:
         specifier: ^0.7.4
         version: 0.7.4
@@ -14261,6 +14261,33 @@ packages:
         optional: true
     dependencies:
       klona: 2.0.6
+      neo-async: 2.6.2
+      sass: 1.56.2
+      webpack: 5.90.1(webpack-cli@4.10.0)
+    dev: true
+
+  /sass-loader@14.2.1(@rspack/core@packages+rspack)(sass@1.56.2)(webpack@5.90.1):
+    resolution: {integrity: sha512-G0VcnMYU18a4N7VoNDegg2OuMjYtxnqzQWARVWCIVSZwJeiL9kg8QMsuIZOplsJgTzZLF6jGxI3AClj8I9nRdQ==}
+    engines: {node: '>= 18.12.0'}
+    peerDependencies:
+      '@rspack/core': 0.x || 1.x
+      node-sass: ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0 || ^9.0.0
+      sass: ^1.3.0
+      sass-embedded: '*'
+      webpack: ^5.0.0
+    peerDependenciesMeta:
+      '@rspack/core':
+        optional: true
+      node-sass:
+        optional: true
+      sass:
+        optional: true
+      sass-embedded:
+        optional: true
+      webpack:
+        optional: true
+    dependencies:
+      '@rspack/core': link:packages/rspack
       neo-async: 2.6.2
       sass: 1.56.2
       webpack: 5.90.1(webpack-cli@4.10.0)
