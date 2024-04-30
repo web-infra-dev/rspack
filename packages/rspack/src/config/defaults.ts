@@ -191,16 +191,26 @@ const applySnapshotDefaults = (
 	snapshot: SnapshotOptions,
 	{ production }: { production: boolean }
 ) => {
-	F(snapshot, "module", () =>
-		production
-			? { timestamp: true, hash: true }
-			: { timestamp: true, hash: false }
-	);
-	F(snapshot, "resolve", () =>
-		production
-			? { timestamp: true, hash: true }
-			: { timestamp: true, hash: false }
-	);
+	if (typeof snapshot.module === "object") {
+		D(snapshot.module, "timestamp", false);
+		D(snapshot.module, "hash", false);
+	} else {
+		F(snapshot, "module", () =>
+			production
+				? { timestamp: true, hash: true }
+				: { timestamp: true, hash: false }
+		);
+	}
+	if (typeof snapshot.resolve === "object") {
+		D(snapshot.resolve, "timestamp", false);
+		D(snapshot.resolve, "hash", false);
+	} else {
+		F(snapshot, "resolve", () =>
+			production
+				? { timestamp: true, hash: true }
+				: { timestamp: true, hash: false }
+		);
+	}
 };
 
 const applyJavascriptParserOptionsDefaults = (
@@ -693,6 +703,9 @@ const applyOutputDefaults = (
 	}
 
 	const forEachEntry = (fn: (desc: EntryDescriptionNormalized) => void) => {
+		if (typeof entry === "function") {
+			return;
+		}
 		for (const name of Object.keys(entry)) {
 			fn(entry[name]);
 		}

@@ -1,7 +1,0 @@
-WARNING in ./index.js
-  ⚠ Module parse warning:
-  ╰─▶   ⚠ Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)
-         ╭────
-       1 │ console.log(import.meta);
-         ·             ───────────
-         ╰────

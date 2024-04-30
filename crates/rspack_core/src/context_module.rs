@@ -22,12 +22,12 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  contextify, get_exports_type_with_strict, impl_module_meta_info, returning_function,
-  stringify_map, to_path, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency,
-  BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
-  ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope,
-  ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory, DependencyId,
-  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
+  block_promise, contextify, get_exports_type_with_strict, impl_module_meta_info,
+  returning_function, to_path, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
+  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType,
+  BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation,
+  ConcatenationScope, ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory,
+  DependencyId, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
   LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
   ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
 };
@@ -277,7 +277,7 @@ impl ContextModule {
   fn get_fake_map_init_statement(&self, fake_map: &FakeMapValue) -> String {
     match fake_map {
       FakeMapValue::Bit(_) => "".to_string(),
-      FakeMapValue::Map(map) => json_stringify(map),
+      FakeMapValue::Map(map) => format!("var fakeMap = {}", json_stringify(map)),
     }
   }
 
@@ -377,7 +377,11 @@ impl ContextModule {
   }
 
   #[inline]
-  fn get_source_string(&self, compilation: &Compilation) -> BoxSource {
+  fn get_source_string(
+    &self,
+    compilation: &Compilation,
+    code_gen_result: &mut CodeGenerationResult,
+  ) -> BoxSource {
     match self.options.context_options.mode {
       ContextMode::Lazy => {
         if !self.get_blocks().is_empty() {
@@ -386,14 +390,33 @@ impl ContextModule {
           self.get_source_for_empty_async_context(compilation)
         }
       }
+      ContextMode::Eager => {
+        if !self.get_dependencies().is_empty() {
+          self.get_eager_source(compilation)
+        } else {
+          self.get_source_for_empty_async_context(compilation)
+        }
+      }
       ContextMode::LazyOnce => {
-        let module_graph = compilation.get_module_graph();
-        let block = self
-          .get_blocks()
-          .first()
-          .expect("LazyOnce ContextModule should have first block");
-        let block = module_graph.block_by_id(block).expect("should have block");
-        self.generate_source(block.get_dependencies(), compilation)
+        if let Some(block) = self.get_blocks().first() {
+          self.get_lazy_once_source(compilation, block, code_gen_result)
+        } else {
+          self.get_source_for_empty_async_context(compilation)
+        }
+      }
+      ContextMode::AsyncWeak => {
+        if !self.get_dependencies().is_empty() {
+          self.get_async_weak_source(compilation)
+        } else {
+          self.get_source_for_empty_async_context(compilation)
+        }
+      }
+      ContextMode::Weak => {
+        if !self.get_dependencies().is_empty() {
+          self.get_sync_weak_source(compilation)
+        } else {
+          self.get_source_for_empty_context(compilation)
+        }
       }
       ContextMode::Sync => {
         if !self.get_dependencies().is_empty() {
@@ -402,7 +425,6 @@ impl ContextModule {
           self.get_source_for_empty_context(compilation)
         }
       }
-      _ => self.generate_source(self.get_dependencies(), compilation),
     }
   }
 
@@ -560,6 +582,206 @@ impl ContextModule {
     source.boxed()
   }
 
+  fn get_lazy_once_source(
+    &self,
+    compilation: &Compilation,
+    block_id: &AsyncDependenciesBlockIdentifier,
+    code_gen_result: &mut CodeGenerationResult,
+  ) -> BoxSource {
+    let mg = compilation.get_module_graph();
+    let block = mg.block_by_id_expect(block_id);
+    let dependencies = block.get_dependencies();
+    let promise = block_promise(
+      Some(block_id),
+      &mut code_gen_result.runtime_requirements,
+      compilation,
+      "lazy-once context",
+    );
+    let map = self.get_user_request_map(dependencies, compilation);
+    let fake_map = self.get_fake_map(dependencies, compilation);
+    let then_function = if !matches!(
+      fake_map,
+      FakeMapValue::Bit(FakeNamespaceObjectMode::NAMESPACE)
+    ) {
+      formatdoc! {r#"
+        function(id) {{
+          {}
+        }}
+        "#,
+        self.get_return_module_object_source(&fake_map, true, "fakeMap[id]"),
+      }
+    } else {
+      RuntimeGlobals::REQUIRE.name().to_string()
+    };
+    let source = formatdoc! {r#"
+      var map = {map};
+      {fake_map_init_statement}
+
+      function webpackAsyncContext(req) {{
+        return webpackAsyncContextResolve(req).then({then_function});
+      }}
+      function webpackAsyncContextResolve(req) {{
+        return {promise}.then(function() {{
+          if(!{has_own_property}(map, req)) {{
+            var e = new Error("Cannot find module '" + req + "'");
+            e.code = 'MODULE_NOT_FOUND';
+            throw e;
+          }}
+          return map[req];
+        }})
+      }}
+      webpackAsyncContext.keys = {keys};
+      webpackAsyncContext.resolve = webpackAsyncContextResolve;
+      webpackAsyncContext.id = {id};
+      module.exports = webpackAsyncContext;
+      "#,
+      map = json_stringify(&map),
+      fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
+      has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
+      keys = returning_function("Object.keys(map)", ""),
+      id = json_stringify(self.id(&compilation.chunk_graph))
+    };
+    RawSource::from(source).boxed()
+  }
+
+  fn get_async_weak_source(&self, compilation: &Compilation) -> BoxSource {
+    let dependencies = self.get_dependencies();
+    let map = self.get_user_request_map(dependencies, compilation);
+    let fake_map = self.get_fake_map(dependencies, compilation);
+    let return_module_object = self.get_return_module_object_source(&fake_map, true, "fakeMap[id]");
+    let source = formatdoc! {r#"
+      var map = {map};
+      {fake_map_init_statement}
+
+      function webpackAsyncContext(req) {{
+        return webpackAsyncContextResolve(req).then(function(id) {{
+          if(!{module_factories}[id]) {{
+            var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
+            e.code = 'MODULE_NOT_FOUND';
+            throw e;
+          }}
+          {return_module_object}
+        }});
+      }}
+      function webpackAsyncContextResolve(req) {{
+        // Here Promise.resolve().then() is used instead of new Promise() to prevent
+        // uncaught exception popping up in devtools
+        return Promise.resolve().then(function() {{
+          if(!{has_own_property}(map, req)) {{
+            var e = new Error("Cannot find module '" + req + "'");
+            e.code = 'MODULE_NOT_FOUND';
+            throw e;
+          }}
+          return map[req];
+        }})
+      }}
+      webpackAsyncContext.keys = {keys};
+      webpackAsyncContext.resolve = webpackAsyncContextResolve;
+      webpackAsyncContext.id = {id};
+      module.exports = webpackAsyncContext;
+      "#,
+      map = json_stringify(&map),
+      fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
+      module_factories = RuntimeGlobals::MODULE_FACTORIES,
+      has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
+      keys = returning_function("Object.keys(map)", ""),
+      id = json_stringify(self.id(&compilation.chunk_graph))
+    };
+    RawSource::from(source).boxed()
+  }
+
+  fn get_sync_weak_source(&self, compilation: &Compilation) -> BoxSource {
+    let dependencies = self.get_dependencies();
+    let map = self.get_user_request_map(dependencies, compilation);
+    let fake_map = self.get_fake_map(dependencies, compilation);
+    let return_module_object = self.get_return_module_object_source(&fake_map, true, "fakeMap[id]");
+    let source = formatdoc! {r#"
+      var map = {map};
+      {fake_map_init_statement}
+
+      function webpackContext(req) {{
+        var id = webpackContextResolve(req);
+        if(!{module_factories}[id]) {{
+          var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
+          e.code = 'MODULE_NOT_FOUND';
+          throw e;
+        }}
+        {return_module_object}
+      }}
+      function webpackContextResolve(req) {{
+        if(!{has_own_property}(map, req)) {{
+          var e = new Error("Cannot find module '" + req + "'");
+          e.code = 'MODULE_NOT_FOUND';
+          throw e;
+        }}
+        return map[req];
+      }}
+      webpackContext.keys = {keys};
+      webpackContext.resolve = webpackContextResolve;
+      webpackContext.id = {id};
+      module.exports = webpackContext;
+      "#,
+      map = json_stringify(&map),
+      fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
+      module_factories = RuntimeGlobals::MODULE_FACTORIES,
+      has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
+      keys = returning_function("Object.keys(map)", ""),
+      id = json_stringify(self.id(&compilation.chunk_graph))
+    };
+    RawSource::from(source).boxed()
+  }
+
+  fn get_eager_source(&self, compilation: &Compilation) -> BoxSource {
+    let dependencies = self.get_dependencies();
+    let map = self.get_user_request_map(dependencies, compilation);
+    let fake_map = self.get_fake_map(dependencies, compilation);
+    let then_function = if !matches!(
+      fake_map,
+      FakeMapValue::Bit(FakeNamespaceObjectMode::NAMESPACE)
+    ) {
+      formatdoc! {r#"
+        function(id) {{
+          {}
+        }}
+        "#,
+        self.get_return_module_object_source(&fake_map, false, "fakeMap[id]"),
+      }
+    } else {
+      RuntimeGlobals::REQUIRE.name().to_string()
+    };
+    let source = formatdoc! {r#"
+      var map = {map};
+      {fake_map_init_statement}
+
+      function webpackAsyncContext(req) {{
+        return webpackAsyncContextResolve(req).then({then_function});
+      }}
+      function webpackAsyncContextResolve(req) {{
+        // Here Promise.resolve().then() is used instead of new Promise() to prevent
+        // uncaught exception popping up in devtools
+        return Promise.resolve().then(function() {{
+          if(!{has_own_property}(map, req)) {{
+            var e = new Error("Cannot find module '" + req + "'");
+            e.code = 'MODULE_NOT_FOUND';
+            throw e;
+          }}
+          return map[req];
+        }})
+      }}
+      webpackAsyncContext.keys = {keys};
+      webpackAsyncContext.resolve = webpackAsyncContextResolve;
+      webpackAsyncContext.id = {id};
+      module.exports = webpackAsyncContext;
+      "#,
+      map = json_stringify(&map),
+      fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
+      has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
+      keys = returning_function("Object.keys(map)", ""),
+      id = json_stringify(self.id(&compilation.chunk_graph))
+    };
+    RawSource::from(source).boxed()
+  }
+
   fn get_sync_source(&self, compilation: &Compilation) -> BoxSource {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
@@ -595,108 +817,6 @@ impl ContextModule {
       id = json_stringify(self.id(&compilation.chunk_graph))
     };
     RawSource::from(source).boxed()
-  }
-
-  fn generate_source(&self, dependencies: &[DependencyId], compilation: &Compilation) -> BoxSource {
-    let map = self.get_user_request_map(dependencies, compilation);
-    let fake_map = self.get_fake_map(dependencies, compilation);
-    let mode = &self.options.context_options.mode;
-    let return_module_object = {
-      match *mode {
-        ContextMode::Sync | ContextMode::Weak | ContextMode::Eager => {
-          self.get_return_module_object_source(&fake_map, false, "fakeMap[id]")
-        }
-        ContextMode::AsyncWeak | ContextMode::LazyOnce => {
-          self.get_return_module_object_source(&fake_map, true, "fakeMap[id]")
-        }
-        ContextMode::Lazy => {
-          unreachable!("lazy mode shouldn't be handled by get_source_string")
-        }
-      }
-    };
-    let is_async = matches!(
-      mode,
-      ContextMode::LazyOnce | ContextMode::AsyncWeak | ContextMode::Eager
-    );
-    let mut source = ConcatSource::default();
-    source.add(RawSource::from(format!(
-      "var map = {};\n",
-      json_stringify(&map)
-    )));
-    if let FakeMapValue::Map(map) = &fake_map {
-      source.add(RawSource::from(format!(
-        "var fakeMap = {};\n",
-        stringify_map(map)
-      )));
-    }
-
-    // webpackContext
-    source.add(RawSource::from("function webpackContext(req) {\n"));
-    if is_async {
-      source.add(RawSource::from(
-        "return webpackContextResolve(req).then(function(id) {\n",
-      ));
-    } else {
-      source.add(RawSource::from("var id = webpackContextResolve(req);\n"));
-    }
-    if matches!(mode, ContextMode::AsyncWeak | ContextMode::Weak) {
-      source.add(RawSource::from(
-        r#"
-        if(!__webpack_require__.m[id]) {
-          var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
-          e.code = 'MODULE_NOT_FOUND';
-          throw e;
-        }
-        "#,
-      ));
-    }
-    source.add(RawSource::from(format!("\n{return_module_object}\n")));
-    if is_async {
-      source.add(RawSource::from("\n});\n"));
-    }
-    source.add(RawSource::from("\n}\n"));
-
-    // webpackContextResolve
-    source.add(RawSource::from("function webpackContextResolve(req) {\n"));
-    if is_async {
-      source.add(RawSource::from(
-        r#"
-        // Here Promise.resolve().then() is used instead of new Promise() to prevent
-        // uncaught exception popping up in devtools
-        return Promise.resolve().then(function() {
-        "#,
-      ));
-    }
-    source.add(RawSource::from(
-      r#"
-      if(!__webpack_require__.o(map, req)) {
-        var e = new Error("Cannot find module '" + req + "'");
-        e.code = 'MODULE_NOT_FOUND';
-        throw e;
-      }
-      return map[req];
-    "#,
-    ));
-    if is_async {
-      source.add(RawSource::from("\n});\n"));
-    }
-    source.add(RawSource::from("\n}\n"));
-
-    source.add(RawSource::from(format!(
-      "webpackContext.id = {};\n",
-      serde_json::to_string(self.id(&compilation.chunk_graph))
-        .unwrap_or_else(|e| panic!("{}", e.to_string()))
-    )));
-    source.add(RawSource::from(
-      r#"
-      webpackContext.keys = function webpackContextKeys() {
-        return Object.keys(map);
-      };
-      webpackContext.resolve = webpackContextResolve;
-      module.exports = webpackContext;
-      "#,
-    ));
-    source.boxed()
   }
 }
 
@@ -799,7 +919,7 @@ impl Module for ContextModule {
     _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut code_generation_result = CodeGenerationResult::default();
-    let source = self.get_source_string(compilation);
+    let source = self.get_source_string(compilation, &mut code_generation_result);
     code_generation_result.add(SourceType::JavaScript, source);
     let mut all_deps = self.get_dependencies().to_vec();
     let module_graph = compilation.get_module_graph();

@@ -8,6 +8,7 @@ import path from "path";
 import EventSource from "../../../helper/legacy/EventSourceForNode";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
 import { CommonJsRunner } from "../cjs";
+import { escapeSep } from "../../../helper";
 
 export class JSDOMWebRunner<
 	T extends ECompilerType = ECompilerType.Rspack
@@ -34,6 +35,7 @@ export class JSDOMWebRunner<
 			}
 		);
 
+		this.dom.window.console = console;
 		// compat with FakeDocument
 		this.dom.window.eval(`
       Object.defineProperty(document.head, "_children", {
@@ -165,9 +167,10 @@ export class JSDOMWebRunner<
 				this._options.testConfig.moduleScope(currentModuleScope);
 			}
 
+			const scopeKey = escapeSep(file!.path);
 			const args = Object.keys(currentModuleScope);
 			const argValues = args
-				.map(arg => `window["${file!.path}"]["${arg}"]`)
+				.map(arg => `window["${scopeKey}"]["${arg}"]`)
 				.join(", ");
 			const code = `
         // hijack document.currentScript for auto public path
@@ -178,7 +181,7 @@ export class JSDOMWebRunner<
                 get(target, prop, receiver) {
                   if (prop === "currentScript") {
                     var script = target.createElement("script");
-                    script.src = "https://test.cases/path/${file.subPath}index.js";
+                    script.src = "https://test.cases/path/${escapeSep(file.subPath)}index.js";
                     return script;
                   }
                   return Reflect.get(target, prop, receiver);
@@ -188,14 +191,15 @@ export class JSDOMWebRunner<
             return Reflect.get(target, prop, receiver);
           }
         });
-        (function(window, self, globalThis, ${args.join(", ")}) {
+        (function(window, self, globalThis, console, ${args.join(", ")}) {
           ${file.content}
-        })($$g$$, $$g$$, $$g$$, ${argValues});
+        })($$g$$, $$g$$, $$g$$, window["console"], ${argValues});
       `;
 
 			this.preExecute(code, file);
-			this.dom.window[file.path] = currentModuleScope;
+			this.dom.window[scopeKey] = currentModuleScope;
 			this.dom.window.eval(code);
+
 			this.postExecute(m, file);
 			return m.exports;
 		};

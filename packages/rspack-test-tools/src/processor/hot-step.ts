@@ -14,6 +14,7 @@ import {
 } from "./hot";
 import fs from "fs-extra";
 import { THotStepRuntimeData } from "../runner";
+import { escapeEOL, escapeSep } from "../helper";
 
 const escapeLocalName = (str: string) => str.split(/[-<>:"/|?*.]/).join("_");
 
@@ -159,7 +160,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 		const hotUpdateManifest: Array<{ name: string; content: string }> = [];
 		const changedFiles: string[] = require(
 			context.getSource("changed-file.js")
-		).map((i: string) => path.relative(context.getSource(), i));
+		).map((i: string) => escapeSep(path.relative(context.getSource(), i)));
 
 		const hashes: Record<string, string> = {
 			[lastHash || "LAST_HASH"]: "LAST_HASH",
@@ -356,10 +357,7 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 			fs.writeFileSync(snapshotPath, content, "utf-8");
 			return;
 		}
-		const snapshotContent = fs
-			.readFileSync(snapshotPath, "utf-8")
-			.replace(/\r\n/g, "\n")
-			.trim();
+		const snapshotContent = escapeEOL(fs.readFileSync(snapshotPath, "utf-8"));
 		expect(content).toBe(snapshotContent);
 	}
 }

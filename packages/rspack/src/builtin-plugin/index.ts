@@ -6,6 +6,7 @@ export * from "./BannerPlugin";
 export * from "./IgnorePlugin";
 export * from "./ProgressPlugin";
 export * from "./EntryPlugin";
+export * from "./DynamicEntryPlugin";
 export * from "./ExternalsPlugin";
 export * from "./NodeTargetPlugin";
 export * from "./ElectronTargetPlugin";
@@ -50,6 +51,7 @@ export * from "./BundlerInfoRspackPlugin";
 export * from "./ModuleConcatenationPlugin";
 export * from "./CssModulesPlugin";
 export * from "./APIPlugin";
+export * from "./RuntimeChunkPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";

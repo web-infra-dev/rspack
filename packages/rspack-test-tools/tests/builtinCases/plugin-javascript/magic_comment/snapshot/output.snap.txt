@@ -46,14 +46,15 @@ console.log("123");
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-__webpack_require__.e("normal").then(__webpack_require__.t.bind(__webpack_require__, "./normal.js", 23));
-__webpack_require__.e("./sub/fold").then(__webpack_require__.t.bind(__webpack_require__, "./sub_fold.js", 23));
-__webpack_require__.e("./sub/single").then(__webpack_require__.t.bind(__webpack_require__, "./single_quote.js", 23));
-__webpack_require__.e("./sub/other").then(__webpack_require__.t.bind(__webpack_require__, "./other.js", 23));
-__webpack_require__.e("./user/[id]").then(__webpack_require__.t.bind(__webpack_require__, "./user/1.js", 23));
-__webpack_require__.e("user/[id]/page").then(__webpack_require__.t.bind(__webpack_require__, "./user/page/2.js", 23));
-__webpack_require__.e("user/(id)/page").then(__webpack_require__.t.bind(__webpack_require__, "./user/page/3.js", 23));
-__webpack_require__.e("bug_only_single_quote_js").then(__webpack_require__.t.bind(__webpack_require__, "./bug_only_single_quote.js", 23));
+__webpack_require__.e(/* import() | normal */ "normal").then(__webpack_require__.t.bind(__webpack_require__, "./normal.js", 23));
+__webpack_require__.e(/* import() | with.dot */ "with.dot").then(__webpack_require__.t.bind(__webpack_require__, "./with_dot.js", 23));
+__webpack_require__.e(/* import() | ./sub/fold */ "./sub/fold").then(__webpack_require__.t.bind(__webpack_require__, "./sub_fold.js", 23));
+__webpack_require__.e(/* import() | ./sub/single */ "./sub/single").then(__webpack_require__.t.bind(__webpack_require__, "./single_quote.js", 23));
+__webpack_require__.e(/* import() | ./sub/other */ "./sub/other").then(__webpack_require__.t.bind(__webpack_require__, "./other.js", 23));
+__webpack_require__.e(/* import() | ./user/[id] */ "./user/[id]").then(__webpack_require__.t.bind(__webpack_require__, "./user/1.js", 23));
+__webpack_require__.e(/* import() | user/[id]/page */ "user/[id]/page").then(__webpack_require__.t.bind(__webpack_require__, "./user/page/2.js", 23));
+__webpack_require__.e(/* import() | user/(id)/page */ "user/(id)/page").then(__webpack_require__.t.bind(__webpack_require__, "./user/page/3.js", 23));
+__webpack_require__.e(/* import() */ "bug_only_single_quote_js").then(__webpack_require__.t.bind(__webpack_require__, "./bug_only_single_quote.js", 23));
 }),
 
 },function(__webpack_require__) {
@@ -86,6 +87,15 @@ console.log("user (id)/page3");
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["user/[id]/page"], {
 "./user/page/2.js": (function () {
 console.log("user [id]/page2");
+}),
+
+}]);
+```
+
+```js title=with.dot.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["with.dot"], {
+"./with_dot.js": (function () {
+console.log("123");
 }),
 
 }]);

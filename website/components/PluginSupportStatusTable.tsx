@@ -323,7 +323,11 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'DynamicEntryPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.PartiallySupported,
+    notes: {
+      en: '`layer` and `wasmLoading` options are not supported, and `filename` cannot accept a function as a value',
+      zh: '不支持 `layer`、`wasmLoading` 选项，`filename` 无法接受函数作为值',
+    },
   },
   {
     name: 'ElectronTargetPlugin',
@@ -419,7 +423,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'RuntimeChunkPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'SideEffectsFlagPlugin',

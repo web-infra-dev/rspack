@@ -1,21 +1,22 @@
 import { ECompilerType } from "../type";
-import path from "path";
-import { SimpleTaskProcessor } from "../processor";
+import { ISimpleProcessorOptions, SimpleTaskProcessor } from "../processor";
 import { getSimpleProcessorRunner } from "../test/simple";
+
+export type TCompilerCaseConfig = Omit<
+	ISimpleProcessorOptions,
+	"name" | "compilerType"
+> & {
+	description: string;
+};
 
 export function createCompilerCase(
 	name: string,
 	src: string,
 	dist: string,
-	root: string
+	testConfig: string
 ) {
-	const caseConfig = require(path.join(root, name));
-
-	const runner = getSimpleProcessorRunner(src, dist, {
-		it,
-		beforeEach,
-		afterEach
-	});
+	const caseConfig: TCompilerCaseConfig = require(testConfig);
+	const runner = getSimpleProcessorRunner(src, dist);
 
 	it(caseConfig.description, async () => {
 		await runner(

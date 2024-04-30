@@ -1,8 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
-
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
+use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
@@ -38,17 +37,13 @@ pub fn get_entry_runtime(
       } else {
         result = merge_runtime(
           &result,
-          &RuntimeSpec::from_iter([Arc::from(
-            options.runtime.clone().unwrap_or_else(|| name.to_string()),
-          )]),
+          &RuntimeSpec::from_entry(&name, options.runtime.as_ref()),
         );
       }
     }
     result
   } else {
-    RuntimeSpec::from_iter([Arc::from(
-      options.runtime.clone().unwrap_or_else(|| name.to_string()),
-    )])
+    RuntimeSpec::from_entry(name, options.runtime.as_ref())
   }
 }
 
@@ -64,7 +59,7 @@ static HASH_REPLACERS: Lazy<Vec<(&Lazy<Regex>, &str)>> = Lazy::new(|| {
 pub fn get_filename_without_hash_length<F: Clone>(
   filename: &Filename<F>,
 ) -> (Filename<F>, HashMap<String, usize>) {
-  let mut hash_len_map = HashMap::new();
+  let mut hash_len_map = HashMap::default();
   let Some(template) = filename.template() else {
     return (filename.clone(), hash_len_map);
   };

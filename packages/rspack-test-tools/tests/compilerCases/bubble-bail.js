@@ -4,6 +4,7 @@ const store = {
 	files: {}
 };
 
+/** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
 	description: "should compile a single file",
 	options(context) {

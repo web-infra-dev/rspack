@@ -27,6 +27,7 @@ class MyPlugin {
 	}
 }
 
+/** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
 	description: "should throw if the asset to be updated is not exist",
 	options(context) {

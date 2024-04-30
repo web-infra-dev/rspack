@@ -2,7 +2,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 (async function() {
-    return __webpack_require__.e("wasm_wasm").then(__webpack_require__.bind(__webpack_require__, "./module.js")).then(function(mod) {
+    return __webpack_require__.e(/* import() */ "wasm_wasm").then(__webpack_require__.bind(__webpack_require__, "./module.js")).then(function(mod) {
         if (mod.result !== 42) throw new Error("panic");
     });
 })();

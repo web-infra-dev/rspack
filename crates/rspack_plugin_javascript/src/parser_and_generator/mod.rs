@@ -111,26 +111,27 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let original_map = source.map(&MapOptions::new(use_source_map));
     let source = source.source();
 
-    let gen_terminate_res = |diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {
-      Ok(
-        ParseResult {
-          source: create_source(
-            source.to_string(),
-            resource_data.resource_path.to_string_lossy().to_string(),
-            enable_source_map,
-          ),
-          dependencies: vec![],
-          blocks: vec![],
-          presentational_dependencies: vec![],
-          analyze_result: Default::default(),
-          side_effects_bailout: None,
-        }
-        .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
-          diagnostics,
-          loaders,
-        )),
-      )
-    };
+    let result_with_diagnostics =
+      |source: String, diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {
+        Ok(
+          ParseResult {
+            source: create_source(
+              source,
+              resource_data.resource_path.to_string_lossy().to_string(),
+              enable_source_map,
+            ),
+            dependencies: vec![],
+            blocks: vec![],
+            presentational_dependencies: vec![],
+            analyze_result: Default::default(),
+            side_effects_bailout: None,
+          }
+          .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
+            diagnostics,
+            loaders,
+          )),
+        )
+      };
 
     let mut ast =
       if let Some(RspackAst::JavaScript(loader_ast)) = additional_data.remove::<RspackAst>() {
@@ -145,7 +146,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           Ok(ast) => ast,
           Err(e) => {
             diagnostics.append(&mut e.into_iter().map(|e| e.boxed()).collect());
-            return gen_terminate_res(diagnostics);
+            return result_with_diagnostics(source.to_string(), diagnostics);
           }
         }
         .0
@@ -169,7 +170,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Ok(parse_result) => parse_result,
       Err(e) => {
         diagnostics.append(&mut e.into_iter().map(|e| e.boxed()).collect());
-        return gen_terminate_res(diagnostics);
+        return result_with_diagnostics(output.code.clone(), diagnostics);
       }
     };
 
@@ -209,7 +210,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Ok(result) => result,
       Err(mut e) => {
         diagnostics.append(&mut e);
-        return gen_terminate_res(diagnostics);
+        return result_with_diagnostics(output.code.clone(), diagnostics);
       }
     };
     diagnostics.append(&mut warning_diagnostics);
