@@ -872,10 +872,6 @@ function getRawStats(stats: StatsValue): RawOptions["stats"] {
 	};
 }
 
-export function getRawEntryRuntime(runtime: EntryRuntime) {
-	return runtime === false ? undefined : runtime;
-}
-
 export function getRawChunkLoading(chunkLoading: ChunkLoading) {
 	return chunkLoading === false ? "false" : chunkLoading;
 }

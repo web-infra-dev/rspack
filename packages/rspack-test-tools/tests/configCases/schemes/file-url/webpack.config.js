@@ -24,6 +24,7 @@ export const val2 = v2;
 );
 fs.utimesSync(file, new Date(Date.now() - 10000), new Date(Date.now() - 10000));
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "development",
 	target: "node"

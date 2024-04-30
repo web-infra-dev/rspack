@@ -1,6 +1,7 @@
 const path = require("path");
 const file = path.resolve(__dirname, "lib.js");
 const createUse = loaders => loaders.map(l => ({ loader: l }));
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	context: __dirname,
 	module: {

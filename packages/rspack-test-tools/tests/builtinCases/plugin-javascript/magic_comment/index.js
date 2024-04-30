@@ -1,4 +1,5 @@
 import(/* webpackChunkName: "normal" */ "./normal");
+import(/* webpackChunkName: "with.dot" */ "./with_dot");
 import(/* webpackChunkName: "./sub/fold" */ "./sub_fold");
 import(/* webpackChunkName: './sub/single' */ "./single_quote");
 

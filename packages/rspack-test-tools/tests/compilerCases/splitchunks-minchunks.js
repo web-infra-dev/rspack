@@ -1,4 +1,6 @@
 const path = require("path");
+
+/** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
 	description: "splitChunks.minChunks equals 0",
 	options(context) {

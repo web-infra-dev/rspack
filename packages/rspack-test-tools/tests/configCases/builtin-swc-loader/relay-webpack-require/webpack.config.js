@@ -1,5 +1,6 @@
 const { resolve } = require("path");
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	resolve: {
 		alias: {

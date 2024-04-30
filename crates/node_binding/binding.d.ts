@@ -113,6 +113,7 @@ export enum BuiltinPluginName {
   IgnorePlugin = 'IgnorePlugin',
   ProgressPlugin = 'ProgressPlugin',
   EntryPlugin = 'EntryPlugin',
+  DynamicEntryPlugin = 'DynamicEntryPlugin',
   ExternalsPlugin = 'ExternalsPlugin',
   NodeTargetPlugin = 'NodeTargetPlugin',
   ElectronTargetPlugin = 'ElectronTargetPlugin',
@@ -161,6 +162,7 @@ export enum BuiltinPluginName {
   ModuleConcatenationPlugin = 'ModuleConcatenationPlugin',
   CssModulesPlugin = 'CssModulesPlugin',
   APIPlugin = 'APIPlugin',
+  RuntimeChunkPlugin = 'RuntimeChunkPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -715,7 +717,7 @@ export interface RawContainerPluginOptions {
   name: string
   shareScope: string
   library: RawLibraryOptions
-  runtime?: string
+  runtime?: false | string
   filename?: string
   exposes: Array<RawExposeOptions>
   enhanced: boolean
@@ -744,6 +746,7 @@ export interface RawCopyPattern {
   priority: number
   globOptions: RawCopyGlobOptions
   info?: RawInfo
+  transform?: (input: string | Buffer, absoluteFilename: string) => string | Buffer
 }
 
 export interface RawCopyRspackPluginOptions {
@@ -796,9 +799,19 @@ export interface RawCssParserOptions {
   namedExports?: boolean
 }
 
+export interface RawDynamicEntryPluginOptions {
+  context: string
+  entry: () => Promise<RawEntryDynamicResult[]>
+}
+
+export interface RawEntryDynamicResult {
+  import: Array<string>
+  options: RawEntryOptions
+}
+
 export interface RawEntryOptions {
   name?: string
-  runtime?: string
+  runtime?: false | string
   chunkLoading?: string
   asyncChunks?: boolean
   publicPath?: string
@@ -1245,6 +1258,14 @@ export interface RawRuleSetLogicalConditions {
   and?: Array<RawRuleSetCondition>
   or?: Array<RawRuleSetCondition>
   not?: RawRuleSetCondition
+}
+
+export interface RawRuntimeChunkNameFnCtx {
+  name: string
+}
+
+export interface RawRuntimeChunkOptions {
+  name: string | ((entrypoint: { name: string }) => string)
 }
 
 export interface RawSnapshotOptions {

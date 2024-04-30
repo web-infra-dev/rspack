@@ -4,7 +4,7 @@ import { BasicCaseCreator } from "../test/creator";
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	describe: true,
+	describe: false,
 	steps: ({ name }) => [
 		new RspackConfigProcessor({
 			name,

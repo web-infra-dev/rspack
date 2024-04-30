@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::ops::Sub;
 
 use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
@@ -68,7 +67,7 @@ fn subtract_runtime(a: Option<&RuntimeSpec>, b: Option<&RuntimeSpec>) -> Option<
     (Some(a), None) => Some(a.clone()),
     (None, None) => None,
     (None, Some(b)) => Some(b.clone()),
-    (Some(a), Some(b)) => Some(a.sub(b)),
+    (Some(a), Some(b)) => Some(a.subtract(b)),
   }
 }
 
@@ -86,7 +85,7 @@ where
           f(Some(&r.to_string()));
         }
       } else {
-        for r in runtime {
+        for r in runtime.iter() {
           f(Some(&r.to_string()));
         }
       }
@@ -380,7 +379,7 @@ pub fn module_namespace_promise(
   dep_id: &DependencyId,
   block: Option<&AsyncDependenciesBlockIdentifier>,
   request: &str,
-  _message: &str,
+  message: &str,
   weak: bool,
 ) -> String {
   let TemplateContext {
@@ -397,7 +396,7 @@ pub fn module_namespace_promise(
     return missing_module_promise(request);
   };
 
-  let promise = block_promise(block, runtime_requirements, compilation);
+  let promise = block_promise(block, runtime_requirements, compilation, message);
   let exports_type = get_exports_type(
     &compilation.get_module_graph(),
     dep_id,
@@ -500,20 +499,54 @@ pub fn block_promise(
   block: Option<&AsyncDependenciesBlockIdentifier>,
   runtime_requirements: &mut RuntimeGlobals,
   compilation: &Compilation,
+  message: &str,
 ) -> String {
   let Some(block) = block else {
-    // ImportEagerDependency
-    return "Promise.resolve()".to_string();
+    let comment = comment(
+      &compilation.options,
+      CommentOptions {
+        request: None,
+        chunk_name: None,
+        message: Some(message),
+      },
+    );
+    return format!("Promise.resolve({comment})");
   };
   let chunk_group = compilation
     .chunk_graph
     .get_block_chunk_group(block, &compilation.chunk_group_by_ukey);
   let Some(chunk_group) = chunk_group else {
-    return "Promise.resolve()".to_string();
+    let comment = comment(
+      &compilation.options,
+      CommentOptions {
+        request: None,
+        chunk_name: None,
+        message: Some(message),
+      },
+    );
+    return format!("Promise.resolve({comment})");
   };
   if chunk_group.chunks.is_empty() {
-    return "Promise.resolve()".to_string();
+    let comment = comment(
+      &compilation.options,
+      CommentOptions {
+        request: None,
+        chunk_name: None,
+        message: Some(message),
+      },
+    );
+    return format!("Promise.resolve({comment})");
   }
+  let mg = compilation.get_module_graph();
+  let block = mg.block_by_id_expect(block);
+  let comment = comment(
+    &compilation.options,
+    CommentOptions {
+      request: None,
+      chunk_name: block.get_group_options().and_then(|o| o.name()),
+      message: Some(message),
+    },
+  );
   let chunks = chunk_group
     .chunks
     .iter()
@@ -524,11 +557,11 @@ pub fn block_promise(
     let chunk_id = serde_json::to_string(chunks[0].id.as_ref().expect("should have chunk.id"))
       .expect("should able to json stringify");
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
-    format!("{}({chunk_id})", RuntimeGlobals::ENSURE_CHUNK)
+    format!("{}({comment}{chunk_id})", RuntimeGlobals::ENSURE_CHUNK)
   } else if !chunks.is_empty() {
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
     format!(
-      "Promise.all([{}])",
+      "Promise.all({comment}[{}])",
       chunks
         .iter()
         .map(|c| format!(
@@ -541,7 +574,7 @@ pub fn block_promise(
         .join(", ")
     )
   } else {
-    "Promise.resolve()".to_string()
+    format!("Promise.resolve({comment})")
   }
 }
 
@@ -636,7 +669,7 @@ pub fn async_module_factory(
     .block_by_id(block_id)
     .expect("should have block");
   let dep = block.get_dependencies()[0];
-  let ensure_chunk = block_promise(Some(block_id), runtime_requirements, compilation);
+  let ensure_chunk = block_promise(Some(block_id), runtime_requirements, compilation, "");
   let factory = returning_function(
     &module_raw(compilation, runtime_requirements, &dep, request, false),
     "",

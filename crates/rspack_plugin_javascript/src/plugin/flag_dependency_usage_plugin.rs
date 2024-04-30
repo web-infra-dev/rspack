@@ -132,10 +132,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         if !self.global
           && let Some(GroupOptions::Entrypoint(options)) = block.get_group_options()
         {
-          let runtime = options
-            .runtime
-            .as_ref()
-            .map(|runtime| RuntimeSpec::from_iter([runtime.as_str().into()]));
+          let runtime = RuntimeSpec::from_entry_options(options);
           self.process_module(
             ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(block_id),
             runtime,

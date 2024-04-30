@@ -5,11 +5,11 @@ import { NormalRunnerFactory } from "../runner";
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	describe: true,
+	describe: false,
 	steps: ({ name }) => [
 		new RspackNormalProcessor({
 			name,
-			root: path.resolve(__dirname, "../../tests/cases"),
+			root: path.resolve(__dirname, "../../tests/normalCases"),
 			compilerOptions: {}, // do not used in rspack
 			runable: true
 		})

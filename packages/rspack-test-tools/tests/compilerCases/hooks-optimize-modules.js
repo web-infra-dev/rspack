@@ -9,6 +9,7 @@ class MyPlugin {
 	}
 }
 
+/** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
 	description: "should call optimizeModules hook correctly",
 	options(context) {

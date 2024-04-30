@@ -15,6 +15,7 @@ class MyPlugin {
 	}
 }
 
+/** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
 	description: "should call afterOptimizeModules hook correctly",
 	options(context) {

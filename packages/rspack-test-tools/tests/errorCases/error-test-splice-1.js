@@ -1,3 +1,4 @@
+/** @type {import('../..').TErrorCaseConfig} */
 module.exports = {
   description: "Testing proxy methods on errors: test splice 1",
   options() {

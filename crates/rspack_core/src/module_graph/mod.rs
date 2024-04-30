@@ -646,6 +646,17 @@ impl<'a> ModuleGraph<'a> {
     self.loop_partials(|p| p.blocks.get(block_id))?.as_ref()
   }
 
+  pub fn block_by_id_expect(
+    &self,
+    block_id: &AsyncDependenciesBlockIdentifier,
+  ) -> &AsyncDependenciesBlock {
+    self
+      .loop_partials(|p| p.blocks.get(block_id))
+      .expect("should insert block before get it")
+      .as_ref()
+      .expect("block has been removed to None")
+  }
+
   pub fn dependencies(&self) -> HashMap<DependencyId, &BoxDependency> {
     let mut res = HashMap::default();
     for item in self.partials.iter() {

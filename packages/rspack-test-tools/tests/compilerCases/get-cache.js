@@ -7,6 +7,7 @@ class MyPlugin {
 	}
 }
 
+/** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
 	description: "should call getCache function correctly",
 	options(context) {

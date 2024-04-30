@@ -74,16 +74,18 @@ async fn make(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>)
     self.options.enhanced,
   );
   let dependency_id = *dep.id();
-  compilation.add_entry(
-    Box::new(dep),
-    EntryOptions {
-      name: Some(self.options.name.clone()),
-      runtime: self.options.runtime.clone(),
-      filename: self.options.filename.clone(),
-      library: Some(self.options.library.clone()),
-      ..Default::default()
-    },
-  )?;
+  compilation
+    .add_entry(
+      Box::new(dep),
+      EntryOptions {
+        name: Some(self.options.name.clone()),
+        runtime: self.options.runtime.clone(),
+        filename: self.options.filename.clone(),
+        library: Some(self.options.library.clone()),
+        ..Default::default()
+      },
+    )
+    .await?;
 
   params.push(MakeParam::new_force_build_dep_param(dependency_id, None));
   Ok(())

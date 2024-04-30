@@ -4,13 +4,13 @@ import { PackageManagerTabs } from '@theme';
 
 CSS 是 Rspack 的一等公民，Rspack 内置了对 CSS 的处理能力，你无需额外的配置即可使用。
 
-我们默认会将 `*.css` 结尾的文件视为 CSS 模块类型，将 `*.module.css` 结尾的文件视为 CSS Modules 模块类型。
+我们默认会将 `*.css` 结尾的文件视为 CSS 模块类型，将 `*.module.css` 结尾的文件视为 [CSS Modules](https://github.com/css-modules/css-modules) 模块类型。
 
 如果你打算从 Webpack 进行迁移，那么你可以去除配置中的 `css-loader` 或 `style-loader` 以使用 Rspack 内置的 CSS 处理能力，详情可以参考[迁移指南](/guide/migration/webpack#去除-css-loader-和-style-loader-和-mini-css-extract-plugin)。
 
 ## CSS Modules
 
-Rspack 中可以引用一个 CSS Modules 文件，如：
+Rspack 默认将扩展名为 `*.module.css` 的文件视为 CSS Modules，你可以在 JavaScript 文件中导入它，然后将 CSS 文件中定义的每个类作为模块的导出来访问。
 
 ```ts title="index.module.css"
 .red {
@@ -18,18 +18,42 @@ Rspack 中可以引用一个 CSS Modules 文件，如：
 }
 ```
 
-这个模块将会被转换为一个 JavaScript 对象，你可以在 JavaScript 中引用它：
+你可以使用命名空间导入：
 
 ```ts title="index.js"
+import * as styles from './index.module.css';
+document.getElementById('element').className = styles.red;
+```
+
+也可以使用具名导入：
+
+```ts
 import { red } from './index.module.css';
 document.getElementById('element').className = red;
 ```
 
-{
-// TODO: link to builtin
-}
+要在 Rspack 中启用默认导入方式，你需要在 `rspack.config.js` 文件中将 `namedExports` 配置为 `false`。这允许你在用到 CSS Modules 时，除了命名空间导入和具名导入，也能通过默认导入整个样式模块：
 
-更多关于 CSS Modules 的配置可以参考 [builtins.css.modules](config/builtins#builtinscssmodules)。
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      'css/auto': {
+        namedExports: false,
+      },
+    },
+  },
+};
+```
+
+现在你可以使用默认导入：
+
+```js
+import styles from './index.module.css';
+document.getElementById('element').className = styles.red;
+```
+
+更多关于 CSS Modules 的配置请参考 [module.parser.css](/config/module#moduleparsercss)。
 
 ## PostCSS
 

@@ -3,7 +3,7 @@ import { BasicCaseCreator } from "../test/creator";
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	describe: true,
+	describe: false,
 	description(name, step) {
 		if (step === 0) {
 			return `${name} with builtin.treeShaking should match snapshot`;
