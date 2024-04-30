@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::mpsc::{error::TryRecvError, UnboundedReceiver};
 
 use super::{
   entry::{EntryParam, EntryTask},
@@ -44,6 +44,7 @@ impl UnfinishCounter {
   }
 }
 
+// send event can only use in sync task
 pub enum Event {
   StartBuild(ModuleIdentifier),
   // origin_module_identifier and current dependency id and target_module_identifier
@@ -173,9 +174,87 @@ impl Task<MakeTaskContext> for FinishModuleTask {
     } = *self;
     let mut res: Vec<Box<dyn Task<MakeTaskContext>>> = vec![];
     let module_graph = MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
-
     let mut queue = VecDeque::new();
     queue.push_back(module_identifier);
+
+    // clean ctrl task events
+    loop {
+      let event = ctrl_task.event_receiver.try_recv();
+      let Ok(event) = event else {
+        if matches!(event, Err(TryRecvError::Empty)) {
+          break;
+        } else {
+          panic!("clean ctrl_task event failed");
+        }
+      };
+
+      match event {
+        Event::StartBuild(module_identifier) => {
+          ctrl_task
+            .as_mut()
+            .finish_module_map
+            .insert(module_identifier, UnfinishCounter::new());
+        }
+        Event::FinishDeps(origin_module_identifier, dep_id, target_module_graph) => {
+          if let Some(target_module_graph) = target_module_graph {
+            if let Some(value) = ctrl_task
+              .as_ref()
+              .finish_module_map
+              .get(&target_module_graph)
+            {
+              if !value.is_finished() {
+                continue;
+              }
+            }
+          }
+
+          // target module finished
+          let Some(origin_module_identifier) = origin_module_identifier else {
+            // origin_module_identifier is none means entry dep
+            let execute_task = ctrl_task
+              .as_mut()
+              .execute_task_map
+              .remove(&dep_id)
+              .expect("should have execute task");
+            res.push(Box::new(execute_task));
+            continue;
+          };
+
+          let value = ctrl_task
+            .as_mut()
+            .finish_module_map
+            .get_mut(&origin_module_identifier)
+            .expect("should have counter");
+          value.minus_one();
+          if value.is_finished() {
+            queue.push_back(origin_module_identifier);
+          }
+        }
+        Event::FinishModule(mid, size) => {
+          let value = ctrl_task
+            .as_mut()
+            .finish_module_map
+            .get_mut(&mid)
+            .expect("should have counter");
+          value.set_unfinished_child_module_count(size);
+          if value.is_finished() {
+            queue.push_back(mid);
+          }
+        }
+        Event::ExecuteModule(param, execute_task) => {
+          let dep_id = match &param {
+            EntryParam::DependencyId(id, _) => *id,
+            EntryParam::EntryDependency(dep) => *dep.id(),
+          };
+          ctrl_task.execute_task_map.insert(dep_id, execute_task);
+          res.push(Box::new(EntryTask { param }));
+        }
+        Event::Stop() => {
+          return Ok(vec![]);
+        }
+      }
+    }
+
     while let Some(module_identifier) = queue.pop_front() {
       let mgm = module_graph
         .module_graph_module_by_identifier(&module_identifier)
