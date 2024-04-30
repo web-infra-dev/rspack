@@ -53,7 +53,8 @@ export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.
 		);
 		// TODO: change to stats.errorStack
 		output = output
-			.replaceAll("│", "")
+			.split("│")
+			.join("")
 			.split(/\r?\n/)
 			.map((s: string) => s.trim())
 			.join("");

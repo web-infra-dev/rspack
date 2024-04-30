@@ -44,8 +44,10 @@ const testPathSerializer = {
 			normalizePaths(
 				// @ts-ignore
 				val
-					.replaceAll(srcDir, "<HOOK_SRC_DIR>")
-					.replaceAll(distDir, "<HOOK_DIST_DIR>")
+					.split(srcDir)
+					.join("<HOOK_SRC_DIR>")
+					.split(distDir)
+					.join("<HOOK_DIST_DIR>")
 			)
 		);
 	}
