@@ -1023,7 +1023,7 @@ export type TCompareResult = {
 export type TCompiler<T> = T extends ECompilerType.Rspack ? Compiler : Compiler_2;
 
 // @public (undocumented)
-export type TCompilerCaseConfig = Omit<ISimpleProcessorOptions, 'name' | 'compilerType'> & {
+export type TCompilerCaseConfig = Omit<ISimpleProcessorOptions, "name" | "compilerType"> & {
     description: string;
 };
 
@@ -1060,7 +1060,7 @@ export type TDiffStatsItem = {
 export type TDimenTypeId = "modules" | "lines" | "lines-in-common";
 
 // @public (undocumented)
-export type TErrorCaseConfig = Omit<IErrorTaskProcessorOptions<ECompilerType.Rspack>, 'name' | 'compilerType'> & {
+export type TErrorCaseConfig = Omit<IErrorTaskProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
     description: string;
 };
 
@@ -1186,7 +1186,7 @@ export type TRunnerRequirer = (currentDirectory: string, modulePath: string[] | 
 }) => Object | Promise<Object>;
 
 // @public (undocumented)
-export type TStatsAPICaseConfig = Omit<IStatsAPITaskProcessorOptions<ECompilerType.Rspack>, 'name' | 'compilerType'> & {
+export type TStatsAPICaseConfig = Omit<IStatsAPITaskProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
     description: string;
 };
 
