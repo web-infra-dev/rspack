@@ -22,11 +22,7 @@ export function createErrorCase(
 		addedSerializer = true;
 	}
 	const caseConfig = require(testConfig);
-	const runner = getSimpleProcessorRunner(src, dist, {
-		it,
-		beforeEach,
-		afterEach
-	});
+	const runner = getSimpleProcessorRunner(src, dist);
 
 	it(caseConfig.description, async () => {
 		await runner(

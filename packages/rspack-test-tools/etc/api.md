@@ -99,6 +99,9 @@ export function createErrorCase(name: string, src: string, dist: string, testCon
 export function createHashCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
+export function createHookCase(name: string, src: string, dist: string, source: string): void;
+
+// @public (undocumented)
 export function createHotCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
@@ -260,11 +263,42 @@ export function escapeSep(str: string): string;
 export function formatCode(name: string, raw: string, options: IFormatCodeOptions): string;
 
 // @public (undocumented)
-export function getSimpleProcessorRunner(src: string, dist: string, env: ITestEnv): (name: string, processor: ITestProcessor) => Promise<void>;
+export function getSimpleProcessorRunner(src: string, dist: string, options?: {
+    env?: () => ITestEnv;
+    context?: (src: string, dist: string) => ITestContext;
+}): (name: string, processor: ITestProcessor) => Promise<void>;
+
+// @public (undocumented)
+export class HookCasesContext extends TestContext {
+    constructor(src: string, testName: string, options: TTestContextOptions);
+    // @internal (undocumented)
+    _addSnapshot(content: unknown, name: string, group: string | number): void;
+    // @internal (undocumented)
+    collectSnapshots(options?: {
+        diff: {};
+    }): Promise<void>;
+    // (undocumented)
+    protected count: number;
+    // (undocumented)
+    protected options: TTestContextOptions;
+    // (undocumented)
+    protected promises: Promise<void>[];
+    snapped(cb: (...args: unknown[]) => Promise<unknown>, prefix?: string): (this: any, ...args: unknown[]) => Promise<unknown>;
+    // (undocumented)
+    protected snapshots: Record<string | number, Array<[string | Buffer, string]>>;
+    // (undocumented)
+    protected snapshotsList: Array<string | number>;
+    // (undocumented)
+    protected src: string;
+    // (undocumented)
+    protected testName: string;
+}
 
 // @public (undocumented)
 export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
     constructor(hookOptions: IHookProcessorOptions<ECompilerType.Rspack>);
+    // (undocumented)
+    check(env: ITestEnv, context: HookCasesContext): Promise<void>;
     // (undocumented)
     config(context: ITestContext): Promise<void>;
     // (undocumented)

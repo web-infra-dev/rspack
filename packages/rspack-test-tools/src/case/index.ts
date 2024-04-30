@@ -13,3 +13,4 @@ export * from "./hot-step";
 export * from "./compiler";
 export * from "./stats-api";
 export * from "./error";
+export * from "./hook";
