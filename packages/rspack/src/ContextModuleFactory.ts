@@ -8,7 +8,7 @@ export class ContextModuleFactory {
 		// 	AsyncSeriesBailHook<[ResourceDataWithData], true | void>
 		// >;
 		beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
-		afterResolve: liteTapable.AsyncSeriesBailHook<[ContextModuleFactoryResolveData], false | void>;
+		afterResolve: liteTapable.AsyncSeriesBailHook<[ContextModuleFactoryResolveData], false | void | ContextModuleFactoryResolveData>;
 	};
 	constructor() {
 		this.hooks = {

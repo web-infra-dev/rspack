@@ -557,7 +557,12 @@ class Compiler {
 							// contextDependencies: arg.contextDependencies,
 							// createData: arg.createData
 						};
-						return await queried.promise(resolveData);
+						const raw = await queried.promise(resolveData);
+						const result = raw ? {
+							resource: raw.resource,
+							regExp: raw.regExp?.toString()
+						} satisfies binding.JsContextModuleFactoryAfterResolveArgs : undefined;
+						return [!!raw, result];
 					}
 				)
 		};
