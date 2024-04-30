@@ -30,7 +30,7 @@ impl Task<MakeTaskContext> for OverwriteTask {
       .as_any()
       .downcast_ref::<ProcessDependenciesTask>()
     {
-      let original_module_identifier = process_dependencies_task.original_module_identifier.clone();
+      let original_module_identifier = process_dependencies_task.original_module_identifier;
       let res = origin_task.sync_run(context)?;
       event_sender
         .send(Event::FinishModule(original_module_identifier, res.len()))
@@ -43,12 +43,12 @@ impl Task<MakeTaskContext> for OverwriteTask {
     {
       let dep_id = factorize_result_task
         .dependencies
-        .get(0)
+        .first()
         .cloned()
         .expect("should have dep_id");
-      let original_module_identifier = factorize_result_task.original_module_identifier.clone();
+      let original_module_identifier = factorize_result_task.original_module_identifier;
       let res = origin_task.sync_run(context)?;
-      if res.len() == 0 {
+      if res.is_empty() {
         event_sender
           .send(Event::FinishDeps(original_module_identifier, dep_id, None))
           .expect("should success");
@@ -59,14 +59,14 @@ impl Task<MakeTaskContext> for OverwriteTask {
     if let Some(add_task) = origin_task.as_any().downcast_ref::<AddTask>() {
       let dep_id = add_task
         .dependencies
-        .get(0)
+        .first()
         .cloned()
         .expect("should have dep_id");
-      let original_module_identifier = add_task.original_module_identifier.clone();
+      let original_module_identifier = add_task.original_module_identifier;
       let target_module_identifier = add_task.module.identifier();
 
       let res = origin_task.sync_run(context)?;
-      if res.len() == 0 {
+      if res.is_empty() {
         event_sender
           .send(Event::FinishDeps(
             original_module_identifier,

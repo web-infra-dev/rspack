@@ -146,15 +146,12 @@ impl ModuleExecutor {
           original_module_context.unwrap_or(Context::from("")),
         );
         let dep_id = *dep.id();
-        v.insert(dep_id.clone());
+        v.insert(dep_id);
         (EntryParam::EntryDependency(Box::new(dep)), dep_id)
       }
       Entry::Occupied(v) => {
         let dep_id = *v.get();
-        (
-          EntryParam::DependencyId(dep_id.clone(), sender.clone()),
-          dep_id,
-        )
+        (EntryParam::DependencyId(dep_id, sender.clone()), dep_id)
       }
     };
 

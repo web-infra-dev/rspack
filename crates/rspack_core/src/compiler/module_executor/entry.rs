@@ -31,11 +31,7 @@ impl Task<MakeTaskContext> for EntryTask {
       EntryParam::DependencyId(dep_id, sender) => {
         if let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(&dep_id) {
           sender
-            .send(Event::FinishDeps(
-              None,
-              dep_id,
-              Some(module_identifier.clone()),
-            ))
+            .send(Event::FinishDeps(None, dep_id, Some(*module_identifier)))
             .expect("should success");
         } else {
           // no module_identifier means the factorize task not run, do nothing

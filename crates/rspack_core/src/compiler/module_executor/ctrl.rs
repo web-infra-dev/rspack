@@ -33,7 +33,7 @@ impl UnfinishCounter {
   }
 
   fn minus_one(&mut self) {
-    if self.is_building || self.unfinished_child_module_count <= 0 {
+    if self.is_building || self.unfinished_child_module_count == 0 {
       panic!("UnfinishDepCount Error")
     }
     self.unfinished_child_module_count -= 1;
@@ -187,7 +187,7 @@ impl Task<MakeTaskContext> for FinishModuleTask {
           .connection_by_connection_id(connection_id)
           .expect("should have connection");
         if let Some(original_module_identifier) = &connection.original_module_identifier {
-          original_module_identifiers.insert(original_module_identifier.clone());
+          original_module_identifiers.insert(*original_module_identifier);
         } else {
           // entry
           let execute_task = ctrl_task
