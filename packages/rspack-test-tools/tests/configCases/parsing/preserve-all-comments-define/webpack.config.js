@@ -3,7 +3,7 @@ const { DefinePlugin } = require("@rspack/core")
 module.exports = {
 	plugins: [
 		new DefinePlugin({
-			"process.env.__IS_REACT_18__": '"true"'
+			"process.env.__IS_REACT_18__": "true"
 		}),
 		{
 			apply(compiler) {
