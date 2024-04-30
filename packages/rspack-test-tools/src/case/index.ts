@@ -4,7 +4,7 @@ export * from "./diff";
 export * from "./hash";
 export * from "./hot";
 export * from "./normal";
-export * from "./stats";
+export * from "./stats-output";
 export * from "./watch";
 export * from "./treeshaking";
 export * from "./defaults";

@@ -16,7 +16,7 @@ function getCreator(target: TTarget) {
 			target,
 			new BasicCaseCreator({
 				clean: true,
-				describe: true,
+				describe: false,
 				target,
 				steps: ({ name, target }) => [
 					new RspackHotStepProcessor({

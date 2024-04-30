@@ -30,7 +30,7 @@ module.exports = {
 				compiler.hooks.afterEmit.tap("test", () => {
 					const dest = path.resolve(
 						__dirname,
-						"../../.././js/ConfigTestCases/output-module/rspack-issue-4784/m.mjs"
+						"../../.././js/config/output-module/rspack-issue-4784/m.mjs"
 					);
 					assert(fs.existsSync(dest));
 					const testRaw = `
