@@ -1,7 +1,6 @@
-use std::hash::BuildHasherDefault;
+use std::cell::OnceCell;
 use std::{collections::HashMap, sync::Arc};
 
-use indexmap::IndexSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_exports_type, process_export_info, property_access, property_name, string_of_used_name,
@@ -13,7 +12,7 @@ use rspack_core::{
   RuntimeGlobals, RuntimeSpec, Template, TemplateContext, TemplateReplaceSource, UsageState,
   UsedName,
 };
-use rustc_hash::{FxHashSet as HashSet, FxHasher};
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::Atom;
 
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
@@ -435,7 +434,7 @@ impl HarmonyExportImportedSpecifierDependency {
     let all_star_exports = self.all_star_exports(module_graph);
     if !all_star_exports.is_empty() {
       let (names, dependency_indices) =
-        determine_export_assignments(module_graph, all_star_exports.clone(), None);
+        determine_export_assignments(module_graph, &all_star_exports, None);
 
       return Some(DiscoverActiveExportsFromOtherStarExportsRet {
         names,
@@ -447,7 +446,7 @@ impl HarmonyExportImportedSpecifierDependency {
 
     if let Some(other_star_exports) = &self.other_star_exports {
       let (names, dependency_indices) =
-        determine_export_assignments(module_graph, other_star_exports.clone(), Some(self.id));
+        determine_export_assignments(module_graph, other_star_exports, Some(self.id));
       return Some(DiscoverActiveExportsFromOtherStarExportsRet {
         names,
         names_slice: dependency_indices[i - 1],
@@ -1352,37 +1351,37 @@ pub struct StarReexportsInfo {
 /// return (names, dependency_indices)
 fn determine_export_assignments(
   module_graph: &ModuleGraph,
-  mut dependencies: Vec<DependencyId>,
+  dependencies: &[DependencyId],
   additional_dependency: Option<DependencyId>,
 ) -> (Vec<Atom>, Vec<usize>) {
-  if let Some(additional_dependency) = additional_dependency {
-    dependencies.push(additional_dependency);
-  }
-
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L109
   // js `Set` keep the insertion order, use `IndexSet` to align there behavior
-  let mut names: IndexSet<Atom, BuildHasherDefault<FxHasher>> = IndexSet::default();
-  let mut dependency_indices = vec![];
+  let mut names = Vec::new();
+  let mut hints = HashSet::default();
+  let mut dependency_indices =
+      Vec::with_capacity(dependencies.len() + additional_dependency.is_some() as usize);
+  let empty = OnceCell::new();
 
-  for dependency in dependencies.iter() {
-    dependency_indices.push(names.len());
+  for dependency in dependencies.iter().chain(additional_dependency.iter()) {
     if let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(dependency) {
       let exports_info = module_graph.get_exports_info(module_identifier);
       for export_info_id in exports_info.exports.values() {
         let export_info = module_graph.get_export_info_by_id(export_info_id);
         // SAFETY: This is safe because a real export can't export empty string
-        let export_info_name = export_info.name.clone().unwrap_or_default();
+        let export_info_name = export_info.name
+            .as_ref()
+            .unwrap_or_else(|| empty.get_or_init(Atom::default));
         if matches!(export_info.provided, Some(ExportInfoProvided::True))
-          && &export_info_name != "default"
-          && !names.contains(&export_info_name)
+          && export_info_name != "default"
+          && !hints.contains(export_info_name)
         {
-          names.insert(export_info_name.clone());
-          let cur_len = dependency_indices.len();
-          dependency_indices[cur_len - 1] = names.len();
+          hints.insert(export_info_name);
+          names.push(export_info_name.clone());
         }
       }
     }
+    dependency_indices.push(names.len());
   }
 
-  (names.into_iter().collect::<Vec<Atom>>(), dependency_indices)
+  (names, dependency_indices)
 }
