@@ -307,11 +307,13 @@ impl HarmonyExportImportedSpecifierDependency {
     let hidden_exports = self
       .discover_active_exports_from_other_star_exports(module_graph)
       .map(|other_star_exports| {
-        other_star_exports.names.into_iter()
-            .take(other_star_exports.names_slice)
-            .filter(|name| !ignored_exports.contains(name))
-            .cloned()
-            .collect::<HashSet<_>>()
+        other_star_exports
+          .names
+          .into_iter()
+          .take(other_star_exports.names_slice)
+          .filter(|name| !ignored_exports.contains(name))
+          .cloned()
+          .collect::<HashSet<_>>()
       });
     if !no_extra_exports && !no_extra_imports {
       return StarReexportsInfo {
@@ -1355,7 +1357,7 @@ fn determine_export_assignments<'a>(
   let mut names = Vec::new();
   let mut hints = HashSet::default();
   let mut dependency_indices =
-      Vec::with_capacity(dependencies.len() + additional_dependency.is_some() as usize);
+    Vec::with_capacity(dependencies.len() + additional_dependency.is_some() as usize);
 
   for dependency in dependencies.iter().chain(additional_dependency.iter()) {
     if let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(dependency) {
