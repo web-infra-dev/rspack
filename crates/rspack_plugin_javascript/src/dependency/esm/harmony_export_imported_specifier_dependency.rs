@@ -430,7 +430,7 @@ impl HarmonyExportImportedSpecifierDependency {
     let all_star_exports = self.all_star_exports(module_graph);
     if !all_star_exports.is_empty() {
       let (names, dependency_indices) =
-        determine_export_assignments(module_graph, &all_star_exports, None);
+        determine_export_assignments(module_graph, all_star_exports, None);
 
       return Some(DiscoverActiveExportsFromOtherStarExportsRet {
         names,
