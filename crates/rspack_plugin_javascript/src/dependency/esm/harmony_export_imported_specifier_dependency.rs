@@ -1358,7 +1358,7 @@ fn determine_export_assignments<'a>(
   // js `Set` keep the insertion order, use `IndexSet` to align there behavior
   let mut names: IndexSet<&Atom, BuildHasherDefault<FxHasher>> = IndexSet::default();
   let mut dependency_indices =
-    Vec::with_capacity(dependencies.len() + additional_dependency.is_some() as usize);
+    Vec::with_capacity(dependencies.len() + usize::from(additional_dependency.is_some()));
 
   for dependency in dependencies.iter().chain(additional_dependency.iter()) {
     if let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(dependency) {
