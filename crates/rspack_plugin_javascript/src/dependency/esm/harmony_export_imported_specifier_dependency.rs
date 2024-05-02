@@ -1,5 +1,7 @@
+use std::hash::BuildHasherDefault;
 use std::{collections::HashMap, sync::Arc};
 
+use indexmap::IndexSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_exports_type, process_export_info, property_access, property_name, string_of_used_name,
@@ -11,7 +13,7 @@ use rspack_core::{
   RuntimeGlobals, RuntimeSpec, Template, TemplateContext, TemplateReplaceSource, UsageState,
   UsedName,
 };
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::Atom;
 
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
@@ -1353,9 +1355,8 @@ fn determine_export_assignments<'a>(
   additional_dependency: Option<DependencyId>,
 ) -> (Vec<&'a Atom>, Vec<usize>) {
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L109
-  // js `Set` keep the insertion order
-  let mut names = Vec::new();
-  let mut hints = HashSet::default();
+  // js `Set` keep the insertion order, use `IndexSet` to align there behavior
+  let mut names: IndexSet<&Atom, BuildHasherDefault<FxHasher>> = IndexSet::default();
   let mut dependency_indices =
     Vec::with_capacity(dependencies.len() + additional_dependency.is_some() as usize);
 
@@ -1368,15 +1369,14 @@ fn determine_export_assignments<'a>(
         let export_info_name = export_info.name.as_ref().expect("export name is empty");
         if matches!(export_info.provided, Some(ExportInfoProvided::True))
           && export_info_name != "default"
-          && !hints.contains(export_info_name)
+          && !names.contains(export_info_name)
         {
-          names.push(export_info_name);
-          hints.insert(export_info_name);
+          names.insert(export_info_name);
         }
       }
     }
     dependency_indices.push(names.len());
   }
 
-  (names, dependency_indices)
+  (names.into_iter().collect(), dependency_indices)
 }
