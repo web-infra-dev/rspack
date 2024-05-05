@@ -1206,6 +1206,8 @@ export class Compilation {
         createSnapshot(): null;
     };
     // (undocumented)
+    findModule(identifier: string): Module | undefined;
+    // (undocumented)
     get fullHash(): string | null;
     // (undocumented)
     getAsset(name: string): Asset | void;
@@ -4640,6 +4642,8 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     mode?: Mode;
     // (undocumented)
+    _module: Module;
+    // (undocumented)
     previousRequest: string;
     // (undocumented)
     query: string | OptionsType;
@@ -4907,6 +4911,17 @@ class Module {
     constructor(module: JsModule);
     // (undocumented)
     static __from_binding(module: JsModule): Module;
+    // (undocumented)
+    get buildMeta(): {
+        moduleArgument?: string | undefined;
+        exportsArgument?: string | undefined;
+        exportsType?: "default" | "dynamic" | "namespace" | "flagged" | undefined;
+        defaultObject?: false | "redirect" | "redirect-warn" | undefined;
+        strictHarmonyModule?: boolean | undefined;
+        sideEffectFree?: boolean | undefined;
+        hasTopLevelAwait?: boolean | undefined;
+        esm?: boolean | undefined;
+    };
     // (undocumented)
     get context(): string | undefined;
     // (undocumented)
