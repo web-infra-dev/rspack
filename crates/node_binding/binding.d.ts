@@ -231,6 +231,17 @@ export interface JsBeforeResolveArgs {
   context: string
 }
 
+export interface JsBuildMeta {
+  moduleArgument: string
+  exportsArgument: string
+  exportsType: 'namespace' | 'dynamic' | 'default' | 'flagged'
+  defaultObject: false | 'redirect' | 'redirect-warn'
+  strictHarmonyModule: boolean
+  sideEffectFree?: boolean
+  hasTopLevelAwait: boolean
+  esm: boolean
+}
+
 export interface JsBuildTimeExecutionOption {
   publicPath?: string
   baseUri?: string
@@ -387,6 +398,7 @@ export interface JsModule {
   moduleIdentifier: string
   nameForCondition?: string
   rawRequest?: string
+  buildMeta?: JsBuildMeta
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {
