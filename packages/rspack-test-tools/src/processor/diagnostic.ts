@@ -8,6 +8,7 @@ import { BasicTaskProcessor } from "./basic";
 import assert from "assert";
 import path from "path";
 import fs from "fs";
+import { escapeEOL } from "../helper";
 const serializer = require("jest-serializer-path");
 const normalizePaths = serializer.normalizePaths;
 const rspackPath = path.resolve(__dirname, "../../../rspack");
@@ -51,20 +52,19 @@ export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.
 			})
 		);
 		// TODO: change to stats.errorStack
-		if (context.getSource().includes("module-build-failed")) {
-			// Replace potential loader stack
-			output = output
-				.replaceAll("│", "")
-				.split(/\r?\n/)
-				.map((s: string) => s.trim())
-				.join("");
-		}
+		output = output
+			.split("│")
+			.join("")
+			.split(/\r?\n/)
+			.map((s: string) => s.trim())
+			.join("");
 
 		const errorOutputPath = path.resolve(context.getSource(), `./stats.err`);
 		if (!fs.existsSync(errorOutputPath) || global.updateSnapshot) {
-			fs.writeFileSync(errorOutputPath, output);
+			fs.writeFileSync(errorOutputPath, escapeEOL(output));
 		} else {
-			expect(output).toBe(fs.readFileSync(errorOutputPath, "utf-8"));
+			const expectContent = fs.readFileSync(errorOutputPath, "utf-8");
+			expect(escapeEOL(output)).toBe(escapeEOL(expectContent));
 		}
 	}
 

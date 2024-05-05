@@ -6,6 +6,7 @@ use regex::Regex;
 use rspack_core::{
   ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, DEFAULT_DELIMITER,
 };
+use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::{ext::DynHash, identifier::make_paths_relative};
 use rustc_hash::FxHashMap;
@@ -210,7 +211,7 @@ impl SplitChunksPlugin {
     &self,
     compilation: &mut Compilation,
     max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting>,
-  ) {
+  ) -> Result<()> {
     let fallback_cache_group = &self.fallback_cache_group;
     let chunk_group_db = &compilation.chunk_group_by_ukey;
     let compilation_ref = &*compilation;
@@ -219,15 +220,15 @@ impl SplitChunksPlugin {
     .chunk_by_ukey
     .values()
     .par_bridge()
-    .filter_map(|chunk| {
+    .map(|chunk| {
       let max_size_setting = max_size_setting_map.get(&chunk.ukey);
       tracing::trace!("max_size_setting : {max_size_setting:#?} for {:?}", chunk.ukey);
 
       if max_size_setting.is_none()
-        && !(fallback_cache_group.chunks_filter)(chunk, chunk_group_db)
+        && !(fallback_cache_group.chunks_filter)(chunk, chunk_group_db)?
       {
         tracing::debug!("Chunk({}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reasons.join("~"));
-        return None;
+        return Ok(None);
       }
 
       let min_size = max_size_setting
@@ -258,7 +259,7 @@ impl SplitChunksPlugin {
           "Chunk({}) skips the `maxSize` checking. Reason: allow_max_size is empty",
           chunk.chunk_reasons.join("~")
         );
-        return None;
+        return Ok(None);
       }
 
       let mut is_invalid = false;
@@ -278,13 +279,15 @@ impl SplitChunksPlugin {
         allow_max_size.to_mut().combine_with(min_size, &f64::max);
       }
 
-      Some(ChunkWithSizeInfo {
+      Ok(Some(ChunkWithSizeInfo {
         allow_max_size,
         min_size,
         chunk: chunk.ukey,
         automatic_name_delimiter,
-      })
-    });
+      }))
+    }).collect::<Result<Vec<_>>>()?
+    .into_iter()
+    .flatten();
 
     let infos_with_results = chunks_with_size_info
       .filter_map(|info| {
@@ -379,6 +382,7 @@ impl SplitChunksPlugin {
           chunk.name = name;
         }
       })
-    })
+    });
+    Ok(())
   }
 }

@@ -1,3 +1,4 @@
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
 		cssFilename: "css/[name].css"

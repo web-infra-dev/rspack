@@ -11,6 +11,7 @@ use swc_core::ecma::transforms::base::pass::Optional;
 use swc_core::ecma::visit::Fold;
 
 pub use self::dependency::*;
+use self::swc_visitor::dropped_comments_preserver;
 pub use self::JavascriptParser;
 
 /// Webpack builtin plugins
@@ -64,7 +65,8 @@ pub fn run_before_pass(ast: &mut Ast, options: &CompilerOptions) -> Result<()> {
           swc_visitor::resolver(unresolved_mark, top_level_mark, false),
           builtins_webpack_plugin(options, unresolved_mark),
           swc_visitor::hygiene(false, top_level_mark),
-          swc_visitor::fixer(Some(&comments as &dyn Comments))
+          swc_visitor::fixer(Some(&comments as &dyn Comments)),
+          dropped_comments_preserver(comments.clone()),
         );
         program.fold_with(&mut pass);
       }

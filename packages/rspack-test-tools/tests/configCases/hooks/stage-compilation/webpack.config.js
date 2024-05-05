@@ -1,5 +1,6 @@
 const TestPlugin = require("./plugin")
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	plugins: [new TestPlugin((compiler, list) => {
 		const pushBanner = (compiler, banner, tapOptions) => {

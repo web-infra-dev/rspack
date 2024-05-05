@@ -1,6 +1,6 @@
 mod hot_module_replacement;
 
-use std::{hash::Hash, ops::Sub};
+use std::hash::Hash;
 
 use async_trait::async_trait;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
@@ -67,7 +67,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .map(|runtime| {
       (
         runtime.to_string(),
-        HotUpdateContent::new(HashSet::from_iter([runtime.clone()])),
+        HotUpdateContent::new(RuntimeSpec::from_iter([runtime.clone()])),
       )
     })
     .collect::<HashMap<String, HotUpdateContent>>();
@@ -142,7 +142,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       chunk_id = current_chunk.expect_id().to_string();
       new_runtime = Default::default();
       // intersectRuntime
-      for old_runtime in &all_old_runtime {
+      for old_runtime in all_old_runtime.iter() {
         if current_chunk.runtime.contains(old_runtime) {
           new_runtime.insert(old_runtime.clone());
         }
@@ -168,7 +168,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .collect::<Vec<_>>();
 
       // subtractRuntime
-      removed_from_runtime = removed_from_runtime.sub(&new_runtime);
+      removed_from_runtime = removed_from_runtime.subtract(&new_runtime);
     } else {
       removed_from_runtime = old_runtime.clone();
       // new_runtime = old_runtime.clone();

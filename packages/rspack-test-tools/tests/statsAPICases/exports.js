@@ -1,3 +1,4 @@
+/** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have usedExports and providedExports stats",
 	options(context) {

@@ -2793,6 +2793,7 @@ dependencies = [
  "rspack_plugin_copy",
  "rspack_plugin_css",
  "rspack_plugin_devtool",
+ "rspack_plugin_dynamic_entry",
  "rspack_plugin_ensure_chunk_conditions",
  "rspack_plugin_entry",
  "rspack_plugin_externals",
@@ -2810,6 +2811,7 @@ dependencies = [
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
+ "rspack_plugin_runtime_chunk",
  "rspack_plugin_schemes",
  "rspack_plugin_split_chunks",
  "rspack_plugin_swc_css_minimizer",
@@ -3065,8 +3067,10 @@ dependencies = [
 name = "rspack_macros_test"
 version = "0.1.0"
 dependencies = [
+ "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rspack_identifier",
  "rspack_macros",
  "rspack_util",
  "tokio",
@@ -3146,6 +3150,8 @@ name = "rspack_plugin_copy"
 version = "0.1.0"
 dependencies = [
  "dashmap",
+ "derivative",
+ "futures",
  "glob",
  "lazy_static",
  "pathdiff",
@@ -3208,6 +3214,18 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+]
+
+[[package]]
+name = "rspack_plugin_dynamic_entry"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "derivative",
+ "futures",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
@@ -3468,6 +3486,16 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+]
+
+[[package]]
+name = "rspack_plugin_runtime_chunk"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]

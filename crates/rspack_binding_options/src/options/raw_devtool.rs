@@ -96,11 +96,7 @@ fn normalize_raw_module_filename_template(
 
 fn normalize_raw_test(raw: ThreadsafeFunction<String, bool>) -> TestFn {
   let handle = Handle::current();
-  Box::new(move |ctx| {
-    handle
-      .block_on(raw.call(ctx))
-      .expect("failed to block external function")
-  })
+  Box::new(move |ctx| handle.block_on(raw.call(ctx)))
 }
 
 #[napi(object, object_to_js = false)]

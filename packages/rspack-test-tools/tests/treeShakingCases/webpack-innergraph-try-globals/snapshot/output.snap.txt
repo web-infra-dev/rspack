@@ -33,8 +33,9 @@ try {
     var c = b;
     const a = 42;
     var ok2 = false;
-    eval(""); // TODO terser has a bug and incorrectly remove this code, eval opts out
-} catch (e) {
+    eval("");
+} // TODO terser has a bug and incorrectly remove this code, eval opts out
+catch (e) {
     var ok2 = true;
 }
 

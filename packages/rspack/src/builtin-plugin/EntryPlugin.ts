@@ -11,7 +11,6 @@ import {
 	LibraryOptions,
 	PublicPath,
 	getRawChunkLoading,
-	getRawEntryRuntime,
 	getRawLibrary
 } from "../config";
 import { isNil } from "../util";
@@ -45,14 +44,14 @@ export const EntryPlugin = create(
 	"make"
 );
 
-function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
+export function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
 	const runtime = entry.runtime;
 	const chunkLoading = entry.chunkLoading;
 	return {
 		name: entry.name,
 		publicPath: entry.publicPath,
 		baseUri: entry.baseUri,
-		runtime: !isNil(runtime) ? getRawEntryRuntime(runtime) : undefined,
+		runtime,
 		chunkLoading: !isNil(chunkLoading)
 			? getRawChunkLoading(chunkLoading)
 			: undefined,

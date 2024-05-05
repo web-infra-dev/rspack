@@ -68,8 +68,8 @@
     },
     {
       "groupName": "npm ignored dependencies",
-      "matchManagers": ["npm", "sass"],
-      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"],
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm", "sass"],
       "enabled": false
     },
     {

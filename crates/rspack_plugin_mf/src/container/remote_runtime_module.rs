@@ -84,6 +84,9 @@ impl RuntimeModule for RemoteRuntimeModule {
           },
         );
       }
+      if remotes.is_empty() {
+        continue;
+      }
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       chunk_to_remotes_mapping.insert(
         chunk

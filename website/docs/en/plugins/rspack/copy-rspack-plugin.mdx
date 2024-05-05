@@ -35,6 +35,10 @@ new rspack.CopyRspackPlugin(options);
             dot?: boolean; // Default to true
             ignore?: string[]; // ignore specific path
           };
+          transform?: (
+            input: string | Buffer,
+            absoluteFilename: string,
+          ) => string | Buffer;
         }
     )[];
   };
@@ -115,6 +119,12 @@ new rspack.CopyRspackPlugin(options);
         default: 'undefined',
         description:
           'The configuration for glob queries: `caseSensitiveMatch` determines whether the matching is case sensitive, and `dot` determines whether files starting with . are matched. `ignore` is an array of strings in glob format that can be used to ignore specific paths.',
+      },
+      {
+        name: '`transform`',
+        type: '`function`',
+        default: 'undefined',
+        description: 'Allows to modify the file contents.',
       },
     ]}
   />

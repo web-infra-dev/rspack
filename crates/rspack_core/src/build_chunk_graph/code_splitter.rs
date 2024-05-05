@@ -14,7 +14,7 @@ use crate::{
   add_connection_states, assign_depth, assign_depths, get_entry_runtime,
   AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey,
   ChunkLoading, ChunkUkey, Compilation, ConnectionId, ConnectionState, DependenciesBlock,
-  GroupOptions, Logger, ModuleGraph, ModuleIdentifier, RuntimeSpec,
+  EntryRuntime, GroupOptions, Logger, ModuleGraph, ModuleIdentifier, RuntimeSpec,
 };
 
 #[derive(Debug, Clone)]
@@ -302,7 +302,7 @@ impl<'me> CodeSplitter<'me> {
         cgi
       };
 
-      if options.depend_on.is_none() && options.runtime.is_none() {
+      if options.depend_on.is_none() && !matches!(&options.runtime, Some(EntryRuntime::String(_))) {
         entrypoint.set_runtime_chunk(chunk.ukey);
       }
       entrypoint.set_entry_point_chunk(chunk.ukey);
@@ -466,7 +466,7 @@ Remove the 'runtime' option from the entrypoint."
             entry_point.add_parent(parent);
           }
         }
-      } else if let Some(runtime) = &options.runtime {
+      } else if let Some(EntryRuntime::String(runtime)) = &options.runtime {
         let ukey = self
           .compilation
           .entrypoints
@@ -1063,11 +1063,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
             let cgi = ChunkGroupInfo::new(
               entrypoint.ukey,
-              RuntimeSpec::from_iter([entry_options
-                .runtime
-                .as_deref()
-                .expect("should have runtime for AsyncEntrypoint")
-                .into()]),
+              RuntimeSpec::from_entry_options(&entry_options)
+                .expect("should have runtime for AsyncEntrypoint"),
               entry_options
                 .chunk_loading
                 .as_ref()

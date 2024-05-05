@@ -1,5 +1,6 @@
 const { RawSource, ConcatSource } = require("webpack-sources");
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
 		main: "./index.js"

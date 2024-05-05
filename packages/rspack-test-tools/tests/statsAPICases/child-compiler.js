@@ -33,6 +33,7 @@ class TestPlugin {
 	}
 }
 
+/** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have children when using childCompiler",
 	options(context) {

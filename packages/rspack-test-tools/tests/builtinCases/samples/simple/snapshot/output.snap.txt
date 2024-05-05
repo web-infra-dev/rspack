@@ -19,7 +19,7 @@ console.log("a");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
 
-__webpack_require__.e("a_js").then(__webpack_require__.bind(__webpack_require__, "./a.js"));
+__webpack_require__.e(/* import() */ "a_js").then(__webpack_require__.bind(__webpack_require__, "./a.js"));
 console.log("index");
 }),
 "./shared.js": (function () {

@@ -57,7 +57,7 @@ console.log("i-1");
 /* harmony import */var _i_1__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_i_1__WEBPACK_IMPORTED_MODULE_1__);
 
 
-__webpack_require__.e("a_js-_9b1b1").then(__webpack_require__.bind(__webpack_require__, "./a.js"));
+__webpack_require__.e(/* import() */ "a_js-_9b1b1").then(__webpack_require__.bind(__webpack_require__, "./a.js"));
 console.log("index");
 }),
 "./shared.js": (function () {
@@ -85,7 +85,7 @@ console.log("i-2");
 /* harmony import */var _i_2__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_i_2__WEBPACK_IMPORTED_MODULE_1__);
 
 
-__webpack_require__.e("a_js-_9b1b0").then(__webpack_require__.bind(__webpack_require__, "./a.js"));
+__webpack_require__.e(/* import() */ "a_js-_9b1b0").then(__webpack_require__.bind(__webpack_require__, "./a.js"));
 console.log("index");
 }),
 "./shared.js": (function () {
