@@ -44,7 +44,9 @@ pub fn define(
               "DefinePlugin warning".into(),
               format!("failed to parse {:?}", text),
             )
-            .with_help(Some("Consider wrapping it with JSON.stringify."))
+            .with_help(Some(
+              "Consider wrapping it with `JSON.stringify(...)` if a string is expected.",
+            ))
             .with_severity(Severity::Warning),
           ));
         }

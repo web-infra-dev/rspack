@@ -1,8 +1,0 @@
-WARNING in ./index.js
-  ⚠ Module parse warning:
-  ╰─▶   ⚠ DefinePlugin warning: failed to parse "😄"
-         ╭────
-       1 │ 😄
-         · ▲
-         ╰────
-        help: Consider wrapping it with JSON.stringify.
