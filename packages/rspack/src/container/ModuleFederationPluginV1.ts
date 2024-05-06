@@ -9,6 +9,7 @@ import { SharePlugin, Shared } from "../sharing/SharePlugin";
 import { isValidate } from "../util/validate";
 import { ContainerPlugin, Exposes } from "./ContainerPlugin";
 import { ContainerReferencePlugin, Remotes } from "./ContainerReferencePlugin";
+import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
 
 export interface ModuleFederationPluginV1Options {
 	exposes?: Exposes;
@@ -43,6 +44,7 @@ export class ModuleFederationPluginV1 {
 			compiler.options.output.enabledLibraryTypes!.push(library.type);
 		}
 		compiler.hooks.afterPlugins.tap("ModuleFederationPlugin", () => {
+			new ShareRuntimePlugin(this._options.enhanced).apply(compiler);
 			if (
 				options.exposes &&
 				(Array.isArray(options.exposes)
