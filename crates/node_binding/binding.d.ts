@@ -1435,10 +1435,10 @@ export interface RegisterJsTaps {
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
 
 export interface ThreadsafeNodeFS {
-  writeFile: (name: string, content: Buffer) => void
-  removeFile: (name: string) => void
-  mkdir: (name: string) => void
-  mkdirp: (name: string) => string | void
-  removeDirAll: (name: string) => string | void
+  writeFile: (name: string, content: Buffer) => Promise<void> | void
+  removeFile: (name: string) => Promise<void> | void
+  mkdir: (name: string) => Promise<void> | void
+  mkdirp: (name: string) => Promise<string | void> | string | void
+  removeDirAll: (name: string) => Promise<string | void> | string | void
 }
 

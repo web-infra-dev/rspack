@@ -78,7 +78,7 @@ function toRawSplitChunksOptions(
 				chunks(
 					Chunk.__from_binding(
 						chunk,
-						compiler.compilation!.__internal_getInner()
+						compiler._lastCompilation!.__internal_getInner()
 					)
 				);
 		} else {

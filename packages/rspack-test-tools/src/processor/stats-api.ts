@@ -16,6 +16,7 @@ export interface IStatsAPITaskProcessorOptions<T extends ECompilerType> {
 	name: string;
 	cwd?: string;
 	compilerType: T;
+	compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
 	build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
 	check?: (stats: TCompilerStats<T>, compiler: TCompiler<T>) => Promise<void>;
 }
@@ -28,7 +29,8 @@ export class StatsAPITaskProcessor<
 			options: _statsAPIOptions.options,
 			build: _statsAPIOptions.build,
 			compilerType: _statsAPIOptions.compilerType,
-			name: _statsAPIOptions.name
+			name: _statsAPIOptions.name,
+			compiler: _statsAPIOptions.compiler
 		});
 	}
 

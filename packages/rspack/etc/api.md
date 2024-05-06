@@ -19,10 +19,9 @@ import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } f
 import { EventEmitter } from 'events';
 import { cleanupGlobalTrace as experimental_cleanupGlobalTrace } from '@rspack/binding';
 import { registerGlobalTrace as experimental_registerGlobalTrace } from '@rspack/binding';
-import { exports as exports_2 } from './exports';
 import type { ExternalObject } from '@rspack/binding';
-import { fs } from 'fs';
-import { default as fs_2 } from 'graceful-fs';
+import fs from 'graceful-fs';
+import { fs as fs_2 } from 'fs';
 import Hash = require('../util/hash');
 import { HookMap as HookMap_2 } from 'tapable';
 import { JsAssetInfo } from '@rspack/binding';
@@ -65,7 +64,6 @@ import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
 import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
 import { ResolveRequest } from 'enhanced-resolve';
 import ResolverFactory = require('./ResolverFactory');
-import { rspack as rspack_3 } from './rspack';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import { Source } from 'webpack-sources';
 import { SyncBailHook as SyncBailHook_2 } from 'tapable';
@@ -98,9 +96,6 @@ export type AmdContainer = z.infer<typeof amdContainer>;
 
 // @public (undocumented)
 const amdContainer: z.ZodString;
-
-// @public (undocumented)
-type Any = any;
 
 // @public (undocumented)
 type Append<T extends any[], U> = {
@@ -1176,22 +1171,20 @@ export interface CompilationParams {
 // @public (undocumented)
 export class Compiler {
     constructor(context: string, options: RspackOptionsNormalized);
+    // @internal
+    get __internal__builtinPlugins(): binding.BuiltinPlugin[];
     // (undocumented)
     __internal__getModuleExecutionResult(id: number): any;
     // @internal
     __internal__rebuild(modifiedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>, callback?: (error: Error | null) => void): void;
     // (undocumented)
     __internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin): void;
-    // (undocumented)
-    builtinPlugins: binding.BuiltinPlugin[];
+    // @internal
+    get __internal__ruleSet(): RuleSetCompiler;
     // (undocumented)
     cache: Cache_2;
     // (undocumented)
     close(callback: (error?: Error | null) => void): void;
-    // (undocumented)
-    compilation?: Compilation;
-    // (undocumented)
-    compilationParams?: CompilationParams;
     // (undocumented)
     compile(callback: Callback_2<Error, Compilation>): void;
     // (undocumented)
@@ -1205,11 +1198,11 @@ export class Compiler {
     // (undocumented)
     fileTimestamps?: ReadonlyMap<string, FileSystemInfoEntry_2 | "ignore" | null>;
     // (undocumented)
-    getAsset(name: string): Buffer | null;
+    fsStartTime?: number;
     // (undocumented)
     getCache(name: string): CacheFacade;
     // (undocumented)
-    getInfrastructureLogger(name: string | Function): Logger;
+    getInfrastructureLogger(name: string | (() => string)): Logger;
     // (undocumented)
     hooks: {
         done: tapable.AsyncSeriesHook<Stats>;
@@ -1245,6 +1238,8 @@ export class Compiler {
     // (undocumented)
     idle: boolean;
     // (undocumented)
+    get immutablePaths(): never;
+    // (undocumented)
     infrastructureLogger: any;
     // (undocumented)
     inputFileSystem: any;
@@ -1253,13 +1248,17 @@ export class Compiler {
     // (undocumented)
     isChild(): boolean;
     // (undocumented)
+    get _lastCompilation(): Compilation | undefined;
+    // (undocumented)
+    get managedPaths(): never;
+    // (undocumented)
     modifiedFiles?: ReadonlySet<string>;
     // (undocumented)
     name?: string;
     // (undocumented)
     options: RspackOptionsNormalized;
     // (undocumented)
-    outputFileSystem: fs;
+    outputFileSystem: OutputFileSystem | null;
     // (undocumented)
     outputPath: string;
     // (undocumented)
@@ -1267,32 +1266,33 @@ export class Compiler {
     // (undocumented)
     purgeInputFileSystem(): void;
     // (undocumented)
+    records: Record<string, any[]>;
+    // (undocumented)
+    get recordsInputPath(): never;
+    // (undocumented)
+    get recordsOutputPath(): never;
+    // (undocumented)
     removedFiles?: ReadonlySet<string>;
     // (undocumented)
     resolverFactory: ResolverFactory;
     // (undocumented)
     root: Compiler;
     // (undocumented)
-    ruleSet: RuleSetCompiler;
-    // (undocumented)
     run(callback: Callback_2<Error, Stats>): void;
     // (undocumented)
-    runAsChild(callback: any): void;
+    runAsChild(callback: (err?: null | Error, entries?: Chunk[], compilation?: Compilation) => any): void;
     // (undocumented)
     running: boolean;
     // (undocumented)
     watch(watchOptions: Watchpack.WatchOptions, handler: Callback_2<Error, Stats>): Watching;
     // (undocumented)
-    watchFileSystem: WatchFileSystem;
+    watchFileSystem: WatchFileSystem | null;
     // (undocumented)
     watching?: Watching;
     // (undocumented)
     watchMode: boolean;
     // (undocumented)
-    webpack: rspack_3 & exports_2 & {
-        rspack: rspack_3 & exports_2 & any;
-        webpack: rspack_3 & exports_2 & any;
-    };
+    webpack: typeof rspack;
 }
 
 // @public (undocumented)
@@ -1742,13 +1742,13 @@ class DirectoryWatcher extends EventEmitter {
     // (undocumented)
     nestedWatching: boolean;
     // (undocumented)
-    onChange(filePath: string, stat: fs_2.Stats): void;
+    onChange(filePath: string, stat: fs.Stats): void;
     // (undocumented)
     onDirectoryAdded(directoryPath: string): void;
     // (undocumented)
     onDirectoryUnlinked(directoryPath: string): void;
     // (undocumented)
-    onFileAdded(filePath: string, stat: fs_2.Stats): void;
+    onFileAdded(filePath: string, stat: fs.Stats): void;
     // (undocumented)
     onFileUnlinked(filePath: string): void;
     // (undocumented)
@@ -1768,7 +1768,7 @@ class DirectoryWatcher extends EventEmitter {
     // (undocumented)
     watch(filePath: string, startTime: number): Watcher_2;
     // (undocumented)
-    watcher: fs_2.FSWatcher;
+    watcher: fs.FSWatcher;
     // (undocumented)
     watchers: {
         [path: string]: Watcher_2[];
@@ -3838,6 +3838,26 @@ const htmlRspackPluginOptions: z.ZodObject<{
 }>;
 
 // @public (undocumented)
+interface IDirent {
+    // (undocumented)
+    isBlockDevice: () => boolean;
+    // (undocumented)
+    isCharacterDevice: () => boolean;
+    // (undocumented)
+    isDirectory: () => boolean;
+    // (undocumented)
+    isFIFO: () => boolean;
+    // (undocumented)
+    isFile: () => boolean;
+    // (undocumented)
+    isSocket: () => boolean;
+    // (undocumented)
+    isSymbolicLink: () => boolean;
+    // (undocumented)
+    name: string | Buffer;
+}
+
+// @public (undocumented)
 type IfSet<X> = X extends UnsetAdditionalOptions ? {} : X;
 
 // @public (undocumented)
@@ -3909,6 +3929,60 @@ const infrastructureLogging: z.ZodObject<{
 
 // @public (undocumented)
 type InnerCallback<E, T> = (error?: E | null | false, result?: T) => void;
+
+// @public (undocumented)
+interface IStats {
+    // (undocumented)
+    atime: Date;
+    // (undocumented)
+    atimeMs: number | bigint;
+    // (undocumented)
+    birthtime: Date;
+    // (undocumented)
+    birthtimeMs: number | bigint;
+    // (undocumented)
+    blksize: number | bigint;
+    // (undocumented)
+    blocks: number | bigint;
+    // (undocumented)
+    ctime: Date;
+    // (undocumented)
+    ctimeMs: number | bigint;
+    // (undocumented)
+    dev: number | bigint;
+    // (undocumented)
+    gid: number | bigint;
+    // (undocumented)
+    ino: number | bigint;
+    // (undocumented)
+    isBlockDevice: () => boolean;
+    // (undocumented)
+    isCharacterDevice: () => boolean;
+    // (undocumented)
+    isDirectory: () => boolean;
+    // (undocumented)
+    isFIFO: () => boolean;
+    // (undocumented)
+    isFile: () => boolean;
+    // (undocumented)
+    isSocket: () => boolean;
+    // (undocumented)
+    isSymbolicLink: () => boolean;
+    // (undocumented)
+    mode: number | bigint;
+    // (undocumented)
+    mtime: Date;
+    // (undocumented)
+    mtimeMs: number | bigint;
+    // (undocumented)
+    nlink: number | bigint;
+    // (undocumented)
+    rdev: number | bigint;
+    // (undocumented)
+    size: number | bigint;
+    // (undocumented)
+    uid: number | bigint;
+}
 
 // @public (undocumented)
 interface JavaScript {
@@ -4382,7 +4456,7 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     clearDependencies(): void;
     // (undocumented)
-    _compilation: Compiler["compilation"];
+    _compilation: Compilation;
     // (undocumented)
     _compiler: Compiler;
     // (undocumented)
@@ -4532,7 +4606,7 @@ export interface LogEntry {
 }
 
 // @public (undocumented)
-type LogFunction = (type: LogTypeEnum, args?: any[]) => void;
+type LogFunction = (type: LogTypeEnum, args: any[]) => void;
 
 // @public (undocumented)
 class Logger {
@@ -5391,8 +5465,6 @@ export class MultiCompiler {
     // (undocumented)
     compilers: Compiler[];
     // (undocumented)
-    context: string;
-    // (undocumented)
     dependencies: WeakMap<Compiler, string[]>;
     // (undocumented)
     getInfrastructureLogger(name: string): Logger_2;
@@ -5401,39 +5473,27 @@ export class MultiCompiler {
         done: SyncHook_2<MultiStats>;
         invalid: MultiHook<SyncHook_2<[string | null, number]>>;
         run: MultiHook<AsyncSeriesHook_2<[Compiler]>>;
-        watchClose: SyncHook_2<Any>;
-        watchRun: MultiHook<Any>;
-        infrastructureLog: MultiHook<Any>;
+        watchClose: SyncHook_2<[]>;
+        watchRun: MultiHook<AsyncSeriesHook_2<[Compiler]>>;
+        infrastructureLog: MultiHook<SyncBailHook_2<[string, string, any[]], true>>;
     };
-    // (undocumented)
-    infrastructureLogger: Any;
     // (undocumented)
     get inputFileSystem(): void;
     set inputFileSystem(value: void);
     // (undocumented)
-    get intermediateFileSystem(): any;
-    set intermediateFileSystem(value: any);
+    get intermediateFileSystem(): void;
+    set intermediateFileSystem(value: void);
     // (undocumented)
-    name: string;
+    get options(): RspackOptionsNormalized_2[] & MultiCompilerOptions;
     // (undocumented)
-    get options(): RspackOptionsNormalized_2[] & {
-        parallelism?: number | undefined;
-    };
+    _options: MultiCompilerOptions;
     // (undocumented)
-    _options: {
-        parallelism?: number;
-    };
-    // (undocumented)
-    get outputFileSystem(): fs;
-    set outputFileSystem(value: fs);
+    get outputFileSystem(): fs_2;
+    set outputFileSystem(value: fs_2);
     // (undocumented)
     get outputPath(): string;
     // (undocumented)
     purgeInputFileSystem(): void;
-    // (undocumented)
-    resolverFactory: ResolverFactory;
-    // (undocumented)
-    root: Compiler;
     // (undocumented)
     run(callback: Callback_2<Error, MultiStats>): void;
     // (undocumented)
@@ -5447,10 +5507,6 @@ export class MultiCompiler {
     // (undocumented)
     get watchFileSystem(): WatchFileSystem;
     set watchFileSystem(value: WatchFileSystem);
-    // (undocumented)
-    watching: Watching;
-    // (undocumented)
-    watchMode: boolean;
 }
 
 // @public (undocumented)
@@ -6565,6 +6621,32 @@ const output: z.ZodObject<{
 }>;
 
 // @public (undocumented)
+export interface OutputFileSystem {
+    // (undocumented)
+    dirname?: (arg0: string) => string;
+    // (undocumented)
+    join?: (arg0: string, arg1: string) => string;
+    // (undocumented)
+    lstat?: (arg0: string, arg1: (arg0?: null | NodeJS.ErrnoException, arg1?: IStats) => void) => void;
+    // (undocumented)
+    mkdir: (arg0: string, arg1: (arg0?: null | NodeJS.ErrnoException) => void) => void;
+    // (undocumented)
+    readdir: (arg0: string, arg1: (arg0?: null | NodeJS.ErrnoException, arg1?: (string | Buffer)[] | IDirent[]) => void) => void;
+    // (undocumented)
+    readFile: (arg0: string, arg1: (arg0?: null | NodeJS.ErrnoException, arg1?: string | Buffer) => void) => void;
+    // (undocumented)
+    relative?: (arg0: string, arg1: string) => string;
+    // (undocumented)
+    rmdir: (arg0: string, arg1: (arg0?: null | NodeJS.ErrnoException) => void) => void;
+    // (undocumented)
+    stat: (arg0: string, arg1: (arg0?: null | NodeJS.ErrnoException, arg1?: IStats) => void) => void;
+    // (undocumented)
+    unlink: (arg0: string, arg1: (arg0?: null | NodeJS.ErrnoException) => void) => void;
+    // (undocumented)
+    writeFile: (arg0: string, arg1: string | Buffer, arg2: (arg0?: null | NodeJS.ErrnoException) => void) => void;
+}
+
+// @public (undocumented)
 export type OutputModule = z.infer<typeof outputModule>;
 
 // @public (undocumented)
@@ -7492,6 +7574,7 @@ declare namespace rspackExports {
         sources,
         config,
         util,
+        OutputFileSystem,
         experimental_registerGlobalTrace,
         experimental_cleanupGlobalTrace,
         EntryOptionPlugin,
