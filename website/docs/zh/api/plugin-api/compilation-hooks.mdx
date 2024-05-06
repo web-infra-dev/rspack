@@ -1,0 +1,45 @@
+# Compilation 钩子
+
+## `buildModule`
+
+`SyncHook<[JsModule]>`
+
+在模块被构建之前调用，可以用来修改模块（Rspack 目前仅支持读）
+
+## `processAssets`
+
+`AsyncSeriesHook<[CompilationAssets]>`
+
+在产物输出之前进行修改产物。
+
+## `optimizeModules`
+
+`SyncBailHook<[JsModule[]]>`
+
+在模块优化阶段开始时调用。插件可以使用此钩子来对模块执行优化。
+
+## `optimizeChunkModule`
+
+`AsyncSeriesBailHook<[JsModule[]]>`
+
+在 `afterOptimizeTree` 之后，在块模块优化的开始时调用。插件可以使用此钩子来对块模块执行优化。
+
+## `succeedModule`
+
+`SyncHook<[JsModule]>`
+
+在模块成功构建后调用
+
+## `finishModules`
+
+`AsyncSeriesHook<[JsModule[]]>`
+
+当所有模块都没有错误地构建完成时调用。
+
+## `chunkAsset`
+
+`SyncHook<[JsChunk[], string /** filename*/ ]>`
+
+Triggered when an asset from a chunk was added to the compilation.
+
+当`chunk`的产物被添加到编译时触发。
