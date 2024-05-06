@@ -147,7 +147,7 @@ pub struct ExportsInfoRelated {
 }
 
 #[derive(Debug)]
-struct FactorizeResultTask {
+pub struct FactorizeResultTask {
   //  pub dependency: DependencyId,
   pub original_module_identifier: Option<ModuleIdentifier>,
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.

@@ -1,4 +1,5 @@
 use std::{
+  any::Any,
   collections::VecDeque,
   sync::{
     atomic::{AtomicBool, Ordering},
@@ -7,7 +8,11 @@ use std::{
 };
 
 use rspack_error::Result;
-use tokio::sync::mpsc::{self, error::TryRecvError};
+use rspack_util::ext::AsAny;
+use tokio::{
+  runtime::Handle,
+  sync::mpsc::{self, error::TryRecvError},
+};
 
 /// Result returned by task
 ///
@@ -26,11 +31,11 @@ pub enum TaskType {
 ///
 /// See test for more example
 #[async_trait::async_trait]
-pub trait Task<Ctx>: Send {
+pub trait Task<Ctx>: Send + Any + AsAny {
   /// Return the task type
   ///
-  /// return `TaskType::Sync` will run `self::sync_run`
-  /// return `TaskType::Async` will run `self::async_run`
+  /// Return `TaskType::Sync` will run `self::sync_run`
+  /// Return `TaskType::Async` will run `self::async_run`
   fn get_task_type(&self) -> TaskType;
 
   /// Sync task process
@@ -51,6 +56,15 @@ pub fn run_task_loop<Ctx: 'static>(
   ctx: &mut Ctx,
   init_tasks: Vec<Box<dyn Task<Ctx>>>,
 ) -> Result<()> {
+  run_task_loop_with_event(ctx, init_tasks, |_, task| task)
+}
+
+/// Run task loop with event
+pub fn run_task_loop_with_event<Ctx: 'static>(
+  ctx: &mut Ctx,
+  init_tasks: Vec<Box<dyn Task<Ctx>>>,
+  before_task_run: impl Fn(&mut Ctx, Box<dyn Task<Ctx>>) -> Box<dyn Task<Ctx>>,
+) -> Result<()> {
   // create channel to receive async task result
   let (tx, mut rx) = mpsc::unbounded_channel::<TaskResult<Ctx>>();
   // mark whether the task loop has been returned
@@ -65,6 +79,7 @@ pub fn run_task_loop<Ctx: 'static>(
     }
 
     if let Some(task) = task {
+      let task = before_task_run(ctx, task);
       match task.get_task_type() {
         TaskType::Async => {
           let tx = tx.clone();
@@ -90,7 +105,16 @@ pub fn run_task_loop<Ctx: 'static>(
       }
     }
 
-    match rx.try_recv() {
+    let data = if queue.is_empty() && active_task_count != 0 {
+      Handle::current().block_on(async {
+        let res = rx.recv().await.expect("should recv success");
+        Ok(res)
+      })
+    } else {
+      rx.try_recv()
+    };
+
+    match data {
       Ok(r) => {
         active_task_count -= 1;
         // merge async task result

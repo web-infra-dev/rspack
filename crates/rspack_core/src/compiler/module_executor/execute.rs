@@ -1,20 +1,19 @@
-use std::sync::{atomic::AtomicU32, Arc};
-use std::{hash::BuildHasherDefault, iter::once};
+use std::{iter::once, sync::atomic::AtomicU32};
 
-use dashmap::DashMap;
 use rayon::prelude::*;
 use rspack_error::Result;
-use rspack_identifier::{Identifiable, IdentifierSet};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use rspack_identifier::IdentifierSet;
+use rustc_hash::FxHashSet as HashSet;
+use tokio::{runtime::Handle, sync::oneshot::Sender};
 
-use crate::cache::Cache;
+// use tokio::sync::Sender
 use crate::{
+  compiler::make::repair::MakeTaskContext,
+  utils::task_loop::{Task, TaskResult, TaskType},
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationResult, Dependency, DependencyType, EntryDependency, EntryOptions, Entrypoint,
-  ModuleFactory, RuntimeSpec, SourceType,
+  CodeGenerationResult, CompilationAsset, CompilationAssets, DependencyId, EntryOptions,
+  Entrypoint, RuntimeSpec, SourceType,
 };
-use crate::{Compilation, CompilationAsset, MakeParam};
-use crate::{CompilerOptions, Context, ResolverFactory, SharedPluginDriver};
 
 static EXECUTE_MODULE_ID: AtomicU32 = AtomicU32::new(0);
 pub type ExecuteModuleId = u32;
@@ -29,65 +28,38 @@ pub struct ExecuteModuleResult {
   pub id: ExecuteModuleId,
 }
 
-#[derive(Debug, Default)]
-pub struct ModuleExecutor {
-  pub assets: DashMap<String, CompilationAsset>,
+#[derive(Debug)]
+pub struct ExecuteTask {
+  pub entry_dep_id: DependencyId,
+  pub public_path: Option<String>,
+  pub base_uri: Option<String>,
+  pub result_sender: Sender<(Result<ExecuteModuleResult>, CompilationAssets)>,
 }
 
-impl ModuleExecutor {
-  #[allow(clippy::too_many_arguments)]
-  pub async fn import_module(
-    &self,
-    options: Arc<CompilerOptions>,
-    plugin_driver: SharedPluginDriver,
-    resolver_factory: Arc<ResolverFactory>,
-    loader_resolver_factory: Arc<ResolverFactory>,
-    cache: Arc<Cache>,
-    dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
+impl Task<MakeTaskContext> for ExecuteTask {
+  fn get_task_type(&self) -> TaskType {
+    TaskType::Sync
+  }
 
-    request: String,
-    public_path: Option<String>,
-    base_uri: Option<String>,
-    original_module_context: Option<Context>,
-  ) -> Result<ExecuteModuleResult> {
-    let mut compilation = Compilation::new(
-      options,
-      plugin_driver,
-      resolver_factory,
-      loader_resolver_factory,
-      None,
-      cache,
-      None,
-    );
-    compilation.dependency_factories = dependency_factories;
+  fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+    let Self {
+      entry_dep_id,
+      public_path,
+      base_uri,
+      result_sender,
+    } = *self;
 
-    let mut mg = compilation.get_module_graph_mut();
-    let dep_id = {
-      let dep = EntryDependency::new(
-        request,
-        original_module_context.unwrap_or(Context::from("")),
-      );
-      let dep_id = *dep.id();
-      mg.add_dependency(Box::new(dep));
-      dep_id
-    };
-
-    compilation
-      .make(vec![MakeParam::new_force_build_dep_param(dep_id, None)])
-      .await?;
+    let mut compilation = context.transform_to_temp_compilation();
 
     let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
     let mg = compilation.get_module_graph_mut();
-    let module = mg
-      .get_module_by_dependency_id(&dep_id)
+    let entry_module_identifier = mg
+      .get_module_by_dependency_id(&entry_dep_id)
       .expect("should have module")
       .identifier();
-    let mut queue = vec![module];
-    let mut modules: std::collections::HashSet<
-      rspack_identifier::Identifier,
-      BuildHasherDefault<FxHasher>,
-    > = HashSet::default();
+    let mut queue = vec![entry_module_identifier];
+    let mut modules = HashSet::default();
 
     while let Some(m) = queue.pop() {
       modules.insert(m);
@@ -137,7 +109,11 @@ impl ModuleExecutor {
     let chunk = compilation.chunk_by_ukey.add(chunk);
     let chunk_ukey = chunk.ukey;
 
-    chunk_graph.connect_chunk_and_entry_module(chunk.ukey, module, entrypoint.ukey);
+    chunk_graph.connect_chunk_and_entry_module(
+      chunk.ukey,
+      entry_module_identifier,
+      entrypoint.ukey,
+    );
     entrypoint.connect_chunk(chunk);
     entrypoint.set_runtime_chunk(chunk.ukey);
     entrypoint.set_entry_point_chunk(chunk.ukey);
@@ -168,14 +144,16 @@ impl ModuleExecutor {
 
     compilation.code_generation_modules(&mut None, false, modules.par_iter().copied())?;
 
-    compilation
-      .process_runtime_requirements(
-        modules.clone(),
-        once(chunk_ukey),
-        once(chunk_ukey),
-        compilation.plugin_driver.clone(),
-      )
-      .await?;
+    Handle::current().block_on(async {
+      compilation
+        .process_runtime_requirements(
+          modules.clone(),
+          once(chunk_ukey),
+          once(chunk_ukey),
+          compilation.plugin_driver.clone(),
+        )
+        .await
+    })?;
 
     let runtime_modules = compilation
       .chunk_graph
@@ -215,7 +193,12 @@ impl ModuleExecutor {
       .plugin_driver
       .compilation_hooks
       .execute_module
-      .call(&module, &runtime_modules, &codegen_results, &id);
+      .call(
+        &entry_module_identifier,
+        &runtime_modules,
+        &codegen_results,
+        &id,
+      );
 
     let module_graph = compilation.get_module_graph();
     let mut execute_result = match exports {
@@ -265,18 +248,14 @@ impl ModuleExecutor {
       Err(e) => Err(e),
     };
 
+    let assets = std::mem::take(compilation.assets_mut());
     if let Ok(ref mut result) = execute_result {
-      let assets = std::mem::take(compilation.assets_mut());
-      for (key, value) in assets {
-        result.assets.insert(key.clone());
-        self.assets.insert(key, value);
-      }
+      result.assets = assets.keys().cloned().collect::<HashSet<_>>();
     }
-
-    for error in compilation.get_errors() {
-      error.render_report(true)?;
-    }
-
-    execute_result
+    context.recovery_from_temp_compilation(compilation);
+    result_sender
+      .send((execute_result, assets))
+      .expect("should send result success");
+    Ok(vec![])
   }
 }

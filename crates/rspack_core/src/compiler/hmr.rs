@@ -9,7 +9,9 @@ use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::MakeParam;
-use crate::{fast_set, get_chunk_from_ukey, ChunkKind, Compilation, Compiler, RuntimeSpec};
+use crate::{
+  fast_set, get_chunk_from_ukey, ChunkKind, Compilation, Compiler, ModuleExecutor, RuntimeSpec,
+};
 
 impl<T> Compiler<T>
 where
@@ -73,8 +75,7 @@ where
         self.loader_resolver_factory.clone(),
         Some(records),
         self.cache.clone(),
-        // reuse module executor
-        std::mem::take(&mut self.compilation.module_executor),
+        Some(ModuleExecutor::default()),
       );
 
       if let Some(state) = self.options.get_incremental_rebuild_make_state() {
@@ -117,6 +118,9 @@ where
         // seal stage used
         new_compilation.code_splitting_cache =
           std::mem::take(&mut self.compilation.code_splitting_cache);
+
+        // reuse module executor
+        new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
 
         new_compilation.has_module_import_export_change = false;
       }
