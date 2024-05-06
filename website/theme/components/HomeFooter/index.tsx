@@ -42,7 +42,7 @@ function useFooterData() {
         },
         {
           title: 'Loader API',
-          link: getLink('/api/loader-api'),
+          link: getLink('/api/loader-api/index'),
         },
       ],
     },

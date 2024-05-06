@@ -4,7 +4,11 @@
   "modules",
   "node-api",
   "hmr",
-  "loader-api",
+  {
+    "type": "dir",
+    "name": "loader-api",
+    "label": "Loader API"
+  },
   {
     "type": "dir",
     "name": "plugin-api",
