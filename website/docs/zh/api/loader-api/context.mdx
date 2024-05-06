@@ -1,0 +1,176 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/api/loaders/#the-loader-context" />
+
+# Loader 上下文
+
+Loader 上下文表示 loader 内部可用的属性，这些属性在 loader 中通过 `this` 属性进行访问。
+
+## this.addContextDependency()
+
+```ts
+function addContextDependency(directory: string): void;
+```
+
+添加目录作为 loader 结果的依赖，使目录中文件的任何变化可以被监听到。
+
+## this.addDependency()
+
+```ts
+function addDependency(file: string): void;
+```
+
+添加一个文件作为 loader 结果的依赖，使它们的任何变化可以被监听到。例如，`sass-loader`、`less-loader` 就使用了这个技巧，当导入的样式文件发生变化时就会重新编译。
+
+## this.dependency()
+
+```ts
+function dependency(file: string): void;
+```
+
+`this.addDependency()` 的别名。
+
+## this.addMissingDependency()
+
+```ts
+function addMissingDependency(file: string): void;
+```
+
+添加一个不存在的文件作为 loader 结果的依赖项，以使它们可监听。
+
+## this.async()
+
+告诉 Rspack 这个 loader 将会异步被调用。返回 `this.callback`。
+
+## this.cacheable()
+
+```ts
+function cacheable(flag: boolean = true): void;
+```
+
+默认情况下，loader 的处理结果会被标记为可缓存。调用这个方法然后传入 `false`，可以关闭 loader 处理结果的缓存能力。
+
+## this.clearDependencies()
+
+```ts
+function clearDependencies(): void;
+```
+
+移除 loader 结果的所有依赖。
+
+## this.callback()
+
+```ts
+function callback(
+  err: Error | null,
+  content: string | Buffer,
+  sourceMap?: SourceMap,
+  meta?: any,
+): void;
+```
+
+将 Loader 处理后的结果告诉 Rspack。
+
+第一个参数必须是 `Error` 或者 `null`，会标记当前模块为编译失败，第二个参数是一个 `string` 或者 `Buffer`，表示模块被该 Loader 处理后的文件内容，第三个参数是一个可以该 Loader 处理后的 source map，第四个参数会被 Rspack 忽略，可以是任何东西（例如一些元数据）。
+
+## this.context
+
+当前模块所在的目录。
+
+## this.data
+
+用于在 pitch 和 normal 阶段之间共享数据。
+
+## this.emitError()
+
+```ts
+function emitError(err: Error): void;
+```
+
+发出一个错误，与在 loader 中 `throw` 和 `this.callback(err)` 不同，它不会标记当前模块为编译失败，只会在 Rspack 的 Compilation 上添加一个错误，并在此次编译结束后显示在命令行中。
+
+## this.emitWarning()
+
+```ts
+function emitWarning(warning: Error): void;
+```
+
+发出一个警告。
+
+## this.emitFile()
+
+```ts
+function emitFile(
+  name: string,
+  content: Buffer | string,
+  sourceMap: SourceMap,
+): void;
+```
+
+产生一个文件。
+
+## this.getOptions(schema)
+
+提取给定的 loader 选项，接受一个可选的 JSON schema 作为参数。
+
+## this.getResolve()
+
+```ts
+function getResolve(options: ResolveOptions): resolve;
+```
+
+创建一个类似于 `this.resolve` 的解析函数。
+
+## this.resolve()
+
+```ts
+function resolve(
+  context: string,
+  request: string,
+  callback: (err: Error | null, result: string) => void,
+): void;
+```
+
+解析一个 request。
+
+- `context` 必须是一个目录的绝对路径。此目录用作解析的起始位置。
+- `request` 是要被解析的 request。
+- `callback` 是一个处理解析路径的回调函数。
+
+## this.mode
+
+当 Rspack 运行时读取 [mode](/config/mode) 的值
+
+可能的值为：`'production'`、`'development'`、`'none'`
+
+## this.resource
+
+当前模块的路径字符串。比如 `'/abc/resource.js?query#hash'`。
+
+## this.resourcePath
+
+当前模块的路径字符串，不包括 query 和 fragment 参数。比如 `'/abc/resource.js?query#hash'` 中的 `'/abc/resource.js'`。
+
+## this.resourceQuery
+
+当前模块的路径字符串的 query 参数。比如 `'/abc/resource.js?query#hash'` 中的 `'?query'`。
+
+## this.resourceFragment
+
+当前模块的路径字符串的 fragment 参数。比如 `'/abc/resource.js?query#hash'` 中的 `'#hash'`。
+
+## this.rootContext
+
+config 中配置的项目所在的目录
+
+## this.sourceMap
+
+是否应该生成一个 source map。
+
+## this.getLogger()
+
+```ts
+function getLogger(name?: string): void;
+```
+
+获取此次编译过程的 logger，可通过该 logger 记录消息。

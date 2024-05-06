@@ -609,6 +609,13 @@ impl Compilation {
 
   #[instrument(name = "compilation:make", skip_all)]
   pub async fn make(&mut self, mut params: Vec<MakeParam>) -> Result<()> {
+    // run module_executor
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.hook_before_make(self, &params).await;
+      self.module_executor = Some(module_executor);
+    }
+
     let make_failed_module =
       MakeParam::ForceBuildModules(std::mem::take(&mut self.make_failed_module));
     let make_failed_dependencies =
@@ -1042,13 +1049,10 @@ impl Compilation {
     logger.time_end(start);
 
     // sync assets to compilation from module_executor
-    let assets = self
-      .module_executor
-      .as_mut()
-      .map(|module_executor| std::mem::take(&mut module_executor.assets))
-      .unwrap_or_default();
-    for (filename, asset) in assets {
-      self.emit_asset(filename, asset)
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.hook_before_process_assets(self).await;
+      self.module_executor = Some(module_executor);
     }
 
     let start = logger.time("process assets");
