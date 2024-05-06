@@ -970,7 +970,7 @@ type CallFn = (...args: any[]) => any;
 type CallFn_2<D> = (args: D[]) => void;
 
 // @public (undocumented)
-class Chunk {
+export class Chunk {
     constructor(chunk: JsChunk, compilation: JsCompilation);
     // (undocumented)
     static __from_binding(chunk: JsChunk, compilation: Compilation): Chunk;
@@ -4920,7 +4920,7 @@ export type Mode = z.infer<typeof mode>;
 const mode: z.ZodEnum<["development", "production", "none"]>;
 
 // @public (undocumented)
-class Module {
+export class Module {
     constructor(module: JsModule);
     // (undocumented)
     static __from_binding(module: JsModule): Module;
@@ -7875,8 +7875,10 @@ declare namespace rspackExports {
         StatsModule,
         StatsWarnings,
         MultiStats,
+        Chunk,
         ChunkGroup,
         NormalModuleFactory,
+        Module,
         NormalModule,
         ModuleFilenameHelpers,
         Template,
