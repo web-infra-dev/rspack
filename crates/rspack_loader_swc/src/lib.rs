@@ -80,9 +80,9 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       swc_options
     };
 
-    let source_map_kind: &SourceMapKind = match swc_options.config.source_maps {
-      Some(SourceMapsConfig::Bool(false)) => &SourceMapKind::None,
-      _ => &loader_context.context.module_source_map_kind,
+    let source_map_kind: SourceMapKind = match swc_options.config.source_maps {
+      Some(SourceMapsConfig::Bool(false)) => SourceMapKind::empty(),
+      _ => loader_context.context.module_source_map_kind,
     };
 
     let source = content.try_into_string()?;
@@ -122,9 +122,9 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
         .as_ref()
         .map(|v| matches!(v, OutputCharset::Ascii)),
       source_map_config: SourceMapConfig {
-        enable: !matches!(source_map_kind, SourceMapKind::None),
-        inline_sources_content: true,
-        emit_columns: matches!(source_map_kind, SourceMapKind::SourceMap),
+        enable: source_map_kind.source_map(),
+        inline_sources_content: source_map_kind.source_map(),
+        emit_columns: !source_map_kind.cheap(),
         names: Default::default(),
       },
       inline_script: Some(false),

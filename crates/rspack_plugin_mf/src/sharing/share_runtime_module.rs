@@ -26,7 +26,7 @@ impl ShareRuntimeModule {
       id: Identifier::from("webpack/runtime/sharing"),
       chunk: None,
       enhanced,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

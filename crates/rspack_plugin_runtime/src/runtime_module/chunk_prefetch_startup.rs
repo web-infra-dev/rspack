@@ -21,7 +21,7 @@ impl ChunkPrefetchStartupRuntimeModule {
       id: Identifier::from("webpack/runtime/chunk_prefetch_startup"),
       startup_chunks,
       chunk: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

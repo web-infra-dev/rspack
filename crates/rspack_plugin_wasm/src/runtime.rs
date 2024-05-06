@@ -27,7 +27,7 @@ impl AsyncWasmLoadingRuntimeModule {
       id: Identifier::from("webpack/runtime/async_wasm_loading"),
       supports_streaming,
       chunk,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
