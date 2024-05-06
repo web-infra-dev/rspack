@@ -1,7 +1,11 @@
 [
   "index",
   "cli",
-  "modules",
+  {
+    "type": "dir",
+    "name": "modules",
+    "label": "Modules"
+  },
   "node-api",
   "hmr",
   "loader-api",

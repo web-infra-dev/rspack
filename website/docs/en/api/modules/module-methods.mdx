@@ -1,0 +1,167 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/api/module-methods/" />
+
+# Module Methods
+
+This section covers all methods available in code compiled with Rspack. When using Rspack to bundle your application, you can pick from a variety of module syntax styles including ES6, CommonJS.
+
+While Rspack supports multiple module syntaxes, we recommend following a single syntax for consistency and to avoid odd behaviors/bugs.
+
+## ES6 (Recommended)
+
+Rspack support ES6 module syntax natively, you can use static `import`, `export` and `import()` syntax.
+
+### import
+
+Statically `import` the `export`s of another module.
+
+```js
+import MyModule from './my-module.js';
+import { NamedExport } from './other-module.js';
+```
+
+You can also `import` Data URI:
+
+```js
+import 'data:text/javascript;charset=utf-8;base64,Y29uc29sZS5sb2coJ2lubGluZSAxJyk7';
+import {
+  number,
+  fn,
+} from 'data:text/javascript;charset=utf-8;base64,ZXhwb3J0IGNvbnN0IG51bWJlciA9IDQyOwpleHBvcnQgY29uc3QgZm4gPSAoKSA9PiAiSGVsbG8gd29ybGQiOw==';
+```
+
+### export
+
+Export anything as a `default` or named export.
+
+```js
+// Named exports
+export var Count = 5;
+export function Multiply(a, b) {
+  return a * b;
+}
+
+// Default export
+export default {
+  // Some data...
+};
+```
+
+### Dynamic import()
+
+```ts
+function(path: string): Promise
+```
+
+Dynamically load modules. Calls to `import()` are treated as split points, meaning the requested module and its children are split out into a separate chunk.
+
+```js
+if (module.hot) {
+  import('lodash').then(_ => {
+    // Do something with lodash (a.k.a '_')...
+  });
+}
+```
+
+:::warning
+This feature relies on `Promise` internally. If you use import() with older browsers, remember to shim `Promise` using a polyfill such as [es6-promise](https://github.com/stefanpenner/es6-promise) or [promise-polyfill](https://github.com/taylorhakes/promise-polyfill).
+:::
+
+### Dynamic expressions in import()
+
+It is not possible to use a fully dynamic import statement, such as `import(foo)`. Because `foo` could potentially be any path to any file in your system or project.
+
+The `import()` must contain at least some information about where the module is located. Bundling can be limited to a specific directory or set of files so that when you are using a dynamic expression - every module that could potentially be requested on an `import()` call is included.
+For example, `import(`./locale/${language}.json`)` will cause every `.json` file in the `./locale` directory to be bundled into the new chunk. At run time, when the variable `language` has been computed, any file like `english.json` or `german.json` will be available for consumption.
+
+```js
+// imagine we had a method to get language from cookies or other storage
+const language = detectVisitorLanguage();
+import(`./locale/${language}.json`).then(module => {
+  // do something with the translations
+});
+```
+
+### Magic Comments
+
+Inline comments to make features work. By adding comments to the import, we can do things such as name our chunk or select different modes. For a full list of these magic comments see the code below followed by an explanation of what these comments do.
+
+```js
+import(
+  /* webpackChunkName: "my-chunk-name" */
+  /* webpackPrefetch: true */
+  /* webpackPreload: true */
+  'module'
+);
+```
+
+`webpackChunkName`: A name for the new chunk.
+
+`webpackPrefetch`: Tells the browser that the resource is probably needed for some navigation in the future (Available since 0.4.5).
+
+`webpackPreload`: Tells the browser that the resource might be needed during the current navigation (Available since 0.4.5).
+
+## CommonJS
+
+Rspack is also support `CommonJS` syntax natively, you can use `require` and `module.exports` methods.
+
+## Data URI Module
+
+Rspack supports importing Data URI modules using the `import` and `require` syntax.
+
+**import**
+
+```js
+import DataURI from 'data:text/javascript,export default 42';
+```
+
+**require**
+
+```js
+require('data:text/javascript,module.exports = 42');
+```
+
+In addition, Base64 encoded requests are also supported:
+
+```js
+const {
+  number,
+  fn,
+} = require('data:text/javascript;charset=utf-8;base64,ZXhwb3J0IGNvbnN0IG51bWJlciA9IDQyOwpleHBvcnQgZnVuY3Rpb24gZm4oKSB7CiAgcmV0dXJuICJIZWxsbyB3b3JsZCI7Cn0=');
+```
+
+::: tip
+The Data URI module can be used as a method to implement virtual modules, such as combining with a Loader to dynamically load custom modules at runtime.
+:::
+
+## Webpack
+
+Aside from the module syntaxes described above, Rspack also support some webpack-specific methods.
+
+#### require.context
+
+```ts
+require.context(
+  (directory: String),
+  (includeSubdirs: Boolean) /* optional, default true */,
+  (filter: RegExp) /* optional, default /^\.\/.*$/, any file */,
+  (mode: String) /* optional, 'sync' | 'eager' | 'weak' | 'lazy' | 'lazy-once', default 'sync' */
+);
+```
+
+Specify a whole group of dependencies using a path to the `directory`, an option to `includeSubdirs`, a `filter` for more fine grained control of the modules included, and a mode to define the way how loading will work.
+
+```js
+const context = require.context('components', true, /\.html$/);
+const componentA = context.resolve('componentA');
+```
+
+If mode is set to 'lazy', the underlying modules will be loaded asynchronously.
+
+```js
+const context = require.context('locales', true, /\.json$/, 'lazy');
+context('localeA').then(locale => {
+  // do something with locale
+});
+```
