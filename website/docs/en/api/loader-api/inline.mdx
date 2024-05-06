@@ -1,0 +1,29 @@
+# Inline loaders
+
+It's possible to specify loaders in an `import` statement, or any equivalent "importing" method. Separate loaders from the resource with `!`. Each part is resolved relative to the current directory.
+
+```js
+import Styles from 'style-loader!css-loader?modules!./styles.css';
+```
+
+It's possible to override any loaders, preLoaders and postLoaders from the configuration by prefixing the inline `import` statement:
+
+* Prefixing with `!` will disable all configured normal loaders
+
+    ```js
+    import Styles from '!style-loader!css-loader?modules!./styles.css';
+    ```
+
+* Prefixing with `!!` will disable all configured loaders (preLoaders, loaders, postLoaders)
+
+    ```js
+    import Styles from '!!style-loader!css-loader?modules!./styles.css';
+    ```
+
+* Prefixing with `-!` will disable all configured preLoaders and loaders but not postLoaders
+
+    ```js
+    import Styles from '-!style-loader!css-loader?modules!./styles.css';
+    ```
+
+Options can be passed with a query parameter, e.g. `?key=value&foo=bar`, or a JSON object, e.g. `?{"key":"value","foo":"bar"}`.

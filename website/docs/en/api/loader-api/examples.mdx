@@ -1,0 +1,147 @@
+# Examples
+
+The following sections provide some basic examples of the different types of loaders. Note that the `map` and `meta` parameters are optional, see `this.callback` below.
+
+## Synchronous Loaders
+
+Either `return` or `this.callback` can be used to return the transformed `content` synchronously:
+
+```js title="sync-loader.js"
+module.exports = function (content, map, meta) {
+  return someSyncOperation(content);
+};
+```
+
+The `this.callback` method is more flexible as it allows multiple arguments to be passed as opposed to only the `content`.
+
+```js title="sync-loader-with-multiple-results.js"
+module.exports = function (content, map, meta) {
+  this.callback(null, someSyncOperation(content), map, meta);
+  return; // always return undefined when calling callback()
+};
+```
+
+::: info
+Rspack, internally, will convert loaders into asynchronous regardless of it's a synchronous loader for technical and performance reason.
+:::
+
+## Asynchronous Loaders
+
+For asynchronous loaders, `this.async` is used to retrieve the `callback` function:
+
+```js title="async-loader.js"
+module.exports = function (content, map, meta) {
+  var callback = this.async();
+  someAsyncOperation(content, function (err, result) {
+    if (err) return callback(err);
+    callback(null, result, map, meta);
+  });
+};
+```
+
+```js title="async-loader-with-multiple-results.js"
+module.exports = function (content, map, meta) {
+  var callback = this.async();
+  someAsyncOperation(content, function (err, result, sourceMaps, meta) {
+    if (err) return callback(err);
+    callback(null, result, sourceMaps, meta);
+  });
+};
+```
+
+## 'Raw' Loader
+
+By default, resource files are converted to UTF-8 strings and passed to the loader. loaders can receive raw `Buffer` by setting `raw` to `true`. Each loader can pass its processing results as `String` or `Buffer`, and the Rspack compiler will convert them to and from the loader.
+
+```js title="raw-loader.js"
+module.exports = function (content) {
+  assert(content instanceof Buffer);
+  // ...
+};
+module.exports.raw = true;
+```
+
+## Pitching loader
+
+Loaders are **always** called from right to left. There are some instances where the loader only cares about the **metadata** behind a request and can ignore the results of the previous loader. The `pitch` method on loaders is called from **left to right** before the loaders are actually executed (from right to left).
+
+For the following configuration of [`use`]():
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  module: {
+    rules: [
+      {
+        //...
+        use: ['a-loader', 'b-loader', 'c-loader'],
+      },
+    ],
+  },
+};
+```
+
+These steps would occur:
+
+```
+|- a-loader `pitch`
+  |- b-loader `pitch`
+    |- c-loader `pitch`
+      |- requested module is picked up as a dependency
+    |- c-loader normal execution
+  |- b-loader normal execution
+|- a-loader normal execution
+```
+
+Normally, if it the loader is simple enough which only exports the normal stage hook:
+
+```js
+module.exports = function (source) {};
+```
+
+Then, the pitching stage will be skipped.
+
+So why might a loader take advantage of the "pitching" phase?
+
+First, the data passed to the pitch method is exposed in the execution phase as well under this.data and could be useful for capturing and sharing information from earlier in the cycle.
+
+```js
+module.exports = function (content) {
+  return someSyncOperation(content, this.data.value);
+};
+
+module.exports.pitch = function (remainingRequest, precedingRequest, data) {
+  data.value = 42;
+};
+```
+
+Second, if a loader delivers a result in the pitch method, the process turns around and skips the remaining loaders.
+In our example above, if the b-loaders pitch method returned something:
+
+```js
+module.exports = function (content) {
+  return someSyncOperation(content);
+};
+
+module.exports.pitch = function (remainingRequest, precedingRequest, data) {
+  if (someCondition()) {
+    return (
+      'module.exports = require(' +
+      JSON.stringify('-!' + remainingRequest) +
+      ');'
+    );
+  }
+};
+```
+
+The steps above would be shortened to:
+
+```
+|- a-loader `pitch`
+  |- b-loader `pitch` returns a module
+|- a-loader normal execution
+```
+
+For a real world example, `style-loader` leverages the second advantage to dispatch requests.
+Please visit [style-loader](https://github.com/webpack-contrib/style-loader/blob/eb06baeb3ac4e3107732a21170b0a7f358c5423f/src/index.js#L39) for details.
+

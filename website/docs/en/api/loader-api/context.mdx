@@ -1,0 +1,111 @@
+# The Loader Context
+
+The loader context represents the properties that are available inside of a loader assigned to the `this` property.
+
+
+## `this.addContextDependency(directory: string)`
+
+Add the directory as a dependency for the loader results so that any changes to the files in the directory can be listened to.
+
+## `this.addDependency(file: string)`
+
+Add a file as a dependency on the loader results so that any changes to them can be listened to. For example, `sass-loader`, `less-loader` use this trick to recompile when the imported style files change.
+
+## `this.dependency(file: string)`
+
+Alias of `this.addDependency(file: string)`.
+
+## `this.addMissingDependency(file: string)`
+
+Add a non-existent file as a dependency on the loader results to make them listenable.
+
+## `this.async()`
+
+Tells Rspack that this loader will be called asynchronously. Returns `this.callback`.
+
+## `this.cacheable(flag: boolean = true)`
+
+By default, the processing results of the loader are marked as cacheable. Calling this method and passing `false` turns off the loader's ability to cache processing results.
+
+## `this.callback(err: Error | null, content: string | Buffer, sourceMap?: SourceMap, meta?: any)`
+
+A function that can be called synchronously or asynchronously in order to return multiple results. The expected arguments are:
+
+1. The first parameter must be `Error` or `null`, which marks the current module as a compilation failure.
+2. The second argument is a `string` or `Buffer`, which indicates the contents of the file after the module has been processed by the loader.
+3. The third parameter is a source map that can be processed by the loader.
+4. The fourth parameter is ignored by Rspack and can be anything (e.g. some metadata).
+
+## `this.clearDependencies()`
+
+Removes all dependencies of the loader result.
+
+## `this.context`
+
+The directory where the current module is located.
+
+## `this.data`
+
+A data object shared between the pitch and the normal phase.
+
+## `this.emitError(err: Error)`
+
+Emit an error. Unlike `throw` and `this.callback(err)` in the loader, it does not mark the current module as a compilation failure, it just adds an error to Rspack's Compilation and displays it on the command line at the end of this compilation.
+
+## `this.emitWarning(warning: Error)`
+
+Emit a warning.
+
+## `this.emitFile(name: string, content: Buffer | string, sourceMap: SourceMap)`
+
+Emit a file.
+
+## `this.getOptions(schema)`
+
+Extracts the given loader option, accepting an optional JSON schema as an argument.
+
+## `this.getResolve(options: ResolveOptions): resolve`
+
+Create a resolver like `this.resolve`.
+
+## `this.resolve(context: string, request: string, callback: (err: Error | null, result: string) => void)`
+
+Resolve a request.
+
+- `context` must be the absolute path to a directory. This directory is used as the starting location for resolving.
+- `request` is the request to be resolved.
+- `callback` is a callback function that gives the resolved path.
+
+## `this.mode`
+
+The value of [`mode`](/config/mode) is read when webpack is run.
+
+The possible values are: `'production'`, `'development'`, `'none'`
+
+## `this.resource`
+
+The path string of the current module. For example `'/abc/resource.js?query#hash'`.
+
+## `this.resourcePath`
+
+The path string of the current module, excluding the query and fragment parameters. For example `'/abc/resource.js?query#hash'` in `'/abc/resource.js'`.
+
+## `this.resourceQuery`
+
+The query parameter for the path string of the current module. For example `'?query'` in `'/abc/resource.js?query#hash'`.
+
+## `this.resourceFragment`
+
+The fragment parameter of the current module's path string. For example `'#hash'` in `'/abc/resource.js?query#hash'`.
+
+## `this.rootContext`
+
+The directory where the project is configured in config
+
+## `this.sourceMap`
+
+Whether a source map should be generated.
+
+## `this.getLogger(name?: string)`
+
+Get the logger of this compilation, through which messages can be logged.
