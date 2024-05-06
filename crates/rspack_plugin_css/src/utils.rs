@@ -26,6 +26,8 @@ use crate::parser_and_generator::{CssExport, CssExportsType};
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
 pub static AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(AUTO_PUBLIC_PATH_PLACEHOLDER).expect("Invalid regexp"));
+pub static LEADING_DIGIT_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^\d+").expect("Invalid regexp"));
 
 pub struct ModulesTransformConfig<'a> {
   resource_data: &'a ResourceData,
@@ -84,7 +86,9 @@ impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
         hasher.write(local.as_bytes());
       }
       let hash = hasher.digest(self.hash_digest);
-      hash.rendered(self.hash_digest_length).to_string()
+      LEADING_DIGIT_REGEX
+        .replace_all(hash.rendered(self.hash_digest_length), "")
+        .into_owned()
     };
     let relative_resource =
       make_paths_relative(self.context.as_str(), &self.resource_data.resource);
@@ -110,8 +114,6 @@ impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
 
 static ESCAPE_LOCAL_IDENT_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"[<>:"/\\|?*\.]"#).expect("Invalid regex"));
-pub static LEADING_DIGIT_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^\d+").expect("Invalid regexp"));
 
 struct LocalIdentNameRenderOptions<'a> {
   path_data: PathData<'a>,
@@ -127,7 +129,7 @@ impl LocalIdentNameRenderOptions<'_> {
       .always_ok();
     s = s.replace("[local]", self.local);
     s = s.replace("[uniqueName]", self.unique_name);
-    s = LEADING_DIGIT_REGEX.replace_all(&s, "").into_owned();
+
     s = ESCAPE_LOCAL_IDENT_REGEX.replace_all(&s, "_").into_owned();
     s
   }
