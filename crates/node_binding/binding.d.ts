@@ -163,6 +163,7 @@ export enum BuiltinPluginName {
   CssModulesPlugin = 'CssModulesPlugin',
   APIPlugin = 'APIPlugin',
   RuntimeChunkPlugin = 'RuntimeChunkPlugin',
+  SizeLimitsPlugin = 'SizeLimitsPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -1264,6 +1265,13 @@ export interface RawRuntimeChunkNameFnCtx {
 
 export interface RawRuntimeChunkOptions {
   name: string | ((entrypoint: { name: string }) => string)
+}
+
+export interface RawSizeLimitsPluginOptions {
+  assetFilter?: (assetFilename: string) => boolean
+  hints?: "error" | "warning"
+  maxAssetSize?: number
+  maxEntrypointSize?: number
 }
 
 export interface RawSnapshotOptions {
