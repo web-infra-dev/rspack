@@ -84,12 +84,7 @@ impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
         hasher.write(local.as_bytes());
       }
       let hash = hasher.digest(self.hash_digest);
-      let hash = hash.rendered(self.hash_digest_length);
-      if hash.as_bytes()[0].is_ascii_digit() {
-        format!("_{hash}")
-      } else {
-        hash.into()
-      }
+      hash.rendered(self.hash_digest_length).to_string()
     };
     let relative_resource =
       make_paths_relative(self.context.as_str(), &self.resource_data.resource);
@@ -115,6 +110,8 @@ impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
 
 static ESCAPE_LOCAL_IDENT_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"[<>:"/\\|?*\.]"#).expect("Invalid regex"));
+pub static LEADING_DIGIT_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^\d+").expect("Invalid regexp"));
 
 struct LocalIdentNameRenderOptions<'a> {
   path_data: PathData<'a>,
@@ -130,6 +127,7 @@ impl LocalIdentNameRenderOptions<'_> {
       .always_ok();
     s = s.replace("[local]", self.local);
     s = s.replace("[uniqueName]", self.unique_name);
+    s = LEADING_DIGIT_REGEX.replace_all(&s, "").into_owned();
     s = ESCAPE_LOCAL_IDENT_REGEX.replace_all(&s, "_").into_owned();
     s
   }
