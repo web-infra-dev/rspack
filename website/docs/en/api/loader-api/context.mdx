@@ -1,7 +1,10 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/api/loaders/#the-loader-context" />
+
 # The Loader Context
 
 The loader context represents the properties that are available inside of a loader assigned to the `this` property.
-
 
 ## `this.addContextDependency(directory: string)`
 
@@ -78,7 +81,7 @@ Resolve a request.
 
 ## `this.mode`
 
-The value of [`mode`](/config/mode) is read when webpack is run.
+The value of [`mode`](/config/mode) is read when Rspack is run.
 
 The possible values are: `'production'`, `'development'`, `'none'`
 

@@ -1,17 +1,21 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/api/loaders/#webpack-specific-properties" />
+
 # Rspack specific properties
 
 The loader interface provides all module relate information. However in rare cases you might need access to the compiler api itself.
 
 :::warning
-Please note that using these webpack specific properties will have a negative impact on your loaders compatibility.
+Please note that using these Rspack specific properties will have a negative impact on your loaders compatibility.
 
 Therefore you should only use them as a last resort. Using them will reduce the portability of your loader.
 :::
 
-## this._compilation
+## this.\_compilation
 
 Access to the current Compilation object of Rspack.
 
-## this._compiler
+## this.\_compiler
 
 Access to the current Compiler object of Rspack.

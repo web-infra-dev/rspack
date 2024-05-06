@@ -1,6 +1,10 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/api/loaders/#examples" />
+
 # Examples
 
-The following sections provide some basic examples of the different types of loaders. Note that the `map` and `meta` parameters are optional, see `this.callback` below.
+The following sections provide some basic examples of the different types of loaders. Note that the `map` and `meta` parameters are optional, see [`this.callback`](#thiscallbackerr-error--null-content-string--buffer-sourcemap-sourcemap-meta-any) below.
 
 ## Synchronous Loaders
 
@@ -65,7 +69,7 @@ module.exports.raw = true;
 
 Loaders are **always** called from right to left. There are some instances where the loader only cares about the **metadata** behind a request and can ignore the results of the previous loader. The `pitch` method on loaders is called from **left to right** before the loaders are actually executed (from right to left).
 
-For the following configuration of [`use`]():
+For the following configuration of `use`:
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -144,4 +148,3 @@ The steps above would be shortened to:
 
 For a real world example, `style-loader` leverages the second advantage to dispatch requests.
 Please visit [style-loader](https://github.com/webpack-contrib/style-loader/blob/eb06baeb3ac4e3107732a21170b0a7f358c5423f/src/index.js#L39) for details.
-
