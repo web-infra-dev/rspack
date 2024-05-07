@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-win32-x64-msvc",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.win32-x64-msvc.node",

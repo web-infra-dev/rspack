@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "A Fast Rust-based Web Bundler",
