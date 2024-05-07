@@ -16,13 +16,11 @@ import CacheFacade = require('./lib/CacheFacade');
 import { Callback as Callback_2 } from 'tapable';
 import { Compiler as Compiler_2 } from '../Compiler';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
-import { EventEmitter } from 'events';
 import { cleanupGlobalTrace as experimental_cleanupGlobalTrace } from '@rspack/binding';
 import { registerGlobalTrace as experimental_registerGlobalTrace } from '@rspack/binding';
 import { exports as exports_2 } from './exports';
 import type { ExternalObject } from '@rspack/binding';
 import { fs } from 'fs';
-import { default as fs_2 } from 'graceful-fs';
 import Hash = require('../util/hash');
 import { HookMap as HookMap_2 } from 'tapable';
 import { JsAssetInfo } from '@rspack/binding';
@@ -79,7 +77,9 @@ import { SyncWaterfallHook } from 'tapable';
 import * as tapable from 'tapable';
 import Template = require('./Template');
 import { UnsetAdditionalOptions as UnsetAdditionalOptions_2 } from 'tapable';
+import type Watchpack from 'watchpack';
 import type * as webpackDevServer from 'webpack-dev-server';
+import { z } from 'zod';
 
 // @public (undocumented)
 const ABSOLUTE_PUBLIC_PATH = "webpack:///mini-css-extract-plugin/";
@@ -1912,67 +1912,6 @@ export type DevtoolNamespace = z.infer<typeof devtoolNamespace>;
 const devtoolNamespace: z.ZodString;
 
 // @public (undocumented)
-class DirectoryWatcher extends EventEmitter {
-    constructor(directoryPath: string, options: Watchpack.WatcherOptions);
-    // (undocumented)
-    close(): void;
-    // (undocumented)
-    createNestedWatcher(directoryPath: string): void;
-    // (undocumented)
-    directories: {
-        [path: string]: Watcher_2 | true;
-    };
-    // (undocumented)
-    doInitialScan(): void;
-    // (undocumented)
-    files: {
-        [path: string]: [number, number];
-    };
-    // (undocumented)
-    getTimes(): {
-        [path: string]: number;
-    };
-    // (undocumented)
-    initialScan: boolean;
-    // (undocumented)
-    initialScanRemoved: string[];
-    // (undocumented)
-    nestedWatching: boolean;
-    // (undocumented)
-    onChange(filePath: string, stat: fs_2.Stats): void;
-    // (undocumented)
-    onDirectoryAdded(directoryPath: string): void;
-    // (undocumented)
-    onDirectoryUnlinked(directoryPath: string): void;
-    // (undocumented)
-    onFileAdded(filePath: string, stat: fs_2.Stats): void;
-    // (undocumented)
-    onFileUnlinked(filePath: string): void;
-    // (undocumented)
-    onWatcherError(): void;
-    // (undocumented)
-    options: Watchpack.WatcherOptions;
-    // (undocumented)
-    path: string;
-    // (undocumented)
-    refs: number;
-    // (undocumented)
-    setDirectory(directoryPath: string, exist: boolean, initial: boolean): void;
-    // (undocumented)
-    setFileTime(filePath: string, mtime: number, initial: boolean, type?: string | boolean): void;
-    // (undocumented)
-    setNestedWatching(flag: boolean): void;
-    // (undocumented)
-    watch(filePath: string, startTime: number): Watcher_2;
-    // (undocumented)
-    watcher: fs_2.FSWatcher;
-    // (undocumented)
-    watchers: {
-        [path: string]: Watcher_2[];
-    };
-}
-
-// @public (undocumented)
 export const DynamicEntryPlugin: {
     new (context: string, entry: EntryDynamicNormalized): {
         name: BuiltinPluginName;
@@ -2354,12 +2293,6 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
     } | undefined;
     dependOn?: string | string[] | undefined;
 }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>>]>;
-
-// @public (undocumented)
-interface Entry_2 {
-    safeTime: number;
-    timestamp: number;
-}
 
 // @public (undocumented)
 export type EntryDependOn = z.infer<typeof entryDependOn>;
@@ -12302,23 +12235,6 @@ interface Watcher {
 }
 
 // @public (undocumented)
-class Watcher_2 extends EventEmitter {
-    constructor(directoryWatcher: DirectoryWatcher, filePath: string, startTime: number);
-    // (undocumented)
-    checkStartTime(mtime: number, initial: boolean): boolean;
-    // (undocumented)
-    close(): void;
-    // (undocumented)
-    data: number;
-    // (undocumented)
-    directoryWatcher: DirectoryWatcher;
-    // (undocumented)
-    path: string;
-    // (undocumented)
-    startTime: number;
-}
-
-// @public (undocumented)
 interface WatcherInfo {
     // (undocumented)
     changes: Set<string>;
@@ -12406,99 +12322,6 @@ const watchOptions: z.ZodObject<{
 }>;
 
 // @public (undocumented)
-class Watchpack extends EventEmitter {
-    constructor(options: Watchpack.WatchOptions);
-    // (undocumented)
-    aggregatedChanges: Set<string>;
-    // (undocumented)
-    aggregatedRemovals: Set<string>;
-    // (undocumented)
-    aggregateTimeout: NodeJS.Timer;
-    close(): void;
-    collectTimeInfoEntries(fileInfoEntries: Map<string, Entry_2>, directoryInfoEntries: Map<string, Entry_2>): void;
-    // (undocumented)
-    _dirWatcher(item: string, watcher: Watcher_2): Watcher_2;
-    // (undocumented)
-    dirWatchers: Watcher_2[];
-    // (undocumented)
-    _fileWatcher(file: string, watcher: Watcher_2): Watcher_2;
-    // (undocumented)
-    fileWatchers: Watcher_2[];
-    getAggregated(): {
-        changes: Set<string>;
-        removals: Set<string>;
-    };
-    getTimeInfoEntries(): Map<string, Entry_2>;
-    // @deprecated
-    getTimes(): {
-        [path: string]: number;
-    };
-    mtimes: {
-        [path: string]: number;
-    };
-    // (undocumented)
-    on(
-    eventName: "change",
-    listener: (
-    filePath: string,
-    modifiedTime: number,
-    explanation: string,
-    ) => void,
-    ): this;
-    // (undocumented)
-    on(
-    eventName: "remove",
-    listener: (
-    filePath: string,
-    explanation: string,
-    ) => void,
-    ): this;
-    // (undocumented)
-    on(
-    eventName: "aggregated",
-    listener: (
-    changes: Set<string>,
-    removals: Set<string>,
-    ) => void,
-    ): this;
-    // (undocumented)
-    _onChange(item: string, mtime: number, file?: string): void;
-    // (undocumented)
-    _onTimeout(): void;
-    // (undocumented)
-    options: Watchpack.WatchOptions;
-    pause(): void;
-    // (undocumented)
-    paused: boolean;
-    watch(options: {
-        files?: Iterable<string>;
-        directories?: Iterable<string>;
-        missing?: Iterable<string>;
-        startTime?: number;
-    }): void;
-    // (undocumented)
-    watcherOptions: Watchpack.WatcherOptions;
-}
-
-// @public (undocumented)
-namespace Watchpack {
-    // (undocumented)
-    interface WatcherOptions {
-        // (undocumented)
-        followSymlinks?: boolean;
-        // (undocumented)
-        ignored?: string[] | string | RegExp | ((path: string) => boolean) | undefined;
-        // (undocumented)
-        poll?: boolean | number | undefined;
-    }
-    // (undocumented)
-    interface WatchOptions extends WatcherOptions {
-        // (undocumented)
-        aggregateTimeout?: number | undefined;
-    }
-}
-
-// @public (undocumented)
 export type WebassemblyModuleFilename = z.infer<typeof webassemblyModuleFilename>;
 
 // @public (undocumented)
@@ -12541,11 +12364,6 @@ export type WorkerPublicPath = z.infer<typeof workerPublicPath>;
 
 // @public (undocumented)
 const workerPublicPath: z.ZodString;
-
-// @public (undocumented)
-namespace z {
-        { type z_AnyZodObject as AnyZodObject, type z_AnyZodTuple as AnyZodTuple, type z_ArrayCardinality as ArrayCardinality, type z_ArrayKeys as ArrayKeys, type z_AssertArray as AssertArray, type z_AsyncParseReturnType as AsyncParseReturnType, type z_BRAND as BRAND, type z_CatchallInput as CatchallInput, type z_CatchallOutput as CatchallOutput, type z_CustomErrorParams as CustomErrorParams, z_DIRTY as DIRTY, type z_DenormalizedError as DenormalizedError, z_EMPTY_PATH as EMPTY_PATH, type z_Effect as Effect, type z_EnumLike as EnumLike, type z_EnumValues as EnumValues, type z_ErrorMapCtx as ErrorMapCtx, type z_FilterEnum as FilterEnum, z_INVALID as INVALID, type z_Indices as Indices, type z_InnerTypeOfFunction as InnerTypeOfFunction, type z_InputTypeOfTuple as InputTypeOfTuple, type z_InputTypeOfTupleWithRest as InputTypeOfTupleWithRest, type z_IpVersion as IpVersion, type z_IssueData as IssueData, type z_KeySchema as KeySchema, z_NEVER as NEVER, z_OK as OK, type z_ObjectPair as ObjectPair, type z_OuterTypeOfFunction as OuterTypeOfFunction, type z_OutputTypeOfTuple as OutputTypeOfTuple, type z_OutputTypeOfTupleWithRest as OutputTypeOfTupleWithRest, type z_ParseContext as ParseContext, type z_ParseInput as ParseInput, type z_ParseParams as ParseParams, type z_ParsePath as ParsePath, type z_ParsePathComponent as ParsePathComponent, type z_ParseResult as ParseResult, type z_ParseReturnType as ParseReturnType, z_ParseStatus as ParseStatus, type z_PassthroughType as PassthroughType, type z_PreprocessEffect as PreprocessEffect, type z_Primitive as Primitive, type z_ProcessedCreateParams as ProcessedCreateParams, type z_RawCreateParams as RawCreateParams, type z_RecordType as RecordType, type z_Refinement as Refinement, type z_RefinementCtx as RefinementCtx, type z_RefinementEffect as RefinementEffect, type z_SafeParseError as SafeParseError, type z_SafeParseReturnType as SafeParseReturnType, type z_SafeParseSuccess as SafeParseSuccess, type z_Scalars as Scalars, ZodType as Schema, type z_SomeZodObject as SomeZodObject, type z_StringValidation as StringValidation, type z_SuperRefinement as SuperRefinement, type z_SyncParseReturnType as SyncParseReturnType, type z_TransformEffect as TransformEffect, type z_TypeOf as TypeOf, type z_UnknownKeysParam as UnknownKeysParam, type z_Values as Values, type z_Writeable as Writeable, z_ZodAny as ZodAny, type z_ZodAnyDef as ZodAnyDef, z_ZodArray as ZodArray, type z_ZodArrayDef as ZodArrayDef, z_ZodBigInt as ZodBigInt, type z_ZodBigIntCheck as ZodBigIntCheck, type z_ZodBigIntDef as ZodBigIntDef, z_ZodBoolean as ZodBoolean, type z_ZodBooleanDef as ZodBooleanDef, z_ZodBranded as ZodBranded, type z_ZodBrandedDef as ZodBrandedDef, z_ZodCatch as ZodCatch, type z_ZodCatchDef as ZodCatchDef, type z_ZodCustomIssue as ZodCustomIssue, z_ZodDate as ZodDate, type z_ZodDateCheck as ZodDateCheck, type z_ZodDateDef as ZodDateDef, z_ZodDefault as ZodDefault, type z_ZodDefaultDef as ZodDefaultDef, z_ZodDiscriminatedUnion as ZodDiscriminatedUnion, type z_ZodDiscriminatedUnionDef as ZodDiscriminatedUnionDef, type z_ZodDiscriminatedUnionOption as ZodDiscriminatedUnionOption, z_ZodEffects as ZodEffects, type z_ZodEffectsDef as ZodEffectsDef, z_ZodEnum as ZodEnum, type z_ZodEnumDef as ZodEnumDef, z_ZodError as ZodError, type z_ZodErrorMap as ZodErrorMap, type z_ZodFirstPartySchemaTypes as ZodFirstPartySchemaTypes, z_ZodFirstPartyTypeKind as ZodFirstPartyTypeKind, type z_ZodFormattedError as ZodFormattedError, z_ZodFunction as ZodFunction, type z_ZodFunctionDef as ZodFunctionDef, z_ZodIntersection as ZodIntersection, type z_ZodIntersectionDef as ZodIntersectionDef, type z_ZodInvalidArgumentsIssue as ZodInvalidArgumentsIssue, type z_ZodInvalidDateIssue as ZodInvalidDateIssue, type z_ZodInvalidEnumValueIssue as ZodInvalidEnumValueIssue, type z_ZodInvalidIntersectionTypesIssue as ZodInvalidIntersectionTypesIssue, type z_ZodInvalidLiteralIssue as ZodInvalidLiteralIssue, type z_ZodInvalidReturnTypeIssue as ZodInvalidReturnTypeIssue, type z_ZodInvalidStringIssue as ZodInvalidStringIssue, type z_ZodInvalidTypeIssue as ZodInvalidTypeIssue, type z_ZodInvalidUnionDiscriminatorIssue as ZodInvalidUnionDiscriminatorIssue, type z_ZodInvalidUnionIssue as ZodInvalidUnionIssue, type z_ZodIssue as ZodIssue, type z_ZodIssueBase as ZodIssueBase, type z_ZodIssueCode as ZodIssueCode, type z_ZodIssueOptionalMessage as ZodIssueOptionalMessage, z_ZodLazy as ZodLazy, type z_ZodLazyDef as ZodLazyDef, z_ZodLiteral as ZodLiteral, type z_ZodLiteralDef as ZodLiteralDef, z_ZodMap as ZodMap, type z_ZodMapDef as ZodMapDef, z_ZodNaN as ZodNaN, type z_ZodNaNDef as ZodNaNDef, z_ZodNativeEnum as ZodNativeEnum, type z_ZodNativeEnumDef as ZodNativeEnumDef, z_ZodNever as ZodNever, type z_ZodNeverDef as ZodNeverDef, type z_ZodNonEmptyArray as ZodNonEmptyArray, type z_ZodNotFiniteIssue as ZodNotFiniteIssue, type z_ZodNotMultipleOfIssue as ZodNotMultipleOfIssue, z_ZodNull as ZodNull, type z_ZodNullDef as ZodNullDef, z_ZodNullable as ZodNullable, type z_ZodNullableDef as ZodNullableDef, type z_ZodNullableType as ZodNullableType, z_ZodNumber as ZodNumber, type z_ZodNumberCheck as ZodNumberCheck, type z_ZodNumberDef as ZodNumberDef, z_ZodObject as ZodObject, type z_ZodObjectDef as ZodObjectDef, z_ZodOptional as ZodOptional, type z_ZodOptionalDef as ZodOptionalDef, type z_ZodOptionalType as ZodOptionalType, type z_ZodParsedType as ZodParsedType, z_ZodPipeline as ZodPipeline, type z_ZodPipelineDef as ZodPipelineDef, z_ZodPromise as ZodPromise, type z_ZodPromiseDef as ZodPromiseDef, type z_ZodRawShape as ZodRawShape, z_ZodReadonly as ZodReadonly, type z_ZodReadonlyDef as ZodReadonlyDef, z_ZodRecord as ZodRecord, type z_ZodRecordDef as ZodRecordDef, ZodType as ZodSchema, z_ZodSet as ZodSet, type z_ZodSetDef as ZodSetDef, z_ZodString as ZodString, type z_ZodStringCheck as ZodStringCheck, type z_ZodStringDef as ZodStringDef, z_ZodSymbol as ZodSymbol, type z_ZodSymbolDef as ZodSymbolDef, type z_ZodTooBigIssue as ZodTooBigIssue, type z_ZodTooSmallIssue as ZodTooSmallIssue, ZodEffects as ZodTransformer, z_ZodTuple as ZodTuple, type z_ZodTupleDef as ZodTupleDef, type z_ZodTupleItems as ZodTupleItems, z_ZodType as ZodType, type z_ZodTypeAny as ZodTypeAny, type z_ZodTypeDef as ZodTypeDef, z_ZodUndefined as ZodUndefined, type z_ZodUndefinedDef as ZodUndefinedDef, z_ZodUnion as ZodUnion, type z_ZodUnionDef as ZodUnionDef, type z_ZodUnionOptions as ZodUnionOptions, z_ZodUnknown as ZodUnknown, type z_ZodUnknownDef as ZodUnknownDef, type z_ZodUnrecognizedKeysIssue as ZodUnrecognizedKeysIssue, z_ZodVoid as ZodVoid, type z_ZodVoidDef as ZodVoidDef, z_addIssueToContext as addIssueToContext, anyType as any, arrayType as array, type z_arrayOutputType as arrayOutputType, type z_baseObjectInputType as baseObjectInputType, type z_baseObjectOutputType as baseObjectOutputType, bigIntType as bigint, booleanType as boolean, z_coerce as coerce, z_custom as custom, dateType as date, errorMap as defaultErrorMap, type z_deoptional as deoptional, discriminatedUnionType as discriminatedUnion, effectsType as effect, enumType as enum, functionType as function, z_getErrorMap as getErrorMap, z_getParsedType as getParsedType, type TypeOf as infer, type z_inferFlattenedErrors as inferFlattenedErrors, type z_inferFormattedError as inferFormattedError, type z_input as input, instanceOfType as instanceof, intersectionType as intersection, z_isAborted as isAborted, z_isAsync as isAsync, z_isDirty as isDirty, z_isValid as isValid, z_late as late, lazyType as lazy, literalType as literal, z_makeIssue as makeIssue, mapType as map, type z_mergeTypes as mergeTypes, nanType as nan, nativeEnumType as nativeEnum, neverType as never, type z_noUnrecognized as noUnrecognized, nullType as null, nullableType as nullable, numberType as number, objectType as object, type z_objectInputType as objectInputType, type z_objectOutputType as objectOutputType, z_objectUtil as objectUtil, z_oboolean as oboolean, z_onumber as onumber, optionalType as optional, z_ostring as ostring, type z_output as output, pipelineType as pipeline, preprocessType as preprocess, promiseType as promise, z_quotelessJson as quotelessJson, recordType as record, setType as set, z_setErrorMap as setErrorMap, strictObjectType as strictObject, stringType as string, symbolType as symbol, effectsType as transformer, tupleType as tuple, type z_typeToFlattenedError as typeToFlattenedError, type z_typecast as typecast, undefinedType as undefined, unionType as union, unknownType as unknown, z_util as util, voidType as void };
-}
 
 // (No @packageDocumentation comment for this package)
 
