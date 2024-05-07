@@ -18,7 +18,7 @@
     "dev": "tsc -b -w",
     "test": "sh -c 'run-s \"test:* -- $*\"' sh",
     "testu": "sh -c 'run-s \"test:* -- $*\"' sh -u",
-    "test:base": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --config ./jest.config.js --passWithNoTests",
+    "test:base": "cross-env NODE_OPTIONS=--openssl-legacy-provider NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --config ./jest.config.js --passWithNoTests",
     "test:hot": "cross-env RSPACK_HOT_TEST=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --config ./jest.config.hot.js --passWithNoTests",
     "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --config ./jest.config.diff.js --passWithNoTests",
     "api-extractor": "api-extractor run --verbose",

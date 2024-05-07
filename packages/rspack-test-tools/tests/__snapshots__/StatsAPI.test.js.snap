@@ -102,7 +102,7 @@ Object {
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "57e46af248a1c1fe076f",
+  "hash": "ee9a5ee8da42dac2c2aa",
   "logging": Object {},
   "modules": Array [
     Object {
@@ -402,7 +402,7 @@ Object {
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "4b5e3314a79376e83a18",
+  "hash": "36dd148024fa89ee453a",
   "logging": Object {},
   "modules": Array [
     Object {
@@ -968,7 +968,7 @@ exports.c = require(\\"./c?c=3\\");
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "aa85e38b2dc3e3f7dbda",
+  "hash": "4fed4a0fec64e42d02f8",
   "logging": Object {},
   "modules": Array [
     Object {

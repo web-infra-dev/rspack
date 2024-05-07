@@ -31,7 +31,7 @@ module.exports = {
 		  help: 
 		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (3fa2fc6e23dccdd9a108)"
+		Rspack compiled with 1 error (2269ff26c17a6bb04d0e)"
 	`);
 	}
 };
