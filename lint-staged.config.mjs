@@ -5,5 +5,6 @@ export default {
 	"*.{ts,js,cts,cjs,mts,mjs}": () => [
 		"pnpm run lint:js",
 		"pnpm run api-extractor:ci"
-	]
+	],
+	"package.json": "pnpm run check-dependency-version"
 };

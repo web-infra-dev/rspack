@@ -9,12 +9,12 @@
     "build": "rspack build"
   },
   "dependencies": {
-    "vue": "3.2.45"
+    "vue": "3.4.21"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "vue-loader": "^17.2.2"
+    "vue-loader": "^17.3.1"
   },
   "keywords": [],
   "author": "",

@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "esbuild": "0.16.3",
-    "terser": "5.16.1",
+    "terser": "5.27.2",
     "webpack-sources": "3.2.3"
   }
 }

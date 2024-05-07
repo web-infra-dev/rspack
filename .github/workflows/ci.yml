@@ -180,6 +180,11 @@ jobs:
         if: steps.changes.outputs.src == 'true'
         run: pnpm run format-ci:js
 
+      - name: Check Dependency Version
+        if: steps.changes.outputs.src == 'true'
+        run: pnpm run check-dependency-version
+  
+
   lint-website:
     name: Lint and format website
     runs-on: ubuntu-latest
