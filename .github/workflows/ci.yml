@@ -316,7 +316,7 @@ jobs:
           owner: ${{ github.repository_owner }}
           repo: "rspack-ecosystem-benchmark"
           workflow_file_name: "bench_rspack_commit.yml"
-          github_token: ${{ secrets.RSPACK_BOT_ACCESS_TOKEN }}
+          github_token: ${{ secrets.RSPACK_ACCESS_TOKEN }}
           ref: "main"
           client_payload: '{"commit_sha":"${{ github.sha }}"}'
 
