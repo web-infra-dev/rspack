@@ -82,7 +82,7 @@ impl SizeLimitsPlugin {
   }
 
   fn add_assets_over_size_limit_warning(
-    detail: &Vec<(&String, f64)>,
+    detail: &[(&String, f64)],
     limit: f64,
     hints: &str,
     diagnostics: &mut Vec<Diagnostic>,
@@ -99,7 +99,7 @@ impl SizeLimitsPlugin {
   }
 
   fn add_entrypoints_over_size_limit_warning(
-    detail: &Vec<(&String, f64, Vec<String>)>,
+    detail: &[(&String, f64, Vec<String>)],
     limit: f64,
     hints: &str,
     diagnostics: &mut Vec<Diagnostic>,
@@ -159,7 +159,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
   for (name, ukey) in compilation.entrypoints.iter() {
     let entry = compilation.chunk_group_by_ukey.expect_get(ukey);
-    let size = self.get_entrypoint_size(entry, &compilation).await;
+    let size = self.get_entrypoint_size(entry, compilation).await;
 
     if size > max_entrypoint_size {
       let mut files = vec![];
