@@ -77,7 +77,7 @@ import { SyncWaterfallHook } from 'tapable';
 import * as tapable from 'tapable';
 import Template = require('./Template');
 import { UnsetAdditionalOptions as UnsetAdditionalOptions_2 } from 'tapable';
-import type { WatchOptions as WatchOptions_2 } from 'watchpack';
+import type Watchpack from 'watchpack';
 import type * as webpackDevServer from 'webpack-dev-server';
 import { z } from 'zod';
 
@@ -1450,7 +1450,7 @@ export class Compiler {
     // (undocumented)
     running: boolean;
     // (undocumented)
-    watch(watchOptions: WatchOptions_2, handler: Callback_2<Error, Stats>): Watching;
+    watch(watchOptions: Watchpack.WatchOptions, handler: Callback_2<Error, Stats>): Watching;
     // (undocumented)
     watchFileSystem: WatchFileSystem;
     // (undocumented)
