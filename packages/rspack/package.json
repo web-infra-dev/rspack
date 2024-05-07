@@ -16,6 +16,7 @@
   },
   "scripts": {
     "build": "prebundle && tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "build:force": "prebundle && tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json",
     "dev": "prebundle && tsc -w",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
