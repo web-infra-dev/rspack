@@ -111,7 +111,10 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
+
+# Dist files
 dist
+compiled
 webpack-dist
 
 # Gatsby files

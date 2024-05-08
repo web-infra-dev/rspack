@@ -25,7 +25,7 @@ impl ConsumeSharedRuntimeModule {
       id: Identifier::from("webpack/runtime/consumes_loading"),
       chunk: None,
       enhanced,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

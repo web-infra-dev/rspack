@@ -16,7 +16,7 @@ impl Default for CreateScriptUrlRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/create_script_url"),
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

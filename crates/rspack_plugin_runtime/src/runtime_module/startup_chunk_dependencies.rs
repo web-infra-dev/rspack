@@ -23,7 +23,7 @@ impl StartupChunkDependenciesRuntimeModule {
       id: Identifier::from("webpack/runtime/startup_chunk_dependencies"),
       async_chunk_loading,
       chunk: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

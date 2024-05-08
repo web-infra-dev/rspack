@@ -29,8 +29,7 @@ fn get_simplified_template_result(
       TemplateStringKind::Raw => &quasi_expr.raw,
     };
     if i > 0 {
-      let len = parts.len();
-      let prev_expr = &mut parts[len - 1];
+      let prev_expr = parts.last_mut().expect("should not empty");
       let expr = scanner.evaluate_expression(&node.exprs[i - 1]);
       if !expr.could_have_side_effects()
         && let Some(str) = expr.as_string()
@@ -41,7 +40,7 @@ fn get_simplified_template_result(
         // prev_expr.set_expression(None);
 
         // also merge for quasis
-        let prev_expr = &mut quasis[len - 1];
+        let prev_expr = quasis.last_mut().expect("should not empty");
         prev_expr.set_string(format!("{}{}{}", prev_expr.string(), str, quasi));
         prev_expr.set_range(prev_expr.range().0, quasi_expr.span_hi().0);
 

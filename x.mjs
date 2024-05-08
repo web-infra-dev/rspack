@@ -132,12 +132,21 @@ testCommand
 	.action(async function () {
 		await $`./x test unit`;
 	});
+
 // x test webpack
 testCommand
 	.command("webpack")
 	.description("run webpack test suites")
 	.action(async function () {
 		await $`pnpm --filter "webpack-test" test`;
+	});
+
+// x test plugin
+testCommand
+	.command("plugin")
+	.description("run plugin test suites")
+	.action(async function () {
+		await $`pnpm --filter "plugin-test" test`;
 	});
 
 // x rspack / x rs

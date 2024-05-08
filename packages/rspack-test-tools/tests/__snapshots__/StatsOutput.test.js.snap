@@ -2,8 +2,8 @@
 
 exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats for auxiliary-files-test 1`] = `
 "PublicPath: auto
+asset a09d8e0f399c215faa79.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
 asset bundle.js 2.4 KiB {909} [emitted] (name: main)
-asset f7f4f00355f310234f70.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
 Entrypoint main 2.4 KiB = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./raw.png [193] {909}
@@ -33,7 +33,7 @@ webpack/runtime/auto_public_path {909}
   [no exports]
   [used exports unknown]
   
-Rspack compiled successfully (ad3050f7790e51415050)"
+Rspack compiled successfully (96c9a0233f5bdeaa93e8)"
 `;
 
 exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print correct stats for builtin-swc-loader-parse-error 1`] = `
@@ -60,7 +60,7 @@ Entrypoint main 654 bytes = main.js
 
 ERROR in × Resolve error: Can't resolve './src' in 'Xdir/css-concat-error'
 
-Rspack x.x.x compiled with 1 error in X s (6a173f34164e1af948e4)"
+Rspack x.x.x compiled with 1 error in X s (8808376bbd25437de260)"
 `;
 
 exports[`statsOutput statsOutput/filename should print correct stats for filename 1`] = `
@@ -71,7 +71,7 @@ Entrypoint main 8.73 KiB = 909.xxxx.js
 runtime modules 11 modules
 ./index.js
 ./dynamic.js
-Rspack x.x.x compiled successfully in X s (185b80456c181897fcd5)"
+Rspack x.x.x compiled successfully in X s (a41322d0088be2cf18dc)"
 `;
 
 exports[`statsOutput statsOutput/hot+production should print correct stats for hot+production 1`] = `
@@ -80,7 +80,7 @@ asset main.js 32.1 KiB [emitted] (name: main)
 Entrypoint main 32.1 KiB = main.js
 runtime modules 11 modules
 ./index.js
-Rspack x.x.x compiled successfully in X s (db903683225d0fe50e7b)"
+Rspack x.x.x compiled successfully in X s (bda0662c38188eca4d63)"
 `;
 
 exports[`statsOutput statsOutput/ignore-plugin should print correct stats for ignore-plugin 1`] = `
@@ -133,7 +133,7 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
     ./d.js
     ./e.js
     ./index.js
-  1 chunks (Rspack x.x.x) compiled successfully in X s (0d76b7dadd0c657ad341)
+  1 chunks (Rspack x.x.x) compiled successfully in X s (9343a795eebf86cac89a)
 
 2 chunks:
   PublicPath: auto
@@ -147,7 +147,7 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   chunk bundle2.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  2 chunks (Rspack x.x.x) compiled successfully in X s (a80080d4a166d3a145b2)
+  2 chunks (Rspack x.x.x) compiled successfully in X s (58d446010942300c8786)
 
 3 chunks:
   PublicPath: auto
@@ -163,7 +163,7 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   chunk bundle3.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  3 chunks (Rspack x.x.x) compiled successfully in X s (0e854af4043d4cced12b)
+  3 chunks (Rspack x.x.x) compiled successfully in X s (e1f702c28a1f7745f19e)
 
 4 chunks:
   PublicPath: auto
@@ -181,7 +181,7 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   chunk bundle4.js (main) >{76}< [entry]
     ./b.js
     ./index.js
-  4 chunks (Rspack x.x.x) compiled successfully in X s (4525b2f4f1626b91a6f4)"
+  4 chunks (Rspack x.x.x) compiled successfully in X s (799760b5db8d720723c3)"
 `;
 
 exports[`statsOutput statsOutput/logging-loader should print correct stats for logging-loader 1`] = `
@@ -311,7 +311,7 @@ ERROR in ./index.js
    ╰────
   help: maybe it had cyclic aliases
 
-Rspack x.x.x compiled with 1 error in X s (59974c3941ac297dceb3)"
+Rspack x.x.x compiled with 1 error in X s (1610bb37730c587998bd)"
 `;
 
 exports[`statsOutput statsOutput/resolve-unexpected-exports-in-pkg-error should print correct stats for resolve-unexpected-exports-in-pkg-error 1`] = `
@@ -324,7 +324,7 @@ runtime modules 1 module
 ERROR in ./index.js
   × Invalid \\"exports\\" target \\"../../index.js\\" defined for '.' in the package config Xdir/resolve-unexpected-exports-in-pkg-error/node_modules/pkg-a/package.json
 
-Rspack x.x.x compiled with 1 error in X s (c1888f6bacf659a49dc3)"
+Rspack x.x.x compiled with 1 error in X s (b45f1a2adf9c9eae762e)"
 `;
 
 exports[`statsOutput statsOutput/runtime-modules should print correct stats for runtime-modules 1`] = `
@@ -347,7 +347,7 @@ Entrypoint main 1.66 KiB = main.js
 ./increment.js
   [exports: decrement, increment, incrementBy2]
   [only some exports used: increment]
-Rspack x.x.x compiled successfully in X s (962310b17150e819242d)"
+Rspack x.x.x compiled successfully in X s (9efe9f85d71294bf4e5f)"
 `;
 
 exports[`statsOutput statsOutput/side-effects-bailouts should print correct stats for side-effects-bailouts 1`] = `
@@ -382,7 +382,7 @@ webpack/runtime/define_property_getters {909}
   [no exports]
   [used exports unknown]
   
-1970-04-20 12:42:42: Rspack x.x.x compiled successfully in X s (6407ed847eb679304311)"
+1970-04-20 12:42:42: Rspack x.x.x compiled successfully in X s (c4f7bcbb8ec6a06a4661)"
 `;
 
 exports[`statsOutput statsOutput/simple-export should print correct stats for simple-export 1`] = `
@@ -391,7 +391,7 @@ asset bundle.js 1.79 KiB [emitted] (name: main)
 Entrypoint main 1.79 KiB = bundle.js
 runtime modules 3 modules
 ./index.js
-Rspack x.x.x compiled successfully in X s (28af2d7a47e4039ec00e)"
+Rspack x.x.x compiled successfully in X s (a3d8bfb29f0f2ccec405)"
 `;
 
 exports[`statsOutput statsOutput/simple-module-source should print correct stats for simple-module-source 1`] = `
@@ -402,7 +402,7 @@ runtime modules 3 modules
 orphan modules [orphan] 1 module
 ./raw.png
 ./index.js
-Rspack compiled successfully (de1220b5052bdbe79250)"
+Rspack compiled successfully (d0ce130488abf5f87f64)"
 `;
 
 exports[`statsOutput statsOutput/stats-hooks should print correct stats for stats-hooks 1`] = `
@@ -410,7 +410,7 @@ exports[`statsOutput statsOutput/stats-hooks should print correct stats for stat
 asset main.js 764 bytes [emitted111] (name: main) [testA: aaaaaa]
 Entrypoint main 764 bytes = main.js
 ./index.js
-Rspack compiled successfully (baea1f1033101ca9fde6)"
+Rspack compiled successfully (d55a67420c97eab0f0a6)"
 `;
 
 exports[`statsOutput statsOutput/try-require-module should print correct stats for try-require-module 1`] = `

@@ -9,12 +9,12 @@
  */
 
 import util from "util";
-import Watchpack, { WatchOptions } from "watchpack";
+import Watchpack from "watchpack";
 import { FileSystemInfoEntry, Watcher, WatchFileSystem } from "../util/fs";
 
 export default class NodeWatchFileSystem implements WatchFileSystem {
 	inputFileSystem: any;
-	watcherOptions: WatchOptions;
+	watcherOptions: Watchpack.WatchOptions;
 	watcher: Watchpack;
 
 	constructor(inputFileSystem: any) {
@@ -30,7 +30,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 		directories: Iterable<string>,
 		missing: Iterable<string>,
 		startTime: number,
-		options: WatchOptions,
+		options: Watchpack.WatchOptions,
 		callback: (
 			error: Error,
 			fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">,
