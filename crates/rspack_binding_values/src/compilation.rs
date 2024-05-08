@@ -463,13 +463,6 @@ impl JsCompilation {
     original_module_context: Option<String>,
     callback: JsFunction,
   ) -> Result<()> {
-    let options = self.0.options.clone();
-    let plugin_driver = self.0.plugin_driver.clone();
-    let resolver_factory = self.0.resolver_factory.clone();
-    let loader_resolver_factory = self.0.loader_resolver_factory.clone();
-    let cache = self.0.cache.clone();
-    let dependency_factories = self.0.dependency_factories.clone();
-
     callbackify(env, callback, async {
       let module_executor = self
         .0
@@ -478,12 +471,6 @@ impl JsCompilation {
         .expect("should have module executor");
       let result = module_executor
         .import_module(
-          options,
-          plugin_driver,
-          resolver_factory,
-          loader_resolver_factory,
-          cache,
-          dependency_factories,
           request,
           public_path,
           base_uri,

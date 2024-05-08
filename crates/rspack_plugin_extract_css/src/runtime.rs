@@ -41,7 +41,7 @@ impl CssLoadingRuntimeModule {
       insert,
       loading,
       hmr,
-      source_map_kind: rspack_util::source_map::SourceMapKind::None,
+      source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
       custom_source: None,
     }
   }

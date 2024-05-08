@@ -39,7 +39,7 @@ impl SelfModule {
       factory_meta: None,
       build_info: None,
       build_meta: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 }

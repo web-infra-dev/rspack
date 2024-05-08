@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "A Fast Rust-based Web Bundler",
@@ -15,14 +15,17 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "tsc -b ./tsconfig.build.json",
-    "dev": "tsc -w",
+    "build": "prebundle && tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "build:force": "prebundle && tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json",
+    "dev": "prebundle && tsc -w",
+    "doc-coverage": "node scripts/check-documentation-coverage.mjs",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },
   "files": [
     "dist",
-    "hot"
+    "hot",
+    "compiled"
   ],
   "engines": {
     "node": ">=16.0.0"
@@ -38,27 +41,33 @@
     "@rspack/core": "workspace:*",
     "@rspack/plugin-minify": "workspace:^",
     "@swc/plugin-remove-console": "1.5.121",
+    "@types/neo-async": "^2.6.6",
     "@types/watchpack": "^2.4.0",
     "@types/webpack-sources": "3.2.3",
     "@types/ws": "8.5.10",
     "babel-loader": "^9.1.0",
     "babel-plugin-import": "^1.13.5",
+    "browserslist": "^4.21.3",
     "copy-webpack-plugin": "5.1.2",
     "cross-env": "^7.0.3",
     "del": "^6.0.0",
     "file-loader": "^6.2.0",
     "glob": "^10.3.10",
+    "graceful-fs": "4.2.10",
     "html-loader": "^5.0.0",
     "html-webpack-plugin": "^5.5.0",
     "identity-obj-proxy": "3.0.0",
     "jest-environment-jsdom": "^29",
     "jest-serializer-path": "^0.1.15",
     "jsdom": "^24.0.0",
+    "json-parse-even-better-errors": "^3.0.0",
     "less": "4.2.0",
     "less-loader": "^12.0.0",
+    "neo-async": "2.6.2",
     "node-polyfill-webpack-plugin": "3.0.0",
     "postcss-loader": "^8.0.0",
     "postcss-pxtorem": "^6.0.0",
+    "prebundle": "^1.1.0",
     "pug-loader": "^2.4.0",
     "react-relay": "^16.0.0",
     "sass": "1.56.2",
@@ -67,21 +76,19 @@
     "source-map-loader": "^5.0.0",
     "styled-components": "^6.0.8",
     "terser": "5.27.2",
-    "wast-loader": "^1.11.4"
+    "tsc-alias": "^1.8.8",
+    "wast-loader": "^1.11.4",
+    "watchpack": "^2.4.0",
+    "zod": "^3.21.4",
+    "zod-validation-error": "1.3.1"
   },
   "dependencies": {
     "@module-federation/runtime-tools": "0.1.6",
     "@rspack/binding": "workspace:*",
-    "browserslist": "^4.21.3",
+    "caniuse-lite": "^1.0.30001616",
     "enhanced-resolve": "5.12.0",
-    "graceful-fs": "4.2.10",
-    "json-parse-even-better-errors": "^3.0.0",
-    "neo-async": "2.6.2",
     "tapable": "2.2.1",
-    "watchpack": "^2.4.0",
-    "webpack-sources": "3.2.3",
-    "zod": "^3.21.4",
-    "zod-validation-error": "1.3.1"
+    "webpack-sources": "3.2.3"
   },
   "peerDependencies": {
     "@swc/helpers": ">=0.5.1"

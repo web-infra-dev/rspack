@@ -15,7 +15,7 @@ impl Default for AsyncRuntimeModule {
   fn default() -> Self {
     AsyncRuntimeModule {
       id: Identifier::from("webpack/runtime/async_module"),
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

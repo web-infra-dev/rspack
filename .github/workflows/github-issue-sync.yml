@@ -19,7 +19,7 @@ jobs:
           # This is a Personal Access Token and it needs to have the following permissions
           # - "read:org": used to read the project's board
           # - "write:org": used to assign issues to the project's board
-          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PROJECT_TOKEN: ${{ secrets.RSPACK_ACCESS_TOKEN }}
           # The number of the project which the issues will be synced to
           # You can find this in https://github.com/orgs/@ORGANIZATION/projects/<NUMBER>
           project: 12
