@@ -6,5 +6,5 @@ const createHash = str => crypto.createHash('md4').update(str).digest('hex').sli
 
 it("should have consistent hash", () => {
 	expect(classes["container-main"]).toBe(`${createHash("./style.module.css")}-container-main`)
-	expect(legacyClasses["legacy-main"]).toBe(`${createHash("./index.css")}-legacy-main`)
+	expect(legacyClasses["legacy-main"]).toBe(`${createHash("./legacy/index.css")}-legacy-main`)
 });

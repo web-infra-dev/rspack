@@ -82,7 +82,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
       source,
-      module_context,
       module_type,
       module_user_request,
       module_source_map_kind,
@@ -141,7 +140,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
       let result = swc_core::css::modules::compile(
         &mut stylesheet,
         ModulesTransformConfig::new(
-          module_context,
           resource_data,
           self
             .local_ident_name
