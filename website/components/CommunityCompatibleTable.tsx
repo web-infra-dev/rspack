@@ -33,10 +33,6 @@ export interface PluginSupportStatus {
   status: CompatibleStatus;
   url: string;
   description?: string;
-  notes?: {
-    en: string;
-    zh: string;
-  };
 }
 
 export const CommunityPluginCompatibleTable: React.FC = () => {
@@ -60,6 +56,16 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       url: 'https://github.com/Urthen/case-sensitive-paths-webpack-plugin',
       status: CompatibleStatus.Compatible,
       description: i18n[lang]['case-sensitive-paths-webpack-plugin-desc'],
+    },
+    {
+      name: 'css-minimizer-webpack-plugin',
+      url: 'https://github.com/webpack-contrib/css-minimizer-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'eslint-webpack-plugin',
+      url: 'https://github.com/webpack-contrib/eslint-webpack-plugin',
+      status: CompatibleStatus.Compatible,
     },
     {
       name: 'webpack-manifest-plugin',
@@ -101,6 +107,11 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       url: 'https://github.com/TypeStrong/fork-ts-checker-webpack-plugin',
       status: CompatibleStatus.Compatible,
     },
+    {
+      name: 'webpack-subresource-integrity',
+      url: 'https://github.com/waysact/webpack-subresource-integrity',
+      status: CompatibleStatus.NotCompatible,
+    },
   ];
 
   return (
@@ -125,14 +136,11 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       ]}
       body={pluginList
         .sort((a, b) => b.status - a.status)
-        .map(({ name, url, status, description, notes }) => {
+        .map(({ name, url, status, description }) => {
           const { symbol, en, zh } = SUPPORT_STATUS_LOCALIZED[status];
           const statusText = `${symbol} ${lang === 'zh' ? zh : en}`;
 
           const notesText = (() => {
-            if (notes) {
-              return lang === 'zh' ? notes.zh : notes.en;
-            }
             if (description) {
               return description;
             }
