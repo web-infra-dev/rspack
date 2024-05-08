@@ -14,7 +14,7 @@ date: 2023-06-02 13:11:00
 
 ### Loader
 
-0.2 版本完成了 loader 大部分 API 的兼容，其中包括了 inline match resource，pitching loader，inline loader 等。更多的 API 进一步提升了对 Webpack loader 的兼容性，详情可以参考下方 webpack 兼容性更新。更多信息请参考 [Loader API](/api/loader-api.html)
+0.2 版本完成了 loader 大部分 API 的兼容，其中包括了 inline match resource，pitching loader，inline loader 等。更多的 API 进一步提升了对 Webpack loader 的兼容性，详情可以参考下方 webpack 兼容性更新。更多信息请参考 [Loader API](/api/loader-api/index)
 
 ### Plugin Hooks
 
@@ -22,25 +22,25 @@ date: 2023-06-02 13:11:00
 
 Compiler hooks
 
-1. [beforeCompile](/api/plugin-api#beforecompile)
-2. [afterCompile](/api/plugin-api#aftercompile)
+1. [beforeCompile](/api/plugin-api/compiler-hooks#beforecompile)
+2. [afterCompile](/api/plugin-api/compiler-hooks#aftercompile)
 
 Compilation hooks
 
-1. [optimizeModules](/api/plugin-api#optimizemodules)
-2. [optimizeChunkModule](/api/plugin-api#optimizechunkmodules)
-3. [finishModules](/api/plugin-api#finishmodules)
-4. [chunkAsset](/api/plugin-api#chunkasset)
+1. [optimizeModules](/api/plugin-api/compilation-hooks#optimizemodules)
+2. [optimizeChunkModule](/api/plugin-api/compilation-hooks#optimizechunkmodules)
+3. [finishModules](/api/plugin-api/compilation-hooks#finishmodules)
+4. [chunkAsset](/api/plugin-api/compilation-hooks#chunkasset)
 
 NormalModuleFactory hooks
 
-1. [beforeResolve](/api/plugin-api#beforeresolve)
-2. [afterResolve](/api/plugin-api#afterresolve)
-3. [ResolveForScheme](/api/plugin-api#resolveforscheme)
+1. [beforeResolve](/api/plugin-api/normal-module-factory-hooks#beforeresolve)
+2. [afterResolve](/api/plugin-api/normal-module-factory-hooks#afterresolve)
+3. [ResolveForScheme](/api/plugin-api/normal-module-factory-hooks#resolveforscheme)
 
 ContextModuleFactory hooks
 
-1. [beforeResolve](/api/plugin-api#beforeresolve)
+1. [beforeResolve](/api/plugin-api/context-module-factory-hooks#beforeresolve)
 
 ### realContentHash
 

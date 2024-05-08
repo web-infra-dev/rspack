@@ -29,6 +29,17 @@
   }
 }
 
+.PluginLink {
+  color: var(--rp-c-brand);
+  font-weight: 500;
+}
+
+.PluginNote {
+  a {
+    border-bottom: 1px dashed var(--rp-c-brand);
+  }
+}
+
 @media screen and (max-width: 600px) {
   .PluginSupportStatusTable {
     overflow-x: unset !important;

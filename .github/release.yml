@@ -20,6 +20,9 @@ changelog:
     - title: Bug Fixes 🐞
       labels:
         - "release: bug fix"
+    - title: Document Updates 📖
+      labels:
+        - "release: document"
     - title: Other Changes
       labels:
         - "*"

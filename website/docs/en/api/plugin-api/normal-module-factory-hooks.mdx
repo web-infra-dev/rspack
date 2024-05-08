@@ -1,0 +1,19 @@
+# NormalModuleFactory
+
+## `beforeResolve`
+
+`AsyncSeriesBailHook<[ResolveData]>`
+
+Called when a new dependency request is encountered. A dependency can be ignored by returning `false`. Otherwise, it should return `undefined` to proceed.
+
+## `afterResolve`
+
+`AsyncSeriesBailHook<[ResolveData]>`
+
+Called after the request is resolved.
+
+## `ResolveForScheme`
+
+`AsyncSeriesBailHook<[ResourceDataWithData]>`
+
+Called before a request with scheme (URI) is resolved.

@@ -941,17 +941,19 @@ impl Plugin for EvalSourceMapDevToolPlugin {
 
 pub struct SourceMapDevToolModuleOptionsPluginOptions {
   pub module: bool,
+  pub cheap: bool,
 }
 
 #[plugin]
 #[derive(Debug)]
 pub struct SourceMapDevToolModuleOptionsPlugin {
   module: bool,
+  cheap: bool,
 }
 
 impl SourceMapDevToolModuleOptionsPlugin {
   pub fn new(options: SourceMapDevToolModuleOptionsPluginOptions) -> Self {
-    Self::new_inner(options.module)
+    Self::new_inner(options.module, options.cheap)
   }
 }
 
@@ -961,6 +963,9 @@ async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
     module.set_source_map_kind(SourceMapKind::SourceMap);
   } else {
     module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
+  }
+  if self.cheap {
+    module.set_source_map_kind(*module.get_source_map_kind() | SourceMapKind::Cheap)
   }
   Ok(())
 }
@@ -979,6 +984,9 @@ async fn runtime_module(
     module.set_source_map_kind(SourceMapKind::SourceMap);
   } else {
     module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
+  }
+  if self.cheap {
+    module.set_source_map_kind(*module.get_source_map_kind() | SourceMapKind::Cheap)
   }
   Ok(())
 }

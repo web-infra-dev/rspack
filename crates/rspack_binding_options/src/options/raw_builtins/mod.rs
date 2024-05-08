@@ -355,6 +355,7 @@ impl BuiltinPlugin {
         plugins.push(
           SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
             module: options.module,
+            cheap: !options.columns,
           })
           .boxed(),
         );
@@ -366,6 +367,7 @@ impl BuiltinPlugin {
         plugins.push(
           SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
             module: options.module,
+            cheap: !options.columns,
           })
           .boxed(),
         );

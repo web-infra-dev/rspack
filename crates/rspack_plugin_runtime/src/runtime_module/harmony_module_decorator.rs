@@ -16,7 +16,7 @@ impl Default for HarmonyModuleDecoratorRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/harmony_module_decorator"),
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

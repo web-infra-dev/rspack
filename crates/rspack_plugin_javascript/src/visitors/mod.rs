@@ -62,11 +62,11 @@ pub fn run_before_pass(ast: &mut Ast, options: &CompilerOptions) -> Result<()> {
       let comments = program.comments.take();
       {
         let mut pass = chain!(
+          dropped_comments_preserver(comments.clone()),
           swc_visitor::resolver(unresolved_mark, top_level_mark, false),
           builtins_webpack_plugin(options, unresolved_mark),
           swc_visitor::hygiene(false, top_level_mark),
           swc_visitor::fixer(Some(&comments as &dyn Comments)),
-          dropped_comments_preserver(comments.clone()),
         );
         program.fold_with(&mut pass);
       }

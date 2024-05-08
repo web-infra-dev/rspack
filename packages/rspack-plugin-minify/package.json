@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-minify",
-  "version": "0.6.3",
+  "version": "0.6.5",
   "license": "MIT",
   "description": "Minify plugin for rspack",
   "main": "src/index.js",
