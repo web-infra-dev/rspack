@@ -1,10 +1,7 @@
 import * as classes from "./style.module.css";
 import legacyClasses from "./legacy/index.css";
 
-const crypto = require("crypto");
-const createHash = str => crypto.createHash('md4').update(str).digest('hex').slice(0, 20).replace(/^\d+/, "");
-
 it("should have consistent hash", () => {
-	expect(classes["container-main"]).toBe(`${createHash("./style.module.css")}-container-main`)
-	expect(legacyClasses["legacy-main"]).toBe(`${createHash("./index.css")}-legacy-main`)
+	expect(classes["container-main"]).toBe(`${/* md4("./style.module.css") */ "ea850e6088d2566f677"}-container-main`)
+	expect(legacyClasses["legacy-main"]).toBe(`${/* md4("./index.css") */ "a7200a43b5c2530b1414"}-legacy-main`)
 });
