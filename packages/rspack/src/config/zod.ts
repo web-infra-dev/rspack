@@ -1,7 +1,7 @@
 import { RawFuncUseCtx, JsAssetInfo } from "@rspack/binding";
 import { z } from "zod";
 import { Compilation, Compiler } from "..";
-import type  { Builtins as BuiltinsType } from "../builtin-plugin";
+import type { Builtins as BuiltinsType } from "../builtin-plugin";
 import type * as webpackDevServer from "webpack-dev-server";
 import { deprecatedWarn } from "../util";
 import { Module } from "../Module";
