@@ -3,11 +3,27 @@
 如果说 [Loader](/guide/features/loader) 是文件转换（预处理）的核心，那么插件（Plugin）则是 Rspack 整体构建流程的核心组成部分，大部分 Rspack 的原生实现依赖了 Rust 侧的插件系统。
 对于 Node 的用户来说，你无需担心和 Rust 的 Interop 问题，因为 Rspack 会自动帮你处理好这些细节，你只需要关注如何使用插件即可。
 
-## 示例
+## 使用插件
 
-### 编写一个插件
+下面是一个例子，在 `rspack.config.js` 中使用已经兼容的 [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer)：
 
-插件的结构非常简单，只需要实现一个 `apply` 方法，这个方法接受一个 `Compiler` 实例，并会在 Rspack 插件初始化时被调用。详细的 API 可以参考 [Plugin API](/api/plugin-api/index)。
+```js title="rspack.config.js"
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+
+module.exports = {
+  plugins: [new BundleAnalyzerPlugin()],
+};
+```
+
+如果你正在寻找更多的 Rspack 插件，请查看 [插件](/plugins/index) 列表。
+
+你也可以参考 [Plugin 兼容](/guide/compatibility/plugin) 列表，查看已通过 Rspack 兼容性测试的 webpack 插件。
+
+## 编写一个插件
+
+### 插件结构
+
+作为插件的作者，插件的结构非常简单：只需要实现一个 `apply` 方法，这个方法接受一个 `Compiler` 实例，并会在 Rspack 插件初始化时被调用。详细的 API 可以参考 [Plugin API](/api/plugin-api/index)。
 
 ```js
 const PLUGIN_NAME = 'MyPlugin';
@@ -25,22 +41,7 @@ module.exports = MyPlugin;
 
 我们使用 CommonJS 风格的模块导出，这样在 `rspack.config.js` 中就可以直接使用 `require` 导入。
 
-### 使用插件
-
-在 `rspack.config.js` 中使用已经兼容的 [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer) :
-
-```js title="rspack.config.js"
-const BundleAnalyzerPlugin =
-  require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-
-module.exports = {
-  plugins: [new BundleAnalyzerPlugin()],
-};
-```
-
-请参考 [Plugin 兼容](/guide/compatibility/plugin) 来了解完成 Rspack 兼容性测试的插件列表。
-
-### 类型定义
+### 使用 TypeScript 编写
 
 如果你使用 TypeScript 来编写 Rspack 插件，可以引入 `Compiler` 和 `RspackPluginInstance` 来声明插件的类型：
 
