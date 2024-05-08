@@ -30,7 +30,7 @@ pub struct MakeArtifact {
   pub missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
 
-  has_module_graph_change: bool,
+  pub has_module_graph_change: bool,
 }
 
 impl MakeArtifact {
@@ -57,7 +57,6 @@ impl MakeArtifact {
     self.context_dependencies = std::mem::take(&mut compilation.context_dependencies);
     self.missing_dependencies = std::mem::take(&mut compilation.missing_dependencies);
     self.build_dependencies = std::mem::take(&mut compilation.build_dependencies);
-    self.has_module_graph_change = compilation.has_module_import_export_change;
   }
 
   // TODO remove it
@@ -68,7 +67,6 @@ impl MakeArtifact {
     compilation.context_dependencies = std::mem::take(&mut self.context_dependencies);
     compilation.missing_dependencies = std::mem::take(&mut self.missing_dependencies);
     compilation.build_dependencies = std::mem::take(&mut self.build_dependencies);
-    compilation.has_module_import_export_change = self.has_module_graph_change;
 
     compilation.push_batch_diagnostic(std::mem::take(&mut self.diagnostics));
     compilation.make_failed_module = std::mem::take(&mut self.make_failed_module);

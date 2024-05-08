@@ -143,7 +143,6 @@ pub struct Compilation {
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: HashSet<ModuleIdentifier>,
-  pub has_module_import_export_change: bool,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_module_code_generation_results: IdentifierMap<(RspackHashDigest, BoxSource)>,
   pub chunk_graph: ChunkGraph,
@@ -231,7 +230,6 @@ impl Compilation {
       dependency_factories: Default::default(),
       make_failed_dependencies: HashSet::default(),
       make_failed_module: HashSet::default(),
-      has_module_import_export_change: true,
       runtime_modules: Default::default(),
       runtime_module_code_generation_results: Default::default(),
       chunk_by_ukey: Default::default(),
@@ -623,6 +621,7 @@ impl Compilation {
 
     params.push(make_failed_module);
     params.push(make_failed_dependencies);
+    self.make_artifact.has_module_graph_change = false;
     update_module_graph(self, params).await
   }
 
@@ -1572,6 +1571,11 @@ impl Compilation {
         )
       })
       .clone()
+  }
+
+  // TODO remove it after code splitting support incremental rebuild
+  pub fn has_module_import_export_change(&self) -> bool {
+    self.make_artifact.has_module_graph_change
   }
 }
 

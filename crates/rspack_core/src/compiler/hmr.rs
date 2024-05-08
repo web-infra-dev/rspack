@@ -121,8 +121,6 @@ where
 
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
-
-        new_compilation.has_module_import_export_change = false;
       }
 
       let setup_make_params = if is_incremental_rebuild_make {
