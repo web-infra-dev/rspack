@@ -2,6 +2,7 @@ import React from 'react';
 import { Table } from '@builtIns/Table';
 import { useLang } from 'rspress/runtime';
 import S from './PluginSupportStatusTable.module.scss';
+import Markdown from 'markdown-to-jsx';
 import * as i18n from './i18n';
 
 export enum CompatibleStatus {
@@ -142,7 +143,11 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
 
           const notesText = (() => {
             if (description) {
-              return description;
+              return (
+                <div className={S.PluginNote}>
+                  <Markdown>{description}</Markdown>
+                </div>
+              );
             }
             if (status === CompatibleStatus.NotCompatible) {
               return lang === 'zh' ? '待支持' : 'To be implemented';
@@ -150,7 +155,11 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
           })();
 
           return {
-            name: <a href={url}>{name}</a>,
+            name: (
+              <a className={S.PluginLink} href={url}>
+                {name}
+              </a>
+            ),
             status: statusText,
             notes: notesText,
           };

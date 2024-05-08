@@ -4,12 +4,12 @@
   "included": "included",
   "babel-loader-description": "SWC has been used internally to implement babel-loader with most of its conversion capabilities",
   "babel-loader-remark": "Be cautious of the performance impact of babel-loader",
-  "html-webpack-plugin-desc": "Support for this plugin was implemented in v0.3.3, please upgrade the Rspack version to use it.",
+  "html-webpack-plugin-desc": "Support for this plugin was implemented in v0.3.3, please upgrade the Rspack version to use it",
   "sentry_webpack-plugin-desc": "Support for the plugin version v1.20.1 and above has been implemented in v0.3.3",
-  "copy-plugin-desc": "Use `builtins.copy` or `rspack.CopyRspackPlugin` instead.",
-  "mini-css-extract-plugin-desc": "use `experiments.css` or `rspack.CssExtractRspackPlugin` instead",
-  "terser-webpack-plugin-desc": "Use `rspack.SwcJsMinimizerRspackPlugin` instead.",
-  "tsconfig-paths-webpack-plugin-desc": "use `resolve.tsconfigPath` instead",
+  "copy-plugin-desc": "Use [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead",
+  "mini-css-extract-plugin-desc": "Use [experiments.css](/config/experiments#experimentscss) or [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) instead",
+  "terser-webpack-plugin-desc": "Use [rspack.SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) instead",
+  "tsconfig-paths-webpack-plugin-desc": "Use [resolve.tsconfigPath](/config/resolve#resolvetsconfigpath) instead",
   "case-sensitive-paths-webpack-plugin-desc": "`useBeforeEmitHook` option not supported",
-  "webpack-manifest-plugin-desc": "Use `rspack-manifest-plugin` instead."
+  "webpack-manifest-plugin-desc": "Use [rspack-manifest-plugin](https://github.com/rspack-contrib/rspack-manifest-plugin) instead"
 }
