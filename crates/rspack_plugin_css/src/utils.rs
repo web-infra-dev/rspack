@@ -43,7 +43,6 @@ pub struct ModulesTransformConfig<'a> {
 
 impl<'a> ModulesTransformConfig<'a> {
   pub fn new(
-    module_context: &'a Context,
     resource_data: &'a ResourceData,
     local_name_ident: &'a LocalIdentName,
     compiler_options: &'a CompilerOptions,
@@ -58,7 +57,7 @@ impl<'a> ModulesTransformConfig<'a> {
       hash_salt: &output.hash_salt,
       unique_name: &output.unique_name,
       mode: &compiler_options.mode,
-      context: module_context,
+      context: &compiler_options.context,
     }
   }
 }
