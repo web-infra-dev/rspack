@@ -68,7 +68,7 @@ impl GetChunkFilenameRuntimeModule {
       global,
       all_chunks: Box::new(all_chunks),
       filename_for_chunk: Box::new(filename_for_chunk),
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

@@ -55,7 +55,7 @@ impl Task<MakeTaskContext> for BuildTask {
                 resolver_factory: resolver_factory.clone(),
                 module: module.identifier(),
                 module_context: module.as_normal_module().and_then(|m| m.get_context()),
-                module_source_map_kind: module.get_source_map_kind().clone(),
+                module_source_map_kind: *module.get_source_map_kind(),
                 plugin_driver: plugin_driver.clone(),
                 cache: cache.clone(),
               },
