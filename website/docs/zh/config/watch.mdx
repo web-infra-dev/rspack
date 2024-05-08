@@ -45,7 +45,7 @@ module.exports = {
 - **类型：** `number`
 - **默认值：** `5`
 
-当第一个文件更改，会在重新构建前增加延迟。这个选项允许 Rspack 将这段时间内进行的任何其他更改都聚合到一次重新构建里。以毫秒为单位：
+当第一个文件更改后，在触发 rebuild 前存在一个延迟时间，Rspack 会将这段时间内进行的任何其他更改都聚合到一次 rebuild 里。你可以通过这个选项来设置这个时间，以毫秒为单位：
 
 ```js title=rspack.config.js
 module.exports = {
