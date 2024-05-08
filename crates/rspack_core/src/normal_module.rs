@@ -503,6 +503,7 @@ impl Module for NormalModule {
       .parser_and_generator
       .parse(ParseContext {
         source: original_source.clone(),
+        module_context: &self.context,
         module_identifier: self.identifier(),
         module_parser_options: self.parser_options.as_ref(),
         module_type: &self.module_type,

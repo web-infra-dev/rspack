@@ -1,4 +1,6 @@
-use std::{fmt::Write, hash::Hash};
+use std::fmt::Write;
+use std::hash::Hasher;
+use std::path::PathBuf;
 
 use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::Lazy;
@@ -24,6 +26,8 @@ use crate::parser_and_generator::{CssExport, CssExportsType};
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
 pub static AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(AUTO_PUBLIC_PATH_PLACEHOLDER).expect("Invalid regexp"));
+pub static LEADING_DIGIT_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^\d+").expect("Invalid regexp"));
 
 pub struct ModulesTransformConfig<'a> {
   resource_data: &'a ResourceData,
@@ -39,6 +43,7 @@ pub struct ModulesTransformConfig<'a> {
 
 impl<'a> ModulesTransformConfig<'a> {
   pub fn new(
+    module_context: &'a Context,
     resource_data: &'a ResourceData,
     local_name_ident: &'a LocalIdentName,
     compiler_options: &'a CompilerOptions,
@@ -53,17 +58,24 @@ impl<'a> ModulesTransformConfig<'a> {
       hash_salt: &output.hash_salt,
       unique_name: &output.unique_name,
       mode: &compiler_options.mode,
-      context: &compiler_options.context,
+      context: module_context,
     }
   }
 }
 
 impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
   fn new_name_for(&self, local: &Atom) -> Atom {
-    let relative_path = self.resource_data.resource_path.relative(self.context);
+    let mut relative_path = self.resource_data.resource_path.relative(self.context);
+    let relative_str = relative_path.to_string_lossy().to_string();
+
+    // abc.js => ./abc.js, align with webpack
+    if !relative_path.is_absolute() && !relative_str.starts_with('.') {
+      relative_path = PathBuf::from(format!("./{}", relative_str));
+    }
+
     let hash = {
       let mut hasher = RspackHash::with_salt(self.hash_function, self.hash_salt);
-      relative_path.hash(&mut hasher);
+      hasher.write(relative_path.to_string_lossy().as_bytes());
       let contains_local = self
         .local_name_ident
         .template
@@ -71,15 +83,12 @@ impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
         .map(|t| t.contains("[local]"))
         .unwrap_or_default();
       if !contains_local {
-        local.hash(&mut hasher);
+        hasher.write(local.as_bytes());
       }
       let hash = hasher.digest(self.hash_digest);
-      let hash = hash.rendered(self.hash_digest_length);
-      if hash.as_bytes()[0].is_ascii_digit() {
-        format!("_{hash}")
-      } else {
-        hash.into()
-      }
+      LEADING_DIGIT_REGEX
+        .replace_all(hash.rendered(self.hash_digest_length), "")
+        .into_owned()
     };
     let relative_resource =
       make_paths_relative(self.context.as_str(), &self.resource_data.resource);
@@ -120,6 +129,7 @@ impl LocalIdentNameRenderOptions<'_> {
       .always_ok();
     s = s.replace("[local]", self.local);
     s = s.replace("[uniqueName]", self.unique_name);
+
     s = ESCAPE_LOCAL_IDENT_REGEX.replace_all(&s, "_").into_owned();
     s
   }

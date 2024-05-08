@@ -21,8 +21,9 @@ function getImplementedPlugins() {
             implementedPlugins.add(apiItem.displayName);
         } else if (apiItem instanceof ApiVariable) {
             for (const token of apiItem.excerptTokens) {
-                if (PLUGIN_REGEX.test(token.text)) {
-                    implementedPlugins.add(token.text);
+                const result = /[A-Z][a-zA-Z]+Plugin/.exec(token.text);
+                if (result) {
+                    implementedPlugins.add(result[0]);
                 }
             }
         }
@@ -73,8 +74,19 @@ const implementedPlugins = getImplementedPlugins();
 const documentedPlugins = getDocumentedPlugins();
 
 const undocumentedPlugins = Array.from(implementedPlugins).filter(plugin => !documentedPlugins.has(plugin));
+const unimplementedPlugins = Array.from(documentedPlugins).filter(plugin => !implementedPlugins.has(plugin));
 
 if (undocumentedPlugins.length) {
     console.error('The following plugins are implemented but not documented:', undocumentedPlugins.join(', '));
+}
+
+if (unimplementedPlugins.length) {
+    if (undocumentedPlugins.length) {
+        console.log('\n');
+    }
+    console.error('The following plugins are documented but not implemented or not properly exported:', unimplementedPlugins.join(', '));
+}
+
+if (undocumentedPlugins.length || unimplementedPlugins.length) {
     process.exit(1);
 }

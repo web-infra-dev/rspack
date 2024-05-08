@@ -45,6 +45,7 @@ impl UnfinishCounter {
 }
 
 // send event can only use in sync task
+#[derive(Debug)]
 pub enum Event {
   StartBuild(ModuleIdentifier),
   // origin_module_identifier and current dependency id and target_module_identifier
@@ -84,6 +85,7 @@ impl Task<MakeTaskContext> for CtrlTask {
 
   async fn async_run(mut self: Box<Self>) -> TaskResult<MakeTaskContext> {
     while let Some(event) = self.event_receiver.recv().await {
+      tracing::info!("CtrlTask async receive {:?}", event);
       match event {
         Event::StartBuild(module_identifier) => {
           self
@@ -176,6 +178,7 @@ impl Task<MakeTaskContext> for FinishModuleTask {
     // clean ctrl task events
     loop {
       let event = ctrl_task.event_receiver.try_recv();
+      tracing::info!("CtrlTask sync receive {:?}", event);
       let Ok(event) = event else {
         if matches!(event, Err(TryRecvError::Empty)) {
           break;
@@ -246,6 +249,7 @@ impl Task<MakeTaskContext> for FinishModuleTask {
     }
 
     while let Some(module_identifier) = queue.pop_front() {
+      tracing::info!("finish build module {:?}", module_identifier);
       ctrl_task.running_module_map.remove(&module_identifier);
 
       let mgm = module_graph

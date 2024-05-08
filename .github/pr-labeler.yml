@@ -6,3 +6,5 @@
   - "/^perf/"
 "release: bug fix":
   - "/^fix/"
+"release: document":
+  - "/^docs/"
