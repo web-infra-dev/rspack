@@ -19,13 +19,6 @@ function getImplementedPlugins() {
     function visitApiItem(apiItem) {
         if ([ApiItemKind.Class, ApiItemKind.Variable].includes(apiItem.kind) && PLUGIN_REGEX.test(apiItem.displayName)) {
             implementedPlugins.add(apiItem.displayName);
-        } else if (apiItem instanceof ApiVariable) {
-            for (const token of apiItem.excerptTokens) {
-                const result = /[A-Z][a-zA-Z]+Plugin/.exec(token.text);
-                if (result) {
-                    implementedPlugins.add(result[0]);
-                }
-            }
         }
         for (const member of apiItem.members) {
             visitApiItem(member);
