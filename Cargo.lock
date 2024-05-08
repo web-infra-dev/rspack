@@ -3187,7 +3187,6 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
- "sugar_path",
  "swc_core",
  "tracing",
  "urlencoding",
