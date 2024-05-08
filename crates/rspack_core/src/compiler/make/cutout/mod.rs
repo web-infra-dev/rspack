@@ -24,13 +24,16 @@ impl Cutout {
     artifact: &mut MakeArtifact,
     params: Vec<MakeParam>,
   ) -> HashSet<BuildDependency> {
-    let module_graph = artifact.get_module_graph();
-
     let mut force_build_modules = HashSet::default();
     let mut force_build_deps = HashSet::default();
+    let mut next_entry_deps = HashSet::default();
 
+    let module_graph = artifact.get_module_graph();
     for item in params {
       match item {
+        MakeParam::Entry(deps) => {
+          next_entry_deps.extend(deps);
+        }
         MakeParam::ModifiedFiles(files) => {
           force_build_modules.extend(module_graph.modules().values().filter_map(|module| {
             // check has dependencies modified
@@ -41,7 +44,7 @@ impl Cutout {
             }
           }))
         }
-        MakeParam::DeletedFiles(files) => {
+        MakeParam::RemovedFiles(files) => {
           force_build_modules.extend(module_graph.modules().values().flat_map(|module| {
             let mut res = vec![];
 
@@ -95,6 +98,29 @@ impl Cutout {
         .iter()
         .flat_map(|id| module_graph.revoke_module(id)),
     );
+
+    if !next_entry_deps.is_empty() {
+      let mut old_entry_deps = std::mem::take(&mut artifact.entry_dependencies);
+      for dep_id in &next_entry_deps {
+        if old_entry_deps.contains(dep_id) {
+          old_entry_deps.remove(dep_id);
+        } else {
+          force_build_deps.insert((*dep_id, None));
+        }
+      }
+      artifact.entry_dependencies = next_entry_deps;
+      for dep_id in old_entry_deps {
+        self
+          .clean_isolated_module
+          .analyze_removed_deps(artifact, &dep_id);
+        let mut module_graph = artifact.get_module_graph_mut();
+        let con_id = *module_graph
+          .connection_id_by_dependency_id(&dep_id)
+          .expect("should have connection");
+        module_graph.revoke_connection(&con_id, true);
+        force_build_deps.remove(&(dep_id, None));
+      }
+    }
 
     force_build_deps
   }

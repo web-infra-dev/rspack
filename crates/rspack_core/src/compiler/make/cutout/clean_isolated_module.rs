@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::super::MakeArtifact;
-use crate::ModuleIdentifier;
+use crate::{DependencyId, ModuleIdentifier};
 
 #[derive(Debug, Default)]
 pub struct CleanIsolatedModule {
@@ -22,6 +22,16 @@ impl CleanIsolatedModule {
         .need_check_isolated_module_ids
         .insert(*connection.module_identifier());
     }
+  }
+
+  pub fn analyze_removed_deps(&mut self, artifact: &MakeArtifact, dep_id: &DependencyId) {
+    let module_graph = artifact.get_module_graph();
+    let connection = module_graph
+      .connection_by_dependency(dep_id)
+      .expect("should have connection");
+    self
+      .need_check_isolated_module_ids
+      .insert(*connection.module_identifier());
   }
 
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {

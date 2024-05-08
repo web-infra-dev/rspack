@@ -22,7 +22,7 @@ use tracing::instrument;
 
 use super::{
   hmr::CompilationRecords,
-  make::{update_module_graph, MakeArtifact, MakeParam},
+  make::{make_module_graph, update_module_graph, MakeArtifact, MakeParam},
   module_executor::ModuleExecutor,
 };
 use crate::{
@@ -141,8 +141,6 @@ pub struct Compilation {
   pub global_entry: EntryData,
   other_module_graph: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
-  pub make_failed_dependencies: HashSet<BuildDependency>,
-  pub make_failed_module: HashSet<ModuleIdentifier>,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_module_code_generation_results: IdentifierMap<(RspackHashDigest, BoxSource)>,
   pub chunk_graph: ChunkGraph,
@@ -186,6 +184,8 @@ pub struct Compilation {
 
   pub module_executor: Option<ModuleExecutor>,
 
+  pub modified_files: HashSet<PathBuf>,
+  pub removed_files: HashSet<PathBuf>,
   make_artifact: MakeArtifact,
 }
 
@@ -219,6 +219,8 @@ impl Compilation {
     records: Option<CompilationRecords>,
     cache: Arc<Cache>,
     module_executor: Option<ModuleExecutor>,
+    modified_files: HashSet<PathBuf>,
+    removed_files: HashSet<PathBuf>,
   ) -> Self {
     Self {
       id: CompilationId::new(),
@@ -227,8 +229,6 @@ impl Compilation {
       options,
       other_module_graph: None,
       dependency_factories: Default::default(),
-      make_failed_dependencies: HashSet::default(),
-      make_failed_module: HashSet::default(),
       runtime_modules: Default::default(),
       runtime_module_code_generation_results: Default::default(),
       chunk_by_ukey: Default::default(),
@@ -272,6 +272,8 @@ impl Compilation {
       module_executor,
 
       make_artifact: Default::default(),
+      modified_files,
+      removed_files,
     }
   }
 
@@ -604,23 +606,17 @@ impl Compilation {
   }
 
   #[instrument(name = "compilation:make", skip_all)]
-  pub async fn make(&mut self, mut params: Vec<MakeParam>) -> Result<()> {
+  pub async fn make(&mut self) -> Result<()> {
     // run module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_before_make(self, &params).await;
+      module_executor.hook_before_make(self).await;
       self.module_executor = Some(module_executor);
     }
 
-    let make_failed_module =
-      MakeParam::ForceBuildModules(std::mem::take(&mut self.make_failed_module));
-    let make_failed_dependencies =
-      MakeParam::ForceBuildDeps(std::mem::take(&mut self.make_failed_dependencies));
-
-    params.push(make_failed_module);
-    params.push(make_failed_dependencies);
-    self.make_artifact.has_module_graph_change = false;
-    update_module_graph(self, params).await
+    let artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = make_module_graph(self, artifact)?;
+    Ok(())
   }
 
   pub async fn rebuild_module<T>(

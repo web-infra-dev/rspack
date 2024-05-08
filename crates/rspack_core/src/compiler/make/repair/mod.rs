@@ -17,7 +17,7 @@ use crate::{
   tree_shaking::visitor::OptimizeAnalyzeResult,
   utils::task_loop::{run_task_loop, Task},
   BuildDependency, CacheCount, CacheOptions, Compilation, CompilationLogger, CompilerOptions,
-  DependencyType, Logger, Module, ModuleFactory, ModuleIdentifier, ModuleProfile,
+  DependencyId, DependencyType, Logger, Module, ModuleFactory, ModuleIdentifier, ModuleProfile,
   NormalModuleSource, ResolverFactory, SharedPluginDriver,
 };
 
@@ -45,6 +45,7 @@ pub struct MakeTaskContext {
   make_failed_dependencies: HashSet<BuildDependency>,
   make_failed_module: HashSet<ModuleIdentifier>,
 
+  entry_dependencies: HashSet<DependencyId>,
   entry_module_identifiers: IdentifierSet,
   diagnostics: Vec<Diagnostic>,
   optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
@@ -87,6 +88,7 @@ impl MakeTaskContext {
       make_failed_module: Default::default(),
       diagnostics: Default::default(),
 
+      entry_dependencies: artifact.entry_dependencies,
       entry_module_identifiers: artifact.entry_module_identifiers,
       optimize_analyze_result_map: artifact.optimize_analyze_result_map,
       file_dependencies: artifact.file_dependencies,
@@ -112,6 +114,7 @@ impl MakeTaskContext {
       has_module_graph_change,
       build_cache_counter,
       factorize_cache_counter,
+      entry_dependencies,
       logger,
       ..
     } = self;
@@ -126,6 +129,7 @@ impl MakeTaskContext {
       make_failed_dependencies,
       make_failed_module,
       diagnostics,
+      entry_dependencies,
       entry_module_identifiers,
       optimize_analyze_result_map,
       file_dependencies,
@@ -151,6 +155,8 @@ impl MakeTaskContext {
       None,
       self.cache.clone(),
       None,
+      Default::default(),
+      Default::default(),
     );
     compilation.dependency_factories = self.dependency_factories.clone();
     let mut make_artifact = MakeArtifact {
