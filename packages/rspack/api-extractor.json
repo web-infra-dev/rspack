@@ -3,5 +3,9 @@
  */
 {
   "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
-  "extends": "../../api-extractor.json"
+  "extends": "../../api-extractor.json",
+  "docModel": {
+    "enabled": true,
+    "includeForgottenExports": true
+  }
 }

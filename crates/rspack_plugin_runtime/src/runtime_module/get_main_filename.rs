@@ -24,7 +24,7 @@ impl GetMainFilenameRuntimeModule {
       id: Identifier::from(format!("webpack/runtime/get_main_filename/{content_type}")),
       global,
       filename,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

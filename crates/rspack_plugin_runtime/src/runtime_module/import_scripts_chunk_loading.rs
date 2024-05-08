@@ -29,7 +29,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
       id: Identifier::from("webpack/runtime/import_scripts_chunk_loading"),
       chunk: None,
       with_create_script_url,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

@@ -3187,7 +3187,6 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
- "sugar_path",
  "swc_core",
  "tracing",
  "urlencoding",
@@ -3662,6 +3661,7 @@ dependencies = [
 name = "rspack_util"
 version = "0.1.0"
 dependencies = [
+ "bitflags 2.5.0",
  "concat-string",
  "dashmap",
  "indexmap 2.2.6",
