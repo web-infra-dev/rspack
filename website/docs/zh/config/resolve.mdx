@@ -249,6 +249,15 @@ module.exports = {
 
 一个目录列表，用于解析服务器相对 URL（以'/'开头的 URL）。默认使用 context 配置选项。在非 Windows 系统上，这些请求首先作为绝对路径进行解析。
 
+## resolve.symlinks
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+是否将符号链接(symlink)解析到它们的符号链接位置(symlink location)。
+
+启用时，符号链接(symlink)的资源，将解析为其**真实**路径，而不是其符号链接(symlink)的位置。注意，当使用创建符号链接包的工具（如 `npm link`）时，这种方式可能会导致模块解析失败。
+
 ## resolve.byDependency
 
 - **类型：** `Record<string, Resolve>`.

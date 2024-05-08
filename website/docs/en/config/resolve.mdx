@@ -249,6 +249,15 @@ A list of resolve restrictions to restrict the paths that a request can be resol
 
 A list of directories where server-relative URLs (beginning with '/') are resolved. It defaults to the `context` configuration option. On systems other than Windows, these requests are initially resolved as an absolute path.
 
+## resolve.symlinks
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to resolve symlinks to their symlinked location.
+
+When enabled, symlinked resources are resolved to their real path, not their symlinked location. Note that this may cause module resolution to fail when using tools that symlink packages (like `npm link`).
+
 ## resolve.byDependency
 
 - **Type:** `Record<string, Resolve>`.
