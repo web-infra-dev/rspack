@@ -38,11 +38,11 @@ function useFooterData() {
         },
         {
           title: 'Plugin API',
-          link: getLink('/api/plugin-api'),
+          link: getLink('/api/plugin-api/index'),
         },
         {
           title: 'Loader API',
-          link: getLink('/api/loader-api'),
+          link: getLink('/api/loader-api/index'),
         },
       ],
     },

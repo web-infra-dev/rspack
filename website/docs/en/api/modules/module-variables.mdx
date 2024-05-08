@@ -1,0 +1,62 @@
+import WebpackLicense from '@components/webpack-license';
+import { ApiMeta } from '../../../../components/ApiMeta';
+
+<WebpackLicense from="https://webpack.docschina.org/api/module-variables/" />
+
+# Module Variables
+
+This section covers all **variables** available in code compiled with webpack. Modules will have access to certain data from the compilation process through `module` and other variables.
+
+### module.hot (webpack-specific)
+
+Indicates whether or not Hot Module Replacement is enabled and provides an interface to the process. See the [HMR API page](/api/hmr) for details.
+
+### import.meta.webpackHot (webpack-specific)
+
+An alias for `module.hot`, however `import.meta.webpackHot` can be used in strict ESM while `module.hot` can't.
+
+### \_\_dirname (NodeJS)
+
+Depending on the configuration option `node.__dirname`:
+
+- `false`: Not defined
+- `mock`: equal to `'/'`
+- `true`: [node.js \_\_dirname](https://nodejs.org/api/globals.html#globals_dirname)
+
+If used inside an expression that is parsed by the Parser, the configuration option is treated as `true`.
+
+### \_\_resourceQuery (webpack-specific)
+
+The resource query of the current module. If the following `require` call was made, then the query string would be available in `file.js`.
+
+```ts
+require('file.js?test');
+```
+
+```ts title="file.js"
+__resourceQuery === '?test';
+```
+
+### \_\_webpack_modules\_\_ (webpack-specific)
+
+Access to the internal object of all modules.
+
+### \_\_webpack_hash\_\_ (webpack-specific)
+
+It provides access to the hash of the compilation.
+
+### \_\_webpack_public_path\_\_ (webpack-specific)
+
+Equals the configuration option's [`output.publicPath`](/config/output#outputpublicpath).
+
+### \_\_webpack_chunkname\_\_ (webpack-specific)
+
+<ApiMeta addedVersion="0.4.4" />
+
+Access to name of current chunk.
+
+### \_\_webpack_runtime_id\_\_ (webpack-specific)
+
+<ApiMeta addedVersion="0.4.4" />
+
+Access the runtime id of current entry.

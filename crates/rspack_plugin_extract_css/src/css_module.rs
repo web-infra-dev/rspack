@@ -78,7 +78,7 @@ impl CssModule {
       factory_meta: None,
       build_info: None,
       build_meta: None,
-      source_map_kind: rspack_util::source_map::SourceMapKind::None,
+      source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
       identifier__,
       filepath: dep.filepath,
     }

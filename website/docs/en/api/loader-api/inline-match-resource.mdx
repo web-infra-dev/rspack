@@ -1,0 +1,52 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/api/loaders/#inline-matchresource" />
+
+# Inline matchResource
+
+Prefixing `<match-resource>!=!` to a request will set the `matchResource` for this request.
+
+When a `matchResource` is set, it will be used to match with the `module.rules` instead of the original resource. This can be useful if further loaders should be applied to the resource, or if the module type needs to be changed.
+
+Example:
+
+```js title="file.js"
+/* STYLE: body { background: red; } */
+console.log('yep');
+```
+
+A loader could transform the file into the following file and use the `matchResource` to apply the user-specified CSS processing rules:
+
+```js title="file.js (transformed by loader)"
+import './file.js.css!=!extract-style-loader/getStyles!./file.js';
+console.log('yep');
+```
+
+This will add a dependency to `extract-style-loader/getStyles!./file.js` and treat the result as `file.js.css`.
+Because `module.rules` has a rule matching `/\.css$/` and it will apply to this dependency.
+
+The loader could look like this:
+
+```js title="extract-style-loader/index.js"
+const getStylesLoader = require.resolve('./getStyles');
+
+module.exports = function (source) {
+  if (STYLES_REGEXP.test(source)) {
+    source = source.replace(STYLES_REGEXP, '');
+    return `import ${JSON.stringify(
+      this.utils.contextify(
+        this.context || this.rootContext,
+        `${this.resource}.css!=!${getStylesLoader}!${this.remainingRequest}`,
+      ),
+    )};${source}`;
+  }
+  return source;
+};
+```
+
+```js title="extract-style-loader/getStyles.js"
+module.exports = function (source) {
+  const match = source.match(STYLES_REGEXP);
+  return match[0];
+};
+```

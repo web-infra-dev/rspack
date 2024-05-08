@@ -1,0 +1,19 @@
+# NormalModuleFactory 钩子
+
+## `beforeResolve`
+
+`AsyncSeriesBailHook<[ResolveData]>`
+
+当遇到新的依赖请求时调用。可以通过返回 `false` 来忽略依赖项。否则，应该返回 `undefined` 以继续。
+
+## `afterResolve`
+
+`AsyncSeriesBailHook<[ResolveData]>`
+
+在请求被解析后调用。
+
+## `ResolveForScheme`
+
+`AsyncSeriesBailHook<[ResourceDataWithData]>`
+
+在带有 scheme 的解析（URI）请求之前调用。

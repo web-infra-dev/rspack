@@ -1,0 +1,167 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/api/module-methods/" />
+
+# 模块方法
+
+当使用 Rspack 打包应用程序时，你可以选择多种模块语法风格，包括 ES6、CommonJS。
+
+尽管 Rspack 支持多种模块语法，我们建议为了保持一致性并避免奇怪的 bug，最好遵循单一的语法。
+
+## ES6 (推荐)
+
+Rspack 原生支持 ES6 模块语法，可以使用静态的 `import`、`export` 和 `import()` 语法。
+
+### import
+
+静态 `import` 另一个模块的 `export`。
+
+```js
+import MyModule from './my-module.js';
+import { NamedExport } from './other-module.js';
+```
+
+你还可以 `import` Data URI：
+
+```js
+import 'data:text/javascript;charset=utf-8;base64,Y29uc29sZS5sb2coJ2lubGluZSAxJyk7';
+import {
+  number,
+  fn,
+} from 'data:text/javascript;charset=utf-8;base64,ZXhwb3J0IGNvbnN0IG51bWJlciA9IDQyOwpleHBvcnQgY29uc3QgZm4gPSAoKSA9PiAiSGVsbG8gd29ybGQiOw==';
+```
+
+### export
+
+将任何内容作为默认导出或具名导出。
+
+```js
+// 具名导出
+export var Count = 5;
+export function Multiply(a, b) {
+  return a * b;
+}
+
+// 默认导出
+export default {
+  // Some data...
+};
+```
+
+### 动态 import()
+
+```ts
+function(path: string): Promise
+```
+
+动态加载模块。对 `import()` 的调用被视为分割点，这意味着请求的模块及其子模块被拆分成单独的 chunk。
+
+```js
+if (module.hot) {
+  import('lodash').then(_ => {
+    // 使用 lodash 做些事情...
+  });
+}
+```
+
+:::warning 警告
+此功能内部依赖于 `Promise`。如果你在旧版浏览器中使用 `import()`，请记得使用类似于 [`es6-promise`](https://github.com/stefanpenner/es6-promise) 或 [`promise-polyfill`](https://github.com/taylorhakes/promise-polyfill) 的 polyfill 来模拟 `Promise`。
+:::
+
+### import() 中的动态表达式
+
+无法使用完全动态的导入语句，例如 `import(foo)`。因为 `foo` 可能是系统或项目中任何文件的任何路径。
+
+`import()` 必须至少包含一些关于模块所在位置的信息。可以将打包限制在特定目录或一组文件中，这样当你使用动态表达式时 - 在 `import()` 调用中可能被请求的每个模块都会被包括进来。
+例如，`import(./locale/${language}.json)` 会将 `./locale` 目录中的每个 `.json` 文件都被打包进新的代码块。在运行时，一旦变量 `language` 被计算出来，任何像 `english.json` 或 `german.json` 这样的文件都将可供使用。
+
+```js
+// 想象一下，如果我们有一种方法可以从 Cookie 或其他存储中获取语言
+const language = detectVisitorLanguage();
+import(`./locale/${language}.json`).then(module => {
+  // 做一些翻译相关的事情
+});
+```
+
+### Magic Comments
+
+通过向 import 语句添加注释，我们可以执行诸如命名 chunk 或选择不同模式等操作。有关这些魔法注释的完整列表，请参见下面的代码，以及对这些注释功能的解释。
+
+```js
+import(
+  /* webpackChunkName: "my-chunk-name" */
+  /* webpackPrefetch: true */
+  /* webpackPreload: true */
+  'module'
+);
+```
+
+`webpackChunkName`：新 chunk 的名称。
+
+`webpackPrefetch`：告诉浏览器将来可能需要该资源来进行某些导航跳转（0.4.5 及以上版本支持）。
+
+`webpackPreload`：告诉浏览器在当前导航期间可能需要该资源（0.4.5 及以上版本支持）。
+
+## CommonJS
+
+Rspack 也支持 `CommonJS` 语法，可以使用 `require` 和 `module.exports` 语法。
+
+## Data URI 模块
+
+Rspack 支持使用 `import` 和 `require` 语法导入 Data URI 模块。
+
+**import**
+
+```js
+import DataURI from 'data:text/javascript,export default 42';
+```
+
+**require**
+
+```js
+require('data:text/javascript,module.exports = 42');
+```
+
+除此之外，还支持了 Base64 编码：
+
+```js
+const {
+  number,
+  fn,
+} = require('data:text/javascript;charset=utf-8;base64,ZXhwb3J0IGNvbnN0IG51bWJlciA9IDQyOwpleHBvcnQgZnVuY3Rpb24gZm4oKSB7CiAgcmV0dXJuICJIZWxsbyB3b3JsZCI7Cn0=');
+```
+
+::: tip
+Data URI 模块可以被用作虚拟模块（Virtual Modules）的实现方式，如：配合 loader 完成运行时动态加载自定义模块。
+:::
+
+## Webpack
+
+除了上述的模块方法之外，Rspack 还支持一些 webpack 特有的方法。
+
+#### require.context
+
+```ts
+require.context(
+  (directory: String),
+  (includeSubdirs: Boolean) /*可选，默认为true */,
+  (filter: RegExp) /* 可选的，默认为/^\.\/.*$/ */。
+  (mode: String) /* 可选的, 'sync' | 'eager' | 'weak' | 'lazy' | 'lazy-once', 默认 'sync' */
+);
+```
+
+通过 `directory`、`includeSubdirs`、`filter` 参数，可以对引入的模块进行更精细控制。
+
+```js
+const context = require.context('components', true, /\.html$/);
+const componentA = context.resolve('componentA');
+```
+
+如果 `mode` 被设置为 `lazy`，模块将会被异步加载。
+
+```js
+const context = require.context('locales', true, /\.json$/, 'lazy');
+context('localeA').then(locale => {
+  // 做一些与区域设置有关的事情
+});
+```

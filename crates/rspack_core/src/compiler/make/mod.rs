@@ -1,5 +1,5 @@
 mod cutout;
-mod repair;
+pub mod repair;
 
 use std::{hash::BuildHasherDefault, path::PathBuf};
 
@@ -19,16 +19,16 @@ use crate::{
 #[derive(Debug, Default)]
 pub struct MakeArtifact {
   module_graph_partial: ModuleGraphPartial,
-  make_failed_dependencies: HashSet<BuildDependency>,
-  make_failed_module: HashSet<ModuleIdentifier>,
-  diagnostics: Vec<Diagnostic>,
+  pub make_failed_dependencies: HashSet<BuildDependency>,
+  pub make_failed_module: HashSet<ModuleIdentifier>,
+  pub diagnostics: Vec<Diagnostic>,
 
   entry_module_identifiers: IdentifierSet,
   optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
-  file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+  pub file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+  pub context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+  pub missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+  pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
 
   has_module_graph_change: bool,
 }
@@ -76,7 +76,7 @@ impl MakeArtifact {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MakeParam {
   ModifiedFiles(HashSet<PathBuf>),
   DeletedFiles(HashSet<PathBuf>),
@@ -99,10 +99,8 @@ pub async fn update_module_graph(
   let mut artifact = MakeArtifact::default();
   compilation.swap_make_artifact(&mut artifact);
   artifact.move_data_from_compilation(compilation);
-  let mut cutout = Cutout::default();
-  let build_dependencies = cutout.cutout_artifact(&mut artifact, params);
-  artifact = repair(compilation, artifact, build_dependencies)?;
-  cutout.fix_artifact(&mut artifact);
+
+  artifact = update_module_graph_with_artifact(compilation, artifact, params).await?;
 
   // Avoid to introduce too much overhead,
   // until we find a better way to align with webpack hmr behavior
@@ -148,4 +146,17 @@ pub async fn update_module_graph(
   artifact.move_data_to_compilation(compilation);
   compilation.swap_make_artifact(&mut artifact);
   Ok(())
+}
+
+pub async fn update_module_graph_with_artifact(
+  compilation: &Compilation,
+  mut artifact: MakeArtifact,
+  params: Vec<MakeParam>,
+) -> Result<MakeArtifact> {
+  let mut cutout = Cutout::default();
+  let build_dependencies = cutout.cutout_artifact(&mut artifact, params);
+  artifact = repair(compilation, artifact, build_dependencies)?;
+  cutout.fix_artifact(&mut artifact);
+
+  Ok(artifact)
 }

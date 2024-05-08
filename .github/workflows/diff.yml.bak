@@ -61,7 +61,7 @@ jobs:
       - name: Upload Report
         shell: bash
         env:
-          API_TOKEN_GITHUB: ${{ secrets.RSPACK_REPORT_ACCESS_TOKEN }}
+          API_TOKEN_GITHUB: ${{ secrets.RSPACK_ACCESS_TOKEN }}
         run: |
           cache_dir="$HOME/.cache/diff_upload"
           clone_dir="$cache_dir/${{ github.run_id }}"

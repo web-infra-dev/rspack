@@ -22,7 +22,7 @@ impl Default for FederationRuntimeModule {
     Self {
       id: Identifier::from("module_federation/runtime"),
       chunk: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

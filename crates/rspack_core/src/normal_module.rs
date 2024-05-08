@@ -225,7 +225,7 @@ impl NormalModule {
       build_meta: None,
       parsed: false,
 
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 
@@ -503,11 +503,12 @@ impl Module for NormalModule {
       .parser_and_generator
       .parse(ParseContext {
         source: original_source.clone(),
+        module_context: &self.context,
         module_identifier: self.identifier(),
         module_parser_options: self.parser_options.as_ref(),
         module_type: &self.module_type,
         module_user_request: &self.user_request,
-        module_source_map_kind: self.get_source_map_kind().clone(),
+        module_source_map_kind: *self.get_source_map_kind(),
         loaders: &self.loaders,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
@@ -754,7 +755,7 @@ impl NormalModule {
       return Ok(RawSource::Buffer(content.into_bytes()).boxed());
     }
     let source_map_kind = self.get_source_map_kind();
-    if !matches!(source_map_kind, SourceMapKind::None)
+    if source_map_kind.enabled()
       && let Some(source_map) = source_map
     {
       let content = content.into_string_lossy();
@@ -767,7 +768,7 @@ impl NormalModule {
         .boxed(),
       );
     }
-    if !matches!(source_map_kind, SourceMapKind::None)
+    if source_map_kind.enabled()
       && let Content::String(content) = content
     {
       return Ok(OriginalSource::new(content, self.request()).boxed());

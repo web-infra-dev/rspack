@@ -24,7 +24,7 @@ impl Default for ModuleChunkLoadingRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/module_chunk_loading"),
       chunk: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

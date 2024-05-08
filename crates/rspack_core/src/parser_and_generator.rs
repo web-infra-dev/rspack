@@ -14,12 +14,13 @@ use crate::{
   DependencyTemplate, GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType,
   ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
 };
-use crate::{ChunkGraph, ConcatenationScope, ModuleGraph};
+use crate::{ChunkGraph, ConcatenationScope, Context, ModuleGraph};
 
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct ParseContext<'a> {
   pub source: BoxSource,
+  pub module_context: &'a Context,
   pub module_identifier: ModuleIdentifier,
   pub module_type: &'a ModuleType,
   pub module_user_request: &'a str,
