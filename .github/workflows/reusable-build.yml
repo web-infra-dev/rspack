@@ -299,6 +299,10 @@ jobs:
           echo "===================================="
           pnpm api-extractor:ci
 
+      - name: Documentation coverage check
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
+        run: pnpm doc-coverage
+
       ### write the latest metric into branch gh-pages
       ### Note that, We can't merge this script, because this script only runs on main branch
       - name: Update main branch test compatibility metric
