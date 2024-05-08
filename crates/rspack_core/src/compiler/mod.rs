@@ -215,7 +215,7 @@ where
         })
         .unwrap_or(false)
     {
-      let (analyze_result, diagnostics) = self
+      let (mut analyze_result, diagnostics) = self
         .compilation
         .optimize_dependency()
         .await?
@@ -280,7 +280,10 @@ where
       {
         self.compilation.include_module_ids = analyze_result.include_module_ids;
       }
-      self.compilation.optimize_analyze_result_map = analyze_result.analyze_results;
+      std::mem::swap(
+        self.compilation.optimize_analyze_result_map_mut(),
+        &mut analyze_result.analyze_results,
+      );
     }
     let start = logger.time("seal compilation");
     self.compilation.seal(self.plugin_driver.clone()).await?;

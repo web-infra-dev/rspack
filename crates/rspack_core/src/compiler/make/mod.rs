@@ -24,7 +24,7 @@ pub struct MakeArtifact {
   pub diagnostics: Vec<Diagnostic>,
 
   entry_module_identifiers: IdentifierSet,
-  optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
+  pub optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
   pub file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
@@ -52,7 +52,6 @@ impl MakeArtifact {
   // TODO remove it
   fn move_data_from_compilation(&mut self, compilation: &mut Compilation) {
     self.entry_module_identifiers = std::mem::take(&mut compilation.entry_module_identifiers);
-    self.optimize_analyze_result_map = std::mem::take(&mut compilation.optimize_analyze_result_map);
     self.file_dependencies = std::mem::take(&mut compilation.file_dependencies);
     self.context_dependencies = std::mem::take(&mut compilation.context_dependencies);
     self.missing_dependencies = std::mem::take(&mut compilation.missing_dependencies);
@@ -62,7 +61,6 @@ impl MakeArtifact {
   // TODO remove it
   fn move_data_to_compilation(&mut self, compilation: &mut Compilation) {
     compilation.entry_module_identifiers = std::mem::take(&mut self.entry_module_identifiers);
-    compilation.optimize_analyze_result_map = std::mem::take(&mut self.optimize_analyze_result_map);
     compilation.file_dependencies = std::mem::take(&mut self.file_dependencies);
     compilation.context_dependencies = std::mem::take(&mut self.context_dependencies);
     compilation.missing_dependencies = std::mem::take(&mut self.missing_dependencies);

@@ -164,7 +164,6 @@ pub struct Compilation {
   pub used_symbol_ref: HashSet<SymbolRef>,
   /// Collecting all module that need to skip in tree-shaking ast modification phase
   pub bailout_module_identifiers: IdentifierMap<BailoutFlag>,
-  pub optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
 
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: IdentifierSet,
@@ -250,7 +249,6 @@ impl Compilation {
       named_chunk_groups: Default::default(),
       entry_module_identifiers: IdentifierSet::default(),
       used_symbol_ref: HashSet::default(),
-      optimize_analyze_result_map: IdentifierMap::default(),
       bailout_module_identifiers: IdentifierMap::default(),
 
       code_generation_results: Default::default(),
@@ -1576,6 +1574,15 @@ impl Compilation {
   // TODO remove it after code splitting support incremental rebuild
   pub fn has_module_import_export_change(&self) -> bool {
     self.make_artifact.has_module_graph_change
+  }
+
+  // TODO remove it after remove old treeshaking
+  pub fn optimize_analyze_result_map(&self) -> &IdentifierMap<OptimizeAnalyzeResult> {
+    &self.make_artifact.optimize_analyze_result_map
+  }
+  // TODO remove it after remove old treeshaking
+  pub fn optimize_analyze_result_map_mut(&mut self) -> &mut IdentifierMap<OptimizeAnalyzeResult> {
+    &mut self.make_artifact.optimize_analyze_result_map
   }
 }
 

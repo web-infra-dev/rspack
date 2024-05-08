@@ -90,7 +90,7 @@ impl HarmonyImportSpecifierDependency {
     let module_graph = compilation.get_module_graph();
     let related_symbol = module_graph
       .get_parent_module(&self.id)
-      .and_then(|parent_module| compilation.optimize_analyze_result_map.get(parent_module))
+      .and_then(|parent_module| compilation.optimize_analyze_result_map().get(parent_module))
       .and_then(|analyze_res| {
         analyze_res
           .harmony_import_specifier_dependency_alias_map
