@@ -1,6 +1,5 @@
 use std::fmt::Write;
 use std::hash::Hasher;
-use std::path::PathBuf;
 
 use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::Lazy;
@@ -16,7 +15,6 @@ use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
 use rspack_util::identifier::make_paths_relative;
 use rspack_util::infallible::ResultInfallibleExt;
 use rustc_hash::FxHashSet as HashSet;
-use sugar_path::SugarPath;
 use swc_core::common::Spanned;
 use swc_core::css::modules::CssClassName;
 use swc_core::ecma::atoms::Atom;
@@ -64,17 +62,13 @@ impl<'a> ModulesTransformConfig<'a> {
 
 impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
   fn new_name_for(&self, local: &Atom) -> Atom {
-    let mut relative_path = self.resource_data.resource_path.relative(self.context);
-    let relative_str = relative_path.to_string_lossy().to_string();
-
-    // abc.js => ./abc.js, align with webpack
-    if !relative_path.is_absolute() && !relative_str.starts_with('.') {
-      relative_path = PathBuf::from(format!("./{}", relative_str));
-    }
-
+    let relative_path = make_paths_relative(
+      &self.context,
+      &self.resource_data.resource_path.to_string_lossy(),
+    );
     let hash = {
       let mut hasher = RspackHash::with_salt(self.hash_function, self.hash_salt);
-      hasher.write(relative_path.to_string_lossy().as_bytes());
+      hasher.write(relative_path.as_bytes());
       let contains_local = self
         .local_name_ident
         .template
@@ -93,7 +87,7 @@ impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
       make_paths_relative(self.context.as_str(), &self.resource_data.resource);
     LocalIdentNameRenderOptions {
       path_data: PathData::default()
-        .filename(&relative_path.to_string_lossy())
+        .filename(&relative_path)
         .hash(&hash)
         // TODO: should be moduleId, but we don't have it at parse,
         // and it's lots of work to move css module compile to generator,
