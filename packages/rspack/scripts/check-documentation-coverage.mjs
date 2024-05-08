@@ -1,0 +1,80 @@
+import { ApiModel, ApiItemKind, ApiVariable } from '@microsoft/api-extractor-model';
+import { fileURLToPath } from 'url';
+import { dirname, resolve, extname, basename } from 'path';
+import { readdirSync } from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const PLUGIN_REGEX = /^[A-Z][a-zA-Z]+Plugin$/;
+const PLUGIN_API_JSON = resolve(__dirname, '../temp/core.api.json');
+const PLUGIN_DOCS_DIR = resolve(__dirname, '../../../website/docs/en/plugins');
+
+function getImplementedPlugins() {
+    const apiModel = new ApiModel();
+    apiModel.loadPackage(PLUGIN_API_JSON);
+
+    const implementedPlugins = new Set();
+
+    function visitApiItem(apiItem) {
+        if ([ApiItemKind.Class, ApiItemKind.Variable].includes(apiItem.kind) && PLUGIN_REGEX.test(apiItem.displayName)) {
+            implementedPlugins.add(apiItem.displayName);
+        } else if (apiItem instanceof ApiVariable) {
+            for (const token of apiItem.excerptTokens) {
+                if (PLUGIN_REGEX.test(token.text)) {
+                    implementedPlugins.add(token.text);
+                }
+            }
+        }
+        for (const member of apiItem.members) {
+            visitApiItem(member);
+        }
+    }
+    visitApiItem(apiModel);
+
+    return implementedPlugins;
+}
+
+function toCamelCase(s) {
+    return s
+        .split(/[\s-_]+/)
+        .map(word =>
+            word[0].toUpperCase() + word.slice(1).toLowerCase()
+        )
+        .join('');
+}
+
+function getDocumentedPlugins() {
+    const documentedPlugins = new Set();
+
+    function visitDir(dir) {
+        const items = readdirSync(dir, { withFileTypes: true });
+        for (const item of items) {
+            const resPath = resolve(dir, item.name);
+            if (item.isDirectory()) {
+                visitDir(resPath)
+            } else {
+                const ext = extname(item.name);
+                if (ext === '.mdx') {
+                    const name = toCamelCase(basename(item.name, ext));
+                    if (PLUGIN_REGEX.test(name)) {
+                        documentedPlugins.add(name);
+                    }
+                }
+            }
+        }
+    }
+    visitDir(PLUGIN_DOCS_DIR)
+
+    return documentedPlugins;
+}
+
+const implementedPlugins = getImplementedPlugins();
+const documentedPlugins = getDocumentedPlugins();
+
+const undocumentedPlugins = Array.from(implementedPlugins).filter(plugin => !documentedPlugins.has(plugin));
+
+if (undocumentedPlugins.length) {
+    console.error('The following plugins are implemented but not documented:', undocumentedPlugins.join(', '));
+    process.exit(1);
+}
