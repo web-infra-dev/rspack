@@ -63,7 +63,7 @@ impl<'a> ModulesTransformConfig<'a> {
 impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
   fn new_name_for(&self, local: &Atom) -> Atom {
     let relative_path = make_paths_relative(
-      &self.context,
+      self.context,
       &self.resource_data.resource_path.to_string_lossy(),
     );
     let hash = {
