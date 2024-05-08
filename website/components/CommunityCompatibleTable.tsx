@@ -41,22 +41,16 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
 
   const pluginList: PluginSupportStatus[] = [
     {
-      name: 'html-webpack-plugin',
-      url: 'https://www.npmjs.com/package/html-webpack-plugin',
-      status: CompatibleStatus.Compatible,
-      description: i18n[lang]['html-webpack-plugin-desc'],
-    },
-    {
-      name: '@sentry/webpack-plugin',
-      url: 'https://www.npmjs.com/package/@sentry/webpack-plugin',
-      status: CompatibleStatus.Compatible,
-      description: i18n[lang]['sentry_webpack-plugin-desc'],
-    },
-    {
       name: 'case-sensitive-paths-webpack-plugin',
       url: 'https://github.com/Urthen/case-sensitive-paths-webpack-plugin',
       status: CompatibleStatus.Compatible,
       description: i18n[lang]['case-sensitive-paths-webpack-plugin-desc'],
+    },
+    {
+      name: 'copy-webpack-plugin',
+      url: 'https://www.npmjs.com/package/copy-webpack-plugin',
+      status: CompatibleStatus.Included,
+      description: i18n[lang]['copy-plugin-desc'],
     },
     {
       name: 'css-minimizer-webpack-plugin',
@@ -69,16 +63,15 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       status: CompatibleStatus.Compatible,
     },
     {
-      name: 'webpack-manifest-plugin',
-      url: 'https://github.com/shellscape/webpack-manifest-plugin',
-      status: CompatibleStatus.NotCompatible,
-      description: i18n[lang]['webpack-manifest-plugin-desc'],
+      name: 'fork-ts-checker-webpack-plugin',
+      url: 'https://github.com/TypeStrong/fork-ts-checker-webpack-plugin',
+      status: CompatibleStatus.Compatible,
     },
     {
-      name: 'copy-webpack-plugin',
-      url: 'https://www.npmjs.com/package/copy-webpack-plugin',
-      status: CompatibleStatus.Included,
-      description: i18n[lang]['copy-plugin-desc'],
+      name: 'html-webpack-plugin',
+      url: 'https://www.npmjs.com/package/html-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+      description: i18n[lang]['html-webpack-plugin-desc'],
     },
     {
       name: 'mini-css-extract-plugin',
@@ -93,25 +86,32 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       description: i18n[lang]['terser-webpack-plugin-desc'],
     },
     {
-      name: 'webpack-bundle-analyzer',
-      url: 'https://www.npmjs.com/package/webpack-bundle-analyzer',
-      status: CompatibleStatus.Compatible,
-    },
-    {
       name: 'tsconfig-paths-webpack-plugin',
       url: 'https://www.npmjs.com/package/tsconfig-paths-webpack-plugin',
       status: CompatibleStatus.Included,
       description: i18n[lang]['tsconfig-paths-webpack-plugin-desc'],
     },
     {
-      name: 'fork-ts-checker-webpack-plugin',
-      url: 'https://github.com/TypeStrong/fork-ts-checker-webpack-plugin',
+      name: 'webpack-bundle-analyzer',
+      url: 'https://www.npmjs.com/package/webpack-bundle-analyzer',
       status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'webpack-manifest-plugin',
+      url: 'https://github.com/shellscape/webpack-manifest-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['webpack-manifest-plugin-desc'],
     },
     {
       name: 'webpack-subresource-integrity',
       url: 'https://github.com/waysact/webpack-subresource-integrity',
       status: CompatibleStatus.NotCompatible,
+    },
+    {
+      name: '@sentry/webpack-plugin',
+      url: 'https://www.npmjs.com/package/@sentry/webpack-plugin',
+      status: CompatibleStatus.Compatible,
+      description: i18n[lang]['sentry_webpack-plugin-desc'],
     },
   ];
 
