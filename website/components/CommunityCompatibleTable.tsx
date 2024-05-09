@@ -14,7 +14,7 @@ export enum CompatibleStatus {
 const SUPPORT_STATUS_LOCALIZED = {
   [CompatibleStatus.NotCompatible]: {
     symbol: '🔴',
-    en: 'Not Compatible',
+    en: 'Incompatible',
     zh: '不兼容',
   },
   [CompatibleStatus.Compatible]: {
@@ -127,7 +127,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
           name: lang === 'zh' ? '支持情况' : 'Support status',
           key: 'status',
           style: {
-            width: '200px',
+            width: '150px',
           },
         },
         {
@@ -144,7 +144,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
           const notesText = (() => {
             if (description) {
               return (
-                <div className={S.PluginNote}>
+                <div>
                   <Markdown>{description}</Markdown>
                 </div>
               );
@@ -156,7 +156,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
 
           return {
             name: (
-              <a className={S.PluginLink} href={url}>
+              <a href={url} target="_blank" rel="noreferrer">
                 {name}
               </a>
             ),

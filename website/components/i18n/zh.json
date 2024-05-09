@@ -6,10 +6,10 @@
   "babel-loader-remark": "babel-loader 对性能影响较大，请谨慎使用",
   "html-webpack-plugin-desc": "在 v0.3.3 已实现对该插件的支持，请升级 Rspack 版本来使用",
   "sentry_webpack-plugin-desc": "在 v0.3.3 已实现对该插件 v1.20.1 以上版本的支持",
-  "copy-plugin-desc": "使用 [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 替代",
-  "mini-css-extract-plugin-desc": "使用 [experiments.css](/config/experiments#experimentscss) 或 [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) 替代",
-  "terser-webpack-plugin-desc": "使用 [rspack.SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 替代",
+  "copy-plugin-desc": "使用 [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 替代",
+  "mini-css-extract-plugin-desc": "使用 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) 替代",
+  "terser-webpack-plugin-desc": "使用 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 替代",
   "tsconfig-paths-webpack-plugin-desc": "使用 [resolve.tsconfigPath](/config/resolve#resolvetsconfigpath) 替代",
   "case-sensitive-paths-webpack-plugin-desc": "不支持 `useBeforeEmitHook` 选项",
-  "webpack-manifest-plugin-desc": "使用 [rspack-manifest-plugin](https://github.com/rspack-contrib/rspack-manifest-plugin) 代替"
+  "webpack-manifest-plugin-desc": "使用 [rspack-manifest-plugin](https://github.com/rspack-contrib/rspack-manifest-plugin) 替代"
 }
