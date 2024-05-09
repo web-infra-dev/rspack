@@ -53,6 +53,11 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       description: i18n[lang]['copy-plugin-desc'],
     },
     {
+      name: 'compression-webpack-plugin',
+      url: 'https://github.com/webpack-contrib/compression-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
       name: 'css-minimizer-webpack-plugin',
       url: 'https://github.com/webpack-contrib/css-minimizer-webpack-plugin',
       status: CompatibleStatus.Compatible,
@@ -105,6 +110,23 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'webpack-subresource-integrity',
       url: 'https://github.com/waysact/webpack-subresource-integrity',
+      status: CompatibleStatus.NotCompatible,
+    },
+    {
+      name: 'directory-named-webpack-plugin',
+      url: 'https://github.com/shaketbaby/directory-named-webpack-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['resolve-plugin-un-support-desc'],
+    },
+    {
+      name: 'pnp-webpack-plugin',
+      url: 'https://github.com/arcanis/pnp-webpack-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['resolve-plugin-un-support-desc'],
+    },
+    {
+      name: 'webpack-virtual-modules',
+      url: 'https://github.com/sysgears/webpack-virtual-modules',
       status: CompatibleStatus.NotCompatible,
     },
     {
