@@ -75,7 +75,8 @@ module.exports = {
 <ApiMeta addedVersion="0.6.6" />
 
 - **Type:** `boolean`
-- **Default:** `false`
+
+By default, It changes to `true` if [resolve.extensions](#resolveextensions) contains an empty string; otherwise, this value changes to `false`.
 
 If `true`, it will not allow extension-less files. So by default `require('./foo')` works if `./foo` has a `.js` extension, but with this enabled only `require('./foo.js')` will work.
 

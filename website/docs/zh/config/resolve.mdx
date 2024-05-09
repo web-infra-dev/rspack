@@ -75,7 +75,8 @@ module.exports = {
 <ApiMeta addedVersion="0.6.6" />
 
 - **类型：** `boolean`
-- **默认值：** `false`
+
+默认情况下，当 [resolve.extensions](#resolveextensions) 包含空字符串时，`enforceExtension` 会设置为 `true`；否则，将设置为 `false`。
 
 如果是 `true`，将不允许无扩展名文件。默认如果 `./foo` 有 `.js` 扩展，`require('./foo')` 可以正常运行。但如果启用此选项，只有 `require('./foo.js')` 能够正常工作。
 

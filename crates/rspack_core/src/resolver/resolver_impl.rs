@@ -197,7 +197,7 @@ fn to_oxc_resolver_options(
       true => oxc_resolver::EnforceExtension::Enabled,
       false => oxc_resolver::EnforceExtension::Disabled,
     })
-    .unwrap_or(oxc_resolver::EnforceExtension::Disabled);
+    .unwrap_or(oxc_resolver::EnforceExtension::Auto);
   let description_files = options
     .description_files
     .unwrap_or_else(|| vec!["package.json".to_string()]);
