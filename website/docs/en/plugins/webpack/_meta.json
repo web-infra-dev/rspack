@@ -9,6 +9,7 @@
   "ignore-plugin",
   "progress-plugin",
   "externals-plugin",
+  "eval-source-map-dev-tool-plugin",
   "source-map-dev-tool-plugin",
   "split-chunks-plugin",
   "node-target-plugin",
