@@ -106,7 +106,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     //   analyze_result_map
     // };
     let mut optimize_analyze_result_map =
-      std::mem::take(&mut self.compilation.optimize_analyze_result_map);
+      std::mem::take(self.compilation.optimize_analyze_result_map_mut());
     let module_graph = self.compilation.get_module_graph();
     optimize_analyze_result_map.iter_mut().for_each(
       |(module_identifier, optimize_analyze_result)| {
@@ -118,10 +118,13 @@ impl<'a> CodeSizeOptimizer<'a> {
         }
       },
     );
-    self.compilation.optimize_analyze_result_map = optimize_analyze_result_map;
+    std::mem::swap(
+      &mut optimize_analyze_result_map,
+      self.compilation.optimize_analyze_result_map_mut(),
+    );
     // We will set it back and return the analyze result, take is safe here.
     let mut finalized_result_map =
-      std::mem::take(&mut self.compilation.optimize_analyze_result_map);
+      std::mem::take(self.compilation.optimize_analyze_result_map_mut());
     let mut evaluated_used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
     let side_effects_options = self

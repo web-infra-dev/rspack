@@ -18,10 +18,12 @@ use self::{
   execute::{ExecuteModuleResult, ExecuteTask},
   overwrite::OverwriteTask,
 };
-use super::make::{repair::MakeTaskContext, update_module_graph_with_artifact, MakeArtifact};
+use super::make::{
+  repair::MakeTaskContext, update_module_graph_with_artifact, MakeArtifact, MakeParam,
+};
 use crate::{
   task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context, Dependency,
-  DependencyId, EntryDependency, MakeParam,
+  DependencyId, EntryDependency,
 };
 
 #[derive(Debug, Default)]
@@ -35,20 +37,14 @@ pub struct ModuleExecutor {
 }
 
 impl ModuleExecutor {
-  pub async fn hook_before_make(
-    &mut self,
-    compilation: &Compilation,
-    global_params: &Vec<MakeParam>,
-  ) {
+  pub async fn hook_before_make(&mut self, compilation: &Compilation) {
     let mut make_artifact = std::mem::take(&mut self.make_artifact);
     let mut params = vec![];
-    for param in global_params {
-      if matches!(param, MakeParam::DeletedFiles(_)) {
-        params.push(param.clone());
-      }
-      if matches!(param, MakeParam::ModifiedFiles(_)) {
-        params.push(param.clone());
-      }
+    if !compilation.modified_files.is_empty() {
+      params.push(MakeParam::ModifiedFiles(compilation.modified_files.clone()));
+    }
+    if !compilation.removed_files.is_empty() {
+      params.push(MakeParam::RemovedFiles(compilation.removed_files.clone()));
     }
     if !make_artifact.make_failed_dependencies.is_empty() {
       let deps = std::mem::take(&mut make_artifact.make_failed_dependencies);
@@ -59,13 +55,12 @@ impl ModuleExecutor {
       params.push(MakeParam::ForceBuildModules(modules));
     }
 
-    make_artifact = if let Ok(artifact) =
-      update_module_graph_with_artifact(compilation, make_artifact, params).await
-    {
-      artifact
-    } else {
-      MakeArtifact::default()
-    };
+    make_artifact =
+      if let Ok(artifact) = update_module_graph_with_artifact(compilation, make_artifact, params) {
+        artifact
+      } else {
+        MakeArtifact::default()
+      };
 
     let mut ctx = MakeTaskContext::new(compilation, make_artifact);
     let (event_sender, event_receiver) = unbounded_channel();
