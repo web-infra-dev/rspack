@@ -450,7 +450,7 @@ export const PluginSupportStatusTable: React.FC = () => {
           name: lang === 'zh' ? '支持情况' : 'Support status',
           key: 'status',
           style: {
-            width: '200px',
+            width: '190px',
           },
         },
         {
