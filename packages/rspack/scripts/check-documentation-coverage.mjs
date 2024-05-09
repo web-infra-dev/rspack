@@ -111,8 +111,6 @@ if (unimplementedPlugins.length) {
 	);
 }
 
-// TODO: remove the comments below once all plugins have been documented
-// if (undocumentedPlugins.length || unimplementedPlugins.length) {
-if (unimplementedPlugins.length) {
+if (undocumentedPlugins.length || unimplementedPlugins.length) {
 	process.exit(1);
 }
