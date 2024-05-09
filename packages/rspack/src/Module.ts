@@ -26,18 +26,22 @@ export type ResolveData = {
 	createData?: CreateData;
 };
 
-export type ContextModuleFactoryBeforeResolveResult = false | {
-	context: string;
-	request?: string;
-}
+export type ContextModuleFactoryBeforeResolveResult =
+	| false
+	| {
+			context: string;
+			request?: string;
+	  };
 
-export type ContextModuleFactoryAfterResolveResult = false | {
-	resource: string;
-	context: string
-	request: string
-	regExp?: RegExp;
-	dependencies: Array<any>;
-}
+export type ContextModuleFactoryAfterResolveResult =
+	| false
+	| {
+			resource: string;
+			context: string;
+			request: string;
+			regExp?: RegExp;
+			dependencies: Array<any>;
+	  };
 
 export class Module {
 	#inner: JsModule;

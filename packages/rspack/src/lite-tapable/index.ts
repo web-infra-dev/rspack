@@ -822,7 +822,7 @@ export class AsyncSeriesWaterfallHook<
 					(r: R) => {
 						index += 1;
 						if (r !== undefined) {
-							data = r
+							data = r;
 						}
 						if (index === tapsInRange.length) {
 							done();
@@ -843,7 +843,7 @@ export class AsyncSeriesWaterfallHook<
 					} else {
 						index += 1;
 						if (r !== undefined) {
-							data = r
+							data = r;
 						}
 						if (index === tapsInRange.length) {
 							done();
@@ -857,7 +857,7 @@ export class AsyncSeriesWaterfallHook<
 				try {
 					const r = tap.fn(data);
 					if (r !== undefined) {
-						data = r
+						data = r;
 					}
 				} catch (e) {
 					hasError = true;
