@@ -17,6 +17,7 @@
   "target",
   "watch",
   "externals",
+  "performance",
   "stats",
   "experiments",
   "builtins",

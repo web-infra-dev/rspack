@@ -2,9 +2,9 @@ use hashlink::LinkedHashMap;
 
 use super::value_type::{GetValueType, ValueType};
 use super::{
-  Alias, AliasFields, ConditionNames, ExportsField, ExtensionAlias, Extensions, Fallback,
-  FullySpecified, MainFields, MainFiles, Modules, PreferAbsolute, PreferRelative, Restrictions,
-  Roots, Symlink, TsconfigOptions,
+  Alias, AliasFields, ConditionNames, DescriptionFiles, EnforceExtension, ExportsField,
+  ExtensionAlias, Extensions, Fallback, FullySpecified, ImportsField, MainFields, MainFiles,
+  Modules, PreferAbsolute, PreferRelative, Restrictions, Roots, Symlink, TsconfigOptions,
 };
 use super::{ByDependency, DependencyCategoryStr, Resolve};
 
@@ -31,6 +31,9 @@ fn is_empty(resolve: &Resolve) -> bool {
     && is_none!(fallback)
     && is_none!(fully_specified)
     && is_none!(exports_field)
+    && is_none!(imports_field)
+    && is_none!(description_files)
+    && is_none!(enforce_extension)
     && is_none!(extension_alias)
     && is_none!(alias_fields)
     && is_none!(restrictions)
@@ -60,6 +63,9 @@ struct ResolveWithEntry {
   tsconfig: Entry<TsconfigOptions>,
   fully_specified: Entry<FullySpecified>,
   exports_field: Entry<ExportsField>,
+  imports_field: Entry<ImportsField>,
+  description_files: Entry<DescriptionFiles>,
+  enforce_extension: Entry<EnforceExtension>,
   extension_alias: Entry<ExtensionAlias>,
   alias_fields: Entry<AliasFields>,
   restrictions: Entry<Restrictions>,
@@ -89,6 +95,9 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
     tsconfig: entry!(tsconfig),
     fully_specified: entry!(fully_specified),
     exports_field: entry!(exports_field),
+    imports_field: entry!(imports_field),
+    description_files: entry!(description_files),
+    enforce_extension: entry!(enforce_extension),
     extension_alias: entry!(extension_alias),
     alias_fields: entry!(alias_fields),
     restrictions: entry!(restrictions),
@@ -133,6 +142,9 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
   update_by_value!(fallback);
   update_by_value!(fully_specified);
   update_by_value!(exports_field);
+  update_by_value!(imports_field);
+  update_by_value!(description_files);
+  update_by_value!(enforce_extension);
   update_by_value!(extension_alias);
   update_by_value!(alias_fields);
   update_by_value!(restrictions);
@@ -306,6 +318,19 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     fallback: merge!(fallback, ValueType::Other, |_| false, extend_alias),
     alias: merge!(alias, ValueType::Other, |_| false, extend_alias),
     exports_field: merge!(exports_field, ValueType::Other, |_| false, |_, b| b),
+    imports_field: merge!(imports_field, ValueType::Other, |_| false, |_, b| b),
+    description_files: merge!(
+      description_files,
+      second.description_files.base.get_value_type(),
+      need_merge_base,
+      |a, b| normalize_string_array(a, b)
+    ),
+    enforce_extension: merge!(
+      enforce_extension,
+      second.enforce_extension.base.get_value_type(),
+      |_| true,
+      |_, b| b
+    ),
     tsconfig: merge!(tsconfig, ValueType::Other, |_| false, |_, b| b),
     extension_alias: merge!(extension_alias, ValueType::Other, |_| false, |a, b| {
       extend_extension_alias(a, b)
@@ -342,6 +367,9 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   setup_by_values!(fallback);
   setup_by_values!(fully_specified);
   setup_by_values!(exports_field);
+  setup_by_values!(imports_field);
+  setup_by_values!(description_files);
+  setup_by_values!(enforce_extension);
   setup_by_values!(extension_alias);
   setup_by_values!(alias_fields);
   setup_by_values!(restrictions);
@@ -372,6 +400,9 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   to_resolve!(fallback);
   to_resolve!(fully_specified);
   to_resolve!(exports_field);
+  to_resolve!(imports_field);
+  to_resolve!(description_files);
+  to_resolve!(enforce_extension);
   to_resolve!(extension_alias);
   to_resolve!(alias_fields);
   to_resolve!(restrictions);
@@ -398,6 +429,9 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     fallback: result_entry.fallback.base,
     fully_specified: result_entry.fully_specified.base,
     exports_field: result_entry.exports_field.base,
+    imports_field: result_entry.imports_field.base,
+    description_files: result_entry.description_files.base,
+    enforce_extension: result_entry.enforce_extension.base,
     extension_alias: result_entry.extension_alias.base,
     alias_fields: result_entry.alias_fields.base,
     restrictions: result_entry.restrictions.base,

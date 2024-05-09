@@ -2813,6 +2813,7 @@ dependencies = [
  "rspack_plugin_runtime",
  "rspack_plugin_runtime_chunk",
  "rspack_plugin_schemes",
+ "rspack_plugin_size_limits",
  "rspack_plugin_split_chunks",
  "rspack_plugin_swc_css_minimizer",
  "rspack_plugin_swc_js_minimizer",
@@ -3512,6 +3513,18 @@ dependencies = [
  "rspack_hook",
  "url",
  "urlencoding",
+]
+
+[[package]]
+name = "rspack_plugin_size_limits"
+version = "0.1.0"
+dependencies = [
+ "derivative",
+ "futures",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_util",
 ]
 
 [[package]]

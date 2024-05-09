@@ -10,6 +10,7 @@ pub mod identifier;
 pub mod infallible;
 pub mod number_hash;
 pub mod path;
+pub mod size;
 pub mod source_map;
 pub mod swc;
 pub mod test;

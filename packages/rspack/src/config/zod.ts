@@ -410,6 +410,9 @@ const baseResolveOptions = z.strictObject({
 	preferRelative: z.boolean().optional(),
 	preferAbsolute: z.boolean().optional(),
 	symlinks: z.boolean().optional(),
+	enforceExtension: z.boolean().optional(),
+	importsFields: z.array(z.string()).optional(),
+	descriptionFiles: z.array(z.string()).optional(),
 	tsConfigPath: z.string().optional(),
 	tsConfig: resolveTsconfig.optional(),
 	fullySpecified: z.boolean().optional(),
@@ -1273,6 +1276,18 @@ const bail = z.boolean();
 export type Bail = z.infer<typeof bail>;
 //#endregion
 
+//#region Performance
+const performance = z
+	.strictObject({
+		assetFilter: z.function().args(z.string()).returns(z.boolean()).optional(),
+		hints: z.enum(["error", "warning"]).or(z.literal(false)).optional(),
+		maxAssetSize: z.number().optional(),
+		maxEntrypointSize: z.number().optional()
+	})
+	.or(z.literal(false));
+export type Performance = z.infer<typeof performance>;
+//#endregion
+
 //#region Builtins (deprecated)
 const builtins = z.custom<BuiltinsType>();
 export type Builtins = z.infer<typeof builtins>;
@@ -1307,7 +1322,8 @@ export const rspackOptions = z.strictObject({
 	builtins: builtins.optional(),
 	module: moduleOptions.optional(),
 	profile: profile.optional(),
-	bail: bail.optional()
+	bail: bail.optional(),
+	performance: performance.optional()
 });
 export type RspackOptions = z.infer<typeof rspackOptions>;
 export type Configuration = RspackOptions;

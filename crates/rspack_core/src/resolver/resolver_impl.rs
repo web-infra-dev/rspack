@@ -191,8 +191,19 @@ fn to_oxc_resolver_options(
 ) -> oxc_resolver::ResolveOptions {
   let options = options.merge_by_dependency(dependency_type);
   let tsconfig = options.tsconfig.map(|c| c.into());
-  let enforce_extension = oxc_resolver::EnforceExtension::Auto;
-  let description_files = vec!["package.json".to_string()];
+  let enforce_extension = options
+    .enforce_extension
+    .map(|e| match e {
+      true => oxc_resolver::EnforceExtension::Enabled,
+      false => oxc_resolver::EnforceExtension::Disabled,
+    })
+    .unwrap_or(oxc_resolver::EnforceExtension::Auto);
+  let description_files = options
+    .description_files
+    .unwrap_or_else(|| vec!["package.json".to_string()]);
+  let imports_fields = options
+    .imports_field
+    .unwrap_or_else(|| vec![vec!["imports".to_string()]]);
   let extensions = options.extensions.expect("should have extensions");
   let alias = options
     .alias
@@ -281,7 +292,7 @@ fn to_oxc_resolver_options(
     restrictions,
     roots,
     builtin_modules: false,
-    imports_fields: vec![vec!["imports".to_string()]],
+    imports_fields,
   }
 }
 

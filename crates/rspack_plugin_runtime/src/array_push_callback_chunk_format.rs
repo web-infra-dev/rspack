@@ -77,7 +77,7 @@ impl JavascriptModulesPluginPlugin for ArrayPushCallbackChunkFormatJavascriptMod
           args.chunk_ukey,
         )?);
       }
-      source.add(RawSource::Source(");".to_string()));
+      source.add(RawSource::Source(")".to_string()));
     } else {
       let chunk_loading_global = &args.compilation.options.output.chunk_loading_global;
 
@@ -129,7 +129,7 @@ impl JavascriptModulesPluginPlugin for ArrayPushCallbackChunkFormatJavascriptMod
         }
         source.add(RawSource::from("\n}\n"));
       }
-      source.add(RawSource::from("]);"));
+      source.add(RawSource::from("])"));
     }
 
     Ok(Some(source.boxed()))
