@@ -334,6 +334,7 @@ Object {
     "workerPublicPath": "",
     "workerWasmLoading": "fetch",
   },
+  "performance": false,
   "plugins": Array [],
   "profile": false,
   "resolve": Object {

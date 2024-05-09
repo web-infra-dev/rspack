@@ -8,6 +8,7 @@ mod raw_limit_chunk_count;
 mod raw_mf;
 mod raw_progress;
 mod raw_runtime_chunk;
+mod raw_size_limits;
 mod raw_swc_js_minimizer;
 mod raw_to_be_deprecated;
 
@@ -60,6 +61,7 @@ use rspack_plugin_runtime::{
 };
 use rspack_plugin_runtime_chunk::RuntimeChunkPlugin;
 use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
+use rspack_plugin_size_limits::SizeLimitsPlugin;
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
@@ -79,6 +81,7 @@ use self::{
   raw_css_extract::RawCssExtractPluginOption,
   raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
   raw_runtime_chunk::RawRuntimeChunkOptions,
+  raw_size_limits::RawSizeLimitsPluginOptions,
 };
 use crate::{
   plugins::{CssExtractRspackAdditionalDataPlugin, JsLoaderResolverPlugin},
@@ -147,6 +150,7 @@ pub enum BuiltinPluginName {
   CssModulesPlugin,
   APIPlugin,
   RuntimeChunkPlugin,
+  SizeLimitsPlugin,
 
   // rspack specific plugins
   // naming format follow XxxRspackPlugin
@@ -402,6 +406,12 @@ impl BuiltinPlugin {
         RuntimeChunkPlugin::new(downcast_into::<RawRuntimeChunkOptions>(self.options)?.into())
           .boxed(),
       ),
+      BuiltinPluginName::SizeLimitsPlugin => {
+        let plugin =
+          SizeLimitsPlugin::new(downcast_into::<RawSizeLimitsPluginOptions>(self.options)?.into())
+            .boxed();
+        plugins.push(plugin)
+      }
 
       // rspack specific plugins
       BuiltinPluginName::HttpExternalsRspackPlugin => {

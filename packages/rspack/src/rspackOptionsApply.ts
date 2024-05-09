@@ -59,6 +59,7 @@ import {
 	FlagDependencyExportsPlugin,
 	FlagDependencyUsagePlugin,
 	SideEffectsFlagPlugin,
+	SizeLimitsPlugin,
 	BundlerInfoRspackPlugin,
 	ModuleConcatenationPlugin,
 	EvalDevToolModulePlugin,
@@ -317,6 +318,10 @@ export class RspackOptionsApply {
 					item.apply(compiler);
 				}
 			}
+		}
+
+		if (options.performance) {
+			new SizeLimitsPlugin(options.performance).apply(compiler);
 		}
 
 		new WarnCaseSensitiveModulesPlugin().apply(compiler);

@@ -51,6 +51,7 @@ rspack_plugin_remove_empty_chunks     = { path = "../rspack_plugin_remove_empty_
 rspack_plugin_runtime                 = { path = "../rspack_plugin_runtime" }
 rspack_plugin_runtime_chunk           = { path = "../rspack_plugin_runtime_chunk" }
 rspack_plugin_schemes                 = { path = "../rspack_plugin_schemes" }
+rspack_plugin_size_limits             = { path = "../rspack_plugin_size_limits" }
 rspack_plugin_split_chunks            = { path = "../rspack_plugin_split_chunks" }
 rspack_plugin_swc_css_minimizer       = { path = "../rspack_plugin_swc_css_minimizer" }
 rspack_plugin_swc_js_minimizer        = { path = "../rspack_plugin_swc_js_minimizer" }
