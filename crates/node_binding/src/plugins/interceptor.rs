@@ -12,34 +12,35 @@ use napi::{
 use rspack_binding_values::{
   CompatSource, JsAfterResolveData, JsAfterResolveOutput, JsAssetEmittedArgs, JsBeforeResolveArgs,
   JsBeforeResolveOutput, JsChunk, JsChunkAssetArgs, JsCompilation,
-  JsContextModuleFactoryAfterResolveResult, JsCreateData, JsExecuteModuleArg, JsModule,
-  JsNormalModuleFactoryCreateModuleArgs, JsResolveForSchemeArgs, JsResolveForSchemeOutput,
-  JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
+  JsContextModuleFactoryAfterResolveData, JsContextModuleFactoryAfterResolveResult,
+  JsContextModuleFactoryBeforeResolveData, JsContextModuleFactoryBeforeResolveResult, JsCreateData,
+  JsExecuteModuleArg, JsModule, JsNormalModuleFactoryCreateModuleArgs, JsResolveForSchemeArgs,
+  JsResolveForSchemeOutput, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
 };
 use rspack_core::{
-  rspack_sources::SourceExt, AfterResolveResult, AssetEmittedInfo, BoxModule, Chunk, ChunkUkey,
-  CodeGenerationResults, Compilation, CompilationAfterOptimizeModules,
-  CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
-  CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
-  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
-  CompilationChunkAssetHook, CompilationExecuteModule, CompilationExecuteModuleHook,
-  CompilationFinishModules, CompilationFinishModulesHook, CompilationOptimizeChunkModules,
-  CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
-  CompilationOptimizeTree, CompilationOptimizeTreeHook, CompilationParams,
-  CompilationProcessAssets, CompilationProcessAssetsHook, CompilationRuntimeModule,
-  CompilationRuntimeModuleHook, CompilationStillValidModule, CompilationStillValidModuleHook,
-  CompilationSucceedModule, CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook,
-  CompilerAssetEmitted, CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook,
-  CompilerEmit, CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerMake,
-  CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
-  CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
-  ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
-  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, MakeParam, ModuleFactoryCreateData,
-  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
-  NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolve,
-  NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModule,
-  NormalModuleFactoryCreateModuleHook, NormalModuleFactoryResolveForScheme,
-  NormalModuleFactoryResolveForSchemeHook, ResourceData,
+  rspack_sources::SourceExt, AfterResolveData, AfterResolveResult, AssetEmittedInfo,
+  BeforeResolveData, BeforeResolveResult, BoxModule, Chunk, ChunkUkey, CodeGenerationResults,
+  Compilation, CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
+  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
+  CompilationAfterSealHook, CompilationBuildModule, CompilationBuildModuleHook,
+  CompilationChunkAsset, CompilationChunkAssetHook, CompilationExecuteModule,
+  CompilationExecuteModuleHook, CompilationFinishModules, CompilationFinishModulesHook,
+  CompilationOptimizeChunkModules, CompilationOptimizeChunkModulesHook, CompilationOptimizeModules,
+  CompilationOptimizeModulesHook, CompilationOptimizeTree, CompilationOptimizeTreeHook,
+  CompilationParams, CompilationProcessAssets, CompilationProcessAssetsHook,
+  CompilationRuntimeModule, CompilationRuntimeModuleHook, CompilationStillValidModule,
+  CompilationStillValidModuleHook, CompilationSucceedModule, CompilationSucceedModuleHook,
+  CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted, CompilerAssetEmittedHook,
+  CompilerCompilation, CompilerCompilationHook, CompilerEmit, CompilerEmitHook, CompilerFinishMake,
+  CompilerFinishMakeHook, CompilerMake, CompilerMakeHook, CompilerShouldEmit,
+  CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
+  ContextModuleFactoryAfterResolve, ContextModuleFactoryAfterResolveHook,
+  ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
+  MakeParam, ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
+  NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
+  NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
+  NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
+  NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook, ResourceData,
 };
 use rspack_hook::{Hook, Interceptor};
 use rspack_identifier::IdentifierSet;
@@ -437,16 +438,18 @@ pub struct RegisterJsTaps {
   pub register_normal_module_factory_create_module_taps:
     RegisterFunction<JsNormalModuleFactoryCreateModuleArgs, Promise<()>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsContextModuleFactoryBeforeResolveResult) => Promise<JsContextModuleFactoryBeforeResolveResult>); stage: number; }>"
   )]
-  pub register_context_module_factory_before_resolve_taps:
-    RegisterFunction<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>,
+  pub register_context_module_factory_before_resolve_taps: RegisterFunction<
+    JsContextModuleFactoryBeforeResolveResult,
+    Promise<JsContextModuleFactoryBeforeResolveResult>,
+  >,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<boolean | undefined>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsContextModuleFactoryAfterResolveResult) => Promise<JsContextModuleFactoryAfterResolveResult>); stage: number; }>"
   )]
   pub register_context_module_factory_after_resolve_taps: RegisterFunction<
     JsContextModuleFactoryAfterResolveResult,
-    Promise<Option<JsContextModuleFactoryAfterResolveResult>>,
+    Promise<JsContextModuleFactoryAfterResolveResult>,
   >,
 }
 
@@ -667,7 +670,7 @@ define_register!(
 /* ContextModuleFactory Hooks */
 define_register!(
   RegisterContextModuleFactoryBeforeResolveTaps,
-  tap = ContextModuleFactoryBeforeResolveTap<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>> @ ContextModuleFactoryBeforeResolveHook,
+  tap = ContextModuleFactoryBeforeResolveTap<JsContextModuleFactoryBeforeResolveResult, Promise<JsContextModuleFactoryBeforeResolveResult>> @ ContextModuleFactoryBeforeResolveHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::ContextModuleFactoryBeforeResolve,
@@ -675,7 +678,7 @@ define_register!(
 );
 define_register!(
   RegisterContextModuleFactoryAfterResolveTaps,
-  tap = ContextModuleFactoryAfterResolveTap<JsContextModuleFactoryAfterResolveResult, Promise<Option<JsContextModuleFactoryAfterResolveResult>>> @ ContextModuleFactoryAfterResolveHook,
+  tap = ContextModuleFactoryAfterResolveTap<JsContextModuleFactoryAfterResolveResult, Promise<JsContextModuleFactoryAfterResolveResult>> @ ContextModuleFactoryAfterResolveHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::ContextModuleFactoryAfterResolve,
@@ -1207,24 +1210,24 @@ impl NormalModuleFactoryCreateModule for NormalModuleFactoryCreateModuleTap {
 
 #[async_trait]
 impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap {
-  async fn run(&self, data: &mut ModuleFactoryCreateData) -> rspack_error::Result<Option<bool>> {
-    let dependency = data
-      .dependency
-      .as_context_dependency_mut()
-      .expect("should be context dependency");
-    match self
-      .function
-      .call_with_promise(JsBeforeResolveArgs {
-        request: dependency.request().to_string(),
-        context: data.context.to_string(),
-      })
-      .await
-    {
-      Ok((ret, resolve_data)) => {
-        dependency.set_request(resolve_data.request);
-        data.context = resolve_data.context.into();
-        Ok(ret)
+  async fn run(&self, result: BeforeResolveResult) -> rspack_error::Result<BeforeResolveResult> {
+    let js_result = match result {
+      BeforeResolveResult::Ignored => JsContextModuleFactoryBeforeResolveResult::A(false),
+      BeforeResolveResult::Data(d) => {
+        JsContextModuleFactoryBeforeResolveResult::B(JsContextModuleFactoryBeforeResolveData {
+          context: d.context,
+          request: d.request,
+        })
       }
+    };
+    match self.function.call_with_promise(js_result).await {
+      Ok(js_result) => match js_result {
+        napi::bindgen_prelude::Either::A(_) => Ok(BeforeResolveResult::Ignored),
+        napi::bindgen_prelude::Either::B(d) => Ok(BeforeResolveResult::Data(BeforeResolveData {
+          context: d.context,
+          request: d.request,
+        })),
+      },
       Err(err) => Err(err),
     }
   }
@@ -1236,29 +1239,29 @@ impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap 
 
 #[async_trait]
 impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
-  async fn run(
-    &self,
-    mut result: AfterResolveResult,
-  ) -> rspack_error::Result<Option<AfterResolveResult>> {
-    let js_result = self
-      .function
-      .call_with_promise(JsContextModuleFactoryAfterResolveResult {
-        resource: result.resource.to_owned(),
-        context: result.context.to_owned(),
-        request: result.request.to_owned(),
-        reg_exp: result.reg_exp.clone().map(|r| r.to_string()),
-      })
-      .await?;
-    match js_result {
-      Some(js_result) => {
-        result.resource = js_result.resource;
-        result.reg_exp = match js_result.reg_exp {
+  async fn run(&self, result: AfterResolveResult) -> rspack_error::Result<AfterResolveResult> {
+    let js_result = match result {
+      AfterResolveResult::Ignored => JsContextModuleFactoryAfterResolveResult::A(false),
+      AfterResolveResult::Data(d) => {
+        JsContextModuleFactoryAfterResolveResult::B(JsContextModuleFactoryAfterResolveData {
+          resource: d.resource.to_owned(),
+          context: d.context.to_owned(),
+          request: d.request.to_owned(),
+          reg_exp: d.reg_exp.clone().map(|r| r.to_string()),
+        })
+      }
+    };
+    match self.function.call_with_promise(js_result).await? {
+      napi::Either::A(_) => Ok(AfterResolveResult::Ignored),
+      napi::Either::B(d) => Ok(AfterResolveResult::Data(AfterResolveData {
+        resource: d.resource,
+        context: d.context,
+        request: d.request,
+        reg_exp: match d.reg_exp {
           Some(r) => Some(RspackRegex::new(&r)?),
           None => None,
-        };
-        Ok(Some(result))
-      }
-      None => Ok(None),
+        },
+      })),
     }
   }
 

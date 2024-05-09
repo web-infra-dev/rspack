@@ -243,11 +243,9 @@ impl ExecKind {
           #additional_taps
           let mut data = #args;
           for tap in all_taps {
-            if let Some(res) = tap.run(data.clone()).await? {
-              data = res;
-            }
+            data = tap.run(data).await?
           }
-          Ok(Some(data))
+          Ok(data)
         }
       }
       Self::AsyncParallel => {
