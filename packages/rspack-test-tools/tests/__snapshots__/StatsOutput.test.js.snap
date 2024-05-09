@@ -275,83 +275,6 @@ exports[`statsOutput statsOutput/parse-error should print correct stats for pars
 Rspack compiled with 1 error"
 `;
 
-exports[`statsOutput statsOutput/performance-different-mode-and-target should print correct stats for performance-different-mode-and-target 1`] = `
-"PublicPath: auto
-asset warning.pro-web.js 294 KiB [emitted] (name: main)
-Entrypoint main 294 KiB = warning.pro-web.js
-./index.js
-
-WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
-  │   warning.pro-web.js (293.709 KiB)
-
-WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (293.709 KiB)
-  │       warning.pro-web.js
-
-WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
-
-Rspack x.x.x compiled with 3 warnings in X s (ec077f8a3ed582d6ba9c)
-
-PublicPath: auto
-asset warning.pro-webworker.js 294 KiB [emitted] (name: main)
-Entrypoint main 294 KiB = warning.pro-webworker.js
-./index.js
-
-WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
-  │   warning.pro-webworker.js (293.709 KiB)
-
-WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (293.709 KiB)
-  │       warning.pro-webworker.js
-
-WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
-
-Rspack x.x.x compiled with 3 warnings in X s (ec077f8a3ed582d6ba9c)
-
-PublicPath: (none)
-asset no-warning.pro-node.js 294 KiB [emitted] (name: main)
-Entrypoint main 294 KiB = no-warning.pro-node.js
-./index.js
-Rspack x.x.x compiled successfully in X s (ec077f8a3ed582d6ba9c)
-
-PublicPath: auto
-asset no-warning.dev-web.js 294 KiB [emitted] (name: main)
-Entrypoint main 294 KiB = no-warning.dev-web.js
-./index.js
-Rspack x.x.x compiled successfully in X s (76c4bdff5f5096cdef75)
-
-PublicPath: (none)
-asset no-warning.dev-node.js 294 KiB [emitted] (name: main)
-Entrypoint main 294 KiB = no-warning.dev-node.js
-./index.js
-Rspack x.x.x compiled successfully in X s (76c4bdff5f5096cdef75)
-
-PublicPath: auto
-asset no-warning.dev-web-with-limit-set.js 294 KiB [emitted] (name: main)
-Entrypoint main 294 KiB = no-warning.dev-web-with-limit-set.js
-./index.js
-Rspack x.x.x compiled successfully in X s (76c4bdff5f5096cdef75)
-
-PublicPath: (none)
-asset warning.pro-node-with-hints-set.js 294 KiB [emitted] (name: main)
-Entrypoint main 294 KiB = warning.pro-node-with-hints-set.js
-./index.js
-
-WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
-  │   warning.pro-node-with-hints-set.js (293.709 KiB)
-
-WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (293.709 KiB)
-  │       warning.pro-node-with-hints-set.js
-
-WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
-
-Rspack x.x.x compiled with 3 warnings in X s (ec077f8a3ed582d6ba9c)"
-`;
-
 exports[`statsOutput statsOutput/performance-disabled should print correct stats for performance-disabled 1`] = `
 "PublicPath: auto
 asset 697.js 128 bytes [emitted]
@@ -394,35 +317,6 @@ ERROR in × entrypoint size limit: The following entrypoint(s) combined asset si
 Rspack x.x.x compiled with 2 errors in X s"
 `;
 
-exports[`statsOutput statsOutput/performance-no-async-chunks-shown should print correct stats for performance-no-async-chunks-shown 1`] = `
-"PublicPath: auto
-asset main.js 294 KiB [emitted] (name: main)
-asset sec.js 1.02 KiB [emitted] (name: sec)
-Entrypoint main 294 KiB = main.js
-Entrypoint sec 1.02 KiB = sec.js
-./a.js
-./b.js
-./c.js
-./d.js
-./index.js
-./index2.js
-
-WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
-  │   main.js (293.910 KiB)
-
-
-WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (293.910 KiB)
-  │       main.js
-
-
-WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
-
-
-Rspack x.x.x compiled with 3 warnings in X s"
-`;
-
 exports[`statsOutput statsOutput/performance-no-hints should print correct stats for performance-no-hints 1`] = `
 "PublicPath: auto
 asset 697.js 128 bytes [emitted]
@@ -437,35 +331,6 @@ runtime modules 12 modules
 ./e.js
 ./index.js
 Rspack x.x.x compiled successfully in X s"
-`;
-
-exports[`statsOutput statsOutput/performance-oversize-limit-error should print correct stats for performance-oversize-limit-error 1`] = `
-"PublicPath: auto
-asset main.js 294 KiB [emitted] (name: main)
-asset sec.js 294 KiB [emitted] (name: sec)
-Entrypoint main 294 KiB = main.js
-Entrypoint sec 294 KiB = sec.js
-./a.js
-./index.js
-./index2.js
-
-ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
-  │   main.js (293.830 KiB)
-  │   sec.js (293.830 KiB)
-
-
-ERROR in × entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (293.830 KiB)
-  │       main.js
-  │   sec (293.830 KiB)
-  │       sec.js
-
-
-ERROR in × Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
-
-
-Rspack x.x.x compiled with 3 errors in X s"
 `;
 
 exports[`statsOutput statsOutput/prefetch-preload-mixed should print correct stats for prefetch-preload-mixed 1`] = `
