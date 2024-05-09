@@ -1,0 +1,42 @@
+[
+  "index",
+  {
+    "type": "divider"
+  },
+  {
+    "type": "section-header",
+    "label": "Development"
+  },
+  {
+    "type": "dir",
+    "name": "building",
+    "label": "Building and running"
+  },
+  {
+    "type": "dir",
+    "name": "testing",
+    "label": "Testing"
+  },
+  {
+    "type": "dir",
+    "name": "debugging",
+    "label": "Debugging"
+  },
+  {
+    "type": "dir",
+    "name": "profiling",
+    "label": "Profiling"
+  },
+  {
+    "type": "dir",
+    "name": "releasing",
+    "label": "Releasing"
+  },
+  {
+    "type": "divider"
+  },
+  {
+    "type": "section-header",
+    "label": "Contribution"
+  }
+]
