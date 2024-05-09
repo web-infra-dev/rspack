@@ -105,9 +105,12 @@ export const getNormalizedRspackOptions = (
 		entry:
 			config.entry === undefined
 				? { main: {} }
-				: getNormalizedEntryStatic(
-						typeof config.entry === "function" ? config.entry() : config.entry
-					),
+				: typeof config.entry === "function"
+					? (
+							fn => () =>
+								Promise.resolve().then(fn).then(getNormalizedEntryStatic)
+						)(config.entry)
+					: getNormalizedEntryStatic(config.entry),
 		output: nestedConfig(config.output, output => {
 			const { library } = output;
 			const libraryAsName = library;
@@ -124,6 +127,7 @@ export const getNormalizedRspackOptions = (
 						: undefined;
 			return {
 				path: output.path,
+				pathinfo: output.pathinfo,
 				publicPath: output.publicPath,
 				filename: output.filename,
 				clean: output.clean,
@@ -358,19 +362,20 @@ const getNormalizedOptimizationRuntimeChunk = (
 	if (runtimeChunk === false) return false;
 	if (runtimeChunk === "single") {
 		return {
-			name: () => "runtime"
+			name: "single"
 		};
 	}
 	if (runtimeChunk === true || runtimeChunk === "multiple") {
 		return {
-			name: (entrypoint: { name: string }) => `runtime~${entrypoint.name}`
+			name: "multiple"
 		};
 	}
-	const { name } = runtimeChunk;
-	const opts: OptimizationRuntimeChunkNormalized = {
-		name: typeof name === "function" ? name : () => name
-	};
-	return opts;
+	if (runtimeChunk.name) {
+		const opts: OptimizationRuntimeChunkNormalized = {
+			name: runtimeChunk.name
+		};
+		return opts;
+	}
 };
 
 const nestedConfig = <T, R>(value: T | undefined, fn: (value: T) => R) =>
@@ -418,7 +423,10 @@ const keyedNestedConfig = <T, R>(
 	return result;
 };
 
-export type EntryNormalized = EntryStaticNormalized;
+export type EntryDynamicNormalized = () => Promise<EntryStaticNormalized>;
+
+export type EntryNormalized = EntryDynamicNormalized | EntryStaticNormalized;
+
 export interface EntryStaticNormalized {
 	[k: string]: EntryDescriptionNormalized;
 }
@@ -436,6 +444,7 @@ export interface EntryDescriptionNormalized {
 
 export interface OutputNormalized {
 	path?: Path;
+	pathinfo?: boolean | "verbose";
 	clean?: Clean;
 	publicPath?: PublicPath;
 	filename?: Filename;
@@ -505,7 +514,7 @@ export type IgnoreWarningsNormalized = ((
 export type OptimizationRuntimeChunkNormalized =
 	| false
 	| {
-			name: (...args: any[]) => string | undefined;
+			name: string | ((entrypoint: { name: string }) => string);
 	  };
 
 export interface RspackOptionsNormalized {

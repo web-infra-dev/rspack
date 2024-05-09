@@ -1,7 +1,7 @@
 import { RawFuncUseCtx, JsAssetInfo } from "@rspack/binding";
 import { z } from "zod";
 import { Compilation, Compiler } from "..";
-import type * as oldBuiltins from "../builtin-plugin";
+import type { Builtins as BuiltinsType } from "../builtin-plugin";
 import type * as webpackDevServer from "webpack-dev-server";
 import { deprecatedWarn } from "../util";
 import { Module } from "../Module";
@@ -198,6 +198,9 @@ export type Entry = z.infer<typeof entry>;
 const path = z.string();
 export type Path = z.infer<typeof path>;
 
+const pathinfo = z.boolean().or(z.literal("verbose"));
+export type Pathinfo = z.infer<typeof pathinfo>;
+
 const assetModuleFilename = z.string();
 export type AssetModuleFilename = z.infer<typeof assetModuleFilename>;
 
@@ -313,6 +316,7 @@ export type DevtoolFallbackModuleFilenameTemplate = z.infer<
 
 const output = z.strictObject({
 	path: path.optional(),
+	pathinfo: pathinfo.optional(),
 	clean: clean.optional(),
 	publicPath: publicPath.optional(),
 	filename: filename.optional(),
@@ -1070,7 +1074,12 @@ const optimizationRuntimeChunk = z
 		z.strictObject({
 			name: z
 				.string()
-				.or(z.function().returns(z.string().or(z.undefined())))
+				.or(
+					z
+						.function()
+						.args(z.strictObject({ name: z.string() }))
+						.returns(z.string())
+				)
 				.optional()
 		})
 	);
@@ -1265,7 +1274,7 @@ export type Bail = z.infer<typeof bail>;
 //#endregion
 
 //#region Builtins (deprecated)
-const builtins = z.custom<oldBuiltins.Builtins>();
+const builtins = z.custom<BuiltinsType>();
 export type Builtins = z.infer<typeof builtins>;
 //#endregion
 

@@ -11,7 +11,6 @@ import {
 	EntryRuntime,
 	FilenameTemplate,
 	LibraryOptions,
-	getRawEntryRuntime,
 	getRawLibrary
 } from "../config";
 import { isNil } from "../util";
@@ -81,7 +80,7 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
 			name,
 			shareScope,
 			library: getRawLibrary(library),
-			runtime: !isNil(runtime) ? getRawEntryRuntime(runtime) : undefined,
+			runtime,
 			filename,
 			exposes: exposes.map(([key, r]) => ({ key, ...r })),
 			enhanced

@@ -18,7 +18,7 @@ impl RspackVersionRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/rspack_version"),
       version,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

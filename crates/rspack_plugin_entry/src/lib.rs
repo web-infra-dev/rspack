@@ -3,8 +3,7 @@
 use async_trait::async_trait;
 use rspack_core::{
   ApplyContext, BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake,
-  CompilerOptions, Context, DependencyType, EntryDependency, EntryOptions, MakeParam, Plugin,
-  PluginContext,
+  CompilerOptions, Context, DependencyType, EntryDependency, EntryOptions, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -12,14 +11,14 @@ use rspack_hook::{plugin, plugin_hook};
 #[plugin]
 #[derive(Debug)]
 pub struct EntryPlugin {
+  dependency: BoxDependency,
   options: EntryOptions,
-  entry_request: String,
-  context: Context,
 }
 
 impl EntryPlugin {
   pub fn new(context: Context, entry_request: String, options: EntryOptions) -> Self {
-    Self::new_inner(options, entry_request, context)
+    let dependency: BoxDependency = Box::new(EntryDependency::new(entry_request, context));
+    Self::new_inner(dependency, options)
   }
 }
 
@@ -34,21 +33,11 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilerMake for EntryPlugin)]
-async fn make(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>) -> Result<()> {
-  if let Some(state) = compilation.options.get_incremental_rebuild_make_state()
-    && !state.is_first()
-  {
-    return Ok(());
-  }
+async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   let this = &self.inner;
-  let dependency: BoxDependency = Box::new(EntryDependency::new(
-    this.entry_request.clone(),
-    this.context.clone(),
-  ));
-  let dependency_id = *dependency.id();
-  compilation.add_entry(dependency, this.options.clone())?;
-
-  params.push(MakeParam::new_force_build_dep_param(dependency_id, None));
+  compilation
+    .add_entry(this.dependency.clone(), this.options.clone())
+    .await?;
   Ok(())
 }
 

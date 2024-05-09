@@ -283,24 +283,29 @@ async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) ->
     }
   }
 
-  if loader_context.content.is_none()
-    && !loader_context
-      .__resource_data
-      .resource_path
-      .to_string_lossy()
-      .is_empty()
-  {
-    let result = tokio::fs::read(&loader_context.__resource_data.resource_path)
-      .await
-      .map_err(|e| {
-        let r = loader_context
-          .__resource_data
-          .resource_path
-          .to_string_lossy()
-          .to_string();
-        error!("{e}, failed to read {r}")
-      })?;
-    loader_context.content = Some(Content::from(result));
+  let resource_data = &loader_context.__resource_data;
+  if loader_context.content.is_none() {
+    if !resource_data.resource_path.to_string_lossy().is_empty() {
+      let result = tokio::fs::read(&loader_context.__resource_data.resource_path)
+        .await
+        .map_err(|e| {
+          let r = loader_context
+            .__resource_data
+            .resource_path
+            .to_string_lossy()
+            .to_string();
+          error!("{e}, failed to read {r}")
+        })?;
+      loader_context.content = Some(Content::from(result));
+    } else if !resource_data.get_scheme().is_none() {
+      let resource = &resource_data.resource;
+      let scheme = resource_data.get_scheme();
+      return Err(error!(
+        r#"Reading from "{resource}" is not handled by plugins (Unhandled scheme).
+Rspack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "{scheme}:" URIs."#
+      ));
+    }
   }
 
   // Bail out if loader does not exist,

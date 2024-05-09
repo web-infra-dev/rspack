@@ -22,7 +22,7 @@ use tracing::instrument;
 
 use super::{
   hmr::CompilationRecords,
-  make::{update_module_graph, MakeParam},
+  make::{make_module_graph, update_module_graph, MakeArtifact, MakeParam},
   module_executor::ModuleExecutor,
 };
 use crate::{
@@ -46,6 +46,7 @@ pub type BuildDependency = (
   Option<ModuleIdentifier>, /* parent module */
 );
 
+define_hook!(CompilationAddEntry: AsyncSeries(compilation: &mut Compilation, entry_name: Option<&str>));
 define_hook!(CompilationBuildModule: AsyncSeries(module: &mut BoxModule));
 define_hook!(CompilationStillValidModule: AsyncSeries(module: &mut BoxModule));
 define_hook!(CompilationSucceedModule: AsyncSeries(module: &mut BoxModule));
@@ -77,6 +78,7 @@ define_hook!(CompilationAfterSeal: AsyncSeries(compilation: &mut Compilation));
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
+  pub add_entry: CompilationAddEntryHook,
   pub build_module: CompilationBuildModuleHook,
   pub still_valid_module: CompilationStillValidModuleHook,
   pub succeed_module: CompilationSucceedModuleHook,
@@ -137,12 +139,8 @@ pub struct Compilation {
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
   pub global_entry: EntryData,
-  make_module_graph: ModuleGraphPartial,
   other_module_graph: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
-  pub make_failed_dependencies: HashSet<BuildDependency>,
-  pub make_failed_module: HashSet<ModuleIdentifier>,
-  pub has_module_import_export_change: bool,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_module_code_generation_results: IdentifierMap<(RspackHashDigest, BoxSource)>,
   pub chunk_graph: ChunkGraph,
@@ -164,7 +162,6 @@ pub struct Compilation {
   pub used_symbol_ref: HashSet<SymbolRef>,
   /// Collecting all module that need to skip in tree-shaking ast modification phase
   pub bailout_module_identifiers: IdentifierMap<BailoutFlag>,
-  pub optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
 
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: IdentifierSet,
@@ -186,6 +183,10 @@ pub struct Compilation {
   import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
 
   pub module_executor: Option<ModuleExecutor>,
+
+  pub modified_files: HashSet<PathBuf>,
+  pub removed_files: HashSet<PathBuf>,
+  make_artifact: MakeArtifact,
 }
 
 impl Compilation {
@@ -218,18 +219,16 @@ impl Compilation {
     records: Option<CompilationRecords>,
     cache: Arc<Cache>,
     module_executor: Option<ModuleExecutor>,
+    modified_files: HashSet<PathBuf>,
+    removed_files: HashSet<PathBuf>,
   ) -> Self {
     Self {
       id: CompilationId::new(),
       hot_index: 0,
       records,
       options,
-      make_module_graph: Default::default(),
       other_module_graph: None,
       dependency_factories: Default::default(),
-      make_failed_dependencies: HashSet::default(),
-      make_failed_module: HashSet::default(),
-      has_module_import_export_change: true,
       runtime_modules: Default::default(),
       runtime_module_code_generation_results: Default::default(),
       chunk_by_ukey: Default::default(),
@@ -250,7 +249,6 @@ impl Compilation {
       named_chunk_groups: Default::default(),
       entry_module_identifiers: IdentifierSet::default(),
       used_symbol_ref: HashSet::default(),
-      optimize_analyze_result_map: IdentifierMap::default(),
       bailout_module_identifiers: IdentifierMap::default(),
 
       code_generation_results: Default::default(),
@@ -272,6 +270,10 @@ impl Compilation {
       import_var_map: DashMap::new(),
 
       module_executor,
+
+      make_artifact: Default::default(),
+      modified_files,
+      removed_files,
     }
   }
 
@@ -279,26 +281,38 @@ impl Compilation {
     self.id
   }
 
-  pub fn swap_make_module_graph_with_compilation(&mut self, other: &mut Compilation) {
-    std::mem::swap(&mut self.make_module_graph, &mut other.make_module_graph);
+  pub fn swap_make_artifact_with_compilation(&mut self, other: &mut Compilation) {
+    std::mem::swap(&mut self.make_artifact, &mut other.make_artifact);
   }
-  pub fn swap_make_module_graph(&mut self, module_graph_partial: &mut ModuleGraphPartial) {
-    std::mem::swap(&mut self.make_module_graph, module_graph_partial);
+  pub fn swap_make_artifact(&mut self, make_artifact: &mut MakeArtifact) {
+    std::mem::swap(&mut self.make_artifact, make_artifact);
   }
 
   pub fn get_module_graph(&self) -> ModuleGraph {
     if let Some(other_module_graph) = &self.other_module_graph {
-      ModuleGraph::new(vec![&self.make_module_graph, other_module_graph], None)
+      ModuleGraph::new(
+        vec![
+          self.make_artifact.get_module_graph_partial(),
+          other_module_graph,
+        ],
+        None,
+      )
     } else {
-      ModuleGraph::new(vec![&self.make_module_graph], None)
+      ModuleGraph::new(vec![self.make_artifact.get_module_graph_partial()], None)
     }
   }
 
   pub fn get_module_graph_mut(&mut self) -> ModuleGraph {
     if let Some(other) = &mut self.other_module_graph {
-      ModuleGraph::new(vec![&self.make_module_graph], Some(other))
+      ModuleGraph::new(
+        vec![self.make_artifact.get_module_graph_partial()],
+        Some(other),
+      )
     } else {
-      ModuleGraph::new(vec![], Some(&mut self.make_module_graph))
+      ModuleGraph::new(
+        vec![],
+        Some(self.make_artifact.get_module_graph_partial_mut()),
+      )
     }
   }
 
@@ -330,11 +344,12 @@ impl Compilation {
     import_var
   }
 
-  pub fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
+  pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
+    let entry_name = options.name.clone();
     self.get_module_graph_mut().add_dependency(entry);
-    if let Some(name) = options.name.clone() {
-      if let Some(data) = self.entries.get_mut(&name) {
+    if let Some(name) = &entry_name {
+      if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
         data.options.merge(options)?;
       } else {
@@ -343,11 +358,19 @@ impl Compilation {
           include_dependencies: vec![],
           options,
         };
-        self.entries.insert(name, data);
+        self.entries.insert(name.to_owned(), data);
       }
     } else {
       self.global_entry.dependencies.push(entry_id);
     }
+
+    self
+      .plugin_driver
+      .clone()
+      .compilation_hooks
+      .add_entry
+      .call(self, entry_name.as_deref())
+      .await?;
     Ok(())
   }
 
@@ -583,15 +606,17 @@ impl Compilation {
   }
 
   #[instrument(name = "compilation:make", skip_all)]
-  pub async fn make(&mut self, mut params: Vec<MakeParam>) -> Result<()> {
-    let make_failed_module =
-      MakeParam::ForceBuildModules(std::mem::take(&mut self.make_failed_module));
-    let make_failed_dependencies =
-      MakeParam::ForceBuildDeps(std::mem::take(&mut self.make_failed_dependencies));
+  pub async fn make(&mut self) -> Result<()> {
+    // run module_executor
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.hook_before_make(self).await;
+      self.module_executor = Some(module_executor);
+    }
 
-    params.push(make_failed_module);
-    params.push(make_failed_dependencies);
-    update_module_graph(self, params).await
+    let artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = make_module_graph(self, artifact)?;
+    Ok(())
   }
 
   pub async fn rebuild_module<T>(
@@ -1017,13 +1042,10 @@ impl Compilation {
     logger.time_end(start);
 
     // sync assets to compilation from module_executor
-    let assets = self
-      .module_executor
-      .as_mut()
-      .map(|module_executor| std::mem::take(&mut module_executor.assets))
-      .unwrap_or_default();
-    for (filename, asset) in assets {
-      self.emit_asset(filename, asset)
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.hook_before_process_assets(self).await;
+      self.module_executor = Some(module_executor);
     }
 
     let start = logger.time("process assets");
@@ -1543,6 +1565,20 @@ impl Compilation {
         )
       })
       .clone()
+  }
+
+  // TODO remove it after code splitting support incremental rebuild
+  pub fn has_module_import_export_change(&self) -> bool {
+    self.make_artifact.has_module_graph_change
+  }
+
+  // TODO remove it after remove old treeshaking
+  pub fn optimize_analyze_result_map(&self) -> &IdentifierMap<OptimizeAnalyzeResult> {
+    &self.make_artifact.optimize_analyze_result_map
+  }
+  // TODO remove it after remove old treeshaking
+  pub fn optimize_analyze_result_map_mut(&mut self) -> &mut IdentifierMap<OptimizeAnalyzeResult> {
+    &mut self.make_artifact.optimize_analyze_result_map
   }
 }
 

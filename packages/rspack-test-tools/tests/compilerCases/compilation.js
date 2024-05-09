@@ -8,6 +8,7 @@ class MyPlugin {
 	}
 }
 
+/** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
 	description: "should be called every compilation",
 	options(context) {

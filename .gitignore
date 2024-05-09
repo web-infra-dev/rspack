@@ -61,7 +61,6 @@ node_modules/
 !webpack-examples/*/node_modules
 !webpack-test/*/**/node_modules
 !packages/rspack-cli/tests/**/node_modules
-!packages/rspack/tests/**/node_modules
 !packages/rspack-test-tools/tests/**/node_modules
 jspm_packages/
 
@@ -112,7 +111,10 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
+
+# Dist files
 dist
+compiled
 webpack-dist
 
 # Gatsby files
@@ -167,14 +169,9 @@ webpack-dist
 .pnpm-store/
 
 !packages/rspack-test-tools/tests/configCases/target
-packages/rspack/tests/js
-packages/rspack/tests/fixtures/temp-*
-packages/rspack/tests/cssExtract/js
 packages/playground/temp
 packages/rspack-test-tools/tests/js
 
-# Ignore local integrate debug file
-packages/rspack/tests/*.debug.[tj]s
 
 # Benchmark
 /github/

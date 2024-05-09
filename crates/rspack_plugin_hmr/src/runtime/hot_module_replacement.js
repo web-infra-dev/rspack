@@ -10,8 +10,6 @@ var registeredStatusHandlers = [];
 var currentStatus = "idle";
 
 // while downloading
-// TODO: not needed in rspack temporary,
-// TODO: because we transfer all changed modules.
 var blockingPromises = 0;
 var blockingPromisesWaiting = [];
 

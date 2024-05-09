@@ -59,7 +59,7 @@ impl ContainerEntryModule {
       factory_meta: None,
       build_info: None,
       build_meta: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       enhanced,
     }
   }
@@ -314,7 +314,7 @@ impl ExposeModuleMap {
             .join(", "),
         )
       } else {
-        let block_promise = block_promise(Some(block_id), runtime_requirements, compilation);
+        let block_promise = block_promise(Some(block_id), runtime_requirements, compilation, "");
         let module_raw = returning_function(
           &returning_function(
             &modules_iter

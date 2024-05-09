@@ -16,7 +16,7 @@ impl Default for OnChunkLoadedRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/on_chunk_loaded"),
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

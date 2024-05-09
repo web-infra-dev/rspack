@@ -2,7 +2,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./app */"./lib.js");
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 
 (0, _app__WEBPACK_IMPORTED_MODULE_0__.something)(); // a;
 }),

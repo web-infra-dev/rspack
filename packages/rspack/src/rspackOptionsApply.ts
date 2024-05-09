@@ -64,7 +64,8 @@ import {
 	EvalDevToolModulePlugin,
 	JsLoaderRspackPlugin,
 	CssModulesPlugin,
-	APIPlugin
+	APIPlugin,
+	RuntimeChunkPlugin
 } from "./builtin-plugin";
 import { assertNotNill } from "./util/assertNotNil";
 
@@ -164,11 +165,7 @@ export class RspackOptionsApply {
 		const runtimeChunk = options.optimization
 			.runtimeChunk as OptimizationRuntimeChunkNormalized;
 		if (runtimeChunk) {
-			Object.entries(options.entry).forEach(([entryName, value]) => {
-				if (value.runtime === undefined && !value.dependOn) {
-					value.runtime = runtimeChunk.name({ name: entryName });
-				}
-			});
+			new RuntimeChunkPlugin(runtimeChunk).apply(compiler);
 		}
 
 		if (options.devtool) {

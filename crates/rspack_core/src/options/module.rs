@@ -74,7 +74,7 @@ impl From<&str> for DynamicImportMode {
       "weak" => DynamicImportMode::Weak,
       "eager" => DynamicImportMode::Eager,
       "lazy" => DynamicImportMode::Lazy,
-      "lazyOnce" => DynamicImportMode::LazyOnce,
+      "lazy-once" => DynamicImportMode::LazyOnce,
       _ => {
         // TODO: warning
         DynamicImportMode::default()

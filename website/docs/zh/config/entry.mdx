@@ -204,3 +204,37 @@ module.exports = {
 <ApiMeta addedVersion={'0.3.12'} />
 
 修改该入口所生成 chunk 作为库的导出格式，详细配置可参考 [output.library](/config/output#outputlibrary)。
+
+## 动态入口
+
+如果传入一个函数，那么它将会在每次 [make](/api/plugin-api/compiler-hooks#make) 事件中被调用。
+
+> 要注意的是，`make` 事件在 webpack 启动和每当[监听文件变化](/config/watch)时都会触发。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  entry: () => './demo',
+};
+```
+
+或者
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  entry: () => new Promise(resolve => resolve(['./demo', './demo2'])),
+};
+```
+
+例如，你可以使用动态入口来从外部来源（远程服务器，文件系统内容或者数据库）获取真正的入口：
+
+```js title=rspack.config.js
+module.exports = {
+  entry() {
+    return fetchPathsFromSomeExternalSource(); // 返回一个会被用像 ['src/main-layout.js', 'src/admin-layout.js'] 的东西 resolve 的 promise
+  },
+};
+```
+
+当和 [output.library](/config/output#outputlibrary) 选项结合：如果传入的是一个数组，只有数组的最后一个条目会被导出。

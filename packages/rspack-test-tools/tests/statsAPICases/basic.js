@@ -1,3 +1,4 @@
+/** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have stats",
 	options(context) {
@@ -33,7 +34,7 @@ module.exports = {
 		  Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2
 		  entry ./fixtures/a
 		  
-		Rspack compiled successfully (57e46af248a1c1fe076f)"
+		Rspack compiled successfully (ee9a5ee8da42dac2c2aa)"
 	`);
 	}
 };

@@ -1,4 +1,4 @@
-/** @type {import("../../../../../rspack").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	optimization: {
 		removeAvailableModules: true,

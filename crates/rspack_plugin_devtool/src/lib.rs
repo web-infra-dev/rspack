@@ -88,7 +88,7 @@ pub enum Append {
   Disabled,
 }
 
-pub type TestFn = Box<dyn Fn(String) -> bool + Sync + Send>;
+pub type TestFn = Box<dyn Fn(String) -> Result<bool> + Sync + Send>;
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -221,12 +221,12 @@ impl SourceMapDevToolPlugin {
 
     let mapped_sources = raw_assets
       .par_iter()
-      .filter_map(|(file, asset)| {
+      .map(|(file, asset)| {
         let is_match = match &self.test {
           Some(test) => test(file.to_owned()),
-          None => true,
-        };
-        if is_match {
+          None => Ok(true),
+        }?;
+        let source = if is_match {
           asset.get_source().map(|source| {
             let map_options = MapOptions::new(self.columns);
             let source_map = source.map(&map_options);
@@ -234,8 +234,12 @@ impl SourceMapDevToolPlugin {
           })
         } else {
           None
-        }
+        };
+        Ok(source)
       })
+      .collect::<Result<Vec<Option<_>>>>()?
+      .into_iter()
+      .flatten()
       .collect::<Vec<_>>();
 
     let mut used_names_set = HashSet::<String>::default();
@@ -937,17 +941,19 @@ impl Plugin for EvalSourceMapDevToolPlugin {
 
 pub struct SourceMapDevToolModuleOptionsPluginOptions {
   pub module: bool,
+  pub cheap: bool,
 }
 
 #[plugin]
 #[derive(Debug)]
 pub struct SourceMapDevToolModuleOptionsPlugin {
   module: bool,
+  cheap: bool,
 }
 
 impl SourceMapDevToolModuleOptionsPlugin {
   pub fn new(options: SourceMapDevToolModuleOptionsPluginOptions) -> Self {
-    Self::new_inner(options.module)
+    Self::new_inner(options.module, options.cheap)
   }
 }
 
@@ -957,6 +963,9 @@ async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
     module.set_source_map_kind(SourceMapKind::SourceMap);
   } else {
     module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
+  }
+  if self.cheap {
+    module.set_source_map_kind(*module.get_source_map_kind() | SourceMapKind::Cheap)
   }
   Ok(())
 }
@@ -975,6 +984,9 @@ async fn runtime_module(
     module.set_source_map_kind(SourceMapKind::SourceMap);
   } else {
     module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
+  }
+  if self.cheap {
+    module.set_source_map_kind(*module.get_source_map_kind() | SourceMapKind::Cheap)
   }
   Ok(())
 }

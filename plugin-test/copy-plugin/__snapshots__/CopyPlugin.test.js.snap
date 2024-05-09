@@ -28,6 +28,16 @@ exports[`CopyPlugin basic should work with multi compiler mode: warnings 1`] = `
 
 exports[`CopyPlugin basic should work with multi compiler mode: warnings 2`] = `Array []`;
 
+exports[`CopyPlugin basic should work with transform fn: assets 1`] = `
+Object {
+  ".dottedfile": "dottedfile contents
+transform aaaa",
+  "directoryfile.txt": "newtransform aaaa",
+  "nested/deep-nested/deepnested.txt": "transform aaaa",
+  "nested/nestedfile.txt": "transform aaaa",
+}
+`;
+
 exports[`CopyPlugin stats should minify: assets 1`] = `
 Object {
   "asset-modules/deepnested.txt": "",

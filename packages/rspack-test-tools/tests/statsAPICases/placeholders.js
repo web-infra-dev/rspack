@@ -10,6 +10,7 @@ class TestPlugin {
 	}
 }
 
+/** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have null as placeholders in stats before chunkIds",
 	options(context) {

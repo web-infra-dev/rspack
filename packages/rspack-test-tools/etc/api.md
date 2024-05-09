@@ -19,6 +19,8 @@ import { Stats } from '@rspack/core';
 import type { Stats as Stats_2 } from 'webpack';
 import { StatsCompilation } from '@rspack/core';
 import type { StatsCompilation as StatsCompilation_2 } from 'webpack';
+import { StatsError } from '@rspack/core';
+import { StatsWarnings } from '@rspack/core';
 import { WebpackOptionsNormalized } from 'webpack';
 
 // @public (undocumented)
@@ -76,6 +78,9 @@ export function compareModules(modules: string[], sourceModules: Map<string, str
 export function createBuiltinCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
+export function createCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
+
+// @public (undocumented)
 export function createConfigCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
@@ -88,7 +93,13 @@ export function createDiagnosticCase(name: string, src: string, dist: string): v
 export function createDiffCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
+export function createErrorCase(name: string, src: string, dist: string, testConfig: string): void;
+
+// @public (undocumented)
 export function createHashCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
+export function createHookCase(name: string, src: string, dist: string, source: string): void;
 
 // @public (undocumented)
 export function createHotCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
@@ -100,7 +111,10 @@ export function createHotStepCase(name: string, src: string, dist: string, targe
 export function createNormalCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createStatsCase(name: string, src: string, dist: string): void;
+export function createStatsAPICase(name: string, src: string, dist: string, testConfig: string): void;
+
+// @public (undocumented)
+export function createStatsOutputCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
 export function createTreeShakingCase(name: string, src: string, dist: string): void;
@@ -138,9 +152,12 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 }
 
 // @public (undocumented)
-export function describeByWalk(name: string, sourceBase: string, distBase: string, createCase: (name: string, src: string, dist: string) => void, whitelist?: {
-    cat?: RegExp;
-    case?: RegExp;
+export function describeByWalk(testFile: string, createCase: (name: string, src: string, dist: string) => void, options?: {
+    type?: "file" | "directory";
+    level?: number;
+    source?: string;
+    dist?: string;
+    absoluteDist?: boolean;
 }): void;
 
 // @public (undocumented)
@@ -222,11 +239,66 @@ export enum EEsmMode {
 }
 
 // @public (undocumented)
+export class ErrorTaskProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
+    constructor(_errorOptions: IErrorTaskProcessorOptions<T>);
+    // (undocumented)
+    static addSnapshotSerializer(): void;
+    // (undocumented)
+    check(env: ITestEnv, context: ITestContext): Promise<void>;
+    // (undocumented)
+    compiler(context: ITestContext): Promise<void>;
+    // (undocumented)
+    protected _errorOptions: IErrorTaskProcessorOptions<T>;
+    // (undocumented)
+    run(env: ITestEnv, context: ITestContext): Promise<void>;
+}
+
+// @public (undocumented)
+export function escapeEOL(str: string): string;
+
+// @public (undocumented)
+export function escapeSep(str: string): string;
+
+// @public (undocumented)
 export function formatCode(name: string, raw: string, options: IFormatCodeOptions): string;
+
+// @public (undocumented)
+export function getSimpleProcessorRunner(src: string, dist: string, options?: {
+    env?: () => ITestEnv;
+    context?: (src: string, dist: string) => ITestContext;
+}): (name: string, processor: ITestProcessor) => Promise<void>;
+
+// @public (undocumented)
+export class HookCasesContext extends TestContext {
+    constructor(src: string, testName: string, options: TTestContextOptions);
+    // @internal (undocumented)
+    _addSnapshot(content: unknown, name: string, group: string | number): void;
+    // @internal (undocumented)
+    collectSnapshots(options?: {
+        diff: {};
+    }): Promise<void>;
+    // (undocumented)
+    protected count: number;
+    // (undocumented)
+    protected options: TTestContextOptions;
+    // (undocumented)
+    protected promises: Promise<void>[];
+    snapped(cb: (...args: unknown[]) => Promise<unknown>, prefix?: string): (this: any, ...args: unknown[]) => Promise<unknown>;
+    // (undocumented)
+    protected snapshots: Record<string | number, Array<[string | Buffer, string]>>;
+    // (undocumented)
+    protected snapshotsList: Array<string | number>;
+    // (undocumented)
+    protected src: string;
+    // (undocumented)
+    protected testName: string;
+}
 
 // @public (undocumented)
 export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
     constructor(hookOptions: IHookProcessorOptions<ECompilerType.Rspack>);
+    // (undocumented)
+    check(env: ITestEnv, context: HookCasesContext): Promise<void>;
     // (undocumented)
     config(context: ITestContext): Promise<void>;
     // (undocumented)
@@ -382,6 +454,20 @@ export interface IDiffStatsReporterOptions {
 }
 
 // @public (undocumented)
+export interface IErrorTaskProcessorOptions<T extends ECompilerType> {
+    // (undocumented)
+    build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
+    // (undocumented)
+    check?: (stats: TStatsDiagnostics) => Promise<void>;
+    // (undocumented)
+    compilerType: T;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    options?: (options: TCompilerOptions<T>, context: ITestContext) => TCompilerOptions<T>;
+}
+
+// @public (undocumented)
 export interface IFormatCodeOptions {
     // (undocumented)
     ignoreBlockOnlyStatement: boolean;
@@ -505,6 +591,9 @@ export interface IRspackWatchStepProcessorOptions {
 
 // @public (undocumented)
 export const isDirectory: (p: string) => boolean;
+
+// @public (undocumented)
+export const isFile: (p: string) => boolean;
 
 // @public (undocumented)
 export interface ISimpleProcessorOptions<T extends ECompilerType = ECompilerType.Rspack> {
@@ -968,6 +1057,11 @@ export type TCompareResult = {
 export type TCompiler<T> = T extends ECompilerType.Rspack ? Compiler : Compiler_2;
 
 // @public (undocumented)
+export type TCompilerCaseConfig = Omit<ISimpleProcessorOptions, "name" | "compilerType"> & {
+    description: string;
+};
+
+// @public (undocumented)
 export type TCompilerFactory<T extends ECompilerType> = (options: TCompilerOptions<T> | TCompilerOptions<T>[]) => TCompiler<T>;
 
 // @public (undocumented)
@@ -998,6 +1092,11 @@ export type TDiffStatsItem = {
 
 // @public (undocumented)
 export type TDimenTypeId = "modules" | "lines" | "lines-in-common";
+
+// @public (undocumented)
+export type TErrorCaseConfig = Omit<IErrorTaskProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
+    description: string;
+};
 
 // @public (undocumented)
 export class TestContext implements ITestContext {
@@ -1119,6 +1218,17 @@ export type TRunnerRequirer = (currentDirectory: string, modulePath: string[] | 
     file?: TBasicRunnerFile;
     esmMode?: EEsmMode;
 }) => Object | Promise<Object>;
+
+// @public (undocumented)
+export type TStatsAPICaseConfig = Omit<IStatsAPITaskProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
+    description: string;
+};
+
+// @public (undocumented)
+type TStatsDiagnostics = {
+    errors: StatsError[];
+    warnings: StatsWarnings[];
+};
 
 // @public (undocumented)
 export type TTestConfig<T extends ECompilerType> = {

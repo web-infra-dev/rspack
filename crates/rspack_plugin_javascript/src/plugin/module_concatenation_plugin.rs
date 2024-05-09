@@ -717,7 +717,7 @@ impl ModuleConcatenationPlugin {
       if used_as_inner.contains(current_root) {
         continue;
       }
-      let mut chunk_runtime = HashSet::default();
+      let mut chunk_runtime = Default::default();
       for r in compilation
         .chunk_graph
         .get_module_runtimes(*current_root, &compilation.chunk_by_ukey)
@@ -912,7 +912,7 @@ impl ModuleConcatenationPlugin {
               resolver_factory: compilation.resolver_factory.clone(),
               module: new_module.id(),
               module_context: None,
-              module_source_map_kind: rspack_util::source_map::SourceMapKind::None,
+              module_source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
               cache: compilation.cache.clone(),
               plugin_driver: compilation.plugin_driver.clone(),
             },

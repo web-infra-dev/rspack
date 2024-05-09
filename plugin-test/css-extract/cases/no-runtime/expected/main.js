@@ -9,9 +9,9 @@ __webpack_require__.r(__webpack_exports__);
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./style.css */"./style.css?b16f");
+/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?b16f");
 
-__webpack_require__.e("async").then(__webpack_require__.bind(__webpack_require__, /*! ./async.css */"./async.css?833a"));
+__webpack_require__.e(/* import() | async */ "async").then(__webpack_require__.bind(__webpack_require__, "./async.css?833a"));
 }),
 
 }

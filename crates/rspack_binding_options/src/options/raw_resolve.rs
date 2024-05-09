@@ -3,11 +3,10 @@ use std::{collections::HashMap, path::PathBuf};
 use napi_derive::napi;
 use rspack_core::{Alias, AliasMap, ByDependency, Resolve, TsconfigOptions, TsconfigReferences};
 use rspack_error::error;
-use serde::Deserialize;
 
 pub type AliasValue = serde_json::Value;
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawAliasOptionItem {
   pub path: String,
@@ -15,8 +14,7 @@ pub struct RawAliasOptionItem {
   pub redirect: Vec<AliasValue>,
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawResolveTsconfigOptions {
   pub config_file: String,
@@ -25,8 +23,7 @@ pub struct RawResolveTsconfigOptions {
   pub references: Option<Vec<String>>,
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawResolveOptions {
   pub prefer_relative: Option<bool>,
@@ -43,7 +40,6 @@ pub struct RawResolveOptions {
   pub by_dependency: Option<HashMap<String, RawResolveOptions>>,
   pub fully_specified: Option<bool>,
   pub exports_fields: Option<Vec<String>>,
-  #[serde(serialize_with = "ordered_map")]
   #[napi(ts_type = "Record<string, Array<string>>")]
   pub extension_alias: Option<HashMap<String, Vec<String>>>,
   pub alias_fields: Option<Vec<String>>,

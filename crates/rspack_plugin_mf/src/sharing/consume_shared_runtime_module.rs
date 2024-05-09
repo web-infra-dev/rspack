@@ -25,7 +25,7 @@ impl ConsumeSharedRuntimeModule {
       id: Identifier::from("webpack/runtime/consumes_loading"),
       chunk: None,
       enhanced,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -85,6 +85,9 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       let mut ids = vec![];
       for module in modules {
         add_module(module.identifier(), chunk, &mut ids);
+      }
+      if ids.is_empty() {
+        continue;
       }
       chunk_to_module_mapping.insert(
         chunk

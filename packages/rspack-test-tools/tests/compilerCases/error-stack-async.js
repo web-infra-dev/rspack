@@ -9,6 +9,8 @@ class MyPlugin {
 }
 
 let error;
+
+/** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
 	description: "should print error with stack information with async callback",
 	options(context) {

@@ -36,7 +36,7 @@ use rspack_core::{
   CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
   ContextModuleFactoryAfterResolve, ContextModuleFactoryAfterResolveHook,
   ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
-  MakeParam, ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
+  ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
   NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
   NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
   NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
@@ -727,11 +727,7 @@ impl CompilerCompilation for CompilerCompilationTap {
 
 #[async_trait]
 impl CompilerMake for CompilerMakeTap {
-  async fn run(
-    &self,
-    compilation: &mut Compilation,
-    _: &mut Vec<MakeParam>,
-  ) -> rspack_error::Result<()> {
+  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
     // SAFETY:
     // 1. `Compiler` is stored on the heap and pinned in binding crate.
     // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.

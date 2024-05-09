@@ -16,11 +16,13 @@ import CacheFacade = require('./lib/CacheFacade');
 import { Callback as Callback_2 } from 'tapable';
 import { Compiler as Compiler_2 } from '../Compiler';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
+import { EventEmitter } from 'events';
 import { cleanupGlobalTrace as experimental_cleanupGlobalTrace } from '@rspack/binding';
 import { registerGlobalTrace as experimental_registerGlobalTrace } from '@rspack/binding';
 import { exports as exports_2 } from './exports';
 import type { ExternalObject } from '@rspack/binding';
 import { fs } from 'fs';
+import { default as fs_2 } from 'graceful-fs';
 import Hash = require('../util/hash');
 import { HookMap as HookMap_2 } from 'tapable';
 import { JsAssetInfo } from '@rspack/binding';
@@ -29,8 +31,7 @@ import { JsChunkGroup } from '@rspack/binding';
 import { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
 import { JsCreateData } from '@rspack/binding';
-import { JsLoaderContext } from '@rspack/binding';
-import { JsLoaderResult } from '@rspack/binding';
+import type { JsLoaderContext } from '@rspack/binding';
 import { JsModule } from '@rspack/binding';
 import { JsPathData } from '@rspack/binding';
 import type { JsRuntimeModule } from '@rspack/binding';
@@ -44,16 +45,14 @@ import { Logger as Logger_2 } from './logging/Logger';
 import { MultiHook } from 'tapable';
 import { PathWithInfo } from '@rspack/binding';
 import { RawBannerPluginOptions } from '@rspack/binding';
-import { RawBuiltins } from '@rspack/binding';
-import { RawBundlerInfoPluginOptions } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCopyRspackPluginOptions } from '@rspack/binding';
 import type { RawCssExtractPluginOption } from '@rspack/binding';
+import { RawDynamicEntryPluginOptions } from '@rspack/binding';
 import { RawEntryPluginOptions } from '@rspack/binding';
 import { RawExternalsPluginOptions } from '@rspack/binding';
 import { RawFuncUseCtx } from '@rspack/binding';
 import { RawHtmlRspackPluginOptions } from '@rspack/binding';
-import { RawHttpExternalsRspackPluginOptions } from '@rspack/binding';
 import { RawIgnorePluginOptions } from '@rspack/binding';
 import type { RawLibraryOptions } from '@rspack/binding';
 import { RawLimitChunkCountPluginOptions } from '@rspack/binding';
@@ -61,6 +60,7 @@ import type { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import type { RawReactOptions } from '@rspack/binding';
 import type { RawRelayConfig } from '@rspack/binding';
+import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
 import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
 import { ResolveRequest } from 'enhanced-resolve';
@@ -74,12 +74,7 @@ import { SyncWaterfallHook } from 'tapable';
 import * as tapable from 'tapable';
 import Template = require('./Template');
 import { UnsetAdditionalOptions as UnsetAdditionalOptions_2 } from 'tapable';
-import type { WatchOptions as WatchOptions_2 } from 'watchpack';
 import type * as webpackDevServer from 'webpack-dev-server';
-import { z } from 'zod';
-
-// @public (undocumented)
-const ABSOLUTE_PUBLIC_PATH = "webpack:///mini-css-extract-plugin/";
 
 // @public (undocumented)
 interface AdditionalData {
@@ -108,17 +103,6 @@ const amdContainer: z.ZodString;
 type Any = any;
 
 // @public (undocumented)
-const APIPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
 type Append<T extends any[], U> = {
     0: [U];
     1: [T[0], U];
@@ -139,17 +123,6 @@ export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => v
 
 // @public (undocumented)
 type ArgumentNames<T extends any[]> = FixedSizeArray<T["length"], string>;
-
-// @public (undocumented)
-const ArrayPushCallbackChunkFormatPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
 
 // @public (undocumented)
 type AsArray<T> = T extends any[] ? T : [T];
@@ -338,17 +311,6 @@ export type AssetModuleFilename = z.infer<typeof assetModuleFilename>;
 const assetModuleFilename: z.ZodString;
 
 // @public (undocumented)
-const AssetModulesPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
 export type AssetParserDataUrl = z.infer<typeof assetParserDataUrl>;
 
 // @public (undocumented)
@@ -463,20 +425,6 @@ class AsyncSeriesWaterfallHook<T, R, AdditionalOptions = UnsetAdditionalOptions>
 }
 
 // @public (undocumented)
-const AsyncWebAssemblyModulesPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
-const AUTO_PUBLIC_PATH = "__mini_css_extract_plugin_public_path_auto__";
-
-// @public (undocumented)
 export type AuxiliaryComment = z.infer<typeof auxiliaryComment>;
 
 // @public (undocumented)
@@ -502,42 +450,6 @@ export type Bail = z.infer<typeof bail>;
 
 // @public (undocumented)
 const bail: z.ZodBoolean;
-
-// @public (undocumented)
-type BannerContent = z.infer<typeof bannerContent>;
-
-// @public (undocumented)
-const bannerContent: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
-    hash: z.ZodString;
-    chunk: z.ZodType<JsChunk, z.ZodTypeDef, JsChunk>;
-    filename: z.ZodString;
-}, "strip", z.ZodTypeAny, {
-    hash: string;
-    chunk: JsChunk;
-    filename: string;
-}, {
-    hash: string;
-    chunk: JsChunk;
-    filename: string;
-}>], z.ZodUnknown>, z.ZodString>]>;
-
-// @public (undocumented)
-type BannerFunction = z.infer<typeof bannerFunction>;
-
-// @public (undocumented)
-const bannerFunction: z.ZodFunction<z.ZodTuple<[z.ZodObject<{
-    hash: z.ZodString;
-    chunk: z.ZodType<JsChunk, z.ZodTypeDef, JsChunk>;
-    filename: z.ZodString;
-}, "strip", z.ZodTypeAny, {
-    hash: string;
-    chunk: JsChunk;
-    filename: string;
-}, {
-    hash: string;
-    chunk: JsChunk;
-    filename: string;
-}>], z.ZodUnknown>, z.ZodString>;
 
 // @public (undocumented)
 export const BannerPlugin: {
@@ -639,67 +551,6 @@ const bannerPluginArgument: z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodFunction<z
     footer?: boolean | undefined;
     test?: string | RegExp | (string | RegExp)[] | undefined;
 }>]>;
-
-// @public (undocumented)
-type BannerPluginOptions = z.infer<typeof bannerPluginOptions>;
-
-// @public (undocumented)
-const bannerPluginOptions: z.ZodObject<{
-    banner: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
-        hash: z.ZodString;
-        chunk: z.ZodType<JsChunk, z.ZodTypeDef, JsChunk>;
-        filename: z.ZodString;
-    }, "strip", z.ZodTypeAny, {
-        hash: string;
-        chunk: JsChunk;
-        filename: string;
-    }, {
-        hash: string;
-        chunk: JsChunk;
-        filename: string;
-    }>], z.ZodUnknown>, z.ZodString>]>;
-    entryOnly: z.ZodOptional<z.ZodBoolean>;
-    exclude: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">]>>;
-    include: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">]>>;
-    raw: z.ZodOptional<z.ZodBoolean>;
-    footer: z.ZodOptional<z.ZodBoolean>;
-    test: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">]>>;
-}, "strict", z.ZodTypeAny, {
-    banner: (string | ((args_0: {
-        hash: string;
-        chunk: JsChunk;
-        filename: string;
-    }, ...args_1: unknown[]) => string)) & (string | ((args_0: {
-        hash: string;
-        chunk: JsChunk;
-        filename: string;
-    }, ...args_1: unknown[]) => string) | undefined);
-    entryOnly?: boolean | undefined;
-    exclude?: string | RegExp | (string | RegExp)[] | undefined;
-    include?: string | RegExp | (string | RegExp)[] | undefined;
-    raw?: boolean | undefined;
-    footer?: boolean | undefined;
-    test?: string | RegExp | (string | RegExp)[] | undefined;
-}, {
-    banner: (string | ((args_0: {
-        hash: string;
-        chunk: JsChunk;
-        filename: string;
-    }, ...args_1: unknown[]) => string)) & (string | ((args_0: {
-        hash: string;
-        chunk: JsChunk;
-        filename: string;
-    }, ...args_1: unknown[]) => string) | undefined);
-    entryOnly?: boolean | undefined;
-    exclude?: string | RegExp | (string | RegExp)[] | undefined;
-    include?: string | RegExp | (string | RegExp)[] | undefined;
-    raw?: boolean | undefined;
-    footer?: boolean | undefined;
-    test?: string | RegExp | (string | RegExp)[] | undefined;
-}>;
-
-// @public (undocumented)
-const BASE_URI = "webpack://";
 
 // @public (undocumented)
 interface BaseModuleConfig {
@@ -934,30 +785,13 @@ const baseUri: z.ZodString;
 export type Builtins = z.infer<typeof builtins>;
 
 // @public (undocumented)
-const builtins: z.ZodType<oldBuiltins.Builtins, z.ZodTypeDef, oldBuiltins.Builtins>;
+const builtins: z.ZodType<Builtins_2, z.ZodTypeDef, Builtins_2>;
 
 // @public (undocumented)
 interface Builtins_2 {
     // (undocumented)
     treeShaking?: boolean | "module";
 }
-
-// @public (undocumented)
-type BundleInfoOptions = {
-    version?: string;
-    force?: boolean | string[];
-};
-
-// @public (undocumented)
-const BundlerInfoRspackPlugin: {
-    new (options: BundleInfoOptions): {
-        name: BuiltinPluginName;
-        _options: RawBundlerInfoPluginOptions;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
 
 // @public (undocumented)
 type CacheHookMap = Map<string, SyncBailHook_2<[any[], StatsFactoryContext], any>[]>;
@@ -978,7 +812,7 @@ type CallFn = (...args: any[]) => any;
 type CallFn_2<D> = (args: D[]) => void;
 
 // @public (undocumented)
-class Chunk {
+export class Chunk {
     constructor(chunk: JsChunk, compilation: JsCompilation);
     // (undocumented)
     static __from_binding(chunk: JsChunk, compilation: Compilation): Chunk;
@@ -1065,6 +899,8 @@ export class ChunkGroup {
     // (undocumented)
     __internal_inner_ukey(): number;
     // (undocumented)
+    get chunks(): Chunk[];
+    // (undocumented)
     getFiles(): string[];
     // (undocumented)
     getParents(): ChunkGroup[];
@@ -1093,17 +929,6 @@ export type ChunkLoadingType = z.infer<typeof chunkLoadingType>;
 const chunkLoadingType: z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>;
 
 // @public (undocumented)
-const ChunkPrefetchPreloadPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
 export type Clean = z.infer<typeof clean>;
 
 // @public (undocumented)
@@ -1115,17 +940,6 @@ class CodeGenerationResult {
     // (undocumented)
     get(sourceType: string): string;
 }
-
-// @public (undocumented)
-const CommonJsChunkFormatPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
 
 // @public (undocumented)
 interface CommonJsConfig extends BaseModuleConfig {
@@ -1458,7 +1272,7 @@ export class Compiler {
     // (undocumented)
     running: boolean;
     // (undocumented)
-    watch(watchOptions: WatchOptions_2, handler: Callback_2<Error, Stats>): Watching;
+    watch(watchOptions: Watchpack.WatchOptions, handler: Callback_2<Error, Stats>): Watching;
     // (undocumented)
     watchFileSystem: WatchFileSystem;
     // (undocumented)
@@ -1822,17 +1636,6 @@ const cssModuleParserOptions: z.ZodObject<{
 }>;
 
 // @public (undocumented)
-const CssModulesPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
 export type CssParserNamedExports = z.infer<typeof cssParserNamedExports>;
 
 // @public (undocumented)
@@ -1849,17 +1652,6 @@ const cssParserOptions: z.ZodObject<{
 }, {
     namedExports?: boolean | undefined;
 }>;
-
-// @public (undocumented)
-const DataUriPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
 
 // @public (undocumented)
 export const DefinePlugin: {
@@ -1880,31 +1672,6 @@ export type Dependencies = z.infer<typeof dependencies>;
 
 // @public (undocumented)
 const dependencies: z.ZodArray<z.ZodString, "many">;
-
-// @public (undocumented)
-function deprecated_resolveBuiltins(builtins: Builtins_2, options: RspackOptionsNormalized): RawBuiltins;
-
-// @public (undocumented)
-const DeterministicChunkIdsPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
-const DeterministicModuleIdsPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
 
 // @public (undocumented)
 export interface DevServer extends webpackDevServer.Configuration {
@@ -1933,6 +1700,78 @@ export type DevtoolNamespace = z.infer<typeof devtoolNamespace>;
 
 // @public (undocumented)
 const devtoolNamespace: z.ZodString;
+
+// @public (undocumented)
+class DirectoryWatcher extends EventEmitter {
+    constructor(directoryPath: string, options: Watchpack.WatcherOptions);
+    // (undocumented)
+    close(): void;
+    // (undocumented)
+    createNestedWatcher(directoryPath: string): void;
+    // (undocumented)
+    directories: {
+        [path: string]: Watcher_2 | true;
+    };
+    // (undocumented)
+    doInitialScan(): void;
+    // (undocumented)
+    files: {
+        [path: string]: [number, number];
+    };
+    // (undocumented)
+    getTimes(): {
+        [path: string]: number;
+    };
+    // (undocumented)
+    initialScan: boolean;
+    // (undocumented)
+    initialScanRemoved: string[];
+    // (undocumented)
+    nestedWatching: boolean;
+    // (undocumented)
+    onChange(filePath: string, stat: fs_2.Stats): void;
+    // (undocumented)
+    onDirectoryAdded(directoryPath: string): void;
+    // (undocumented)
+    onDirectoryUnlinked(directoryPath: string): void;
+    // (undocumented)
+    onFileAdded(filePath: string, stat: fs_2.Stats): void;
+    // (undocumented)
+    onFileUnlinked(filePath: string): void;
+    // (undocumented)
+    onWatcherError(): void;
+    // (undocumented)
+    options: Watchpack.WatcherOptions;
+    // (undocumented)
+    path: string;
+    // (undocumented)
+    refs: number;
+    // (undocumented)
+    setDirectory(directoryPath: string, exist: boolean, initial: boolean): void;
+    // (undocumented)
+    setFileTime(filePath: string, mtime: number, initial: boolean, type?: string | boolean): void;
+    // (undocumented)
+    setNestedWatching(flag: boolean): void;
+    // (undocumented)
+    watch(filePath: string, startTime: number): Watcher_2;
+    // (undocumented)
+    watcher: fs_2.FSWatcher;
+    // (undocumented)
+    watchers: {
+        [path: string]: Watcher_2[];
+    };
+}
+
+// @public (undocumented)
+export const DynamicEntryPlugin: {
+    new (context: string, entry: EntryDynamicNormalized): {
+        name: BuiltinPluginName;
+        _options: RawDynamicEntryPluginOptions;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
 
 // @public (undocumented)
 interface Electron {
@@ -2021,17 +1860,6 @@ const EnableWasmLoadingPlugin: {
     new (type: any): {
         name: BuiltinPluginName;
         _options: any;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
-const EnsureChunkConditionsPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
         affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
@@ -2307,6 +2135,12 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
 }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>>]>;
 
 // @public (undocumented)
+interface Entry_2 {
+    safeTime: number;
+    timestamp: number;
+}
+
+// @public (undocumented)
 export type EntryDependOn = z.infer<typeof entryDependOn>;
 
 // @public (undocumented)
@@ -2472,6 +2306,9 @@ export interface EntryDescriptionNormalized {
 }
 
 // @public (undocumented)
+export type EntryDynamicNormalized = () => Promise<EntryStaticNormalized>;
+
+// @public (undocumented)
 export type EntryFilename = z.infer<typeof entryFilename>;
 
 // @public (undocumented)
@@ -2484,7 +2321,7 @@ export type EntryItem = z.infer<typeof entryItem>;
 const entryItem: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
 
 // @public (undocumented)
-export type EntryNormalized = EntryStaticNormalized;
+export type EntryNormalized = EntryDynamicNormalized | EntryStaticNormalized;
 
 // @public (undocumented)
 export type EntryObject = z.infer<typeof entryObject>;
@@ -3220,17 +3057,6 @@ interface FileSystemInfoEntry_2 {
 }
 
 // @public (undocumented)
-const FileUriPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
 export type FilterItemTypes = z.infer<typeof filterItemTypes>;
 
 // @public (undocumented)
@@ -3246,28 +3072,6 @@ const filterTypes: z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodType<RegE
 type FixedSizeArray<T extends number, U> = T extends 0 ? void[] : ReadonlyArray<U> & {
     0: U;
     length: T;
-};
-
-// @public (undocumented)
-const FlagDependencyExportsPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
-const FlagDependencyUsagePlugin: {
-    new (global: boolean): {
-        name: BuiltinPluginName;
-        _options: boolean;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
 };
 
 // @public (undocumented)
@@ -3740,9 +3544,6 @@ export const getNormalizedRspackOptions: (config: RspackOptions) => RspackOption
 export function getRawChunkLoading(chunkLoading: ChunkLoading): string;
 
 // @public (undocumented)
-export function getRawEntryRuntime(runtime: EntryRuntime): string | undefined;
-
-// @public (undocumented)
 export function getRawLibrary(library: LibraryOptions): RawLibraryOptions;
 
 // @public (undocumented)
@@ -4024,17 +3825,6 @@ const htmlRspackPluginOptions: z.ZodObject<{
 }>;
 
 // @public (undocumented)
-const HttpExternalsRspackPlugin: {
-    new (css: boolean, webAsync: boolean): {
-        name: BuiltinPluginName;
-        _options: RawHttpExternalsRspackPluginOptions;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
 type IfSet<X> = X extends UnsetAdditionalOptions ? {} : X;
 
 // @public (undocumented)
@@ -4078,17 +3868,6 @@ export type ImportFunctionName = z.infer<typeof importFunctionName>;
 const importFunctionName: z.ZodString;
 
 // @public (undocumented)
-const InferAsyncModulesPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
 export type InfrastructureLogging = z.infer<typeof infrastructureLogging>;
 
 // @public (undocumented)
@@ -4126,17 +3905,6 @@ interface JavaScript {
 
 // @public (undocumented)
 export const javascript: JavaScript;
-
-// @public (undocumented)
-const JavascriptModulesPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
 
 // @public (undocumented)
 export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
@@ -4193,28 +3961,6 @@ interface JsFormatOptions {
     wrapFuncArgs?: boolean;
     wrapIife?: boolean;
 }
-
-// @public (undocumented)
-const JsLoaderRspackPlugin: {
-    new (compiler: Compiler): {
-        name: BuiltinPluginName;
-        _options: (rawContext: JsLoaderContext) => Promise<JsLoaderResult>;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler): void;
-    };
-};
-
-// @public (undocumented)
-const JsonModulesPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
 
 // @public (undocumented)
 interface KnownCreateStatsOptionsContext {
@@ -4738,18 +4484,6 @@ interface LoaderObject {
     request: string;
 }
 
-// @public (undocumented)
-interface LoaderOptions {
-    // (undocumented)
-    emit?: boolean;
-    // (undocumented)
-    esModule?: boolean;
-    // (undocumented)
-    layer?: boolean;
-    // (undocumented)
-    publicPath?: string | ((resourcePath: string, context: string) => string);
-}
-
 // @public
 export class LoaderOptionsPlugin {
     constructor(options?: LoaderOptionsPluginOptions);
@@ -4861,17 +4595,6 @@ const LogType: Readonly<{
 type LogTypeEnum = (typeof LogType)[keyof typeof LogType];
 
 // @public (undocumented)
-const MangleExportsPlugin: {
-    new (deterministic: boolean): {
-        name: BuiltinPluginName;
-        _options: boolean;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
 type Matcher = string | RegExp | (string | RegExp)[];
 
 // @public (undocumented)
@@ -4904,17 +4627,6 @@ class MergeCaller<D> {
 }
 
 // @public (undocumented)
-const MergeDuplicateChunksPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
 type MinifyCondition = string | RegExp;
 
 // @public (undocumented)
@@ -4930,7 +4642,7 @@ export type Mode = z.infer<typeof mode>;
 const mode: z.ZodEnum<["development", "production", "none"]>;
 
 // @public (undocumented)
-class Module {
+export class Module {
     constructor(module: JsModule);
     // (undocumented)
     static __from_binding(module: JsModule): Module;
@@ -4949,31 +4661,6 @@ class Module {
     // (undocumented)
     get resource(): string | undefined;
 }
-
-// @public (undocumented)
-const MODULE_TYPE = "css/mini-extract";
-
-// @public (undocumented)
-const ModuleChunkFormatPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
-const ModuleConcatenationPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
 
 // @public (undocumented)
 class ModuleFederationPlugin {
@@ -5802,28 +5489,6 @@ export type Name = z.infer<typeof name_2>;
 const name_2: z.ZodString;
 
 // @public (undocumented)
-const NamedChunkIdsPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
-const NamedModuleIdsPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
 export const node: Node_3;
 
 // @public (undocumented)
@@ -5946,101 +5611,6 @@ export class NormalModuleReplacementPlugin {
     readonly newResource: string | ModuleReplacer;
     // (undocumented)
     readonly resourceRegExp: RegExp;
-}
-
-declare namespace oldBuiltins {
-    export {
-        deprecated_resolveBuiltins,
-        RspackBuiltinPlugin,
-        Builtins_2 as Builtins,
-        DefinePluginOptions,
-        DefinePlugin,
-        ProvidePluginOptions,
-        ProvidePlugin,
-        Rule,
-        Rules,
-        BannerFunction,
-        BannerContent,
-        BannerPluginOptions,
-        BannerPluginArgument,
-        BannerPlugin,
-        IgnorePluginOptions,
-        IgnorePlugin,
-        ProgressPluginArgument,
-        ProgressPlugin,
-        EntryOptions,
-        EntryPlugin,
-        ExternalsPlugin,
-        NodeTargetPlugin,
-        ElectronTargetPlugin,
-        HttpExternalsRspackPlugin,
-        EnableChunkLoadingPlugin,
-        EnableLibraryPlugin,
-        EnableWasmLoadingPlugin,
-        ChunkPrefetchPreloadPlugin,
-        ArrayPushCallbackChunkFormatPlugin,
-        CommonJsChunkFormatPlugin,
-        ModuleChunkFormatPlugin,
-        HotModuleReplacementPlugin,
-        WebWorkerTemplatePlugin,
-        WorkerPlugin,
-        LimitChunkCountOptions,
-        LimitChunkCountPlugin,
-        MergeDuplicateChunksPlugin,
-        SplitChunksPlugin,
-        NamedModuleIdsPlugin,
-        DeterministicModuleIdsPlugin,
-        NamedChunkIdsPlugin,
-        DeterministicChunkIdsPlugin,
-        RealContentHashPlugin,
-        RemoveEmptyChunksPlugin,
-        EnsureChunkConditionsPlugin,
-        WarnCaseSensitiveModulesPlugin,
-        DataUriPlugin,
-        FileUriPlugin,
-        RuntimePlugin,
-        JsonModulesPlugin,
-        InferAsyncModulesPlugin,
-        JavascriptModulesPlugin,
-        AsyncWebAssemblyModulesPlugin,
-        AssetModulesPlugin,
-        SourceMapDevToolPluginOptions,
-        SourceMapDevToolPlugin,
-        EvalSourceMapDevToolPlugin,
-        EvalDevToolModulePluginOptions,
-        EvalDevToolModulePlugin,
-        SideEffectsFlagPlugin,
-        FlagDependencyExportsPlugin,
-        FlagDependencyUsagePlugin,
-        MangleExportsPlugin,
-        BundleInfoOptions,
-        BundlerInfoRspackPlugin,
-        ModuleConcatenationPlugin,
-        CssModulesPlugin,
-        APIPlugin,
-        HtmlRspackPluginOptions,
-        HtmlRspackPlugin,
-        CopyRspackPluginOptions,
-        CopyRspackPlugin,
-        SwcJsMinimizerRspackPluginOptions,
-        JsFormatOptions,
-        TerserEcmaVersion,
-        TerserCompressOptions,
-        TerserMangleOptions,
-        TerserManglePropertiesOptions,
-        SwcJsMinimizerRspackPlugin,
-        SwcCssMinimizerRspackPlugin,
-        JsLoaderRspackPlugin,
-        PluginOptions,
-        CssExtractRspackPlugin,
-        MODULE_TYPE,
-        AUTO_PUBLIC_PATH,
-        ABSOLUTE_PUBLIC_PATH,
-        BASE_URI,
-        SINGLE_DOT_PATH_SEGMENT,
-        LoaderOptions,
-        pitch
-    }
 }
 
 // @public (undocumented)
@@ -6220,11 +5790,21 @@ const optimization: z.ZodObject<{
         hidePathInfo?: boolean | undefined;
     }>]>>;
     runtimeChunk: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["single", "multiple"]>, z.ZodBoolean]>, z.ZodObject<{
-        name: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodString, z.ZodUndefined]>>]>>;
+        name: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+            name: z.ZodString;
+        }, "strict", z.ZodTypeAny, {
+            name: string;
+        }, {
+            name: string;
+        }>], z.ZodUnknown>, z.ZodString>]>>;
     }, "strict", z.ZodTypeAny, {
-        name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+        name?: string | ((args_0: {
+            name: string;
+        }, ...args_1: unknown[]) => string) | undefined;
     }, {
-        name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+        name?: string | ((args_0: {
+            name: string;
+        }, ...args_1: unknown[]) => string) | undefined;
     }>]>>;
     removeAvailableModules: z.ZodOptional<z.ZodBoolean>;
     removeEmptyChunks: z.ZodOptional<z.ZodBoolean>;
@@ -6283,7 +5863,9 @@ const optimization: z.ZodObject<{
         hidePathInfo?: boolean | undefined;
     } | undefined;
     runtimeChunk?: boolean | "single" | "multiple" | {
-        name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+        name?: string | ((args_0: {
+            name: string;
+        }, ...args_1: unknown[]) => string) | undefined;
     } | undefined;
     removeAvailableModules?: boolean | undefined;
     removeEmptyChunks?: boolean | undefined;
@@ -6342,7 +5924,9 @@ const optimization: z.ZodObject<{
         hidePathInfo?: boolean | undefined;
     } | undefined;
     runtimeChunk?: boolean | "single" | "multiple" | {
-        name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+        name?: string | ((args_0: {
+            name: string;
+        }, ...args_1: unknown[]) => string) | undefined;
     } | undefined;
     removeAvailableModules?: boolean | undefined;
     removeEmptyChunks?: boolean | undefined;
@@ -6361,16 +5945,28 @@ export type OptimizationRuntimeChunk = z.infer<typeof optimizationRuntimeChunk>;
 
 // @public (undocumented)
 const optimizationRuntimeChunk: z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["single", "multiple"]>, z.ZodBoolean]>, z.ZodObject<{
-    name: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodString, z.ZodUndefined]>>]>>;
+    name: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+        name: z.ZodString;
+    }, "strict", z.ZodTypeAny, {
+        name: string;
+    }, {
+        name: string;
+    }>], z.ZodUnknown>, z.ZodString>]>>;
 }, "strict", z.ZodTypeAny, {
-    name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+    name?: string | ((args_0: {
+        name: string;
+    }, ...args_1: unknown[]) => string) | undefined;
 }, {
-    name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+    name?: string | ((args_0: {
+        name: string;
+    }, ...args_1: unknown[]) => string) | undefined;
 }>]>;
 
 // @public (undocumented)
 export type OptimizationRuntimeChunkNormalized = false | {
-    name: (...args: any[]) => string | undefined;
+    name: string | ((entrypoint: {
+        name: string;
+    }) => string);
 };
 
 // @public (undocumented)
@@ -6611,6 +6207,10 @@ const optimizationSplitChunksOptions: z.ZodObject<{
 interface Optimize {
     // (undocumented)
     LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
+    // (undocumented)
+    RuntimeChunkPlugin: typeof RuntimeChunkPlugin;
+    // (undocumented)
+    SplitChunksPlugin: typeof SplitChunksPlugin;
 }
 
 // @public (undocumented)
@@ -6634,6 +6234,7 @@ export type Output = z.infer<typeof output>;
 // @public (undocumented)
 const output: z.ZodObject<{
     path: z.ZodOptional<z.ZodString>;
+    pathinfo: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"verbose">]>>;
     clean: z.ZodOptional<z.ZodBoolean>;
     publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodString]>>;
     filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
@@ -6781,6 +6382,7 @@ const output: z.ZodObject<{
     devtoolFallbackModuleFilenameTemplate: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodAny], null>, z.ZodAny>]>>;
 }, "strict", z.ZodTypeAny, {
     path?: string | undefined;
+    pathinfo?: boolean | "verbose" | undefined;
     clean?: boolean | undefined;
     publicPath?: string | undefined;
     filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -6856,6 +6458,7 @@ const output: z.ZodObject<{
     devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
 }, {
     path?: string | undefined;
+    pathinfo?: boolean | "verbose" | undefined;
     clean?: boolean | undefined;
     publicPath?: string | undefined;
     filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -6999,6 +6602,8 @@ export interface OutputNormalized {
     module?: OutputModule;
     // (undocumented)
     path?: Path;
+    // (undocumented)
+    pathinfo?: boolean | "verbose";
     // (undocumented)
     publicPath?: PublicPath;
     // (undocumented)
@@ -7493,7 +7098,10 @@ const path: z.ZodString;
 type PathData = JsPathData;
 
 // @public (undocumented)
-const pitch: LoaderDefinition["pitch"];
+export type Pathinfo = z.infer<typeof pathinfo>;
+
+// @public (undocumented)
+const pathinfo: z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"verbose">]>;
 
 // @public (undocumented)
 interface PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> {
@@ -7679,17 +7287,6 @@ const rawPublicPath: z.ZodString;
 type ReactOptions = RawReactOptions | undefined;
 
 // @public (undocumented)
-const RealContentHashPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
 type RelayOptions = boolean | RawRelayConfig | undefined;
 
 // @public (undocumented)
@@ -7710,17 +7307,6 @@ export type RemotesItems = RemotesItem[];
 // @public (undocumented)
 export type RemotesObject = {
     [k: string]: RemotesConfig | RemotesItem | RemotesItems;
-};
-
-// @public (undocumented)
-const RemoveEmptyChunksPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
 };
 
 // @public (undocumented)
@@ -7842,8 +7428,10 @@ declare namespace rspackExports {
         StatsModule,
         StatsWarnings,
         MultiStats,
+        Chunk,
         ChunkGroup,
         NormalModuleFactory,
+        Module,
         NormalModule,
         ModuleFilenameHelpers,
         Template,
@@ -7867,6 +7455,7 @@ declare namespace rspackExports {
         ProgressPluginArgument,
         EntryPlugin,
         EntryOptions,
+        DynamicEntryPlugin,
         ExternalsPlugin,
         HotModuleReplacementPlugin,
         LoaderOptionsPlugin,
@@ -7933,6 +7522,7 @@ declare namespace rspackExports {
         SwcLoaderTsParserConfig,
         SwcLoaderTransformConfig,
         getNormalizedRspackOptions,
+        EntryDynamicNormalized,
         EntryNormalized,
         EntryStaticNormalized,
         EntryDescriptionNormalized,
@@ -7978,6 +7568,7 @@ declare namespace rspackExports {
         EntryStatic,
         Entry,
         Path,
+        Pathinfo,
         AssetModuleFilename,
         WebassemblyModuleFilename,
         ChunkFilename,
@@ -8095,7 +7686,6 @@ declare namespace rspackExports {
         applyRspackOptionsDefaults,
         applyRspackOptionsBaseDefaults,
         getRawLibrary,
-        getRawEntryRuntime,
         getRawChunkLoading,
         LoaderContext,
         LoaderDefinition,
@@ -8406,6 +7996,7 @@ export const rspackOptions: z.ZodObject<{
     }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>>]>>;
     output: z.ZodOptional<z.ZodObject<{
         path: z.ZodOptional<z.ZodString>;
+        pathinfo: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"verbose">]>>;
         clean: z.ZodOptional<z.ZodBoolean>;
         publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodString]>>;
         filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
@@ -8553,6 +8144,7 @@ export const rspackOptions: z.ZodObject<{
         devtoolFallbackModuleFilenameTemplate: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodAny], null>, z.ZodAny>]>>;
     }, "strict", z.ZodTypeAny, {
         path?: string | undefined;
+        pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
         publicPath?: string | undefined;
         filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -8628,6 +8220,7 @@ export const rspackOptions: z.ZodObject<{
         devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
     }, {
         path?: string | undefined;
+        pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
         publicPath?: string | undefined;
         filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -9224,11 +8817,21 @@ export const rspackOptions: z.ZodObject<{
             hidePathInfo?: boolean | undefined;
         }>]>>;
         runtimeChunk: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["single", "multiple"]>, z.ZodBoolean]>, z.ZodObject<{
-            name: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodString, z.ZodUndefined]>>]>>;
+            name: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+                name: z.ZodString;
+            }, "strict", z.ZodTypeAny, {
+                name: string;
+            }, {
+                name: string;
+            }>], z.ZodUnknown>, z.ZodString>]>>;
         }, "strict", z.ZodTypeAny, {
-            name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+            name?: string | ((args_0: {
+                name: string;
+            }, ...args_1: unknown[]) => string) | undefined;
         }, {
-            name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+            name?: string | ((args_0: {
+                name: string;
+            }, ...args_1: unknown[]) => string) | undefined;
         }>]>>;
         removeAvailableModules: z.ZodOptional<z.ZodBoolean>;
         removeEmptyChunks: z.ZodOptional<z.ZodBoolean>;
@@ -9287,7 +8890,9 @@ export const rspackOptions: z.ZodObject<{
             hidePathInfo?: boolean | undefined;
         } | undefined;
         runtimeChunk?: boolean | "single" | "multiple" | {
-            name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+            name?: string | ((args_0: {
+                name: string;
+            }, ...args_1: unknown[]) => string) | undefined;
         } | undefined;
         removeAvailableModules?: boolean | undefined;
         removeEmptyChunks?: boolean | undefined;
@@ -9346,7 +8951,9 @@ export const rspackOptions: z.ZodObject<{
             hidePathInfo?: boolean | undefined;
         } | undefined;
         runtimeChunk?: boolean | "single" | "multiple" | {
-            name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+            name?: string | ((args_0: {
+                name: string;
+            }, ...args_1: unknown[]) => string) | undefined;
         } | undefined;
         removeAvailableModules?: boolean | undefined;
         removeEmptyChunks?: boolean | undefined;
@@ -9363,7 +8970,7 @@ export const rspackOptions: z.ZodObject<{
     resolveLoader: z.ZodOptional<z.ZodType<ResolveOptions, z.ZodTypeDef, ResolveOptions>>;
     plugins: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodType<RspackPluginInstance, z.ZodTypeDef, RspackPluginInstance>, z.ZodType<RspackPluginFunction, z.ZodTypeDef, RspackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
     devServer: z.ZodOptional<z.ZodType<DevServer, z.ZodTypeDef, DevServer>>;
-    builtins: z.ZodOptional<z.ZodType<oldBuiltins.Builtins, z.ZodTypeDef, oldBuiltins.Builtins>>;
+    builtins: z.ZodOptional<z.ZodType<Builtins_2, z.ZodTypeDef, Builtins_2>>;
     module: z.ZodOptional<z.ZodObject<{
         defaultRules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<RuleSetRule, z.ZodTypeDef, RuleSetRule>]>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
         rules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<RuleSetRule, z.ZodTypeDef, RuleSetRule>]>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
@@ -10057,6 +9664,7 @@ export const rspackOptions: z.ZodObject<{
     }>) | undefined;
     output?: {
         path?: string | undefined;
+        pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
         publicPath?: string | undefined;
         filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -10295,7 +9903,9 @@ export const rspackOptions: z.ZodObject<{
             hidePathInfo?: boolean | undefined;
         } | undefined;
         runtimeChunk?: boolean | "single" | "multiple" | {
-            name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+            name?: string | ((args_0: {
+                name: string;
+            }, ...args_1: unknown[]) => string) | undefined;
         } | undefined;
         removeAvailableModules?: boolean | undefined;
         removeEmptyChunks?: boolean | undefined;
@@ -10312,7 +9922,7 @@ export const rspackOptions: z.ZodObject<{
     resolveLoader?: ResolveOptions | undefined;
     plugins?: (false | "" | 0 | RspackPluginInstance | RspackPluginFunction | null | undefined)[] | undefined;
     devServer?: DevServer | undefined;
-    builtins?: oldBuiltins.Builtins | undefined;
+    builtins?: Builtins_2 | undefined;
     module?: {
         defaultRules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
         rules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
@@ -10470,6 +10080,7 @@ export const rspackOptions: z.ZodObject<{
     }>) | undefined;
     output?: {
         path?: string | undefined;
+        pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
         publicPath?: string | undefined;
         filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -10708,7 +10319,9 @@ export const rspackOptions: z.ZodObject<{
             hidePathInfo?: boolean | undefined;
         } | undefined;
         runtimeChunk?: boolean | "single" | "multiple" | {
-            name?: string | ((...args: unknown[]) => string | undefined) | undefined;
+            name?: string | ((args_0: {
+                name: string;
+            }, ...args_1: unknown[]) => string) | undefined;
         } | undefined;
         removeAvailableModules?: boolean | undefined;
         removeEmptyChunks?: boolean | undefined;
@@ -10725,7 +10338,7 @@ export const rspackOptions: z.ZodObject<{
     resolveLoader?: ResolveOptions | undefined;
     plugins?: (false | "" | 0 | RspackPluginInstance | RspackPluginFunction | null | undefined)[] | undefined;
     devServer?: DevServer | undefined;
-    builtins?: oldBuiltins.Builtins | undefined;
+    builtins?: Builtins_2 | undefined;
     module?: {
         defaultRules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
         rules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
@@ -10910,23 +10523,11 @@ export interface RspackPluginInstance {
 // @public (undocumented)
 export const rspackVersion: any;
 
-// @public (undocumented)
-type Rule = z.infer<typeof rule>;
-
-// @public (undocumented)
-const rule: z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>;
+// @public
+type Rule = RegExp | string;
 
 // @public
-type Rule_2 = RegExp | string;
-
-// @public (undocumented)
-type Rules = z.infer<typeof rules>;
-
-// @public (undocumented)
-const rules: z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">]>;
-
-// @public
-type Rules_2 = Rule_2[] | Rule_2;
+type Rules = Rule[] | Rule;
 
 // @public (undocumented)
 class RuleSetCompiler {
@@ -11050,6 +10651,17 @@ const ruleSetUseItem: z.ZodUnion<[z.ZodString, z.ZodObject<{
     options?: string | Record<string, any> | undefined;
 }>]>;
 
+// @public (undocumented)
+const RuntimeChunkPlugin: {
+    new (options: RawRuntimeChunkOptions): {
+        name: BuiltinPluginName;
+        _options: RawRuntimeChunkOptions;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
 // @public
 export const RuntimeGlobals: {
     readonly require: "__webpack_require__";
@@ -11122,17 +10734,6 @@ export const RuntimeGlobals: {
     readonly baseURI: "__webpack_require__.b";
     readonly relativeUrl: "__webpack_require__.U";
     readonly asyncModule: "__webpack_require__.a";
-};
-
-// @public (undocumented)
-const RuntimePlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
 };
 
 // @public (undocumented)
@@ -11219,20 +10820,6 @@ export const sharing: {
 };
 
 // @public (undocumented)
-const SideEffectsFlagPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
-const SINGLE_DOT_PATH_SEGMENT = "__mini_css_extract_plugin_single_dot_path_segment__";
-
-// @public (undocumented)
 export type SnapshotOptions = z.infer<typeof snapshotOptions>;
 
 // @public (undocumented)
@@ -11309,11 +10896,11 @@ export const SourceMapDevToolPlugin: {
 // @public (undocumented)
 export interface SourceMapDevToolPluginOptions extends Omit<RawSourceMapDevToolPluginOptions, "test" | "include" | "exclude"> {
     // (undocumented)
-    exclude?: Rules_2;
+    exclude?: Rules;
     // (undocumented)
-    include?: Rules_2;
+    include?: Rules;
     // (undocumented)
-    test?: Rules_2;
+    test?: Rules;
 }
 
 // @public (undocumented)
@@ -12105,17 +11692,6 @@ export const util: {
 export const version: any;
 
 // @public (undocumented)
-const WarnCaseSensitiveModulesPlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _options: void;
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
 interface Wasm {
     // (undocumented)
     EnableWasmLoadingPlugin: typeof EnableWasmLoadingPlugin;
@@ -12158,6 +11734,23 @@ interface Watcher {
     getInfo(): WatcherInfo;
     // (undocumented)
     pause(): void;
+}
+
+// @public (undocumented)
+class Watcher_2 extends EventEmitter {
+    constructor(directoryWatcher: DirectoryWatcher, filePath: string, startTime: number);
+    // (undocumented)
+    checkStartTime(mtime: number, initial: boolean): boolean;
+    // (undocumented)
+    close(): void;
+    // (undocumented)
+    data: number;
+    // (undocumented)
+    directoryWatcher: DirectoryWatcher;
+    // (undocumented)
+    path: string;
+    // (undocumented)
+    startTime: number;
 }
 
 // @public (undocumented)
@@ -12248,6 +11841,99 @@ const watchOptions: z.ZodObject<{
 }>;
 
 // @public (undocumented)
+class Watchpack extends EventEmitter {
+    constructor(options: Watchpack.WatchOptions);
+    // (undocumented)
+    aggregatedChanges: Set<string>;
+    // (undocumented)
+    aggregatedRemovals: Set<string>;
+    // (undocumented)
+    aggregateTimeout: NodeJS.Timer;
+    close(): void;
+    collectTimeInfoEntries(fileInfoEntries: Map<string, Entry_2>, directoryInfoEntries: Map<string, Entry_2>): void;
+    // (undocumented)
+    _dirWatcher(item: string, watcher: Watcher_2): Watcher_2;
+    // (undocumented)
+    dirWatchers: Watcher_2[];
+    // (undocumented)
+    _fileWatcher(file: string, watcher: Watcher_2): Watcher_2;
+    // (undocumented)
+    fileWatchers: Watcher_2[];
+    getAggregated(): {
+        changes: Set<string>;
+        removals: Set<string>;
+    };
+    getTimeInfoEntries(): Map<string, Entry_2>;
+    // @deprecated
+    getTimes(): {
+        [path: string]: number;
+    };
+    mtimes: {
+        [path: string]: number;
+    };
+    // (undocumented)
+    on(
+    eventName: "change",
+    listener: (
+    filePath: string,
+    modifiedTime: number,
+    explanation: string,
+    ) => void,
+    ): this;
+    // (undocumented)
+    on(
+    eventName: "remove",
+    listener: (
+    filePath: string,
+    explanation: string,
+    ) => void,
+    ): this;
+    // (undocumented)
+    on(
+    eventName: "aggregated",
+    listener: (
+    changes: Set<string>,
+    removals: Set<string>,
+    ) => void,
+    ): this;
+    // (undocumented)
+    _onChange(item: string, mtime: number, file?: string): void;
+    // (undocumented)
+    _onTimeout(): void;
+    // (undocumented)
+    options: Watchpack.WatchOptions;
+    pause(): void;
+    // (undocumented)
+    paused: boolean;
+    watch(options: {
+        files?: Iterable<string>;
+        directories?: Iterable<string>;
+        missing?: Iterable<string>;
+        startTime?: number;
+    }): void;
+    // (undocumented)
+    watcherOptions: Watchpack.WatcherOptions;
+}
+
+// @public (undocumented)
+namespace Watchpack {
+    // (undocumented)
+    interface WatcherOptions {
+        // (undocumented)
+        followSymlinks?: boolean;
+        // (undocumented)
+        ignored?: string[] | string | RegExp | ((path: string) => boolean) | undefined;
+        // (undocumented)
+        poll?: boolean | number | undefined;
+    }
+    // (undocumented)
+    interface WatchOptions extends WatcherOptions {
+        // (undocumented)
+        aggregateTimeout?: number | undefined;
+    }
+}
+
+// @public (undocumented)
 export type WebassemblyModuleFilename = z.infer<typeof webassemblyModuleFilename>;
 
 // @public (undocumented)
@@ -12277,19 +11963,15 @@ const WebWorkerTemplatePlugin: {
 };
 
 // @public (undocumented)
-class WorkerPlugin extends RspackBuiltinPlugin {
-    constructor(chunkLoading: ChunkLoading, wasmLoading: WasmLoading, module: OutputModule, workerPublicPath: WorkerPublicPath);
-    // (undocumented)
-    name: BuiltinPluginName;
-    // (undocumented)
-    raw(compiler: Compiler): BuiltinPlugin;
-}
-
-// @public (undocumented)
 export type WorkerPublicPath = z.infer<typeof workerPublicPath>;
 
 // @public (undocumented)
 const workerPublicPath: z.ZodString;
+
+// @public (undocumented)
+namespace z {
+        { type z_AnyZodObject as AnyZodObject, type z_AnyZodTuple as AnyZodTuple, type z_ArrayCardinality as ArrayCardinality, type z_ArrayKeys as ArrayKeys, type z_AssertArray as AssertArray, type z_AsyncParseReturnType as AsyncParseReturnType, type z_BRAND as BRAND, type z_CatchallInput as CatchallInput, type z_CatchallOutput as CatchallOutput, type z_CustomErrorParams as CustomErrorParams, z_DIRTY as DIRTY, type z_DenormalizedError as DenormalizedError, z_EMPTY_PATH as EMPTY_PATH, type z_Effect as Effect, type z_EnumLike as EnumLike, type z_EnumValues as EnumValues, type z_ErrorMapCtx as ErrorMapCtx, type z_FilterEnum as FilterEnum, z_INVALID as INVALID, type z_Indices as Indices, type z_InnerTypeOfFunction as InnerTypeOfFunction, type z_InputTypeOfTuple as InputTypeOfTuple, type z_InputTypeOfTupleWithRest as InputTypeOfTupleWithRest, type z_IpVersion as IpVersion, type z_IssueData as IssueData, type z_KeySchema as KeySchema, z_NEVER as NEVER, z_OK as OK, type z_ObjectPair as ObjectPair, type z_OuterTypeOfFunction as OuterTypeOfFunction, type z_OutputTypeOfTuple as OutputTypeOfTuple, type z_OutputTypeOfTupleWithRest as OutputTypeOfTupleWithRest, type z_ParseContext as ParseContext, type z_ParseInput as ParseInput, type z_ParseParams as ParseParams, type z_ParsePath as ParsePath, type z_ParsePathComponent as ParsePathComponent, type z_ParseResult as ParseResult, type z_ParseReturnType as ParseReturnType, z_ParseStatus as ParseStatus, type z_PassthroughType as PassthroughType, type z_PreprocessEffect as PreprocessEffect, type z_Primitive as Primitive, type z_ProcessedCreateParams as ProcessedCreateParams, type z_RawCreateParams as RawCreateParams, type z_RecordType as RecordType, type z_Refinement as Refinement, type z_RefinementCtx as RefinementCtx, type z_RefinementEffect as RefinementEffect, type z_SafeParseError as SafeParseError, type z_SafeParseReturnType as SafeParseReturnType, type z_SafeParseSuccess as SafeParseSuccess, type z_Scalars as Scalars, ZodType as Schema, type z_SomeZodObject as SomeZodObject, type z_StringValidation as StringValidation, type z_SuperRefinement as SuperRefinement, type z_SyncParseReturnType as SyncParseReturnType, type z_TransformEffect as TransformEffect, type z_TypeOf as TypeOf, type z_UnknownKeysParam as UnknownKeysParam, type z_Values as Values, type z_Writeable as Writeable, z_ZodAny as ZodAny, type z_ZodAnyDef as ZodAnyDef, z_ZodArray as ZodArray, type z_ZodArrayDef as ZodArrayDef, z_ZodBigInt as ZodBigInt, type z_ZodBigIntCheck as ZodBigIntCheck, type z_ZodBigIntDef as ZodBigIntDef, z_ZodBoolean as ZodBoolean, type z_ZodBooleanDef as ZodBooleanDef, z_ZodBranded as ZodBranded, type z_ZodBrandedDef as ZodBrandedDef, z_ZodCatch as ZodCatch, type z_ZodCatchDef as ZodCatchDef, type z_ZodCustomIssue as ZodCustomIssue, z_ZodDate as ZodDate, type z_ZodDateCheck as ZodDateCheck, type z_ZodDateDef as ZodDateDef, z_ZodDefault as ZodDefault, type z_ZodDefaultDef as ZodDefaultDef, z_ZodDiscriminatedUnion as ZodDiscriminatedUnion, type z_ZodDiscriminatedUnionDef as ZodDiscriminatedUnionDef, type z_ZodDiscriminatedUnionOption as ZodDiscriminatedUnionOption, z_ZodEffects as ZodEffects, type z_ZodEffectsDef as ZodEffectsDef, z_ZodEnum as ZodEnum, type z_ZodEnumDef as ZodEnumDef, z_ZodError as ZodError, type z_ZodErrorMap as ZodErrorMap, type z_ZodFirstPartySchemaTypes as ZodFirstPartySchemaTypes, z_ZodFirstPartyTypeKind as ZodFirstPartyTypeKind, type z_ZodFormattedError as ZodFormattedError, z_ZodFunction as ZodFunction, type z_ZodFunctionDef as ZodFunctionDef, z_ZodIntersection as ZodIntersection, type z_ZodIntersectionDef as ZodIntersectionDef, type z_ZodInvalidArgumentsIssue as ZodInvalidArgumentsIssue, type z_ZodInvalidDateIssue as ZodInvalidDateIssue, type z_ZodInvalidEnumValueIssue as ZodInvalidEnumValueIssue, type z_ZodInvalidIntersectionTypesIssue as ZodInvalidIntersectionTypesIssue, type z_ZodInvalidLiteralIssue as ZodInvalidLiteralIssue, type z_ZodInvalidReturnTypeIssue as ZodInvalidReturnTypeIssue, type z_ZodInvalidStringIssue as ZodInvalidStringIssue, type z_ZodInvalidTypeIssue as ZodInvalidTypeIssue, type z_ZodInvalidUnionDiscriminatorIssue as ZodInvalidUnionDiscriminatorIssue, type z_ZodInvalidUnionIssue as ZodInvalidUnionIssue, type z_ZodIssue as ZodIssue, type z_ZodIssueBase as ZodIssueBase, type z_ZodIssueCode as ZodIssueCode, type z_ZodIssueOptionalMessage as ZodIssueOptionalMessage, z_ZodLazy as ZodLazy, type z_ZodLazyDef as ZodLazyDef, z_ZodLiteral as ZodLiteral, type z_ZodLiteralDef as ZodLiteralDef, z_ZodMap as ZodMap, type z_ZodMapDef as ZodMapDef, z_ZodNaN as ZodNaN, type z_ZodNaNDef as ZodNaNDef, z_ZodNativeEnum as ZodNativeEnum, type z_ZodNativeEnumDef as ZodNativeEnumDef, z_ZodNever as ZodNever, type z_ZodNeverDef as ZodNeverDef, type z_ZodNonEmptyArray as ZodNonEmptyArray, type z_ZodNotFiniteIssue as ZodNotFiniteIssue, type z_ZodNotMultipleOfIssue as ZodNotMultipleOfIssue, z_ZodNull as ZodNull, type z_ZodNullDef as ZodNullDef, z_ZodNullable as ZodNullable, type z_ZodNullableDef as ZodNullableDef, type z_ZodNullableType as ZodNullableType, z_ZodNumber as ZodNumber, type z_ZodNumberCheck as ZodNumberCheck, type z_ZodNumberDef as ZodNumberDef, z_ZodObject as ZodObject, type z_ZodObjectDef as ZodObjectDef, z_ZodOptional as ZodOptional, type z_ZodOptionalDef as ZodOptionalDef, type z_ZodOptionalType as ZodOptionalType, type z_ZodParsedType as ZodParsedType, z_ZodPipeline as ZodPipeline, type z_ZodPipelineDef as ZodPipelineDef, z_ZodPromise as ZodPromise, type z_ZodPromiseDef as ZodPromiseDef, type z_ZodRawShape as ZodRawShape, z_ZodReadonly as ZodReadonly, type z_ZodReadonlyDef as ZodReadonlyDef, z_ZodRecord as ZodRecord, type z_ZodRecordDef as ZodRecordDef, ZodType as ZodSchema, z_ZodSet as ZodSet, type z_ZodSetDef as ZodSetDef, z_ZodString as ZodString, type z_ZodStringCheck as ZodStringCheck, type z_ZodStringDef as ZodStringDef, z_ZodSymbol as ZodSymbol, type z_ZodSymbolDef as ZodSymbolDef, type z_ZodTooBigIssue as ZodTooBigIssue, type z_ZodTooSmallIssue as ZodTooSmallIssue, ZodEffects as ZodTransformer, z_ZodTuple as ZodTuple, type z_ZodTupleDef as ZodTupleDef, type z_ZodTupleItems as ZodTupleItems, z_ZodType as ZodType, type z_ZodTypeAny as ZodTypeAny, type z_ZodTypeDef as ZodTypeDef, z_ZodUndefined as ZodUndefined, type z_ZodUndefinedDef as ZodUndefinedDef, z_ZodUnion as ZodUnion, type z_ZodUnionDef as ZodUnionDef, type z_ZodUnionOptions as ZodUnionOptions, z_ZodUnknown as ZodUnknown, type z_ZodUnknownDef as ZodUnknownDef, type z_ZodUnrecognizedKeysIssue as ZodUnrecognizedKeysIssue, z_ZodVoid as ZodVoid, type z_ZodVoidDef as ZodVoidDef, z_addIssueToContext as addIssueToContext, anyType as any, arrayType as array, type z_arrayOutputType as arrayOutputType, type z_baseObjectInputType as baseObjectInputType, type z_baseObjectOutputType as baseObjectOutputType, bigIntType as bigint, booleanType as boolean, z_coerce as coerce, z_custom as custom, dateType as date, errorMap as defaultErrorMap, type z_deoptional as deoptional, discriminatedUnionType as discriminatedUnion, effectsType as effect, enumType as enum, functionType as function, z_getErrorMap as getErrorMap, z_getParsedType as getParsedType, type TypeOf as infer, type z_inferFlattenedErrors as inferFlattenedErrors, type z_inferFormattedError as inferFormattedError, type z_input as input, instanceOfType as instanceof, intersectionType as intersection, z_isAborted as isAborted, z_isAsync as isAsync, z_isDirty as isDirty, z_isValid as isValid, z_late as late, lazyType as lazy, literalType as literal, z_makeIssue as makeIssue, mapType as map, type z_mergeTypes as mergeTypes, nanType as nan, nativeEnumType as nativeEnum, neverType as never, type z_noUnrecognized as noUnrecognized, nullType as null, nullableType as nullable, numberType as number, objectType as object, type z_objectInputType as objectInputType, type z_objectOutputType as objectOutputType, z_objectUtil as objectUtil, z_oboolean as oboolean, z_onumber as onumber, optionalType as optional, z_ostring as ostring, type z_output as output, pipelineType as pipeline, preprocessType as preprocess, promiseType as promise, z_quotelessJson as quotelessJson, recordType as record, setType as set, z_setErrorMap as setErrorMap, strictObjectType as strictObject, stringType as string, symbolType as symbol, effectsType as transformer, tupleType as tuple, type z_typeToFlattenedError as typeToFlattenedError, type z_typecast as typecast, undefinedType as undefined, unionType as union, unknownType as unknown, z_util as util, voidType as void };
+}
 
 // (No @packageDocumentation comment for this package)
 

@@ -7,7 +7,7 @@ __webpack_require__.r(__webpack_exports__);
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-const myURL = new URL(/* asset import */__webpack_require__(/*! ./style.css */"./style.css?b16f"), __webpack_require__.b);
+const myURL = new URL(/* asset import */__webpack_require__("./style.css?b16f"), __webpack_require__.b);
 console.log(myURL);
 }),
 

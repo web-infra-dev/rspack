@@ -12,18 +12,18 @@ enum SupportStatus {
 const SUPPORT_STATUS_LOCALIZED = {
   [SupportStatus.NotSupported]: {
     symbol: '🔴',
-    en: 'Not Supported',
-    zh: '不支持',
+    en: 'Unsupported yet',
+    zh: '暂未支持',
   },
   [SupportStatus.PartiallySupported]: {
     symbol: '🟡',
-    en: 'Partially Supported',
+    en: 'Partially supported',
     zh: '部分支持',
   },
   [SupportStatus.FullySupported]: {
     symbol: '🟢',
-    en: 'Fully Supported',
-    zh: '完全支持',
+    en: 'Supported',
+    zh: '支持',
   },
 };
 
@@ -323,7 +323,11 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'DynamicEntryPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.PartiallySupported,
+    notes: {
+      en: '`layer` and `wasmLoading` options are not supported, and `filename` cannot accept a function as a value',
+      zh: '不支持 `layer`、`wasmLoading` 选项，`filename` 无法接受函数作为值',
+    },
   },
   {
     name: 'ElectronTargetPlugin',
@@ -419,7 +423,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'RuntimeChunkPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'SideEffectsFlagPlugin',
@@ -446,7 +450,7 @@ export const PluginSupportStatusTable: React.FC = () => {
           name: lang === 'zh' ? '支持情况' : 'Support status',
           key: 'status',
           style: {
-            width: '200px',
+            width: '190px',
           },
         },
         {

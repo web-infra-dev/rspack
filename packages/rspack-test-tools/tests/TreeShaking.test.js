@@ -1,24 +1,9 @@
-const path = require("path");
-const fs = require("fs");
-const { createTreeShakingCase } = require("..");
+const { createTreeShakingCase, describeByWalk } = require("..");
 
-const NAME = "TreeShakingCases";
-const caseDir = path.resolve(__dirname, "./treeShakingCases");
-const distDir = path.resolve(__dirname, `./js/${NAME}`);
-
-const tests = fs
-	.readdirSync(caseDir)
-	.filter(
-		testName =>
-			!testName.startsWith(".") &&
-			(fs.existsSync(path.join(caseDir, testName, "test.config.json")) ||
-				fs.existsSync(path.join(caseDir, testName, "test.config.js")))
-	);
-
-describe(NAME, () => {
-	jest.setTimeout(30000);
-	for (const name of tests) {
-		const src = path.join(caseDir, name);
-		createTreeShakingCase(name, src, path.join(distDir, name));
-	}
+describeByWalk(__filename, (name, src, dist) => {
+	createTreeShakingCase(name, src, dist);
+}, {
+	level: 1,
 });
+
+

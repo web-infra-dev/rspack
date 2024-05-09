@@ -19,29 +19,22 @@ export interface ApiMetaProps {
 
 export function ApiMeta(props: ApiMetaProps) {
   let lang = useLang();
+  const href = `/${lang}/misc/planning/future`;
   return (
     <div className={styles.wrapper}>
       {props.addedVersion && (
         <span className={`${styles.tag} ${styles.added}`}>
-          <a href={`/${lang}/misc/future`}>Added in v{props.addedVersion}</a>
+          <a href={href}>Added in v{props.addedVersion}</a>
         </span>
       )}
       {props.deprecatedVersion && (
         <span className={`${styles.tag} ${styles.deprecated}`}>
-          <a
-            href={`/${lang}/misc/future?deprecatedVersion=${props.deprecatedVersion}`}
-          >
-            Deprecated in v{props.deprecatedVersion}
-          </a>
+          <a href={href}>Deprecated in v{props.deprecatedVersion}</a>
         </span>
       )}
       {props.removedVersion && (
         <span className={`${styles.tag} ${styles.removed}`}>
-          <a
-            href={`/${lang}/misc/future?removedVersion=${props.removedVersion}`}
-          >
-            Removed in v{props.removedVersion}
-          </a>
+          <a href={href}>Removed in v{props.removedVersion}</a>
         </span>
       )}
       {props.stability && (

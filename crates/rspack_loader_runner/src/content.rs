@@ -87,7 +87,10 @@ impl Debug for Content {
     };
 
     content
-      .field(ty, &s[0..usize::min(s.len(), 20)].to_owned())
+      .field(
+        ty,
+        &s[0..usize::min(s.len(), s.ceil_char_boundary(20))].to_owned(),
+      )
       .finish()
   }
 }

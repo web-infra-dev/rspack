@@ -6,8 +6,8 @@ use rspack_core::{
   CompilerOptions,
 };
 use rspack_core::{
-  Compilation, CompilationParams, Dependency, DependencyType, EntryOptions, EntryRuntime,
-  FilenameTemplate, LibraryOptions, MakeParam, Plugin, PluginContext, RuntimeGlobals,
+  Compilation, CompilationParams, DependencyType, EntryOptions, EntryRuntime, FilenameTemplate,
+  LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -66,26 +66,25 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilerMake for ContainerPlugin)]
-async fn make(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>) -> Result<()> {
+async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   let dep = ContainerEntryDependency::new(
     self.options.name.clone(),
     self.options.exposes.clone(),
     self.options.share_scope.clone(),
     self.options.enhanced,
   );
-  let dependency_id = *dep.id();
-  compilation.add_entry(
-    Box::new(dep),
-    EntryOptions {
-      name: Some(self.options.name.clone()),
-      runtime: self.options.runtime.clone(),
-      filename: self.options.filename.clone(),
-      library: Some(self.options.library.clone()),
-      ..Default::default()
-    },
-  )?;
-
-  params.push(MakeParam::new_force_build_dep_param(dependency_id, None));
+  compilation
+    .add_entry(
+      Box::new(dep),
+      EntryOptions {
+        name: Some(self.options.name.clone()),
+        runtime: self.options.runtime.clone(),
+        filename: self.options.filename.clone(),
+        library: Some(self.options.library.clone()),
+        ..Default::default()
+      },
+    )
+    .await?;
   Ok(())
 }
 

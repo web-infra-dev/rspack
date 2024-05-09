@@ -21,7 +21,7 @@ impl ExposeRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/initialize_exposes"),
       chunk: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

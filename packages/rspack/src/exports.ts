@@ -32,9 +32,12 @@ export type {
 
 export { MultiStats } from "./MultiStats";
 
+export type { Chunk } from "./Chunk";
 export type { ChunkGroup } from "./ChunkGroup";
 
 export type { NormalModuleFactory } from "./NormalModuleFactory";
+
+export type { Module } from "./Module";
 
 export { NormalModule } from "./NormalModule";
 
@@ -103,6 +106,8 @@ export type { ProgressPluginArgument } from "./builtin-plugin";
 export { EntryPlugin } from "./builtin-plugin";
 export type { EntryOptions } from "./builtin-plugin";
 
+export { DynamicEntryPlugin } from "./builtin-plugin";
+
 export { ExternalsPlugin } from "./builtin-plugin";
 
 export { HotModuleReplacementPlugin } from "./builtin-plugin";
@@ -154,10 +159,18 @@ interface Webworker {
 export const webworker: Webworker = { WebWorkerTemplatePlugin };
 
 import { LimitChunkCountPlugin } from "./builtin-plugin";
+import { RuntimeChunkPlugin } from "./builtin-plugin";
+import { SplitChunksPlugin } from "./builtin-plugin";
 interface Optimize {
 	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
+	RuntimeChunkPlugin: typeof RuntimeChunkPlugin;
+	SplitChunksPlugin: typeof SplitChunksPlugin;
 }
-export const optimize: Optimize = { LimitChunkCountPlugin };
+export const optimize: Optimize = {
+	LimitChunkCountPlugin,
+	RuntimeChunkPlugin,
+	SplitChunksPlugin
+};
 
 import { ModuleFederationPlugin } from "./container/ModuleFederationPlugin";
 export type { ModuleFederationPluginOptions } from "./container/ModuleFederationPlugin";

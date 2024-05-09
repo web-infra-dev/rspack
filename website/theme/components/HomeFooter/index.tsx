@@ -38,11 +38,11 @@ function useFooterData() {
         },
         {
           title: 'Plugin API',
-          link: getLink('/api/plugin-api'),
+          link: getLink('/api/plugin-api/index'),
         },
         {
           title: 'Loader API',
-          link: getLink('/api/loader-api'),
+          link: getLink('/api/loader-api/index'),
         },
       ],
     },
@@ -90,7 +90,10 @@ function useFooterData() {
 export function HomeFooter() {
   const footerData = useFooterData();
   return (
-    <div className="flex flex-col border-t dark:border-dark-50 items-center mt-[80px]">
+    <div
+      className="flex flex-col border-t items-center mt-12"
+      style={{ borderColor: 'var(--rp-c-divider-light)' }}
+    >
       <div className="pt-8 pb-4 w-full justify-around max-w-6xl hidden sm:flex">
         {footerData.map(item => (
           <div key={item.title} className="flex flex-col items-start">

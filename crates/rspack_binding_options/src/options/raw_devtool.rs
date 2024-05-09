@@ -9,7 +9,6 @@ use rspack_plugin_devtool::{
   Append, EvalDevToolModulePluginOptions, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx,
   SourceMapDevToolPluginOptions, TestFn,
 };
-use serde::Deserialize;
 use tokio::runtime::Handle;
 
 type RawAppend = Either3<String, bool, ThreadsafeFunction<RawPathData, String>>;
@@ -97,36 +96,26 @@ fn normalize_raw_module_filename_template(
 
 fn normalize_raw_test(raw: ThreadsafeFunction<String, bool>) -> TestFn {
   let handle = Handle::current();
-  Box::new(move |ctx| {
-    handle
-      .block_on(raw.call(ctx))
-      .expect("failed to block external function")
-  })
+  Box::new(move |ctx| handle.block_on(raw.call(ctx)))
 }
 
-#[derive(Deserialize)]
 #[napi(object, object_to_js = false)]
 pub struct RawSourceMapDevToolPluginOptions {
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "(false | null) | string | Function")]
   pub append: Option<RawAppend>,
   pub columns: Option<bool>,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "string | ((info: RawModuleFilenameTemplateFnCtx) => string)")]
   pub fallback_module_filename_template: Option<RawModuleFilenameTemplate>,
   pub file_context: Option<String>,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "(false | null) | string")]
   pub filename: Option<RawFilename>,
   pub module: Option<bool>,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "string | ((info: RawModuleFilenameTemplateFnCtx) => string)")]
   pub module_filename_template: Option<RawModuleFilenameTemplate>,
   pub namespace: Option<String>,
   pub no_sources: Option<bool>,
   pub public_path: Option<String>,
   pub source_root: Option<String>,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "(text: string) => boolean")]
   pub test: Option<ThreadsafeFunction<String, bool>>,
 }
@@ -167,11 +156,9 @@ impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
   }
 }
 
-#[derive(Deserialize)]
 #[napi(object, object_to_js = false)]
 pub struct RawEvalDevToolModulePluginOptions {
   pub namespace: Option<String>,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "string | ((info: RawModuleFilenameTemplateFnCtx) => string)")]
   pub module_filename_template: Option<RawModuleFilenameTemplate>,
   pub source_url_comment: Option<String>,

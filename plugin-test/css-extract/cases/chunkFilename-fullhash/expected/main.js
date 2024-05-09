@@ -9,9 +9,9 @@ __webpack_require__.r(__webpack_exports__);
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./style.css */"./style.css?b16f");
+/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?b16f");
 
-/* eslint-disable-next-line no-unused-expressions */ __webpack_require__.e("async").then(__webpack_require__.bind(__webpack_require__, /*! ./async.css */"./async.css?833a"));
+/* eslint-disable-next-line no-unused-expressions */ __webpack_require__.e(/* import() | async */ "async").then(__webpack_require__.bind(__webpack_require__, "./async.css?833a"));
 }),
 
 }
@@ -75,7 +75,7 @@ __webpack_require__.e = function (chunkId) {
 // webpack/runtime/get_full_hash
 !function() {
 __webpack_require__.h = function () {
-	return "661ca2e0fb9fdd30008c";
+	return "048dd0ea10a262087819";
 };
 
 }();

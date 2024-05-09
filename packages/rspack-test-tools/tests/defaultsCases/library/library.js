@@ -7,10 +7,10 @@ module.exports = {
 		+ Received
 
 		@@ ... @@
-		-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
+		-     "chunkLoadingGlobal": "webpackChunk_rspack_test_tools",
 		+     "chunkLoadingGlobal": "webpackChunkmyLib_awesome",
 		@@ ... @@
-		-     "devtoolNamespace": "@rspack/core",
+		-     "devtoolNamespace": "@rspack/test-tools",
 		+     "devtoolNamespace": "myLib.awesome",
 		@@ ... @@
 		-     "enabledLibraryTypes": Array [],
@@ -18,7 +18,7 @@ module.exports = {
 		+       "var",
 		+     ],
 		@@ ... @@
-		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
+		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_test_tools",
 		+     "hotUpdateGlobal": "webpackHotUpdatemyLib_awesome",
 		@@ ... @@
 		-     "library": undefined,
@@ -34,7 +34,7 @@ module.exports = {
 		+       "umdNamedDefine": undefined,
 		+     },
 		@@ ... @@
-		-     "uniqueName": "@rspack/core",
+		-     "uniqueName": "@rspack/test-tools",
 		+     "uniqueName": "myLib.awesome",
 	`)
 };

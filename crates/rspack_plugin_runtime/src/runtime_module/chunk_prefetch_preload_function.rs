@@ -27,7 +27,7 @@ impl ChunkPrefetchPreloadFunctionRuntimeModule {
       )),
       runtime_function,
       runtime_handlers,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

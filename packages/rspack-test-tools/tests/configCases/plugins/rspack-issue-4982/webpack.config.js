@@ -2,6 +2,7 @@ const rspack = require("@rspack/core");
 const path = require("path");
 const assert = require("assert");
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	plugins: [
 		{

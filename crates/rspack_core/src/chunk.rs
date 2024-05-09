@@ -67,7 +67,7 @@ impl Chunk {
       files: Default::default(),
       auxiliary_files: Default::default(),
       groups: Default::default(),
-      runtime: HashSet::default(),
+      runtime: RuntimeSpec::default(),
       kind,
       hash: None,
       rendered_hash: None,

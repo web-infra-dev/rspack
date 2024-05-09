@@ -18,7 +18,7 @@ const FILTERS: Record<
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	describe: true,
+	describe: false,
 	description(name) {
 		return `${name} should match snapshot`;
 	},

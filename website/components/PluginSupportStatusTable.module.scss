@@ -14,6 +14,16 @@
     font-size: 0.9em !important;
     color: inherit !important;
   }
+
+  a {
+    font-weight: 500;
+    color: var(--rp-c-brand-dark);
+    transition: color 0.25s;
+
+    &:hover {
+      border-bottom: 1px solid var(--rp-c-brand);
+    }
+  }
 }
 
 @media screen and (max-width: 800px) {

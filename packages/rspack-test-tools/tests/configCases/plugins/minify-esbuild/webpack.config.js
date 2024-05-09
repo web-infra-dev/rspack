@@ -1,4 +1,5 @@
 const minifyPlugin = require("@rspack/plugin-minify");
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	context: __dirname,
 	target: "node",

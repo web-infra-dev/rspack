@@ -13,7 +13,7 @@
     "check": "pnpm run check:format && pnpm run check:spell",
     "check:ci": "pnpm run check:format-ci && pnpm run check:spell"
   },
-  "license": "ISC",
+  "license": "MIT",
   "packageManager": "pnpm@8.14.3",
   "dependencies": {
     "axios": "^1.6.1",
@@ -29,8 +29,8 @@
   },
   "devDependencies": {
     "@modern-js/tsconfig": "^2.46.1",
-    "@rspress/plugin-rss": "^1.18.3",
-    "@rspress/shared": "^1.18.3",
+    "@rspress/plugin-rss": "^1.19.1",
+    "@rspress/shared": "^1.19.1",
     "@types/node": "^18.11.18",
     "@types/react": "^18.0.27",
     "@types/semver": "^7.5.2",
@@ -41,7 +41,7 @@
     "prettier": "3.2.5",
     "rsbuild-plugin-google-analytics": "1.0.0",
     "rsbuild-plugin-open-graph": "1.0.0",
-    "rspress": "^1.18.3",
+    "rspress": "^1.19.1",
     "rspress-plugin-font-open-sans": "1.0.0",
     "typescript": "^5.0.4"
   }

@@ -7,6 +7,7 @@ mod raw_ignore;
 mod raw_limit_chunk_count;
 mod raw_mf;
 mod raw_progress;
+mod raw_runtime_chunk;
 mod raw_swc_js_minimizer;
 mod raw_to_be_deprecated;
 
@@ -28,6 +29,7 @@ use rspack_plugin_devtool::{
   SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
   SourceMapDevToolPluginOptions,
 };
+use rspack_plugin_dynamic_entry::DynamicEntryPlugin;
 use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_externals::{
@@ -56,6 +58,7 @@ use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin,
   ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
 };
+use rspack_plugin_runtime_chunk::RuntimeChunkPlugin;
 use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
@@ -75,12 +78,13 @@ use self::{
   raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
   raw_css_extract::RawCssExtractPluginOption,
   raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
+  raw_runtime_chunk::RawRuntimeChunkOptions,
 };
 use crate::{
   plugins::{CssExtractRspackAdditionalDataPlugin, JsLoaderResolverPlugin},
-  JsLoaderRunner, RawEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
-  RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions,
-  RawSplitChunksOptions,
+  JsLoaderRunner, RawDynamicEntryPluginOptions, RawEntryPluginOptions,
+  RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
+  RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -93,6 +97,7 @@ pub enum BuiltinPluginName {
   IgnorePlugin,
   ProgressPlugin,
   EntryPlugin,
+  DynamicEntryPlugin,
   ExternalsPlugin,
   NodeTargetPlugin,
   ElectronTargetPlugin,
@@ -141,6 +146,7 @@ pub enum BuiltinPluginName {
   ModuleConcatenationPlugin,
   CssModulesPlugin,
   APIPlugin,
+  RuntimeChunkPlugin,
 
   // rspack specific plugins
   // naming format follow XxxRspackPlugin
@@ -199,6 +205,13 @@ impl BuiltinPlugin {
         let entry_request = plugin_options.entry;
         let options = plugin_options.options.into();
         let plugin = EntryPlugin::new(context, entry_request, options).boxed();
+        plugins.push(plugin);
+      }
+      BuiltinPluginName::DynamicEntryPlugin => {
+        let plugin = DynamicEntryPlugin::new(
+          downcast_into::<RawDynamicEntryPluginOptions>(self.options)?.into(),
+        )
+        .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::ExternalsPlugin => {
@@ -342,6 +355,7 @@ impl BuiltinPlugin {
         plugins.push(
           SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
             module: options.module,
+            cheap: !options.columns,
           })
           .boxed(),
         );
@@ -353,6 +367,7 @@ impl BuiltinPlugin {
         plugins.push(
           SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
             module: options.module,
+            cheap: !options.columns,
           })
           .boxed(),
         );
@@ -383,6 +398,10 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::CssModulesPlugin => plugins.push(CssPlugin::default().boxed()),
       BuiltinPluginName::APIPlugin => plugins.push(APIPlugin::default().boxed()),
+      BuiltinPluginName::RuntimeChunkPlugin => plugins.push(
+        RuntimeChunkPlugin::new(downcast_into::<RawRuntimeChunkOptions>(self.options)?.into())
+          .boxed(),
+      ),
 
       // rspack specific plugins
       BuiltinPluginName::HttpExternalsRspackPlugin => {

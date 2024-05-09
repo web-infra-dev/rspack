@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "0.6.3",
+  "version": "0.6.5",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
@@ -9,7 +9,7 @@
     "x": "zx x.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
-    "build:js": "pnpm --filter \"@rspack/core\" build --force && pnpm --filter \"@rspack/*\" --filter \"!@rspack/core\" build --force",
+    "build:js": "pnpm --filter \"@rspack/core\" build:force && pnpm --filter \"@rspack/*\" --filter \"!@rspack/core\" build",
     "build:cli:debug": "npm run build:binding:debug && npm run build:js",
     "build:cli:release": "npm run build:binding:release && npm run build:js",
     "build:cli:release:all": "pnpm --filter @rspack/binding build:release:all && npm run build:js",
@@ -36,6 +36,7 @@
     "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit && npm run test:plugin && pnpm test:webpack",
     "test:plugin": "pnpm --filter \"plugin-test\" test",
     "test:webpack": "pnpm --filter \"webpack-test\" test:metric",
+    "doc-coverage": "pnpm --filter '@rspack/core' doc-coverage",
     "api-extractor:local": "pnpm --filter '@rspack/*' api-extractor --local",
     "api-extractor:ci": "pnpm --filter '@rspack/*' api-extractor:ci"
   },

@@ -10,6 +10,7 @@ class MyPlugin {
 	}
 }
 
+/** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
 	description: "should work with `namedChunks`",
 	options(context) {

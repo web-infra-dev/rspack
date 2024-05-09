@@ -25,7 +25,7 @@ impl RemoteRuntimeModule {
       id: Identifier::from("webpack/runtime/remotes_loading"),
       chunk: None,
       enhanced,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -83,6 +83,9 @@ impl RuntimeModule for RemoteRuntimeModule {
             remote_name: &m.remote_key,
           },
         );
+      }
+      if remotes.is_empty() {
+        continue;
       }
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       chunk_to_remotes_mapping.insert(

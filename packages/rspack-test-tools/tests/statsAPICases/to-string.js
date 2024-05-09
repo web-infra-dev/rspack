@@ -1,3 +1,4 @@
+/** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should look not bad for default stats toString",
 	options(context) {
@@ -30,7 +31,7 @@ module.exports = {
 		  help: 
 		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (dce75c423b760e8a8c35)"
+		Rspack compiled with 1 error (2269ff26c17a6bb04d0e)"
 	`);
 	}
 };

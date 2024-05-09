@@ -13,7 +13,7 @@ import fs from "fs";
 import * as tapable from "tapable";
 import * as liteTapable from "./lite-tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
-import type { WatchOptions } from "watchpack";
+import type Watchpack from "watchpack";
 import {
 	getRawOptions,
 	EntryNormalized,
@@ -1053,7 +1053,10 @@ class Compiler {
 		});
 	}
 
-	watch(watchOptions: WatchOptions, handler: Callback<Error, Stats>): Watching {
+	watch(
+		watchOptions: Watchpack.WatchOptions,
+		handler: Callback<Error, Stats>
+	): Watching {
 		if (this.running) {
 			// @ts-expect-error
 			return handler(new ConcurrentCompilationError());

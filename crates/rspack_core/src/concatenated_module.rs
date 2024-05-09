@@ -395,7 +395,7 @@ impl ConcatenatedModule {
       diagnostics: Mutex::new(vec![]),
       cached_hash: OnceCell::default(),
       build_info: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 
@@ -617,7 +617,7 @@ impl Module for ConcatenatedModule {
       generation_runtime
         .intersection(runtime)
         .cloned()
-        .collect::<HashSet<Arc<str>>>()
+        .collect::<RuntimeSpec>()
     } else {
       generation_runtime
     };

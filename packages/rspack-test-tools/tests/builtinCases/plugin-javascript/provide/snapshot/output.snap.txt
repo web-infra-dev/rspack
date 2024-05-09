@@ -1,8 +1,8 @@
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-/* provided dependency */ var process = __webpack_require__(/*! ./process.js */"./process.js");
-/* provided dependency */ var name = __webpack_require__(/*! ./name.js */"./name.js");
+/* provided dependency */ var process = __webpack_require__("./process.js");
+/* provided dependency */ var name = __webpack_require__("./name.js");
 // var process = {};
 console.log(process.env);
 (function(process1) {
@@ -170,7 +170,8 @@ process.title = "browser";
 process.browser = true;
 process.env = {};
 process.argv = [];
-process.version = ""; // empty string to avoid regexp issues
+process.version = "";
+// empty string to avoid regexp issues
 process.versions = {};
 function noop() {}
 process.on = noop;

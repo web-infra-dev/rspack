@@ -16,7 +16,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   test: function() { return test; }
 });
-/* harmony import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./module */"./module.js");
+/* harmony import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./module.js");
 
 function test() {
     (0, _module__WEBPACK_IMPORTED_MODULE_0__["default"])({
@@ -26,16 +26,16 @@ function test() {
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 it("should generate correct code when pure expressions are in dead branches", ()=>{
-    __webpack_require__(/*! ./import-module */"./import-module.js")/* .test */.test();
+    __webpack_require__("./import-module.js")/* .test */.test();
     return Promise.all([
-        Promise.resolve().then(__webpack_require__.bind(__webpack_require__, /*! ./some-module */"./some-module.js")),
-        __webpack_require__.e("chunk_js").then(__webpack_require__.bind(__webpack_require__, /*! ./chunk */"./chunk.js"))
+        Promise.resolve(/* import() */ ).then(__webpack_require__.bind(__webpack_require__, "./some-module.js")),
+        __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"))
     ]);
 });
 }),
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-/* harmony import */var _some_module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./some-module */"./some-module.js");
+/* harmony import */var _some_module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./some-module.js");
 
 function getType(obj) {
     return obj.type;

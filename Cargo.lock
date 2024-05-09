@@ -777,9 +777,9 @@ dependencies = [
 
 [[package]]
 name = "data-encoding"
-version = "2.5.0"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e962a19be5cfc3f3bf6dd8f61eb50107f356ad6270fbb3ed41476571db78be5"
+checksum = "e8566979429cf69b49a5c740c60791108e86440e8be149bbea4fe54d2c32d6e2"
 
 [[package]]
 name = "debugid"
@@ -2793,6 +2793,7 @@ dependencies = [
  "rspack_plugin_copy",
  "rspack_plugin_css",
  "rspack_plugin_devtool",
+ "rspack_plugin_dynamic_entry",
  "rspack_plugin_ensure_chunk_conditions",
  "rspack_plugin_entry",
  "rspack_plugin_externals",
@@ -2810,6 +2811,7 @@ dependencies = [
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
+ "rspack_plugin_runtime_chunk",
  "rspack_plugin_schemes",
  "rspack_plugin_split_chunks",
  "rspack_plugin_swc_css_minimizer",
@@ -3065,8 +3067,10 @@ dependencies = [
 name = "rspack_macros_test"
 version = "0.1.0"
 dependencies = [
+ "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rspack_identifier",
  "rspack_macros",
  "rspack_util",
  "tokio",
@@ -3147,6 +3151,8 @@ name = "rspack_plugin_copy"
 version = "0.1.0"
 dependencies = [
  "dashmap",
+ "derivative",
+ "futures",
  "glob",
  "lazy_static",
  "pathdiff",
@@ -3182,7 +3188,6 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
- "sugar_path",
  "swc_core",
  "tracing",
  "urlencoding",
@@ -3209,6 +3214,18 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+]
+
+[[package]]
+name = "rspack_plugin_dynamic_entry"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "derivative",
+ "futures",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
@@ -3408,6 +3425,7 @@ dependencies = [
  "rspack_hook",
  "rspack_identifier",
  "rspack_loader_runner",
+ "rspack_plugin_runtime",
  "rspack_util",
  "rustc-hash",
  "serde",
@@ -3469,6 +3487,16 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+]
+
+[[package]]
+name = "rspack_plugin_runtime_chunk"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
 ]
 
 [[package]]
@@ -3635,6 +3663,7 @@ dependencies = [
 name = "rspack_util"
 version = "0.1.0"
 dependencies = [
+ "bitflags 2.5.0",
  "concat-string",
  "dashmap",
  "indexmap 2.2.6",
@@ -3991,9 +4020,9 @@ checksum = "f67ad224767faa3c7d8b6d91985b78e70a1324408abcb1cfcc2be4c06bc06043"
 
 [[package]]
 name = "smol_str"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74212e6bbe9a4352329b2f68ba3130c15a3f26fe88ff22dbdc6cdd58fa85e99c"
+checksum = "e6845563ada680337a52d43bb0b29f396f2d911616f6573012645b9e3d048a49"
 dependencies = [
  "serde",
 ]

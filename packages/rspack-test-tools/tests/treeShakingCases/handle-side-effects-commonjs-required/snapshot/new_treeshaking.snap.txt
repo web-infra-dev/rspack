@@ -1,7 +1,7 @@
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-__webpack_require__(/*! ./source */"./source/index.js");
+__webpack_require__("./source/index.js");
 console.log("something");
 }),
 "./source/index.js": (function (module) {

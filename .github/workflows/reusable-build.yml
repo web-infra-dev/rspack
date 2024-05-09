@@ -50,10 +50,6 @@ on:
         type: boolean
         required: false
         default: true
-      test-diff: # Run Diff Test
-        type: boolean
-        required: false
-        default: false
       ref: # Git reference to checkout
         required: false
         type: string
@@ -275,9 +271,10 @@ jobs:
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
         run: pnpm run test:ci
 
-      - name: Test diff test
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
-        run: node ./scripts/test/diff.cjs
+      ### TODO: diff cases with new runners
+      # - name: Test diff test
+      #   if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
+      #   run: node ./scripts/test/diff.cjs
 
       ### x86_64-apple-darwin
 
@@ -293,11 +290,6 @@ jobs:
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && !inputs.skipable }}
         run: pnpm run test:ci
 
-      - name: Diff test
-        timeout-minutes: 15
-        if: ${{ inputs.test-diff && !inputs.skipable }}
-        run: pnpm run test:diff
-
       - name: API change check
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
         run: |
@@ -306,6 +298,10 @@ jobs:
           echo "$ pnpm build:js && pnpm api-extractor:local"
           echo "===================================="
           pnpm api-extractor:ci
+
+      - name: Documentation coverage check
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
+        run: pnpm doc-coverage
 
       ### write the latest metric into branch gh-pages
       ### Note that, We can't merge this script, because this script only runs on main branch

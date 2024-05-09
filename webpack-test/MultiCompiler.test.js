@@ -26,7 +26,7 @@ const createMultiCompiler = options => {
 	);
 	compiler.outputFileSystem = createFsFromVolume(new Volume());
 	compiler.watchFileSystem = {
-		watch(a, b, c, d, e, f, g) {}
+		watch(a, b, c, d, e, f, g) { }
 	};
 	return compiler;
 };
@@ -119,7 +119,7 @@ describe("MultiCompiler", function () {
 					filename: "bundle.js"
 				}
 			},
-			() => {}
+			() => { }
 		);
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 		compiler.run((err, stats) => {
@@ -431,7 +431,7 @@ describe("MultiCompiler", function () {
 			});
 		});
 
-		compiler.watchFileSystem = { watch() {} };
+		compiler.watchFileSystem = { watch() { } };
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 
 		let state = 0;
@@ -512,7 +512,7 @@ describe("MultiCompiler", function () {
 			});
 		});
 
-		compiler.watchFileSystem = { watch() {} };
+		compiler.watchFileSystem = { watch() { } };
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 
 		let state = 0;
@@ -570,22 +570,19 @@ describe("MultiCompiler", function () {
 			{
 				name: "a",
 				mode: "development",
-				// CHANGE:Rspack does not support function-based entry
-				// entry: () => entriesA,
-				entry: entriesA,
+				entry: () => entriesA,
 				context: path.join(__dirname, "fixtures")
 			},
 			{
 				name: "b",
 				mode: "development",
-				// CHANGE: Rspack does not support function-based entry
-				// entry: () => entriesB,
+				entry: () => entriesB,
 				entry: entriesB,
 				context: path.join(__dirname, "fixtures")
 			}
 		]);
 
-		compiler.watchFileSystem = { watch() {} };
+		compiler.watchFileSystem = { watch() { } };
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 
 		const watching = compiler.watch({}, error => {

@@ -108,7 +108,7 @@ impl DependencyType {
       DependencyType::EsmImportSpecifier => Cow::Borrowed("esm import specifier"),
       DependencyType::EsmExportExpression => Cow::Borrowed("esm export expression"),
       DependencyType::EsmExportHeader => Cow::Borrowed("esm export header"),
-      DependencyType::DynamicImport => Cow::Borrowed("dynamic import"),
+      DependencyType::DynamicImport => Cow::Borrowed("import()"),
       DependencyType::CjsRequire => Cow::Borrowed("cjs require"),
       DependencyType::CjsFullRequire => Cow::Borrowed("cjs full require"),
       DependencyType::CjsExports => Cow::Borrowed("cjs exports"),

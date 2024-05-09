@@ -1,5 +1,6 @@
 const assert = require("assert");
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	target: "node",
 	plugins: [
