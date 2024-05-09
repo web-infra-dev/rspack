@@ -12,16 +12,17 @@ use crate::{
   SharedPluginDriver,
 };
 
+#[derive(Clone)]
 pub struct AfterResolveResult {
   pub resource: String,
-  // context: Context,
+  pub context: String,
   // dependencies
   // layer
   // resolve_options
   // file_dependencies: HashSet<String>,
   // missing_dependencies: HashSet<String>,
   // context_dependencies: HashSet<String>,
-  // request: String,
+  pub request: String,
   // mode
   // recursive: bool,
   pub reg_exp: Option<RspackRegex>,
@@ -37,7 +38,7 @@ pub struct AfterResolveResult {
 }
 
 define_hook!(ContextModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
-define_hook!(ContextModuleFactoryAfterResolve: AsyncSeriesBail(data: &mut AfterResolveResult) -> bool);
+define_hook!(ContextModuleFactoryAfterResolve: AsyncSeriesWaterfall(data: AfterResolveResult) -> Option<AfterResolveResult>);
 
 #[derive(Debug, Default)]
 pub struct ContextModuleFactoryHooks {
@@ -205,8 +206,7 @@ impl ContextModuleFactory {
       Err(err) => (Err(err), false),
     };
 
-    let mut context_module_options = None;
-    let module = match resource_data {
+    let (module, context_module_options) = match resource_data {
       Ok(ResolveResult::Resource(resource)) => {
         let options = ContextModuleOptions {
           addon: loader_request.to_string(),
@@ -216,11 +216,11 @@ impl ContextModuleFactory {
           resolve_options: data.resolve_options.clone(),
           context_options: dependency.options().clone(),
         };
-        context_module_options = Some(options.clone());
-        Box::new(ContextModule::new(
-          options,
+        let module = Box::new(ContextModule::new(
+          options.clone(),
           plugin_driver.resolver_factory.clone(),
-        ))
+        ));
+        (module, Some(options))
       }
       Ok(ResolveResult::Ignored) => {
         let ident = format!("{}/{}", data.context, specifier);
@@ -254,28 +254,32 @@ impl ContextModuleFactory {
     &self,
     context_module_options: &mut ContextModuleOptions,
   ) -> Result<Option<ModuleFactoryResult>> {
-    let mut after_resolve_result = AfterResolveResult {
+    let context_options = &context_module_options.context_options;
+    let after_resolve_result = AfterResolveResult {
       resource: context_module_options.resource.to_owned(),
-      reg_exp: context_module_options.context_options.reg_exp.clone(),
+      context: context_options.context.to_owned(),
+      request: context_options.request.to_owned(),
+      reg_exp: context_options.reg_exp.clone(),
     };
 
-    if let Some(false) = self
+    match self
       .plugin_driver
       .context_module_factory_hooks
       .after_resolve
-      .call(&mut after_resolve_result)
+      .call(after_resolve_result)
       .await?
     {
-      return Ok(None);
+      Some(after_resolve_result) => {
+        context_module_options.resource = after_resolve_result.resource;
+        context_module_options.context_options.reg_exp = after_resolve_result.reg_exp;
+
+        let module = ContextModule::new(
+          context_module_options.clone(),
+          self.loader_resolver_factory.clone(),
+        );
+        Ok(Some(ModuleFactoryResult::new_with_module(Box::new(module))))
+      }
+      None => Ok(None),
     }
-
-    context_module_options.resource = after_resolve_result.resource;
-    context_module_options.context_options.reg_exp = after_resolve_result.reg_exp;
-
-    let module = ContextModule::new(
-      context_module_options.clone(),
-      self.loader_resolver_factory.clone(),
-    );
-    Ok(Some(ModuleFactoryResult::new_with_module(Box::new(module))))
   }
 }

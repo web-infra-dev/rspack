@@ -12,9 +12,9 @@ use napi::{
 use rspack_binding_values::{
   CompatSource, JsAfterResolveData, JsAfterResolveOutput, JsAssetEmittedArgs, JsBeforeResolveArgs,
   JsBeforeResolveOutput, JsChunk, JsChunkAssetArgs, JsCompilation,
-  JsContextModuleFactoryAfterResolveArgs, JsContextModuleFactoryAfterResolveResult, JsCreateData,
-  JsExecuteModuleArg, JsModule, JsNormalModuleFactoryCreateModuleArgs, JsResolveForSchemeArgs,
-  JsResolveForSchemeOutput, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
+  JsContextModuleFactoryAfterResolveResult, JsCreateData, JsExecuteModuleArg, JsModule,
+  JsNormalModuleFactoryCreateModuleArgs, JsResolveForSchemeArgs, JsResolveForSchemeOutput,
+  JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
 };
 use rspack_core::{
   rspack_sources::SourceExt, AfterResolveResult, AssetEmittedInfo, BoxModule, Chunk, ChunkUkey,
@@ -445,8 +445,8 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<boolean | undefined>); stage: number; }>"
   )]
   pub register_context_module_factory_after_resolve_taps: RegisterFunction<
-    JsContextModuleFactoryAfterResolveArgs,
-    Promise<JsContextModuleFactoryAfterResolveResult>,
+    JsContextModuleFactoryAfterResolveResult,
+    Promise<Option<JsContextModuleFactoryAfterResolveResult>>,
   >,
 }
 
@@ -675,7 +675,7 @@ define_register!(
 );
 define_register!(
   RegisterContextModuleFactoryAfterResolveTaps,
-  tap = ContextModuleFactoryAfterResolveTap<JsContextModuleFactoryAfterResolveArgs, Promise<JsContextModuleFactoryAfterResolveResult>> @ ContextModuleFactoryAfterResolveHook,
+  tap = ContextModuleFactoryAfterResolveTap<JsContextModuleFactoryAfterResolveResult, Promise<Option<JsContextModuleFactoryAfterResolveResult>>> @ ContextModuleFactoryAfterResolveHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::ContextModuleFactoryAfterResolve,
@@ -1236,20 +1236,30 @@ impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap 
 
 #[async_trait]
 impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
-  async fn run(&self, result: &mut AfterResolveResult) -> rspack_error::Result<Option<bool>> {
-    let (ret, res) = self
+  async fn run(
+    &self,
+    mut result: AfterResolveResult,
+  ) -> rspack_error::Result<Option<AfterResolveResult>> {
+    let js_result = self
       .function
-      .call_with_promise(JsContextModuleFactoryAfterResolveArgs {
+      .call_with_promise(JsContextModuleFactoryAfterResolveResult {
         resource: result.resource.to_owned(),
+        context: result.context.to_owned(),
+        request: result.request.to_owned(),
         reg_exp: result.reg_exp.clone().map(|r| r.to_string()),
       })
       .await?;
-    result.resource = res.resource;
-    result.reg_exp = match res.reg_exp {
-      Some(r) => Some(RspackRegex::new(&r)?),
-      None => None,
-    };
-    Ok(ret)
+    match js_result {
+      Some(js_result) => {
+        result.resource = js_result.resource;
+        result.reg_exp = match js_result.reg_exp {
+          Some(r) => Some(RspackRegex::new(&r)?),
+          None => None,
+        };
+        Ok(Some(result))
+      }
+      None => Ok(None),
+    }
   }
 
   fn stage(&self) -> i32 {

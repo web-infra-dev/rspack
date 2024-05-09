@@ -1,5 +1,5 @@
 import * as liteTapable from "./lite-tapable";
-import { ContextModuleFactoryResolveData, ResolveData } from "./Module";
+import { ContextModuleFactoryAfterResolveResult, ResolveData } from "./Module";
 
 export class ContextModuleFactory {
 	hooks: {
@@ -7,8 +7,8 @@ export class ContextModuleFactory {
 		// resolveForScheme: HookMap<
 		// 	AsyncSeriesBailHook<[ResourceDataWithData], true | void>
 		// >;
-		beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
-		afterResolve: liteTapable.AsyncSeriesBailHook<[ContextModuleFactoryResolveData], false | void | ContextModuleFactoryResolveData>;
+		beforeResolve: liteTapable.AsyncSeriesWaterfallHook<[ResolveData], false | void>;
+		afterResolve: liteTapable.AsyncSeriesWaterfallHook<[ContextModuleFactoryAfterResolveResult], false | void | ContextModuleFactoryAfterResolveResult>;
 	};
 	constructor() {
 		this.hooks = {

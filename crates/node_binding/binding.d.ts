@@ -291,8 +291,10 @@ export interface JsCompatSource {
   map?: Buffer
 }
 
-export interface JsContextModuleFactoryAfterResolveArgs {
+export interface JsContextModuleFactoryAfterResolveResult {
   resource: string
+  context: string
+  request: string
   regExp?: string
 }
 

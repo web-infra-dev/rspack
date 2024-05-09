@@ -47,7 +47,7 @@ import { assertNotNill } from "./util/assertNotNil";
 import { FileSystemInfoEntry } from "./FileSystemInfo";
 import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
-import { CodeGenerationResult, ContextModuleFactoryResolveData, Module, ResolveData } from "./Module";
+import { CodeGenerationResult, ContextModuleFactoryAfterResolveResult, Module, ResolveData } from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 import { Chunk } from "./Chunk";
@@ -510,7 +510,7 @@ class Compiler {
 						createData: arg.createData
 					};
 					const ret = await queried.promise(data);
-					return [ret, data.createData];
+					return [!!ret, ret];
 				}
 			),
 			registerNormalModuleFactoryCreateModuleTaps: this.#createHookRegisterTaps(
@@ -546,23 +546,23 @@ class Compiler {
 				this.#createHookRegisterTaps(
 					binding.RegisterJsTapKind.ContextModuleFactoryAfterResolve,
 					() => this.compilationParams!.contextModuleFactory.hooks.afterResolve,
-					queried => async (args: binding.JsContextModuleFactoryAfterResolveArgs) => {
-						const resolveData: ContextModuleFactoryResolveData = {
+					queried => async (args: binding.JsContextModuleFactoryAfterResolveResult) => {
+						const resolveData: ContextModuleFactoryAfterResolveResult = {
 							resource: args.resource,
-							regExp: args.regExp ? new RegExp(args.regExp) : undefined
-							// request: arg.request,
-							// context: arg.context,
-							// fileDependencies: arg.fileDependencies,
-							// missingDependencies: arg.missingDependencies,
-							// contextDependencies: arg.contextDependencies,
-							// createData: arg.createData
+							regExp: args.regExp ? new RegExp(args.regExp) : undefined,
+							request: args.request,
+							context: args.context,
 						};
 						const raw = await queried.promise(resolveData);
 						const result = raw ? {
 							resource: raw.resource,
-							regExp: raw.regExp?.toString()
-						} satisfies binding.JsContextModuleFactoryAfterResolveArgs : undefined;
-						return [!!raw, result];
+							context: '',
+							request: '',
+							regExp: raw.regExp?.toString(),
+							// TODO: Dependencies are not fully supported yet; this is a placeholder to prevent errors in moment-locales-webpack-plugin.
+							dependencies: [],
+						} : undefined;
+						return result;
 					}
 				)
 		};

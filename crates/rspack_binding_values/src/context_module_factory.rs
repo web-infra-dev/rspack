@@ -1,10 +1,9 @@
 use napi_derive::napi;
 
 #[napi(object)]
-pub struct JsContextModuleFactoryAfterResolveArgs {
+pub struct JsContextModuleFactoryAfterResolveResult {
   pub resource: String,
+  pub context: String,
+  pub request: String,
   pub reg_exp: Option<String>,
 }
-
-pub type JsContextModuleFactoryAfterResolveResult =
-  (Option<bool>, JsContextModuleFactoryAfterResolveArgs);

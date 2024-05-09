@@ -29,6 +29,18 @@ impl Parse for DefineHookInput {
       "SyncSeriesBail" => ExecKind::SyncSeriesBail {
         ret: ExecKind::parse_ret(input)?,
       },
+      "AsyncSeriesWaterfall" => {
+        let ret = match ExecKind::parse_ret(input)? {
+          Some(t) => t,
+          None => {
+            return Err(Error::new(
+              input.span(),
+              "Waterfall hooks must explicitly define a return type",
+            ))
+          }
+        };
+        ExecKind::AsyncSeriesWaterfall { ret }
+      }
       "AsyncSeries" => ExecKind::AsyncSeries,
       "AsyncParallel" => ExecKind::AsyncParallel,
       "SyncSeries" => ExecKind::SyncSeries,
@@ -142,6 +154,7 @@ impl DefineHookInput {
 enum ExecKind {
   AsyncSeries,
   AsyncSeriesBail { ret: Option<TypePath> },
+  AsyncSeriesWaterfall { ret: TypePath },
   AsyncParallel,
   SyncSeries,
   SyncSeriesBail { ret: Option<TypePath> },
@@ -160,7 +173,10 @@ impl ExecKind {
 
   pub fn is_async(&self) -> bool {
     match self {
-      Self::AsyncSeries | Self::AsyncSeriesBail { .. } | Self::AsyncParallel => true,
+      Self::AsyncSeries
+      | Self::AsyncSeriesBail { .. }
+      | Self::AsyncSeriesWaterfall { .. }
+      | Self::AsyncParallel => true,
       Self::SyncSeries | Self::SyncSeriesBail { .. } => false,
     }
   }
@@ -173,6 +189,9 @@ impl ExecKind {
         } else {
           quote! { rspack_hook::__macro_helper::Result<std::option::Option<()>> }
         }
+      }
+      Self::AsyncSeriesWaterfall { ret } => {
+        quote! { rspack_hook::__macro_helper::Result<#ret> }
       }
       _ => quote! { rspack_hook::__macro_helper::Result<()> },
     }
@@ -217,6 +236,18 @@ impl ExecKind {
             }
           }
           Ok(None)
+        }
+      }
+      Self::AsyncSeriesWaterfall { .. } => {
+        quote! {
+          #additional_taps
+          let mut data = #args;
+          for tap in all_taps {
+            if let Some(res) = tap.run(data.clone()).await? {
+              data = res;
+            }
+          }
+          Ok(Some(data))
         }
       }
       Self::AsyncParallel => {
