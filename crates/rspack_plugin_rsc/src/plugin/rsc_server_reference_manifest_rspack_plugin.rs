@@ -53,12 +53,8 @@ impl RSCServerReferenceManifest {
     }
   }
   fn is_client_request(&self, resource_path: &str) -> bool {
-    let client_imports = SHARED_CLIENT_IMPORTS.get();
-    if let Some(client_imports) = client_imports {
-      client_imports.values().any(|f| f.contains(resource_path))
-    } else {
-      true
-    }
+    let client_imports = SHARED_CLIENT_IMPORTS.lock().unwrap();
+    return client_imports.values().any(|f| f.contains(resource_path));
   }
   fn process_assets_stage_optimize_hash(&self, compilation: &mut Compilation) -> Result<()> {
     let now = Instant::now();
@@ -142,7 +138,7 @@ impl RSCServerReferenceManifest {
         }
       }
     }
-    let _ = SHARED_DATA.set(server_manifest.clone());
+    *SHARED_DATA.lock().unwrap() = server_manifest.clone();
     let content = to_string(&server_manifest);
     match content {
       Ok(content) => {

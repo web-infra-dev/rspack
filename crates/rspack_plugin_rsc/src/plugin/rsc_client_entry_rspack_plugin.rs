@@ -141,7 +141,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   }
   // TODO: custom main entry name, all other entries depend on this entry
   let main_name = "server-entry";
-  let _ = SHARED_CLIENT_IMPORTS.set(client_imports.clone());
+  *SHARED_CLIENT_IMPORTS.lock().unwrap() = client_imports.clone();
   let cc = client_imports.clone();
   let main = cc.get(main_name).unwrap();
   for (name, value) in client_imports.iter_mut() {
