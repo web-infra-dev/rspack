@@ -113,12 +113,6 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       status: CompatibleStatus.NotCompatible,
     },
     {
-      name: 'directory-named-webpack-plugin',
-      url: 'https://github.com/shaketbaby/directory-named-webpack-plugin',
-      status: CompatibleStatus.NotCompatible,
-      description: i18n[lang]['resolve-plugin-un-support-desc'],
-    },
-    {
       name: 'pnp-webpack-plugin',
       url: 'https://github.com/arcanis/pnp-webpack-plugin',
       status: CompatibleStatus.NotCompatible,
@@ -128,6 +122,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       name: 'webpack-virtual-modules',
       url: 'https://github.com/sysgears/webpack-virtual-modules',
       status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['webpack-virtual-modules-desc'],
     },
     {
       name: '@sentry/webpack-plugin',
