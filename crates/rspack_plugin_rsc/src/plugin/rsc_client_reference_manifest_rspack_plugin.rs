@@ -48,12 +48,8 @@ impl RSCClientReferenceManifest {
     }
   }
   fn is_client_request(&self, resource_path: &str) -> bool {
-    let client_imports = SHARED_CLIENT_IMPORTS.get();
-    if let Some(client_imports) = client_imports {
-      client_imports.values().any(|f| f.contains(resource_path))
-    } else {
-      true
-    }
+    let client_imports = SHARED_CLIENT_IMPORTS.lock().unwrap();
+    return client_imports.values().any(|f| f.contains(resource_path));
   }
   fn add_server_ref(
     &self,
@@ -102,7 +98,7 @@ impl RSCClientReferenceManifest {
   fn process_assets_stage_optimize_hash(&self, compilation: &mut Compilation) -> Result<()> {
     let now = Instant::now();
     let mut client_manifest = ClientReferenceManifest::default();
-    let shared_server_manifest = SHARED_DATA.get().unwrap();
+    let shared_server_manifest = SHARED_DATA.lock().unwrap();
     let mut server_manifest = ServerReferenceManifest::default();
     let mg = compilation.get_module_graph();
     let context = &compilation.options.context;
