@@ -52,6 +52,7 @@ export * from "./ModuleConcatenationPlugin";
 export * from "./CssModulesPlugin";
 export * from "./APIPlugin";
 export * from "./RuntimeChunkPlugin";
+export * from "./SizeLimitsPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";

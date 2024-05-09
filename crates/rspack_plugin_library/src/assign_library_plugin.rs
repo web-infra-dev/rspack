@@ -206,7 +206,7 @@ impl JavascriptModulesPluginPlugin for AssignLibraryJavascriptModulesPluginPlugi
       let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
       if let Some(analyze_results) = args
         .compilation
-        .optimize_analyze_result_map
+        .optimize_analyze_result_map()
         .get(&args.module)
       {
         for info in analyze_results.ordered_exports() {

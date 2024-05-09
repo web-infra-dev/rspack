@@ -53,6 +53,41 @@ Works the same with enhanced-resolve's `resolve.aliasFields = ["browser"]`.
 
 Same as node's [conditionNames](https://nodejs.org/api/packages.html#conditional-exports) for the `exports` and `imports` fields in package.json.
 
+## resolve.descriptionFiles
+
+<ApiMeta addedVersion="0.6.6" />
+
+- **Type:** `string[]`
+- **Default:** `['package.json']`
+
+The JSON files to use for descriptions.
+
+```js title="rspack.config.js"
+module.exports = {
+  resolve: {
+    descriptionFiles: ['package.json'],
+  },
+};
+```
+
+## resolve.enforceExtension
+
+<ApiMeta addedVersion="0.6.6" />
+
+- **Type:** `boolean`
+
+By default, It changes to `true` if [resolve.extensions](#resolveextensions) contains an empty string; otherwise, this value changes to `false`.
+
+If `true`, it will not allow extension-less files. So by default `require('./foo')` works if `./foo` has a `.js` extension, but with this enabled only `require('./foo.js')` will work.
+
+```js title="rspack.config.js"
+module.exports = {
+  resolve: {
+    enforceExtension: false,
+  },
+};
+```
+
 ## resolve.extensions
 
 - **Type:** `string[]`
@@ -86,6 +121,33 @@ module.exports = {
 - **Default:** `{}`
 
 Redirect in case of failed parsing.
+
+## resolve.importsFields
+
+<ApiMeta addedVersion="0.6.6" />
+
+- **Type:** `string[]`
+- **Default:** `["imports"]`
+
+Customize the `imports` field in package.json which are used to provide the internal requests of a package (requests starting with `#` are considered internal).
+
+e.g.
+
+```
+// package.json
+{
+  "name": "lib",
+  "imports": {
+    "#foo": "./src/foo.js",
+    "#common/*": "./src/common/*.js"
+  }
+  "testImports": {
+    "#foo": "./src/test/foo.js",
+  }
+}
+```
+
+When this configuration is ["testImports", "imports"], the result of `import value from '#foo'` in current package is `src/test/foo.js`.
 
 ## resolve.mainFields
 
@@ -248,6 +310,15 @@ A list of resolve restrictions to restrict the paths that a request can be resol
 - **Default:** `[]`
 
 A list of directories where server-relative URLs (beginning with '/') are resolved. It defaults to the `context` configuration option. On systems other than Windows, these requests are initially resolved as an absolute path.
+
+## resolve.symlinks
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to resolve symlinks to their symlinked location.
+
+When enabled, symlinked resources are resolved to their real path, not their symlinked location. Note that this may cause module resolution to fail when using tools that symlink packages (like `npm link`).
 
 ## resolve.byDependency
 

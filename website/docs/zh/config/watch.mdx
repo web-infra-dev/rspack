@@ -40,6 +40,22 @@ module.exports = {
 };
 ```
 
+### watchOptions.aggregateTimeout
+
+- **类型：** `number`
+- **默认值：** `5`
+
+当第一个文件更改后，在触发 rebuild 前存在一个延迟时间，Rspack 会将这段时间内进行的任何其他更改都聚合到一次 rebuild 里。你可以通过这个选项来设置这个时间，以毫秒为单位：
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  watchOptions: {
+    aggregateTimeout: 600,
+  },
+};
+```
+
 ### watchOptions.ignored
 
 - **类型：** `RegExp`, `string`, `string[]`
@@ -52,3 +68,33 @@ module.exports = {
 - **默认值：** `false`
 
 是否通过轮询进行监听，`true` 时默认的轮询间隔为 5007 毫秒。
+
+### watchOptions.followSymlinks
+
+- **类型：** `boolean`
+
+根据软链接查找文件。这通常是不需要的，因为 Rspack 已经使用 [resolve.symlinks](/config/resolve#resolvesymlinks) 解析了软链接。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  watchOptions: {
+    followSymlinks: true,
+  },
+};
+```
+
+### watchOptions.stdin
+
+- **类型：** `boolean`
+
+当 stdin 流结束时停止监听。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  watchOptions: {
+    stdin: true,
+  },
+};
+```

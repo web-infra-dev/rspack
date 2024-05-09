@@ -570,6 +570,9 @@ const baseResolveOptions: z.ZodObject<{
     preferRelative: z.ZodOptional<z.ZodBoolean>;
     preferAbsolute: z.ZodOptional<z.ZodBoolean>;
     symlinks: z.ZodOptional<z.ZodBoolean>;
+    enforceExtension: z.ZodOptional<z.ZodBoolean>;
+    importsFields: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    descriptionFiles: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     tsConfigPath: z.ZodOptional<z.ZodString>;
     tsConfig: z.ZodOptional<z.ZodObject<{
         configFile: z.ZodString;
@@ -599,6 +602,9 @@ const baseResolveOptions: z.ZodObject<{
     preferRelative?: boolean | undefined;
     preferAbsolute?: boolean | undefined;
     symlinks?: boolean | undefined;
+    enforceExtension?: boolean | undefined;
+    importsFields?: string[] | undefined;
+    descriptionFiles?: string[] | undefined;
     tsConfigPath?: string | undefined;
     tsConfig?: {
         configFile: string;
@@ -622,6 +628,9 @@ const baseResolveOptions: z.ZodObject<{
     preferRelative?: boolean | undefined;
     preferAbsolute?: boolean | undefined;
     symlinks?: boolean | undefined;
+    enforceExtension?: boolean | undefined;
+    importsFields?: string[] | undefined;
+    descriptionFiles?: string[] | undefined;
     tsConfigPath?: string | undefined;
     tsConfig?: {
         configFile: string;
@@ -887,6 +896,8 @@ export class ChunkGroup {
     __internal_inner_compilation(): JsCompilation;
     // (undocumented)
     __internal_inner_ukey(): number;
+    // (undocumented)
+    get chunks(): Chunk[];
     // (undocumented)
     getFiles(): string[];
     // (undocumented)
@@ -7090,6 +7101,28 @@ export type Pathinfo = z.infer<typeof pathinfo>;
 const pathinfo: z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"verbose">]>;
 
 // @public (undocumented)
+type Performance_2 = z.infer<typeof performance_2>;
+export { Performance_2 as Performance }
+
+// @public (undocumented)
+const performance_2: z.ZodUnion<[z.ZodObject<{
+    assetFilter: z.ZodOptional<z.ZodFunction<z.ZodTuple<[z.ZodString], z.ZodUnknown>, z.ZodBoolean>>;
+    hints: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warning"]>, z.ZodLiteral<false>]>>;
+    maxAssetSize: z.ZodOptional<z.ZodNumber>;
+    maxEntrypointSize: z.ZodOptional<z.ZodNumber>;
+}, "strict", z.ZodTypeAny, {
+    assetFilter?: ((args_0: string, ...args_1: unknown[]) => boolean) | undefined;
+    hints?: false | "error" | "warning" | undefined;
+    maxAssetSize?: number | undefined;
+    maxEntrypointSize?: number | undefined;
+}, {
+    assetFilter?: ((args_0: string, ...args_1: unknown[]) => boolean) | undefined;
+    hints?: false | "error" | "warning" | undefined;
+    maxAssetSize?: number | undefined;
+    maxEntrypointSize?: number | undefined;
+}>, z.ZodLiteral<false>]>;
+
+// @public (undocumented)
 interface PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> {
     // (undocumented)
     (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object): string | void | Buffer | Promise<string | Buffer>;
@@ -7665,6 +7698,7 @@ declare namespace rspackExports {
         IgnoreWarnings,
         Profile,
         Bail,
+        Performance_2 as Performance,
         Builtins,
         rspackOptions,
         RspackOptions,
@@ -9590,6 +9624,22 @@ export const rspackOptions: z.ZodObject<{
     }>>;
     profile: z.ZodOptional<z.ZodBoolean>;
     bail: z.ZodOptional<z.ZodBoolean>;
+    performance: z.ZodOptional<z.ZodUnion<[z.ZodObject<{
+        assetFilter: z.ZodOptional<z.ZodFunction<z.ZodTuple<[z.ZodString], z.ZodUnknown>, z.ZodBoolean>>;
+        hints: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warning"]>, z.ZodLiteral<false>]>>;
+        maxAssetSize: z.ZodOptional<z.ZodNumber>;
+        maxEntrypointSize: z.ZodOptional<z.ZodNumber>;
+    }, "strict", z.ZodTypeAny, {
+        assetFilter?: ((args_0: string, ...args_1: unknown[]) => boolean) | undefined;
+        hints?: false | "error" | "warning" | undefined;
+        maxAssetSize?: number | undefined;
+        maxEntrypointSize?: number | undefined;
+    }, {
+        assetFilter?: ((args_0: string, ...args_1: unknown[]) => boolean) | undefined;
+        hints?: false | "error" | "warning" | undefined;
+        maxAssetSize?: number | undefined;
+        maxEntrypointSize?: number | undefined;
+    }>, z.ZodLiteral<false>]>>;
 }, "strict", z.ZodTypeAny, {
     name?: string | undefined;
     dependencies?: string[] | undefined;
@@ -10006,6 +10056,12 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     profile?: boolean | undefined;
     bail?: boolean | undefined;
+    performance?: false | {
+        assetFilter?: ((args_0: string, ...args_1: unknown[]) => boolean) | undefined;
+        hints?: false | "error" | "warning" | undefined;
+        maxAssetSize?: number | undefined;
+        maxEntrypointSize?: number | undefined;
+    } | undefined;
 }, {
     name?: string | undefined;
     dependencies?: string[] | undefined;
@@ -10422,6 +10478,12 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     profile?: boolean | undefined;
     bail?: boolean | undefined;
+    performance?: false | {
+        assetFilter?: ((args_0: string, ...args_1: unknown[]) => boolean) | undefined;
+        hints?: false | "error" | "warning" | undefined;
+        maxAssetSize?: number | undefined;
+        maxEntrypointSize?: number | undefined;
+    } | undefined;
 }>;
 
 // @public (undocumented)
@@ -10475,6 +10537,8 @@ export interface RspackOptionsNormalized {
     optimization: Optimization;
     // (undocumented)
     output: OutputNormalized;
+    // (undocumented)
+    performance?: Performance_2;
     // (undocumented)
     plugins: Plugins;
     // (undocumented)

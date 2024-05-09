@@ -1,0 +1,50 @@
+import PropertyType from '../../../components/property-type.tsx';
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/performance/" />
+
+# Performance
+
+性能提示：这些选项可以控制 Rspack 如何通知「资源（asset）和入口起点超过指定文件限制」。
+
+## performance
+
+<PropertyType.CN type="false | object" />
+
+配置如何展示性能提示。例如，如果一个资源超过 250kb，Rspack 会对此输出一个警告来通知你。
+
+### performance.assetFilter
+
+<PropertyType.CN type="(assetFilename: string) => boolean" />
+
+此属性允许 Rspack 控制用于计算性能提示的文件。
+
+### performance.hints
+
+<PropertyType.CN
+  type="false | 'error' | 'warning'"
+  defaultValueList={[
+    { defaultValue: 'warning', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+打开/关闭提示。此外，当找到提示时，告诉 Rspack 抛出一个错误或警告。
+
+### performance.maxAssetSize
+
+<PropertyType.CN
+  type="number"
+  defaultValueList={[{ defaultValue: '250000' }]}
+/>
+
+此选项根据单个资源体积（单位：bytes），控制 Rspack 何时生成性能提示。
+
+### performance.maxEntrypointSize
+
+<PropertyType.CN
+  type="number"
+  defaultValueList={[{ defaultValue: '250000' }]}
+/>
+
+此选项根据入口起点的最大体积（单位：bytes），控制 Rspack 何时生成性能提示。
