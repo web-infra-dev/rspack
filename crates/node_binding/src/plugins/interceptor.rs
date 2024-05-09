@@ -438,14 +438,14 @@ pub struct RegisterJsTaps {
   pub register_normal_module_factory_create_module_taps:
     RegisterFunction<JsNormalModuleFactoryCreateModuleArgs, Promise<()>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsContextModuleFactoryBeforeResolveResult) => Promise<JsContextModuleFactoryBeforeResolveResult>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>"
   )]
   pub register_context_module_factory_before_resolve_taps: RegisterFunction<
     JsContextModuleFactoryBeforeResolveResult,
     Promise<JsContextModuleFactoryBeforeResolveResult>,
   >,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsContextModuleFactoryAfterResolveResult) => Promise<JsContextModuleFactoryAfterResolveResult>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>"
   )]
   pub register_context_module_factory_after_resolve_taps: RegisterFunction<
     JsContextModuleFactoryAfterResolveResult,
