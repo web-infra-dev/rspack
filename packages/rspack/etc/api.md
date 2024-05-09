@@ -570,6 +570,9 @@ const baseResolveOptions: z.ZodObject<{
     preferRelative: z.ZodOptional<z.ZodBoolean>;
     preferAbsolute: z.ZodOptional<z.ZodBoolean>;
     symlinks: z.ZodOptional<z.ZodBoolean>;
+    enforceExtension: z.ZodOptional<z.ZodBoolean>;
+    importsFields: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    descriptionFiles: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     tsConfigPath: z.ZodOptional<z.ZodString>;
     tsConfig: z.ZodOptional<z.ZodObject<{
         configFile: z.ZodString;
@@ -599,6 +602,9 @@ const baseResolveOptions: z.ZodObject<{
     preferRelative?: boolean | undefined;
     preferAbsolute?: boolean | undefined;
     symlinks?: boolean | undefined;
+    enforceExtension?: boolean | undefined;
+    importsFields?: string[] | undefined;
+    descriptionFiles?: string[] | undefined;
     tsConfigPath?: string | undefined;
     tsConfig?: {
         configFile: string;
@@ -622,6 +628,9 @@ const baseResolveOptions: z.ZodObject<{
     preferRelative?: boolean | undefined;
     preferAbsolute?: boolean | undefined;
     symlinks?: boolean | undefined;
+    enforceExtension?: boolean | undefined;
+    importsFields?: string[] | undefined;
+    descriptionFiles?: string[] | undefined;
     tsConfigPath?: string | undefined;
     tsConfig?: {
         configFile: string;
