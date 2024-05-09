@@ -8,13 +8,14 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rspack_core          = { path = "../rspack_core" }
-rspack_error         = { path = "../rspack_error" }
-rspack_hash          = { path = "../rspack_hash" }
-rspack_hook          = { path = "../rspack_hook" }
-rspack_identifier    = { path = "../rspack_identifier" }
-rspack_loader_runner = { path = "../rspack_loader_runner" }
-rspack_util          = { path = "../rspack_util" }
+rspack_core           = { path = "../rspack_core" }
+rspack_error          = { path = "../rspack_error" }
+rspack_hash           = { path = "../rspack_hash" }
+rspack_hook           = { path = "../rspack_hook" }
+rspack_identifier     = { path = "../rspack_identifier" }
+rspack_loader_runner  = { path = "../rspack_loader_runner" }
+rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
+rspack_util           = { path = "../rspack_util" }
 
 async-trait = { workspace = true }
 hashlink    = { workspace = true }
