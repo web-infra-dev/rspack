@@ -1,0 +1,163 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/plugins/internal-plugins/" />
+
+# 内部默认启用的插件
+
+这是 Rspack 内部默认启用的插件列表，对齐 webpack 内部默认启用的插件。
+
+:::warning 警告
+你只需要关心这些插件如果你正在基于 Rspack 构建你自己的编译器，或者是在内部进行检查。
+:::
+
+默认启用的插件的分类：
+
+- [environment](#environment)
+- [compiler](#compiler)
+- [entry](#entry)
+- [output](#output)
+- [source](#source)
+- [optimize](#optimize)
+- [loader](#loader)
+- [module federation](#module-federation)
+
+## environment
+
+影响编译器环境的插件。
+
+### ElectronTargetPlugin
+
+`electron.ElectronTargetPlugin(context)`
+
+为 Electron 应用中的不同上下文（如主进程、预加载脚本和渲染进程）定制外部依赖处理。
+
+[`externalsPresets.electron`](/config/externals#electron)、[`externalsPresets.electronMain`](/config/externals#electronmain)、[`externalsPresets.electronRenderer`](/config/externals#electronrenderer) 和 [`externalsPresets.electronPreload`](/config/externals#electronpreload) 配置项均依赖该插件。
+
+### NodeEnvironmentPlugin
+
+`node.NodeEnvironmentPlugin()`
+
+将 Node.js 风格的文件系统应用到编译器。
+
+## compiler
+
+影响编译器的插件。
+
+### ProgressPlugin
+
+`ProgressPlugin(handler)`
+
+订阅编译器钩子以获取进度信息。处理函数必须符合 `function(percentage, message)` 的签名形式。其中的 `percentage` 会被调用，并传入一个介于 0 和 1 之间的值，0 表示开始，1 表示结束。
+
+## entry
+
+处理入口 chunk 的插件。
+
+### EntryPlugin
+
+`EntryPlugin(context, entry, options)`
+
+在编译时添加一个入口 chunk。该 chunk 的名称为 `options.name`，仅包含一个模块（以及依赖项）。该模块是通过 `entry` 在 `context` 下（绝对路径）解析出来的。
+
+- `context`：模块解析时的基础路径，入口模块的解析将在此路径下进行。
+- `entry`：指定要作为入口点的模块路径。
+- `options`：入口模块的额外配置。
+
+### DynamicEntryPlugin
+
+`DynamicEntryPlugin(context, entry)`
+
+与 `EntryPlugin` 类似，但接受一个函数作为 `entry` 参数。该函数在构建过程中的每个 `make` 事件触发时调用，以支持动态决定入口点。
+
+### EntryOptionPlugin
+
+`EntryOptionPlugin()`
+
+## output
+
+### EvalDevToolModulePlugin
+
+`EvalDevToolModulePlugin(options)`
+
+通过在每个模块中使用带有 `// @sourceURL` 注释的 `eval` 来装饰模块模板。
+
+### WebWorkerTemplatePlugin
+
+`webworker.WebWorkerTemplatePlugin(options)`
+
+通过 `importScripts` 加载代码块。
+
+`options` 是输出配置。
+
+## source
+
+影响模块源代码的插件。
+
+### ProvidePlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+`ProvidePlugin(name, request)`
+
+如果在模块中使用 `name`，则会由通过填充 `require(<request>)` 来加载它。
+
+### NodeTargetPlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+`node.NodeTargetPlugin()`
+
+如果你在 Node.js 环境中运行打包文件，应当使用这个插件。
+
+它确保即使在打包后，原生模块也能被正确加载。
+
+## optimize
+
+请注意，只有当 `mode` 设置为 `'none'` 时，才应该使用 `rspack.optimize` 命名空间下的插件。否则，你可能会遇到插件被应用两次而导致问题的情况。
+
+### LimitChunkCountPlugin
+
+<ApiMeta addedVersion={'0.3.10'} />
+
+`optimize.LimitChunkCountPlugin(options)`
+
+合并 chunk，直到 chunk 数量少于 `options.maxChunks` 所设定的上限。
+
+每个 chunk 的开销由 `options.chunkOverhead` 决定，如果没有指定则默认为 10000。入口 chunk 的大小会被 `options.entryChunkMultiplicator`（或默认的 10）所乘。
+
+首先合并那些能最大幅度减少总大小的 chunk。如果有多个组合能够等量减少，那么合并后大小最小的组合将会胜出。
+
+## loader
+
+### LoaderOptionsPlugin
+
+`LoaderOptionsPlugin(options)`
+
+### LoaderTargetPlugin
+
+`LoaderTargetPlugin(target)`
+
+## module federation
+
+使用模块联邦（Module Federation）时内部所使用的插件，这些是 `ModuleFederationPlugin` 所依赖的基础插件。
+
+### ContainerPlugin
+
+`container.ContainerPlugin(options)`
+
+### ContainerReferencePlugin
+
+`container.ContainerReferencePlugin(options)`
+
+### ConsumeSharedPlugin
+
+`sharing.ConsumeSharedPlugin(options)`
+
+### ProvideSharedPlugin
+
+`sharing.ProvideSharedPlugin(options)`
+
+### SharePlugin
+
+`sharing.SharePlugin(options)`

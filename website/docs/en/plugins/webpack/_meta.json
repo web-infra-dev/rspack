@@ -1,5 +1,6 @@
 [
   "index",
+  "internal-plugins",
   "entry-plugin",
   "define-plugin",
   "provide-plugin",
