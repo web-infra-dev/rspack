@@ -25,8 +25,8 @@ export class ContextModuleFactory {
 			// /** @type {AsyncSeriesBailHook<[ResolveData], Module>} */
 			// factorize: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
-			beforeResolve: new liteTapable.AsyncSeriesBailHook(["resolveData"]),
-			afterResolve: new liteTapable.AsyncSeriesBailHook(["resolveData"])
+			beforeResolve: new liteTapable.AsyncSeriesWaterfallHook(["resolveData"]),
+			afterResolve: new liteTapable.AsyncSeriesWaterfallHook(["resolveData"])
 			// /** @type {AsyncSeriesBailHook<[ResolveData["createData"], ResolveData], Module | void>} */
 			// createModule: new AsyncSeriesBailHook(["createData", "resolveData"]),
 			// /** @type {SyncWaterfallHook<[Module, ResolveData["createData"], ResolveData], Module>} */

@@ -791,22 +791,18 @@ export class AsyncSeriesWaterfallHook<
 			stageRange: [from, to],
 			tapsInRange
 		} = queried;
-		const args2 = [...args];
-		const cb = args2.pop() as Callback<Error, R>;
+		let data = args[0] as R;
+		const cb = args[1] as Callback<Error, R>;
 		if (from === minStage) {
-			this._runCallInterceptors(...args2);
+			this._runCallInterceptors(data);
 		}
 		const done = () => {
 			this._runDoneInterceptors();
-			cb(null);
+			cb(null, data);
 		};
 		const error = (e: Error) => {
 			this._runErrorInterceptors(e);
 			cb(e);
-		};
-		const result = (r: R) => {
-			this._runResultInterceptors(r);
-			cb(null, r);
 		};
 		if (tapsInRange.length === 0) return done();
 		let index = 0;
@@ -814,7 +810,7 @@ export class AsyncSeriesWaterfallHook<
 			const tap = tapsInRange[index];
 			this._runTapInterceptors(tap);
 			if (tap.type === "promise") {
-				const promise = tap.fn(...args2);
+				const promise = tap.fn(data);
 				if (!promise || !promise.then) {
 					throw new Error(
 						"Tap function (tapPromise) did not return promise (returned " +
@@ -826,8 +822,9 @@ export class AsyncSeriesWaterfallHook<
 					(r: R) => {
 						index += 1;
 						if (r !== undefined) {
-							result(r);
-						} else if (index === tapsInRange.length) {
+							data = r
+						}
+						if (index === tapsInRange.length) {
 							done();
 						} else {
 							next();
@@ -839,15 +836,16 @@ export class AsyncSeriesWaterfallHook<
 					}
 				);
 			} else if (tap.type === "async") {
-				tap.fn(...args2, (e: Error, r: R) => {
+				tap.fn(data, (e: Error, r: R) => {
 					if (e) {
 						index = tapsInRange.length;
 						error(e);
 					} else {
 						index += 1;
 						if (r !== undefined) {
-							result(r);
-						} else if (index === tapsInRange.length) {
+							data = r
+						}
+						if (index === tapsInRange.length) {
 							done();
 						} else {
 							next();
@@ -856,9 +854,11 @@ export class AsyncSeriesWaterfallHook<
 				});
 			} else {
 				let hasError = false;
-				let r = undefined;
 				try {
-					r = tap.fn(...args2);
+					const r = tap.fn(data);
+					if (r !== undefined) {
+						data = r
+					}
 				} catch (e) {
 					hasError = true;
 					index = tapsInRange.length;
@@ -866,9 +866,7 @@ export class AsyncSeriesWaterfallHook<
 				}
 				if (!hasError) {
 					index += 1;
-					if (r !== undefined) {
-						result(r);
-					} else if (index === tapsInRange.length) {
+					if (index === tapsInRange.length) {
 						done();
 					} else {
 						next();
