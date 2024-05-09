@@ -47,10 +47,20 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       description: i18n[lang]['case-sensitive-paths-webpack-plugin-desc'],
     },
     {
+      name: 'clean-webpack-plugin',
+      url: 'https://github.com/johnagan/clean-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
       name: 'copy-webpack-plugin',
       url: 'https://www.npmjs.com/package/copy-webpack-plugin',
       status: CompatibleStatus.Included,
       description: i18n[lang]['copy-plugin-desc'],
+    },
+    {
+      name: 'compression-webpack-plugin',
+      url: 'https://github.com/webpack-contrib/compression-webpack-plugin',
+      status: CompatibleStatus.Compatible,
     },
     {
       name: 'css-minimizer-webpack-plugin',
@@ -106,6 +116,18 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       name: 'webpack-subresource-integrity',
       url: 'https://github.com/waysact/webpack-subresource-integrity',
       status: CompatibleStatus.NotCompatible,
+    },
+    {
+      name: 'pnp-webpack-plugin',
+      url: 'https://github.com/arcanis/pnp-webpack-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['resolve-plugin-un-support-desc'],
+    },
+    {
+      name: 'webpack-virtual-modules',
+      url: 'https://github.com/sysgears/webpack-virtual-modules',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['webpack-virtual-modules-desc'],
     },
     {
       name: '@sentry/webpack-plugin',
