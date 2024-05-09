@@ -34,9 +34,21 @@ Customizes the handling of external dependencies for different contexts (such as
 
 [`externalsPresets.electron`](/config/externals#electron), [`externalsPresets.electronMain`](/config/externals#electronmain), [`externalsPresets.electronRenderer`](/config/externals#electronrenderer), and [`externalsPresets.electronPreload`](/config/externals#electronpreload) all rely on this plugin.
 
+### NodeEnvironmentPlugin
+
+`node.NodeEnvironmentPlugin()`
+
+Applies Node.js style filesystem to the compiler.
+
 ## compiler
 
 Plugins affecting the compiler.
+
+### ProgressPlugin
+
+`ProgressPlugin(handler)`
+
+Hook into the compiler to extract progress information. The `handler` must have the signature `function(percentage, message)`. Percentage is called with a value between 0 and 1, where 0 indicates the start and 1 the end.
 
 ## entry
 
@@ -53,6 +65,8 @@ Adds an entry chunk on compilation. The chunk is named `options.name` and contai
 - `options`: Additional configurations for the entry module.
 
 ### DynamicEntryPlugin
+
+<ApiMeta addedVersion={'0.6.4'} />
 
 `DynamicEntryPlugin(context, entry)`
 
@@ -132,20 +146,30 @@ Internal plugins used with Module Federation, which are the basis of the `Module
 
 ### ContainerPlugin
 
+<ApiMeta addedVersion={'0.5.0'} />
+
 `container.ContainerPlugin(options)`
 
 ### ContainerReferencePlugin
+
+<ApiMeta addedVersion={'0.5.0'} />
 
 `container.ContainerReferencePlugin(options)`
 
 ### ConsumeSharedPlugin
 
+<ApiMeta addedVersion={'0.5.0'} />
+
 `sharing.ConsumeSharedPlugin(options)`
 
 ### ProvideSharedPlugin
 
+<ApiMeta addedVersion={'0.5.0'} />
+
 `sharing.ProvideSharedPlugin(options)`
 
 ### SharePlugin
+
+<ApiMeta addedVersion={'0.5.0'} />
 
 `sharing.SharePlugin(options)`

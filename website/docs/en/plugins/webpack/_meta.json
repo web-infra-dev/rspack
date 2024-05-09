@@ -1,7 +1,6 @@
 [
   "index",
   "internal-plugins",
-  "entry-plugin",
   "define-plugin",
   "provide-plugin",
   "banner-plugin",
@@ -17,7 +16,6 @@
   "enable-chunk-loading-plugin",
   "enable-library-plugin",
   "enable-wasm-loading-plugin",
-  "electron-target-plugin",
   "module-federation-plugin",
   "module-federation-plugin-v1",
   "environment-plugin",
