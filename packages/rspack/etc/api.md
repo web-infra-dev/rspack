@@ -888,6 +888,8 @@ export class ChunkGroup {
     // (undocumented)
     __internal_inner_ukey(): number;
     // (undocumented)
+    get chunks(): Chunk[];
+    // (undocumented)
     getFiles(): string[];
     // (undocumented)
     getParents(): ChunkGroup[];
