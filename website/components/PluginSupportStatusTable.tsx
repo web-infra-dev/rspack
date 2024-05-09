@@ -12,18 +12,18 @@ enum SupportStatus {
 const SUPPORT_STATUS_LOCALIZED = {
   [SupportStatus.NotSupported]: {
     symbol: '🔴',
-    en: 'Not Supported',
-    zh: '不支持',
+    en: 'Unsupported yet',
+    zh: '暂未支持',
   },
   [SupportStatus.PartiallySupported]: {
     symbol: '🟡',
-    en: 'Partially Supported',
+    en: 'Partially supported',
     zh: '部分支持',
   },
   [SupportStatus.FullySupported]: {
     symbol: '🟢',
-    en: 'Fully Supported',
-    zh: '完全支持',
+    en: 'Supported',
+    zh: '支持',
   },
 };
 
