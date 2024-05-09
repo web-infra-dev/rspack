@@ -47,6 +47,11 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       description: i18n[lang]['case-sensitive-paths-webpack-plugin-desc'],
     },
     {
+      name: 'clean-webpack-plugin',
+      url: 'https://github.com/johnagan/clean-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
       name: 'copy-webpack-plugin',
       url: 'https://www.npmjs.com/package/copy-webpack-plugin',
       status: CompatibleStatus.Included,
