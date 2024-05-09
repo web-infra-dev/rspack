@@ -30,7 +30,7 @@ import { ApiMeta } from '../../../components/ApiMeta';
 
 <ApiMeta addedVersion="0.5.1" />
 
-- **类型:** `string[]`
+- **类型：** `string[]`
 - **默认值：**`['browser']`
 
 定义一个字段，例如 `browser`，以依照[此规范](https://github.com/defunctzombie/package-browser-field-spec)进行解析。
@@ -173,7 +173,7 @@ module.exports = {
 
 <ApiMeta addedVersion="0.6.6" />
 
-- **类型:** `string[]`
+- **类型：** `string[]`
 - **默认值:** `['imports']`
 
 自定义 package.json 中的 imports 字段，用于提供包的内部请求（以 `#` 开头的请求被视为内部请求）
@@ -214,7 +214,7 @@ module.exports = {
 
 <ApiMeta addedVersion="0.5.1" />
 
-- **类型:** `boolean`
+- **类型：** `boolean`
 - **默认值：**`false`
 
 在解析时，倾向使用与 `resolve.roots` 相关的绝对路径。
@@ -252,7 +252,7 @@ module.exports = config;
 
 <ApiMeta addedVersion="0.3.7" />
 
-- **类型:** `object`
+- **类型：** `object`
 - **默认值:** `undefined`
 
 ```js title="rspack.config.js"
@@ -268,7 +268,7 @@ module.exports = {
 
 ### resolve.tsConfig.configFile
 
-- **类型:** `string`
+- **类型：** `string`
 
 同 [resolve.tsConfigPath](#resolvetsconfigpath).
 
@@ -276,7 +276,7 @@ module.exports = {
 
 ### resolve.tsConfig.references
 
-- **类型:** `string[] | "auto" | undefined`
+- **类型：** `string[] | "auto" | undefined`
 - **默认值:** `undefined`
 
 支持 [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin#references-_string-defaultundefined) 中定义的 [tsconfig project references](https://www.typescriptlang.org/docs/handbook/project-references.html).
@@ -296,7 +296,7 @@ module.exports = {
 
 <ApiMeta addedVersion="0.5.1" />
 
-- **类型:** `string[]`
+- **类型：** `string[]`
 - **默认值：**`[]`
 
 限制请求解析路径的解析限制列表。
@@ -305,14 +305,14 @@ module.exports = {
 
 <ApiMeta addedVersion="0.5.1" />
 
-- **类型:** `string[]`
+- **类型：** `string[]`
 - **默认值：**`[]`
 
 一个目录列表，用于解析服务器相对 URL（以'/'开头的 URL）。默认使用 context 配置选项。在非 Windows 系统上，这些请求首先作为绝对路径进行解析。
 
 ## resolve.symlinks
 
-- **类型:** `boolean`
+- **类型：** `boolean`
 - **默认值：**`true`
 
 是否将符号链接（symlink）解析到它们的符号链接位置（symlink location）。
