@@ -452,6 +452,17 @@ class AsyncSeriesHook<T, AdditionalOptions = UnsetAdditionalOptions> extends Hoo
 }
 
 // @public (undocumented)
+class AsyncSeriesWaterfallHook<T, R, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, R, AdditionalOptions> {
+    constructor(args?: ArgumentNames<AsArray<T>>, name?: string);
+    // (undocumented)
+    callAsyncStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, R>>): void;
+    // (undocumented)
+    tapAsync(options: Options<AdditionalOptions>, fn: FnWithCallback<T, void>): void;
+    // (undocumented)
+    tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void;
+}
+
+// @public (undocumented)
 const AsyncWebAssemblyModulesPlugin: {
     new (): {
         name: BuiltinPluginName;
@@ -1640,10 +1651,25 @@ class ContextModuleFactory {
     constructor();
     // (undocumented)
     hooks: {
-        beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
-        afterResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
+        beforeResolve: liteTapable.AsyncSeriesWaterfallHook<[ContextModuleFactoryBeforeResolveResult], ContextModuleFactoryBeforeResolveResult | void>;
+        afterResolve: liteTapable.AsyncSeriesWaterfallHook<[ContextModuleFactoryAfterResolveResult], ContextModuleFactoryAfterResolveResult | void>;
     };
 }
+
+// @public (undocumented)
+type ContextModuleFactoryAfterResolveResult = false | {
+    resource: string;
+    context: string;
+    request: string;
+    regExp?: RegExp;
+    dependencies: Array<any>;
+};
+
+// @public (undocumented)
+type ContextModuleFactoryBeforeResolveResult = false | {
+    context: string;
+    request?: string;
+};
 
 // @public (undocumented)
 export const CopyRspackPlugin: {
@@ -4565,6 +4591,7 @@ declare namespace liteTapable {
         AsyncParallelHook,
         AsyncSeriesHook,
         AsyncSeriesBailHook,
+        AsyncSeriesWaterfallHook,
         HookMapKey,
         HookFactory,
         HookMapInterceptor,
