@@ -37,7 +37,6 @@ module.exports = [
 				filename: "container.js",
 				remotes: {
 					containerA: "../0-container-full/container.js",
-					containerB: "./container.js"
 				},
 				...commonMF
 			})

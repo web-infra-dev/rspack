@@ -4,7 +4,6 @@ const runtimePlugin = function () {
         beforeInit(args) {
 
             const federationWarehouse = __webpack_require__.federation
-            debugger;
             !function() {
                 var installedChunks = {"115": 0,};
                 var installChunk = function (chunk) {
@@ -39,17 +38,17 @@ const runtimePlugin = function () {
 
                                      promise = new Promise(function (resolve, reject) {
                                         installedChunkData = installedChunks[chunkId] = [resolve, reject];
-                                        var filename = require('path').join(
+                                        var filename = __non_webpack_require__('path').join(
                                             __dirname, "" + __webpack_require__.u(chunkId));
-                                        require('fs').readFile(filename, 'utf-8', function (err, content) {
+                                         __non_webpack_require__('fs').readFile(filename, 'utf-8', function (err, content) {
                                             if (err) return reject(err);
                                             var chunk = {};
                                             content = content.replace('__HANDLER__', 'PASS')
-                                            require('vm').runInThisContext(
+                                             __non_webpack_require__('vm').runInThisContext(
                                                 '(function(exports, require, __dirname, __filename) {' +
                                                 content + '\n})',
                                                 filename)(
-                                                chunk, require, require('path').dirname(filename), filename);
+                                                chunk, __non_webpack_require__, __non_webpack_require__('path').dirname(filename), filename);
                                             installChunk(chunk);
                                         });
                                     });
