@@ -59,7 +59,9 @@ fn federation_runtime_template(chunk: &Chunk, compilation: &Compilation) -> Stri
       .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
   let has_js_matcher = compile_boolean_matcher(&condition_map);
 
-  let chunk_matcher = if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
+  let chunk_matcher = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
+    String::from("")
+  } else {
     format!(
       r#"
 chunkMatcher: function(chunkId) {{
@@ -68,8 +70,6 @@ chunkMatcher: function(chunkId) {{
 "#,
       has_js_matcher = &has_js_matcher.render("chunkId")
     )
-  } else {
-    String::from("")
   };
 
   format!(
