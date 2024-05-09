@@ -16,7 +16,7 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
   │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
 
-Rspack x.x.x compiled with 3 warnings in X s (ec077f8a3ed582d6ba9c)
+Rspack x.x.x compiled with 3 warnings in X s (f5892cac8944423c4fd1)
 
 PublicPath: auto
 asset warning.pro-webworker.js 294 KiB [emitted] (name: main)
@@ -33,31 +33,31 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
   │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
 
-Rspack x.x.x compiled with 3 warnings in X s (ec077f8a3ed582d6ba9c)
+Rspack x.x.x compiled with 3 warnings in X s (f5892cac8944423c4fd1)
 
 PublicPath: (none)
 asset no-warning.pro-node.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = no-warning.pro-node.js
 ./index.js
-Rspack x.x.x compiled successfully in X s (ec077f8a3ed582d6ba9c)
+Rspack x.x.x compiled successfully in X s (f5892cac8944423c4fd1)
 
 PublicPath: auto
 asset no-warning.dev-web.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = no-warning.dev-web.js
 ./index.js
-Rspack x.x.x compiled successfully in X s (76c4bdff5f5096cdef75)
+Rspack x.x.x compiled successfully in X s (cca1ff20fc67941570c3)
 
 PublicPath: (none)
 asset no-warning.dev-node.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = no-warning.dev-node.js
 ./index.js
-Rspack x.x.x compiled successfully in X s (76c4bdff5f5096cdef75)
+Rspack x.x.x compiled successfully in X s (cca1ff20fc67941570c3)
 
 PublicPath: auto
 asset no-warning.dev-web-with-limit-set.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = no-warning.dev-web-with-limit-set.js
 ./index.js
-Rspack x.x.x compiled successfully in X s (76c4bdff5f5096cdef75)
+Rspack x.x.x compiled successfully in X s (cca1ff20fc67941570c3)
 
 PublicPath: (none)
 asset warning.pro-node-with-hints-set.js 294 KiB [emitted] (name: main)
@@ -74,7 +74,7 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
   │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
 
-Rspack x.x.x compiled with 3 warnings in X s (ec077f8a3ed582d6ba9c)"
+Rspack x.x.x compiled with 3 warnings in X s (f5892cac8944423c4fd1)"
 `;
 
 exports[`StatsTestCases should print correct stats for performance-no-async-chunks-shown 1`] = `
