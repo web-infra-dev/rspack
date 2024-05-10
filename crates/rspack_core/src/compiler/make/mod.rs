@@ -24,7 +24,7 @@ pub struct MakeArtifact {
   pub diagnostics: Vec<Diagnostic>,
 
   entry_dependencies: HashSet<DependencyId>,
-  entry_module_identifiers: IdentifierSet,
+  pub entry_module_identifiers: IdentifierSet,
   pub optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
   pub file_dependencies: FileCounter,
   pub context_dependencies: FileCounter,
@@ -51,17 +51,7 @@ impl MakeArtifact {
   }
 
   // TODO remove it
-  fn move_data_from_compilation(&mut self, compilation: &mut Compilation) {
-    self.entry_module_identifiers = std::mem::take(&mut compilation.entry_module_identifiers);
-    //    self.file_dependencies = std::mem::take(&mut compilation.file_dependencies);
-    //    self.context_dependencies = std::mem::take(&mut compilation.context_dependencies);
-    //    self.missing_dependencies = std::mem::take(&mut compilation.missing_dependencies);
-    //    self.build_dependencies = std::mem::take(&mut compilation.build_dependencies);
-  }
-
-  // TODO remove it
   fn move_data_to_compilation(&mut self, compilation: &mut Compilation) {
-    compilation.entry_module_identifiers = std::mem::take(&mut self.entry_module_identifiers);
     compilation
       .file_dependencies
       .extend(self.file_dependencies.files().cloned());
@@ -150,8 +140,6 @@ pub fn make_module_graph(
   artifact.diagnostics = Default::default();
   artifact.has_module_graph_change = false;
 
-  artifact.move_data_from_compilation(compilation);
-
   artifact = update_module_graph_with_artifact(compilation, artifact, params)?;
 
   if compilation.options.builtins.tree_shaking.enable() {
@@ -169,7 +157,6 @@ pub async fn update_module_graph(
 ) -> Result<()> {
   let mut artifact = MakeArtifact::default();
   compilation.swap_make_artifact(&mut artifact);
-  artifact.move_data_from_compilation(compilation);
 
   artifact = update_module_graph_with_artifact(compilation, artifact, params)?;
 

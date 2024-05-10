@@ -157,7 +157,6 @@ pub struct Compilation {
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
-  pub entry_module_identifiers: IdentifierSet,
   /// Collecting all used export symbol
   pub used_symbol_ref: HashSet<SymbolRef>,
   /// Collecting all module that need to skip in tree-shaking ast modification phase
@@ -247,7 +246,6 @@ impl Compilation {
       loader_resolver_factory,
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
-      entry_module_identifiers: IdentifierSet::default(),
       used_symbol_ref: HashSet::default(),
       bailout_module_identifiers: IdentifierMap::default(),
 
@@ -898,8 +896,8 @@ impl Compilation {
     result
   }
 
-  pub fn entry_modules(&self) -> impl Iterator<Item = ModuleIdentifier> {
-    self.entry_module_identifiers.clone().into_iter()
+  pub fn entry_modules(&self) -> IdentifierSet {
+    self.make_artifact.entry_module_identifiers.clone()
   }
 
   pub fn entrypoint_by_name(&self, name: &str) -> &Entrypoint {

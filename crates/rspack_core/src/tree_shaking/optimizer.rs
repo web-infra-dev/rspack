@@ -143,7 +143,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       let forced_side_effects = !side_effects_options
         || self
           .compilation
-          .entry_module_identifiers
+          .entry_modules()
           .contains(&analyze_result.module_identifier);
       // side_effects: true
       if forced_side_effects
@@ -430,7 +430,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           side_effects_free: self.side_effects_free_modules.contains(&module_identifier),
           is_entry: self
             .compilation
-            .entry_module_identifiers
+            .entry_modules()
             .contains(&module_identifier),
           module_identifier,
         };
@@ -590,9 +590,9 @@ impl<'a> CodeSizeOptimizer<'a> {
     mut side_effect_map: IdentifierMap<SideEffectType>,
   ) -> IdentifierSet {
     // normalize side_effects, there are two kinds of `side_effects` one from configuration and another from analyze ast
-    for entry_module_ident in self.compilation.entry_module_identifiers.iter() {
+    for entry_module_ident in self.compilation.entry_modules() {
       Self::normalize_side_effects(
-        *entry_module_ident,
+        entry_module_ident,
         &self.compilation.get_module_graph(),
         &mut IdentifierSet::default(),
         &mut side_effect_map,
