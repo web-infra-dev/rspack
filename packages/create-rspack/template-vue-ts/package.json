@@ -12,9 +12,9 @@
     "vue": "3.4.21"
   },
   "devDependencies": {
-    "@rspack/cli": "0.5.4",
-    "@rspack/core": "0.5.4",
-    "vue-loader": "^17.4.2",
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*",
+    "vue-loader": "^17.2.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   },
