@@ -66,7 +66,7 @@ module.exports = {
         dynamicImportPreload: false,
         url: true,
       },
-      // Parser options for css modules
+      // Parser options for CSS modules
       css: {
         namedExports: true,
       },
@@ -208,7 +208,7 @@ This configuration will only take effect when `experiments.css = true`.
 - **Type:** `boolean`
 - **Default:** `true`
 
-Use ES modules named export for css exports
+Use ES modules named export for CSS exports.
 
 When using `namedExports: true`, you can use namespace export or named export:
 
@@ -298,7 +298,7 @@ module.exports = {
         exportsOnly: false,
         localIdentName: '[uniqueName]-[id]-[local]',
       },
-      // Generator options for css modules
+      // Generator options for `css` modules
       css: {
         exportsConvention: 'as-is',
         exportsOnly: false,
@@ -491,7 +491,7 @@ This configuration will only take effect when `experiments.css = true`.
 - **Type:** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
 - **Default:** `'as-is'`
 
-Customize how css export names are exported to javascript modules, such as keeping them as is, transforming them to camel case, etc.
+Customize how CSS export names are exported to javascript modules, such as keeping them as is, transforming them to camel case, etc.
 
 #### module.generator["css/auto"].exportsOnly
 
@@ -500,7 +500,7 @@ Customize how css export names are exported to javascript modules, such as keepi
 - **Type:** `boolean`
 - **Default:** `true` for node environments, `false` for web environments.
 
-Avoid generating and loading a stylesheet and only embed exports from css into output javascript files.
+Avoid generating and loading a stylesheet and only embed exports from CSS into output javascript files.
 
 #### module.generator["css/auto"].localIdentName
 
@@ -509,7 +509,7 @@ Avoid generating and loading a stylesheet and only embed exports from css into o
 - **Type:** `string`
 - **Default:** `[uniqueName]-[id]-[local]`
 
-Customize the format of the local class names generated for css modules, besides the substitutions at [File-level](/config/output#file-context) and [Module-level](/config/output#module-context), also include `[uniqueName]` and `[local]`.
+Customize the format of the local class names generated for CSS modules, besides the substitutions at [File-level](/config/output#file-context) and [Module-level](/config/output#module-context), also include `[uniqueName]` and `[local]`.
 
 ### module.generator.css
 
@@ -787,8 +787,8 @@ Used to mark the type of the matching module, which affects how the module is ha
 - `'javascript/dynamic'`：JavaScript modules, treated as Script.
 - `'typescript'`: TypeScript module (🚧 deprecated, checkout [experiments.rspackFuture.disableTransformByDefault](/config/experiments#experimentsrspackfuturedisabletransformbydefault) for more details)
 - `'css'`: CSS module
-- `'css/module'`: CSS modules module
-- `'css/auto'`: CSS modules module if filename matches `/\.module(s)?\.[^.]+$/`, otherwise CSS module
+- `'css/module'`: CSS Modules module
+- `'css/auto'`: CSS Modules module if filename matches `/\.module(s)?\.[^.]+$/`, otherwise CSS module
 - `'json'`: JSON data module
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`: See [Asset Module](/guide/features/asset-module)
 

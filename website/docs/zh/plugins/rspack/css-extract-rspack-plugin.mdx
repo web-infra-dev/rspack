@@ -5,9 +5,9 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta addedVersion={'0.6.0'} />
 
-Rspack 目前不兼容 mini-css-extract-plugin，但可以使用该插件替代，和 css-loader 搭配使用，将 css 提取成单独文件。
+Rspack 目前不兼容 mini-css-extract-plugin，但可以使用该插件替代，和 css-loader 搭配使用，将 CSS 提取成单独文件。
 
-如果你的项目不依赖 css-loader，更推荐使用 Rspack 内置的 css 解决方案 experiments.css，性能更好。
+如果你的项目不依赖 css-loader，更推荐使用 Rspack 内置的 CSS 解决方案 `experiments.css`，性能更好。
 
 - options
 
@@ -72,14 +72,14 @@ Rspack 目前不兼容 mini-css-extract-plugin，但可以使用该插件替代�
         type: '`boolean`',
         default: 'false',
         description:
-          '若某些 css 在不同 chunk 中顺序有冲突，是否发出警告。例如 entryA 引入 a.css b.css，entryB 引入 b.css a.css，a.css 和 b.css 的顺序无法确定',
+          '若某些 CSS 在不同 chunk 中顺序有冲突，是否发出警告。例如 entryA 引入 a.css b.css，entryB 引入 b.css a.css，a.css 和 b.css 的顺序无法确定',
       },
       {
         name: '`insert`',
         type: '`string | ((linkTag: HTMLLinkElement) => void)`',
         default: 'undefined',
         description:
-          '决定 link 标签怎样插入到页面，如果传入 string 类型，则会视为 dom 选择器，link 标签会插入到该选择器对应的元素后。如果传入 function 类型，则会将 function 转成字符串，在运行时进行调用，参数是 link 标签',
+          '决定 link 标签怎样插入到页面，如果传入 string 类型，则会视为 DOM 选择器，link 标签会插入到该选择器对应的元素后。如果传入 function 类型，则会将 function 转成字符串，在运行时进行调用，参数是 link 标签',
       },
       {
         name: '`attributes`',
@@ -97,13 +97,13 @@ Rspack 目前不兼容 mini-css-extract-plugin，但可以使用该插件替代�
         name: '`runtime`',
         type: '`boolean`',
         default: 'true',
-        description: '是否注入 css 加载相关的 runtime 代码',
+        description: '是否注入 CSS 加载相关的 runtime 代码',
       },
       {
         name: '`pathinfo`',
         type: '`boolean`',
         default: 'false',
-        description: '产物中是否保留更详细的 css 路径信息',
+        description: '产物中是否保留更详细的 CSS 路径信息',
       },
     ]}
   />
@@ -142,13 +142,13 @@ Rspack 目前不兼容 mini-css-extract-plugin，但可以使用该插件替代�
         name: '`emit`',
         type: '`boolean`',
         default: 'true',
-        description: '是否提取出 css 文件，设置为 false 则不会产生 css 文件',
+        description: '是否提取出 CSS 文件，设置为 false 则不会产生 CSS 文件',
       },
       {
         name: '`esModule`',
         type: '`boolean`',
         default: 'true',
-        description: '是否使用 es 模块语法进行 css module 类名导出',
+        description: '是否使用 es 模块语法进行 CSS Modules 类名导出',
       },
     ]}
   />

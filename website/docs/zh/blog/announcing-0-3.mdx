@@ -8,7 +8,7 @@ date: 2023-08-24 12:15:00
 
 ## 破坏性更新
 
-Rspack 在 0.3 版本将 `experiments.css = true` 的情况下的 css 默认处理行为和 webpack 进行了对齐，移除了很多内置的 css 转换逻辑,这同时带来了一些 breaking change，如果你的应用之前依赖了这些转换逻辑，请注意按照下述迁移方式进行迁移。
+Rspack 在 0.3 版本将 `experiments.css = true` 的情况下的 CSS 默认处理行为和 webpack 进行了对齐，移除了很多内置的 CSS 转换逻辑,这同时带来了一些 breaking change，如果你的应用之前依赖了这些转换逻辑，请注意按照下述迁移方式进行迁移。
 
 ### 移除 `@rspack/postcss-loader` 和 `builtins.postcss`
 
@@ -59,7 +59,7 @@ module.exports = {
 };
 ```
 
-### 移除了内置的 css autoprefixer 功能
+### 移除了内置的 CSS autoprefixer 功能
 
 为了更好的对齐 webpack 的 CSS 处理， Rspack 从 0.3 移除了内置的 autoprefixer 功能，你可以使用 postcss-loader 来实现 autoprefixer。
 
@@ -121,7 +121,7 @@ new Worker(new URL('./worker.js', import.meta.url), {
 
 ### `builtin:swc-loader` 支持
 
-Rspack 虽然提供了很多 SWC 的编译配置选项，但是这些配置都是全局性的编译配置，业务侧如果需要不同的模块走不同的 SWC 转换逻辑则难以满足，因此 Rspack 支持 `builtin:swc-loader` 以提供更精细的 SWC 转换配置，`builtin:swc-loader` 相比于 js 版本的 [swc-loader](https://github.com/swc-project/swc-loader) 性能更优。你可以通过如下方式使用 `builtin:swc-loader`
+Rspack 虽然提供了很多 SWC 的编译配置选项，但是这些配置都是全局性的编译配置，业务侧如果需要不同的模块走不同的 SWC 转换逻辑则难以满足，因此 Rspack 支持 `builtin:swc-loader` 以提供更精细的 SWC 转换配置，`builtin:swc-loader` 相比于 JS 版本的 [swc-loader](https://github.com/swc-project/swc-loader) 性能更优。你可以通过如下方式使用 `builtin:swc-loader`
 
 ```js
 const path = require('path');

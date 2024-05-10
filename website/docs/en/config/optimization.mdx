@@ -146,6 +146,7 @@ Setting it to `'single'` will extract the runtime code of all entry points into 
 Tells Rspack to recognise the sideEffects flag in package.json or rules to skip over modules which are flagged to contain no side effects when exports are not used.
 
 `optimization.sideEffects` depended on `builtins.treeShaking` to be enabled.
+
 This configuration has a build time cost, but eliminating modules has positive impact on performance because of less code generation. Effect of this optimization depends on your codebase.
 
 ```js title=rspack.config.js
