@@ -97,8 +97,8 @@ pub fn make_module_graph(
       compilation
         .entries
         .values()
-        .flat_map(|item| &item.dependencies)
-        .chain(&compilation.global_entry.dependencies)
+        .flat_map(|item| item.all_dependencies())
+        .chain(compilation.global_entry.all_dependencies())
         .cloned()
         .collect(),
     ));
