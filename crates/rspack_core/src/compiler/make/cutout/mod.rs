@@ -91,13 +91,8 @@ impl Cutout {
         .analyze_force_build_module(artifact, module_identifier);
     }
 
-    let mut module_graph = artifact.get_module_graph_mut();
     // do revoke module and collect deps
-    force_build_deps.extend(
-      force_build_modules
-        .iter()
-        .flat_map(|id| module_graph.revoke_module(id)),
-    );
+    force_build_deps.extend(artifact.revoke_modules(force_build_modules));
 
     if !next_entry_deps.is_empty() {
       let mut old_entry_deps = std::mem::take(&mut artifact.entry_dependencies);

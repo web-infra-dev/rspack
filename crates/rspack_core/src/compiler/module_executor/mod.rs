@@ -110,16 +110,16 @@ impl ModuleExecutor {
 
     compilation
       .file_dependencies
-      .extend(self.make_artifact.file_dependencies.iter().cloned());
+      .extend(self.make_artifact.file_dependencies.files().cloned());
     compilation
       .context_dependencies
-      .extend(self.make_artifact.context_dependencies.iter().cloned());
+      .extend(self.make_artifact.context_dependencies.files().cloned());
     compilation
       .missing_dependencies
-      .extend(self.make_artifact.missing_dependencies.iter().cloned());
+      .extend(self.make_artifact.missing_dependencies.files().cloned());
     compilation
       .build_dependencies
-      .extend(self.make_artifact.build_dependencies.iter().cloned());
+      .extend(self.make_artifact.build_dependencies.files().cloned());
   }
 
   #[allow(clippy::too_many_arguments)]

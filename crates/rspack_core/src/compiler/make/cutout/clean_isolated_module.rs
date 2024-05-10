@@ -35,7 +35,8 @@ impl CleanIsolatedModule {
   }
 
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
-    let mut module_graph = artifact.get_module_graph_mut();
+    let module_graph = artifact.get_module_graph_mut();
+    let mut need_remove_modules = HashSet::default();
     let mut queue = VecDeque::from(
       self
         .need_check_isolated_module_ids
@@ -56,8 +57,9 @@ impl CleanIsolatedModule {
         // clean child module
         queue.push_back(*connection.module_identifier());
       }
-      module_graph.revoke_module(&module_identifier);
       tracing::trace!("Module is cleaned: {}", module_identifier);
+      need_remove_modules.insert(module_identifier);
     }
+    artifact.revoke_modules(need_remove_modules);
   }
 }
