@@ -209,7 +209,7 @@ See details at [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin).
   ]}
 />
 
-Tells rspack to determine used exports for each module. This depends on `optimization.providedExports`.
+Tells Rspack to determine used exports for each module. This depends on `optimization.providedExports`.
 Information collected by `optimization.usedExports` is used by other optimizations or code generation i.e.
 Exports are not generated for unused exports, export names are mangled to single char identifiers when all usages are compatible. Dead code elimination in minimizers will benefit from this and can remove unused exports.
 
@@ -242,7 +242,9 @@ module.exports = {
     { defaultValue: 'false', mode: 'development' },
   ]}
 />
-`optimization.innerGraph` tells rspack whether to conduct inner graph analysis for unused exports.
+
+`optimization.innerGraph` tells Rspack whether to conduct inner graph analysis for unused exports.
+
 ```js title=rspack.config.js
 module.exports = {
   //...

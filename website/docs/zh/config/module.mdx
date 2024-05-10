@@ -12,7 +12,7 @@ import { ApiMeta } from '../../../components/ApiMeta';
 - **类型：** `string | string[] | RegExp | RegExp[] | ((request: string) => boolean)`
 - **默认值：** `undefined`
 
-匹配的文件代码不会被 rspack 转换，包括 `module.exports`, `require`, `import` 这些模块系统相关的语法。
+匹配的文件代码不会被 Rspack 转换，包括 `module.exports`, `require`, `import` 这些模块系统相关的语法。
 
 用来忽略那些没有外部依赖的第三方库的时候很有用，有时还能提升性能。
 

@@ -129,11 +129,11 @@ The following is an introduction to some SWC configurations and Rspack specific 
 <ApiMeta addedVersion="0.5.8" stability={Stability.Experimental} />
 
 :::warning
-The `wasm` plugin is deeply coupled with the version of `SWC`, you need to choose a wasm plugin that is compatible with the corresponding version of `SWC` in order to function normally.
-you can see more compatible info about how to choose right wasm plugin version in [selecting-swc-core](https://swc.rs/docs/plugin/selecting-swc-core#088x--089x).
+The Wasm plugin is deeply coupled with the version of SWC, you need to choose a Wasm plugin that is compatible with the corresponding version of SWC in order to function normally.
+you can see more compatible info about how to choose right Wasm plugin version in [selecting-swc-core](https://swc.rs/docs/plugin/selecting-swc-core#088x--089x).
 :::
 
-Rspack supports load `wasm` plugin in `builtin:swc-loader`, you can specify the plugin name like
+Rspack supports load Wasm plugin in `builtin:swc-loader`, you can specify the plugin name like
 
 ```js
 module.exports = {
@@ -164,7 +164,7 @@ module.exports = {
 };
 ```
 
-this is an [example](https://github.com/rspack-contrib/rspack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45) of wasm plugin usage.
+this is an [example](https://github.com/rspack-contrib/rspack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45) of Wasm plugin usage.
 
 ### rspackExperiments
 
