@@ -5495,9 +5495,26 @@ const node_2: z.ZodUnion<[z.ZodLiteral<false>, z.ZodObject<{
 // @public (undocumented)
 interface Node_3 {
     // (undocumented)
+    NodeEnvironmentPlugin: typeof NodeEnvironmentPlugin;
+    // (undocumented)
     NodeTargetPlugin: typeof NodeTargetPlugin;
     // (undocumented)
     NodeTemplatePlugin: typeof NodeTemplatePlugin;
+}
+
+// @public (undocumented)
+class NodeEnvironmentPlugin {
+    constructor(options: NodeEnvironmentPluginOptions);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    options: NodeEnvironmentPluginOptions;
+}
+
+// @public (undocumented)
+interface NodeEnvironmentPluginOptions {
+    // (undocumented)
+    infrastructureLogging: InfrastructureLogging;
 }
 
 // @public (undocumented)
