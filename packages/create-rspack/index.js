@@ -47,22 +47,25 @@ yargs(hideBin(process.argv))
 		}
 
 		// choose template
-		await prompts([
-			{
-				type: "select",
-				name: "template",
-				message: "Project template",
-				choices: [
-					{ title: "react", value: "react" },
-					{ title: "react-ts", value: "react-ts" },
-					{ title: "vue", value: "vue" },
-					{ title: "vue-ts", value: "vue-ts" }
-				],
-				onState: state => {
-					template = state.value;
+		await prompts(
+			[
+				{
+					type: "select",
+					name: "template",
+					message: "Project template",
+					choices: [
+						{ title: "react", value: "react" },
+						{ title: "react-ts", value: "react-ts" },
+						{ title: "vue", value: "vue" },
+						{ title: "vue-ts", value: "vue-ts" }
+					],
+					onState: state => {
+						template = state.value;
+					}
 				}
-			}
-		]);
+			],
+			{ onCancel }
+		);
 
 		fs.mkdirSync(root, { recursive: true });
 		const srcFolder = path.resolve(__dirname, `template-${template}`);
