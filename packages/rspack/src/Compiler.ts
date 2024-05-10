@@ -574,7 +574,7 @@ class Compiler {
 										request: ret.request,
 										regExp: ret.regExp?.toString()
 									} satisfies binding.JsContextModuleFactoryAfterResolveData)
-								: undefined;
+								: false;
 							return result;
 						}
 				)
