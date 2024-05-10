@@ -339,9 +339,6 @@ impl Stats<'_> {
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
-          formatted: diagnostic_displayer
-            .emit_diagnostic(d)
-            .expect("should print diagnostics"),
           module_identifier: module_identifier.map(|i| i.to_string()),
           module_name,
           module_id: module_id.flatten(),
@@ -367,9 +364,6 @@ impl Stats<'_> {
 
         StatsWarning {
           message: diagnostic_displayer
-            .emit_diagnostic(d)
-            .expect("should print diagnostics"),
-          formatted: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
           module_identifier: module_identifier.map(|i| i.to_string()),
@@ -703,7 +697,6 @@ fn get_stats_module_name_and_id(
 #[derive(Debug)]
 pub struct StatsError {
   pub message: String,
-  pub formatted: String,
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
@@ -712,7 +705,6 @@ pub struct StatsError {
 #[derive(Debug)]
 pub struct StatsWarning {
   pub message: String,
-  pub formatted: String,
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,

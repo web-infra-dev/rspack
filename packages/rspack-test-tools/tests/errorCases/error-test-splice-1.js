@@ -18,7 +18,6 @@ module.exports = {
 		Object {
 		  "errors": Array [
 		    Object {
-		      "formatted": "  × test splice\\n",
 		      "message": "  × test splice\\n",
 		    },
 		  ],

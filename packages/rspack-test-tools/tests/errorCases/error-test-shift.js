@@ -22,7 +22,6 @@ module.exports = {
 		Object {
 		  "errors": Array [
 		    Object {
-		      "formatted": "  × test unshift\\n",
 		      "message": "  × test unshift\\n",
 		    },
 		  ],

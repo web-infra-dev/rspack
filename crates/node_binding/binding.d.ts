@@ -501,7 +501,6 @@ export interface JsStatsChunkGroupAsset {
 
 export interface JsStatsError {
   message: string
-  formatted: string
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
@@ -573,7 +572,6 @@ export interface JsStatsOptimizationBailout {
 
 export interface JsStatsWarning {
   message: string
-  formatted: string
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string

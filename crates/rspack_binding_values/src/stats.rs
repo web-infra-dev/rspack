@@ -14,7 +14,6 @@ use super::{JsCompilation, ToJsCompatSource};
 #[derive(Debug)]
 pub struct JsStatsError {
   pub message: String,
-  pub formatted: String,
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
@@ -24,7 +23,6 @@ impl From<rspack_core::StatsError> for JsStatsError {
   fn from(stats: rspack_core::StatsError) -> Self {
     Self {
       message: stats.message,
-      formatted: stats.formatted,
       module_identifier: stats.module_identifier,
       module_name: stats.module_name,
       module_id: stats.module_id,
@@ -35,7 +33,6 @@ impl From<rspack_core::StatsError> for JsStatsError {
 #[napi(object)]
 pub struct JsStatsWarning {
   pub message: String,
-  pub formatted: String,
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
@@ -45,7 +42,6 @@ impl From<rspack_core::StatsWarning> for JsStatsWarning {
   fn from(stats: rspack_core::StatsWarning) -> Self {
     Self {
       message: stats.message,
-      formatted: stats.formatted,
       module_identifier: stats.module_identifier,
       module_name: stats.module_name,
       module_id: stats.module_id,

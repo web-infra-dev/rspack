@@ -470,7 +470,7 @@ export async function runLoaders(
 		const title = "Module Error";
 		const message =
 			error instanceof Error ? concatErrorMsgAndStack(error) : error;
-		compiler._lastCompilation!.pushDiagnostic(
+		compiler._lastCompilation!.__internal__pushDiagnostic(
 			"error",
 			title,
 			`${message}\n(from: ${stringifyLoaderObject(
@@ -482,7 +482,7 @@ export async function runLoaders(
 		const title = "Module Warning";
 		const message =
 			warning instanceof Error ? concatErrorMsgAndStack(warning) : warning;
-		compiler._lastCompilation!.pushDiagnostic(
+		compiler._lastCompilation!.__internal__pushDiagnostic(
 			"warning",
 			title,
 			`${message}\n(from: ${stringifyLoaderObject(

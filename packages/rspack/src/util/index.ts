@@ -70,17 +70,16 @@ export function isJsStatsError(err: any): err is JsStatsError {
 	return !(err instanceof Error) && err.formatted;
 }
 
-export function concatErrorMsgAndStack(err: Error | JsStatsError): string {
-	// deduplicate the error if message is already shown in the stack
-	//@ts-ignore
-	const stackStartPrefix = err.name ? `${err.name}: ` : "Error: ";
-	return isJsStatsError(err)
-		? err.formatted
-		: err.stack
-			? err.stack.startsWith(`${stackStartPrefix}${err.message}`)
-				? `${err.stack}`
-				: `${err.message}\n${err.stack}`
-			: `${err.message}`;
+export function concatErrorMsgAndStack(
+	err: Error | JsStatsError | string
+): string {
+	if (typeof err === "string") {
+		return err;
+	}
+	if ("stack" in err) {
+		return err.stack || err.message;
+	}
+	return err.message;
 }
 
 export function indent(str: string, prefix: string) {
