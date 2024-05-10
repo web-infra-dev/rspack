@@ -224,9 +224,13 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
         .map(|d| d.with_module_identifier(original_module_identifier)),
     );
 
-    context.file_dependencies.extend(file_dependencies);
-    context.context_dependencies.extend(context_dependencies);
-    context.missing_dependencies.extend(missing_dependencies);
+    context.file_dependencies.add_batch_file(&file_dependencies);
+    context
+      .context_dependencies
+      .add_batch_file(&context_dependencies);
+    context
+      .missing_dependencies
+      .add_batch_file(&missing_dependencies);
     let module_graph =
       &mut MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
     let Some(factory_result) = factory_result else {
