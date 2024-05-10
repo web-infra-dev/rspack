@@ -1219,10 +1219,13 @@ impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap 
     match self.function.call_with_promise(js_result).await {
       Ok(js_result) => match js_result {
         napi::bindgen_prelude::Either::A(_) => Ok(BeforeResolveResult::Ignored),
-        napi::bindgen_prelude::Either::B(d) => Ok(BeforeResolveResult::Data(BeforeResolveData {
-          context: d.context,
-          request: d.request,
-        })),
+        napi::bindgen_prelude::Either::B(d) => {
+          let data = BeforeResolveData {
+            context: d.context,
+            request: d.request,
+          };
+          Ok(BeforeResolveResult::Data(Box::new(data)))
+        }
       },
       Err(err) => Err(err),
     }
@@ -1249,15 +1252,18 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
     };
     match self.function.call_with_promise(js_result).await? {
       napi::Either::A(_) => Ok(AfterResolveResult::Ignored),
-      napi::Either::B(d) => Ok(AfterResolveResult::Data(AfterResolveData {
-        resource: d.resource,
-        context: d.context,
-        request: d.request,
-        reg_exp: match d.reg_exp {
-          Some(r) => Some(RspackRegex::new(&r)?),
-          None => None,
-        },
-      })),
+      napi::Either::B(d) => {
+        let data = AfterResolveData {
+          resource: d.resource,
+          context: d.context,
+          request: d.request,
+          reg_exp: match d.reg_exp {
+            Some(r) => Some(RspackRegex::new(&r)?),
+            None => None,
+          },
+        };
+        Ok(AfterResolveResult::Data(Box::new(data)))
+      }
     }
   }
 

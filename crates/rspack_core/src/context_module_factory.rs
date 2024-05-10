@@ -15,7 +15,7 @@ use crate::{
 #[derive(Clone)]
 pub enum BeforeResolveResult {
   Ignored,
-  Data(BeforeResolveData),
+  Data(Box<BeforeResolveData>),
 }
 
 #[derive(Clone)]
@@ -37,7 +37,7 @@ pub struct BeforeResolveData {
 #[derive(Clone)]
 pub enum AfterResolveResult {
   Ignored,
-  Data(AfterResolveData),
+  Data(Box<AfterResolveData>),
 }
 
 #[derive(Clone)]
@@ -127,7 +127,7 @@ impl ContextModuleFactory {
       .plugin_driver
       .context_module_factory_hooks
       .before_resolve
-      .call(BeforeResolveResult::Data(before_resolve_data))
+      .call(BeforeResolveResult::Data(Box::new(before_resolve_data)))
       .await?
     {
       BeforeResolveResult::Ignored => Ok(Some(ModuleFactoryResult::default())),
@@ -299,7 +299,7 @@ impl ContextModuleFactory {
       .plugin_driver
       .context_module_factory_hooks
       .after_resolve
-      .call(AfterResolveResult::Data(after_resolve_data))
+      .call(AfterResolveResult::Data(Box::new(after_resolve_data)))
       .await?
     {
       AfterResolveResult::Ignored => Ok(Some(ModuleFactoryResult::default())),
