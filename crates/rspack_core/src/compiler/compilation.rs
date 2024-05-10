@@ -314,6 +314,74 @@ impl Compilation {
     }
   }
 
+  pub fn file_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
+    self
+      .make_artifact
+      .file_dependencies
+      .files()
+      .chain(
+        self
+          .module_executor
+          .as_ref()
+          .expect("should have module_executor")
+          .make_artifact
+          .file_dependencies
+          .files(),
+      )
+      .chain(&self.file_dependencies)
+  }
+
+  pub fn context_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
+    self
+      .make_artifact
+      .context_dependencies
+      .files()
+      .chain(
+        self
+          .module_executor
+          .as_ref()
+          .expect("should have module_executor")
+          .make_artifact
+          .context_dependencies
+          .files(),
+      )
+      .chain(&self.context_dependencies)
+  }
+
+  pub fn missing_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
+    self
+      .make_artifact
+      .missing_dependencies
+      .files()
+      .chain(
+        self
+          .module_executor
+          .as_ref()
+          .expect("should have module_executor")
+          .make_artifact
+          .missing_dependencies
+          .files(),
+      )
+      .chain(&self.missing_dependencies)
+  }
+
+  pub fn build_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
+    self
+      .make_artifact
+      .build_dependencies
+      .files()
+      .chain(
+        self
+          .module_executor
+          .as_ref()
+          .expect("should have module_executor")
+          .make_artifact
+          .build_dependencies
+          .files(),
+      )
+      .chain(&self.build_dependencies)
+  }
+
   // TODO move out from compilation
   pub fn get_import_var(&self, dep_id: &DependencyId) -> String {
     let module_graph = self.get_module_graph();

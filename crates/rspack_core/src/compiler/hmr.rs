@@ -96,13 +96,6 @@ where
         new_compilation.global_entry = std::mem::take(&mut self.compilation.global_entry);
         new_compilation.lazy_visit_modules =
           std::mem::take(&mut self.compilation.lazy_visit_modules);
-        new_compilation.file_dependencies = std::mem::take(&mut self.compilation.file_dependencies);
-        new_compilation.context_dependencies =
-          std::mem::take(&mut self.compilation.context_dependencies);
-        new_compilation.missing_dependencies =
-          std::mem::take(&mut self.compilation.missing_dependencies);
-        new_compilation.build_dependencies =
-          std::mem::take(&mut self.compilation.build_dependencies);
 
         // seal stage used
         new_compilation.code_splitting_cache =
