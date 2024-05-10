@@ -1,6 +1,5 @@
 [
   "index",
-  "internal-plugins",
   "define-plugin",
   "provide-plugin",
   "banner-plugin",
@@ -20,5 +19,6 @@
   "module-federation-plugin-v1",
   "environment-plugin",
   "limit-chunk-count-plugin",
-  "normal-module-replacement-plugin"
+  "normal-module-replacement-plugin",
+  "internal-plugins"
 ]
