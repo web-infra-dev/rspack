@@ -107,6 +107,11 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       status: CompatibleStatus.Compatible,
     },
     {
+      name: '@vanilla-extract/webpack-plugin',
+      url: 'https://github.com/vanilla-extract-css/vanilla-extract',
+      status: CompatibleStatus.Compatible,
+    },
+    {
       name: 'webpack-manifest-plugin',
       url: 'https://github.com/shellscape/webpack-manifest-plugin',
       status: CompatibleStatus.NotCompatible,
