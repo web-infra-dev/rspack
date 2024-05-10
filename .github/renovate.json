@@ -10,7 +10,7 @@
     "webpack-examples/**",
     "webpack-test/**"
   ],
-  "assignees": ["@Boshen"],
+  "assignees": [],
   "packageRules": [
     {
       "groupName": "github-actions",
