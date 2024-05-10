@@ -1,6 +1,0 @@
-ERROR in × Resolve error: Can't resolve './' in '<PROJECT_ROOT>/tests/diagnostics/factorize/entry-runtime-error'
-
-ERROR in × Entrypoint 'b1' has a 'runtime' option which points to another entrypoint named 'a1'.
-  │ It's not valid to use other entrypoints as runtime chunk.
-  │ Or do you want to use the entrypoints 'b1' and 'a1' independently on the same page with a shared runtime? In this case give them both the same value for the 'runtime' option. It must be a name
-  │ not already used by an entrypoint.

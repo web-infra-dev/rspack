@@ -1,0 +1,108 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/plugins/provide-plugin/" />
+
+# ProvidePlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+Automatically load modules instead of having to `import` or `require` them everywhere.
+
+```js
+new rspack.ProvidePlugin({
+  identifier: 'module1',
+  // ...
+});
+```
+
+or
+
+```js
+new rspack.ProvidePlugin({
+  identifier: ['module1', 'property1'],
+  // ...
+});
+```
+
+By default, module resolution path is current folder (`./**`) and `node_modules`.
+
+It is also possible to specify full path:
+
+```js
+const path = require('path');
+
+new rspack.ProvidePlugin({
+  identifier: path.resolve(path.join(__dirname, 'src/module1')),
+  // ...
+});
+```
+
+Whenever the `identifier` is encountered as free variable in a module, the `module` is loaded automatically and the `identifier` is filled with the exports of the loaded `module` (or `property` in order to support named exports).
+
+For importing the default export of an ES2015 module, you have to specify the default property of module.
+
+## Options
+
+- **Type:** `Record<string, string | string[]>`
+
+## Examples
+
+### Using process in the Browser
+
+Enable `process` object support within a browser context.
+
+```js
+new rspack.ProvidePlugin({
+  process: [require.resolve('process/browser')],
+});
+```
+
+the piece of code:
+
+```js
+console.log(process.version);
+```
+
+will be transformed behind the scenes to:
+
+```js
+import process from 'process/browser';
+console.log(process.version);
+```
+
+### jQuery
+
+To automatically load `jquery` we can point both variables it exposes to the corresponding node module:
+
+```js
+new rspack.ProvidePlugin({
+  $: 'jquery',
+  jQuery: 'jquery',
+});
+```
+
+Then in any of our source code:
+
+```js
+// in a module
+$('#item'); // <= works
+jQuery('#item'); // <= also works
+// $ is automatically set to the exports of module "jquery"
+```
+
+### Lodash Map
+
+```js
+new rspack.ProvidePlugin({
+  _map: ['lodash', 'map'],
+});
+```
+
+### Vue.js
+
+```js
+new rspack.ProvidePlugin({
+  Vue: ['vue/dist/vue.esm.js', 'default'],
+});
+```

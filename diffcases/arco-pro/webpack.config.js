@@ -3,7 +3,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 /** @type {import('webpack').Configuration} */
 const config = {
-	mode: 'production',
+	mode: "production",
 	context: __dirname,
 	entry: "./src/index.tsx",
 	target: ["web", "es5"],
@@ -13,7 +13,7 @@ const config = {
 				test: /\.less$/,
 				use: "less-loader",
 				parser: {
-					namedExports: false,
+					namedExports: false
 				},
 				generator: {
 					exportsOnly: true
@@ -40,7 +40,7 @@ const config = {
 				exclude: [/[\\/]node_modules[\\/]/],
 				loader: "swc-loader",
 				options: {
-					sourceMap: false,
+					sourceMaps: false,
 					jsc: {
 						parser: {
 							syntax: "typescript"
@@ -57,7 +57,7 @@ const config = {
 				loader: "swc-loader",
 				exclude: [/[\\/]node_modules[\\/]/],
 				options: {
-					sourceMap: false,
+					sourceMaps: false,
 					jsc: {
 						parser: {
 							syntax: "typescript",
@@ -90,7 +90,7 @@ const config = {
 			// expression, which causes stack overflow for swc parser in debug mode.
 			// Alias to the unminified version mitigates this problem.
 			// See also <https://github.com/search?q=repo%3Aswc-project%2Fswc+parser+stack+overflow&type=issues>
-			mockjs: require.resolve("./patches/mock.js"),
+			mockjs: require.resolve("./patches/mock.js")
 		},
 		extensions: [".js", ".jsx", ".ts", ".tsx", ".css", ".less"]
 	},
@@ -127,10 +127,10 @@ const config = {
 			title: "Arco Pro App",
 			template: path.join(__dirname, "index.html"),
 			favicon: path.join(__dirname, "public", "favicon.ico")
-		}),
+		})
 	],
 	infrastructureLogging: {
 		debug: false
-	},
+	}
 };
 module.exports = config;

@@ -1,8 +1,9 @@
 export default {
-  "*.rs": "rustfmt --edition 2021",
-  "packages/**/*.{ts,js}": "prettier --write",
-  "x.mjs": "prettier --write",
-  "crates/rspack_plugin_runtime/**/*.{ts,js}": "prettier --write",
-  "*.toml": "npx @taplo/cli format",
-  "*.{ts,js,mjs}": () => "pnpm run lint:js"
-}
+	"*.rs": "rustfmt --edition 2021",
+	"*.{ts,js}": "pnpm run format:js",
+	"*.toml": "npx @taplo/cli format",
+	"*.{ts,js,cts,cjs,mts,mjs}": () => [
+		"pnpm run lint:js",
+		"pnpm run api-extractor:ci"
+	]
+};

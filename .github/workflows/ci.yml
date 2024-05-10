@@ -12,15 +12,12 @@ on:
         default: false
   pull_request:
     types: [opened, synchronize]
-    paths-ignore:
-      - "**/*.md"
-      - '!.github/workflows/ci.yml'
   push:
     branches:
       - main
     paths-ignore:
       - "**/*.md"
-      - '!.github/workflows/ci.yml'
+      - "website/**"
     tags-ignore:
       - "**"
 
@@ -33,37 +30,101 @@ jobs:
     name: Get Runner Labels
     uses: ./.github/workflows/get-runner-labels.yml
 
+  check-changed:
+    runs-on: ubuntu-latest
+    name: Check Source Changed
+    outputs:
+      changed: ${{ steps.filter.outputs.changed == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          predicate-quantifier: 'every'
+          filters: |
+            changed:
+              - "!**/*.md"
+              - "!**/*.mdx"
+              - "!website/**"
+
   test-linux:
     name: Test Linux
-    needs: [get-runner-labels]
+    needs: [get-runner-labels, check-changed]
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
       profile: "debug"
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-      test-diff: true
+      skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
+
+  test-release-linux:
+    name: Test Release Linux
+    needs: [get-runner-labels]
+    if: contains(github.event.pull_request.title, '!linux')
+    uses: ./.github/workflows/reusable-build.yml
+    strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
+      matrix:
+        array:
+          - target: x86_64-unknown-linux-gnu
+          - target: aarch64-unknown-linux-gnu
+          - target: x86_64-unknown-linux-musl
+          - target: aarch64-unknown-linux-musl
+    with:
+      target: ${{ matrix.array.target }}
+      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
 
   test-windows:
     name: Test Windows
-    needs: [get-runner-labels]
-    if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!windows')
+    needs: [get-runner-labels, check-changed]
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
       profile: "debug"
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
-      test-diff: true
+      skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
+
+  test-release-windows:
+    name: Test Release Windows
+    needs: [get-runner-labels]
+    if: contains(github.event.pull_request.title, '!windows')
+    uses: ./.github/workflows/reusable-build.yml
+    strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
+      matrix:
+        array:
+          - target: i686-pc-windows-msvc
+          - target: x86_64-pc-windows-msvc
+          - target: aarch64-pc-windows-msvc
+    with:
+      target: ${{ matrix.array.target }}
+      runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
 
   test-mac:
     name: Test Mac
-    needs: [get-runner-labels]
+    needs: [get-runner-labels, check-changed]
     if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-apple-darwin
       profile: "debug"
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
-      test-diff: true
+      skipable: ${{ needs.check-changed.outputs.changed  != 'true' }}
+
+  test-release-mac:
+    name: Test Release Mac
+    needs: [get-runner-labels]
+    if: contains(github.event.pull_request.title, '!macos')
+    uses: ./.github/workflows/reusable-build.yml
+    strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
+      matrix:
+        array:
+          - target: x86_64-apple-darwin
+          - target: aarch64-apple-darwin
+    with:
+      target: ${{ matrix.array.target }}
+      runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
 
   cargo-deny:
     name: Check license of dependencies
@@ -82,19 +143,21 @@ jobs:
       - name: Check licenses
         if: steps.filter.outputs.src == 'true'
         run: cargo deny check license
+
   spell:
     name: Spell check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: crate-ci/typos@master
         with:
           files: .
 
-  oxlint:
-    name: Lint JS
+  lint:
+    name: Lint and format code
     runs-on: ubuntu-latest
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.changed == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -107,16 +170,37 @@ jobs:
               - '**/*.{ts,js,mjs,tsx,jsx}'
 
       - name: Pnpm Cache
-        if: steps.changes.outputs.src == 'true'
         uses: ./.github/actions/pnpm-cache
 
-      - name: oxlint
+      - name: Oxlint
         if: steps.changes.outputs.src == 'true'
         run: pnpm run lint:js
+
+      - name: Prettier
+        if: steps.changes.outputs.src == 'true'
+        run: pnpm run format-ci:js
+
+  lint-website:
+    name: Lint and format website
+    runs-on: ubuntu-latest
+    needs: [check-changed]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
+      - name: Run
+        run: |
+          cd website
+          pnpm install
+          pnpm run check:ci
 
   rust_changes:
     name: Rust Changes
     runs-on: ubuntu-latest
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.changed == 'true' }}
     outputs:
       changed: ${{ steps.filter.outputs.changed }}
     steps:
@@ -159,6 +243,9 @@ jobs:
           fmt: true
           shared-key: check
 
+      - name: Pnpm Cache # Required by some tests
+        uses: ./.github/actions/pnpm-cache
+
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
 
@@ -174,6 +261,9 @@ jobs:
           command: fmt
           args: --all -- --check
 
+      - name: Run toml format check
+        run: pnpm run format-ci:toml
+
   rust_unused_dependencies:
     name: Check Rust Unused Dependencies
     needs: [get-runner-labels, rust_changes]
@@ -181,26 +271,12 @@ jobs:
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
       - uses: actions/checkout@v4
-
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            src:
-              - 'Cargo.toml'
-              - '**/Cargo.toml'
-
-      - name: Install cargo-machete
-        if: steps.filter.outputs.src == 'true'
-        uses: taiki-e/install-action@cargo-machete
-
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
+      - uses: ./.github/actions/rustup
         with:
           shared-key: check
-
-      - if: steps.filter.outputs.src == 'true'
-        run: cargo machete
+      - uses: cargo-bins/cargo-binstall@main
+      - run: cargo binstall --no-confirm cargo-shear
+      - run: cargo shear
 
   rust_test:
     name: Rust test
@@ -238,16 +314,57 @@ jobs:
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: ${{ github.repository_owner }}
-          repo: 'rspack-ecosystem-benchmark'
-          workflow_file_name: 'bench_rspack_commit.yml'
-          github_token: ${{ secrets.RSPACK_BOT_ACCESS_TOKEN }}
-          ref: 'main'
+          repo: "rspack-ecosystem-benchmark"
+          workflow_file_name: "bench_rspack_commit.yml"
+          github_token: ${{ secrets.RSPACK_ACCESS_TOKEN }}
+          ref: "main"
           client_payload: '{"commit_sha":"${{ github.sha }}"}'
 
+  run_ecosystem_ci:
+    name: Run Ecosystem CI
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
+    steps:
+      - name: Run Ecosystem CI
+        id: eco_ci
+        continue-on-error: true
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
+        with:
+          owner: ${{ github.repository_owner }}
+          repo: "rspack-ecosystem-ci"
+          workflow_file_name: "ecosystem-ci-from-commit.yml"
+          github_token: ${{ secrets.RSPACK_ACCESS_TOKEN }}
+          ref: "main"
+          client_payload: '{"commitSHA":"${{ github.sha }}","repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
+
+      - if: steps.eco_ci.outcome == 'failure'
+        uses: actions/checkout@v4
+      - if: steps.eco_ci.outcome == 'failure'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Send Failure Notification
+        if: steps.eco_ci.outcome == 'failure'
+        shell: bash
+        run: ./scripts/alert/lark.js
+        env:
+          TITLE: Ecosystem CI failed on main branch
+          DESCRIPTION: |
+            commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
+          URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
+          LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
 
   failure_notification:
     name: Failure Notification
-    needs: [test-linux, test-windows, test-mac, rust_check, rust_test, run_benchmark]
+    needs:
+      [
+        test-linux,
+        test-windows,
+        test-mac,
+        rust_check,
+        rust_test,
+        run_benchmark
+      ]
     if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
     runs-on: ubuntu-latest
     steps:

@@ -1,0 +1,29 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/node/" />
+
+# Node
+
+全局变量：该选项可以配置是否 polyfill 或 mock 某些 [Node.js 全局变量](https://nodejs.org/docs/latest/api/globals.html)。
+
+## node.global
+
+- **类型：** `boolean | 'warn'`
+
+选项：
+
+- `true`：提供 polyfill.
+- `false`：不提供任何 polyfill。代码可能会出现 `ReferenceError` 的崩溃。
+- `'warn'`：当使用 `global` 时展示一个警告。
+
+## node.\_\_dirname
+
+- **类型：** `boolean | 'mock' | 'warn-mock' | 'eval-only'`
+
+选项：
+
+- `true`：**输入** 文件的目录名，是相对于 [`context`](/config/context) 选项。
+- `false`：webpack 不会更改 `__dirname` 的代码，这意味着你有常规 Node.js 中的 `__dirname` 的行为。在 Node.js 环境中运行时，**输出** 文件的目录名。
+- `'mock'`：value 填充为 `'/'`。
+- `'warn-mock'`：使用 `'/'` 但是会显示一个警告。
+- `'eval-only'`

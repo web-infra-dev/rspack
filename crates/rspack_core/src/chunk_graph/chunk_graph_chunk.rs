@@ -2,6 +2,7 @@
 
 use hashlink::LinkedHashMap;
 use indexmap::IndexSet;
+use itertools::Itertools;
 use rspack_database::Database;
 use rspack_identifier::{IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
@@ -9,7 +10,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use crate::{
   find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGraphModule, ChunkGroup,
   ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleIdentifier,
-  RuntimeGlobals, SourceType,
+  RuntimeGlobals, RuntimeModule, SourceType,
 };
 use crate::{ChunkGraph, Compilation};
 
@@ -373,12 +374,31 @@ impl ChunkGraph {
     self.get_chunk_runtime_requirements(chunk_ukey)
   }
 
-  pub fn get_chunk_runtime_modules_in_order(
+  pub fn get_chunk_runtime_modules_in_order<'a>(
     &self,
     chunk_ukey: &ChunkUkey,
-  ) -> &Vec<ModuleIdentifier> {
+    compilation: &'a Compilation,
+  ) -> impl Iterator<Item = (&ModuleIdentifier, &'a dyn RuntimeModule)> {
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
-    &cgc.runtime_modules
+    cgc
+      .runtime_modules
+      .iter()
+      .map(|identifier| {
+        (
+          identifier,
+          &**compilation
+            .runtime_modules
+            .get(identifier)
+            .expect("should have runtime module"),
+        )
+      })
+      .sorted_unstable_by(|(a_id, a), (b_id, b)| {
+        let s = a.stage().cmp(&b.stage());
+        if s.is_ne() {
+          return s;
+        }
+        a_id.cmp(b_id)
+      })
   }
 
   pub fn get_chunk_runtime_modules_iterable(
@@ -387,6 +407,11 @@ impl ChunkGraph {
   ) -> impl Iterator<Item = &ModuleIdentifier> {
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
     cgc.runtime_modules.iter()
+  }
+
+  pub fn has_chunk_runtime_modules(&self, chunk_ukey: &ChunkUkey) -> bool {
+    let cgc = self.get_chunk_graph_chunk(chunk_ukey);
+    !cgc.runtime_modules.is_empty()
   }
 
   pub fn get_chunk_condition_map<F: Fn(&ChunkUkey, &Compilation) -> bool>(
@@ -424,10 +449,7 @@ impl ChunkGraph {
         set: &mut IdentifierSet,
         module_graph: &ModuleGraph,
       ) {
-        let module = module_graph
-          .module_by_identifier(&module)
-          .expect("should exist");
-        for connection in module_graph.get_outgoing_connections(module) {
+        for connection in module_graph.get_outgoing_connections(&module) {
           // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ChunkGraph.js#L290
           let active_state = connection.get_active_state(module_graph, None);
           match active_state {
@@ -435,12 +457,12 @@ impl ChunkGraph {
               continue;
             }
             crate::ConnectionState::TransitiveOnly => {
-              add_dependencies(connection.module_identifier, set, module_graph);
+              add_dependencies(*connection.module_identifier(), set, module_graph);
               continue;
             }
             _ => {}
           }
-          set.insert(connection.module_identifier);
+          set.insert(*connection.module_identifier());
         }
       }
 
@@ -660,32 +682,34 @@ impl ChunkGraph {
     let chunk_a = chunk_by_ukey.expect_get_mut(a);
 
     // Decide for one name (deterministic)
-    if let (Some(_), Some(_)) = (&chunk_a.name, &chunk_b.name) {
+    if let (Some(chunk_a_name), Some(chunk_b_name)) = (&chunk_a.name, &chunk_b.name) {
       if (self.get_number_of_entry_modules(a) > 0) == (self.get_number_of_entry_modules(b) > 0) {
         // When both chunks have entry modules or none have one, use
         // shortest name
-        match (chunk_a.name.clone(), chunk_b.name.clone()) {
-          (Some(a), Some(b)) => {
-            if a.len() != b.len() {
-              chunk_a.name = if a.len() < b.len() { Some(a) } else { Some(b) };
-            }
-          }
-          (None, Some(b)) => {
-            chunk_a.name = Some(b);
-          }
-          _ => {}
+        if chunk_a_name.len() != chunk_b_name.len() {
+          chunk_a.name = if chunk_a_name.len() < chunk_b_name.len() {
+            Some(chunk_a_name.to_string())
+          } else {
+            Some(chunk_b_name.to_string())
+          };
+        } else {
+          chunk_a.name = if chunk_a_name < chunk_b_name {
+            Some(chunk_a_name.to_string())
+          } else {
+            Some(chunk_b_name.to_string())
+          };
         }
       } else if self.get_number_of_entry_modules(b) > 0 {
         // Pick the name of the chunk with the entry module
-        chunk_a.name = chunk_b.name.clone();
+        chunk_a.name = chunk_b.name;
       }
     } else if chunk_b.name.is_some() {
-      chunk_a.name = chunk_b.name.clone();
+      chunk_a.name = chunk_b.name;
     }
 
     // Merge id name hints
     for hint in &chunk_b.id_name_hints {
-      chunk_a.id_name_hints.insert(hint.clone());
+      chunk_a.id_name_hints.insert(hint.to_string());
     }
 
     // Merge runtime
@@ -697,13 +721,12 @@ impl ChunkGraph {
       self.connect_chunk_and_module(*a, module.identifier());
     }
 
-    for (module, chunk_group) in self
-      .clone()
+    let chunk_entry_modules_with_chunk_group_iterable = self
       .get_chunk_entry_modules_with_chunk_group_iterable(b)
-      .iter()
-    {
-      self.disconnect_chunk_and_entry_module(b, *module);
-      self.connect_chunk_and_entry_module(*a, *module, *chunk_group);
+      .clone();
+    for (module, chunk_group) in chunk_entry_modules_with_chunk_group_iterable {
+      self.disconnect_chunk_and_entry_module(b, module);
+      self.connect_chunk_and_entry_module(*a, module, chunk_group);
     }
 
     let mut remove_group_ukeys = vec![];
@@ -719,9 +742,11 @@ impl ChunkGraph {
       chunk_b.remove_group(&group_ukey);
     }
   }
+
   pub fn set_runtime_id(&mut self, runtime: String, id: Option<String>) {
     self.runtime_ids.insert(runtime, id);
   }
+
   pub fn get_runtime_id(&self, runtime: String) -> Option<String> {
     self.runtime_ids.get(&runtime).and_then(|v| v.to_owned())
   }

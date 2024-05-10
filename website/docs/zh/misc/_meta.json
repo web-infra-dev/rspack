@@ -1,0 +1,20 @@
+[
+  "faq",
+  "glossary",
+  "benchmark",
+  {
+    "type": "dir",
+    "name": "planning",
+    "label": "规划"
+  },
+  {
+    "type": "dir",
+    "name": "team",
+    "label": "团队"
+  },
+  {
+    "type": "dir",
+    "name": "branding",
+    "label": "品牌"
+  }
+]

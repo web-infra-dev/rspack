@@ -1,6 +1,9 @@
 use std::borrow::Cow;
 
-use swc_core::ecma::ast::{ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AwaitExpr};
+use swc_core::ecma::ast::{
+  ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AssignTarget, AssignTargetPat, AwaitExpr,
+  SimpleAssignTarget,
+};
 use swc_core::ecma::ast::{BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause};
 use swc_core::ecma::ast::{Class, ClassDecl, ClassExpr, ClassMember, CondExpr, Decl, DefaultDecl};
 use swc_core::ecma::ast::{DoWhileStmt, ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr};
@@ -9,7 +12,7 @@ use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValueProp};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
 use swc_core::ecma::ast::{MetaPropExpr, NamedExport, NewExpr, ObjectLit, OptCall, OptChainBase};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
-use swc_core::ecma::ast::{OptChainExpr, ParamOrTsParamProp, Pat, PatOrExpr, ThisExpr, UnaryOp};
+use swc_core::ecma::ast::{OptChainExpr, Pat, ThisExpr, UnaryOp};
 use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, TaggedTpl};
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, YieldExpr};
 use swc_core::ecma::ast::{ThrowStmt, UnaryExpr, UpdateExpr};
@@ -933,16 +936,16 @@ impl<'parser> JavascriptParser<'parser> {
       );
     } else if let Some(pat) = expr.left.as_pat() {
       self.walk_expression(&expr.right);
-      self.enter_pattern(Cow::Borrowed(pat), |this, ident| {
+      self.enter_assign_target_pattern(Cow::Borrowed(pat), |this, ident| {
         // TODO: if (!this.callHooksForName(this.hooks.assign, name, expression)) {
         this.define_variable(ident.sym.to_string());
       });
-      self.walk_pattern(pat);
+      self.walk_assign_target_pattern(pat);
     } else {
       self.walk_expression(&expr.right);
       match &expr.left {
-        PatOrExpr::Expr(expr) => self.walk_expression(expr),
-        PatOrExpr::Pat(pat) => self.walk_pattern(pat),
+        AssignTarget::Simple(simple) => self.walk_simple_assign_target(simple),
+        AssignTarget::Pat(pat) => self.walk_assign_target_pattern(pat),
       }
     }
     // TODO:
@@ -1068,7 +1071,32 @@ impl<'parser> JavascriptParser<'parser> {
       Pat::Object(obj) => self.walk_object_pattern(obj),
       Pat::Rest(rest) => self.walk_rest_element(rest),
       Pat::Expr(expr) => self.walk_expression(expr),
-      _ => (),
+      Pat::Ident(_) => (),
+      Pat::Invalid(_) => (),
+    }
+  }
+
+  fn walk_simple_assign_target(&mut self, target: &SimpleAssignTarget) {
+    match target {
+      SimpleAssignTarget::Ident(ident) => self.walk_identifier(ident),
+      SimpleAssignTarget::Member(member) => self.walk_member_expression(member),
+      SimpleAssignTarget::Paren(expr) => self.walk_expression(&expr.expr),
+      SimpleAssignTarget::OptChain(expr) => self.walk_chain_expression(expr),
+      SimpleAssignTarget::SuperProp(_) => (),
+      SimpleAssignTarget::TsAs(_)
+      | SimpleAssignTarget::TsSatisfies(_)
+      | SimpleAssignTarget::TsNonNull(_)
+      | SimpleAssignTarget::TsTypeAssertion(_)
+      | SimpleAssignTarget::TsInstantiation(_) => (),
+      SimpleAssignTarget::Invalid(_) => (),
+    }
+  }
+
+  fn walk_assign_target_pattern(&mut self, pat: &AssignTargetPat) {
+    match pat {
+      AssignTargetPat::Array(array) => self.walk_array_pattern(array),
+      AssignTargetPat::Object(obj) => self.walk_object_pattern(obj),
+      AssignTargetPat::Invalid(_) => (),
     }
   }
 
@@ -1138,16 +1166,20 @@ impl<'parser> JavascriptParser<'parser> {
             let was_top_level = this.top_level_scope;
             this.top_level_scope = TopLevelScope::False;
 
-            for prop in &ctor.params {
-              match prop {
-                ParamOrTsParamProp::Param(param) => this.walk_pattern(&param.pat),
-                ParamOrTsParamProp::TsParamProp(_) => unreachable!(),
+            let params = ctor.params.iter().map(|p| {
+              let p = p.as_param().expect("should only contain param");
+              Cow::Borrowed(&p.pat)
+            });
+            this.in_function_scope(true, params.clone(), |this| {
+              for param in params {
+                this.walk_pattern(&param)
               }
-            }
-            // TODO: `hooks.body_value`;
-            if let Some(body) = &ctor.body {
-              this.walk_block_statement(body);
-            }
+
+              // TODO: `hooks.body_value`;
+              if let Some(body) = &ctor.body {
+                this.walk_block_statement(body);
+              }
+            });
 
             this.top_level_scope = was_top_level;
           }

@@ -22,7 +22,10 @@ async function build() {
 			"--dts",
 			"binding.d.ts",
 			"--no-js",
-			"--no-const-enum"
+			"--no-const-enum",
+			"--no-dts-header",
+			"--pipe",
+			`"node ./scripts/dts-header.js"`
 		];
 		if (release) {
 			args.push("--release");
@@ -30,13 +33,15 @@ async function build() {
 		if (watch) {
 			args.push("--watch");
 		}
-
 		if (process.env.USE_ZIG) {
 			args.push("--cross-compile");
 		}
-
 		if (process.env.RUST_TARGET) {
 			args.push("--target", process.env.RUST_TARGET);
+		}
+		if (!process.env.DISABLE_PLUGIN) {
+			args.push("--no-default-features");
+			args.push("--features plugin");
 		}
 
 		let cp = spawn("napi", args, {

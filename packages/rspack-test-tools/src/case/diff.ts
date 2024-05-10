@@ -1,13 +1,10 @@
 import path from "path";
 import fs from "fs-extra";
-import {
-	Tester,
-	DiffProcessor,
-	IDiffProcessorOptions,
-	ECompareResultType,
-	TModuleCompareResult
-} from "../";
 import rimraf from "rimraf";
+import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
+import { DiffProcessor, IDiffProcessorOptions } from "../processor";
+import { ECompareResultType, TModuleCompareResult } from "../type";
+import { Tester } from "../test/tester";
 
 const DEFAULT_CASE_CONFIG: Partial<IDiffProcessorOptions> = {
 	webpackPath: require.resolve("webpack"),
@@ -67,7 +64,7 @@ export function createDiffCase(name: string, src: string, dist: string) {
 			describe(`${prefix}check`, () => {
 				beforeAll(async () => {
 					compareMap.clear();
-					await tester.check();
+					await tester.check(env);
 				});
 				for (let file of caseConfig.files!) {
 					describe(`Comparing "${file}"`, () => {
@@ -89,6 +86,7 @@ export function createDiffCase(name: string, src: string, dist: string) {
 						}
 					});
 				}
+				const env = createLazyTestEnv(1000);
 			});
 		} while (tester.next());
 

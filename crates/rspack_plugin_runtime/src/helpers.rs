@@ -3,13 +3,12 @@ use std::hash::Hash;
 use rspack_core::{
   get_chunk_from_ukey, get_chunk_group_from_ukey, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Chunk, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData, RenderChunkArgs,
-  RuntimeGlobals,
+  Chunk, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData, RuntimeGlobals,
 };
 use rspack_error::{error, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::IdentifierLinkedMap;
-use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
+use rspack_plugin_javascript::{runtime::stringify_chunks_to_array, RenderJsChunkArgs};
 use rustc_hash::FxHashSet as HashSet;
 
 pub fn update_hash_for_entry_startup(
@@ -20,15 +19,23 @@ pub fn update_hash_for_entry_startup(
 ) {
   for (module, entry) in entries {
     if let Some(module_id) = compilation
-      .module_graph
+      .get_module_graph()
       .module_graph_module_by_identifier(module)
-      .map(|module| module.id(&compilation.chunk_graph))
+      .map(|module| {
+        match compilation
+          .chunk_graph
+          .get_module_id(module.module_identifier)
+        {
+          Some(id) => id.as_str(),
+          None => "null",
+        }
+      })
     {
       module_id.hash(hasher);
     }
 
     if let Some(runtime_chunk) = get_chunk_group_from_ukey(entry, &compilation.chunk_group_by_ukey)
-      .map(|e| e.get_runtime_chunk())
+      .map(|e| e.get_runtime_chunk(&compilation.chunk_group_by_ukey))
     {
       for chunk_ukey in get_all_chunks(
         entry,
@@ -107,7 +114,7 @@ pub fn get_all_chunks(
   chunks
 }
 
-pub fn get_runtime_chunk_output_name(args: &RenderChunkArgs) -> Result<String> {
+pub fn get_runtime_chunk_output_name(args: &RenderJsChunkArgs) -> Result<String> {
   let entry_point = {
     let entry_points = args
       .compilation
@@ -128,9 +135,9 @@ pub fn get_runtime_chunk_output_name(args: &RenderChunkArgs) -> Result<String> {
   let runtime_chunk = args
     .compilation
     .chunk_by_ukey
-    .expect_get(&entry_point.get_runtime_chunk());
+    .expect_get(&entry_point.get_runtime_chunk(&args.compilation.chunk_group_by_ukey));
 
-  Ok(get_chunk_output_name(runtime_chunk, args.compilation))
+  get_chunk_output_name(runtime_chunk, args.compilation)
 }
 
 pub fn generate_entry_startup(
@@ -144,16 +151,24 @@ pub fn generate_entry_startup(
 
   for (module, entry) in entries {
     if let Some(module_id) = compilation
-      .module_graph
+      .get_module_graph()
       .module_graph_module_by_identifier(module)
-      .map(|module| module.id(&compilation.chunk_graph))
+      .map(|module| {
+        match compilation
+          .chunk_graph
+          .get_module_id(module.module_identifier)
+        {
+          Some(id) => id.as_str(),
+          None => "null",
+        }
+      })
     {
       let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
       module_id_exprs.push(module_id_expr);
     }
 
     if let Some(runtime_chunk) = get_chunk_group_from_ukey(entry, &compilation.chunk_group_by_ukey)
-      .map(|e| e.get_runtime_chunk())
+      .map(|e| e.get_runtime_chunk(&compilation.chunk_group_by_ukey))
     {
       let chunks = get_all_chunks(
         entry,
@@ -237,7 +252,7 @@ pub fn get_relative_path(base_chunk_output_name: &str, other_chunk_output_name: 
   format!("{path}{}", other_chunk_output_name_arr.join("/"))
 }
 
-pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> String {
+pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> Result<String> {
   let hash = chunk.get_render_hash(compilation.options.output.hash_digest_length);
   let filename = get_js_chunk_filename_template(
     chunk,

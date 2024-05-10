@@ -15,15 +15,15 @@ impl Default for AsyncRuntimeModule {
   fn default() -> Self {
     AsyncRuntimeModule {
       id: Identifier::from("webpack/runtime/async_module"),
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
 }
 
 impl RuntimeModule for AsyncRuntimeModule {
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/async_module.js")).boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(include_str!("runtime/async_module.js")).boxed())
   }
 
   fn name(&self) -> Identifier {

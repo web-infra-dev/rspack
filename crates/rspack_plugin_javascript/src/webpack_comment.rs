@@ -13,8 +13,10 @@ pub enum WebpackComment {
   Prefetch,
   Preload,
   Ignore,
+  Mode,
 }
 
+#[derive(Debug)]
 pub struct WebpackCommentMap(FxHashMap<WebpackComment, String>);
 
 impl WebpackCommentMap {
@@ -24,6 +26,10 @@ impl WebpackCommentMap {
 
   fn insert(&mut self, key: WebpackComment, value: String) {
     self.0.insert(key, value);
+  }
+
+  pub fn get_webpack_mode(&self) -> Option<&String> {
+    self.0.get(&WebpackComment::Mode)
   }
 
   pub fn get_webpack_chunk_name(&self) -> Option<&String> {
@@ -82,7 +88,7 @@ fn add_magic_comment_warning(
 // _5 for true/false
 // TODO: regexp/array
 static WEBPACK_MAGIC_COMMENT_REGEXP: Lazy<regex::Regex> = Lazy::new(|| {
-  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*("(?P<_1>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)"|'(?P<_2>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)'|`(?P<_3>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false))"#)
+  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*("(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false))"#)
     .expect("invalid regex")
 });
 
@@ -170,6 +176,24 @@ pub fn try_extract_webpack_magic_comment(
                   source_file,
                   item_name,
                   "true or false",
+                  &captures,
+                  warning_diagnostics,
+                  import_span,
+                );
+              }
+            }
+            "webpackMode" => {
+              if let Some(item_value_match) = captures
+                .name("_1")
+                .or(captures.name("_2"))
+                .or(captures.name("_3"))
+              {
+                result.insert(WebpackComment::Mode, item_value_match.as_str().to_string());
+              } else {
+                add_magic_comment_warning(
+                  source_file,
+                  item_name,
+                  "a string",
                   &captures,
                   warning_diagnostics,
                   import_span,

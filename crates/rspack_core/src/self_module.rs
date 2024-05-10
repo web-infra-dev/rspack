@@ -2,18 +2,18 @@ use std::borrow::Cow;
 use std::hash::Hash;
 
 use async_trait::async_trait;
-use rspack_core_macros::impl_source_map_config;
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_macros::impl_source_map_config;
 use rspack_sources::Source;
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  impl_build_info_meta, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
+  impl_module_meta_info, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
   BuildResult, ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType,
-  RuntimeSpec, SourceType,
+  DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier,
+  ModuleType, RuntimeSpec, SourceType,
 };
 
 #[impl_source_map_config]
@@ -23,6 +23,7 @@ pub struct SelfModule {
   readable_identifier: String,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
+  factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
 }
@@ -35,9 +36,10 @@ impl SelfModule {
       readable_identifier: identifier,
       blocks: Default::default(),
       dependencies: Default::default(),
+      factory_meta: None,
       build_info: None,
       build_meta: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 }
@@ -68,7 +70,7 @@ impl DependenciesBlock for SelfModule {
 
 #[async_trait]
 impl Module for SelfModule {
-  impl_build_info_meta!();
+  impl_module_meta_info!();
 
   fn get_diagnostics(&self) -> Vec<Diagnostic> {
     vec![]
@@ -122,6 +124,7 @@ impl Module for SelfModule {
       dependencies: Vec::new(),
       blocks: Vec::new(),
       analyze_result: Default::default(),
+      optimization_bailouts: vec![],
     })
   }
 

@@ -1,0 +1,29 @@
+```js title=main.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.d(__webpack_exports__, {
+  a: function() { return a; }
+});
+const a = 3;
+}),
+"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+"use strict";
+/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
+/* harmony import */var _a_svg__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./a.svg");
+
+
+_a_js__WEBPACK_IMPORTED_MODULE_0__.a;
+_a_svg__WEBPACK_IMPORTED_MODULE_1__;
+}),
+"./a.svg": (function (module) {
+"use strict";
+module.exports = "data:image/svg+xml;base64,";}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

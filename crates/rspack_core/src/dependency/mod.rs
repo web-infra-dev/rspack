@@ -1,3 +1,4 @@
+mod cached_const_dependency;
 mod const_dependency;
 mod context_dependency;
 mod context_element_dependency;
@@ -9,7 +10,6 @@ mod dependency_trait;
 mod dependency_type;
 mod entry;
 mod import_dependency_trait;
-mod loader_import_dependency;
 mod module_dependency;
 mod runtime_requirements_dependency;
 mod runtime_template;
@@ -18,6 +18,7 @@ mod static_exports_dependency;
 
 use std::sync::Arc;
 
+pub use cached_const_dependency::CachedConstDependency;
 pub use const_dependency::ConstDependency;
 pub use context_dependency::{AsContextDependency, ContextDependency};
 pub use context_element_dependency::ContextElementDependency;
@@ -28,7 +29,6 @@ pub use dependency_trait::*;
 pub use dependency_type::DependencyType;
 pub use entry::*;
 pub use import_dependency_trait::ImportDependencyTrait;
-pub use loader_import_dependency::LoaderImportDependency;
 pub use module_dependency::*;
 pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
 pub use runtime_template::*;

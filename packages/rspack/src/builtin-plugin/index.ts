@@ -3,8 +3,10 @@ export { RspackBuiltinPlugin } from "./base";
 export * from "./DefinePlugin";
 export * from "./ProvidePlugin";
 export * from "./BannerPlugin";
+export * from "./IgnorePlugin";
 export * from "./ProgressPlugin";
 export * from "./EntryPlugin";
+export * from "./DynamicEntryPlugin";
 export * from "./ExternalsPlugin";
 export * from "./NodeTargetPlugin";
 export * from "./ElectronTargetPlugin";
@@ -47,20 +49,22 @@ export * from "./FlagDependencyUsagePlugin";
 export * from "./MangleExportsPlugin";
 export * from "./BundlerInfoRspackPlugin";
 export * from "./ModuleConcatenationPlugin";
+export * from "./CssModulesPlugin";
+export * from "./APIPlugin";
+export * from "./RuntimeChunkPlugin";
+export * from "./SizeLimitsPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";
 export * from "./SwcJsMinimizerPlugin";
 export * from "./SwcCssMinimizerPlugin";
 
-///// DEPRECATED /////
-import { RawBuiltins, RawCssModulesConfig } from "@rspack/binding";
-import { Compiler, RspackOptionsNormalized } from "..";
+export * from "./JsLoaderRspackPlugin";
+export * from "./css-extract";
 
-type BuiltinsCssConfig = {
-	modules?: Partial<RawCssModulesConfig>;
-	namedExports?: boolean;
-};
+///// DEPRECATED /////
+import { RawBuiltins } from "@rspack/binding";
+import { RspackOptionsNormalized } from "..";
 
 function resolveTreeShaking(
 	treeShaking: Builtins["treeShaking"],
@@ -74,34 +78,16 @@ function resolveTreeShaking(
 }
 
 export interface Builtins {
-	css?: BuiltinsCssConfig;
 	treeShaking?: boolean | "module";
 }
 
 export function deprecated_resolveBuiltins(
 	builtins: Builtins,
-	options: RspackOptionsNormalized,
-	compiler: Compiler
+	options: RspackOptionsNormalized
 ): RawBuiltins {
-	const contextPath = options.context!;
 	const production = options.mode === "production" || !options.mode;
-	const isRoot = !compiler.isChild();
 
 	return {
-		// TODO: discuss with webpack, this should move to css generator options
-		css: options.experiments.css
-			? {
-					modules: {
-						localsConvention: "asIs",
-						localIdentName: production
-							? "[hash]"
-							: "[path][name][ext]__[local]",
-						exportsOnly: false,
-						...builtins.css?.modules
-					},
-					namedExports: builtins.css?.namedExports
-				}
-			: undefined,
 		treeShaking: resolveTreeShaking(builtins.treeShaking, production)
 	};
 }

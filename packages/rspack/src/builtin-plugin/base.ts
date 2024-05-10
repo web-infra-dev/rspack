@@ -23,7 +23,7 @@ export function canInherentFromParent(affectedHooks?: AffectedHooks): boolean {
 }
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
-	abstract raw(compiler: Compiler): binding.BuiltinPlugin | null;
+	abstract raw(compiler: Compiler): binding.BuiltinPlugin | undefined;
 	abstract name: binding.BuiltinPluginName;
 
 	affectedHooks?: AffectedHooks;

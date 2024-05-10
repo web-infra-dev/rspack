@@ -16,7 +16,9 @@ pub use self::eval_call_expr::eval_call_expression;
 pub use self::eval_cond_expr::eval_cond_expression;
 pub use self::eval_lit_expr::{eval_lit_expr, eval_prop_name};
 pub use self::eval_new_expr::eval_new_expression;
-pub use self::eval_tpl_expr::{eval_tpl_expression, TemplateStringKind};
+pub use self::eval_tpl_expr::{
+  eval_tagged_tpl_expression, eval_tpl_expression, TemplateStringKind,
+};
 pub use self::eval_unary_expr::eval_unary_expression;
 use crate::visitors::ExportedVariableInfo;
 
@@ -48,7 +50,7 @@ type Regexp = (String, String); // (expr, flags)
 
 // I really don't want there has many alloc, maybe this can be optimized after
 // parse finished.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BasicEvaluatedExpression {
   ty: Ty,
   range: Option<DependencyLocation>,
@@ -208,8 +210,32 @@ impl BasicEvaluatedExpression {
       Some(self.bool().to_string())
     } else if self.is_null() {
       Some("null".to_string())
+    } else if self.is_undefined() {
+      Some("undefined".to_string())
     } else if self.is_string() {
       Some(self.string().to_string())
+    } else if self.is_number() {
+      Some(self.number().to_string())
+    } else if self.is_array() {
+      let mut arr = Vec::new();
+      for item in self.items() {
+        if let Some(item) = item.as_string() {
+          arr.push(item)
+        } else {
+          return None;
+        }
+      }
+      Some(format!("[{}]", arr.join(", ")))
+    } else if self.is_template_string() {
+      let mut s = String::new();
+      for p in self.parts() {
+        if let Some(p) = p.as_string() {
+          s += &p;
+        } else {
+          return None;
+        }
+      }
+      Some(s)
     } else {
       None
     }
@@ -220,8 +246,14 @@ impl BasicEvaluatedExpression {
       Some(true)
     } else if self.falsy || self.nullish == Some(true) || self.is_null() || self.is_undefined() {
       Some(false)
-    } else {
+    } else if self.is_bool() {
       self.boolean
+    } else if self.is_string() {
+      Some(!self.string().is_empty())
+    } else if self.is_number() {
+      Some(self.number() != 0.0)
+    } else {
+      None
     }
   }
 
@@ -434,6 +466,14 @@ impl BasicEvaluatedExpression {
     self.postfix.as_deref()
   }
 
+  pub fn wrapped_inner_expressions(&self) -> Option<&[BasicEvaluatedExpression]> {
+    assert!(
+      self.is_wrapped(),
+      "wrapped_inner_expressions is only used in wrapped"
+    );
+    self.wrapped_inner_expressions.as_deref()
+  }
+
   pub fn template_string_kind(&self) -> TemplateStringKind {
     assert!(self.is_template_string());
     self
@@ -455,6 +495,11 @@ impl BasicEvaluatedExpression {
       .quasis
       .as_ref()
       .expect("quasis must exists for template string")
+  }
+
+  pub fn items(&self) -> &Vec<BasicEvaluatedExpression> {
+    assert!(self.is_array());
+    self.items.as_ref().expect("items must exists for array")
   }
 
   pub fn number(&self) -> Number {

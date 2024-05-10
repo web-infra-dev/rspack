@@ -2,15 +2,23 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "resolveJsonModule": true,
+    "paths": {
+      "zod": ["../compiled/zod"],
+      "neo-async": ["../compiled/neo-async"],
+      "watchpack": ["../compiled/watchpack"],
+      "graceful-fs": ["../compiled/graceful-fs"],
+      "browserslist": ["../compiled/browserslist"],
+      "zod-validation-error": ["../compiled/zod-validation-error"],
+      "json-parse-even-better-errors": [
+        "../compiled/json-parse-even-better-errors"
+      ]
+    }
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "src/config/schema.check.js"
-  ],
+  "include": ["src", "src/**/*.json"],
+  "exclude": ["src/config/schema.check.js"],
   "ts-node": {
     "transpileOnly": true
-  },
+  }
 }

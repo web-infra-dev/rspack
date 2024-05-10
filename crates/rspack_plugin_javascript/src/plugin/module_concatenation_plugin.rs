@@ -4,17 +4,20 @@ use std::collections::VecDeque;
 use std::hash::Hasher;
 
 use indexmap::IndexSet;
+use linked_hash_set::LinkedHashSet;
 use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
 use rspack_core::{
-  filter_runtime, merge_runtime, runtime_to_string, Compilation, CompilerContext,
-  ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, MutexModuleGraph, OptimizeChunksArgs, Plugin,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation,
+  CompilationOptimizeChunkModules, CompilerContext, CompilerOptions, ExportInfoProvided,
+  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, Plugin, PluginContext, ProvidedExports,
+  RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
-use rspack_util::fx_dashmap::FxDashMap;
+use rspack_hook::{plugin, plugin_hook};
+use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 fn format_bailout_reason(msg: &str) -> String {
@@ -31,14 +34,13 @@ enum Warning {
 struct ConcatConfiguration {
   pub root_module: ModuleIdentifier,
   runtime: Option<RuntimeSpec>,
-  modules: HashSet<ModuleIdentifier>,
+  modules: LinkedHashSet<ModuleIdentifier>,
   warnings: HashMap<ModuleIdentifier, Warning>,
 }
 
-#[allow(unused)]
 impl ConcatConfiguration {
   fn new(root_module: ModuleIdentifier, runtime: Option<RuntimeSpec>) -> Self {
-    let mut modules = HashSet::default();
+    let mut modules = LinkedHashSet::default();
     modules.insert(root_module);
 
     ConcatConfiguration {
@@ -71,7 +73,7 @@ impl ConcatConfiguration {
     sorted_warnings.into_iter().collect()
   }
 
-  fn get_modules(&self) -> &HashSet<ModuleIdentifier> {
+  fn get_modules(&self) -> &LinkedHashSet<ModuleIdentifier> {
     &self.modules
   }
 
@@ -79,19 +81,20 @@ impl ConcatConfiguration {
     self.modules.len()
   }
 
-  fn rollback(&mut self, mut snapshot: usize) {
+  fn rollback(&mut self, snapshot: usize) {
     let modules = &mut self.modules;
-    modules.retain(|_| {
-      if snapshot == 0 {
-        false
-      } else {
-        snapshot -= 1;
-        true
+    let len = modules.len();
+    let mut i = 0;
+    while i < len {
+      if i >= snapshot {
+        modules.pop_back();
       }
-    });
+      i += 1;
+    }
   }
 }
 
+#[plugin]
 #[derive(Debug, Default)]
 pub struct ModuleConcatenationPlugin {
   bailout_reason_map: FxDashMap<ModuleIdentifier, String>,
@@ -126,7 +129,7 @@ impl ModuleConcatenationPlugin {
 
   fn set_bailout_reason(&self, module: &ModuleIdentifier, reason: String, mg: &mut ModuleGraph) {
     self.set_inner_bailout_reason(module, reason.clone());
-    mg.get_optimization_bailout_mut(*module)
+    mg.get_optimization_bailout_mut(module)
       .push(format_bailout_reason(&reason));
   }
 
@@ -156,7 +159,7 @@ impl ModuleConcatenationPlugin {
     let mut set = IndexSet::default();
     let module = mg.module_by_identifier(&mi).expect("should have module");
     for d in module.get_dependencies() {
-      let dep = d.get_dependency(mg);
+      let dep = mg.dependency_by_id(d).expect("should have dependency");
       let is_harmony_import_like = is_harmony_dep_like(dep);
       if !is_harmony_import_like {
         continue;
@@ -176,7 +179,7 @@ impl ModuleConcatenationPlugin {
         ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
       }) || matches!(mg.get_provided_exports(mi), ProvidedExports::Vec(_))
       {
-        set.insert(con.module_identifier);
+        set.insert(*con.module_identifier());
       }
     }
     set
@@ -196,12 +199,12 @@ impl ModuleConcatenationPlugin {
     statistics: &mut Statistics,
   ) -> Option<Warning> {
     let Compilation {
-      module_graph,
       chunk_graph,
       options,
       chunk_by_ukey,
       ..
     } = compilation;
+    let module_graph = compilation.get_module_graph();
     if let Some(cache_entry) = failure_cache.get(module_id) {
       statistics.cached += 1;
       return Some(cache_entry.clone());
@@ -265,7 +268,7 @@ impl ModuleConcatenationPlugin {
     if let Some(incoming_connections_from_non_modules) = incoming_connections.get(&None) {
       let active_non_modules_connections = incoming_connections_from_non_modules
         .iter()
-        .filter(|&connection| connection.is_active(&compilation.module_graph, runtime))
+        .filter(|&connection| connection.is_active(&module_graph, runtime))
         .collect::<Vec<_>>();
 
       // TODO: ADD module connection explanations
@@ -321,7 +324,7 @@ impl ModuleConcatenationPlugin {
 
         let active_connections: Vec<_> = connections
           .iter()
-          .filter(|&connection| connection.is_active(&compilation.module_graph, runtime))
+          .filter(|&connection| connection.is_active(&module_graph, runtime))
           .cloned()
           .collect();
 
@@ -331,26 +334,27 @@ impl ModuleConcatenationPlugin {
       }
     }
     //
-    let mut incoming_modules: Vec<_> = incoming_connections_from_modules.keys().cloned().collect();
-
-    let other_chunk_modules: Vec<_> = incoming_modules
+    let mut incoming_modules = incoming_connections_from_modules
+      .keys()
+      .cloned()
+      .collect::<Vec<_>>();
+    let other_chunk_modules = incoming_modules
       .iter()
       .filter(|&origin_module| {
-        !chunk_graph
+        chunk_graph
           .get_module_chunks(config.root_module)
           .iter()
-          .all(|&chunk_ukey| chunk_graph.is_module_in_chunk(origin_module, chunk_ukey))
+          .any(|&chunk_ukey| !chunk_graph.is_module_in_chunk(origin_module, chunk_ukey))
       })
       .cloned()
-      .collect();
+      .collect::<Vec<_>>();
 
     if !other_chunk_modules.is_empty() {
       let problem = {
         let mut names: Vec<_> = other_chunk_modules
           .iter()
           .map(|&mid| {
-            let m = compilation
-              .module_graph
+            let m = module_graph
               .module_by_identifier(mid)
               .expect("should have module");
             m.readable_identifier(&compilation.options.context)
@@ -376,10 +380,7 @@ impl ModuleConcatenationPlugin {
       let selected: Vec<_> = connections
         .iter()
         .filter(|&connection| {
-          if let Some(dep) = compilation
-            .module_graph
-            .dependency_by_id(&connection.dependency_id)
-          {
+          if let Some(dep) = module_graph.dependency_by_id(&connection.dependency_id) {
             !is_harmony_dep_like(dep)
           } else {
             false
@@ -398,17 +399,14 @@ impl ModuleConcatenationPlugin {
         let names: Vec<_> = non_harmony_connections
           .iter()
           .map(|(origin_module, connections)| {
-            let module = compilation
-              .module_graph
+            let module = module_graph
               .module_by_identifier(origin_module)
               .expect("should have module");
             let readable_identifier = module.readable_identifier(&compilation.options.context);
             let mut names = connections
               .iter()
               .filter_map(|item| {
-                let dep = compilation
-                  .module_graph
-                  .dependency_by_id(&item.dependency_id)?;
+                let dep = module_graph.dependency_by_id(&item.dependency_id)?;
                 Some(dep.dependency_type().to_string())
               })
               .collect::<Vec<_>>();
@@ -442,7 +440,7 @@ impl ModuleConcatenationPlugin {
         let mut current_runtime_condition = RuntimeCondition::Boolean(false);
         for connection in connections {
           let runtime_condition = filter_runtime(Some(runtime), |runtime| {
-            connection.is_target_active(&compilation.module_graph, runtime)
+            connection.is_target_active(&module_graph, runtime)
           });
 
           if runtime_condition == RuntimeCondition::Boolean(false) {
@@ -477,8 +475,7 @@ impl ModuleConcatenationPlugin {
             other_runtime_connections
               .iter()
               .map(|(origin_module, runtime_condition)| {
-                let module = compilation
-                  .module_graph
+                let module = module_graph
                   .module_by_identifier(origin_module)
                   .expect("should have module");
                 let readable_identifier = module.readable_identifier(&compilation.options.context);
@@ -520,7 +517,7 @@ impl ModuleConcatenationPlugin {
         possible_modules,
         candidates,
         failure_cache,
-        avoid_mutate_on_failure,
+        false,
         statistics,
       ) {
         if let Some(backup) = &backup {
@@ -531,44 +528,58 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
     }
-    for imp in Self::get_imports(&compilation.module_graph, *module_id, runtime) {
+    for imp in Self::get_imports(&module_graph, *module_id, runtime) {
       candidates.insert(imp);
     }
     statistics.added += 1;
     None
   }
-}
 
-#[async_trait::async_trait]
-impl Plugin for ModuleConcatenationPlugin {
-  async fn optimize_chunk_modules(&self, args: OptimizeChunksArgs<'_>) -> Result<()> {
-    let OptimizeChunksArgs { compilation } = args;
+  async fn optimize_chunk_modules_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger("rspack.ModuleConcatenationPlugin");
     let mut relevant_modules = vec![];
     let mut possible_inners = HashSet::default();
     let start = logger.time("select relevant modules");
-    let module_id_list = compilation
-      .module_graph
+    let module_graph = compilation.get_module_graph();
+    let mut module_id_list = module_graph
       .module_graph_modules()
       .keys()
       .copied()
       .collect::<Vec<_>>();
+    module_id_list.sort_by(|a, b| {
+      let ad = module_graph.get_depth(a);
+      let bd = module_graph.get_depth(b);
+      ad.cmp(&bd)
+    });
     for module_id in module_id_list {
       let mut can_be_root = true;
       let mut can_be_inner = true;
-      let m = compilation.module_graph.module_by_identifier(&module_id);
+      let number_of_module_chunks = compilation
+        .chunk_graph
+        .get_number_of_module_chunks(module_id);
+      let is_entry_module = compilation.chunk_graph.is_entry_module(&module_id);
+      let module_graph = compilation.get_module_graph();
+      let m = module_graph.module_by_identifier(&module_id);
+
+      if let Some(reason) = m
+        .expect("should have module")
+        .get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
+      {
+        self.set_bailout_reason(&module_id, reason, &mut compilation.get_module_graph_mut());
+        continue;
+      }
+
+      // shadowing previous immutable binding, reduce borrow lifetime
+      let mut module_graph = compilation.get_module_graph_mut();
+      let m = module_graph.module_by_identifier(&module_id);
+
       // If the result is `None`, that means we have some differences with webpack,
       // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L168-L171
-      if compilation
-        .module_graph
+      if module_graph
         .is_async(&module_id)
         .expect("should have async result")
       {
-        self.set_bailout_reason(
-          &module_id,
-          "Module is async".to_string(),
-          &mut compilation.module_graph,
-        );
+        self.set_bailout_reason(&module_id, "Module is async".to_string(), &mut module_graph);
         continue;
       }
 
@@ -580,33 +591,27 @@ impl Plugin for ModuleConcatenationPlugin {
         self.set_bailout_reason(
           &module_id,
           "Module is not in strict mode".to_string(),
-          &mut compilation.module_graph,
+          &mut module_graph,
         );
         continue;
       }
-      if compilation
-        .chunk_graph
-        .get_number_of_module_chunks(module_id)
-        == 0
-      {
+      if number_of_module_chunks == 0 {
         self.set_bailout_reason(
           &module_id,
           "Module is not in any chunk".to_string(),
-          &mut compilation.module_graph,
+          &mut module_graph,
         );
         continue;
       }
-      let exports_info = compilation.module_graph.get_exports_info(&module_id);
-      let relevnat_epxorts = exports_info.get_relevant_exports(None, &compilation.module_graph);
+
+      let exports_info = module_graph.get_exports_info(&module_id);
+      let relevnat_epxorts = exports_info.get_relevant_exports(None, &module_graph);
       let unknown_exports = relevnat_epxorts
         .iter()
         .filter(|id| {
-          let export_info = id
-            .get_export_info_mut(&mut compilation.module_graph)
-            .clone();
-          MutexModuleGraph::new(&mut compilation.module_graph).with_lock(|mut mga| {
-            export_info.is_reexport() && export_info.id.get_target(&mut mga, None).is_none()
-          })
+          let export_info = id.get_export_info_mut(&mut module_graph).clone();
+          let mut mga = MutableModuleGraph::new(&mut module_graph);
+          export_info.is_reexport() && export_info.id.get_target(&mut mga, None).is_none()
         })
         .copied()
         .collect::<Vec<_>>();
@@ -614,24 +619,20 @@ impl Plugin for ModuleConcatenationPlugin {
         let bailout_reason = unknown_exports
           .into_iter()
           .map(|id| {
-            let export_info = id.get_export_info(&compilation.module_graph);
+            let export_info = id.get_export_info(&module_graph);
             let name = export_info
               .name
               .as_ref()
               .map(|name| name.to_string())
               .unwrap_or("other exports".to_string());
-            format!(
-              "{} : {}",
-              name,
-              export_info.id.get_used_info(&compilation.module_graph)
-            )
+            format!("{} : {}", name, export_info.id.get_used_info(&module_graph))
           })
           .collect::<Vec<String>>()
           .join(", ");
         self.set_bailout_reason(
           &module_id,
           format!("Reexports in this module do not have a static target ({bailout_reason})"),
-          &mut compilation.module_graph,
+          &mut module_graph,
         );
 
         continue;
@@ -639,7 +640,7 @@ impl Plugin for ModuleConcatenationPlugin {
       let unknown_provided_exports = relevnat_epxorts
         .iter()
         .filter(|id| {
-          let export_info = id.get_export_info(&compilation.module_graph);
+          let export_info = id.get_export_info(&module_graph);
           !matches!(export_info.provided, Some(ExportInfoProvided::True))
         })
         .copied()
@@ -649,7 +650,7 @@ impl Plugin for ModuleConcatenationPlugin {
         let bailout_reason = unknown_provided_exports
           .into_iter()
           .map(|id| {
-            let export_info = id.get_export_info(&compilation.module_graph);
+            let export_info = id.get_export_info(&module_graph);
             let name = export_info
               .name
               .as_ref()
@@ -658,8 +659,8 @@ impl Plugin for ModuleConcatenationPlugin {
             format!(
               "{} : {} and {}",
               name,
-              export_info.id.get_provided_info(&compilation.module_graph),
-              export_info.id.get_used_info(&compilation.module_graph)
+              export_info.id.get_provided_info(&module_graph),
+              export_info.id.get_used_info(&module_graph)
             )
           })
           .collect::<Vec<String>>()
@@ -667,16 +668,16 @@ impl Plugin for ModuleConcatenationPlugin {
         self.set_bailout_reason(
           &module_id,
           format!("List of module exports is dynamic ({bailout_reason})"),
-          &mut compilation.module_graph,
+          &mut module_graph,
         );
         can_be_root = false;
       }
 
-      if compilation.chunk_graph.is_entry_module(&module_id) {
+      if is_entry_module {
         self.set_bailout_reason(
           &module_id,
           "Module is an entry point".to_string(),
-          &mut compilation.module_graph,
+          &mut module_graph,
         );
         can_be_inner = false;
       }
@@ -688,6 +689,7 @@ impl Plugin for ModuleConcatenationPlugin {
       }
     }
 
+    let module_graph = compilation.get_module_graph();
     logger.time_end(start);
     logger.debug(format!(
       "{} potential root modules, {} potential inner modules",
@@ -697,8 +699,8 @@ impl Plugin for ModuleConcatenationPlugin {
 
     let start = logger.time("sort relevant modules");
     relevant_modules.sort_by(|a, b| {
-      let ad = compilation.module_graph.get_depth(a);
-      let bd = compilation.module_graph.get_depth(b);
+      let ad = module_graph.get_depth(a);
+      let bd = module_graph.get_depth(b);
       ad.cmp(&bd)
     });
 
@@ -711,12 +713,11 @@ impl Plugin for ModuleConcatenationPlugin {
     let start = logger.time("find modules to concatenate");
     let mut concat_configurations: Vec<ConcatConfiguration> = Vec::new();
     let mut used_as_inner: HashSet<ModuleIdentifier> = HashSet::default();
-
     for current_root in relevant_modules.iter() {
       if used_as_inner.contains(current_root) {
         continue;
       }
-      let mut chunk_runtime = HashSet::default();
+      let mut chunk_runtime = Default::default();
       for r in compilation
         .chunk_graph
         .get_module_runtimes(*current_root, &compilation.chunk_by_ukey)
@@ -724,9 +725,10 @@ impl Plugin for ModuleConcatenationPlugin {
       {
         chunk_runtime = merge_runtime(&chunk_runtime, &r);
       }
-      let exports_info_id = compilation.module_graph.get_exports_info(current_root).id;
+      let module_graph = compilation.get_module_graph();
+      let exports_info_id = module_graph.get_exports_info(current_root).id;
       let filtered_runtime = filter_runtime(Some(&chunk_runtime), |r| {
-        exports_info_id.is_module_used(&compilation.module_graph, r)
+        exports_info_id.is_module_used(&module_graph, r)
       });
       let active_runtime = match filtered_runtime {
         RuntimeCondition::Boolean(true) => Some(chunk_runtime.clone()),
@@ -741,11 +743,7 @@ impl Plugin for ModuleConcatenationPlugin {
       let mut candidates_visited = HashSet::default();
       let mut candidates = VecDeque::new();
 
-      let imports = Self::get_imports(
-        &compilation.module_graph,
-        *current_root,
-        active_runtime.as_ref(),
-      );
+      let imports = Self::get_imports(&module_graph, *current_root, active_runtime.as_ref());
       for import in imports {
         candidates.push_back(import);
       }
@@ -794,14 +792,14 @@ impl Plugin for ModuleConcatenationPlugin {
         concat_configurations.push(current_configuration);
       } else {
         stats_empty_configurations += 1;
-        let optimization_bailouts = compilation
-          .module_graph
-          .get_optimization_bailout_mut(*current_root);
+        let mut module_graph = compilation.get_module_graph_mut();
+        let optimization_bailouts = module_graph.get_optimization_bailout_mut(current_root);
         for warning in current_configuration.get_warnings_sorted() {
           optimization_bailouts.push(self.format_bailout_warning(warning.0, &warning.1));
         }
       }
     }
+
     logger.time_end(start);
     if !concat_configurations.is_empty() {
       logger.debug(format!(
@@ -839,16 +837,20 @@ impl Plugin for ModuleConcatenationPlugin {
     let mut used_modules = HashSet::default();
 
     for config in concat_configurations {
+      let module_graph = compilation.get_module_graph();
+
+      // dbg!(&config);
       let root_module_id = config.root_module;
       if used_modules.contains(&root_module_id) {
         continue;
       }
+
+      //
       let modules_set = config.get_modules();
       for m in modules_set {
         used_modules.insert(*m);
       }
-      let box_module = compilation
-        .module_graph
+      let box_module = module_graph
         .module_by_identifier(&root_module_id)
         .expect("should have module");
       let root_module_ctxt = RootModuleContext {
@@ -871,14 +873,14 @@ impl Plugin for ModuleConcatenationPlugin {
           .map(|deps| deps.to_vec()),
         context: Some(compilation.options.context.clone()),
         side_effect_connection_state: box_module
-          .get_side_effects_connection_state(&compilation.module_graph, &mut HashSet::default()),
+          .get_side_effects_connection_state(&module_graph, &mut HashSet::default()),
+        factory_meta: box_module.factory_meta().cloned(),
         build_meta: box_module.build_meta().cloned(),
       };
       let modules = modules_set
         .iter()
         .map(|id| {
-          let module = compilation
-            .module_graph
+          let module = module_graph
             .module_by_identifier(id)
             .unwrap_or_else(|| panic!("should have module {}", id));
           let inner_module = ConcatenatedInnerModule {
@@ -902,7 +904,7 @@ impl Plugin for ModuleConcatenationPlugin {
         Some(rspack_hash::HashFunction::MD4),
         config.runtime.clone(),
       );
-      let build_result = new_module
+      new_module
         .build(
           rspack_core::BuildContext {
             compiler_context: CompilerContext {
@@ -910,13 +912,8 @@ impl Plugin for ModuleConcatenationPlugin {
               resolver_factory: compilation.resolver_factory.clone(),
               module: new_module.id(),
               module_context: None,
-              module_source_map_kind: rspack_util::source_map::SourceMapKind::None,
+              module_source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
               cache: compilation.cache.clone(),
-              factorize_queue: compilation.factorize_queue.clone(),
-              build_queue: compilation.build_queue.clone(),
-              add_queue: compilation.add_queue.clone(),
-              process_dependencies_queue: compilation.process_dependencies_queue.clone(),
-              build_time_execution_queue: compilation.build_time_execution_queue.clone(),
               plugin_driver: compilation.plugin_driver.clone(),
             },
             plugin_driver: compilation.plugin_driver.clone(),
@@ -925,95 +922,94 @@ impl Plugin for ModuleConcatenationPlugin {
           Some(compilation),
         )
         .await?;
-      new_module.set_module_build_info_and_meta(build_result.build_info, build_result.build_meta);
-      let root_mgm_epxorts = compilation
-        .module_graph
+      let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
+      let mut module_graph = compilation.get_module_graph_mut();
+      let root_mgm_exports = module_graph
         .module_graph_module_by_identifier(&root_module_id)
         .expect("should have mgm")
         .exports;
       let module_graph_module =
-        ModuleGraphModule::new(new_module.id(), *new_module.module_type(), root_mgm_epxorts);
-      compilation
-        .module_graph
-        .add_module_graph_module(module_graph_module);
-      compilation
-        .module_graph
-        .clone_module_attributes(&root_module_id, &new_module.id());
+        ModuleGraphModule::new(new_module.id(), *new_module.module_type(), root_mgm_exports);
+      module_graph.add_module_graph_module(module_graph_module);
+      module_graph.clone_module_attributes(&root_module_id, &new_module.id());
       // integrate
+
       for m in modules_set {
         if m == &root_module_id {
           continue;
         }
-        compilation
-          .module_graph
-          .copy_outgoing_module_connections(m, &new_module.id(), |c, mg| {
-            let dep = c.dependency_id.get_dependency(mg);
-            c.original_module_identifier.as_ref() == Some(m)
-              && !(is_harmony_dep_like(dep) && modules_set.contains(&c.module_identifier))
-          });
+        module_graph.copy_outgoing_module_connections(m, &new_module.id(), |c, mg| {
+          let dep = mg
+            .dependency_by_id(&c.dependency_id)
+            .expect("should have dependency");
+          c.original_module_identifier.as_ref() == Some(m)
+            && !(is_harmony_dep_like(dep) && modules_set.contains(c.module_identifier()))
+        });
         // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
-        for chunk_ukey in compilation
-          .chunk_graph
-          .get_module_chunks(root_module_id)
-          .clone()
-        {
-          let module = compilation
-            .module_graph
-            .module_by_identifier_mut(m)
+        for chunk_ukey in chunk_graph.get_module_chunks(root_module_id).clone() {
+          let module = module_graph
+            .module_by_identifier(m)
             .expect("should exist module");
 
-          let source_types = compilation
-            .chunk_graph
-            .get_chunk_module_source_types(&chunk_ukey, module);
+          let source_types = chunk_graph.get_chunk_module_source_types(&chunk_ukey, module);
 
           if source_types.len() == 1 {
-            compilation
-              .chunk_graph
-              .disconnect_chunk_and_module(&chunk_ukey, *m);
+            chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
           } else {
             let new_source_types = source_types
               .into_iter()
               .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
               .collect();
-            compilation.chunk_graph.set_chunk_modules_source_types(
-              &chunk_ukey,
-              *m,
-              new_source_types,
-            )
+            chunk_graph.set_chunk_modules_source_types(&chunk_ukey, *m, new_source_types)
           }
         }
       }
-      // compilation
-      //   .module_graph
+      // module_graph
       //   .module_identifier_to_module
       //   .remove(&root_module_id);
       // compilation.chunk_graph.clear
 
-      compilation
-        .chunk_graph
-        .replace_module(&root_module_id, &new_module.id());
+      chunk_graph.replace_module(&root_module_id, &new_module.id());
 
-      compilation.module_graph.move_module_connections(
-        &root_module_id,
-        &new_module.id(),
-        |c, mg| {
-          let other_module = if c.module_identifier == root_module_id {
-            c.original_module_identifier
+      module_graph.move_module_connections(&root_module_id, &new_module.id(), |c, dep| {
+        let other_module = if *c.module_identifier() == root_module_id {
+          c.original_module_identifier
+        } else {
+          Some(*c.module_identifier())
+        };
+        let inner_connection = is_harmony_dep_like(dep)
+          && if let Some(other_module) = other_module {
+            modules_set.contains(&other_module)
           } else {
-            Some(c.module_identifier)
+            false
           };
-          let dep = c.dependency_id.get_dependency(mg);
-          let inner_connection = is_harmony_dep_like(dep)
-            && if let Some(other_module) = other_module {
-              modules_set.contains(&other_module)
-            } else {
-              false
-            };
-          !inner_connection
-        },
-      );
-      compilation.module_graph.add_module(new_module.boxed());
+        !inner_connection
+      });
+
+      module_graph.add_module(new_module.boxed());
+      compilation.chunk_graph = chunk_graph;
     }
+    Ok(())
+  }
+}
+
+#[plugin_hook(CompilationOptimizeChunkModules for ModuleConcatenationPlugin)]
+async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  self.optimize_chunk_modules_impl(compilation).await?;
+  Ok(None)
+}
+
+impl Plugin for ModuleConcatenationPlugin {
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_chunk_modules
+      .tap(optimize_chunk_modules::new(self));
     Ok(())
   }
 }

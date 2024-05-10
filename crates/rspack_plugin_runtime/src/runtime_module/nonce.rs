@@ -16,7 +16,7 @@ impl Default for NonceRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/nonce"),
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -27,7 +27,7 @@ impl RuntimeModule for NonceRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> BoxSource {
-    RawSource::from(format!("{} = undefined;", RuntimeGlobals::SCRIPT_NONCE)).boxed()
+  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(format!("{} = undefined;", RuntimeGlobals::SCRIPT_NONCE)).boxed())
   }
 }

@@ -1,24 +1,28 @@
 use std::collections::hash_map::Entry;
-use std::collections::VecDeque;
 
+use itertools::Itertools;
 use rspack_core::{
-  BuildMetaExportsType, Compilation, DependenciesBlock, DependencyId, ExportInfoProvided,
-  ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, MutexModuleGraph, Plugin,
+  ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
+  DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId,
+  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  MutableModuleGraph, Plugin, PluginContext,
 };
 use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
+use crate::utils::queue::Queue;
+
 struct FlagDependencyExportsProxy<'a> {
-  mg: &'a mut ModuleGraph,
+  mg: &'a mut ModuleGraph<'a>,
   changed: bool,
   current_module_id: ModuleIdentifier,
   dependencies: HashMap<ModuleIdentifier, HashSet<ModuleIdentifier>>,
 }
 
 impl<'a> FlagDependencyExportsProxy<'a> {
-  pub fn new(mg: &'a mut ModuleGraph) -> Self {
+  pub fn new(mg: &'a mut ModuleGraph<'a>) -> Self {
     Self {
       mg,
       changed: false,
@@ -28,13 +32,14 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   }
 
   pub fn apply(&mut self) {
-    let mut q = VecDeque::new();
+    let mut q = Queue::new();
 
-    // take the ownership of module_identifier_to_module_graph_module to avoid borrow ref and
-    // mut ref of `ModuleGraph` at the same time
-    let module_graph_modules =
-      std::mem::take(&mut self.mg.module_identifier_to_module_graph_module);
-    for mgm in module_graph_modules.values() {
+    let module_ids = self.mg.modules().keys().cloned().collect_vec();
+    for module_id in module_ids {
+      let mgm = self
+        .mg
+        .module_graph_module_by_identifier(&module_id)
+        .expect("mgm should exist");
       let exports_id = mgm.exports;
 
       let module = self
@@ -64,16 +69,16 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         .unwrap_or_default()
       {
         exports_id.set_has_provide_info(self.mg);
-        q.push_back(mgm.module_identifier);
+        q.enqueue(module_id);
         continue;
       }
 
       exports_id.set_has_provide_info(self.mg);
-      q.push_back(mgm.module_identifier);
+      q.enqueue(module_id);
       // TODO: mem cache
     }
-    self.mg.module_identifier_to_module_graph_module = module_graph_modules;
-    while let Some(module_id) = q.pop_front() {
+
+    while let Some(module_id) = q.dequeue() {
       self.changed = false;
       self.current_module_id = module_id;
       let mut exports_specs_from_dependencies: HashMap<DependencyId, ExportsSpec> =
@@ -89,10 +94,10 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     }
   }
 
-  pub fn notify_dependencies(&mut self, q: &mut VecDeque<ModuleIdentifier>) {
+  pub fn notify_dependencies(&mut self, q: &mut Queue<ModuleIdentifier>) {
     if let Some(set) = self.dependencies.get(&self.current_module_id) {
       for mi in set.iter() {
-        q.push_back(*mi);
+        q.enqueue(*mi);
       }
     }
   }
@@ -169,10 +174,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     if let Some(hide_export) = export_desc.hide_export {
       for name in hide_export.iter() {
         let from_exports_info_id = exports_info_id.get_export_info(name, self.mg);
-        let export_info = self
-          .mg
-          .export_info_map
-          .get_mut(*from_exports_info_id as usize);
+        let export_info = self.mg.get_export_info_mut_by_id(&from_exports_info_id);
         export_info.unset_target(&dep_id);
       }
     }
@@ -183,7 +185,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           global_can_mangle.unwrap_or_default(),
           export_desc.exclude_exports,
           global_from.map(|_| dep_id),
-          global_from.cloned(),
+          global_from.map(|_| dep_id),
           *global_priority,
         ) {
           self.changed = true;
@@ -250,7 +252,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
               .unwrap_or(global_export_info.terminal_binding),
             spec.exports.as_ref(),
             if spec.from.is_some() {
-              spec.from
+              spec.from.clone()
             } else {
               global_export_info.from.cloned()
             },
@@ -308,14 +310,19 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           } else {
             Some(&fallback)
           };
-          export_info_mut.set_target(Some(dep_id), Some(from), export_name, priority)
+          export_info_mut.set_target(
+            Some(dep_id),
+            Some(from.dependency_id),
+            export_name,
+            priority,
+          )
         };
         self.changed |= changed;
       }
 
       // Recalculate target exportsInfo
-      let target = MutexModuleGraph::new(self.mg)
-        .with_lock(|mut mga| export_info_id.get_target(&mut mga, None));
+      let mut mga = MutableModuleGraph::new(self.mg);
+      let target = export_info_id.get_target(&mut mga, None);
 
       let mut target_exports_info: Option<ExportsInfoId> = None;
       if let Some(target) = target {
@@ -333,7 +340,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         }
       }
 
-      let export_info = self.mg.export_info_map.get_mut(*export_info_id as usize);
+      let export_info = self.mg.get_export_info_mut_by_id(&export_info_id);
       if export_info.exports_info_owned {
         let changed = export_info
           .exports_info
@@ -359,18 +366,31 @@ pub struct DefaultExportInfo<'a> {
   priority: Option<u8>,
 }
 
+#[plugin]
 #[derive(Debug, Default)]
 pub struct FlagDependencyExportsPlugin;
 
-#[async_trait::async_trait]
+#[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
+async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+  FlagDependencyExportsProxy::new(&mut compilation.get_module_graph_mut()).apply();
+  Ok(())
+}
+
 impl Plugin for FlagDependencyExportsPlugin {
   fn name(&self) -> &'static str {
     "FlagDependencyExportsPlugin"
   }
 
-  async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-    let mut proxy = FlagDependencyExportsProxy::new(&mut compilation.module_graph);
-    proxy.apply();
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .finish_modules
+      .tap(finish_modules::new(self));
     Ok(())
   }
 }

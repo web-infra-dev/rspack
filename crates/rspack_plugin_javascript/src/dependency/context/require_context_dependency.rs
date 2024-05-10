@@ -86,12 +86,12 @@ impl DependencyTemplate for RequireContextDependency {
     } = code_generatable_context;
 
     let module_id = compilation
-      .module_graph
+      .get_module_graph()
       .module_graph_module_by_dependency_id(&self.id)
       .map(|m| m.id(&compilation.chunk_graph))
       .expect("should have dependency id");
 
-    let module_id_str = module_id_expr(&self.options.request, module_id);
+    let module_id_str = module_id_expr(&compilation.options, &self.options.request, module_id);
 
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     source.replace(

@@ -98,7 +98,7 @@ impl DependencyTemplate for CssUrlDependency {
   ) {
     let TemplateContext { compilation, .. } = code_generatable_context;
     if let Some(mgm) = compilation
-      .module_graph
+      .get_module_graph()
       .module_graph_module_by_dependency_id(self.id())
       && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation)
     {

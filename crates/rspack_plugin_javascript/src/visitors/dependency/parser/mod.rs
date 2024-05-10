@@ -21,8 +21,8 @@ use swc_core::common::comments::Comments;
 use swc_core::common::util::take::Take;
 use swc_core::common::{SourceFile, Span, Spanned};
 use swc_core::ecma::ast::{
-  ArrayPat, AssignPat, CallExpr, Callee, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, Pat,
-  Program, Stmt, ThisExpr,
+  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, MetaPropExpr, MetaPropKind, ObjectPat,
+  ObjectPatProp, Pat, Program, Stmt, ThisExpr,
 };
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 
@@ -73,7 +73,7 @@ pub struct ExpressionExpressionInfo {
   pub root_info: ExportedVariableInfo,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExportedVariableInfo {
   Name(String),
   VariableInfo(VariableInfoId),
@@ -172,7 +172,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) compiler_options: &'parser CompilerOptions,
-  pub(crate) javascript_options: Option<&'parser JavascriptParserOptions>,
+  pub(crate) javascript_options: &'parser JavascriptParserOptions,
   pub(crate) module_type: &'parser ModuleType,
   pub(crate) module_identifier: &'parser ModuleIdentifier,
   // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
@@ -202,6 +202,7 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn new(
     source_file: &'parser SourceFile,
     compiler_options: &'parser CompilerOptions,
+    javascript_options: &'parser JavascriptParserOptions,
     comments: Option<&'parser dyn Comments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
@@ -230,6 +231,7 @@ impl<'parser> JavascriptParser<'parser> {
       rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
       worker_syntax_list,
     )));
+    plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
       plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
@@ -265,7 +267,6 @@ impl<'parser> JavascriptParser<'parser> {
       }
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
-      plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
       plugins.push(Box::new(parser_plugin::APIPlugin::new(
         compiler_options.output.module,
       )));
@@ -273,15 +274,7 @@ impl<'parser> JavascriptParser<'parser> {
     }
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
-      let parse_url = &compiler_options
-        .module
-        .parser
-        .as_ref()
-        .and_then(|p| p.get(module_type))
-        .and_then(|p| p.get_javascript(module_type))
-        .map(|p| p.url)
-        .unwrap_or(JavascriptParserUrl::Enable);
-
+      let parse_url = javascript_options.url;
       if !matches!(parse_url, JavascriptParserUrl::Disable) {
         plugins.push(Box::new(parser_plugin::URLPlugin {
           relative: matches!(parse_url, JavascriptParserUrl::Relative),
@@ -302,12 +295,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
     let mut db = ScopeInfoDB::new();
-    let javascript_options = compiler_options
-      .module
-      .parser
-      .as_ref()
-      .and_then(|p| p.get(module_type))
-      .and_then(|p| p.get_javascript(module_type));
+
     Self {
       last_harmony_import_order: 0,
       comments,
@@ -616,6 +604,17 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
+  fn enter_assign_target_pattern<F>(&mut self, pattern: Cow<AssignTargetPat>, on_ident: F)
+  where
+    F: FnOnce(&mut Self, &Ident) + Copy,
+  {
+    match &*pattern {
+      AssignTargetPat::Array(array) => self.enter_array_pattern(array, on_ident),
+      AssignTargetPat::Object(obj) => self.enter_object_pattern(obj, on_ident),
+      AssignTargetPat::Invalid(_) => (),
+    }
+  }
+
   fn enter_patterns<'a, I, F>(&mut self, patterns: I, on_ident: F)
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
@@ -689,6 +688,7 @@ impl JavascriptParser<'_> {
   fn evaluating(&mut self, expr: &Expr) -> Option<BasicEvaluatedExpression> {
     match expr {
       Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
+      Expr::TaggedTpl(tagged_tpl) => eval::eval_tagged_tpl_expression(self, tagged_tpl),
       Expr::Lit(lit) => eval::eval_lit_expr(lit),
       Expr::Cond(cond) => eval::eval_cond_expression(self, cond),
       Expr::Unary(unary) => eval::eval_unary_expression(self, unary),

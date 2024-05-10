@@ -89,16 +89,14 @@ mod chunk_group;
 pub use chunk_group::*;
 mod ukey;
 pub use ukey::*;
-mod module_graph_module;
-pub use module_graph_module::*;
 pub mod resolver;
 pub use resolver::*;
 pub mod concatenated_module;
 pub mod reserved_names;
 pub mod tree_shaking;
 
-pub use rspack_core_macros::{impl_runtime_module, impl_source_map_config};
 pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme, BUILTIN_LOADER_PREFIX};
+pub use rspack_macros::{impl_runtime_module, impl_source_map_config};
 pub use rspack_sources;
 
 #[cfg(debug_assertions)]
@@ -114,8 +112,10 @@ pub enum SourceType {
   Remote,
   ShareInit,
   ConsumeShared,
+  Custom(Ustr),
   #[default]
   Unknown,
+  CssImport,
 }
 
 impl std::fmt::Display for SourceType {
@@ -130,29 +130,26 @@ impl std::fmt::Display for SourceType {
       SourceType::ShareInit => write!(f, "share-init"),
       SourceType::ConsumeShared => write!(f, "consume-shared"),
       SourceType::Unknown => write!(f, "unknown"),
+      SourceType::CssImport => write!(f, "css-import"),
+      SourceType::Custom(source_type) => f.write_str(source_type),
     }
   }
 }
 
-impl TryFrom<&str> for SourceType {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: &str) -> Result<Self, Self::Error> {
+impl From<&str> for SourceType {
+  fn from(value: &str) -> Self {
     match value {
-      "javascript" => Ok(Self::JavaScript),
-      "css" => Ok(Self::Css),
-      "wasm" => Ok(Self::Wasm),
-      "asset" => Ok(Self::Asset),
-      "expose" => Ok(Self::Expose),
-      "remote" => Ok(Self::Remote),
-      "share-init" => Ok(Self::ShareInit),
-      "consume-shared" => Ok(Self::ConsumeShared),
-      "unknown" => Ok(Self::Unknown),
-
-      _ => {
-        use rspack_error::error;
-        Err(error!("invalid source type: {value}"))
-      }
+      "javascript" => Self::JavaScript,
+      "css" => Self::Css,
+      "wasm" => Self::Wasm,
+      "asset" => Self::Asset,
+      "expose" => Self::Expose,
+      "remote" => Self::Remote,
+      "share-init" => Self::ShareInit,
+      "consume-shared" => Self::ConsumeShared,
+      "unknown" => Self::Unknown,
+      "css-import" => Self::CssImport,
+      other => SourceType::Custom(other.into()),
     }
   }
 }

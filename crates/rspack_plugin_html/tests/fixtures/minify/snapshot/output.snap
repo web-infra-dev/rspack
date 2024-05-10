@@ -1,6 +1,0 @@
----
-source: crates/rspack_testing/src/run_fixture.rs
----
-```html title=index.html
-<!doctype html><meta charset=utf-8><title>rspack</title><script src=/runtime.js defer></script><script src=/index.js defer></script>
-```

@@ -1,4 +1,0 @@
-WARNING in ./index.css
-  ⚠ Module parse warning:
-  ╰─▶   ⚠ css: Deprecated '~'
-        │ '@import' or 'url()' with a request starts with '~' is deprecated.

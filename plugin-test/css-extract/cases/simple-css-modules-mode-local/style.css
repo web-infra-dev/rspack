@@ -1,0 +1,11 @@
+.a {
+  background: red;
+}
+
+:local(.b) {
+  color: green;
+}
+
+:global(.c) {
+  color: blue;
+}

@@ -1,0 +1,21 @@
+```js title=main.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./index.tsx": (function () {
+class a {
+}
+function A() {
+    return /*#__PURE__*/ React.createElement("div", null, "123");
+}
+const b = (/* unused pure expression or super */ null && ({
+    a: 123
+}));
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.tsx"));
+
+}
+]);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibWFpbi5qcyIsInNvdXJjZXMiOlsid2VicGFjazovL19fcnNwYWNrX3Rlc3RfXy8uL2luZGV4LnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJjbGFzcyBhIHt9XG5cbmZ1bmN0aW9uIEEoKXtcblx0cmV0dXJuIDxkaXY+MTIzPC9kaXY+XG59XG5cbmludGVyZmFjZSBBIHtcblx0YTogbnVtYmVyXG59XG5jb25zdCBiOiBBID0ge2E6MTIzfVxuIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7O0FBQUEsTUFBTTtBQUFHO0FBRVQsU0FBUztJQUNSLHFCQUFPLG9CQUFDLGFBQUk7QUFDYjtBQUtBLE1BQU0sSUFBTztJQUFDLEdBQUU7QUFBRyxDQUFDIn0=
+```

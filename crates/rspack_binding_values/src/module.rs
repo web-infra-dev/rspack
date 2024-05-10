@@ -1,9 +1,9 @@
-use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::Module;
+use rspack_napi::napi::bindgen_prelude::*;
 
 use super::{JsCompatSource, ToJsCompatSource};
-use crate::{JsBuildTimeExecutionOption, JsChunk, JsCodegenerationResults};
+use crate::{JsChunk, JsCodegenerationResults};
 
 #[derive(Default)]
 #[napi(object)]
@@ -13,13 +13,14 @@ pub struct JsModule {
   pub resource: Option<String>,
   pub module_identifier: String,
   pub name_for_condition: Option<String>,
+  pub raw_request: Option<String>,
 }
 
 pub trait ToJsModule {
   fn to_js_module(&self) -> Result<JsModule>;
 }
 
-impl ToJsModule for dyn Module + '_ {
+impl ToJsModule for dyn Module {
   fn to_js_module(&self) -> Result<JsModule> {
     let original_source = || {
       self
@@ -44,6 +45,7 @@ impl ToJsModule for dyn Module + '_ {
         ),
         module_identifier: module_identifier(),
         name_for_condition: name_for_condition(),
+        raw_request: Some(normal_module.raw_request().to_string()),
       })
       .or_else(|_| {
         self.try_as_raw_module().map(|_| JsModule {
@@ -52,6 +54,7 @@ impl ToJsModule for dyn Module + '_ {
           resource: None,
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
+          raw_request: None,
         })
       })
       .or_else(|_| {
@@ -61,6 +64,7 @@ impl ToJsModule for dyn Module + '_ {
           resource: None,
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
+          raw_request: None,
         })
       })
       .or_else(|_| {
@@ -70,6 +74,7 @@ impl ToJsModule for dyn Module + '_ {
           resource: None,
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
+          raw_request: None,
         })
       })
       .or_else(|_| {
@@ -86,8 +91,6 @@ impl ToJsModule for dyn Module + '_ {
 #[napi(object)]
 pub struct JsExecuteModuleArg {
   pub entry: String,
-  pub request: String,
-  pub options: JsBuildTimeExecutionOption,
   pub runtime_modules: Vec<String>,
   pub codegen_results: JsCodegenerationResults,
   pub id: u32,

@@ -660,7 +660,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			_options,
 			factory
 		) => {
-			const { type } = context;
+			// const { type } = context;
 			const namedChunkGroups = context
 				.getInner(compilation)
 				.getNamedChunkGroups();
@@ -813,6 +813,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			} else {
 				object.providedExports = null;
 			}
+		},
+		optimizationBailout: (object, module) => {
+			object.optimizationBailout = module.optimizationBailout || null;
 		}
 	},
 	profile: {
@@ -858,6 +861,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.names = chunk.names;
 			object.files = chunk.files;
 			object.auxiliaryFiles = chunk.auxiliaryFiles;
+			object.childrenByOrder = chunk.childrenByOrder;
 		},
 		ids: (object, chunk) => {
 			object.id = chunk.id;

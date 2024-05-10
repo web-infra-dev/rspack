@@ -18,19 +18,26 @@ use regex::{Captures, Regex};
 use rspack_core::{
   contextify,
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
-  AssetInfo, Compilation, CompilationAsset, JsChunkHashArgs, PathData, Plugin, PluginContext,
-  PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderModuleContentOutput,
-  ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
+  AssetInfo, Compilation, CompilationAsset, PathData, Plugin, PluginContext, SourceType,
 };
 use rspack_core::{
-  Chunk, Filename, Logger, Module, ModuleIdentifier, OutputOptions, RuntimeModule,
+  ApplyContext, BoxModule, Chunk, ChunkUkey, CompilationBuildModule, CompilationParams,
+  CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, CompilerOptions,
+  FilenameTemplate, Logger, ModuleIdentifier, OutputOptions,
 };
+use rspack_error::error;
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
+use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_javascript::{
+  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
+  PluginRenderJsModuleContentOutput, RenderJsModuleContentArgs,
+};
 use rspack_util::identifier::make_paths_absolute;
+use rspack_util::infallible::ResultInfallibleExt as _;
 use rspack_util::source_map::SourceMapKind;
 use rspack_util::{path::relative, swc::normalize_custom_filename};
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde_json::json;
 
 static CSS_EXTENSION_DETECT_REGEXP: Lazy<Regex> =
@@ -63,8 +70,9 @@ pub struct ModuleFilenameTemplateFnCtx {
 }
 
 type ModuleFilenameTemplateFn =
-  Box<dyn Fn(ModuleFilenameTemplateFnCtx) -> BoxFuture<'static, Result<String>> + Sync + Send>;
+  Arc<dyn Fn(ModuleFilenameTemplateFnCtx) -> BoxFuture<'static, Result<String>> + Sync + Send>;
 
+#[derive(Clone)]
 pub enum ModuleFilenameTemplate {
   String(String),
   Fn(ModuleFilenameTemplateFn),
@@ -72,7 +80,7 @@ pub enum ModuleFilenameTemplate {
 
 pub struct ModuleFilenameHelpers;
 
-type AppendFn = Arc<dyn for<'a> Fn() -> Option<String> + Send + Sync>;
+type AppendFn = Box<dyn for<'a> Fn(PathData) -> BoxFuture<'static, Result<String>> + Sync + Send>;
 
 pub enum Append {
   String(String),
@@ -80,7 +88,7 @@ pub enum Append {
   Disabled,
 }
 
-pub type TestFn = Box<dyn Fn(String) -> bool + Sync + Send>;
+pub type TestFn = Box<dyn Fn(String) -> Result<bool> + Sync + Send>;
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -120,6 +128,11 @@ enum SourceMappingUrlComment {
   Fn(AppendFn),
 }
 
+enum SourceMappingUrlCommentRef<'a> {
+  String(String),
+  Fn(&'a AppendFn),
+}
+
 pub enum ModuleOrSource {
   Source(String),
   Module(ModuleIdentifier),
@@ -131,10 +144,11 @@ struct MappedAsset {
   source_map: Option<(String, CompilationAsset)>,
 }
 
+#[plugin]
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct SourceMapDevToolPlugin {
-  source_map_filename: Option<Filename>,
+  source_map_filename: Option<FilenameTemplate>,
   #[derivative(Debug = "ignore")]
   source_mapping_url_comment: Option<SourceMappingUrlComment>,
   file_context: Option<String>,
@@ -180,38 +194,39 @@ impl SourceMapDevToolPlugin {
           "webpack://[namespace]/[resourcePath]".to_string(),
         ));
 
-    Self {
-      source_map_filename: options.filename.map(Filename::from),
+    Self::new_inner(
+      options.filename.map(FilenameTemplate::from),
       source_mapping_url_comment,
-      fallback_module_filename_template,
-      file_context: options.file_context,
+      options.file_context,
       module_filename_template,
-      namespace: options.namespace.unwrap_or("".to_string()),
-      columns: options.columns,
-      no_sources: options.no_sources,
-      public_path: options.public_path,
-      module: options.module,
-      source_root: options.source_root,
-      test: options.test,
-      mapped_assets_cache: MappedAssetsCache::new(),
-    }
+      fallback_module_filename_template,
+      options.namespace.unwrap_or("".to_string()),
+      options.columns,
+      options.no_sources,
+      options.public_path,
+      options.module,
+      options.source_root,
+      options.test,
+      MappedAssetsCache::new(),
+    )
   }
 
   async fn map_assets(
     &self,
     compilation: &Compilation,
+    file_to_chunk: &HashMap<String, &Chunk>,
     raw_assets: Vec<(String, &CompilationAsset)>,
   ) -> Result<Vec<MappedAsset>> {
     let output_options = &compilation.options.output;
 
     let mapped_sources = raw_assets
       .par_iter()
-      .filter_map(|(file, asset)| {
+      .map(|(file, asset)| {
         let is_match = match &self.test {
           Some(test) => test(file.to_owned()),
-          None => true,
-        };
-        if is_match {
+          None => Ok(true),
+        }?;
+        let source = if is_match {
           asset.get_source().map(|source| {
             let map_options = MapOptions::new(self.columns);
             let source_map = source.map(&map_options);
@@ -219,8 +234,12 @@ impl SourceMapDevToolPlugin {
           })
         } else {
           None
-        }
+        };
+        Ok(source)
       })
+      .collect::<Result<Vec<Option<_>>>>()?
+      .into_iter()
+      .flatten()
       .collect::<Vec<_>>();
 
     let mut used_names_set = HashSet::<String>::default();
@@ -238,7 +257,10 @@ impl SourceMapDevToolPlugin {
           let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
             let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
             let identifier = ModuleIdentifier::from(source.clone());
-            match compilation.module_graph.module_by_identifier(&identifier) {
+            match compilation
+              .get_module_graph()
+              .module_by_identifier(&identifier)
+            {
               Some(module) => ModuleOrSource::Module(module.identifier()),
               None => ModuleOrSource::Source(source),
             }
@@ -266,7 +288,10 @@ impl SourceMapDevToolPlugin {
             let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
               let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
               let identifier = ModuleIdentifier::from(source.clone());
-              match compilation.module_graph.module_by_identifier(&identifier) {
+              match compilation
+                .get_module_graph()
+                .module_by_identifier(&identifier)
+              {
                 Some(module) => ModuleOrSource::Module(module.identifier()),
                 None => ModuleOrSource::Source(source),
               }
@@ -381,7 +406,12 @@ impl SourceMapDevToolPlugin {
       let mut asset = compilation
         .assets()
         .get(&filename)
-        .expect("should have filename in compilation.assets")
+        .unwrap_or_else(|| {
+          panic!(
+            "expected to find filename '{}' in compilation.assets, but it was not present",
+            &filename
+          )
+        })
         .clone();
       // convert to RawSource to reduce one time source map calculation when convert to JsCompatSource
       let raw_source = RawSource::from(code_buffer).boxed();
@@ -394,48 +424,42 @@ impl SourceMapDevToolPlugin {
         continue;
       };
       let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&filename);
-      let current_source_mapping_url_comment =
-        if let Some(SourceMappingUrlComment::String(s)) = &self.source_mapping_url_comment {
+      let current_source_mapping_url_comment = match &self.source_mapping_url_comment {
+        Some(SourceMappingUrlComment::String(s)) => {
           let s = if css_extension_detected {
             URL_FORMATTING_REGEXP.replace_all(s, "\n/*$1*/")
           } else {
             Cow::from(s)
           };
-          Some(s)
-        } else {
-          None
-        };
+          Some(SourceMappingUrlCommentRef::String(s.to_string()))
+        }
+        Some(SourceMappingUrlComment::Fn(f)) => Some(SourceMappingUrlCommentRef::Fn(f)),
+        None => None,
+      };
 
       if let Some(source_map_filename_config) = &self.source_map_filename {
-        let mut source_map_filename = filename.to_owned() + ".map";
-        // TODO(ahabhgk): refactor remove the for loop
-        for chunk in compilation.chunk_by_ukey.values() {
-          let files: HashSet<String> = chunk.files.union(&chunk.auxiliary_files).cloned().collect();
-
-          for file in &files {
-            if file == &filename {
-              let source_type = if css_extension_detected {
-                &SourceType::Css
-              } else {
-                &SourceType::JavaScript
-              };
-              let filename = match &self.file_context {
-                Some(file_context) => relative(Path::new(file_context), Path::new(&filename))
-                  .to_string_lossy()
-                  .to_string(),
-                None => filename.clone(),
-              };
-              source_map_filename = compilation.get_asset_path(
-                source_map_filename_config,
-                PathData::default()
-                  .chunk(chunk)
-                  .filename(&filename)
-                  .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
-              );
-              break;
-            }
-          }
-        }
+        let chunk = file_to_chunk.get(&filename);
+        let source_type = if css_extension_detected {
+          &SourceType::Css
+        } else {
+          &SourceType::JavaScript
+        };
+        let filename = match &self.file_context {
+          Some(file_context) => relative(Path::new(file_context), Path::new(&filename))
+            .to_string_lossy()
+            .to_string(),
+          None => filename.clone(),
+        };
+        let data = PathData::default().filename(&filename);
+        let data = match chunk {
+          Some(chunk) => data
+            .chunk(chunk)
+            .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
+          None => data,
+        };
+        let source_map_filename = compilation
+          .get_asset_path(source_map_filename_config, data)
+          .always_ok();
 
         if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
           let source_map_url = if let Some(public_path) = &self.public_path {
@@ -446,6 +470,18 @@ impl SourceMapDevToolPlugin {
             relative.to_string_lossy().into_owned()
           } else {
             source_map_filename.clone()
+          };
+          let data = data.url(&source_map_url);
+          let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
+            SourceMappingUrlCommentRef::String(s) => compilation
+              .get_asset_path(&FilenameTemplate::from(s.to_string()), data)
+              .always_ok(),
+            SourceMappingUrlCommentRef::Fn(f) => {
+              let comment = f(data).await?;
+              FilenameTemplate::from(comment)
+                .render(data, None)
+                .always_ok()
+            }
           };
           asset.source = Some(
             ConcatSource::new([
@@ -475,6 +511,14 @@ impl SourceMapDevToolPlugin {
       } else {
         let current_source_mapping_url_comment = current_source_mapping_url_comment
           .expect("SourceMapDevToolPlugin: append can't be false when no filename is provided.");
+        let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
+          SourceMappingUrlCommentRef::String(s) => s,
+          SourceMappingUrlCommentRef::Fn(_) => {
+            return Err(error!(
+              "SourceMapDevToolPlugin: append can't be a function when no filename is provided"
+            ))
+          }
+        };
         let base64 = rspack_base64::encode_to_string(&source_map_buffer);
         asset.source = Some(
           ConcatSource::new([
@@ -491,54 +535,82 @@ impl SourceMapDevToolPlugin {
           asset: (filename, asset),
           source_map: None,
         });
-        // TODO
-        // chunk.auxiliary_files.add(filename);
       }
     }
     Ok(mapped_asstes)
   }
 }
 
-#[async_trait::async_trait]
+#[plugin_hook(CompilationProcessAssets for SourceMapDevToolPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_DEV_TOOLING)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
+  let start = logger.time("collect source maps");
+
+  // use to read
+  let mut file_to_chunk: HashMap<String, &Chunk> = HashMap::default();
+  // use to write
+  let mut file_to_chunk_ukey: HashMap<String, ChunkUkey> = HashMap::default();
+  for chunk in compilation.chunk_by_ukey.values() {
+    for file in &chunk.files {
+      file_to_chunk.insert(file.clone(), chunk);
+      file_to_chunk_ukey.insert(file.clone(), chunk.ukey);
+    }
+    for file in &chunk.auxiliary_files {
+      file_to_chunk.insert(file.clone(), chunk);
+      file_to_chunk_ukey.insert(file.clone(), chunk.ukey);
+    }
+  }
+
+  let mapped_asstes = self
+    .mapped_assets_cache
+    .use_cache(compilation.assets(), |assets| {
+      self.map_assets(compilation, &file_to_chunk, assets)
+    })
+    .await?;
+
+  logger.time_end(start);
+
+  let start = logger.time("emit source map assets");
+
+  for mapped_asset in mapped_asstes {
+    let MappedAsset {
+      asset: (source_filename, mut source_asset),
+      source_map,
+    } = mapped_asset;
+    if let Some(asset) = compilation.assets_mut().remove(&source_filename) {
+      source_asset.info = asset.info;
+    }
+    compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
+    if let Some((source_map_filename, source_map_asset)) = source_map {
+      compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
+
+      let chunk_ukey = file_to_chunk_ukey.get(&source_filename);
+      let chunk = chunk_ukey.map(|ukey| compilation.chunk_by_ukey.expect_get_mut(ukey));
+      if let Some(chunk) = chunk {
+        chunk.auxiliary_files.insert(source_map_filename.to_owned());
+      }
+    }
+  }
+
+  logger.time_end(start);
+  Ok(())
+}
+
 impl Plugin for SourceMapDevToolPlugin {
   fn name(&self) -> &'static str {
     "rspack.SourceMapDevToolPlugin"
   }
 
-  async fn process_assets_stage_dev_tooling(
+  fn apply(
     &self,
-    _ctx: PluginContext,
-    ProcessAssetsArgs { compilation }: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    let logger = compilation.get_logger(self.name());
-    let start = logger.time("collect source maps");
-
-    let mapped_asstes = self
-      .mapped_assets_cache
-      .use_cache(compilation.assets(), |assets| {
-        self.map_assets(compilation, assets)
-      })
-      .await?;
-
-    logger.time_end(start);
-
-    let start = logger.time("emit source map assets");
-
-    for mapped_asset in mapped_asstes {
-      let MappedAsset {
-        asset: (source_filename, mut source_asset),
-        source_map,
-      } = mapped_asset.clone();
-      if let Some(asset) = compilation.assets_mut().remove(&source_filename) {
-        source_asset.info = asset.info;
-      }
-      compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
-      if let Some((source_map_filename, source_map_asset)) = source_map {
-        compilation.emit_asset(source_map_filename.to_owned(), source_map_asset.clone());
-      }
-    }
-
-    logger.time_end(start);
+    ctx: PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut rspack_core::CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
     Ok(())
   }
 }
@@ -576,7 +648,6 @@ impl ModuleFilenameHelpers {
   ) -> ModuleFilenameTemplateFnCtx {
     let Compilation {
       chunk_graph,
-      module_graph,
       options,
       ..
     } = compilation;
@@ -584,9 +655,15 @@ impl ModuleFilenameHelpers {
 
     match module_or_source {
       ModuleOrSource::Module(module_identifier) => {
+        let module_graph = compilation.get_module_graph();
         let module = module_graph
           .module_by_identifier(module_identifier)
-          .expect("failed to find a module for the given identifier");
+          .unwrap_or_else(|| {
+            panic!(
+              "failed to find a module for the given identifier '{}'",
+              module_identifier
+            )
+          });
 
         let short_identifier = module.readable_identifier(context).to_string();
         let identifier = contextify(context, module_identifier);
@@ -755,19 +832,12 @@ impl ModuleFilenameHelpers {
 static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 
 #[derive(Debug)]
-pub struct EvalSourceMapDevToolPlugin {
+struct EvalSourceMapDevToolJavascriptModulesPluginPlugin {
   columns: bool,
   no_sources: bool,
 }
 
-impl EvalSourceMapDevToolPlugin {
-  pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
-    Self {
-      columns: options.columns,
-      no_sources: options.no_sources,
-    }
-  }
-
+impl EvalSourceMapDevToolJavascriptModulesPluginPlugin {
   pub fn wrap_eval_source_map(
     &self,
     source: &str,
@@ -796,17 +866,11 @@ impl EvalSourceMapDevToolPlugin {
   }
 }
 
-#[async_trait::async_trait]
-impl Plugin for EvalSourceMapDevToolPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.EvalSourceMapDevToolPlugin"
-  }
-
+impl JavascriptModulesPluginPlugin for EvalSourceMapDevToolJavascriptModulesPluginPlugin {
   fn render_module_content<'a>(
     &'a self,
-    _ctx: PluginContext,
-    mut args: RenderModuleContentArgs<'a>,
-  ) -> PluginRenderModuleContentOutput<'a> {
+    mut args: RenderJsModuleContentArgs<'a>,
+  ) -> PluginRenderJsModuleContentOutput<'a> {
     let origin_source = args.module_source.clone();
     if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
       args.module_source = cached.value().clone();
@@ -820,64 +884,138 @@ impl Plugin for EvalSourceMapDevToolPlugin {
     Ok(args)
   }
 
-  fn js_chunk_hash(
+  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
+    EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME.hash(&mut args.hasher);
+    Ok(())
+  }
+}
+
+const EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME: &str = "rspack.EvalSourceMapDevToolPlugin";
+
+#[plugin]
+#[derive(Debug)]
+pub struct EvalSourceMapDevToolPlugin {
+  columns: bool,
+  no_sources: bool,
+}
+
+impl EvalSourceMapDevToolPlugin {
+  pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
+    Self::new_inner(options.columns, options.no_sources)
+  }
+}
+
+#[plugin_hook(CompilerCompilation for EvalSourceMapDevToolPlugin)]
+async fn eval_source_map_devtool_plugin_compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
+  drive.add_plugin(EvalSourceMapDevToolJavascriptModulesPluginPlugin {
+    columns: self.columns,
+    no_sources: self.no_sources,
+  });
+  Ok(())
+}
+
+#[async_trait::async_trait]
+impl Plugin for EvalSourceMapDevToolPlugin {
+  fn name(&self) -> &'static str {
+    EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME
+  }
+
+  fn apply(
     &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
-    self.name().hash(&mut args.hasher);
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(eval_source_map_devtool_plugin_compilation::new(self));
     Ok(())
   }
 }
 
 pub struct SourceMapDevToolModuleOptionsPluginOptions {
   pub module: bool,
+  pub cheap: bool,
 }
 
+#[plugin]
 #[derive(Debug)]
 pub struct SourceMapDevToolModuleOptionsPlugin {
   module: bool,
+  cheap: bool,
 }
 
 impl SourceMapDevToolModuleOptionsPlugin {
   pub fn new(options: SourceMapDevToolModuleOptionsPluginOptions) -> Self {
-    Self {
-      module: options.module,
-    }
+    Self::new_inner(options.module, options.cheap)
   }
 }
 
-#[async_trait::async_trait]
+#[plugin_hook(CompilationBuildModule for SourceMapDevToolModuleOptionsPlugin)]
+async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
+  if self.module {
+    module.set_source_map_kind(SourceMapKind::SourceMap);
+  } else {
+    module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
+  }
+  if self.cheap {
+    module.set_source_map_kind(*module.get_source_map_kind() | SourceMapKind::Cheap)
+  }
+  Ok(())
+}
+
+#[plugin_hook(CompilationRuntimeModule for SourceMapDevToolModuleOptionsPlugin)]
+async fn runtime_module(
+  &self,
+  compilation: &mut Compilation,
+  module: &ModuleIdentifier,
+  _chunk: &ChunkUkey,
+) -> Result<()> {
+  let Some(module) = compilation.runtime_modules.get_mut(module) else {
+    return Ok(());
+  };
+  if self.module {
+    module.set_source_map_kind(SourceMapKind::SourceMap);
+  } else {
+    module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
+  }
+  if self.cheap {
+    module.set_source_map_kind(*module.get_source_map_kind() | SourceMapKind::Cheap)
+  }
+  Ok(())
+}
+
 impl Plugin for SourceMapDevToolModuleOptionsPlugin {
   fn name(&self) -> &'static str {
     "SourceMapDevToolModuleOptionsPlugin"
   }
 
-  async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
-    if self.module {
-      module.set_source_map_kind(SourceMapKind::SourceMap);
-    } else {
-      module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
-    }
-    Ok(())
-  }
-
-  async fn runtime_module(
+  fn apply(
     &self,
-    module: &mut dyn RuntimeModule,
-    _source: Arc<dyn Source>,
-    _chunk: &Chunk,
-  ) -> Result<Option<String>> {
-    if self.module {
-      module.set_source_map_kind(SourceMapKind::SourceMap);
-    } else {
-      module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
-    }
-    Ok(None)
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .build_module
+      .tap(build_module::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .runtime_module
+      .tap(runtime_module::new(self));
+    Ok(())
   }
 }
 
-#[derive(Derivative)]
+#[derive(Derivative, Clone)]
 #[derivative(Debug)]
 pub struct EvalDevToolModulePluginOptions {
   pub namespace: Option<String>,
@@ -888,16 +1026,13 @@ pub struct EvalDevToolModulePluginOptions {
 
 static EVAL_MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 
-#[derive(Derivative)]
-#[derivative(Debug)]
-pub struct EvalDevToolModulePlugin {
+struct EvalDevToolModuleJavascriptModulesPluginPlugin {
   namespace: String,
-  #[derivative(Debug = "ignore")]
   module_filename_template: ModuleFilenameTemplate,
   source_url_comment: String,
 }
 
-impl EvalDevToolModulePlugin {
+impl EvalDevToolModuleJavascriptModulesPluginPlugin {
   pub fn new(options: EvalDevToolModulePluginOptions) -> Self {
     let source_url_comment = options
       .source_url_comment
@@ -911,8 +1046,8 @@ impl EvalDevToolModulePlugin {
         ));
 
     Self {
-      module_filename_template,
       namespace: options.namespace.unwrap_or("".to_string()),
+      module_filename_template,
       source_url_comment,
     }
   }
@@ -925,16 +1060,11 @@ impl EvalDevToolModulePlugin {
 }
 
 #[async_trait::async_trait]
-impl Plugin for EvalDevToolModulePlugin {
-  fn name(&self) -> &'static str {
-    "rspack.EvalDevToolModulePlugin"
-  }
-
+impl JavascriptModulesPluginPlugin for EvalDevToolModuleJavascriptModulesPluginPlugin {
   fn render_module_content<'a>(
     &'a self,
-    _ctx: PluginContext,
-    mut args: RenderModuleContentArgs<'a>,
-  ) -> PluginRenderModuleContentOutput<'a> {
+    mut args: RenderJsModuleContentArgs<'a>,
+  ) -> PluginRenderJsModuleContentOutput<'a> {
     let origin_source = args.module_source.clone();
     if let Some(cached) = EVAL_MODULE_RENDER_CACHE.get(&origin_source) {
       args.module_source = cached.value().clone();
@@ -972,12 +1102,54 @@ impl Plugin for EvalDevToolModulePlugin {
     Ok(args)
   }
 
-  fn js_chunk_hash(
+  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
+    EVAL_DEV_TOOL_MODULE_PLUGIN_NAME.hash(&mut args.hasher);
+    Ok(())
+  }
+}
+
+const EVAL_DEV_TOOL_MODULE_PLUGIN_NAME: &str = "rspack.EvalDevToolModulePlugin";
+
+#[plugin]
+#[derive(Debug)]
+pub struct EvalDevToolModulePlugin {
+  options: EvalDevToolModulePluginOptions,
+}
+
+impl EvalDevToolModulePlugin {
+  pub fn new(options: EvalDevToolModulePluginOptions) -> Self {
+    Self::new_inner(options)
+  }
+}
+
+#[plugin_hook(CompilerCompilation for EvalDevToolModulePlugin)]
+async fn eval_devtool_plugin_compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
+  drive.add_plugin(EvalDevToolModuleJavascriptModulesPluginPlugin::new(
+    self.options.clone(),
+  ));
+  Ok(())
+}
+
+impl Plugin for EvalDevToolModulePlugin {
+  fn name(&self) -> &'static str {
+    EVAL_DEV_TOOL_MODULE_PLUGIN_NAME
+  }
+
+  fn apply(
     &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
-    self.name().hash(&mut args.hasher);
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(eval_devtool_plugin_compilation::new(self));
     Ok(())
   }
 }

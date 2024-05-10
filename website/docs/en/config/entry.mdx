@@ -1,0 +1,240 @@
+import WebpackLicense from '@components/webpack-license';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
+
+<WebpackLicense from="https://webpack.js.org/configuration/entry-context/#entry" />
+
+# Entry
+
+The `entry` configuration is used to set the entry module for Rspack builds.
+
+- **Type:**
+
+  ```ts
+  type EntryDescription = {
+    import: EntryItem;
+    runtime?: EntryRuntime;
+    chunkLoading?: ChunkLoading;
+    asyncChunks?: boolean;
+    publicPath?: PublicPath;
+    baseUri?: string;
+    filename?: EntryFilename;
+  };
+
+  type EntryObject = {
+    [k: string]: EntryItem | EntryDescription;
+  };
+
+  type Config = {
+    entry: EntryItem | EntryObject;
+  };
+  ```
+
+- **Default:** `./src/index.js`
+
+## Single Entry
+
+If you are building a single page application or a library, you will usually only need to set up a single entry point.
+
+To set up a single entry, simply pass the path to the entry module as a string to the `entry` configuration.
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: './src/index.js',
+};
+```
+
+The above writing method will automatically set the name of the entry module to `main`, which is equivalent to the following writing method:
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: {
+    main: './src/index.js',
+  },
+};
+```
+
+### Path Type
+
+The path of the entry module can be a relative path or an absolute path.
+
+If `entry` is set as a relative path, Rspack will use the value set by [context configuration](/config/context.html) as the base path, which by default is the current working directory of the Node.js process, namely `process.cwd ()`.
+
+You can also use the [path module](https://nodejs.org/api/path.html) in Node.js to generate an absolute path and pass it to the `entry` configuration:
+
+```ts title="rspack.config.js"
+const path = require('path');
+
+module.exports = {
+  entry: path.join(__dirname, './src/index.js'),
+};
+```
+
+### Entry Array
+
+When setting the value of an entry, in addition to setting it to `string`, you can also pass in a `string[]`, meaning that the entry contains multiple entry modules.
+
+For example, the following example will build `pre.js` and `post.js` into the output of `page`.
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: {
+    page: ['./src/pre.js', './src/post.js'],
+  },
+};
+```
+
+Multiple modules will be executed sequentially according to the order defined by the array, so the code in `pre.js` will be executed before the code in `post.js`.
+
+## Multiple Entries
+
+If you need to build multiple entries at once, you should set `entry` to an object, and each key of the object corresponds to an entry name.
+
+For example, the following example will build `page1` and `page2` as two entries:
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: {
+    page1: './src/page1/index.js',
+    page2: './src/page2/index.js',
+  },
+};
+```
+
+### Entry Description Object
+
+When you set `entry` to an object, you can set the value of the entry to a description object. A description object can contain the following properties:
+
+#### EntryDescription.import
+
+- **Type:**
+
+  ```ts
+  type EntryItem = string[] | string;
+  ```
+
+- **Default:** `'./src/index.js'`
+
+The path to the entry module.
+
+#### EntryDescription.runtime
+
+- **Type:**
+
+  ```ts
+  type EntryRuntime = false | string;
+  ```
+
+- **Default:** `undefined`
+
+The name of the runtime chunk. When `runtime` is set, a new runtime chunk will be created. You can also set it to `false` to avoid a new runtime chunk.
+
+The `runtime` property is used to set the name of the runtime chunk, for example to set the name of the `main` entry chunk to `'foo'`:
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: {
+    main: {
+      import: './src/index.js',
+      runtime: 'foo',
+    },
+  },
+};
+```
+
+#### EntryDescription.chunkLoading
+
+<ApiMeta addedVersion={'0.2.6'} />
+
+- **Type:**
+
+  ```ts
+  type ChunkLoading = false | ChunkLoadingType;
+  type ChunkLoadingType =
+    | ('jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import')
+    | string;
+  ```
+
+- **Default:** `undefined`
+
+How this entry load other chunks.
+
+#### EntryDescription.asyncChunks
+
+<ApiMeta addedVersion={'0.2.6'} />
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to create a load-on-demand asynchronous chunk for this entry.
+
+#### EntryDescription.publicPath
+
+<ApiMeta addedVersion={'0.2.6'} />
+
+- **Type:**
+
+  ```ts
+  type PublicPath = 'auto' | string;
+  ```
+
+- **Default:** `undefined`
+
+The publicPath of the resource referenced by this entry.
+
+#### EntryDescription.baseUri
+
+<ApiMeta addedVersion={'0.2.6'} />
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+The baseURI of the resource referenced by this entry.
+
+#### EntryDescription.filename
+
+<ApiMeta addedVersion={'0.2.6'} />
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+The filename of the entry chunk.
+
+#### EntryDescription.library
+
+<ApiMeta addedVersion={'0.3.12'} />
+
+The format of the chunk generated by this entry as a library, for detailed configuration, see [output.library](/config/output#outputlibrary).
+
+## Dynamic entry
+
+If a function is passed then it will be invoked on every [make](/api/plugin-api/compiler-hooks#make) event.
+
+> Note that the `make` event triggers when webpack starts and for every invalidation when [watching for file changes](/config/watch).
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  entry: () => './demo',
+};
+```
+
+or
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  entry: () => new Promise(resolve => resolve(['./demo', './demo2'])),
+};
+```
+
+For example: you can use dynamic entries to get the actual entries from an external source (remote server, file system content or database):
+
+```js title=rspack.config.js
+module.exports = {
+  entry() {
+    return fetchPathsFromSomeExternalSource(); // returns a promise that will be resolved with something like ['src/main-layout.js', 'src/admin-layout.js']
+  },
+};
+```
+
+When combining with the [output.library](/config/output#outputlibrary) option: If an array is passed only the last item is exported.

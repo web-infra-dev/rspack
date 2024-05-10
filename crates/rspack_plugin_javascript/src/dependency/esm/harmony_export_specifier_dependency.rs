@@ -82,21 +82,15 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
       scope.register_export(self.name.clone(), self.value.to_string());
       return;
     }
-    let module = compilation
-      .module_graph
+    let module_graph = compilation.get_module_graph();
+    let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
     let used_name = if compilation.options.is_new_tree_shaking() {
-      let exports_info_id = compilation
-        .module_graph
-        .get_exports_info(&module.identifier())
-        .id;
-      let used_name = exports_info_id.get_used_name(
-        &compilation.module_graph,
-        *runtime,
-        UsedName::Str(self.name.clone()),
-      );
+      let exports_info_id = module_graph.get_exports_info(&module.identifier()).id;
+      let used_name =
+        exports_info_id.get_used_name(&module_graph, *runtime, UsedName::Str(self.name.clone()));
       used_name.map(|item| match item {
         UsedName::Str(name) => name,
         UsedName::Vec(vec) => {
@@ -106,8 +100,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
         }
       })
     } else if compilation.options.builtins.tree_shaking.is_true() {
-      compilation
-        .module_graph
+      module_graph
         .get_exports_info(&module.identifier())
         .old_get_used_exports()
         .contains(&self.name)

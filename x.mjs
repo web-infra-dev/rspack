@@ -71,10 +71,11 @@ buildCommand
 	.option("-b", "build rust binding")
 	.option("-j", "build js packages")
 	.option("-r", "release")
-	.action(async function ({ a, b = a, j = a, r }) {
+	.option("-f", "force")
+	.action(async function ({ a, b = a, j = a, r, f }) {
 		let mode = r ? "release" : "debug";
 		b && (await $`pnpm --filter @rspack/binding build:${mode}`);
-		j && (await $`pnpm --filter "@rspack/*" build`);
+		j && (await $`pnpm --filter "@rspack/*" build ${f ? "--force" : ""}`);
 	});
 
 watchCommand
@@ -131,12 +132,21 @@ testCommand
 	.action(async function () {
 		await $`./x test unit`;
 	});
+
 // x test webpack
 testCommand
 	.command("webpack")
 	.description("run webpack test suites")
 	.action(async function () {
 		await $`pnpm --filter "webpack-test" test`;
+	});
+
+// x test plugin
+testCommand
+	.command("plugin")
+	.description("run plugin test suites")
+	.action(async function () {
+		await $`pnpm --filter "plugin-test" test`;
 	});
 
 // x rspack / x rs

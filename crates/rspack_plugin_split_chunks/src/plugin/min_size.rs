@@ -1,4 +1,5 @@
-use rayon::prelude::*;
+use std::ops::Deref;
+
 use rspack_core::{Compilation, SourceType};
 
 use super::ModuleGroupMap;
@@ -39,13 +40,13 @@ impl SplitChunksPlugin {
     })
     .collect::<Box<[_]>>();
 
+    let module_graph = compilation.get_module_graph();
     // Remove modules having violating SourceType
     let violating_modules = module_group
       .modules
-      .par_iter()
+      .iter()
       .filter_map(|module_id| {
-        let module = &**compilation
-          .module_graph
+        let module = module_graph
           .module_by_identifier(module_id)
           .expect("Should have a module");
         let having_violating_source_type = violating_source_types
@@ -63,7 +64,7 @@ impl SplitChunksPlugin {
     // may not fit again. But Webpack seems ignore this case. Not sure if it is on purpose.
     violating_modules
       .into_iter()
-      .for_each(|violating_module| module_group.remove_module(violating_module));
+      .for_each(|violating_module| module_group.remove_module(violating_module.deref()));
 
     module_group.modules.is_empty()
   }
@@ -76,7 +77,7 @@ impl SplitChunksPlugin {
     module_group_map: &mut ModuleGroupMap,
   ) {
     let invalidated_module_groups = module_group_map
-      .par_iter_mut()
+      .iter_mut()
       .filter_map(|(module_group_key, module_group)| {
         let cache_group = module_group.get_cache_group(&self.cache_groups);
         // Fast path

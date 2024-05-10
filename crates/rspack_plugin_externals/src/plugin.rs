@@ -3,14 +3,17 @@ use std::fmt::Debug;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  ExternalItem, ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalRequest,
-  ExternalRequestValue, ExternalType, FactorizeArgs, ModuleDependency, ModuleExt,
-  ModuleFactoryResult, Plugin, PluginContext, PluginFactorizeHookOutput,
+  ApplyContext, BoxModule, CompilerOptions, ExternalItem, ExternalItemFnCtx, ExternalItemValue,
+  ExternalModule, ExternalRequest, ExternalRequestValue, ExternalType, ModuleDependency, ModuleExt,
+  ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin, PluginContext,
 };
+use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook};
 
 static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^[a-z0-9-]+ ").expect("Invalid regex"));
 
+#[plugin]
 #[derive(Debug)]
 pub struct ExternalsPlugin {
   externals: Vec<ExternalItem>,
@@ -19,7 +22,7 @@ pub struct ExternalsPlugin {
 
 impl ExternalsPlugin {
   pub fn new(r#type: ExternalType, externals: Vec<ExternalItem>) -> Self {
-    Self { externals, r#type }
+    Self::new_inner(externals, r#type)
   }
 
   fn handle_external(
@@ -105,65 +108,78 @@ impl ExternalsPlugin {
   }
 }
 
-#[async_trait::async_trait]
+#[plugin_hook(NormalModuleFactoryFactorize for ExternalsPlugin)]
+async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
+  let dependency = data
+    .dependency
+    .as_module_dependency()
+    .expect("should be module dependency");
+  let context = &data.context;
+  for external_item in &self.externals {
+    match external_item {
+      ExternalItem::Object(eh) => {
+        let request = dependency.request();
+
+        if let Some(value) = eh.get(request) {
+          let maybe_module = self.handle_external(value, None, dependency);
+          return Ok(maybe_module.map(|i| i.boxed()));
+        }
+      }
+      ExternalItem::RegExp(r) => {
+        let request = dependency.request();
+        if r.test(request) {
+          let maybe_module = self.handle_external(
+            &ExternalItemValue::String(request.to_string()),
+            None,
+            dependency,
+          );
+          return Ok(maybe_module.map(|i| i.boxed()));
+        }
+      }
+      ExternalItem::String(s) => {
+        let request = dependency.request();
+        if s == request {
+          let maybe_module = self.handle_external(
+            &ExternalItemValue::String(request.to_string()),
+            None,
+            dependency,
+          );
+          return Ok(maybe_module.map(|i| i.boxed()));
+        }
+      }
+      ExternalItem::Fn(f) => {
+        let request = dependency.request();
+        let result = f(ExternalItemFnCtx {
+          context: context.to_string(),
+          request: request.to_string(),
+          dependency_type: dependency.category().to_string(),
+        })
+        .await?;
+        if let Some(r) = result.result {
+          let maybe_module = self.handle_external(&r, result.external_type, dependency);
+          return Ok(maybe_module.map(|i| i.boxed()));
+        }
+      }
+    }
+  }
+  Ok(None)
+}
+
 impl Plugin for ExternalsPlugin {
   fn name(&self) -> &'static str {
     "rspack.ExternalsPlugin"
   }
 
-  async fn factorize(
+  fn apply(
     &self,
-    _ctx: PluginContext,
-    args: &mut FactorizeArgs<'_>,
-  ) -> PluginFactorizeHookOutput {
-    for external_item in &self.externals {
-      match external_item {
-        ExternalItem::Object(eh) => {
-          let request = args.dependency.request();
-
-          if let Some(value) = eh.get(request) {
-            let maybe_module = self.handle_external(value, None, args.dependency);
-            return Ok(maybe_module.map(|i| ModuleFactoryResult::new_with_module(i.boxed())));
-          }
-        }
-        ExternalItem::RegExp(r) => {
-          let request = args.dependency.request();
-          if r.test(request) {
-            let maybe_module = self.handle_external(
-              &ExternalItemValue::String(request.to_string()),
-              None,
-              args.dependency,
-            );
-            return Ok(maybe_module.map(|i| ModuleFactoryResult::new_with_module(i.boxed())));
-          }
-        }
-        ExternalItem::String(s) => {
-          let request = args.dependency.request();
-          if s == request {
-            let maybe_module = self.handle_external(
-              &ExternalItemValue::String(request.to_string()),
-              None,
-              args.dependency,
-            );
-            return Ok(maybe_module.map(|i| ModuleFactoryResult::new_with_module(i.boxed())));
-          }
-        }
-        ExternalItem::Fn(f) => {
-          let request = args.dependency.request();
-          let context = args.context.to_string();
-          let result = f(ExternalItemFnCtx {
-            context,
-            request: request.to_string(),
-            dependency_type: args.dependency.category().to_string(),
-          })
-          .await?;
-          if let Some(r) = result.result {
-            let maybe_module = self.handle_external(&r, result.external_type, args.dependency);
-            return Ok(maybe_module.map(|i| ModuleFactoryResult::new_with_module(i.boxed())));
-          }
-        }
-      }
-    }
-    Ok(None)
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .factorize
+      .tap(factorize::new(self));
+    Ok(())
   }
 }

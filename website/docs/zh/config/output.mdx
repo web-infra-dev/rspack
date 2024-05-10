@@ -1,0 +1,1326 @@
+import WebpackLicense from '@components/webpack-license';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/output/" />
+
+# Output
+
+输出：该选项用于指示 Rspack 如何以及在哪里输出生成的文件内容。
+
+- **类型：** `Object`
+
+## output.assetModuleFilename
+
+- **类型：** `string`
+- **默认值：** `'[hash][ext][query]'`
+- **支持的 Template String：**
+  - [Module Context](/config/output#module-context)
+  - [File Context](/config/output#file-context)
+
+Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename](/config/module#rulegeneratorfilename) 覆盖。
+
+:::info Asset module 作为一个单独的文件输出的情况
+
+- 模块类型为 `'asset'` 且 asset 为满足 [`Rule.parser.dataUrlCondition`](/config/module#ruleparserdataurlcondition) 设定值
+- 模块类型为 `'asset/resource'`
+
+:::
+
+## output.filename
+
+- **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **默认值：** `'[name].js'`
+
+这个选项决定了输出的 JavaScript bundle 文件名称。这些 bundle 将会被写入 `output.path` 指定的目录下。
+
+对于单个 [Entry](/config/entry.html) 来说，你可以使用一个静态名称，如：
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    filename: 'bundle.js',
+  },
+};
+```
+
+而对于多个 [Entry](/config/entry.html)，或其他可以导致拆分出多个 bundle 的情况，你需要使用下面这种方式来动态生成 bundle 的文件名。
+
+:::info 对于拆分成多个 bundle 的情况的描述
+
+Rspack 会对用户输入的代码进行代码拆分优化，这些优化可能包括但不限于：code splitting、bundle splitting，或通过其他插件实现的代码拆分等。
+这些代码拆分的行为会导致生成多个 bundle，因此 bundle 的文件名需要动态生成。
+
+{
+// TODO: 补充 Glossary link
+}
+
+:::
+
+使用 [Entry](/config/entry.html) 名称：
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    filename: '[name].bundle.js',
+  },
+};
+```
+
+使用内部生成的 chunk id：
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    filename: '[id].bundle.js',
+  },
+};
+```
+
+使用根据文件内容生成的 hash：
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    filename: '[contenthash].bundle.js',
+  },
+};
+```
+
+当然你也可以组合使用：
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    filename: '[name].[contenthash].bundle.js',
+  },
+};
+```
+
+使用函数来返回文件名：
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    filename: pathData => {
+      return pathData.chunk.name === 'main' ? '[name].js' : '[name]/[name].js';
+    },
+  },
+};
+```
+
+更多可以参考 [Template String](/config/output#template-string)。
+
+## output.chunkFilename
+
+- **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **默认值：** 根据 [`output.filename`](/config/output#outputfilename) 推断
+- **支持的 Template String：**
+  - [Compilation Context](/config/output#compilation-context)
+  - [Chunk Context](/config/output#chunk-context)
+
+此选项决定了非初始（non-initial）JavaScript chunk 文件的名称。
+
+## output.chunkFormat
+
+- **类型：** `false | 'array-push' | 'commonjs' | 'module'`
+
+chunk 产物的格式，默认值会根据 [`target`](/config/target) 和 [`output.module`](#outputmodule) 的配置而决定，一般来说，target 为 web 或 webworker 时会使用 `'array-push'` 格式；为 ESM 时会使用 `'module'` 格式；为 node.js 时会使用 `'commonjs'` 格式
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    chunkFormat: 'commonjs',
+  },
+};
+```
+
+## output.chunkLoading
+
+- **类型：** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import'`
+
+加载 chunk 的方式，默认值会根据 [`target`](/config/target) 和 [`chunkFormat`](#outputchunkformat) 的配置而决定，一般来说，target 为 web 时会使用 `'jsonp'` 来加载 chunk；为 ESM 时会使用 `'import'` 来加载 chunk；为 webworker 时会使用 `'import-scripts'` 来加载 chunk；为 node.js 时会使用 `'require'` 来加载 chunk；为 async node.js 时会使用 `'async-node'`（`fs.readFile` + `vm.runInThisContext`）来加载 chunk
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    chunkLoading: 'async-node',
+  },
+};
+```
+
+## output.chunkLoadingGlobal
+
+- **类型：** `string`
+- **默认值：** 根据 [`output.uniqueName`](/config/output#outputuniquename) 推断
+  - `webpackChunk${output.uniqueName}`
+
+此选项决定了 Rspack 用于加载 chunk 的全局变量。
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    chunkLoadingGlobal: 'myCustomFunc',
+  },
+};
+```
+
+## output.devtoolFallbackModuleFilenameTemplate
+
+- **Type:** `string` | `function (info)`
+
+当模板字符串或函数产生重复时使用的备用内容。
+
+详见 [`output.devtoolModuleFilenameTemplate`](/config/output#outputdevtoolmodulefilenametemplate).
+
+## output.devtoolModuleFilenameTemplate
+
+- **Type:** `string = 'webpack://[namespace]/[resource-path]?[loaders]'` | `function (info) => string`
+
+此选项仅在 [`devtool`](/config/devtool.html) 使用了需要模块名称的选项时使用。
+
+自定义每个 source map 的 `sources` 数组中使用的名称。可以通过传递模板字符串或者函数来完成。例如，当使用 `devtool: 'eval'`，默认值是：
+
+```js
+module.exports = {
+  //...
+  output: {
+    devtoolModuleFilenameTemplate:
+      'webpack://[namespace]/[resource-path]?[loaders]',
+  },
+};
+```
+
+模板字符串支持以下模式：
+
+| 模板                     | 描述                                                                       |
+| ------------------------ | -------------------------------------------------------------------------- |
+| [absolute-resource-path] | 绝对路径文件名                                                             |
+| [all-loaders]            | 自动和显式的 loader，并且参数取决于第一个 loader 名称                      |
+| [hash]                   | 模块标识符的 hash                                                          |
+| [id]                     | 模块标识符                                                                 |
+| [loaders]                | 显式的 loader，并且参数取决于第一个 loader 名称                            |
+| [resource]               | 用于解析文件的路径和用于第一个 loader 的任意查询参数                       |
+| [resource-path]          | 不带任何查询参数，用于解析文件的路径                                       |
+| [namespace]              | 模块命名空间。在构建成为一个 library 之后，通常也是 library 名称，否则为空 |
+
+当使用一个函数，同样的选项要通过 `info` 参数并使用驼峰式：
+
+```js
+module.exports = {
+  //...
+  output: {
+    devtoolModuleFilenameTemplate: info => {
+      return `webpack:///${info.resourcePath}?${info.loaders}`;
+    },
+  },
+};
+```
+
+如果多个模块产生相同的名称，使用 [`output.devtoolFallbackModuleFilenameTemplate`](/config/output#outputdevtoolfallbackmodulefilenametemplate) 来代替这些模块。
+
+## output.devtoolNamespace
+
+此选项确定 [`output.devtoolModuleFilenameTemplate`](/config/output#outputdevtoolmodulefilenametemplate) 使用的模块名称空间。未指定时的默认值为：[`output.uniqueName`](/config/output#outputuniquename)。在加载多个通过 Rspack 构建的 library 时，用于防止 source map 中源文件路径冲突。
+
+例如，如果你有两个 `library`，分别使用命名空间 `library1` 和 `library2`，并且都有一个文件 `./src/index.js`（可能具有不同内容），它们会将这些文件暴露为 `webpack://library1/./src/index.js` 和 `webpack://library2/./src/index.js`。
+
+## output.enabledChunkLoadingTypes
+
+- **类型：** `string[]`
+
+开启可用的 chunkLoading 类型的运行时模块打包。
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    enabledChunkLoadingTypes: ['import'],
+  },
+};
+```
+
+## output.cssFilename
+
+- **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **默认值：** 根据 [`output.filename`](/config/output#outputfilename) 推断
+
+此选项决定了 CSS 文件的名称。
+
+## output.cssChunkFilename
+
+- **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **默认值：** 根据 [`output.chunkFilename`](/config/output#outputchunkfilename) 推断
+- **支持的 Template String：**
+  - [Compilation Context](/config/output#compilation-context)
+  - [Chunk Context](/config/output#chunk-context)
+
+此选项决定了非初始（non-initial）CSS chunk 文件的名称。
+
+## output.crossOriginLoading
+
+- **类型：** `false | 'anonymous' | 'use-credentials'`
+- **默认值：** `false`
+
+通过 `crossOriginLoading` 配置项，你可以为动态加载的 chunks 设置 [crossorigin 属性](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#attr-crossorigin)。
+
+当 `target` 为 `'web'` 时，Rspack 会动态创建 `<script>` 和 `<link>` 标签来加载异步的 JavaScript 和 CSS 资源。如果这些资源的 URL 在其他域名下，且 `crossOriginLoading` 不为 `false`，那么 Rspack 会为 `<script>` 和 `<link>` 标签添加 `crossorigin` 属性。
+
+### 可选值
+
+`crossOriginLoading` 有以下可选值：
+
+- `false`: 不设置 [crossorigin 属性](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#attr-crossorigin)。
+- `'anonymous'`：将 `crossorigin` 设置为 `'anonymous'`，不包含用户凭据来跨域加载资源。
+- `'use-credentials'`：将 `crossorigin` 设置为 `'use-credentials'`，包含用户凭据来跨域加载资源。
+
+### 示例
+
+比如将 `output.publicPath` 设置为 `https://example.com/`，并将 `output.crossOriginLoading` 设置为 `'anonymous'`：
+
+```ts title="rspack.config.js"
+const path = require('path');
+
+module.exports = {
+  output: {
+    publicPath: 'https://example.com/',
+    crossOriginLoading: 'anonymous',
+  },
+};
+```
+
+当 Rspack 在加载异步的 JavaScript 资源时，会生成如下的 HTML：
+
+```html
+<script src="https://example.com/foo.js" crossorigin="anonymous"></script>
+```
+
+## output.path
+
+- **类型：** `string`
+- **默认值：** `path.resolve(process.cwd(), 'dist')`
+
+输出文件目录的绝对路径。
+
+```ts title="rspack.config.js"
+const path = require('path');
+
+module.exports = {
+  output: {
+    path: path.resolve(__dirname, 'dist/assets'),
+  },
+};
+```
+
+## output.publicPath
+
+- **类型：** `string`
+- **默认值：** targets 为 `'web'` 或 `'webworker'` 时为 `'auto'`
+
+此选项决定了引用的资源的 URL 前缀，如: 图片、文件等等。
+
+例如，给定一个配置文件：
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    publicPath: '/assets/',
+    chunkFilename: '[id].chunk.js',
+    assetModuleFilename: '[name][ext]',
+  },
+};
+```
+
+对于某一个非初始（non-initial） chunk 文件，它的请求 URL 看起来像是这样： `/assets/1.chunk.js`。
+
+对于一个图片的引用，它的请求 URL 看起来像是这样：`/assets/logo.png`。
+
+同时，当你使用 CDN 对产物进行部署时则非常有用：
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    publicPath: 'https://cdn.example.com/assets/',
+    assetModuleFilename: '[name][ext]',
+  },
+};
+```
+
+对于所有 asset 资源，它们的请求 URL 看起来像是这样：`https://cdn.example.com/assets/logo.png`。
+
+### 动态设置 publicPath
+
+在运行时代码中，你可以通过 `__webpack_public_path__` 来动态设置 `publicPath`，`__webpack_public_path__` 会覆盖 Rspack 配置中的 `publicPath`，但只能对异步加载的资源生效。
+
+首先创建一个 `publicPath.js`：
+
+```js title="publicPath.js"
+__webpack_public_path__ = 'https://cdn.example.com/assets/';
+```
+
+然后在入口文件的第一行引入它即可：
+
+```js title="entry.js"
+import './publicPath.js';
+import './others.js';
+```
+
+## output.strictModuleErrorHandling
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+按照 ES Module 规范处理 module 加载时的错误，会有性能损失。
+
+## Template String
+
+可以用下方的模板字符串来替换对应文件名。不同的 context 对应了不同的可替换内容，如 [`output.assetModuleFilename`](/config/output#outputassetmodulefilename) 支持使用 [file context](/config/output#file-context) 和 [module context](/config/output#module-context)。
+
+### Compilation Context
+
+可在 compilation 层面替换的内容
+
+| 模板       | 描述                    |
+| ---------- | ----------------------- |
+| [fullhash] | compilation 的完整 hash |
+
+### Chunk Context
+
+可在 chunk 层面替换的内容：
+
+| 模板          | 描述                                                                                                                                           |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| [id]          | 当前 chunk id                                                                                                                                  |
+| [name]        | 当 chunk name 存在则使用名称，否则使用 chunk id                                                                                                |
+| [chunkhash]   | chunk 的 hash 值，通过当前 chunk 中所有类型的元素计算所得                                                                                      |
+| [contenthash] | chunk 的 hash 值，通过只包含该类型内容的元素计算所得。如：生成 JavaScript 类型的文件则只会使用当前 chunk 中所有 JavaScript 模块计算所得的 hash |
+
+### Module Context
+
+可在 module 层面替换的内容：
+
+| 模板          | 描述            |
+| ------------- | --------------- |
+| [id]          | 模块的 id       |
+| [hash]        | 模块的 hash     |
+| [contenthash] | 模块内容的 hash |
+
+### File Context
+
+可在 file 层面替换的内容：
+
+| 模板    | 描述                                                                                          |
+| ------- | --------------------------------------------------------------------------------------------- |
+| [query] | 文件 query，包含 `?`                                                                          |
+| [path]  | 文件路径，不包含文件名                                                                        |
+| [name]  | 文件名，不包含扩展名和文件路径                                                                |
+| [ext]   | 扩展名，包含 `.` （仅支持在 [output.assetModuleFilename](#outputassetmodulefilename) 里使用） |
+
+## output.auxiliaryComment
+
+最好使用 [`output.library.auxiliaryComment`](#outputlibraryauxiliarycomment)。
+
+- **类型：** `string | object`
+
+在和 [`output.library`](#outputlibrary) 和 [`output.libraryTarget`](#outputlibrarytarget) 一起使用时，此选项允许用户向导出容器(export wrapper)中插入注释。要为 `libraryTarget` 每种类型都插入相同的注释，将 `auxiliaryComment` 设置为一个字符串：
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    library: 'someLibName',
+    libraryTarget: 'umd',
+    filename: 'someLibName.js',
+    auxiliaryComment: 'Test Comment',
+  },
+};
+```
+
+将会生成如下：
+
+**someLibName.js**
+
+```javascript
+(function webpackUniversalModuleDefinition(root, factory) {
+  // Test Comment
+  if (typeof exports === 'object' && typeof module === 'object')
+    module.exports = factory(require('lodash'));
+  // Test Comment
+  else if (typeof define === 'function' && define.amd)
+    define(['lodash'], factory);
+  // Test Comment
+  else if (typeof exports === 'object')
+    exports['someLibName'] = factory(require('lodash'));
+  // Test Comment
+  else root['someLibName'] = factory(root['_']);
+})(this, function (__WEBPACK_EXTERNAL_MODULE_1__) {
+  // ...
+});
+```
+
+对于 `libraryTarget` 每种类型的注释进行更细粒度地控制，请传入一个对象：
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    //...
+    auxiliaryComment: {
+      root: 'Root Comment',
+      commonjs: 'CommonJS Comment',
+      commonjs2: 'CommonJS2 Comment',
+      amd: 'AMD Comment',
+    },
+  },
+};
+```
+
+## output.enabledLibraryTypes
+
+- **类型：** `string[]`
+
+入口点可用的 library 类型列表。
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    enabledLibraryTypes: ['module'],
+  },
+};
+```
+
+## output.globalObject
+
+- **类型：** `string`
+- **默认值：** `'self'`
+
+当输出为 library 时，尤其是当 `libraryTarget` 为 `'umd'`时，此选项将决定使用哪个全局对象来挂载 library。为了使 UMD 构建在浏览器和 Node.js 上均可用，应将 `output.globalObject` 选项设置为 `'this'`。对于类似 web 的目标，默认为 `self`。
+
+入口点的返回值将会使用 `output.library.name` 赋值给全局对象。依赖于 `target` 配置项，全局对象将会发生对应的改变，例如：`self`, `global` 或者 `globalThis`。
+
+示例：
+
+```javascript
+module.exports = {
+  // ...
+  output: {
+    library: 'myLib',
+    libraryTarget: 'umd',
+    filename: 'myLib.js',
+    globalObject: 'this',
+  },
+};
+```
+
+## output.importFunctionName
+
+- **类型：** `string`
+- **默认值：** `'import'`
+
+内部 `import()` 函数的名称. 可用于 polyfilling, 例如 通过 [`dynamic-import-polyfill`](https://github.com/GoogleChromeLabs/dynamic-import-polyfill).
+
+**rspack.config.js**
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    importFunctionName: '__import__',
+  },
+};
+```
+
+## output.library
+
+输出一个库，为你的入口做导出。
+
+- **类型：** `string | string[] | object`
+
+一起来看一个简单的示例。
+
+**rspack.config.js**
+
+```js
+module.exports = {
+  // …
+  entry: './src/index.js',
+  output: {
+    library: 'MyLibrary',
+  },
+};
+```
+
+假设你在 `src/index.js` 的入口中导出了如下函数：
+
+```js
+export function hello(name) {
+  console.log(`hello ${name}`);
+}
+```
+
+此时，变量 `MyLibrary` 将与你的入口文件所导出的文件进行绑定，下面是如何使用 rspack 构建的库的实现：
+
+```html
+<script src="https://example.org/path/to/my-library.js"></script>
+<script>
+  MyLibrary.hello('rspack');
+</script>
+```
+
+在上面的例子中，我们为 `entry` 设置了一个入口文件，然而 rspack 可以接受 [多个入口](/config/entry)，例如一个 `array` 或者一个 `object`。
+
+1. 如果你将 `entry` 设置为一个 `array`，那么只有数组中的最后一个会被暴露。
+
+   ```js
+   module.exports = {
+     // …
+     entry: ['./src/a.js', './src/b.js'], // 只有在 b.js 中导出的内容才会被暴露
+     output: {
+       library: 'MyLibrary',
+     },
+   };
+   ```
+
+2. 如果你将 `entry` 设置为一个 `object`，所以入口都可以通过 `library` 的 `array` 语法暴露：
+
+   ```js
+   module.exports = {
+     // …
+     entry: {
+       a: './src/a.js',
+       b: './src/b.js',
+     },
+     output: {
+       filename: '[name].js',
+       library: ['MyLibrary', '[name]'], // name is a placeholder here
+     },
+   };
+   ```
+
+   假设 `a.js` 与 `b.js` 导出名为 `hello` 的函数，这就是如何使用这些库的方法：
+
+   ```html
+   <script src="https://example.org/path/to/a.js"></script>
+   <script src="https://example.org/path/to/b.js"></script>
+   <script>
+     MyLibrary.a.hello('rspack');
+     MyLibrary.b.hello('rspack');
+   </script>
+   ```
+
+   查看 [示例](https://github.com/webpack/webpack/tree/main/examples/multi-part-library) 获取更多内容。
+
+### output.library.name
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+    },
+  },
+};
+```
+
+指定库的名称。
+
+- **类型：**
+
+  ```ts
+  string | string[] | {amd?: string, commonjs?: string, root?: string | string[]}
+  ```
+
+### output.library.type
+
+配置将库暴露的方式。
+
+- **类型：** `string`
+
+  类型默认包括 `'var'`、 `'module'`、`'system'`、 `'assign'`、 `'assign-properties'`、 `'this'`、 `'window'`、 `'self'`、 `'global'`、 `'commonjs'`、 `'commonjs2'`、 `'commonjs-module'`、 `'commonjs-static'`、 `'amd'`、 `'amd-require'`、 `'umd'`、 `'umd2'`，除此之外也可以通过插件添加。
+
+对于接下来的示例，我们将会使用 `_entry_return_` 表示被入口点返回的值。
+
+#### Expose a Variable
+
+These options assign the return value of the entry point (e.g. whatever the entry point exported) to the name provided by [`output.library.name`](#outputlibraryname) at whatever scope the bundle was included at.
+
+##### type: 'var'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'var',
+    },
+  },
+};
+```
+
+让你的库加载之后，**入口起点的返回值** 将会被赋值给一个变量：
+
+```javascript
+var MyLibrary = _entry_return_;
+
+// 在加载了 `MyLibrary` 的单独脚本中
+MyLibrary.doSomething();
+```
+
+##### type: 'assign'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'assign',
+    },
+  },
+};
+```
+
+这将生成一个隐含的全局变量，它有可能重新分配一个现有的值（请谨慎使用）：
+
+```javascript
+MyLibrary = _entry_return_;
+```
+
+请注意，如果 `MyLibrary` 没有在你的库之前定义，那么它将会被设置在全局作用域。
+
+##### type: 'assign-properties'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'assign-properties',
+    },
+  },
+};
+```
+
+与 [`type: 'assign'`](#type-assign) 相似但是更安全，因为如果 `MyLibrary` 已经存在的话，它将被重用：
+
+```js
+// 仅在当其不存在是创建 MyLibrary
+MyLibrary = typeof MyLibrary === 'undefined' ? {} : MyLibrary;
+// 然后复制返回值到 MyLibrary
+// 与 Object.assign 行为类似
+
+// 例如，你像下面这样在你的入口导出一个 `hello` 函数
+export function hello(name) {
+  console.log(`Hello ${name}`);
+}
+
+// 在另外一个已经加载 MyLibrary 的脚本中
+// 你可以像这样运行 `hello` 函数
+MyLibrary.hello('World');
+```
+
+#### Expose Via Object Assignment
+
+这些配置项分配入口点的返回值（例如：无论入口点导出的什么内容）到一个名为 [`output.library.name`](#outputlibraryname) 的对象中。
+
+##### type: 'this'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'this',
+    },
+  },
+};
+```
+
+**入口起点的返回值** 将会被赋值给 this 对象下的 `output.library.name` 属性。`this` 的含义取决于你：
+
+```javascript
+this['MyLibrary'] = _entry_return_;
+
+// 在一个单独的脚本中
+this.MyLibrary.doSomething();
+MyLibrary.doSomething(); // 如果 `this` 为 window 对象
+```
+
+##### type: 'window'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'window',
+    },
+  },
+};
+```
+
+**入口起点的返回值** 将会被赋值给 `window` 对象下的 `output.library.name`。
+
+```javascript
+window['MyLibrary'] = _entry_return_;
+
+window.MyLibrary.doSomething();
+```
+
+##### type: 'global'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'global',
+    },
+  },
+};
+```
+
+**入口起点的返回值** 将会被复制给全局对象下的 `output.library.name`。取决于 [`target`](/config/target) 值，全局对象可以分别改变,例如，`self`、`global` 或者 `globalThis`。
+
+```javascript
+global['MyLibrary'] = _entry_return_;
+
+global.MyLibrary.doSomething();
+```
+
+##### type: 'commonjs'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'commonjs',
+    },
+  },
+};
+```
+
+**入口起点的返回值** 将使用 `output.library.name` 赋值给 `exports` 对象。顾名思义，这是在 CommonJS 环境中使用。
+
+```javascript
+exports['MyLibrary'] = _entry_return_;
+
+require('MyLibrary').doSomething();
+```
+
+注意，不设置 `output.library.name` 将导致入口起点返回的所有属性都被赋值给给定的对象；不检查现有的属性名。
+
+#### Module Definition Systems
+
+这些配置项将生成一个带有完整 header 的 bundle，以确保与各种模块系统兼容。`output.library.name` 配置项在不同的 `output.library.type` 中有不同的含义。
+
+##### type: 'commonjs2'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      // note there's no `name` here
+      type: 'commonjs2',
+    },
+  },
+};
+```
+
+**入口起点的返回值** 将会被赋值给 `module.exports`。顾名思义，这是在 Node.js（CommonJS）环境中使用的：
+
+```javascript
+module.exports = _entry_return_;
+
+require('MyLibrary').doSomething();
+```
+
+如果我们指定 `output.library.name` 为 `type: commmonjs2`，你的入口起点的返回值将会被赋值给 `module.exports.[output.library.name]`。
+
+在考虑 CommonJS 与 CommonJS2 之间的区别？虽然它们很相似，但是它们之间有一些细微的差别，这些差别在 rspack 的上下文中通常是不相关的。（要获取更多详细内容，请 [阅读这个 issue](https://github.com/webpack/webpack/issues/1114)。）
+
+##### type: 'commonjs-static'
+
+```js
+module.exports = {
+  // …
+  output: {
+    library: {
+      // note there's no `name` here
+      type: 'commonjs-static',
+    },
+  },
+};
+```
+
+单个导出将被设置为 `module.exports` 中的属性。名称中的“static”是指输出是静态可分析的，因此具名导出可以通过 Node.js 导入到 ESM 中：
+
+输入：
+
+```javascript
+export function doSomething() {}
+```
+
+输出：
+
+```javascript
+function doSomething() {}
+
+// …
+
+exports.doSomething = __webpack_exports__.doSomething;
+```
+
+Consumption (CommonJS):
+
+```javascript
+const { doSomething } = require('./output.cjs'); // doSomething => [Function: doSomething]
+```
+
+Consumption (ESM):
+
+```javascript
+import { doSomething } from './output.cjs'; // doSomething => [Function: doSomething]
+```
+
+当源代码是用 ESM 编写的，并且输出应该兼容 CJS 和 ESM 时，这是很有用的。获取更多详情，请阅读该 [issue](https://github.com/webpack/webpack/issues/14998) 或者 [这篇文档](https://dev.to/jakobjingleheimer/configuring-commonjs-es-modules-for-nodejs-12ed)（尤其是 [这个章节](https://dev.to/jakobjingleheimer/configuring-commonjs-es-modules-for-nodejs-12ed#publish-only-a-cjs-distribution-with-property-exports)）。
+
+##### type: 'umd'
+
+这将在所有模块定义下暴露你的库, 允许它与 CommonJS、AMD 和作为全局变量工作。可以查看 [UMD Repository](https://github.com/umdjs/umd) 获取更多内容。
+
+在这种情况下，你需要使用 `library.name` 属性命名你的模块：
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'umd',
+    },
+  },
+};
+```
+
+最终的输出为：
+
+```javascript
+(function webpackUniversalModuleDefinition(root, factory) {
+  if (typeof exports === 'object' && typeof module === 'object')
+    module.exports = factory();
+  else if (typeof define === 'function' && define.amd) define([], factory);
+  else if (typeof exports === 'object') exports['MyLibrary'] = factory();
+  else root['MyLibrary'] = factory();
+})(global, function () {
+  return _entry_return_;
+});
+```
+
+请注意，根据[对象赋值部分](#expose-via-object-assignment)，省略 `library.name` 将导致入口起点返回的所有属性直接赋值给根对象。示例：
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    libraryTarget: 'umd',
+  },
+};
+```
+
+输出将会是：
+
+```javascript
+(function webpackUniversalModuleDefinition(root, factory) {
+  if (typeof exports === 'object' && typeof module === 'object')
+    module.exports = factory();
+  else if (typeof define === 'function' && define.amd) define([], factory);
+  else {
+    var a = factory();
+    for (var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];
+  }
+})(global, function () {
+  return _entry_return_;
+});
+```
+
+你可以为 `library.name` 指定一个对象，每个目标的名称不同：
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    library: {
+      name: {
+        root: 'MyLibrary',
+        amd: 'my-library',
+        commonjs: 'my-common-library',
+      },
+      type: 'umd',
+    },
+  },
+};
+```
+
+##### type: 'system'
+
+这将会把你的库暴露为一个 [`System.register`](https://github.com/systemjs/systemjs/blob/master/docs/system-register.md) 模块。
+
+System 模块要求当 bundle 执行时，全局变量 `System` 出现在浏览器中。编译的 `System.register` 格式允许你在没有额外配置的情况下使用 `System.import('/bundle.js')`，并将你的 bundle 加载到系统模块注册表中。
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    library: {
+      type: 'system',
+    },
+  },
+};
+```
+
+输出：
+
+```javascript
+System.register([], function (__WEBPACK_DYNAMIC_EXPORT__, __system_context__) {
+  return {
+    execute: function () {
+      // ...
+    },
+  };
+});
+```
+
+除了设置 `output.library.type` 为 `system`，还要将 `output.library.name` 添加到配置中，输出的 bundle 将以库名作为 `System.register` 的参数：
+
+```javascript
+System.register(
+  'MyLibrary',
+  [],
+  function (__WEBPACK_DYNAMIC_EXPORT__, __system_context__) {
+    return {
+      execute: function () {
+        // ...
+      },
+    };
+  },
+);
+```
+
+##### type: 'module'
+
+```js
+module.exports = {
+  // …
+  experiments: {
+    outputModule: true,
+  },
+  output: {
+    chunkFormat: 'module',
+    library: {
+      // do not specify a `name` here
+      type: 'module',
+    },
+  },
+};
+```
+
+输出 ES 模块。
+
+然而该特性仍然是实验性的，并且没有完全支持，所以请确保事先启用 [experiments.outputModule](/config/experiments.html)。
+
+### output.library.auxiliaryComment
+
+在 UMD 包装器中添加注释。
+
+- **类型：** `string | { amd?: string, commonjs?: string, commonjs2?: string, root?: string }`
+
+为每个 `umd` 类型插入相同的注释，将 `auxiliaryComment` 设置为 string。
+
+```js
+module.exports = {
+  // …
+  mode: 'development',
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'umd',
+      auxiliaryComment: 'Test Comment',
+    },
+  },
+};
+```
+
+这将产生以下结果：
+
+```js
+(function webpackUniversalModuleDefinition(root, factory) {
+  //Test Comment
+  if (typeof exports === 'object' && typeof module === 'object')
+    module.exports = factory();
+  //Test Comment
+  else if (typeof define === 'function' && define.amd) define([], factory);
+  //Test Comment
+  else if (typeof exports === 'object') exports['MyLibrary'] = factory();
+  //Test Comment
+  else root['MyLibrary'] = factory();
+})(self, function () {
+  return _entry_return_;
+});
+```
+
+对于细粒度控制，可以传递一个对象：
+
+```js
+module.exports = {
+  // …
+  mode: 'development',
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'umd',
+      auxiliaryComment: {
+        root: 'Root Comment',
+        commonjs: 'CommonJS Comment',
+        commonjs2: 'CommonJS2 Comment',
+        amd: 'AMD Comment',
+      },
+    },
+  },
+};
+```
+
+### output.library.export
+
+指定哪一个导出应该被暴露为一个库。
+
+- **类型：** `string | string[]`
+
+默认情况下为 `undefined`，将导出整个（命名空间）对象。下述 demo 演示了使用 [`output.library.type: 'var'`](#type-var) 配置型产生的作用。
+
+```js
+module.exports = {
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'var',
+      export: 'default',
+    },
+  },
+};
+```
+
+入口点的默认导出将会被赋值为库名称：
+
+```js
+// 如果你的库有默认导出
+var MyLibrary = _entry_return_.default;
+```
+
+你可以传递一个数组给 `output.library.export`，它将被解析为要分配给库名称的模块路径：
+
+```js
+module.exports = {
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'var',
+      export: ['default', 'subModule'],
+    },
+  },
+};
+```
+
+这里是库代码：
+
+```js
+var MyLibrary = _entry_return_.default.subModule;
+```
+
+### output.library.umdNamedDefine
+
+- **类型：** `boolean`
+
+当使用 `output.library.type: "umd"` 时，将 `output.library.umdNamedDefine` 设置为 `true` 将会把 AMD 模块命名为 UMD 构建。否则使用匿名 `define`。
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    library: {
+      name: 'MyLibrary',
+      type: 'umd',
+      umdNamedDefine: true,
+    },
+  },
+};
+```
+
+AMD module 将会是这样：
+
+```js
+define('MyLibrary', [], factory);
+```
+
+## output.libraryExport \{#outputlibraryexport-1}
+
+我们可能会停止对此的支持，所以最好使用 [output.library.export](#outputlibraryexport)，其作用与 `libraryExport` 一致。
+
+- **类型：** `string` | `string[]`
+
+通过配置 `libraryTarget` 决定暴露哪些模块。默认情况下为 `undefined`，如果你将 `libraryTarget` 设置为空字符串，则与默认情况具有相同的行为。例如，如果设置为 `''`，将导出整个（命名空间）对象。下述 demo 演示了当设置 `libraryTarget: 'var'` 时的效果。
+
+支持以下配置：
+
+`libraryExport: 'default'`——**入口的默认导出**将分配给 library target：
+
+```javascript
+// if your entry has a default export of `MyDefaultModule`
+var MyDefaultModule = _entry_return_.default;
+```
+
+`libraryExport: 'MyModule'` - 这个 **确定的模块** 将被分配给 library target：
+
+```javascript
+var MyModule = _entry_return_.MyModule;
+```
+
+`libraryExport: ['MyModule', 'MySubModule']` - 数组将被解析为要分配给 library target 的 **模块路径**：
+
+```javascript
+var MySubModule = _entry_return_.MyModule.MySubModule;
+```
+
+使用上述指定的 `libraryExport` 配置时，library 的结果可以这样使用：
+
+```javascript
+MyDefaultModule.doSomething();
+MyModule.doSomething();
+MySubModule.doSomething();
+```
+
+## output.libraryTarget
+
+- **类型：** `string`
+- **默认值：** `var`
+
+请使用 [`output.library.type`](#outputlibrarytype) 代理，因为我们可能在未来放弃对 `output.libraryTarget` 的支持。
+
+## output.umdNamedDefine
+
+最好使用 [`output.library.umdNamedDefine`](#outputlibraryumdnameddefine)。
+
+- **类型：** `boolean`
+
+当使用 `libraryTarget: "umd"` 时，设置 `output.umdNamedDefine` 为 `true` 将命名由 UMD 构建的 AMD 模块。否则将使用一个匿名的 `define`。
+
+```javascript
+module.exports = {
+  //...
+  output: {
+    umdNamedDefine: true,
+  },
+};
+```
+
+## output.uniqueName
+
+- **类型：** `string`
+- **默认值：** 默认使用 [`output.library`](/config/output#outputlibrary) 名称或者上下文中的 package.json 的 包名称(package name)， 如果两者都不存在，值为 ''。
+
+此选项决定了在全局环境下为防止多个 rspack 运行时 冲突所使用的唯一名称。
+
+`output.uniqueName` 将用于生成唯一全局变量:
+
+- [`output.chunkLoadingGlobal`](/config/output#outputchunkloadingglobal)
+
+```ts title="rspack.config.js"
+module.exports = {
+  output: {
+    uniqueName: 'my-package-xyz',
+  },
+};
+```
+
+## output.clean
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+在生成产物前，删除输出目录下的所有文件。
+
+## output.module
+
+<ApiMeta stability={Stability.Experimental} />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+以 ESM 模块的形式输出 JavaScript 文件。由于此功能还处于实验阶段，默认关闭，想要使用的话必须将 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) 设置为 true
+
+## output.wasmLoading
+
+- **类型：** `false | 'fetch', 'async-node'`
+- **默认值：** `'fetch'`
+
+用于设置加载 WebAssembly 模块的方式。默认方式包括 `'fetch'`（web/webworker）、`'async-node'`（Node.js）
+
+默认值会受不同 [`target`](/config/target) 的影响：
+
+- 如果目标设置为 `'web'`、`'webworker'`、`'electron-renderer'` 或 `'node-webkit'`，默认值为 `'fetch'`。
+- 如果目标设置为 `'node'`、`'async-node'`、`'electron-main'` 或 `'electron-preload'`，则默认为 `'async-node'`。
+
+## output.enabledWasmLoadingTypes
+
+开启可用的 wasmLoading 类型的运行时模块打包。
+
+- **类型：** `false | 'fetch', 'async-node'`
+
+## output.asyncChunks
+
+<ApiMeta addedVersion={'0.2.6'} />
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+是否创建按需加载的异步 chunk。
+
+## output.hotUpdateChunkFilename
+
+<ApiMeta addedVersion={'0.3.5'} />
+
+- **类型：** `string`
+- **默认值：** `"[id].[fullhash].hot-update.js"`
+
+自定义热更新文件的文件名。只有 `[fullhash]` 和 `[id]` 可用作占位符。
+
+## output.hotUpdateMainFilename
+
+<ApiMeta addedVersion={'0.3.5'} />
+
+- **类型：** `string`
+- **默认值：** `"[runtime].[fullhash].hot-update.json"`
+
+自定义热更新清单文件的文件名。只有 `[fullhash]` 和 `[runtime]` 可用作占位符。
+
+## output.hotUpdateGlobal
+
+<ApiMeta addedVersion={'0.3.5'} />
+
+- **类型：** `string`
+- **默认值：** `"webpackHotUpdate" + output.uniqueName`
+
+只在 [chunkLoading](/config/output#outputchunkloading) 为 `"jsonp"` 或 `"import-scripts"` 时会被使用。该全局变量会用来请求并加载热更新文件。

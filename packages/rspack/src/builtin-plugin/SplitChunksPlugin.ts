@@ -78,7 +78,7 @@ function toRawSplitChunksOptions(
 				chunks(
 					Chunk.__from_binding(
 						chunk,
-						compiler.compilation.__internal_getInner()
+						compiler.compilation!.__internal_getInner()
 					)
 				);
 		} else {
@@ -89,6 +89,7 @@ function toRawSplitChunksOptions(
 	const {
 		name,
 		chunks,
+		defaultSizeTypes,
 		cacheGroups = {},
 		fallbackCacheGroup,
 		...passThrough
@@ -97,6 +98,7 @@ function toRawSplitChunksOptions(
 	return {
 		name: getName(name),
 		chunks: getChunks(chunks),
+		defaultSizeTypes: defaultSizeTypes || ["javascript", "unknown"],
 		cacheGroups: Object.entries(cacheGroups)
 			.filter(([_key, group]) => group !== false)
 			.map(([key, group]) => {

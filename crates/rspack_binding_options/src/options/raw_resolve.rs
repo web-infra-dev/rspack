@@ -3,14 +3,18 @@ use std::{collections::HashMap, path::PathBuf};
 use napi_derive::napi;
 use rspack_core::{Alias, AliasMap, ByDependency, Resolve, TsconfigOptions, TsconfigReferences};
 use rspack_error::error;
-use serde::Deserialize;
 
 pub type AliasValue = serde_json::Value;
 
-type RawAliasOption = HashMap<String, Vec<AliasValue>>;
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawAliasOptionItem {
+  pub path: String,
+  #[napi(ts_type = "Array<string | false>")]
+  pub redirect: Vec<AliasValue>,
+}
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawResolveTsconfigOptions {
   pub config_file: String,
@@ -19,8 +23,7 @@ pub struct RawResolveTsconfigOptions {
   pub references: Option<Vec<String>>,
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawResolveOptions {
   pub prefer_relative: Option<bool>,
@@ -29,19 +32,17 @@ pub struct RawResolveOptions {
   pub main_files: Option<Vec<String>>,
   pub main_fields: Option<Vec<String>>,
   pub condition_names: Option<Vec<String>>,
-  #[serde(serialize_with = "ordered_map")]
-  #[napi(ts_type = "Record<string, Array<string | false>>")]
-  pub alias: Option<RawAliasOption>,
-  #[serde(serialize_with = "ordered_map")]
-  #[napi(ts_type = "Record<string, Array<string | false>>")]
-  pub fallback: Option<RawAliasOption>,
+  pub alias: Option<Vec<RawAliasOptionItem>>,
+  pub fallback: Option<Vec<RawAliasOptionItem>>,
   pub symlinks: Option<bool>,
   pub tsconfig: Option<RawResolveTsconfigOptions>,
   pub modules: Option<Vec<String>>,
   pub by_dependency: Option<HashMap<String, RawResolveOptions>>,
   pub fully_specified: Option<bool>,
   pub exports_fields: Option<Vec<String>>,
-  #[serde(serialize_with = "ordered_map")]
+  pub description_files: Option<Vec<String>>,
+  pub enforce_extension: Option<bool>,
+  pub imports_fields: Option<Vec<String>>,
   #[napi(ts_type = "Record<string, Array<string>>")]
   pub extension_alias: Option<HashMap<String, Vec<String>>>,
   pub alias_fields: Option<Vec<String>>,
@@ -49,29 +50,33 @@ pub struct RawResolveOptions {
   pub roots: Option<Vec<String>>,
 }
 
-fn normalize_alias(alias: Option<RawAliasOption>) -> rspack_error::Result<Option<Alias>> {
+fn normalize_alias(alias: Option<Vec<RawAliasOptionItem>>) -> rspack_error::Result<Option<Alias>> {
   alias
     .map(|alias| {
       alias
         .into_iter()
-        .map(|(key, array)| {
-          array
+        .map(|alias_item| {
+          alias_item
+            .redirect
             .into_iter()
             .map(|value| {
               if let Some(s) = value.as_str() {
                 Ok(AliasMap::Path(s.to_string()))
               } else if let Some(b) = value.as_bool() {
                 if b {
-                  Err(error!("Alias should not be true in {key}"))
+                  Err(error!("Alias should not be true in {}", alias_item.path))
                 } else {
                   Ok(AliasMap::Ignore)
                 }
               } else {
-                Err(error!("Alias should be false or string in {key}"))
+                Err(error!(
+                  "Alias should be false or string in {}",
+                  alias_item.path
+                ))
               }
             })
             .collect::<rspack_error::Result<_>>()
-            .map(|value| (key, value))
+            .map(|value| (alias_item.path, value))
         })
         .collect::<rspack_error::Result<_>>()
     })
@@ -114,6 +119,12 @@ impl TryFrom<RawResolveOptions> for Resolve {
       .map(|v| v.into_iter().map(|s| vec![s]).collect());
     let restrictions = value.restrictions;
     let roots = value.roots;
+    let enforce_extension = value.enforce_extension;
+    let description_files = value.description_files;
+    let imports_field = value
+      .imports_fields
+      .map(|v| v.into_iter().map(|s| vec![s]).collect());
+
     Ok(Resolve {
       modules,
       prefer_relative,
@@ -133,6 +144,9 @@ impl TryFrom<RawResolveOptions> for Resolve {
       alias_fields,
       restrictions,
       roots,
+      enforce_extension,
+      description_files,
+      imports_field,
     })
   }
 }

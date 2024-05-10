@@ -36,9 +36,9 @@ impl CodegenOptions {
   pub fn new(source_map_kind: &SourceMapKind, keep_comments: Option<bool>) -> Self {
     Self {
       source_map_config: SourceMapConfig {
-        enable: !matches!(source_map_kind, SourceMapKind::None),
-        inline_sources_content: true,
-        emit_columns: matches!(source_map_kind, SourceMapKind::SourceMap),
+        enable: source_map_kind.enabled(),
+        inline_sources_content: source_map_kind.source_map(),
+        emit_columns: !source_map_kind.cheap(),
         names: Default::default(),
       },
       keep_comments,
@@ -92,11 +92,7 @@ pub fn print(
         source_map.clone(),
         "\n",
         &mut buf,
-        if source_map_config.enable {
-          Some(&mut src_map_buf)
-        } else {
-          None
-        },
+        source_map_config.enable.then_some(&mut src_map_buf),
       )) as Box<dyn WriteJs>;
 
       if minify {

@@ -1,0 +1,13 @@
+[
+  "index",
+  {
+    "type": "dir",
+    "name": "webpack",
+    "label": "同步自 webpack 的内置插件"
+  },
+  {
+    "type": "dir",
+    "name": "rspack",
+    "label": "Rspack 独有的内置插件"
+  }
+]

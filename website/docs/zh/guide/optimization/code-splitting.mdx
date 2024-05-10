@@ -1,0 +1,166 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.docschina.org/guides/code-splitting/" />
+
+# 代码分割
+
+Rspack 支持代码分割特性，允许让你对代码进行分割，控制生成的资源体积来获取资源加载性能的提升。
+
+常用的代码分离方法有三种：
+
+- 入口起点：使用 [entry](/config/entry) 配置手动地分离代码。
+- 防止重复：使用 SplitChunksPlugin 去重和分离 chunk。
+- 动态导入：通过模块的内联函数调用来分离代码。
+
+## 入口起点（entry point）
+
+这是最简单直观分离代码的方式。但这种方式需要我们手动对 Rspack 进行配置，并暗藏一些隐患，我们将会解决这些问题。我们先来看看如何从通过多个入口起点分割出多个 Chunk 。
+
+```js title=rspack.config.js
+/**
+ * @type {import('@rspack/core').Configuration}
+ */
+const config = {
+  mode: 'development',
+  entry: {
+    index: './src/index.js',
+    another: './src/another-module.js',
+  },
+  output: {
+    filename: '[name].bundle.js',
+  },
+  stats: 'normal',
+};
+
+module.exports = config;
+```
+
+```js title=index.js
+import './shared';
+console.log('index.js');
+```
+
+```js title=another-module.js
+import './shared';
+console.log('another-module');
+```
+
+这将生成如下构建结果：
+
+```
+...
+            Asset      Size   Chunks             Chunk Names
+another.bundle.js  1.07 KiB  another  [emitted]  another
+  index.bundle.js  1.06 KiB    index  [emitted]  index
+Entrypoint another = another.bundle.js
+Entrypoint index = index.bundle.js
+[./src/index.js] 41 bytes {another} {index}
+[./src/shared.js] 24 bytes {another} {index}
+```
+
+正如前面提到的，这种方式存在一些隐患：
+
+- 如果多个入口起点导入链之间包含一些重复的模块，那么这些重复模块会被重复添加到各个入口 Chunk 中。`shared.js` 的代码会被同时打包到 `index.bundle.js` 和 `another.bundle.js` 中。
+- 这种方法不够灵活，并且不能动态地将程序逻辑中的代码拆分出来。
+
+以上两点中，第一点对我们的示例来说无疑是个问题，在下一章节我们会讲述如何移除重复的模块。
+
+## SplitChunksPlugin
+
+SplitChunksPlugin 插件可以将公共的依赖模块提提取到一个新生成的 chunk。让我们使用这个插件，将之前的示例中重复的 `shared.js` 模块去除：
+
+```diff title=rspack.config.js
+/**
+ * @type {import('@rspack/core').Configuration}
+ */
+const config = {
+  mode: 'development',
+  entry: {
+    index: './src/index.js',
+    another: './src/another-module.js',
+  },
+  output: {
+    filename: '[name].bundle.js',
+  },
++  optimization: {
++    splitChunks: {
++      chunks: 'all',
++      minSize: 1,
++    }
++  }
+};
+
+module.exports = config;
+```
+
+使用 `optimization.splitChunks` 配置选项之后，现在应该可以看出，`index.bundle.js` 和 `another.bundle.js` 中已经移除了重复的依赖模块。需要注意的是，插件将 `shared.js` 分离到单独的 `another~index.bundle.js` 中 ，并且将其从 `index.bundle.js` 和 `another.bundle.js` 中移除。
+
+构建结果：
+
+```diff
+                  Asset       Size         Chunks             Chunk Names
+      another.bundle.js   3.27 KiB        another  [emitted]  another
+        index.bundle.js   3.27 KiB          index  [emitted]  index
++ another~index.bundle.js  462 bytes  another~index  [emitted]
+Entrypoint another = another.bundle.js another~index.bundle.js
+Entrypoint index = another~index.bundle.js index.bundle.js
+[./src/index.js] 41 bytes {another~index}
+[./src/shared.js] 24 bytes {another~index}
+```
+
+## 动态导入（dynamic import）
+
+当涉及到动态代码拆分时， Rspack 选择的方式是使用符合 ECMAScript 提案 的 `import()` 语法来实现动态导入。
+
+:::info Webpack 的差异点
+
+- Rspack 不支持 `require.ensure` 功能。
+
+:::
+
+在我们开始之前，先从上述示例的配置中移除掉多余的 entry 和 optimization.splitChunks，因为接下来的演示中并不需要它们：
+
+```diff title=rspack.config.js
+/**
+ * @type {import('@rspack/core').Configuration}
+ */
+const config = {
+  mode: 'development',
+  entry: {
+    'index': './src/index.js',
+-    'another': './src/another-module.js',
+  },
+  output: {
+    filename: '[name].bundle.js',
+  },
+-  optimization: {
+-    splitChunks: {
+-      chunks: 'all',
+-      minSize: 1,
+-    }
+-  }
+};
+
+module.exports = config;
+```
+
+现在，我们将不在 `index.js` 中静态导入 `shared.js`，而是通过 `import()` 来动态导入它，从而分离出一个新的 chunk：
+
+```diff title=index.js
+- import './shared'
++ import('./shared')
+console.log('index.js')
+```
+
+让我们执行 `rspack build` 看看， `shared.js` 被单独分割到 `src_shared_js.bundle.js` 中了。
+
+```diff
+...
+                  Asset       Size         Chunks             Chunk Names
+        index.bundle.js   12.9 KiB          index  [emitted]  index
++ src_shared_js.bundle.js  245 bytes  src_shared_js  [emitted]
+Entrypoint index = index.bundle.js
+[./src/index.js] 42 bytes {index}
+[./src/shared.js] 24 bytes {src_shared_js}
+build: 67.303ms
+```

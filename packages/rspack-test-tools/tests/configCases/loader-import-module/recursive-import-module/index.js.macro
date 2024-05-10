@@ -1,0 +1,3 @@
+import value from './bar'
+
+export default JSON.stringify(value)

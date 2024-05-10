@@ -1,6 +1,7 @@
 use std::fmt;
 
 use bitflags::bitflags;
+use serde::Serialize;
 
 bitflags! {
   #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -19,5 +20,14 @@ bitflags! {
 impl fmt::Display for FakeNamespaceObjectMode {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.write_fmt(format_args!("{}", self.bits()))
+  }
+}
+
+impl Serialize for FakeNamespaceObjectMode {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    serializer.serialize_u8(self.bits())
   }
 }

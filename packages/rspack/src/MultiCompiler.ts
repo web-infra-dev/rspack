@@ -9,16 +9,10 @@
  */
 
 import { Compiler, RspackOptions, Stats } from ".";
-import ResolverFactory from "./ResolverFactory";
+import ResolverFactory = require("./ResolverFactory");
 import { WatchFileSystem } from "./util/fs";
 import { Watching } from "./Watching";
-import {
-	AsyncSeriesHook,
-	Callback,
-	MultiHook,
-	SyncHook,
-	SyncBailHook
-} from "tapable";
+import { AsyncSeriesHook, Callback, MultiHook, SyncHook } from "tapable";
 import MultiStats from "./MultiStats";
 import asyncLib from "neo-async";
 import ArrayQueue from "./util/ArrayQueue";
@@ -178,18 +172,12 @@ export class MultiCompiler {
 		throw new Error("Cannot read outputFileSystem of a MultiCompiler");
 	}
 
-	/**
-	 * @param {InputFileSystem} value the new input file system
-	 */
 	set inputFileSystem(value) {
 		for (const compiler of this.compilers) {
 			compiler.inputFileSystem = value;
 		}
 	}
 
-	/**
-	 * @param {OutputFileSystem} value the new output file system
-	 */
 	set outputFileSystem(value: typeof import("fs")) {
 		for (const compiler of this.compilers) {
 			compiler.outputFileSystem = value;
@@ -202,9 +190,6 @@ export class MultiCompiler {
 		}
 	}
 
-	/**
-	 * @param {IntermediateFileSystem} value the new intermediate file system
-	 */
 	set intermediateFileSystem(value: any) {
 		for (const compiler of this.compilers) {
 			compiler.intermediateFileSystem = value;
@@ -216,17 +201,16 @@ export class MultiCompiler {
 	}
 
 	/**
-	 * @param {Compiler} compiler the child compiler
-	 * @param {string[]} dependencies its dependencies
-	 * @returns {void}
+	 * @param compiler - the child compiler
+	 * @param dependencies - its dependencies
 	 */
 	setDependencies(compiler: Compiler, dependencies: string[]) {
 		this.dependencies.set(compiler, dependencies);
 	}
 
 	/**
-	 * @param {Callback<MultiStats>} callback signals when the validation is complete
-	 * @returns {boolean} true if the dependencies are valid
+	 * @param callback - signals when the validation is complete
+	 * @returns true if the dependencies are valid
 	 */
 	validateDependencies(callback: Callback<Error, MultiStats>): boolean {
 		const edges = new Set<{ source: Compiler; target: Compiler }>();
@@ -498,9 +482,9 @@ export class MultiCompiler {
 	}
 
 	/**
-	 * @param {WatchOptions|WatchOptions[]} watchOptions the watcher's options
-	 * @param {Callback<MultiStats>} handler signals when the call finishes
-	 * @returns {MultiWatching} a compiler watcher
+	 * @param watchOptions - the watcher's options
+	 * @param handler - signals when the call finishes
+	 * @returns a compiler watcher
 	 */
 	watch(
 		watchOptions: WatchOptions,

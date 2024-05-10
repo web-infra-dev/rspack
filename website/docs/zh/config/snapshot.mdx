@@ -1,0 +1,58 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/other-options/#snapshot" />
+
+# Snapshot
+
+缓存快照：该选项用于决定“如何创建缓存使用的文件系统快照”及“如何检验快照是否有效”。
+
+- **类型：**
+
+```ts
+type Snapshot = {
+  module?: {
+    hash?: boolean;
+    timestamp?: boolean;
+  };
+  resolve?: {
+    hash?: boolean;
+    timestamp?: boolean;
+  };
+};
+```
+
+### snapshot.resolve
+
+- **类型：** `object = {hash?: boolean, timestamp?: boolean}`
+
+- **默认值：** `{ hash: false, timestamp: true }`
+
+解析请求的快照，当 hash 和 timestamp 同时为 false 时快照将一直有效。
+
+- hash：通过比较文件内容哈希来判断是否无效。（比 timestamp 更耗时，但更改的频率较低）。
+- timestamp：通过比较文件修改的时间戳来判断是否有效。
+
+### snapshot.module
+
+- **类型：** `object = {hash?: boolean, timestamp?: boolean}`
+
+- **默认值：** `{ hash: false, timestamp: true }`
+
+构建模块的快照，当 hash 和 timestamp 同时为 false 时快照将一直有效。
+
+- hash：通过比较文件内容哈希来判断是否无效。（比 timestamp 更耗时，但更改的频率较低）。
+- timestamp：通过比较文件修改的时间戳来判断是否有效。
+
+## 用法
+
+你可以在 rspack.config.js 中直接设置 snapshot:
+
+```ts title="rspack.config.js"
+module.exports = {
+  snapshot: {
+    resolve: {
+      hash: true,
+    },
+  },
+};
+```

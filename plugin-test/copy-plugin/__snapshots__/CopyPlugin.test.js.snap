@@ -1,0 +1,55 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CopyPlugin basic should work with multi compiler mode: assets 1`] = `
+Object {
+  ".dottedfile": "dottedfile contents
+",
+  "directoryfile.txt": "new",
+  "nested/deep-nested/deepnested.txt": "",
+  "nested/nestedfile.txt": "",
+}
+`;
+
+exports[`CopyPlugin basic should work with multi compiler mode: assets 2`] = `
+Object {
+  ".dottedfile": "dottedfile contents
+",
+  "directoryfile.txt": "new",
+  "nested/deep-nested/deepnested.txt": "",
+  "nested/nestedfile.txt": "",
+}
+`;
+
+exports[`CopyPlugin basic should work with multi compiler mode: errors 1`] = `Array []`;
+
+exports[`CopyPlugin basic should work with multi compiler mode: errors 2`] = `Array []`;
+
+exports[`CopyPlugin basic should work with multi compiler mode: warnings 1`] = `Array []`;
+
+exports[`CopyPlugin basic should work with multi compiler mode: warnings 2`] = `Array []`;
+
+exports[`CopyPlugin basic should work with transform fn: assets 1`] = `
+Object {
+  ".dottedfile": "dottedfile contents
+transform aaaa",
+  "directoryfile.txt": "newtransform aaaa",
+  "nested/deep-nested/deepnested.txt": "transform aaaa",
+  "nested/nestedfile.txt": "transform aaaa",
+}
+`;
+
+exports[`CopyPlugin stats should minify: assets 1`] = `
+Object {
+  "asset-modules/deepnested.txt": "",
+  "unoptimized.js": "let a=1;console.log(1);",
+}
+`;
+
+exports[`CopyPlugin stats should not minify: assets 1`] = `
+Object {
+  "asset-modules/deepnested.txt": "",
+  "unoptimized.js": "const a = 1;
+console.log(a);
+",
+}
+`;

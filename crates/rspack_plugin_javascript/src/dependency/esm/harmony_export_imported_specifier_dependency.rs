@@ -4,14 +4,14 @@ use std::{collections::HashMap, sync::Arc};
 use indexmap::IndexSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
-  get_exports_type, get_import_var, process_export_info, property_access, property_name,
-  string_of_used_name, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportInfoId,
-  ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec,
-  ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName,
+  get_exports_type, process_export_info, property_access, property_name, string_of_used_name,
+  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
+  DependencyId, DependencyTemplate, DependencyType, ExportInfoId, ExportInfoProvided,
+  ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  ExtendedReferencedExport, HarmonyExportInitFragment, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
+  RuntimeGlobals, RuntimeSpec, Template, TemplateContext, TemplateReplaceSource, UsageState,
+  UsedName,
 };
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::Atom;
@@ -466,12 +466,9 @@ impl HarmonyExportImportedSpecifierDependency {
       ..
     } = ctxt;
     let mut fragments = vec![];
-    let mg = &compilation.module_graph;
-    let imported_module = mg
-      .module_identifier_by_dependency_id(&self.id)
-      .expect("should have imported module identifier");
+    let mg = &compilation.get_module_graph();
     let module_identifier = module.identifier();
-    let import_var = get_import_var(mg, self.id);
+    let import_var = compilation.get_import_var(&self.id);
     match mode.ty {
       ExportModeType::Missing | ExportModeType::EmptyStar => {
         fragments.push(
@@ -584,6 +581,9 @@ impl HarmonyExportImportedSpecifierDependency {
         fragments.push(init_fragment);
       }
       ExportModeType::NormalReexport => {
+        let imported_module = mg
+          .module_identifier_by_dependency_id(&self.id)
+          .expect("should have imported module identifier");
         for item in mode.items.into_iter().flatten() {
           let NormalReexportItem {
             name,
@@ -674,15 +674,11 @@ impl HarmonyExportImportedSpecifierDependency {
         runtime_requirements.insert(RuntimeGlobals::EXPORTS);
         runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
 
-        let module = compilation
-          .module_graph
+        let module = mg
           .module_by_identifier(&module.identifier())
           .expect("should have module graph module");
         let exports_name = module.get_exports_argument();
-        let is_async = compilation
-          .module_graph
-          .is_async(&module.identifier())
-          .unwrap_or_default();
+        let is_async = mg.is_async(&module.identifier()).unwrap_or_default();
         fragments.push(
           NormalInitFragment::new(
             format!(
@@ -728,8 +724,8 @@ impl HarmonyExportImportedSpecifierDependency {
       key.into(),
       format!("/* {} */ {}", comment, return_value).into(),
     ));
-    let module = compilation
-      .module_graph
+    let module_graph = compilation.get_module_graph();
+    let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
     HarmonyExportInitFragment::new(module.get_exports_argument(), export_map)
@@ -748,9 +744,8 @@ impl HarmonyExportImportedSpecifierDependency {
       compilation,
       ..
     } = ctxt;
-
-    let module = compilation
-      .module_graph
+    let module_graph = compilation.get_module_graph();
+    let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
@@ -812,8 +807,8 @@ impl HarmonyExportImportedSpecifierDependency {
       ..
     } = ctxt;
     let return_value = Self::get_return_value(name.to_string(), value_key);
-    let module = compilation
-      .module_graph
+    let module_graph = compilation.get_module_graph();
+    let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
     let exports_name = module.get_exports_argument();
@@ -854,13 +849,8 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       concatenation_scope,
       ..
     } = code_generatable_context;
-
-    let mode = self.get_mode(
-      self.name.clone(),
-      &compilation.module_graph,
-      &self.id,
-      *runtime,
-    );
+    let module_graph = compilation.get_module_graph();
+    let mode = self.get_mode(self.name.clone(), &module_graph, &self.id, *runtime);
 
     if let Some(ref mut scope) = concatenation_scope {
       if matches!(mode.ty, ExportModeType::ReexportUndefined) {
@@ -872,29 +862,21 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       return;
     }
 
-    let module = compilation
-      .module_graph
+    let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
-    let import_var = get_import_var(&compilation.module_graph, self.id);
+    let import_var = compilation.get_import_var(&self.id);
     let is_new_treeshaking = compilation.options.is_new_tree_shaking();
 
     let mut used_exports = if is_new_treeshaking {
-      let exports_info_id = compilation
-        .module_graph
-        .get_exports_info(&module.identifier())
-        .id;
+      let exports_info_id = module_graph.get_exports_info(&module.identifier()).id;
       let res = self
         .ids
         .iter()
         .filter_map(|(local, _)| {
           exports_info_id
-            .get_used_name(
-              &compilation.module_graph,
-              *runtime,
-              UsedName::Str(local.clone()),
-            )
+            .get_used_name(&module_graph, *runtime, UsedName::Str(local.clone()))
             .map(|item| match item {
               UsedName::Str(str) => (local.clone(), vec![str]),
               UsedName::Vec(strs) => (local.clone(), strs),
@@ -904,8 +886,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       Some(res)
     } else if compilation.options.builtins.tree_shaking.is_true() {
       Some(
-        compilation
-          .module_graph
+        module_graph
           .get_exports_info(&module.identifier())
           .old_get_used_exports()
           .into_iter()
@@ -919,7 +900,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
     if is_new_treeshaking {
       // dbg!(&mode, self.request());
       if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
-        harmony_import_dependency_apply(self, self.source_order, code_generatable_context, &[]);
+        harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
         self.add_export_fragments(code_generatable_context, mode);
       }
       return;
@@ -1030,7 +1011,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
             ..Default::default()
           })]),
           priority: Some(1),
-          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
           ..Default::default()
         })
       }
@@ -1044,7 +1025,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
             ..Default::default()
           })]),
           priority: Some(1),
-          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
           ..Default::default()
         })
       }
@@ -1058,7 +1039,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
             ..Default::default()
           })]),
           priority: Some(1),
-          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
           ..Default::default()
         })
       }
@@ -1079,7 +1060,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
             ..Default::default()
           })]),
           priority: Some(1),
-          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
           ..Default::default()
         })
       }
@@ -1115,7 +1096,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
               })
               .unwrap_or_default(),
           ),
-          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
           ..Default::default()
         })
       }
@@ -1143,7 +1124,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
           } else {
             Some(mode.ignored.into_iter().flatten().collect::<Vec<_>>())
           },
-          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
           ..Default::default()
         })
       }
@@ -1159,7 +1140,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
   }
 
   fn get_ids(&self, mg: &ModuleGraph) -> Vec<Atom> {
-    mg.get_dep_meta_if_existing(self.id)
+    mg.get_dep_meta_if_existing(&self.id)
       .map(|meta| meta.ids.clone())
       .unwrap_or_else(|| {
         self

@@ -1,0 +1,254 @@
+import PropertyType from '../../../components/property-type.tsx';
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/configuration/stats/" />
+
+# Stats
+
+Generate packaging information that can be used to analyze module dependencies and optimize compilation speed.
+
+:::info Output JSON file of stats
+
+- Using `@rspack/cli`, `rspack build --json stats.json`.
+- Using rspack's Node.js API, `stats.toJson(options)`、`stats.toString(options)`.
+
+:::
+
+<PropertyType
+  type="boolean | string | Object"
+  defaultValueList={[
+    {
+      defaultValue: `{"preset":"errors-warnings","timings":true}`,
+    },
+  ]}
+/>
+
+## Stats Presets
+
+| Preset              | Description                                       |
+| ------------------- | ------------------------------------------------- |
+| `'normal'` (`true`) | Output by default value of stats options          |
+| `'none'` (`false`)  | Output nothing                                    |
+| `'verbose'`         | Output everything                                 |
+| `'errors-only'`     | Output only error-related information             |
+| `'errors-warnings'` | Output only error and warning related information |
+
+## Stats Options
+
+You can specify exactly which packing information to output, all the following fields are optional.
+
+### stats.assets
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats whether to show the asset information.
+
+### stats.chunks
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats whether to show the chunk information.
+
+### stats.modules
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats whether to show the module information.
+
+### stats.entrypoints
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats whether to show the entrypoints information.
+
+### stats.chunkGroups
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats whether to add information about the namedChunkGroups.
+
+### stats.reasons
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats to add information about the reasons of why modules are included.
+
+### stats.hash
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats whether to add information about the hash of the compilation.
+
+### stats.errors
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats whether to display the errors.
+
+### stats.errorsCount
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Add errors count.
+
+### stats.warnings
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats to add warnings.
+
+### stats.warningsCount
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Add warnings count.
+
+### stats.colors
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Tells stats whether to output in the different colors.
+
+It is set to `true` by default when executing `rspack build` on environments with color support.
+
+### stats.version
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats to add information about the Rspack version used.
+
+### stats.publicPath
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats to show the publicPath.
+
+### stats.outputPath
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats to show the outputPath.
+
+### stats.chunkModules
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats whether to add information about the built modules to information about the chunk.
+
+### stats.chunkRelations
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Tells stats to display chunk parents, children and siblings.
+
+### stats.ids
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Tells stats to add IDs of modules and chunks.
+
+### stats.timings
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats to add the timing information.
+
+### stats.builtAt
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats whether to add the build date and the build time information. Set stats.builtAt to false to hide it.
+
+### stats.moduleAssets
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats whether to add information about assets inside modules. Set stats.moduleAssets to false to hide it.
+
+### stats.modulesSpace
+
+<PropertyType type="number" defaultValueList={[{ defaultValue: '15' }]} />
+
+Tells stats how many items of modules should be displayed (groups will be collapsed to fit this space).
+
+### stats.nestedModules
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Tells stats whether to add information about modules nested in other modules (like with module concatenation).
+
+### stats.source
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Tells stats to add the source code of modules.
+
+### stats.logging
+
+<PropertyType type="'info' | 'none' | 'error' | 'warn' | 'log' | 'verbose' | boolean" />
+
+Tells stats whether to add logging output.
+
+### stats.loggingDebug
+
+<PropertyType type="Array<string | RegExp | function (name) => boolean>" />
+
+Tells stats to include the debug information of the specified loggers such as Plugins or Loaders. When stats.logging is set to false, stats.loggingDebug option is ignored.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  stats: {
+    loggingDebug: [
+      'MyPlugin',
+      /rspack/, // To get core logging
+    ],
+  },
+};
+```
+
+### stats.loggingTrace
+
+<PropertyType type="boolean" />
+
+Enable stack traces in the logging output for errors, warnings and traces. Set stats.loggingTrace to hide the trace.
+
+### stats.children
+
+<PropertyType type="boolean" />
+
+Tells stats whether to add information about the childCompiler.
+
+### stats.all
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+Controlling whether all stats options are output.
+
+### stats.preset
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+Output according to preset values.
+
+## Extending stats behaviours
+
+If you want to use the preset output behavior but want to output more or less of individual fields, you can customize the output behavior of the fields after specifying preset or all.
+
+For example, only the error and the reason why the module was introduced are output.
+
+```js
+module.exports = {
+  // ...
+  stats: {
+    preset: 'errors-only',
+    reasons: true,
+  },
+};
+```

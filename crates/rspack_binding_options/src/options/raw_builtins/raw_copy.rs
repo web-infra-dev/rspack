@@ -1,14 +1,19 @@
 use std::path::PathBuf;
 
+use derivative::Derivative;
+use napi::{bindgen_prelude::Buffer, Either};
 use napi_derive::napi;
+use rspack_core::rspack_sources::RawSource;
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_copy::{
-  CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, Info, Related, ToType,
+  CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, Info, Related, ToType, Transformer,
 };
-use serde::Deserialize;
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+type RawTransformer = ThreadsafeFunction<(Either<String, Buffer>, String), Either<String, Buffer>>;
+
+#[derive(Derivative)]
+#[derivative(Debug, Clone)]
+#[napi(object, object_to_js = false)]
 pub struct RawCopyPattern {
   pub from: String,
   pub to: Option<String>,
@@ -19,10 +24,12 @@ pub struct RawCopyPattern {
   pub priority: i32,
   pub glob_options: RawCopyGlobOptions,
   pub info: Option<RawInfo>,
+  #[derivative(Debug = "ignore")]
+  #[napi(ts_type = "(input: string | Buffer, absoluteFilename: string) => string | Buffer")]
+  pub transform: Option<RawTransformer>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawInfo {
   pub immutable: Option<bool>,
@@ -35,15 +42,13 @@ pub struct RawInfo {
   pub version: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawRelated {
   pub source_map: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawCopyGlobOptions {
   pub case_sensitive_match: Option<bool>,
@@ -51,9 +56,8 @@ pub struct RawCopyGlobOptions {
   pub ignore: Option<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[derive(Debug)]
+#[napi(object, object_to_js = false)]
 pub struct RawCopyRspackPluginOptions {
   pub patterns: Vec<RawCopyPattern>,
 }
@@ -70,6 +74,7 @@ impl From<RawCopyPattern> for CopyPattern {
       priority,
       glob_options,
       info,
+      transform,
     } = value;
 
     Self {
@@ -103,6 +108,31 @@ impl From<RawCopyPattern> for CopyPattern {
             .collect()
         }),
       },
+      transform: transform.map(|transformer| {
+        Transformer::Fn(Box::new(move |input, absolute_filename| {
+          let f = transformer.clone();
+
+          fn convert_to_enum(input: Either<String, Buffer>) -> RawSource {
+            match input {
+              Either::A(s) => RawSource::Source(s),
+              Either::B(b) => RawSource::Buffer(b.to_vec()),
+            }
+          }
+
+          fn convert_to_js_type(input: RawSource) -> Either<String, Buffer> {
+            match input {
+              RawSource::Source(s) => Either::A(s),
+              RawSource::Buffer(b) => Either::B(b.into()),
+            }
+          }
+
+          Box::pin(async move {
+            f.call((convert_to_js_type(input), absolute_filename.to_owned()))
+              .await
+              .map(convert_to_enum)
+          })
+        }))
+      }),
     }
   }
 }

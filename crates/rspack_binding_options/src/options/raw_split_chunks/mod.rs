@@ -12,9 +12,9 @@ use raw_split_chunk_name::RawChunkOptionName;
 use rspack_core::Filename;
 use rspack_core::SourceType;
 use rspack_core::DEFAULT_DELIMITER;
-use rspack_napi_shared::{JsRegExp, JsRegExpExt, JsStringExt};
+use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
+use rspack_napi::string::JsStringExt;
 use rspack_plugin_split_chunks::ChunkNameGetter;
-use serde::Deserialize;
 
 use self::raw_split_chunk_cache_group_test::default_cache_group_test;
 use self::raw_split_chunk_cache_group_test::normalize_raw_cache_group_test;
@@ -22,26 +22,23 @@ use self::raw_split_chunk_cache_group_test::RawCacheGroupTest;
 use self::raw_split_chunk_chunks::{create_chunks_filter, Chunks};
 use self::raw_split_chunk_name::default_chunk_option_name;
 
-#[derive(Derivative, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[derive(Derivative)]
+#[napi(object, object_to_js = false)]
 #[derivative(Debug)]
 pub struct RawSplitChunksOptions {
   pub fallback_cache_group: Option<RawFallbackCacheGroupOptions>,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "string | false | Function")]
   #[derivative(Debug = "ignore")]
   pub name: Option<RawChunkOptionName>,
   pub cache_groups: Option<Vec<RawCacheGroupOptions>>,
   /// What kind of chunks should be selected.
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all' | Function")]
   #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
   pub automatic_name_delimiter: Option<String>,
   pub max_async_requests: Option<u32>,
   pub max_initial_requests: Option<u32>,
-  //   pub default_size_types: Option<Vec<SizeType>>,
+  pub default_size_types: Vec<String>,
   pub min_chunks: Option<u32>,
   pub hide_path_info: Option<bool>,
   pub min_size: Option<f64>,
@@ -54,16 +51,14 @@ pub struct RawSplitChunksOptions {
   pub max_initial_size: Option<f64>,
 }
 
-#[derive(Derivative, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[derive(Derivative)]
+#[napi(object, object_to_js = false)]
 #[derivative(Debug)]
 pub struct RawCacheGroupOptions {
   pub key: String,
   pub priority: Option<i32>,
   // pub reuse_existing_chunk: Option<bool>,
   //   pub r#type: SizeType,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | string | Function")]
   #[derivative(Debug = "ignore")]
   pub test: Option<RawCacheGroupTest>,
@@ -71,11 +66,9 @@ pub struct RawCacheGroupOptions {
   //   pub enforce: bool,
   pub id_hint: Option<String>,
   /// What kind of chunks should be selected.
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
   #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | string")]
   #[derivative(Debug = "ignore")]
   pub r#type: Option<Either<JsRegExp, JsString>>,
@@ -91,7 +84,6 @@ pub struct RawCacheGroupOptions {
   pub max_size: Option<f64>,
   pub max_async_size: Option<f64>,
   pub max_initial_size: Option<f64>,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "string | false | Function")]
   #[derivative(Debug = "ignore")]
   pub name: Option<RawChunkOptionName>,
@@ -114,7 +106,11 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
       normalize_raw_chunk_name(name)
     });
 
-    let default_size_types = [SourceType::JavaScript, SourceType::Unknown];
+    let default_size_types = raw_opts
+      .default_size_types
+      .into_iter()
+      .map(|size_type| SourceType::from(size_type.as_str()))
+      .collect::<Vec<_>>();
 
     let create_sizes = |size: Option<f64>| {
       size
@@ -252,12 +248,10 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
   }
 }
 
-#[derive(Deserialize, Default, Derivative)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[derive(Default, Derivative)]
+#[napi(object, object_to_js = false)]
 #[derivative(Debug)]
 pub struct RawFallbackCacheGroupOptions {
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
   #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,

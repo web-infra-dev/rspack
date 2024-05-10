@@ -11,25 +11,14 @@
 import { MultiCompiler } from "./MultiCompiler";
 import { Watching } from "./Watching";
 import asyncLib from "neo-async";
-import { Callback } from "tapable";
-
-/** @typedef {import("./MultiCompiler")} MultiCompiler */
-/** @typedef {import("./Watching")} Watching */
-
-/**
- * @template T
- * @callback Callback
- * @param {(Error | null)=} err
- * @param {T=} result
- */
 
 class MultiWatching {
 	watchings: Watching[];
 	compiler: MultiCompiler;
 
 	/**
-	 * @param {Watching[]} watchings child compilers' watchers
-	 * @param {MultiCompiler} compiler the compiler
+	 * @param watchings - child compilers' watchers
+	 * @param compiler - the compiler
 	 */
 	constructor(watchings: Watching[], compiler: MultiCompiler) {
 		this.watchings = watchings;

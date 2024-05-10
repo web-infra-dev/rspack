@@ -1,10 +1,12 @@
-use napi::bindgen_prelude::Buffer;
-use napi::{
+use std::collections::HashMap;
+
+use napi_derive::napi;
+use rspack_core::{Stats, StatsUsedExports};
+use rspack_napi::napi::bindgen_prelude::Buffer;
+use rspack_napi::napi::{
   bindgen_prelude::{Result, SharedReference},
   Either,
 };
-use napi_derive::napi;
-use rspack_core::{Stats, StatsUsedExports};
 
 use super::{JsCompilation, ToJsCompatSource};
 
@@ -239,6 +241,7 @@ pub struct JsStatsModule {
   pub orphan: bool,
   pub provided_exports: Option<Vec<String>>,
   pub used_exports: Option<Either<String, Vec<String>>>,
+  pub optimization_bailout: Option<Vec<String>>,
 }
 
 impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
@@ -258,7 +261,6 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       })
       .transpose()
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-
     Ok(Self {
       r#type: stats.r#type,
       name: stats.name,
@@ -285,6 +287,7 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
         StatsUsedExports::Vec(v) => JsStatsUsedExports::B(v),
         StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
       }),
+      optimization_bailout: Some(stats.optimization_bailout),
     })
   }
 }
@@ -373,6 +376,7 @@ pub struct JsStatsChunk {
   pub parents: Option<Vec<String>>,
   pub children: Option<Vec<String>>,
   pub siblings: Option<Vec<String>>,
+  pub children_by_order: HashMap<String, Vec<String>>,
 }
 
 impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
@@ -394,6 +398,11 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
       parents: stats.parents,
       children: stats.children,
       siblings: stats.siblings,
+      children_by_order: stats
+        .children_by_order
+        .iter()
+        .map(|(order, children)| (order.to_string(), children.to_owned()))
+        .collect(),
     })
   }
 }
@@ -430,6 +439,11 @@ impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
       assets_size: stats.assets_size,
     }
   }
+}
+
+#[napi(object)]
+pub struct JsStatsOptimizationBailout {
+  pub inner: String,
 }
 
 #[napi(object)]
@@ -496,11 +510,9 @@ impl JsStats {
         source,
         used_exports,
         provided_exports,
+        |res| res.into_iter().map(TryInto::try_into).collect(),
       )
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
-      .into_iter()
-      .map(TryInto::try_into)
-      .collect()
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -527,11 +539,9 @@ impl JsStats {
         source,
         used_exports,
         provided_exports,
+        |res| res.into_iter().map(TryInto::try_into).collect(),
       )
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
-      .into_iter()
-      .map(TryInto::try_into)
-      .collect()
   }
 
   #[napi]

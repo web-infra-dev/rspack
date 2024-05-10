@@ -1,0 +1,37 @@
+import { ApiMeta } from '../../../components/ApiMeta';
+
+# Other Options
+
+These are the remaining configuration options supported by rspack.
+
+## bail
+
+<ApiMeta addedVersion="0.4.5" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Fail out on the first error instead of tolerating it. By default rspack will log these errors in red in the terminal, as well as the browser console when using HMR, but continue bundling.
+To enable it:
+
+```js title="rspack.config.js"
+module.exports = {
+  bail: true,
+};
+```
+
+This will force rspack to exit its bundling process.
+
+## ignoreWarnings
+
+- **Type:** `(RegExp | ((warning: Error, Compilation: Compilation) => boolean))[]`
+- **Default:** `undefined`
+
+Tells Rspack to ignore specific warnings.
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  ignoreWarnings: [/warning from compiler/, warning => true],
+};
+```

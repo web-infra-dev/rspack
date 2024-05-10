@@ -1,0 +1,35 @@
+```js title=main.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+__webpack_require__("./source/index.js");
+console.log("something");
+}),
+"./source/index.js": (function (module) {
+class Response {
+    /**
+	 * @param {CompiledMode} mode
+	 */ constructor(mode){
+        // eslint-disable-next-line no-undefined
+        if (mode.data === undefined) mode.data = {};
+        this.data = mode.data;
+        this.isMatchIgnored = false;
+    }
+    ignoreMatch() {
+        this.isMatchIgnored = true;
+    }
+}
+function test() {
+    let res = new Response();
+    return res;
+}
+const result = test();
+module.exports = result;
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

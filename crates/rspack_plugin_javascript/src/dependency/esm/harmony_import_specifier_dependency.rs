@@ -6,7 +6,7 @@ use rspack_core::{
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsedByExports,
 };
-use rspack_core::{get_import_var, property_access, ModuleReferenceOptions};
+use rspack_core::{property_access, ModuleReferenceOptions};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{common::Span, ecma::atoms::Atom};
 
@@ -87,16 +87,28 @@ impl HarmonyImportSpecifierDependency {
     if !reference_mgm.module_type.is_js_like() {
       return true;
     }
+    let module_graph = compilation.get_module_graph();
+    let related_symbol = module_graph
+      .get_parent_module(&self.id)
+      .and_then(|parent_module| compilation.optimize_analyze_result_map().get(parent_module))
+      .and_then(|analyze_res| {
+        analyze_res
+          .harmony_import_specifier_dependency_alias_map
+          .get(&self.span_for_on_usage_search)
+      });
+    if let Some(related_symbol) = related_symbol
+      && !compilation.used_symbol_ref.contains(related_symbol)
+    {
+      return false;
+    }
 
     match &self.specifier {
       Specifier::Namespace(_) => true,
-      Specifier::Default(_) => compilation
-        .module_graph
+      Specifier::Default(_) => module_graph
         .get_exports_info(&reference_mgm.module_identifier)
         .old_get_used_exports()
         .contains(&DEFAULT_JS_WORD),
-      Specifier::Named(local, imported) => compilation
-        .module_graph
+      Specifier::Named(local, imported) => module_graph
         .get_exports_info(&reference_mgm.module_identifier)
         .old_get_used_exports()
         .contains(imported.as_ref().unwrap_or(local)),
@@ -141,16 +153,14 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       concatenation_scope,
       ..
     } = code_generatable_context;
-
+    let module_graph = compilation.get_module_graph();
     // Only available when module factorization is successful.
-    let reference_mgm = compilation
-      .module_graph
-      .module_graph_module_by_dependency_id(&self.id);
+    let reference_mgm = module_graph.module_graph_module_by_dependency_id(&self.id);
     let is_new_treeshaking = compilation.options.is_new_tree_shaking();
     if is_new_treeshaking {
-      let connection = compilation.module_graph.connection_by_dependency(&self.id);
+      let connection = module_graph.connection_by_dependency(&self.id);
       let is_target_active = if let Some(con) = connection {
-        con.is_target_active(&compilation.module_graph, *runtime)
+        con.is_target_active(&module_graph, *runtime)
       } else {
         true
       };
@@ -173,16 +183,16 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       return;
     }
 
-    let ids = self.get_ids(&compilation.module_graph);
-    let import_var = get_import_var(&compilation.module_graph, self.id);
+    let ids = self.get_ids(&module_graph);
+    let import_var = compilation.get_import_var(&self.id);
 
     let export_expr = if let Some(scope) = concatenation_scope
-      && let Some(con) = compilation.module_graph.connection_by_dependency(&self.id)
-      && scope.is_module_in_scope(&con.module_identifier)
+      && let Some(con) = module_graph.connection_by_dependency(&self.id)
+      && scope.is_module_in_scope(con.module_identifier())
     {
       if ids.is_empty() {
         scope.create_module_reference(
-          &con.module_identifier,
+          con.module_identifier(),
           &ModuleReferenceOptions {
             // TODO: should add asi safe
             asi_safe: Some(false),
@@ -192,7 +202,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       } else if self.namespace_object_as_context && ids.len() == 1 {
         // ConcatenationScope::create_module_reference(&self, module, options)
         scope.create_module_reference(
-          &con.module_identifier,
+          con.module_identifier(),
           &ModuleReferenceOptions {
             // TODO: align asi_safe when we have it
             asi_safe: Some(false),
@@ -201,7 +211,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
         ) + property_access(ids, 0).as_str()
       } else {
         scope.create_module_reference(
-          &con.module_identifier,
+          con.module_identifier(),
           &ModuleReferenceOptions {
             // TODO: should add asi safe
             asi_safe: Some(true),
@@ -214,12 +224,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       }
     } else {
       if is_new_treeshaking {
-        harmony_import_dependency_apply(
-          self,
-          self.source_order,
-          code_generatable_context,
-          &[self.specifier.clone()],
-        );
+        harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
       }
       export_from_import(
         code_generatable_context,
@@ -283,7 +288,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
   }
 
   fn get_ids(&self, mg: &ModuleGraph) -> Vec<Atom> {
-    mg.get_dep_meta_if_existing(self.id)
+    mg.get_dep_meta_if_existing(&self.id)
       .map(|meta| meta.ids.clone())
       .unwrap_or_else(|| self.ids.clone())
   }

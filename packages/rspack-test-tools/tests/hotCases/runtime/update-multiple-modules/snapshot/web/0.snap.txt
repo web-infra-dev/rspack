@@ -1,0 +1,13 @@
+# Case update-multiple-modules: Step 0
+
+## Changed Files
+- fileA.js
+- fileB.js
+
+## Asset Files
+- Bundle: bundle.js
+
+## Manifest
+
+		
+## Update

@@ -1,0 +1,53 @@
+# Migrate Storybook
+
+If you are using the React framework of [Storybook 7.0](https://storybook.js.org/) and building with Webpack 5, you can replace the `@storybook/react-webpack5` with [@modern-js/storybook](https://www.npmjs.com/package/@modern-js/storybook), which supports Rspack as an out-of-the-box underlying build tool. Documentation can be referred to at [Modern.js - Using Storybook](https://modernjs.dev/en/guides/advanced-features/using-storybook.html).
+
+## Update Dependencies
+
+First, we need to add the `@modern-js/storybook` dependency and remove the `webpack` dependency.
+
+```diff title=package.json
+{
+  "devDependencies": {
+-   "@storybook/react-webpack5": "^7"
++   "@modern-js/storybook": "^2"
+  }
+}
+```
+
+## Configure Storybook
+
+Refer to the following configuration, modify the `main.js` configuration of Storybook, and specify Rspack as the build tool:
+
+```diff title=.storybook/main.js
+export default {
+-  framework: '@storybook/react-webpack5'
++  framework: {
++    name: '@modern-js/storybook',
++    options: {
++      bundler: 'rspack'
++    },
+  },
+```
+
+## Example
+
+Here is an example of building Storybook with Rspack based on @modern-js/storybook: [react-storybook](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-storybook).
+
+## Limitations
+
+Support for Storybook 7.0 is still experimental, and there are currently some limitations:
+
+1. Support for frameworks other than React is not yet available.
+2. Support for Next.js is not available, as Next.js has its own build solution.
+3. If you find the build speed is very slow, check if the automatic documentation generation feature is enabled. For the highest performance, configure it to `react-docgen`. The difference between `react-docgen` and `react-docgen-typescript` is that the former is based on Babel, while the latter is based on TypeScript. The former has better performance, but weaker type inference capabilities. If using Rspack to build, only `react-docgen` is supported.
+
+   ```js title=main.js
+   export default {
+     typescript: {
+       reactDocgen: 'react-docgen',
+     },
+   };
+   ```
+
+We plan to provide a framework-agnostic builder based on [Rsbuild](https://github.com/web-infra-dev/rsbuild) to integrate with the framework, refer to [rsbuild#1974](https://github.com/web-infra-dev/rsbuild/issues/1974).

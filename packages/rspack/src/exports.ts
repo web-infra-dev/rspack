@@ -30,17 +30,24 @@ export type {
 	StatsWarnings
 } from "./Stats";
 
-export type { MultiStats } from "./MultiStats";
+export { MultiStats } from "./MultiStats";
 
+export type { Chunk } from "./Chunk";
 export type { ChunkGroup } from "./ChunkGroup";
 
 export type { NormalModuleFactory } from "./NormalModuleFactory";
 
+export type { Module } from "./Module";
+
 export { NormalModule } from "./NormalModule";
 
-export { default as ModuleFilenameHelpers } from "./lib/ModuleFilenameHelpers";
+// API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
+import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
+export { ModuleFilenameHelpers };
 
-export { default as Template } from "./Template";
+// API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
+import Template = require("./Template");
+export { Template };
 
 export const WebpackError = Error;
 
@@ -51,10 +58,17 @@ export { sources };
 
 import {
 	getNormalizedRspackOptions,
-	applyRspackOptionsDefaults,
-	getRawOptions
+	applyRspackOptionsDefaults
 } from "./config";
-export const config = {
+
+// Explicitly define this type to avoid type inference and type expansion.
+type Config = {
+	getNormalizedRspackOptions: typeof getNormalizedRspackOptions;
+	applyRspackOptionsDefaults: typeof applyRspackOptionsDefaults;
+	getNormalizedWebpackOptions: typeof getNormalizedRspackOptions;
+	applyWebpackOptionsDefaults: typeof applyRspackOptionsDefaults;
+};
+export const config: Config = {
 	getNormalizedRspackOptions,
 	applyRspackOptionsDefaults,
 	getNormalizedWebpackOptions: getNormalizedRspackOptions,
@@ -78,6 +92,8 @@ export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
 export { BannerPlugin } from "./builtin-plugin";
 export type { BannerPluginArgument } from "./builtin-plugin";
 
+export { IgnorePlugin, type IgnorePluginOptions } from "./builtin-plugin";
+
 export { ProvidePlugin } from "./builtin-plugin";
 export type { ProvidePluginOptions } from "./builtin-plugin";
 
@@ -90,6 +106,8 @@ export type { ProgressPluginArgument } from "./builtin-plugin";
 export { EntryPlugin } from "./builtin-plugin";
 export type { EntryOptions } from "./builtin-plugin";
 
+export { DynamicEntryPlugin } from "./builtin-plugin";
+
 export { ExternalsPlugin } from "./builtin-plugin";
 
 export { HotModuleReplacementPlugin } from "./builtin-plugin";
@@ -100,27 +118,65 @@ export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
 
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 
+export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlugin";
+
 import NodeTemplatePlugin from "./node/NodeTemplatePlugin";
 import { NodeTargetPlugin } from "./builtin-plugin";
-export const node = { NodeTargetPlugin, NodeTemplatePlugin };
+import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
+interface Node {
+	NodeTargetPlugin: typeof NodeTargetPlugin;
+	NodeTemplatePlugin: typeof NodeTemplatePlugin;
+	NodeEnvironmentPlugin: typeof NodeEnvironmentPlugin;
+}
+export const node: Node = {
+	NodeTargetPlugin,
+	NodeTemplatePlugin,
+	NodeEnvironmentPlugin
+};
 
 import { ElectronTargetPlugin } from "./builtin-plugin";
-export const electron = { ElectronTargetPlugin };
+interface Electron {
+	ElectronTargetPlugin: typeof ElectronTargetPlugin;
+}
+export const electron: Electron = { ElectronTargetPlugin };
 
 import { EnableLibraryPlugin } from "./builtin-plugin";
-export const library = { EnableLibraryPlugin };
+interface Library {
+	EnableLibraryPlugin: typeof EnableLibraryPlugin;
+}
+export const library: Library = { EnableLibraryPlugin };
 
 import { EnableWasmLoadingPlugin } from "./builtin-plugin";
-export const wasm = { EnableWasmLoadingPlugin };
+interface Wasm {
+	EnableWasmLoadingPlugin: typeof EnableWasmLoadingPlugin;
+}
+export const wasm: Wasm = { EnableWasmLoadingPlugin };
 
 import { EnableChunkLoadingPlugin } from "./builtin-plugin";
-export const javascript = { EnableChunkLoadingPlugin };
+interface JavaScript {
+	EnableChunkLoadingPlugin: typeof EnableChunkLoadingPlugin;
+}
+export const javascript: JavaScript = { EnableChunkLoadingPlugin };
 
 import { WebWorkerTemplatePlugin } from "./builtin-plugin";
-export const webworker = { WebWorkerTemplatePlugin };
+interface Webworker {
+	WebWorkerTemplatePlugin: typeof WebWorkerTemplatePlugin;
+}
+export const webworker: Webworker = { WebWorkerTemplatePlugin };
 
 import { LimitChunkCountPlugin } from "./builtin-plugin";
-export const optimize = { LimitChunkCountPlugin };
+import { RuntimeChunkPlugin } from "./builtin-plugin";
+import { SplitChunksPlugin } from "./builtin-plugin";
+interface Optimize {
+	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
+	RuntimeChunkPlugin: typeof RuntimeChunkPlugin;
+	SplitChunksPlugin: typeof SplitChunksPlugin;
+}
+export const optimize: Optimize = {
+	LimitChunkCountPlugin,
+	RuntimeChunkPlugin,
+	SplitChunksPlugin
+};
 
 import { ModuleFederationPlugin } from "./container/ModuleFederationPlugin";
 export type { ModuleFederationPluginOptions } from "./container/ModuleFederationPlugin";
@@ -199,3 +255,17 @@ export type { SourceMapDevToolPluginOptions } from "./builtin-plugin";
 
 export { EvalDevToolModulePlugin } from "./builtin-plugin";
 export type { EvalDevToolModulePluginOptions } from "./builtin-plugin";
+
+export { CssExtractRspackPlugin } from "./builtin-plugin";
+
+///// Rspack Postfixed Internal Loaders /////
+export type {
+	SwcLoaderOptions,
+	SwcLoaderEnvConfig,
+	SwcLoaderJscConfig,
+	SwcLoaderModuleConfig,
+	SwcLoaderParserConfig,
+	SwcLoaderEsParserConfig,
+	SwcLoaderTsParserConfig,
+	SwcLoaderTransformConfig
+} from "./builtin-loader/swc/index";

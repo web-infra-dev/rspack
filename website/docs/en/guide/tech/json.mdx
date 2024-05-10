@@ -1,0 +1,14 @@
+# JSON
+
+[JSON](https://en.wikipedia.org/wiki/JSON) is a first-class citizen with Rspack. You can import it directly, for example:
+
+```json title="example.json"
+{
+  "foo": "bar"
+}
+```
+
+```ts title="index.js"
+import json from './example.json';
+json.foo; // bar
+```

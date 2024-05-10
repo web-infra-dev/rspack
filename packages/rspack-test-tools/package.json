@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "0.5.5",
+  "version": "0.6.5",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -16,9 +16,19 @@
     "build:viewer": "rspack build",
     "dev:viewer": "rspack serve",
     "dev": "tsc -b -w",
-    "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \".diff.test.ts\""
+    "test": "sh -c 'run-s \"test:* -- $*\"' sh",
+    "testu": "sh -c 'run-s \"test:* -- $*\"' sh -u",
+    "test:base": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --config ./jest.config.js --passWithNoTests",
+    "test:hot": "cross-env RSPACK_HOT_TEST=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --config ./jest.config.hot.js --passWithNoTests",
+    "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --config ./jest.config.diff.js --passWithNoTests",
+    "api-extractor": "api-extractor run --verbose",
+    "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },
-  "files": ["client", "dist", "template"],
+  "files": [
+    "client",
+    "dist",
+    "template"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -42,7 +52,10 @@
     "fs-extra": "^11.1.1",
     "glob": "^10.3.10",
     "jest-diff": "^29.7.0",
-    "webpack": "^5.90.0",
+    "jest-serializer-path": "^0.1.15",
+    "memfs": "4.7.7",
+    "webpack": "^5.90.1",
+    "webpack-merge": "5.9.0",
     "webpack-sources": "3.2.3",
     "which-module": "2.0.1"
   },
@@ -50,17 +63,20 @@
     "@arco-design/web-react": "^2.56.1",
     "@monaco-editor/react": "^4.6.0",
     "@rspack/cli": "workspace:*",
+    "@rspack/plugin-minify": "workspace:*",
     "@swc/jest": "^0.2.29",
     "@types/prettier": "^2.7.2",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
     "@types/webpack": "5.28.5",
     "@types/webpack-sources": "3.2.3",
-    "core-js": "3.36.0",
-    "jest-serializer-path": "^0.1.15",
-    "monaco-editor": "0.46.0",
+    "core-js": "3.36.1",
+    "filenamify": "4.3.0",
+    "mkdirp": "0.5.6",
+    "monaco-editor": "0.47.0",
     "monaco-editor-webpack-plugin": "7.1.0",
     "normalize.css": "^8.0.0",
+    "npm-run-all": "4.1.5",
     "react": "18.0.0",
     "react-dom": "18.0.0",
     "react-refresh": "0.14.0"

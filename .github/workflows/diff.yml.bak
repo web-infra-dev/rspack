@@ -1,0 +1,120 @@
+# Diff assets comment with "!diff"
+
+name: Diff Assets
+
+on:
+  pull_request_review_comment:
+    types: [created]
+  issue_comment:
+    types: [created]
+
+jobs:
+  get-runner-labels:
+    name: Get Runner Labels
+    uses: ./.github/workflows/get-runner-labels.yml
+
+  build:
+    name: Build
+    needs: [get-runner-labels]
+    if: (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') && contains(github.event.comment.body, '!diff')
+    strategy:
+      matrix:
+        array:
+          - target: x86_64-unknown-linux-gnu # For Cloud IDE
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      profile: "debug"
+      ref: refs/pull/${{ github.event.issue.number || github.event.pull_request.number }}/merge
+      target: ${{ matrix.array.target }}
+      runner: ${{ matrix.array.runner }}
+      test: false
+
+  diff:
+    name: Diff Assets
+    needs: [build, get-runner-labels]
+    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
+    steps:
+      - name: Checkout Branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: refs/pull/${{ github.event.issue.number || github.event.pull_request.number }}/merge
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
+      - name: Download bindings
+        uses: ./.github/actions/download-artifact
+        with:
+          name: bindings-x86_64-unknown-linux-gnu
+          path: crates/node_binding/
+          try-local-cache: true
+          link-when-local: true
+
+      - name: Build node packages
+        run: pnpm run build:js
+
+      - name: Run Diff
+        run: node scripts/diff.cjs
+
+      - name: Upload Report
+        shell: bash
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.RSPACK_ACCESS_TOKEN }}
+        run: |
+          cache_dir="$HOME/.cache/diff_upload"
+          clone_dir="$cache_dir/${{ github.run_id }}"
+
+          # Cleaning history upload cache
+          if [ -d $cache_dir ]
+          then
+            find $cache_dir -type d -maxdepth 1 -mindepth 1 -cmin +180 | xargs rm -rf
+          fi
+
+          # Cloning into dest directory
+          mkdir -p $clone_dir
+          git config --global user.email "lingyucoder@gmail.com"
+          git config --global user.name "LingyuCoder"
+          git clone --single-branch --branch main "https://x-access-token:$API_TOKEN_GITHUB@github.com/web-infra-dev/rspack-report-website.git" $clone_dir
+          
+          # Copying content into dest repo
+          dest_dir="$clone_dir/diff/${{ github.run_id }}"
+          cp -R diff_output/. $dest_dir
+
+          # Committing and pushing
+          cd $clone_dir
+
+          current_time=$(date +%s)
+          gap=$((30 * 24 * 60 * 60))
+          for cur_dir in ./diff/* ; do
+            create_time=$(git log --follow --format="%at" --date default $cur_dir | tail -1)
+            diff=$(($current_time - $create_time))
+            if [ $diff -gt $gap ]; then
+              echo "Remove $cur_dir because it is older than a month"
+              rm -rf $cur_dir 
+            fi
+          done
+
+          commit_message="Update from https://github.com/web-infra-dev/rspack/commit/${{ github.sha }}"
+          git add .
+          if LC_ALL=C git status | grep -q "Changes to be committed"
+          then
+            git commit --message "$commit_message"
+            git push -u origin HEAD:main
+          else
+            echo "No changes detected"
+          fi
+
+          # Cleaning upload cache
+          if [ -d $clone_dir ]
+          then
+            rm -rf $clone_dir
+          fi
+      
+      - name: Write a new comment
+        uses: peter-evans/create-or-update-comment@v4
+        continue-on-error: true
+        with:
+          issue-number: ${{ github.event.issue.number || github.event.pull_request.number }}
+          body-path: 'diff_output/stats.md'

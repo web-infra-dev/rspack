@@ -16,7 +16,7 @@ impl ExportWebpackRequireRuntimeModule {
   pub fn new() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/export_webpack_runtime"),
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -27,8 +27,8 @@ impl RuntimeModule for ExportWebpackRequireRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from("export default __webpack_require__;").boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from("export default __webpack_require__;").boxed())
   }
 
   fn should_isolate(&self) -> bool {

@@ -1,0 +1,194 @@
+---
+date: 2023-08-24 12:15:00
+---
+
+# Rspack v0.3 发布公告
+
+> 2023 年 8 月 24 日
+
+## 破坏性更新
+
+Rspack 在 0.3 版本将 `experiments.css = true` 的情况下的 css 默认处理行为和 webpack 进行了对齐，移除了很多内置的 css 转换逻辑,这同时带来了一些 breaking change，如果你的应用之前依赖了这些转换逻辑，请注意按照下述迁移方式进行迁移。
+
+### 移除 `@rspack/postcss-loader` 和 `builtins.postcss`
+
+在 Rspack 完全支持 `postcss-loader` 之前，Rspack fork 实现了 `@rspack/postcss-loader` 和内置实现了 `builtins.postcss` 以满足功能，目前 Rspack 已经完全支持了 `postcss-loader`，因此我们决定废弃掉 `@rspack/postcss-loader` 和 `builtins.postcss`，使用 `@rspack/postcss-loader` 的用户可以无缝迁移到 `postcss-loader` 上，而之前 Rspack 的 `builtins.postcss` 只实现了 `px2rem` 的转换功能，使用该功能的用户可以迁移到 `postcss-loader` 和 `postcss-plugin-px2rem` 上，如下是迁移方式。
+
+- before
+
+```js
+module.exports = {
+  builtins: {
+    postcss: {
+      pxtorem: {
+        rootValue: 50,
+      },
+    },
+  },
+};
+```
+
+- after
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                plugins: [
+                  [
+                    'postcss-plugin-px2rem',
+                    {
+                      rootValue: 100,
+                    },
+                  ],
+                ],
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+### 移除了内置的 css autoprefixer 功能
+
+为了更好的对齐 webpack 的 CSS 处理， Rspack 从 0.3 移除了内置的 autoprefixer 功能，你可以使用 postcss-loader 来实现 autoprefixer。
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                plugins: [['autoprefixer']],
+              },
+            },
+          },
+        ],
+        type: 'css',
+      },
+    ],
+  },
+};
+```
+
+完整的示例可参考 [examples/postcss-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/postcss-loader)。
+
+### 限制访问内部模块
+
+考虑到 Rspack 目前的内部模块的 API 不够稳定，直接使用 Rspack 内部模块的 API 很容易导致 breaking，因此 Rspack 限制了用户直接访问内部模块的能力，仅支持从根模块访问 Rspack 的 API。
+
+- before
+
+```js
+import { Stats } from '@rspack/core/dist/stats'; // not supported since 0.3
+```
+
+- after
+
+```js
+import { Stats } from '@rspack/core';
+```
+
+## 主要功能更新
+
+### Web Workers 支持
+
+Rspack 原生支持了 Web Workers，这意味着你不需要使用 [worker-loader](https://github.com/webpack-contrib/worker-loader) 即可开箱即用的使用 Web Workers。使用方式如下：
+
+```js
+new Worker(new URL('./worker.js', import.meta.url));
+new Worker(new URL('./worker.js', import.meta.url), {
+  name: 'my-worker',
+});
+```
+
+更多关于 Web Workers 的支持说明见 [Web Workers 文档](/guide/features/web-workers)
+
+### `builtin:swc-loader` 支持
+
+Rspack 虽然提供了很多 SWC 的编译配置选项，但是这些配置都是全局性的编译配置，业务侧如果需要不同的模块走不同的 SWC 转换逻辑则难以满足，因此 Rspack 支持 `builtin:swc-loader` 以提供更精细的 SWC 转换配置，`builtin:swc-loader` 相比于 js 版本的 [swc-loader](https://github.com/swc-project/swc-loader) 性能更优。你可以通过如下方式使用 `builtin:swc-loader`
+
+```js
+const path = require('path');
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: 'ecmascript',
+                jsx: true,
+              },
+              transform: {
+                react: {
+                  pragma: 'React.createElement',
+                  pragmaFrag: 'React.Fragment',
+                  throwIfNamespace: true,
+                  development: false,
+                  useBuiltins: false,
+                },
+              },
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+module.exports = config;
+```
+
+更多的示例可参考 [examples/builtin-swc-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/builtin-swc-loader)
+目前的 `builtin:swc-loader` 仍然有诸多限制，如不支持 wasm plugin 等，Rspack 在后续版本将继续迭代支持 `builtin:swc-loader` 的更多功能。
+
+### 更好的 profile 支持
+
+业务支持中性能调优是一个很常见的需求，为了减小给业务调优性能的成本，我们优化了 Rspack Profile 的体验，你可以通过 RSPACK_PROFILE 环境变量来生成 profile 相关文件来进行性能调优。
+
+```sh
+$ RSPACK_PROFILE=ALL rspack build
+```
+
+关于 Profile 更详细的说明，见[性能分析](/guide/optimization/profile)
+
+### 对齐了更多的 API
+
+- `splitChunks.chunks` 支持正则
+- 支持 `splitChunk.\{cacheGroup\}.type`
+- 支持 `splitChunk.\{cacheGroup\}.idHint`
+- 支持 `ensureChunkConditionsPlugin`
+- `rule.use` 支持函数
+- 支持 `configuration.profile`
+
+### 更多的 Hook 和插件支持
+
+相比 0.2 版本，我们在 0.3 版本中实现了更多的插件 API 和兼容了更多的插件，同时我们对 webpack 的 插件 API 进行了梳理，将 插件 API 的支持进度透明化，你可以在这里[plugin-api-progress](https://github.com/orgs/web-infra-dev/projects/9/views/1) 追踪插件 api 的实现进度。
+
+### 和 webpack 架构对齐
+
+我们在 0.3 版本进一步优化了和 webpack 架构的对齐工作，从原来的基于 AST 的 codegen 架构迁移到基于字符串变换的架构，该对齐工作可以进一步保障 Rspack 在 codegen 阶段能够对齐 webpack 更多的 Hook API 以兼容更多的社区插件。
+
+### Rspack 生态
+
+Rspack 在 0.2 版本提供了对 `vue-loader` 的支持,但是基于 `vue-loader` 封装一套完整的 Vue.js cli 的解决方案是一个较为复杂工作，[Rsbuild](https://rsbuild.dev/) 提供了 Vue.js 开箱即用的工程化方案来简化使用 Rspack 开发 Vue.js 的工作。

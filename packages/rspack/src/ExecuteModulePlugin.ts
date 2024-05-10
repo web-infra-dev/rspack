@@ -14,7 +14,7 @@ export default class ExecuteModulePlugin {
 					const source = options.codeGenerationResult.get("javascript");
 					try {
 						const fn = vm.runInThisContext(
-							`(function(module, __webpack_exports__, ${RuntimeGlobals.require}) {\n${source}\n})`,
+							`(function(module, __webpack_module__, __webpack_exports__, exports, ${RuntimeGlobals.require}) {\n${source}\n})`,
 							{
 								filename: moduleObject.id
 							}
@@ -23,6 +23,8 @@ export default class ExecuteModulePlugin {
 						fn.call(
 							moduleObject.exports,
 							moduleObject,
+							moduleObject,
+							moduleObject.exports,
 							moduleObject.exports,
 							context.__webpack_require__
 						);

@@ -10,7 +10,7 @@
     "webpack-examples/**",
     "webpack-test/**"
   ],
-  "assignees": ["@Boshen"],
+  "assignees": [],
   "packageRules": [
     {
       "groupName": "github-actions",
@@ -27,7 +27,7 @@
       "groupName": "crates",
       "matchManagers": ["cargo"],
       "excludePackagePrefixes": ["swc", "napi"],
-      "excludePackageNames": ["ustr", "textwrap", "styled_components", "owo-colors", "miette"]
+      "excludePackageNames": ["ustr", "textwrap", "styled_components", "owo-colors", "miette", "rkyv"]
     },
     {
       "groupName": "swc",
@@ -43,7 +43,7 @@
     {
       "groupName": "ignored crates",
       "matchManagers": ["cargo"],
-      "matchPackageNames": ["ustr", "textwrap", "owo-colors", "miette"],
+      "matchPackageNames": ["ustr", "textwrap", "owo-colors", "miette", "rkyv"],
       "enabled": false
     },
     {
@@ -57,7 +57,7 @@
       "groupName": "npm dev dependencies",
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
-      "excludePackagePrefixes": ["webpack"],
+      "excludePackagePrefixes": ["webpack", "sass"],
       "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"]
     },
     {
@@ -69,7 +69,7 @@
     {
       "groupName": "npm ignored dependencies",
       "matchManagers": ["npm"],
-      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"],
+      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm", "sass"],
       "enabled": false
     },
     {

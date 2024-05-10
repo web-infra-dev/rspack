@@ -17,13 +17,13 @@ mod fast_actions;
 mod find_graph_roots;
 mod hash;
 mod identifier;
-mod import_var;
 mod module_rules;
 mod property_access;
 mod property_name;
 mod queue;
 mod runtime;
 mod source;
+pub mod task_loop;
 mod template;
 mod to_path;
 mod visitor;
@@ -37,7 +37,6 @@ pub use self::fast_actions::*;
 pub use self::find_graph_roots::*;
 pub use self::hash::*;
 pub use self::identifier::*;
-pub use self::import_var::*;
 pub use self::module_rules::*;
 pub use self::property_access::*;
 pub use self::property_name::*;
@@ -137,7 +136,7 @@ pub fn compare_chunk_group(
     Ordering::Greater => Ordering::Less,
     Ordering::Equal => compare_chunks_iterables(
       &compilation.chunk_graph,
-      &compilation.module_graph,
+      &compilation.get_module_graph(),
       chunks_a,
       chunks_b,
     ),

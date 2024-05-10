@@ -16,7 +16,7 @@ impl Default for RelativeUrlRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/relative_url"),
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -27,7 +27,7 @@ impl RuntimeModule for RelativeUrlRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/relative_url.js")).boxed()
+  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(include_str!("runtime/relative_url.js")).boxed())
   }
 }

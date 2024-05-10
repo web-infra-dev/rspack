@@ -20,7 +20,7 @@ impl LoadScriptRuntimeModule {
       id: Identifier::from("webpack/runtime/load_script"),
       unique_name,
       with_create_script_url,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -31,7 +31,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let url = if self.with_create_script_url {
       format!("{}(url)", RuntimeGlobals::CREATE_SCRIPT_URL)
     } else {
@@ -39,13 +39,19 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     };
     let cross_origin_loading = match &compilation.options.output.cross_origin_loading {
       CrossOriginLoading::Disable => "".to_string(),
-      CrossOriginLoading::Enable(value) => format!(
-        r#"
-        if (script.src.indexOf(window.location.origin + '/') !== 0) {{
-          script.crossOrigin = "{value}";
-        }}
-        "#
-      ),
+      CrossOriginLoading::Enable(cross_origin) => {
+        if cross_origin == "use-credentials" {
+          "script.crossOrigin = \"use-credentials\";".to_string()
+        } else {
+          format!(
+            r#"
+            if (script.src.indexOf(window.location.origin + '/') !== 0) {{
+              script.crossOrigin = "{cross_origin}";
+            }}
+            "#
+          )
+        }
+      }
     };
 
     let script_type = if compilation.options.output.script_type.eq("false") {
@@ -66,7 +72,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       ))
     };
 
-    RawSource::from(
+    Ok(RawSource::from(
       include_str!("runtime/load_script.js")
         .replace(
           "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
@@ -93,6 +99,6 @@ impl RuntimeModule for LoadScriptRuntimeModule {
           unique_prefix.unwrap_or_default().as_str(),
         ),
     )
-    .boxed()
+    .boxed())
   }
 }

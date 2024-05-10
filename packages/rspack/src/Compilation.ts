@@ -20,7 +20,8 @@ import type {
 	JsRuntimeModule,
 	JsStatsChunk,
 	JsStatsError,
-	PathData
+	JsPathData,
+	JsStatsWarning
 } from "@rspack/binding";
 
 import {
@@ -28,10 +29,12 @@ import {
 	StatsOptions,
 	OutputNormalized,
 	StatsValue,
-	RspackPluginInstance
+	RspackPluginInstance,
+	Filename
 } from "./config";
+import * as liteTapable from "./lite-tapable";
 import { ContextModuleFactory } from "./ContextModuleFactory";
-import ResolverFactory from "./ResolverFactory";
+import ResolverFactory = require("./ResolverFactory");
 import { ChunkGroup } from "./ChunkGroup";
 import { Compiler } from "./Compiler";
 import ErrorHelpers from "./ErrorHelpers";
@@ -48,17 +51,13 @@ import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
 import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
-import {
-	createFakeCompilationDependencies,
-	createFakeProcessAssetsHook,
-	createProcessAssetsHook
-} from "./util/fake";
-import { NormalizedJsModule, normalizeJsModule } from "./util/normalization";
+import { createFakeCompilationDependencies } from "./util/fake";
 import MergeCaller from "./util/MergeCaller";
 import { memoizeValue } from "./util/memoize";
 import { Chunk } from "./Chunk";
-import { CodeGenerationResult } from "./Module";
+import { CodeGenerationResult, Module } from "./Module";
 import { ChunkGraph } from "./ChunkGraph";
+import { Entrypoint } from "./Entrypoint";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -67,6 +66,9 @@ export interface Asset {
 	source: Source;
 	info: JsAssetInfo;
 }
+
+export type PathData = JsPathData;
+
 export interface LogEntry {
 	type: string;
 	args: any[];
@@ -76,6 +78,7 @@ export interface LogEntry {
 
 export interface CompilationParams {
 	normalModuleFactory: NormalModuleFactory;
+	contextModuleFactory: ContextModuleFactory;
 }
 
 export interface KnownCreateStatsOptionsContext {
@@ -103,33 +106,33 @@ export class Compilation {
 	#inner: JsCompilation;
 
 	hooks: {
-		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
-		afterProcessAssets: tapable.SyncHook<Assets>;
+		processAssets: liteTapable.AsyncSeriesHook<Assets>;
+		afterProcessAssets: liteTapable.SyncHook<Assets>;
 		childCompiler: tapable.SyncHook<[Compiler, string, number]>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
-		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, void>;
-		afterOptimizeModules: tapable.SyncHook<Iterable<JsModule>, void>;
-		optimizeTree: tapable.AsyncSeriesBailHook<
-			[Iterable<Chunk>, Iterable<JsModule>],
+		optimizeModules: liteTapable.SyncBailHook<Iterable<Module>, void>;
+		afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>, void>;
+		optimizeTree: liteTapable.AsyncSeriesHook<
+			[Iterable<Chunk>, Iterable<Module>]
+		>;
+		optimizeChunkModules: liteTapable.AsyncSeriesBailHook<
+			[Iterable<Chunk>, Iterable<Module>],
 			void
 		>;
-		optimizeChunkModules: tapable.AsyncSeriesBailHook<
-			[Iterable<Chunk>, Iterable<JsModule>],
-			void
-		>;
-		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], void>;
-		chunkAsset: tapable.SyncHook<[JsChunk, string], void>;
+		finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
+		chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
-		succeedModule: tapable.SyncHook<[JsModule], void>;
-		stillValidModule: tapable.SyncHook<[JsModule], void>;
+		succeedModule: liteTapable.SyncHook<[Module], void>;
+		stillValidModule: liteTapable.SyncHook<[Module], void>;
 		statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
 		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
-		buildModule: tapable.SyncHook<[NormalizedJsModule]>;
-		executeModule: tapable.SyncHook<
+		buildModule: liteTapable.SyncHook<[Module]>;
+		executeModule: liteTapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
-		runtimeModule: tapable.SyncHook<[JsRuntimeModule, JsChunk], void>;
+		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
+		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -141,9 +144,7 @@ export class Compilation {
 	childrenCounters: Record<string, number> = {};
 	startTime?: number;
 	endTime?: number;
-	normalModuleFactory?: NormalModuleFactory;
 	children: Compilation[] = [];
-	contextModuleFactory?: ContextModuleFactory;
 	chunkGraph: ChunkGraph;
 	fileSystemInfo = {
 		createSnapshot() {
@@ -156,14 +157,60 @@ export class Compilation {
 		this.name = undefined;
 		this.startTime = undefined;
 		this.endTime = undefined;
-		const processAssetsHooks = createFakeProcessAssetsHook(this);
+
+		const processAssetsHook = new liteTapable.AsyncSeriesHook<Assets>([
+			"assets"
+		]);
+
+		const createProcessAssetsHook = <T>(
+			name: string,
+			stage: number,
+			getArgs: () => liteTapable.AsArray<T>,
+			code?: string
+		) => {
+			const errorMessage = (
+				reason: string
+			) => `Can't automatically convert plugin using Compilation.hooks.${name} to Compilation.hooks.processAssets because ${reason}.
+BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a single Compilation.hooks.processAssets hook.`;
+			const getOptions = (options: liteTapable.Options) => {
+				if (typeof options === "string") options = { name: options };
+				if (options.stage) {
+					throw new Error(errorMessage("it's using the 'stage' option"));
+				}
+				return { ...options, stage: stage };
+			};
+			return Object.freeze({
+				name,
+				intercept() {
+					throw new Error(errorMessage("it's using 'intercept'"));
+				},
+				tap: (options: liteTapable.Options, fn: liteTapable.Fn<T, void>) => {
+					processAssetsHook.tap(getOptions(options), () => fn(...getArgs()));
+				},
+				tapAsync: (
+					options: liteTapable.Options,
+					fn: liteTapable.FnWithCallback<T, void>
+				) => {
+					processAssetsHook.tapAsync(getOptions(options), (assets, callback) =>
+						(fn as any)(...getArgs(), callback)
+					);
+				},
+				tapPromise: (
+					options: liteTapable.Options,
+					fn: liteTapable.Fn<T, void>
+				) => {
+					processAssetsHook.tapPromise(getOptions(options), () =>
+						fn(...getArgs())
+					);
+				},
+				_fakeHook: true
+			});
+		};
 		this.hooks = {
-			processAssets: processAssetsHooks,
-			afterProcessAssets: new tapable.SyncHook(["assets"]),
-			// TODO: webpack 6 deprecate, keep it just for compatibility
+			processAssets: processAssetsHook,
+			afterProcessAssets: new liteTapable.SyncHook(["assets"]),
 			/** @deprecated */
 			additionalAssets: createProcessAssetsHook(
-				processAssetsHooks,
 				"additionalAssets",
 				Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
 				() => []
@@ -174,23 +221,24 @@ export class Compilation {
 				"compilerIndex"
 			]),
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
-			optimizeModules: new tapable.SyncBailHook(["modules"]),
-			afterOptimizeModules: new tapable.SyncBailHook(["modules"]),
-			optimizeTree: new tapable.AsyncSeriesBailHook(["chunks", "modules"]),
-			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
+			optimizeModules: new liteTapable.SyncBailHook(["modules"]),
+			afterOptimizeModules: new liteTapable.SyncBailHook(["modules"]),
+			optimizeTree: new liteTapable.AsyncSeriesHook(["chunks", "modules"]),
+			optimizeChunkModules: new liteTapable.AsyncSeriesBailHook([
 				"chunks",
 				"modules"
 			]),
-			finishModules: new tapable.AsyncSeriesHook(["modules"]),
-			chunkAsset: new tapable.SyncHook(["chunk", "filename"]),
+			finishModules: new liteTapable.AsyncSeriesHook(["modules"]),
+			chunkAsset: new liteTapable.SyncHook(["chunk", "filename"]),
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
-			succeedModule: new tapable.SyncHook(["module"]),
-			stillValidModule: new tapable.SyncHook(["module"]),
+			succeedModule: new liteTapable.SyncHook(["module"]),
+			stillValidModule: new liteTapable.SyncHook(["module"]),
 			statsFactory: new tapable.SyncHook(["statsFactory", "options"]),
 			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
-			buildModule: new tapable.SyncHook(["module"]),
-			executeModule: new tapable.SyncHook(["options", "context"]),
-			runtimeModule: new tapable.SyncHook(["module", "chunk"])
+			buildModule: new liteTapable.SyncHook(["module"]),
+			executeModule: new liteTapable.SyncHook(["options", "context"]),
+			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
+			afterSeal: new liteTapable.AsyncSeriesHook([])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -267,11 +315,11 @@ export class Compilation {
 	/**
 	 * Get a map of all entrypoints.
 	 */
-	get entrypoints(): ReadonlyMap<string, ChunkGroup> {
+	get entrypoints(): ReadonlyMap<string, Entrypoint> {
 		return new Map(
 			Object.entries(this.#inner.entrypoints).map(([n, e]) => [
 				n,
-				ChunkGroup.__from_binding(e, this.#inner)
+				Entrypoint.__from_binding(e, this.#inner)
 			])
 		);
 	}
@@ -321,6 +369,10 @@ export class Compilation {
 			options.usedExports,
 			!context.forToString
 		);
+		options.optimizationBailout = optionOrLocalFallback(
+			options.optimizationBailout,
+			!context.forToString
+		);
 		options.providedExports = optionOrLocalFallback(
 			options.providedExports,
 			!context.forToString
@@ -361,7 +413,7 @@ export class Compilation {
 			!context.forToString
 		);
 		options.loggingDebug = []
-			.concat(optionsOrFallback(options.loggingDebug, []))
+			.concat(optionsOrFallback(options.loggingDebug, []) || [])
 			.map(normalizeFilter);
 		options.modulesSpace =
 			options.modulesSpace || (context.forToString ? 15 : Infinity);
@@ -369,6 +421,10 @@ export class Compilation {
 		options.children = optionOrLocalFallback(
 			options.children,
 			!context.forToString
+		);
+		options.orphanModules = optionOrLocalFallback(
+			options.orphanModules,
+			context.forToString ? false : true
 		);
 
 		return options;
@@ -393,15 +449,13 @@ export class Compilation {
 	 * Source: [updateAsset](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4320)
 	 *
 	 * FIXME: *AssetInfo* may be undefined in update fn for webpack impl, but still not implemented in rspack
-	 *
-	 * @param {string} file file name
-	 * @param {Source | function(Source): Source} newSourceOrFunction new asset source or function converting old to new
-	 * @param {AssetInfo | function(AssetInfo): AssetInfo} assetInfoUpdateOrFunction new asset info or function converting old to new
 	 */
 	updateAsset(
 		filename: string,
 		newSourceOrFunction: Source | ((source: Source) => Source),
-		assetInfoUpdateOrFunction: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)
+		assetInfoUpdateOrFunction?:
+			| AssetInfo
+			| ((assetInfo: AssetInfo) => AssetInfo)
 	) {
 		let compatNewSourceOrFunction:
 			| JsCompatSource
@@ -422,34 +476,23 @@ export class Compilation {
 		this.#inner.updateAsset(
 			filename,
 			compatNewSourceOrFunction,
-			typeof assetInfoUpdateOrFunction === "function"
-				? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
-				: toJsAssetInfo(assetInfoUpdateOrFunction)
+			assetInfoUpdateOrFunction === undefined
+				? assetInfoUpdateOrFunction
+				: typeof assetInfoUpdateOrFunction === "function"
+					? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
+					: toJsAssetInfo(assetInfoUpdateOrFunction)
 		);
 	}
 
-	/**
-	 *
-	 * @param moduleIdentifier moduleIdentifier of the module you want to modify
-	 * @param source
-	 * @returns true if the setting is success, false if failed.
-	 */
-	setNoneAstModuleSource(
-		moduleIdentifier: string,
-		source: JsCompatSource
-	): boolean {
-		return this.#inner.setNoneAstModuleSource(moduleIdentifier, source);
-	}
 	/**
 	 * Emit an not existing asset. Trying to emit an asset that already exists will throw an error.
 	 *
 	 * See: [Compilation.emitAsset](https://webpack.js.org/api/compilation-object/#emitasset)
 	 * Source: [emitAsset](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4239)
 	 *
-	 * @param {string} file file name
-	 * @param {Source} source asset source
-	 * @param {JsAssetInfo} assetInfo extra asset information
-	 * @returns {void}
+	 * @param file - file name
+	 * @param source - asset source
+	 * @param assetInfo - extra asset information
 	 */
 	emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
 		this.#inner.emitAsset(
@@ -461,6 +504,10 @@ export class Compilation {
 
 	deleteAsset(filename: string) {
 		this.#inner.deleteAsset(filename);
+	}
+
+	renameAsset(filename: string, newFilename: string) {
+		this.#inner.renameAsset(filename, newFilename);
 	}
 
 	/**
@@ -503,95 +550,239 @@ export class Compilation {
 
 	get errors() {
 		const inner = this.#inner;
-		return {
-			push: (...errs: (Error | JsStatsError | string)[]) => {
-				// compatible for javascript array
-				for (let i = 0; i < errs.length; i++) {
-					const error = errs[i];
-					if (isJsStatsError(error)) {
-						this.#inner.pushDiagnostic(
-							"error",
-							"Error",
-							concatErrorMsgAndStack(error)
-						);
-					} else if (typeof error === "string") {
-						this.#inner.pushDiagnostic("error", "Error", error);
-					} else {
-						this.#inner.pushDiagnostic(
-							"error",
-							error.name,
-							concatErrorMsgAndStack(error)
-						);
+		type ErrorType = Error | JsStatsError | string;
+		const errors = inner.getStats().getErrors() as any;
+		const proxyMethod = [
+			{
+				method: "push",
+				handler(
+					target: typeof Array.prototype.push,
+					thisArg: Array<ErrorType>,
+					errs: ErrorType[]
+				) {
+					for (let i = 0; i < errs.length; i++) {
+						const error = errs[i];
+						if (isJsStatsError(error)) {
+							inner.pushDiagnostic(
+								"error",
+								"Error",
+								concatErrorMsgAndStack(error)
+							);
+						} else if (typeof error === "string") {
+							inner.pushDiagnostic("error", "Error", error);
+						} else {
+							inner.pushDiagnostic(
+								"error",
+								error.name,
+								concatErrorMsgAndStack(error)
+							);
+						}
 					}
+					return Reflect.apply(target, thisArg, errs);
 				}
 			},
-			[Symbol.iterator]() {
-				// TODO: this is obviously a bad design, optimize this after finishing angular prototype
-				const errors = inner.getStats().getErrors();
-				let index = 0;
-				return {
-					next() {
-						if (index >= errors.length) {
-							return { done: true };
+			{
+				method: "pop",
+				handler(target: typeof Array.prototype.pop, thisArg: Array<ErrorType>) {
+					inner.spliceDiagnostic(errors.length - 1, errors.length, []);
+					return Reflect.apply(target, thisArg, []);
+				}
+			},
+			{
+				method: "shift",
+				handler(
+					target: typeof Array.prototype.shift,
+					thisArg: Array<ErrorType>
+				) {
+					inner.spliceDiagnostic(0, 1, []);
+					return Reflect.apply(target, thisArg, []);
+				}
+			},
+			{
+				method: "unshift",
+				handler(
+					target: typeof Array.prototype.unshift,
+					thisArg: Array<ErrorType>,
+					errs: ErrorType[]
+				) {
+					const errList = errs.map(error => {
+						if (isJsStatsError(error)) {
+							return {
+								severity: "error" as const,
+								title: "Error",
+								message: concatErrorMsgAndStack(error)
+							};
+						} else if (typeof error === "string") {
+							return {
+								severity: "error" as const,
+								title: "Error",
+								message: error
+							};
+						} else {
+							return {
+								severity: "error" as const,
+								title: error.name,
+								message: concatErrorMsgAndStack(error)
+							};
 						}
-						return {
-							value: errors[index++],
-							done: false
-						};
-					}
-				};
+					});
+					inner.spliceDiagnostic(0, 0, errList);
+					return Reflect.apply(target, thisArg, errs);
+				}
+			},
+			{
+				method: "splice",
+				handler(
+					target: typeof Array.prototype.splice,
+					thisArg: Array<ErrorType>,
+					[startIdx, delCount, ...errors]: [number, number, ...ErrorType[]]
+				) {
+					const errList = errors.map(error => {
+						if (isJsStatsError(error)) {
+							return {
+								severity: "error" as const,
+								title: "Error",
+								message: concatErrorMsgAndStack(error)
+							};
+						} else if (typeof error === "string") {
+							return {
+								severity: "error" as const,
+								title: "Error",
+								message: error
+							};
+						} else {
+							return {
+								severity: "error" as const,
+								title: error.name,
+								message: concatErrorMsgAndStack(error)
+							};
+						}
+					});
+					inner.spliceDiagnostic(startIdx, startIdx + delCount, errList);
+					return Reflect.apply(target, thisArg, [
+						startIdx,
+						delCount,
+						...errors
+					]);
+				}
 			}
-		};
+		];
+		proxyMethod.forEach(item => {
+			const proxyedMethod = new Proxy(errors[item.method as any], {
+				apply: item.handler as any
+			});
+			errors[item.method as any] = proxyedMethod;
+		});
+		return errors;
 	}
 
 	get warnings() {
 		const inner = this.#inner;
-		return {
-			// compatible for javascript array
-			push: (...warns: (Error | JsStatsError)[]) => {
-				// TODO: find a way to make JsStatsError be actual errors
-				warns = this.hooks.processWarnings.call(warns as any);
-				for (let i = 0; i < warns.length; i++) {
-					const warn = warns[i];
-					this.#inner.pushDiagnostic(
-						"warning",
-						isJsStatsError(warn) ? "Warning" : warn.name,
-						concatErrorMsgAndStack(warn)
-					);
+		type WarnType = Error | JsStatsWarning;
+		const processWarningsHook = this.hooks.processWarnings;
+		const warnings = inner.getStats().getWarnings();
+		const proxyMethod = [
+			{
+				method: "push",
+				handler(
+					target: typeof Array.prototype.push,
+					thisArg: Array<WarnType>,
+					warns: WarnType[]
+				) {
+					warns = processWarningsHook.call(warns as any);
+					for (let i = 0; i < warns.length; i++) {
+						const warn = warns[i];
+						inner.pushDiagnostic(
+							"warning",
+							isJsStatsError(warn) ? "Warning" : warn.name,
+							concatErrorMsgAndStack(warn)
+						);
+					}
+					return Reflect.apply(target, thisArg, warns);
 				}
 			},
-			[Symbol.iterator]() {
-				// TODO: this is obviously a bad design, optimize this after finishing angular prototype
-				const warnings = inner.getStats().getWarnings();
-				let index = 0;
-				return {
-					next() {
-						if (index >= warnings.length) {
-							return { done: true };
-						}
+			{
+				method: "pop",
+				handler(target: typeof Array.prototype.pop, thisArg: Array<WarnType>) {
+					inner.spliceDiagnostic(warnings.length - 1, warnings.length, []);
+					return Reflect.apply(target, thisArg, []);
+				}
+			},
+			{
+				method: "shift",
+				handler(
+					target: typeof Array.prototype.shift,
+					thisArg: Array<WarnType>
+				) {
+					inner.spliceDiagnostic(0, 1, []);
+					return Reflect.apply(target, thisArg, []);
+				}
+			},
+			{
+				method: "unshift",
+				handler(
+					target: typeof Array.prototype.unshift,
+					thisArg: Array<WarnType>,
+					warns: WarnType[]
+				) {
+					warns = processWarningsHook.call(warns as any);
+					const warnList = warns.map(warn => {
 						return {
-							value: [warnings[index++]],
-							done: false
+							severity: "warning" as const,
+							title: isJsStatsError(warn) ? "Warning" : warn.name,
+							message: concatErrorMsgAndStack(warn)
 						};
-					}
-				};
+					});
+					inner.spliceDiagnostic(0, 0, warnList);
+					return Reflect.apply(target, thisArg, warns);
+				}
+			},
+			{
+				method: "splice",
+				handler(
+					target: typeof Array.prototype.splice,
+					thisArg: Array<WarnType>,
+					[startIdx, delCount, ...warns]: [number, number, ...WarnType[]]
+				) {
+					warns = processWarningsHook.call(warns as any);
+					const warnList = warns.map(warn => {
+						return {
+							severity: "warning" as const,
+							title: isJsStatsError(warn) ? "Warning" : warn.name,
+							message: concatErrorMsgAndStack(warn)
+						};
+					});
+					inner.spliceDiagnostic(startIdx, startIdx + delCount, warnList);
+					return Reflect.apply(target, thisArg, [
+						startIdx,
+						delCount,
+						...warnList
+					]);
+				}
 			}
-		};
+		];
+		proxyMethod.forEach(item => {
+			const proxyedMethod = new Proxy(warnings[item.method as any], {
+				apply: item.handler as any
+			});
+			warnings[item.method as any] = proxyedMethod;
+		});
+		return warnings;
 	}
 
-	getPath(filename: string, data: PathData = {}) {
+	getPath(filename: Filename, data: PathData = {}) {
 		return this.#inner.getPath(filename, data);
 	}
 
-	getPathWithInfo(filename: string, data: PathData = {}) {
+	getPathWithInfo(filename: Filename, data: PathData = {}) {
 		return this.#inner.getPathWithInfo(filename, data);
 	}
 
-	getAssetPath(filename: string, data: PathData = {}) {
+	getAssetPath(filename: Filename, data: PathData = {}) {
 		return this.#inner.getAssetPath(filename, data);
 	}
 
-	getAssetPathWithInfo(filename: string, data: PathData = {}) {
+	getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
 		return this.#inner.getAssetPathWithInfo(filename, data);
 	}
 
@@ -727,7 +918,9 @@ export class Compilation {
 
 	get modules() {
 		return memoizeValue(() => {
-			return this.__internal__getModules().map(item => normalizeJsModule(item));
+			return this.__internal__getModules().map(item =>
+				Module.__from_binding(item)
+			);
 		});
 	}
 
@@ -845,14 +1038,14 @@ export class Compilation {
 	}
 
 	_rebuildModuleCaller = new MergeCaller(
-		(args: Array<[string, (err: any, m: JsModule) => void]>) => {
+		(args: Array<[string, (err: Error, m: Module) => void]>) => {
 			this.#inner.rebuildModule(
 				args.map(item => item[0]),
-				function (err: any, modules: JsModule[]) {
+				function (err: Error, modules: JsModule[]) {
 					for (const [id, callback] of args) {
 						const m = modules.find(item => item.moduleIdentifier === id);
 						if (m) {
-							callback(err, m);
+							callback(err, Module.__from_binding(m));
 						} else {
 							callback(err || new Error("module no found"), null as any);
 						}
@@ -862,8 +1055,8 @@ export class Compilation {
 		},
 		10
 	);
-	rebuildModule(m: JsModule, f: (err: any, m: JsModule) => void) {
-		this._rebuildModuleCaller.push([m.moduleIdentifier, f]);
+	rebuildModule(m: Module, f: (err: Error, m: Module) => void) {
+		this._rebuildModuleCaller.push([m.identifier(), f]);
 	}
 
 	/**
@@ -948,61 +1141,4 @@ export class Compilation {
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER = 3000;
 	static PROCESS_ASSETS_STAGE_ANALYSE = 4000;
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
-
-	__internal_getProcessAssetsHookByStage(stage: number) {
-		if (stage > Compilation.PROCESS_ASSETS_STAGE_REPORT) {
-			this.pushDiagnostic(
-				"warning",
-				"not supported process_assets_stage",
-				`custom stage for process_assets is not supported yet, so ${stage} is fallback to Compilation.PROCESS_ASSETS_STAGE_REPORT(${Compilation.PROCESS_ASSETS_STAGE_REPORT}) `
-			);
-			stage = Compilation.PROCESS_ASSETS_STAGE_REPORT;
-		}
-		if (stage < Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL) {
-			this.pushDiagnostic(
-				"warning",
-				"not supported process_assets_stage",
-				`custom stage for process_assets is not supported yet, so ${stage} is fallback to Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL(${Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL}) `
-			);
-			stage = Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL;
-		}
-		switch (stage) {
-			case Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL:
-				return this.hooks.processAssets.stageAdditional;
-			case Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS:
-				return this.hooks.processAssets.stagePreProcess;
-			case Compilation.PROCESS_ASSETS_STAGE_DERIVED:
-				return this.hooks.processAssets.stageDerived;
-			case Compilation.PROCESS_ASSETS_STAGE_ADDITIONS:
-				return this.hooks.processAssets.stageAdditions;
-			case Compilation.PROCESS_ASSETS_STAGE_NONE:
-				return this.hooks.processAssets.stageNone;
-			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE:
-				return this.hooks.processAssets.stageOptimize;
-			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT:
-				return this.hooks.processAssets.stageOptimizeCount;
-			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY:
-				return this.hooks.processAssets.stageOptimizeCompatibility;
-			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE:
-				return this.hooks.processAssets.stageOptimizeSize;
-			case Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING:
-				return this.hooks.processAssets.stageDevTooling;
-			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE:
-				return this.hooks.processAssets.stageOptimizeInline;
-			case Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE:
-				return this.hooks.processAssets.stageSummarize;
-			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH:
-				return this.hooks.processAssets.stageOptimizeHash;
-			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER:
-				return this.hooks.processAssets.stageOptimizeTransfer;
-			case Compilation.PROCESS_ASSETS_STAGE_ANALYSE:
-				return this.hooks.processAssets.stageAnalyse;
-			case Compilation.PROCESS_ASSETS_STAGE_REPORT:
-				return this.hooks.processAssets.stageReport;
-			default:
-				throw new Error(
-					"processAssets hook uses custom stage number is not supported."
-				);
-		}
-	}
 }

@@ -12,15 +12,17 @@ use rspack_core::{
     BoxSource, ConcatSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
   },
-  BoxDependency, BuildExtraDataType, BuildMetaExportsType, ErrorSpan, GenerateContext, Module,
+  BoxDependency, BuildExtraDataType, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
+  CssExportsConvention, ErrorSpan, GenerateContext, LocalIdentName, Module, ModuleGraph,
   ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
-use sugar_path::SugarPath;
-use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::Atom};
+use swc_core::{
+  css::{parser::parser::ParserConfig, visit::VisitWith},
+  ecma::atoms::Atom,
+};
 
 use crate::{
   dependency::{CssComposeDependency, CssModuleExportDependency},
@@ -28,8 +30,8 @@ use crate::{
   utils::css_modules_exports_to_concatenate_module_string,
 };
 use crate::{
-  plugin::CssConfig,
   utils::{css_modules_exports_to_string, ModulesTransformConfig},
+  visitors::ExportsAnalyzer,
 };
 use crate::{
   utils::{export_locals_convention, stringify_css_modules_exports_elements},
@@ -45,17 +47,24 @@ pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
 
-pub type CssExportsType = IndexMap<Vec<String>, Vec<(String, ErrorSpan, Option<String>)>>;
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[archive(check_bytes)]
+pub struct CssExport(pub String, pub ErrorSpan, pub Option<String>);
+
+pub type CssExportsType = IndexMap<Vec<String>, Vec<CssExport>>;
 
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
-  pub config: CssConfig,
+  pub convention: CssExportsConvention,
+  pub local_ident_name: Option<LocalIdentName>,
+  pub exports_only: bool,
+  pub named_exports: bool,
   pub exports: Option<CssExportsType>,
 }
 
 impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
-    if self.config.modules.exports_only {
+    if self.exports_only {
       CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST
     } else {
       CSS_MODULE_SOURCE_TYPE_LIST
@@ -86,13 +95,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
     } = parse_context;
 
     build_info.strict = true;
-    build_meta.exports_type = if self.config.named_exports.unwrap_or_default() {
+    build_meta.exports_type = if self.named_exports {
       BuildMetaExportsType::Namespace
     } else {
       BuildMetaExportsType::Default
     };
-
-    // build_meta.exports_type = BuildMetaExportsType::Namespace;
+    build_meta.default_object = if self.named_exports {
+      BuildMetaDefaultObject::False
+    } else {
+      BuildMetaDefaultObject::Redirect
+    };
 
     let swc_compiler = SwcCssCompiler::default();
 
@@ -113,10 +125,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let mut diagnostic_vec = vec![];
 
     let mut exports_pairs = vec![];
-    if is_enable_css_modules {
+    let mut presentational_dependencies = None;
+    let mut exports = if is_enable_css_modules {
       let mut stylesheet = swc_compiler.parse_file(
         &resource_path.to_string_lossy(),
-        source_code,
+        source_code.clone(),
         ParserConfig {
           css_modules: is_enable_css_modules,
           legacy_ie: true,
@@ -127,44 +140,30 @@ impl ParserAndGenerator for CssParserAndGenerator {
       let result = swc_core::css::modules::compile(
         &mut stylesheet,
         ModulesTransformConfig::new(
-          &resource_data
-            .resource_path
-            .relative(&compiler_options.context),
-          &self.config.modules.local_ident_name,
-          &compiler_options.output,
+          resource_data,
+          self
+            .local_ident_name
+            .as_ref()
+            .expect("should have local_ident_name for module_type css/auto or css/module"),
+          compiler_options,
         ),
       );
-      let mut exports: IndexMap<Atom, _> = result.renamed.into_iter().collect();
-      exports.sort_keys();
-      let normalized_exports = IndexMap::from_iter(
-        exports
-          .iter()
-          .map(|(name, elements)| {
-            let mut names = export_locals_convention(name, &self.config.modules.locals_convention);
-            names.sort_unstable();
-            names.dedup();
-            (names, stringify_css_modules_exports_elements(elements))
-          })
-          .collect::<Vec<_>>(),
-      );
-      for (k, v) in normalized_exports.iter() {
-        for kk in k {
-          exports_pairs.push((kk.to_string(), v[0].0.to_owned()));
-        }
-      }
-      self.exports = Some(normalized_exports);
+      let exports: IndexMap<Atom, _> = result.renamed.into_iter().collect();
 
       let (code, map) = swc_compiler.codegen(
         &stylesheet,
         SwcCssSourceMapGenConfig {
-          enable: !matches!(module_source_map_kind, SourceMapKind::None),
-          inline_sources_content: false,
-          emit_columns: matches!(module_source_map_kind, SourceMapKind::SourceMap),
+          enable: module_source_map_kind.enabled(),
+          inline_sources_content: module_source_map_kind.source_map(),
+          emit_columns: !module_source_map_kind.cheap(),
         },
       )?;
       source_code = code;
       source_map = map;
-    }
+      Some(exports)
+    } else {
+      None
+    };
 
     let new_stylesheet_ast = SwcCssCompiler::default().parse_file(
       &parse_context.resource_data.resource_path.to_string_lossy(),
@@ -172,10 +171,43 @@ impl ParserAndGenerator for CssParserAndGenerator {
       Default::default(),
     )?;
 
+    if let Some(exports) = &mut exports {
+      let mut exports_analyzer = ExportsAnalyzer::new(&source_code);
+      new_stylesheet_ast.visit_with(&mut exports_analyzer);
+      presentational_dependencies = Some(exports_analyzer.presentation_deps);
+
+      for (key, value) in exports_analyzer.exports {
+        exports.insert(key, vec![value]);
+      }
+
+      exports.sort_keys();
+      let normalized_exports = IndexMap::from_iter(
+        exports
+          .iter()
+          .map(|(name, elements)| {
+            let mut names = export_locals_convention(name, &self.convention);
+            names.sort_unstable();
+            names.dedup();
+            (names, stringify_css_modules_exports_elements(elements))
+          })
+          .collect::<Vec<_>>(),
+      );
+
+      for (k, v) in normalized_exports.iter() {
+        for kk in k {
+          exports_pairs.push((kk.to_string(), v[0].0.to_owned()));
+        }
+      }
+
+      self.exports = Some(normalized_exports);
+    }
+
     let mut dependencies = analyze_dependencies(
       &new_stylesheet_ast,
       code_generation_dependencies,
       &mut diagnostic_vec,
+      &source_code,
+      module_user_request,
     );
     for (k, v) in exports_pairs {
       dependencies.push(Box::new(CssModuleExportDependency::new(
@@ -191,7 +223,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       let mut compose_deps = locals
         .iter()
         .flat_map(|(_, value)| value)
-        .filter_map(|(_, span, from)| {
+        .filter_map(|CssExport(_, span, from)| {
           if let Some(from) = from {
             if dep_set.contains(&from) {
               None
@@ -216,7 +248,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       dependencies
     };
 
-    let new_source = if !matches!(module_source_map_kind, SourceMapKind::None) {
+    let new_source = if module_source_map_kind.enabled() {
       if let Some(source_map) = source_map {
         SourceMapSource::new(SourceMapSourceOptions {
           value: source_code,
@@ -241,9 +273,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
       ParseResult {
         dependencies,
         blocks: vec![],
-        presentational_dependencies: vec![],
+        presentational_dependencies: presentational_dependencies.unwrap_or_default(),
         source: new_source,
         analyze_result: Default::default(),
+        side_effects_bailout: None,
       }
       .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
         diagnostic_vec,
@@ -261,6 +294,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
   ) -> Result<BoxSource> {
     let result = match generate_context.requested_source_type {
       SourceType::Css => {
+        generate_context
+          .runtime_requirements
+          .insert(RuntimeGlobals::HAS_CSS_MODULES);
+
         let mut source = ReplaceSource::new(source.clone());
         let compilation = generate_context.compilation;
         let mut init_fragments = ModuleInitFragments::default();
@@ -275,7 +312,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
         module.get_dependencies().iter().for_each(|id| {
           if let Some(dependency) = compilation
-            .module_graph
+            .get_module_graph()
             .dependency_by_id(id)
             .expect("should have dependency")
             .as_dependency_template()
@@ -294,7 +331,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         Ok(source.boxed())
       }
       SourceType::JavaScript => {
-        let locals = if generate_context.concatenation_scope.is_some() {
+        let exports = if generate_context.concatenation_scope.is_some() {
           let mut concate_source = ConcatSource::default();
           if let Some(ref exports) = self.exports {
             css_modules_exports_to_concatenate_module_string(
@@ -313,14 +350,23 @@ impl ParserAndGenerator for CssParserAndGenerator {
             generate_context.runtime_requirements,
           )?
         } else if generate_context.compilation.options.dev_server.hot {
-          "module.hot.accept();".to_string()
+          format!(
+            "module.hot.accept();\n{}(module.exports = {{}});\n",
+            RuntimeGlobals::MAKE_NAMESPACE_OBJECT
+          )
         } else {
-          "".to_string()
+          format!(
+            "{}(module.exports = {{}})\n",
+            RuntimeGlobals::MAKE_NAMESPACE_OBJECT
+          )
         };
         generate_context
           .runtime_requirements
           .insert(RuntimeGlobals::MODULE);
-        Ok(RawSource::from(locals).boxed())
+        generate_context
+          .runtime_requirements
+          .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+        Ok(RawSource::from(exports).boxed())
       }
       _ => panic!(
         "Unsupported source type: {:?}",
@@ -330,6 +376,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     result
   }
+
   fn store(&self, extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {
     let data = self.exports.to_owned();
     extra_data.insert(
@@ -337,10 +384,22 @@ impl ParserAndGenerator for CssParserAndGenerator {
       to_bytes::<_, 1024>(&data).expect("Failed to store extra data"),
     );
   }
+
   fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {
     if let Some(data) = extra_data.get(&BuildExtraDataType::CssParserAndGenerator) {
       let data = from_bytes::<Option<CssExportsType>>(data).expect("Failed to resume extra data");
       self.exports = data;
     }
+  }
+
+  fn get_concatenation_bailout_reason(
+    &self,
+    _module: &dyn rspack_core::Module,
+    _mg: &ModuleGraph,
+    _cg: &ChunkGraph,
+  ) -> Option<String> {
+    Some(String::from(
+      "Module Concatenation is not implemented for CssParserAndGenerator",
+    ))
   }
 }

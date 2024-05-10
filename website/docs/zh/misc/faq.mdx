@@ -1,0 +1,45 @@
+# 常见问题
+
+## Rspack 和 Webpack 的关系是怎样的？
+
+**我们和 Webpack 团队确立了合作关系**，Rspack 是 Webpack 通过 Rust 进行性能优化的一个尝试，并已经取得了良好进展。
+
+我们会和 Webpack 团队持续探索优化 Webpack 的更多可能性。当 Rspack 达到一定的成熟度时，Webpack 团队将尝试以实验特性方式将 Rspack 集成到 Webpack 中。
+
+## 兼容 JavaScript 和 Webpack 生态不会存在性能损失吗？
+
+我们更重视以较低的迁移成本为现有的 web 项目带来性能提升，而不是单纯追求 benchmark 指标。
+
+兼容 Webpack 生态会带来一定的性能损失，但是根据我们的验证结果，这个损失在可接受范围内。
+
+## 不使用 babel-loader 的话，如何实现兼容性降级编译？
+
+Rspack 内部使用 SWC 进行代码的降级编译（通过 [builtin:swc-loader](/guide/features/builtin-swc-loader.html)），因此无需通过 babel-loader 来进行代码的降级编译。
+
+## Rspack 对 Webpack API 是 100% 兼容吗？
+
+不是，Rspack 目标**不是**完全兼容 100% 的 Webpack API，根据二八定律的原则，我们优先实现了在大部分项目里高频使用的 API，并根据用户需求来进一步支持其他 API。
+
+## Rspack 会计划支持 Wasm 方案来支持浏览器端的构建吗？
+
+计划支持，我们和 NAPI-RS 团队一起在探索 Wasm 方案，目前还在探索阶段，后续会有更多的进展。
+
+## Rspack 相比 Webpack + SWC-loader 有什么优势？
+
+虽然 Webpack + SWC-loader 解决了 babel-loader 的性能问题，但 Webpack 本身仍然存在较多的性能瓶颈，如 make，seal 等阶段都是单线程的，而 Rspack 突破了这些限制，因此 Rspack 比 Webpack + SWC-loader 有更好的性能表现，尤其是在多核场景。
+
+## 自定义插件和自定义 Loader 需要使用 Rust 进行开发吗？
+
+不需要，你可以像开发 Webpack 插件和 loader 一样，使用 JavaScript 来开发插件和 loader。同时我们也在探索如何支持用户使用 Rust 开发自定义的插件和 loader。
+
+## Rspack 计划支持 React Server Component 吗？
+
+Rspack 将会支持 React Server Component。目前我们已经在一个内部项目中实验性尝试了 Rspack + RSC，并获得了明显的性能提升。
+
+> 相关 PR：[#5824](https://github.com/web-infra-dev/rspack/pull/5824)。
+
+## Rspack 现在可以用于于线上环境了吗？线上产物和 Webpack 的差异在哪？
+
+可以，目前我们已经在大量的内部项目中使用 Rspack 构建，并在生产环境平稳运行。
+
+我们目标是让 Rspack 生成的运行时代码完全对齐 Webpack（意味着你很难从产物里判断是 Webpack 还是 Rspack 产物），虽然目前尚未达到完整对齐状态，我们将持续完善 runtime 并最终达到完全对齐状态。

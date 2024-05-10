@@ -1,0 +1,15 @@
+
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_macros"
+repository = "https://github.com/web-infra-dev/rspack"
+version    = "0.1.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = { workspace = true }
+quote       = { workspace = true }
+syn         = { workspace = true, features = ["full"] }

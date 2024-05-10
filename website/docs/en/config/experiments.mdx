@@ -1,0 +1,363 @@
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
+
+# Experiments
+
+Enable and try out some experimental features.
+
+- **Type:** `object`
+
+## experiments.incrementalRebuild
+
+<ApiMeta
+  deprecatedVersion="0.4.0"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
+
+Enable incremental rebuild. `true` will try to reuse the results of the last build when rebuild to improve build speed, supports configuration of different stages, the default is enabled.
+
+0.5 removed this options and internally enabled this feature.
+
+- **Type:** `boolean | { make?: boolean, emitAsset?: boolean }`
+- **Default:** `true`
+
+## experiments.outputModule
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Once enabled, Rspack will output ECMAScript module syntax whenever possible. For instance, `import()` to load chunks, ESM exports to expose chunk data, among others.
+
+```js
+module.exports = {
+  experiments: {
+    outputModule: true,
+  },
+};
+```
+
+## experiments.css
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Once enabled, Rspack will enable native CSS support, and CSS related parser and generator options.
+
+- [`module.parser["css/auto"]`](/config/module#moduleparsercssauto)
+- [`module.parser.css`](/config/module#moduleparsercss)
+- [`module.parser["css/module"]`](/config/module#moduleparsercssmodule)
+- [`module.generator["css/auto"]`](/config/module#modulegeneratorcssauto)
+- [`module.generator.css`](/config/module#modulegeneratorcss)
+- [`module.generator["css/module"]`](/config/module#modulegeneratorcssmodule)
+
+:::warning
+Note that if you're using `style-loader` and `css-loader`, you should disable this option because `style-loader` and `css-loader` will conflict with native CSS.
+:::
+
+## experiments.topLevelAwait
+
+<ApiMeta addedVersion="0.3.8" />
+
+Enable support for [top level await](https://github.com/tc39/proposal-top-level-await), `top level await` can only be used in modules with [ModuleType](/config/module#ruletype) is `javascript/esm`.
+
+Enabled by default and can be turned off with this configuration.
+
+## experiments.rspackFuture
+
+<ApiMeta addedVersion="0.3.2" />
+
+- **Type:** `object`
+
+- **Default:** See options down below for details
+
+Used to control whether to enable Rspack future default options, check out the details [here](https://github.com/web-infra-dev/rspack/pull/4107).
+
+### experiments.rspackFuture.disableTransformByDefault
+
+<ApiMeta
+  addedVersion="0.3.5"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
+
+- **Type:** `boolean`
+- **Introduced in Version:** v0.3.5
+- **Enabled by Default in Version:** v0.4.0
+- **Removed in Version:** v0.5.0
+- **Description:**
+
+  This feature primarily addresses three categories of problems: [builtins](/config/builtins) code transformation features, [target](/config/target), and custom [Rule.type](/config/module#ruletype).
+
+  1. **Removal of support for some [builtins](/config/builtins) features:**
+
+  - [builtins.relay](/config/builtins#builtinsrelay)
+  - [builtins.react](/config/builtins#builtinsreact)
+  - [builtins.emotion](/config/builtins#builtinsemotion)
+  - [builtins.pluginImport](/config/builtins#builtinspluginimport)
+  - [builtins.decorator](/config/builtins#builtinsdecorator)
+  - [builtins.presetEnv](/config/builtins#builtinspresetenv)
+
+  These configuration items should apply to the selected corresponding modules. Using `builtins.(relay|react|emotion|pluginImport|decorator)` is equivalent to enabling them globally. This approach is not recommended, so it will be deprecated.
+
+  After enabling `disableTransformByDefault`, the aforementioned configuration items will become invalid. For a migration guide, refer to [builtin:swc-loader/options.rspackExperiments](/guide/features/loader#optionsrspackexperiments).
+
+  For instance, if we want the `emotion` transformation to apply to all `jsx` files:
+
+  ```js title="rspack.config.js"
+  module.exports = {
+    module: {
+      rules: [
+        {
+          test: /\.jsx$/,
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: "ecmascript",
+                jsx: true
+              }
+            },
+            rspackExperiments: {
+              emotion: true // The same as `builtins`
+            }
+          }
+          type: 'javascript/auto',
+        },
+      ],
+    },
+    experiments: {
+      rspackFuture: {
+        disableTransformByDefault: true
+      }
+    }
+  };
+  ```
+
+  For the decorator configuration, you can find and replace in the SWC code, such as [legacyDecorator](https://swc.rs/docs/configuration/compilation#jsctransformlegacydecorator), [decoratorMetadata](https://swc.rs/docs/configuration/compilation#jsctransformlegacydecorator).
+
+  2. **[target](/config/target) will not downgrade user-side code**
+
+  In **previous** versions, we typically set `target: ["web", "es5"]` to produce web-compatible and downgraded code. Now, when the `disableTransformByDefault` configuration item is enabled, the `target` will only be used to control runtime code (except for user-written code, rspack generated code within node_modules, like chunk loading, etc.)
+
+  This aligns with webpack's plugin-based design philosophy. You can migrate using `builtin:swc-loader`'s [`env`](https://swc.rs/docs/configuration/compilation#env) or [`target`](https://swc.rs/docs/configuration/compilation#jsctarget), and precisely control the modules that need to be transpiled:
+
+  ```js title="rspack.config.js"
+  module.exports = {
+    module: {
+      rules: [
+        {
+          test: /\.[cm]?js$/,
+          exclude: /node_modules/,
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: "ecmascript"
+              },
+              target: "es5" // Notice: `jsc.target` and `env` cannot be set at the same time.
+            },
+            env: { //  Notice: `jsc.target` and `env` cannot be set at the same time.
+              targets: "chrome >= 48"
+            }
+          }
+          type: 'javascript/auto',
+        },
+      ],
+    },
+    experiments: {
+      rspackFuture: {
+        disableTransformByDefault: true
+      }
+    }
+  };
+  ```
+
+  **Note**: When `disableTransformByDefault` is not enabled, the rspack's built-in transpiler will transpile all content under `node_modules`. Therefore, after enabling `disableTransformByDefault`, with `builtin:swc-loader` combined with `exclude: /node_modules/`, ensure the code in `node_modules` has been downgraded; otherwise, compatibility issues may arise.
+
+  3. **Removed non-webpack compatible [Rule.type](/config/module#ruletype)**
+
+  These types have been removed:
+
+  - `"typescript"`
+  - `"jsx"`
+  - `"tsx"`
+
+  For JS-related types, only the following will be retained:
+
+  - `"javascript/auto"`
+  - `"javascript/esm"`
+  - `"javascript/dynamic"`
+
+  With `disableTransformByDefault` enabled, rspack will only support input compliant with web standards, aligning with webpack's design philosophy.
+
+  After discussions with webpack, both webpack and rspack will offer more out-of-the-box configurations to support non-standard inputs like TypeScript.
+
+  Since files with the extensions `jsx`, `tsx`, and `ts` are implicitly set for transpilation, an error will be prompted when `disableTransformByDefault` is enabled. You can migrate like this:
+
+  ```js title="rspack.config.js"
+  module.exports = {
+    module: {
+      rules: [
+        {
+          test: /\.ts$/,
+          exclude: /node_modules/,
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: "typescript"
+              }
+            }
+          }
+          type: 'javascript/auto',
+        },
+      ],
+      {
+        test: /\.tsx$/,
+        exclude: /node_modules/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: "typescript",
+              tsx: true
+            }
+          }
+        }
+        type: 'javascript/auto',
+      },
+      {
+        test: /\.jsx$/,
+        exclude: /node_modules/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: "ecmascript",
+              jsx: true
+            }
+          }
+        }
+      }
+    },
+    experiments: {
+      rspackFuture: {
+        disableTransformByDefault: true
+      }
+    }
+  };
+  ```
+
+### experiments.rspackFuture.newResolver
+
+<ApiMeta
+  addedVersion="0.3.7"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
+
+- **Type:** `boolean`
+- **Introduced in Version:** v0.3.7
+- **Enabled by Default in Version:** v0.4.0
+- **Removed in Version:** v0.5.0
+
+This feature enables the new resolver implementation provided by [oxc](https://github.com/web-infra-dev/oxc),
+which is 5 times faster than the previous resolver implementation.
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    rspackFuture: {
+      newResolver: true,
+    },
+  },
+};
+```
+
+The new resolver also supports [tsconfig project references](https://www.typescriptlang.org/docs/handbook/project-references.html) defined in [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin#references-_string-defaultundefined). See [resolve API](/config/resolve#resolvetsconfig) for details.
+
+```js title="rspack.config.js"
+module.exports = {
+  resolve: {
+    tsconfig: {
+      configFile: path.resolve(__dirname, './tsconfig.json'),
+      references: 'auto'
+    },
+  }
+  experiments: {
+    rspackFuture: {
+      newResolver: true
+    }
+  }
+}
+```
+
+### experiments.rspackFuture.newTreeshaking
+
+<ApiMeta addedVersion="0.4.2" />
+
+- **Type:** `boolean`
+- **Introduced in Version:** v0.4.2
+- **Enabled by Default in Version:** v0.6.0
+
+This feature enables the new treeshaking implementation the same as webpack, which would generate more efficient and smaller code
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    rspackFuture: {
+      newTreeshaking: true,
+    },
+  },
+};
+```
+
+### experiments.rspackFuture.disableApplyEntryLazily
+
+<ApiMeta
+  addedVersion="0.4.5"
+  removedVersion="0.6.0"
+  stability={Stability.Removed}
+/>
+
+- **Type:** `boolean`
+- **Introduced in Version:** v0.4.5
+- **Enabled by Default in Version:** v0.5.0
+- **Removed in Version:** v0.6.0
+
+When this feature is not enabled, `options.entry` can still make valid changes after `compiler.hooks.afterEnvironment` is called.
+
+With this feature turned on, `options.entry` will no longer make valid changes after `compiler.hooks.afterEnvironment` call. This behavior is consistent with Webpack, so this configuration is unaffected for users developing applications in Rspack, but should be noted by developers of Rspack plugins or upper-level frameworks.
+
+A common scenario is to [prepend entries after the Compiler has been created](https://github.com/webpack/webpack-dev-server/blob/540c43852ea33f9cb18820e1cef05d5ddb86cc3e/lib/Server.js#L719-L783):
+
+```js
+const rspack = require('@rspack/core');
+const compiler = rspack(options);
+
+function prependEntry(compiler, additionalEntry) {
+  for (const key in compiler.options.entry) {
+    compiler.options.entry[key].import = [
+      additionalEntry,
+      ...(compiler.options.entry[key].import || []),
+    ];
+  }
+}
+
+prependEntry(compiler, 'dev-client.js');
+```
+
+Modifications will not take effect when this configuration is turned on, and you need to make the following changes:
+
+```js
+const rspack = require('@rspack/core');
+const compiler = rspack(options);
+
+function prependEntry(compiler, additionalEntry) {
+  new compiler.webpack.EntryPlugin(compiler.context, additionalEntry, {
+    name: undefined,
+  }).apply(compiler);
+}
+
+prependEntry(compiler, 'dev-client.js');
+```

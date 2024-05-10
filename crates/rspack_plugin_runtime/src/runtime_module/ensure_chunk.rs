@@ -20,7 +20,7 @@ impl Default for EnsureChunkRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/ensure_chunk"),
       chunk: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -31,16 +31,18 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self.chunk.expect("should have chunk");
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
-    RawSource::from(
-      match runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
-        true => include_str!("runtime/ensure_chunk.js"),
-        false => include_str!("runtime/ensure_chunk_with_inline.js"),
-      },
+    Ok(
+      RawSource::from(
+        match runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+          true => include_str!("runtime/ensure_chunk.js"),
+          false => include_str!("runtime/ensure_chunk_with_inline.js"),
+        },
+      )
+      .boxed(),
     )
-    .boxed()
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

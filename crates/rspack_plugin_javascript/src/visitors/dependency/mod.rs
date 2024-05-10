@@ -5,7 +5,9 @@ mod util;
 
 use rspack_ast::javascript::Program;
 use rspack_core::needs_refactor::WorkerSyntaxList;
-use rspack_core::{AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo};
+use rspack_core::{
+  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, ParserOptions,
+};
 use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::FxHashMap;
@@ -70,10 +72,14 @@ pub fn scan_dependencies(
   build_info: &mut BuildInfo,
   build_meta: &mut BuildMeta,
   module_identifier: ModuleIdentifier,
+  module_parser_options: Option<&ParserOptions>,
 ) -> Result<ScanDependenciesResult, Vec<Box<dyn Diagnostic + Send + Sync>>> {
   let mut parser = JavascriptParser::new(
     source_file,
     compiler_options,
+    module_parser_options
+      .and_then(|p| p.get_javascript())
+      .expect("should at least have a global javascript parser options"),
     program.comments.as_ref().map(|c| c as &dyn Comments),
     &module_identifier,
     module_type,

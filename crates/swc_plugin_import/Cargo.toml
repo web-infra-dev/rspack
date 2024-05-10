@@ -6,8 +6,8 @@ name        = "swc_plugin_import"
 version     = "0.1.5"
 
 [dependencies]
-Inflector  = "0.11.4"
-handlebars = "5.1.0"
+handlebars = "5.1.2"
+heck       = { workspace = true }
 rustc-hash = { workspace = true }
 serde      = { workspace = true }
 swc_core   = { workspace = true, features = ["common", "ecma_ast", "ecma_visit"] }

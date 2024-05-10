@@ -228,8 +228,17 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
       } else if list.len() <= 1 {
         false
       } else {
-        list[0].chars().skip(list[0].len() - 2).collect::<String>()
-          == list[1].chars().skip(list[1].len() - 2).collect::<String>()
+        let s = if list[0].len() >= 2 {
+          list[0].len() - 2
+        } else {
+          list[0].len()
+        };
+        let e = if list[1].len() >= 2 {
+          list[1].len() - 2
+        } else {
+          list[1].len()
+        };
+        list[0].chars().skip(s).collect::<String>() == list[1].chars().skip(e).collect::<String>()
       }
     },
   );

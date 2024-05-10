@@ -1,0 +1,15 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/api/loaders/" />
+
+# Loader API
+
+Rspack Loader 在设计时就是为了复用 Webpack Loader，我们已兼容了大部分 Webpack Loader 的 API，其余部分 API 仍在实现中，所以目前大部分 Webpack Loader 已经能够在 Rspack 中运行。
+
+::: info Webpack Loader API 支持情况
+你可以查看 [这个](https://github.com/orgs/web-infra-dev/projects/10) 页面来了解目前 Webpack Loader API 的支持情况。
+:::
+
+## Inline match resource
+
+webpack v4 中引入了一种新的内联请求语法。

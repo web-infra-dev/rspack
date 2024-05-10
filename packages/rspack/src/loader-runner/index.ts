@@ -8,7 +8,7 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 
-import type { JsLoaderContext } from "@rspack/binding";
+import type { JsLoaderContext, JsLoaderResult } from "@rspack/binding";
 import {
 	OriginalSource,
 	RawSource,
@@ -152,16 +152,18 @@ function getCurrentLoader(
 export async function runLoaders(
 	compiler: Compiler,
 	rawContext: JsLoaderContext
-) {
+): Promise<JsLoaderResult> {
 	const resource = rawContext.resource;
 	const loaderContext: LoaderContext = {} as LoaderContext;
 
 	//
-	const splittedResource = parsePathQueryFragment(resource);
-	const resourcePath = splittedResource.path;
-	const resourceQuery = splittedResource.query;
-	const resourceFragment = splittedResource.fragment;
-	const contextDirectory = dirname(resourcePath);
+	const splittedResource = resource && parsePathQueryFragment(resource);
+	const resourcePath = splittedResource ? splittedResource.path : undefined;
+	const resourceQuery = splittedResource ? splittedResource.query : undefined;
+	const resourceFragment = splittedResource
+		? splittedResource.fragment
+		: undefined;
+	const contextDirectory = resourcePath ? dirname(resourcePath) : null;
 
 	// execution state
 	let cacheable = true;
@@ -207,9 +209,9 @@ export async function runLoaders(
 	loaderContext.context = contextDirectory;
 	loaderContext.loaderIndex = 0;
 	loaderContext.loaders = loaders;
-	loaderContext.resourcePath = resourcePath;
-	loaderContext.resourceQuery = resourceQuery;
-	loaderContext.resourceFragment = resourceFragment;
+	loaderContext.resourcePath = resourcePath!;
+	loaderContext.resourceQuery = resourceQuery!;
+	loaderContext.resourceFragment = resourceFragment!;
 	loaderContext.cacheable = function (flag) {
 		if (flag === false) {
 			cacheable = false;
@@ -245,11 +247,10 @@ export async function runLoaders(
 		options,
 		callback
 	) {
-		const executeModuleKey = request + options.publicPath + options.baseUri;
 		if (!callback) {
 			return new Promise((resolve, reject) => {
-				compiler.compilation
-					.__internal_getInner()
+				compiler
+					.compilation!.__internal_getInner()
 					.importModule(
 						request,
 						options.publicPath,
@@ -279,8 +280,8 @@ export async function runLoaders(
 					);
 			});
 		}
-		return compiler.compilation
-			.__internal_getInner()
+		return compiler
+			.compilation!.__internal_getInner()
 			.importModule(
 				request,
 				options.publicPath,
@@ -460,7 +461,7 @@ export async function runLoaders(
 		};
 	};
 	loaderContext.getLogger = function getLogger(name) {
-		return compiler.compilation.getLogger(
+		return compiler.compilation!.getLogger(
 			[name, resource].filter(Boolean).join("|")
 		);
 	};
@@ -469,7 +470,7 @@ export async function runLoaders(
 		const title = "Module Error";
 		const message =
 			error instanceof Error ? concatErrorMsgAndStack(error) : error;
-		compiler.compilation.pushDiagnostic(
+		compiler.compilation!.pushDiagnostic(
 			"error",
 			title,
 			`${message}\n(from: ${stringifyLoaderObject(
@@ -481,7 +482,7 @@ export async function runLoaders(
 		const title = "Module Warning";
 		const message =
 			warning instanceof Error ? concatErrorMsgAndStack(warning) : warning;
-		compiler.compilation.pushDiagnostic(
+		compiler.compilation!.pushDiagnostic(
 			"warning",
 			title,
 			`${message}\n(from: ${stringifyLoaderObject(
@@ -491,7 +492,7 @@ export async function runLoaders(
 	};
 	loaderContext.__internal__pushNativeDiagnostics =
 		function __internal__pushNativeDiagnostics(diagnostics) {
-			compiler.compilation.__internal__pushNativeDiagnostics(diagnostics);
+			compiler.compilation!.__internal__pushNativeDiagnostics(diagnostics);
 		};
 	loaderContext.emitFile = function emitFile(
 		name,
@@ -509,7 +510,7 @@ export async function runLoaders(
 			) {
 				source = new OriginalSource(
 					content,
-					makePathsRelative(contextDirectory, sourceMap, compiler)
+					makePathsRelative(contextDirectory!, sourceMap, compiler)
 				);
 			}
 
@@ -518,7 +519,7 @@ export async function runLoaders(
 					// @ts-expect-error webpack-sources type declaration is wrong
 					content,
 					name,
-					makePathsRelative(contextDirectory, sourceMap, compiler)
+					makePathsRelative(contextDirectory!, sourceMap, compiler)
 				);
 			}
 		} else {
@@ -535,11 +536,11 @@ export async function runLoaders(
 
 	const getAbsolutify = memoize(() => absolutify.bindCache(compiler.root));
 	const getAbsolutifyInContext = memoize(() =>
-		absolutify.bindContextCache(contextDirectory, compiler.root)
+		absolutify.bindContextCache(contextDirectory!, compiler.root)
 	);
 	const getContextify = memoize(() => contextify.bindCache(compiler.root));
 	const getContextifyInContext = memoize(() =>
-		contextify.bindContextCache(contextDirectory, compiler.root)
+		contextify.bindContextCache(contextDirectory!, compiler.root)
 	);
 
 	loaderContext.utils = {
@@ -555,7 +556,7 @@ export async function runLoaders(
 		},
 		createHash: type => {
 			return createHash(
-				type || compiler.compilation.outputOptions.hashFunction
+				type || compiler.compilation!.outputOptions.hashFunction
 			);
 		}
 	};
@@ -637,7 +638,7 @@ export async function runLoaders(
 				resolve({
 					content: isNil(content) ? undefined : toBuffer(content),
 					sourceMap: serializeObject(sourceMap),
-					additionalData: serializeObject(additionalData),
+					additionalData,
 					buildDependencies,
 					cacheable,
 					fileDependencies,
@@ -661,7 +662,7 @@ export async function runLoaders(
 						: toObject(rawContext.sourceMap),
 					isNil(rawContext.additionalData)
 						? undefined
-						: toObject(rawContext.additionalData)
+						: rawContext.additionalData
 				],
 				(err: Error, result: any[]) => {
 					if (err) {
@@ -671,7 +672,7 @@ export async function runLoaders(
 					resolve({
 						content: isNil(content) ? undefined : toBuffer(content),
 						sourceMap: serializeObject(sourceMap),
-						additionalData: serializeObject(additionalData),
+						additionalData,
 						buildDependencies,
 						cacheable,
 						fileDependencies,

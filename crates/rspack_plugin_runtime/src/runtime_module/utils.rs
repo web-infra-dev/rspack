@@ -4,6 +4,9 @@ use rspack_core::{
   get_chunk_from_ukey, get_js_chunk_filename_template, stringify_map, Chunk, ChunkKind,
   ChunkLoading, ChunkUkey, Compilation, PathData, SourceType,
 };
+use rspack_util::test::{
+  HOT_TEST_ACCEPT, HOT_TEST_DISPOSE, HOT_TEST_OUTDATED, HOT_TEST_RUNTIME, HOT_TEST_UPDATED,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 pub fn get_initial_chunk_ids(
@@ -63,7 +66,7 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
     .get_chunk_modules_by_source_type(
       chunk_ukey,
       SourceType::JavaScript,
-      &compilation.module_graph,
+      &compilation.get_module_graph(),
     )
     .is_empty()
 }
@@ -71,7 +74,7 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
 pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
   !compilation
     .chunk_graph
-    .get_chunk_modules_by_source_type(chunk, SourceType::Css, &compilation.module_graph)
+    .get_chunk_modules_by_source_type(chunk, SourceType::Css, &compilation.get_module_graph())
     .is_empty()
 }
 
@@ -113,7 +116,11 @@ pub fn get_undo_path(filename: &str, p: String, enforce_relative: bool) -> Strin
   }
 }
 
-pub fn get_output_dir(chunk: &Chunk, compilation: &Compilation, enforce_relative: bool) -> String {
+pub fn get_output_dir(
+  chunk: &Chunk,
+  compilation: &Compilation,
+  enforce_relative: bool,
+) -> rspack_error::Result<String> {
   let filename = get_js_chunk_filename_template(
     chunk,
     &compilation.options.output,
@@ -127,12 +134,12 @@ pub fn get_output_dir(chunk: &Chunk, compilation: &Compilation, enforce_relative
         .get(&SourceType::JavaScript)
         .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
     ),
-  );
-  get_undo_path(
+  )?;
+  Ok(get_undo_path(
     output_dir.as_str(),
     compilation.options.output.path.display().to_string(),
     enforce_relative,
-  )
+  ))
 }
 
 pub fn is_enabled_for_chunk(
@@ -257,4 +264,14 @@ fn test_get_undo_path() {
     get_undo_path("static/js/a.js", "/a/b/c".to_string(), false),
     "../../"
   );
+}
+
+pub fn generate_javascript_hmr_runtime(method: &str) -> String {
+  include_str!("runtime/javascript_hot_module_replacement.js")
+    .replace("$key$", method)
+    .replace("$HOT_TEST_OUTDATED$", &HOT_TEST_OUTDATED)
+    .replace("$HOT_TEST_DISPOSE$", &HOT_TEST_DISPOSE)
+    .replace("$HOT_TEST_UPDATED$", &HOT_TEST_UPDATED)
+    .replace("$HOT_TEST_RUNTIME$", &HOT_TEST_RUNTIME)
+    .replace("$HOT_TEST_ACCEPT$", &HOT_TEST_ACCEPT)
 }

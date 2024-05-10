@@ -2,27 +2,28 @@ use std::borrow::Cow;
 use std::hash::Hash;
 use std::iter;
 
-use rspack_core_macros::impl_source_map_config;
 use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_macros::impl_source_map_config;
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  extract_url_and_global, impl_build_info_meta, property_access,
+  extract_url_and_global, impl_module_meta_info, property_access,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  ExternalType, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
-  ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec,
+  ExternalType, FactoryMeta, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions,
+  Module, ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec,
 };
+use crate::{ChunkGraph, ModuleGraph};
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
-static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::Css];
+static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::CssImport];
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
@@ -92,6 +93,7 @@ pub struct ExternalModule {
   external_type: ExternalType,
   /// Request intended by user (without loaders from config)
   user_request: String,
+  factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
 }
@@ -105,9 +107,10 @@ impl ExternalModule {
       request,
       external_type,
       user_request,
+      factory_meta: None,
       build_info: None,
       build_meta: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 
@@ -224,7 +227,7 @@ module.exports = new Promise(function(resolve, reject) {{
       }
       "amd" | "amd-require" | "umd" | "umd2" | "system" | "jsonp" => {
         let id = compilation
-          .module_graph
+          .get_module_graph()
           .module_graph_module_by_identifier(&self.identifier())
           .map(|m| m.id(&compilation.chunk_graph))
           .unwrap_or_default();
@@ -243,7 +246,7 @@ module.exports = new Promise(function(resolve, reject) {{
       "module" if let Some(request) = request => {
         if compilation.options.output.module {
           let id = compilation
-            .module_graph
+            .get_module_graph()
             .module_graph_module_by_identifier(&self.identifier())
             .map(|m| m.id(&compilation.chunk_graph))
             .unwrap_or_default();
@@ -312,7 +315,24 @@ impl DependenciesBlock for ExternalModule {
 
 #[async_trait::async_trait]
 impl Module for ExternalModule {
-  impl_build_info_meta!();
+  impl_module_meta_info!();
+
+  fn get_concatenation_bailout_reason(
+    &self,
+    _mg: &ModuleGraph,
+    _cg: &ChunkGraph,
+  ) -> Option<String> {
+    match self.external_type.as_ref() {
+      "amd" | "umd" | "amd-require" | "umd2" | "system" | "jsonp" => {
+        // return `${this.externalType} externals can't be concatenated`;
+        Some(format!(
+          "{} externals can't be concatenated",
+          self.external_type
+        ))
+      }
+      _ => None,
+    }
+  }
 
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Js
@@ -378,6 +398,7 @@ impl Module for ExternalModule {
       dependencies: Vec::new(),
       blocks: Vec::new(),
       analyze_result: Default::default(),
+      optimization_bailouts: vec![],
     };
     // TODO add exports_type for request
     match self.external_type.as_str() {

@@ -1,0 +1,14 @@
+# Webpack 配置兼容
+
+:::tip
+
+Rspack 目前并不支持所有 webpack 配置，且有些配置会影响构建产物，为了保证构建产物的正确性，Rspack 默认开启了对配置的严格校验，但也提供了宽松模式来方便进行渐进式迁移，你可以通过设置 `RSPACK_CONFIG_VALIDATE` 环境变量进行开启：
+
+```bash
+# 开启宽松校验模式，会打印错误的配置但不会抛出错误
+RSPACK_CONFIG_VALIDATE=loose rspack build
+# 开启宽松校验模式，不打印错误也不抛出错误
+RSPACK_CONFIG_VALIDATE=loose-silent rspack build
+```
+
+:::

@@ -115,7 +115,7 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
       runtime_requirements,
       ..
     } = code_generatable_context;
-
+    let module_graph = compilation.get_module_graph();
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
     let mut require_expr = format!(
@@ -124,19 +124,11 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
       module_id(compilation, &self.id, &self.request, false)
     );
 
-    if let Some(imported_module) = compilation
-      .module_graph
-      .module_graph_module_by_dependency_id(&self.id)
-    {
-      let used = compilation
-        .module_graph
+    if let Some(imported_module) = module_graph.module_graph_module_by_dependency_id(&self.id) {
+      let used = module_graph
         .get_exports_info(&imported_module.module_identifier)
         .id
-        .get_used_name(
-          &compilation.module_graph,
-          *runtime,
-          UsedName::Vec(self.names.clone()),
-        );
+        .get_used_name(&module_graph, *runtime, UsedName::Vec(self.names.clone()));
 
       if let Some(used) = used {
         let comment = to_normal_comment(&property_access(self.names.clone(), 0));

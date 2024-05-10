@@ -1,18 +1,32 @@
 use std::hash::Hash;
+use std::sync::Arc;
 
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  property_access, to_identifier, ChunkUkey, Compilation, JsChunkHashArgs, LibraryOptions, Plugin,
-  PluginContext, PluginJsChunkHashHookOutput, PluginRenderStartupHookOutput, RenderStartupArgs,
+  property_access, to_identifier, ApplyContext, ChunkUkey, Compilation, CompilationParams,
+  CompilerCompilation, CompilerOptions, LibraryOptions, Plugin, PluginContext,
 };
 use rspack_error::{error_bail, Result};
+use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_javascript::{
+  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
+  PluginRenderJsStartupHookOutput, RenderJsStartupArgs,
+};
 
 use crate::utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
 
-#[derive(Debug, Default)]
-pub struct ModuleLibraryPlugin;
+const PLUGIN_NAME: &str = "rspack.ModuleLibraryPlugin";
 
-impl ModuleLibraryPlugin {
+#[plugin]
+#[derive(Debug, Default)]
+pub struct ModuleLibraryPlugin {
+  js_plugin: Arc<ModuleLibraryJavascriptModulesPluginPlugin>,
+}
+
+#[derive(Debug, Default)]
+struct ModuleLibraryJavascriptModulesPluginPlugin;
+
+impl ModuleLibraryJavascriptModulesPluginPlugin {
   fn parse_options(&self, library: &LibraryOptions) -> Result<()> {
     if library.name.is_some() {
       error_bail!("Library name must be unset. {COMMON_LIBRARY_NAME_MESSAGE}")
@@ -32,26 +46,19 @@ impl ModuleLibraryPlugin {
   }
 }
 
-impl Plugin for ModuleLibraryPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.ModuleLibraryPlugin"
-  }
-
-  fn render_startup(
-    &self,
-    _ctx: PluginContext,
-    args: &RenderStartupArgs,
-  ) -> PluginRenderStartupHookOutput {
+impl JavascriptModulesPluginPlugin for ModuleLibraryJavascriptModulesPluginPlugin {
+  fn render_startup(&self, args: &RenderJsStartupArgs) -> PluginRenderJsStartupHookOutput {
     let Some(_) = self.get_options_for_chunk(args.compilation, args.chunk)? else {
       return Ok(None);
     };
     let mut source = ConcatSource::default();
+    let module_graph = args.compilation.get_module_graph();
     source.add(args.source.clone());
     let mut exports = vec![];
     if args.compilation.options.is_new_tree_shaking() {
-      let exports_info = args.compilation.module_graph.get_exports_info(&args.module);
+      let exports_info = module_graph.get_exports_info(&args.module);
       for id in exports_info.get_ordered_exports() {
-        let info = id.get_export_info(&args.compilation.module_graph);
+        let info = id.get_export_info(&module_graph);
         let info_name = info.name.as_ref().expect("name can't be empty").as_str();
         let name = to_identifier(info_name);
         let var_name = format!("__webpack_exports__{name}");
@@ -63,7 +70,7 @@ impl Plugin for ModuleLibraryPlugin {
       }
     } else if let Some(analyze_results) = args
       .compilation
-      .optimize_analyze_result_map
+      .optimize_analyze_result_map()
       .get(&args.module)
     {
       use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
@@ -86,15 +93,41 @@ impl Plugin for ModuleLibraryPlugin {
     Ok(Some(source.boxed()))
   }
 
-  fn js_chunk_hash(
-    &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
+  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
     let Some(_) = self.get_options_for_chunk(args.compilation, args.chunk_ukey)? else {
       return Ok(());
     };
-    self.name().hash(&mut args.hasher);
+    PLUGIN_NAME.hash(&mut args.hasher);
+    Ok(())
+  }
+}
+
+#[plugin_hook(CompilerCompilation for ModuleLibraryPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
+  drive.add_plugin(self.js_plugin.clone());
+  Ok(())
+}
+
+impl Plugin for ModuleLibraryPlugin {
+  fn name(&self) -> &'static str {
+    PLUGIN_NAME
+  }
+
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
     Ok(())
   }
 }

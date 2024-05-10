@@ -16,7 +16,7 @@ impl Default for SystemContextRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/start_entry_point"),
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -27,11 +27,13 @@ impl RuntimeModule for SystemContextRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(format!(
-      "{} = __system_context__",
-      RuntimeGlobals::SYSTEM_CONTEXT
-    ))
-    .boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(
+      RawSource::from(format!(
+        "{} = __system_context__",
+        RuntimeGlobals::SYSTEM_CONTEXT
+      ))
+      .boxed(),
+    )
   }
 }

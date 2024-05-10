@@ -3,9 +3,10 @@ use rspack_core::{extract_member_expression_chain, ConstDependency, DependencyTy
 use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{
-  AssignExpr, AssignOp, Callee, ImportSpecifier, ModuleExportName, OptChainExpr,
+  AssignExpr, AssignOp, AssignTarget, AssignTargetPat, Callee, ImportSpecifier, ModuleExportName,
+  OptChainExpr,
 };
-use swc_core::ecma::ast::{Expr, Ident, ImportDecl, Pat, PatOrExpr};
+use swc_core::ecma::ast::{Expr, Ident, ImportDecl};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::{
@@ -308,7 +309,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
   // import * as a from 'a';
   // const { value } = a;
   fn assign(&self, parser: &mut JavascriptParser, assign_expr: &AssignExpr) -> Option<bool> {
-    if let PatOrExpr::Pat(box Pat::Object(object_pat)) = &assign_expr.left
+    if let AssignTarget::Pat(AssignTargetPat::Object(object_pat)) = &assign_expr.left
       && assign_expr.op == AssignOp::Assign
       && let box Expr::Ident(ident) = &assign_expr.right
       && let Some(reference) = parser.import_map.get(&ident.to_id())

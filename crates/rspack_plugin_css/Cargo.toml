@@ -7,8 +7,7 @@ version    = "0.1.0"
 
 [dependencies]
 async-trait = { workspace = true }
-bitflags = { workspace = true }
-heck = "0.4.1"
+heck = { workspace = true }
 indexmap = { version = "=1.9.3", features = ["serde-1"] } # pinned by rkyv
 once_cell = { workspace = true }
 rayon = { workspace = true }
@@ -23,7 +22,6 @@ rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
 rspack_util = { path = "../rspack_util" }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
-sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
   "css_ast",
   "css_codegen",
@@ -38,8 +36,3 @@ swc_core = { workspace = true, features = [
 ] }
 tracing = { workspace = true }
 urlencoding = { workspace = true }
-
-[dev-dependencies]
-hrx-parser     = "0.1.1"
-insta          = { workspace = true }
-rspack_testing = { path = "../rspack_testing" }

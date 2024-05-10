@@ -31,11 +31,11 @@ English | [简体中文](./README.zh-CN.md)
 - 🛠️ **Production Optimization**: Various optimization strategies are built in by default, such as tree shaking, minification, etc.
 - 🎯 **Framework Agnostic**: Not bound to any frontend framework, ensuring enough flexibility.
 
-Read [Introduction](https://rspack.dev/guide/introduction.html) for details.
+Read [Introduction](https://rspack.dev/guide/start/introduction) for details.
 
 ## Getting Started
 
-- [Quick Start](https://rspack.dev/guide/quick-start.html)
+- [Quick Start](https://rspack.dev/guide/start/quick-start)
 
 ## Contribution
 
@@ -51,13 +51,15 @@ Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and R
 
 ## Links
 
-| Name                                                                                    | Description                                                                   |
-| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| [Rspack website](https://rspack.dev)                                                    | Official documentation for Rspack                                             |
-| [Rspack website repo](https://github.com/web-infra-dev/rspack-website)                  | Repository of official documentation                                          |
-| [Rspack examples repo](https://github.com/rspack-contrib/rspack-examples)               | Rspack configuration examples                                                 |
-| [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                       | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
-| [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase) | Migration showcases for Rspack                                                |
+| Name                                                                                     | Description                                                                   |
+| ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [Rspack website](https://rspack.dev)                                                     | Official documentation for Rspack                                             |
+| [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack)                        | A curated list of awesome things related to Rspack                            |
+| [rspack-examples](https://github.com/rspack-contrib/rspack-examples)                     | Rspack configuration examples                                                 |
+| [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                        | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
+| [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase)  | Migration showcases for Rspack                                                |
+| [rspack-compat](https://github.com/web-infra-dev/rspack-compat)                          | Rspack compatible loaders and plugins examples                                |
+| [rsfamily-design-resources](https://github.com/rspack-contrib/rsfamily-design-resources) | Design resources for Rspack, Rsbuild, Rspress and Rsdoctor                    |
 
 ## Contributors
 
@@ -79,10 +81,12 @@ Thanks to:
 - The [NAPI-RS](https://github.com/napi-rs/napi-rs) project created by [@Brooooooklyn](https://github.com/Brooooooklyn), which powers Rspack's node-binding implementation.
 - The [Parcel](https://github.com/parcel-bundler/parcel) project created by [@devongovett](https://github.com/devongovett) which is the pioneer of rust bundler and inspired Rspack's incremental rebuild design.
 - The [Vite](https://github.com/vitejs/vite) project created by [Evan You](https://github.com/yyx990803) which inspired Rspack's compatibility design of webpack's ecosystem.
-- The [Rolldown](https://github.com/rolldown-rs/rolldown) project created by [Rolldown team](https://github.com/rolldown-rs), which explores the possibility of making a performant bundler in Rust with Rollup-compatible API. It inspires the design principles of Rspack.
+- The [rolldown-legacy](https://github.com/rolldown-rs/rolldown-legacy) project created by old [Rolldown team](https://github.com/rolldown-rs), It's the predecessor of the [rolldown](https://github.com/rolldown) project, which explores the possibility of making a performant bundler in Rust with Rollup-compatible API. It inspires the design principles of Rspack.
 - The [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) project created by [@jantimon](https://github.com/jantimon), `@rspack/html-plugin` is a fork of [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) to avoid some webpack API usage not supported in Rspack.
 - The [Turbopack](https://github.com/vercel/turbo) project which inspired the AST path logic of Rspack.
 - The [react-refresh-webpack-plugin](https://github.com/pmmmwh/react-refresh-webpack-plugin) created by [@pmmmwh](https://github.com/pmmmwh), which inspires implement react refresh.
+- The [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) project created by [@sokra](https://github.com/sokra) which inspired implement css extract plugin.
+- The [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) project created by [@kevlened](https://github.com/kevlened) which inspired implement copy rspack plugin.
 
 ## License
 

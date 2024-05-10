@@ -40,7 +40,7 @@ pub fn get_used_module_ids_and_modules(
   //   }
 
   compilation
-    .module_graph
+    .get_module_graph()
     .modules()
     .values()
     .for_each(|module| {
@@ -229,9 +229,10 @@ pub fn assign_names_par<T: Copy + Send>(
       items.sort_unstable_by(&comparator);
       let mut i = 0;
       for item in items {
-        let formatted_name = format!("{name}{i}");
+        let mut formatted_name = format!("{name}{i}");
         while name_to_items_keys.contains(&formatted_name) && used_ids.contains(&formatted_name) {
           i += 1;
+          formatted_name = format!("{name}{i}");
         }
         assign_name(item, formatted_name.clone());
         used_ids.insert(formatted_name);
@@ -494,7 +495,7 @@ fn compare_chunks_by_modules(
   let a_modules = chunk_graph.get_ordered_chunk_modules(&a.ukey, module_graph);
   let b_modules = chunk_graph.get_ordered_chunk_modules(&b.ukey, module_graph);
 
-  a_modules
+  let eq = a_modules
     .into_iter()
     .zip_longest(b_modules)
     .find_map(|pair| match pair {
@@ -513,7 +514,15 @@ fn compare_chunks_by_modules(
       Left(_) => Some(Ordering::Greater),
       Right(_) => Some(Ordering::Less),
     })
-    .unwrap_or(Ordering::Equal)
+    .unwrap_or(Ordering::Equal);
+
+  // 2 chunks are exactly the same, we have to compare
+  // the ukey to get stable results
+  if matches!(eq, Ordering::Equal) {
+    return a.ukey.cmp(&b.ukey);
+  }
+
+  eq
 }
 
 pub fn compare_chunks_natural(

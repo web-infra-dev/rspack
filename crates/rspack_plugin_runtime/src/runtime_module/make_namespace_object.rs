@@ -16,7 +16,7 @@ impl Default for MakeNamespaceObjectRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/make_namespace_object"),
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -27,7 +27,7 @@ impl RuntimeModule for MakeNamespaceObjectRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/make_namespace_object.js")).boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(include_str!("runtime/make_namespace_object.js")).boxed())
   }
 }

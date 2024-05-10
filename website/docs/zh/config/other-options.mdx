@@ -1,0 +1,36 @@
+import { ApiMeta } from '../../../components/ApiMeta';
+
+# 其他配置
+
+这里展示了 rspack 支持的其余配置项。
+
+## bail
+
+<ApiMeta addedVersion="0.4.5" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+遇到第一个错误时退出。Rspack 在默认情况下会在命令行以及在 HMR 时的浏览器 console 中打印这些错误，并且继续编译。
+
+```js title="rspack.config.js"
+module.exports = {
+  bail: true,
+};
+```
+
+这会强制 rspack 终止编译流程。
+
+## ignoreWarnings
+
+- **类型：** `(RegExp | ((warning: Error, Compilation: Compilation) => boolean))[]`
+- **默认值：** `undefined`
+
+告知 Rspack 忽略特定的警告。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  ignoreWarnings: [/warning from compiler/, warning => true],
+};
+```

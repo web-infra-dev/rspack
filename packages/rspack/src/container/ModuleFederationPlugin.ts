@@ -1,9 +1,9 @@
-import path from "node:path";
 import { ExternalsType, externalsType } from "../config";
 import { Compiler } from "../Compiler";
 import { type ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
 import { parseOptions } from "./options";
 import { isValidate } from "../util/validate";
+import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
 
 export interface ModuleFederationPluginOptions
 	extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
@@ -30,6 +30,7 @@ export class ModuleFederationPlugin {
 				{ name: undefined }
 			).apply(compiler);
 		});
+		new ModuleFederationRuntimePlugin().apply(compiler);
 		new webpack.container.ModuleFederationPluginV1({
 			...this._options,
 			enhanced: true

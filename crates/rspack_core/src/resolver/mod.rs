@@ -8,11 +8,15 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{Error, MietteExt};
 use rspack_loader_runner::DescriptionData;
-use sugar_path::{AsPath, SugarPath};
+use rustc_hash::FxHashSet;
+use sugar_path::SugarPath;
 
 pub use self::factory::{ResolveOptionsWithDependencyType, ResolverFactory};
 pub use self::resolver_impl::{ResolveInnerOptions, Resolver};
-use crate::{ResolveArgs, SharedPluginDriver};
+use crate::{
+  Context, DependencyCategory, DependencyType, ErrorSpan, ModuleIdentifier, Resolve,
+  SharedPluginDriver,
+};
 
 static RELATIVE_PATH_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^\.\.?\/").expect("should init regex"));
@@ -22,6 +26,22 @@ static PARENT_PATH_REGEX: Lazy<Regex> =
 
 static CURRENT_DIR_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(\.[\/])").expect("should init regex"));
+
+#[derive(Debug)]
+pub struct ResolveArgs<'a> {
+  pub importer: Option<&'a ModuleIdentifier>,
+  pub issuer: Option<&'a str>,
+  pub context: Context,
+  pub specifier: &'a str,
+  pub dependency_type: &'a DependencyType,
+  pub dependency_category: &'a DependencyCategory,
+  pub span: Option<ErrorSpan>,
+  pub resolve_options: Option<Box<Resolve>>,
+  pub resolve_to_context: bool,
+  pub optional: bool,
+  pub file_dependencies: &'a mut FxHashSet<PathBuf>,
+  pub missing_dependencies: &'a mut FxHashSet<PathBuf>,
+}
 
 /// A successful path resolution or an ignored path.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -36,8 +56,8 @@ pub enum ResolveResult {
 #[derive(Clone)]
 pub struct Resource {
   pub path: PathBuf,
-  pub query: Option<String>,
-  pub fragment: Option<String>,
+  pub query: String,
+  pub fragment: String,
   pub description_data: Option<DescriptionData>,
 }
 
@@ -58,12 +78,8 @@ impl Resource {
   /// Get the full path with query and fragment attached.
   pub fn full_path(&self) -> PathBuf {
     let mut buf = format!("{}", self.path.display());
-    if let Some(query) = self.query.as_ref() {
-      buf.push_str(query);
-    }
-    if let Some(fragment) = self.fragment.as_ref() {
-      buf.push_str(fragment);
-    }
+    buf.push_str(&self.query);
+    buf.push_str(&self.fragment);
     PathBuf::from(buf)
   }
 }
@@ -103,7 +119,7 @@ pub fn resolve_for_error_hints(
     let resolver = plugin_driver.resolver_factory.get(dep);
     match resolver.resolve(base_dir, args.specifier) {
       Ok(ResolveResult::Resource(resource)) => {
-        let relative_path = resource.path.relative(args.context.as_path());
+        let relative_path = resource.path.relative(args.context);
         let suggestion = if let Some((_, [prefix])) = CURRENT_DIR_REGEX
           .captures_iter(args.specifier)
           .next()
@@ -223,7 +239,7 @@ which tries to resolve these kind of requests in the current directory too.",
               file.ok().and_then(|file| {
                 file.path().file_stem().and_then(|file_stem| {
                   if requested_names.contains(&file_stem.to_string_lossy().to_string()) {
-                    let mut suggestion = file.path().relative(args.context.as_path());
+                    let mut suggestion = file.path().relative(&args.context);
 
                     if !suggestion.to_string_lossy().starts_with('.') {
                       suggestion = PathBuf::from(format!("./{}", suggestion.to_string_lossy()));

@@ -1,0 +1,20 @@
+[
+  "faq",
+  "glossary",
+  "benchmark",
+  {
+    "type": "dir",
+    "name": "planning",
+    "label": "Planning"
+  },
+  {
+    "type": "dir",
+    "name": "team",
+    "label": "Team"
+  },
+  {
+    "type": "dir",
+    "name": "branding",
+    "label": "Branding"
+  }
+]

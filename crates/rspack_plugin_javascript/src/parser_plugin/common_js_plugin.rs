@@ -13,7 +13,7 @@ impl JavascriptParserPlugin for CommonJsPlugin {
     expr: &swc_core::ecma::ast::UnaryExpr,
     _for_name: &str,
   ) -> Option<bool> {
-    if expr_matcher::is_module(&expr.arg) && parser.is_unresolved_ident("module") {
+    if expr_matcher::is_module(&*expr.arg) && parser.is_unresolved_ident("module") {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -37,6 +37,8 @@ impl JavascriptParserPlugin for CommonJsPlugin {
         .push(Box::new(RuntimeRequirementsDependency::new(
           RuntimeGlobals::MODULE_ID,
         )));
+
+      parser.build_info.module_concatenation_bailout = Some(RuntimeGlobals::MODULE_ID.to_string());
       Some(true)
     } else if expr_matcher::is_module_loaded(&expr) {
       parser
@@ -44,6 +46,8 @@ impl JavascriptParserPlugin for CommonJsPlugin {
         .push(Box::new(RuntimeRequirementsDependency::new(
           RuntimeGlobals::MODULE_LOADED,
         )));
+      parser.build_info.module_concatenation_bailout =
+        Some(RuntimeGlobals::MODULE_LOADED.to_string());
       Some(true)
     } else {
       None

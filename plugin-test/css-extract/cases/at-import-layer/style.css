@@ -1,0 +1,8 @@
+@import url("./import-with-layer.css") layer(framework);
+@import url("./unnamed-layer.css") layer;
+/* prettier-ignore */
+@import url("./import-with-layer-and-supports-and-media.css") layer(default) supports(display: flex) (prefers-color-scheme: dark);
+
+.top {
+  background: red;
+}

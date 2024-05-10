@@ -1,0 +1,35 @@
+```html title=inject_body.html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>rspack</title>
+  <link href="/main.css" rel="stylesheet" /></head>
+  <body>
+  
+<script src="/runtime.js" defer></script><script src="/main.js" defer></script></body></html>
+```
+
+```html title=inject_false.html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>rspack</title>
+  </head>
+  <body>
+  
+</body></html>
+```
+
+```html title=inject_head.html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>rspack</title>
+  <script src="/runtime.js" defer></script><script src="/main.js" defer></script><link href="/main.css" rel="stylesheet" /></head>
+  <body>
+  
+</body></html>
+```

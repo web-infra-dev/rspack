@@ -17,13 +17,6 @@
   "eslint.enable": false,
   "cSpell.allowCompoundWords": true,
   "cSpell.caseSensitive": true,
-  "json.schemas": [
-    {
-      "fileMatch": ["test.config.json"],
-      // Point to the options schema of rspack.
-      "url": "./crates/rspack_testing/test.config.scheme.json"
-    }
-  ],
   "rust-analyzer.procMacro.enable": true,
   "rust-analyzer.procMacro.attributes.enable": true,
   "rust-analyzer.linkedProjects": [
@@ -32,7 +25,9 @@
     "./crates/rspack_plugin_ensure_chunk_conditions/Cargo.toml"
   ],
   "files.associations": {
-    "*.snap": "markdown"
+    "*.snap": "markdown",
+    "*.snap.txt": "markdown",
+    "*.json": "jsonc"
   },
   "cSpell.words": [
     "contextify",

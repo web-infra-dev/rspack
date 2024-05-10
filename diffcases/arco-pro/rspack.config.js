@@ -1,6 +1,6 @@
 const path = require("path");
 const rspack = require("@rspack/core");
-const { default: HtmlPlugin } = require("@rspack/plugin-html");
+const HtmlPlugin = require("html-webpack-plugin");
 
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
@@ -13,12 +13,19 @@ const config = {
 			{
 				test: /\.less$/,
 				use: "less-loader",
-				type: "css"
+				type: "css",
+				generator: {
+					exportsOnly: true
+				}
 			},
 			{
 				test: /\.module\.less$/,
 				use: "less-loader",
-				type: "css/module"
+				type: "css/module",
+				generator: {
+					exportsOnly: true,
+					localIdentName: "[uniqueName]---[path][name][ext]-[local]"
+				}
 			},
 			{
 				test: /\.svg$/,
@@ -29,7 +36,7 @@ const config = {
 				exclude: [/[\\/]node_modules[\\/]/],
 				loader: "builtin:swc-loader",
 				options: {
-					sourceMap: false,
+					sourceMaps: false,
 					jsc: {
 						parser: {
 							syntax: "typescript"
@@ -46,7 +53,7 @@ const config = {
 				loader: "builtin:swc-loader",
 				exclude: [/[\\/]node_modules[\\/]/],
 				options: {
-					sourceMap: false,
+					sourceMaps: false,
 					jsc: {
 						parser: {
 							syntax: "typescript",
@@ -123,14 +130,6 @@ const config = {
 		css: true,
 		rspackFuture: {
 			newTreeshaking: true
-		}
-	},
-	builtins: {
-		css: {
-			modules: {
-				exportsOnly: true,
-				localIdentName: "example-arco-design-pro---[path][name][ext]-[local]"
-			}
 		}
 	}
 };

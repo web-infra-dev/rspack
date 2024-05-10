@@ -59,33 +59,16 @@ import {
 	FlagDependencyExportsPlugin,
 	FlagDependencyUsagePlugin,
 	SideEffectsFlagPlugin,
+	SizeLimitsPlugin,
 	BundlerInfoRspackPlugin,
 	ModuleConcatenationPlugin,
-	EvalDevToolModulePlugin
+	EvalDevToolModulePlugin,
+	JsLoaderRspackPlugin,
+	CssModulesPlugin,
+	APIPlugin,
+	RuntimeChunkPlugin
 } from "./builtin-plugin";
-import { deprecatedWarn } from "./util";
-
-export function applyEntryOptions(
-	compiler: Compiler,
-	options: RspackOptionsNormalized
-) {
-	if (!options.experiments.rspackFuture!.disableApplyEntryLazily) {
-		deprecatedWarn(
-			`You are depending on apply entry lazily (https://rspack.dev/config/experiments.html#experimentsrspackfuturedisableapplyentrylazily), this behavior has been deprecated, you can setup 'experiments.rspackFuture.disableApplyEntryLazily = true' to disable this behavior, and this will be enabled by default in v0.5`
-		);
-	}
-	if (compiler.parentCompilation === undefined) {
-		if (options.experiments.rspackFuture!.disableApplyEntryLazily) {
-			new EntryOptionPlugin().apply(compiler);
-		} else {
-			EntryOptionPlugin.applyEntryOption(
-				compiler,
-				compiler.context,
-				options.entry
-			);
-		}
-	}
-}
+import { assertNotNill } from "./util/assertNotNil";
 
 export class RspackOptionsApply {
 	constructor() {}
@@ -183,11 +166,7 @@ export class RspackOptionsApply {
 		const runtimeChunk = options.optimization
 			.runtimeChunk as OptimizationRuntimeChunkNormalized;
 		if (runtimeChunk) {
-			Object.entries(options.entry).forEach(([entryName, value]) => {
-				if (value.runtime === undefined) {
-					value.runtime = runtimeChunk.name({ name: entryName });
-				}
-			});
+			new RuntimeChunkPlugin(runtimeChunk).apply(compiler);
 		}
 
 		if (options.devtool) {
@@ -202,7 +181,7 @@ export class RspackOptionsApply {
 					? EvalSourceMapDevToolPlugin
 					: SourceMapDevToolPlugin;
 				new Plugin({
-					filename: inline ? undefined : options.output.sourceMapFilename,
+					filename: inline ? null : options.output.sourceMapFilename,
 					moduleFilenameTemplate: options.output.devtoolModuleFilenameTemplate,
 					fallbackModuleFilenameTemplate:
 						options.output.devtoolFallbackModuleFilenameTemplate,
@@ -226,14 +205,12 @@ export class RspackOptionsApply {
 		if (options.experiments.asyncWebAssembly) {
 			new AsyncWebAssemblyModulesPlugin().apply(compiler);
 		}
-
-		if (options.experiments.rspackFuture!.disableApplyEntryLazily) {
-			applyEntryOptions(compiler, options);
+		if (options.experiments.css) {
+			new CssModulesPlugin().apply(compiler);
 		}
-		assert(
-			options.context,
-			"options.context should have value after `applyRspackOptionsDefaults`"
-		);
+
+		new EntryOptionPlugin().apply(compiler);
+		assertNotNill(options.context);
 		compiler.hooks.entryOption.call(options.context, options.entry);
 
 		new RuntimePlugin().apply(compiler);
@@ -245,6 +222,7 @@ export class RspackOptionsApply {
 		}
 
 		new InferAsyncModulesPlugin().apply(compiler);
+		new APIPlugin().apply(compiler);
 
 		new DataUriPlugin().apply(compiler);
 		new FileUriPlugin().apply(compiler);
@@ -340,6 +318,10 @@ export class RspackOptionsApply {
 					item.apply(compiler);
 				}
 			}
+		}
+
+		if (options.performance) {
+			new SizeLimitsPlugin(options.performance).apply(compiler);
 		}
 
 		new WarnCaseSensitiveModulesPlugin().apply(compiler);

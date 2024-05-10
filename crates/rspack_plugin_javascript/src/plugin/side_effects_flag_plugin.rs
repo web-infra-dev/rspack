@@ -2,18 +2,22 @@ use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use once_cell::sync::Lazy;
+use rspack_core::tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects};
 use rspack_core::{
-  Compilation, ConnectionState, ModuleGraph, ModuleIdentifier, MutexModuleGraph, Plugin,
-  ResolvedExportInfoTarget,
+  BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, FactoryMeta,
+  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, MutableModuleGraph,
+  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, ResolvedExportInfoTarget,
+  SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook};
 use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
+use sugar_path::SugarPath;
 // use rspack_core::Plugin;
 // use rspack_error::Result;
-use swc_core::common::{comments, Span, Spanned, SyntaxContext, GLOBALS};
+use swc_core::common::{comments, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
@@ -25,7 +29,7 @@ use crate::dependency::{
 
 pub struct SideEffectsFlagPluginVisitor<'a> {
   unresolved_ctxt: SyntaxContext,
-  pub side_effects_span: Option<Span>,
+  pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   is_top_level: bool,
   comments: Option<&'a SwcComments>,
 }
@@ -34,7 +38,7 @@ impl<'a> Debug for SideEffectsFlagPluginVisitor<'a> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("SideEffectsFlagPluginVisitor")
       .field("unresolved_ctxt", &self.unresolved_ctxt)
-      .field("side_effects_span", &self.side_effects_span)
+      .field("side_effects_span", &self.side_effects_item)
       .field("is_top_level", &self.is_top_level)
       .finish()
   }
@@ -55,7 +59,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
   pub fn new(mark_info: SyntaxContextInfo, comments: Option<&'a SwcComments>) -> Self {
     Self {
       unresolved_ctxt: mark_info.unresolved_ctxt,
-      side_effects_span: None,
+      side_effects_item: None,
       is_top_level: true,
       comments,
     }
@@ -83,7 +87,10 @@ impl<'a> Visit for SideEffectsFlagPluginVisitor<'a> {
           }
           ModuleDecl::ExportDefaultExpr(expr) => {
             if !is_pure_expression(&expr.expr, self.unresolved_ctxt, self.comments) {
-              self.side_effects_span = Some(node.span);
+              self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+                expr.span,
+                String::from("ExportDefaultExpr"),
+              ));
             }
           }
           // export * from './x'
@@ -113,7 +120,10 @@ impl<'a> Visit for SideEffectsFlagPluginVisitor<'a> {
 
   fn visit_export_decl(&mut self, node: &ExportDecl) {
     if !is_pure_decl(&node.decl, self.unresolved_ctxt, self.comments) {
-      self.side_effects_span = Some(node.decl.span());
+      self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+        node.decl.span(),
+        String::from("Decl"),
+      ));
     }
     node.visit_children_with(self);
   }
@@ -156,23 +166,32 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
   /// If we find a stmt that has side effects, we will skip the rest of the stmts.
   /// And mark the module as having side effects.
   fn analyze_stmt_side_effects(&mut self, ele: &Stmt) {
-    if self.side_effects_span.is_some() {
+    if self.side_effects_item.is_some() {
       return;
     }
     match ele {
       Stmt::If(stmt) => {
         if !is_pure_expression(&stmt.test, self.unresolved_ctxt, self.comments) {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
         }
       }
       Stmt::While(stmt) => {
         if !is_pure_expression(&stmt.test, self.unresolved_ctxt, self.comments) {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
         }
       }
       Stmt::DoWhile(stmt) => {
         if !is_pure_expression(&stmt.test, self.unresolved_ctxt, self.comments) {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
         }
       }
       Stmt::For(stmt) => {
@@ -189,7 +208,10 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
         };
 
         if !pure_init {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
           return;
         }
 
@@ -199,7 +221,10 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
         };
 
         if !pure_test {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
           return;
         }
 
@@ -209,28 +234,45 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
         };
 
         if !pure_update {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
         }
       }
       Stmt::Expr(stmt) => {
         if !is_pure_expression(&stmt.expr, self.unresolved_ctxt, self.comments) {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
         }
       }
       Stmt::Switch(stmt) => {
         if !is_pure_expression(&stmt.discriminant, self.unresolved_ctxt, self.comments) {
-          self.side_effects_span = Some(stmt.span);
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
         }
       }
       Stmt::Decl(stmt) => {
         if !is_pure_decl(stmt, self.unresolved_ctxt, self.comments) {
-          self.side_effects_span = Some(stmt.span());
+          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+            stmt.span(),
+            String::from("Statement"),
+          ));
         }
       }
       Stmt::Empty(_) => {}
       Stmt::Labeled(_) => {}
       Stmt::Block(_) => {}
-      _ => self.side_effects_span = Some(ele.span()),
+      _ => {
+        self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
+          ele.span(),
+          String::from("Statement"),
+        ))
+      }
     };
   }
 }
@@ -469,127 +511,185 @@ impl ClassExt for ClassMember {
   }
 }
 
+#[plugin]
 #[derive(Debug, Default)]
 pub struct SideEffectsFlagPlugin;
 
-#[async_trait]
+#[plugin_hook(NormalModuleFactoryModule for SideEffectsFlagPlugin)]
+async fn nmf_module(
+  &self,
+  _data: &mut ModuleFactoryCreateData,
+  create_data: &mut NormalModuleCreateData,
+  module: &mut BoxModule,
+) -> Result<()> {
+  if let Some(has_side_effects) = create_data.side_effects {
+    module.set_factory_meta(FactoryMeta {
+      side_effect_free: Some(!has_side_effects),
+      side_effect_free_old: None,
+    });
+    return Ok(());
+  }
+  let resource_data = &create_data.resource_resolve_data;
+  let resource_path = &resource_data.resource_path;
+  let Some(description) = resource_data.resource_description.as_ref() else {
+    return Ok(());
+  };
+  let package_path = description.path();
+  let Some(side_effects) = SideEffects::from_description(description.json()) else {
+    return Ok(());
+  };
+  let relative_path = resource_path.relative(package_path);
+  let has_side_effects = get_side_effects_from_package_json(side_effects, relative_path);
+  module.set_factory_meta(FactoryMeta {
+    side_effect_free: Some(!has_side_effects),
+    side_effect_free_old: None,
+  });
+  Ok(())
+}
+
+#[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin)]
+fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  let entries = compilation.entry_modules().collect::<Vec<_>>();
+  let level_order_module_identifier =
+    get_level_order_module_ids(&compilation.get_module_graph(), entries);
+  for module_identifier in level_order_module_identifier {
+    let module_graph = compilation.get_module_graph();
+    let mut module_chain = HashSet::default();
+    // dbg!(&module_identifier);
+    let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
+      continue;
+    };
+    let side_effects_state =
+      module.get_side_effects_connection_state(&module_graph, &mut module_chain);
+    if side_effects_state != rspack_core::ConnectionState::Bool(false) {
+      continue;
+    }
+    let cur_exports_info_id = module_graph.get_exports_info(&module_identifier).id;
+
+    let incoming_connections = module_graph
+      .module_graph_module_by_identifier(&module_identifier)
+      .map(|mgm| mgm.incoming_connections().clone())
+      .unwrap_or_default();
+    for con_id in incoming_connections {
+      let mut module_graph = compilation.get_module_graph_mut();
+      let con = module_graph
+        .connection_by_connection_id(&con_id)
+        .expect("should have connection");
+      let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) else {
+        continue;
+      };
+      let dep_id = *dep.id();
+      let is_reexport = dep
+        .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+        .is_some();
+      let is_valid_import_specifier_dep = dep
+        .downcast_ref::<HarmonyImportSpecifierDependency>()
+        .map(|import_specifier_dep| !import_specifier_dep.namespace_object_as_context)
+        .unwrap_or_default();
+      if !is_reexport && !is_valid_import_specifier_dep {
+        continue;
+      }
+      if let Some(name) = dep
+        .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+        .and_then(|dep| dep.name.clone())
+      {
+        let export_info_id = module_graph.get_export_info(
+          con
+            .original_module_identifier
+            .expect("should have original_module_identifier"),
+          &name,
+        );
+        export_info_id.move_target(
+          &mut module_graph,
+          Arc::new(|target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
+            mg.module_by_identifier(&target.module)
+              .expect("should have module")
+              .get_side_effects_connection_state(mg, &mut HashSet::default())
+              == ConnectionState::Bool(false)
+          }),
+          Arc::new(
+            move |target: &ResolvedExportInfoTarget, mg: &mut ModuleGraph| {
+              mg.update_module(&dep_id, &target.module);
+              // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
+              let ids = dep_id.get_ids(mg);
+              let processed_ids = target
+                .export
+                .as_ref()
+                .map(|item| {
+                  let mut ret = Vec::from_iter(item.iter().cloned());
+                  ret.extend_from_slice(ids.get(1..).unwrap_or_default());
+                  ret
+                })
+                .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
+              dep_id.set_ids(processed_ids, mg);
+              mg.connection_by_dependency(&dep_id).map(|_| dep_id)
+            },
+          ),
+        );
+        continue;
+      }
+
+      let ids = dep_id.get_ids(&module_graph);
+
+      if !ids.is_empty() {
+        let export_info_id = cur_exports_info_id.get_export_info(&ids[0], &mut module_graph);
+
+        let mut mga = MutableModuleGraph::new(&mut module_graph);
+        let target = export_info_id.get_target(
+          &mut mga,
+          Some(Arc::new(
+            |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
+              mg.module_by_identifier(&target.module)
+                .expect("should have module graph")
+                .get_side_effects_connection_state(mg, &mut HashSet::default())
+                == ConnectionState::Bool(false)
+            },
+          )),
+        );
+        let Some(target) = target else {
+          continue;
+        };
+
+        // dbg!(&mg.connection_by_dependency(&dep_id));
+        module_graph.update_module(&dep_id, &target.module);
+        // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
+        let processed_ids = target
+          .export
+          .map(|mut item| {
+            item.extend_from_slice(&ids[1..]);
+            item
+          })
+          .unwrap_or_else(|| ids[1..].to_vec());
+
+        // dbg!(&mg.connection_by_dependency(&dep_id));
+        dep_id.set_ids(processed_ids, &mut module_graph);
+      }
+    }
+  }
+  Ok(None)
+}
+
 impl Plugin for SideEffectsFlagPlugin {
   fn name(&self) -> &'static str {
     "SideEffectsFlagPlugin"
   }
 
-  async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
-    let entries = compilation.entry_modules().collect::<Vec<_>>();
-    let mg = &mut compilation.module_graph;
-    let level_order_module_identifier = get_level_order_module_ids(mg, entries);
-    for module_identifier in level_order_module_identifier {
-      let mut module_chain = HashSet::default();
-      // dbg!(&module_identifier);
-      let Some(module) = mg.module_by_identifier(&module_identifier) else {
-        continue;
-      };
-      let side_effects_state = module.get_side_effects_connection_state(mg, &mut module_chain);
-      if side_effects_state != rspack_core::ConnectionState::Bool(false) {
-        continue;
-      }
-      let cur_exports_info_id = mg.get_exports_info(&module_identifier).id;
-
-      let incoming_connections = mg.get_incoming_connections_cloned(module);
-      for con in incoming_connections {
-        let Some(dep) = mg.dependency_by_id(&con.dependency_id) else {
-          continue;
-        };
-        let dep_id = *dep.id();
-        let is_reexport = dep
-          .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
-          .is_some();
-        let is_valid_import_specifier_dep = dep
-          .downcast_ref::<HarmonyImportSpecifierDependency>()
-          .map(|import_specifier_dep| !import_specifier_dep.namespace_object_as_context)
-          .unwrap_or_default();
-        if !is_reexport && !is_valid_import_specifier_dep {
-          continue;
-        }
-        if let Some(name) = dep
-          .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
-          .and_then(|dep| dep.name.clone())
-        {
-          let export_info_id = mg.get_export_info(
-            con
-              .original_module_identifier
-              .expect("should have original_module_identifier"),
-            &name,
-          );
-          export_info_id.move_target(
-            mg,
-            Arc::new(|target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
-              mg.module_by_identifier(&target.module)
-                .expect("should have module")
-                .get_side_effects_connection_state(mg, &mut HashSet::default())
-                == ConnectionState::Bool(false)
-            }),
-            Arc::new(
-              move |target: &ResolvedExportInfoTarget, mg: &mut ModuleGraph| {
-                mg.update_module(&dep_id, &target.module);
-                // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
-                let ids = dep_id.get_ids(mg);
-                let processed_ids = target
-                  .export
-                  .as_ref()
-                  .map(|item| {
-                    let mut ret = Vec::from_iter(item.iter().cloned());
-                    ret.extend_from_slice(ids.get(1..).unwrap_or_default());
-                    ret
-                  })
-                  .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
-                dep_id.set_ids(processed_ids, mg);
-                mg.connection_by_dependency(&dep_id).cloned()
-              },
-            ),
-          );
-          continue;
-        }
-
-        let ids = dep_id.get_ids(mg);
-        // dbg!(&ids);
-
-        if !ids.is_empty() {
-          let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
-
-          let target = MutexModuleGraph::new(mg).with_lock(|mut mga| {
-            export_info_id.get_target(
-              &mut mga,
-              Some(Arc::new(
-                |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
-                  mg.module_by_identifier(&target.module)
-                    .expect("should have module graph")
-                    .get_side_effects_connection_state(mg, &mut HashSet::default())
-                    == ConnectionState::Bool(false)
-                },
-              )),
-            )
-          });
-          let Some(target) = target else {
-            continue;
-          };
-
-          // dbg!(&mg.connection_by_dependency(&dep_id));
-          mg.update_module(&dep_id, &target.module);
-          // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
-          let processed_ids = target
-            .export
-            .map(|mut item| {
-              item.extend_from_slice(&ids[1..]);
-              item
-            })
-            .unwrap_or_else(|| ids[1..].to_vec());
-
-          // dbg!(&mg.connection_by_dependency(&dep_id));
-          dep_id.set_ids(processed_ids, mg);
-        }
-      }
-    }
-    Ok(None)
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut rspack_core::CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .module
+      .tap(nmf_module::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_dependencies
+      .tap(optimize_dependencies::new(self));
+    Ok(())
   }
 }
 
@@ -608,14 +708,17 @@ fn get_level_order_module_ids(
         visited.insert(mi);
         res.push(mi);
       }
-      let Some(m) = mg.module_by_identifier(&mi) else {
-        continue;
-      };
-      for con in mg.get_outgoing_connections(m) {
-        let mi = con.module_identifier;
+      for con in mg.get_outgoing_connections(&mi) {
+        let mi = *con.module_identifier();
         q.push_back(mi);
       }
     }
   }
+
+  res.sort_by(|a, b| {
+    let ad = mg.get_depth(a);
+    let bd = mg.get_depth(b);
+    ad.cmp(&bd)
+  });
   res
 }

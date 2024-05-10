@@ -2,6 +2,7 @@ use std::fmt::Debug;
 
 use dyn_clone::{clone_trait_object, DynClone};
 use rspack_sources::{BoxSource, ReplaceSource};
+use rspack_util::ext::AsAny;
 
 use crate::{
   AsDependency, Compilation, ConcatenationScope, DependencyId, Module, ModuleInitFragments,
@@ -22,7 +23,7 @@ pub type TemplateReplaceSource = ReplaceSource<BoxSource>;
 clone_trait_object!(DependencyTemplate);
 
 // Align with https://github.com/webpack/webpack/blob/671ac29d462e75a10c3fdfc785a4c153e41e749e/lib/DependencyTemplate.js
-pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsDependency {
+pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsDependency + AsAny {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,

@@ -6,7 +6,7 @@ use std::{
 use concat_string::concat_string;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use sugar_path::{AsPath, SugarPath};
+use sugar_path::SugarPath;
 
 static SEGMENTS_SPLIT_REGEXP: Lazy<Regex> = Lazy::new(|| Regex::new(r"([|!])").expect("TODO:"));
 static WINDOWS_ABS_PATH_REGEXP: Lazy<Regex> =

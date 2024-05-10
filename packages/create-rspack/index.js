@@ -12,21 +12,29 @@ yargs(hideBin(process.argv))
 		const { help } = argv.argv;
 		if (help) return;
 
+		const onCancel = () => {
+			console.log("Operation cancelled.");
+			process.exit(0);
+		};
+
 		const defaultProjectName = "rspack-project";
 		let template = "react";
 		let targetDir = defaultProjectName;
 		const promptProjectDir = async () =>
-			await prompts([
-				{
-					type: "text",
-					name: "projectDir",
-					initial: defaultProjectName,
-					message: "Project folder",
-					onState: state => {
-						targetDir = formatTargetDir(state.value) || defaultProjectName;
+			await prompts(
+				[
+					{
+						type: "text",
+						name: "projectDir",
+						initial: defaultProjectName,
+						message: "Project folder",
+						onState: state => {
+							targetDir = formatTargetDir(state.value) || defaultProjectName;
+						}
 					}
-				}
-			]);
+				],
+				{ onCancel }
+			);
 
 		await promptProjectDir();
 		let root = path.resolve(process.cwd(), targetDir);

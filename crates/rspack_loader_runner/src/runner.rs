@@ -57,9 +57,21 @@ impl ResourceData {
     self.scheme.get_or_init(|| get_scheme(&self.resource))
   }
 
+  pub fn set_resource(&mut self, v: String) {
+    self.resource = v;
+  }
+
+  pub fn set_path(&mut self, v: PathBuf) {
+    self.resource_path = v;
+  }
+
   pub fn query(mut self, v: String) -> Self {
     self.resource_query = Some(v);
     self
+  }
+
+  pub fn set_query(&mut self, v: String) {
+    self.resource_query = Some(v);
   }
 
   pub fn query_optional(mut self, v: Option<String>) -> Self {
@@ -67,14 +79,26 @@ impl ResourceData {
     self
   }
 
+  pub fn set_query_optional(&mut self, v: Option<String>) {
+    self.resource_query = v;
+  }
+
   pub fn fragment(mut self, v: String) -> Self {
     self.resource_fragment = Some(v);
     self
   }
 
+  pub fn set_fragment(&mut self, v: String) {
+    self.resource_fragment = Some(v);
+  }
+
   pub fn fragment_optional(mut self, v: Option<String>) -> Self {
     self.resource_fragment = v;
     self
+  }
+
+  pub fn set_fragment_optional(&mut self, v: Option<String>) {
+    self.resource_fragment = v;
   }
 
   pub fn description(mut self, v: DescriptionData) -> Self {
@@ -92,9 +116,17 @@ impl ResourceData {
     self
   }
 
+  pub fn set_mimetype(&mut self, v: String) {
+    self.mimetype = Some(v);
+  }
+
   pub fn parameters(mut self, v: String) -> Self {
     self.parameters = Some(v);
     self
+  }
+
+  pub fn set_parameters(&mut self, v: String) {
+    self.parameters = Some(v);
   }
 
   pub fn encoding(mut self, v: String) -> Self {
@@ -102,9 +134,17 @@ impl ResourceData {
     self
   }
 
+  pub fn set_encoding(&mut self, v: String) {
+    self.encoding = Some(v);
+  }
+
   pub fn encoded_content(mut self, v: String) -> Self {
     self.encoded_content = Some(v);
     self
+  }
+
+  pub fn set_encoded_content(&mut self, v: String) {
+    self.encoded_content = Some(v);
   }
 }
 
@@ -145,19 +185,6 @@ pub struct LoaderContext<'c, C> {
   /// It will be `None` at pitching stage.
   pub content: Option<Content>,
 
-  /// The resource part of the request, including query and fragment.
-  /// E.g. /abc/resource.js?query=1#some-fragment
-  pub resource: &'c str,
-  /// The resource part of the request.
-  /// E.g. /abc/resource.js
-  pub resource_path: &'c Path,
-  /// The query of the request
-  /// E.g. query=1
-  pub resource_query: Option<&'c str>,
-  /// The fragment of the request
-  /// E.g. some-fragment
-  pub resource_fragment: Option<&'c str>,
-
   pub context: C,
   pub source_map: Option<SourceMap>,
   pub additional_data: AdditionalData,
@@ -182,7 +209,7 @@ pub struct LoaderContext<'c, C> {
   pub __plugins: &'c [&'c dyn LoaderRunnerPlugin<Context = C>],
   // Only used for cross-crate accessing.
   // This field should not be accessed in builtin loaders.
-  pub __resource_data: &'c ResourceData,
+  pub __resource_data: &'c mut ResourceData,
   // Only used for cross-crate accessing.
   // This field should not be accessed in builtin loaders.
   pub __diagnostics: Vec<Diagnostic>,
@@ -220,6 +247,30 @@ impl<'c, C> LoaderContext<'c, C> {
   pub fn emit_diagnostic(&mut self, diagnostic: Diagnostic) {
     self.__diagnostics.push(diagnostic)
   }
+
+  /// The resource part of the request, including query and fragment.
+  /// E.g. /abc/resource.js?query=1#some-fragment
+  pub fn resource(&self) -> &str {
+    &self.__resource_data.resource
+  }
+
+  /// The resource part of the request.
+  /// E.g. /abc/resource.js
+  pub fn resource_path(&self) -> &Path {
+    &self.__resource_data.resource_path
+  }
+
+  /// The query of the request
+  /// E.g. query=1
+  pub fn resource_query(&self) -> Option<&str> {
+    self.__resource_data.resource_query.as_deref()
+  }
+
+  /// The fragment of the request
+  /// E.g. some-fragment
+  pub fn resource_fragment(&self) -> Option<&str> {
+    self.__resource_data.resource_fragment.as_deref()
+  }
 }
 
 async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) -> Result<()> {
@@ -232,24 +283,29 @@ async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) ->
     }
   }
 
-  if loader_context.content.is_none()
-    && !loader_context
-      .__resource_data
-      .resource_path
-      .to_string_lossy()
-      .is_empty()
-  {
-    let result = tokio::fs::read(&loader_context.__resource_data.resource_path)
-      .await
-      .map_err(|e| {
-        let r = loader_context
-          .__resource_data
-          .resource_path
-          .to_string_lossy()
-          .to_string();
-        error!("{e}, failed to read {r}")
-      })?;
-    loader_context.content = Some(Content::from(result));
+  let resource_data = &loader_context.__resource_data;
+  if loader_context.content.is_none() {
+    if !resource_data.resource_path.to_string_lossy().is_empty() {
+      let result = tokio::fs::read(&loader_context.__resource_data.resource_path)
+        .await
+        .map_err(|e| {
+          let r = loader_context
+            .__resource_data
+            .resource_path
+            .to_string_lossy()
+            .to_string();
+          error!("{e}, failed to read {r}")
+        })?;
+      loader_context.content = Some(Content::from(result));
+    } else if !resource_data.get_scheme().is_none() {
+      let resource = &resource_data.resource;
+      let scheme = resource_data.get_scheme();
+      return Err(error!(
+        r#"Reading from "{resource}" is not handled by plugins (Unhandled scheme).
+Rspack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "{scheme}:" URIs."#
+      ));
+    }
   }
 
   // Bail out if loader does not exist,
@@ -271,9 +327,10 @@ async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) ->
 
 async fn create_loader_context<'c, C: 'c>(
   __loader_items: &'c [LoaderItem<C>],
-  resource_data: &'c ResourceData,
+  resource_data: &'c mut ResourceData,
   plugins: &'c [&dyn LoaderRunnerPlugin<Context = C>],
   context: C,
+  additional_data: AdditionalData,
 ) -> Result<LoaderContext<'c, C>> {
   let mut file_dependencies: HashSet<PathBuf> = Default::default();
   if resource_data.resource_path.is_absolute() {
@@ -289,13 +346,9 @@ async fn create_loader_context<'c, C: 'c>(
     build_dependencies: Default::default(),
     asset_filenames: Default::default(),
     content: None,
-    resource: &resource_data.resource,
-    resource_path: &resource_data.resource_path,
-    resource_query: resource_data.resource_query.as_deref(),
-    resource_fragment: resource_data.resource_fragment.as_deref(),
     context,
     source_map: None,
-    additional_data: Default::default(),
+    additional_data,
     __loader_index: 0,
     __loader_items: LoaderItemList(__loader_items),
     __plugins: plugins,
@@ -416,19 +469,26 @@ impl<C> TryFrom<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
   }
 }
 
-pub async fn run_loaders<C: Send>(
+pub async fn run_loaders<C: 'static + Send>(
   loaders: &[Arc<dyn Loader<C>>],
-  resource_data: &ResourceData,
+  resource_data: &mut ResourceData,
   plugins: &[&dyn LoaderRunnerPlugin<Context = C>],
   context: C,
+  additional_data: AdditionalData,
 ) -> Result<TWithDiagnosticArray<LoaderResult>> {
   let loaders = loaders
     .iter()
     .map(|i| i.clone().into())
     .collect::<Vec<LoaderItem<C>>>();
 
-  let mut loader_context =
-    create_loader_context(&loaders[..], resource_data, plugins, context).await?;
+  let mut loader_context = create_loader_context(
+    &loaders[..],
+    resource_data,
+    plugins,
+    context,
+    additional_data,
+  )
+  .await?;
 
   assert!(loader_context.content.is_none());
   iterate_pitching_loaders(&mut loader_context).await?;
@@ -475,7 +535,7 @@ mod test {
       Ok(())
     }
 
-    async fn process_resource(&self, _resource_data: &ResourceData) -> Result<Option<Content>> {
+    async fn process_resource(&self, _resource_data: &mut ResourceData) -> Result<Option<Content>> {
       Ok(Some(Content::Buffer(vec![])))
     }
   }
@@ -507,7 +567,7 @@ mod test {
           i.borrow_mut().push(
             loader_context
               .current_request()
-              .display_with_suffix(loader_context.resource),
+              .display_with_suffix(loader_context.resource()),
           );
         });
         Ok(())
@@ -522,7 +582,7 @@ mod test {
     let p1 = Arc::new(Pitching) as Arc<dyn Loader<()>>;
     let i0 = p1.identifier();
 
-    let rs = ResourceData {
+    let mut rs = ResourceData {
       scheme: OnceCell::new(),
       resource: "/rspack/main.js?abc=123#efg".to_owned(),
       resource_description: None,
@@ -535,9 +595,15 @@ mod test {
       encoded_content: None,
     };
 
-    run_loaders(&[c1, p1, c2, c3], &rs, &[&TestContentPlugin], ())
-      .await
-      .unwrap();
+    run_loaders(
+      &[c1, p1, c2, c3],
+      &mut rs,
+      &[&TestContentPlugin],
+      (),
+      Default::default(),
+    )
+    .await
+    .unwrap();
 
     IDENTS.with(|i| {
       let i = i.borrow();
@@ -695,7 +761,7 @@ mod test {
     let p1 = Arc::new(Pitching) as Arc<dyn Loader<()>>;
     let p2 = Arc::new(Pitching2) as Arc<dyn Loader<()>>;
 
-    let rs = ResourceData {
+    let mut rs = ResourceData {
       scheme: OnceCell::new(),
       resource: "/rspack/main.js?abc=123#efg".to_owned(),
       resource_description: None,
@@ -708,9 +774,15 @@ mod test {
       encoded_content: None,
     };
 
-    run_loaders(&[p1, p2, c1, c2], &rs, &[&TestContentPlugin], ())
-      .await
-      .unwrap();
+    run_loaders(
+      &[p1, p2, c1, c2],
+      &mut rs,
+      &[&TestContentPlugin],
+      (),
+      Default::default(),
+    )
+    .await
+    .unwrap();
     IDENTS.with(|i| assert_eq!(*i.borrow(), &["pitch1", "pitch2", "normal2", "normal1"]));
     IDENTS.with(|i| i.borrow_mut().clear());
 
@@ -718,9 +790,15 @@ mod test {
     let p2 = Arc::new(PitchNormal) as Arc<dyn Loader<()>>;
     let p3 = Arc::new(PitchNormal2) as Arc<dyn Loader<()>>;
 
-    run_loaders(&[p1, p2, p3], &rs, &[&TestContentPlugin], ())
-      .await
-      .unwrap();
+    run_loaders(
+      &[p1, p2, p3],
+      &mut rs,
+      &[&TestContentPlugin],
+      (),
+      Default::default(),
+    )
+    .await
+    .unwrap();
     IDENTS.with(|i| {
       // should not execute p3, as p2 pitched successfully.
       assert!(!i.borrow().contains(&"pitch-normal-normal-2".to_string()));
@@ -770,7 +848,7 @@ mod test {
       }
     }
 
-    let rs = ResourceData {
+    let mut rs = ResourceData {
       scheme: OnceCell::new(),
       resource: "/rspack/main.js?abc=123#efg".to_owned(),
       resource_description: None,
@@ -785,9 +863,10 @@ mod test {
 
     run_loaders(
       &[Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)],
-      &rs,
+      &mut rs,
       &[&TestContentPlugin],
       (),
+      Default::default(),
     )
     .await
     .unwrap();
