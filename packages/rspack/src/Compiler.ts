@@ -515,7 +515,7 @@ class Compiler {
 						createData: arg.createData
 					};
 					const ret = await queried.promise(data);
-					return [!!ret, ret];
+					return [ret, data.createData];
 				}
 			),
 			registerNormalModuleFactoryCreateModuleTaps: this.#createHookRegisterTaps(

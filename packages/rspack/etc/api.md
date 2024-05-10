@@ -1474,8 +1474,12 @@ class ContextModuleFactory {
     constructor();
     // (undocumented)
     hooks: {
-        beforeResolve: liteTapable.AsyncSeriesWaterfallHook<[ContextModuleFactoryBeforeResolveResult], ContextModuleFactoryBeforeResolveResult | void>;
-        afterResolve: liteTapable.AsyncSeriesWaterfallHook<[ContextModuleFactoryAfterResolveResult], ContextModuleFactoryAfterResolveResult | void>;
+        beforeResolve: liteTapable.AsyncSeriesWaterfallHook<[
+        ContextModuleFactoryBeforeResolveResult
+        ], ContextModuleFactoryBeforeResolveResult | void>;
+        afterResolve: liteTapable.AsyncSeriesWaterfallHook<[
+        ContextModuleFactoryAfterResolveResult
+        ], ContextModuleFactoryAfterResolveResult | void>;
     };
 }
 
