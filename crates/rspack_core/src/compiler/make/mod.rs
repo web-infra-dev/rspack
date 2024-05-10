@@ -1,15 +1,15 @@
 mod cutout;
+mod file_counter;
 pub mod repair;
 
-use std::{hash::BuildHasherDefault, path::PathBuf};
+use std::path::PathBuf;
 
-use indexmap::IndexSet;
 use rayon::prelude::*;
 use rspack_error::{Diagnostic, Result};
 use rspack_identifier::{IdentifierMap, IdentifierSet};
-use rustc_hash::{FxHashSet as HashSet, FxHasher};
+use rustc_hash::FxHashSet as HashSet;
 
-use self::{cutout::Cutout, repair::repair};
+use self::{cutout::Cutout, file_counter::FileCounter, repair::repair};
 use crate::{
   tree_shaking::{visitor::OptimizeAnalyzeResult, BailoutFlag},
   BuildDependency, Compilation, DependencyId, DependencyType, ModuleGraph, ModuleGraphPartial,
@@ -26,10 +26,10 @@ pub struct MakeArtifact {
   entry_dependencies: HashSet<DependencyId>,
   entry_module_identifiers: IdentifierSet,
   pub optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
-  pub file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  pub context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  pub missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+  pub file_dependencies: FileCounter,
+  pub context_dependencies: FileCounter,
+  pub missing_dependencies: FileCounter,
+  pub build_dependencies: FileCounter,
 
   pub has_module_graph_change: bool,
 }
@@ -53,21 +53,55 @@ impl MakeArtifact {
   // TODO remove it
   fn move_data_from_compilation(&mut self, compilation: &mut Compilation) {
     self.entry_module_identifiers = std::mem::take(&mut compilation.entry_module_identifiers);
-    self.file_dependencies = std::mem::take(&mut compilation.file_dependencies);
-    self.context_dependencies = std::mem::take(&mut compilation.context_dependencies);
-    self.missing_dependencies = std::mem::take(&mut compilation.missing_dependencies);
-    self.build_dependencies = std::mem::take(&mut compilation.build_dependencies);
+    //    self.file_dependencies = std::mem::take(&mut compilation.file_dependencies);
+    //    self.context_dependencies = std::mem::take(&mut compilation.context_dependencies);
+    //    self.missing_dependencies = std::mem::take(&mut compilation.missing_dependencies);
+    //    self.build_dependencies = std::mem::take(&mut compilation.build_dependencies);
   }
 
   // TODO remove it
   fn move_data_to_compilation(&mut self, compilation: &mut Compilation) {
     compilation.entry_module_identifiers = std::mem::take(&mut self.entry_module_identifiers);
-    compilation.file_dependencies = std::mem::take(&mut self.file_dependencies);
-    compilation.context_dependencies = std::mem::take(&mut self.context_dependencies);
-    compilation.missing_dependencies = std::mem::take(&mut self.missing_dependencies);
-    compilation.build_dependencies = std::mem::take(&mut self.build_dependencies);
+    compilation
+      .file_dependencies
+      .extend(self.file_dependencies.files().cloned());
+    compilation
+      .context_dependencies
+      .extend(self.context_dependencies.files().cloned());
+    compilation
+      .missing_dependencies
+      .extend(self.missing_dependencies.files().cloned());
+    compilation
+      .build_dependencies
+      .extend(self.build_dependencies.files().cloned());
 
     compilation.push_batch_diagnostic(std::mem::take(&mut self.diagnostics));
+  }
+
+  fn revoke_modules(&mut self, ids: HashSet<ModuleIdentifier>) -> Vec<BuildDependency> {
+    let mut module_graph = ModuleGraph::new(vec![], Some(&mut self.module_graph_partial));
+    let mut res = vec![];
+    for module_identifier in &ids {
+      let module = module_graph
+        .module_by_identifier(module_identifier)
+        .expect("should have module");
+      if let Some(build_info) = module.build_info() {
+        self
+          .file_dependencies
+          .remove_batch_file(&build_info.file_dependencies);
+        self
+          .context_dependencies
+          .remove_batch_file(&build_info.context_dependencies);
+        self
+          .missing_dependencies
+          .remove_batch_file(&build_info.missing_dependencies);
+        self
+          .build_dependencies
+          .remove_batch_file(&build_info.build_dependencies);
+      }
+      res.extend(module_graph.revoke_module(module_identifier));
+    }
+    res
   }
 }
 

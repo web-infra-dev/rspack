@@ -3,14 +3,13 @@ pub mod build;
 pub mod factorize;
 pub mod process_dependencies;
 
-use std::{hash::BuildHasherDefault, path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
-use indexmap::IndexSet;
 use rspack_error::{Diagnostic, Result};
 use rspack_identifier::{IdentifierMap, IdentifierSet};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use super::MakeArtifact;
+use super::{file_counter::FileCounter, MakeArtifact};
 use crate::{
   cache::Cache,
   module_graph::{ModuleGraph, ModuleGraphPartial},
@@ -49,10 +48,10 @@ pub struct MakeTaskContext {
   entry_module_identifiers: IdentifierSet,
   diagnostics: Vec<Diagnostic>,
   optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
-  file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+  file_dependencies: FileCounter,
+  context_dependencies: FileCounter,
+  missing_dependencies: FileCounter,
+  build_dependencies: FileCounter,
   has_module_graph_change: bool,
 }
 

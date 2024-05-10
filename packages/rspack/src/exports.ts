@@ -122,11 +122,17 @@ export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlug
 
 import NodeTemplatePlugin from "./node/NodeTemplatePlugin";
 import { NodeTargetPlugin } from "./builtin-plugin";
+import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 interface Node {
 	NodeTargetPlugin: typeof NodeTargetPlugin;
 	NodeTemplatePlugin: typeof NodeTemplatePlugin;
+	NodeEnvironmentPlugin: typeof NodeEnvironmentPlugin;
 }
-export const node: Node = { NodeTargetPlugin, NodeTemplatePlugin };
+export const node: Node = {
+	NodeTargetPlugin,
+	NodeTemplatePlugin,
+	NodeEnvironmentPlugin
+};
 
 import { ElectronTargetPlugin } from "./builtin-plugin";
 interface Electron {

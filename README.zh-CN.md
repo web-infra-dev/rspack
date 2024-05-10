@@ -49,7 +49,8 @@
 
 | 名称                                                                                     | 描述                                                                         |
 | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [Rspack 文档](https://rspack.dev)                                                        | Rspack 官方文档                                                              |
+| [Rspack 文档](https://rspack.dev/zh/)                                                    | Rspack 官方文档                                                              |
+| [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack)                        | 与 Rspack 相关的精彩内容列表                                                 |
 | [rspack-examples](https://github.com/rspack-contrib/rspack-examples)                     | Rspack 配置示例                                                              |
 | [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                        | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
 | [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase)  | 迁移到 Rspack 的示例项目                                                     |

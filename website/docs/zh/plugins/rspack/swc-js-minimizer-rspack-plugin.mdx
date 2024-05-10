@@ -49,6 +49,7 @@ new rspack.SwcJsMinimizerRspackPlugin(options);
     extractComments?: boolean | RegExp;
     compress?: TerserCompressOptions | boolean;
     mangle?: TerserMangleOptions | boolean;
+    module?: boolean;
     format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
 
     test?: MinifyConditions;
