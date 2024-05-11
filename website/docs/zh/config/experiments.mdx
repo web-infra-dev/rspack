@@ -140,7 +140,7 @@ module.exports = {
 
   在**以往**的版本中，我们通常会配置 `target: ["web", "es5"]` 来生成适用于 web 和降级后的代码。
 
-  现在，当用户开启了 `disableTransformByDefault` 配置项后，`target` 仅会被用于控制 runtime 代码（除了用户编写、node_modules 内的 rspack 生成的代码，例如 chunk 加载等等）
+  现在，当用户开启了 `disableTransformByDefault` 配置项后，`target` 仅会被用于控制 runtime 代码（除了用户编写、node_modules 内的 Rspack 生成的代码，例如 chunk 加载等等）
 
   这和 webpack 的插件化设计思维完成了对齐，你可以使用 `builtin:swc-loader` 的 [`env`](https://swc.rs/docs/configuration/compilation#env) 或 [`target`](https://swc.rs/docs/configuration/compilation#jsctarget) 进行迁移，
   并精确控制需要转译的模块：
@@ -193,9 +193,9 @@ module.exports = {
   - `"javascript/esm"`
   - `"javascript/dynamic"`
 
-  在开启 `disableTransformByDefault` 后，rspack 仅支持符合 web 标准的输入，对齐 webpack 的设计理念。
+  在开启 `disableTransformByDefault` 后，Rspack 仅支持符合 web 标准的输入，对齐 webpack 的设计理念。
 
-  在我们完成和 webpack 的讨论后，webpack 和 rspack 将会提供更加开箱即用的配置，以支持非标准的输入，如 TypeScript 等。
+  在我们完成和 webpack 的讨论后，webpack 和 Rspack 将会提供更加开箱即用的配置，以支持非标准的输入，如 TypeScript 等。
 
   由于目前对于 `jsx`, `tsx`, `ts` 后缀名的文件会隐式地开启转译，因此在开启 `disableTransformByDefault` 后会提示编译报错，你可以这样完成迁移：
 

@@ -92,7 +92,7 @@ module.exports = {
 
 ### 移除 css-loader 、 style-loader 和 mini-css-extract-plugin
 
-Rspack 内置支持了 css 模块类型 ，原生 css 模块类型内置了对 css、css hmr、css module 以及 css 提取功能的支持，这意味着你不需要再为 css 文件单独配置 css-loader、style-loader 和 mini-css-extract-plugin。
+Rspack 内置支持了 CSS 模块类型 ，原生 CSS 模块类型内置了对 CSS、CSS HMR、CSS Modules 以及 CSS 提取功能的支持，这意味着你不需要再为 CSS 文件单独配置 css-loader、style-loader 和 mini-css-extract-plugin。
 
 ```diff
 -const MiniCssExtractPlugin = require("mini-css-extract-plugin");
@@ -134,7 +134,7 @@ Rspack 内置支持了 css 模块类型 ，原生 css 模块类型内置了对 c
 
 ### CssExtractPlugin
 
-如果依赖 css-loader，例如 css-loader 提供的一些更加定制化的配置项，仍然可以使用 style-loader + css-loader 方案，如果你想要在生产环境将 css 提取成单独的文件，可以使用 Rspack 内置的 CssExtractRspackPlugin 插件。
+如果依赖 css-loader，例如 css-loader 提供的一些更加定制化的配置项，仍然可以使用 style-loader + css-loader 方案，如果你想要在生产环境将 CSS 提取成单独的文件，可以使用 Rspack 内置的 CssExtractRspackPlugin 插件。
 
 CssExtractRspackPlugin 插件功能和配置与 mini-css-extract-plugin 类似，使用前请确保开启了 `experiments.rspackFuture.newTreeshaking`，v0.6 之后的版本默认开启。
 

@@ -149,7 +149,7 @@ module.exports = {
 
 ### Make @swc/helpers and react-refresh as peerDependencies
 
-Before we remove default transformation, it's possible to use it to degrade your code to es5 by `target`, and insert the react refresh helper code into your react component by `builtin.react.refresh`, so we installed the `@swc/helpers` and `react-refresh` as the dependencies of `@rspack/core`, to provide the out-of-box experience. But since we removed the default transformation now, and recommend using rsbuild for the out-of-box experience, the `@swc/helpers` and `react-refresh` no longer need to be installed by `@rspack/core`, and we make them as peerDependencies of `@rspack/core`.
+Before we remove default transformation, it's possible to use it to degrade your code to es5 by `target`, and insert the react refresh helper code into your react component by `builtin.react.refresh`, so we installed the `@swc/helpers` and `react-refresh` as the dependencies of `@rspack/core`, to provide the out-of-box experience. But since we removed the default transformation now, and recommend using Rsbuild for the out-of-box experience, the `@swc/helpers` and `react-refresh` no longer need to be installed by `@rspack/core`, and we make them as peerDependencies of `@rspack/core`.
 
 If you are using `externalHelpers: true` with `builtin:swc-loader` or `swc-loader`, now you need to install `@swc/helpers` as dependencies of your project. If you are using `@rspack/plugin-react-refresh`, now you need to install `react-refresh` as devDependencies of your project.
 

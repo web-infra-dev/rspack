@@ -5,9 +5,9 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta addedVersion={'0.6.0'} />
 
-Rspack currently does not support mini-css-extract-plugin, but it can be replaced with this plugin and used in conjunction with css-loader to extract css into separate files.
+Rspack currently does not support mini-css-extract-plugin, but it can be replaced with this plugin and used in conjunction with css-loader to extract CSS into separate files.
 
-If your project does not depend on css-loader, it is recommended to use the built-in css solution experiments.css of Rspack for better performance.
+If your project does not depend on css-loader, it is recommended to use the built-in CSS solution experiments.css of Rspack for better performance.
 
 - options
 
@@ -89,7 +89,7 @@ If your project does not depend on css-loader, it is recommended to use the buil
         type: '`string | ((linkTag: HTMLLinkElement) => void)`',
         default: 'undefined',
         description:
-          'Decide how the link tag is inserted into the page. If passed as a string type，it will be regarded as dom selector，and the link tag will be inserted after element corresponding to that selector。If passed as function type，the function will be converted into a String at runtime for invocation，with link tag as parameter',
+          'Decide how the link tag is inserted into the page. If passed as a string type, it will be regarded as DOM selector, and the link tag will be inserted after element corresponding to that selector. If passed as function type, the function will be converted into a String at runtime for invocation, with link tag as parameter',
       },
       {
         name: '`attributes`',
