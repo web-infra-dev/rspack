@@ -1,0 +1,175 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/plugins/internal-plugins/" />
+
+# Internal plugins
+
+This is a list of plugins used internally by Rspack, aligned with the plugins used internally by webpack.
+
+:::warning
+You should only concern yourself with these plugins if you are building your own compiler based on Rspack, or for internal inspection.
+:::
+
+Categories of internal plugins:
+
+- [environment](#environment)
+- [compiler](#compiler)
+- [entry](#entry)
+- [output](#output)
+- [source](#source)
+- [optimize](#optimize)
+- [loader](#loader)
+- [module federation](#module-federation)
+
+## environment
+
+Plugins affecting the environment of the compiler.
+
+### ElectronTargetPlugin
+
+`electron.ElectronTargetPlugin(context)`
+
+Customizes the handling of external dependencies for different contexts (such as main process, preload scripts, and renderer process) in Electron applications.
+
+[`externalsPresets.electron`](/config/externals#electron), [`externalsPresets.electronMain`](/config/externals#electronmain), [`externalsPresets.electronRenderer`](/config/externals#electronrenderer), and [`externalsPresets.electronPreload`](/config/externals#electronpreload) all rely on this plugin.
+
+### NodeEnvironmentPlugin
+
+`node.NodeEnvironmentPlugin()`
+
+Applies Node.js style filesystem to the compiler.
+
+## compiler
+
+Plugins affecting the compiler.
+
+### ProgressPlugin
+
+`ProgressPlugin(handler)`
+
+Hook into the compiler to extract progress information. The `handler` must have the signature `function(percentage, message)`. Percentage is called with a value between 0 and 1, where 0 indicates the start and 1 the end.
+
+## entry
+
+Plugins, which add entry chunks to the compilation.
+
+### EntryPlugin
+
+`EntryPlugin(context, entry, options)`
+
+Adds an entry chunk on compilation. The chunk is named `options.name` and contains only one module (plus dependencies). The module is resolved from `entry` in `context` (absolute path).
+
+- `context`: The base path for module resolution, under which the entry module resolution will be conducted.
+- `entry`: Specifies the module path to be used as an entry point.
+- `options`: Additional configurations for the entry module.
+
+### DynamicEntryPlugin
+
+<ApiMeta addedVersion={'0.6.4'} />
+
+`DynamicEntryPlugin(context, entry)`
+
+Similar to `EntryPlugin` but accepts a function as the `entry` argument. This function is called during each `make` event in the build process to support dynamically determining the entry points.
+
+### EntryOptionPlugin
+
+`EntryOptionPlugin()`
+
+## output
+
+### EvalDevToolModulePlugin
+
+`EvalDevToolModulePlugin(options)`
+
+Decorates the module template by wrapping each module in a `eval` annotated with `// @sourceURL`.
+
+### WebWorkerTemplatePlugin
+
+`webworker.WebWorkerTemplatePlugin(options)`
+
+Chunks are loaded by `importScripts`.
+
+`options` are the output options.
+
+## source
+
+Plugins affecting the source code of modules.
+
+### ProvidePlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+`ProvidePlugin(name, request)`
+
+If `name` is used in a module it is filled by a module loaded by `require(<request>)`.
+
+### NodeTargetPlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+`node.NodeTargetPlugin()`
+
+The plugins should be used if you run the bundle in a Node.js environment.
+
+If ensures that native modules are loaded correctly even if bundled.
+
+## optimize
+
+Note that all plugins under `rspack.optimize` namespace should only be used when `mode` set to `'none'`. Otherwise you might get into trouble where plugins are applied twice.
+
+### LimitChunkCountPlugin
+
+<ApiMeta addedVersion={'0.3.10'} />
+
+`optimize.LimitChunkCountPlugin(options)`
+
+Merge chunks limit chunk count is lower than `options.maxChunks`.
+
+The overhead for each chunks is provided by `options.chunkOverhead` or defaults to 10000. Entry chunks sizes are multiplied by `options.entryChunkMultiplicator` (or 10).
+
+Chunks that reduce the total size the most are merged first. If multiple combinations are equal the minimal merged size wins.
+
+## loader
+
+### LoaderOptionsPlugin
+
+`LoaderOptionsPlugin(options)`
+
+### LoaderTargetPlugin
+
+`LoaderTargetPlugin(target)`
+
+## module federation
+
+Internal plugins used with Module Federation, which are the basis of the `ModuleFederationPlugin`.
+
+### ContainerPlugin
+
+<ApiMeta addedVersion={'0.5.0'} />
+
+`container.ContainerPlugin(options)`
+
+### ContainerReferencePlugin
+
+<ApiMeta addedVersion={'0.5.0'} />
+
+`container.ContainerReferencePlugin(options)`
+
+### ConsumeSharedPlugin
+
+<ApiMeta addedVersion={'0.5.0'} />
+
+`sharing.ConsumeSharedPlugin(options)`
+
+### ProvideSharedPlugin
+
+<ApiMeta addedVersion={'0.5.0'} />
+
+`sharing.ProvideSharedPlugin(options)`
+
+### SharePlugin
+
+<ApiMeta addedVersion={'0.5.0'} />
+
+`sharing.SharePlugin(options)`

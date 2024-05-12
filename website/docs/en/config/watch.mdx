@@ -40,6 +40,22 @@ module.exports = {
 };
 ```
 
+### watchOptions.aggregateTimeout
+
+- **Type:** `number`
+- **Default:** `5`
+
+Add a delay before rebuilding once the first file changed. This allows Rspack to aggregate any other changes made during this time period into one rebuild. Pass a value in milliseconds:
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  watchOptions: {
+    aggregateTimeout: 600,
+  },
+};
+```
+
 ### watchOptions.ignored
 
 - **Type:** `RegExp`, `string`, `string[]`
@@ -52,3 +68,33 @@ The path that matches is excluded while watching.
 - **Default:** `false`
 
 Whether to watch by polling, the default polling interval for `true` is 5007 milliseconds.
+
+### watchOptions.followSymlinks
+
+- **Type:** `boolean`
+
+Follow symbolic links while looking for a file. This is usually not needed as Rspack already resolves symlinks with [resolve.symlinks](/config/resolve#resolvesymlinks).
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  watchOptions: {
+    followSymlinks: true,
+  },
+};
+```
+
+### watchOptions.stdin
+
+- **Type:** `boolean`
+
+Stop watching when stdin stream has ended.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  watchOptions: {
+    stdin: true,
+  },
+};
+```

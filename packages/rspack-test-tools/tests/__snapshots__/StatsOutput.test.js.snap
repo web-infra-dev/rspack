@@ -275,6 +275,64 @@ exports[`statsOutput statsOutput/parse-error should print correct stats for pars
 Rspack compiled with 1 error"
 `;
 
+exports[`statsOutput statsOutput/performance-disabled should print correct stats for performance-disabled 1`] = `
+"PublicPath: auto
+asset 697.js 128 bytes [emitted]
+asset 753.js 128 bytes [emitted]
+asset main.js 303 KiB [emitted] (name: main)
+Entrypoint main 303 KiB = main.js
+runtime modules 12 modules
+./a.js
+./b.js
+./c.js
+./d.js
+./e.js
+./index.js
+Rspack x.x.x compiled successfully in X s"
+`;
+
+exports[`statsOutput statsOutput/performance-error should print correct stats for performance-error 1`] = `
+"PublicPath: auto
+asset 697.js 128 bytes [emitted]
+asset 753.js 128 bytes [emitted]
+asset main.js 303 KiB [emitted] (name: main)
+Entrypoint main 303 KiB = main.js
+runtime modules 12 modules
+./a.js
+./b.js
+./c.js
+./d.js
+./e.js
+./index.js
+
+ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
+  │   main.js (303.319 KiB)
+
+
+ERROR in × entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
+  │   main (303.319 KiB)
+  │       main.js
+
+
+Rspack x.x.x compiled with 2 errors in X s"
+`;
+
+exports[`statsOutput statsOutput/performance-no-hints should print correct stats for performance-no-hints 1`] = `
+"PublicPath: auto
+asset 697.js 128 bytes [emitted]
+asset 753.js 128 bytes [emitted]
+asset main.js 303 KiB [emitted] (name: main)
+Entrypoint main 303 KiB = main.js
+runtime modules 12 modules
+./a.js
+./b.js
+./c.js
+./d.js
+./e.js
+./index.js
+Rspack x.x.x compiled successfully in X s"
+`;
+
 exports[`statsOutput statsOutput/prefetch-preload-mixed should print correct stats for prefetch-preload-mixed 1`] = `
 "chunk a1.js (a1) <{74}>
 chunk c2.js (c2) <{76}>

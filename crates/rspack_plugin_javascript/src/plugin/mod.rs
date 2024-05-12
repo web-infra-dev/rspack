@@ -395,16 +395,23 @@ impl JsPlugin {
       })
       .await?
       .expect("should run render_chunk hook");
-    let final_source =
+    let source_with_fragments =
       render_init_fragments(source, chunk_init_fragments, &mut ChunkRenderContext {})?;
-    if let Some(source) = drive.render(RenderJsArgs {
-      compilation,
-      chunk: chunk_ukey,
-      source: &final_source,
-    })? {
-      return Ok(source);
-    }
-    Ok(final_source)
+    Ok(
+      ConcatSource::new([
+        if let Some(source) = drive.render(RenderJsArgs {
+          compilation,
+          chunk: chunk_ukey,
+          source: &source_with_fragments,
+        })? {
+          source
+        } else {
+          source_with_fragments
+        },
+        RawSource::from(";").boxed(),
+      ])
+      .boxed(),
+    )
   }
 
   #[inline]

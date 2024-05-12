@@ -268,7 +268,7 @@ impl<'a> ModuleGraph<'a> {
   /// Remove a connection and return connection origin module identifier and dependency
   ///
   /// force will completely remove dependency, and you will not regenerate it from dependency_id
-  fn revoke_connection(
+  pub fn revoke_connection(
     &mut self,
     connection_id: &ConnectionId,
     force: bool,

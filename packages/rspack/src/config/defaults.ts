@@ -28,6 +28,7 @@ import type {
 	ModuleOptions,
 	Node,
 	Optimization,
+	Performance,
 	ResolveOptions,
 	RuleSetRules,
 	SnapshotOptions
@@ -58,7 +59,7 @@ export const applyRspackOptionsDefaults = (
 
 	let targetProperties =
 		target === false
-			? false
+			? (false as const)
 			: typeof target === "string"
 				? getTargetProperties(target, options.context!)
 				: getTargetsProperties(target, options.context!);
@@ -120,6 +121,17 @@ export const applyRspackOptionsDefaults = (
 	});
 
 	applyNodeDefaults(options.node, { targetProperties });
+
+	F(options, "performance", () =>
+		production &&
+		targetProperties &&
+		(targetProperties.browser || targetProperties.browser === null)
+			? {}
+			: false
+	);
+	applyPerformanceDefaults(options.performance!, {
+		production
+	});
 
 	applyOptimizationDefaults(options.optimization, {
 		production,
@@ -806,6 +818,16 @@ const applyNodeDefaults = (
 		if (targetProperties && targetProperties.node) return "eval-only";
 		return "warn-mock";
 	});
+};
+
+const applyPerformanceDefaults = (
+	performance: Performance,
+	{ production }: { production: boolean }
+) => {
+	if (performance === false) return;
+	D(performance, "maxAssetSize", 250000);
+	D(performance, "maxEntrypointSize", 250000);
+	F(performance, "hints", () => (production ? "warning" : false));
 };
 
 const applyOptimizationDefaults = (

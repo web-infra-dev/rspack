@@ -14,7 +14,7 @@ export enum CompatibleStatus {
 const SUPPORT_STATUS_LOCALIZED = {
   [CompatibleStatus.NotCompatible]: {
     symbol: '🔴',
-    en: 'Not Compatible',
+    en: 'Incompatible',
     zh: '不兼容',
   },
   [CompatibleStatus.Compatible]: {
@@ -47,10 +47,20 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       description: i18n[lang]['case-sensitive-paths-webpack-plugin-desc'],
     },
     {
+      name: 'clean-webpack-plugin',
+      url: 'https://github.com/johnagan/clean-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
       name: 'copy-webpack-plugin',
       url: 'https://www.npmjs.com/package/copy-webpack-plugin',
       status: CompatibleStatus.Included,
       description: i18n[lang]['copy-plugin-desc'],
+    },
+    {
+      name: 'compression-webpack-plugin',
+      url: 'https://github.com/webpack-contrib/compression-webpack-plugin',
+      status: CompatibleStatus.Compatible,
     },
     {
       name: 'css-minimizer-webpack-plugin',
@@ -97,6 +107,11 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       status: CompatibleStatus.Compatible,
     },
     {
+      name: '@vanilla-extract/webpack-plugin',
+      url: 'https://github.com/vanilla-extract-css/vanilla-extract',
+      status: CompatibleStatus.Compatible,
+    },
+    {
       name: 'webpack-manifest-plugin',
       url: 'https://github.com/shellscape/webpack-manifest-plugin',
       status: CompatibleStatus.NotCompatible,
@@ -106,6 +121,18 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       name: 'webpack-subresource-integrity',
       url: 'https://github.com/waysact/webpack-subresource-integrity',
       status: CompatibleStatus.NotCompatible,
+    },
+    {
+      name: 'pnp-webpack-plugin',
+      url: 'https://github.com/arcanis/pnp-webpack-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['resolve-plugin-un-support-desc'],
+    },
+    {
+      name: 'webpack-virtual-modules',
+      url: 'https://github.com/sysgears/webpack-virtual-modules',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['webpack-virtual-modules-desc'],
     },
     {
       name: '@sentry/webpack-plugin',
@@ -127,7 +154,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
           name: lang === 'zh' ? '支持情况' : 'Support status',
           key: 'status',
           style: {
-            width: '200px',
+            width: '150px',
           },
         },
         {
@@ -144,7 +171,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
           const notesText = (() => {
             if (description) {
               return (
-                <div className={S.PluginNote}>
+                <div>
                   <Markdown>{description}</Markdown>
                 </div>
               );
@@ -156,7 +183,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
 
           return {
             name: (
-              <a className={S.PluginLink} href={url}>
+              <a href={url} target="_blank" rel="noreferrer">
                 {name}
               </a>
             ),

@@ -3,21 +3,20 @@ pub mod build;
 pub mod factorize;
 pub mod process_dependencies;
 
-use std::{hash::BuildHasherDefault, path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
-use indexmap::IndexSet;
 use rspack_error::{Diagnostic, Result};
 use rspack_identifier::{IdentifierMap, IdentifierSet};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use super::MakeArtifact;
+use super::{file_counter::FileCounter, MakeArtifact};
 use crate::{
   cache::Cache,
   module_graph::{ModuleGraph, ModuleGraphPartial},
   tree_shaking::visitor::OptimizeAnalyzeResult,
   utils::task_loop::{run_task_loop, Task},
   BuildDependency, CacheCount, CacheOptions, Compilation, CompilationLogger, CompilerOptions,
-  DependencyType, Logger, Module, ModuleFactory, ModuleIdentifier, ModuleProfile,
+  DependencyId, DependencyType, Logger, Module, ModuleFactory, ModuleIdentifier, ModuleProfile,
   NormalModuleSource, ResolverFactory, SharedPluginDriver,
 };
 
@@ -45,13 +44,14 @@ pub struct MakeTaskContext {
   make_failed_dependencies: HashSet<BuildDependency>,
   make_failed_module: HashSet<ModuleIdentifier>,
 
+  entry_dependencies: HashSet<DependencyId>,
   entry_module_identifiers: IdentifierSet,
   diagnostics: Vec<Diagnostic>,
   optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
-  file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+  file_dependencies: FileCounter,
+  context_dependencies: FileCounter,
+  missing_dependencies: FileCounter,
+  build_dependencies: FileCounter,
   has_module_graph_change: bool,
 }
 
@@ -87,6 +87,7 @@ impl MakeTaskContext {
       make_failed_module: Default::default(),
       diagnostics: Default::default(),
 
+      entry_dependencies: artifact.entry_dependencies,
       entry_module_identifiers: artifact.entry_module_identifiers,
       optimize_analyze_result_map: artifact.optimize_analyze_result_map,
       file_dependencies: artifact.file_dependencies,
@@ -112,6 +113,7 @@ impl MakeTaskContext {
       has_module_graph_change,
       build_cache_counter,
       factorize_cache_counter,
+      entry_dependencies,
       logger,
       ..
     } = self;
@@ -126,6 +128,7 @@ impl MakeTaskContext {
       make_failed_dependencies,
       make_failed_module,
       diagnostics,
+      entry_dependencies,
       entry_module_identifiers,
       optimize_analyze_result_map,
       file_dependencies,
@@ -151,6 +154,8 @@ impl MakeTaskContext {
       None,
       self.cache.clone(),
       None,
+      Default::default(),
+      Default::default(),
     );
     compilation.dependency_factories = self.dependency_factories.clone();
     let mut make_artifact = MakeArtifact {

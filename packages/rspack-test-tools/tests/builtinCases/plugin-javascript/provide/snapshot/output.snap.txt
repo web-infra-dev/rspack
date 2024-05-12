@@ -55,7 +55,7 @@ function defaultClearTimeout() {
         } else {
             cachedClearTimeout = defaultClearTimeout;
         }
-    } catch (e1) {
+    } catch (e) {
         cachedClearTimeout = defaultClearTimeout;
     }
 })();

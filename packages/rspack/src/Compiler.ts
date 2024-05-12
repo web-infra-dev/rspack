@@ -47,7 +47,12 @@ import { assertNotNill } from "./util/assertNotNil";
 import { FileSystemInfoEntry } from "./FileSystemInfo";
 import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
-import { CodeGenerationResult, Module, ResolveData } from "./Module";
+import {
+	CodeGenerationResult,
+	ContextModuleFactoryAfterResolveResult,
+	Module,
+	ResolveData
+} from "./Module";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 import { Chunk } from "./Chunk";
@@ -530,33 +535,48 @@ class Compiler {
 					binding.RegisterJsTapKind.ContextModuleFactoryBeforeResolve,
 					() =>
 						this.compilationParams!.contextModuleFactory.hooks.beforeResolve,
-					queried => async (arg: binding.JsBeforeResolveArgs) => {
-						const data: ResolveData = {
-							request: arg.request,
-							context: arg.context,
-							fileDependencies: [],
-							missingDependencies: [],
-							contextDependencies: []
-						};
-						const ret = await queried.promise(data);
-						return [ret, data];
-					}
+					queried =>
+						async (
+							bindingData:
+								| false
+								| binding.JsContextModuleFactoryBeforeResolveData
+						) => {
+							return queried.promise(bindingData);
+						}
 				),
 			registerContextModuleFactoryAfterResolveTaps:
 				this.#createHookRegisterTaps(
 					binding.RegisterJsTapKind.ContextModuleFactoryAfterResolve,
 					() => this.compilationParams!.contextModuleFactory.hooks.afterResolve,
-					queried => async (arg: binding.JsAfterResolveData) => {
-						const data: ResolveData = {
-							request: arg.request,
-							context: arg.context,
-							fileDependencies: arg.fileDependencies,
-							missingDependencies: arg.missingDependencies,
-							contextDependencies: arg.contextDependencies,
-							createData: arg.createData
-						};
-						return await queried.promise(data);
-					}
+					queried =>
+						async (
+							bindingData:
+								| false
+								| binding.JsContextModuleFactoryAfterResolveData
+						) => {
+							const data = bindingData
+								? ({
+										resource: bindingData.resource,
+										regExp: bindingData.regExp
+											? new RegExp(bindingData.regExp)
+											: undefined,
+										request: bindingData.request,
+										context: bindingData.context,
+										// TODO: Dependencies are not fully supported yet; this is a placeholder to prevent errors in moment-locales-webpack-plugin.
+										dependencies: []
+									} satisfies ContextModuleFactoryAfterResolveResult)
+								: false;
+							const ret = await queried.promise(data);
+							const result = ret
+								? ({
+										resource: ret.resource,
+										context: ret.context,
+										request: ret.request,
+										regExp: ret.regExp?.toString()
+									} satisfies binding.JsContextModuleFactoryAfterResolveData)
+								: false;
+							return result;
+						}
 				)
 		};
 
