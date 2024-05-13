@@ -1,0 +1,152 @@
+# Rspack 测试
+
+Rspack 的测试用例包括如下：
+
+- Rspack 核心测试用例，存放在 `packages/rspack-test-tools/tests` 文件夹下，会通过模拟构建流程以运行测试用例。通常情况下，都在此文件夹下添加测试用例。
+- Rspack 其他包的测试用例，存放在 `packages/{name}/tests` 文件夹下，仅当修改对应包时添加/修改。
+
+## 运行测试
+
+可以通过如下方式运行这些测试用例：
+
+- 根目录下运行 `./x test unit` 或 `pnpm run test:unit`。
+- 或在 `packages/rspack-test-tools` 目录下运行 `npm run test`。
+- 如需更新 snapshot，在 `packages/rspack-test-tools` 目录下运行 `npm run testu` 或 `npm run test -- -u`。
+- 如需传入特定 jest cli 参数，在 `packages/rspack-test-tools` 目录下运行 `npm run test -- {args}`。
+
+### 目录规范
+
+文件夹 `packages/rspack-test-tools/tests` 的结构如下所示：
+
+```bash
+.
+├── js #用于存放构建生成的产物和临时文件
+├── __snapshots__ #用于存放测试快照
+├── {Name}.test.js #常规测试的入口
+├── {Name}.hottest.js #热更新流程测试入口
+├── {Name}.difftest.js #产物对比测试入口
+├── {name}Cases #测试用例存放目录
+└── fixtures #通用测试文件
+```
+
+`{Name}.test.js` 作为测试的入口文件，会遍历 `{name}Cases` 并运行其中的用例。因此当您需要添加/修改测试用例时，请根据需要测试的功能类型在相应的 `{name}Cases` 下添加用例。
+
+### normal
+
+用于测试配置无关的核心构建流程。如果你的测试无需添加 `webpack.config.js` 可以考虑使用此测试类型。
+
+> 对应 webpack 测试中的 [tests/cases](https://github.com/webpack/webpack/tree/main/test/cases)。
+
+| 入口文件 | `Normal.test.js`                                                                                                                 |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 用例目录 | `tests/normalCases`                                                                                                              |
+| 产物目录 | `tests/js/normal`                                                                                                                |
+| 默认配置 | [NormalProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/normal.ts#L34-L176) |
+| 产物运行 | `是`                                                                                                                              |
+
+### config
+
+用于测试构建配置项。如果你的测试需要通过 `webpack.config.js` 添加特定配置才可以运行时可以考虑使用此测试类型。
+
+> 对应 webpack 测试中的 [tests/configCases](https://github.com/webpack/webpack/tree/main/test/configCases)。
+
+| 入口文件 | `Config.test.js`                                                                                                                |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 用例目录 | `tests/configCases`                                                                                                             |
+| 产物目录 | `tests/js/config`                                                                                                               |
+| 默认配置 | [ConfigProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/config.ts#L50-L88) |
+| 产物运行 | `是`                                                                                                                             |
+
+在此类型测试用例中，你可以通过在用例目录下添加 `test.config.js` 来控制测试行为：
+
+```js
+module.exports = {
+ findBundle: (i, options) => {
+  return ["bundle1.js"]; 
+ }
+};
+```
+
+其中结构如下所示：
+
+```typescript
+export type TTestConfig<T extends ECompilerType> = {
+ noTest?: boolean; // 不运行测试产物并结束测试
+ beforeExecute?: () => void; // 运行产物前回调
+ afterExecute?: () => void; // 运行产物后回调
+ moduleScope?: (ms: IBasicModuleScope) => IBasicModuleScope; // 运行产物时的模块上下文变量
+ findBundle?: ( // 运行产物时的产物获取函数，可以更细粒度的控制产物
+  index: number, // muli compiler 场景时的 compiler 序号
+  options: TCompilerOptions<T> // 构建配置对象
+ ) => string | string[];
+ bundlePath?: string[]; // 运行产物时的产物文件名称（优先级低于 findBundle）
+ nonEsmThis?: (p: string | string[]) => Object;  // CJS 产物运行时的 this 对象，若不指定则默认为当前模块的 module.exports
+ modules?: Record<string, Object>; // 运行产物时预先添加的模块，require 时会优先从此处读取
+ timeout?: number; // 用例的超时时间
+};
+```
+
+### HotNode & HotWeb & HotWorker
+
+用于测试 Hot Module Replacement 功能。HotNode 会固定使用 `target=async-node`，HotWeb 会固定使用 `target=web`，HotWorker 会固定使用 `target=webworker`。
+
+> 对应 webpack 测试中的 [tests/hotCases](https://github.com/webpack/webpack/tree/main/test/hotCases)
+
+| 入口文件 | `Hot{Target}.test.js`                                                                                                      |
+| ---- | -------------------------------------------------------------------------------------------------------------------------- |
+| 用例目录 | `tests/hotCases`                                                                                                           |
+| 产物目录 | `tests/js/hot-{target}`                                                                                                    |
+| 默认配置 | [HotProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/hot.ts#L85-L136) |
+| 产物运行 | `是`                                                                                                                        |
+
+Hot 类型测试用例需要在用例目录下添加 `changed-file.js` 来指定变更的文件，如下所示：
+
+```js
+// changed-file.js
+const path = require('path');
+module.exports = [
+  path.resolve(__dirname, './file.js') // file.js 变化并触发热更新
+];
+```
+
+对应的在变更的文件内通过 `---` 分割变更前后的代码：
+
+```js
+// file.js
+module.exports = 1; // 初始构建
+---
+module.exports = 2; // 首次热更新
+---
+module.exports = 3; // 第二次热更新
+```
+
+在用例的代码中，通过 `NEXT` 方法控制文件变更时机，并在其中添加测试代码：
+
+```js
+// index.js
+import value from "./file";
+
+it("should hot update", (done) => {
+ expect(value).toBe(1);
+ // 使用 packages/rspack-test-tools/tests/hotCases/update.js 触发更新
+ NEXT(require("../../update")(done, true, () => {
+  expect(value).toBe(2);
+  NEXT(require("../../update")(done, true, () => {
+   expect(value).toBe(3);
+   done();
+  }));
+ }));
+});
+
+module.hot.accept("./file");
+```
+
+### HotSnapshot
+
+### statsOutput
+
+用于测试控制台输出的 stats 信息，会生成 snapshot
+
+### statsAPI
+
+用于测试 stats 对象，会生成 snapshot
