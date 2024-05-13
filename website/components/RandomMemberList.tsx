@@ -201,7 +201,7 @@ export const RandomContributorsList = () => {
       id: 'Boshen',
       avatar: 'https://avatars.githubusercontent.com/u/1430279?s=120&v=4',
       x: 'https://twitter.com/boshen_c',
-      desc: 'Rspack / Creator of Oxc',
+      desc: 'Rspack contributor / Creator of Oxc',
     },
   ];
 

@@ -1,4 +1,4 @@
-# Builtin Plugin
+# Builtin plugin
 
 Builtin plugin uses [rspack_macros](https://github.com/web-infra-dev/rspack/tree/7cc39cc4bb6f73791a5bcb175137ffd84b105da5/crates/rspack_macros) to help you avoid writing boilerplate code, you can use [cargo-expand](https://github.com/dtolnay/cargo-expand) or [rust-analyzer expand macro](https://rust-analyzer.github.io/manual.html#expand-macro-recursively) to checkout the expanded code, and for developing/testing these macro, you can starts with [rspack_macros_test](https://github.com/web-infra-dev/rspack/tree/7cc39cc4bb6f73791a5bcb175137ffd84b105da5/crates/rspack_macros_test).
 

@@ -7,14 +7,11 @@ Please see [prerequisites](./prerequisites) for setting up Rust and Node.js.
 Install Node.js dependencies via [pnpm](https://pnpm.io/).
 
 ```bash
-# enable pnpm with corepack, only available on node >= `v14.19.0`
+# enable pnpm with corepack
 corepack enable
 
-# or install pnpm directly
-npm install -g pnpm@8
-
 # Install dependencies
-pnpm install
+pnpm i
 ```
 
 ## Building Rspack

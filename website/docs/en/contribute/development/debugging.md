@@ -41,7 +41,7 @@ RSPACK_PROFILE='TRACE=layer=logger&filter=[compilation:chunk_asset{filename=".*\
 NO_COLOR=1 RSPACK_PROFILE=TRACE=layer=logger rspack build
 ```
 
-### `oxc_resolver`
+### Resolver
 
 `oxc_resolver` emits some tracing information for debugging purposes.
 
