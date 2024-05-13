@@ -40,6 +40,19 @@
     "label": "Contribution"
   },
   {
+    "type": "file",
+    "label": "Sending a Pull Request",
+    "name": "sending-pr"
+  },
+  {
+    "type": "file",
+    "label": "Minimal reproducible example",
+    "name": "repro"
+  },
+  {
+    "type": "divider"
+  },
+  {
     "type": "section-header",
     "label": "Architecture"
   },

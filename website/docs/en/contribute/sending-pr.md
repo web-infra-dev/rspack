@@ -1,8 +1,4 @@
-# Intro
-
-Thank you for your interest in contributing to Rspack! There are many ways to contribute, and we appreciate all of them.
-
-## Sending a Pull Request
+# Sending a Pull Request
 
 1. [Fork](https://help.github.com/articles/fork-a-repo/) the Rspack repository into your own GitHub account.
 2. [Clone](https://help.github.com/articles/cloning-a-repository/) the repository to your local.
@@ -21,7 +17,7 @@ When submitting a Pull Request, please note the following:
 - Keep your PRs small enough, so that each PR only addresses a single issue or adds a single feature.
 - Please include an appropriate description in the PR, and link related issues.
 
-### Format of PR titles
+## Format of PR titles
 
 The format of PR titles follow Conventional Commits.
 
