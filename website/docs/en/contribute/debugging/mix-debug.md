@@ -59,10 +59,7 @@ Next, we can utilize [compounds](https://code.visualstudio.com/docs/editor/debug
 ```json
 {
   "name": "mix-debug",
-  "configurations": [
-    "attach:node",
-    "launch:rust-from-node"
-  ]
+  "configurations": ["attach:node", "launch:rust-from-node"]
 }
 ```
 
@@ -88,7 +85,7 @@ Finally, your `﻿launch.json` should appear as follows:
         "${workspaceFolder}/packages/rspack-cli/bin/rspack",
         "build",
         "-c",
-        "${workspaceFolder}/examples/basic/rspack.config.js",
+        "${workspaceFolder}/examples/basic/rspack.config.js"
       ],
       "cwd": "${workspaceFolder}/examples/basic/"
     }
@@ -96,10 +93,7 @@ Finally, your `﻿launch.json` should appear as follows:
   "compounds": [
     {
       "name": "mix-debug",
-      "configurations": [
-        "attach:node",
-        "launch:rust-from-node"
-      ]
+      "configurations": ["attach:node", "launch:rust-from-node"]
     }
   ]
 }
@@ -107,7 +101,7 @@ Finally, your `﻿launch.json` should appear as follows:
 
 ## Debugging Attempt
 
-Next, we can introduce some breakpoints and commence debugging. 
+Next, we can introduce some breakpoints and commence debugging.
 
 The result appears as follows:
 

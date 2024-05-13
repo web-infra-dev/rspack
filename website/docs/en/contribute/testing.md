@@ -8,10 +8,13 @@ We currently have two sets of test suites, one for Rust and one for Node.js.
 - `UPDATE=1 cargo test` will automatically update the failed snapshot
 
 ## Node Testing
+
 We are maintaining two test suites for Node Testing in Rspack, Rspack Testing and Webpack Testing
+
 ### Webpack Testing
 
 We copy the whole webpack test suites into [webpack-test](https://github.com/web-infra-dev/rspack/tree/main/webpack-test#progressively-migrate-webpack-test) folder to check the compatibility with webpack. If you add features or fix bugs we recommend you check whether this feature or bug is covered in webpack test suites first. If it's covered and testable in Webpack Testing, you can enable specific test case by setting return value to true in [`test.filter.js`](https://github.com/web-infra-dev/rspack/blob/80e97477483fcb912473ae339c37d5a5e247f7b1/webpack-test/cases/compile/error-hide-stack/test.filter.js#L2C33-L2C84) in this case folder to enable this case. See more details in https://github.com/web-infra-dev/rspack/blob/main/webpack-test/README.md, Please note that don't modify original test code in Webpack Testing, if you find difficulties in running test suites without modifying original code, you can copy this test code in the following \[Rspack Testing\](#Rspack Testing).
+
 #### Run Tests
 
 ```sh
@@ -21,8 +24,11 @@ We copy the whole webpack test suites into [webpack-test](https://github.com/web
 ```
 
 ### Rspack Testing
+
 We maintain test suites in Rspack Testing which is not coverable or need to be modified in Webpack Testing. The test suites lies in [rspack-test](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack/tests). This folder structure is similar with Webpack Testing.
+
 #### Run Tests
+
 ```sh
 # In root path
 ./x build -a

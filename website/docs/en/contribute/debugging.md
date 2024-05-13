@@ -13,8 +13,8 @@
 
 The supported tracing levels for
 
-* release builds are `INFO`, `WARN` and `ERROR`
-* debug builds are `TRACE`, `DEBUG`, `INFO`, `WARN` and `ERROR`
+- release builds are `INFO`, `WARN` and `ERROR`
+- debug builds are `TRACE`, `DEBUG`, `INFO`, `WARN` and `ERROR`
 
 Use the `RSPACK_PROFILE` environment variable for displaying trace information
 
@@ -26,7 +26,7 @@ RSPACK_PROFILE='TRACE=layer=logger&filter=rspack_core::compiler::compilation' rs
 RSPACK_PROFILE='TRACE=layer=logger&filter=rspack_core::compiler::compilation=info' rspack build
 # filter logs across multiple modules
 RSPACK_PROFILE='TRACE=layer=logger&filter=rspack_core::compiler::compilation,rspack_core::build_chunk_graph::code_splitter' rspack build
-# [fn_name] will show: 
+# [fn_name] will show:
 # - all functions calls to `fn_name`
 # - the arguments(except for these in the `skip` list)
 # - everything until this function returns

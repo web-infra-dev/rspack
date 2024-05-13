@@ -4,9 +4,9 @@ All releases are automated through GitHub actions.
 
 All published releases of `@rspack/cli` can be found on the [npm versions page](https://www.npmjs.com/package/@rspack/cli?activeTab=versions). They are tagged as
 
-* `latest` with semver version `x.y.z`
-* `nightly`
-* `canary`
+- `latest` with semver version `x.y.z`
+- `nightly`
+- `canary`
 
 ## Latest Full Release
 
@@ -39,6 +39,6 @@ Only contributors have the permission to publish canary releases.
 
 The canary release only builds three targets for quicker feedback
 
-* aarch64-apple-darwin
-* x86_64-apple-darwin
-* x86_64-unknown-linux-gnu
+- aarch64-apple-darwin
+- x86_64-apple-darwin
+- x86_64-unknown-linux-gnu
