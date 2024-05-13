@@ -23,12 +23,12 @@
     "label": "Debugging"
   },
   {
-    "type": "dir",
+    "type": "file",
     "name": "profiling",
     "label": "Profiling"
   },
   {
-    "type": "dir",
+    "type": "file",
     "name": "releasing",
     "label": "Releasing"
   },
@@ -38,5 +38,19 @@
   {
     "type": "section-header",
     "label": "Contribution"
+  },
+  {
+    "type": "section-header",
+    "label": "Architecture"
+  },
+  {
+    "type": "dir",
+    "label": "Rspack",
+    "name": "rspack"
+  },
+  {
+    "type": "dir",
+    "label": "Webpack",
+    "name": "webpack"
   }
 ]
