@@ -1,4 +1,4 @@
-# Loader
+# Rspack Loader
 
 ## Related PRs
 
