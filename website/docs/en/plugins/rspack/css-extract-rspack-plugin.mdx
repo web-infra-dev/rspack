@@ -71,18 +71,11 @@ If your project does not depend on css-loader, it is recommended to use the buil
           'The name of the asynchronous loading CSS artifact. If not set, it will use filename; please see output.chunkFilename',
       },
       {
-        name: "'ignoreOrder'",
-        type: "'boolean'",
-        default: 'false',
-        description:
-          'Whether to issue a warning if there are conflicts in the order of some CSS in different chunks. For example, entryA introduces a.css b.css, entryB introduces b.css a.css, and the order of a.css and b.css cannot be determined',
-      },
-      {
         name: '`ignoreOrder`',
         type: '`boolean`',
         default: 'false',
         description:
-          'If there are conflicts in the order of certain CSS files in different chunks, should a warning be issued? For example, entryA imports a.css and b.css, while entryB imports b.css and a.css. The order of a.css and b.css cannot be determined.',
+          'Whether to issue a warning if there are conflicts in the order of some CSS in different chunks. For example, entryA introduces a.css b.css, entryB introduces b.css a.css, and the order of a.css and b.css cannot be determined',
       },
       {
         name: '`insert`',
