@@ -167,9 +167,9 @@ module.exports = {
 
 ### 默认启用新的解析器
 
-[oxc_resolver](https://crates.io/crates/oxc_resolver) 现在默认启用。
+新版 resolver 现在默认启用。
 
-`oxc_resolver` 是由 [oxc 项目](https://github.com/oxc-project/oxc) 提供的用 Rust 编写的模块解析器。新解析器已通过了 [enhanced-resolve](https://www.npmjs.com/package/enhanced-resolve) 的所有测试套件。它比以前的实现快 5 倍，比 enhanced-resolve 快 28 倍。
+新解析器已通过了 [enhanced-resolve](https://www.npmjs.com/package/enhanced-resolve) 的所有测试套件。它比以前的实现快 5 倍，比 enhanced-resolve 快 28 倍。
 
 新解析器可以配置为读取 `tsconfig.json` 的 `compilerOptions.paths` 和 `references` 字段,对 monorepo 的嵌套 alias 提供了内置支持。有关详细信息，请参阅 API [resolve.tsConfig](/config/resolve#resolvetsconfig)。
 
