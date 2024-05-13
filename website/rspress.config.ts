@@ -22,6 +22,7 @@ export default defineConfig({
   globalStyles: path.join(__dirname, 'theme', 'index.css'),
   markdown: {
     checkDeadLinks: true,
+    highlightLanguages: [['rs', 'rust']],
   },
   route: {
     cleanUrls: true,

@@ -1,0 +1,69 @@
+[
+  "index",
+  {
+    "type": "divider"
+  },
+  {
+    "type": "section-header",
+    "label": "Development"
+  },
+  {
+    "type": "dir",
+    "name": "building",
+    "label": "Building and running"
+  },
+  {
+    "type": "dir",
+    "name": "testing",
+    "label": "Testing"
+  },
+  {
+    "type": "dir",
+    "name": "debugging",
+    "label": "Debugging"
+  },
+  {
+    "type": "file",
+    "name": "profiling",
+    "label": "Profiling"
+  },
+  {
+    "type": "file",
+    "name": "releasing",
+    "label": "Releasing"
+  },
+  {
+    "type": "divider"
+  },
+  {
+    "type": "section-header",
+    "label": "Contribution"
+  },
+  {
+    "type": "file",
+    "label": "Sending a Pull Request",
+    "name": "sending-pr"
+  },
+  {
+    "type": "file",
+    "label": "Minimal reproducible example",
+    "name": "repro"
+  },
+  {
+    "type": "divider"
+  },
+  {
+    "type": "section-header",
+    "label": "Architecture"
+  },
+  {
+    "type": "dir",
+    "label": "Rspack",
+    "name": "rspack"
+  },
+  {
+    "type": "dir",
+    "label": "Webpack",
+    "name": "webpack"
+  }
+]
