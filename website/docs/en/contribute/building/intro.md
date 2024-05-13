@@ -1,6 +1,6 @@
 # How to build and run the compiler
 
-Please see [prerequisites](prerequisites.md) for setting up Rust and Node.js.
+Please see [prerequisites](./prerequisites.md) for setting up Rust and Node.js.
 
 ## Install Node.js dependencies
 
