@@ -226,11 +226,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let input_source_map = original_source.map(&MapOptions::default());
 
         let is_module = if let Some(module) = self.options.module {
-          module
+          Some(module)
         } else if let Some(module) = original.info.javascript_module {
-          module
+          Some(module)
+        } else if filename.ends_with(".mjs") {
+          Some(true)
+        } else if filename.ends_with(".cjs") {
+          Some(false)
         } else {
-          filename.ends_with(".mjs")
+          None
         };
 
         let js_minify_options = JsMinifyOptions {
@@ -362,7 +366,7 @@ pub struct JsMinifyOptions {
   pub ecma: TerserEcmaVersion,
   pub keep_class_names: bool,
   pub keep_fn_names: bool,
-  pub module: bool,
+  pub module: Option<bool>,
   pub safari10: bool,
   pub toplevel: bool,
   pub source_map: BoolOrDataConfig<TerserSourceMapKind>,
