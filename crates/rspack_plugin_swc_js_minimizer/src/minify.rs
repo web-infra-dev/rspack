@@ -176,7 +176,7 @@ pub fn minify(
             }),
             opts
               .module
-              .map_or_else(|| IsModule::Unknown, |v| IsModule::Bool(v)),
+              .map_or_else(|| IsModule::Unknown, IsModule::Bool),
             Some(&comments),
           )
           .map_err(|errs| {
