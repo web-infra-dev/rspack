@@ -1,16 +1,16 @@
 > Based on _Webpack version: 5.73.0_.
 
-# Loader
+# Webpack Loader
 
 Explain how webpack loader works. Even though it's a little bit long and tedious, It's still a teeny-tiny peek at the loader system of Webpack.
 
-# Glossary
+## Glossary
 
 > What's the meaning of a word used to describe a feature?
 >
 > Why does the Webpack introduce this and what's the background of introducing this? What kind of problem Webpack was facing at the time?
 
-## Request Related
+### Request Related
 
 ```javascript
 import Styles from '!style-loader!css-loader?modules!./styles.css';
@@ -19,7 +19,7 @@ import Styles from '!style-loader!css-loader?modules!./styles.css';
 - [Inline loader syntax](https://webpack.js.org/concepts/loaders/#inline): The syntax that chains the loader together within the specifier, followed by the file requested. e.g. `!style-loader!css-loader?modules!./style.css`
 - `request`: The request with _inline loader syntax_ retained. Webpack will convert relative URLs and module requests to absolute URLs for loaders and files requested. e.g. `!full-path-to-the-loader-separated-with-exclamation-mark!full-path-to-styles.css`
 
-## Resource Related
+### Resource Related
 
 ```javascript
 import foo from './index.js?vue=true&style#some-fragment';
@@ -38,14 +38,14 @@ import foo from './index.js?vue=true&style#some-fragment';
   - The proposed solution to support asset type changing(A sugar to inline matchResource, which can also affect the asset filename generation)
   - See more: [the background of this property](https://github.com/webpack/webpack/issues/14851)
 
-## Others but also important to note
+### Others but also important to note
 
 - Virtual Module: A kind of module that does not locate in the real file system. But you can still import it. To create a virtual module, you need to follow the [spec](https://www.ietf.org/rfc/rfc2397.txt) and it's also worth noting that Node.js and Webpack both support it under the scheme of `data:`. Also known as, `data:` import. [Doc to Node.js](https://nodejs.org/api/esm.html#data-imports)
 - [Module types](https://webpack.js.org/concepts/modules/#supported-module-types) with native support: Webpack supports the following module types native: `'javascript/auto'` |` 'javascript/dynamic'` | `'javascript/esm'` | `'json'` | `'webassembly/sync'` | `'webassembly/async'` | `'asset'` | `'asset/source'` | `'asset/resource'` | `'asset/inline'`, for those types you can use it **without a loader**. From webpack version 4.0+, webpack can understand more than `javascript` alone.
 
-# Guide-level explanation
+## Guide-level explanation
 
-## Loader configuration
+### Loader configuration
 
 The way that webpack controls what kind of module that each loader would apply is based on `module.rules`
 
@@ -86,9 +86,9 @@ module.exports = {
 };
 ```
 
-## Examples
+### Examples
 
-### Vue(1 to n)
+#### Vue(1 to n)
 
 In a single file component(SFC) of Vue, there are commonly three blocks or more blocks([custom blocks](https://vue-loader.vuejs.org/guide/custom-blocks.html#example)) contained. The basic idea of implementing this loader is to convert it into JavaScript / CSS and let webpack handle the chunk generation(e.g. Style should be generated into a separate `.css` file)
 

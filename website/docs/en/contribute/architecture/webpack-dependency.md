@@ -1,7 +1,7 @@
 > Based on _Webpack version: 5.73.0_.
 > Some source code is omitted for cleaner demonstration in the example.
 
-# Dependency
+# Webpack Dependency
 
 Explain how webpack dependency affects the compilation and what kind of problem that webpack was facing at the moment and the solution to the problem.
 
@@ -565,7 +565,3 @@ Given a module graph that contains three modules, the entry point of this bundle
 ### `seal`
 
 ![image-20220920180915326](https://raw.githubusercontent.com/h-a-n-a/static/main/2022/09/upgit_20220920_1663668558.png)
-
-# References
-
-_TODO_
