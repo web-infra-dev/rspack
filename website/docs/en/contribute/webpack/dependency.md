@@ -109,7 +109,7 @@ A _ModuleDependency_ contains three important fields.
 
 It's also good to note a field we will talk about later:
 
-1. `assertions`: assertions in `import xx from "foo.json" assert { type: "json" }`
+1. `assertions`: assertions in `import foo from "foo.json" assert { type: "json" }`
 
 More fields can be found in abstract class of _Dependency_ and _ModuleDependency_. [source: Dependency](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Dependency.js#L88) [source: ModuleDependency](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/dependencies/ModuleDependency.js#L17)
 
@@ -181,7 +181,7 @@ import foo from './module';
 import './module';
 ```
 
-Every import statement will come with a `HarmonyImportSideEffectDependency`, no matter how the specifiers look like. The speicifier will be handled by `HarmonyImportSpecifierDendency` below.
+Every import statement will come with a `HarmonyImportSideEffectDependency`, no matter how the specifiers look like. The specifier will be handled by `HarmonyImportSpecifierDependency` below.
 
 The field `assertions` will be stored if any import assertions exist for later consumption.
 The field `category` will be used as `dependencyType` to resolve modules.

@@ -22,7 +22,7 @@ import Styles from '!style-loader!css-loader?modules!./styles.css';
 ## Resource Related
 
 ```javascript
-import xxx from './index.js?vue=true&style#some-fragment';
+import foo from './index.js?vue=true&style#some-fragment';
 ```
 
 - [`resource`](https://webpack.js.org/api/loaders/#thisresource): The absolute path to the requested file with `query` and `fragment` retained but inline loader syntax removed. e.g. `absolute-path-to-index-js.js?vue=true&style#some-fragment`
@@ -155,7 +155,7 @@ You will find it's really noisy only to transform a `*.vue` file, four loaders w
 
 #### Loader optimizations I
 
-We know that webpack uses a few conditions to handle whether a rule should be applied. Even with `rule.test` alone, the `this.reousrceQuery` is still available to `loaderContext` which developer could access it with `this` in any loader function(Don't worry if you still don't catch this. You will understand this after). Based on that, we change the `rule` to this:
+We know that webpack uses a few conditions to handle whether a rule should be applied. Even with `rule.test` alone, the `this.resourceQuery` is still available to `loaderContext` which developer could access it with `this` in any loader function(Don't worry if you still don't catch this. You will understand this after). Based on that, we change the `rule` to this:
 
 ```javascript
 module.exports = {
@@ -295,7 +295,7 @@ Finally! But this is only a proof of concept, for the real implementation. You s
 
 #### Loader Optimization II
 
-Well done! We implemented a simple and rudimentary version of `vue-loader`. However, the real pain-in-the-ass part of this implementation is hacking the extension to match the configuration. But since almost every user would have other `js` | `css` files included in the project, so vue team decide to use this kind of strategy to reuse the user configuration.
+Well done! We implemented a simple and rudimentary version of `vue-loader`. However, the real painful part of this implementation is hacking the extension to match the configuration. But since almost every user would have other `js` | `css` files included in the project, so vue team decide to use this kind of strategy to reuse the user configuration.
 
 Except for hacking the extension, webpack then provided a more legit way to handle this kind of **rule matching problem** which is known as **_inline match resource_** (We covered it in the glossary part).
 
@@ -529,7 +529,7 @@ module.exports = function (source) {
 };
 ```
 
-Again here we use double-pass to firstly convert each request to the request part with _inline match resource_, and do the real request with query `?svgr=true`, and let _inline match resource_ handle the `jsx` conversion. Before that, we have to call a third-party `jsx` transformer, could be _ESBuild_ for example, for which we cannot reuse other `module.rules` set by the user-side. _Inline match resource_ saved our ass again!
+Again here we use double-pass to firstly convert each request to the request part with _inline match resource_, and do the real request with query `?svgr=true`, and let _inline match resource_ handle the `jsx` conversion. Before that, we have to call a third-party `jsx` transformer, could be _ESBuild_ for example, for which we cannot reuse other `module.rules` set by the user-side. _Inline match resource_ saved our pain again!
 
 ### Scheme imports
 
@@ -766,7 +766,7 @@ As far as this article goes, It might be getting a little bit tedious. But have 
 
 Based on the parser and generator we introduced before, webpack did a little hack around the fourth parameter of `this.callback` (from _loaderContext_), with `webpackAST`, after each loader call, the `webpackAST` will be stored in the context of loader, and passed again to the next loader. Finally, the AST will be passed to the `parser`(It could be any type, based on the _module type_, but webpack makes it a JavaScript only for AST) (see the [source code](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/NormalModule.js#L1087)).
 
-Here's an issue about trying to use SWC's AST to get rid of the time sensitive code parsing from Acorn Parser, but they are facing some AST compatibility issues and performance issues about the overhead of interop with native code(Rust).
+Here's an issue about trying to use SWC 's AST to get rid of the time sensitive code parsing from Acorn Parser, but they are facing some AST compatibility issues and performance issues about the overhead of interop with native code(Rust).
 
 ## References
 
