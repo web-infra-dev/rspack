@@ -92,8 +92,6 @@ where
         self
           .compilation
           .swap_make_artifact_with_compilation(&mut new_compilation);
-        new_compilation.entries = std::mem::take(&mut self.compilation.entries);
-        new_compilation.global_entry = std::mem::take(&mut self.compilation.global_entry);
         new_compilation.lazy_visit_modules =
           std::mem::take(&mut self.compilation.lazy_visit_modules);
         new_compilation.file_dependencies = std::mem::take(&mut self.compilation.file_dependencies);
