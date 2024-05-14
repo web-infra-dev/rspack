@@ -81,6 +81,8 @@ import { createHash } from "./util/createHash";
 import { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
 export const util = { createHash, cleverMerge };
 
+export { type OutputFileSystem } from "./util/fs";
+
 export {
 	registerGlobalTrace as experimental_registerGlobalTrace,
 	cleanupGlobalTrace as experimental_cleanupGlobalTrace

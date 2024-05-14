@@ -18,6 +18,7 @@ import {
 	resolveReact,
 	resolveRelay
 } from "../builtin-loader";
+import { Compilation } from "../Compilation";
 
 const BUILTIN_LOADER_PREFIX = "builtin:";
 
@@ -154,7 +155,7 @@ export interface LoaderContext<OptionsType = {}> {
 	query: string | OptionsType;
 	data: unknown;
 	_compiler: Compiler;
-	_compilation: Compiler["compilation"];
+	_compilation: Compilation;
 	/**
 	 * Internal field for interoperability.
 	 * Do not use this in anywhere else.
@@ -313,7 +314,7 @@ function resolveStringifyLoaders(
 
 	if (use.options && typeof use.options === "object") {
 		if (!ident) ident = "[[missing ident]]";
-		compiler.ruleSet.references.set(ident, use.options);
+		compiler.__internal__ruleSet.references.set(ident, use.options);
 	}
 
 	return obj.path + obj.query + obj.fragment;

@@ -75,7 +75,8 @@ export class Watching {
 		missing: Iterable<string>
 	) {
 		this.pausedWatcher = undefined;
-		this.watcher = this.compiler.watchFileSystem.watch(
+		// SAFETY: `watchFileSystem` is expected to be initialized.
+		this.watcher = this.compiler.watchFileSystem!.watch(
 			files,
 			dirs,
 			missing,
@@ -275,7 +276,7 @@ export class Watching {
 			const onCompile = (err: Error | null) => {
 				if (err) return this._done(err, null);
 				// if (this.invalid) return this._done(null);
-				this._done(null, this.compiler.compilation!);
+				this._done(null, this.compiler._lastCompilation!);
 			};
 
 			this.compiler.compile(onCompile);

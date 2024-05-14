@@ -633,6 +633,8 @@ export interface IStatsAPITaskProcessorOptions<T extends ECompilerType> {
     // (undocumented)
     check?: (stats: TCompilerStats<T>, compiler: TCompiler<T>) => Promise<void>;
     // (undocumented)
+    compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
+    // (undocumented)
     compilerType: T;
     // (undocumented)
     cwd?: string;

@@ -37,14 +37,14 @@ export function getRspackMemoryAssets(
 			: // @ts-expect-error
 				path.slice(1);
 		const buffer =
-			compiler.getAsset(filename) ??
+			compiler._lastCompilation?.getAsset(filename) ??
 			(() => {
 				const { index } = rdm.context.options;
 				const indexValue =
 					typeof index === "undefined" || typeof index === "boolean"
 						? "index.html"
 						: index;
-				return compiler.getAsset(filename + indexValue);
+				return compiler._lastCompilation?.getAsset(filename + indexValue);
 			})();
 		if (!buffer) {
 			return next();

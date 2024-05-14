@@ -1,8 +1,12 @@
+const path = require("path");
 const { WEBPACK_SERVE } = process.env;
 module.exports = /** @type {import('@rspack/cli').Configuration} */ {
 	mode: "production",
 	entry: "./entry.js",
-	output: { clean: true },
+	output: {
+		clean: true,
+		path: path.resolve(__dirname, "dist")
+	},
 	plugins: [
 		{
 			apply(compiler) {

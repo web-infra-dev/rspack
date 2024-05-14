@@ -46,7 +46,7 @@ export class SnapshotProcessor<
 			);
 		}
 		const compilation =
-			(c as RspackCompiler).compilation ||
+			(c as RspackCompiler)._lastCompilation ||
 			(
 				c as WebpackCompiler & {
 					_lastCompilation: WebpackCompilation;
