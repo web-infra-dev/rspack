@@ -3,27 +3,27 @@ import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
 
 <WebpackLicense from="https://webpack.js.org/api/node/" />
 
-# Node.js API
+# JavaScript API
 
-Rspack provides a Node.js API which can be used directly in Node.js runtime.
+Rspack provides a set of JavaScript APIs to be used in JavaScript runtimes like Node.js or Bun.
 
-The Node.js API is useful in scenarios in which you need to customize the build or development process since all the reporting and error handling must be done manually and webpack only does the compiling part. For this reason the [`stats`](/config/stats) configuration options will not have any effect in the `rspack()` call.
+The JavaScript API is useful in scenarios in which you need to customize the build or development process since all the reporting and error handling must be done manually and webpack only does the compiling part. For this reason the [`stats`](/config/stats) configuration options will not have any effect in the `rspack()` call.
 
 :::tip
-`@rspack/core` is designed based on Webpack's Node.js API to ensure functional consistency and a similar user experience.
+`@rspack/core` is designed based on Webpack's JavaScript API to ensure functional consistency and a similar user experience.
 :::
 
 ## Installation
 
-To start using the Rspack Node.js API, first install `@rspack/core` if you haven’t yet:
+To start using the Rspack JavaScript API, first install `@rspack/core` if you haven’t yet:
 
 ```bash
 npm install --save-dev @rspack/core
 ```
 
-Then require the `@rspack/core` module in your Node.js script:
+Then require the `@rspack/core` module in your JavaScript file:
 
-```bash
+```js title="build.js"
 import rspack from '@rspack/core';
 ```
 
@@ -43,11 +43,11 @@ rspack({}, (err, stats) => {
 ```
 
 :::tip
-The `err` object will not include compilation errors. Those must be handled separately using `stats.hasErrors()`, which will be covered in detail in the [Error Handling](/api/node-api#error-handling) section of this guide. The `err` object will only contain rspack-related issues, such as misconfiguration, etc.
+The `err` object will not include compilation errors. Those must be handled separately using `stats.hasErrors()`, which will be covered in detail in the [Error Handling](/api/javascript-api#error-handling) section of this guide. The `err` object will only contain rspack-related issues, such as misconfiguration, etc.
 :::
 
 :::tip
-You can provide the `rspack` function with an array of configurations. See the [MultiCompiler](/api/node-api#multicompiler) section below for more information.
+You can provide the `rspack` function with an array of configurations. See the [MultiCompiler](/api/javascript-api#multicompiler) section below for more information.
 :::
 
 ## Compiler Instance
@@ -149,7 +149,7 @@ watching.invalidate();
 
 ## Stats Object
 
-The `stats` object that is passed as a second argument of the [`rspack()`](/api/node-api#rspack) callback, is a good source of information about the code compilation process. It includes:
+The `stats` object that is passed as a second argument of the [`rspack()`](/api/javascript-api#rspack) callback, is a good source of information about the code compilation process. It includes:
 
 - Errors and Warnings (if any)
 - Timings
@@ -228,7 +228,7 @@ rspack(
 
 ## MultiCompiler
 
-The `MultiCompiler` module allows Rspack to run multiple configurations in separate compilers. If the `options` parameter in the Rspack's NodeJS api is an array of options, Rspack applies separate compilers and calls the callback after all compilers have been executed.
+The `MultiCompiler` module allows Rspack to run multiple configurations in separate compilers. If the `options` parameter in the Rspack's JavaScript API is an array of options, Rspack applies separate compilers and calls the callback after all compilers have been executed.
 
 ```js
 import rspack from '@rspack/core';
