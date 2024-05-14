@@ -3339,6 +3339,7 @@ dependencies = [
  "bitflags 2.5.0",
  "dashmap",
  "indexmap 2.2.6",
+ "indoc",
  "itertools",
  "linked_hash_set",
  "num-bigint",
