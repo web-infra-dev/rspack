@@ -1206,20 +1206,6 @@ const experiments = z.strictObject({
 	asyncWebAssembly: z.boolean().optional(),
 	outputModule: z.boolean().optional(),
 	topLevelAwait: z.boolean().optional(),
-	newSplitChunks: z
-		.boolean()
-		.optional()
-		.refine(val => {
-			if (val === false) {
-				deprecatedWarn(
-					`'experiments.newSplitChunks = ${JSON.stringify(
-						val
-					)}' has been deprecated, please switch to 'experiments.newSplitChunks = true' to use webpack's behavior.
- 	See the discussion here (https://github.com/web-infra-dev/rspack/discussions/4168)`
-				);
-			}
-			return true;
-		}),
 	css: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
 	rspackFuture: rspackFutureOptions.optional()

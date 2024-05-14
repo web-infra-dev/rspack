@@ -845,7 +845,6 @@ export interface RawEvalDevToolModulePluginOptions {
 }
 
 export interface RawExperiments {
-  newSplitChunks: boolean
   topLevelAwait: boolean
   rspackFuture: RawRspackFuture
 }

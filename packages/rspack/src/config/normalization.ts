@@ -501,7 +501,6 @@ export interface ExperimentsNormalized {
 	lazyCompilation?: boolean;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
-	newSplitChunks?: boolean;
 	topLevelAwait?: boolean;
 	css?: boolean;
 	futureDefaults?: boolean;

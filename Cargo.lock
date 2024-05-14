@@ -2773,7 +2773,6 @@ name = "rspack_binding_options"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "better_scoped_tls",
  "derivative",
  "glob",
  "napi-derive",
