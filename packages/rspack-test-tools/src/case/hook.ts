@@ -1,9 +1,20 @@
 import path from "path";
 import { getSimpleProcessorRunner } from "../test/simple";
-import { HookCasesContext, HookTaskProcessor } from "../processor";
+import {
+	HookCasesContext,
+	HookTaskProcessor,
+	IHookProcessorOptions
+} from "../processor";
 import { BasicRunnerFactory } from "../runner";
-import { ECompilerType, TCompilerOptions } from "../type";
+import { ECompilerType } from "../type";
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
+
+export type THookCaseConfig = Omit<
+	IHookProcessorOptions<ECompilerType.Rspack>,
+	"name" | "compilerType" | "runable"
+> & {
+	description: string;
+};
 
 export function createHookCase(
 	name: string,
@@ -11,7 +22,9 @@ export function createHookCase(
 	dist: string,
 	source: string
 ) {
-	const caseConfig = require(path.join(src, "test.js"));
+	const caseConfig: Partial<THookCaseConfig> = require(
+		path.join(src, "test.js")
+	);
 	const testName = path.basename(
 		name.slice(0, name.indexOf(path.extname(name)))
 	);
@@ -25,19 +38,17 @@ export function createHookCase(
 			})
 	});
 
-	it(caseConfig.description, async () => {
+	it(caseConfig.description!, async () => {
 		await runner(
 			name,
 			new HookTaskProcessor({
 				name,
 				compilerType: ECompilerType.Rspack,
-				findBundle: function (
-					i: number,
-					options: TCompilerOptions<ECompilerType.Rspack>
-				) {
+				findBundle: function () {
 					return ["main.js"];
 				},
 				snapshot: path.join(src, "output.snap.txt"),
+				runable: true,
 				...caseConfig
 			})
 		);

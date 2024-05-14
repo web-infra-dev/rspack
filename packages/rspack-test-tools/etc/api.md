@@ -303,13 +303,15 @@ export class HookCasesContext extends TestContext {
 
 // @public (undocumented)
 export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
-    constructor(hookOptions: IHookProcessorOptions<ECompilerType.Rspack>);
+    constructor(_hookOptions: IHookProcessorOptions<ECompilerType.Rspack>);
     // (undocumented)
     check(env: ITestEnv, context: HookCasesContext): Promise<void>;
     // (undocumented)
+    compiler(context: ITestContext): Promise<void>;
+    // (undocumented)
     config(context: ITestContext): Promise<void>;
     // (undocumented)
-    protected hookOptions: IHookProcessorOptions<ECompilerType.Rspack>;
+    protected _hookOptions: IHookProcessorOptions<ECompilerType.Rspack>;
 }
 
 // @public (undocumented)
@@ -497,7 +499,11 @@ export interface IFormatCodeOptions {
 }
 
 // @public (undocumented)
-interface IHookProcessorOptions<T extends ECompilerType> extends ISnapshotProcessorOptions<T> {
+export interface IHookProcessorOptions<T extends ECompilerType> extends ISnapshotProcessorOptions<T> {
+    // (undocumented)
+    check?: (context: ITestContext) => Promise<void>;
+    // (undocumented)
+    compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
     // (undocumented)
     options?: (context: ITestContext) => TCompilerOptions<T>;
 }
@@ -1183,6 +1189,11 @@ export type TFileCompareResult = TCompareResult & {
         dist: string;
     };
     modules: Partial<Record<"modules" | "runtimeModules", TModuleCompareResult[]>>;
+};
+
+// @public (undocumented)
+export type THookCaseConfig = Omit<IHookProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType" | "runable"> & {
+    description: string;
 };
 
 // @public (undocumented)
