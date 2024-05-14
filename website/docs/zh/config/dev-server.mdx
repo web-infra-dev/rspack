@@ -310,7 +310,7 @@ module.exports = {
         password: 'dev-server',
         port: 8080,
         protocol: 'ws',
-        username: 'webpack',
+        username: 'rspack',
       },
     },
   },
@@ -551,7 +551,7 @@ module.exports = {
   devServer: {
     onListening: function (devServer) {
       if (!devServer) {
-        throw new Error('webpack-dev-server 未定义');
+        throw new Error('@rspack/dev-server 未定义');
       }
 
       const port = devServer.server.address().port;
@@ -856,7 +856,7 @@ module.exports = {
         pfx: './path/to/server.pfx',
         key: './path/to/server.key',
         cert: './path/to/server.crt',
-        passphrase: 'webpack-dev-server',
+        passphrase: '@rspack/dev-server',
         requestCert: true,
       },
     },
@@ -881,7 +881,7 @@ module.exports = {
         pfx: fs.readFileSync(path.join(__dirname, './server.pfx')),
         cert: fs.readFileSync(path.join(__dirname, './server.crt')),
         ca: fs.readFileSync(path.join(__dirname, './ca.pem')),
-        passphrase: 'webpack-dev-server',
+        passphrase: '@rspack/dev-server',
         requestCert: true,
       },
     },
@@ -901,7 +901,7 @@ module.exports = {
   devServer: {
     setupMiddlewares: (middlewares, devServer) => {
       if (!devServer) {
-        throw new Error('webpack-dev-server is not defined');
+        throw new Error('@rspack/dev-server is not defined');
       }
 
       devServer.app.get('/setup-middleware/some/path', (_, response) => {

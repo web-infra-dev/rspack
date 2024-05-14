@@ -321,7 +321,7 @@ module.exports = {
         password: 'dev-server',
         port: 8080,
         protocol: 'ws',
-        username: 'webpack',
+        username: 'rspack',
       },
     },
   },
@@ -353,7 +353,7 @@ module.exports = {
 - **Type:** `object`
 - **Default:** `{}`
 
-Provide options to [webpack-dev-middleware](https://github.com/webpack/webpack-dev-middleware) which handles webpack assets.
+Provide options to [webpack-dev-middleware](https://github.com/webpack/webpack-dev-middleware) which handles Rspack assets.
 
 ```javascript title="rspack.config.js"
 module.exports = {
@@ -501,7 +501,7 @@ Specifying local-ipv6 as host will try to resolve the host option as your local 
 - **Type:** `boolean`
 - **Default:** `true`
 
-Enable webpack's Hot Module Replacement feature:
+Enable Rspack's Hot Module Replacement feature:
 
 ```javascript title="rspack.config.js"
 module.exports = {
@@ -554,7 +554,7 @@ Whether the path corresponds to the product one by one.
 
 - **Type:** `function (devServer)`
 
-Provides the ability to execute a custom function when webpack-dev-server starts listening for connections on a port.
+Provides the ability to execute a custom function when @rspack/dev-server starts listening for connections on a port.
 
 ```javascript title="rspack.config.js"
 module.exports = {
@@ -562,7 +562,7 @@ module.exports = {
   devServer: {
     onListening: function (devServer) {
       if (!devServer) {
-        throw new Error('webpack-dev-server is not defined');
+        throw new Error('@rspack/dev-server is not defined');
       }
 
       const port = devServer.server.address().port;
@@ -679,7 +679,7 @@ module.exports = {
 
 Proxying some URLs can be useful when you have a separate API backend development server and you want to send API requests on the same domain.
 
-The dev-server makes use of the powerful [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware) package. Check out its [documentation](https://github.com/chimurai/http-proxy-middleware#options) for more advanced usages. Note that some of `http-proxy-middleware`'s features do not require a `target` key, e.g. its `router` feature, but you will still need to include a `target` key in your configuration here, otherwise `webpack-dev-server` won't pass it along to `http-proxy-middleware`.
+The dev-server makes use of the powerful [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware) package. Check out its [documentation](https://github.com/chimurai/http-proxy-middleware#options) for more advanced usages. Note that some of `http-proxy-middleware`'s features do not require a `target` key, e.g. its `router` feature, but you will still need to include a `target` key in your configuration here, otherwise `@rspack/dev-server` won't pass it along to `http-proxy-middleware`.
 
 With a backend on `localhost:3000`, you can use this to enable proxying:
 
@@ -866,7 +866,7 @@ module.exports = {
         pfx: './path/to/server.pfx',
         key: './path/to/server.key',
         cert: './path/to/server.crt',
-        passphrase: 'webpack-dev-server',
+        passphrase: '@rspack/dev-server',
         requestCert: true,
       },
     },
@@ -891,7 +891,7 @@ module.exports = {
         pfx: fs.readFileSync(path.join(__dirname, './server.pfx')),
         cert: fs.readFileSync(path.join(__dirname, './server.crt')),
         ca: fs.readFileSync(path.join(__dirname, './ca.pem')),
-        passphrase: 'webpack-dev-server',
+        passphrase: '@rspack/dev-server',
         requestCert: true,
       },
     },
@@ -911,7 +911,7 @@ module.exports = {
   devServer: {
     setupMiddlewares: (middlewares, devServer) => {
       if (!devServer) {
-        throw new Error('webpack-dev-server is not defined');
+        throw new Error('@rspack/dev-server is not defined');
       }
 
       devServer.app.get('/setup-middleware/some/path', (_, response) => {
