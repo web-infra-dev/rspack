@@ -181,7 +181,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
         exports.insert(key, vec![value]);
       }
 
-      exports.sort_keys();
       let normalized_exports = IndexMap::from_iter(
         exports
           .iter()
