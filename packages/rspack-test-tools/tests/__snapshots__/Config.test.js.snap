@@ -313,6 +313,8 @@ div {
 "
 `;
 
+exports[`config config/optimization/minimizer-esm-asset exported tests minimizing an asset file of esm type should success 1`] = `"console.log(import.meta.url);export const a=1;"`;
+
 exports[`config config/optimization/minimizer-swc-extract-comments exported tests should keep the extracted license file stable 1`] = `
 "/**
  * bar
