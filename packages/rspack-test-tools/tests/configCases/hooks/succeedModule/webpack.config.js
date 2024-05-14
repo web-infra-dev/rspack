@@ -1,6 +1,6 @@
 const MySucceedModulePlugin = require("./plugins/MySucceedModulePlugin");
 
-/** @type {import('@rspack/cli').Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 const config = {
 	context: __dirname,
 	mode: "development",

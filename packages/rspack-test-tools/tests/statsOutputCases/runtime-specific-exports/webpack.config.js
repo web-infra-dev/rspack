@@ -1,5 +1,5 @@
 
-/** @type {import("../../../dist").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./example.js",
 	optimization: {

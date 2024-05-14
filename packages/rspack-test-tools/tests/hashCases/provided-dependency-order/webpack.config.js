@@ -18,7 +18,7 @@ function config(subpath, realContentHash = false) {
 	};
 }
 
-/** @type {import("../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = [
 	config("a"),
 	config("b"),

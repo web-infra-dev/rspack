@@ -1,4 +1,4 @@
-/** @type {import('@rspack/cli').Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 const config = {
 	entry: {
 		main: "./index.js"

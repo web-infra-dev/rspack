@@ -1,6 +1,6 @@
 const { rspack } = require("@rspack/core");
 
-/**@type {import('@rspack/cli').Configuration}*/
+/**@type {import("@rspack/core").Configuration}*/
 module.exports = {
 	output: {
 		filename: 'bundle0.js?hash=[contenthash]'

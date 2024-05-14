@@ -16,7 +16,7 @@ class MyEntryOptionPlugin {
 	}
 }
 
-/** @type {import('@rspack/cli').Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 const config = {
 	context: __dirname,
 	mode: "development",

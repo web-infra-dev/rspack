@@ -25,7 +25,7 @@ const commonMF = {
 	shareScope: "test-scope"
 };
 
-/** @type {import("../../../../types").Configuration[]} */
+/** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
 		...common,

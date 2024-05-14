@@ -34,7 +34,7 @@ class InterceptPlugin {
 	}
 }
 
-/** @type {import('@rspack/cli').Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 const config = {
 	plugins: [new InterceptPlugin()]
 };
