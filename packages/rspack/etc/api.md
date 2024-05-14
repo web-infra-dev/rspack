@@ -565,7 +565,6 @@ interface BaseModuleConfig {
 // @public (undocumented)
 const baseResolveOptions: z.ZodObject<{
     alias: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, "many">]>>>;
-    browserField: z.ZodEffects<z.ZodOptional<z.ZodBoolean>, boolean | undefined, boolean | undefined>;
     conditionNames: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     extensions: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     fallback: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, "many">]>>>;
@@ -597,7 +596,6 @@ const baseResolveOptions: z.ZodObject<{
     roots: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
 }, "strict", z.ZodTypeAny, {
     alias?: Record<string, string | false | (string | false)[]> | undefined;
-    browserField?: boolean | undefined;
     conditionNames?: string[] | undefined;
     extensions?: string[] | undefined;
     fallback?: Record<string, string | false | (string | false)[]> | undefined;
@@ -623,7 +621,6 @@ const baseResolveOptions: z.ZodObject<{
     roots?: string[] | undefined;
 }, {
     alias?: Record<string, string | false | (string | false)[]> | undefined;
-    browserField?: boolean | undefined;
     conditionNames?: string[] | undefined;
     extensions?: string[] | undefined;
     fallback?: Record<string, string | false | (string | false)[]> | undefined;
