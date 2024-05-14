@@ -1,0 +1,36 @@
+```js title=main.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./Something.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.d(__webpack_exports__, {
+  something: function() { return something; }
+});
+function something() {}
+}),
+"./export.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return a; }
+});
+/* harmony import */var _Something__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./Something.js");
+
+
+var a = function test() {
+    _Something__WEBPACK_IMPORTED_MODULE_0__.something;
+};
+
+}),
+"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+"use strict";
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./export.js");
+
+_export__WEBPACK_IMPORTED_MODULE_0__["default"];
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```
