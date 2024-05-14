@@ -3,27 +3,27 @@ import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
 
 <WebpackLicense from="https://webpack.docschina.org/api/node/" />
 
-# Node.js API
+# JavaScript API
 
-Rspack 提供了 Node.js API，可以在 Node.js 运行时下直接使用。
+Rspack 提供了一组 JavaScript API，可在 Node.js 或 Bun 等 JavaScript 运行时中使用。
 
-当你需要自定义构建或开发流程时，Node.js API 非常有用，因为此时所有的报告和错误处理都必须自行实现，Rspack 仅仅负责编译的部分。所以 [`stats`](/config/stats) 配置选项不会在 `rspack()` 调用中生效。
+当你需要自定义构建或开发流程时，JavaScript API 非常有用，因为此时所有的报告和错误处理都必须自行实现，Rspack 仅仅负责编译的部分。所以 [`stats`](/config/stats) 配置选项不会在 `rspack()` 调用中生效。
 
 :::tip 提示
-`@rspack/core` 是基于 Webpack Node.js API 设计的，旨在提供一致的功能和相似的使用体验。
+`@rspack/core` 是基于 Webpack JavaScript API 设计的，旨在提供一致的功能和相似的使用体验。
 :::
 
 ## 安装
 
-开始使用 Rspack 的 Node.js API 之前，首先你需要安装 `@rspack/core`：
+开始使用 Rspack 的 JavaScript API 之前，首先你需要安装 `@rspack/core`：
 
 ```bash
 npm install --save-dev @rspack/core
 ```
 
-在 Node.js 文件中，引入 `@rspack/core` 模块：
+在 JavaScript 文件中，引入 `@rspack/core` 模块：
 
-```bash
+```js title="build.js"
 import rspack from '@rspack/core';
 ```
 
@@ -43,11 +43,11 @@ rspack({}, (err, stats) => {
 ```
 
 :::tip 提示
-`err` 对象**不包含**编译错误，必须使用 `stats.hasErrors()` 单独处理，文档的[错误处理](/api/node-api#错误处理)将对这部分进行详细介绍。`err` 对象只包含 Rspack 相关的问题，例如配置错误等。
+`err` 对象**不包含**编译错误，必须使用 `stats.hasErrors()` 单独处理，文档的[错误处理](/api/javascript-api#错误处理)将对这部分进行详细介绍。`err` 对象只包含 Rspack 相关的问题，例如配置错误等。
 :::
 
 :::tip 提示
-你也可以为 rspack() 函数提供一个配置数组。更多详细信息，请查看 [MultiCompiler](/api/node-api#multicompiler) 章节。
+你也可以为 rspack() 函数提供一个配置数组。更多详细信息，请查看 [MultiCompiler](/api/javascript-api#multicompiler) 章节。
 :::
 
 ## Compiler 实例
@@ -149,7 +149,7 @@ watching.invalidate();
 
 ## Stats 对象
 
-`stats` 对象会被作为 [`rspack()`](/api/node-api#rspack) 回调函数的第二个参数传递，可以通过它获取到代码编译过程中的有用信息，包括：
+`stats` 对象会被作为 [`rspack()`](/api/javascript-api#rspack) 回调函数的第二个参数传递，可以通过它获取到代码编译过程中的有用信息，包括：
 
 - 错误和警告（如果有的话）
 - 计时信息
@@ -228,7 +228,7 @@ rspack(
 
 ## MultiCompiler
 
-`MultiCompiler` 模块可以让 Rspack 同时执行多个配置。如果传给 Rspack 的 Node.js API 的 `options` 参数，该参数由是由多个配置对象构成的数组，Rspack 会相应地创建多个 compiler 实例，并且在所有 compiler 执行完毕后调用 `callback` 方法。
+`MultiCompiler` 模块可以让 Rspack 同时执行多个配置。如果传给 Rspack 的 JavaScript API 的 `options` 参数，该参数由是由多个配置对象构成的数组，Rspack 会相应地创建多个 compiler 实例，并且在所有 compiler 执行完毕后调用 `callback` 方法。
 
 ```js
 import rspack from '@rspack/core';
