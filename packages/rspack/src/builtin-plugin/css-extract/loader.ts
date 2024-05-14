@@ -26,7 +26,7 @@ interface DependencyDescription {
 	filepath: string;
 }
 
-export interface LoaderOptions {
+export interface CssExtractRspackLoaderOptions {
 	publicPath?: string | ((resourcePath: string, context: string) => string);
 	emit?: boolean;
 	esModule?: boolean;
@@ -39,7 +39,7 @@ function hotLoader(
 	content: string,
 	context: {
 		loaderContext: LoaderContext;
-		options: LoaderOptions;
+		options: CssExtractRspackLoaderOptions;
 		locals: Record<string, string>;
 	}
 ) {
@@ -102,7 +102,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		return;
 	}
 
-	const options = this.getOptions(schema) as LoaderOptions;
+	const options = this.getOptions(schema) as CssExtractRspackLoaderOptions;
 	const emit = typeof options.emit !== "undefined" ? options.emit : true;
 	const callback = this.async();
 	const filepath = this.resourcePath;

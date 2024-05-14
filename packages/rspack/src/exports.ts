@@ -259,6 +259,10 @@ export { EvalDevToolModulePlugin } from "./builtin-plugin";
 export type { EvalDevToolModulePluginOptions } from "./builtin-plugin";
 
 export { CssExtractRspackPlugin } from "./builtin-plugin";
+export type {
+	CssExtractRspackPluginOptions,
+	CssExtractRspackLoaderOptions
+} from "./builtin-plugin";
 
 ///// Rspack Postfixed Internal Loaders /////
 export type {

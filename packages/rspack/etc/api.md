@@ -1560,18 +1560,50 @@ export type CssChunkFilename = z.infer<typeof cssChunkFilename>;
 const cssChunkFilename: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>;
 
 // @public (undocumented)
+export interface CssExtractRspackLoaderOptions {
+    // (undocumented)
+    emit?: boolean;
+    // (undocumented)
+    esModule?: boolean;
+    // (undocumented)
+    layer?: boolean;
+    // (undocumented)
+    publicPath?: string | ((resourcePath: string, context: string) => string);
+}
+
+// @public (undocumented)
 export class CssExtractRspackPlugin {
-    constructor(options?: PluginOptions);
+    constructor(options?: CssExtractRspackPluginOptions);
     // (undocumented)
     apply(compiler: Compiler): void;
     // (undocumented)
     static loader: string;
     // (undocumented)
-    normalizeOptions(options: PluginOptions): RawCssExtractPluginOption;
+    normalizeOptions(options: CssExtractRspackPluginOptions): RawCssExtractPluginOption;
     // (undocumented)
-    options: PluginOptions;
+    options: CssExtractRspackPluginOptions;
     // (undocumented)
     static pluginName: string;
+}
+
+// @public (undocumented)
+export interface CssExtractRspackPluginOptions {
+    // (undocumented)
+    attributes?: Record<string, string>;
+    // (undocumented)
+    chunkFilename?: string;
+    // (undocumented)
+    filename?: string;
+    // (undocumented)
+    ignoreOrder?: boolean;
+    // (undocumented)
+    insert?: string | ((linkTag: HTMLLinkElement) => void);
+    // (undocumented)
+    linkType?: string | "text/css" | false;
+    // (undocumented)
+    pathinfo?: boolean;
+    // (undocumented)
+    runtime?: boolean;
 }
 
 // @public (undocumented)
@@ -7256,26 +7288,6 @@ type PluginImportConfig = {
 type PluginImportOptions = PluginImportConfig[] | undefined;
 
 // @public (undocumented)
-interface PluginOptions {
-    // (undocumented)
-    attributes?: Record<string, string>;
-    // (undocumented)
-    chunkFilename?: string;
-    // (undocumented)
-    filename?: string;
-    // (undocumented)
-    ignoreOrder?: boolean;
-    // (undocumented)
-    insert?: string | ((linkTag: HTMLLinkElement) => void);
-    // (undocumented)
-    linkType?: string | "text/css" | false;
-    // (undocumented)
-    pathinfo?: boolean;
-    // (undocumented)
-    runtime?: boolean;
-}
-
-// @public (undocumented)
 export type Plugins = z.infer<typeof plugins>;
 
 // @public (undocumented)
@@ -7643,6 +7655,8 @@ declare namespace rspackExports {
         EvalDevToolModulePlugin,
         EvalDevToolModulePluginOptions,
         CssExtractRspackPlugin,
+        CssExtractRspackPluginOptions,
+        CssExtractRspackLoaderOptions,
         SwcLoaderOptions,
         SwcLoaderEnvConfig,
         SwcLoaderJscConfig,
