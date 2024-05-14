@@ -5,7 +5,7 @@ import {
 	JsModule
 } from "@rspack/binding";
 import { Source } from "webpack-sources";
-import { createSourceFromRaw } from "./util/createSource";
+import { JsSource } from "./util/source";
 
 export type ResourceData = {
 	resource: string;
@@ -69,7 +69,9 @@ export class Module {
 	get originalSource(): Source | null {
 		if (this._originalSource) return this._originalSource;
 		if (this.#inner.originalSource) {
-			this._originalSource = createSourceFromRaw(this.#inner.originalSource);
+			this._originalSource = JsSource.__from_binding(
+				this.#inner.originalSource
+			);
 			return this._originalSource;
 		} else {
 			return null;

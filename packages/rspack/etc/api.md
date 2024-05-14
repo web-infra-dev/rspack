@@ -35,7 +35,6 @@ import { JsModule } from '@rspack/binding';
 import { JsPathData } from '@rspack/binding';
 import type { JsRuntimeModule } from '@rspack/binding';
 import { JsStats } from '@rspack/binding';
-import type { JsStatsChunk } from '@rspack/binding';
 import { JsStatsError } from '@rspack/binding';
 import { JsStatsWarning } from '@rspack/binding';
 import { libCacheFacade } from './lib/CacheFacade';
@@ -957,21 +956,19 @@ export class Compilation {
     // @internal
     __internal__deleteAssetSource(filename: string): void;
     // @internal
-    __internal__findJsModule(identifier: string, modules: Map<string, JsModule>): JsModule | undefined;
-    // @internal
     __internal__getAssetFilenames(): string[];
     // @internal
     __internal__getAssetSource(filename: string): Source | void;
-    // @internal
-    __internal__getAssociatedModules(chunk: JsStatsChunk): any[] | undefined;
     // @internal
     __internal__getChunks(): Chunk[];
     // @internal
     __internal__getModules(): JsModule[];
     // @internal
     __internal__hasAsset(name: string): boolean;
-    // (undocumented)
-    __internal__pushNativeDiagnostics(diagnostics: ExternalObject<any>): void;
+    // @internal
+    __internal__pushDiagnostic(severity: "error" | "warning", title: string, message: string): void;
+    // @internal
+    __internal__pushNativeDiagnostics(diagnostics: ExternalObject<"Diagnostic[]">): void;
     // @internal
     __internal__setAssetSource(filename: string, source: Source): void;
     // (undocumented)
@@ -1022,7 +1019,7 @@ export class Compilation {
     endTime?: number;
     get entrypoints(): ReadonlyMap<string, Entrypoint>;
     // (undocumented)
-    get errors(): any;
+    get errors(): JsStatsError[];
     // (undocumented)
     fileDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
@@ -1037,12 +1034,12 @@ export class Compilation {
     // (undocumented)
     get fullHash(): string | null;
     // (undocumented)
-    getAsset(name: string): Asset | void;
+    getAsset(name: string): Readonly<Asset> | void;
     // (undocumented)
     getAssetPath(filename: Filename, data?: PathData): string;
     // (undocumented)
     getAssetPathWithInfo(filename: Filename, data?: PathData): PathWithInfo;
-    getAssets(): Readonly<Asset>[];
+    getAssets(): ReadonlyArray<Asset>;
     // (undocumented)
     getCache(name: string): libCacheFacade;
     // (undocumented)
@@ -1139,8 +1136,6 @@ export class Compilation {
     static PROCESS_ASSETS_STAGE_REPORT: number;
     // (undocumented)
     static PROCESS_ASSETS_STAGE_SUMMARIZE: number;
-    // (undocumented)
-    pushDiagnostic(severity: "error" | "warning", title: string, message: string): void;
     // (undocumented)
     rebuildModule(m: Module, f: (err: Error, m: Module) => void): void;
     // (undocumented)
