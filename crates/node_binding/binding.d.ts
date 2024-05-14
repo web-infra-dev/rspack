@@ -772,7 +772,7 @@ export interface RawCssAutoGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
   localIdentName?: string
-  esModule: boolean
+  esModule?: boolean
 }
 
 export interface RawCssAutoParserOptions {
@@ -793,14 +793,14 @@ export interface RawCssExtractPluginOption {
 export interface RawCssGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
-  esModule: boolean
+  esModule?: boolean
 }
 
 export interface RawCssModuleGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
   localIdentName?: string
-  esModule: boolean
+  esModule?: boolean
 }
 
 export interface RawCssModuleParserOptions {

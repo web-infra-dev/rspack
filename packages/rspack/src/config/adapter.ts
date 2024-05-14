@@ -767,7 +767,7 @@ function getRawCssGeneratorOptions(
 	return {
 		exportsConvention: options.exportsConvention,
 		exportsOnly: options.exportsOnly,
-		esModule: options.esModule!
+		esModule: options.esModule
 	};
 }
 
@@ -778,7 +778,7 @@ function getRawCssAutoOrModuleGeneratorOptions(
 		localIdentName: options.localIdentName,
 		exportsConvention: options.exportsConvention,
 		exportsOnly: options.exportsOnly,
-		esModule: options.esModule!
+		esModule: options.esModule
 	};
 }
 

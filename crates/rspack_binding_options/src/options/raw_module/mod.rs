@@ -622,7 +622,7 @@ pub struct RawCssGeneratorOptions {
   #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
   pub exports_convention: Option<String>,
   pub exports_only: Option<bool>,
-  pub es_module: bool,
+  pub es_module: Option<bool>,
 }
 
 impl From<RawCssGeneratorOptions> for CssGeneratorOptions {
@@ -642,7 +642,7 @@ pub struct RawCssAutoGeneratorOptions {
   pub exports_convention: Option<String>,
   pub exports_only: Option<bool>,
   pub local_ident_name: Option<String>,
-  pub es_module: bool,
+  pub es_module: Option<bool>,
 }
 
 impl From<RawCssAutoGeneratorOptions> for CssAutoGeneratorOptions {
@@ -663,7 +663,7 @@ pub struct RawCssModuleGeneratorOptions {
   pub exports_convention: Option<String>,
   pub exports_only: Option<bool>,
   pub local_ident_name: Option<String>,
-  pub es_module: bool,
+  pub es_module: Option<bool>,
 }
 
 impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {

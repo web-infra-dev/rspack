@@ -343,7 +343,7 @@ impl Plugin for CssPlugin {
           local_ident_name: None,
           exports_only: g.exports_only.expect("should have exports_only"),
           named_exports: p.named_exports.expect("should have named_exports"),
-          es_module: g.es_module,
+          es_module: g.es_module.expect("should have es_module"),
         }) as Box<dyn ParserAndGenerator>
       }),
     );
@@ -368,7 +368,7 @@ impl Plugin for CssPlugin {
           ),
           exports_only: g.exports_only.expect("should have exports_only"),
           named_exports: p.named_exports.expect("should have named_exports"),
-          es_module: g.es_module,
+          es_module: g.es_module.expect("should have es_module"),
         }) as Box<dyn ParserAndGenerator>
       }),
     );
@@ -393,7 +393,7 @@ impl Plugin for CssPlugin {
           ),
           exports_only: g.exports_only.expect("should have exports_only"),
           named_exports: p.named_exports.expect("should have named_exports"),
-          es_module: g.es_module,
+          es_module: g.es_module.expect("should have es_module"),
         }) as Box<dyn ParserAndGenerator>
       }),
     );
