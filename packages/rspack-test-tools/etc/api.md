@@ -1190,7 +1190,7 @@ export type TFileCompareResult = TCompareResult & {
 };
 
 // @public (undocumented)
-export type THookCaseConfig = Omit<IHookProcessorOptions<ECompilerType.Rspack>, 'name' | 'compilerType' | 'runable'> & {
+export type THookCaseConfig = Omit<IHookProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType" | "runable"> & {
     description: string;
 };
 
