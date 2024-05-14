@@ -1,4 +1,6 @@
-import { SimpleTaskProcessor } from "./simple";
+import fs from "fs";
+import { createFsFromVolume, Volume } from "memfs";
+
 import {
 	ECompilerType,
 	ITestContext,
@@ -7,8 +9,7 @@ import {
 	TCompilerOptions,
 	TCompilerStats
 } from "../type";
-import { createFsFromVolume, Volume } from "memfs";
-import fs from "fs";
+import { SimpleTaskProcessor } from "./simple";
 const serializer = require("jest-serializer-path");
 
 export interface IStatsAPITaskProcessorOptions<T extends ECompilerType> {

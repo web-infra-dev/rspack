@@ -1,3 +1,9 @@
+import { StatsCompilation } from "@rspack/core";
+import fs from "fs-extra";
+import path from "path";
+
+import { escapeEOL, escapeSep } from "../helper";
+import { THotStepRuntimeData } from "../runner";
 import {
 	ECompilerType,
 	ITestContext,
@@ -5,16 +11,11 @@ import {
 	TCompilerOptions,
 	TCompilerStats
 } from "../type";
-import path from "path";
-import { StatsCompilation } from "@rspack/core";
 import {
 	IRspackHotProcessorOptions,
 	RspackHotProcessor,
 	TUpdateOptions
 } from "./hot";
-import fs from "fs-extra";
-import { THotStepRuntimeData } from "../runner";
-import { escapeEOL, escapeSep } from "../helper";
 
 const escapeLocalName = (str: string) => str.split(/[-<>:"/|?*.]/).join("_");
 

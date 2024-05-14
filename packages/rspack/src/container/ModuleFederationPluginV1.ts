@@ -1,15 +1,15 @@
 import { Compiler } from "../Compiler";
 import {
-	LibraryOptions,
 	EntryRuntime,
 	ExternalsType,
-	externalsType
+	externalsType,
+	LibraryOptions
 } from "../config";
-import { SharePlugin, Shared } from "../sharing/SharePlugin";
+import { Shared, SharePlugin } from "../sharing/SharePlugin";
+import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
 import { isValidate } from "../util/validate";
 import { ContainerPlugin, Exposes } from "./ContainerPlugin";
 import { ContainerReferencePlugin, Remotes } from "./ContainerReferencePlugin";
-import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
 
 export interface ModuleFederationPluginV1Options {
 	exposes?: Exposes;

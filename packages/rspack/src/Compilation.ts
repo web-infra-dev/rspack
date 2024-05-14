@@ -7,55 +7,54 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import * as tapable from "tapable";
-import { Source } from "webpack-sources";
-
 import type {
 	ExternalObject,
 	JsAssetInfo,
 	JsCompatSource,
 	JsCompilation,
+	JsDiagnostic,
 	JsModule,
+	JsPathData,
 	JsRuntimeModule,
 	JsStatsError,
-	JsPathData,
-	JsStatsWarning,
-	JsDiagnostic
+	JsStatsWarning
 } from "@rspack/binding";
+import * as tapable from "tapable";
+import { Source } from "webpack-sources";
 
 import {
-	RspackOptionsNormalized,
-	StatsOptions,
+	Filename,
 	OutputNormalized,
-	StatsValue,
+	RspackOptionsNormalized,
 	RspackPluginInstance,
-	Filename
+	StatsOptions,
+	StatsValue
 } from "./config";
-import * as liteTapable from "./lite-tapable";
 import { ContextModuleFactory } from "./ContextModuleFactory";
+import * as liteTapable from "./lite-tapable";
 import ResolverFactory = require("./ResolverFactory");
+import { Chunk } from "./Chunk";
+import { ChunkGraph } from "./ChunkGraph";
 import { Compiler } from "./Compiler";
+import { Entrypoint } from "./Entrypoint";
 import ErrorHelpers from "./ErrorHelpers";
-import { LogType, Logger } from "./logging/Logger";
+import { Logger, LogType } from "./logging/Logger";
+import { CodeGenerationResult, Module } from "./Module";
 import { NormalModule } from "./NormalModule";
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import {
-	Stats,
 	normalizeFilter,
 	normalizeStatsPreset,
-	optionsOrFallback
+	optionsOrFallback,
+	Stats
 } from "./Stats";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
 import { concatErrorMsgAndStack, toJsAssetInfo } from "./util";
-import { JsSource } from "./util/source";
 import { createFakeCompilationDependencies } from "./util/fake";
-import MergeCaller from "./util/MergeCaller";
 import { memoizeValue } from "./util/memoize";
-import { Chunk } from "./Chunk";
-import { CodeGenerationResult, Module } from "./Module";
-import { ChunkGraph } from "./ChunkGraph";
-import { Entrypoint } from "./Entrypoint";
+import MergeCaller from "./util/MergeCaller";
+import { JsSource } from "./util/source";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;

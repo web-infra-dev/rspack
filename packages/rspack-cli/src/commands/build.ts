@@ -1,4 +1,6 @@
+import { MultiStats, Stats } from "@rspack/core";
 import * as fs from "fs";
+
 import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
 import {
@@ -6,7 +8,6 @@ import {
 	ensureEnvObject,
 	setBuiltinEnvArg
 } from "../utils/options";
-import { MultiStats, Stats } from "@rspack/core";
 
 export class BuildCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {

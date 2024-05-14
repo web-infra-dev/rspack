@@ -1,6 +1,6 @@
 import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
-import { SnapshotProcessor } from "./snapshot";
 import { RspackBuiltinProcessor } from "./builtin";
+import { SnapshotProcessor } from "./snapshot";
 
 export interface IRspackTreeShakingProcessorOptions {
 	name: string;

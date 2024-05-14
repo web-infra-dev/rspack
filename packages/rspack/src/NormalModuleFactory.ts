@@ -1,6 +1,7 @@
-import { AsyncSeriesBailHook, HookMap } from "tapable";
-import * as liteTapable from "./lite-tapable";
 import type * as binding from "@rspack/binding";
+import { AsyncSeriesBailHook, HookMap } from "tapable";
+
+import * as liteTapable from "./lite-tapable";
 import { ResolveData, ResourceDataWithData } from "./Module";
 
 export type NormalModuleCreateData =

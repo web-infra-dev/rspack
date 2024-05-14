@@ -1,11 +1,11 @@
-import { extname } from "path";
-import type { IncomingMessage } from "http";
 import type { Compiler } from "@rspack/core";
-import wdm from "webpack-dev-middleware";
-import type { RequestHandler, Response } from "express";
-import mime from "mime-types";
-import { parse } from "url";
 import crypto from "crypto";
+import type { RequestHandler, Response } from "express";
+import type { IncomingMessage } from "http";
+import mime from "mime-types";
+import { extname } from "path";
+import { parse } from "url";
+import wdm from "webpack-dev-middleware";
 
 function etag(buf: any) {
 	const hash = crypto.createHash("sha256").update(buf).digest("hex");

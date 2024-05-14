@@ -1,6 +1,6 @@
 import type { JsCompatSource } from "@rspack/binding";
+import { CompatSource, RawSource, Source } from "webpack-sources";
 
-import { RawSource, CompatSource, Source } from "webpack-sources";
 import { isNil } from "./index";
 
 class JsSource extends Source {

@@ -4,6 +4,7 @@ import {
 	__chunk_graph_inner_get_chunk_modules,
 	__chunk_graph_inner_get_chunk_modules_iterable_by_source_type
 } from "@rspack/binding";
+
 import { Chunk } from "./Chunk";
 import { Compilation } from "./Compilation";
 import { Module } from "./Module";

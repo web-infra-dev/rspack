@@ -1,31 +1,32 @@
+import type { RspackPluginFunction, RspackPluginInstance } from "@rspack/core";
+import {
+	Compiler,
+	MultiCompiler,
+	MultiRspackOptions,
+	MultiStats,
+	rspack,
+	RspackOptions,
+	Stats
+} from "@rspack/core";
+import * as rspackCore from "@rspack/core";
+import path from "path";
 import semver from "semver";
-import { hideBin } from "yargs/helpers";
-import yargs from "yargs";
 import util from "util";
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
+
+import { BuildCommand } from "./commands/build";
+import { PreviewCommand } from "./commands/preview";
+import { ServeCommand } from "./commands/serve";
 import {
 	RspackBuildCLIOptions,
 	RspackCLIColors,
 	RspackCLILogger,
 	RspackCLIOptions
 } from "./types";
-import { BuildCommand } from "./commands/build";
-import { ServeCommand } from "./commands/serve";
-import { PreviewCommand } from "./commands/preview";
-import {
-	RspackOptions,
-	MultiCompiler,
-	rspack,
-	MultiRspackOptions,
-	Stats,
-	MultiStats,
-	Compiler
-} from "@rspack/core";
-import { normalizeEnv } from "./utils/options";
-import { LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig";
 import findConfig from "./utils/findConfig";
-import type { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
-import * as rspackCore from "@rspack/core";
-import path from "path";
+import { LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig";
+import { normalizeEnv } from "./utils/options";
 
 type Command = "serve" | "build";
 

@@ -1,12 +1,13 @@
-import { SimpleTaskProcessor } from "./simple";
+import { diff as jestDiff } from "jest-diff";
+import stripAnsi from "strip-ansi";
+
 import {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
 	TCompilerOptions
 } from "../type";
-import { diff as jestDiff } from "jest-diff";
-import stripAnsi from "strip-ansi";
+import { SimpleTaskProcessor } from "./simple";
 
 const CURRENT_CWD = process.cwd();
 

@@ -1,4 +1,5 @@
 import { pathToFileURL } from "url";
+
 import isEsmFile from "./isEsmFile";
 
 /**

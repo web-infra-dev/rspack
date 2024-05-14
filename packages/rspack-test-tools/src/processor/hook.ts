@@ -1,4 +1,10 @@
+import { Compilation, Compiler } from "@rspack/core";
+import { getSerializers } from "jest-snapshot";
 import path from "path";
+import { format as prettyFormat, PrettyFormatOptions } from "pretty-format";
+import { Source } from "webpack-sources";
+
+import { TestContext, TTestContextOptions } from "../test/context";
 import {
 	ECompilerType,
 	ITestContext,
@@ -6,11 +12,6 @@ import {
 	TCompiler,
 	TCompilerOptions
 } from "../type";
-import { Source } from "webpack-sources";
-import { Compilation, Compiler } from "@rspack/core";
-import { format as prettyFormat, PrettyFormatOptions } from "pretty-format";
-import { getSerializers } from "jest-snapshot";
-import { TTestContextOptions, TestContext } from "../test/context";
 import { ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
 const pathSerializer = require("jest-serializer-path");

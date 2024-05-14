@@ -1,3 +1,12 @@
+import path from "path";
+
+import { readConfigFile } from "..";
+import {
+	compareFile,
+	IFormatCodeOptions,
+	replaceRuntimeModuleName
+} from "../compare";
+import { RspackDiffConfigPlugin, WebpackDiffConfigPlugin } from "../plugin";
 import {
 	ECompilerType,
 	ITestContext,
@@ -8,15 +17,7 @@ import {
 	TFileCompareResult,
 	TModuleCompareResult
 } from "../type";
-import path from "path";
-import {
-	IFormatCodeOptions,
-	compareFile,
-	replaceRuntimeModuleName
-} from "../compare";
-import { RspackDiffConfigPlugin, WebpackDiffConfigPlugin } from "../plugin";
 import { BasicTaskProcessor } from "./basic";
-import { readConfigFile } from "..";
 
 export interface IDiffProcessorOptions extends IFormatCodeOptions {
 	webpackPath: string;

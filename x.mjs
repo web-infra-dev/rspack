@@ -1,13 +1,15 @@
 #!/usr/bin/env zx
 
 import "zx/globals";
+
 import { Command } from "commander";
-import { version_handler } from "./scripts/release/version.mjs";
-import { publish_handler } from "./scripts/release/publish.mjs";
+
 import {
-	launchRspackCli,
-	launchJestWithArgs
+	launchJestWithArgs,
+	launchRspackCli
 } from "./scripts/debug/launch.mjs";
+import { publish_handler } from "./scripts/release/publish.mjs";
+import { version_handler } from "./scripts/release/version.mjs";
 
 process.env.CARGO_TERM_COLOR = "always"; // Assume every terminal that using zx supports color
 process.env.FORCE_COLOR = 3; // Fix zx losing color output in subprocesses

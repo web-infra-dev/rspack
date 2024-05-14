@@ -7,12 +7,13 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
+import assert from "assert";
 import { Callback } from "tapable";
+
 import type { Compilation, Compiler } from ".";
 import { Stats } from ".";
 import { WatchOptions } from "./config";
 import { FileSystemInfoEntry, Watcher } from "./util/fs";
-import assert from "assert";
 
 export class Watching {
 	watcher?: Watcher;

@@ -1,3 +1,5 @@
+import { merge } from "webpack-merge";
+
 import { readConfigFile } from "../helper";
 import {
 	ECompilerType,
@@ -7,7 +9,6 @@ import {
 	TCompilerOptions
 } from "../type";
 import { BasicTaskProcessor } from "./basic";
-import { merge } from "webpack-merge";
 
 export interface IMultiTaskProcessorOptions<
 	T extends ECompilerType = ECompilerType.Rspack
