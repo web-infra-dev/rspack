@@ -4,9 +4,9 @@ import WebpackLicense from '@components/webpack-license';
 
 # DevServer
 
-Used to configure the behavior of `@rspack/dev-server`.
+This page describes the options that affect the behavior of `@rspack/dev-server` (short: dev-server), which facilitates rapid application development.
 
-- **Type:** `Object`
+- **Type:** `object`
 
 :::tip
 If the current application does not depend on `@rspack/dev-server`, then the devServer config will have no effect.
@@ -21,100 +21,527 @@ For example, Rspack CLI depends on `@rspack/dev-server` by default, so the devSe
 
 This option allows you to allowlist services that are allowed to access the dev server.
 
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    allowedHosts: [
+      'host.com',
+      'subdomain.host.com',
+      'subdomain2.host.com',
+      'host2.com',
+    ],
+  },
+};
+```
+
+Mimicking Django's `ALLOWED_HOSTS`, a value beginning with `.` can be used as a subdomain wildcard. `.host.com` will match `host.com`, `www.host.com`, and any other subdomain of `host.com`.
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    // this achieves the same effect as the first example
+    // with the bonus of not having to update your config
+    // if new subdomains need to access the dev server
+    allowedHosts: ['.host.com', 'host2.com'],
+  },
+};
+```
+
+When set to `'all'` this option bypasses host checking. **THIS IS NOT RECOMMENDED** as apps that do not check the host are vulnerable to DNS rebinding attacks.
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    allowedHosts: 'all',
+  },
+};
+```
+
+When set to `'auto'` this option always allows `localhost`, [`host`](#devserverhost), and [`client.webSocketURL.hostname`](#websocketurl):
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    allowedHosts: 'auto',
+  },
+};
+```
+
 ## devServer.client
 
-- **Type:** `Object`
+- **Type:** `object`
 
 ### logging
 
 - **Type:** `'log' | 'info' | 'warn' | 'error' | 'none' | 'verbose'`
 - **Default:** `'info'`
 
-The client's log level.
+Allows to set log level in the browser, e.g. before reloading, before an error or when Hot Module Replacement is enabled.
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      logging: 'info',
+    },
+  },
+};
+```
 
 ### overlay
 
-- **Type:** `boolean | Object`
+- **Type:** `boolean | object`
 - **Default:** `true`
 
-Whether to report errors on the client's screen when a compilation error occurs.
+Shows a full-screen overlay in the browser when there are compiler errors or warnings.
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      overlay: true,
+    },
+  },
+};
+```
+
+You can provide an object with the following properties for more granular control:
+
+| Property        | Explanation              |
+| --------------- | ------------------------ |
+| `errors`        | compilation errors       |
+| `runtimeErrors` | unhandled runtime errors |
+| `warnings`      | compilation warnings     |
+
+All properties are optional and default to `true` when not provided.
+
+For example, to disable compilation warnings, you can provide the following configuration:
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      overlay: {
+        errors: true,
+        warnings: false,
+        runtimeErrors: true,
+      },
+    },
+  },
+};
+```
+
+To filter based on the thrown error, you can pass a function that accepts an `error` parameter and returns a boolean.
+
+For example, to ignore errors thrown by [`AbortController.abort()`](https://developer.mozilla.org/en-US/docs/Web/API/AbortController/abort):
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      overlay: {
+        runtimeErrors: error => {
+          if (error instanceof DOMException && error.name === 'AbortError') {
+            return false;
+          }
+          return true;
+        },
+      },
+    },
+  },
+};
+```
+
+:::warning
+The function will not have access to the variables declared in the outer scope within the configuration file.
+:::
 
 ### progress
 
 - **Type:** `boolean`
 - **Default:** `true`
 
-Whether or not to show the progress of compilation on the client.
+Prints compilation progress in percentage in the browser.
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      progress: true,
+    },
+  },
+};
+```
 
 ### reconnect
 
 - **Type:** `boolean | number`
 - **Default:** `true`
 
-The number of times the development server will reconnect to the client. `true` means unlimited number of times.
+Tells dev-server the number of times it should try to reconnect the client. When `true` it will try to reconnect unlimited times.
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      reconnect: true,
+    },
+  },
+};
+```
+
+When set to `false` it will not try to reconnect.
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      reconnect: false,
+    },
+  },
+};
+```
+
+You can also specify the exact number of times the client should try to reconnect.
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      reconnect: 5,
+    },
+  },
+};
+```
 
 ### webSocketTransport
 
 - **Type:** `'ws' | 'sockjs'`
 - **Default:** `ws`
 
-The transfer method between the client and the development server.
+This option allows us either to choose the current `devServer` transport mode for clients individually or to provide custom client implementation. This allows specifying how the browser or other client communicates with the `devServer`.
+
+:::tip
+Providing `'ws'` or `'sockjs'` to [`webSocketServer`](#devserverwebsocketserver) is a shortcut to setting both `devServer.client.webSocketTransport` and `devServer.webSocketServer` to the given value.
+:::
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      webSocketTransport: 'ws',
+    },
+    webSocketServer: 'ws',
+  },
+};
+```
+
+:::tip
+When providing a custom client and server implementation make sure that they are compatible with one another to communicate successfully.
+:::
+
+To create a custom client implementation, create a class that extends BaseClient.
+
+Using path to `CustomClient.js`, a custom WebSocket client implementation, along with the compatible `'ws'` server:
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      webSocketTransport: require.resolve('./CustomClient'),
+    },
+    webSocketServer: 'ws',
+  },
+};
+```
+
+Using custom, compatible WebSocket client and server implementations:
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      webSocketTransport: require.resolve('./CustomClient'),
+    },
+    webSocketServer: require.resolve('./CustomServer'),
+  },
+};
+```
 
 ### webSocketURL
 
 - **Type:** `string | object`
 - **Default:** `{}`
 
-URL of the ws server.
+This option allows specifying URL to web socket server (useful when you're proxying dev server and client script does not always know where to connect to).
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      webSocketURL: 'ws://0.0.0.0:8080/ws',
+    },
+  },
+};
+```
+
+You can also specify an object with the following properties:
+
+- `hostname`: Tells clients connected to devServer to use the provided hostname.
+- `pathname`: Tells clients connected to devServer to use the provided path to connect.
+- `password`: Tells clients connected to devServer to use the provided password to authenticate.
+- `port`: Tells clients connected to devServer to use the provided port.
+- `protocol`: Tells clients connected to devServer to use the provided protocol.
+- `username`: Tells clients connected to devServer to use the provided username to authenticate.
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      webSocketURL: {
+        hostname: '0.0.0.0',
+        pathname: '/ws',
+        password: 'dev-server',
+        port: 8080,
+        protocol: 'ws',
+        username: 'webpack',
+      },
+    },
+  },
+};
+```
+
+:::tip
+To get `protocol`/`hostname`/`port` from browser use `webSocketURL: 'auto://0.0.0.0:0/ws'`.
+:::
 
 ## devServer.compress
 
 - **Type:** `boolean`
 - **Default:** `true`
 
-Whether to enable gzip compression.
+Enable [gzip compression](https://betterexplained.com/articles/how-to-optimize-your-site-with-gzip-compression/) for everything served:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    compress: true,
+  },
+};
+```
 
 ## devServer.devMiddleware
 
 - **Type:** `object`
 - **Default:** `{}`
 
-Control the behavior of the rspack-dev-middleware.
+Provide options to [webpack-dev-middleware](https://github.com/webpack/webpack-dev-middleware) which handles webpack assets.
+
+```javascript title="rspack.config.js"
+module.exports = {
+  devServer: {
+    devMiddleware: {
+      index: true,
+      mimeTypes: { phtml: 'text/html' },
+      publicPath: '/publicPathForDevServe',
+      serverSideRender: true,
+      writeToDisk: true,
+    },
+  },
+};
+```
 
 ## devServer.headers
 
 - **Type:** `array | function | object`
 - **Default:** `undefined`
 
-Add response headers.
+Adds headers to all responses:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    headers: {
+      'X-Custom-Foo': 'bar',
+    },
+  },
+};
+```
+
+You can also pass an array:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    headers: [
+      {
+        key: 'X-Custom',
+        value: 'foo',
+      },
+      {
+        key: 'Y-Custom',
+        value: 'bar',
+      },
+    ],
+  },
+};
+```
+
+You can also pass a function:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    headers: () => {
+      return { 'X-Bar': ['key1=value1', 'key2=value2'] };
+    },
+  },
+};
+```
 
 ## devServer.historyApiFallback
 
 - **Type:** `boolean | object`
 - **Default:** `false`
 
-Underhanded logic when a 404 page is requested.
+When using the [HTML5 History API](https://developer.mozilla.org/en-US/docs/Web/API/History), the `index.html` page will likely have to be served in place of any `404` responses. Enable `devServer.historyApiFallback` by setting it to `true`:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    historyApiFallback: true,
+  },
+};
+```
+
+By providing an object this behavior can be controlled further using options like `rewrites`:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    historyApiFallback: {
+      rewrites: [
+        { from: /^\/$/, to: '/views/landing.html' },
+        { from: /^\/subpage/, to: '/views/subpage.html' },
+        { from: /./, to: '/views/404.html' },
+      ],
+    },
+  },
+};
+```
+
+When using dots in your path (common with Angular), you may need to use the `disableDotRule`:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    historyApiFallback: {
+      disableDotRule: true,
+    },
+  },
+};
+```
+
+For more options and information, see the [connect-history-api-fallback](https://github.com/bripkens/connect-history-api-fallback) documentation.
 
 ## devServer.host
 
 - **Type:** `'local-ip' | 'local-ipv4' | 'local-ipv6' | string`
 - **Default:** `'local-ip'`
 
-The address of the development server.
+Specify a host to use. If you want your server to be accessible externally, specify it like this:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    host: '0.0.0.0',
+  },
+};
+```
+
+### local-ip
+
+Specifying `local-ip` as host will try to resolve the host option as your local `IPv4` address if available, if `IPv4` is not available it will try to resolve your local `IPv6` address.
+
+### local-ipv4
+
+Specifying `local-ipv4` as host will try to resolve the host option as your local `IPv4` address.
+
+### local-ipv6
+
+Specifying local-ipv6 as host will try to resolve the host option as your local IPv6 address.
 
 ## devServer.hot
 
 - **Type:** `boolean`
 - **Default:** `true`
 
-Whether to enable hot updates.
+Enable webpack's Hot Module Replacement feature:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    hot: true,
+  },
+};
+```
+
+To enable Hot Module Replacement without page refresh as a fallback in case of build failures, use `hot: 'only'`:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    hot: 'only',
+  },
+};
+```
 
 ## devServer.liveReload
 
 - **Type:** `boolean`
 - **Default:** `true`
 
-Whether or not to reload the page. This configuration item is turned off when hot is turned on.
+By default, the dev-server will reload/refresh the page when file changes are detected. [`devServer.hot`](#devserverhot) option must be disabled or [`devServer.watchFiles`](#devserverwatchfiles) option must be enabled in order for `liveReload` to take effect. Disable `devServer.liveReload` by setting it to `false`:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    liveReload: false,
+  },
+};
+```
+
+:::tip
+Live reloading works only with web related [targets](/config/target) like `web`, `webworker`, `electron-renderer` and `node-webkit`.
+:::
 
 ## devServer.magicHtml
 
@@ -125,57 +552,485 @@ Whether the path corresponds to the product one by one.
 
 ## devServer.onListening
 
-- **Type:** `function`
+- **Type:** `function (devServer)`
 
-Callback when devServer establishes a connection to the port.
+Provides the ability to execute a custom function when webpack-dev-server starts listening for connections on a port.
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    onListening: function (devServer) {
+      if (!devServer) {
+        throw new Error('webpack-dev-server is not defined');
+      }
+
+      const port = devServer.server.address().port;
+      console.log('Listening on port:', port);
+    },
+  },
+};
+```
 
 ## devServer.open
 
 - **Type:** `boolean | string | object | [string, object]`
 - **Default:** `true`
 
-Whether to open the browser when devServer starts.
+Tells dev-server to open the browser after server had been started. Set it to `true` to open your default browser.
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    open: true,
+  },
+};
+```
+
+To open a specified page in a browser:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    open: ['/my-page'],
+  },
+};
+```
+
+To open multiple specified pages in browser:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    open: ['/my-page', '/another-page'],
+  },
+};
+```
+
+Provide browser name to use instead of the default one:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    open: {
+      app: {
+        name: 'google-chrome',
+      },
+    },
+  },
+};
+```
+
+The object accepts all [open](https://www.npmjs.com/package/open) options:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    open: {
+      target: ['first.html', 'http://localhost:8080/second.html'],
+      app: {
+        name: 'google-chrome',
+        arguments: ['--incognito', '--new-window'],
+      },
+    },
+  },
+};
+```
+
+:::tip
+The browser application name is platform-dependent. Don't hard code it in reusable modules. For example, `'Chrome'` is `'Google Chrome'` on macOS, `'google-chrome'` on Linux, and `'chrome'` on Windows.
+:::
 
 ## devServer.port
 
 - **Type:** `'auto' | string | number`
 - **Default:** `[]`
 
-Used to configure the port number.
+Specify a port number to listen for requests on:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    port: 8080,
+  },
+};
+```
+
+`port` option can't be `null` or an empty string, to automatically use a free port please use `port: 'auto'`:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    port: 'auto',
+  },
+};
+```
 
 ## devServer.proxy
 
 - **Type:** `object | [object, function]`
 
-Configure proxy, can be used to solve cross-domain issues, etc.
+Proxying some URLs can be useful when you have a separate API backend development server and you want to send API requests on the same domain.
+
+The dev-server makes use of the powerful [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware) package. Check out its [documentation](https://github.com/chimurai/http-proxy-middleware#options) for more advanced usages. Note that some of `http-proxy-middleware`'s features do not require a `target` key, e.g. its `router` feature, but you will still need to include a `target` key in your configuration here, otherwise `webpack-dev-server` won't pass it along to `http-proxy-middleware`.
+
+With a backend on `localhost:3000`, you can use this to enable proxying:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    proxy: [
+      {
+        context: ['/api'],
+        target: 'http://localhost:3000',
+      },
+    ],
+  },
+};
+```
+
+A request to `/api/users` will now proxy the request to `http://localhost:3000/api/users`.
+
+If you don't want `/api` to be passed along, we need to rewrite the path:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    proxy: [
+      {
+        context: ['/api'],
+        target: 'http://localhost:3000',
+        pathRewrite: { '^/api': '' },
+      },
+    ],
+  },
+};
+```
+
+A backend server running on HTTPS with an invalid certificate will not be accepted by default. If you want to, modify your configuration like this:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    proxy: [
+      {
+        context: ['/api'],
+        target: 'http://localhost:3000',
+        secure: false,
+      },
+    ],
+  },
+};
+```
+
+Sometimes you don't want to proxy everything. It is possible to bypass the proxy based on the return value of a function.
+
+In the function, you get access to the request, response, and proxy options.
+
+- Return `null` or `undefined` to continue processing the request with proxy.
+- Return `false` to produce a 404 error for the request.
+- Return a path to serve from, instead of continuing to proxy the request.
+
+E.g. for a browser request, you want to serve an HTML page, but for an API request, you want to proxy it. You could do something like this:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    proxy: [
+      {
+        context: ['/api'],
+        target: 'http://localhost:3000',
+        bypass: function (req, res, proxyOptions) {
+          if (req.headers.accept.indexOf('html') !== -1) {
+            console.log('Skipping proxy for browser request.');
+            return '/index.html';
+          }
+        },
+      },
+    ],
+  },
+};
+```
+
+If you want to proxy multiple, specific paths to the same target, you can use an array of one or more objects with a `context` property:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    proxy: [
+      {
+        context: ['/auth', '/api'],
+        target: 'http://localhost:3000',
+      },
+    ],
+  },
+};
+```
+
+Note that requests to root won't be proxied by default. To enable root proxying, the [`devMiddleware.index`](#devserverdevmiddleware) option should be specified as a falsy value:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    devMiddleware: {
+      index: false, // specify to enable root proxying
+    },
+    proxy: [
+      {
+        context: () => true,
+        target: 'http://localhost:1234',
+      },
+    ],
+  },
+};
+```
+
+The origin of the host header is kept when proxying by default, you can set `changeOrigin` to `true` to override this behaviour. It is useful in some cases like using [name-based virtual hosted sites](https://en.wikipedia.org/wiki/Virtual_hosting#Name-based).
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    proxy: [
+      {
+        context: ['/api'],
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    ],
+  },
+};
+```
 
 ## devServer.server
 
 - **Type:** `'http' | 'https' | 'spdy' | string | object`
 - **Default:** `'http'`
 
-Configuration items for the server.
+Allows to set server and options (by default 'http').
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    server: 'http',
+  },
+};
+```
+
+To serve over `HTTPS` with a self-signed certificate:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    server: 'https',
+  },
+};
+```
+
+To serve over `HTTP/2` using [spdy](https://www.npmjs.com/package/spdy) with a self-signed certificate:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    server: 'spdy',
+  },
+};
+```
+
+Use the object syntax to provide your own certificate:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    server: {
+      type: 'https',
+      options: {
+        ca: './path/to/server.pem',
+        pfx: './path/to/server.pfx',
+        key: './path/to/server.key',
+        cert: './path/to/server.crt',
+        passphrase: 'webpack-dev-server',
+        requestCert: true,
+      },
+    },
+  },
+};
+```
+
+It also allows you to set additional [TLS options](https://nodejs.org/api/tls.html#tls_tls_createsecurecontext_options) like `minVersion` and you can directly pass the contents of respective files:
+
+```javascript title="rspack.config.js"
+const fs = require('fs');
+const path = require('path');
+
+module.exports = {
+  //...
+  devServer: {
+    server: {
+      type: 'https',
+      options: {
+        minVersion: 'TLSv1.1',
+        key: fs.readFileSync(path.join(__dirname, './server.key')),
+        pfx: fs.readFileSync(path.join(__dirname, './server.pfx')),
+        cert: fs.readFileSync(path.join(__dirname, './server.crt')),
+        ca: fs.readFileSync(path.join(__dirname, './ca.pem')),
+        passphrase: 'webpack-dev-server',
+        requestCert: true,
+      },
+    },
+  },
+};
+```
 
 ## devServer.setupMiddlewares
 
 - **Type:** `function (middlewares, devServer)`
 
-Custom middleware.
+Provides the ability to execute a custom function and apply custom middleware(s).
+
+```javascript title="rspack.config.js"
+module.exports = {
+  // ...
+  devServer: {
+    setupMiddlewares: (middlewares, devServer) => {
+      if (!devServer) {
+        throw new Error('webpack-dev-server is not defined');
+      }
+
+      devServer.app.get('/setup-middleware/some/path', (_, response) => {
+        response.send('setup-middlewares option GET');
+      });
+
+      // Use the `unshift` method if you want to run a middleware before all other middlewares
+      // or when you are migrating from the `onBeforeSetupMiddleware` option
+      middlewares.unshift({
+        name: 'first-in-array',
+        // `path` is optional
+        path: '/foo/path',
+        middleware: (req, res) => {
+          res.send('Foo!');
+        },
+      });
+
+      // Use the `push` method if you want to run a middleware after all other middlewares
+      // or when you are migrating from the `onAfterSetupMiddleware` option
+      middlewares.push({
+        name: 'hello-world-test-one',
+        // `path` is optional
+        path: '/foo/bar',
+        middleware: (req, res) => {
+          res.send('Foo Bar!');
+        },
+      });
+
+      middlewares.push((req, res) => {
+        res.send('Hello World!');
+      });
+
+      return middlewares;
+    },
+  },
+};
+```
 
 ## devServer.static
 
 - **Type:** `boolean | string | object | [string, object]`
 
-Used to configure whether to enable static servers from some directories (default is 'public').
+This option allows configuring options for serving static files from the directory (by default 'public' directory). To disable set it to `false`:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    static: false,
+  },
+};
+```
+
+To watch a single directory:
+
+```js title="rspack.config.js"
+module.exports = {
+  // ...
+  devServer: {
+    static: ['assets'],
+  },
+};
+```
+
+To watch multiple static directories:
+
+```js title="rspack.config.js"
+module.exports = {
+  // ...
+  devServer: {
+    static: ['assets', 'css'],
+  },
+};
+```
 
 ## devServer.watchFiles
 
 - **Type:** `string | object | [string, object]`
 
-Listens for changes to a series of files.
+This option allows you to configure a list of globs/directories/files to watch for file changes. For example:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    watchFiles: ['src/**/*.php', 'public/**/*'],
+  },
+};
+```
+
+It is possible to configure advanced options for watching files. See the [`chokidar`](https://github.com/paulmillr/chokidar) documentation for the possible options.
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    watchFiles: {
+      paths: ['src/**/*.php', 'public/**/*'],
+      options: {
+        usePolling: false,
+      },
+    },
+  },
+};
+```
 
 ## devServer.webSocketServer
 
 - **Type:** `false | 'sockjs' | 'ws'`
 
-Used to configure the type of web socket server.
+This option allows us either to choose the current web-socket server or to provide custom web-socket server implementation.
+
+The current default mode is `'ws'`. This mode uses [`ws`](https://www.npmjs.com/package/ws) as a server, and native WebSockets on the client.
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    webSocketServer: 'ws',
+  },
+};
+```

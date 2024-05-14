@@ -234,7 +234,7 @@ module.exports = {
 此选项允许我们为客户端单独选择当前的开发服务器传输模式，或提供自定义的客户端实现。这使得可以指定浏览器或其他客户端如何与开发服务器进行通信。
 
 :::tip 提示
-设置 `webSocketServer` 为 `'ws'` 或 `'sockjs'` 是将 `devServer.client.webSocketTransport` 和 `devServer.webSocketServer` 同时设置为给定值的快捷方式。
+设置 [`webSocketServer`](#devserverwebsocketserver) 为 `'ws'` 或 `'sockjs'` 是将 `devServer.client.webSocketTransport` 和 `devServer.webSocketServer` 同时设置为给定值的快捷方式。
 :::
 
 ```js title="rspack.config.js"
@@ -292,12 +292,12 @@ module.exports = {
 
 你还可以指定一个带有以下属性的对象：
 
-- hostname：告诉连接到开发服务器的客户端要使用的主机名。
-- pathname：告诉连接到开发服务器的客户端要使用的路径。
-- password：告诉连接到开发服务器的客户端要使用的密码进行认证。
-- port：告诉连接到开发服务器的客户端要使用的端口。
-- protocol：告诉连接到开发服务器的客户端要使用的协议。
-- username：告诉连接到开发服务器的客户端要使用的用户名进行认证。
+- `hostname`：告诉连接到开发服务器的客户端要使用的主机名。
+- `pathname`：告诉连接到开发服务器的客户端要使用的路径。
+- `password`：告诉连接到开发服务器的客户端要使用的密码进行认证。
+- `port`：告诉连接到开发服务器的客户端要使用的端口。
+- `protocol`：告诉连接到开发服务器的客户端要使用的协议。
+- `username`：告诉连接到开发服务器的客户端要使用的用户名进行认证。
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -414,7 +414,7 @@ module.exports = {
 - **类型：** `boolean | object`
 - **默认值：** `false`
 
-当使用 HTML5 History API 时，`index.html` 页面需要代替任何 `404` 响应被返回。通过将 `devServer.historyApiFallback` 设置为 `true` 来启用此功能：
+当使用 [HTML5 History API](https://developer.mozilla.org/en-US/docs/Web/API/History) 时，`index.html` 页面需要代替任何 `404` 响应被返回。通过将 `devServer.historyApiFallback` 设置为 `true` 来启用此功能：
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -425,7 +425,7 @@ module.exports = {
 };
 ```
 
-通过传入对象，可以使用如重写（rewrites）等选项进一步控制此行为：
+通过传入对象，可以使用如 `rewrites` 等选项进一步控制此行为：
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -473,9 +473,17 @@ module.exports = {
 };
 ```
 
-- `local-ip`：将 host 指定为 `local-ip` 会尝试将 host 选项解析为你的本地 `IPv4` 地址（如果可用），如果 `IPv4` 不可用，将尝试解析你的本地 `IPv6` 地址。
-- `local-ipv4`：将 host 指定为 `local-ipv4` 会尝试将 host 选项解析为你的本地 `IPv4` 地址。
-- `local-ipv6`：将 host 指定为 `local-ipv6` 会尝试将 host 选项解析为你的本地 `IPv6` 地址。
+### local-ip
+
+将 host 指定为 `local-ip` 会尝试将 host 选项解析为你的本地 `IPv4` 地址（如果可用），如果 `IPv4` 不可用，将尝试解析你的本地 `IPv6` 地址。
+
+### local-ipv4
+
+将 host 指定为 `local-ipv4` 会尝试将 host 选项解析为你的本地 `IPv4` 地址。
+
+### local-ipv6
+
+将 host 指定为 `local-ipv6` 会尝试将 host 选项解析为你的本地 `IPv6` 地址。
 
 ## devServer.hot
 
@@ -493,12 +501,23 @@ module.exports = {
 };
 ```
 
+为了在构建失败的情况下启用热模块替换，同时不刷新页面作为备选方案，请使用 `hot: 'only'`：
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    hot: 'only',
+  },
+};
+```
+
 ## devServer.liveReload
 
 - **类型：** `boolean`
 - **默认值：** `true`
 
-默认情况下，当检测到文件变化时，开发服务器会重新加载/刷新页面。必须禁用 `devServer.hot` 选项或启用 `devServer.watchFiles` 选项，`liveReload` 才会生效。通过将 `devServer.liveReload` 设置为 `false` 来禁用它：
+默认情况下，当检测到文件变化时，开发服务器会重新加载/刷新页面。必须禁用 [`devServer.hot`](#devserverhot) 选项或启用 [`devServer.watchFiles`](#devserverwatchfiles) 选项，`liveReload` 才会生效。通过将 `devServer.liveReload` 设置为 `false` 来禁用它：
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -508,6 +527,10 @@ module.exports = {
   },
 };
 ```
+
+:::tip 提示
+实时重新加载仅适用于与 web 相关的 [targets](/config/target)，如 `web`、`webworker`、`electron-renderer` 和 `node-webkit`。
+:::
 
 ## devServer.magicHtml
 
@@ -591,7 +614,7 @@ module.exports = {
 };
 ```
 
-可使用的所有 `open` 选项：
+所有可用的 [open](https://www.npmjs.com/package/open) 选项：
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -986,8 +1009,6 @@ module.exports = {
   },
 };
 ```
-
-监听一系列文件的变化。
 
 ## devServer.webSocketServer
 
