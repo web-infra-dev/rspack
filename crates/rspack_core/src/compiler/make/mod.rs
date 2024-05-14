@@ -18,20 +18,20 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct MakeArtifact {
-  pub module_graph_partial: ModuleGraphPartial,
+  // should be reset when make
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: HashSet<ModuleIdentifier>,
   pub diagnostics: Vec<Diagnostic>,
+  pub has_module_graph_change: bool,
 
+  pub module_graph_partial: ModuleGraphPartial,
   entry_dependencies: HashSet<DependencyId>,
-  entry_module_identifiers: IdentifierSet,
+  pub entry_module_identifiers: IdentifierSet,
   pub optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
   pub file_dependencies: FileCounter,
   pub context_dependencies: FileCounter,
   pub missing_dependencies: FileCounter,
   pub build_dependencies: FileCounter,
-
-  pub has_module_graph_change: bool,
 }
 
 impl MakeArtifact {
@@ -48,34 +48,6 @@ impl MakeArtifact {
   // TODO remove it
   pub fn get_module_graph_partial_mut(&mut self) -> &mut ModuleGraphPartial {
     &mut self.module_graph_partial
-  }
-
-  // TODO remove it
-  fn move_data_from_compilation(&mut self, compilation: &mut Compilation) {
-    self.entry_module_identifiers = std::mem::take(&mut compilation.entry_module_identifiers);
-    //    self.file_dependencies = std::mem::take(&mut compilation.file_dependencies);
-    //    self.context_dependencies = std::mem::take(&mut compilation.context_dependencies);
-    //    self.missing_dependencies = std::mem::take(&mut compilation.missing_dependencies);
-    //    self.build_dependencies = std::mem::take(&mut compilation.build_dependencies);
-  }
-
-  // TODO remove it
-  fn move_data_to_compilation(&mut self, compilation: &mut Compilation) {
-    compilation.entry_module_identifiers = std::mem::take(&mut self.entry_module_identifiers);
-    compilation
-      .file_dependencies
-      .extend(self.file_dependencies.files().cloned());
-    compilation
-      .context_dependencies
-      .extend(self.context_dependencies.files().cloned());
-    compilation
-      .missing_dependencies
-      .extend(self.missing_dependencies.files().cloned());
-    compilation
-      .build_dependencies
-      .extend(self.build_dependencies.files().cloned());
-
-    compilation.push_batch_diagnostic(std::mem::take(&mut self.diagnostics));
   }
 
   fn revoke_modules(&mut self, ids: HashSet<ModuleIdentifier>) -> Vec<BuildDependency> {
@@ -150,8 +122,6 @@ pub fn make_module_graph(
   artifact.diagnostics = Default::default();
   artifact.has_module_graph_change = false;
 
-  artifact.move_data_from_compilation(compilation);
-
   artifact = update_module_graph_with_artifact(compilation, artifact, params)?;
 
   if compilation.options.builtins.tree_shaking.enable() {
@@ -159,7 +129,7 @@ pub fn make_module_graph(
     compilation.bailout_module_identifiers = calc_bailout_module_identifiers(&module_graph);
   }
 
-  artifact.move_data_to_compilation(compilation);
+  compilation.push_batch_diagnostic(std::mem::take(&mut artifact.diagnostics));
   Ok(artifact)
 }
 
@@ -169,7 +139,6 @@ pub async fn update_module_graph(
 ) -> Result<()> {
   let mut artifact = MakeArtifact::default();
   compilation.swap_make_artifact(&mut artifact);
-  artifact.move_data_from_compilation(compilation);
 
   artifact = update_module_graph_with_artifact(compilation, artifact, params)?;
 
@@ -178,7 +147,7 @@ pub async fn update_module_graph(
     compilation.bailout_module_identifiers = calc_bailout_module_identifiers(&module_graph);
   }
 
-  artifact.move_data_to_compilation(compilation);
+  compilation.push_batch_diagnostic(std::mem::take(&mut artifact.diagnostics));
   compilation.swap_make_artifact(&mut artifact);
   Ok(())
 }
@@ -192,10 +161,10 @@ pub fn update_module_graph_with_artifact(
   let build_dependencies = cutout.cutout_artifact(&mut artifact, params);
   artifact = repair(compilation, artifact, build_dependencies)?;
   cutout.fix_artifact(&mut artifact);
-
   Ok(artifact)
 }
 
+// TODO remove after remove old_treeshaking
 fn calc_bailout_module_identifiers(module_graph: &ModuleGraph) -> IdentifierMap<BailoutFlag> {
   // Avoid to introduce too much overhead,
   // until we find a better way to align with webpack hmr behavior
