@@ -11,8 +11,16 @@
 import assert from "assert";
 import fs from "fs";
 import path from "path";
+
 import { isNil } from "../util";
 import { cleverMerge } from "../util/cleverMerge";
+import {
+	EntryDescriptionNormalized,
+	EntryNormalized,
+	ExperimentsNormalized,
+	OutputNormalized,
+	RspackOptionsNormalized
+} from "./normalization";
 import {
 	getDefaultTarget,
 	getTargetProperties,
@@ -33,18 +41,11 @@ import type {
 	RuleSetRules,
 	SnapshotOptions
 } from "./zod";
-import {
-	EntryDescriptionNormalized,
-	EntryNormalized,
-	ExperimentsNormalized,
-	OutputNormalized,
-	RspackOptionsNormalized
-} from "./normalization";
 import Template = require("../Template");
-import { assertNotNill } from "../util/assertNotNil";
-import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
-import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";
 import { SwcCssMinimizerRspackPlugin } from "../builtin-plugin/SwcCssMinimizerPlugin";
+import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";
+import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
+import { assertNotNill } from "../util/assertNotNil";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized

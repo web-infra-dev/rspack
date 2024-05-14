@@ -1,10 +1,11 @@
-import { TestContext } from "../test/context";
 import path from "path";
-import { ITestEnv, ITestProcessor } from "../type";
+
 import {
 	DefaultsConfigTaskProcessor,
 	IDefaultsConfigProcessorOptions
 } from "../processor";
+import { TestContext } from "../test/context";
+import { ITestEnv, ITestProcessor } from "../type";
 
 export type TDefaultsCaseConfig = Omit<
 	IDefaultsConfigProcessorOptions,

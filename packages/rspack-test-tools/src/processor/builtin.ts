@@ -1,7 +1,8 @@
-import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
+import { rspack } from "@rspack/core";
 import fs from "fs-extra";
 import { merge } from "webpack-merge";
-import { rspack } from "@rspack/core";
+
+import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
 import { ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
 export interface IRspackBuiltinProcessorOptions {

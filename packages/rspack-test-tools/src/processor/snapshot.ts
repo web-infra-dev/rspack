@@ -1,13 +1,14 @@
-import { BasicTaskProcessor, IBasicProcessorOptions } from "./basic";
-import { ECompilerType, ITestContext, ITestEnv } from "../type";
-import path from "path";
-import fs from "fs-extra";
 import { type Compiler as RspackCompiler } from "@rspack/core";
+import fs from "fs-extra";
+import path from "path";
 import {
 	type Compilation as WebpackCompilation,
 	type Compiler as WebpackCompiler
 } from "webpack";
+
 import { escapeEOL } from "../helper";
+import { ECompilerType, ITestContext, ITestEnv } from "../type";
+import { BasicTaskProcessor, IBasicProcessorOptions } from "./basic";
 
 declare var global: {
 	updateSnapshot: boolean;

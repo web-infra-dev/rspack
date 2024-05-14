@@ -1,3 +1,8 @@
+import assert from "assert";
+import fs from "fs";
+import path from "path";
+
+import { escapeEOL } from "../helper";
 import {
 	ECompilerType,
 	ITestContext,
@@ -5,10 +10,6 @@ import {
 	TCompilerOptions
 } from "../type";
 import { BasicTaskProcessor } from "./basic";
-import assert from "assert";
-import path from "path";
-import fs from "fs";
-import { escapeEOL } from "../helper";
 const serializer = require("jest-serializer-path");
 const normalizePaths = serializer.normalizePaths;
 const rspackPath = path.resolve(__dirname, "../../../rspack");

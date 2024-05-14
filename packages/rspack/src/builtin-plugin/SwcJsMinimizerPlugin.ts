@@ -3,6 +3,7 @@ import {
 	RawExtractComments,
 	RawSwcJsMinimizerRspackPluginOptions
 } from "@rspack/binding";
+
 import { create } from "./base";
 
 type MinifyCondition = string | RegExp;

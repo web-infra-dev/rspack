@@ -1,7 +1,12 @@
 **/tests
 **/fixtures
+**/dist
 crates/rspack_plugin_css/webpack_css_cases_to_be_migrated
 crates/rspack_plugin_mf
+crates/rspack_plugin_extract_css/src/runtime
+packages/rspack/compiled
+packages/rspack-dev-server/client
+packages/rspack-plugin-react-refresh/client
 packages/playground
 packages/rspack/src/stats/DefaultStatsPrinterPlugin.ts
 packages/rspack-test-tools/template
@@ -13,3 +18,5 @@ diffcases
 scripts/test/diff.cjs
 scripts/test/binary-path.cjs
 plugin-test
+benchcases
+scripts

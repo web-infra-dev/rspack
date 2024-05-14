@@ -7,11 +7,12 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import { HookMap, SyncBailHook, SyncWaterfallHook } from "tapable";
-import { concatComparators, Comparator } from "../util/comparators";
-import { smartGrouping, GroupConfig } from "../util/smartGrouping";
-import type { Compilation } from "../Compilation";
 import { JsStats, JsStatsError, JsStatsWarning } from "@rspack/binding";
+import { HookMap, SyncBailHook, SyncWaterfallHook } from "tapable";
+
+import type { Compilation } from "../Compilation";
+import { Comparator, concatComparators } from "../util/comparators";
+import { GroupConfig, smartGrouping } from "../util/smartGrouping";
 
 export type KnownStatsFactoryContext = {
 	type: string;

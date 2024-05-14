@@ -1,4 +1,5 @@
 import { BuiltinPluginName, RawProgressPluginOptions } from "@rspack/binding";
+
 import { create } from "./base";
 
 export type ProgressPluginArgument =

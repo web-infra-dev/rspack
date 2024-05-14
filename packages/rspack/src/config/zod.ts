@@ -1,12 +1,13 @@
-import { RawFuncUseCtx, JsAssetInfo } from "@rspack/binding";
+import { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
+import type * as webpackDevServer from "webpack-dev-server";
 import { z } from "zod";
+
 import { Compilation, Compiler } from "..";
 import type { Builtins as BuiltinsType } from "../builtin-plugin";
-import type * as webpackDevServer from "webpack-dev-server";
-import { deprecatedWarn } from "../util";
-import { Module } from "../Module";
 import { Chunk } from "../Chunk";
 import { PathData } from "../Compilation";
+import { Module } from "../Module";
+import { deprecatedWarn } from "../util";
 
 //#region Name
 const name = z.string();

@@ -1,6 +1,11 @@
 /* eslint-disable no-control-regex */
 
 import { Compiler, Stats } from "@rspack/core";
+import fs from "fs";
+import path from "path";
+
+import { escapeEOL } from "../helper";
+import captureStdio from "../helper/legacy/captureStdio";
 import {
 	ECompilerType,
 	ITestContext,
@@ -9,10 +14,6 @@ import {
 	TTestConfig
 } from "../type";
 import { MultiTaskProcessor } from "./multi";
-import fs from "fs";
-import path from "path";
-import captureStdio from "../helper/legacy/captureStdio";
-import { escapeEOL } from "../helper";
 
 export interface IRspackStatsProcessorOptions<T extends ECompilerType.Rspack> {
 	name: string;

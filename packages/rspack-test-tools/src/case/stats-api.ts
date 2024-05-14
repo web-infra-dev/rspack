@@ -1,9 +1,9 @@
-import { ECompilerType } from "../type";
-import { getSimpleProcessorRunner } from "../test/simple";
 import {
 	IStatsAPITaskProcessorOptions,
 	StatsAPITaskProcessor
 } from "../processor";
+import { getSimpleProcessorRunner } from "../test/simple";
+import { ECompilerType } from "../type";
 
 let addedSerializer = false;
 

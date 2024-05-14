@@ -10,11 +10,12 @@
 // @ts-expect-error
 import CachedInputFileSystem from "enhanced-resolve/lib/CachedInputFileSystem";
 import fs from "graceful-fs";
-import createConsoleLogger from "../logging/createConsoleLogger";
-import NodeWatchFileSystem from "./NodeWatchFileSystem";
-import nodeConsole from "./nodeConsole";
-import type { InfrastructureLogging } from "../config";
+
 import type { Compiler } from "..";
+import type { InfrastructureLogging } from "../config";
+import createConsoleLogger from "../logging/createConsoleLogger";
+import nodeConsole from "./nodeConsole";
+import NodeWatchFileSystem from "./NodeWatchFileSystem";
 
 export interface NodeEnvironmentPluginOptions {
 	infrastructureLogging: InfrastructureLogging;

@@ -1,13 +1,14 @@
 import path from "path";
-import { getSimpleProcessorRunner } from "../test/simple";
+
+import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
 import {
 	HookCasesContext,
 	HookTaskProcessor,
 	IHookProcessorOptions
 } from "../processor";
 import { BasicRunnerFactory } from "../runner";
+import { getSimpleProcessorRunner } from "../test/simple";
 import { ECompilerType } from "../type";
-import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
 
 export type THookCaseConfig = Omit<
 	IHookProcessorOptions<ECompilerType.Rspack>,

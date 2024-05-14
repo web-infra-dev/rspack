@@ -8,7 +8,6 @@ declare interface FileMatcherOptions {
 
 declare global {
 	namespace jest {
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		interface Matchers<R, T> {
 			toMatchFileSnapshot: (
 				filename?: string,

@@ -8,8 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { Compiler, RspackOptions, Stats } from ".";
-import { WatchFileSystem } from "./util/fs";
+import asyncLib from "neo-async";
 import {
 	AsyncSeriesHook,
 	Callback,
@@ -17,12 +16,14 @@ import {
 	SyncBailHook,
 	SyncHook
 } from "tapable";
-import MultiStats from "./MultiStats";
-import asyncLib from "neo-async";
-import ArrayQueue from "./util/ArrayQueue";
-import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
-import MultiWatching from "./MultiWatching";
+
+import { Compiler, RspackOptions, Stats } from ".";
 import { WatchOptions } from "./config";
+import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
+import MultiStats from "./MultiStats";
+import MultiWatching from "./MultiWatching";
+import ArrayQueue from "./util/ArrayQueue";
+import { WatchFileSystem } from "./util/fs";
 
 interface Node<T> {
 	compiler: Compiler;

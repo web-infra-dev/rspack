@@ -1,9 +1,10 @@
-import { ITestReporter, TCompareModules } from "../type";
-import { IFormatCodeOptions } from "./format-code";
-import { compareFile } from "./compare";
-import { replaceRuntimeModuleName } from "./replace-runtime-module-name";
-import path from "path";
 import deepmerge from "deepmerge";
+import path from "path";
+
+import { ITestReporter, TCompareModules } from "../type";
+import { compareFile } from "./compare";
+import { IFormatCodeOptions } from "./format-code";
+import { replaceRuntimeModuleName } from "./replace-runtime-module-name";
 
 export interface IDiffComparatorOptions {
 	rspackDist: string;

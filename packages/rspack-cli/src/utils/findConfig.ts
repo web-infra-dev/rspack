@@ -1,4 +1,5 @@
 import fs from "fs";
+
 import { DEFAULT_EXTENSIONS } from "../constants";
 
 /**

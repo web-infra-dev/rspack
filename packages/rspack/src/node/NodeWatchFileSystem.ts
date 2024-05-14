@@ -10,6 +10,7 @@
 
 import util from "util";
 import Watchpack from "watchpack";
+
 import { FileSystemInfoEntry, Watcher, WatchFileSystem } from "../util/fs";
 
 export default class NodeWatchFileSystem implements WatchFileSystem {
