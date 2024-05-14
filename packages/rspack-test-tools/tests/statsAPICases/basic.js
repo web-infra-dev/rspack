@@ -34,7 +34,7 @@ module.exports = {
 		  Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2
 		  entry ./fixtures/a
 		  
-		Rspack compiled successfully (e82ba6f43f894acb326f)"
+		Rspack compiled successfully (bca12e9a78756a7efe53)"
 	`);
 	}
 };

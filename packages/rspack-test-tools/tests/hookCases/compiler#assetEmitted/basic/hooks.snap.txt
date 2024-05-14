@@ -655,7 +655,6 @@ Array [
         108,
         101,
         10,
-        32,
         114,
         101,
         116,
@@ -678,7 +677,6 @@ Array [
         116,
         115,
         59,
-        10,
         10,
         10,
         125,
@@ -822,8 +820,7 @@ exports: {}
 // Execute the module function
 __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 // Return the exports of the module
- return module.exports;
-
+return module.exports;
 
 }
 // startup
