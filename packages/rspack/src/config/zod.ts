@@ -386,21 +386,6 @@ export type ResolveTsconfig = z.infer<typeof resolveTsconfig>;
 
 const baseResolveOptions = z.strictObject({
 	alias: resolveAlias.optional(),
-	/**
-	 * This is `aliasField: ["browser"]` in webpack, because no one
-	 * uses aliasField other than "browser". ---@bvanjoi
-	 */
-	browserField: z
-		.boolean()
-		.optional()
-		.refine(val => {
-			if (val !== undefined) {
-				deprecatedWarn(
-					`'resolve.browserField' has been deprecated, and will be removed in 0.6.0. Please use 'resolve.aliasField' instead.`
-				);
-			}
-			return true;
-		}),
 	conditionNames: z.array(z.string()).optional(),
 	extensions: z.array(z.string()).optional(),
 	fallback: resolveAlias.optional(),

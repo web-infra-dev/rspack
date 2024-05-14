@@ -84,7 +84,7 @@ export function createCompilerCase(name: string, src: string, dist: string, test
 export function createConfigCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createDefaultsCase(name: string, src: string): void;
+export function createDefaultsCase(src: string): void;
 
 // @public (undocumented)
 export function createDiagnosticCase(name: string, src: string, dist: string): void;
@@ -159,13 +159,6 @@ export function describeByWalk(testFile: string, createCase: (name: string, src:
     dist?: string;
     absoluteDist?: boolean;
 }): void;
-
-// @public (undocumented)
-class Diff {
-    constructor(value: string);
-    // (undocumented)
-    value: string;
-}
 
 // @public (undocumented)
 export class DiffComparator {
@@ -391,7 +384,7 @@ export interface IDefaultsConfigProcessorOptions {
     // (undocumented)
     cwd?: string;
     // (undocumented)
-    diff: (diff: jest.JestMatchers<Diff>, defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>) => Promise<void>;
+    diff: (diff: any, defaults: any) => Promise<void>;
     // (undocumented)
     name: string;
     // (undocumented)
@@ -638,8 +631,6 @@ export interface IStatsAPITaskProcessorOptions<T extends ECompilerType> {
     build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
     // (undocumented)
     check?: (stats: TCompilerStats<T>, compiler: TCompiler<T>) => Promise<void>;
-    // (undocumented)
-    compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
     // (undocumented)
     compilerType: T;
     // (undocumented)
@@ -1090,11 +1081,6 @@ export type TCompilerStatsCompilation<T> = T extends ECompilerType.Rspack ? Stat
 
 // @public (undocumented)
 export type TCompilerTypeId = ECompilerType.Rspack | ECompilerType.Webpack | "common";
-
-// @public (undocumented)
-export type TDefaultsCaseConfig = Omit<IDefaultsConfigProcessorOptions, "name"> & {
-    description: string;
-};
 
 // @public (undocumented)
 export type TDiffStats = {
