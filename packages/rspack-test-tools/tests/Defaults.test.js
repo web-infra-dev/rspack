@@ -19,7 +19,7 @@ describe("Base Defaults Snapshot", () => {
 });
 
 describeByWalk(__filename, (name, src, dist) => {
-	createDefaultsCase(src);
+	createDefaultsCase(name, src);
 }, {
 	type: "file",
 });

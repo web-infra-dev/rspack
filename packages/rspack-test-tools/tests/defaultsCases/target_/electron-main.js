@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "target electron-main",
 	options: () => ({ target: "electron-main" }),

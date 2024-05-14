@@ -42,7 +42,10 @@ export interface IDefaultsConfigProcessorOptions {
 	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
 	cwd?: string;
 	name: string;
-	diff: (diff: any, defaults: any) => Promise<void>;
+	diff: (
+		diff: jest.JestMatchers<Diff>,
+		defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>
+	) => Promise<void>;
 }
 
 export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerType.Rspack> {
