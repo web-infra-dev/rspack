@@ -37,7 +37,7 @@ The old Rome code base (prior to their Rust rewrite) to approximate a large Type
 #### Data
 
 Tested on Intel(R) Xeon(R) Platinum 8260 CPU @ 2.40GHz 32Core, 64GB of RAM
-| mode | rspack | webpack(with swc) | webpack (with babel) |
+| mode | Rspack | webpack(with swc) | webpack (with babel) |
 |------------------------|---------|-------------------|----------------------|
 | development cold start | 3.79s | 31.25s | 42.61s |
 | production cold start | 22.353s | 75.054s | 160.059s |
@@ -73,7 +73,7 @@ Tested on Intel(R) Xeon(R) Platinum 8260 CPU @ 2.40GHz 32Core, 64GB of RAM
 
 - webpack + swc-loader + swc-minifier
 
-- rspack(using swc as transpiler and swc minifier)
+- Rspack (using SWC as transpiler and minifier)
 
 All the configuration in development mode keep as is except the loader which depends on the test target.
 

@@ -37,7 +37,7 @@
 #### 测量数据
 
 测试于 on Intel(R) Xeon(R) Platinum 8260 CPU @ 2.40GHz 32Core, 64GB of RAM
-| | rspack | webpack(with swc) | webpack (with babel) |
+| | Rspack | webpack(with swc) | webpack (with babel) |
 |------------------------|---------|-------------------|----------------------|
 | development cold start | 3.79s | 31.25s | 42.61s |
 | production cold start | 22.353s | 75.054s | 160.059s |
@@ -73,7 +73,7 @@
 
 - webpack + swc-loader + swc-minifier
 
-- rspack（使用 swc 作为 transpiler 和 swc minifier）。
+- Rspack（使用 SWC 作为 transpiler 和 SWC minifier）。
 
 在开发模式下，所有的配置都保持原样，除了依赖于测试目标的 loader。
 

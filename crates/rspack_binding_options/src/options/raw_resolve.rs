@@ -40,6 +40,9 @@ pub struct RawResolveOptions {
   pub by_dependency: Option<HashMap<String, RawResolveOptions>>,
   pub fully_specified: Option<bool>,
   pub exports_fields: Option<Vec<String>>,
+  pub description_files: Option<Vec<String>>,
+  pub enforce_extension: Option<bool>,
+  pub imports_fields: Option<Vec<String>>,
   #[napi(ts_type = "Record<string, Array<string>>")]
   pub extension_alias: Option<HashMap<String, Vec<String>>>,
   pub alias_fields: Option<Vec<String>>,
@@ -116,6 +119,12 @@ impl TryFrom<RawResolveOptions> for Resolve {
       .map(|v| v.into_iter().map(|s| vec![s]).collect());
     let restrictions = value.restrictions;
     let roots = value.roots;
+    let enforce_extension = value.enforce_extension;
+    let description_files = value.description_files;
+    let imports_field = value
+      .imports_fields
+      .map(|v| v.into_iter().map(|s| vec![s]).collect());
+
     Ok(Resolve {
       modules,
       prefer_relative,
@@ -135,6 +144,9 @@ impl TryFrom<RawResolveOptions> for Resolve {
       alias_fields,
       restrictions,
       roots,
+      enforce_extension,
+      description_files,
+      imports_field,
     })
   }
 }

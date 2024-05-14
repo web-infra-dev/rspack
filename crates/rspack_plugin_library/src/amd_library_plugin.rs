@@ -132,7 +132,7 @@ impl JavascriptModulesPluginPlugin for AmdLibraryJavascriptModulesPluginPlugin {
       )));
     }
     source.add(args.source.clone());
-    source.add(RawSource::from("\n});"));
+    source.add(RawSource::from("\n})"));
     Ok(Some(source.boxed()))
   }
 

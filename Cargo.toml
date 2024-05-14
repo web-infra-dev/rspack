@@ -54,16 +54,16 @@ napi-derive       = { version = "2" }
 tikv-jemallocator = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 
 # Must be pinned with the same swc versions
-rkyv                = { version = "=0.7.42" }                             # synced with swc wasm plugin
-styled_components   = { version = "=0.96.8" }
-swc_config          = { version = "=0.1.12" }
-swc_core            = { version = "=0.90.31", default-features = false }
-swc_ecma_minifier   = { version = "=0.192.22", default-features = false }
-swc_emotion         = { version = "=0.72.8" }
-swc_error_reporters = { version = "=0.17.19" }
-swc_html            = { version = "=0.137.18" }
-swc_html_minifier   = { version = "=0.134.18" }
-swc_node_comments   = { version = "=0.20.19" }
+rkyv                = { version = "=0.7.44" }                           # synced with swc wasm plugin
+styled_components   = { version = "=0.96.11" }
+swc_config          = { version = "=0.1.13" }
+swc_core            = { version = "0.91.4", default-features = false }
+swc_ecma_minifier   = { version = "0.193.3", default-features = false }
+swc_emotion         = { version = "=0.72.9" }
+swc_error_reporters = { version = "=0.17.20" }
+swc_html            = { version = "=0.138.1" }
+swc_html_minifier   = { version = "=0.135.1" }
+swc_node_comments   = { version = "=0.20.20" }
 
 [profile.dev]
 codegen-units = 16      # debug build will cause runtime panic if codegen-unints is default

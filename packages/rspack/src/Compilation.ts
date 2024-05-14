@@ -814,7 +814,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				const logEntry: LogEntry = {
 					time: Date.now(),
 					type,
-					// @ts-expect-error
 					args,
 					// @ts-expect-error
 					trace

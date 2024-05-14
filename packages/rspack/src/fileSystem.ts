@@ -1,66 +1,40 @@
 import util from "util";
-import { join } from "path";
+import { ThreadsafeNodeFS } from "@rspack/binding";
+
 import { memoizeFn } from "./util/memoize";
+import { OutputFileSystem, rmrf, mkdirp } from "./util/fs";
 
-export interface ThreadsafeWritableNodeFS {
-	writeFile: (...args: any[]) => any;
-	removeFile: (...args: any[]) => any;
-	mkdir: (...args: any[]) => any;
-	mkdirp: (...args: any[]) => any;
-	removeDirAll: (...args: any[]) => any;
-}
-
-function createThreadsafeNodeFSFromRaw(
-	fs: typeof import("fs")
-): ThreadsafeWritableNodeFS {
-	let writeFile = memoizeFn(() => util.promisify(fs.writeFile.bind(fs)));
-	let removeFile = memoizeFn(() => util.promisify(fs.unlink.bind(fs)));
-	let mkdir = memoizeFn(() => util.promisify(fs.mkdir.bind(fs)));
-	return {
-		writeFile,
-		removeFile,
-		mkdir,
-		mkdirp: dir => {
-			return mkdir(dir, {
-				recursive: true
-			});
-		},
-		removeDirAll: dir => {
-			// memfs don't support rmSync
-			return rmrfBuild(fs)(dir);
-		}
-	};
-}
-
-const rmrfBuild = (fs: typeof import("fs")) => {
-	async function exists(path: string) {
-		try {
-			await util.promisify(fs.access.bind(fs))(path);
-			return true;
-		} catch {
-			return false;
-		}
-	}
-	const rmrf = async (dir: string) => {
-		if (await exists(dir)) {
-			const files = await util.promisify(fs.readdir.bind(fs))(dir);
-			await Promise.all(
-				files
-					.map(f => join(dir, f))
-					.map(async filePath => {
-						if (
-							(await util.promisify(fs.lstat.bind(fs))(filePath)).isDirectory()
-						) {
-							await rmrf(filePath);
-						} else {
-							await util.promisify(fs.unlink.bind(fs))(filePath);
-						}
-					})
-			);
-			await util.promisify(fs.rmdir.bind(fs))(dir);
-		}
-	};
-	return rmrf;
+const NOOP_FILESYSTEM: ThreadsafeNodeFS = {
+	writeFile() {},
+	removeFile() {},
+	mkdir() {},
+	mkdirp() {},
+	removeDirAll() {}
 };
 
-export { createThreadsafeNodeFSFromRaw };
+class ThreadsafeWritableNodeFS implements ThreadsafeNodeFS {
+	writeFile!: (name: string, content: Buffer) => Promise<void> | void;
+	removeFile!: (name: string) => Promise<void> | void;
+	mkdir!: (name: string) => Promise<void> | void;
+	mkdirp!: (name: string) => Promise<string | void> | string | void;
+	removeDirAll!: (name: string) => Promise<string | void> | string | void;
+
+	constructor(fs?: OutputFileSystem) {
+		if (!fs) {
+			// This happens when located in a child compiler.
+			Object.assign(this, NOOP_FILESYSTEM);
+			return;
+		}
+		this.writeFile = memoizeFn(() => util.promisify(fs.writeFile.bind(fs)));
+		this.removeFile = memoizeFn(() => util.promisify(fs.unlink.bind(fs)));
+		this.mkdir = memoizeFn(() => util.promisify(fs.mkdir.bind(fs)));
+		this.mkdirp = memoizeFn(() => util.promisify(mkdirp.bind(null, fs)));
+		this.removeDirAll = memoizeFn(() => util.promisify(rmrf.bind(null, fs)));
+	}
+
+	static __into_binding(fs?: OutputFileSystem) {
+		return new this(fs);
+	}
+}
+
+export { ThreadsafeWritableNodeFS };

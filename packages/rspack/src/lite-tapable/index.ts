@@ -772,6 +772,124 @@ export class AsyncSeriesBailHook<
 	}
 }
 
+export class AsyncSeriesWaterfallHook<
+	T,
+	R,
+	AdditionalOptions = UnsetAdditionalOptions
+> extends Hook<T, R, AdditionalOptions> {
+	constructor(args?: ArgumentNames<AsArray<T>>, name?: string) {
+		if (!args?.length)
+			throw new Error("Waterfall hooks must have at least one argument");
+		super(args, name);
+	}
+
+	callAsyncStageRange(
+		queried: QueriedHook<T, R, AdditionalOptions>,
+		...args: Append<AsArray<T>, Callback<Error, R>>
+	) {
+		const {
+			stageRange: [from, to],
+			tapsInRange
+		} = queried;
+		let data = args[0] as R;
+		const cb = args[1] as Callback<Error, R>;
+		if (from === minStage) {
+			this._runCallInterceptors(data);
+		}
+		const done = () => {
+			this._runDoneInterceptors();
+			cb(null, data);
+		};
+		const error = (e: Error) => {
+			this._runErrorInterceptors(e);
+			cb(e);
+		};
+		if (tapsInRange.length === 0) return done();
+		let index = 0;
+		const next = () => {
+			const tap = tapsInRange[index];
+			this._runTapInterceptors(tap);
+			if (tap.type === "promise") {
+				const promise = tap.fn(data);
+				if (!promise || !promise.then) {
+					throw new Error(
+						"Tap function (tapPromise) did not return promise (returned " +
+							promise +
+							")"
+					);
+				}
+				promise.then(
+					(r: R) => {
+						index += 1;
+						if (r !== undefined) {
+							data = r;
+						}
+						if (index === tapsInRange.length) {
+							done();
+						} else {
+							next();
+						}
+					},
+					(e: Error) => {
+						index = tapsInRange.length;
+						error(e);
+					}
+				);
+			} else if (tap.type === "async") {
+				tap.fn(data, (e: Error, r: R) => {
+					if (e) {
+						index = tapsInRange.length;
+						error(e);
+					} else {
+						index += 1;
+						if (r !== undefined) {
+							data = r;
+						}
+						if (index === tapsInRange.length) {
+							done();
+						} else {
+							next();
+						}
+					}
+				});
+			} else {
+				let hasError = false;
+				try {
+					const r = tap.fn(data);
+					if (r !== undefined) {
+						data = r;
+					}
+				} catch (e) {
+					hasError = true;
+					index = tapsInRange.length;
+					error(e as Error);
+				}
+				if (!hasError) {
+					index += 1;
+					if (index === tapsInRange.length) {
+						done();
+					} else {
+						next();
+					}
+				}
+			}
+			if (index === tapsInRange.length) return;
+		};
+		next();
+	}
+
+	tapAsync(
+		options: Options<AdditionalOptions>,
+		fn: FnWithCallback<T, void>
+	): void {
+		this._tap("async", options, fn);
+	}
+
+	tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void {
+		this._tap("promise", options, fn);
+	}
+}
+
 const defaultFactory = (key: HookMapKey, hook: unknown) => hook;
 
 export type HookMapKey = any;

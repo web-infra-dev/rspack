@@ -81,6 +81,8 @@ import { createHash } from "./util/createHash";
 import { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
 export const util = { createHash, cleverMerge };
 
+export { type OutputFileSystem } from "./util/fs";
+
 export {
 	registerGlobalTrace as experimental_registerGlobalTrace,
 	cleanupGlobalTrace as experimental_cleanupGlobalTrace
@@ -122,11 +124,17 @@ export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlug
 
 import NodeTemplatePlugin from "./node/NodeTemplatePlugin";
 import { NodeTargetPlugin } from "./builtin-plugin";
+import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 interface Node {
 	NodeTargetPlugin: typeof NodeTargetPlugin;
 	NodeTemplatePlugin: typeof NodeTemplatePlugin;
+	NodeEnvironmentPlugin: typeof NodeEnvironmentPlugin;
 }
-export const node: Node = { NodeTargetPlugin, NodeTemplatePlugin };
+export const node: Node = {
+	NodeTargetPlugin,
+	NodeTemplatePlugin,
+	NodeEnvironmentPlugin
+};
 
 import { ElectronTargetPlugin } from "./builtin-plugin";
 interface Electron {

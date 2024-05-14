@@ -9,18 +9,20 @@
  */
 
 import { Compiler, RspackOptions, Stats } from ".";
-import ResolverFactory = require("./ResolverFactory");
 import { WatchFileSystem } from "./util/fs";
-import { Watching } from "./Watching";
-import { AsyncSeriesHook, Callback, MultiHook, SyncHook } from "tapable";
+import {
+	AsyncSeriesHook,
+	Callback,
+	MultiHook,
+	SyncBailHook,
+	SyncHook
+} from "tapable";
 import MultiStats from "./MultiStats";
 import asyncLib from "neo-async";
 import ArrayQueue from "./util/ArrayQueue";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import MultiWatching from "./MultiWatching";
 import { WatchOptions } from "./config";
-
-type Any = any;
 
 interface Node<T> {
 	compiler: Compiler;
@@ -49,31 +51,18 @@ export type MultiRspackOptions = ReadonlyArray<RspackOptions> &
 	MultiCompilerOptions;
 
 export class MultiCompiler {
-	// @ts-expect-error
-	context: string;
 	compilers: Compiler[];
 	dependencies: WeakMap<Compiler, string[]>;
 	hooks: {
 		done: SyncHook<MultiStats>;
 		invalid: MultiHook<SyncHook<[string | null, number]>>;
 		run: MultiHook<AsyncSeriesHook<[Compiler]>>;
-		watchClose: SyncHook<Any>;
-		watchRun: MultiHook<Any>;
-		infrastructureLog: MultiHook<Any>;
+		watchClose: SyncHook<[]>;
+		watchRun: MultiHook<AsyncSeriesHook<[Compiler]>>;
+		infrastructureLog: MultiHook<SyncBailHook<[string, string, any[]], true>>;
 	};
-	// @ts-expect-error
-	name: string;
-	infrastructureLogger: Any;
-	_options: { parallelism?: number };
-	// @ts-expect-error
-	root: Compiler;
-	// @ts-expect-error
-	resolverFactory: ResolverFactory;
+	_options: MultiCompilerOptions;
 	running: boolean;
-	// @ts-expect-error
-	watching: Watching;
-	// @ts-expect-error
-	watchMode: boolean;
 
 	constructor(
 		compilers: Compiler[] | Record<string, Compiler>,
@@ -190,7 +179,7 @@ export class MultiCompiler {
 		}
 	}
 
-	set intermediateFileSystem(value: any) {
+	set intermediateFileSystem(value) {
 		for (const compiler of this.compilers) {
 			compiler.intermediateFileSystem = value;
 		}

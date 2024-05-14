@@ -1,0 +1,44 @@
+import PropertyType from '../../../components/property-type.tsx';
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/configuration/performance/" />
+
+# Performance
+
+These options allows you to control how Rspack notifies you of assets and entry points that exceed a specific file limit.
+
+## performance
+
+<PropertyType type="false | object" />
+
+Configure how performance hints are shown. For example if you have an asset that is over 250kb, Rspack will emit a warning notifying you of this.
+
+### performance.assetFilter
+
+<PropertyType type="(assetFilename: string) => boolean" />
+
+This property allows Rspack to control what files are used to calculate performance hints.
+
+### performance.hints
+
+<PropertyType
+  type="false | 'error' | 'warning'"
+  defaultValueList={[
+    { defaultValue: 'warning', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+Turns hints on/off. In addition, tells Rspack to throw either an error or a warning when hints are found.
+
+### performance.maxAssetSize
+
+<PropertyType type="number" defaultValueList={[{ defaultValue: '250000' }]} />
+
+An asset is any emitted file from Rspack. This option controls when Rspack emits a performance hint based on individual asset size in bytes.
+
+### performance.maxEntrypointSize
+
+<PropertyType type="number" defaultValueList={[{ defaultValue: '250000' }]} />
+
+An entry point represents all assets that would be utilized during initial load time for a specific entry. This option controls when Rspack should emit performance hints based on the maximum entry point size in bytes.

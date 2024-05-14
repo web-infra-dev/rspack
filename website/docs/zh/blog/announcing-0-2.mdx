@@ -159,7 +159,7 @@ module.exports = {
 
 ### node-loader
 
-当使用 Rspack 打包如 NestJS 等 Node 应用时，一个常见的需求就是打包一些包含 addon 的库，这些库里的 native 依赖无法直接被打包进 js 里，因此需要特殊处理，Rspack 适配了 [node-loader](https://github.com/webpack-contrib/node-loader) 所以你可以使用 Rspack 去构建 node 应用了。
+当使用 Rspack 打包如 NestJS 等 Node 应用时，一个常见的需求就是打包一些包含 addon 的库，这些库里的 native 依赖无法直接被打包进 JS 里，因此需要特殊处理，Rspack 适配了 [node-loader](https://github.com/webpack-contrib/node-loader) 所以你可以使用 Rspack 去构建 node 应用了。
 Rspack 适配的 webpack 的 plugin 和 loader 远不仅此，我们在 [loader-compat](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/loader-compat) 和 [plugin-compat](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/plugin) 对已经适配的 plugin 和 loader 进行了追踪，如果你发现你使用的社区 plugin 和 loader 也已经兼容，欢迎提交给我们。
 
 ## 框架生态更新
@@ -210,7 +210,7 @@ Rspack 0.2 已经完成了对 vue-loader 的兼容。对于 Vue3 项目，你可
 ## 开发指南
 
 Rspack 团队非常重视开源社区做出的宝贵贡献。我们致力于保持开放的态度，努力在每一步都让开源社区参与进来。
-这就是为什么我们目前正在制作一份全面的[开发指南](https://web-infra-dev.github.io/rspack-dev-guide/)，为贡献者提供 Rspack 所有的开发文档。
+这就是为什么我们目前正在制作一份全面的[开发指南](https://rspack.dev/contribute/)，为贡献者提供 Rspack 所有的开发文档。
 当前版本的指南包含构建、测试、调试和分析 Rspack 的所有必要资料。此外，它还包括贡献流程，例如如何创建最小的[可重现示例](https://github.com/web-infra-dev/rspack-repro)。
 将来，该指南还会概述 Rspack 的整体架构，使贡献者能够深入了解该项目的内部工作原理。
 
@@ -236,7 +236,7 @@ Rspack 团队非常重视开源社区做出的宝贵贡献。我们致力于保�
 - [@TheLarkInn](https://github.com/TheLarkInn) 和 [@alexander-akait](https://github.com/alexander-akait) ，回答和解决了很多 Rspack 团队关于 Webpack 的疑问。
 - [@zackarychapple](https://github.com/zackarychapple)、[@valorkin](https://github.com/valorkin)、[@edusperoni](https://github.com/edusperoni) 以及 [@Coly101](https://github.com/Coly010) ，帮助 Rspack 对 Angular 做了基本支持，特别是 [@zackarychapple](https://github.com/zackarychapple) 帮助我们 review 这篇发布公告的英文版本。
 - [@suxin2017](https://github.com/suxin2017)，在 Rspack 里支持了 System.js format，optional-dependency 等功能，并在 Windows 兼容方面做了很多贡献。
-- [@faga295](https://github.com/faga295)，在 Rspack 里支持了解压代码注释功能和 rspack preview 功能。
+- [@faga295](https://github.com/faga295)，在 Rspack 里支持了解压代码注释功能和 `rspack preview` 功能。
 - [@lippzhang](https://github.com/lippzhang)，在对齐 Webpack 行为方面做了很多贡献。
 - [@HerringtonDarkholme](https://github.com/HerringtonDarkholme)，允许 Rspack 使用 rspack.config.ts 作为配置文件
 - [@dhruvkelawala](https://github.com/dhruvkelawala), 在 Rspack 里实现了 builtins.provide 功能

@@ -106,7 +106,8 @@ var __webpack_modules__ = {
 // ...
 ```
 
-正如你所看到的，如果我们不启用 treeShaking，所有代码都保持不变，只是将代码包裹了一层运行时代码。
+正如你所看到的，如果我们不启用 tree shaking，所有代码都保持不变，只是将代码包裹了一层运行时代码。
+
 现在，我们切换到 `production` 模式，重新构建项目，为了让产物更加可读，我们同时关闭 `minimize` 选项 以及切换 `moduleIds` 为 `named`，为了和后面章节对比，我们关闭 `optimization.sideEffects`。
 
 ```diff title=rspack.config.js

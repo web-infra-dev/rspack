@@ -49,7 +49,7 @@ export default class NodeEnvironmentPlugin {
 		);
 		compiler.hooks.beforeRun.tap("NodeEnvironmentPlugin", compiler => {
 			if (compiler.inputFileSystem === inputFileSystem) {
-				(compiler as any).fsStartTime = Date.now();
+				compiler.fsStartTime = Date.now();
 				inputFileSystem.purge();
 			}
 		});

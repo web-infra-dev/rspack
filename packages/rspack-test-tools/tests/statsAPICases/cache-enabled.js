@@ -34,7 +34,7 @@ module.exports = {
 		});
 	},
 	async check(_, compiler) {
-		const stats = new Stats(compiler.compilation).toString({
+		const stats = new Stats(compiler._lastCompilation).toString({
 			all: false,
 			logging: "verbose"
 		});

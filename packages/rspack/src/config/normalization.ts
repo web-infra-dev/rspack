@@ -30,6 +30,7 @@ import type {
 	CacheOptions,
 	StatsValue,
 	Optimization,
+	Performance,
 	Plugins,
 	Watch,
 	WatchOptions,
@@ -293,6 +294,7 @@ export const getNormalizedRspackOptions = (
 				)
 			};
 		}),
+		performance: config.performance,
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
 			...experiments
@@ -544,6 +546,7 @@ export interface RspackOptionsNormalized {
 	watchOptions: WatchOptions;
 	devServer?: DevServer;
 	ignoreWarnings?: IgnoreWarningsNormalized;
+	performance?: Performance;
 	profile?: Profile;
 	bail?: Bail;
 	builtins: Builtins;
