@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "library.name.root contains [name] placeholder",
 	options: () => ({

@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "no mode provided",
 	options: () => ({ mode: undefined }),

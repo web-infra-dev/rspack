@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "production",
 	options: () => ({ mode: "production" }),
