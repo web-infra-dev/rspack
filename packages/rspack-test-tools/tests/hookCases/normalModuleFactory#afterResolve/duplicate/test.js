@@ -2,6 +2,7 @@ const { createFsFromVolume, Volume } = require("memfs");
 
 const outputFileSystem = createFsFromVolume(new Volume());
 
+/** @type {import("../../../..").THookCaseConfig} */
 module.exports = {
 	description: "should work with duplicate",
 	options(context) {
@@ -41,5 +42,5 @@ module.exports = {
 	async compiler(context, compiler) {
 		compiler.outputFileSystem = outputFileSystem;
 	},
-	async check() {}
+	async check() { }
 };

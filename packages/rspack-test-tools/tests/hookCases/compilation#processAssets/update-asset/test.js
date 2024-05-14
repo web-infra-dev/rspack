@@ -3,10 +3,14 @@ const { createFsFromVolume, Volume } = require("memfs");
 const outputFileSystem = createFsFromVolume(new Volume());
 let contentHashes = [];
 
+/** @type {import("../../../..").THookCaseConfig} */
 module.exports = {
 	description: "should emit assets correctly",
 	options(context) {
 		return {
+			output: {
+				filename: '[name].[contenthash].js'
+			},
 			plugins: [
 				function plugin(compiler) {
 					compiler.hooks.compilation.tap("test", compilation => {

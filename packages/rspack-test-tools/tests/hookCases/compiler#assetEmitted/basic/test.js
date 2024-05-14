@@ -4,6 +4,8 @@ const { createFsFromVolume, Volume } = require("memfs");
 const outputFileSystem = createFsFromVolume(new Volume());
 
 let hasMainJs = false;
+
+/** @type {import("../../../..").THookCaseConfig} */
 module.exports = {
 	description: "should work with assetEmitted",
 	options(context) {

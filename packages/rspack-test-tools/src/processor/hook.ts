@@ -3,6 +3,7 @@ import {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
+	TCompiler,
 	TCompilerOptions
 } from "../type";
 import { Source } from "webpack-sources";
@@ -174,14 +175,16 @@ export class HookCasesContext extends TestContext {
 	}
 }
 
-interface IHookProcessorOptions<T extends ECompilerType>
+export interface IHookProcessorOptions<T extends ECompilerType>
 	extends ISnapshotProcessorOptions<T> {
 	options?: (context: ITestContext) => TCompilerOptions<T>;
+	compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
+	check?: (context: ITestContext) => Promise<void>;
 }
 
 export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
 	constructor(
-		protected hookOptions: IHookProcessorOptions<ECompilerType.Rspack>
+		protected _hookOptions: IHookProcessorOptions<ECompilerType.Rspack>
 	) {
 		super({
 			defaultOptions: context => {
@@ -205,21 +208,31 @@ export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
 					}
 				};
 			},
-			...hookOptions,
-			runable: true
+			..._hookOptions
 		});
 	}
 
 	async config(context: ITestContext): Promise<void> {
 		await super.config(context);
 		const compiler = this.getCompiler(context);
-		if (typeof this.hookOptions.options === "function") {
-			compiler.mergeOptions(this.hookOptions.options(context));
+		if (typeof this._hookOptions.options === "function") {
+			compiler.mergeOptions(this._hookOptions.options(context));
+		}
+	}
+
+	async compiler(context: ITestContext): Promise<void> {
+		await super.compiler(context);
+		if (typeof this._hookOptions.compiler === "function") {
+			const compiler = this.getCompiler(context);
+			await this._hookOptions.compiler(context, compiler.getCompiler()!);
 		}
 	}
 
 	async check(env: ITestEnv, context: HookCasesContext) {
 		await (context as any).collectSnapshots();
 		await super.check(env, context);
+		if (typeof this._hookOptions.check === "function") {
+			await this._hookOptions.check(context);
+		}
 	}
 }
