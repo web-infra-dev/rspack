@@ -14,6 +14,10 @@ The Rspack team believe that creating a development guide for Rspack is a great 
 By providing clarity and consistency, lowering barriers to entry, building trust, and encouraging collaboration,
 we can create a strong and thriving open source project that people will want to contribute to.
 
+## Documentation Contribution
+
+See [documentation](./website/README.md).
+
 ## Getting help
 
 If you have any questions, please do not hesitate to ask in either the [Discord][discord] support channel or on the [Github discussion board][github-discussion].
