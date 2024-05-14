@@ -1366,12 +1366,13 @@ impl<'a> ModuleRefAnalyze<'a> {
     }
   }
   pub fn get_side_effects_from_config(
-    factory_meta: &Option<FactoryMeta>,
+    factory_meta: Option<&FactoryMeta>,
   ) -> Option<SideEffectType> {
     // sideEffects in module.rule has higher priority,
     // we could early return if we match a rule.
     if let Some(FactoryMeta {
-      side_effect_free: Some(side_effect_free),
+      side_effect_free_old: Some(side_effect_free),
+      ..
     }) = factory_meta
     {
       return Some(SideEffectType::Configuration(!*side_effect_free));
@@ -1752,7 +1753,7 @@ fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
   match expr {
     // Mark `module.exports = require('xxx')` as pure
     Expr::Assign(AssignExpr {
-      left: PatOrExpr::Expr(box left_expr),
+      left: AssignTarget::Simple(SimpleAssignTarget::Member(left_expr)),
       right: box Expr::Call(call_expr_right),
       op: op!("="),
       ..
@@ -1769,8 +1770,8 @@ fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
 }
 
 /// Check if the expression is `module.exports`
-fn is_module_exports_member_expr(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
-  matches!(expr, Expr::Member(MemberExpr {
+fn is_module_exports_member_expr(expr: &MemberExpr, unresolved_ctxt: SyntaxContext) -> bool {
+  matches!(expr, MemberExpr {
     obj:
       box Expr::Ident(Ident {
         sym: obj_sym,
@@ -1779,7 +1780,7 @@ fn is_module_exports_member_expr(expr: &Expr, unresolved_ctxt: SyntaxContext) ->
       }),
     prop: MemberProp::Ident(Ident { sym: prop_sym, .. }),
     ..
-  }) if obj_sym == "module" && obj_span.ctxt == unresolved_ctxt && prop_sym == "exports")
+  } if obj_sym == "module" && obj_span.ctxt == unresolved_ctxt && prop_sym == "exports")
 }
 
 fn is_pure_decl(stmt: &Decl, unresolved_ctxt: SyntaxContext) -> bool {
@@ -1871,15 +1872,15 @@ impl SideEffects {
       } else if let Some(s) = value.as_str() {
         Some(SideEffects::String(s.to_owned()))
       } else if let Some(vec) = value.as_array() {
-        let mut ans = vec![];
+        let mut side_effects = vec![];
         for value in vec {
           if let Some(str) = value.as_str() {
-            ans.push(str.to_string());
+            side_effects.push(str.to_string());
           } else {
             return None;
           }
         }
-        Some(SideEffects::Array(ans))
+        Some(SideEffects::Array(side_effects))
       } else {
         None
       }

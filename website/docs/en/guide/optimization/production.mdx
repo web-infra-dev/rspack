@@ -1,0 +1,26 @@
+# Production
+
+## Source Mapping
+
+It is recommended to enable SourceMap for production environments to facilitate debugging in production environments. If you have a large project, it is recommended that you choose a configuration with better performance (see [devtool](config/devtool) for more options), such as the `source-map` configuration option.
+
+## Minification
+
+During the production build, Rspack uses the built-in minimizer to minify JavaScript and CSS code by default. You can use [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) for configuration.
+
+```js title=rspack.config.js
+const rspack = require('@rspack/core');
+
+module.exports = {
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin({
+        // JS minimizer configuration
+      }),
+      new rspack.SwcCssMinimizerRspackPlugin(),
+    ],
+  },
+};
+```
+
+If the built-in minimizer cannot meet your needs, you can also use [optimization.minimizer](/config/optimization#optimizationminimizer) to set custom minimizers.

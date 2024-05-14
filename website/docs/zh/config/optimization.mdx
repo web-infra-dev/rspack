@@ -1,34 +1,12 @@
 import PropertyType from '../../../components/property-type.tsx';
 
-import WebpackLicense from '../../../components/webpack-license';
+import WebpackLicense from '@components/webpack-license';
 
 <WebpackLicense from="https://webpack.docschina.org/configuration/optimization/" />
 
 # Optimization
 
 优化：该选项用于自定义优化配置。你可以通过 [optimization](/config/optimization) 来自定义优化配置。默认情况下，Rspack 会根据 [mode](/config/mode) 来选择合适的优化配置。
-
-## optimization.removeAvailableModules
-
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-如果一个 Chunk 的模块都已经被包含在其所有的父 Chunk 中，那么这个模块就可以被移除。
-
-```
-EntryChunk(index.js, a.js, b.js)
-                                  \
-                                  ChunkFoo(b.js, c.js)
-                                  /
-EntryChunk2(index.js, a.js, b.js)
-```
-
-在上面的例子中，`b.js` 都已经被包含在 `EntryChunk` 和 `EntryChunk2`，所以 `b.js` 可以从 `ChunkFoo` 中移除。
-
-:::info Webpack 的差异点
-
-- [Webpack](https://webpack.js.org/configuration/optimization/#optimizationremoveavailablemodules) 只在 `production` 模式下开启这个优化。
-
-:::
 
 ## optimization.moduleIds
 
@@ -83,8 +61,8 @@ EntryChunk2(index.js, a.js, b.js)
   ]}
 />
 
-自定义压缩器。默认使用 [`rspack.SwcJsMinimizerRspackPlugin`](/config/plugins.html#swcjsminimizerrspackplugin)
-和 [`rspack.SwcCssMinimizerRspackPlugin`](/config/plugins.html#swccssminimizerrspackplugin)。当声明了 `optimization.minimizer`，默认压缩器会被禁用。
+自定义压缩器。默认使用 [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin)
+和 [`rspack.SwcCssMinimizerRspackPlugin`](/plugins/rspack/swc-css-minimizer-rspack-plugin)。当声明了 `optimization.minimizer`，默认压缩器会被禁用。
 
 ```js title=rspack.config.js
 const minifyPlugin = require('@rspack/plugin-minify');
@@ -132,6 +110,19 @@ module.exports = {
 <PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
 移除打包过程中产生的空 Chunk。
+
+## optimization.runtimeChunk
+
+<PropertyType
+  type="boolean | string | ((entrypoint: { name: string }) => string)"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+用来控制 runtime chunk 如何生成。
+
+设置为 `true` 或 `'multiple'` 会为每个入口点添加一个仅包含运行时的额外 chunk。
+
+设置为 `'single'` 会将所有入口点的运行时代码抽离到一个单独的 chunk。
 
 ## optimization.sideEffects
 
@@ -202,7 +193,7 @@ Rspack 支持通过 `optimization.splitChunks` 配置项来对 Chunk 进行拆�
 
 该优化选项默认情况下是开启的，你可以将其设为 `false` 来关闭它。
 
-点击 [SplitChunksPlugin](/config/optimization-split-chunks) 查看可用配置项
+点击 [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) 查看可用配置项
 
 ## optimization.usedExports
 
@@ -214,7 +205,7 @@ Rspack 支持通过 `optimization.splitChunks` 配置项来对 Chunk 进行拆�
   ]}
 />
 
-告诉 rspack 对每个模块确定使用的导出。这取决于 `optimization.providedExports`。
+告诉 Rspack 对每个模块确定使用的导出。这取决于 `optimization.providedExports`。
 `optimization.usedExports` 收集的信息被其他优化或代码生成使用，即不会为未使用的导出生成导出信息，当所有用法兼容时，导出名称会被缩短为单个字符标识符。压缩器中的死代码消除将受益于此，并且可以删除未使用的导出。
 
 ```js title=rspack.config.js
@@ -246,7 +237,7 @@ module.exports = {
     { defaultValue: 'false', mode: 'development' },
   ]}
 />
-`optimization.innerGraph` 告诉 rspack 是否进行未使用导出的内部图分析。
+`optimization.innerGraph` 告诉 Rspack 是否进行未使用导出的内部图分析。
 
 ```js title=rspack.config.js
 module.exports = {
@@ -259,13 +250,10 @@ module.exports = {
 
 ## optimization.providedExports
 
-<PropertyType
-  type="boolean"
-  defaultValueList={[
-    { defaultValue: 'true'},
-  ]}
-/>
-告诉 rspack 弄清楚模块提供哪些导出，以为 `export * from ....` 生成更有效的代码。默认情况下，`optimization.providedExports` 已启用。
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+开启后 Rspack 将会分析模块提供哪些导出，包括重导出模块，引用模块不存在的导出时会发出提示。默认情况下，`optimization.providedExports` 已启用，该分析会增加构建时间，你可以考虑在 development 模式中关闭该配置，关闭后有可能会遇到[SideEffects 章节](/guide/optimization/tree-shaking#reexports-optimization)运行时循环依赖的错误。
+
 ```js title=rspack.config.js
 module.exports = {
   //...

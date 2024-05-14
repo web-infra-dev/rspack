@@ -1,21 +1,29 @@
 use std::hash::Hash;
+use std::sync::Arc;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
 use rspack_core::{
-  property_access, ChunkUkey, EntryData, LibraryExport, LibraryName, LibraryNonUmdObject,
-  UsageState,
+  get_entry_runtime, property_access, ApplyContext, ChunkUkey, CompilationFinishModules,
+  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, FilenameTemplate,
+  LibraryExport, LibraryName, LibraryNonUmdObject, UsageState,
 };
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  to_identifier, Chunk, Compilation, Filename, JsChunkHashArgs, LibraryOptions, PathData, Plugin,
-  PluginContext, PluginJsChunkHashHookOutput, PluginRenderHookOutput,
-  PluginRenderStartupHookOutput, RenderArgs, RenderStartupArgs, SourceType,
+  to_identifier, Chunk, Compilation, LibraryOptions, PathData, Plugin, PluginContext, SourceType,
 };
 use rspack_error::{error, error_bail, Result};
+use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_javascript::{
+  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
+  PluginRenderJsHookOutput, PluginRenderJsStartupHookOutput, RenderJsArgs, RenderJsStartupArgs,
+};
+use rspack_util::infallible::ResultInfallibleExt as _;
 
 use crate::utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
+
+const PLUGIN_NAME: &str = "rspack.AssignLibraryPlugin";
 
 #[derive(Debug)]
 pub enum Unnamed {
@@ -73,15 +81,11 @@ struct AssignLibraryPluginParsed<'a> {
 }
 
 #[derive(Debug)]
-pub struct AssignLibraryPlugin {
+struct AssignLibraryJavascriptModulesPluginPlugin {
   options: AssignLibraryPluginOptions,
 }
 
-impl AssignLibraryPlugin {
-  pub fn new(options: AssignLibraryPluginOptions) -> Self {
-    Self { options }
-  }
-
+impl AssignLibraryJavascriptModulesPluginPlugin {
   fn parse_options<'a>(
     &self,
     library: &'a LibraryOptions,
@@ -142,15 +146,17 @@ impl AssignLibraryPlugin {
     if let Some(name) = options.name {
       let mut prefix = self.options.prefix.value(compilation);
       let get_path = |v: &str| {
-        compilation.get_path(
-          &Filename::from(v.to_owned()),
-          PathData::default().chunk(chunk).content_hash_optional(
-            chunk
-              .content_hash
-              .get(&SourceType::JavaScript)
-              .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-          ),
-        )
+        compilation
+          .get_path(
+            &FilenameTemplate::from(v.to_owned()),
+            PathData::default().chunk(chunk).content_hash_optional(
+              chunk
+                .content_hash
+                .get(&SourceType::JavaScript)
+                .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
+            ),
+          )
+          .always_ok()
       };
       match name {
         LibraryNonUmdObject::Array(arr) => {
@@ -164,12 +170,8 @@ impl AssignLibraryPlugin {
   }
 }
 
-#[async_trait::async_trait]
-impl Plugin for AssignLibraryPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.AssignLibraryPlugin"
-  }
-  fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
+impl JavascriptModulesPluginPlugin for AssignLibraryJavascriptModulesPluginPlugin {
+  fn render(&self, args: &RenderJsArgs) -> PluginRenderJsHookOutput {
     let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk)? else {
       return Ok(None);
     };
@@ -189,71 +191,7 @@ impl Plugin for AssignLibraryPlugin {
     Ok(Some(args.source.clone()))
   }
 
-  async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-    let mut runtime_info = Vec::with_capacity(compilation.entries.len());
-    for (entry_name, entry) in compilation.entries.iter() {
-      let EntryData {
-        dependencies,
-        options,
-        ..
-      } = entry;
-      let runtime = compilation.get_entry_runtime(entry_name, Some(options));
-      let library_options = options
-        .library
-        .as_ref()
-        .or_else(|| compilation.options.output.library.as_ref());
-      let module_of_last_dep = dependencies.last().and_then(|dep| {
-        compilation
-          .get_module_graph()
-          .get_module_by_dependency_id(dep)
-      });
-      let Some(module_of_last_dep) = module_of_last_dep else {
-        continue;
-      };
-      let Some(library_options) = library_options else {
-        continue;
-      };
-      if let Some(export) = library_options
-        .export
-        .as_ref()
-        .and_then(|item| item.first())
-      {
-        runtime_info.push((
-          runtime,
-          Some(export.clone()),
-          module_of_last_dep.identifier(),
-        ));
-      } else {
-        runtime_info.push((runtime, None, module_of_last_dep.identifier()));
-      }
-    }
-
-    for (runtime, export, module_identifier) in runtime_info {
-      if let Some(export) = export {
-        let exports_info = compilation
-          .get_module_graph_mut()
-          .get_export_info(module_identifier, &(export.as_str()).into());
-        exports_info.set_used(
-          compilation.get_module_graph_mut(),
-          UsageState::Used,
-          Some(&runtime),
-        );
-      } else {
-        let exports_info_id = compilation
-          .get_module_graph()
-          .get_exports_info(&module_identifier)
-          .id;
-        exports_info_id.set_used_in_unknown_way(compilation.get_module_graph_mut(), Some(&runtime));
-      }
-    }
-    Ok(())
-  }
-
-  fn render_startup(
-    &self,
-    _ctx: PluginContext,
-    args: &RenderStartupArgs,
-  ) -> PluginRenderStartupHookOutput {
+  fn render_startup(&self, args: &RenderJsStartupArgs) -> PluginRenderJsStartupHookOutput {
     let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk)? else {
       return Ok(None);
     };
@@ -268,7 +206,7 @@ impl Plugin for AssignLibraryPlugin {
       let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
       if let Some(analyze_results) = args
         .compilation
-        .optimize_analyze_result_map
+        .optimize_analyze_result_map()
         .get(&args.module)
       {
         for info in analyze_results.ordered_exports() {
@@ -309,15 +247,11 @@ impl Plugin for AssignLibraryPlugin {
     Ok(Some(source.boxed()))
   }
 
-  fn js_chunk_hash(
-    &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
+  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
     let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk_ukey)? else {
       return Ok(());
     };
-    self.name().hash(&mut args.hasher);
+    PLUGIN_NAME.hash(&mut args.hasher);
     let full_resolved_name = self.get_resolved_full_name(&options, args.compilation, args.chunk());
     if self.is_copy(&options) {
       "copy".hash(&mut args.hasher);
@@ -329,6 +263,117 @@ impl Plugin for AssignLibraryPlugin {
     if let Some(export) = options.export {
       export.hash(&mut args.hasher);
     }
+    Ok(())
+  }
+}
+
+#[plugin]
+#[derive(Debug)]
+pub struct AssignLibraryPlugin {
+  js_plugin: Arc<AssignLibraryJavascriptModulesPluginPlugin>,
+}
+
+impl AssignLibraryPlugin {
+  pub fn new(options: AssignLibraryPluginOptions) -> Self {
+    Self::new_inner(Arc::new(AssignLibraryJavascriptModulesPluginPlugin {
+      options,
+    }))
+  }
+}
+
+#[plugin_hook(CompilerCompilation for AssignLibraryPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
+  drive.add_plugin(self.js_plugin.clone());
+  Ok(())
+}
+
+#[plugin_hook(CompilationFinishModules for AssignLibraryPlugin)]
+async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+  let mut runtime_info = Vec::with_capacity(compilation.entries.len());
+  for (entry_name, entry) in compilation.entries.iter() {
+    let EntryData {
+      dependencies,
+      options,
+      ..
+    } = entry;
+    let runtime = get_entry_runtime(entry_name, options, &compilation.entries);
+    let library_options = options
+      .library
+      .as_ref()
+      .or_else(|| compilation.options.output.library.as_ref());
+    let module_graph = compilation.get_module_graph();
+    let module_of_last_dep = dependencies
+      .last()
+      .and_then(|dep| module_graph.get_module_by_dependency_id(dep));
+    let Some(module_of_last_dep) = module_of_last_dep else {
+      continue;
+    };
+    let Some(library_options) = library_options else {
+      continue;
+    };
+    if let Some(export) = library_options
+      .export
+      .as_ref()
+      .and_then(|item| item.first())
+    {
+      runtime_info.push((
+        runtime,
+        Some(export.clone()),
+        module_of_last_dep.identifier(),
+      ));
+    } else {
+      runtime_info.push((runtime, None, module_of_last_dep.identifier()));
+    }
+  }
+
+  for (runtime, export, module_identifier) in runtime_info {
+    if let Some(export) = export {
+      let exports_info = compilation
+        .get_module_graph_mut()
+        .get_export_info(module_identifier, &(export.as_str()).into());
+      exports_info.set_used(
+        &mut compilation.get_module_graph_mut(),
+        UsageState::Used,
+        Some(&runtime),
+      );
+    } else {
+      let exports_info_id = compilation
+        .get_module_graph()
+        .get_exports_info(&module_identifier)
+        .id;
+      exports_info_id
+        .set_used_in_unknown_way(&mut compilation.get_module_graph_mut(), Some(&runtime));
+    }
+  }
+  Ok(())
+}
+
+#[async_trait::async_trait]
+impl Plugin for AssignLibraryPlugin {
+  fn name(&self) -> &'static str {
+    PLUGIN_NAME
+  }
+
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .finish_modules
+      .tap(finish_modules::new(self));
     Ok(())
   }
 }

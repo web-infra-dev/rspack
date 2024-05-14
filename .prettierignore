@@ -9,18 +9,12 @@ packages/rspack/src/config/schema.check.js
 
 # Ignore test related
 
-packages/rspack/tests/fixtures/**/*
-packages/rspack/tests/statsCases/**/*
-packages/rspack/tests/cases/**/*
-packages/rspack/tests/configCases/**/*
-packages/rspack/tests/hotCases/**/*
-packages/rspack/tests/diagnostics/**/*
-packages/rspack/tests/js/**/*
-packages/rspack/tests/copyPlugin/build/**/*
+packages/**/etc/**/*
 packages/rspack-test-tools/template/**/*
-packages/rspack-test-tools/tests/js/**/*
-packages/rspack/tests/cases/parsing/issue-5120-binding/fail.js
-packages/rspack/tests/diagnostics/module-parse-failed/lexically_name_error/index.js
+packages/rspack-test-tools/tests/**/*
+packages/rspack-plugin-mini-css-extract/test/cases/**/*
+
+plugin-test/**/*
 
 benchcases/**/*
 crates/**/*

@@ -34,7 +34,7 @@ impl Visit for IdentCollector {
     match n {
       ObjectPatProp::Assign(assign) => {
         self.ids.push(ConcatenatedModuleIdent {
-          id: assign.key.clone(),
+          id: assign.key.clone().into(),
           shorthand: true,
           is_class_expr_with_ident: false,
         });

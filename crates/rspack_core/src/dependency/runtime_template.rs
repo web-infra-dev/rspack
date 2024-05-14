@@ -1,16 +1,16 @@
 use std::borrow::Cow;
-use std::ops::Sub;
 
 use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
+use sugar_path::SugarPath;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  compile_boolean_matcher_from_lists, property_access, to_comment, to_normal_comment,
-  AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, DependenciesBlock, DependencyId,
-  ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, TemplateContext,
+  compile_boolean_matcher_from_lists, contextify, property_access, to_comment, to_normal_comment,
+  AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
+  DependencyId, ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment,
+  PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
 };
 
 pub fn runtime_condition_expression(
@@ -67,7 +67,7 @@ fn subtract_runtime(a: Option<&RuntimeSpec>, b: Option<&RuntimeSpec>) -> Option<
     (Some(a), None) => Some(a.clone()),
     (None, None) => None,
     (None, Some(b)) => Some(b.clone()),
-    (Some(a), Some(b)) => Some(a.sub(b)),
+    (Some(a), Some(b)) => Some(a.subtract(b)),
   }
 }
 
@@ -85,7 +85,7 @@ where
           f(Some(&r.to_string()));
         }
       } else {
-        for r in runtime {
+        for r in runtime.iter() {
           f(Some(&r.to_string()));
         }
       }
@@ -121,7 +121,7 @@ pub fn export_from_import(
   };
   let is_new_treeshaking = compilation.options.is_new_tree_shaking();
 
-  let exports_type = get_exports_type(compilation.get_module_graph(), id, &module.identifier());
+  let exports_type = get_exports_type(&compilation.get_module_graph(), id, &module.identifier());
 
   if default_interop {
     if !export_name.is_empty()
@@ -184,7 +184,7 @@ pub fn export_from_import(
         .get_exports_info(&module_identifier)
         .id;
       let used = exports_info_id.get_used_name(
-        compilation.get_module_graph(),
+        &compilation.get_module_graph(),
         *runtime,
         crate::UsedName::Vec(export_name.clone()),
       );
@@ -251,10 +251,63 @@ pub fn get_exports_type_with_strict(
     .get_exports_type_readonly(module_graph, strict)
 }
 
-pub fn module_id_expr(request: &str, module_id: &str) -> String {
+// information content of the comment
+#[derive(Default)]
+struct CommentOptions<'a> {
+  // request string used originally
+  request: Option<&'a str>,
+  // name of the chunk referenced
+  chunk_name: Option<&'a str>,
+  // additional message
+  message: Option<&'a str>,
+}
+
+// add a comment
+fn comment(compiler_options: &CompilerOptions, comment_options: CommentOptions) -> String {
+  let used_pathinfo = matches!(
+    compiler_options.output.pathinfo,
+    PathInfo::Bool(true) | PathInfo::String(_)
+  );
+  let content = if used_pathinfo {
+    vec![
+      comment_options.message,
+      comment_options.request,
+      comment_options.chunk_name,
+    ]
+  } else {
+    vec![comment_options.message, comment_options.chunk_name]
+  }
+  .iter()
+  .filter_map(|&item| item)
+  .map(|item| contextify(compiler_options.context.as_path(), item))
+  .collect::<Vec<_>>()
+  .join(" | ");
+
+  if content.is_empty() {
+    return String::new();
+  }
+
+  if used_pathinfo {
+    format!("{} ", to_comment(&content))
+  } else {
+    format!("{} ", to_normal_comment(&content))
+  }
+}
+
+pub fn module_id_expr(
+  compiler_options: &CompilerOptions,
+  request: &str,
+  module_id: &str,
+) -> String {
   format!(
     "{}{}",
-    to_comment(request),
+    comment(
+      compiler_options,
+      CommentOptions {
+        request: Some(request),
+        ..Default::default()
+      }
+    ),
     serde_json::to_string(module_id).expect("should render module id")
   )
 }
@@ -270,7 +323,7 @@ pub fn module_id(
     .module_identifier_by_dependency_id(id)
     && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier)
   {
-    module_id_expr(request, module_id)
+    module_id_expr(&compilation.options, request, module_id)
   } else if weak {
     "null /* weak dependency, without id */".to_string()
   } else {
@@ -298,7 +351,7 @@ pub fn import_statement(
 
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-  let import_var = compilation.get_module_graph().get_import_var(id);
+  let import_var = compilation.get_import_var(id);
 
   let opt_declaration = if update { "" } else { "var " };
 
@@ -307,7 +360,7 @@ pub fn import_statement(
     RuntimeGlobals::REQUIRE
   );
 
-  let exports_type = get_exports_type(compilation.get_module_graph(), id, &module.identifier());
+  let exports_type = get_exports_type(&compilation.get_module_graph(), id, &module.identifier());
   if matches!(exports_type, ExportsType::Dynamic) {
     runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
     return (
@@ -326,7 +379,7 @@ pub fn module_namespace_promise(
   dep_id: &DependencyId,
   block: Option<&AsyncDependenciesBlockIdentifier>,
   request: &str,
-  _message: &str,
+  message: &str,
   weak: bool,
 ) -> String {
   let TemplateContext {
@@ -343,8 +396,12 @@ pub fn module_namespace_promise(
     return missing_module_promise(request);
   };
 
-  let promise = block_promise(block, runtime_requirements, compilation);
-  let exports_type = get_exports_type(compilation.get_module_graph(), dep_id, &module.identifier());
+  let promise = block_promise(block, runtime_requirements, compilation, message);
+  let exports_type = get_exports_type(
+    &compilation.get_module_graph(),
+    dep_id,
+    &module.identifier(),
+  );
   let module_id_expr = module_id(compilation, dep_id, request, weak);
 
   let header = if weak {
@@ -442,20 +499,54 @@ pub fn block_promise(
   block: Option<&AsyncDependenciesBlockIdentifier>,
   runtime_requirements: &mut RuntimeGlobals,
   compilation: &Compilation,
+  message: &str,
 ) -> String {
   let Some(block) = block else {
-    // ImportEagerDependency
-    return "Promise.resolve()".to_string();
+    let comment = comment(
+      &compilation.options,
+      CommentOptions {
+        request: None,
+        chunk_name: None,
+        message: Some(message),
+      },
+    );
+    return format!("Promise.resolve({comment})");
   };
   let chunk_group = compilation
     .chunk_graph
     .get_block_chunk_group(block, &compilation.chunk_group_by_ukey);
   let Some(chunk_group) = chunk_group else {
-    return "Promise.resolve()".to_string();
+    let comment = comment(
+      &compilation.options,
+      CommentOptions {
+        request: None,
+        chunk_name: None,
+        message: Some(message),
+      },
+    );
+    return format!("Promise.resolve({comment})");
   };
   if chunk_group.chunks.is_empty() {
-    return "Promise.resolve()".to_string();
+    let comment = comment(
+      &compilation.options,
+      CommentOptions {
+        request: None,
+        chunk_name: None,
+        message: Some(message),
+      },
+    );
+    return format!("Promise.resolve({comment})");
   }
+  let mg = compilation.get_module_graph();
+  let block = mg.block_by_id_expect(block);
+  let comment = comment(
+    &compilation.options,
+    CommentOptions {
+      request: None,
+      chunk_name: block.get_group_options().and_then(|o| o.name()),
+      message: Some(message),
+    },
+  );
   let chunks = chunk_group
     .chunks
     .iter()
@@ -466,11 +557,11 @@ pub fn block_promise(
     let chunk_id = serde_json::to_string(chunks[0].id.as_ref().expect("should have chunk.id"))
       .expect("should able to json stringify");
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
-    format!("{}({chunk_id})", RuntimeGlobals::ENSURE_CHUNK)
+    format!("{}({comment}{chunk_id})", RuntimeGlobals::ENSURE_CHUNK)
   } else if !chunks.is_empty() {
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
     format!(
-      "Promise.all([{}])",
+      "Promise.all({comment}[{}])",
       chunks
         .iter()
         .map(|c| format!(
@@ -483,7 +574,7 @@ pub fn block_promise(
         .join(", ")
     )
   } else {
-    "Promise.resolve()".to_string()
+    format!("Promise.resolve({comment})")
   }
 }
 
@@ -503,7 +594,7 @@ pub fn module_raw(
     format!(
       "{}({})",
       RuntimeGlobals::REQUIRE,
-      module_id_expr(request, module_id)
+      module_id_expr(&compilation.options, request, module_id)
     )
   } else if weak {
     weak_error(request)
@@ -573,9 +664,12 @@ pub fn async_module_factory(
   compilation: &Compilation,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> String {
-  let block = block_id.expect_get(compilation);
+  let module_graph = compilation.get_module_graph();
+  let block = module_graph
+    .block_by_id(block_id)
+    .expect("should have block");
   let dep = block.get_dependencies()[0];
-  let ensure_chunk = block_promise(Some(block_id), runtime_requirements, compilation);
+  let ensure_chunk = block_promise(Some(block_id), runtime_requirements, compilation, "");
   let factory = returning_function(
     &module_raw(compilation, runtime_requirements, &dep, request, false),
     "",

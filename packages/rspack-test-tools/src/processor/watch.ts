@@ -12,9 +12,10 @@ import fs from "fs";
 import copyDiff from "../helper/legacy/copyDiff";
 import { ECompilerEvent } from "../compiler";
 
+// This file is used to port step number to webpack.config.js
 const currentWatchStepModulePath = path.resolve(
 	__dirname,
-	"../../../rspack/tests/helpers/currentWatchStep"
+	"../helper/util/currentWatchStep"
 );
 
 type TRspackExperiments = TCompilerOptions<ECompilerType.Rspack>["experiments"];
@@ -112,9 +113,8 @@ export class RspackWatchProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 			if (!options.target) options.target = "async-node";
 			if (!options.output) options.output = {};
 			if (!options.output.path) options.output.path = context.getDist();
-			// CHANGE: The pathinfo is currently not supported in rspack
-			// if (typeof options.output.pathinfo === "undefined")
-			// 	options.output.pathinfo = true;
+			if (typeof options.output.pathinfo === "undefined")
+				options.output.pathinfo = true;
 			if (!options.output.filename) options.output.filename = "bundle.js";
 			if (options.cache && (options.cache as any).type === "filesystem") {
 				const cacheDirectory = path.join(tempDir, ".cache");

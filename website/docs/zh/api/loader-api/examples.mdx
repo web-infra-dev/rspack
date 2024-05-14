@@ -1,0 +1,150 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/api/loaders/#examples" />
+
+# 示例
+
+以下部分提供了不同类型 loader 的一些基本示例。请注意，`map` 和 `meta` 可选参数，请参见下面的 [`this.callback`](#thiscallbackerr-error--null-content-string--buffer-sourcemap-sourcemap-meta-any)。
+
+## 同步 Loader
+
+`return` 或 `this.callback` 都可以用来同步返回转换后的内容：
+
+```js title="sync-loader.js"
+module.exports = function (content, map, meta) {
+  return someSyncOperation(content);
+};
+```
+
+`this.callback` 方法更灵活，因为它允许传递多个参数，而不是只有 `content`。
+
+```js title="sync-loader-with-multiple-results.js"
+module.exports = function (content, map, meta) {
+  this.callback(null, someSyncOperation(content), map, meta);
+  return; // 调用 callback() 时总是返回未定义的结果
+};
+```
+
+::: info
+出于技术和性能方面的考虑，Rspack 内部会将所有 loader 转换为异步 loader。
+:::
+
+## 异步 Loader
+
+对于异步 Loader，`this.async` 被用于获取 `callback` 函数：
+
+```js title="async-loader.js"
+module.exports = function (content, map, meta) {
+  var callback = this.async();
+  someAsyncOperation(content, function (err, result) {
+    if (err) return callback(err);
+    callback(null, result, map, meta);
+  });
+};
+```
+
+```js title="async-loader-with-multiple-results.js"
+module.exports = function (content, map, meta) {
+  var callback = this.async();
+  someAsyncOperation(content, function (err, result, sourceMaps, meta) {
+    if (err) return callback(err);
+    callback(null, result, sourceMaps, meta);
+  });
+};
+```
+
+## 'Raw' Loader
+
+默认情况下，资源文件会被转化为 UTF-8 字符串，然后传给 loader。通过设置 `raw` 为 `true`，loader 可以接收原始的 `Buffer`。每一个 loader 都可以用 `String` 或者 `Buffer` 的形式传递它的处理结果。Compiler 将会把它们在 loader 之间相互转换。
+
+```js
+module.exports = function (content) {
+  assert(content instanceof Buffer);
+  // ...
+};
+module.exports.raw = true;
+```
+
+## Pitching loader
+
+Loader **总是**从右向左被调用。有些情况下，loader 只关心请求背后的**元数据**，可以忽略之前 loader 的结果。在 loader 真正执行之前（从右向左），loader 上的 `pitch` 方法会从**左向右**被调用。
+
+对于以下使用的配置：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  module: {
+    rules: [
+      {
+        //...
+        use: ['a-loader', 'b-loader', 'c-loader'] 、
+      },
+    ],
+  },
+};
+```
+
+会得到这些步骤：
+
+```
+|-a-loader `pitch
+  |- b-loader `pitch `.
+    |-c-loader `pitch`
+      |- 所请求的模块被作为依赖收集起来
+    |- c-loader正常执行
+  |-b-loader正常执行
+|- a-loader 正常执行
+```
+
+通常情况下，如果 loader 足够简单以至于只导出了 normal 阶段的钩子：
+
+```js
+module.exports = function (source) {};
+```
+
+那么其 pitching 阶段将被跳过。
+
+那么，"pitching" 阶段对于 loader 来说有哪些优势呢？
+
+首先，传递给 `pitch` 方法的数据在执行阶段也暴露在 `this.data` 下，可以用来捕获和共享 loader 生命周期中早期的信息。
+
+```js
+module.exports = function (content) {
+  return someSyncOperation(content, this.data.value);
+};
+
+module.exports.pitch = function (remainRequest, precedingRequest, data) {
+  data.value = 42;
+};
+```
+
+第二，如果一个 loader 在 `pitch` 方法中提供了一个结果，整个 loader 链路就会翻转过来，跳过其余的 normal 阶段的 loader 。
+在我们上面的例子中，如果 b-loaders 的 `pitch` 方法返回了一些内容：
+
+```js
+module.exports = function (content) {
+  return someSyncOperation(content);
+};
+
+module.exports.pitch = function (remainingRequest, precedingRequest, data) {
+  if (someCondition()) {
+    return (
+      'module.exports = require(' +
+      JSON.stringify('-!' + remainingRequest) +
+      ');'
+    );
+  }
+};
+```
+
+上面的步骤将被缩短为：
+
+```
+|- a-loader `pitch`
+  |- b-loader `pitch`返回一个模块
+|- a-loader 正常执行
+```
+
+一个实际应用的例子是 `style-loader`，它利用了第二个优势来处理请求的调度。
+请访问 [style-loader](https://github.com/webpack-contrib/style-loader/blob/eb06baeb3ac4e3107732a21170b0a7f358c5423f/src/index.js#L39) 了解详情。

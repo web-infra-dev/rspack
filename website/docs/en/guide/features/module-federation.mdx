@@ -1,0 +1,22 @@
+import { ApiMeta, Stability } from '@components/ApiMeta';
+
+# Module federation
+
+<ApiMeta addedVersion={'0.5.0'} stability={Stability.Experimental} />
+
+Module Federation allows JavaScript applications to dynamically load code from other builds at runtime.
+This feature has several use cases, including:
+
+- Independent applications (known as "microfrontends" in microfrontend architecture) to share modules without the need to recompile the entire application.
+- Distributed teams to work on different parts of the same application without the need to recompile the entire application.
+- Dynamic code loading and sharing between applications during runtime
+
+Rspack supports two versions of Module Federation: Module Federation 1.0 and Module Federation 1.5.
+
+- Module Federation 1.0 is the current implementation of ModuleFederationPlugin in Webpack.
+- Module Federation 1.5, among other things, adds runtime plugin functionality to 1.0, allowing for the extension of Module Federation's behavior, functionality, and providing control inversion to users.
+
+Detailed configuration can be found in:
+
+- [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin)
+- [ModuleFederationPluginV1](/plugins/webpack/module-federation-plugin-v1)

@@ -1,4 +1,6 @@
 const { Stats } = require("@rspack/core");
+
+/** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
 	description:
 		"should have any cache hits log of modules in incremental rebuild mode",
@@ -19,7 +21,7 @@ module.exports = {
 			});
 		});
 		await new Promise((resolve, reject) => {
-			compiler.rebuild(
+			compiler.__internal__rebuild(
 				new Set([context.getSource("./fixtures/a")]),
 				new Set(),
 				err => {

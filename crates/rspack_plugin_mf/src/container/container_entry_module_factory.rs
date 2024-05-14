@@ -22,6 +22,7 @@ impl ModuleFactory for ContainerEntryModuleFactory {
         dep.name.clone(),
         dep.exposes.clone(),
         dep.share_scope.clone(),
+        dep.enhanced,
       ),
     )))
   }

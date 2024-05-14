@@ -1,4 +1,4 @@
-import WebpackLicense from '../../../components/webpack-license';
+import WebpackLicense from '@components/webpack-license';
 
 <WebpackLicense from="https://webpack.js.org/configuration/dev-server/" />
 
@@ -19,7 +19,7 @@ For example, Rspack CLI depends on `@rspack/dev-server` by default, so the devSe
 - **Type:** `string | string[] | 'all' | 'auto'`
 - **Default:** `'auto'`
 
-Allow access to devServer's whitelist.
+This option allows you to allowlist services that are allowed to access the dev server.
 
 ## devServer.client
 
@@ -116,7 +116,7 @@ Whether to enable hot updates.
 
 Whether or not to reload the page. This configuration item is turned off when hot is turned on.
 
-## devSever.magicHtml
+## devServer.magicHtml
 
 - **Type:** `boolean`
 - **Default:** `true`

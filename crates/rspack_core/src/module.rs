@@ -51,6 +51,7 @@ pub struct BuildInfo {
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
   pub json_data: Option<JsonValue>,
+  pub module_concatenation_bailout: Option<String>,
 }
 
 impl Default for BuildInfo {
@@ -68,6 +69,7 @@ impl Default for BuildInfo {
       all_star_exports: Vec::default(),
       need_create_require: false,
       json_data: None,
+      module_concatenation_bailout: None,
     }
   }
 }
@@ -157,6 +159,8 @@ pub struct BuildResult {
 #[derive(Debug, Default, Clone)]
 pub struct FactoryMeta {
   pub side_effect_free: Option<bool>,
+  /// For old tree shaking
+  pub side_effect_free_old: Option<bool>,
 }
 
 pub type ModuleIdentifier = Identifier;
@@ -165,6 +169,7 @@ pub trait Module:
   Debug
   + Send
   + Sync
+  + Any
   + AsAny
   + DynHash
   + DynEq
@@ -214,11 +219,17 @@ pub trait Module:
     })
   }
 
+  fn factory_meta(&self) -> Option<&FactoryMeta>;
+
+  fn set_factory_meta(&mut self, factory_meta: FactoryMeta);
+
   fn build_info(&self) -> Option<&BuildInfo>;
+
+  fn set_build_info(&mut self, build_info: BuildInfo);
 
   fn build_meta(&self) -> Option<&BuildMeta>;
 
-  fn set_module_build_info_and_meta(&mut self, build_info: BuildInfo, build_meta: BuildMeta);
+  fn set_build_meta(&mut self, build_meta: BuildMeta);
 
   fn get_exports_argument(&self) -> ExportsArgument {
     self
@@ -241,7 +252,11 @@ pub trait Module:
     get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
   }
 
-  fn get_exports_type(&self, module_graph: &mut ModuleGraph, strict: bool) -> ExportsType {
+  fn get_exports_type<'a>(
+    &self,
+    module_graph: &'a mut ModuleGraph<'a>,
+    strict: bool,
+  ) -> ExportsType {
     let mut mga = MutableModuleGraph::new(module_graph);
     get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
   }
@@ -395,10 +410,11 @@ fn get_exports_type_impl(
           if let Some(export_info) =
             mga.get_read_only_export_info(&Atom::from("__esModule"), &identifier)
           {
+            let export_info_id = export_info.id;
             if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
               handle_default(default_object)
             } else {
-              let Some(target) = export_info.id.get_target(mga, None) else {
+              let Some(target) = export_info_id.get_target(mga, None) else {
                 return ExportsType::Dynamic;
               };
               if target
@@ -467,21 +483,21 @@ impl Identifiable for Box<dyn Module> {
   }
 }
 
-impl PartialEq for dyn Module + '_ {
+impl PartialEq for dyn Module {
   fn eq(&self, other: &Self) -> bool {
     self.dyn_eq(other.as_any())
   }
 }
 
-impl Eq for dyn Module + '_ {}
+impl Eq for dyn Module {}
 
-impl Hash for dyn Module + '_ {
+impl Hash for dyn Module {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.dyn_hash(state)
   }
 }
 
-impl dyn Module + '_ {
+impl dyn Module {
   pub fn downcast_ref<T: Module + Any>(&self) -> Option<&T> {
     self.as_any().downcast_ref::<T>()
   }
@@ -492,32 +508,39 @@ impl dyn Module + '_ {
 }
 
 #[macro_export]
-macro_rules! impl_build_info_meta {
+macro_rules! impl_module_meta_info {
   () => {
+    fn factory_meta(&self) -> Option<&$crate::FactoryMeta> {
+      self.factory_meta.as_ref()
+    }
+
+    fn set_factory_meta(&mut self, v: $crate::FactoryMeta) {
+      self.factory_meta = Some(v);
+    }
+
     fn build_info(&self) -> Option<&$crate::BuildInfo> {
       self.build_info.as_ref()
+    }
+
+    fn set_build_info(&mut self, v: $crate::BuildInfo) {
+      self.build_info = Some(v);
     }
 
     fn build_meta(&self) -> Option<&$crate::BuildMeta> {
       self.build_meta.as_ref()
     }
 
-    fn set_module_build_info_and_meta(
-      &mut self,
-      build_info: $crate::BuildInfo,
-      build_meta: $crate::BuildMeta,
-    ) {
-      self.build_info = Some(build_info);
-      self.build_meta = Some(build_meta);
+    fn set_build_meta(&mut self, v: $crate::BuildMeta) {
+      self.build_meta = Some(v);
     }
   };
 }
 
 macro_rules! impl_module_downcast_helpers {
   ($ty:ty, $ident:ident) => {
-    impl dyn Module + '_ {
+    impl dyn Module {
       ::paste::paste! {
-        pub fn [<as_ $ident>](&self) -> Option<& $ty> {
+        pub fn [<as_ $ident>](&self) -> Option<&$ty> {
           self.as_any().downcast_ref::<$ty>()
         }
 
@@ -525,7 +548,7 @@ macro_rules! impl_module_downcast_helpers {
           self.as_any_mut().downcast_mut::<$ty>()
         }
 
-        pub fn [<try_as_ $ident>](&self) -> Result<& $ty> {
+        pub fn [<try_as_ $ident>](&self) -> Result<&$ty> {
           self.[<as_ $ident>]().ok_or_else(|| {
             ::rspack_error::error!(
               "Failed to cast module to a {}",
@@ -675,6 +698,10 @@ mod test {
           unreachable!()
         }
 
+        fn factory_meta(&self) -> Option<&crate::FactoryMeta> {
+          unreachable!()
+        }
+
         fn build_info(&self) -> Option<&crate::BuildInfo> {
           unreachable!()
         }
@@ -683,11 +710,15 @@ mod test {
           unreachable!()
         }
 
-        fn set_module_build_info_and_meta(
-          &mut self,
-          _build_info: crate::BuildInfo,
-          _build_meta: crate::BuildMeta,
-        ) {
+        fn set_factory_meta(&mut self, _: crate::FactoryMeta) {
+          unreachable!()
+        }
+
+        fn set_build_info(&mut self, _: crate::BuildInfo) {
+          unreachable!()
+        }
+
+        fn set_build_meta(&mut self, _: crate::BuildMeta) {
           unreachable!()
         }
       }

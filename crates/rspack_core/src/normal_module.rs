@@ -13,8 +13,9 @@ use dashmap::DashMap;
 use derivative::Derivative;
 use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, MietteExt, Result, Severity};
 use rspack_hash::RspackHash;
+use rspack_hook::define_hook;
 use rspack_identifier::Identifiable;
-use rspack_loader_runner::{run_loaders, AdditionalData, Content, ResourceData};
+use rspack_loader_runner::{run_loaders, AdditionalData, Content, LoaderContext, ResourceData};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
@@ -27,12 +28,13 @@ use serde_json::json;
 
 use crate::{
   add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
-  impl_build_info_meta, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope,
-  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, GenerateContext,
-  GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
-  RspackLoaderRunnerPlugin, RuntimeGlobals, RuntimeSpec, SourceType,
+  impl_module_meta_info, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
+  CompilerContext, ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
+  DependencyTemplate, FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -74,6 +76,19 @@ impl ModuleIssuer {
       None
     }
   }
+}
+
+define_hook!(NormalModuleReadResource: AsyncSeriesBail(resource_data: &mut ResourceData) -> Content);
+define_hook!(NormalModuleLoader: SyncSeries(loader_context: &mut LoaderContext<CompilerContext>));
+define_hook!(NormalModuleBeforeLoaders: SyncSeries(module: &mut NormalModule));
+define_hook!(NormalModuleAdditionalData: AsyncSeries(additional_data: &mut AdditionalData));
+
+#[derive(Debug, Default)]
+pub struct NormalModuleHooks {
+  pub read_resource: NormalModuleReadResourceHook,
+  pub loader: NormalModuleLoaderHook,
+  pub before_loaders: NormalModuleBeforeLoadersHook,
+  pub additional_data: NormalModuleAdditionalDataHook,
 }
 
 #[impl_source_map_config]
@@ -126,6 +141,7 @@ pub struct NormalModule {
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
   presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
 
+  factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
   parsed: bool,
@@ -151,7 +167,7 @@ impl NormalModuleSource {
   }
 }
 
-pub static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
+static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
   fn create_id(module_type: &ModuleType, request: &str) -> String {
@@ -204,11 +220,12 @@ impl NormalModule {
       diagnostics: Mutex::new(Default::default()),
       code_generation_dependencies: None,
       presentational_dependencies: None,
+      factory_meta: None,
       build_info: None,
       build_meta: None,
       parsed: false,
 
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 
@@ -319,7 +336,7 @@ pub struct LoadersShouldAlwaysGiveContent;
 
 #[async_trait::async_trait]
 impl Module for NormalModule {
-  impl_build_info_meta!();
+  impl_module_meta_info!();
 
   fn module_type(&self) -> &ModuleType {
     &self.module_type
@@ -371,11 +388,14 @@ impl Module for NormalModule {
       false
     };
 
-    build_context.plugin_driver.before_loaders(self).await?;
+    build_context
+      .plugin_driver
+      .normal_module_hooks
+      .before_loaders
+      .call(self)?;
 
     let plugin = RspackLoaderRunnerPlugin {
       plugin_driver: build_context.plugin_driver.clone(),
-      normal_module: self,
       current_loader: Default::default(),
     };
 
@@ -387,13 +407,13 @@ impl Module for NormalModule {
 
     let loader_result = run_loaders(
       &self.loaders,
-      &self.resource_data,
+      &mut self.resource_data,
       &[&plugin],
       build_context.compiler_context,
       additional_data,
     )
     .await;
-    let (loader_result, ds) = match loader_result {
+    let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
       Err(e) => {
         let mut e = ModuleBuildError(e).boxed();
@@ -423,6 +443,12 @@ impl Module for NormalModule {
         });
       }
     };
+    build_context
+      .plugin_driver
+      .normal_module_hooks
+      .additional_data
+      .call(&mut loader_result.additional_data)
+      .await?;
     self.add_diagnostics(ds);
 
     let content = if self.module_type().is_binary() {
@@ -477,11 +503,12 @@ impl Module for NormalModule {
       .parser_and_generator
       .parse(ParseContext {
         source: original_source.clone(),
+        module_context: &self.context,
         module_identifier: self.identifier(),
         module_parser_options: self.parser_options.as_ref(),
         module_type: &self.module_type,
         module_user_request: &self.user_request,
-        module_source_map_kind: self.get_source_map_kind().clone(),
+        module_source_map_kind: *self.get_source_map_kind(),
         loaders: &self.loaders,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
@@ -648,37 +675,41 @@ impl Module for NormalModule {
     module_graph: &ModuleGraph,
     module_chain: &mut HashSet<ModuleIdentifier>,
   ) -> ConnectionState {
-    if let Some(mgm) = module_graph.module_graph_module_by_identifier(&self.identifier()) {
-      if let Some(side_effect_free) = mgm.factory_meta.as_ref().and_then(|m| m.side_effect_free) {
-        return ConnectionState::Bool(!side_effect_free);
+    if let Some(side_effect_free) = self.factory_meta().and_then(|m| m.side_effect_free) {
+      return ConnectionState::Bool(!side_effect_free);
+    }
+    if let Some(side_effect_free) = self.build_meta().and_then(|m| m.side_effect_free)
+      && side_effect_free
+    {
+      // use module chain instead of is_evaluating_side_effects to mut module graph
+      if module_chain.contains(&self.identifier()) {
+        return ConnectionState::CircularConnection;
       }
-      if let Some(side_effect_free) = self.build_meta().as_ref().and_then(|m| m.side_effect_free)
-        && side_effect_free
-      {
-        // use module chain instead of is_evaluating_side_effects to mut module graph
-        if module_chain.contains(&self.identifier()) {
-          return ConnectionState::CircularConnection;
-        }
-        module_chain.insert(self.identifier());
-        let mut current = ConnectionState::Bool(false);
-        for dependency_id in self.get_dependencies().iter() {
-          if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
-            let state =
-              dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
-            if matches!(state, ConnectionState::Bool(true)) {
-              // TODO add optimization bailout
-              module_chain.remove(&self.identifier());
-              return ConnectionState::Bool(true);
-            } else if !matches!(state, ConnectionState::CircularConnection) {
-              current = add_connection_states(current, state);
-            }
+      module_chain.insert(self.identifier());
+      let mut current = ConnectionState::Bool(false);
+      for dependency_id in self.get_dependencies().iter() {
+        if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
+          let state =
+            dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
+          if matches!(state, ConnectionState::Bool(true)) {
+            // TODO add optimization bailout
+            module_chain.remove(&self.identifier());
+            return ConnectionState::Bool(true);
+          } else if !matches!(state, ConnectionState::CircularConnection) {
+            current = add_connection_states(current, state);
           }
         }
-        module_chain.remove(&self.identifier());
-        return current;
       }
+      module_chain.remove(&self.identifier());
+      return current;
     }
     ConnectionState::Bool(true)
+  }
+
+  fn get_concatenation_bailout_reason(&self, mg: &ModuleGraph, cg: &ChunkGraph) -> Option<String> {
+    self
+      .parser_and_generator
+      .get_concatenation_bailout_reason(self, mg, cg)
   }
 }
 
@@ -724,7 +755,7 @@ impl NormalModule {
       return Ok(RawSource::Buffer(content.into_bytes()).boxed());
     }
     let source_map_kind = self.get_source_map_kind();
-    if !matches!(source_map_kind, SourceMapKind::None)
+    if source_map_kind.enabled()
       && let Some(source_map) = source_map
     {
       let content = content.into_string_lossy();
@@ -737,7 +768,7 @@ impl NormalModule {
         .boxed(),
       );
     }
-    if !matches!(source_map_kind, SourceMapKind::None)
+    if source_map_kind.enabled()
       && let Content::String(content) = content
     {
       return Ok(OriginalSource::new(content, self.request()).boxed());

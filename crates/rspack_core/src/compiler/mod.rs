@@ -1,55 +1,56 @@
 mod compilation;
-mod execute_module;
 mod hmr;
 mod make;
+mod module_executor;
 
 use std::collections::hash_map::Entry;
 use std::ops::Deref;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
-use rspack_hook::{AsyncSeries2Hook, AsyncSeriesBailHook};
+use rspack_hook::define_hook;
 use rspack_identifier::{IdentifierMap, IdentifierSet};
+use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
 use tracing::instrument;
 
 pub use self::compilation::*;
-pub use self::execute_module::ExecuteModuleId;
 pub use self::hmr::{collect_changed_modules, CompilationRecords};
-pub use self::make::{
-  AddQueueHandler, BuildQueueHandler, BuildTimeExecutionOption, BuildTimeExecutionQueueHandler,
-  BuildTimeExecutionTask, FactorizeQueueHandler, FactorizeTask, MakeParam,
-  ProcessDependenciesQueueHandler,
-};
+pub use self::module_executor::{ExecuteModuleId, ModuleExecutor};
 use crate::cache::Cache;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;
-use crate::{
-  fast_set, AssetEmittedArgs, CompilerOptions, Logger, ModuleGraph, PluginDriver, ResolverFactory,
-  SharedPluginDriver,
-};
+use crate::{fast_set, CompilerOptions, Logger, PluginDriver, ResolverFactory, SharedPluginDriver};
 use crate::{BoxPlugin, ExportInfo, UsageState};
-use crate::{CompilationParams, ContextModuleFactory, NormalModuleFactory};
+use crate::{ContextModuleFactory, NormalModuleFactory};
 
 // should be SyncHook, but rspack need call js hook
-pub type CompilerThisCompilationHook = AsyncSeries2Hook<Compilation, CompilationParams>;
+define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
 // should be SyncHook, but rspack need call js hook
-pub type CompilerCompilationHook = AsyncSeries2Hook<Compilation, CompilationParams>;
-// should be AsyncParallelHook, but rspack need add MakeParam to incremental rebuild
-pub type CompilerMakeHook = AsyncSeries2Hook<Compilation, Vec<MakeParam>>;
+define_hook!(CompilerCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
+// should be AsyncParallelHook
+define_hook!(CompilerMake: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilerFinishMake: AsyncSeries(compilation: &mut Compilation));
 // should be SyncBailHook, but rspack need call js hook
-pub type CompilerShouldEmitHook = AsyncSeriesBailHook<Compilation, bool>;
+define_hook!(CompilerShouldEmit: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilerEmit: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilerAfterEmit: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilerAssetEmitted: AsyncSeries(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
   pub this_compilation: CompilerThisCompilationHook,
   pub compilation: CompilerCompilationHook,
   pub make: CompilerMakeHook,
+  pub finish_make: CompilerFinishMakeHook,
   pub should_emit: CompilerShouldEmitHook,
+  pub emit: CompilerEmitHook,
+  pub after_emit: CompilerAfterEmitHook,
+  pub asset_emitted: CompilerAssetEmittedHook,
 }
 
 #[derive(Debug)]
@@ -86,16 +87,19 @@ where
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let cache = Arc::new(Cache::new(options.clone()));
     assert!(!(options.is_new_tree_shaking() && options.builtins.tree_shaking.enable()), "Can't enable builtins.tree_shaking and `experiments.rspack_future.new_treeshaking` at the same time");
+    let module_executor = ModuleExecutor::default();
     Self {
       options: options.clone(),
       compilation: Compilation::new(
         options,
-        ModuleGraph::default(),
         plugin_driver.clone(),
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
         None,
         cache.clone(),
+        Some(module_executor),
+        Default::default(),
+        Default::default(),
       ),
       output_filesystem,
       plugin_driver,
@@ -118,29 +122,30 @@ where
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.resolver_factory.clear_cache();
 
+    let module_executor = ModuleExecutor::default();
     fast_set(
       &mut self.compilation,
       Compilation::new(
         self.options.clone(),
-        ModuleGraph::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
         self.cache.clone(),
+        Some(module_executor),
+        Default::default(),
+        Default::default(),
       ),
     );
 
-    self
-      .compile(vec![MakeParam::ForceBuildDeps(Default::default())])
-      .await?;
+    self.compile().await?;
     self.cache.begin_idle();
     self.compile_done().await?;
     Ok(())
   }
 
   #[instrument(name = "compile", skip_all)]
-  async fn compile(&mut self, mut params: Vec<MakeParam>) -> Result<()> {
+  async fn compile(&mut self) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
     // FOR BINDING SAFETY:
     // Make sure `thisCompilation` hook was called for each `JsCompilation` update before any access to it.
@@ -168,20 +173,22 @@ where
       .plugin_driver
       .compiler_hooks
       .make
-      .call(&mut self.compilation, &mut params)
+      .call(&mut self.compilation)
       .await
       .err()
     {
       self.compilation.push_batch_diagnostic(vec![e.into()]);
     }
     logger.time_end(make_hook_start);
-    self.compilation.make(params).await?;
+    self.compilation.make().await?;
     logger.time_end(make_start);
 
     let start = logger.time("finish make hook");
     self
       .plugin_driver
-      .finish_make(&mut self.compilation)
+      .compiler_hooks
+      .finish_make
+      .call(&mut self.compilation)
       .await?;
     logger.time_end(start);
 
@@ -209,7 +216,7 @@ where
         })
         .unwrap_or(false)
     {
-      let (analyze_result, diagnostics) = self
+      let (mut analyze_result, diagnostics) = self
         .compilation
         .optimize_dependency()
         .await?
@@ -250,7 +257,7 @@ where
         }
       });
       {
-        let module_graph = self.compilation.get_module_graph_mut();
+        let mut module_graph = self.compilation.get_module_graph_mut();
         for (module_identifier, exports_map) in exports_info_map.into_iter() {
           let exports_id = module_graph
             .module_graph_module_by_identifier(&module_identifier)
@@ -274,7 +281,10 @@ where
       {
         self.compilation.include_module_ids = analyze_result.include_module_ids;
       }
-      self.compilation.optimize_analyze_result_map = analyze_result.analyze_results;
+      std::mem::swap(
+        self.compilation.optimize_analyze_result_map_mut(),
+        &mut analyze_result.analyze_results,
+      );
     }
     let start = logger.time("seal compilation");
     self.compilation.seal(self.plugin_driver.clone()).await?;
@@ -302,16 +312,13 @@ where
         .await?,
       Some(false)
     ) {
-      return self.compilation.done(self.plugin_driver.clone()).await;
+      return Ok(());
     }
 
     let start = logger.time("emitAssets");
     self.emit_assets().await?;
     logger.time_end(start);
 
-    let start = logger.time("done hook");
-    self.compilation.done(self.plugin_driver.clone()).await?;
-    logger.time_end(start);
     Ok(())
   }
 
@@ -341,7 +348,12 @@ where
       }
     }
 
-    self.plugin_driver.emit(&mut self.compilation).await?;
+    self
+      .plugin_driver
+      .compiler_hooks
+      .emit
+      .call(&mut self.compilation)
+      .await?;
 
     let mut new_emitted_asset_versions = HashMap::default();
     let results = self
@@ -370,7 +382,12 @@ where
       item?;
     }
 
-    self.plugin_driver.after_emit(&mut self.compilation).await
+    self
+      .plugin_driver
+      .compiler_hooks
+      .after_emit
+      .call(&mut self.compilation)
+      .await
   }
 
   async fn emit_asset(
@@ -400,16 +417,16 @@ where
 
       self.compilation.emitted_assets.insert(filename.to_string());
 
-      let asset_emitted_args = AssetEmittedArgs {
-        filename,
-        output_path,
+      let info = AssetEmittedInfo {
+        output_path: output_path.to_owned(),
         source: source.clone(),
-        target_path: file_path.as_path(),
-        compilation: &self.compilation,
+        target_path: file_path,
       };
       self
         .plugin_driver
-        .asset_emitted(&asset_emitted_args)
+        .compiler_hooks
+        .asset_emitted
+        .call(&self.compilation, filename, &info)
         .await?;
     }
     Ok(())
@@ -430,4 +447,17 @@ where
       )),
     }
   }
+}
+
+#[derive(Debug)]
+pub struct CompilationParams {
+  pub normal_module_factory: Arc<NormalModuleFactory>,
+  pub context_module_factory: Arc<ContextModuleFactory>,
+}
+
+#[derive(Debug)]
+pub struct AssetEmittedInfo {
+  pub source: BoxSource,
+  pub output_path: PathBuf,
+  pub target_path: PathBuf,
 }

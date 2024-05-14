@@ -771,3 +771,215 @@ export class AsyncSeriesBailHook<
 		this._tap("promise", options, fn);
 	}
 }
+
+export class AsyncSeriesWaterfallHook<
+	T,
+	R,
+	AdditionalOptions = UnsetAdditionalOptions
+> extends Hook<T, R, AdditionalOptions> {
+	constructor(args?: ArgumentNames<AsArray<T>>, name?: string) {
+		if (!args?.length)
+			throw new Error("Waterfall hooks must have at least one argument");
+		super(args, name);
+	}
+
+	callAsyncStageRange(
+		queried: QueriedHook<T, R, AdditionalOptions>,
+		...args: Append<AsArray<T>, Callback<Error, R>>
+	) {
+		const {
+			stageRange: [from, to],
+			tapsInRange
+		} = queried;
+		let data = args[0] as R;
+		const cb = args[1] as Callback<Error, R>;
+		if (from === minStage) {
+			this._runCallInterceptors(data);
+		}
+		const done = () => {
+			this._runDoneInterceptors();
+			cb(null, data);
+		};
+		const error = (e: Error) => {
+			this._runErrorInterceptors(e);
+			cb(e);
+		};
+		if (tapsInRange.length === 0) return done();
+		let index = 0;
+		const next = () => {
+			const tap = tapsInRange[index];
+			this._runTapInterceptors(tap);
+			if (tap.type === "promise") {
+				const promise = tap.fn(data);
+				if (!promise || !promise.then) {
+					throw new Error(
+						"Tap function (tapPromise) did not return promise (returned " +
+							promise +
+							")"
+					);
+				}
+				promise.then(
+					(r: R) => {
+						index += 1;
+						if (r !== undefined) {
+							data = r;
+						}
+						if (index === tapsInRange.length) {
+							done();
+						} else {
+							next();
+						}
+					},
+					(e: Error) => {
+						index = tapsInRange.length;
+						error(e);
+					}
+				);
+			} else if (tap.type === "async") {
+				tap.fn(data, (e: Error, r: R) => {
+					if (e) {
+						index = tapsInRange.length;
+						error(e);
+					} else {
+						index += 1;
+						if (r !== undefined) {
+							data = r;
+						}
+						if (index === tapsInRange.length) {
+							done();
+						} else {
+							next();
+						}
+					}
+				});
+			} else {
+				let hasError = false;
+				try {
+					const r = tap.fn(data);
+					if (r !== undefined) {
+						data = r;
+					}
+				} catch (e) {
+					hasError = true;
+					index = tapsInRange.length;
+					error(e as Error);
+				}
+				if (!hasError) {
+					index += 1;
+					if (index === tapsInRange.length) {
+						done();
+					} else {
+						next();
+					}
+				}
+			}
+			if (index === tapsInRange.length) return;
+		};
+		next();
+	}
+
+	tapAsync(
+		options: Options<AdditionalOptions>,
+		fn: FnWithCallback<T, void>
+	): void {
+		this._tap("async", options, fn);
+	}
+
+	tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void {
+		this._tap("promise", options, fn);
+	}
+}
+
+const defaultFactory = (key: HookMapKey, hook: unknown) => hook;
+
+export type HookMapKey = any;
+export type HookFactory<H> = (key: HookMapKey, hook?: H) => H;
+export interface HookMapInterceptor<H> {
+	factory?: HookFactory<H>;
+}
+
+export class HookMap<H extends Hook<any, any, any>> {
+	_map: Map<HookMapKey, H> = new Map();
+	_factory: HookFactory<H>;
+	name?: string;
+	_interceptors: HookMapInterceptor<H>[];
+
+	constructor(factory: HookFactory<H>, name?: string) {
+		this.name = name;
+		this._factory = factory;
+		this._interceptors = [];
+	}
+
+	get(key: HookMapKey) {
+		return this._map.get(key);
+	}
+
+	for(key: HookMapKey) {
+		const hook = this.get(key);
+		if (hook !== undefined) {
+			return hook;
+		}
+		let newHook = this._factory(key);
+		const interceptors = this._interceptors;
+		for (let i = 0; i < interceptors.length; i++) {
+			const factory = interceptors[i].factory;
+			if (factory) {
+				newHook = factory(key, newHook);
+			}
+		}
+		this._map.set(key, newHook);
+		return newHook;
+	}
+
+	intercept(interceptor: HookMapInterceptor<H>) {
+		this._interceptors.push(
+			Object.assign(
+				{
+					factory: defaultFactory
+				},
+				interceptor
+			)
+		);
+	}
+
+	isUsed(): boolean {
+		for (const key of this._map.keys()) {
+			const hook = this.get(key);
+			if (hook?.isUsed()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	queryStageRange(stageRange: StageRange): QueriedHookMap<H> {
+		return new QueriedHookMap(stageRange, this);
+	}
+}
+
+export class QueriedHookMap<H extends Hook<any, any, any>> {
+	stageRange: StageRange;
+	hookMap: HookMap<H>;
+
+	constructor(stageRange: StageRange, hookMap: HookMap<H>) {
+		this.stageRange = stageRange;
+		this.hookMap = hookMap;
+	}
+
+	get(key: HookMapKey) {
+		return this.hookMap.get(key)?.queryStageRange(this.stageRange);
+	}
+
+	for(key: HookMapKey) {
+		return this.hookMap.for(key).queryStageRange(this.stageRange);
+	}
+
+	isUsed(): boolean {
+		for (const key in this.hookMap._map.keys()) {
+			if (this.get(key)?.isUsed()) {
+				return true;
+			}
+		}
+		return false;
+	}
+}

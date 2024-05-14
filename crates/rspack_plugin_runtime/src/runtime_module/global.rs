@@ -16,7 +16,7 @@ impl Default for GlobalRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/global"),
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -27,7 +27,7 @@ impl RuntimeModule for GlobalRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/global.js")).boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(include_str!("runtime/global.js")).boxed())
   }
 }

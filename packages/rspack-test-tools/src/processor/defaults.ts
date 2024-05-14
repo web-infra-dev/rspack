@@ -7,24 +7,22 @@ import {
 } from "../type";
 import { diff as jestDiff } from "jest-diff";
 import stripAnsi from "strip-ansi";
-import path from "path";
 
-const CASE_CWD = path.resolve(__dirname, "../../../rspack");
 const CURRENT_CWD = process.cwd();
 
 const quoteMeta = (str: string) => str.replace(/[-[\]\\/{}()*+?.^$|]/g, "\\$&");
 const cwdRegExp = new RegExp(
-	`${quoteMeta(CASE_CWD)}((?:\\\\)?(?:[a-zA-Z.\\-_]+\\\\)*)`,
+	`${quoteMeta(CURRENT_CWD)}((?:\\\\)?(?:[a-zA-Z.\\-_]+\\\\)*)`,
 	"g"
 );
-const escapedCwd = JSON.stringify(CASE_CWD).slice(1, -1);
+const escapedCwd = JSON.stringify(CURRENT_CWD).slice(1, -1);
 const escapedCwdRegExp = new RegExp(
 	`${quoteMeta(escapedCwd)}((?:\\\\\\\\)?(?:[a-zA-Z.\\-_]+\\\\\\\\)*)`,
 	"g"
 );
 const normalize = (str: string) => {
-	if (CASE_CWD.startsWith("/")) {
-		str = str.replace(new RegExp(quoteMeta(CASE_CWD), "g"), "<cwd>");
+	if (CURRENT_CWD.startsWith("/")) {
+		str = str.replace(new RegExp(quoteMeta(CURRENT_CWD), "g"), "<cwd>");
 	} else {
 		str = str.replace(cwdRegExp, (m, g) => `<cwd>${g.replace(/\\/g, "/")}`);
 		str = str.replace(
@@ -44,7 +42,10 @@ export interface IDefaultsConfigProcessorOptions {
 	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
 	cwd?: string;
 	name: string;
-	diff: (diff: any, defaults: any) => Promise<void>;
+	diff: (
+		diff: jest.JestMatchers<Diff>,
+		defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>
+	) => Promise<void>;
 }
 
 export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerType.Rspack> {
@@ -70,27 +71,21 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 			name: _defaultsConfigOptions.name
 		});
 		this.defaultConfig = DefaultsConfigTaskProcessor.getDefaultConfig(
-			CASE_CWD,
+			CURRENT_CWD,
 			{
 				mode: "none"
 			}
 		);
 	}
 
-	async compiler(context: ITestContext) {
-		throw new Error("Not support");
-	}
-	async build(context: ITestContext) {
-		throw new Error("Not support");
-	}
-	async run(env: ITestEnv, context: ITestContext) {
-		throw new Error("Not support");
-	}
+	async compiler(context: ITestContext) {}
+	async build(context: ITestContext) {}
+	async run(env: ITestEnv, context: ITestContext) {}
 
 	async check(env: ITestEnv, context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		const config = DefaultsConfigTaskProcessor.getDefaultConfig(
-			this._defaultsConfigOptions.cwd || CASE_CWD,
+			this._defaultsConfigOptions.cwd || CURRENT_CWD,
 			compiler.getOptions()
 		);
 		const diff = stripAnsi(
@@ -104,12 +99,8 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 
 	async before(context: ITestContext): Promise<void> {}
 	async after(context: ITestContext): Promise<void> {}
-	async beforeAll(context: ITestContext): Promise<void> {
-		throw new Error("Not support");
-	}
-	async afterAll(context: ITestContext) {
-		throw new Error("Not support");
-	}
+	async beforeAll(context: ITestContext): Promise<void> {}
+	async afterAll(context: ITestContext) {}
 
 	protected getCompiler(context: ITestContext) {
 		return context.getCompiler(this._options.name, this._options.compilerType);

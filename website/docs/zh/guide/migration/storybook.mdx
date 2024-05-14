@@ -1,0 +1,54 @@
+# 迁移 Storybook
+
+如果你正在使用 [Storybook 7.0](https://storybook.js.org/) 的 React 框架并且使用 Webpack 5 构建，那么可以使用 [@modern-js/storybook
+](https://www.npmjs.com/package/@modern-js/storybook) 替换 @storybook/react-webpack5 构建，@modern-js/storybook 支持 Rspack 作为开箱即用的底层构建工具，文档可参考 [Modern.js - Using Storybook](https://modernjs.dev/en/guides/advanced-features/using-storybook.html)。
+
+## 更新依赖
+
+首先，我们需要添加 `@modern-js/storybook` 依赖并且可以去掉 `webpack` 的依赖。
+
+```diff title=package.json
+{
+  "devDependencies": {
+-   "@storybook/react-webpack5": "^7"
++   "@modern-js/storybook": "^2"
+  }
+}
+```
+
+## 配置 Storybook
+
+参考下列配置，修改 Storybook 的 `main.js` 配置，并指定 Rspack 作为构建工具：
+
+```diff title=.storybook/main.js
+export default {
+-  framework: '@storybook/react-webpack5'
++  framework: {
++    name: '@modern-js/storybook',
++    options: {
++      bundler: 'rspack'
++    },
+  },
+```
+
+## 示例
+
+这里有一个基于 @modern-js/storybook 使用 Rspack 构建 Storybook 的示例：[react-storybook](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-storybook)。
+
+## 局限
+
+对 Storybook 7.0 的支持仍然是实验性的，并且目前有一些局限：
+
+1. 暂不支持 React 以外的框架
+2. 暂不支持 Next.js，Next.js 有自己的构建方案
+3. 如果发现构建速度很慢，请检查是否开启了自动文档生成功能，如果想要最高的性能，请配置为 `react-docgen`。`react-docgen` 和 `react-docgen-typescript` 的区别是，前者基于 Babel 实现，后者基于 TypeScript 实现，前者性能会更好，但类型推断能力更弱。如果使用 Rspack 构建，则只支持 `react-docgen`。
+
+   ```js title=main.js
+   export default {
+     typescript: {
+       reactDocgen: 'react-docgen',
+     },
+   };
+   ```
+
+我们有计划提供基于 [Rsbuild](https://github.com/web-infra-dev/rsbuild) 的框架无关的 builder 与 framework 集成，参考 [rsbuild#1974](https://github.com/web-infra-dev/rsbuild/issues/1974)。

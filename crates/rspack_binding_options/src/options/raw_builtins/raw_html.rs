@@ -6,16 +6,13 @@ use rspack_plugin_html::config::HtmlInject;
 use rspack_plugin_html::config::HtmlRspackPluginOptions;
 use rspack_plugin_html::config::HtmlScriptLoading;
 use rspack_plugin_html::sri::HtmlSriHashFunction;
-use serde::Deserialize;
-use serde::Serialize;
 
 pub type RawHtmlScriptLoading = String;
 pub type RawHtmlInject = String;
 pub type RawHtmlSriHashFunction = String;
 pub type RawHtmlFilename = String;
 
-#[derive(Deserialize, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawHtmlRspackPluginOptions {
   /// emitted file name in output path

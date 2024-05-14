@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "target webworker",
 	options: () => ({ target: "webworker" }),
@@ -6,6 +7,15 @@ module.exports = {
 		- Expected
 		+ Received
 
+		@@ ... @@
+		-         "exportsOnly": false,
+		+         "exportsOnly": true,
+		@@ ... @@
+		-         "exportsOnly": false,
+		+         "exportsOnly": true,
+		@@ ... @@
+		-         "exportsOnly": false,
+		+         "exportsOnly": true,
 		@@ ... @@
 		-     "chunkLoading": "jsonp",
 		+     "chunkLoading": "import-scripts",

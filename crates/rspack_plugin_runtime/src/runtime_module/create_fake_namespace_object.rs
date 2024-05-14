@@ -16,7 +16,7 @@ impl Default for CreateFakeNamespaceObjectRuntimeModule {
   fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/create_fake_namespace_object"),
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -27,7 +27,7 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/create_fake_namespace_object.js")).boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(include_str!("runtime/create_fake_namespace_object.js")).boxed())
   }
 }

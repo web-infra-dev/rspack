@@ -6,7 +6,9 @@ mod module_group;
 
 use std::{borrow::Cow, fmt::Debug};
 
-use rspack_core::{ChunkUkey, Compilation, Logger, Plugin};
+use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
+use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 
 use crate::common::FallbackCacheGroup;
@@ -22,6 +24,7 @@ pub struct PluginOptions {
   pub hide_path_info: Option<bool>,
 }
 
+#[plugin]
 pub struct SplitChunksPlugin {
   cache_groups: Box<[CacheGroup]>,
   fallback_cache_group: FallbackCacheGroup,
@@ -31,17 +34,17 @@ pub struct SplitChunksPlugin {
 impl SplitChunksPlugin {
   pub fn new(options: PluginOptions) -> Self {
     tracing::debug!("Create `SplitChunksPlugin` with {:#?}", options);
-    Self {
-      cache_groups: options.cache_groups.into(),
-      fallback_cache_group: options.fallback_cache_group,
-      hide_path_info: options.hide_path_info.unwrap_or(false),
-    }
+    Self::new_inner(
+      options.cache_groups.into(),
+      options.fallback_cache_group,
+      options.hide_path_info.unwrap_or(false),
+    )
   }
 
-  async fn inner_impl(&self, compilation: &mut Compilation) {
+  fn inner_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("prepare module group map");
-    let mut module_group_map = self.prepare_module_group_map(compilation).await;
+    let mut module_group_map = self.prepare_module_group_map(compilation)?;
     tracing::trace!("prepared module_group_map {:#?}", module_group_map);
     logger.time_end(start);
 
@@ -145,8 +148,10 @@ impl SplitChunksPlugin {
     logger.time_end(start);
 
     let start = logger.time("ensure max size fit");
-    self.ensure_max_size_fit(compilation, max_size_setting_map);
+    self.ensure_max_size_fit(compilation, max_size_setting_map)?;
     logger.time_end(start);
+
+    Ok(())
   }
 }
 
@@ -156,19 +161,27 @@ impl Debug for SplitChunksPlugin {
   }
 }
 
-#[async_trait::async_trait]
+#[plugin_hook(CompilationOptimizeChunks for SplitChunksPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
+fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  self.inner_impl(compilation)?;
+  Ok(None)
+}
+
 impl Plugin for SplitChunksPlugin {
   fn name(&self) -> &'static str {
     "rspack.SplitChunksPlugin"
   }
 
-  #[tracing::instrument(name = "SplitChunksPlugin::optimize_chunks", skip_all)]
-  async fn optimize_chunks(
+  fn apply(
     &self,
-    _ctx: rspack_core::PluginContext,
-    args: rspack_core::OptimizeChunksArgs<'_>,
-  ) -> rspack_core::PluginOptimizeChunksOutput {
-    self.inner_impl(args.compilation).await;
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut rspack_core::CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_chunks
+      .tap(optimize_chunks::new(self));
     Ok(())
   }
 }

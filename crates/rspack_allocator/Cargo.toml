@@ -11,5 +11,8 @@ version    = "0.1.0"
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 mimalloc-rust = { workspace = true }
 
+[target.'cfg(all(target_os = "linux", target_env = "musl"))'.dependencies]
+mimalloc-rust = { workspace = true, features = ["local-dynamic-tls"] }
+
 [target.'cfg(all(target_os = "linux", target_env = "gnu", any(target_arch = "x86_64", target_arch = "aarch64")))'.dependencies]
 tikv-jemallocator = { workspace = true }

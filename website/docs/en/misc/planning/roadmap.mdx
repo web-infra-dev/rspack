@@ -1,0 +1,31 @@
+# Roadmap
+
+The current document lists some important features that Rspack will support, some of which are already in progress, while others will be implemented in future versions of Rspack.
+
+## Rspack v1.0
+
+We plan to release the official version of Rspack v1.0 in July 2024. This version aims to improve the API stability of Rspack and introduce some key features, such as Lazy Compilation.
+
+> Please refer to [Rspack v1.0 Release Plan](https://github.com/web-infra-dev/rspack/discussions/6315) for more details.
+
+## Rsbuild v1.0
+
+Rsbuild is a new generation of building tools based on Rspack, developed by the Rspack team. The v1.0 of Rsbuild will be released in July 2024 in synchronization with Rspack.
+
+> Please refer to [Rsbuild v1.0 Release Plan](https://github.com/web-infra-dev/rsbuild/discussions/1678) for more details.
+
+## Performance Improvement
+
+There is still room for performance optimization and we will continue to work on this in the future with upstream projects such as [SWC](https://github.com/swc-project/swc) and [NAPI-RS](https://github.com/napi-rs/napi-rs).
+
+## Webpack Ecosystem Compatibility
+
+As webpack contains a large number of APIs, we will be working to support the most frequently used loaders and plugins based on feedback from the community first.
+
+## Lazy Compilation
+
+Although Rspack currently has good performance, there is still a lot of room to improve performance for projects with a large number of pages, and Lazy Compilation is a good way to improve performance.
+
+## Persistent Cache
+
+Persistent Cache can significantly optimize the performance of a project's warm compilation. Even though Rspack is currently able to achieve good performance on most projects, Persistent Cache can still provide a significant performance boost on some very large projects, and we plan to support this feature in the future.

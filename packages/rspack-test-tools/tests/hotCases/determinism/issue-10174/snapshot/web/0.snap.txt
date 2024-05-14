@@ -1,0 +1,12 @@
+# Case issue-10174: Step 0
+
+## Changed Files
+- hot.js
+
+## Asset Files
+- Bundle: bundle.js
+
+## Manifest
+
+		
+## Update

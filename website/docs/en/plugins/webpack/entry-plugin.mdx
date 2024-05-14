@@ -1,0 +1,43 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# EntryPlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+Adds an entry chunk on compilation. The chunk is named `options.name` and contains only one module (plus dependencies). The module is resolved from `entry` in `context` (absolute path).
+
+```js
+new rspack.EntryPlugin(context, entry, options);
+```
+
+## Options
+
+### context
+
+The module is resolved from `entry` in `context` (absolute path).
+
+- **Type:** `string`
+
+### entry
+
+The request path for the entry module.
+
+- **Type:** `string`
+
+### options
+
+To adjust settings related to the entry module.
+
+- **Type:**
+
+```ts
+type EntryOptions = {
+  name?: string;
+  runtime?: EntryRuntime;
+  chunkLoading?: ChunkLoading;
+  asyncChunks?: boolean;
+  publicPath?: PublicPath;
+  baseUri?: string;
+  filename?: Filename;
+};
+```

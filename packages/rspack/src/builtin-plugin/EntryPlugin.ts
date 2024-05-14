@@ -7,11 +7,10 @@ import { create } from "./base";
 import {
 	ChunkLoading,
 	EntryRuntime,
-	Filename,
+	FilenameTemplate,
 	LibraryOptions,
 	PublicPath,
 	getRawChunkLoading,
-	getRawEntryRuntime,
 	getRawLibrary
 } from "../config";
 import { isNil } from "../util";
@@ -23,8 +22,9 @@ export type EntryOptions = {
 	asyncChunks?: boolean;
 	publicPath?: PublicPath;
 	baseUri?: string;
-	filename?: Filename;
+	filename?: FilenameTemplate;
 	library?: LibraryOptions;
+	dependOn?: string[];
 };
 export const EntryPlugin = create(
 	BuiltinPluginName.EntryPlugin,
@@ -40,22 +40,24 @@ export const EntryPlugin = create(
 			entry,
 			options: getRawEntryOptions(entryOptions)
 		};
-	}
+	},
+	"make"
 );
 
-function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
+export function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
 	const runtime = entry.runtime;
 	const chunkLoading = entry.chunkLoading;
 	return {
 		name: entry.name,
 		publicPath: entry.publicPath,
 		baseUri: entry.baseUri,
-		runtime: !isNil(runtime) ? getRawEntryRuntime(runtime) : undefined,
+		runtime,
 		chunkLoading: !isNil(chunkLoading)
 			? getRawChunkLoading(chunkLoading)
 			: undefined,
 		asyncChunks: entry.asyncChunks,
 		filename: entry.filename,
-		library: entry.library && getRawLibrary(entry.library)
+		library: entry.library && getRawLibrary(entry.library),
+		dependOn: entry.dependOn
 	};
 }

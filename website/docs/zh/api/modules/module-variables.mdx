@@ -1,0 +1,66 @@
+import WebpackLicense from '@components/webpack-license';
+import { ApiMeta } from '../../../../components/ApiMeta';
+
+<WebpackLicense from="https://webpack.docschina.org/api/module-variables/" />
+
+# 模块变量
+
+本节涵盖了使用 Rspack 编译代码时所有可用的变量。模块将能够通过 `module` 和其他变量访问来自编译过程的特定数据。
+
+## module.hot（webpack 专用）
+
+是否启用了热模块替换，并提供了一些方法来处理该过程。有关详细信息，请参阅 [HMR API](/api/hmr) 页面。
+
+## import.meta.webpackHot（webpack 专用）
+
+`module.hot` 的别名，`import.meta.webpackHot` 可以在严格的 ESM 中使用，而 module.hot 不能。
+
+## \_\_dirname（NodeJS）
+
+依赖于配置项 [`node.__dirname`](/config/node#node__dirname)。
+
+- `false`：未定义
+- `mock`：等于 `'/'`
+- `true`：[node.js \_\_dirname](https://nodejs.org/api/globals.html#globals_dirname)
+
+如果在一个被 Parser 解析的表达式内部使用，则配置选项会被当作 `true` 处理。
+
+## \_\_resourceQuery（webpack 专用）
+
+当前模块的资源查询（resource query）。如果进行了如下的 `require` 调用，那么查询字符串（query string）在 `file.js` 中可用。
+
+```ts
+require('file.js?test');
+```
+
+```ts title="file.js"
+__resourceQuery === '?test';
+```
+
+## \_\_webpack_modules\_\_ (webpack 专用)
+
+访问所有模块的内部对象。
+
+## \_\_webpack_hash\_\_ (webpack 专用)
+
+提供对编译过程中（compilation）的 hash 信息的访问。
+
+## \_\_webpack_public_path\_\_ (webpack 专用)
+
+等于配置选项的 [output.publicPath](/config/output#outputpublicpath)。
+
+## \_\_webpack_chunkname\_\_ (webpack-specific)
+
+<ApiMeta addedVersion="0.4.4" />
+
+访问当前 chunk 的名称。
+
+## \_\_webpack_runtime_id\_\_ (webpack-specific)
+
+<ApiMeta addedVersion="0.4.4" />
+
+访问当前入口的 runtime id。
+
+```js
+console.log(__webpack_runtime_id__ === 'main');
+```

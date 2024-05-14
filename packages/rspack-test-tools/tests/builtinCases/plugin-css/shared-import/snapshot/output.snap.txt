@@ -1,0 +1,31 @@
+```css title=c_css.css
+
+
+.shared {
+  border: 1px solid red;
+}
+
+
+```
+
+```css title=main.css
+.shared {
+  color: green;
+  background-color: green;
+  border: 1px solid green;
+}
+
+
+
+.shared {
+  color: red;
+}
+
+
+
+.shared {
+  background-color: red;
+}
+
+
+```

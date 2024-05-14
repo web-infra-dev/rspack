@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "library.name.root contains [name] placeholder",
 	options: () => ({
@@ -12,40 +13,40 @@ module.exports = {
 	}),
 	diff: e =>
 		e.toMatchInlineSnapshot(`
-    - Expected
-    + Received
+		- Expected
+		+ Received
 
-    @@ ... @@
-    -     "chunkLoadingGlobal": "webpackChunk_rspack_core",
-    +     "chunkLoadingGlobal": "webpackChunkmyLib",
-    @@ ... @@
-    -     "devtoolNamespace": "@rspack/core",
-    +     "devtoolNamespace": "myLib",
-    @@ ... @@
-    -     "enabledLibraryTypes": Array [],
-    +     "enabledLibraryTypes": Array [
-    +       "var",
-    +     ],
-    @@ ... @@
-    -     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
-    +     "hotUpdateGlobal": "webpackHotUpdatemyLib",
-    @@ ... @@
-    -     "library": undefined,
-    +     "library": Object {
-    +       "amdContainer": undefined,
-    +       "auxiliaryComment": undefined,
-    +       "export": undefined,
-    +       "name": Object {
-    +         "root": Array [
-    +           "[name]",
-    +           "myLib",
-    +         ],
-    +       },
-    +       "type": "var",
-    +       "umdNamedDefine": undefined,
-    +     },
-    @@ ... @@
-    -     "uniqueName": "@rspack/core",
-    +     "uniqueName": "myLib",
-  `)
+		@@ ... @@
+		-     "chunkLoadingGlobal": "webpackChunk_rspack_test_tools",
+		+     "chunkLoadingGlobal": "webpackChunkmyLib",
+		@@ ... @@
+		-     "devtoolNamespace": "@rspack/test-tools",
+		+     "devtoolNamespace": "myLib",
+		@@ ... @@
+		-     "enabledLibraryTypes": Array [],
+		+     "enabledLibraryTypes": Array [
+		+       "var",
+		+     ],
+		@@ ... @@
+		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_test_tools",
+		+     "hotUpdateGlobal": "webpackHotUpdatemyLib",
+		@@ ... @@
+		-     "library": undefined,
+		+     "library": Object {
+		+       "amdContainer": undefined,
+		+       "auxiliaryComment": undefined,
+		+       "export": undefined,
+		+       "name": Object {
+		+         "root": Array [
+		+           "[name]",
+		+           "myLib",
+		+         ],
+		+       },
+		+       "type": "var",
+		+       "umdNamedDefine": undefined,
+		+     },
+		@@ ... @@
+		-     "uniqueName": "@rspack/test-tools",
+		+     "uniqueName": "myLib",
+	`)
 };

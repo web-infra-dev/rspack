@@ -8,7 +8,7 @@ import { ResolveRequest } from "enhanced-resolve";
 
 import { Compiler } from "../Compiler";
 import { Logger } from "../logging/Logger";
-import Hash from "../util/hash";
+import Hash = require("../util/hash");
 import { Mode, Resolve, RuleSetUseItem, RuleSetLoaderWithOptions } from "./zod";
 import { parsePathQueryFragment } from "../loader-runner";
 import { isNil } from "../util";
@@ -142,7 +142,7 @@ export interface LoaderContext<OptionsType = {}> {
 	addBuildDependency(file: string): void;
 	importModule(
 		request: string,
-		options: { publicPath: string; baseUri: string },
+		options: { publicPath?: string; baseUri?: string },
 		callback: (err?: Error, res?: any) => void
 	): void;
 	fs: any;

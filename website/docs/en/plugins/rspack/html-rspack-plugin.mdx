@@ -1,0 +1,260 @@
+import { Table } from '@builtIns';
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# HtmlRspackPlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+`rspack.HtmlRspackPlugin` is a high-performance HTML plugin implemented in Rust. You can use it to generate HTML files for Rspack projects.
+
+```js
+new rspack.HtmlRspackPlugin(options);
+```
+
+## Comparison
+
+Before using `rspack.HtmlRspackPlugin`, please note that there are some differences between `rspack.HtmlRspackPlugin` and the community [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin).
+
+### Performance
+
+Because `rspack.HtmlRspackPlugin` is implemented in Rust, its build performance is significantly better than html-webpack-plugin, especially in scenarios where many HTML files are being built.
+
+### Features
+
+The features of `rspack.HtmlRspackPlugin` are a subset of `html-webpack-plugin`. To ensure the performance of the plugin, we have not implemented all the features provided by html-webpack-plugin.
+
+If its options do not meet your needs, you can also directly use the community [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin).
+
+## Usage
+
+The plugin will generate an HTML file for you that includes all your JS outputs in the head using `<script>` tags.
+
+Just add the plugin to your Rspack config like this:
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [new rspack.HtmlRspackPlugin()],
+};
+```
+
+This will generate a file `dist/index.html` containing the following:
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>rspack</title>
+    <script src="main.js" defer></script>
+  </head>
+  <body></body>
+</html>
+```
+
+If you have multiple entry points in your Rspack config, they will all be included with `<script>` tags in the generated HTML.
+
+If you have some CSS assets in the build outputs, they will be included with `<link>` tags in the HTML head.
+
+## Options
+
+You can pass some configuration options to `rspack.HtmlRspackPlugin`. Allowed options are as follows:
+
+- **Type:**
+
+```ts
+type HtmlRspackPluginOptions = {
+  title?: string;
+  filename?: string;
+  template?: string;
+  templateContent?: string;
+  templateParameters?: Record<string, string>;
+  inject?: 'head' | 'body';
+  publicPath?: string;
+  scriptLoading?: 'blocking' | 'defer' | 'module';
+  chunks?: string[];
+  excludedChunks?: string[];
+  sri?: 'sha256' | 'sha384' | 'sha512';
+  minify?: boolean;
+  favicon?: string;
+  meta?: Record<string, string | Record<string, string>>;
+};
+```
+
+- **Default:** `{}`
+
+<Table
+  header={[
+    {
+      name: 'Name',
+      key: 'name',
+    },
+    {
+      name: 'Type',
+      key: 'type',
+    },
+    {
+      name: 'Default',
+      key: 'default',
+    },
+    {
+      name: 'Description',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`title`',
+      type: '`string|undefined`',
+      default: 'undefined',
+      description: 'The title to use for the generated HTML document.',
+    },
+    {
+      name: '`filename`',
+      type: '`string`',
+      default: "'index.html'",
+      description:
+        'The file to write the HTML to. Defaults to `index.html`. You can specify a subdirectory here too (eg: pages/index.html).',
+    },
+    {
+      name: '`template`',
+      type: '`string|undefined`',
+      default: 'undefined',
+      description: 'The template file path.',
+    },
+    {
+      name: '`templateContent`',
+      type: '`string|undefined`',
+      default: 'undefined',
+      description:
+        'The template file content, priority is greater than template.',
+    },
+    {
+      name: '`templateParameters`',
+      type: '`Record<string, string>`',
+      default: '{}',
+      description: 'Allows to overwrite the parameters used in the template.',
+    },
+    {
+      name: '`inject`',
+      type: "`'head'|'body'|undefined`",
+      default: 'undefined',
+      description: 'The script and link tag inject position in `template`.',
+    },
+    {
+      name: '`publicPath`',
+      type: '`string`',
+      default: "''",
+      description: 'The publicPath used for script and link tags.',
+    },
+    {
+      name: '`scriptLoading`',
+      type: "`'blocking'|'defer'|'module'`",
+      default: "'defer'",
+      description:
+        "Modern browsers support non blocking javascript loading ('defer') to improve the page startup performance. Setting to 'module' adds attribute type='module'. This also implies 'defer', since modules are automatically deferred.",
+    },
+    {
+      name: '`chunks`',
+      type: '`string[]|undefined`',
+      default: 'undefined',
+      description: 'Allows you to add only some chunks.',
+    },
+    {
+      name: '`excludedChunks`',
+      type: '`string[]|undefined`',
+      default: 'undefined',
+      description: 'Allows you to skip some chunks.',
+    },
+    {
+      name: '`sri`',
+      type: "`'sha256'|'sha384'|'sha512'|undefined`",
+      default: 'undefined',
+      description: 'The sri hash algorithm, disabled by default.',
+    },
+    {
+      name: '`minify`',
+      type: '`boolean`',
+      default: 'false',
+      description: 'Controls whether to minify the output.',
+    },
+    {
+      name: '`favicon`',
+      type: '`string|undefined`',
+      default: 'undefined',
+      description: 'Adds the given favicon path to the output HTML.',
+    },
+    {
+      name: '`meta`',
+      type: '`Record<string, string|Record<string, string>>` ',
+      default: '{}',
+      description: 'Allows to inject meta-tags.',
+    },
+  ]}
+/>
+
+## Example
+
+### Custom HTML template
+
+If the default generated HTML doesn't meet your needs, you can use your own template.
+
+The easiest way is to use the template option and pass a custom HTML file. The `rspack.HtmlRspackPlugin` will automatically inject all the necessary JS, CSS and favicon files into the HTML.
+
+- Create `index.html` file:
+
+```html title="index.html"
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>My HTML Template</title>
+  </head>
+  <body></body>
+</html>
+```
+
+- Set the `template` option:
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      template: 'index.html',
+    }),
+  ],
+};
+```
+
+### Generate multiple HTML files
+
+If you have multiple entry points and want to generate an HTML file for each entry, you can register multiple `rspack.HtmlRspackPlugin`:
+
+- Use `filename` to specify the name for each HTML file.
+- Use `chunks` to specify the JS bundles to include in each HTML file.
+
+For example, the following configuration will generate foo.html and bar.html, where foo.html contains only the JS bundles generated by foo.js.
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  entry: {
+    foo: './foo.js',
+    bar: './bar.js',
+  },
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      filename: 'foo.html',
+      chunks: ['foo'],
+    }),
+    new rspack.HtmlRspackPlugin({
+      filename: 'bar.html',
+      chunks: ['bar'],
+    }),
+  ],
+};
+```

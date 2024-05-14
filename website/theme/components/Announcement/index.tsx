@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useI18n } from '../../i18n';
 import { usePageData } from 'rspress/runtime';
+import { useLang } from 'rspress/runtime';
 import IconCloseCircle from './close';
 
 export function Announcement() {
   const t = useI18n();
   const [disable, setDisable] = useState(
-    window.localStorage.getItem('disabled-hire') ?? false
+    window.localStorage.getItem('disabled-hire') ?? false,
   );
   const { page } = usePageData();
+  const lang = useLang();
   // Only display in homepage
   if (page.pageType !== 'home' || disable) {
     return null;
@@ -24,10 +26,8 @@ export function Announcement() {
       }}
     >
       <a
-        href="https://webinfra.org/about"
+        href={`${lang == 'en' ? '' : `/${lang}`}/misc/join-us.html`}
         className="hover:underline text-gray-700 font-bold"
-        target="_blank"
-        rel="noopener noreferrer "
       >
         {t('recruit')}
       </a>

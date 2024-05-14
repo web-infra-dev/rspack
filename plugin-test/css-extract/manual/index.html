@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>mini-css-extract-plugin testcase</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" type="text/css" href="dist/preloaded1.chunk.css" />
+    <style>
+      .test {
+        background: lightcoral;
+      }
+      .errors {
+        font-weight: bold;
+        color: darkred;
+      }
+      .preloaded-css1 {
+        background: lightgreen;
+      }
+    </style>
+    <style data-href="preloaded2.chunk.css">
+      .preloaded-css2 {
+        background: lightgreen;
+      }
+    </style>
+    <link rel="stylesheet" type="text/css" href="dist/main.css" />
+  </head>
+  <body>
+    <div class="test initial-css">Initial CSS: Must be green</div>
+    <div class="hot-reload">
+      <p>Hot Module Replacement</p>
+      <div class="r">RED</div>
+      <div class="g">GREEN</div>
+      <div class="b">BLUE</div>
+    </div>
+    <div class="hot-reload">
+      <p>Hot Module Replacement + CSS modules</p>
+      <div class="rr">RED</div>
+      <div class="gg">GREEN</div>
+      <div class="bb">BLUE</div>
+    </div>
+    <div class="test lazy-css">
+      <p>
+        Lazy CSS: Must be red, but turn green when
+        <button class="lazy-button">pressing this button</button>.
+      </p>
+      <p>
+        But turn orange, when
+        <button class="lazy-button2">pressing this button</button>. Additional
+        clicks have no effect.
+      </p>
+      <p>
+        (HMR) Now modify the color in lazy.css and save it: This should remain
+        orange.
+      </p>
+      <p>
+        Refresh and press buttons in reverse order: This should turn green
+        instead.
+      </p>
+    </div>
+    <div class="test lazy-css-module">
+      <p>
+        Lazy CSS Module: Must be red, but turn green when
+        <button class="lazy-module-button">pressing this button</button>.
+      </p>
+    </div>
+    <div class="test lazy-failure-css">
+      <p>
+        Lazy CSS: Turn off the network and
+        <button class="lazy-failure-button">press this button</button>.
+      </p>
+      <p>An error should have appeared.</p>
+      <p>
+        Now if you turn the network back on and click it again, it should turn
+        aqua.
+      </p>
+    </div>
+    <div class="test preloaded-css1">
+      <p>Preloaded CSS: Must be green.</p>
+      <p>
+        <button class="preloaded-button1">Pressing this button</button> displays
+        an alert but has no styling effect.
+      </p>
+    </div>
+    <div class="test preloaded-css2">
+      <p>Preloaded inlined CSS: Must be green.</p>
+      <p>
+        <button class="preloaded-button2">Pressing this button</button> displays
+        an alert but has no styling effect.
+      </p>
+    </div>
+    <div class="test crossorigin">
+      <p>CrossOriginLoading Option: Must be red.</p>
+      <p>
+        <button>Pressing this button</button> loads chunks with crossorigin
+        attribute and should turn green.
+      </p>
+    </div>
+    <div class="errors"></div>
+    <script async defer src="dist/main.js"></script>
+  </body>
+</html>

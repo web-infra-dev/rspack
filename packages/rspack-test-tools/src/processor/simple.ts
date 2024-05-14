@@ -67,12 +67,8 @@ export class SimpleTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 		const compiler = this.getCompiler(context);
 		await compiler.close();
 	}
-	async beforeAll(context: ITestContext): Promise<void> {
-		throw new Error("Not support");
-	}
-	async afterAll(context: ITestContext) {
-		throw new Error("Not support");
-	}
+	async beforeAll(context: ITestContext): Promise<void> {}
+	async afterAll(context: ITestContext) {}
 
 	protected getCompiler(context: ITestContext) {
 		return context.getCompiler(this._options.name, this._options.compilerType);

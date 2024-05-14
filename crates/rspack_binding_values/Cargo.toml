@@ -6,11 +6,11 @@ repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
 [dependencies]
-futures           = { workspace = true }
-napi              = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
-napi-derive       = { workspace = true }
-rspack_core       = { path = "../rspack_core" }
-rspack_error      = { path = "../rspack_error" }
-rspack_identifier = { path = "../rspack_identifier" }
-rspack_napi       = { path = "../rspack_napi" }
-rustc-hash        = { workspace = true }
+futures      = { workspace = true }
+napi         = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
+napi-derive  = { workspace = true }
+rspack_core  = { path = "../rspack_core" }
+rspack_error = { path = "../rspack_error" }
+rspack_napi  = { path = "../rspack_napi" }
+rustc-hash   = { workspace = true }
+serde        = { workspace = true }

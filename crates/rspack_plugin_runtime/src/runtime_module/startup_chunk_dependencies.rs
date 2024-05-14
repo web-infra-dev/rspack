@@ -23,7 +23,7 @@ impl StartupChunkDependenciesRuntimeModule {
       id: Identifier::from("webpack/runtime/startup_chunk_dependencies"),
       async_chunk_loading,
       chunk: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -34,7 +34,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk_ids = compilation
         .chunk_graph
@@ -81,16 +81,18 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           .join("\n")
       };
 
-      RawSource::from(format!(
-        r#"var next = {};
+      Ok(
+        RawSource::from(format!(
+          r#"var next = {};
         {} = function() {{
           {}
         }};"#,
-        RuntimeGlobals::STARTUP,
-        RuntimeGlobals::STARTUP,
-        body
-      ))
-      .boxed()
+          RuntimeGlobals::STARTUP,
+          RuntimeGlobals::STARTUP,
+          body
+        ))
+        .boxed(),
+      )
     } else {
       unreachable!("should have chunk for StartupChunkDependenciesRuntimeModule")
     }

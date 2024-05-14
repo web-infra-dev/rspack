@@ -20,7 +20,7 @@ impl Default for GetTrustedTypesPolicyRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/get_trusted_types_policy"),
       chunk: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -31,7 +31,7 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let trusted_types = compilation
       .options
       .output
@@ -69,7 +69,7 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
       );
     }
     result = result.replace("$policyContent$", policy_content.join(",\n").as_ref());
-    RawSource::from(result).boxed()
+    Ok(RawSource::from(result).boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

@@ -18,7 +18,7 @@ impl NormalRuntimeModule {
     Self {
       identifier: Identifier::from(identifier.name()),
       sources,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -29,7 +29,7 @@ impl RuntimeModule for NormalRuntimeModule {
     self.identifier
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(self.sources).boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(self.sources).boxed())
   }
 }

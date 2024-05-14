@@ -1,0 +1,76 @@
+```js title=child_a_js.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["child_a_js"], {
+"./child/a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  a: function() { return a; }
+});
+const a = "a";
+}),
+
+}]);
+```
+
+```js title=child_b_js.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["child_b_js"], {
+"./child/b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  b: function() { return b; }
+});
+const b = "b";
+}),
+
+}]);
+```
+
+```js title=main.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./child lazy recursive ^\\.\\/.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
+var map = {
+  "./a.js": [
+    "./child/a.js",
+    "child_a_js"
+  ],
+  "./b.js": [
+    "./child/b.js",
+    "child_b_js"
+  ]
+};
+function webpackAsyncContext(req) {
+  if(!__webpack_require__.o(map, req)) {
+    return Promise.resolve().then(function() {
+      var e = new Error("Cannot find module '" + req + "'");
+      e.code = 'MODULE_NOT_FOUND';
+      throw e;
+    });
+  }
+
+  var ids = map[req], id = ids[0];
+  return __webpack_require__.e(ids[1]).then(function() {
+    return __webpack_require__(id);
+  });
+}
+
+webpackAsyncContext.keys = function() { return Object.keys(map); };
+webpackAsyncContext.id = "./child lazy recursive ^\\.\\/.*\\.js$";
+module.exports = webpackAsyncContext;
+}),
+"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+const request = "a";
+__webpack_require__.e(/* import() */ "child_a_js").then(__webpack_require__.bind(__webpack_require__, "./child/a.js")).then(({ a })=>console.log("Literal", a));
+__webpack_require__.e(/* import() */ "child_b_js").then(__webpack_require__.bind(__webpack_require__, "./child/b.js")).then(({ b })=>console.log("Template Literal", b));
+__webpack_require__("./child lazy recursive ^\\.\\/.*\\.js$")(`./${request}.js`).then(({ a })=>console.log("context_module_tpl", a));
+__webpack_require__("./child lazy recursive ^\\.\\/.*\\.js$")("./" + request + ".js").then(({ a })=>console.log("context_module_bin", a));
+__webpack_require__("./child lazy recursive ^\\.\\/.*\\.js$")("./".concat(request, ".js")).then(({ a })=>console.log("context_module_concat", a));
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

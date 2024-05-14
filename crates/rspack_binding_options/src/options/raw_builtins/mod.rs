@@ -1,14 +1,18 @@
 mod raw_banner;
 mod raw_bundle_info;
 mod raw_copy;
+mod raw_css_extract;
 mod raw_html;
+mod raw_ignore;
 mod raw_limit_chunk_count;
 mod raw_mf;
 mod raw_progress;
+mod raw_runtime_chunk;
+mod raw_size_limits;
 mod raw_swc_js_minimizer;
 mod raw_to_be_deprecated;
 
-use napi::{bindgen_prelude::FromNapiValue, JsUnknown};
+use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use rspack_core::{BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin};
 use rspack_error::Result;
@@ -20,11 +24,13 @@ use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
+use rspack_plugin_css::CssPlugin;
 use rspack_plugin_devtool::{
   EvalDevToolModulePlugin, EvalSourceMapDevToolPlugin, SourceMapDevToolModuleOptionsPlugin,
   SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
   SourceMapDevToolPluginOptions,
 };
+use rspack_plugin_dynamic_entry::DynamicEntryPlugin;
 use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_externals::{
@@ -32,17 +38,19 @@ use rspack_plugin_externals::{
 };
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
+use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
-  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
-  MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin,
+  api_plugin::APIPlugin, FlagDependencyExportsPlugin, FlagDependencyUsagePlugin,
+  InferAsyncModulesPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin,
+  SideEffectsFlagPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
 use rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin;
 use rspack_plugin_mf::{
-  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ProvideSharedPlugin,
-  ShareRuntimePlugin,
+  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationRuntimePlugin,
+  ProvideSharedPlugin, ShareRuntimePlugin,
 };
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
@@ -51,7 +59,9 @@ use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin,
   ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
 };
+use rspack_plugin_runtime_chunk::RuntimeChunkPlugin;
 use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
+use rspack_plugin_size_limits::SizeLimitsPlugin;
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
@@ -61,16 +71,21 @@ use rspack_plugin_worker::WorkerPlugin;
 
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
-  raw_html::RawHtmlRspackPluginOptions, raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
-  raw_mf::RawContainerPluginOptions, raw_progress::RawProgressPluginOptions,
+  raw_html::RawHtmlRspackPluginOptions, raw_ignore::RawIgnorePluginOptions,
+  raw_limit_chunk_count::RawLimitChunkCountPluginOptions, raw_mf::RawContainerPluginOptions,
+  raw_progress::RawProgressPluginOptions,
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
 use self::{
   raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
+  raw_css_extract::RawCssExtractPluginOption,
   raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
+  raw_runtime_chunk::RawRuntimeChunkOptions,
+  raw_size_limits::RawSizeLimitsPluginOptions,
 };
 use crate::{
-  plugins::JsLoaderResolverPlugin, JsLoaderRunner, RawEntryPluginOptions,
+  plugins::{CssExtractRspackAdditionalDataPlugin, JsLoaderResolverPlugin},
+  JsLoaderRunner, RawDynamicEntryPluginOptions, RawEntryPluginOptions,
   RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
   RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
 };
@@ -82,8 +97,10 @@ pub enum BuiltinPluginName {
   DefinePlugin,
   ProvidePlugin,
   BannerPlugin,
+  IgnorePlugin,
   ProgressPlugin,
   EntryPlugin,
+  DynamicEntryPlugin,
   ExternalsPlugin,
   NodeTargetPlugin,
   ElectronTargetPlugin,
@@ -105,6 +122,7 @@ pub enum BuiltinPluginName {
   ContainerReferencePlugin,
   ProvideSharedPlugin,
   ConsumeSharedPlugin,
+  ModuleFederationRuntimePlugin,
   NamedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   NamedChunkIdsPlugin,
@@ -129,6 +147,10 @@ pub enum BuiltinPluginName {
   FlagDependencyUsagePlugin,
   MangleExportsPlugin,
   ModuleConcatenationPlugin,
+  CssModulesPlugin,
+  APIPlugin,
+  RuntimeChunkPlugin,
+  SizeLimitsPlugin,
 
   // rspack specific plugins
   // naming format follow XxxRspackPlugin
@@ -138,6 +160,7 @@ pub enum BuiltinPluginName {
   SwcJsMinimizerRspackPlugin,
   SwcCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
+  CssExtractRspackPlugin,
 
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
@@ -152,7 +175,7 @@ pub struct BuiltinPlugin {
 }
 
 impl BuiltinPlugin {
-  pub fn append_to(self, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
+  pub fn append_to(self, env: Env, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
     match self.name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
@@ -169,6 +192,11 @@ impl BuiltinPlugin {
             .boxed();
         plugins.push(plugin);
       }
+      BuiltinPluginName::IgnorePlugin => {
+        let plugin =
+          IgnorePlugin::new(downcast_into::<RawIgnorePluginOptions>(self.options)?.into()).boxed();
+        plugins.push(plugin);
+      }
       BuiltinPluginName::ProgressPlugin => {
         let plugin =
           ProgressPlugin::new(downcast_into::<RawProgressPluginOptions>(self.options)?.into())
@@ -181,6 +209,13 @@ impl BuiltinPlugin {
         let entry_request = plugin_options.entry;
         let options = plugin_options.options.into();
         let plugin = EntryPlugin::new(context, entry_request, options).boxed();
+        plugins.push(plugin);
+      }
+      BuiltinPluginName::DynamicEntryPlugin => {
+        let plugin = DynamicEntryPlugin::new(
+          downcast_into::<RawDynamicEntryPluginOptions>(self.options)?.into(),
+        )
+        .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::ExternalsPlugin => {
@@ -213,16 +248,16 @@ impl BuiltinPlugin {
         ));
       }
       BuiltinPluginName::ChunkPrefetchPreloadPlugin => {
-        plugins.push(ChunkPrefetchPreloadPlugin.boxed());
+        plugins.push(ChunkPrefetchPreloadPlugin::default().boxed());
       }
       BuiltinPluginName::CommonJsChunkFormatPlugin => {
-        plugins.push(CommonJsChunkFormatPlugin.boxed());
+        plugins.push(CommonJsChunkFormatPlugin::default().boxed());
       }
       BuiltinPluginName::ArrayPushCallbackChunkFormatPlugin => {
-        plugins.push(ArrayPushCallbackChunkFormatPlugin.boxed());
+        plugins.push(ArrayPushCallbackChunkFormatPlugin::default().boxed());
       }
       BuiltinPluginName::ModuleChunkFormatPlugin => {
-        plugins.push(ModuleChunkFormatPlugin.boxed());
+        plugins.push(ModuleChunkFormatPlugin::default().boxed());
       }
       BuiltinPluginName::HotModuleReplacementPlugin => {
         plugins.push(HotModuleReplacementPlugin::default().boxed());
@@ -241,7 +276,7 @@ impl BuiltinPlugin {
         web_worker_template_plugin(plugins);
       }
       BuiltinPluginName::MergeDuplicateChunksPlugin => {
-        plugins.push(MergeDuplicateChunksPlugin.boxed());
+        plugins.push(MergeDuplicateChunksPlugin::default().boxed());
       }
       BuiltinPluginName::SplitChunksPlugin => {
         use rspack_plugin_split_chunks::SplitChunksPlugin;
@@ -279,6 +314,9 @@ impl BuiltinPlugin {
         )
         .boxed(),
       ),
+      BuiltinPluginName::ModuleFederationRuntimePlugin => {
+        plugins.push(ModuleFederationRuntimePlugin::default().boxed())
+      }
       BuiltinPluginName::NamedModuleIdsPlugin => {
         plugins.push(NamedModuleIdsPlugin::default().boxed())
       }
@@ -294,29 +332,34 @@ impl BuiltinPlugin {
       BuiltinPluginName::RealContentHashPlugin => {
         plugins.push(RealContentHashPlugin::default().boxed())
       }
-      BuiltinPluginName::RemoveEmptyChunksPlugin => plugins.push(RemoveEmptyChunksPlugin.boxed()),
+      BuiltinPluginName::RemoveEmptyChunksPlugin => {
+        plugins.push(RemoveEmptyChunksPlugin::default().boxed())
+      }
       BuiltinPluginName::EnsureChunkConditionsPlugin => {
-        plugins.push(EnsureChunkConditionsPlugin.boxed())
+        plugins.push(EnsureChunkConditionsPlugin::default().boxed())
       }
       BuiltinPluginName::WarnCaseSensitiveModulesPlugin => {
-        plugins.push(WarnCaseSensitiveModulesPlugin.boxed())
+        plugins.push(WarnCaseSensitiveModulesPlugin::default().boxed())
       }
-      BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin.boxed()),
-      BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin.boxed()),
-      BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin.boxed()),
+      BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
+      BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),
+      BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin::default().boxed()),
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
-      BuiltinPluginName::InferAsyncModulesPlugin => plugins.push(InferAsyncModulesPlugin.boxed()),
+      BuiltinPluginName::InferAsyncModulesPlugin => {
+        plugins.push(InferAsyncModulesPlugin::default().boxed())
+      }
       BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::default().boxed()),
       BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {
         plugins.push(AsyncWasmPlugin::default().boxed())
       }
-      BuiltinPluginName::AssetModulesPlugin => plugins.push(AssetPlugin.boxed()),
+      BuiltinPluginName::AssetModulesPlugin => plugins.push(AssetPlugin::default().boxed()),
       BuiltinPluginName::SourceMapDevToolPlugin => {
         let options: SourceMapDevToolPluginOptions =
           downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into();
         plugins.push(
           SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
             module: options.module,
+            cheap: !options.columns,
           })
           .boxed(),
         );
@@ -328,6 +371,7 @@ impl BuiltinPlugin {
         plugins.push(
           SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
             module: options.module,
+            cheap: !options.columns,
           })
           .boxed(),
         );
@@ -355,6 +399,18 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::ModuleConcatenationPlugin => {
         plugins.push(ModuleConcatenationPlugin::default().boxed())
+      }
+      BuiltinPluginName::CssModulesPlugin => plugins.push(CssPlugin::default().boxed()),
+      BuiltinPluginName::APIPlugin => plugins.push(APIPlugin::default().boxed()),
+      BuiltinPluginName::RuntimeChunkPlugin => plugins.push(
+        RuntimeChunkPlugin::new(downcast_into::<RawRuntimeChunkOptions>(self.options)?.into())
+          .boxed(),
+      ),
+      BuiltinPluginName::SizeLimitsPlugin => {
+        let plugin =
+          SizeLimitsPlugin::new(downcast_into::<RawSizeLimitsPluginOptions>(self.options)?.into())
+            .boxed();
+        plugins.push(plugin)
       }
 
       // rspack specific plugins
@@ -396,6 +452,15 @@ impl BuiltinPlugin {
           )
           .boxed(),
         )
+      }
+      BuiltinPluginName::CssExtractRspackPlugin => {
+        let additional_data_plugin = CssExtractRspackAdditionalDataPlugin::new(env)?.boxed();
+        plugins.push(additional_data_plugin);
+        let plugin = rspack_plugin_extract_css::plugin::PluginCssExtract::new(
+          downcast_into::<RawCssExtractPluginOption>(self.options)?.into(),
+        )
+        .boxed();
+        plugins.push(plugin);
       }
       // rspack js adapter plugins
       BuiltinPluginName::JsLoaderRspackPlugin => {

@@ -1,10 +1,20 @@
 import { TestContext } from "../test/context";
 import path from "path";
 import { ITestEnv, ITestProcessor } from "../type";
-import { DefaultsConfigTaskProcessor } from "../processor";
+import {
+	DefaultsConfigTaskProcessor,
+	IDefaultsConfigProcessorOptions
+} from "../processor";
 
-const srcDir = path.resolve(__dirname, "../../../rspack/tests/fixtures");
-const distDir = path.resolve(__dirname, "../../../rspack/tests/js/compiler");
+export type TDefaultsCaseConfig = Omit<
+	IDefaultsConfigProcessorOptions,
+	"name"
+> & {
+	description: string;
+};
+
+const srcDir = path.resolve(__dirname, "../../tests/fixtures");
+const distDir = path.resolve(__dirname, "../../tests/js/defaults");
 
 const context = new TestContext({
 	src: srcDir,
@@ -23,9 +33,15 @@ async function run(name: string, processor: ITestProcessor) {
 	}
 }
 
-export function createDefaultsCase(src: string) {
-	const caseConfig = require(src);
+export function createDefaultsCase(name: string, src: string) {
+	const caseConfig = require(src) as TDefaultsCaseConfig;
 	it(`should generate the correct defaults from ${caseConfig.description}`, async () => {
-		await run(caseConfig.name, new DefaultsConfigTaskProcessor(caseConfig));
+		await run(
+			name,
+			new DefaultsConfigTaskProcessor({
+				name,
+				...caseConfig
+			})
+		);
 	});
 }

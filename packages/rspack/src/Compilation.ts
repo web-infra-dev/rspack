@@ -20,7 +20,8 @@ import type {
 	JsRuntimeModule,
 	JsStatsChunk,
 	JsStatsError,
-	PathData
+	JsPathData,
+	JsStatsWarning
 } from "@rspack/binding";
 
 import {
@@ -28,11 +29,12 @@ import {
 	StatsOptions,
 	OutputNormalized,
 	StatsValue,
-	RspackPluginInstance
+	RspackPluginInstance,
+	Filename
 } from "./config";
 import * as liteTapable from "./lite-tapable";
 import { ContextModuleFactory } from "./ContextModuleFactory";
-import ResolverFactory from "./ResolverFactory";
+import ResolverFactory = require("./ResolverFactory");
 import { ChunkGroup } from "./ChunkGroup";
 import { Compiler } from "./Compiler";
 import ErrorHelpers from "./ErrorHelpers";
@@ -64,6 +66,9 @@ export interface Asset {
 	source: Source;
 	info: JsAssetInfo;
 }
+
+export type PathData = JsPathData;
+
 export interface LogEntry {
 	type: string;
 	args: any[];
@@ -102,21 +107,20 @@ export class Compilation {
 
 	hooks: {
 		processAssets: liteTapable.AsyncSeriesHook<Assets>;
-		afterProcessAssets: tapable.SyncHook<Assets>;
+		afterProcessAssets: liteTapable.SyncHook<Assets>;
 		childCompiler: tapable.SyncHook<[Compiler, string, number]>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
-		optimizeModules: tapable.SyncBailHook<Iterable<Module>, void>;
-		afterOptimizeModules: tapable.SyncHook<Iterable<Module>, void>;
-		optimizeTree: tapable.AsyncSeriesBailHook<
+		optimizeModules: liteTapable.SyncBailHook<Iterable<Module>, void>;
+		afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>, void>;
+		optimizeTree: liteTapable.AsyncSeriesHook<
+			[Iterable<Chunk>, Iterable<Module>]
+		>;
+		optimizeChunkModules: liteTapable.AsyncSeriesBailHook<
 			[Iterable<Chunk>, Iterable<Module>],
 			void
 		>;
-		optimizeChunkModules: tapable.AsyncSeriesBailHook<
-			[Iterable<Chunk>, Iterable<Module>],
-			void
-		>;
-		finishModules: tapable.AsyncSeriesHook<[Iterable<Module>], void>;
+		finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
 		chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: liteTapable.SyncHook<[Module], void>;
@@ -128,6 +132,7 @@ export class Compilation {
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
 		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
+		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -203,7 +208,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		};
 		this.hooks = {
 			processAssets: processAssetsHook,
-			afterProcessAssets: new tapable.SyncHook(["assets"]),
+			afterProcessAssets: new liteTapable.SyncHook(["assets"]),
 			/** @deprecated */
 			additionalAssets: createProcessAssetsHook(
 				"additionalAssets",
@@ -216,14 +221,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"compilerIndex"
 			]),
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
-			optimizeModules: new tapable.SyncBailHook(["modules"]),
-			afterOptimizeModules: new tapable.SyncBailHook(["modules"]),
-			optimizeTree: new tapable.AsyncSeriesBailHook(["chunks", "modules"]),
-			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
+			optimizeModules: new liteTapable.SyncBailHook(["modules"]),
+			afterOptimizeModules: new liteTapable.SyncBailHook(["modules"]),
+			optimizeTree: new liteTapable.AsyncSeriesHook(["chunks", "modules"]),
+			optimizeChunkModules: new liteTapable.AsyncSeriesBailHook([
 				"chunks",
 				"modules"
 			]),
-			finishModules: new tapable.AsyncSeriesHook(["modules"]),
+			finishModules: new liteTapable.AsyncSeriesHook(["modules"]),
 			chunkAsset: new liteTapable.SyncHook(["chunk", "filename"]),
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new liteTapable.SyncHook(["module"]),
@@ -232,7 +237,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
 			buildModule: new liteTapable.SyncHook(["module"]),
 			executeModule: new liteTapable.SyncHook(["options", "context"]),
-			runtimeModule: new liteTapable.SyncHook(["module", "chunk"])
+			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
+			afterSeal: new liteTapable.AsyncSeriesHook([])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -407,7 +413,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			!context.forToString
 		);
 		options.loggingDebug = []
-			.concat(optionsOrFallback(options.loggingDebug, []))
+			.concat(optionsOrFallback(options.loggingDebug, []) || [])
 			.map(normalizeFilter);
 		options.modulesSpace =
 			options.modulesSpace || (context.forToString ? 15 : Infinity);
@@ -415,6 +421,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		options.children = optionOrLocalFallback(
 			options.children,
 			!context.forToString
+		);
+		options.orphanModules = optionOrLocalFallback(
+			options.orphanModules,
+			context.forToString ? false : true
 		);
 
 		return options;
@@ -439,15 +449,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * Source: [updateAsset](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4320)
 	 *
 	 * FIXME: *AssetInfo* may be undefined in update fn for webpack impl, but still not implemented in rspack
-	 *
-	 * @param {string} file file name
-	 * @param {Source | function(Source): Source} newSourceOrFunction new asset source or function converting old to new
-	 * @param {AssetInfo | function(AssetInfo): AssetInfo} assetInfoUpdateOrFunction new asset info or function converting old to new
 	 */
 	updateAsset(
 		filename: string,
 		newSourceOrFunction: Source | ((source: Source) => Source),
-		assetInfoUpdateOrFunction: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)
+		assetInfoUpdateOrFunction?:
+			| AssetInfo
+			| ((assetInfo: AssetInfo) => AssetInfo)
 	) {
 		let compatNewSourceOrFunction:
 			| JsCompatSource
@@ -468,34 +476,23 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#inner.updateAsset(
 			filename,
 			compatNewSourceOrFunction,
-			typeof assetInfoUpdateOrFunction === "function"
-				? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
-				: toJsAssetInfo(assetInfoUpdateOrFunction)
+			assetInfoUpdateOrFunction === undefined
+				? assetInfoUpdateOrFunction
+				: typeof assetInfoUpdateOrFunction === "function"
+					? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
+					: toJsAssetInfo(assetInfoUpdateOrFunction)
 		);
 	}
 
-	/**
-	 *
-	 * @param moduleIdentifier moduleIdentifier of the module you want to modify
-	 * @param source
-	 * @returns true if the setting is success, false if failed.
-	 */
-	setNoneAstModuleSource(
-		moduleIdentifier: string,
-		source: JsCompatSource
-	): boolean {
-		return this.#inner.setNoneAstModuleSource(moduleIdentifier, source);
-	}
 	/**
 	 * Emit an not existing asset. Trying to emit an asset that already exists will throw an error.
 	 *
 	 * See: [Compilation.emitAsset](https://webpack.js.org/api/compilation-object/#emitasset)
 	 * Source: [emitAsset](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4239)
 	 *
-	 * @param {string} file file name
-	 * @param {Source} source asset source
-	 * @param {JsAssetInfo} assetInfo extra asset information
-	 * @returns {void}
+	 * @param file - file name
+	 * @param source - asset source
+	 * @param assetInfo - extra asset information
 	 */
 	emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
 		this.#inner.emitAsset(
@@ -553,95 +550,239 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	get errors() {
 		const inner = this.#inner;
-		return {
-			push: (...errs: (Error | JsStatsError | string)[]) => {
-				// compatible for javascript array
-				for (let i = 0; i < errs.length; i++) {
-					const error = errs[i];
-					if (isJsStatsError(error)) {
-						this.#inner.pushDiagnostic(
-							"error",
-							"Error",
-							concatErrorMsgAndStack(error)
-						);
-					} else if (typeof error === "string") {
-						this.#inner.pushDiagnostic("error", "Error", error);
-					} else {
-						this.#inner.pushDiagnostic(
-							"error",
-							error.name,
-							concatErrorMsgAndStack(error)
-						);
+		type ErrorType = Error | JsStatsError | string;
+		const errors = inner.getStats().getErrors() as any;
+		const proxyMethod = [
+			{
+				method: "push",
+				handler(
+					target: typeof Array.prototype.push,
+					thisArg: Array<ErrorType>,
+					errs: ErrorType[]
+				) {
+					for (let i = 0; i < errs.length; i++) {
+						const error = errs[i];
+						if (isJsStatsError(error)) {
+							inner.pushDiagnostic(
+								"error",
+								"Error",
+								concatErrorMsgAndStack(error)
+							);
+						} else if (typeof error === "string") {
+							inner.pushDiagnostic("error", "Error", error);
+						} else {
+							inner.pushDiagnostic(
+								"error",
+								error.name,
+								concatErrorMsgAndStack(error)
+							);
+						}
 					}
+					return Reflect.apply(target, thisArg, errs);
 				}
 			},
-			[Symbol.iterator]() {
-				// TODO: this is obviously a bad design, optimize this after finishing angular prototype
-				const errors = inner.getStats().getErrors();
-				let index = 0;
-				return {
-					next() {
-						if (index >= errors.length) {
-							return { done: true };
+			{
+				method: "pop",
+				handler(target: typeof Array.prototype.pop, thisArg: Array<ErrorType>) {
+					inner.spliceDiagnostic(errors.length - 1, errors.length, []);
+					return Reflect.apply(target, thisArg, []);
+				}
+			},
+			{
+				method: "shift",
+				handler(
+					target: typeof Array.prototype.shift,
+					thisArg: Array<ErrorType>
+				) {
+					inner.spliceDiagnostic(0, 1, []);
+					return Reflect.apply(target, thisArg, []);
+				}
+			},
+			{
+				method: "unshift",
+				handler(
+					target: typeof Array.prototype.unshift,
+					thisArg: Array<ErrorType>,
+					errs: ErrorType[]
+				) {
+					const errList = errs.map(error => {
+						if (isJsStatsError(error)) {
+							return {
+								severity: "error" as const,
+								title: "Error",
+								message: concatErrorMsgAndStack(error)
+							};
+						} else if (typeof error === "string") {
+							return {
+								severity: "error" as const,
+								title: "Error",
+								message: error
+							};
+						} else {
+							return {
+								severity: "error" as const,
+								title: error.name,
+								message: concatErrorMsgAndStack(error)
+							};
 						}
-						return {
-							value: errors[index++],
-							done: false
-						};
-					}
-				};
+					});
+					inner.spliceDiagnostic(0, 0, errList);
+					return Reflect.apply(target, thisArg, errs);
+				}
+			},
+			{
+				method: "splice",
+				handler(
+					target: typeof Array.prototype.splice,
+					thisArg: Array<ErrorType>,
+					[startIdx, delCount, ...errors]: [number, number, ...ErrorType[]]
+				) {
+					const errList = errors.map(error => {
+						if (isJsStatsError(error)) {
+							return {
+								severity: "error" as const,
+								title: "Error",
+								message: concatErrorMsgAndStack(error)
+							};
+						} else if (typeof error === "string") {
+							return {
+								severity: "error" as const,
+								title: "Error",
+								message: error
+							};
+						} else {
+							return {
+								severity: "error" as const,
+								title: error.name,
+								message: concatErrorMsgAndStack(error)
+							};
+						}
+					});
+					inner.spliceDiagnostic(startIdx, startIdx + delCount, errList);
+					return Reflect.apply(target, thisArg, [
+						startIdx,
+						delCount,
+						...errors
+					]);
+				}
 			}
-		};
+		];
+		proxyMethod.forEach(item => {
+			const proxyedMethod = new Proxy(errors[item.method as any], {
+				apply: item.handler as any
+			});
+			errors[item.method as any] = proxyedMethod;
+		});
+		return errors;
 	}
 
 	get warnings() {
 		const inner = this.#inner;
-		return {
-			// compatible for javascript array
-			push: (...warns: (Error | JsStatsError)[]) => {
-				// TODO: find a way to make JsStatsError be actual errors
-				warns = this.hooks.processWarnings.call(warns as any);
-				for (let i = 0; i < warns.length; i++) {
-					const warn = warns[i];
-					this.#inner.pushDiagnostic(
-						"warning",
-						isJsStatsError(warn) ? "Warning" : warn.name,
-						concatErrorMsgAndStack(warn)
-					);
+		type WarnType = Error | JsStatsWarning;
+		const processWarningsHook = this.hooks.processWarnings;
+		const warnings = inner.getStats().getWarnings();
+		const proxyMethod = [
+			{
+				method: "push",
+				handler(
+					target: typeof Array.prototype.push,
+					thisArg: Array<WarnType>,
+					warns: WarnType[]
+				) {
+					warns = processWarningsHook.call(warns as any);
+					for (let i = 0; i < warns.length; i++) {
+						const warn = warns[i];
+						inner.pushDiagnostic(
+							"warning",
+							isJsStatsError(warn) ? "Warning" : warn.name,
+							concatErrorMsgAndStack(warn)
+						);
+					}
+					return Reflect.apply(target, thisArg, warns);
 				}
 			},
-			[Symbol.iterator]() {
-				// TODO: this is obviously a bad design, optimize this after finishing angular prototype
-				const warnings = inner.getStats().getWarnings();
-				let index = 0;
-				return {
-					next() {
-						if (index >= warnings.length) {
-							return { done: true };
-						}
+			{
+				method: "pop",
+				handler(target: typeof Array.prototype.pop, thisArg: Array<WarnType>) {
+					inner.spliceDiagnostic(warnings.length - 1, warnings.length, []);
+					return Reflect.apply(target, thisArg, []);
+				}
+			},
+			{
+				method: "shift",
+				handler(
+					target: typeof Array.prototype.shift,
+					thisArg: Array<WarnType>
+				) {
+					inner.spliceDiagnostic(0, 1, []);
+					return Reflect.apply(target, thisArg, []);
+				}
+			},
+			{
+				method: "unshift",
+				handler(
+					target: typeof Array.prototype.unshift,
+					thisArg: Array<WarnType>,
+					warns: WarnType[]
+				) {
+					warns = processWarningsHook.call(warns as any);
+					const warnList = warns.map(warn => {
 						return {
-							value: [warnings[index++]],
-							done: false
+							severity: "warning" as const,
+							title: isJsStatsError(warn) ? "Warning" : warn.name,
+							message: concatErrorMsgAndStack(warn)
 						};
-					}
-				};
+					});
+					inner.spliceDiagnostic(0, 0, warnList);
+					return Reflect.apply(target, thisArg, warns);
+				}
+			},
+			{
+				method: "splice",
+				handler(
+					target: typeof Array.prototype.splice,
+					thisArg: Array<WarnType>,
+					[startIdx, delCount, ...warns]: [number, number, ...WarnType[]]
+				) {
+					warns = processWarningsHook.call(warns as any);
+					const warnList = warns.map(warn => {
+						return {
+							severity: "warning" as const,
+							title: isJsStatsError(warn) ? "Warning" : warn.name,
+							message: concatErrorMsgAndStack(warn)
+						};
+					});
+					inner.spliceDiagnostic(startIdx, startIdx + delCount, warnList);
+					return Reflect.apply(target, thisArg, [
+						startIdx,
+						delCount,
+						...warnList
+					]);
+				}
 			}
-		};
+		];
+		proxyMethod.forEach(item => {
+			const proxyedMethod = new Proxy(warnings[item.method as any], {
+				apply: item.handler as any
+			});
+			warnings[item.method as any] = proxyedMethod;
+		});
+		return warnings;
 	}
 
-	getPath(filename: string, data: PathData = {}) {
+	getPath(filename: Filename, data: PathData = {}) {
 		return this.#inner.getPath(filename, data);
 	}
 
-	getPathWithInfo(filename: string, data: PathData = {}) {
+	getPathWithInfo(filename: Filename, data: PathData = {}) {
 		return this.#inner.getPathWithInfo(filename, data);
 	}
 
-	getAssetPath(filename: string, data: PathData = {}) {
+	getAssetPath(filename: Filename, data: PathData = {}) {
 		return this.#inner.getAssetPath(filename, data);
 	}
 
-	getAssetPathWithInfo(filename: string, data: PathData = {}) {
+	getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
 		return this.#inner.getAssetPathWithInfo(filename, data);
 	}
 

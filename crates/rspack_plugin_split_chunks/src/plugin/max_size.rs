@@ -6,6 +6,7 @@ use regex::Regex;
 use rspack_core::{
   ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, DEFAULT_DELIMITER,
 };
+use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::{ext::DynHash, identifier::make_paths_relative};
 use rustc_hash::FxHashMap;
@@ -57,15 +58,15 @@ fn hash_filename(filename: &str, options: &CompilerOptions) -> String {
   hash_digest.rendered(8).to_string()
 }
 
-static REPALCE_MODULE_IDENTIFIER_REG: Lazy<Regex> =
+static REPLACE_MODULE_IDENTIFIER_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^.*!|\?[^?!]*$").expect("regexp init failed"));
-static REPALCE_RELATIVE_PREFIX_REG: Lazy<Regex> =
+static REPLACE_RELATIVE_PREFIX_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(\.\.?\/)+").expect("regexp init failed"));
 static REPLACE_ILLEGEL_LETTER_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("regexp init failed"));
 
 fn request_to_id(req: &str) -> String {
-  let mut res = REPALCE_RELATIVE_PREFIX_REG.replace_all(req, "").to_string();
+  let mut res = REPLACE_RELATIVE_PREFIX_REG.replace_all(req, "").to_string();
   res = REPLACE_ILLEGEL_LETTER_REG
     .replace_all(&res, "_")
     .to_string();
@@ -80,21 +81,21 @@ fn deterministic_grouping_for_modules(
   delimiter: &str,
 ) -> Vec<Group> {
   let mut results: Vec<Group> = Default::default();
-
+  let module_graph = compilation.get_module_graph();
   let items = compilation
     .chunk_graph
-    .get_chunk_modules(chunk, compilation.get_module_graph());
+    .get_chunk_modules(chunk, &module_graph);
 
   let context = compilation.options.context.as_ref();
 
   let nodes: Vec<GroupItem> = items
-    .into_par_iter()
+    .into_iter()
     .map(|module| {
       let module: &dyn Module = &**module;
       let name: String = if module.name_for_condition().is_some() {
         make_paths_relative(context, module.identifier().as_str())
       } else {
-        REPALCE_MODULE_IDENTIFIER_REG
+        REPLACE_MODULE_IDENTIFIER_REG
           .replace_all(&module.identifier(), "")
           .to_string()
       };
@@ -210,7 +211,7 @@ impl SplitChunksPlugin {
     &self,
     compilation: &mut Compilation,
     max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting>,
-  ) {
+  ) -> Result<()> {
     let fallback_cache_group = &self.fallback_cache_group;
     let chunk_group_db = &compilation.chunk_group_by_ukey;
     let compilation_ref = &*compilation;
@@ -219,15 +220,15 @@ impl SplitChunksPlugin {
     .chunk_by_ukey
     .values()
     .par_bridge()
-    .filter_map(|chunk| {
+    .map(|chunk| {
       let max_size_setting = max_size_setting_map.get(&chunk.ukey);
       tracing::trace!("max_size_setting : {max_size_setting:#?} for {:?}", chunk.ukey);
 
       if max_size_setting.is_none()
-        && !(fallback_cache_group.chunks_filter)(chunk, chunk_group_db)
+        && !(fallback_cache_group.chunks_filter)(chunk, chunk_group_db)?
       {
         tracing::debug!("Chunk({}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reasons.join("~"));
-        return None;
+        return Ok(None);
       }
 
       let min_size = max_size_setting
@@ -258,7 +259,7 @@ impl SplitChunksPlugin {
           "Chunk({}) skips the `maxSize` checking. Reason: allow_max_size is empty",
           chunk.chunk_reasons.join("~")
         );
-        return None;
+        return Ok(None);
       }
 
       let mut is_invalid = false;
@@ -278,13 +279,15 @@ impl SplitChunksPlugin {
         allow_max_size.to_mut().combine_with(min_size, &f64::max);
       }
 
-      Some(ChunkWithSizeInfo {
+      Ok(Some(ChunkWithSizeInfo {
         allow_max_size,
         min_size,
         chunk: chunk.ukey,
         automatic_name_delimiter,
-      })
-    });
+      }))
+    }).collect::<Result<Vec<_>>>()?
+    .into_iter()
+    .flatten();
 
     let infos_with_results = chunks_with_size_info
       .filter_map(|info| {
@@ -379,6 +382,7 @@ impl SplitChunksPlugin {
           chunk.name = name;
         }
       })
-    })
+    });
+    Ok(())
   }
 }

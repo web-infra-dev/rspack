@@ -1,14 +1,53 @@
 import {
 	JsCodegenerationResult,
 	JsCodegenerationResults,
+	JsCreateData,
 	JsModule
 } from "@rspack/binding";
 import { Source } from "webpack-sources";
 import { createSourceFromRaw } from "./util/createSource";
 
+export type ResourceData = {
+	resource: string;
+	path: string;
+	query?: string;
+	fragment?: string;
+};
+export type ResourceDataWithData = ResourceData & {
+	data?: Record<string, any>;
+};
+export type CreateData = Partial<JsCreateData>;
+export type ResolveData = {
+	context: string;
+	request: string;
+	fileDependencies: string[];
+	missingDependencies: string[];
+	contextDependencies: string[];
+	createData?: CreateData;
+};
+
+export type ContextModuleFactoryBeforeResolveResult =
+	| false
+	| {
+			context: string;
+			request?: string;
+	  };
+
+export type ContextModuleFactoryAfterResolveResult =
+	| false
+	| {
+			resource: string;
+			context: string;
+			request: string;
+			regExp?: RegExp;
+			dependencies: Array<any>;
+	  };
+
 export class Module {
 	#inner: JsModule;
 	_originalSource?: Source;
+
+	rawRequest?: string;
 
 	static __from_binding(module: JsModule) {
 		return new Module(module);
@@ -16,6 +55,7 @@ export class Module {
 
 	constructor(module: JsModule) {
 		this.#inner = module;
+		this.rawRequest = module.rawRequest;
 	}
 
 	get context(): string | undefined {

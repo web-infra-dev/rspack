@@ -1,0 +1,16 @@
+# Case multi-chunk-single-runtime: Step 0
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: a.js
+- Bundle: b.js
+- Bundle: main.js
+- Bundle: main_async_js.chunk.CURRENT_HASH.js
+- Bundle: runtime.js
+
+## Manifest
+
+		
+## Update

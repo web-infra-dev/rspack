@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{self, Display};
 
 use itertools::Itertools;
 use rspack_database::DatabaseItem;
@@ -6,8 +6,10 @@ use rspack_error::{error, Result};
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey};
-use crate::{ChunkLoading, ChunkUkey, Compilation, Filename};
+use crate::{
+  get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, FilenameTemplate,
+};
+use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
 
 impl DatabaseItem for ChunkGroup {
@@ -265,6 +267,21 @@ impl ChunkGroup {
       ChunkGroupKind::Normal { options } => options.name.as_deref(),
     }
   }
+
+  pub fn add_child(&mut self, child_group: ChunkGroupUkey) -> bool {
+    let size = self.children.len();
+    self.children.insert(child_group);
+    size != self.children.len()
+  }
+
+  pub fn add_parent(&mut self, parent_group: ChunkGroupUkey) -> bool {
+    if self.parents.contains(&parent_group) {
+      false
+    } else {
+      self.parents.insert(parent_group);
+      true
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -309,7 +326,35 @@ impl ChunkGroupKind {
   }
 }
 
-pub type EntryRuntime = String;
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EntryRuntime {
+  String(String),
+  #[default]
+  False,
+}
+
+impl From<&str> for EntryRuntime {
+  fn from(value: &str) -> Self {
+    Self::String(value.to_owned())
+  }
+}
+
+impl From<String> for EntryRuntime {
+  fn from(value: String) -> Self {
+    Self::String(value)
+  }
+}
+
+impl EntryRuntime {
+  pub fn as_string(&self) -> Option<&str> {
+    match self {
+      EntryRuntime::String(s) => Some(s),
+      EntryRuntime::False => None,
+    }
+  }
+}
+
+// pub type EntryRuntime = String;
 
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntryOptions {
@@ -319,8 +364,9 @@ pub struct EntryOptions {
   pub async_chunks: Option<bool>,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
-  pub filename: Option<Filename>,
+  pub filename: Option<FilenameTemplate>,
   pub library: Option<LibraryOptions>,
+  pub depend_on: Option<Vec<String>>,
 }
 
 impl EntryOptions {
@@ -344,6 +390,7 @@ impl EntryOptions {
     merge_field!(base_uri);
     merge_field!(filename);
     merge_field!(library);
+    merge_field!(depend_on);
     Ok(())
   }
 
@@ -366,6 +413,15 @@ impl EntryOptions {
 pub enum ChunkGroupOrderKey {
   Preload,
   Prefetch,
+}
+
+impl Display for ChunkGroupOrderKey {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.write_str(match self {
+      ChunkGroupOrderKey::Preload => "preload",
+      ChunkGroupOrderKey::Prefetch => "prefetch",
+    })
+  }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]

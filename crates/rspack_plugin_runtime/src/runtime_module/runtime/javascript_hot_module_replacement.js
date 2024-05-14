@@ -201,7 +201,7 @@ function applyHandler(options) {
 				errorHandler: module.hot._selfAccepted
 			});
 		}
-	}
+	}$HOT_TEST_OUTDATED$
 
 	var moduleOutdatedDependencies;
 	return {
@@ -221,7 +221,7 @@ function applyHandler(options) {
 				var data = {};
 
 				// Call dispose handlers
-				var disposeHandlers = module.hot._disposeHandlers;
+				var disposeHandlers = module.hot._disposeHandlers;$HOT_TEST_DISPOSE$
 				for (j = 0; j < disposeHandlers.length; j++) {
 					disposeHandlers[j].call(null, data);
 				}
@@ -262,13 +262,13 @@ function applyHandler(options) {
 			// insert new code
 			for (var updateModuleId in appliedUpdate) {
 				if (__webpack_require__.o(appliedUpdate, updateModuleId)) {
-					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId];
+					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId];$HOT_TEST_UPDATED$
 				}
 			}
 
 			// run new runtime modules
 			for (var i = 0; i < currentUpdateRuntime.length; i++) {
-				currentUpdateRuntime[i](__webpack_require__);
+				$HOT_TEST_RUNTIME$
 			}
 
 			// call accept handlers
@@ -287,7 +287,7 @@ function applyHandler(options) {
 							if (acceptCallback) {
 								if (callbacks.indexOf(acceptCallback) !== -1) continue;
 								callbacks.push(acceptCallback);
-								errorHandlers.push(errorHandler);
+								errorHandlers.push(errorHandler);$HOT_TEST_ACCEPT$
 								dependenciesForCallbacks.push(dependency);
 							}
 						}

@@ -96,20 +96,23 @@ pub fn impl_runtime_module(
         None
       }
 
+      fn factory_meta(&self) -> Option<&::rspack_core::FactoryMeta> {
+        None
+      }
+
+      fn set_factory_meta(&mut self, v: ::rspack_core::FactoryMeta) {}
+
       fn build_info(&self) -> Option<&::rspack_core::BuildInfo> {
         None
       }
+
+      fn set_build_info(&mut self, v: ::rspack_core::BuildInfo) {}
 
       fn build_meta(&self) -> Option<&::rspack_core::BuildMeta> {
         None
       }
 
-      fn set_module_build_info_and_meta(
-        &mut self,
-        build_info: ::rspack_core::BuildInfo,
-        build_meta: ::rspack_core::BuildMeta,
-      ) {
-      }
+      fn set_build_meta(&mut self, v: ::rspack_core::BuildMeta) {}
 
       fn get_diagnostics(&self) -> Vec<::rspack_error::Diagnostic> {
         vec![]
@@ -122,7 +125,7 @@ pub fn impl_runtime_module(
         _: Option<::rspack_core::ConcatenationScope>,
       ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
         let mut result = ::rspack_core::CodeGenerationResult::default();
-        result.add(::rspack_core::SourceType::JavaScript, self.generate_with_custom(compilation));
+        result.add(::rspack_core::SourceType::JavaScript, self.generate_with_custom(compilation)?);
         result.set_hash(
           &compilation.options.output.hash_function,
           &compilation.options.output.hash_digest,

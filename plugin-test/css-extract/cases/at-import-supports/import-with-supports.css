@@ -1,0 +1,5 @@
+@import url("./test.css") supports(display: grid);
+
+.middle {
+  background: green;
+}

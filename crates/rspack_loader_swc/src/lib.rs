@@ -19,6 +19,7 @@ use rspack_plugin_javascript::ast::{self, SourceMapConfig};
 use rspack_plugin_javascript::TransformOutput;
 use rspack_util::source_map::SourceMapKind;
 use swc_config::{config_types::MergingOption, merge::Merge};
+use swc_core::base::config::SourceMapsConfig;
 use swc_core::base::config::{InputSourceMap, OutputCharset, TransformConfig};
 
 #[derive(Debug)]
@@ -49,7 +50,7 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 #[async_trait::async_trait]
 impl Loader<LoaderRunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
-    let resource_path = loader_context.resource_path.to_path_buf();
+    let resource_path = loader_context.resource_path().to_path_buf();
     let content = std::mem::take(&mut loader_context.content).expect("content should be available");
 
     let swc_options = {
@@ -64,7 +65,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
           .transform
           .merge(MergingOption::from(Some(transform)));
       }
-      if let Some(pre_source_map) = std::mem::take(&mut loader_context.source_map) {
+      if let Some(pre_source_map) = loader_context.source_map.clone() {
         if let Ok(source_map) = pre_source_map.to_json() {
           swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
         }
@@ -79,7 +80,11 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       swc_options
     };
 
-    let source_map_kind = &loader_context.context.module_source_map_kind;
+    let source_map_kind: SourceMapKind = match swc_options.config.source_maps {
+      Some(SourceMapsConfig::Bool(false)) => SourceMapKind::empty(),
+      _ => loader_context.context.module_source_map_kind,
+    };
+
     let source = content.try_into_string()?;
     let c = SwcCompiler::new(resource_path.clone(), source.clone(), swc_options)
       .map_err(AnyhowError::from)?;
@@ -117,15 +122,15 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
         .as_ref()
         .map(|v| matches!(v, OutputCharset::Ascii)),
       source_map_config: SourceMapConfig {
-        enable: !matches!(source_map_kind, SourceMapKind::None),
-        inline_sources_content: true,
-        emit_columns: matches!(source_map_kind, SourceMapKind::SourceMap),
+        enable: source_map_kind.source_map(),
+        inline_sources_content: source_map_kind.source_map(),
+        emit_columns: !source_map_kind.cheap(),
         names: Default::default(),
       },
       inline_script: Some(false),
       keep_comments: Some(true),
     };
-    let program = c.transform(built).map_err(AnyhowError::from)?;
+    let program = tokio::task::block_in_place(|| c.transform(built).map_err(AnyhowError::from))?;
     let ast = c.into_js_ast(program);
 
     // If swc-loader is the latest loader available,

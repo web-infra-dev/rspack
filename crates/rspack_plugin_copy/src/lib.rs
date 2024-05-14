@@ -8,18 +8,21 @@ use std::{
 };
 
 use dashmap::DashSet;
+use derivative::Derivative;
+use futures::future::BoxFuture;
 use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
   rspack_sources::RawSource, AssetInfo, AssetInfoRelated, Compilation, CompilationAsset,
-  CompilationLogger, Filename, Logger, PathData, Plugin,
+  CompilationLogger, CompilationProcessAssets, FilenameTemplate, Logger, PathData, Plugin,
 };
 use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
-use sugar_path::{AsPath, SugarPath};
+use rspack_hook::{plugin, plugin_hook};
+use rspack_util::infallible::ResultInfallibleExt as _;
+use sugar_path::SugarPath;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CopyRspackPluginOptions {
   pub patterns: Vec<CopyPattern>,
 }
@@ -65,7 +68,15 @@ impl Display for ToType {
   }
 }
 
-#[derive(Debug, Clone)]
+pub type TransformerFn =
+  Box<dyn for<'a> Fn(RawSource, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
+
+pub enum Transformer {
+  Fn(TransformerFn),
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct CopyPattern {
   pub from: String,
   pub to: Option<String>,
@@ -76,6 +87,8 @@ pub struct CopyPattern {
   pub force: bool,
   pub priority: i32,
   pub glob_options: CopyGlobOptions,
+  #[derivative(Debug = "ignore")]
+  pub transform: Option<Transformer>,
 }
 
 #[derive(Debug, Clone)]
@@ -226,7 +239,7 @@ impl CopyRspackPlugin {
     logger.debug(format!("reading '{}'...", absolute_filename.display()));
     // TODO inputFileSystem
 
-    let source = match tokio::fs::read(absolute_filename.clone()).await {
+    let mut source = match tokio::fs::read(absolute_filename.clone()).await {
       Ok(data) => {
         logger.debug(format!("read '{}'...", absolute_filename.display()));
 
@@ -243,6 +256,30 @@ impl CopyRspackPlugin {
       }
     };
 
+    if let Some(transform) = &pattern.transform {
+      if let Some(absolute_filename) = absolute_filename.to_str() {
+        match transform {
+          Transformer::Fn(transformer) => {
+            let transformed = transformer(source.clone(), absolute_filename).await;
+            match transformed {
+              Ok(code) => {
+                source = code;
+              }
+              Err(e) => {
+                diagnostics
+                  .lock()
+                  .expect("failed to obtain lock of `diagnostics`")
+                  .push(Diagnostic::error(
+                    "Run copy transform fn error".into(),
+                    e.to_string(),
+                  ));
+              }
+            };
+          }
+        }
+      }
+    }
+
     let filename = if matches!(&to_type, ToType::Template) {
       logger.log(format!(
         "interpolating template '{}' for '${}'...`",
@@ -257,13 +294,15 @@ impl CopyRspackPlugin {
         &compilation.options.output.hash_salt,
       );
       let content_hash = content_hash.rendered(compilation.options.output.hash_digest_length);
-      let template_str = compilation.get_asset_path(
-        &Filename::from(filename.to_string_lossy().to_string()),
-        PathData::default()
-          .filename(&source_filename.to_string_lossy())
-          .content_hash(content_hash)
-          .hash_optional(compilation.get_hash()),
-      );
+      let template_str = compilation
+        .get_asset_path(
+          &FilenameTemplate::from(filename.to_string_lossy().to_string()),
+          PathData::default()
+            .filename(&source_filename.to_string_lossy())
+            .content_hash(content_hash)
+            .hash_optional(compilation.get_hash()),
+        )
+        .always_ok();
 
       logger.log(format!(
         "interpolated template '{template_str}' for '{}'",
@@ -297,15 +336,25 @@ impl CopyRspackPlugin {
   ) -> Option<Vec<Option<RunPatternResult>>> {
     let orig_from = &pattern.from;
     let normalized_orig_from = PathBuf::from(orig_from);
-    let mut context = pattern
-      .context
+
+    let pattern_context = if pattern.context.is_none() {
+      Some(compilation.options.context.as_path().into())
+    } else if let Some(ctx) = pattern.context.clone()
+      && !ctx.is_absolute()
+    {
+      Some(compilation.options.context.as_path().join(ctx))
+    } else {
+      pattern.context.clone()
+    };
+
+    let mut context = pattern_context
       .clone()
       .unwrap_or(compilation.options.context.as_path().to_path_buf());
 
     logger.log(format!(
       "starting to process a pattern from '{}' using '{:?}' context",
       normalized_orig_from.display(),
-      pattern.context.as_ref().map(|p| p.display())
+      pattern_context.as_ref().map(|p| p.display())
     ));
 
     let abs_from = if normalized_orig_from.is_absolute() {
@@ -504,7 +553,7 @@ impl CopyRspackPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for CopyRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
+#[plugin_hook(CompilationProcessAssets for CopyRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.CopyRspackPlugin");
   let start = logger.time("run pattern");
@@ -517,18 +566,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .iter()
     .enumerate()
     .map(|(index, pattern)| {
-      let mut pattern = pattern.clone();
-      if pattern.context.is_none() {
-        pattern.context = Some(compilation.options.context.as_path().into());
-      } else if let Some(ctx) = pattern.context.clone()
-        && !ctx.is_absolute()
-      {
-        pattern.context = Some(compilation.options.context.as_path().join(ctx))
-      };
-
       CopyRspackPlugin::run_patter(
         compilation,
-        &pattern,
+        pattern,
         index,
         &file_dependencies,
         &context_dependencies,

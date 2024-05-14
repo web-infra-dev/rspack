@@ -1,15 +1,78 @@
 use std::sync::Arc;
 
 use rspack_error::{error, Result};
+use rspack_hook::define_hook;
+use rspack_regex::RspackRegex;
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, resolve, BeforeResolveArgs, BoxModule, ContextModule, ContextModuleOptions,
-  DependencyCategory, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleIdentifier, NormalModuleAfterResolveArgs, PluginNormalModuleFactoryAfterResolveOutput,
-  RawModule, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory, SharedPluginDriver,
+  cache::Cache, resolve, ContextModule, ContextModuleOptions, DependencyCategory, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  SharedPluginDriver,
 };
+
+#[derive(Clone)]
+pub enum BeforeResolveResult {
+  Ignored,
+  Data(Box<BeforeResolveData>),
+}
+
+#[derive(Clone)]
+pub struct BeforeResolveData {
+  // context_info
+  // resolve_options
+  pub context: String,
+  pub request: Option<String>,
+  // assertions
+  // dependencies
+  // dependency_type
+  // file_dependencies
+  // missing_dependencies
+  // context_dependencies
+  // create_data
+  // cacheable
+}
+
+#[derive(Clone)]
+pub enum AfterResolveResult {
+  Ignored,
+  Data(Box<AfterResolveData>),
+}
+
+#[derive(Clone)]
+pub struct AfterResolveData {
+  pub resource: String,
+  pub context: String,
+  // dependencies
+  // layer
+  // resolve_options
+  // file_dependencies: HashSet<String>,
+  // missing_dependencies: HashSet<String>,
+  // context_dependencies: HashSet<String>,
+  pub request: String,
+  // mode
+  // recursive: bool,
+  pub reg_exp: Option<RspackRegex>,
+  // namespace_object
+  // addon: String,
+  // chunk_name: String,
+  // include
+  // exclude
+  // group_options
+  // type_prefix: String,
+  // category: String,
+  // referenced_exports
+}
+
+define_hook!(ContextModuleFactoryBeforeResolve: AsyncSeriesWaterfall(data: BeforeResolveResult) -> BeforeResolveResult);
+define_hook!(ContextModuleFactoryAfterResolve: AsyncSeriesWaterfall(data: AfterResolveResult) -> AfterResolveResult);
+
+#[derive(Debug, Default)]
+pub struct ContextModuleFactoryHooks {
+  pub before_resolve: ContextModuleFactoryBeforeResolveHook,
+  pub after_resolve: ContextModuleFactoryAfterResolveHook,
+}
 
 #[derive(Debug)]
 pub struct ContextModuleFactory {
@@ -22,14 +85,16 @@ pub struct ContextModuleFactory {
 impl ModuleFactory for ContextModuleFactory {
   #[instrument(name = "context_module_factory:create", skip_all)]
   async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
-    if let Ok(Some(before_resolve_result)) = self.before_resolve(data).await {
+    if let Some(before_resolve_result) = self.before_resolve(data).await? {
       return Ok(before_resolve_result);
     }
 
-    let factorize_result = self.resolve(data).await?;
+    let (factorize_result, mut context_module_options) = self.resolve(data).await?;
 
-    if let Some(false) = self.after_resolve(data, &factorize_result).await? {
-      return Ok(ModuleFactoryResult::default());
+    if let Some(context_module_options) = context_module_options.as_mut() {
+      if let Some(factorize_result) = self.after_resolve(context_module_options).await? {
+        return Ok(factorize_result);
+      }
     }
 
     Ok(factorize_result)
@@ -53,26 +118,24 @@ impl ContextModuleFactory {
     &self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<ModuleFactoryResult>> {
-    let dependency = data
-      .dependency
-      .as_context_dependency_mut()
-      .expect("should be module dependency");
-    let mut before_resolve_args = BeforeResolveArgs {
-      request: dependency.request().to_string(),
+    let before_resolve_data = BeforeResolveData {
       context: data.context.to_string(),
+      request: data.request().map(|r| r.to_string()),
     };
-    if let Ok(Some(false)) = self
+
+    match self
       .plugin_driver
-      .context_module_before_resolve(&mut before_resolve_args)
-      .await
+      .context_module_factory_hooks
+      .before_resolve
+      .call(BeforeResolveResult::Data(Box::new(before_resolve_data)))
+      .await?
     {
-      // ignored
-      // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/ContextModuleFactory.js#L115
-      return Ok(Some(ModuleFactoryResult::default()));
+      BeforeResolveResult::Ignored => Ok(Some(ModuleFactoryResult::default())),
+      BeforeResolveResult::Data(d) => {
+        data.context = d.context.into();
+        Ok(None)
+      }
     }
-    data.context = before_resolve_args.context.into();
-    dependency.set_request(before_resolve_args.request);
-    Ok(None)
   }
 
   fn get_loader_resolver(&self) -> Arc<Resolver> {
@@ -85,13 +148,15 @@ impl ContextModuleFactory {
       })
   }
 
-  async fn resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+  async fn resolve(
+    &self,
+    data: &mut ModuleFactoryCreateData,
+  ) -> Result<(ModuleFactoryResult, Option<ContextModuleOptions>)> {
     let plugin_driver = &self.plugin_driver;
     let dependency = data
       .dependency
       .as_context_dependency()
       .expect("should be context dependency");
-    let factory_meta = Default::default();
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
     // let context_dependencies = Default::default();
@@ -174,18 +239,22 @@ impl ContextModuleFactory {
       Err(err) => (Err(err), false),
     };
 
-    let module = match resource_data {
-      Ok(ResolveResult::Resource(resource)) => Box::new(ContextModule::new(
-        ContextModuleOptions {
+    let (module, context_module_options) = match resource_data {
+      Ok(ResolveResult::Resource(resource)) => {
+        let options = ContextModuleOptions {
           addon: loader_request.to_string(),
           resource: resource.path.to_string_lossy().to_string(),
-          resource_query: Some(resource.query),
-          resource_fragment: Some(resource.fragment),
+          resource_query: resource.query,
+          resource_fragment: resource.fragment,
           resolve_options: data.resolve_options.clone(),
           context_options: dependency.options().clone(),
-        },
-        plugin_driver.resolver_factory.clone(),
-      )) as BoxModule,
+        };
+        let module = Box::new(ContextModule::new(
+          options.clone(),
+          plugin_driver.resolver_factory.clone(),
+        ));
+        (module, Some(options))
+      }
       Ok(ResolveResult::Ignored) => {
         let ident = format!("{}/{}", data.context, specifier);
         let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
@@ -196,7 +265,7 @@ impl ContextModuleFactory {
           Default::default(),
         )
         .boxed();
-        return Ok(ModuleFactoryResult::new_with_module(raw_module));
+        return Ok((ModuleFactoryResult::new_with_module(raw_module), None));
       }
       Err(err) => {
         return Err(err);
@@ -207,35 +276,43 @@ impl ContextModuleFactory {
     data.add_missing_dependencies(missing_dependencies);
     // data.add_context_dependencies(context_dependencies);
 
-    Ok(ModuleFactoryResult {
+    let module_factory_result = ModuleFactoryResult {
       module: Some(module),
-      factory_meta,
       from_cache,
-    })
+    };
+    Ok((module_factory_result, context_module_options))
   }
 
   async fn after_resolve(
     &self,
-    data: &mut ModuleFactoryCreateData,
-    factory_result: &ModuleFactoryResult,
-  ) -> PluginNormalModuleFactoryAfterResolveOutput {
-    let dependency = data
-      .dependency
-      .as_context_dependency()
-      .expect("should be module dependency");
+    context_module_options: &mut ContextModuleOptions,
+  ) -> Result<Option<ModuleFactoryResult>> {
+    let context_options = &context_module_options.context_options;
+    let after_resolve_data = AfterResolveData {
+      resource: context_module_options.resource.to_owned(),
+      context: context_options.context.to_owned(),
+      request: context_options.request.to_owned(),
+      reg_exp: context_options.reg_exp.clone(),
+    };
 
-    self
+    match self
       .plugin_driver
-      .context_module_after_resolve(&mut NormalModuleAfterResolveArgs {
-        request: dependency.request(),
-        context: data.context.as_ref(),
-        file_dependencies: &data.file_dependencies,
-        context_dependencies: &data.context_dependencies,
-        missing_dependencies: &data.missing_dependencies,
-        diagnostics: &mut data.diagnostics,
-        factory_meta: &factory_result.factory_meta,
-        create_data: None,
-      })
-      .await
+      .context_module_factory_hooks
+      .after_resolve
+      .call(AfterResolveResult::Data(Box::new(after_resolve_data)))
+      .await?
+    {
+      AfterResolveResult::Ignored => Ok(Some(ModuleFactoryResult::default())),
+      AfterResolveResult::Data(d) => {
+        context_module_options.resource = d.resource;
+        context_module_options.context_options.reg_exp = d.reg_exp;
+
+        let module = ContextModule::new(
+          context_module_options.clone(),
+          self.loader_resolver_factory.clone(),
+        );
+        Ok(Some(ModuleFactoryResult::new_with_module(Box::new(module))))
+      }
+    }
   }
 }

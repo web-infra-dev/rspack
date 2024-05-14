@@ -13,19 +13,19 @@ function useFooterData() {
       items: [
         {
           title: t('quickStart'),
-          link: getLink('/guide/quick-start'),
+          link: getLink('/guide/start/quick-start'),
         },
         {
           title: t('features'),
-          link: getLink('/guide/language-support'),
+          link: getLink('/guide/features/asset-module'),
         },
         {
           title: t('migration'),
-          link: getLink('/guide/migrate-from-webpack'),
+          link: getLink('/guide/migration/webpack'),
         },
         {
           title: t('compatibility'),
-          link: getLink('/guide/loader-compat'),
+          link: getLink('/guide/compatibility/loader'),
         },
       ],
     },
@@ -38,11 +38,15 @@ function useFooterData() {
         },
         {
           title: 'Plugin API',
-          link: getLink('/api/plugin-api'),
+          link: getLink('/api/plugin-api/index'),
         },
         {
           title: 'Loader API',
-          link: getLink('/api/loader-api'),
+          link: getLink('/api/loader-api/index'),
+        },
+        {
+          title: 'JavaScript API',
+          link: getLink('/api/javascript-api'),
         },
       ],
     },
@@ -79,8 +83,12 @@ function useFooterData() {
           link: 'https://discord.gg/ab2Rv4BXwf',
         },
         {
-          title: 'X',
+          title: 'Twitter (X)',
           link: 'https://twitter.com/rspack_dev',
+        },
+        {
+          title: 'Awesome Rspack',
+          link: 'https://github.com/web-infra-dev/awesome-rspack',
         },
       ],
     },
@@ -90,14 +98,17 @@ function useFooterData() {
 export function HomeFooter() {
   const footerData = useFooterData();
   return (
-    <div className="flex flex-col border-t dark:border-dark-50 items-center mt-[80px]">
+    <div
+      className="flex flex-col border-t items-center mt-12"
+      style={{ borderColor: 'var(--rp-c-divider-light)' }}
+    >
       <div className="pt-8 pb-4 w-full justify-around max-w-6xl hidden sm:flex">
-        {footerData.map((item) => (
-          <div className="flex flex-col items-start">
+        {footerData.map(item => (
+          <div key={item.title} className="flex flex-col items-start">
             <h2 className="font-bold my-4 text-lg">{item.title}</h2>
             <ul className="flex flex-col gap-3">
-              {item.items.map((subItem) => (
-                <li>
+              {item.items.map(subItem => (
+                <li key={subItem.title}>
                   <Link href={subItem.link}>
                     <span className="font-normal">{subItem.title}</span>
                   </Link>
@@ -108,7 +119,7 @@ export function HomeFooter() {
         ))}
       </div>
       <div className="flex flex-center">
-        <h2 className="font-normal text-sm text-gray-600 dark:text-light-600 py-4">
+        <h2 className="font-normal text-sm text-gray-400 dark:text-light-600 pt-6 pb-10">
           © 2022-present ByteDance Inc. All Rights Reserved.
         </h2>
       </div>

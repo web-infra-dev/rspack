@@ -1,4 +1,3 @@
-import { readConfigFile } from "../helper";
 import {
 	ECompilerType,
 	ITestContext,
@@ -9,15 +8,23 @@ import { BasicTaskProcessor } from "./basic";
 import assert from "assert";
 import path from "path";
 import fs from "fs";
+import { escapeEOL } from "../helper";
 const serializer = require("jest-serializer-path");
 const normalizePaths = serializer.normalizePaths;
+const rspackPath = path.resolve(__dirname, "../../../rspack");
+
+const replacePaths = (input: string) => {
+	const rspackRoot = normalizePaths(rspackPath);
+	return normalizePaths(input).split(rspackRoot).join("<RSPACK_ROOT>");
+};
+
+declare var global: {
+	updateSnapshot: boolean;
+};
 
 export interface IRspackDiagnosticProcessorOptions {
 	name: string;
-	root: string;
 }
-
-const CWD = process.cwd();
 
 export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
 	constructor(protected _diagnosticOptions: IRspackDiagnosticProcessorOptions) {
@@ -30,14 +37,6 @@ export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.
 		});
 	}
 
-	async before(context: ITestContext) {
-		process.chdir(this._diagnosticOptions.root);
-	}
-
-	async after(context: ITestContext) {
-		process.chdir(CWD);
-	}
-
 	async check(env: ITestEnv, context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		const stats = compiler.getStats();
@@ -45,7 +44,7 @@ export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.
 			throw new Error("Stats should exists");
 		}
 		assert(stats.hasErrors() || stats.hasWarnings());
-		let output = normalizePaths(
+		let output = replacePaths(
 			stats.toString({
 				all: false,
 				errors: true,
@@ -53,22 +52,19 @@ export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.
 			})
 		);
 		// TODO: change to stats.errorStack
-		if (context.getSource().includes("module-build-failed")) {
-			// Replace potential loader stack
-			output = output
-				.replaceAll("│", "")
-				.split(/\r?\n/)
-				.map((s: string) => s.trim())
-				.join("");
-		}
+		output = output
+			.split("│")
+			.join("")
+			.split(/\r?\n/)
+			.map((s: string) => s.trim())
+			.join("");
 
 		const errorOutputPath = path.resolve(context.getSource(), `./stats.err`);
-		const updateSnapshot =
-			process.argv.includes("-u") || process.argv.includes("--updateSnapshot");
-		if (!fs.existsSync(errorOutputPath) || updateSnapshot) {
-			fs.writeFileSync(errorOutputPath, output);
+		if (!fs.existsSync(errorOutputPath) || global.updateSnapshot) {
+			fs.writeFileSync(errorOutputPath, escapeEOL(output));
 		} else {
-			expect(output).toBe(fs.readFileSync(errorOutputPath, "utf-8"));
+			const expectContent = fs.readFileSync(errorOutputPath, "utf-8");
+			expect(escapeEOL(output)).toBe(escapeEOL(expectContent));
 		}
 	}
 

@@ -1,11 +1,12 @@
-use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  BuildMetaExportsType, Compilation, ExportInfo, ExportInfoProvided, ExportsInfoId, ModuleGraph,
-  Plugin, UsageState,
+  ApplyContext, BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration,
+  CompilerOptions, ExportInfo, ExportInfoProvided, ExportsInfoId, ModuleGraph, Plugin,
+  PluginContext, UsageState,
 };
 use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook};
 use rspack_ids::id_helpers::assign_deterministic_ids;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -33,6 +34,7 @@ fn can_mangle(exports_info_id: ExportsInfoId, mg: &ModuleGraph) -> bool {
 }
 
 /// Struct to represent the mangle exports plugin.
+#[plugin]
 #[derive(Debug)]
 pub struct MangleExportsPlugin {
   deterministic: bool,
@@ -40,33 +42,46 @@ pub struct MangleExportsPlugin {
 
 impl MangleExportsPlugin {
   pub fn new(deterministic: bool) -> Self {
-    Self { deterministic }
+    Self::new_inner(deterministic)
   }
 }
 
-#[async_trait]
+#[plugin_hook(CompilationOptimizeCodeGeneration for MangleExportsPlugin)]
+fn optimize_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
+  // TODO: should bailout if compilation.moduleMemCache is enable, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/MangleExportsPlugin.js#L160-L164
+  // We don't do that cause we don't have this option
+  let mut mg = compilation.get_module_graph_mut();
+  let module_id_list = mg.modules().keys().cloned().collect::<Vec<_>>();
+  for identifier in module_id_list {
+    let (Some(mgm), Some(module)) = (
+      mg.module_graph_module_by_identifier(&identifier),
+      mg.module_by_identifier(&identifier),
+    ) else {
+      continue;
+    };
+    let is_namespace = module
+      .build_meta()
+      .as_ref()
+      .map(|meta| matches!(meta.exports_type, BuildMetaExportsType::Namespace))
+      .unwrap_or_default();
+    let exports_info_id = mgm.exports;
+    mangle_exports_info(&mut mg, self.deterministic, exports_info_id, is_namespace);
+  }
+  Ok(())
+}
+
 impl Plugin for MangleExportsPlugin {
-  async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Result<Option<()>> {
-    // TODO: should bailout if compilation.moduleMemCache is enable, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/MangleExportsPlugin.js#L160-L164
-    // We don't do that cause we don't have this option
-    let mg = compilation.get_module_graph_mut();
-    let module_id_list = mg.modules().keys().cloned().collect::<Vec<_>>();
-    for identifier in module_id_list {
-      let (Some(mgm), Some(module)) = (
-        mg.module_graph_module_by_identifier(&identifier),
-        mg.module_by_identifier(&identifier),
-      ) else {
-        continue;
-      };
-      let is_namespace = module
-        .build_meta()
-        .as_ref()
-        .map(|meta| matches!(meta.exports_type, BuildMetaExportsType::Namespace))
-        .unwrap_or_default();
-      let exports_info_id = mgm.exports;
-      mangle_exports_info(mg, self.deterministic, exports_info_id, is_namespace);
-    }
-    Ok(None)
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_code_generation
+      .tap(optimize_code_generation::new(self));
+    Ok(())
   }
 }
 
@@ -119,7 +134,7 @@ fn mangle_exports_info(
         .as_ref()
         .expect("the name of export_info inserted in exports_info can not be `None`")
         .clone();
-      let can_not_mangle = export_info.can_mangle_use != Some(true)
+      let can_not_mangle = export_info.can_mangle() != Some(true)
         || (name.len() == 1 && MANGLE_NAME_NORMAL_REG.is_match(name.as_str()))
         || (deterministic
           && name.len() == 2

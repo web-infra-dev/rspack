@@ -3,7 +3,7 @@ import { BasicCaseCreator } from "../test/creator";
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	describe: true,
+	describe: false,
 	description(name, step) {
 		if (step === 0) {
 			return `${name} with builtin.treeShaking should match snapshot`;
@@ -14,12 +14,12 @@ const creator = new BasicCaseCreator({
 	steps: ({ name }) => [
 		new RspackTreeShakingProcessor({
 			name,
-			snapshot: "output.snap",
+			snapshot: "output.snap.txt",
 			type: "builtin"
 		}),
 		new RspackTreeShakingProcessor({
 			name,
-			snapshot: "new_treeshaking.snap",
+			snapshot: "new_treeshaking.snap.txt",
 			type: "new"
 		})
 	]

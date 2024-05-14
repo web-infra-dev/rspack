@@ -1,9 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{SnapshotOptions, SnapshotStrategy};
-use serde::Deserialize;
 
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawSnapshotStrategy {
   pub hash: bool,
@@ -19,8 +17,7 @@ impl From<RawSnapshotStrategy> for SnapshotStrategy {
   }
 }
 
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawSnapshotOptions {
   pub resolve: RawSnapshotStrategy,

@@ -1,7 +1,8 @@
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  BooleanMatcher, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  BooleanMatcher, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, stringify_chunks};
@@ -20,7 +21,7 @@ impl Default for CssLoadingRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/css_loading"),
       chunk: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -31,7 +32,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
@@ -65,7 +66,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       }
 
       if !with_hmr && !with_loading && initial_chunk_ids_with_css.is_empty() {
-        return RawSource::from("").boxed();
+        return Ok(RawSource::from("").boxed());
       }
 
       let mut source = ConcatSource::default();
@@ -80,11 +81,29 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         &stringify_chunks(&initial_chunk_ids_without_css, 0)
       )));
 
+      let cross_origin_content = if let CrossOriginLoading::Enable(cross_origin) =
+        &compilation.options.output.cross_origin_loading
+      {
+        if cross_origin == "use-credentials" {
+          "link.crossOrigin = \"use-credentials\";".to_string()
+        } else {
+          format!(
+            r#"
+            if (link.href.indexOf(window.location.origin + '/') !== 0) {{
+              link.crossOrigin = "{cross_origin}";
+            }}
+            "#
+          )
+        }
+      } else {
+        "".to_string()
+      };
+
       source.add(RawSource::from(
         include_str!("./css_loading.js")
           .replace(
             "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
-            &compilation.options.output.cross_origin_loading.to_string(),
+            &cross_origin_content,
           )
           .replace("__UNIQUE_NAME__", unique_name),
       ));
@@ -106,7 +125,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         source.add(RawSource::from(include_str!("./css_loading_with_hmr.js")));
       }
 
-      source.boxed()
+      Ok(source.boxed())
     } else {
       unreachable!("should attach chunk for css_loading")
     }

@@ -13,51 +13,35 @@ use crate::dependency::{CommonJsFullRequireDependency, CommonJsRequireContextDep
 use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::{
-  create_traceable_error, expr_matcher, expr_name, scanner_context_module, JavascriptParser,
+  create_context_dependency, create_traceable_error, expr_matcher, expr_name, JavascriptParser,
 };
 use crate::visitors::{extract_require_call_info, is_require_call_start};
 
 fn create_commonjs_require_context_dependency(
-  expr: &Expr,
-  _param: &BasicEvaluatedExpression,
+  parser: &mut JavascriptParser,
+  param: &BasicEvaluatedExpression,
   callee_start: u32,
   callee_end: u32,
   args_end: u32,
   span: Option<ErrorSpan>,
-) -> Option<CommonJsRequireContextDependency> {
-  // TODO: enabled it later
-  // create_context_dependency(param, expr).map(|result| {
-  //   let options = ContextOptions {
-  //     chunk_name: None,
-  //     mode: ContextMode::Sync,
-  //     recursive: true,
-  //     reg_exp: context_reg_exp(&result.reg, ""),
-  //     reg_str: result.reg,
-  //     include: None,
-  //     exclude: None,
-  //     category: DependencyCategory::CommonJS,
-  //     request: format!("{}{}{}", result.context, result.query, result.fragment),
-  //     namespace_object: ContextNameSpaceObject::Unset,
-  //   };
-  //   CommonJsRequireContextDependency::new(callee_start, callee_end, args_end, options, span)
-  // });
-  scanner_context_module(expr).map(|result| {
-    let options = ContextOptions {
-      chunk_name: None,
-      mode: ContextMode::Sync,
-      recursive: true,
-      reg_exp: context_reg_exp(&result.reg, ""),
-      reg_str: result.reg,
-      include: None,
-      exclude: None,
-      category: DependencyCategory::CommonJS,
-      request: format!("{}{}{}", result.context, result.query, result.fragment),
-      namespace_object: ContextNameSpaceObject::Unset,
-      start: callee_start,
-      end: callee_end,
-    };
-    CommonJsRequireContextDependency::new(callee_start, callee_end, args_end, options, span)
-  })
+) -> CommonJsRequireContextDependency {
+  let result = create_context_dependency(param, parser);
+  let options = ContextOptions {
+    mode: ContextMode::Sync,
+    recursive: true,
+    reg_exp: context_reg_exp(&result.reg, ""),
+    include: None,
+    exclude: None,
+    category: DependencyCategory::CommonJS,
+    request: format!("{}{}{}", result.context, result.query, result.fragment),
+    context: result.context,
+    namespace_object: ContextNameSpaceObject::Unset,
+    group_options: None,
+    replaces: result.replaces,
+    start: callee_start,
+    end: callee_end,
+  };
+  CommonJsRequireContextDependency::new(callee_start, callee_end, args_end, options, span)
 }
 
 pub struct CommonJsImportsParserPlugin;
@@ -141,20 +125,18 @@ impl CommonJsImportsParserPlugin {
     let Some(argument_expr) = &call_expr.args.first().map(|expr| expr.expr.as_ref()) else {
       unreachable!("ensure require includes arguments")
     };
-    create_commonjs_require_context_dependency(
-      argument_expr,
+    let dep = create_commonjs_require_context_dependency(
+      parser,
       param,
       call_expr.callee.span().real_lo(),
       call_expr.callee.span().real_hi(),
       call_expr.span.real_hi(),
       Some(call_expr.span.into()),
-    )
-    .map(|dep| {
-      parser.dependencies.push(Box::new(dep));
-      // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
-      parser.walk_expression(argument_expr);
-      true
-    })
+    );
+    parser.dependencies.push(Box::new(dep));
+    // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
+    parser.walk_expression(argument_expr);
+    Some(true)
   }
 
   fn require_handler(
@@ -167,7 +149,7 @@ impl CommonJsImportsParserPlugin {
       || call_expr
         .callee
         .as_expr()
-        .is_some_and(|expr| expr_matcher::is_module_require(expr)); // FIXME: remove `module.require`
+        .is_some_and(|expr| expr_matcher::is_module_require(&**expr)); // FIXME: remove `module.require`
 
     if !is_require_expr || call_expr.args.len() != 1 {
       return None;
@@ -223,16 +205,17 @@ impl CommonJsImportsParserPlugin {
       ident.span().real_hi(),
       ident.span().real_hi(),
       ContextOptions {
-        chunk_name: None,
         mode: ContextMode::Sync,
         recursive: true,
         reg_exp: None,
-        reg_str: "".to_string(),
         include: None,
         exclude: None,
         category: DependencyCategory::Unknown,
         request: ".".to_string(),
+        context: ".".to_string(),
         namespace_object: ContextNameSpaceObject::Unset,
+        group_options: None,
+        replaces: Vec::new(),
         start: ident.span().real_lo(),
         end: ident.span().real_hi(),
       },

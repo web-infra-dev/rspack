@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "uniqueName",
 	options: () => ({
@@ -8,24 +9,24 @@ module.exports = {
 	}),
 	diff: e =>
 		e.toMatchInlineSnapshot(`
-    - Expected
-    + Received
+		- Expected
+		+ Received
 
-    @@ ... @@
-    -     "chunkLoadingGlobal": "webpackChunk_rspack_core",
-    +     "chunkLoadingGlobal": "webpackChunk_Hello_World_",
-    @@ ... @@
-    -     "devtoolNamespace": "@rspack/core",
-    +     "devtoolNamespace": "@@@Hello World!",
-    @@ ... @@
-    -     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
-    +     "hotUpdateGlobal": "webpackHotUpdate_Hello_World_",
-    @@ ... @@
-    -     "trustedTypes": undefined,
-    -     "uniqueName": "@rspack/core",
-    +     "trustedTypes": Object {
-    +       "policyName": "@@@Hello_World_",
-    +     },
-    +     "uniqueName": "@@@Hello World!",
-  `)
+		@@ ... @@
+		-     "chunkLoadingGlobal": "webpackChunk_rspack_test_tools",
+		+     "chunkLoadingGlobal": "webpackChunk_Hello_World_",
+		@@ ... @@
+		-     "devtoolNamespace": "@rspack/test-tools",
+		+     "devtoolNamespace": "@@@Hello World!",
+		@@ ... @@
+		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_test_tools",
+		+     "hotUpdateGlobal": "webpackHotUpdate_Hello_World_",
+		@@ ... @@
+		-     "trustedTypes": undefined,
+		-     "uniqueName": "@rspack/test-tools",
+		+     "trustedTypes": Object {
+		+       "policyName": "@@@Hello_World_",
+		+     },
+		+     "uniqueName": "@@@Hello World!",
+	`)
 };

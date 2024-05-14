@@ -1,18 +1,20 @@
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeGlobals,
+  to_normal_comment, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, RuntimeGlobals,
   SourceType,
 };
 use rspack_error::{error, Result};
+use rspack_util::diff_mode::is_diff_mode;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::utils::is_diff_mode;
+use crate::{JsPlugin, RenderJsModuleContentArgs};
 
 pub fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Result<(BoxSource, ChunkInitFragments)> {
+  let drive = JsPlugin::get_compilation_drives(compilation);
   let module_graph = &compilation.get_module_graph();
   let ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
@@ -21,23 +23,20 @@ pub fn render_chunk_modules(
   );
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
-  let plugin_driver = &compilation.plugin_driver;
-
   let include_module_ids = &compilation.include_module_ids;
 
   let mut module_code_array = ordered_modules
     .par_iter()
     .filter(|module| {
-      compilation.get_module_graph().is_new_treeshaking()
-        || include_module_ids.contains(&module.identifier())
+      compilation.options.is_new_tree_shaking() || include_module_ids.contains(&module.identifier())
     })
     .filter_map(|module| {
       let code_gen_result = compilation
         .code_generation_results
         .get(&module.identifier(), Some(&chunk.runtime));
       if let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) {
-        let render_module_result = plugin_driver
-          .render_module_content(RenderModuleContentArgs {
+        let render_module_result = drive
+          .render_module_content(RenderJsModuleContentArgs {
             compilation,
             module,
             module_source: origin_source.clone(),
@@ -139,7 +138,10 @@ fn render_module(
     RawSource::from(": "),
   ]);
   if is_diff_mode() {
-    sources.add(RawSource::from(format!("\n/* start::{} */\n", module_id)));
+    sources.add(RawSource::from(format!(
+      "\n{}\n",
+      to_normal_comment(&format!("start::{}", module.identifier()))
+    )));
   }
   sources.add(RawSource::from(format!(
     "(function ({}) {{\n",
@@ -153,7 +155,10 @@ fn render_module(
   sources.add(source);
   sources.add(RawSource::from("})"));
   if is_diff_mode() {
-    sources.add(RawSource::from(format!("\n/* end::{} */\n", module_id)));
+    sources.add(RawSource::from(format!(
+      "\n{}\n",
+      to_normal_comment(&format!("end::{}", module.identifier()))
+    )));
   }
   sources.add(RawSource::from(",\n"));
 
@@ -196,9 +201,9 @@ pub fn render_runtime_modules(
         runtime_module,
       )
     })
-    .for_each(|((_, source), module)| {
+    .try_for_each(|((_, source), module)| -> Result<()> {
       if source.size() == 0 {
-        return;
+        return Ok(());
       }
       if is_diff_mode() {
         sources.add(RawSource::from(format!(
@@ -214,7 +219,7 @@ pub fn render_runtime_modules(
       if module.cacheable() {
         sources.add(source.clone());
       } else {
-        sources.add(module.generate_with_custom(compilation));
+        sources.add(module.generate_with_custom(compilation)?);
       }
       if !module.should_isolate() {
         sources.add(RawSource::from("\n}();\n"));
@@ -225,7 +230,8 @@ pub fn render_runtime_modules(
           module.identifier()
         )));
       }
-    });
+      Ok(())
+    })?;
   Ok(sources.boxed())
 }
 

@@ -1,0 +1,19 @@
+{
+  "name": "plugin-test",
+  "private": true,
+  "version": "0.1.0",
+  "license": "MIT",
+  "main": "./dist/index.d.ts",
+  "scripts": {
+    "test": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../node_modules/jest-cli/bin/jest --logHeapUsage"
+  },
+  "repository": "web-infra-dev/rspack",
+  "devDependencies": {
+    "@rspack/core": "workspace:*",
+    "@rspack/plugin-minify": "workspace:^",
+    "jsdom": "^24.0.0",
+    "del": "^6.0.0",
+    "memfs": "4.7.7"
+  },
+  "dependencies": {}
+}

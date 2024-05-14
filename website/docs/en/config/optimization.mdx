@@ -1,34 +1,12 @@
 import PropertyType from '../../../components/property-type.tsx';
 
-import WebpackLicense from '../../../components/webpack-license';
+import WebpackLicense from '@components/webpack-license';
 
 <WebpackLicense from="https://webpack.js.org/configuration/optimization/" />
 
 # Optimization
 
 Rspack will select appropriate optimization configuration based on the [`mode`](/config/mode). You can also customize the configuration via [`optimization`](/config/optimization).
-
-## optimization.removeAvailableModules
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-A module can be removed from a Chunk if the module have been included in all of its parent Chunks.
-
-```
-EntryChunk(index.js, a.js, b.js)
-                                  \
-                                  ChunkFoo(b.js, c.js)
-                                  /
-EntryChunk2(index.js, a.js, b.js)
-```
-
-In the above example, `b.js` has already been included in `EntryChunk` and `EntryChunk2`, so `b.js` can be removed from `ChunkFoo`.
-
-:::info Inconsistent behaviors with Webpack
-
-- [Webpack](https://webpack.js.org/configuration/optimization/#optimizationremoveavailablemodules) only enable this optimization in `production` mode.
-
-:::
 
 ## optimization.moduleIds
 
@@ -83,8 +61,8 @@ If you are encountering performance issue, and you are using `optimization.split
   ]}
 />
 
-Customize the minimizer. By default, [`rspack.SwcJsMinimizerRspackPlugin`](/config/plugins.html#swcjsminimizerrspackplugin)
-and [`rspack.SwcCssMinimizerRspackPlugin`](/config/plugins.html#swccssminimizerrspackplugin) are used.
+Customize the minimizer. By default, [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin)
+and [`rspack.SwcCssMinimizerRspackPlugin`](/plugins/rspack/swc-css-minimizer-rspack-plugin) are used.
 When `optimization.minimizer` is specified, the default minimizers will be disabled.
 
 ```js title=rspack.config.js
@@ -136,7 +114,16 @@ Remove empty chunks generated in the compilation.
 
 ## optimization.runtimeChunk
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType
+  type="boolean | string | ((entrypoint: { name: string }) => string)"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+Used to control how the runtime chunk is generated.
+
+Setting it to `true` or `'multiple'` will add an additional chunk containing only the runtime for each entry point.
+
+Setting it to `'single'` will extract the runtime code of all entry points into a single separate chunk.
 
 ## optimization.sideEffects
 
@@ -159,6 +146,7 @@ Remove empty chunks generated in the compilation.
 Tells Rspack to recognise the sideEffects flag in package.json or rules to skip over modules which are flagged to contain no side effects when exports are not used.
 
 `optimization.sideEffects` depended on `builtins.treeShaking` to be enabled.
+
 This configuration has a build time cost, but eliminating modules has positive impact on performance because of less code generation. Effect of this optimization depends on your codebase.
 
 ```js title=rspack.config.js
@@ -210,7 +198,7 @@ It is enabled by default for dynamically imported modules.
 
 To turn it off, set it to `false`.
 
-See details at [SplitChunksPlugin](/config/optimization-split-chunks).
+See details at [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin).
 
 ## optimization.usedExports
 
@@ -222,7 +210,7 @@ See details at [SplitChunksPlugin](/config/optimization-split-chunks).
   ]}
 />
 
-Tells rspack to determine used exports for each module. This depends on `optimization.providedExports`.
+Tells Rspack to determine used exports for each module. This depends on `optimization.providedExports`.
 Information collected by `optimization.usedExports` is used by other optimizations or code generation i.e.
 Exports are not generated for unused exports, export names are mangled to single char identifiers when all usages are compatible. Dead code elimination in minimizers will benefit from this and can remove unused exports.
 
@@ -255,7 +243,9 @@ module.exports = {
     { defaultValue: 'false', mode: 'development' },
   ]}
 />
-`optimization.innerGraph` tells rspack whether to conduct inner graph analysis for unused exports.
+
+`optimization.innerGraph` tells Rspack whether to conduct inner graph analysis for unused exports.
+
 ```js title=rspack.config.js
 module.exports = {
   //...
@@ -267,13 +257,10 @@ module.exports = {
 
 ## optimization.providedExports
 
-<PropertyType
-  type="boolean"
-  defaultValueList={[
-    { defaultValue: 'true'},
-  ]}
-/>
-Tells rspack to figure out which exports are provided by modules to generate more efficient code for `export * from ....` By default `optimization.providedExports` is enabled.
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+After enabling, Rspack will analyze which exports the module provides, including re-exported modules. A warning or error will be issued when importing members that reference non-existent exports. By default, `optimization.providedExports` is enabled. This analysis will increase build time. You may consider disabling this configuration in development mode. Disabling it may lead to errors related to runtime circular dependencies as mentioned in the [SideEffects section](/guide/optimization/tree-shaking#reexports-optimization).
+
 ```js title=rspack.config.js
 module.exports = {
   //...

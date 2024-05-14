@@ -1,7 +1,0 @@
-WARNING in ./index.js
-  ⚠ Module parse warning:
-  ╰─▶   ⚠ Module parse failed: require.include() is not supported by Rspack.
-         ╭────
-       1 │ require.include("aaa");
-         · ──────────────────────
-         ╰────

@@ -1,0 +1,12 @@
+# Case recover-after-self-error: Step 0
+
+## Changed Files
+- a.js
+
+## Asset Files
+- Bundle: bundle.js
+
+## Manifest
+
+		
+## Update

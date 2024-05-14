@@ -67,7 +67,7 @@ impl Chunk {
       files: Default::default(),
       auxiliary_files: Default::default(),
       groups: Default::default(),
-      runtime: HashSet::default(),
+      runtime: RuntimeSpec::default(),
       kind,
       hash: None,
       rendered_hash: None,
@@ -422,7 +422,7 @@ impl Chunk {
     self.ids.hash(hasher);
     for module in compilation
       .chunk_graph
-      .get_ordered_chunk_modules(&self.ukey, compilation.get_module_graph())
+      .get_ordered_chunk_modules(&self.ukey, &compilation.get_module_graph())
     {
       if let Some(hash) = compilation
         .code_generation_results
@@ -523,6 +523,29 @@ impl Chunk {
     )
   }
 
+  pub fn get_child_ids_by_order(
+    &self,
+    order: &ChunkGroupOrderKey,
+    compilation: &Compilation,
+  ) -> Option<Vec<String>> {
+    self
+      .get_children_of_type_in_order(order, compilation, true)
+      .map(|order_children| {
+        order_children
+          .iter()
+          .flat_map(|(_, child_chunks)| {
+            child_chunks.iter().filter_map(|chunk_ukey| {
+              compilation
+                .chunk_by_ukey
+                .expect_get(chunk_ukey)
+                .id
+                .to_owned()
+            })
+          })
+          .collect_vec()
+      })
+  }
+
   pub fn get_child_ids_by_orders_map(
     &self,
     include_direct_children: bool,
@@ -540,21 +563,10 @@ impl Chunk {
       compilation: &Compilation,
     ) {
       let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-      let order_children = chunk.get_children_of_type_in_order(order, compilation, true);
-      if let (Some(chunk_id), Some(order_children)) = (chunk.id.to_owned(), order_children) {
-        let child_chunk_ids = order_children
-          .iter()
-          .flat_map(|(_, child_chunks)| {
-            child_chunks.iter().filter_map(|chunk_ukey| {
-              compilation
-                .chunk_by_ukey
-                .expect_get(chunk_ukey)
-                .id
-                .to_owned()
-            })
-          })
-          .collect_vec();
-
+      if let (Some(chunk_id), Some(child_chunk_ids)) = (
+        chunk.id.to_owned(),
+        chunk.get_child_ids_by_order(order, compilation),
+      ) {
         result
           .entry(order.clone())
           .or_default()

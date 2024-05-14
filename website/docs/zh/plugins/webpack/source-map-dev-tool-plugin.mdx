@@ -1,0 +1,108 @@
+import WebpackLicense from '@components/webpack-license';
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+<WebpackLicense from="https://webpack.docschina.org/plugins/source-map-dev-tool-plugin/" />
+
+# SourceMapDevToolPlugin
+
+<ApiMeta addedVersion={'0.5.2'} />
+
+本插件实现了对 source map 生成内容进行更细粒度的控制。它也可以根据 [`devtool`](/config/devtool.html) 配置选项的某些设置来自动启用。
+
+```js
+new rspack.SourceMapDevToolPlugin(options);
+```
+
+## 选项
+
+支持以下选项：
+
+- `test` (`string` `RegExp` `[string, RegExp]`)：根据模块扩展名，匹配的生成 source map（默认是 `.js`, `.mjs` 和 `.css`）。
+- `include` (`string` `RegExp` `[string, RegExp]`)：使路径与该值匹配的模块生成 source map。
+- `exclude` (`string` `RegExp` `[string, RegExp]`)：使匹配该值的模块不生成 source map。
+- `filename` (`string`)：定义生成的 source map 的名称（如果未提供值，则内联）。
+- `append` (`string` `function`)：原始资源后追加给定值。通常是 `#sourceMappingURL` 注释。`[url]` 被替换成 source map 文件的 URL。支持路径参数：`[chunk]`、`[filename]` 和 `[contenthash]`。将 `append` 设置为 `false` 可禁用附加操作。
+- `moduleFilenameTemplate`（`string`）：详见 [`output.devtoolModuleFilenameTemplate`](/config/output#outputdevtoolmodulefilenametemplate)。
+- `fallbackModuleFilenameTemplate` (`string`)：详见上面的链接。
+- `namespace` (`string`)：详见 [`output.devtoolNamespace`](/config/output#outputdevtoolnamespace).
+- `module = true` (`boolean`)：指示 loader 是否应该生成 source map 文件。
+- `columns = true` (`boolean`)：指示是否使用 column mapping。
+- `noSources = false` (`boolean`)：阻止源文件内容被包含在 source map 中。
+- `publicPath` (`string`)：使用公共路径前缀生成绝对 URL，例如 `https://example.com/project/`。
+- `fileContext` (`string`)：使 `[file]` 参数相对于这个目录。
+- `sourceRoot` (`string`)：为 source map 中的 `sourceRoot` 属性提供自定义值。
+
+`fileContext` 选项在你希望将 source map 存储在上级目录以避免绝对 `[url]` 中出现 `../../` 时非常有用。
+
+:::tip 提示
+将 `module` 或 `columns` 设置为 `false` 将生成不太准确的 source map，但同时也能显著提高编译性能。
+:::
+
+:::tip 提示
+如果你想要在[开发模式](/config/mode#development)中为这个插件使用自定义配置，请确保禁用默认配置。即设置 `devtool: false`。
+:::
+
+## 示例
+
+下面的示例展示了本插件的一些常见用例。
+
+### 基本使用
+
+你可以使用以下代码将配置项 devtool: inline-source-map 替换为等效的自定义插件配置：
+
+```js
+module.exports = {
+  // ...
+  devtool: false,
+  plugins: [new rspack.SourceMapDevToolPlugin({})],
+};
+```
+
+### 排除 Vendor Maps
+
+以下代码会排除 vendor.js bundle 内模块的 source map。
+
+```js
+new rspack.SourceMapDevToolPlugin({
+  filename: '[file].map[query]',
+  exclude: ['vendor.js'],
+});
+```
+
+### 在宿主环境外部化 source map
+
+设置 source map 的 URL。在宿主环境需要授权的情况下很有用。
+
+```js
+new rspack.SourceMapDevToolPlugin({
+  append: '\n//# sourceMappingURL=https://example.com/sourcemap/[url]',
+  filename: '[file].map[query]',
+});
+```
+
+还有一种场景，source map 存储在上层目录中时：
+
+```
+project
+|- dist
+  |- public
+    |- bundle-[hash].js
+  |- sourcemaps
+    |- bundle-[hash].js.map
+```
+
+如下设置：
+
+```js
+new rspack.SourceMapDevToolPlugin({
+  filename: 'sourcemaps/[file].map',
+  publicPath: 'https://example.com/project/',
+  fileContext: 'public',
+});
+```
+
+将会生成以下 URL：
+
+```
+https://example.com/project/sourcemaps/bundle-[hash].js.map
+```

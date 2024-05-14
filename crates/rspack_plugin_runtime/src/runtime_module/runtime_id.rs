@@ -19,7 +19,7 @@ impl Default for RuntimeIdRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/runtime_id"),
       chunk: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -34,7 +34,7 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
 
@@ -53,12 +53,14 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
           .to_string(),
       );
 
-      RawSource::from(format!(
-        "{} = {};",
-        RuntimeGlobals::RUNTIME_ID,
-        serde_json::to_string(&id).expect("Invalid json string")
-      ))
-      .boxed()
+      Ok(
+        RawSource::from(format!(
+          "{} = {};",
+          RuntimeGlobals::RUNTIME_ID,
+          serde_json::to_string(&id).expect("Invalid json string")
+        ))
+        .boxed(),
+      )
     } else {
       unreachable!("should attach chunk for css_loading")
     }

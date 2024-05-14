@@ -23,6 +23,7 @@ mod property_name;
 mod queue;
 mod runtime;
 mod source;
+pub mod task_loop;
 mod template;
 mod to_path;
 mod visitor;
@@ -135,7 +136,7 @@ pub fn compare_chunk_group(
     Ordering::Greater => Ordering::Less,
     Ordering::Equal => compare_chunks_iterables(
       &compilation.chunk_graph,
-      compilation.get_module_graph(),
+      &compilation.get_module_graph(),
       chunks_a,
       chunks_b,
     ),

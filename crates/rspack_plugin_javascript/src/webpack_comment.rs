@@ -16,6 +16,7 @@ pub enum WebpackComment {
   Mode,
 }
 
+#[derive(Debug)]
 pub struct WebpackCommentMap(FxHashMap<WebpackComment, String>);
 
 impl WebpackCommentMap {
@@ -87,7 +88,7 @@ fn add_magic_comment_warning(
 // _5 for true/false
 // TODO: regexp/array
 static WEBPACK_MAGIC_COMMENT_REGEXP: Lazy<regex::Regex> = Lazy::new(|| {
-  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*("(?P<_1>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)"|'(?P<_2>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)'|`(?P<_3>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false))"#)
+  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*("(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false))"#)
     .expect("invalid regex")
 });
 

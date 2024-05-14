@@ -51,7 +51,7 @@ Rspack 中的模块联邦为加速打包工具的代码共享提供了多种创�
 
 Rsbuild 提供简化的构建配置方法。它使得使用 Rspack 感觉不像处理基于 webpack 的构建系统。虽然它与模块联邦兼容，但 Rsbuild 将会提供更流畅的模块联邦体验。例如，Rsbuild 插件可以自动共享 react 的默认值，或者 Rsbuild 可以提供方便的预设和常见的模式。
 
-我们已经开始将一些[模块联邦示例](https://github.com/module-federation/module-federation-examples)迁移到 Rspack 和 Rsbuild。其中一个值得注意的例子是 CRA 迁移，这是无缝的，只需几分钟即可[从 CRA 切换到 Rsbuild](https://github.com/module-federation/module-federation-examples/tree/master/cra)。这个指南对于 CRA 用户寻求易于使用的性能提升也非常有益：[Rsbuild 迁移指南](https://www.rspack.dev/guide/migrate-from-cra)。将 Rsbuild 作为 [Vue 项目从 vue-cli 迁移](https://rsbuild.dev/guide/migration/vue-cli)到更快、更易用和更适合模块联邦的东西也非常合适。
+我们已经开始将一些[模块联邦示例](https://github.com/module-federation/module-federation-examples)迁移到 Rspack 和 Rsbuild。其中一个值得注意的例子是 CRA 迁移，这是无缝的，只需几分钟即可[从 CRA 切换到 Rsbuild](https://github.com/module-federation/module-federation-examples/tree/master/cra)。这个指南对于 CRA 用户寻求易于使用的性能提升也非常有益：[Rsbuild 迁移指南](/guide/migration/cra)。将 Rsbuild 作为 [Vue 项目从 vue-cli 迁移](https://rsbuild.dev/guide/migration/vue-cli)到更快、更易用和更适合模块联邦的东西也非常合适。
 
 ## 模块联邦 v1 和 v1.5 之间的区别
 
@@ -146,7 +146,7 @@ init({
 // 通过远程模块的名称加载
 loadRemote <
   { add: (...args: Array<number>) => number } >
-  'app2/util'.then((md) => {
+  'app2/util'.then(md => {
     md.add(1, 2, 3);
   });
 ```

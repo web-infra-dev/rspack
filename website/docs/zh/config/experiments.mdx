@@ -8,9 +8,11 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 ## experiments.incrementalRebuild
 
-<ApiMeta deprecatedVersion="0.4.0" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.4.0"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 启用增量重新编译。当启用此选项，Rspack 在重新编译时会尝试复用上次构建的结果来提升构建速度，支持对不同阶段进行配置，默认为开启状态。
 
@@ -36,13 +38,24 @@ module.exports = {
 
 ## experiments.css
 
-启用原生 CSS 支持，请注意如果你在使用 `style-loader` 和 `css-loader` 请关闭该配置，因为 `style-loader` 和 `css-loader` 和原生 CSS 功能冲突。
+启用原生 CSS 支持和 CSS 相关的 parser 和 generator options：
+
+- [`module.parser["css/auto"]`](/config/module#moduleparsercssauto)
+- [`module.parser.css`](/config/module#moduleparsercss)
+- [`module.parser["css/module"]`](/config/module#moduleparsercssmodule)
+- [`module.generator["css/auto"]`](/config/module#modulegeneratorcssauto)
+- [`module.generator.css`](/config/module#modulegeneratorcss)
+- [`module.generator["css/module"]`](/config/module#modulegeneratorcssmodule)
+
+:::warning
+如果你在使用 `style-loader` 和 `css-loader` 请关闭该配置，因为 `style-loader` 和 `css-loader` 和原生 CSS 功能冲突。
+:::
 
 ## experiments.topLevelAwait
 
 <ApiMeta addedVersion="0.3.8" />
 
-开启打包 [top level await](https://github.com/tc39/proposal-top-level-await) 的支持，`top level await` 仅能在 [ModuleType](/config/module.html#ruletype) 为 `javascript/esm` 的模块中使用。
+开启打包 [top level await](https://github.com/tc39/proposal-top-level-await) 的支持，`top level await` 仅能在 [ModuleType](/config/module#ruletype) 为 `javascript/esm` 的模块中使用。
 
 默认开启，可通过该配置关闭。
 
@@ -57,6 +70,12 @@ module.exports = {
 用于控制是否开启 Rspack 未来的默认行为，详情请参考[这里](https://github.com/web-infra-dev/rspack/pull/4107)。
 
 ### experiments.rspackFuture.disableTransformByDefault
+
+<ApiMeta
+  addedVersion="0.3.5"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 - **类型：** `boolean`
 
@@ -81,7 +100,7 @@ module.exports = {
 
   这部分配置项应当作用于被选中的相应模块，而使用 `builtins.(relay|react|emotion|pluginImport|decorator)` 则等于是全局开启，这种方案不被推崇，因此将被废弃。
 
-  在开启 `disableTransformByDefault` 后，上述配置项将失效，迁移指南可以参考 [builtin:swc-loader/options.rspackExperiments](/guide/loader#optionsrspackexperiments)。
+  在开启 `disableTransformByDefault` 后，上述配置项将失效，迁移指南可以参考 [builtin:swc-loader/options.rspackExperiments](/guide/features/loader#optionsrspackexperiments)。
 
   例如我们希望 `emotion` 的转换被应用于所有 `jsx` 文件：
 
@@ -121,7 +140,7 @@ module.exports = {
 
   在**以往**的版本中，我们通常会配置 `target: ["web", "es5"]` 来生成适用于 web 和降级后的代码。
 
-  现在，当用户开启了 `disableTransformByDefault` 配置项后，`target` 仅会被用于控制 runtime 代码（除了用户编写、node_modules 内的 rspack 生成的代码，例如 chunk 加载等等）
+  现在，当用户开启了 `disableTransformByDefault` 配置项后，`target` 仅会被用于控制 runtime 代码（除了用户编写、node_modules 内的 Rspack 生成的代码，例如 chunk 加载等等）
 
   这和 webpack 的插件化设计思维完成了对齐，你可以使用 `builtin:swc-loader` 的 [`env`](https://swc.rs/docs/configuration/compilation#env) 或 [`target`](https://swc.rs/docs/configuration/compilation#jsctarget) 进行迁移，
   并精确控制需要转译的模块：
@@ -174,9 +193,9 @@ module.exports = {
   - `"javascript/esm"`
   - `"javascript/dynamic"`
 
-  在开启 `disableTransformByDefault` 后，rspack 仅支持符合 web 标准的输入，对齐 webpack 的设计理念。
+  在开启 `disableTransformByDefault` 后，Rspack 仅支持符合 web 标准的输入，对齐 webpack 的设计理念。
 
-  在我们完成和 webpack 的讨论后，webpack 和 rspack 将会提供更加开箱即用的配置，以支持非标准的输入，如 TypeScript 等。
+  在我们完成和 webpack 的讨论后，webpack 和 Rspack 将会提供更加开箱即用的配置，以支持非标准的输入，如 TypeScript 等。
 
   由于目前对于 `jsx`, `tsx`, `ts` 后缀名的文件会隐式地开启转译，因此在开启 `disableTransformByDefault` 后会提示编译报错，你可以这样完成迁移：
 
@@ -236,6 +255,12 @@ module.exports = {
 
 ### experiments.rspackFuture.newResolver
 
+<ApiMeta
+  addedVersion="0.3.7"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
+
 - **类型：** `boolean`
 
 - **引入版本：** v0.3.5
@@ -244,7 +269,7 @@ module.exports = {
 
 - **移除版本：** v0.5.0
 
-该功能将会开启 [oxc](https://github.com/web-infra-dev/oxc) 提供的 resolver，新的实现比旧版的 resolver 快了 5 倍。
+该功能将会开启新版 resolver，新的实现比旧版的 resolver 快了 5 倍。
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -257,7 +282,7 @@ module.exports = {
 ```
 
 新的 resolver 同时提供了在 [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin#references-_string-defaultundefined) 中定义的[tsconfig project references](https://www.typescriptlang.org/docs/handbook/project-references.html) 功能。
-具体请参考 [resolve API](/config/resolve.html#resolvetsconfig).
+具体请参考 [resolve API](/config/resolve#resolvetsconfig).
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -280,7 +305,8 @@ module.exports = {
 <ApiMeta addedVersion="0.4.2" />
 
 - **类型：** `boolean`
-- **默认值：** `false`
+- **引入版本：** v0.4.2
+- **默认开启版本：** v0.6.0
 
 该功能启用了与 webpack 相同的新摇树优化实现，可以生成更高效和更小的代码。
 
@@ -296,7 +322,11 @@ module.exports = {
 
 ### experiments.rspackFuture.disableApplyEntryLazily
 
-<ApiMeta addedVersion="0.4.5" />
+<ApiMeta
+  addedVersion="0.4.5"
+  removedVersion="0.6.0"
+  stability={Stability.Removed}
+/>
 
 - **类型：** `boolean`
 - **引入版本：** v0.4.5

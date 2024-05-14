@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "target node",
 	options: () => ({ target: "node" }),
@@ -11,6 +12,15 @@ module.exports = {
 		-     "web": true,
 		+     "node": true,
 		+     "web": false,
+		@@ ... @@
+		-         "exportsOnly": false,
+		+         "exportsOnly": true,
+		@@ ... @@
+		-         "exportsOnly": false,
+		+         "exportsOnly": true,
+		@@ ... @@
+		-         "exportsOnly": false,
+		+         "exportsOnly": true,
 		@@ ... @@
 		-     "__dirname": "warn-mock",
 		-     "__filename": "warn-mock",

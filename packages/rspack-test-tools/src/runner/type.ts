@@ -1,10 +1,4 @@
-import {
-	ECompilerType,
-	ITestEnv,
-	TCompilerOptions,
-	TCompilerStats,
-	TTestConfig
-} from "../type";
+import { ITestEnv } from "../type";
 
 export type TRunnerRequirer = (
 	currentDirectory: string,
@@ -42,13 +36,21 @@ export interface IBasicGlobalContext {
 	[key: string]: any;
 }
 
-export interface IBasicRunnerOptions<T extends ECompilerType> {
-	env: ITestEnv;
-	stats?: TCompilerStats<T>;
-	name: string;
-	runInNewContext?: boolean;
-	testConfig: TTestConfig<T>;
-	source: string;
-	dist: string;
-	compilerOptions: TCompilerOptions<T>;
-}
+export type TModuleObject = { exports: unknown };
+
+export type THotStepRuntimeLangData = {
+	outdatedModules: string[];
+	outdatedDependencies: Record<string, string[]>;
+
+	updatedModules: string[];
+	updatedRuntime: string[];
+
+	acceptedModules: string[];
+	disposedModules: string[];
+};
+
+export type THotStepRuntimeData = {
+	javascript: THotStepRuntimeLangData;
+	css: THotStepRuntimeLangData;
+	statusPath: string[];
+};

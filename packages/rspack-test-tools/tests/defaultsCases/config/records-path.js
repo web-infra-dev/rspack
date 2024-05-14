@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "records",
 	options: () => ({ recordsPath: "some-path" }),

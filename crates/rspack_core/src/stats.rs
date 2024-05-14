@@ -6,7 +6,9 @@ use rspack_error::Result;
 use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::{get_chunk_from_ukey, get_chunk_group_from_ukey, ProvidedExports, UsedExports};
+use crate::{
+  get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkGroupOrderKey, ProvidedExports, UsedExports,
+};
 use crate::{BoxModule, BoxRuntimeModule, Chunk};
 use crate::{ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType, SourceType};
 
@@ -125,7 +127,8 @@ impl Stats<'_> {
     (assets, assets_by_chunk_name)
   }
 
-  pub fn get_modules(
+  #[allow(clippy::too_many_arguments)]
+  pub fn get_modules<T>(
     &self,
     reasons: bool,
     module_assets: bool,
@@ -133,10 +136,10 @@ impl Stats<'_> {
     source: bool,
     used_exports: bool,
     provided_exports: bool,
-  ) -> Result<Vec<StatsModule>> {
-    let mut modules: Vec<StatsModule> = self
-      .compilation
-      .get_module_graph()
+    f: impl Fn(Vec<StatsModule>) -> T,
+  ) -> Result<T> {
+    let module_graph = self.compilation.get_module_graph();
+    let mut modules: Vec<StatsModule> = module_graph
       .modules()
       .values()
       .map(|module| {
@@ -161,11 +164,12 @@ impl Stats<'_> {
       )
       .collect::<Result<_>>()?;
     Self::sort_modules(&mut modules);
-    Ok(modules)
+
+    Ok(f(modules))
   }
 
   #[allow(clippy::too_many_arguments)]
-  pub fn get_chunks(
+  pub fn get_chunks<T>(
     &self,
     chunk_modules: bool,
     chunk_relations: bool,
@@ -175,7 +179,9 @@ impl Stats<'_> {
     source: bool,
     used_exports: bool,
     provided_exports: bool,
-  ) -> Result<Vec<StatsChunk>> {
+    f: impl Fn(Vec<StatsChunk>) -> T,
+  ) -> Result<T> {
+    let module_graph = self.compilation.get_module_graph();
     let mut chunks: Vec<StatsChunk> = self
       .compilation
       .chunk_by_ukey
@@ -191,7 +197,7 @@ impl Stats<'_> {
           let chunk_modules = self
             .compilation
             .chunk_graph
-            .get_chunk_modules(&c.ukey, self.compilation.get_module_graph());
+            .get_chunk_modules(&c.ukey, &module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
             .map(|m| {
@@ -218,6 +224,16 @@ impl Stats<'_> {
         } else {
           (None, None, None)
         };
+
+        let orders = vec![ChunkGroupOrderKey::Prefetch, ChunkGroupOrderKey::Preload];
+        let mut children_by_order = HashMap::<ChunkGroupOrderKey, Vec<String>>::default();
+
+        for order in orders {
+          if let Some(order_chlidren) = c.get_child_ids_by_order(&order, self.compilation) {
+            children_by_order.insert(order, order_chlidren);
+          }
+        }
+
         Ok(StatsChunk {
           r#type: "chunk",
           files,
@@ -229,11 +245,12 @@ impl Stats<'_> {
           size: self
             .compilation
             .chunk_graph
-            .get_chunk_modules_size(&c.ukey, self.compilation.get_module_graph()),
+            .get_chunk_modules_size(&c.ukey, &self.compilation.get_module_graph()),
           modules: chunk_modules,
           parents,
           children,
           siblings,
+          children_by_order,
         })
       })
       .collect::<Result<_>>()?;
@@ -248,7 +265,7 @@ impl Stats<'_> {
       }
     });
 
-    Ok(chunks)
+    Ok(f(chunks))
   }
 
   fn get_chunk_group(&self, name: &str, ukey: &ChunkGroupUkey) -> StatsChunkGroup {
@@ -304,6 +321,7 @@ impl Stats<'_> {
   }
 
   pub fn get_errors(&self) -> Vec<StatsError> {
+    let module_graph = self.compilation.get_module_graph();
     let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
     self
       .compilation
@@ -312,10 +330,7 @@ impl Stats<'_> {
         let module_identifier = d.module_identifier();
         let (module_name, module_id) = module_identifier
           .and_then(|identifier| {
-            let module = self
-              .compilation
-              .get_module_graph()
-              .module_by_identifier(&identifier)?;
+            let module = module_graph.module_by_identifier(&identifier)?;
             Some(get_stats_module_name_and_id(module, self.compilation))
           })
           .unzip();
@@ -336,6 +351,7 @@ impl Stats<'_> {
   }
 
   pub fn get_warnings(&self) -> Vec<StatsWarning> {
+    let module_graph = self.compilation.get_module_graph();
     let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
     self
       .compilation
@@ -344,10 +360,7 @@ impl Stats<'_> {
         let module_identifier = d.module_identifier();
         let (module_name, module_id) = module_identifier
           .and_then(|identifier| {
-            let module = self
-              .compilation
-              .get_module_graph()
-              .module_by_identifier(&identifier)?;
+            let module = module_graph.module_by_identifier(&identifier)?;
             Some(get_stats_module_name_and_id(module, self.compilation))
           })
           .unzip();
@@ -408,16 +421,12 @@ impl Stats<'_> {
     provided_exports: bool,
   ) -> Result<StatsModule<'a>> {
     let identifier = module.identifier();
-    let mgm = self
-      .compilation
-      .get_module_graph()
+    let module_graph = self.compilation.get_module_graph();
+    let mgm = module_graph
       .module_graph_module_by_identifier(&identifier)
       .unwrap_or_else(|| panic!("Could not find ModuleGraphModule by identifier: {identifier:?}"));
 
-    let issuer = self
-      .compilation
-      .get_module_graph()
-      .get_issuer(&module.identifier());
+    let issuer = module_graph.get_issuer(&module.identifier());
     let (issuer_name, issuer_id) = issuer
       .map(|i| get_stats_module_name_and_id(i, self.compilation))
       .unzip();
@@ -430,10 +439,7 @@ impl Stats<'_> {
         name,
         id,
       });
-      current_issuer = self
-        .compilation
-        .get_module_graph()
-        .get_issuer(&i.identifier());
+      current_issuer = module_graph.get_issuer(&i.identifier());
     }
     issuer_path.reverse();
 
@@ -444,19 +450,13 @@ impl Stats<'_> {
           .iter()
           .filter_map(|connection_id| {
             // the connection is removed
-            let connection = self
-              .compilation
-              .get_module_graph()
-              .connection_by_connection_id(connection_id)?;
+            let connection = module_graph.connection_by_connection_id(connection_id)?;
             let (module_name, module_id) = connection
               .original_module_identifier
-              .and_then(|i| self.compilation.get_module_graph().module_by_identifier(&i))
+              .and_then(|i| module_graph.module_by_identifier(&i))
               .map(|m| get_stats_module_name_and_id(m, self.compilation))
               .unzip();
-            let dependency = self
-              .compilation
-              .get_module_graph()
-              .dependency_by_id(&connection.dependency_id);
+            let dependency = module_graph.dependency_by_id(&connection.dependency_id);
             let (r#type, user_request) =
               if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
                 (
@@ -795,6 +795,7 @@ pub struct StatsChunk<'a> {
   pub parents: Option<Vec<String>>,
   pub children: Option<Vec<String>>,
   pub siblings: Option<Vec<String>>,
+  pub children_by_order: HashMap<ChunkGroupOrderKey, Vec<String>>,
 }
 
 #[derive(Debug)]

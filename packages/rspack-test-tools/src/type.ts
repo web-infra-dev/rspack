@@ -1,12 +1,14 @@
 import {
 	RspackOptions,
 	Compiler as RspackCompiler,
-	Stats as RspackStats
+	Stats as RspackStats,
+	StatsCompilation as RspackStatsCompilation
 } from "@rspack/core";
 import type {
 	Configuration as WebpackOptions,
 	Compiler as WebpackCompiler,
-	Stats as WebpackStats
+	Stats as WebpackStats,
+	StatsCompilation as WebpackStatsCompilation
 } from "webpack";
 import { IBasicModuleScope, TRunnerRequirer } from "./runner/type";
 import EventEmitter from "events";
@@ -52,6 +54,10 @@ export type TCompiler<T> = T extends ECompilerType.Rspack
 export type TCompilerStats<T> = T extends ECompilerType.Rspack
 	? RspackStats
 	: WebpackStats;
+
+export type TCompilerStatsCompilation<T> = T extends ECompilerType.Rspack
+	? RspackStatsCompilation
+	: WebpackStatsCompilation;
 
 export interface ITestCompilerManager<T extends ECompilerType> {
 	getOptions(): TCompilerOptions<T>;
@@ -190,6 +196,7 @@ export type TTestFilter<T extends ECompilerType> = (
 export interface ITestRunner {
 	run(file: string): Promise<unknown>;
 	getRequire(): TRunnerRequirer;
+	getGlobal(name: string): unknown;
 }
 
 export type TCompilerFactory<T extends ECompilerType> = (

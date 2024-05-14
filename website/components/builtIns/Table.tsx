@@ -10,8 +10,14 @@ import {
 interface TableProps {
   children?: ReactNode[];
   body?: any[];
-  header?: { name: string | JSX.Element; key: string }[];
+  header?: {
+    name: string | JSX.Element;
+    key: string;
+    style?: React.CSSProperties;
+    className?: string;
+  }[];
   tableStyle?: Record<string, string>;
+  className?: string;
 }
 
 // Use case example:
@@ -38,7 +44,7 @@ export function Table(props: TableProps) {
   const { body = [], tableStyle, header = [] } = props;
   // Support markdown syntax in table cell
   const compiledValue = body.map((item: any) => {
-    Object.keys(item).forEach((key) => {
+    Object.keys(item).forEach(key => {
       if (typeof item[key] === 'string') {
         item[key] = <Markdown>{item[key]}</Markdown>;
       }
@@ -55,18 +61,20 @@ export function Table(props: TableProps) {
 
   // generate table tag
   return (
-    <ModernTable style={tableStyle}>
-      <ModernTableRow>
-        {header.map((item) => (
-          <ModernTableHead key={item.key}>
-            {renderHeaderItem(item.name)}
-          </ModernTableHead>
-        ))}
-      </ModernTableRow>
+    <ModernTable style={tableStyle} className={props.className}>
+      <thead>
+        <ModernTableRow>
+          {header.map(item => (
+            <ModernTableHead key={item.key} style={item.style}>
+              {renderHeaderItem(item.name)}
+            </ModernTableHead>
+          ))}
+        </ModernTableRow>
+      </thead>
       <tbody>
         {compiledValue.map((item: any, index: number) => (
           <ModernTableRow key={index}>
-            {header.map((headerItem) => (
+            {header.map(headerItem => (
               <ModernTableData key={headerItem.key}>
                 {item[headerItem.key]}
               </ModernTableData>

@@ -2,7 +2,7 @@ import { ApiMeta } from '../../../components/ApiMeta';
 
 # 其他配置
 
-这里展示了 rspack 支持的其余配置项。
+这里展示了 Rspack 支持的其余配置项。
 
 ## bail
 
@@ -19,4 +19,18 @@ module.exports = {
 };
 ```
 
-这会强制 rspack 终止编译流程。
+这会强制 Rspack 终止编译流程。
+
+## ignoreWarnings
+
+- **类型：** `(RegExp | ((warning: Error, Compilation: Compilation) => boolean))[]`
+- **默认值：** `undefined`
+
+告知 Rspack 忽略特定的警告。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  ignoreWarnings: [/warning from compiler/, warning => true],
+};
+```

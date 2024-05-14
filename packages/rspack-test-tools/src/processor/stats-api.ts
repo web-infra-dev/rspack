@@ -9,10 +9,7 @@ import {
 } from "../type";
 import { createFsFromVolume, Volume } from "memfs";
 import fs from "fs";
-import path from "path";
 const serializer = require("jest-serializer-path");
-const FAKE_CWD = path.resolve(__dirname, "../../../rspack");
-const CWD = process.cwd();
 
 export interface IStatsAPITaskProcessorOptions<T extends ECompilerType> {
 	options?: (context: ITestContext) => TCompilerOptions<T>;
@@ -45,7 +42,7 @@ export class StatsAPITaskProcessor<
 		}
 	}
 	async run(env: ITestEnv, context: ITestContext) {
-		throw new Error("Not support");
+		// do nothing
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
@@ -53,13 +50,6 @@ export class StatsAPITaskProcessor<
 		const stats = compiler.getStats();
 		expect(typeof stats).toBe("object");
 		await this._statsAPIOptions.check?.(stats!, compiler.getCompiler()!);
-	}
-
-	async before(context: ITestContext): Promise<void> {
-		process.chdir(this._statsAPIOptions.cwd || FAKE_CWD);
-	}
-	async after(context: ITestContext): Promise<void> {
-		process.chdir(CWD);
 	}
 
 	static addSnapshotSerializer() {

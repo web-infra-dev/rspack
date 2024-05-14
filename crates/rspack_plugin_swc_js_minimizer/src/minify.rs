@@ -151,7 +151,7 @@ pub fn minify(
           // top_level defaults to true if module is true
 
           // https://github.com/swc-project/swc/issues/2254
-          if opts.module {
+          if opts.module.unwrap_or(false) {
             if let Some(opts) = &mut min_opts.compress {
               if opts.top_level.is_none() {
                 opts.top_level = Some(TopLevelOptions { functions: true });
@@ -174,7 +174,9 @@ pub fn minify(
               decorators_before_export: true,
               ..Default::default()
             }),
-            IsModule::Bool(opts.module),
+            opts
+              .module
+              .map_or_else(|| IsModule::Unknown, IsModule::Bool),
             Some(&comments),
           )
           .map_err(|errs| {
@@ -272,6 +274,7 @@ pub fn minify(
 
             // if not matched comments, we don't need to emit .License.txt file
             if !extracted_comments.is_empty() {
+              extracted_comments.sort();
               all_extract_comments
                 .lock()
                 .expect("all_extract_comments lock failed")

@@ -12,4 +12,4 @@ examples
 diffcases
 scripts/test/diff.cjs
 scripts/test/binary-path.cjs
-website/**/*
+plugin-test

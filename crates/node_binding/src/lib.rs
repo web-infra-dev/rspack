@@ -16,12 +16,10 @@ use rspack_error::Diagnostic;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 
 mod compiler;
-mod hook;
 mod loader;
 mod panic;
 mod plugins;
 
-use hook::*;
 pub use loader::run_builtin_loader;
 use plugins::*;
 use rspack_binding_options::*;
@@ -42,24 +40,21 @@ impl Rspack {
     env: Env,
     options: RawOptions,
     builtin_plugins: Vec<BuiltinPlugin>,
-    js_hooks: JsHooks,
     register_js_taps: RegisterJsTaps,
     output_filesystem: ThreadsafeNodeFS,
   ) -> Result<Self> {
     tracing::info!("raw_options: {:#?}", &options);
 
-    let disabled_hooks: DisabledHooks = Default::default();
     let mut plugins = Vec::new();
-    let js_plugin =
-      JsHooksAdapterPlugin::from_js_hooks(env, js_hooks, disabled_hooks, register_js_taps)?;
+    let js_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
     plugins.push(js_plugin.clone().boxed());
     for bp in builtin_plugins {
-      bp.append_to(&mut plugins)
+      bp.append_to(env, &mut plugins)
         .map_err(|e| Error::from_reason(format!("{e}")))?;
     }
 
     let compiler_options = options
-      .apply(&mut plugins)
+      .try_into()
       .map_err(|e| Error::from_reason(format!("{e}")))?;
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);
@@ -79,8 +74,8 @@ impl Rspack {
   }
 
   #[napi]
-  pub fn set_disabled_hooks(&self, hooks: Vec<String>) {
-    self.js_plugin.set_disabled_hooks(hooks)
+  pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
+    self.js_plugin.set_non_skippable_registers(kinds)
   }
 
   /// Build with the given option passed to the constructor

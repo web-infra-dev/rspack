@@ -2,11 +2,11 @@ use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
 use rspack_core::{
-  async_module_factory, impl_build_info_meta, impl_source_map_config, rspack_sources::Source,
+  async_module_factory, impl_module_meta_info, impl_source_map_config, rspack_sources::Source,
   sync_module_factory, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency,
   BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
-  ConcatenationScope, Context, DependenciesBlock, DependencyId, LibIdentOptions, Module,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  ConcatenationScope, Context, DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions,
+  Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -34,6 +34,7 @@ pub struct ProvideSharedModule {
   version: ProvideVersion,
   request: String,
   eager: bool,
+  factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
 }
@@ -61,9 +62,10 @@ impl ProvideSharedModule {
       version,
       request,
       eager,
+      factory_meta: None,
       build_info: None,
       build_meta: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 }
@@ -94,7 +96,7 @@ impl DependenciesBlock for ProvideSharedModule {
 
 #[async_trait]
 impl Module for ProvideSharedModule {
-  impl_build_info_meta!();
+  impl_module_meta_info!();
 
   fn size(&self, _source_type: &SourceType) -> f64 {
     42.0

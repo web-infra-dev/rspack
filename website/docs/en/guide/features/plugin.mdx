@@ -1,0 +1,59 @@
+# Plugins
+
+If [loaders](/guide/features/loader) are the workhorse for file transformations (preprocessing), then plugins are the workhorse for the overall Rspack build process. Most of Rspack's native implementations rely on the Rust side of the plugin system. For Node users, you don't need to worry about compatibility issues with Rust, because Rspack takes care of those details for you automatically. You can just focus on how to use the plugins. Find out [plugins](/plugins/index) you can use with Rspack.
+
+## Plugin usage
+
+Here's an example of how to use the already compatible [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer) in `rspack.config.js`:
+
+```js title="rspack.config.js"
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+
+module.exports = {
+  plugins: [new BundleAnalyzerPlugin()],
+};
+```
+
+If you're looking for more Rspack plugins, have a look at the great list of [supported plugins](/plugins/index).
+
+You can also refer to [Plugin compat](/guide/compatibility/plugin) for the list of webpack plugins that have passed Rspack compatibility tests.
+
+## Write a plugin
+
+### Plugin structure
+
+As a plugin author, the structure of a plugin is very simple: just implement an `apply` method that accepts a `Compiler` instance. It will be called when the Rspack plugin is initialized. The detailed API can be found in the [Plugin API](/api/plugin-api/index).
+
+```js
+const PLUGIN_NAME = 'MyPlugin';
+
+class MyPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+      console.log('The Rspack build process is starting!');
+    });
+  }
+}
+
+module.exports = MyPlugin;
+```
+
+We use CommonJS style module exports so that plugins can be imported directly using `require` in `rspack.config.js`.
+
+### Write with TypeScript
+
+If you use TypeScript to write Rspack plugins, you can import `Compiler` and `RspackPluginInstance` to declare the types of your plugins:
+
+```ts
+import type { Compiler, RspackPluginInstance } from '@rspack/core';
+
+const PLUGIN_NAME = 'MyPlugin';
+
+class MyPlugin implements RspackPluginInstance {
+  apply(compiler: Compiler) {
+    compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+      console.log('The Rspack build process is starting!');
+    });
+  }
+}
+```

@@ -9,4 +9,4 @@ pub mod swc_css_compiler;
 mod utils;
 pub mod visitors;
 
-pub use plugin::{CssConfig, CssPlugin};
+pub use plugin::CssPlugin;

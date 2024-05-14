@@ -1,5 +1,5 @@
 import PropertyType from '../../../components/property-type.tsx';
-import WebpackLicense from '../../../components/webpack-license';
+import WebpackLicense from '@components/webpack-license';
 
 <WebpackLicense from="https://webpack.js.org/configuration/stats/" />
 
@@ -10,7 +10,7 @@ import WebpackLicense from '../../../components/webpack-license';
 :::info 输出打包信息的 JSON 文件
 
 - 使用 `@rspack/cli`，`rspack build --json stats.json`。
-- 通过 Rspack 的 Node.js API，`stats.toJson(options)`、`stats.toString(options)`。
+- 通过 Rspack 的 JavaScript API，`stats.toJson(options)`、`stats.toString(options)`。
 
 :::
 
@@ -251,7 +251,7 @@ module.exports = {
 
 ## 扩展打包信息输出行为
 
-如果你想使用预设的输出行为，但又想多输出或少输出个别字段，可以在指定 preset 或 all 之后对字段的输出行为进行自定义。
+如果你想使用预设的输出行为，但又想对个别字段进行自定义设置，可以在指定 `stats.preset` 或 `stats.all` 之后对字段的输出行为进行自定义。
 
 举例来说，只输出错误和模块被引入的原因：
 

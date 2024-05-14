@@ -19,7 +19,12 @@ const CompatibleCardItem = ({
   return (
     <div className="component-card">
       <div className="component-card-title-line">
-        <a className="component-card-link" target="_blank" href={url}>
+        <a
+          className="component-card-link"
+          target="_blank"
+          rel="noreferrer"
+          href={url}
+        >
           {name}
         </a>
         <div className="component-card-space"></div>
@@ -45,7 +50,7 @@ export const CompatibleCardList = () => {
     const url =
       'https://raw.githubusercontent.com/web-infra-dev/rspack-compat/data/rspack-compat.json';
     setLoading(true);
-    axios.get<RspackCompatItem[]>(url).then((res) => {
+    axios.get<RspackCompatItem[]>(url).then(res => {
       const data = res.data.slice();
       data.sort((a, b) => {
         if (a.name < b.name) {
@@ -64,7 +69,7 @@ export const CompatibleCardList = () => {
   }
 
   const prefix = 'https://github.com/web-infra-dev/rspack-compat/tree/main';
-  return list.map((item) => (
+  return list.map(item => (
     <CompatibleCardItem
       key={item.name}
       name={`${item.name}@${item.version}`}

@@ -1,25 +1,29 @@
 use std::collections::hash_map::Entry;
-use std::collections::VecDeque;
 
+use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_core::{
-  BuildMetaExportsType, Compilation, DependenciesBlock, DependencyId, ExportInfoProvided,
-  ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, MutableModuleGraph, Plugin,
+  ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
+  DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId,
+  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  MutableModuleGraph, Plugin, PluginContext,
 };
 use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
+use crate::utils::queue::Queue;
+
 struct FlagDependencyExportsProxy<'a> {
-  mg: &'a mut ModuleGraph,
+  mg: &'a mut ModuleGraph<'a>,
   changed: bool,
   current_module_id: ModuleIdentifier,
   dependencies: HashMap<ModuleIdentifier, HashSet<ModuleIdentifier>>,
 }
 
 impl<'a> FlagDependencyExportsProxy<'a> {
-  pub fn new(mg: &'a mut ModuleGraph) -> Self {
+  pub fn new(mg: &'a mut ModuleGraph<'a>) -> Self {
     Self {
       mg,
       changed: false,
@@ -29,7 +33,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   }
 
   pub fn apply(&mut self) {
-    let mut q = VecDeque::new();
+    let mut q = Queue::new();
 
     let module_ids = self.mg.modules().keys().cloned().collect_vec();
     for module_id in module_ids {
@@ -66,20 +70,20 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         .unwrap_or_default()
       {
         exports_id.set_has_provide_info(self.mg);
-        q.push_back(module_id);
+        q.enqueue(module_id);
         continue;
       }
 
       exports_id.set_has_provide_info(self.mg);
-      q.push_back(module_id);
+      q.enqueue(module_id);
       // TODO: mem cache
     }
 
-    while let Some(module_id) = q.pop_front() {
+    while let Some(module_id) = q.dequeue() {
       self.changed = false;
       self.current_module_id = module_id;
-      let mut exports_specs_from_dependencies: HashMap<DependencyId, ExportsSpec> =
-        HashMap::default();
+      let mut exports_specs_from_dependencies: IndexMap<DependencyId, ExportsSpec> =
+        IndexMap::default();
       self.process_dependencies_block(&module_id, &mut exports_specs_from_dependencies);
       let exports_info_id = self.mg.get_exports_info(&module_id).id;
       for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
@@ -91,10 +95,10 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     }
   }
 
-  pub fn notify_dependencies(&mut self, q: &mut VecDeque<ModuleIdentifier>) {
+  pub fn notify_dependencies(&mut self, q: &mut Queue<ModuleIdentifier>) {
     if let Some(set) = self.dependencies.get(&self.current_module_id) {
       for mi in set.iter() {
-        q.push_back(*mi);
+        q.enqueue(*mi);
       }
     }
   }
@@ -102,7 +106,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   pub fn process_dependencies_block(
     &self,
     module_identifier: &ModuleIdentifier,
-    exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
+    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
     let block = &**self.mg.module_by_identifier(module_identifier)?;
     self.process_dependencies_block_inner(block, exports_specs_from_dependencies)
@@ -111,7 +115,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   fn process_dependencies_block_inner<B: DependenciesBlock + ?Sized>(
     &self,
     block: &B,
-    exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
+    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
     for dep_id in block.get_dependencies().iter() {
       let dep = self
@@ -147,7 +151,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     &self,
     dep_id: DependencyId,
     exports_specs: Option<ExportsSpec>,
-    exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
+    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
     // this is why we can bubble here. https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/FlagDependencyExportsPlugin.js#L140
     let exports_specs = exports_specs?;
@@ -363,18 +367,31 @@ pub struct DefaultExportInfo<'a> {
   priority: Option<u8>,
 }
 
+#[plugin]
 #[derive(Debug, Default)]
 pub struct FlagDependencyExportsPlugin;
 
-#[async_trait::async_trait]
+#[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
+async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+  FlagDependencyExportsProxy::new(&mut compilation.get_module_graph_mut()).apply();
+  Ok(())
+}
+
 impl Plugin for FlagDependencyExportsPlugin {
   fn name(&self) -> &'static str {
     "FlagDependencyExportsPlugin"
   }
 
-  async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-    let mut proxy = FlagDependencyExportsProxy::new(compilation.get_module_graph_mut());
-    proxy.apply();
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .finish_modules
+      .tap(finish_modules::new(self));
     Ok(())
   }
 }

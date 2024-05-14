@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use napi_derive::napi;
 use rspack_core::{Stats, StatsUsedExports};
 use rspack_napi::napi::bindgen_prelude::Buffer;
@@ -374,6 +376,7 @@ pub struct JsStatsChunk {
   pub parents: Option<Vec<String>>,
   pub children: Option<Vec<String>>,
   pub siblings: Option<Vec<String>>,
+  pub children_by_order: HashMap<String, Vec<String>>,
 }
 
 impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
@@ -395,6 +398,11 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
       parents: stats.parents,
       children: stats.children,
       siblings: stats.siblings,
+      children_by_order: stats
+        .children_by_order
+        .iter()
+        .map(|(order, children)| (order.to_string(), children.to_owned()))
+        .collect(),
     })
   }
 }
@@ -502,11 +510,9 @@ impl JsStats {
         source,
         used_exports,
         provided_exports,
+        |res| res.into_iter().map(TryInto::try_into).collect(),
       )
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
-      .into_iter()
-      .map(TryInto::try_into)
-      .collect()
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -533,11 +539,9 @@ impl JsStats {
         source,
         used_exports,
         provided_exports,
+        |res| res.into_iter().map(TryInto::try_into).collect(),
       )
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
-      .into_iter()
-      .map(TryInto::try_into)
-      .collect()
   }
 
   #[napi]

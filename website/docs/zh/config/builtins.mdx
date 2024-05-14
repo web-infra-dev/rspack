@@ -1,5 +1,5 @@
 import PropertyType from '../../../components/property-type.tsx';
-import { ApiMeta, Stability } from '../../../components/ApiMeta.tsx';
+import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
 import { Table } from '@builtIns';
 
 # Builtins
@@ -19,12 +19,14 @@ _Builtins_ 提供的内置功能在未来可能会发生变化，或被更好的
 
 ## builtins.banner
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [`BannerPlugin`](/config/plugins.html#bannerplugin)。
+请迁移至 [`BannerPlugin`](/plugins/webpack/banner-plugin)。
 :::
 
 - **类型：**
@@ -131,12 +133,14 @@ module.exports = {
 
 ## builtins.emotion
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+请迁移至 [builtin:swc-loader 配置](/guide/features/builtin-swc-loader)。
 :::
 
 用于设置对 emotion 的编译优化。
@@ -239,12 +243,14 @@ export type ImportMap =
 
 ## builtins.presetEnv
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+请迁移至 [builtin:swc-loader 配置](/guide/features/builtin-swc-loader)。
 :::
 
 该配置可以让你的代码运行在更老版本的浏览器上，你可以通过 [browserslist](https://github.com/browserslist/browserslist#queries) 来指定需要支持的所有浏览器。
@@ -292,7 +298,7 @@ type PresetEnv =
       type: '`string[]|undefined`',
       default: 'undefined',
       description:
-        '通过该配置可以使用 [browserslist query](https://github.com/browserslist/browserslist#queries) 来控制用户代码中 js 和 css 语法的降级，当此值为 undefined 时，rspack 将尝试使用[基础目录](config/context) 下的 [browserslist](https://github.com/browserslist/browserslist) 配置来进行转换。',
+        '通过该配置可以使用 [browserslist query](https://github.com/browserslist/browserslist#queries) 来控制用户代码中 JS 和 CSS 语法的降级，当此值为 undefined 时，rspack 将尝试使用[基础目录](config/context) 下的 [browserslist](https://github.com/browserslist/browserslist) 配置来进行转换。',
     },
     {
       name: '`mode`',
@@ -328,15 +334,17 @@ module.exports = {
 
 ## builtins.html
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [`HtmlRspackPlugin`](/config/plugins.html#htmlrspackplugin)。
+请迁移至 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin)。
 :::
 
-该配置可以快速创建与 Rspack 产物关联的 html 文件。
+该配置可以快速创建与 Rspack 产物关联的 HTML 文件。
 
 - **类型：**
 
@@ -385,7 +393,7 @@ type BuiltinsHtml = Array<{
       name: '`title`',
       type: '`string|undefined`',
       default: 'undefined',
-      description: '构建 html 的标题',
+      description: '构建 HTML 的标题',
     },
     {
       name: '`filename`',
@@ -458,31 +466,31 @@ type BuiltinsHtml = Array<{
       name: '`favicon`',
       type: '`string|undefined`',
       default: 'undefined',
-      description: '配置 html 图标',
+      description: '配置 HTML 图标',
     },
     {
       name: '`meta`',
       type: '`Record<string, string|Record<string, string>>` ',
       default: '{}',
-      description: '配置需要注入 html 的 meta',
+      description: '配置需要注入 HTML 的 meta',
     },
   ]}
 />
 
-:::info
-
-对于复杂的 HTML 配置需求，可使用 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 或 [@rspack/plugin-html](https://www.npmjs.com/package/@rspack/plugin-html)。
-
+:::tip
+如果 `rspack.HtmlRspackPlugin` 提供的配置项无法满足需求，你也可以直接使用社区的 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 插件。
 :::
 
 ## builtins.minifyOptions
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [`SwcJsMinimizerRspackPlugin`](/config/plugins.html#swcjsminimizerrspackplugin)。
+请迁移至 [`SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin)。
 :::
 
 设置内置压缩器配置。
@@ -578,12 +586,14 @@ type BuiltinsMinifyOptions = {
 
 ## builtins.define
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [`DefinePlugin`](/config/plugins.html#defineplugin)。
+请迁移至 [`DefinePlugin`](/plugins/webpack/define-plugin)。
 :::
 
 此选项将会在编译时将代码中的变量替换为其他值或表达式。
@@ -633,12 +643,14 @@ console.log(undefined === undefined);
 
 ## builtins.react
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+请迁移至 [builtin:swc-loader 配置](/guide/features/builtin-swc-loader)。
 :::
 
 此选项可以用来配置 react 相关代码的转换。
@@ -742,12 +754,14 @@ type ReactOptions = {
 
 ## builtins.decorator
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+请迁移至 [builtin:swc-loader 配置](/guide/features/builtin-swc-loader)。
 :::
 
 此选项可以用来配置装饰器的转换行为，false 表示关闭装饰器转换。
@@ -803,7 +817,9 @@ type BuiltinsDecorator =
 
 ## builtins.css
 
-此选项可以用来配置默认 css 打包策略。
+<ApiMeta removedVersion="0.6.0" stability={Stability.Removed} />
+
+此选项可以用来配置默认 CSS 打包策略。
 
 - **类型：**
 
@@ -814,6 +830,8 @@ type BuiltinsCss = {
 ```
 
 ### builtins.css.modules
+
+<ApiMeta removedVersion="0.6.0" stability={Stability.Removed} />
 
 css modules 配置
 
@@ -870,23 +888,21 @@ type BuiltinsCssModules = {
       name: '`exportsOnly`',
       type: '`boolean`',
       default: 'false',
-      description: '只输出 js 对象，不输出 css 文件。常在 SSR 场景下使用',
+      description: '只输出 JS 对象，不输出 CSS 文件。常在 SSR 场景下使用',
     },
   ]}
 />
 
-{/* ## builtins.postcss */}
-
-{/* ## builtins.treeShaking */}
-
 ## builtins.progress
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [`ProgressPlugin`](/config/plugins.html#progressplugin)。
+请迁移至 [`ProgressPlugin`](/plugins/webpack/progress-plugin)。
 :::
 
 此选项可以用来配置进度条，false 表示不显示进度条。
@@ -932,9 +948,11 @@ type BuiltinsCssModules = {
 
 ## builtins.devFriendlySplitChunks
 
-<ApiMeta deprecatedVersion="0.3.12" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.12"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 是否开启对开发友好的分包算法。
 
@@ -944,15 +962,17 @@ type BuiltinsCssModules = {
 
 ## builtins.copy
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [`CopyRspackPlugin`](/config/plugins.html#copyrspackplugin)。
+请迁移至 [`CopyRspackPlugin`](/plugins/rspack/copy-rspack-plugin)。
 :::
 
-import WebpackLicense from '../../../components/webpack-license';
+import WebpackLicense from '@components/webpack-license';
 
 <WebpackLicense from="https://webpack.js.org/plugins/copy-webpack-plugin/#root" />
 
@@ -1116,12 +1136,14 @@ module.exports = {
 
 ## builtins.relay
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+请迁移至 [builtin:swc-loader 配置](/guide/features/builtin-swc-loader)。
 :::
 
 将项目中的 `graphql` 调用转换成相对应的 `require`。
@@ -1145,12 +1167,14 @@ type RelayOptions =
 
 ## builtins.pluginImport
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [builtin:swc-loader 配置](https://www.rspack.dev/guide/loader.html#builtinswc-loader)。
+请迁移至 [builtin:swc-loader 配置](/guide/features/builtin-swc-loader)。
 :::
 
 移植自 [babel-plugin-import](https://github.com/umijs/babel-plugin-import)，配置基本保持一致。
@@ -1261,12 +1285,14 @@ import 'antd/es/button/style';
 
 ## builtins.provide
 
-<ApiMeta deprecatedVersion="0.3.10" />
-
-<ApiMeta removedVersion="0.5.0" stability={Stability.Removed} />
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
 
 :::warning
-请迁移至 [`ProvidePlugin`](/config/plugins.html#provideplugin)。
+请迁移至 [`ProvidePlugin`](/plugins/webpack/provide-plugin)。
 :::
 
 自动的将全局变量转换为模块导入，如下配置：

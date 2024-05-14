@@ -1,13 +1,18 @@
+use std::sync::Arc;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{BoxDependency, ModuleDependency, SpanExt};
-use rspack_error::miette::{diagnostic, Diagnostic, Severity};
-use rspack_error::DiagnosticExt;
-use swc_core::common::Span;
+use rspack_core::{BoxDependency, ConstDependency, DependencyTemplate, ModuleDependency, SpanExt};
+use rspack_error::miette::{Diagnostic, Severity};
+use rspack_error::{DiagnosticExt, TraceableError};
+use swc_core::atoms::Atom;
+use swc_core::common::{BytePos, FileName, Span, Spanned, SyntaxContext};
 use swc_core::css::ast::{
-  AtRule, AtRuleName, Function, ImportHref, ImportPrelude, Stylesheet, Token, TokenAndSpan, Url,
-  UrlValue,
+  AtRule, AtRuleName, ComplexSelectorChildren, ComponentValue, DeclarationName, Function, Ident,
+  ImportHref, ImportPrelude, PseudoClassSelector, QualifiedRulePrelude, Stylesheet,
+  SubclassSelector, Token, TokenAndSpan, Url, UrlValue,
 };
+use swc_core::css::modules::CssClassName;
 use swc_core::css::visit::{Visit, VisitWith};
 
 use crate::{
@@ -21,6 +26,8 @@ pub fn analyze_dependencies(
   ss: &Stylesheet,
   code_generation_dependencies: &mut Vec<Box<dyn ModuleDependency>>,
   diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  source_code: &str,
+  filename: &str,
 ) -> Vec<BoxDependency> {
   let mut v = Analyzer {
     deps: Vec::new(),
@@ -28,6 +35,8 @@ pub fn analyze_dependencies(
     diagnostics,
     nearest_at_import_span: None,
     url_function_span: None,
+    source_code,
+    filename,
     // in_support_contdition: false,
   };
   ss.visit_with(&mut v);
@@ -42,19 +51,41 @@ struct Analyzer<'a> {
   diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   nearest_at_import_span: Option<Span>,
   url_function_span: Option<Span>,
+  source_code: &'a str,
+  filename: &'a str,
   // in_support_contdition: bool,
 }
 
 fn replace_module_request_prefix(
   specifier: String,
   diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  source_code: &str,
+  filename: &str,
+  span: Span,
 ) -> String {
   if IS_MODULE_REQUEST.is_match(&specifier) {
+    let cm: Arc<swc_core::common::SourceMap> = Default::default();
+    let fm = cm.new_source_file(
+      FileName::Custom(filename.to_string()),
+      source_code.to_string(),
+    );
+    let start = span.real_lo() as usize;
+    let end = span.real_hi() as usize;
+    let import_statement = &source_code[start..end];
+    let mat = Regex::new(r"~")
+      .expect("Failed to compile the regex.")
+      .find(import_statement)
+      .expect("Failed to find the '~'.");
     diagnostics.push(
-      diagnostic!(
-        severity = Severity::Warning,
-        "css: Deprecated '~'\n'@import' or 'url()' with a request starts with '~' is deprecated.",
+      TraceableError::from_source_file(
+        &fm.clone(),
+        start + mat.start(),
+        start + mat.end(),
+        "CSS parsing warning".to_string(),
+        "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
       )
+      .with_help(Some("Remove '~' from the request."))
+      .with_severity(Severity::Warning)
       .boxed(),
     );
     IS_MODULE_REQUEST.replace(&specifier, "").to_string()
@@ -68,7 +99,13 @@ static IMPORT_KEYWORD: &str = "import";
 
 impl Analyzer<'_> {
   fn analyze_url(&mut self, value: impl Into<String>, span: Span) {
-    let mut specifier = replace_module_request_prefix(value.into(), self.diagnostics);
+    let mut specifier = replace_module_request_prefix(
+      value.into(),
+      self.diagnostics,
+      self.source_code,
+      self.filename,
+      span,
+    );
     specifier = normalize_url(&specifier);
     let dep = Box::new(CssUrlDependency::new(
       specifier,
@@ -104,7 +141,13 @@ impl Visit for Analyzer<'_> {
       ImportHref::Str(s) => Some(s.value.to_string()),
     };
     if let Some(specifier) = specifier {
-      let specifier = replace_module_request_prefix(specifier, self.diagnostics);
+      let specifier = replace_module_request_prefix(
+        specifier,
+        self.diagnostics,
+        self.source_code,
+        self.filename,
+        span,
+      );
       self.deps.push(Box::new(CssImportDependency::new(
         specifier,
         Some(span.into()),
@@ -184,6 +227,80 @@ impl Visit for Analyzer<'_> {
       && !specifier.is_empty()
     {
       self.analyze_url(specifier, u.span);
+    }
+  }
+}
+
+pub(crate) struct ExportsAnalyzer<'source> {
+  source_code: &'source str,
+  pub exports: Vec<(Atom, CssClassName)>,
+  pub presentation_deps: Vec<Box<dyn DependencyTemplate>>,
+}
+
+impl<'source> ExportsAnalyzer<'source> {
+  pub fn new(source_code: &'source str) -> Self {
+    Self {
+      source_code,
+      exports: Default::default(),
+      presentation_deps: Default::default(),
+    }
+  }
+}
+
+impl<'source> Visit for ExportsAnalyzer<'source> {
+  fn visit_qualified_rule(&mut self, n: &swc_core::css::ast::QualifiedRule) {
+    // parse :export { foo: bar; }
+    // TODO: is this a fulfilled detection ?
+    if let QualifiedRulePrelude::SelectorList(selector_list) = &n.prelude
+      && selector_list.children.len() == 1
+      && selector_list.children[0].children.len() == 1
+      && let ComplexSelectorChildren::CompoundSelector(selector) =
+        &selector_list.children[0].children[0]
+      && selector.subclass_selectors.len() == 1
+      && let SubclassSelector::PseudoClass(PseudoClassSelector { name, .. }) =
+        &selector.subclass_selectors[0]
+      && &name.value == "export"
+    {
+      for decl in &n.block.value {
+        if let ComponentValue::Declaration(decl) = decl {
+          let key = match &decl.name {
+            DeclarationName::Ident(ident) => &ident.value,
+            DeclarationName::DashedIdent(dashed_ident) => &dashed_ident.value,
+          };
+
+          let start = decl
+            .value
+            .first()
+            .expect("export value should have value")
+            .span()
+            .real_lo();
+          let end = decl
+            .value
+            .last()
+            .expect("export value should have value")
+            .span()
+            .real_hi();
+
+          let value = &self.source_code[start as usize..end as usize];
+          self.exports.push((
+            key.clone(),
+            CssClassName::Global {
+              name: Ident {
+                value: value.into(),
+                span: Span::new(BytePos(start), BytePos(end), SyntaxContext::empty()),
+                raw: None,
+              },
+            },
+          ));
+        }
+      }
+
+      self.presentation_deps.push(Box::new(ConstDependency::new(
+        n.span.real_lo(),
+        n.span.real_hi(),
+        "".into(),
+        None,
+      )));
     }
   }
 }

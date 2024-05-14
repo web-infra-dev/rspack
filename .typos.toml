@@ -8,21 +8,24 @@ extend-exclude = [
   "**/tests/**",
   "**/mock/**",
   "packages/rspack-test-tools",
-  "packages/rspack/tests/hashCases",
   "packages/rspack/src/util/hash",
   "webpack-examples",
   "webpack-test",
+  "plugin-test",
   "webpack-cli-test",
   "**/CHANGELOG.md",
   "GOVERNANCE.md",
   "pnpm-lock.yaml",
   "scripts/test/diff.cjs",
   "scripts/test/binary-path.cjs",
-  # temporarily disable typos for website
-  "website/**/*" 
 ]
+
+[default.extend-identifiers]
+JSerFeng = "JSerFeng"
 
 [default.extend-words]
 Nd       = "Nd"
 fo       = "fo"
 splitted = "splitted"
+ws       = "ws"
+Pn       = "Pn"

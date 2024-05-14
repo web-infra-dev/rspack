@@ -5,14 +5,9 @@ test("asset emitted hook should only emit modified assets", async ({
 	fileAction,
 	rspack
 }) => {
-	const assets: string[] = [];
-	rspack.compiler.hooks.assetEmitted.tap("test", function (name) {
-		if (name.includes(".hot-update.")) {
-			return;
-		}
-		assets.push(name);
-	});
-
+	const assets = (rspack.compiler as any).assets;
+	// reset assets
+	assets.length = 0;
 	expect(await page.textContent("#root")).toBe("__ROOT_TEXT____FOO_VALUE__");
 
 	// update js file
@@ -49,14 +44,9 @@ test("asset emitted should not emit removed assets", async ({
 	rspack,
 	fileAction
 }) => {
-	const assets: string[] = [];
-	rspack.compiler.hooks.assetEmitted.tap("test", function (name) {
-		if (name.includes(".hot-update.")) {
-			return;
-		}
-		assets.push(name);
-	});
-
+	const assets = (rspack.compiler as any).assets;
+	// reset assets
+	assets.length = 0;
 	expect(await page.textContent("#root")).toBe("__ROOT_TEXT____FOO_VALUE__");
 	// update js file
 	fileAction.updateFile("src/index.js", () => {

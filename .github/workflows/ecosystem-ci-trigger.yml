@@ -65,7 +65,7 @@ jobs:
         env:
           COMMENT: ${{ github.event.comment.body }}
         with:
-          github-token: ${{ secrets.ECOSYSTEM_CI_ACCESS_TOKEN }}
+          github-token: ${{ secrets.RSPACK_ACCESS_TOKEN }}
           result-encoding: string
           script: |
             const comment = process.env.COMMENT.trim()

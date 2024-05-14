@@ -3,10 +3,11 @@ use std::sync::Arc;
 
 use derivative::Derivative;
 use rspack_core::{Chunk, ChunkGroupByUkey, Module, SourceType};
+use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-pub type ChunkFilter = Arc<dyn Fn(&Chunk, &ChunkGroupByUkey) -> bool + Send + Sync>;
+pub type ChunkFilter = Arc<dyn Fn(&Chunk, &ChunkGroupByUkey) -> Result<bool> + Send + Sync>;
 pub type ModuleTypeFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
 
 pub fn create_default_module_type_filter() -> ModuleTypeFilter {
@@ -14,15 +15,15 @@ pub fn create_default_module_type_filter() -> ModuleTypeFilter {
 }
 
 pub fn create_async_chunk_filter() -> ChunkFilter {
-  Arc::new(|chunk, chunk_group_db| !chunk.can_be_initial(chunk_group_db))
+  Arc::new(|chunk, chunk_group_db| Ok(!chunk.can_be_initial(chunk_group_db)))
 }
 
 pub fn create_initial_chunk_filter() -> ChunkFilter {
-  Arc::new(|chunk, chunk_group_db| chunk.can_be_initial(chunk_group_db))
+  Arc::new(|chunk, chunk_group_db| Ok(chunk.can_be_initial(chunk_group_db)))
 }
 
 pub fn create_all_chunk_filter() -> ChunkFilter {
-  Arc::new(|_chunk, _chunk_group_db| true)
+  Arc::new(|_chunk, _chunk_group_db| Ok(true))
 }
 
 pub fn create_chunk_filter_from_str(chunks: &str) -> ChunkFilter {
@@ -35,7 +36,7 @@ pub fn create_chunk_filter_from_str(chunks: &str) -> ChunkFilter {
 }
 
 pub fn create_regex_chunk_filter_from_str(re: RspackRegex) -> ChunkFilter {
-  Arc::new(move |chunk, _| chunk.name.as_ref().map_or(false, |name| re.test(name)))
+  Arc::new(move |chunk, _| Ok(chunk.name.as_ref().map_or(false, |name| re.test(name))))
 }
 
 #[derive(Debug, Default, Clone)]

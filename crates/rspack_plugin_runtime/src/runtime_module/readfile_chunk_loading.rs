@@ -6,7 +6,10 @@ use rspack_core::{
 use rspack_identifier::Identifier;
 use rspack_util::source_map::SourceMapKind;
 
-use super::utils::{chunk_has_js, get_output_dir};
+use super::{
+  generate_javascript_hmr_runtime,
+  utils::{chunk_has_js, get_output_dir},
+};
 use crate::{
   get_chunk_runtime_requirements,
   runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
@@ -24,7 +27,7 @@ impl Default for ReadFileChunkLoadingRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/readfile_chunk_loading"),
       chunk: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -63,7 +66,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
@@ -84,7 +87,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
     let has_js_matcher = compile_boolean_matcher(&condition_map);
 
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
-    let root_output_dir = get_output_dir(chunk, compilation, false);
+    let root_output_dir = get_output_dir(chunk, compilation, false)?;
     let mut source = ConcatSource::default();
 
     if with_base_uri {
@@ -161,9 +164,9 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
       source.add(RawSource::from(include_str!(
         "runtime/readfile_chunk_loading_with_hmr.js"
       )));
-      source.add(RawSource::from(
-        include_str!("runtime/javascript_hot_module_replacement.js").replace("$key$", "readFileVm"),
-      ));
+      source.add(RawSource::from(generate_javascript_hmr_runtime(
+        "readFileVm",
+      )));
     }
 
     if with_hmr_manifest {
@@ -173,7 +176,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
       ));
     }
 
-    source.boxed()
+    Ok(source.boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

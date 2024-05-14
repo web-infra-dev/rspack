@@ -11,10 +11,11 @@ use rayon::prelude::*;
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
-  Compilation, CompilationAsset, Filename, PathData, Plugin,
+  Compilation, CompilationAsset, CompilationProcessAssets, FilenameTemplate, PathData, Plugin,
 };
 use rspack_error::{AnyhowError, Result};
-use rspack_hook::{plugin, plugin_hook, AsyncSeries};
+use rspack_hook::{plugin, plugin_hook};
+use rspack_util::infallible::ResultInfallibleExt as _;
 use swc_html::visit::VisitMutWith;
 
 use crate::{
@@ -36,7 +37,7 @@ impl HtmlRspackPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries<Compilation> for HtmlRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE)]
+#[plugin_hook(CompilationProcessAssets for HtmlRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let config = &self.config;
 
@@ -127,7 +128,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         );
         let mut tag: Option<HTMLPluginTag> = None;
         if extension.eq_ignore_ascii_case("css") {
-          tag = Some(HTMLPluginTag::create_style(&asset_uri, config.inject));
+          tag = Some(HTMLPluginTag::create_style(&asset_uri, HtmlInject::Head));
         } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
           tag = Some(HTMLPluginTag::create_script(
             &asset_uri,
@@ -161,19 +162,21 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   let source = parser.codegen(&mut current_ast)?;
   let hash = hash_for_source(&source);
-  let html_file_name = Filename::from(config.filename.clone());
+  let html_file_name = FilenameTemplate::from(config.filename.clone());
   // Use the same filename as template
   let output_path = compilation
     .options
     .output
     .path
     .join(normalized_template_name);
-  let (output_path, asset_info) = compilation.get_path_with_info(
-    &html_file_name,
-    PathData::default()
-      .filename(&output_path.to_string_lossy())
-      .content_hash(&hash),
-  );
+  let (output_path, asset_info) = compilation
+    .get_path_with_info(
+      &html_file_name,
+      PathData::default()
+        .filename(&output_path.to_string_lossy())
+        .content_hash(&hash),
+    )
+    .always_ok();
   compilation.emit_asset(
     output_path,
     CompilationAsset::new(Some(RawSource::from(source).boxed()), asset_info),
@@ -181,7 +184,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   if let Some(favicon) = &self.config.favicon {
     let url = parse_to_url(favicon);
-    let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon));
+    let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon))
+      .file_name()
+      .expect("Should have favicon file name")
+      .to_string_lossy()
+      .to_string();
 
     let resolved_favicon = AsRef::<Path>::as_ref(&compilation.options.context).join(url.path());
     let content = fs::read(resolved_favicon)
@@ -192,7 +199,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       ))
       .map_err(AnyhowError::from)?;
     compilation.emit_asset(
-      favicon_file_path.to_string_lossy().to_string(),
+      favicon_file_path,
       CompilationAsset::from(RawSource::from(content).boxed()),
     );
   }

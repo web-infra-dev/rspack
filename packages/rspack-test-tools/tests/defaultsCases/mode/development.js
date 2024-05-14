@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "development",
 	options: () => ({ mode: "development" }),
@@ -15,6 +16,12 @@ module.exports = {
 		@@ ... @@
 		-     "nodeEnv": false,
 		+     "nodeEnv": "development",
+		@@ ... @@
+		-     "pathinfo": false,
+		+     "pathinfo": true,
+		@@ ... @@
+		-           "production",
+		+           "development",
 		@@ ... @@
 		-       "production",
 		+       "development",

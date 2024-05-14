@@ -1,9 +1,7 @@
 use napi_derive::napi;
 use rspack_core::NodeOption;
-use serde::Deserialize;
 
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawNodeOption {
   pub dirname: String,

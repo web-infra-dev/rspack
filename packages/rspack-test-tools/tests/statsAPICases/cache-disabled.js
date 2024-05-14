@@ -1,4 +1,6 @@
 const { Stats } = require("@rspack/core");
+
+/** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should not have any cache hits log when cache is disabled",
 	options(context) {
@@ -18,7 +20,7 @@ module.exports = {
 			});
 		});
 		await new Promise((resolve, reject) => {
-			compiler.rebuild(
+			compiler.__internal__rebuild(
 				new Set([context.getSource("./fixtures/a")]),
 				new Set(),
 				err => {

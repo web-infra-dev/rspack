@@ -1,8 +1,11 @@
 // Port of https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/optimize/RemoveEmptyChunksPlugin.js
 
-use rspack_core::{Compilation, Logger, Plugin};
+use rspack_core::{Compilation, CompilationOptimizeChunks, Logger, Plugin};
+use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook};
 
-#[derive(Debug)]
+#[plugin]
+#[derive(Debug, Default)]
 pub struct RemoveEmptyChunksPlugin;
 
 impl RemoveEmptyChunksPlugin {
@@ -37,19 +40,27 @@ impl RemoveEmptyChunksPlugin {
   }
 }
 
-#[async_trait::async_trait]
+#[plugin_hook(CompilationOptimizeChunks for RemoveEmptyChunksPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
+fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  self.remove_empty_chunks(compilation);
+  Ok(None)
+}
+
 impl Plugin for RemoveEmptyChunksPlugin {
   fn name(&self) -> &'static str {
     "rspack.RemoveEmptyChunksPlugin"
   }
 
-  async fn optimize_chunks(
+  fn apply(
     &self,
-    _ctx: rspack_core::PluginContext,
-    args: rspack_core::OptimizeChunksArgs<'_>,
-  ) -> rspack_core::PluginOptimizeChunksOutput {
-    let compilation = args.compilation;
-    self.remove_empty_chunks(compilation);
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut rspack_core::CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_chunks
+      .tap(optimize_chunks::new(self));
     Ok(())
   }
 }

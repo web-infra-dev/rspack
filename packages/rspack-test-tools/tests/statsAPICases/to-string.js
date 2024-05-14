@@ -1,3 +1,4 @@
+/** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should look not bad for default stats toString",
 	options(context) {
@@ -10,8 +11,8 @@ module.exports = {
 		expect(stats?.toString({ timings: false, version: false }))
 			.toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 738 bytes [emitted] (name: main)
-		Entrypoint main 738 bytes = main.js
+		asset main.js 726 bytes [emitted] (name: main)
+		Entrypoint main 726 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
@@ -30,7 +31,7 @@ module.exports = {
 		  help: 
 		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (8137ab425c2721784808)"
+		Rspack compiled with 1 error (2269ff26c17a6bb04d0e)"
 	`);
 	}
 };

@@ -1,8 +1,4 @@
-use std::{
-  ops::Deref,
-  path::{Path, PathBuf},
-  str::FromStr,
-};
+use std::{ops::Deref, path::PathBuf, str::FromStr};
 
 use napi_derive::napi;
 use rspack_core::{rspack_sources::SourceMap, Content, ResourceData};
@@ -15,6 +11,7 @@ use {
   rspack_error::error,
   rspack_identifier::{Identifiable, Identifier},
   rspack_napi::threadsafe_function::ThreadsafeFunction,
+  rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef,
 };
 
 use crate::get_builtin_loader;
@@ -142,11 +139,11 @@ fn sync_loader_context(
     .map_err(|e| error!(e.to_string()))?;
   loader_context.additional_data = loader_result.additional_data_external.clone();
   if let Some(data) = loader_result.additional_data {
+    loader_context.additional_data.insert(data);
+  } else {
     loader_context
       .additional_data
-      .insert(String::from_utf8_lossy(&data).to_string());
-  } else {
-    loader_context.additional_data.remove::<String>();
+      .remove::<ThreadsafeJsValueRef<Unknown>>();
   }
   loader_context.asset_filenames = loader_result.asset_filenames.into_iter().collect();
 
@@ -157,7 +154,8 @@ fn sync_loader_context(
 pub struct JsLoaderContext {
   /// Content maybe empty in pitching stage
   pub content: Either<Null, Buffer>,
-  pub additional_data: Option<Buffer>,
+  #[napi(ts_type = "any")]
+  pub additional_data: Option<ThreadsafeJsValueRef<Unknown>>,
   pub source_map: Option<Buffer>,
   pub resource: String,
   pub resource_path: String,
@@ -212,8 +210,8 @@ impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContex
       },
       additional_data: cx
         .additional_data
-        .get::<String>()
-        .map(|v| v.clone().into_bytes().into()),
+        .get::<ThreadsafeJsValueRef<Unknown>>()
+        .cloned(),
       source_map: cx
         .source_map
         .clone()
@@ -221,10 +219,10 @@ impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContex
         .transpose()
         .map_err(|e| error!(e.to_string()))?
         .map(|v| v.into_bytes().into()),
-      resource: cx.resource.to_owned(),
-      resource_path: cx.resource_path.to_string_lossy().to_string(),
-      resource_fragment: cx.resource_fragment.map(|r| r.to_owned()),
-      resource_query: cx.resource_query.map(|r| r.to_owned()),
+      resource: cx.resource().to_owned(),
+      resource_path: cx.resource_path().to_string_lossy().to_string(),
+      resource_fragment: cx.resource_fragment().map(|r| r.to_owned()),
+      resource_query: cx.resource_query().map(|r| r.to_owned()),
       cacheable: cx.cacheable,
       file_dependencies: cx
         .file_dependencies
@@ -273,14 +271,18 @@ pub async fn run_builtin_loader(
   let list = &[loader_item];
   let additional_data = {
     let mut additional_data = loader_context.additional_data_external.clone();
-    if let Some(data) = loader_context
-      .additional_data
-      .map(|b| String::from_utf8_lossy(b.as_ref()).to_string())
-    {
+    if let Some(data) = loader_context.additional_data {
       additional_data.insert(data);
     }
     additional_data
   };
+
+  let mut resource_data = ResourceData::new(
+    loader_context.resource,
+    PathBuf::from(loader_context.resource_path),
+  )
+  .query_optional(loader_context.resource_query)
+  .fragment_optional(loader_context.resource_fragment);
 
   let mut cx = LoaderContext {
     hot: loader_context.hot,
@@ -288,10 +290,6 @@ pub async fn run_builtin_loader(
       Either::A(_) => None,
       Either::B(c) => Some(Content::from(c.as_ref().to_owned())),
     },
-    resource: &loader_context.resource,
-    resource_path: Path::new(&loader_context.resource_path),
-    resource_query: loader_context.resource_query.as_deref(),
-    resource_fragment: loader_context.resource_fragment.as_deref(),
     context: loader_context.context_external.clone(),
     source_map: loader_context
       .source_map
@@ -327,7 +325,7 @@ pub async fn run_builtin_loader(
     asset_filenames: HashSet::from_iter(loader_context.asset_filenames.into_iter()),
     // Initialize with no diagnostic
     __diagnostics: vec![],
-    __resource_data: &ResourceData::new(Default::default(), Default::default()),
+    __resource_data: &mut resource_data,
     __loader_items: LoaderItemList(list),
     // This is used an hack to `builtin:swc-loader` in order to determine whether to return AST or source.
     __loader_index: loader_context.loader_index_from_js.unwrap_or(0) as usize,
@@ -359,7 +357,7 @@ pub struct JsLoaderResult {
   pub build_dependencies: Vec<String>,
   pub asset_filenames: Vec<String>,
   pub source_map: Option<Buffer>,
-  pub additional_data: Option<Buffer>,
+  pub additional_data: Option<ThreadsafeJsValueRef<Unknown>>,
   pub additional_data_external: External<AdditionalData>,
   pub cacheable: bool,
   /// Used to instruct how rust loaders should execute
@@ -433,7 +431,9 @@ impl napi::bindgen_prelude::FromNapiValue for JsLoaderResult {
       )
     })?;
     let source_map_: Option<Buffer> = obj.get("sourceMap")?;
-    let additional_data_: Option<Buffer> = obj.get("additionalData")?;
+    let additional_data_: Option<ThreadsafeJsValueRef<Unknown>> =
+      obj.get::<_, ThreadsafeJsValueRef<Unknown>>("additionalData")?;
+
     // change: eagerly clone this field since `External<T>` might be dropped.
     let additional_data_external_: External<AdditionalData> = obj
       .get("additionalDataExternal")?

@@ -21,7 +21,7 @@ impl Default for AutoPublicPathRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/auto_public_path"),
       chunk: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -40,7 +40,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = self.chunk.expect("The chunk should be attached");
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
     let filename = get_js_chunk_filename_template(
@@ -56,12 +56,14 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
           .get(&SourceType::JavaScript)
           .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
       ),
-    );
-    RawSource::from(auto_public_path_template(
-      &filename,
-      &compilation.options.output,
-    ))
-    .boxed()
+    )?;
+    Ok(
+      RawSource::from(auto_public_path_template(
+        &filename,
+        &compilation.options.output,
+      ))
+      .boxed(),
+    )
   }
 }
 

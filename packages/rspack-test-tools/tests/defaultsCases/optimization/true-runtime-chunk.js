@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "true runtimeChunk",
 	options: () => ({ optimization: { runtimeChunk: true } }),
@@ -9,7 +10,7 @@ module.exports = {
 		@@ ... @@
 		-     "runtimeChunk": false,
 		+     "runtimeChunk": Object {
-		+       "name": [Function name],
+		+       "name": "multiple",
 		+     },
 	`)
 };

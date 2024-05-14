@@ -9,11 +9,11 @@ use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  dependencies_block::AsyncDependenciesBlockIdentifier, impl_build_info_meta, BuildContext,
+  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Context, DependenciesBlock,
   DependencyId, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
-use crate::{Compilation, ConcatenationScope};
+use crate::{Compilation, ConcatenationScope, FactoryMeta};
 
 #[impl_source_map_config]
 #[derive(Debug)]
@@ -24,6 +24,7 @@ pub struct RawModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
+  factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
 }
@@ -45,9 +46,10 @@ impl RawModule {
       identifier,
       readable_identifier,
       runtime_requirements,
+      factory_meta: None,
       build_info: None,
       build_meta: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 }
@@ -78,7 +80,7 @@ impl DependenciesBlock for RawModule {
 
 #[async_trait::async_trait]
 impl Module for RawModule {
-  impl_build_info_meta!();
+  impl_module_meta_info!();
 
   fn get_diagnostics(&self) -> Vec<Diagnostic> {
     vec![]

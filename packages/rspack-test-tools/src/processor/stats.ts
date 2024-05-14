@@ -12,6 +12,7 @@ import { MultiTaskProcessor } from "./multi";
 import fs from "fs";
 import path from "path";
 import captureStdio from "../helper/legacy/captureStdio";
+import { escapeEOL } from "../helper";
 
 export interface IRspackStatsProcessorOptions<T extends ECompilerType.Rspack> {
 	name: string;
@@ -59,7 +60,7 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 							if (err) return callback(err);
 							if (!/\.(js|json|txt)$/.test(args[0]))
 								return callback(null, result);
-							callback(null, result.toString("utf-8").replace(/\r/g, ""));
+							callback(null, escapeEOL(result.toString("utf-8")));
 						}
 					])
 				);

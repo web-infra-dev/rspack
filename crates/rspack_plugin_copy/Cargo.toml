@@ -7,6 +7,8 @@ version    = "0.1.0"
 
 [dependencies]
 dashmap        = { workspace = true }
+derivative     = { workspace = true }
+futures        = { workspace = true }
 glob           = { workspace = true }
 lazy_static    = "1.4.0"
 pathdiff       = { workspace = true }
@@ -16,6 +18,7 @@ rspack_error   = { path = "../rspack_error" }
 rspack_futures = { path = "../rspack_futures" }
 rspack_hash    = { path = "../rspack_hash" }
 rspack_hook    = { path = "../rspack_hook" }
+rspack_util    = { path = "../rspack_util" }
 rustc-hash     = { workspace = true }
 sugar_path     = { workspace = true }
 tokio          = { workspace = true, features = ["fs"] }

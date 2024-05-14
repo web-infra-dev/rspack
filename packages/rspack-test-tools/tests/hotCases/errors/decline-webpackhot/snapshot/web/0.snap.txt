@@ -1,0 +1,12 @@
+# Case decline-webpackhot: Step 0
+
+## Changed Files
+- c.js
+
+## Asset Files
+- Bundle: bundle.js
+
+## Manifest
+
+		
+## Update

@@ -4,6 +4,7 @@ use rspack_core::{
   RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
+use rspack_util::infallible::ResultInfallibleExt as _;
 use rspack_util::source_map::SourceMapKind;
 
 #[impl_runtime_module]
@@ -26,7 +27,7 @@ impl AsyncWasmLoadingRuntimeModule {
       id: Identifier::from("webpack/runtime/async_wasm_loading"),
       supports_streaming,
       chunk,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -36,7 +37,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let (fake_filename, hash_len_map) =
       get_filename_without_hash_length(&compilation.options.output.webassembly_module_filename);
 
@@ -50,21 +51,25 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
     };
 
     let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);
-    let path = compilation.get_path(
-      &fake_filename,
-      PathData::default()
-        .hash(&hash)
-        .content_hash(&hash)
-        .id("\" + wasmModuleId + \"")
-        .runtime(&chunk.runtime),
-    );
-    RawSource::from(get_async_wasm_loading(
-      &self
-        .generate_load_binary_code
-        .replace("$PATH", &format!("\"{}\"", path)),
-      self.supports_streaming,
-    ))
-    .boxed()
+    let path = compilation
+      .get_path(
+        &fake_filename,
+        PathData::default()
+          .hash(&hash)
+          .content_hash(&hash)
+          .id("\" + wasmModuleId + \"")
+          .runtime(&chunk.runtime),
+      )
+      .always_ok();
+    Ok(
+      RawSource::from(get_async_wasm_loading(
+        &self
+          .generate_load_binary_code
+          .replace("$PATH", &format!("\"{}\"", path)),
+        self.supports_streaming,
+      ))
+      .boxed(),
+    )
   }
 
   fn stage(&self) -> RuntimeModuleStage {

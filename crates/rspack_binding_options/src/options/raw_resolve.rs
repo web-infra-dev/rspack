@@ -3,11 +3,10 @@ use std::{collections::HashMap, path::PathBuf};
 use napi_derive::napi;
 use rspack_core::{Alias, AliasMap, ByDependency, Resolve, TsconfigOptions, TsconfigReferences};
 use rspack_error::error;
-use serde::Deserialize;
 
 pub type AliasValue = serde_json::Value;
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawAliasOptionItem {
   pub path: String,
@@ -15,8 +14,7 @@ pub struct RawAliasOptionItem {
   pub redirect: Vec<AliasValue>,
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawResolveTsconfigOptions {
   pub config_file: String,
@@ -25,8 +23,7 @@ pub struct RawResolveTsconfigOptions {
   pub references: Option<Vec<String>>,
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawResolveOptions {
   pub prefer_relative: Option<bool>,
@@ -43,7 +40,9 @@ pub struct RawResolveOptions {
   pub by_dependency: Option<HashMap<String, RawResolveOptions>>,
   pub fully_specified: Option<bool>,
   pub exports_fields: Option<Vec<String>>,
-  #[serde(serialize_with = "ordered_map")]
+  pub description_files: Option<Vec<String>>,
+  pub enforce_extension: Option<bool>,
+  pub imports_fields: Option<Vec<String>>,
   #[napi(ts_type = "Record<string, Array<string>>")]
   pub extension_alias: Option<HashMap<String, Vec<String>>>,
   pub alias_fields: Option<Vec<String>>,
@@ -120,6 +119,12 @@ impl TryFrom<RawResolveOptions> for Resolve {
       .map(|v| v.into_iter().map(|s| vec![s]).collect());
     let restrictions = value.restrictions;
     let roots = value.roots;
+    let enforce_extension = value.enforce_extension;
+    let description_files = value.description_files;
+    let imports_field = value
+      .imports_fields
+      .map(|v| v.into_iter().map(|s| vec![s]).collect());
+
     Ok(Resolve {
       modules,
       prefer_relative,
@@ -139,6 +144,9 @@ impl TryFrom<RawResolveOptions> for Resolve {
       alias_fields,
       restrictions,
       roots,
+      enforce_extension,
+      description_files,
+      imports_field,
     })
   }
 }

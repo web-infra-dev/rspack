@@ -1,14 +1,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rspack_core::{ApplyContext, CompilerOptions};
 use rspack_core::{
-  Compilation, CompilationParams, Dependency, DependencyType, EntryOptions, EntryRuntime, Filename,
-  LibraryOptions, MakeParam, Plugin, PluginContext, PluginRuntimeRequirementsInTreeOutput,
-  RuntimeGlobals, RuntimeRequirementsInTreeArgs,
+  ApplyContext, ChunkUkey, CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerMake,
+  CompilerOptions,
+};
+use rspack_core::{
+  Compilation, CompilationParams, DependencyType, EntryOptions, EntryRuntime, FilenameTemplate,
+  LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook, AsyncSeries2};
+use rspack_hook::{plugin, plugin_hook};
 use serde::Serialize;
 
 use super::{
@@ -23,7 +25,7 @@ pub struct ContainerPluginOptions {
   pub share_scope: String,
   pub library: LibraryOptions,
   pub runtime: Option<EntryRuntime>,
-  pub filename: Option<Filename>,
+  pub filename: Option<FilenameTemplate>,
   pub exposes: Vec<(String, ExposeOptions)>,
   pub enhanced: bool,
 }
@@ -46,7 +48,7 @@ impl ContainerPlugin {
   }
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, CompilationParams> for ContainerPlugin)]
+#[plugin_hook(CompilerCompilation for ContainerPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -63,27 +65,44 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(AsyncSeries2<Compilation, Vec<MakeParam>> for ContainerPlugin)]
-async fn make(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>) -> Result<()> {
+#[plugin_hook(CompilerMake for ContainerPlugin)]
+async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   let dep = ContainerEntryDependency::new(
     self.options.name.clone(),
     self.options.exposes.clone(),
     self.options.share_scope.clone(),
+    self.options.enhanced,
   );
-  let dependency_id = *dep.id();
-  compilation.add_entry(
-    Box::new(dep),
-    EntryOptions {
-      name: Some(self.options.name.clone()),
-      runtime: self.options.runtime.clone(),
-      filename: self.options.filename.clone(),
-      library: Some(self.options.library.clone()),
-      ..Default::default()
-    },
-  )?;
-
-  params.push(MakeParam::new_force_build_dep_param(dependency_id, None));
+  compilation
+    .add_entry(
+      Box::new(dep),
+      EntryOptions {
+        name: Some(self.options.name.clone()),
+        runtime: self.options.runtime.clone(),
+        filename: self.options.filename.clone(),
+        library: Some(self.options.library.clone()),
+        ..Default::default()
+      },
+    )
+    .await?;
   Ok(())
+}
+
+#[plugin_hook(CompilationRuntimeRequirementInTree for ContainerPlugin)]
+fn runtime_requirements_in_tree(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &RuntimeGlobals,
+  runtime_requirements_mut: &mut RuntimeGlobals,
+) -> Result<Option<()>> {
+  if runtime_requirements.contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE) {
+    runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+    if self.options.enhanced {
+      compilation.add_runtime_module(chunk_ukey, Box::new(ExposeRuntimeModule::new()))?;
+    }
+  }
+  Ok(None)
 }
 
 #[async_trait]
@@ -103,29 +122,11 @@ impl Plugin for ContainerPlugin {
       .compilation
       .tap(compilation::new(self));
     ctx.context.compiler_hooks.make.tap(make::new(self));
-    Ok(())
-  }
-
-  async fn runtime_requirements_in_tree(
-    &self,
-    _ctx: PluginContext,
-    args: &mut RuntimeRequirementsInTreeArgs,
-  ) -> PluginRuntimeRequirementsInTreeOutput {
-    if args
-      .runtime_requirements
-      .contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE)
-    {
-      args
-        .runtime_requirements_mut
-        .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-      args
-        .compilation
-        .add_runtime_module(
-          args.chunk,
-          Box::new(ExposeRuntimeModule::new(self.options.enhanced)),
-        )
-        .await?;
-    }
+    ctx
+      .context
+      .compilation_hooks
+      .runtime_requirement_in_tree
+      .tap(runtime_requirements_in_tree::new(self));
     Ok(())
   }
 }

@@ -6,11 +6,10 @@ use std::path::PathBuf;
 use napi_derive::napi;
 use rspack_core::get_chunk_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
+use rspack_core::rspack_sources::SourceExt;
 use rspack_core::AssetInfo;
 use rspack_core::ModuleIdentifier;
-use rspack_core::{rspack_sources::SourceExt, NormalModuleSource};
 use rspack_error::Diagnostic;
-use rspack_identifier::Identifier;
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
 
@@ -18,9 +17,10 @@ use super::module::ToJsModule;
 use super::PathWithInfo;
 use crate::utils::callbackify;
 use crate::JsStatsOptimizationBailout;
+use crate::LocalJsFilename;
 use crate::{
   chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup,
-  JsCompatSource, JsStats, PathData, ToJsCompatSource,
+  JsCompatSource, JsPathData, JsStats, ToJsCompatSource,
 };
 
 #[napi(object_from_js = false)]
@@ -59,6 +59,14 @@ impl DerefMut for JsCompilation {
   fn deref_mut(&mut self) -> &mut Self::Target {
     self.0
   }
+}
+
+#[napi(object)]
+pub struct JsDiagnostic {
+  #[napi(ts_type = "'error' | 'warning'")]
+  pub severity: String,
+  pub title: String,
+  pub message: String,
 }
 
 #[napi]
@@ -184,31 +192,6 @@ impl JsCompilation {
   }
 
   #[napi]
-  /// Only available for those none Js and Css source,
-  /// return true if set module source successfully, false if failed.
-  pub fn set_none_ast_module_source(
-    &mut self,
-    module_identifier: String,
-    source: JsCompatSource,
-  ) -> bool {
-    match self
-      .0
-      .get_module_graph_mut()
-      .module_by_identifier_mut(&Identifier::from(module_identifier.as_str()))
-    {
-      Some(module) => match module.as_normal_module_mut() {
-        Some(module) => {
-          let compat_source = CompatSource::from(source).boxed();
-          *module.source_mut() = NormalModuleSource::new_built(compat_source, vec![]);
-          true
-        }
-        None => false,
-      },
-      None => false,
-    }
-  }
-
-  #[napi]
   pub fn set_asset_source(&mut self, name: String, source: JsCompatSource) {
     let source = CompatSource::from(source).boxed();
     match self.0.assets_mut().entry(name) {
@@ -296,8 +279,7 @@ impl JsCompilation {
   pub fn get_file_dependencies(&self) -> Vec<String> {
     self
       .0
-      .file_dependencies
-      .iter()
+      .file_dependencies()
       .map(|i| i.to_string_lossy().to_string())
       .collect()
   }
@@ -306,8 +288,7 @@ impl JsCompilation {
   pub fn get_context_dependencies(&self) -> Vec<String> {
     self
       .0
-      .context_dependencies
-      .iter()
+      .context_dependencies()
       .map(|i| i.to_string_lossy().to_string())
       .collect()
   }
@@ -316,8 +297,7 @@ impl JsCompilation {
   pub fn get_missing_dependencies(&self) -> Vec<String> {
     self
       .0
-      .missing_dependencies
-      .iter()
+      .missing_dependencies()
       .map(|i| i.to_string_lossy().to_string())
       .collect()
   }
@@ -326,8 +306,7 @@ impl JsCompilation {
   pub fn get_build_dependencies(&self) -> Vec<String> {
     self
       .0
-      .build_dependencies
-      .iter()
+      .build_dependencies()
       .map(|i| i.to_string_lossy().to_string())
       .collect()
   }
@@ -339,6 +318,20 @@ impl JsCompilation {
       _ => rspack_error::Diagnostic::error(title, message),
     };
     self.0.push_diagnostic(diagnostic);
+  }
+
+  #[napi]
+  pub fn splice_diagnostic(&mut self, start: u32, end: u32, replace_with: Vec<JsDiagnostic>) {
+    let diagnostics = replace_with
+      .iter()
+      .map(|item| match item.severity.as_str() {
+        "warning" => rspack_error::Diagnostic::warn(item.title.clone(), item.message.clone()),
+        _ => rspack_error::Diagnostic::error(item.title.clone(), item.message.clone()),
+      })
+      .collect();
+    self
+      .0
+      .splice_diagnostic(start as usize, end as usize, diagnostics);
   }
 
   #[napi(ts_args_type = r#"diagnostics: ExternalObject<'Diagnostic[]'>"#)]
@@ -356,41 +349,43 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_asset_path(&self, filename: String, data: PathData) -> String {
-    self.0.get_asset_path(
-      &rspack_core::Filename::from(filename),
-      data.as_core_path_data(),
-    )
-  }
-
-  #[napi]
-  pub fn get_asset_path_with_info(&self, filename: String, data: PathData) -> PathWithInfo {
+  pub fn get_asset_path(
+    &self,
+    filename: LocalJsFilename,
+    data: JsPathData,
+  ) -> napi::Result<String> {
     self
       .0
-      .get_asset_path_with_info(
-        &rspack_core::Filename::from(filename),
-        data.as_core_path_data(),
-      )
-      .into()
+      .get_asset_path(&filename.into(), data.as_core_path_data())
   }
 
   #[napi]
-  pub fn get_path(&self, filename: String, data: PathData) -> String {
-    self.0.get_path(
-      &rspack_core::Filename::from(filename),
-      data.as_core_path_data(),
-    )
-  }
-
-  #[napi]
-  pub fn get_path_with_info(&self, filename: String, data: PathData) -> PathWithInfo {
-    self
+  pub fn get_asset_path_with_info(
+    &self,
+    filename: LocalJsFilename,
+    data: JsPathData,
+  ) -> napi::Result<PathWithInfo> {
+    let path_and_asset_info = self
       .0
-      .get_path_with_info(
-        &rspack_core::Filename::from(filename),
-        data.as_core_path_data(),
-      )
-      .into()
+      .get_asset_path_with_info(&filename.into(), data.as_core_path_data())?;
+    Ok(path_and_asset_info.into())
+  }
+
+  #[napi]
+  pub fn get_path(&self, filename: LocalJsFilename, data: JsPathData) -> napi::Result<String> {
+    self.0.get_path(&filename.into(), data.as_core_path_data())
+  }
+
+  #[napi]
+  pub fn get_path_with_info(
+    &self,
+    filename: LocalJsFilename,
+    data: JsPathData,
+  ) -> napi::Result<PathWithInfo> {
+    let path_and_asset_info = self
+      .0
+      .get_path_with_info(&filename.into(), data.as_core_path_data())?;
+    Ok(path_and_asset_info.into())
   }
 
   #[napi]
@@ -435,17 +430,20 @@ impl JsCompilation {
     callbackify(env, f, async {
       let modules = self
         .0
-        .rebuild_module(rustc_hash::FxHashSet::from_iter(
-          module_identifiers.into_iter().map(ModuleIdentifier::from),
-        ))
+        .rebuild_module(
+          rustc_hash::FxHashSet::from_iter(
+            module_identifiers.into_iter().map(ModuleIdentifier::from),
+          ),
+          |modules| {
+            modules
+              .into_iter()
+              .filter_map(|item| item.to_js_module().ok())
+              .collect::<Vec<_>>()
+          },
+        )
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
-      Ok(
-        modules
-          .into_iter()
-          .filter_map(|item| item.to_js_module().ok())
-          .collect::<Vec<_>>(),
-      )
+      Ok(modules)
     })
   }
 
@@ -457,46 +455,54 @@ impl JsCompilation {
     request: String,
     public_path: Option<String>,
     base_uri: Option<String>,
-    original_module: Option<String>,
+    _original_module: Option<String>,
     original_module_context: Option<String>,
     callback: JsFunction,
   ) -> Result<()> {
     callbackify(env, callback, async {
-      self
+      let module_executor = self
         .0
+        .module_executor
+        .as_ref()
+        .expect("should have module executor");
+      let result = module_executor
         .import_module(
           request,
           public_path,
           base_uri,
-          original_module.map(|s| s.into()),
-          original_module_context.map(|ctx| Box::new(rspack_core::Context::new(ctx))),
+          original_module_context.map(rspack_core::Context::new),
         )
-        .await
-        .map(|res| JsExecuteModuleResult {
-          file_dependencies: res
-            .file_dependencies
-            .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
-            .collect(),
-          context_dependencies: res
-            .context_dependencies
-            .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
-            .collect(),
-          build_dependencies: res
-            .build_dependencies
-            .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
-            .collect(),
-          missing_dependencies: res
-            .missing_dependencies
-            .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
-            .collect(),
-          assets: res.assets.into_iter().collect(),
-          id: res.id,
-        })
-        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
+        .await;
+      match result {
+        Ok(res) => {
+          let js_result = JsExecuteModuleResult {
+            file_dependencies: res
+              .file_dependencies
+              .into_iter()
+              .map(|d| d.to_string_lossy().to_string())
+              .collect(),
+            context_dependencies: res
+              .context_dependencies
+              .into_iter()
+              .map(|d| d.to_string_lossy().to_string())
+              .collect(),
+            build_dependencies: res
+              .build_dependencies
+              .into_iter()
+              .map(|d| d.to_string_lossy().to_string())
+              .collect(),
+            missing_dependencies: res
+              .missing_dependencies
+              .into_iter()
+              .map(|d| d.to_string_lossy().to_string())
+              .collect(),
+            assets: res.assets.into_iter().collect(),
+            id: res.id,
+          };
+          Ok(js_result)
+        }
+        Err(e) => Err(Error::new(napi::Status::GenericFailure, format!("{e}"))),
+      }
     })
   }
 }

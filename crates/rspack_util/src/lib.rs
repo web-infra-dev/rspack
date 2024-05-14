@@ -1,14 +1,23 @@
 #![feature(int_roundings)]
 
-use std::future::Future;
+mod merge;
+
 pub mod comparators;
+pub mod diff_mode;
 pub mod ext;
-pub mod fx_dashmap;
+pub mod fx_hash;
 pub mod identifier;
+pub mod infallible;
 pub mod number_hash;
 pub mod path;
+pub mod size;
 pub mod source_map;
 pub mod swc;
+pub mod test;
+
+use std::future::Future;
+
+pub use merge::{merge_from_optional_with, MergeFrom};
 
 pub async fn try_any<T, Fut, F, E>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool, E>
 where
@@ -49,4 +58,9 @@ where
     }
   }
   Ok(true)
+}
+
+pub fn json_stringify<T: ?Sized + serde::Serialize + std::fmt::Debug>(v: &T) -> String {
+  serde_json::to_string_pretty(v)
+    .unwrap_or_else(|e| panic!("{e}: {v:?} should able to json stringify"))
 }
