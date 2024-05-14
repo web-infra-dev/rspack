@@ -7,7 +7,7 @@ export * from "./loader";
 const DEFAULT_FILENAME = "[name].css";
 const LOADER_PATH = require.resolve("./loader");
 
-export type { CssExtractRspackLoaderOptions } from './loader';
+export type { CssExtractRspackLoaderOptions } from "./loader";
 
 export interface CssExtractRspackPluginOptions {
 	filename?: string;
