@@ -15,7 +15,6 @@ const serializer = require("jest-serializer-path");
 export interface IStatsAPITaskProcessorOptions<T extends ECompilerType> {
 	options?: (context: ITestContext) => TCompilerOptions<T>;
 	name: string;
-	cwd?: string;
 	compilerType: T;
 	compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
 	build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;

@@ -3,39 +3,24 @@
 > This package is heavily based on [webpack/test](https://github.com/webpack/webpack/tree/main/test)
 
 # Progressively migrate webpack test
-
 Originally, we use this formula to calculate the compatibility `passedTestCaseCount / totalTestCount`, totalTestCount = passedTestCaseCount + failedTestCount + skippedTestCount , but sometimes it maybe hard to compatible with all webpack test cases for some reasons (e.g. performance, legacy feature that we don't want to support), we need a method to skip these tests that we will not support. Thus, we adjust the original formula to `(passedTestCaseCount + willNotSupportTestCount) / totalTestCount`.
-
 Currently, we use a `test.filter.js` under each failed test case directory to skip failed test case, using this method could let us migrate webpack test case progressively without affect the real compatibility (Because this method will not influence the real `passedTestCaseCount`).
 
 e.g.
 
 ```js
-
 // test.fitler.js
-
 module.exports = () => {
-
-return false; // false means this testcase is skipped for now, but maybe we will support in the future, `-1` means this test case we don't want to compatible with, this related to `willNotSupportTest`.
-
+  return false; // false means this testcase is skipped for now, but maybe we will support in the future, `-1` means this test case we don't want to compatible with, this related to `willNotSupportTest`.
 }
-
-  
-
 ```
 
 When you find that we have passed some failed testcases which is skipped for now, you could change the `test.filter.js` to
 
 ```js
-
 module.exports = () => {
-
-return true
-
+  return true
 }
-
-  
-
 ```
 
 or delete the `test.filter.js`
