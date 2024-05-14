@@ -1,12 +1,13 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
-	description: "experiments.futureDefaults",
-	options: () => ({
-		experiments: {
-			futureDefaults: true
-		}
-	}),
-	diff: e =>
-		e.toMatchInlineSnapshot(`
+  description: "experiments.futureDefaults",
+  options: () => ({
+    experiments: {
+      futureDefaults: true
+    }
+  }),
+  diff: e =>
+    e.toMatchInlineSnapshot(`
     - Expected
     + Received
 

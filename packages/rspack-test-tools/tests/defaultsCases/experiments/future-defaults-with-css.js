@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "experiments.futureDefaults w/ experiments.css disabled",
 	options: () => ({
