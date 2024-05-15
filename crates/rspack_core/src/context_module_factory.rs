@@ -6,10 +6,9 @@ use rspack_regex::RspackRegex;
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, resolve, ContextModule, ContextModuleOptions, DependencyCategory, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule,
-  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
-  SharedPluginDriver,
+  resolve, ContextModule, ContextModuleOptions, DependencyCategory, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Clone)]
@@ -78,7 +77,6 @@ pub struct ContextModuleFactoryHooks {
 pub struct ContextModuleFactory {
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
-  cache: Arc<Cache>,
 }
 
 #[async_trait::async_trait]
@@ -105,12 +103,10 @@ impl ContextModuleFactory {
   pub fn new(
     loader_resolver_factory: Arc<ResolverFactory>,
     plugin_driver: SharedPluginDriver,
-    cache: Arc<Cache>,
   ) -> Self {
     Self {
       loader_resolver_factory,
       plugin_driver,
-      cache,
     }
   }
 
@@ -229,15 +225,7 @@ impl ContextModuleFactory {
       missing_dependencies: &mut missing_dependencies,
     };
 
-    let (resource_data, from_cache) = match self
-      .cache
-      .resolve_module_occasion
-      .use_cache(resolve_args, |args| resolve(args, plugin_driver))
-      .await
-    {
-      Ok(result) => result,
-      Err(err) => (Err(err), false),
-    };
+    let resource_data = resolve(resolve_args, plugin_driver).await;
 
     let (module, context_module_options) = match resource_data {
       Ok(ResolveResult::Resource(resource)) => {
@@ -278,7 +266,6 @@ impl ContextModuleFactory {
 
     let module_factory_result = ModuleFactoryResult {
       module: Some(module),
-      from_cache,
     };
     Ok((module_factory_result, context_module_options))
   }

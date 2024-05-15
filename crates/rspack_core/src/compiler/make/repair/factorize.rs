@@ -242,11 +242,7 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
     };
 
     if let Some(counter) = &mut context.factorize_cache_counter {
-      if factory_result.from_cache {
-        counter.hit();
-      } else {
-        counter.miss();
-      }
+      counter.miss();
     }
 
     let Some(module) = factory_result.module else {
