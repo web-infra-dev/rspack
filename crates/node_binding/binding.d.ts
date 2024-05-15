@@ -76,6 +76,12 @@ export class Rspack {
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
 }
 
+export class Trace {
+  constructor()
+  time(label: string): void
+  timeEnd(label: string): void
+}
+
 export function __chunk_graph_inner_get_chunk_entry_dependent_chunks_iterable(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
 
 export function __chunk_graph_inner_get_chunk_entry_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
