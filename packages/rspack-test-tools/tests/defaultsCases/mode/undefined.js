@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "no mode provided",
 	options: () => ({ mode: undefined }),
@@ -44,6 +45,13 @@ module.exports = {
 		@@ ... @@
 		-     "usedExports": false,
 		+     "usedExports": true,
+		@@ ... @@
+		-   "performance": false,
+		+   "performance": Object {
+		+     "hints": "warning",
+		+     "maxAssetSize": 250000,
+		+     "maxEntrypointSize": 250000,
+		+   },
 		@@ ... @@
 		-       "hash": false,
 		+       "hash": true,

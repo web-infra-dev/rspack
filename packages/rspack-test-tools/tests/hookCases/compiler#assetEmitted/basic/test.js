@@ -1,9 +1,8 @@
 const assert = require("assert");
-const { createFsFromVolume, Volume } = require("memfs");
-
-const outputFileSystem = createFsFromVolume(new Volume());
 
 let hasMainJs = false;
+
+/** @type {import("../../../..").THookCaseConfig} */
 module.exports = {
 	description: "should work with assetEmitted",
 	options(context) {
@@ -23,9 +22,6 @@ module.exports = {
 				}
 			]
 		};
-	},
-	async compiler(context, compiler) {
-		compiler.outputFileSystem = outputFileSystem;
 	},
 	async check() {
 		expect(hasMainJs).toBeTruthy();

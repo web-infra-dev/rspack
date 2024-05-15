@@ -29,7 +29,7 @@ use crate::{
 #[derive(Debug, Default)]
 pub struct ModuleExecutor {
   request_dep_map: DashMap<String, DependencyId>,
-  make_artifact: MakeArtifact,
+  pub make_artifact: MakeArtifact,
 
   event_sender: Option<UnboundedSender<Event>>,
   stop_receiver: Option<oneshot::Receiver<MakeArtifact>>,
@@ -40,9 +40,7 @@ impl ModuleExecutor {
   pub async fn hook_before_make(&mut self, compilation: &Compilation) {
     let mut make_artifact = std::mem::take(&mut self.make_artifact);
     let mut params = vec![];
-    if !compilation.modified_files.is_empty() {
-      params.push(MakeParam::ModifiedFiles(compilation.modified_files.clone()));
-    }
+    params.push(MakeParam::ModifiedFiles(compilation.modified_files.clone()));
     if !compilation.removed_files.is_empty() {
       params.push(MakeParam::RemovedFiles(compilation.removed_files.clone()));
     }
@@ -107,19 +105,6 @@ impl ModuleExecutor {
 
     let diagnostics = std::mem::take(&mut self.make_artifact.diagnostics);
     compilation.push_batch_diagnostic(diagnostics);
-
-    compilation
-      .file_dependencies
-      .extend(self.make_artifact.file_dependencies.iter().cloned());
-    compilation
-      .context_dependencies
-      .extend(self.make_artifact.context_dependencies.iter().cloned());
-    compilation
-      .missing_dependencies
-      .extend(self.make_artifact.missing_dependencies.iter().cloned());
-    compilation
-      .build_dependencies
-      .extend(self.make_artifact.build_dependencies.iter().cloned());
   }
 
   #[allow(clippy::too_many_arguments)]

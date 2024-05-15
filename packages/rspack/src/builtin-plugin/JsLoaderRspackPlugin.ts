@@ -1,7 +1,8 @@
 import { BuiltinPluginName } from "@rspack/binding";
-import { create } from "./base";
-import { runLoaders } from "../loader-runner";
+
 import { Compiler } from "../Compiler";
+import { runLoaders } from "../loader-runner";
+import { create } from "./base";
 
 export const JsLoaderRspackPlugin = create(
 	BuiltinPluginName.JsLoaderRspackPlugin,

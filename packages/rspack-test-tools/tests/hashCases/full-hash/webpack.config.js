@@ -20,7 +20,7 @@ function config(subpath, realContentHash = false) {
 	};
 }
 
-/** @type {import("../../../dist").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = [
 	config("version0"),
 	config("version0-copy"),

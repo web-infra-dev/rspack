@@ -157,16 +157,16 @@ impl Task<MakeTaskContext> for BuildResultTask {
       .extend(build_result.optimization_bailouts);
     context
       .file_dependencies
-      .extend(build_result.build_info.file_dependencies.clone());
+      .add_batch_file(&build_result.build_info.file_dependencies);
     context
       .context_dependencies
-      .extend(build_result.build_info.context_dependencies.clone());
+      .add_batch_file(&build_result.build_info.context_dependencies);
     context
       .missing_dependencies
-      .extend(build_result.build_info.missing_dependencies.clone());
+      .add_batch_file(&build_result.build_info.missing_dependencies);
     context
       .build_dependencies
-      .extend(build_result.build_info.build_dependencies.clone());
+      .add_batch_file(&build_result.build_info.build_dependencies);
 
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];

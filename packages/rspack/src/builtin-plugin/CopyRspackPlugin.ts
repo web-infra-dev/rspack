@@ -3,6 +3,7 @@ import {
 	RawCopyPattern,
 	RawCopyRspackPluginOptions
 } from "@rspack/binding";
+
 import { create } from "./base";
 
 export type CopyRspackPluginOptions = {

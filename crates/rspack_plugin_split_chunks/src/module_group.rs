@@ -102,20 +102,15 @@ pub(crate) fn compare_entries(a: &ModuleGroup, b: &ModuleGroup) -> f64 {
     return diff_count;
   }
 
-  // // 3. by size reduction
-  // let a_size_reduce = total_size(&a.sizes) * (a.chunks.len() - 1) as f64;
-  // let b_size_reduce = total_size(&b.sizes) * (b.chunks.len() - 1) as f64;
-  // let diff_size_reduce = a_size_reduce - b_size_reduce;
-  // if diff_size_reduce != 0f64 {
-  //   return diff_size_reduce;
-  // }
-  // 4. by cache group index
-  let index_diff = b.cache_group_index as f64 - a.cache_group_index as f64;
-  if index_diff != 0f64 {
-    return index_diff;
+  // 3. by size reduction
+  let a_size_reduce = total_size(&a.sizes) * (a.chunks.len() - 1) as f64;
+  let b_size_reduce = total_size(&b.sizes) * (b.chunks.len() - 1) as f64;
+  let diff_size_reduce = a_size_reduce - b_size_reduce;
+  if diff_size_reduce != 0f64 {
+    return diff_size_reduce;
   }
 
-  // 5. by number of modules (to be able to compare by identifier)
+  // 4. by number of modules (to be able to compare by identifier)
   let modules_a_len = a.modules.len();
   let modules_b_len = b.modules.len();
   let diff = modules_a_len as f64 - modules_b_len as f64;
@@ -130,7 +125,7 @@ pub(crate) fn compare_entries(a: &ModuleGroup, b: &ModuleGroup) -> f64 {
 
   loop {
     match (modules_a.pop(), modules_b.pop()) {
-      (None, None) => return 0f64,
+      (None, None) => break,
       (Some(a), Some(b)) => {
         let res = a.cmp(b);
         if !res.is_eq() {
@@ -140,4 +135,15 @@ pub(crate) fn compare_entries(a: &ModuleGroup, b: &ModuleGroup) -> f64 {
       _ => unreachable!(),
     }
   }
+
+  // 5. by cache group index
+  b.cache_group_index as f64 - a.cache_group_index as f64
+}
+
+fn total_size(sizes: &SplitChunkSizes) -> f64 {
+  let mut size = 0f64;
+  for ty_size in sizes.0.values() {
+    size += ty_size;
+  }
+  size
 }

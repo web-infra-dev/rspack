@@ -205,7 +205,7 @@ Rspack 支持通过 `optimization.splitChunks` 配置项来对 Chunk 进行拆�
   ]}
 />
 
-告诉 rspack 对每个模块确定使用的导出。这取决于 `optimization.providedExports`。
+告诉 Rspack 对每个模块确定使用的导出。这取决于 `optimization.providedExports`。
 `optimization.usedExports` 收集的信息被其他优化或代码生成使用，即不会为未使用的导出生成导出信息，当所有用法兼容时，导出名称会被缩短为单个字符标识符。压缩器中的死代码消除将受益于此，并且可以删除未使用的导出。
 
 ```js title=rspack.config.js
@@ -237,7 +237,7 @@ module.exports = {
     { defaultValue: 'false', mode: 'development' },
   ]}
 />
-`optimization.innerGraph` 告诉 rspack 是否进行未使用导出的内部图分析。
+`optimization.innerGraph` 告诉 Rspack 是否进行未使用导出的内部图分析。
 
 ```js title=rspack.config.js
 module.exports = {

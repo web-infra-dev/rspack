@@ -1,5 +1,5 @@
-import WebpackDevServer from "webpack-dev-server";
 import type { DevServer } from "@rspack/core";
+import WebpackDevServer from "webpack-dev-server";
 
 export type { DevServer };
 

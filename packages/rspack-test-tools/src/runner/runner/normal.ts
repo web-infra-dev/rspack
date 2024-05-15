@@ -1,7 +1,8 @@
-import { ECompilerType } from "../../type";
-import { EsmRunner } from "./esm";
-import { IBasicModuleScope, TBasicRunnerFile, TRunnerRequirer } from "../type";
 import { URL } from "url";
+
+import { ECompilerType } from "../../type";
+import { IBasicModuleScope, TBasicRunnerFile, TRunnerRequirer } from "../type";
+import { EsmRunner } from "./esm";
 
 export class NormalRunner<
 	T extends ECompilerType = ECompilerType.Rspack

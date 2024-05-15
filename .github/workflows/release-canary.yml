@@ -1,0 +1,87 @@
+# Release Canary by comment with "!canary"
+
+name: Release Canary
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        required: true
+        type: string
+        description: "Commit SHA"
+
+jobs:
+  get-runner-labels:
+    name: Get Runner Labels
+    uses: ./.github/workflows/get-runner-labels.yml
+
+  build:
+    name: Build Canary
+    needs: [get-runner-labels]
+    strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
+      matrix:
+        array:
+          - target: x86_64-unknown-linux-gnu
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: aarch64-unknown-linux-gnu
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: x86_64-unknown-linux-musl
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: aarch64-unknown-linux-musl
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: i686-pc-windows-msvc
+            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+          - target: x86_64-pc-windows-msvc
+            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+          - target: aarch64-pc-windows-msvc
+            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+          - target: x86_64-apple-darwin
+            runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+          - target: aarch64-apple-darwin
+            runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      ref: ${{inputs.commit}}
+      target: ${{ matrix.array.target }}
+      runner: ${{ matrix.array.runner }}
+      test: false
+
+  release:
+    name: Release Canary
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout Branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: ${{inputs.commit}}
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Build node packages
+        run: pnpm run build:js
+
+      - name: Move artifacts
+        run: node scripts/build-npm.cjs
+
+      - name: Show binding packages
+        run: ls -R npm
+
+      - name: Resolve dependencies for bindings
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Release
+        run: |
+          ./x version snapshot
+          ./x publish snapshot --tag canary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

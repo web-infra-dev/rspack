@@ -1,7 +1,3 @@
-import assert from "assert";
-import { type OptimizationSplitChunksOptions } from "../config/zod";
-import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
-import { Compiler } from "../Compiler";
 import {
 	BuiltinPlugin,
 	BuiltinPluginName,
@@ -10,8 +6,13 @@ import {
 	RawCacheGroupOptions,
 	RawSplitChunksOptions
 } from "@rspack/binding";
-import { Module } from "../Module";
+import assert from "assert";
+
 import { Chunk } from "../Chunk";
+import { Compiler } from "../Compiler";
+import { type OptimizationSplitChunksOptions } from "../config/zod";
+import { Module } from "../Module";
+import { createBuiltinPlugin, RspackBuiltinPlugin } from "./base";
 
 export class SplitChunksPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.SplitChunksPlugin;
@@ -78,7 +79,7 @@ function toRawSplitChunksOptions(
 				chunks(
 					Chunk.__from_binding(
 						chunk,
-						compiler.compilation!.__internal_getInner()
+						compiler._lastCompilation!.__internal_getInner()
 					)
 				);
 		} else {

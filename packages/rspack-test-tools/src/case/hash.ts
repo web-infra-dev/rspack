@@ -1,6 +1,6 @@
-import { ECompilerType, ITester, TTestConfig } from "../type";
 import { RspackHashProcessor } from "../processor";
 import { BasicCaseCreator } from "../test/creator";
+import { ECompilerType, ITester, TTestConfig } from "../type";
 class HashCaseCreator<T extends ECompilerType> extends BasicCaseCreator<T> {
 	protected describe(
 		name: string,

@@ -10,7 +10,7 @@ class ErrorPlugin {
 	}
 }
 /**
- * @type {import('@rspack/cli').Configuration}
+ * @type {import("@rspack/core").Configuration}
  */
 module.exports = {
 	stats: "errors-warnings",

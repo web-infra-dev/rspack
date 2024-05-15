@@ -11,12 +11,15 @@ use napi::{
 };
 use rspack_binding_values::{
   CompatSource, JsAfterResolveData, JsAfterResolveOutput, JsAssetEmittedArgs, JsBeforeResolveArgs,
-  JsBeforeResolveOutput, JsChunk, JsChunkAssetArgs, JsCompilation, JsCreateData,
+  JsBeforeResolveOutput, JsChunk, JsChunkAssetArgs, JsCompilation,
+  JsContextModuleFactoryAfterResolveData, JsContextModuleFactoryAfterResolveResult,
+  JsContextModuleFactoryBeforeResolveData, JsContextModuleFactoryBeforeResolveResult, JsCreateData,
   JsExecuteModuleArg, JsModule, JsNormalModuleFactoryCreateModuleArgs, JsResolveForSchemeArgs,
   JsResolveForSchemeOutput, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
 };
 use rspack_core::{
-  rspack_sources::SourceExt, AssetEmittedInfo, BoxModule, Chunk, ChunkUkey, CodeGenerationResults,
+  rspack_sources::SourceExt, AfterResolveData, AfterResolveResult, AssetEmittedInfo,
+  BeforeResolveData, BeforeResolveResult, BoxModule, Chunk, ChunkUkey, CodeGenerationResults,
   Compilation, CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
   CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
   CompilationAfterSealHook, CompilationBuildModule, CompilationBuildModuleHook,
@@ -42,6 +45,7 @@ use rspack_core::{
 use rspack_hook::{Hook, Interceptor};
 use rspack_identifier::IdentifierSet;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use rspack_regex::RspackRegex;
 
 #[napi(object)]
 pub struct JsTap {
@@ -434,15 +438,19 @@ pub struct RegisterJsTaps {
   pub register_normal_module_factory_create_module_taps:
     RegisterFunction<JsNormalModuleFactoryCreateModuleArgs, Promise<()>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>"
   )]
-  pub register_context_module_factory_before_resolve_taps:
-    RegisterFunction<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>,
+  pub register_context_module_factory_before_resolve_taps: RegisterFunction<
+    JsContextModuleFactoryBeforeResolveResult,
+    Promise<JsContextModuleFactoryBeforeResolveResult>,
+  >,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<boolean | undefined>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>"
   )]
-  pub register_context_module_factory_after_resolve_taps:
-    RegisterFunction<JsAfterResolveData, Promise<Option<bool>>>,
+  pub register_context_module_factory_after_resolve_taps: RegisterFunction<
+    JsContextModuleFactoryAfterResolveResult,
+    Promise<JsContextModuleFactoryAfterResolveResult>,
+  >,
 }
 
 /* Compiler Hooks */
@@ -662,7 +670,7 @@ define_register!(
 /* ContextModuleFactory Hooks */
 define_register!(
   RegisterContextModuleFactoryBeforeResolveTaps,
-  tap = ContextModuleFactoryBeforeResolveTap<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>> @ ContextModuleFactoryBeforeResolveHook,
+  tap = ContextModuleFactoryBeforeResolveTap<JsContextModuleFactoryBeforeResolveResult, Promise<JsContextModuleFactoryBeforeResolveResult>> @ ContextModuleFactoryBeforeResolveHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::ContextModuleFactoryBeforeResolve,
@@ -670,7 +678,7 @@ define_register!(
 );
 define_register!(
   RegisterContextModuleFactoryAfterResolveTaps,
-  tap = ContextModuleFactoryAfterResolveTap<JsAfterResolveData, Promise<Option<bool>>> @ ContextModuleFactoryAfterResolveHook,
+  tap = ContextModuleFactoryAfterResolveTap<JsContextModuleFactoryAfterResolveResult, Promise<JsContextModuleFactoryAfterResolveResult>> @ ContextModuleFactoryAfterResolveHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::ContextModuleFactoryAfterResolve,
@@ -1198,24 +1206,27 @@ impl NormalModuleFactoryCreateModule for NormalModuleFactoryCreateModuleTap {
 
 #[async_trait]
 impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap {
-  async fn run(&self, data: &mut ModuleFactoryCreateData) -> rspack_error::Result<Option<bool>> {
-    let dependency = data
-      .dependency
-      .as_context_dependency_mut()
-      .expect("should be context dependency");
-    match self
-      .function
-      .call_with_promise(JsBeforeResolveArgs {
-        request: dependency.request().to_string(),
-        context: data.context.to_string(),
-      })
-      .await
-    {
-      Ok((ret, resolve_data)) => {
-        dependency.set_request(resolve_data.request);
-        data.context = resolve_data.context.into();
-        Ok(ret)
+  async fn run(&self, result: BeforeResolveResult) -> rspack_error::Result<BeforeResolveResult> {
+    let js_result = match result {
+      BeforeResolveResult::Ignored => JsContextModuleFactoryBeforeResolveResult::A(false),
+      BeforeResolveResult::Data(d) => {
+        JsContextModuleFactoryBeforeResolveResult::B(JsContextModuleFactoryBeforeResolveData {
+          context: d.context,
+          request: d.request,
+        })
       }
+    };
+    match self.function.call_with_promise(js_result).await {
+      Ok(js_result) => match js_result {
+        napi::bindgen_prelude::Either::A(_) => Ok(BeforeResolveResult::Ignored),
+        napi::bindgen_prelude::Either::B(d) => {
+          let data = BeforeResolveData {
+            context: d.context,
+            request: d.request,
+          };
+          Ok(BeforeResolveResult::Data(Box::new(data)))
+        }
+      },
       Err(err) => Err(err),
     }
   }
@@ -1227,37 +1238,33 @@ impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap 
 
 #[async_trait]
 impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
-  async fn run(&self, data: &mut ModuleFactoryCreateData) -> rspack_error::Result<Option<bool>> {
-    let dependency = data
-      .dependency
-      .as_context_dependency_mut()
-      .expect("should be context dependency");
-    self
-      .function
-      .call_with_promise(JsAfterResolveData {
-        request: dependency.request().to_string(),
-        context: data.context.to_string(),
-        file_dependencies: data
-          .file_dependencies
-          .clone()
-          .into_iter()
-          .map(|item| item.to_string_lossy().to_string())
-          .collect::<Vec<_>>(),
-        context_dependencies: data
-          .context_dependencies
-          .clone()
-          .into_iter()
-          .map(|item| item.to_string_lossy().to_string())
-          .collect::<Vec<_>>(),
-        missing_dependencies: data
-          .missing_dependencies
-          .clone()
-          .into_iter()
-          .map(|item| item.to_string_lossy().to_string())
-          .collect::<Vec<_>>(),
-        create_data: None,
-      })
-      .await
+  async fn run(&self, result: AfterResolveResult) -> rspack_error::Result<AfterResolveResult> {
+    let js_result = match result {
+      AfterResolveResult::Ignored => JsContextModuleFactoryAfterResolveResult::A(false),
+      AfterResolveResult::Data(d) => {
+        JsContextModuleFactoryAfterResolveResult::B(JsContextModuleFactoryAfterResolveData {
+          resource: d.resource.to_owned(),
+          context: d.context.to_owned(),
+          request: d.request.to_owned(),
+          reg_exp: d.reg_exp.clone().map(|r| r.to_string()),
+        })
+      }
+    };
+    match self.function.call_with_promise(js_result).await? {
+      napi::Either::A(_) => Ok(AfterResolveResult::Ignored),
+      napi::Either::B(d) => {
+        let data = AfterResolveData {
+          resource: d.resource,
+          context: d.context,
+          request: d.request,
+          reg_exp: match d.reg_exp {
+            Some(r) => Some(RspackRegex::new(&r)?),
+            None => None,
+          },
+        };
+        Ok(AfterResolveResult::Data(Box::new(data)))
+      }
+    }
   }
 
   fn stage(&self) -> i32 {

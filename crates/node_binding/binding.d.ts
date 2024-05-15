@@ -163,6 +163,7 @@ export enum BuiltinPluginName {
   CssModulesPlugin = 'CssModulesPlugin',
   APIPlugin = 'APIPlugin',
   RuntimeChunkPlugin = 'RuntimeChunkPlugin',
+  SizeLimitsPlugin = 'SizeLimitsPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -291,6 +292,18 @@ export interface JsCompatSource {
   isBuffer: boolean
   source: Buffer
   map?: Buffer
+}
+
+export interface JsContextModuleFactoryAfterResolveData {
+  resource: string
+  context: string
+  request: string
+  regExp?: string
+}
+
+export interface JsContextModuleFactoryBeforeResolveData {
+  context: string
+  request?: string
 }
 
 export interface JsCreateData {
@@ -488,7 +501,6 @@ export interface JsStatsChunkGroupAsset {
 
 export interface JsStatsError {
   message: string
-  formatted: string
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
@@ -560,7 +572,6 @@ export interface JsStatsOptimizationBailout {
 
 export interface JsStatsWarning {
   message: string
-  formatted: string
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
@@ -761,6 +772,7 @@ export interface RawCssAutoGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
   localIdentName?: string
+  esModule?: boolean
 }
 
 export interface RawCssAutoParserOptions {
@@ -781,12 +793,14 @@ export interface RawCssExtractPluginOption {
 export interface RawCssGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
+  esModule?: boolean
 }
 
 export interface RawCssModuleGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
   localIdentName?: string
+  esModule?: boolean
 }
 
 export interface RawCssModuleParserOptions {
@@ -832,7 +846,6 @@ export interface RawEvalDevToolModulePluginOptions {
 }
 
 export interface RawExperiments {
-  newSplitChunks: boolean
   topLevelAwait: boolean
   rspackFuture: RawRspackFuture
 }
@@ -1227,6 +1240,9 @@ export interface RawResolveOptions {
   byDependency?: Record<string, RawResolveOptions>
   fullySpecified?: boolean
   exportsFields?: Array<string>
+  descriptionFiles?: Array<string>
+  enforceExtension?: boolean
+  importsFields?: Array<string>
   extensionAlias?: Record<string, Array<string>>
   aliasFields?: Array<string>
   restrictions?: Array<string>
@@ -1264,6 +1280,13 @@ export interface RawRuntimeChunkNameFnCtx {
 
 export interface RawRuntimeChunkOptions {
   name: string | ((entrypoint: { name: string }) => string)
+}
+
+export interface RawSizeLimitsPluginOptions {
+  assetFilter?: (assetFilename: string) => boolean
+  hints?: "error" | "warning"
+  maxAssetSize?: number
+  maxEntrypointSize?: number
 }
 
 export interface RawSnapshotOptions {
@@ -1404,18 +1427,18 @@ export interface RegisterJsTaps {
   registerNormalModuleFactoryResolveForSchemeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>
   registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>
-  registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
-  registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<boolean | undefined>); stage: number; }>
+  registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>
+  registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>
 }
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
 
 export interface ThreadsafeNodeFS {
-  writeFile: (name: string, content: Buffer) => void
-  removeFile: (name: string) => void
-  mkdir: (name: string) => void
-  mkdirp: (name: string) => string | void
-  removeDirAll: (name: string) => string | void
+  writeFile: (name: string, content: Buffer) => Promise<void> | void
+  removeFile: (name: string) => Promise<void> | void
+  mkdir: (name: string) => Promise<void> | void
+  mkdirp: (name: string) => Promise<string | void> | string | void
+  removeDirAll: (name: string) => Promise<string | void> | string | void
 }
 

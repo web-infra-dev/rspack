@@ -1,14 +1,15 @@
-import { ECompilerType } from "../../../type";
-import { IBasicRunnerOptions } from "../basic";
-import { JSDOM, VirtualConsole, ResourceLoader } from "jsdom";
-import { TRunnerRequirer } from "../../type";
-import createFakeWorker from "../../../helper/legacy/createFakeWorker";
 import fs from "fs";
+import { JSDOM, ResourceLoader, VirtualConsole } from "jsdom";
 import path from "path";
+
+import { escapeSep } from "../../../helper";
+import createFakeWorker from "../../../helper/legacy/createFakeWorker";
 import EventSource from "../../../helper/legacy/EventSourceForNode";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
+import { ECompilerType } from "../../../type";
+import { TRunnerRequirer } from "../../type";
+import { IBasicRunnerOptions } from "../basic";
 import { CommonJsRunner } from "../cjs";
-import { escapeSep } from "../../../helper";
 
 export class JSDOMWebRunner<
 	T extends ECompilerType = ECompilerType.Rspack

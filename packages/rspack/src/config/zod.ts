@@ -1,12 +1,13 @@
-import { RawFuncUseCtx, JsAssetInfo } from "@rspack/binding";
+import { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
+import type * as webpackDevServer from "webpack-dev-server";
 import { z } from "zod";
+
 import { Compilation, Compiler } from "..";
 import type { Builtins as BuiltinsType } from "../builtin-plugin";
-import type * as webpackDevServer from "webpack-dev-server";
-import { deprecatedWarn } from "../util";
-import { Module } from "../Module";
 import { Chunk } from "../Chunk";
 import { PathData } from "../Compilation";
+import { Module } from "../Module";
+import { deprecatedWarn } from "../util";
 
 //#region Name
 const name = z.string();
@@ -386,21 +387,6 @@ export type ResolveTsconfig = z.infer<typeof resolveTsconfig>;
 
 const baseResolveOptions = z.strictObject({
 	alias: resolveAlias.optional(),
-	/**
-	 * This is `aliasField: ["browser"]` in webpack, because no one
-	 * uses aliasField other than "browser". ---@bvanjoi
-	 */
-	browserField: z
-		.boolean()
-		.optional()
-		.refine(val => {
-			if (val !== undefined) {
-				deprecatedWarn(
-					`'resolve.browserField' has been deprecated, and will be removed in 0.6.0. Please use 'resolve.aliasField' instead.`
-				);
-			}
-			return true;
-		}),
 	conditionNames: z.array(z.string()).optional(),
 	extensions: z.array(z.string()).optional(),
 	fallback: resolveAlias.optional(),
@@ -410,6 +396,9 @@ const baseResolveOptions = z.strictObject({
 	preferRelative: z.boolean().optional(),
 	preferAbsolute: z.boolean().optional(),
 	symlinks: z.boolean().optional(),
+	enforceExtension: z.boolean().optional(),
+	importsFields: z.array(z.string()).optional(),
+	descriptionFiles: z.array(z.string()).optional(),
 	tsConfigPath: z.string().optional(),
 	tsConfig: resolveTsconfig.optional(),
 	fullySpecified: z.boolean().optional(),
@@ -668,23 +657,29 @@ export type CssGeneratorLocalIdentName = z.infer<
 	typeof cssGeneratorLocalIdentName
 >;
 
+const cssGeneratorEsModule = z.boolean();
+export type CssGeneratorEsModule = z.infer<typeof cssGeneratorEsModule>;
+
 const cssGeneratorOptions = z.strictObject({
 	exportsConvention: cssGeneratorExportsConvention.optional(),
-	exportsOnly: cssGeneratorExportsOnly.optional()
+	exportsOnly: cssGeneratorExportsOnly.optional(),
+	esModule: cssGeneratorEsModule.optional()
 });
 export type CssGeneratorOptions = z.infer<typeof cssGeneratorOptions>;
 
 const cssAutoGeneratorOptions = z.strictObject({
 	exportsConvention: cssGeneratorExportsConvention.optional(),
 	exportsOnly: cssGeneratorExportsOnly.optional(),
-	localIdentName: cssGeneratorLocalIdentName.optional()
+	localIdentName: cssGeneratorLocalIdentName.optional(),
+	esModule: cssGeneratorEsModule.optional()
 });
 export type CssAutoGeneratorOptions = z.infer<typeof cssAutoGeneratorOptions>;
 
 const cssModuleGeneratorOptions = z.strictObject({
 	exportsConvention: cssGeneratorExportsConvention.optional(),
 	exportsOnly: cssGeneratorExportsOnly.optional(),
-	localIdentName: cssGeneratorLocalIdentName.optional()
+	localIdentName: cssGeneratorLocalIdentName.optional(),
+	esModule: cssGeneratorEsModule.optional()
 });
 export type CssModuleGeneratorOptions = z.infer<
 	typeof cssModuleGeneratorOptions
@@ -1203,20 +1198,6 @@ const experiments = z.strictObject({
 	asyncWebAssembly: z.boolean().optional(),
 	outputModule: z.boolean().optional(),
 	topLevelAwait: z.boolean().optional(),
-	newSplitChunks: z
-		.boolean()
-		.optional()
-		.refine(val => {
-			if (val === false) {
-				deprecatedWarn(
-					`'experiments.newSplitChunks = ${JSON.stringify(
-						val
-					)}' has been deprecated, please switch to 'experiments.newSplitChunks = true' to use webpack's behavior.
- 	See the discussion here (https://github.com/web-infra-dev/rspack/discussions/4168)`
-				);
-			}
-			return true;
-		}),
 	css: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
 	rspackFuture: rspackFutureOptions.optional()
@@ -1273,6 +1254,18 @@ const bail = z.boolean();
 export type Bail = z.infer<typeof bail>;
 //#endregion
 
+//#region Performance
+const performance = z
+	.strictObject({
+		assetFilter: z.function().args(z.string()).returns(z.boolean()).optional(),
+		hints: z.enum(["error", "warning"]).or(z.literal(false)).optional(),
+		maxAssetSize: z.number().optional(),
+		maxEntrypointSize: z.number().optional()
+	})
+	.or(z.literal(false));
+export type Performance = z.infer<typeof performance>;
+//#endregion
+
 //#region Builtins (deprecated)
 const builtins = z.custom<BuiltinsType>();
 export type Builtins = z.infer<typeof builtins>;
@@ -1307,7 +1300,8 @@ export const rspackOptions = z.strictObject({
 	builtins: builtins.optional(),
 	module: moduleOptions.optional(),
 	profile: profile.optional(),
-	bail: bail.optional()
+	bail: bail.optional(),
+	performance: performance.optional()
 });
 export type RspackOptions = z.infer<typeof rspackOptions>;
 export type Configuration = RspackOptions;

@@ -1,7 +1,4 @@
-const { createFsFromVolume, Volume } = require("memfs");
-
-const outputFileSystem = createFsFromVolume(new Volume());
-
+/** @type {import("../../../..").THookCaseConfig} */
 module.exports = {
 	description: "should work with request",
 	options(context) {
@@ -36,8 +33,4 @@ module.exports = {
 			]
 		};
 	},
-	async compiler(context, compiler) {
-		compiler.outputFileSystem = outputFileSystem;
-	},
-	async check() {}
 };

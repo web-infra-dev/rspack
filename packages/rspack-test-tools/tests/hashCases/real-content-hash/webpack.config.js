@@ -24,7 +24,7 @@ const base = {
 	stats: "normal"
 };
 
-/** @type {import("../../../").Configuration[]} */
+/** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
 		...base,

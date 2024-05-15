@@ -9,8 +9,8 @@
  */
 
 import { KnownCreateStatsOptionsContext } from "./Compilation";
-import { StatsCompilation } from "./stats/statsFactoryUtils";
 import { Stats } from "./Stats";
+import { StatsCompilation } from "./stats/statsFactoryUtils";
 import { indent } from "./util";
 import * as identifierUtils from "./util/identifier";
 

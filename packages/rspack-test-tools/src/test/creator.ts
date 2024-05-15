@@ -1,16 +1,17 @@
-import {
-	ECompilerType,
-	ITestContext,
-	ITestProcessor,
-	ITester,
-	TRunnerFactory,
-	TTestConfig
-} from "../type";
 import fs from "fs";
 import path from "path";
 import rimraf from "rimraf";
-import { Tester } from "./tester";
+
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
+import {
+	ECompilerType,
+	ITestContext,
+	ITester,
+	ITestProcessor,
+	TRunnerFactory,
+	TTestConfig
+} from "../type";
+import { Tester } from "./tester";
 
 export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
 	clean?: boolean;

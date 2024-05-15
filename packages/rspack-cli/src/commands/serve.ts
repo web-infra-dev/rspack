@@ -1,12 +1,13 @@
-import type { RspackCLI } from "../rspack-cli";
+import { Compiler, DevServer } from "@rspack/core";
 import type { RspackDevServer as RspackDevServerType } from "@rspack/dev-server";
+
+import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
 import {
 	commonOptions,
 	ensureEnvObject,
 	setBuiltinEnvArg
 } from "../utils/options";
-import { Compiler, DevServer } from "@rspack/core";
 
 export class ServeCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {

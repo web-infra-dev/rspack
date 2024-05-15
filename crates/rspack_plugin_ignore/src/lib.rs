@@ -3,8 +3,8 @@ use std::fmt::Debug;
 use derivative::Derivative;
 use futures::future::BoxFuture;
 use rspack_core::{
-  ApplyContext, CompilerOptions, ContextModuleFactoryBeforeResolve, ModuleFactoryCreateData,
-  NormalModuleFactoryBeforeResolve, Plugin, PluginContext,
+  ApplyContext, BeforeResolveResult, CompilerOptions, ContextModuleFactoryBeforeResolve,
+  ModuleFactoryCreateData, NormalModuleFactoryBeforeResolve, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -37,12 +37,12 @@ impl IgnorePlugin {
     Self::new_inner(options)
   }
 
-  async fn check_ignore(&self, data: &mut ModuleFactoryCreateData) -> Option<bool> {
+  async fn check_ignore(&self, request: Option<&str>, context: &str) -> Option<bool> {
     if let Some(check_resource) = &self.options.check_resource {
-      if let Some(request) = data.request() {
+      if let Some(request) = request {
         match check_resource {
           CheckResourceContent::Fn(check) => {
-            if check(request, data.context.as_ref())
+            if check(request, context)
               .await
               .expect("run IgnorePlugin check resource error")
             {
@@ -54,9 +54,9 @@ impl IgnorePlugin {
     }
 
     if let Some(resource_reg_exp) = &self.options.resource_reg_exp {
-      if resource_reg_exp.test(data.request()?) {
+      if resource_reg_exp.test(request?) {
         if let Some(context_reg_exp) = &self.options.context_reg_exp {
-          if context_reg_exp.test(&data.context) {
+          if context_reg_exp.test(context) {
             return Some(false);
           }
         } else {
@@ -71,12 +71,21 @@ impl IgnorePlugin {
 
 #[plugin_hook(NormalModuleFactoryBeforeResolve for IgnorePlugin)]
 async fn nmf_before_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
-  Ok(self.check_ignore(data).await)
+  Ok(self.check_ignore(data.request(), &data.context).await)
 }
 
 #[plugin_hook(ContextModuleFactoryBeforeResolve for IgnorePlugin)]
-async fn cmf_before_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
-  Ok(self.check_ignore(data).await)
+async fn cmf_before_resolve(&self, data: BeforeResolveResult) -> Result<BeforeResolveResult> {
+  match data {
+    BeforeResolveResult::Ignored => Ok(BeforeResolveResult::Ignored),
+    BeforeResolveResult::Data(d) => {
+      if let Some(false) = self.check_ignore(d.request.as_deref(), &d.context).await {
+        Ok(BeforeResolveResult::Ignored)
+      } else {
+        Ok(BeforeResolveResult::Data(d))
+      }
+    }
+  }
 }
 
 impl Plugin for IgnorePlugin {

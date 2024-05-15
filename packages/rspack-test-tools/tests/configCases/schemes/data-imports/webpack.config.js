@@ -14,7 +14,7 @@ class Plugin {
 		});
 	}
 }
-/** @type {import('@rspack/cli').Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	module: {
 		generator: {

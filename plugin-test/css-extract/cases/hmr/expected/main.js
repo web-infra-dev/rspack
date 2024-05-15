@@ -224,41 +224,44 @@ if (true) {
 
 }
 // The module cache
- var __webpack_module_cache__ = {};
+var __webpack_module_cache__ = {};
+
+// The require function
 function __webpack_require__(moduleId) {
+
 // Check if module is in cache
-        var cachedModule = __webpack_module_cache__[moduleId];
-        if (cachedModule !== undefined) {
-      if (cachedModule.error !== undefined) throw cachedModule.error;return cachedModule.exports;
-      }
-      // Create a new module (and put it into the cache)
-      var module = (__webpack_module_cache__[moduleId] = {
-      id: moduleId,
- exports: {}
-      });
-      // Execute the module function
-      try {
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+if (cachedModule.error !== undefined) throw cachedModule.error;return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+id: moduleId,
+exports: {}
+});
+// Execute the module function
+try {
 var execOptions = { id: moduleId, module: module, factory: __webpack_modules__[moduleId], require: __webpack_require__ };
-            __webpack_require__.i.forEach(function(handler) { handler(execOptions); });
-            module = execOptions.module;
-            if (!execOptions.factory) {
-              console.error("undefined factory", moduleId)
-            }
-            execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
-            } catch (e) {
-            module.error = e;
-            throw e;
-          }
-          // Return the exports of the module
- return module.exports;
+__webpack_require__.i.forEach(function(handler) { handler(execOptions); });
+module = execOptions.module;
+if (!execOptions.factory) {
+  console.error("undefined factory", moduleId)
+}
+execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
+} catch (e) {module.error = e;
+throw e;}// Return the exports of the module
+return module.exports;
 
 }
+
 // expose the modules object (__webpack_modules__)
- __webpack_require__.m = __webpack_modules__;
+__webpack_require__.m = __webpack_modules__;
+
 // expose the module cache
- __webpack_require__.c = __webpack_module_cache__;
+__webpack_require__.c = __webpack_module_cache__;
+
 // expose the module execution interceptor
- __webpack_require__.i = [];
+__webpack_require__.i = [];
 // webpack/runtime/get mini-css chunk filename
 !function() {
 // This function allow to reference chunks
@@ -1385,5 +1388,8 @@ __webpack_require__.hmrM = function () {
 };
 
 }();
+// module cache are used so entry inlining is disabled
+// startup
+// Load entry module and return exports
 var __webpack_exports__ = __webpack_require__("./index.css?6fbf");
 })()

@@ -1,14 +1,15 @@
+import path from "path";
+
 import { TestCompilerManager } from "../compiler";
 import {
-	ITestCompilerManager,
 	ECompilerType,
+	ITestCompilerManager,
 	ITestContext,
 	ITesterConfig,
 	ITestRunner,
-	TTestConfig,
-	TRunnerFactory
+	TRunnerFactory,
+	TTestConfig
 } from "../type";
-import path from "path";
 
 export type TTestContextOptions = Omit<ITesterConfig, "name" | "steps">;
 

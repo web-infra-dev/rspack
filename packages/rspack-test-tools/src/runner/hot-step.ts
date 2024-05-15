@@ -1,4 +1,5 @@
 import { StatsCompilation } from "@rspack/core";
+
 import {
 	ECompilerType,
 	ITestEnv,
