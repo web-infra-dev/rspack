@@ -11,96 +11,100 @@ new rspack.BannerPlugin(options);
 
 Adds a banner to the top or bottom of each generated chunk.
 
-- options
+## Options
 
-  - **Type:**
+- **Type:**
 
-  ```ts
-  type BannerContent = string;
-  type BannerRules = string | RegExp | Array<string | RegExp>;
-  type BannerPluginOptions = {
-    banner: BannerContent;
-    entryOnly?: boolean;
-    footer?: boolean;
-    raw?: boolean;
-    test?: BannerRules;
-    include?: BannerRules;
-    exclude?: BannerRules;
-  };
-  export type BannerPluginArgument = BannerContent | BannerPluginOptions;
-  ```
+```ts
+type BannerContent = string;
+type BannerRules = string | RegExp | Array<string | RegExp>;
+type BannerPluginOptions = {
+  banner: BannerContent;
+  entryOnly?: boolean;
+  footer?: boolean;
+  raw?: boolean;
+  test?: BannerRules;
+  include?: BannerRules;
+  exclude?: BannerRules;
+};
+export type BannerPluginArgument = BannerContent | BannerPluginOptions;
+```
 
-  - **Default:** `undefined`
+- **Default:** `undefined`
 
-  {' '}
+{' '}
 
-  <Table
-    header={[
-      {
-        name: 'Name',
-        key: 'name',
-      },
-      {
-        name: 'Type',
-        key: 'type',
-      },
-      {
-        name: 'Default',
-        key: 'default',
-      },
-      {
-        name: 'Description',
-        key: 'description',
-      },
-    ]}
-    body={[
-      {
-        name: '`banner`',
-        type: '`string`',
-        default: 'undefined',
-        description: 'Specifies the banner, it will be wrapped in a comment.',
-      },
-      {
-        name: '`entryOnly`',
-        type: '`boolean|undefined`',
-        default: 'undefined',
-        description:
-          'If true, the banner will only be added to the entry chunks.',
-      },
-      {
-        name: '`footer`',
-        type: '`boolean|undefined`',
-        default: 'undefined',
-        description: 'If true, banner will be placed at the end of the output.',
-      },
-      {
-        name: '`raw`',
-        type: '`boolean|undefined`',
-        default: 'undefined',
-        description: 'If true, banner will not be wrapped in a comment.',
-      },
-      {
-        name: '`test`',
-        type: '`BannerRules|undefined`',
-        default: 'undefined',
-        description: 'Include all modules that pass test assertion.',
-      },
-      {
-        name: '`include`',
-        type: '`BannerRules|undefined`',
-        default: 'undefined',
-        description: 'Include all modules matching any of these conditions.',
-      },
-      {
-        name: '`exclude`',
-        type: '`BannerRules|undefined`',
-        default: 'undefined',
-        description: 'Exclude all modules matching any of these conditions.',
-      },
-    ]}
-  />
+{' '}
 
-Add a banner to the top or bottom of each chunk file.
+<Table
+  header={[
+    {
+      name: 'Name',
+      key: 'name',
+    },
+    {
+      name: 'Type',
+      key: 'type',
+    },
+    {
+      name: 'Default',
+      key: 'default',
+    },
+    {
+      name: 'Description',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`banner`',
+      type: '`string`',
+      default: 'undefined',
+      description: 'Specifies the banner, it will be wrapped in a comment.',
+    },
+    {
+      name: '`entryOnly`',
+      type: '`boolean|undefined`',
+      default: 'undefined',
+      description:
+        'If true, the banner will only be added to the entry chunks.',
+    },
+    {
+      name: '`footer`',
+      type: '`boolean|undefined`',
+      default: 'undefined',
+      description: 'If true, banner will be placed at the end of the output.',
+    },
+    {
+      name: '`raw`',
+      type: '`boolean|undefined`',
+      default: 'undefined',
+      description: 'If true, banner will not be wrapped in a comment.',
+    },
+    {
+      name: '`test`',
+      type: '`BannerRules|undefined`',
+      default: 'undefined',
+      description: 'Include all modules that pass test assertion.',
+    },
+    {
+      name: '`include`',
+      type: '`BannerRules|undefined`',
+      default: 'undefined',
+      description: 'Include all modules matching any of these conditions.',
+    },
+    {
+      name: '`exclude`',
+      type: '`BannerRules|undefined`',
+      default: 'undefined',
+      description: 'Exclude all modules matching any of these conditions.',
+    },
+  ]}
+/>
+
+## Examples
+
+Add a banner to the bottom of each chunk file.
 
 ```ts title="rspack.config.js"
 module.exports = {

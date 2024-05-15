@@ -11,95 +11,99 @@ new rspack.BannerPlugin(options);
 
 在每个生成的 chunk 顶部或尾部添加一段指定的内容。
 
-- options
+## 选项
 
-  - **类型：**
+- **类型：**
 
-  ```ts
-  type BannerContent = string;
-  type BannerRules = string | RegExp | Array<string | RegExp>;
-  type BannerPluginOptions = {
-    banner: BannerContent;
-    entryOnly?: boolean;
-    footer?: boolean;
-    raw?: boolean;
-    test?: BannerRules;
-    include?: BannerRules;
-    exclude?: BannerRules;
-  };
-  export type BannerPluginArgument = BannerContent | BannerPluginOptions;
-  ```
+```ts
+type BannerContent = string;
+type BannerRules = string | RegExp | Array<string | RegExp>;
+type BannerPluginOptions = {
+  banner: BannerContent;
+  entryOnly?: boolean;
+  footer?: boolean;
+  raw?: boolean;
+  test?: BannerRules;
+  include?: BannerRules;
+  exclude?: BannerRules;
+};
+export type BannerPluginArgument = BannerContent | BannerPluginOptions;
+```
 
-  - **默认值：** `undefined`
+- **默认值：** `undefined`
 
-  {' '}
+{' '}
 
-  <Table
-    header={[
-      {
-        name: '名称',
-        key: 'name',
-      },
-      {
-        name: '类型',
-        key: 'type',
-      },
-      {
-        name: '默认值',
-        key: 'default',
-      },
-      {
-        name: '描述',
-        key: 'description',
-      },
-    ]}
-    body={[
-      {
-        name: '`banner`',
-        type: '`string`',
-        default: 'undefined',
-        description: '指定 banner 内容（会被包裹成注释）',
-      },
-      {
-        name: '`entryOnly`',
-        type: '`boolean|undefined`',
-        default: 'undefined',
-        description: '如果值为 true，将只在入口 chunks 文件中添加',
-      },
-      {
-        name: '`footer`',
-        type: '`boolean|undefined`',
-        default: 'undefined',
-        description: '如果值为 true，banner 将会位于编译结果的最下方',
-      },
-      {
-        name: '`raw`',
-        type: '`boolean|undefined`',
-        default: 'undefined',
-        description: '如果值为 true，将直接输出，不会被作为注释',
-      },
-      {
-        name: '`test`',
-        type: '`BannerRules|undefined`',
-        default: 'undefined',
-        description: '包含所有匹配的模块',
-      },
-      {
-        name: '`include`',
-        type: '`BannerRules|undefined`',
-        default: 'undefined',
-        description: '根据条件匹配指定的模块',
-      },
-      {
-        name: '`exclude`',
-        type: '`BannerRules|undefined`',
-        default: 'undefined',
-        description: '根据条件排除指定的模块',
-      },
-    ]}
-  />
+{' '}
 
-为每个 chunk 文件头部或底部添加 banner。
+<Table
+  header={[
+    {
+      name: '名称',
+      key: 'name',
+    },
+    {
+      name: '类型',
+      key: 'type',
+    },
+    {
+      name: '默认值',
+      key: 'default',
+    },
+    {
+      name: '描述',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`banner`',
+      type: '`string`',
+      default: 'undefined',
+      description: '指定 banner 内容（会被包裹成注释）',
+    },
+    {
+      name: '`entryOnly`',
+      type: '`boolean|undefined`',
+      default: 'undefined',
+      description: '如果值为 true，将只在入口 chunks 文件中添加',
+    },
+    {
+      name: '`footer`',
+      type: '`boolean|undefined`',
+      default: 'undefined',
+      description: '如果值为 true，banner 将会位于编译结果的最下方',
+    },
+    {
+      name: '`raw`',
+      type: '`boolean|undefined`',
+      default: 'undefined',
+      description: '如果值为 true，将直接输出，不会被作为注释',
+    },
+    {
+      name: '`test`',
+      type: '`BannerRules|undefined`',
+      default: 'undefined',
+      description: '包含所有匹配的模块',
+    },
+    {
+      name: '`include`',
+      type: '`BannerRules|undefined`',
+      default: 'undefined',
+      description: '根据条件匹配指定的模块',
+    },
+    {
+      name: '`exclude`',
+      type: '`BannerRules|undefined`',
+      default: 'undefined',
+      description: '根据条件排除指定的模块',
+    },
+  ]}
+/>
+
+## 示例
+
+在每个 chunk 文件底部添加 banner。
 
 ```ts title="rspack.config.js"
 module.exports = {
