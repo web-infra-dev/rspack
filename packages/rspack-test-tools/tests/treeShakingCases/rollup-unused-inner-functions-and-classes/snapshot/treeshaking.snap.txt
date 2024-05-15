@@ -13,6 +13,8 @@ function getClass() {
     class UnusedInnerClass1 {
     }
     return MyClass;
+    class UnusedInnerClass2 {
+    }
 }
 class UnusedClass {
 }

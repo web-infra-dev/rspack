@@ -12,6 +12,7 @@ export class RspackTreeShakingProcessor extends SnapshotProcessor<ECompilerType.
 		protected _treeShakingOptions: IRspackTreeShakingProcessorOptions
 	) {
 		super({
+			configFiles: ["rspack.config.js", "webpack.config.js"],
 			snapshot: _treeShakingOptions.snapshot,
 			compilerType: ECompilerType.Rspack,
 			defaultOptions: RspackBuiltinProcessor.defaultOptions,
