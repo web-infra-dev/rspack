@@ -1,3 +1,4 @@
+/** @type {import('../../..').THashCaseConfig} */
 module.exports = {
 	validate(stats) {
 		const nonRealContentHash = stats.stats[0].toJson({ assets: true });

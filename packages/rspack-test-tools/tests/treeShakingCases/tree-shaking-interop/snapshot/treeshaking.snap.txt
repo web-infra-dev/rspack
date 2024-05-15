@@ -26,16 +26,10 @@ __webpack_require__.e(/* import() */ "bar_js").then(__webpack_require__.bind(__w
 const a = "a";
 exports.test = 30;
 }),
-"./b.js": (function (module) {
-module.exports = a = "b";
-}),
 "./foo.js": (function (module, __unused_webpack_exports, __webpack_require__) {
-if (process.env.NODE_ENV !== "production") {
+{
     const res = __webpack_require__("./a.js");
     module.exports = res;
-} else {
-    const c = __webpack_require__("./b.js");
-    module.exports = c;
 } // export default function () {}
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {

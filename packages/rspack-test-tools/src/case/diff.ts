@@ -7,6 +7,8 @@ import { DiffProcessor, IDiffProcessorOptions } from "../processor";
 import { Tester } from "../test/tester";
 import { ECompareResultType, TModuleCompareResult } from "../type";
 
+export type TDiffCaseConfig = IDiffProcessorOptions;
+
 const DEFAULT_CASE_CONFIG: Partial<IDiffProcessorOptions> = {
 	webpackPath: require.resolve("webpack"),
 	rspackPath: require.resolve("@rspack/core"),

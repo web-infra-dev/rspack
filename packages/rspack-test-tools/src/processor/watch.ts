@@ -13,7 +13,7 @@ import {
 } from "../type";
 import { MultiTaskProcessor } from "./multi";
 
-// This file is used to port step number to webpack.config.js
+// This file is used to port step number to rspack.config.js/webpack.config.js
 const currentWatchStepModulePath = path.resolve(
 	__dirname,
 	"../helper/util/currentWatchStep"

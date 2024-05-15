@@ -192,7 +192,7 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 		index: number,
 		context: ITestContext
 	): TCompilerOptions<ECompilerType.Rspack> {
-		if (fs.existsSync(path.join(context.getSource(), "webpack.config.js"))) {
+		if (fs.existsSync(path.join(context.getSource(), "rspack.config.js"))) {
 			return {};
 		}
 		return {
