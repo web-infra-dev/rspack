@@ -433,8 +433,8 @@ importers:
   packages/rspack:
     dependencies:
       '@module-federation/runtime-tools':
-        specifier: 0.1.6
-        version: 0.1.6
+        specifier: 0.1.13
+        version: 0.1.13
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
@@ -3364,28 +3364,28 @@ packages:
     resolution: {integrity: sha512-9b8mPpKrfeGRuhFH5iO1iwCLeIIsV6+H1sRfxbkoGXIyQE2BTsPd9zqSqQJ+pv5sJ/hT5M1zvOFL02MnEezFug==}
     dev: true
 
-  /@module-federation/runtime-tools@0.1.6:
-    resolution: {integrity: sha512-7ILVnzMIa0Dlc0Blck5tVZG1tnk1MmLnuZpLOMpbdW+zl+N6wdMjjHMjEZFCUAJh2E5XJ3BREwfX8Ets0nIkLg==}
+  /@module-federation/runtime-tools@0.1.13:
+    resolution: {integrity: sha512-TlKz/haD6X8kfuJexhBHwdUquSuiBhzSDItIARaO7J5Ex4HGGsiBYXVzmsB8UO9ClOHmz1RhQcAqrkQcB7tplw==}
     dependencies:
-      '@module-federation/runtime': 0.1.6
-      '@module-federation/webpack-bundler-runtime': 0.1.6
+      '@module-federation/runtime': 0.1.13
+      '@module-federation/webpack-bundler-runtime': 0.1.13
     dev: false
 
-  /@module-federation/runtime@0.1.6:
-    resolution: {integrity: sha512-nj6a+yJ+QxmcE89qmrTl4lphBIoAds0PFPVGnqLRWflwAP88jrCcrrTqRhARegkFDL+wE9AE04+h6jzlbIfMKg==}
+  /@module-federation/runtime@0.1.13:
+    resolution: {integrity: sha512-bWKvo1WDAVkFzW/dYz9hUltG4yf4qkj90m3xtId3WGcZlFNviKD51/viltQPCutiBpimIe6W+YuJDfWOZc8Bnw==}
     dependencies:
-      '@module-federation/sdk': 0.1.6
+      '@module-federation/sdk': 0.1.13
     dev: false
 
-  /@module-federation/sdk@0.1.6:
-    resolution: {integrity: sha512-qifXpyYLM7abUeEOIfv0oTkguZgRZuwh89YOAYIZJlkP6QbRG7DJMQvtM8X2yHXm9PTk0IYNnOJH0vNQCo6auQ==}
+  /@module-federation/sdk@0.1.13:
+    resolution: {integrity: sha512-B1eKDnZjdWINmaaci9QMfQn24izzgoX3kQn6F77U1kiEMnum7yTTwBlB1jxgmNqlRYQ9ul4xcEOCnCUEM3nNHA==}
     dev: false
 
-  /@module-federation/webpack-bundler-runtime@0.1.6:
-    resolution: {integrity: sha512-K5WhKZ4RVNaMEtfHsd/9CNCgGKB0ipbm/tgweNNeC11mEuBTNxJ09Y630vg3WPkKv9vfMCuXg2p2Dk+Q/KWTSA==}
+  /@module-federation/webpack-bundler-runtime@0.1.13:
+    resolution: {integrity: sha512-s/NKyL9RGb0CN4+LnaB78Pzf/smYKQJJpdT/iFIPsHB4a5vwr179r8K6zJSLLlns6kGjv1JojRpen3fCLHdFow==}
     dependencies:
-      '@module-federation/runtime': 0.1.6
-      '@module-federation/sdk': 0.1.6
+      '@module-federation/runtime': 0.1.13
+      '@module-federation/sdk': 0.1.13
     dev: false
 
   /@monaco-editor/loader@1.4.0(monaco-editor@0.47.0):
