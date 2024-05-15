@@ -298,6 +298,10 @@ pub trait JavascriptParserPlugin {
   fn named_export(&self, _parser: &mut JavascriptParser, _expr: &NamedExport) -> Option<bool> {
     None
   }
+
+  fn finish(&self, _parser: &mut JavascriptParser) -> Option<bool> {
+    None
+  }
 }
 
 pub type BoxJavascriptParserPlugin = Box<dyn JavascriptParserPlugin>;

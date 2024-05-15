@@ -32,6 +32,10 @@ pub trait JavascriptModulesPluginPlugin {
   fn js_chunk_hash(&self, _args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
     Ok(())
   }
+
+  fn inline_in_runtime_bailout(&self) -> Option<String> {
+    None
+  }
 }
 
 #[derive(Debug)]
@@ -193,5 +197,14 @@ impl JavascriptModulesPluginPluginDrive {
       args = plugin.render_module_content(args)?;
     }
     Ok(args)
+  }
+
+  pub fn inline_in_runtime_bailout(&self) -> Option<String> {
+    for plugin in &self.plugins {
+      if let Some(reason) = plugin.inline_in_runtime_bailout() {
+        return Some(reason);
+      }
+    }
+    None
   }
 }

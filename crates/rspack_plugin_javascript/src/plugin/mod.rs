@@ -21,8 +21,8 @@ pub use module_concatenation_plugin::*;
 use once_cell::sync::Lazy;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  basic_function, render_init_fragments, ChunkRenderContext, ChunkUkey, Compilation, CompilationId,
-  RuntimeGlobals,
+  basic_function, render_init_fragments, ChunkRenderContext, ChunkUkey,
+  CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -295,8 +295,33 @@ impl JsPlugin {
             );
             allow_inline_startup = false;
           }
-          if allow_inline_startup {
-            // TODO: topLevelDeclarations and inlineInRuntimeBailout
+          if allow_inline_startup && {
+            let codegen = compilation
+              .code_generation_results
+              .get(module, Some(&chunk.runtime));
+            let module_graph = compilation.get_module_graph();
+            let top_level_decls = codegen
+              .data
+              .get::<CodeGenerationDataTopLevelDeclarations>()
+              .map(|d| d.inner())
+              .or_else(|| {
+                module_graph
+                  .module_by_identifier(module)
+                  .and_then(|m| m.build_info())
+                  .and_then(|build_info| build_info.top_level_declarations.as_ref())
+              });
+            top_level_decls.is_none()
+          } {
+            buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
+            allow_inline_startup = false;
+          }
+          if allow_inline_startup
+            && let Some(bailout) = {
+              let drive = JsPlugin::get_compilation_drives(compilation);
+              drive.inline_in_runtime_bailout()
+            }
+          {
+            buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
             allow_inline_startup = false;
           }
           let entry_runtime_requirements = compilation
