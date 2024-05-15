@@ -1,3 +1,5 @@
+import { rspack } from "@rspack/core";
+
 import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
 import { RspackBuiltinProcessor } from "./builtin";
 import { SnapshotProcessor } from "./snapshot";
@@ -12,7 +14,6 @@ export class RspackTreeShakingProcessor extends SnapshotProcessor<ECompilerType.
 		protected _treeShakingOptions: IRspackTreeShakingProcessorOptions
 	) {
 		super({
-			configFiles: ["rspack.config.js", "webpack.config.js"],
 			snapshot: _treeShakingOptions.snapshot,
 			compilerType: ECompilerType.Rspack,
 			defaultOptions: RspackBuiltinProcessor.defaultOptions,
@@ -31,5 +32,18 @@ export class RspackTreeShakingProcessor extends SnapshotProcessor<ECompilerType.
 		options.optimization.providedExports = true;
 		options.optimization.innerGraph = true;
 		options.optimization.usedExports = true;
+
+		// TODO: remove builtin compatible code
+		const defineOptions = (options.builtins as any)?.define;
+		if (defineOptions) {
+			options.plugins!.push(new rspack.DefinePlugin(defineOptions));
+			delete (options.builtins as any)?.define;
+		}
+
+		const provideOptions = (options.builtins as any)?.provide;
+		if (provideOptions) {
+			options.plugins!.push(new rspack.ProvidePlugin(provideOptions));
+			delete (options.builtins as any)?.provide;
+		}
 	}
 }

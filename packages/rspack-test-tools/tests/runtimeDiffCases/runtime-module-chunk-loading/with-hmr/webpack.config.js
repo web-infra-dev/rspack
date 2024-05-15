@@ -1,6 +1,6 @@
 const { HotModuleReplacementPlugin } = require("webpack");
 
-/** @type {import("@rspack/core").Configuration} */
+/** @type {import("webpack").Configuration} */
 module.exports = {
 	entry: {
 		main: "./src/a.js"

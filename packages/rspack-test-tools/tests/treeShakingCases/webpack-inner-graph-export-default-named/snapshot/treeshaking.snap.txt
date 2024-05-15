@@ -137,22 +137,18 @@ it("should generate valid code", ()=>{
 it("a should be used", ()=>{
     expect(_dep_a__WEBPACK_IMPORTED_MODULE_6__["default"]).toBe(true);
 });
-if (process.env.NODE_ENV === "production") {
-    it("b should be unused", ()=>{
-        expect(_dep_b__WEBPACK_IMPORTED_MODULE_7__["default"]).toBe(false);
-    });
-}
+it("b should be unused", ()=>{
+    expect(_dep_b__WEBPACK_IMPORTED_MODULE_7__["default"]).toBe(false);
+});
 it("c should be used", ()=>{
     expect(_dep_c__WEBPACK_IMPORTED_MODULE_8__["default"]).toBe(true);
 });
-if (process.env.NODE_ENV === "production") {
-    it("d should be used", ()=>{
-        expect(_dep_d__WEBPACK_IMPORTED_MODULE_9__["default"]).toBe(true);
-    });
-    it("e should be unused", ()=>{
-        expect(_dep_e__WEBPACK_IMPORTED_MODULE_10__["default"]).toBe(false);
-    });
-}
+it("d should be used", ()=>{
+    expect(_dep_d__WEBPACK_IMPORTED_MODULE_9__["default"]).toBe(true);
+});
+it("e should be unused", ()=>{
+    expect(_dep_e__WEBPACK_IMPORTED_MODULE_10__["default"]).toBe(false);
+});
 it("f should be used", ()=>{
     expect(_dep_f__WEBPACK_IMPORTED_MODULE_11__["default"]).toBe(true);
 });

@@ -22,9 +22,7 @@ it("export should be unused when only unused functions use it", ()=>{
     expect((0, _module__WEBPACK_IMPORTED_MODULE_1__.y)("a")).toBe("okBAA");
     expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportAUsed).toBe(true);
     expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportBUsed).toBe(true);
-    if (process.env.NODE_ENV === "production") {
-        expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportCUsed).toBe(false);
-    }
+    expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportCUsed).toBe(false);
     return __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
 });
 }),
