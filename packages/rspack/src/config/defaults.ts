@@ -321,6 +321,7 @@ const applyModuleDefaults = (
 			!targetProperties || !targetProperties.document
 		);
 		D(module.generator["css"], "exportsConvention", "as-is");
+		D(module.generator["css"], "esModule", true);
 
 		F(module.generator, "css/auto", () => ({}));
 		assertNotNill(module.generator["css/auto"]);
@@ -335,6 +336,7 @@ const applyModuleDefaults = (
 			"localIdentName",
 			"[uniqueName]-[id]-[local]"
 		);
+		D(module.generator["css/auto"], "esModule", true);
 
 		F(module.generator, "css/module", () => ({}));
 		assertNotNill(module.generator["css/module"]);
@@ -349,6 +351,7 @@ const applyModuleDefaults = (
 			"localIdentName",
 			"[uniqueName]-[id]-[local]"
 		);
+		D(module.generator["css/module"], "esModule", true);
 	}
 
 	A(module, "defaultRules", () => {

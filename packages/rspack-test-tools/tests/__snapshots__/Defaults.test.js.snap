@@ -147,15 +147,18 @@ Object {
     ],
     "generator": Object {
       "css": Object {
+        "esModule": true,
         "exportsConvention": "as-is",
         "exportsOnly": false,
       },
       "css/auto": Object {
+        "esModule": true,
         "exportsConvention": "as-is",
         "exportsOnly": false,
         "localIdentName": "[uniqueName]-[id]-[local]",
       },
       "css/module": Object {
+        "esModule": true,
         "exportsConvention": "as-is",
         "exportsOnly": false,
         "localIdentName": "[uniqueName]-[id]-[local]",
