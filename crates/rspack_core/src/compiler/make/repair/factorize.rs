@@ -241,10 +241,6 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       return Ok(vec![]);
     };
 
-    if let Some(counter) = &mut context.factorize_cache_counter {
-      counter.miss();
-    }
-
     let Some(module) = factory_result.module else {
       let dep = module_graph
         .dependency_by_id(&dependencies[0])

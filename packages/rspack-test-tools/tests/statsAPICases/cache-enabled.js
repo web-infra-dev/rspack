@@ -38,8 +38,6 @@ module.exports = {
 			all: false,
 			logging: "verbose"
 		});
-		// expect(stats).toContain("module build cache: 100.0% (1/1)");
-		// expect(stats).toContain("module factorize cache: 100.0% (1/1)");
 		expect(stats).toContain("module code generation cache: 100.0% (4/4)");
 	}
 };

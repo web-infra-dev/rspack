@@ -114,10 +114,6 @@ impl Task<MakeTaskContext> for BuildResultTask {
       current_profile,
     } = *self;
 
-    if let Some(counter) = &mut context.build_cache_counter {
-      counter.miss();
-    }
-
     let module_graph =
       &mut MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
     if context.compiler_options.builtins.tree_shaking.enable() {
