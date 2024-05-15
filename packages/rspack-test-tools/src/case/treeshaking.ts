@@ -5,22 +5,12 @@ const creator = new BasicCaseCreator({
 	clean: true,
 	describe: false,
 	description(name, step) {
-		if (step === 0) {
-			return `${name} with builtin.treeShaking should match snapshot`;
-		} else {
-			return `${name} with newTreeshaking should match snapshot`;
-		}
+		return `${name} with newTreeshaking should match snapshot`;
 	},
 	steps: ({ name }) => [
 		new RspackTreeShakingProcessor({
 			name,
-			snapshot: "output.snap.txt",
-			type: "builtin"
-		}),
-		new RspackTreeShakingProcessor({
-			name,
-			snapshot: "new_treeshaking.snap.txt",
-			type: "new"
+			snapshot: "treeshaking.snap.txt"
 		})
 	]
 });

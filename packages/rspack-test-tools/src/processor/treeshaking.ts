@@ -5,7 +5,6 @@ import { SnapshotProcessor } from "./snapshot";
 export interface IRspackTreeShakingProcessorOptions {
 	name: string;
 	snapshot: string;
-	type: "new" | "builtin";
 }
 
 export class RspackTreeShakingProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
@@ -13,36 +12,24 @@ export class RspackTreeShakingProcessor extends SnapshotProcessor<ECompilerType.
 		protected _treeShakingOptions: IRspackTreeShakingProcessorOptions
 	) {
 		super({
+			configFiles: ["rspack.config.js", "webpack.config.js"],
 			snapshot: _treeShakingOptions.snapshot,
 			compilerType: ECompilerType.Rspack,
 			defaultOptions: RspackBuiltinProcessor.defaultOptions,
-			overrideOptions: RspackTreeShakingProcessor.overrideOptions(
-				_treeShakingOptions.type
-			),
+			overrideOptions: RspackTreeShakingProcessor.overrideOptions,
 			name: _treeShakingOptions.name,
 			runable: false
 		});
 	}
 
-	static overrideOptions(type: IRspackTreeShakingProcessorOptions["type"]) {
-		return (
-			context: ITestContext,
-			options: TCompilerOptions<ECompilerType.Rspack>
-		) => {
-			options.target = options.target || ["web", "es2022"];
-			if (type === "new") {
-				options.optimization ??= {};
-				options.optimization.providedExports = true;
-				options.optimization.innerGraph = true;
-				options.optimization.usedExports = true;
-
-				options.builtins ??= {};
-				options.builtins.treeShaking = false;
-			} else {
-				options.experiments ??= {};
-				options.experiments.rspackFuture ??= {};
-				options.experiments.rspackFuture.newTreeshaking = false;
-			}
-		};
+	static overrideOptions(
+		context: ITestContext,
+		options: TCompilerOptions<ECompilerType.Rspack>
+	) {
+		options.target = options.target || ["web", "es2022"];
+		options.optimization ??= {};
+		options.optimization.providedExports = true;
+		options.optimization.innerGraph = true;
+		options.optimization.usedExports = true;
 	}
 }
