@@ -591,9 +591,7 @@ export async function runLoaders(
 	};
 	loaderContext._compiler = compiler;
 	loaderContext._compilation = compiler.compilation;
-	loaderContext._module = compiler.compilation!.findModule(
-		rawContext._moduleIdentifier
-	)!;
+	loaderContext._module = { buildMeta: {} };
 	loaderContext.getOptions = function () {
 		const loader = getCurrentLoader(loaderContext);
 		let options = loader?.options;

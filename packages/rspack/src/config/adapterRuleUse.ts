@@ -8,8 +8,7 @@ import { ResolveRequest } from "enhanced-resolve";
 
 import { Compiler } from "../Compiler";
 import { Logger } from "../logging/Logger";
-import Hash = require("../util/hash");
-import { Mode, Resolve, RuleSetUseItem, RuleSetLoaderWithOptions } from "./zod";
+import { Mode, Resolve, RuleSetLoaderWithOptions, RuleSetUseItem } from "./zod";
 import { parsePathQueryFragment } from "../loader-runner";
 import { isNil } from "../util";
 import {
@@ -18,7 +17,7 @@ import {
 	resolveReact,
 	resolveRelay
 } from "../builtin-loader";
-import { Module } from "../Module";
+import Hash = require("../util/hash");
 
 const BUILTIN_LOADER_PREFIX = "builtin:";
 
@@ -107,7 +106,7 @@ export interface LoaderContext<OptionsType = {}> {
 	loaders: LoaderObject[];
 	mode?: Mode;
 	hot?: boolean;
-	_module: Module;
+	_module: object;
 	/**
 	 * @param schema To provide the best performance, Rspack does not perform the schema validation. If your loader requires schema validation, please call scheme-utils or zod on your own.
 	 */
