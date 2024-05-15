@@ -5,11 +5,7 @@ import { ApiMeta } from '../../../../components/ApiMeta';
 
 # SplitChunksPlugin
 
-## optimization.splitChunks
-
-Rspack supports you to split Chunk with the `optimization.splitChunks` configuration item.
-
-### Default:
+## Default
 
 Out of the box `SplitChunksPlugin` should work well for most users.
 
@@ -24,14 +20,12 @@ Rspack will automatically split chunks based on these conditions:
 
 When trying to fulfill the last two conditions, bigger chunks are preferred.
 
-### Configuration
+## Options
 
 Rspack provides a set of options for developers that want more control over this functionality.
 
 :::warning
-
 The default configuration was chosen to fit web performance best practices, but the optimal strategy for your project might differ. If you're changing the configuration, you should measure the effect of your changes to ensure there's a real benefit.
-
 :::
 
 ### optimization.splitChunks

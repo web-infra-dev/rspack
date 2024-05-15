@@ -11,34 +11,14 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 new rspack.ProgressPlugin(options);
 ```
 
-- options
-  - **类型：** `{ prefix?: string }`
-  - **默认值：** `{}`
-    <Table
-      header={[
-        {
-          name: '名称',
-          key: 'name',
-        },
-        {
-          name: '类型',
-          key: 'type',
-        },
-        {
-          name: '默认值',
-          key: 'default',
-        },
-        {
-          name: '描述',
-          key: 'description',
-        },
-      ]}
-      body={[
-        {
-          name: '`prefix`',
-          type: '`string`',
-          default: "'Rspack'",
-          description: '进度条前显示文案',
-        },
-      ]}
-    />
+## 选项
+
+- **Type:** `{ prefix?: string }`
+- **Default:** `{}`
+
+### prefix
+
+- **Type:** `string`
+- **Default:** `'Rspack'`
+
+进度条前显示文案。
