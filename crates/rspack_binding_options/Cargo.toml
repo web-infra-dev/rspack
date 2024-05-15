@@ -11,7 +11,6 @@ plugin  = ["rspack_loader_swc/plugin"]
 
 [dependencies]
 async-trait                           = { workspace = true }
-better_scoped_tls                     = { workspace = true }
 derivative                            = { workspace = true }
 glob                                  = { workspace = true }
 napi                                  = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }

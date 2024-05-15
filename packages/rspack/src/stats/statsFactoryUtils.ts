@@ -1,12 +1,12 @@
 import * as binding from "@rspack/binding";
-import {
-	type Comparator,
-	compareSelect,
-	compareIds
-} from "../util/comparators";
+
 import type { Compilation } from "../Compilation";
 import type { StatsOptions } from "../config";
-
+import {
+	type Comparator,
+	compareIds,
+	compareSelect
+} from "../util/comparators";
 import type { StatsFactory, StatsFactoryContext } from "./StatsFactory";
 
 export type KnownStatsChunkGroup = binding.JsStatsChunkGroup;
@@ -309,8 +309,8 @@ const getItemSize = (item: Child) => {
 	return !item.children
 		? 1
 		: item.filteredChildren
-			? 2 + getTotalSize(item.children)
-			: 1 + getTotalSize(item.children);
+		? 2 + getTotalSize(item.children)
+		: 1 + getTotalSize(item.children);
 };
 
 export const spaceLimited = (

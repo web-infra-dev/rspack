@@ -279,8 +279,7 @@ impl JsCompilation {
   pub fn get_file_dependencies(&self) -> Vec<String> {
     self
       .0
-      .file_dependencies
-      .iter()
+      .file_dependencies()
       .map(|i| i.to_string_lossy().to_string())
       .collect()
   }
@@ -289,8 +288,7 @@ impl JsCompilation {
   pub fn get_context_dependencies(&self) -> Vec<String> {
     self
       .0
-      .context_dependencies
-      .iter()
+      .context_dependencies()
       .map(|i| i.to_string_lossy().to_string())
       .collect()
   }
@@ -299,8 +297,7 @@ impl JsCompilation {
   pub fn get_missing_dependencies(&self) -> Vec<String> {
     self
       .0
-      .missing_dependencies
-      .iter()
+      .missing_dependencies()
       .map(|i| i.to_string_lossy().to_string())
       .collect()
   }
@@ -309,8 +306,7 @@ impl JsCompilation {
   pub fn get_build_dependencies(&self) -> Vec<String> {
     self
       .0
-      .build_dependencies
-      .iter()
+      .build_dependencies()
       .map(|i| i.to_string_lossy().to_string())
       .collect()
   }

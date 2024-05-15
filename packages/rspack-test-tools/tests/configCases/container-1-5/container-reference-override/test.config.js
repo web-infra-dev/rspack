@@ -1,3 +1,4 @@
+/** @type {import("../../../..").TConfigCaseConfig} */
 module.exports = {
 	moduleScope(scope) {
 		let ss;

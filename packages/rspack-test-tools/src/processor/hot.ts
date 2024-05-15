@@ -1,3 +1,6 @@
+import { rspack } from "@rspack/core";
+import path from "path";
+
 import {
 	ECompilerType,
 	ITestContext,
@@ -6,8 +9,6 @@ import {
 	TCompilerOptions
 } from "../type";
 import { BasicTaskProcessor, IBasicProcessorOptions } from "./basic";
-import path from "path";
-import { rspack } from "@rspack/core";
 
 export interface IRspackHotProcessorOptions {
 	name: string;

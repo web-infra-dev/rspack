@@ -1,5 +1,6 @@
 const System = require("../../../../dist/helper/legacy/fakeSystem");
 
+/** @type {import("../../../..").TConfigCaseConfig} */
 module.exports = {
 	beforeExecute: () => {
 		System.init();

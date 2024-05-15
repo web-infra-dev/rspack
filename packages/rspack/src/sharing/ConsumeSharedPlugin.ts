@@ -3,14 +3,15 @@ import {
 	BuiltinPluginName,
 	RawConsumeSharedPluginOptions
 } from "@rspack/binding";
-import { Compiler } from "../Compiler";
+
 import {
-	RspackBuiltinPlugin,
-	createBuiltinPlugin
+	createBuiltinPlugin,
+	RspackBuiltinPlugin
 } from "../builtin-plugin/base";
+import { Compiler } from "../Compiler";
 import { parseOptions } from "../container/options";
-import { isRequiredVersion } from "./utils";
 import { ShareRuntimePlugin } from "./ShareRuntimePlugin";
+import { isRequiredVersion } from "./utils";
 
 export type ConsumeSharedPluginOptions = {
 	consumes: Consumes;
@@ -48,7 +49,7 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 					let result =
 						item === key || !isRequiredVersion(item)
 							? // item is a request/key
-								{
+							  {
 									import: key,
 									shareScope: options.shareScope || "default",
 									shareKey: key,
@@ -57,10 +58,10 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 									strictVersion: false,
 									singleton: false,
 									eager: false
-								}
+							  }
 							: // key is a request/key
-								// item is a version
-								{
+							  // item is a version
+							  {
 									import: key,
 									shareScope: options.shareScope || "default",
 									shareKey: key,
@@ -69,7 +70,7 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 									packageName: undefined,
 									singleton: false,
 									eager: false
-								};
+							  };
 					return result;
 				},
 				(item, key) => ({

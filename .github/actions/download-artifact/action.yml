@@ -4,18 +4,18 @@ description: Download file to local or artifact to quickly share files between j
 
 inputs:
   name:
-    description: 'Artifact name'
-    default: 'artifact'
+    description: "Artifact name"
+    default: "artifact"
   path:
-    description: 'Destination path'
+    description: "Destination path"
     required: true
   try-local-cache:
-    description: 'Try use local cache to save artifact'
+    description: "Try use local cache to save artifact"
     default: false
     required: false
     type: boolean
   link-when-local:
-    description: 'Link file instead of copy file'
+    description: "Link file instead of copy file"
     default: false
     type: boolean
     required: false

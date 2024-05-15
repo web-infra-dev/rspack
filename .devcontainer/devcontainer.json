@@ -1,42 +1,42 @@
 // For format details, see https://aka.ms/devcontainer.json.
 {
-	"name": "Rust",
-	// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
-	"build": {
-		"dockerfile": "Dockerfile"
-	},
-	// Use 'mounts' to make the cargo cache persistent in a Docker Volume.
-	// "mounts": [
-	// 	{
-	// 		"source": "devcontainer-cargo-cache-${devcontainerId}",
-	// 		"target": "/usr/local/cargo",
-	// 		"type": "volume"
-	// 	}
-	// ]
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	"features": {
-		// install node 16 and pnpm by nvm, hover on the feature to get more info.
-		"ghcr.io/devcontainers/features/node:1": {
-			"nodeGypDependencies": true,
-			"version": "16.18.0"
-		}
-	},
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "rustc --version",
-	"postAttachCommand": "pnpm run init",
-	// Configure tool-specific properties.
-	// Add extensions for vscode
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"EditorConfig.EditorConfig", // to respect .editorConfig files
-				"mutantdino.resourcemonitor", // watch resource usage
-				"rust-lang.rust-analyzer"
-			]
-		}
-	},
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+  "name": "Rust",
+  // Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  // Use 'mounts' to make the cargo cache persistent in a Docker Volume.
+  // "mounts": [
+  // 	{
+  // 		"source": "devcontainer-cargo-cache-${devcontainerId}",
+  // 		"target": "/usr/local/cargo",
+  // 		"type": "volume"
+  // 	}
+  // ]
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  "features": {
+    // install node 16 and pnpm by nvm, hover on the feature to get more info.
+    "ghcr.io/devcontainers/features/node:1": {
+      "nodeGypDependencies": true,
+      "version": "16.18.0"
+    }
+  },
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // "postCreateCommand": "rustc --version",
+  "postAttachCommand": "pnpm run init",
+  // Configure tool-specific properties.
+  // Add extensions for vscode
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "EditorConfig.EditorConfig", // to respect .editorConfig files
+        "mutantdino.resourcemonitor", // watch resource usage
+        "rust-lang.rust-analyzer"
+      ]
+    }
+  }
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "root"
 }

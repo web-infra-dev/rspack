@@ -1,9 +1,9 @@
-import schema from "./loader-options.json";
-import { CssExtractRspackPlugin } from "./index";
 import path from "path";
-import { stringifyLocal, stringifyRequest } from "./utils";
 
 import type { LoaderContext, LoaderDefinition } from "../..";
+import { CssExtractRspackPlugin } from "./index";
+import schema from "./loader-options.json";
+import { stringifyLocal, stringifyRequest } from "./utils";
 
 export const MODULE_TYPE = "css/mini-extract";
 export const AUTO_PUBLIC_PATH = "__mini_css_extract_plugin_public_path_auto__";
@@ -26,7 +26,7 @@ interface DependencyDescription {
 	filepath: string;
 }
 
-export interface LoaderOptions {
+export interface CssExtractRspackLoaderOptions {
 	publicPath?: string | ((resourcePath: string, context: string) => string);
 	emit?: boolean;
 	esModule?: boolean;
@@ -39,7 +39,7 @@ function hotLoader(
 	content: string,
 	context: {
 		loaderContext: LoaderContext;
-		options: LoaderOptions;
+		options: CssExtractRspackLoaderOptions;
 		locals: Record<string, string>;
 	}
 ) {
@@ -53,9 +53,9 @@ function hotLoader(
 				context.loaderContext,
 				path.join(__dirname, "./hmr/hotModuleReplacement.js")
 			)})(module.id, ${JSON.stringify({
-				...context.options,
-				locals: !!context.locals
-			})});
+		...context.options,
+		locals: !!context.locals
+	})});
       module.hot.dispose(cssReload);
       ${accept}
     }
@@ -102,7 +102,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		return;
 	}
 
-	const options = this.getOptions(schema) as LoaderOptions;
+	const options = this.getOptions(schema) as CssExtractRspackLoaderOptions;
 	const emit = typeof options.emit !== "undefined" ? options.emit : true;
 	const callback = this.async();
 	const filepath = this.resourcePath;
@@ -132,7 +132,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 			: `${ABSOLUTE_PUBLIC_PATH}${publicPath.replace(
 					/\./g,
 					SINGLE_DOT_PATH_SEGMENT
-				)}`;
+			  )}`;
 	} else {
 		publicPathForExtract = publicPath;
 	}
@@ -200,7 +200,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 							sourceMap: sourceMap
 								? JSON.stringify(sourceMap)
 								: // eslint-disable-next-line no-undefined
-									undefined,
+								  undefined,
 							filepath
 						};
 					})
@@ -224,10 +224,10 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 						.join("")
 				: `\n${
 						esModule ? "export default" : "module.exports ="
-					} ${JSON.stringify(locals)};`
+				  } ${JSON.stringify(locals)};`
 			: esModule
-				? `\nexport {};`
-				: "";
+			? `\nexport {};`
+			: "";
 
 		let resultSource = `// extracted by ${CssExtractRspackPlugin.pluginName}`;
 

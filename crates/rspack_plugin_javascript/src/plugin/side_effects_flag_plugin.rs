@@ -549,7 +549,7 @@ async fn nmf_module(
 
 #[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin)]
 fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  let entries = compilation.entry_modules().collect::<Vec<_>>();
+  let entries = compilation.entry_modules();
   let level_order_module_identifier =
     get_level_order_module_ids(&compilation.get_module_graph(), entries);
   for module_identifier in level_order_module_identifier {
@@ -693,10 +693,7 @@ impl Plugin for SideEffectsFlagPlugin {
   }
 }
 
-fn get_level_order_module_ids(
-  mg: &ModuleGraph,
-  entries: Vec<ModuleIdentifier>,
-) -> Vec<ModuleIdentifier> {
+fn get_level_order_module_ids(mg: &ModuleGraph, entries: IdentifierSet) -> Vec<ModuleIdentifier> {
   let mut res = vec![];
   let mut visited = IdentifierSet::default();
   for entry in entries {

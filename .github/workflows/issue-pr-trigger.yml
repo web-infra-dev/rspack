@@ -13,10 +13,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
       - name: Check if triggered by project member
         id: check_member
-        if: github.event.sender.type == 'User'
+        if: github.event.sender.type == 'User' && github.actor != 'renovate'
         run: |
           SENDER=${{ github.event.sender.login }}
           TEAMS_FILE="./.github/teams.yml"
@@ -47,4 +47,3 @@ jobs:
           URL: ${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}
         run: |
           SHORT_BODY=$(echo "$BODY" | head -n 3) TITLE="New PR Opened: $PR_TITLE" DESCRIPTION="PR by @$AUTHOR_ID: $SHORT_BODY. Check it out at $URL" TPL_COLOR="blue" TPL_BTN_TYPE="primary" ./scripts/alert/lark.js
-      

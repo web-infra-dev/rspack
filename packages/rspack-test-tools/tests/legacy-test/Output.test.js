@@ -52,7 +52,7 @@ describe("Output", () => {
 	});
 
 	it("should be cleared the build directory", done => {
-		const outputDist = "dist/output";
+		const outputDist = path.resolve(__dirname, "../js/legacy-test/output-clear-build-directory");
 		compile(
 			"./a",
 			{

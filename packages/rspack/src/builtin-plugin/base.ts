@@ -1,4 +1,5 @@
 import * as binding from "@rspack/binding";
+
 import { Compiler, RspackPluginInstance } from "..";
 
 type AffectedHooks = keyof Compiler["hooks"];

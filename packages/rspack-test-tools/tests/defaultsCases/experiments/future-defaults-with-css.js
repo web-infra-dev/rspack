@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "experiments.futureDefaults w/ experiments.css disabled",
 	options: () => ({
@@ -24,7 +25,8 @@ module.exports = {
 		-         },
 		-         "test": /\\.css$/i,
 		-         "type": "css/auto",
-		@@ ... @@
+		-       },
+		-       Object {
 		-         "mimetype": "text/css+module",
 		-         "resolve": Object {
 		-           "fullySpecified": true,
@@ -37,22 +39,24 @@ module.exports = {
 		-         "resolve": Object {
 		-           "fullySpecified": true,
 		-           "preferRelative": true,
-		-         },
+		@@ ... @@
 		-         "type": "css",
 		-       },
-		-       Object {
 		@@ ... @@
 		-     "generator": Object {
 		-       "css": Object {
+		-         "esModule": true,
 		-         "exportsConvention": "as-is",
 		-         "exportsOnly": false,
 		-       },
 		-       "css/auto": Object {
+		-         "esModule": true,
 		-         "exportsConvention": "as-is",
 		-         "exportsOnly": false,
 		-         "localIdentName": "[uniqueName]-[id]-[local]",
 		-       },
 		-       "css/module": Object {
+		-         "esModule": true,
 		-         "exportsConvention": "as-is",
 		-         "exportsOnly": false,
 		-         "localIdentName": "[uniqueName]-[id]-[local]",
@@ -60,16 +64,15 @@ module.exports = {
 		-     },
 		+     "generator": Object {},
 		@@ ... @@
-		-         },
-		-       },
 		-       "css": Object {
 		-         "namedExports": true,
-		@@ ... @@
+		-       },
 		-       "css/auto": Object {
 		-         "namedExports": true,
 		-       },
 		-       "css/module": Object {
 		-         "namedExports": true,
+		-       },
 		@@ ... @@
 		-         "css",
 		@@ ... @@
@@ -78,6 +81,7 @@ module.exports = {
 		+     "hashDigestLength": 16,
 		+     "hashFunction": "xxhash64",
 		@@ ... @@
+		-           "...",
 		-         ],
 		-       },
 		-       "css-import": Object {
@@ -85,14 +89,13 @@ module.exports = {
 		-           "webpack",
 		-           "production",
 		-           "style",
-		@@ ... @@
+		-         ],
 		-         "extensions": Array [
 		-           ".css",
 		-         ],
 		-         "mainFields": Array [
 		-           "style",
-		-           "...",
-		-         ],
+		@@ ... @@
 		-         "mainFiles": Array [],
 		-         "preferRelative": true,
 	`)

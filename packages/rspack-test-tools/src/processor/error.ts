@@ -1,4 +1,9 @@
-import { SimpleTaskProcessor } from "./simple";
+import { StatsError, StatsWarnings } from "@rspack/core";
+import fs from "fs";
+import path from "path";
+import prettyFormat from "pretty-format";
+import merge from "webpack-merge";
+
 import {
 	ECompilerType,
 	ITestContext,
@@ -6,11 +11,7 @@ import {
 	TCompiler,
 	TCompilerOptions
 } from "../type";
-import fs from "fs";
-import path from "path";
-import prettyFormat from "pretty-format";
-import { StatsError, StatsWarnings } from "@rspack/core";
-import merge from "webpack-merge";
+import { SimpleTaskProcessor } from "./simple";
 
 type TStatsDiagnostics = {
 	errors: StatsError[];

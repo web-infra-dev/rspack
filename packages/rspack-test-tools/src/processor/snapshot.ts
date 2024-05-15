@@ -1,13 +1,14 @@
-import { BasicTaskProcessor, IBasicProcessorOptions } from "./basic";
-import { ECompilerType, ITestContext, ITestEnv } from "../type";
-import path from "path";
-import fs from "fs-extra";
 import { type Compiler as RspackCompiler } from "@rspack/core";
+import fs from "fs-extra";
+import path from "path";
 import {
 	type Compilation as WebpackCompilation,
 	type Compiler as WebpackCompiler
 } from "webpack";
+
 import { escapeEOL } from "../helper";
+import { ECompilerType, ITestContext, ITestEnv } from "../type";
+import { BasicTaskProcessor, IBasicProcessorOptions } from "./basic";
 
 declare var global: {
 	updateSnapshot: boolean;
@@ -46,7 +47,7 @@ export class SnapshotProcessor<
 			);
 		}
 		const compilation =
-			(c as RspackCompiler).compilation ||
+			(c as RspackCompiler)._lastCompilation ||
 			(
 				c as WebpackCompiler & {
 					_lastCompilation: WebpackCompilation;
@@ -71,7 +72,7 @@ export class SnapshotProcessor<
 			: path.resolve(
 					context.getSource(),
 					`./snapshot/${this._snapshotOptions.snapshot}`
-				);
+			  );
 
 		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
 			fs.ensureDirSync(path.dirname(snapshotPath));

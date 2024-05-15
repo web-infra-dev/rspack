@@ -7,57 +7,54 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import * as tapable from "tapable";
-import { Source } from "webpack-sources";
-
 import type {
 	ExternalObject,
 	JsAssetInfo,
-	JsChunk,
 	JsCompatSource,
 	JsCompilation,
+	JsDiagnostic,
 	JsModule,
-	JsRuntimeModule,
-	JsStatsChunk,
-	JsStatsError,
 	JsPathData,
+	JsRuntimeModule,
+	JsStatsError,
 	JsStatsWarning
 } from "@rspack/binding";
+import * as tapable from "tapable";
+import { Source } from "webpack-sources";
 
 import {
-	RspackOptionsNormalized,
-	StatsOptions,
+	Filename,
 	OutputNormalized,
-	StatsValue,
+	RspackOptionsNormalized,
 	RspackPluginInstance,
-	Filename
+	StatsOptions,
+	StatsValue
 } from "./config";
-import * as liteTapable from "./lite-tapable";
 import { ContextModuleFactory } from "./ContextModuleFactory";
+import * as liteTapable from "./lite-tapable";
 import ResolverFactory = require("./ResolverFactory");
-import { ChunkGroup } from "./ChunkGroup";
+import { Chunk } from "./Chunk";
+import { ChunkGraph } from "./ChunkGraph";
 import { Compiler } from "./Compiler";
+import { Entrypoint } from "./Entrypoint";
 import ErrorHelpers from "./ErrorHelpers";
-import { LogType, Logger } from "./logging/Logger";
+import { Logger, LogType } from "./logging/Logger";
+import { CodeGenerationResult, Module } from "./Module";
 import { NormalModule } from "./NormalModule";
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import {
-	Stats,
 	normalizeFilter,
 	normalizeStatsPreset,
-	optionsOrFallback
+	optionsOrFallback,
+	Stats
 } from "./Stats";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
-import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
-import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
+import { concatErrorMsgAndStack, toJsAssetInfo } from "./util";
 import { createFakeCompilationDependencies } from "./util/fake";
-import MergeCaller from "./util/MergeCaller";
 import { memoizeValue } from "./util/memoize";
-import { Chunk } from "./Chunk";
-import { CodeGenerationResult, Module } from "./Module";
-import { ChunkGraph } from "./ChunkGraph";
-import { Entrypoint } from "./Entrypoint";
+import MergeCaller from "./util/MergeCaller";
+import { JsSource } from "./util/source";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -104,6 +101,7 @@ type CreateStatsOptionsContext = KnownCreateStatsOptionsContext &
 
 export class Compilation {
 	#inner: JsCompilation;
+	#cachedAssets: Record<string, Source>;
 
 	hooks: {
 		processAssets: liteTapable.AsyncSeriesHook<Assets>;
@@ -134,17 +132,18 @@ export class Compilation {
 		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 	};
-	options: RspackOptionsNormalized;
-	outputOptions: OutputNormalized;
-	compiler: Compiler;
-	resolverFactory: ResolverFactory;
-	inputFileSystem: any;
-	logging: Map<string, LogEntry[]>;
 	name?: string;
-	childrenCounters: Record<string, number> = {};
 	startTime?: number;
 	endTime?: number;
-	children: Compilation[] = [];
+	compiler: Compiler;
+
+	resolverFactory: ResolverFactory;
+	inputFileSystem: any;
+	options: RspackOptionsNormalized;
+	outputOptions: OutputNormalized;
+	logging: Map<string, LogEntry[]>;
+	childrenCounters: Record<string, number>;
+	children: Compilation[];
 	chunkGraph: ChunkGraph;
 	fileSystemInfo = {
 		createSnapshot() {
@@ -154,14 +153,12 @@ export class Compilation {
 	};
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
-		this.name = undefined;
-		this.startTime = undefined;
-		this.endTime = undefined;
+		this.#inner = inner;
+		this.#cachedAssets = this.#createCachedAssets();
 
 		const processAssetsHook = new liteTapable.AsyncSeriesHook<Assets>([
 			"assets"
 		]);
-
 		const createProcessAssetsHook = <T>(
 			name: string,
 			stage: number,
@@ -246,9 +243,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.options = compiler.options;
 		this.outputOptions = compiler.options.output;
 		this.logging = new Map();
+		this.childrenCounters = {};
+		this.children = [];
 		this.chunkGraph = new ChunkGraph(this);
-		this.#inner = inner;
-		// Cache the current NormalModuleHooks
 	}
 
 	get currentNormalModuleHooks() {
@@ -265,10 +262,55 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	/**
 	 * Get a map of all assets.
-	 *
-	 * Source: [assets](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L1008-L1009)
 	 */
 	get assets(): Record<string, Source> {
+		return this.#cachedAssets;
+	}
+
+	/**
+	 * Get a map of all entrypoints.
+	 */
+	get entrypoints(): ReadonlyMap<string, Entrypoint> {
+		return new Map(
+			Object.entries(this.#inner.entrypoints).map(([n, e]) => [
+				n,
+				Entrypoint.__from_binding(e, this.#inner)
+			])
+		);
+	}
+
+	get modules() {
+		return memoizeValue(() => {
+			return this.__internal__getModules().map(item =>
+				Module.__from_binding(item)
+			);
+		});
+	}
+
+	// FIXME: Webpack returns a `Set`
+	get chunks() {
+		return memoizeValue(() => {
+			return this.__internal__getChunks();
+		});
+	}
+
+	/**
+	 * Get the named chunks.
+	 *
+	 * Note: This is a proxy for webpack internal API, only method `get` is supported now.
+	 */
+	get namedChunks(): Map<string, Readonly<Chunk>> {
+		return {
+			get: (property: unknown) => {
+				if (typeof property === "string") {
+					const chunk = this.#inner.getNamedChunk(property) || undefined;
+					return chunk && Chunk.__from_binding(chunk, this.#inner);
+				}
+			}
+		} as Map<string, Readonly<Chunk>>;
+	}
+
+	#createCachedAssets() {
 		return new Proxy(
 			{},
 			{
@@ -277,14 +319,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						return this.__internal__getAssetSource(property);
 					}
 				},
-				set: (target, p, newValue, receiver) => {
+				set: (_, p, newValue) => {
 					if (typeof p === "string") {
 						this.__internal__setAssetSource(p, newValue);
 						return true;
 					}
 					return false;
 				},
-				deleteProperty: (target, p) => {
+				deleteProperty: (_, p) => {
 					if (typeof p === "string") {
 						this.__internal__deleteAssetSource(p);
 						return true;
@@ -309,18 +351,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					};
 				}
 			}
-		);
-	}
-
-	/**
-	 * Get a map of all entrypoints.
-	 */
-	get entrypoints(): ReadonlyMap<string, Entrypoint> {
-		return new Map(
-			Object.entries(this.#inner.entrypoints).map(([n, e]) => [
-				n,
-				Entrypoint.__from_binding(e, this.#inner)
-			])
 		);
 	}
 
@@ -445,9 +475,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	/**
 	 * Update an existing asset. Trying to update an asset that doesn't exist will throw an error.
 	 *
-	 * See: [Compilation.updateAsset](https://webpack.js.org/api/compilation-object/#updateasset)
-	 * Source: [updateAsset](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4320)
-	 *
 	 * FIXME: *AssetInfo* may be undefined in update fn for webpack impl, but still not implemented in rspack
 	 */
 	updateAsset(
@@ -465,12 +492,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			compatNewSourceOrFunction = function newSourceFunction(
 				source: JsCompatSource
 			) {
-				return createRawFromSource(
-					newSourceOrFunction(createSourceFromRaw(source))
+				return JsSource.__to_binding(
+					newSourceOrFunction(JsSource.__from_binding(source))
 				);
 			};
 		} else {
-			compatNewSourceOrFunction = createRawFromSource(newSourceOrFunction);
+			compatNewSourceOrFunction = JsSource.__to_binding(newSourceOrFunction);
 		}
 
 		this.#inner.updateAsset(
@@ -479,16 +506,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			assetInfoUpdateOrFunction === undefined
 				? assetInfoUpdateOrFunction
 				: typeof assetInfoUpdateOrFunction === "function"
-					? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
-					: toJsAssetInfo(assetInfoUpdateOrFunction)
+				? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
+				: toJsAssetInfo(assetInfoUpdateOrFunction)
 		);
 	}
 
 	/**
 	 * Emit an not existing asset. Trying to emit an asset that already exists will throw an error.
-	 *
-	 * See: [Compilation.emitAsset](https://webpack.js.org/api/compilation-object/#emitasset)
-	 * Source: [emitAsset](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4239)
 	 *
 	 * @param file - file name
 	 * @param source - asset source
@@ -497,7 +521,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
 		this.#inner.emitAsset(
 			filename,
-			createRawFromSource(source),
+			JsSource.__to_binding(source),
 			toJsAssetInfo(assetInfo)
 		);
 	}
@@ -512,11 +536,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	/**
 	 * Get an array of Asset
-	 *
-	 * See: [Compilation.getAssets](https://webpack.js.org/api/compilation-object/#getassets)
-	 * Source: [getAssets](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4448)
 	 */
-	getAssets(): Readonly<Asset>[] {
+	getAssets(): ReadonlyArray<Asset> {
 		const assets = this.#inner.getAssets();
 
 		return assets.map(asset => {
@@ -526,7 +547,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		});
 	}
 
-	getAsset(name: string): Asset | void {
+	getAsset(name: string): Readonly<Asset> | void {
 		const asset = this.#inner.getAsset(name);
 		if (!asset) {
 			return;
@@ -536,7 +557,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		}) as Asset;
 	}
 
-	pushDiagnostic(
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__pushDiagnostic(
 		severity: "error" | "warning",
 		title: string,
 		message: string
@@ -544,14 +570,21 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#inner.pushDiagnostic(severity, title, message);
 	}
 
-	__internal__pushNativeDiagnostics(diagnostics: ExternalObject<any>) {
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__pushNativeDiagnostics(
+		diagnostics: ExternalObject<"Diagnostic[]">
+	) {
 		this.#inner.pushNativeDiagnostics(diagnostics);
 	}
 
-	get errors() {
+	get errors(): JsStatsError[] {
 		const inner = this.#inner;
 		type ErrorType = Error | JsStatsError | string;
-		const errors = inner.getStats().getErrors() as any;
+		const errors = inner.getStats().getErrors();
 		const proxyMethod = [
 			{
 				method: "push",
@@ -562,21 +595,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				) {
 					for (let i = 0; i < errs.length; i++) {
 						const error = errs[i];
-						if (isJsStatsError(error)) {
-							inner.pushDiagnostic(
-								"error",
-								"Error",
-								concatErrorMsgAndStack(error)
-							);
-						} else if (typeof error === "string") {
-							inner.pushDiagnostic("error", "Error", error);
-						} else {
-							inner.pushDiagnostic(
-								"error",
-								error.name,
-								concatErrorMsgAndStack(error)
-							);
-						}
+						inner.pushDiagnostic(
+							"error",
+							error instanceof Error ? error.name : "Error",
+							concatErrorMsgAndStack(error)
+						);
 					}
 					return Reflect.apply(target, thisArg, errs);
 				}
@@ -606,25 +629,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					errs: ErrorType[]
 				) {
 					const errList = errs.map(error => {
-						if (isJsStatsError(error)) {
-							return {
-								severity: "error" as const,
-								title: "Error",
-								message: concatErrorMsgAndStack(error)
-							};
-						} else if (typeof error === "string") {
-							return {
-								severity: "error" as const,
-								title: "Error",
-								message: error
-							};
-						} else {
-							return {
-								severity: "error" as const,
-								title: error.name,
-								message: concatErrorMsgAndStack(error)
-							};
-						}
+						return {
+							severity: "error",
+							title: error instanceof Error ? error.name : "Error",
+							message: concatErrorMsgAndStack(error)
+						} satisfies JsDiagnostic;
 					});
 					inner.spliceDiagnostic(0, 0, errList);
 					return Reflect.apply(target, thisArg, errs);
@@ -638,25 +647,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					[startIdx, delCount, ...errors]: [number, number, ...ErrorType[]]
 				) {
 					const errList = errors.map(error => {
-						if (isJsStatsError(error)) {
-							return {
-								severity: "error" as const,
-								title: "Error",
-								message: concatErrorMsgAndStack(error)
-							};
-						} else if (typeof error === "string") {
-							return {
-								severity: "error" as const,
-								title: "Error",
-								message: error
-							};
-						} else {
-							return {
-								severity: "error" as const,
-								title: error.name,
-								message: concatErrorMsgAndStack(error)
-							};
-						}
+						return {
+							severity: "error",
+							title: error instanceof Error ? error.name : "Error",
+							message: concatErrorMsgAndStack(error)
+						} satisfies JsDiagnostic;
 					});
 					inner.spliceDiagnostic(startIdx, startIdx + delCount, errList);
 					return Reflect.apply(target, thisArg, [
@@ -676,7 +671,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return errors;
 	}
 
-	get warnings() {
+	get warnings(): JsStatsWarning[] {
 		const inner = this.#inner;
 		type WarnType = Error | JsStatsWarning;
 		const processWarningsHook = this.hooks.processWarnings;
@@ -694,7 +689,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						const warn = warns[i];
 						inner.pushDiagnostic(
 							"warning",
-							isJsStatsError(warn) ? "Warning" : warn.name,
+							warn instanceof Error ? warn.name : "Warning",
 							concatErrorMsgAndStack(warn)
 						);
 					}
@@ -728,10 +723,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					warns = processWarningsHook.call(warns as any);
 					const warnList = warns.map(warn => {
 						return {
-							severity: "warning" as const,
-							title: isJsStatsError(warn) ? "Warning" : warn.name,
+							severity: "warning",
+							title: warn instanceof Error ? warn.name : "Warning",
 							message: concatErrorMsgAndStack(warn)
-						};
+						} satisfies JsDiagnostic;
 					});
 					inner.spliceDiagnostic(0, 0, warnList);
 					return Reflect.apply(target, thisArg, warns);
@@ -747,10 +742,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					warns = processWarningsHook.call(warns as any);
 					const warnList = warns.map(warn => {
 						return {
-							severity: "warning" as const,
-							title: isJsStatsError(warn) ? "Warning" : warn.name,
+							severity: "warning",
+							title: warn instanceof Error ? warn.name : "Warning",
 							message: concatErrorMsgAndStack(warn)
-						};
+						} satisfies JsDiagnostic;
 					});
 					inner.spliceDiagnostic(startIdx, startIdx + delCount, warnList);
 					return Reflect.apply(target, thisArg, [
@@ -814,7 +809,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				const logEntry: LogEntry = {
 					time: Date.now(),
 					type,
-					// @ts-expect-error
 					args,
 					// @ts-expect-error
 					trace
@@ -916,107 +910,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		d => this.#inner.addBuildDependencies(d)
 	);
 
-	get modules() {
-		return memoizeValue(() => {
-			return this.__internal__getModules().map(item =>
-				Module.__from_binding(item)
-			);
-		});
-	}
-
-	// FIXME: This is not aligned with Webpack.
-	get chunks() {
-		return memoizeValue(() => {
-			return this.__internal__getChunks();
-		});
-	}
-
-	/**
-	 * Get the named chunks.
-	 *
-	 * Note: This is a proxy for webpack internal API, only method `get` is supported now.
-	 */
-	get namedChunks(): Map<string, Readonly<Chunk>> {
-		return {
-			get: (property: unknown) => {
-				if (typeof property === "string") {
-					const chunk = this.#inner.getNamedChunk(property);
-					return chunk && Chunk.__from_binding(chunk, this.#inner);
-				}
-			}
-		} as Map<string, Readonly<Chunk>>;
-	}
-
-	/**
-	 * Get the associated `modules` of an given chunk.
-	 *
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal__getAssociatedModules(chunk: JsStatsChunk): any[] | undefined {
-		const modules = this.__internal__getModules();
-		const moduleMap: Map<string, JsModule> = new Map();
-		for (const module of modules) {
-			moduleMap.set(module.moduleIdentifier, module);
-		}
-		return chunk.modules?.flatMap(chunkModule => {
-			const jsModule = this.__internal__findJsModule(
-				chunkModule.issuer ?? chunkModule.identifier,
-				moduleMap
-			);
-			return {
-				...jsModule
-				// dependencies: chunkModule.reasons?.flatMap(jsReason => {
-				// 	let jsOriginModule = this.__internal__findJsModule(
-				// 		jsReason.moduleIdentifier ?? "",
-				// 		moduleMap
-				// 	);
-				// 	return {
-				// 		...jsReason,
-				// 		originModule: jsOriginModule
-				// 	};
-				// })
-			};
-		});
-	}
-
-	/**
-	 * Find a modules in an array.
-	 *
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal__findJsModule(
-		identifier: string,
-		modules: Map<string, JsModule>
-	): JsModule | undefined {
-		return modules.get(identifier);
-	}
-
-	/**
-	 *
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal__getModules(): JsModule[] {
-		return this.#inner.getModules();
-	}
-
-	/**
-	 *
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal__getChunks(): Chunk[] {
-		return this.#inner
-			.getChunks()
-			.map(c => Chunk.__from_binding(c, this.#inner));
-	}
-
 	getStats() {
 		return new Stats(this);
 	}
@@ -1055,6 +948,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		},
 		10
 	);
+
 	rebuildModule(m: Module, f: (err: Error, m: Module) => void) {
 		this._rebuildModuleCaller.push([m.identifier(), f]);
 	}
@@ -1071,7 +965,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		if (!rawSource) {
 			return;
 		}
-		return createSourceFromRaw(rawSource);
+		return JsSource.__from_binding(rawSource);
 	}
 
 	/**
@@ -1082,7 +976,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * @internal
 	 */
 	__internal__setAssetSource(filename: string, source: Source) {
-		this.#inner.setAssetSource(filename, createRawFromSource(source));
+		this.#inner.setAssetSource(filename, JsSource.__to_binding(source));
 	}
 
 	/**
@@ -1116,6 +1010,26 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	__internal__hasAsset(name: string): boolean {
 		return this.#inner.hasAsset(name);
+	}
+
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getModules(): JsModule[] {
+		return this.#inner.getModules();
+	}
+
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getChunks(): Chunk[] {
+		return this.#inner
+			.getChunks()
+			.map(c => Chunk.__from_binding(c, this.#inner));
 	}
 
 	__internal_getInner() {

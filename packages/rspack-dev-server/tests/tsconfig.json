@@ -5,8 +5,6 @@
     "checkJs": false,
     "rootDir": "."
   },
-  "include": [
-    "."
-  ],
+  "include": ["."],
   "references": []
 }

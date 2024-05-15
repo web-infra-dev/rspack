@@ -19,4 +19,4 @@ rspack_identifier = { path = "../rspack_identifier" }
 rspack_util       = { path = "../rspack_util" }
 serde_json        = { workspace = true }
 swc_core          = { workspace = true, features = ["__ecma"] }
-wasmparser        = "0.202.0"
+wasmparser        = "0.207.0"

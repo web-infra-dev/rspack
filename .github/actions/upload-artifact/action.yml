@@ -4,18 +4,18 @@ description: Upload file to local or artifact to quickly share files between job
 
 inputs:
   name:
-    description: 'Artifact name'
-    default: 'artifact'
+    description: "Artifact name"
+    default: "artifact"
   path:
-    description: 'A file, directory or wildcard pattern that describes what to upload'
+    description: "A file, directory or wildcard pattern that describes what to upload"
     required: true
   try-local-cache:
-    description: 'Try use local cache to save artifact'
+    description: "Try use local cache to save artifact"
     default: false
     required: false
     type: boolean
   mv-when-local:
-    description: 'Move file instead of copy file'
+    description: "Move file instead of copy file"
     default: false
     type: boolean
     required: false

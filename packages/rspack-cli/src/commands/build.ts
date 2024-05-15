@@ -1,4 +1,6 @@
+import { MultiStats, Stats } from "@rspack/core";
 import * as fs from "fs";
+
 import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
 import {
@@ -6,7 +8,6 @@ import {
 	ensureEnvObject,
 	setBuiltinEnvArg
 } from "../utils/options";
-import { MultiStats, Stats } from "@rspack/core";
 
 export class BuildCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
@@ -58,10 +59,10 @@ export class BuildCommand implements RspackCommand {
 								children: compiler.compilers.map(compiler =>
 									compiler.options ? compiler.options.stats : undefined
 								)
-							}
+						  }
 						: compiler.options
-							? compiler.options.stats
-							: undefined;
+						? compiler.options.stats
+						: undefined;
 					if (options.json && createJsonStringifyStream) {
 						const handleWriteError = (error: Error) => {
 							logger.error(error);

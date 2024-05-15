@@ -76,7 +76,10 @@ This would cause misunderstandings between those tests. This file can be removed
 			);
 			console.log(
 				suggestion(
-					`Either ignore these files in the \`${path.relative(process.cwd(), path.join(WORKSPACE_ROOT, "scripts/test/diff-exclude.cjs"))}\` with reason (MUST BE CAUTIOUS) or align it with webpack.\n`
+					`Either ignore these files in the \`${path.relative(
+						process.cwd(),
+						path.join(WORKSPACE_ROOT, "scripts/test/diff-exclude.cjs")
+					)}\` with reason (MUST BE CAUTIOUS) or align it with webpack.\n`
 				)
 			);
 		}

@@ -227,7 +227,7 @@ module.exports = function () {
 						throw new Error(
 							'Module "' + module + '" does not exist in container.'
 						);
-					});
+				  });
 			__webpack_require__.R = undefined;
 			return getScope;
 		});

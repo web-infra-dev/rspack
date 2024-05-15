@@ -1,3 +1,7 @@
+import fs from "fs";
+import path from "path";
+
+import { parseResource } from "../helper/legacy/parseResource";
 import {
 	ECompilerType,
 	ITestContext,
@@ -5,9 +9,6 @@ import {
 	TTestConfig
 } from "../type";
 import { MultiTaskProcessor } from "./multi";
-import path from "path";
-import fs from "fs";
-import { parseResource } from "../helper/legacy/parseResource";
 
 export interface IRspackConfigProcessorOptions<T extends ECompilerType.Rspack> {
 	name: string;

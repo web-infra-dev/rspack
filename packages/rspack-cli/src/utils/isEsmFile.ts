@@ -1,4 +1,5 @@
 import path from "path";
+
 import readPackageUp from "./readPackageUp";
 
 const isEsmFile = (filePath: string, cwd = process.cwd()) => {

@@ -1,7 +1,8 @@
-import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
+import { rspack } from "@rspack/core";
 import fs from "fs-extra";
 import { merge } from "webpack-merge";
-import { rspack } from "@rspack/core";
+
+import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
 import { ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
 export interface IRspackBuiltinProcessorOptions {
@@ -13,6 +14,7 @@ export interface IRspackBuiltinProcessorOptions {
 export class RspackBuiltinProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
 	constructor(protected _builtinOptions: IRspackBuiltinProcessorOptions) {
 		super({
+			configFiles: ["rspack.config.js", "webpack.config.js"],
 			snapshotFileFilter: _builtinOptions.snapshotFileFilter,
 			snapshot: _builtinOptions.snapshot,
 			compilerType: ECompilerType.Rspack,
@@ -131,7 +133,7 @@ export class RspackBuiltinProcessor extends SnapshotProcessor<ECompilerType.Rspa
 			}
 		};
 
-		const testConfigFile = context.getSource("test.config.js");
+		const testConfigFile = context.getSource("rspack.config.js");
 		if (fs.existsSync(testConfigFile)) {
 			let caseOptions = require(testConfigFile);
 			if (caseOptions.entry) {

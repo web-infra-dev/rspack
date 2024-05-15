@@ -4,9 +4,10 @@
  * Original Author Tobias Koppers @sokra
  */
 
+import * as NodePath from "node:path";
+
 import { Compiler } from "../Compiler";
 import { ResolveData } from "../Module";
-import * as NodePath from "node:path";
 
 type ModuleReplacer = (createData: ResolveData) => void;
 

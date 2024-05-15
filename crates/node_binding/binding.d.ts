@@ -513,7 +513,6 @@ export interface JsStatsChunkGroupAsset {
 
 export interface JsStatsError {
   message: string
-  formatted: string
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
@@ -585,7 +584,6 @@ export interface JsStatsOptimizationBailout {
 
 export interface JsStatsWarning {
   message: string
-  formatted: string
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
@@ -786,6 +784,7 @@ export interface RawCssAutoGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
   localIdentName?: string
+  esModule?: boolean
 }
 
 export interface RawCssAutoParserOptions {
@@ -806,12 +805,14 @@ export interface RawCssExtractPluginOption {
 export interface RawCssGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
+  esModule?: boolean
 }
 
 export interface RawCssModuleGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
   localIdentName?: string
+  esModule?: boolean
 }
 
 export interface RawCssModuleParserOptions {
@@ -857,7 +858,6 @@ export interface RawEvalDevToolModulePluginOptions {
 }
 
 export interface RawExperiments {
-  newSplitChunks: boolean
   topLevelAwait: boolean
   rspackFuture: RawRspackFuture
 }
@@ -1447,10 +1447,10 @@ export interface RegisterJsTaps {
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
 
 export interface ThreadsafeNodeFS {
-  writeFile: (name: string, content: Buffer) => void
-  removeFile: (name: string) => void
-  mkdir: (name: string) => void
-  mkdirp: (name: string) => string | void
-  removeDirAll: (name: string) => string | void
+  writeFile: (name: string, content: Buffer) => Promise<void> | void
+  removeFile: (name: string) => Promise<void> | void
+  mkdir: (name: string) => Promise<void> | void
+  mkdirp: (name: string) => Promise<string | void> | string | void
+  removeDirAll: (name: string) => Promise<string | void> | string | void
 }
 

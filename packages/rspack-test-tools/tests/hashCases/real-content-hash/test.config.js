@@ -1,3 +1,4 @@
+/** @type {import('../../..').THashCaseConfig} */
 module.exports = {
 	validate(stats) {
 		for (let i = 0; i < 4; i += 2) {

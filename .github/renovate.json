@@ -15,19 +15,32 @@
     {
       "groupName": "github-actions",
       "matchManagers": ["github-actions"],
-      "excludePackageNames": ["actions/upload-artifact", "actions/download-artifact"]
+      "excludePackageNames": [
+        "actions/upload-artifact",
+        "actions/download-artifact"
+      ]
     },
     {
       "groupName": "upload-download-actions",
       "matchManagers": ["github-actions"],
-      "matchPackageNames": ["actions/upload-artifact", "actions/download-artifact"],
+      "matchPackageNames": [
+        "actions/upload-artifact",
+        "actions/download-artifact"
+      ],
       "enabled": false
     },
     {
       "groupName": "crates",
       "matchManagers": ["cargo"],
       "excludePackagePrefixes": ["swc", "napi"],
-      "excludePackageNames": ["ustr", "textwrap", "styled_components", "owo-colors", "miette", "rkyv"]
+      "excludePackageNames": [
+        "ustr",
+        "textwrap",
+        "styled_components",
+        "owo-colors",
+        "miette",
+        "rkyv"
+      ]
     },
     {
       "groupName": "swc",
@@ -58,7 +71,13 @@
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
       "excludePackagePrefixes": ["webpack", "sass"],
-      "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"]
+      "excludePackageNames": [
+        "@playwright/test",
+        "react",
+        "react-dom",
+        "typescript",
+        "pnpm"
+      ]
     },
     {
       "groupName": "npm dependencies",
@@ -69,7 +88,14 @@
     {
       "groupName": "npm ignored dependencies",
       "matchManagers": ["npm"],
-      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm", "sass"],
+      "matchPackageNames": [
+        "@playwright/test",
+        "react",
+        "react-dom",
+        "typescript",
+        "pnpm",
+        "sass"
+      ],
       "enabled": false
     },
     {

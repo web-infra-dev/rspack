@@ -1,79 +1,80 @@
 import type {
-	RawModuleRule,
-	RawOptions,
-	RawRuleSetCondition,
-	RawRuleSetLogicalConditions,
-	RawGeneratorOptions,
 	RawAssetGeneratorOptions,
-	RawParserOptions,
-	RawAssetParserOptions,
-	RawAssetParserDataUrl,
 	RawAssetInlineGeneratorOptions,
+	RawAssetParserDataUrl,
+	RawAssetParserOptions,
 	RawAssetResourceGeneratorOptions,
-	RawModuleRuleUses,
+	RawCssAutoGeneratorOptions,
+	RawCssAutoParserOptions,
+	RawCssGeneratorOptions,
+	RawCssModuleGeneratorOptions,
+	RawCssModuleParserOptions,
+	RawCssParserOptions,
 	RawFuncUseCtx,
-	RawRspackFuture,
+	RawGeneratorOptions,
+	RawJavascriptParserOptions,
 	RawLibraryName,
 	RawLibraryOptions,
+	RawModuleRule,
 	RawModuleRuleUse,
-	RawCssParserOptions,
-	RawCssAutoParserOptions,
-	RawCssModuleParserOptions,
-	RawCssGeneratorOptions,
-	RawCssAutoGeneratorOptions,
-	RawCssModuleGeneratorOptions,
-	RawJavascriptParserOptions
+	RawModuleRuleUses,
+	RawOptions,
+	RawParserOptions,
+	RawRspackFuture,
+	RawRuleSetCondition,
+	RawRuleSetLogicalConditions
 } from "@rspack/binding";
 import assert from "assert";
+
 import { Compiler } from "../Compiler";
 import { normalizeStatsPreset } from "../Stats";
 import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
 import {
 	ComposeJsUseOptions,
-	LoaderContext,
 	createRawModuleRuleUses,
+	LoaderContext,
 	LoaderDefinition,
 	LoaderDefinitionFunction
 } from "./adapterRuleUse";
-import {
-	CrossOriginLoading,
-	LibraryOptions,
-	Node,
-	Optimization,
-	Resolve,
-	RuleSetCondition,
-	RuleSetLogicalConditions,
-	RuleSetRule,
-	SnapshotOptions,
-	StatsValue,
-	Target,
-	AssetGeneratorDataUrl,
-	AssetGeneratorOptions,
-	AssetInlineGeneratorOptions,
-	AssetResourceGeneratorOptions,
-	AssetParserDataUrl,
-	AssetParserOptions,
-	ParserOptionsByModuleType,
-	GeneratorOptionsByModuleType,
-	RspackFutureOptions,
-	JavascriptParserOptions,
-	LibraryName,
-	EntryRuntime,
-	ChunkLoading,
-	CssParserOptions,
-	CssAutoParserOptions,
-	CssModuleParserOptions,
-	CssGeneratorOptions,
-	CssAutoGeneratorOptions,
-	CssModuleGeneratorOptions
-} from "./zod";
 import {
 	ExperimentsNormalized,
 	ModuleOptionsNormalized,
 	OutputNormalized,
 	RspackOptionsNormalized
 } from "./normalization";
+import {
+	AssetGeneratorDataUrl,
+	AssetGeneratorOptions,
+	AssetInlineGeneratorOptions,
+	AssetParserDataUrl,
+	AssetParserOptions,
+	AssetResourceGeneratorOptions,
+	ChunkLoading,
+	CrossOriginLoading,
+	CssAutoGeneratorOptions,
+	CssAutoParserOptions,
+	CssGeneratorOptions,
+	CssModuleGeneratorOptions,
+	CssModuleParserOptions,
+	CssParserOptions,
+	EntryRuntime,
+	GeneratorOptionsByModuleType,
+	JavascriptParserOptions,
+	LibraryName,
+	LibraryOptions,
+	Node,
+	Optimization,
+	ParserOptionsByModuleType,
+	Resolve,
+	RspackFutureOptions,
+	RuleSetCondition,
+	RuleSetLogicalConditions,
+	RuleSetRule,
+	SnapshotOptions,
+	StatsValue,
+	Target
+} from "./zod";
 
 export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
 
@@ -187,7 +188,7 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 					referencesType:
 						references == "auto" ? "auto" : references ? "manual" : "disabled",
 					references: references == "auto" ? undefined : references
-				}
+			  }
 			: undefined,
 		byDependency: getRawResolveByDependency(resolve.byDependency)
 	};
@@ -269,7 +270,7 @@ export function getRawLibrary(library: LibraryOptions): RawLibraryOptions {
 						commonjs2: auxiliaryComment,
 						amd: auxiliaryComment,
 						root: auxiliaryComment
-					}
+				  }
 				: auxiliaryComment,
 		libraryType: type,
 		name: isNil(name) ? name : getRawLibraryName(name),
@@ -412,7 +413,7 @@ const getRawModuleRule = (
 						k,
 						getRawRuleSetCondition(v)
 					])
-				)
+			  )
 			: undefined,
 		resource: rule.resource ? getRawRuleSetCondition(rule.resource) : undefined,
 		resourceQuery: rule.resourceQuery
@@ -434,7 +435,7 @@ const getRawModuleRule = (
 							`${path}.use`,
 							options
 						)
-					},
+				  },
 		type: rule.type,
 		parser: rule.parser
 			? getRawParserOptions(rule.parser, rule.type ?? "javascript/auto")
@@ -446,12 +447,12 @@ const getRawModuleRule = (
 		oneOf: rule.oneOf
 			? rule.oneOf.map((rule, index) =>
 					getRawModuleRule(rule, `${path}.oneOf[${index}]`, options)
-				)
+			  )
 			: undefined,
 		rules: rule.rules
 			? rule.rules.map((rule, index) =>
 					getRawModuleRule(rule, `${path}.rules[${index}]`, options)
-				)
+			  )
 			: undefined,
 		enforce: rule.enforce
 	};
@@ -470,30 +471,27 @@ const getRawModuleRule = (
 		delete rawModuleRule.resourceQuery;
 		delete rawModuleRule.resourceFragment;
 
-		rawModuleRule.rspackResource = getRawRuleSetCondition(
-			function (resourceQueryFragment) {
-				const { path, query, fragment } = parseResource(resourceQueryFragment);
+		rawModuleRule.rspackResource = getRawRuleSetCondition(function (
+			resourceQueryFragment
+		) {
+			const { path, query, fragment } = parseResource(resourceQueryFragment);
 
-				if (rule.test && !tryMatch(path, rule.test)) {
-					return false;
-				} else if (rule.resource && !tryMatch(path, rule.resource)) {
-					return false;
-				}
-
-				if (rule.resourceQuery && !tryMatch(query, rule.resourceQuery)) {
-					return false;
-				}
-
-				if (
-					rule.resourceFragment &&
-					!tryMatch(fragment, rule.resourceFragment)
-				) {
-					return false;
-				}
-
-				return true;
+			if (rule.test && !tryMatch(path, rule.test)) {
+				return false;
+			} else if (rule.resource && !tryMatch(path, rule.resource)) {
+				return false;
 			}
-		);
+
+			if (rule.resourceQuery && !tryMatch(query, rule.resourceQuery)) {
+				return false;
+			}
+
+			if (rule.resourceFragment && !tryMatch(fragment, rule.resourceFragment)) {
+				return false;
+			}
+
+			return true;
+		});
 	}
 	return rawModuleRule;
 };
@@ -627,8 +625,8 @@ function getRawJavascriptParserOptions(
 			parser.url === false
 				? "false"
 				: parser.url === "relative"
-					? parser.url
-					: "true",
+				? parser.url
+				: "true",
 		exprContextCritical: parser.exprContextCritical ?? true,
 		wrappedContextCritical: parser.wrappedContextCritical ?? false
 	};
@@ -765,7 +763,8 @@ function getRawCssGeneratorOptions(
 ): RawCssGeneratorOptions {
 	return {
 		exportsConvention: options.exportsConvention,
-		exportsOnly: options.exportsOnly
+		exportsOnly: options.exportsOnly,
+		esModule: options.esModule
 	};
 }
 
@@ -775,7 +774,8 @@ function getRawCssAutoOrModuleGeneratorOptions(
 	return {
 		localIdentName: options.localIdentName,
 		exportsConvention: options.exportsConvention,
-		exportsOnly: options.exportsOnly
+		exportsOnly: options.exportsOnly,
+		esModule: options.esModule
 	};
 }
 
@@ -830,13 +830,10 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
-	const { newSplitChunks, topLevelAwait, rspackFuture } = experiments;
-	assert(
-		!isNil(newSplitChunks) && !isNil(topLevelAwait) && !isNil(rspackFuture)
-	);
+	const { topLevelAwait, rspackFuture } = experiments;
+	assert(!isNil(topLevelAwait) && !isNil(rspackFuture));
 
 	return {
-		newSplitChunks,
 		topLevelAwait,
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
 	};

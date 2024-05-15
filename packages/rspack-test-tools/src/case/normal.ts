@@ -1,7 +1,8 @@
 import path from "path";
+
 import { RspackNormalProcessor } from "../processor/normal";
-import { BasicCaseCreator } from "../test/creator";
 import { NormalRunnerFactory } from "../runner";
+import { BasicCaseCreator } from "../test/creator";
 
 const creator = new BasicCaseCreator({
 	clean: true,

@@ -10,8 +10,11 @@
   "mini-css-extract-plugin-desc": "Use [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) instead",
   "terser-webpack-plugin-desc": "Use [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) instead",
   "tsconfig-paths-webpack-plugin-desc": "Use [resolve.tsconfigPath](/config/resolve#resolvetsconfigpath) instead",
+  "image-minimizer-webpack-plugin-desc": "Only supports using [loader](https://www.npmjs.com/package/image-minimizer-webpack-plugin#standalone-loader) standalone",
   "case-sensitive-paths-webpack-plugin-desc": "`useBeforeEmitHook` option not supported",
   "resolve-plugin-un-support-desc": "`resolve.plugins` option not supported",
   "webpack-virtual-modules-desc": "Use [rspack-plugin-virtual-module](https://github.com/rspack-contrib/rspack-plugins/tree/main/packages/plugin-virtual-module) instead",
-  "webpack-manifest-plugin-desc": "Use [rspack-manifest-plugin](https://github.com/rspack-contrib/rspack-manifest-plugin) instead"
+  "webpack-manifest-plugin-desc": "Use [rspack-manifest-plugin](https://github.com/rspack-contrib/rspack-manifest-plugin) instead",
+  "workbox-webpack-plugin-desc": "Use [@aaroon/workbox-rspack-plugin](https://github.com/Clarkkkk/workbox-rspack-plugin) instead",
+  "react-refresh-webpack-plugin-desc": "Use [@rspack/plugin-react-refresh](/guide/tech/react#rspackplugin-react-refresh) instead"
 }

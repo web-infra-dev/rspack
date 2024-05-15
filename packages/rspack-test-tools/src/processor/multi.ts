@@ -1,3 +1,5 @@
+import { merge } from "webpack-merge";
+
 import { readConfigFile } from "../helper";
 import {
 	ECompilerType,
@@ -7,7 +9,6 @@ import {
 	TCompilerOptions
 } from "../type";
 import { BasicTaskProcessor } from "./basic";
-import { merge } from "webpack-merge";
 
 export interface IMultiTaskProcessorOptions<
 	T extends ECompilerType = ECompilerType.Rspack
@@ -56,8 +57,8 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 						const bundles = Array.isArray(curBundles)
 							? curBundles
 							: curBundles
-								? [curBundles]
-								: [];
+							? [curBundles]
+							: [];
 
 						const multiFileIndexMap: Record<string, number[]> =
 							context.getValue(_multiOptions.name, "multiFileIndexMap") || {};
@@ -91,7 +92,7 @@ export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 		)
 			? readConfigFile(
 					this._multiOptions.configFiles!.map(i => context.getSource(i))
-				)
+			  )
 			: [{}];
 
 		for (let [index, options] of caseOptions.entries()) {

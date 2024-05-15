@@ -7,16 +7,13 @@ import {
 	TCompilerStatsCompilation,
 	TRunnerFactory
 } from "../type";
-import { WebRunner } from "./runner/web";
 import { EsmRunner } from "./runner/esm";
+import { WebRunner } from "./runner/web";
 
 export class BasicRunnerFactory<T extends ECompilerType>
 	implements TRunnerFactory<T>
 {
-	constructor(
-		protected name: string,
-		protected context: ITestContext
-	) {}
+	constructor(protected name: string, protected context: ITestContext) {}
 
 	create(
 		file: string,

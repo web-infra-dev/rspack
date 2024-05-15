@@ -31,7 +31,7 @@ runs:
       id: previous-comment
       with:
         issue-number: ${{ steps.pr-number.outputs.pr }}
-        body-includes: Test Compatibility Diff 
+        body-includes: Test Compatibility Diff
 
     - name: Update existing comment
       if: github.event_name == 'pull_request' && steps.previous-comment.outputs.comment-id
@@ -39,8 +39,8 @@ runs:
       continue-on-error: true
       with:
         comment-id: ${{ steps.previous-comment.outputs.comment-id }}
-        
-        body-path: 'output.md'
+
+        body-path: "output.md"
         # body: |
         #   ${{ steps.pr-diff.outputs.comment }}
         edit-mode: replace
@@ -52,5 +52,4 @@ runs:
       with:
         issue-number: ${{ steps.pr-number.outputs.pr }}
 
-        body-path: 'output.md'
-            
+        body-path: "output.md"

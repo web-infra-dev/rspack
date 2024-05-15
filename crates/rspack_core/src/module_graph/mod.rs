@@ -830,6 +830,20 @@ impl<'a> ModuleGraph<'a> {
     self.loop_partials(|p| p.modules.get(identifier))?.as_ref()
   }
 
+  pub fn module_by_identifier_mut(
+    &mut self,
+    identifier: &ModuleIdentifier,
+  ) -> Option<&mut BoxModule> {
+    let Some(active_partial) = &mut self.active else {
+      panic!("should have active partial");
+    };
+    if let Some(res) = active_partial.modules.get_mut(identifier) {
+      res.as_mut()
+    } else {
+      panic!("can not find module in active_partial")
+    }
+  }
+
   /// Aggregate function which combine `get_normal_module_by_identifier`, `as_normal_module`, `get_resource_resolved_data`
   pub fn normal_module_source_path_by_identifier(
     &self,
