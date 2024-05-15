@@ -791,7 +791,6 @@ export interface RawCssExtractPluginOption {
 }
 
 export interface RawCssGeneratorOptions {
-  exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
   esModule?: boolean
 }

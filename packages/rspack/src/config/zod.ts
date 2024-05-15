@@ -661,7 +661,6 @@ const cssGeneratorEsModule = z.boolean();
 export type CssGeneratorEsModule = z.infer<typeof cssGeneratorEsModule>;
 
 const cssGeneratorOptions = z.strictObject({
-	exportsConvention: cssGeneratorExportsConvention.optional(),
 	exportsOnly: cssGeneratorExportsOnly.optional(),
 	esModule: cssGeneratorEsModule.optional()
 });

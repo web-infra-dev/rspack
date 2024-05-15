@@ -55,7 +55,7 @@ pub type CssExportsType = IndexMap<Vec<String>, Vec<CssExport>>;
 
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
-  pub convention: CssExportsConvention,
+  pub convention: Option<CssExportsConvention>,
   pub local_ident_name: Option<LocalIdentName>,
   pub exports_only: bool,
   pub named_exports: bool,
@@ -172,7 +172,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
       Default::default(),
     )?;
 
-    if let Some(exports) = &mut exports {
+    if let Some(exports) = &mut exports
+      && let Some(convention) = &self.convention
+    {
       let mut exports_analyzer = ExportsAnalyzer::new(&source_code);
       new_stylesheet_ast.visit_with(&mut exports_analyzer);
       presentational_dependencies = Some(exports_analyzer.presentation_deps);
@@ -185,7 +187,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         exports
           .iter()
           .map(|(name, elements)| {
-            let mut names = export_locals_convention(name, &self.convention);
+            let mut names = export_locals_convention(name, &convention);
             names.sort_unstable();
             names.dedup();
             (names, stringify_css_modules_exports_elements(elements))

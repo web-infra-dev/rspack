@@ -619,8 +619,6 @@ impl From<RawAssetGeneratorDataUrlOptions> for AssetGeneratorDataUrlOptions {
 #[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawCssGeneratorOptions {
-  #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
-  pub exports_convention: Option<String>,
   pub exports_only: Option<bool>,
   pub es_module: Option<bool>,
 }
@@ -628,7 +626,6 @@ pub struct RawCssGeneratorOptions {
 impl From<RawCssGeneratorOptions> for CssGeneratorOptions {
   fn from(value: RawCssGeneratorOptions) -> Self {
     Self {
-      exports_convention: value.exports_convention.map(|n| n.into()),
       exports_only: value.exports_only,
       es_module: value.es_module,
     }
