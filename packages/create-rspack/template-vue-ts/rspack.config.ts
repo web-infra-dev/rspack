@@ -1,7 +1,7 @@
 import {
 	Configuration,
-	HtmlRspackPlugin,
 	DefinePlugin,
+	HtmlRspackPlugin,
 	RspackPluginFunction
 } from "@rspack/core";
 import { VueLoaderPlugin } from "vue-loader";
