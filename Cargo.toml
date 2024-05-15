@@ -7,7 +7,6 @@ anyhow             = { version = "1.0.81", features = ["backtrace"] }
 async-recursion    = { version = "1.1.0" }
 async-scoped       = { version = "0.9.0" }
 async-trait        = { version = "0.1.79" }
-better_scoped_tls  = { version = "0.1.1" }
 bitflags           = { version = "2.5.0" }
 concat-string      = "1.0.1"
 dashmap            = { version = "5.5.3" }

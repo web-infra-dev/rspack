@@ -20,7 +20,6 @@ Object {
     "asyncWebAssembly": false,
     "css": true,
     "lazyCompilation": false,
-    "newSplitChunks": true,
     "rspackFuture": Object {
       "bundlerInfo": Object {
         "force": false,

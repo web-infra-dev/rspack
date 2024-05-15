@@ -2767,7 +2767,6 @@ const experiments: z.ZodObject<{
     asyncWebAssembly: z.ZodOptional<z.ZodBoolean>;
     outputModule: z.ZodOptional<z.ZodBoolean>;
     topLevelAwait: z.ZodOptional<z.ZodBoolean>;
-    newSplitChunks: z.ZodEffects<z.ZodOptional<z.ZodBoolean>, boolean | undefined, boolean | undefined>;
     css: z.ZodOptional<z.ZodBoolean>;
     futureDefaults: z.ZodOptional<z.ZodBoolean>;
     rspackFuture: z.ZodOptional<z.ZodObject<{
@@ -2800,7 +2799,6 @@ const experiments: z.ZodObject<{
     asyncWebAssembly?: boolean | undefined;
     outputModule?: boolean | undefined;
     topLevelAwait?: boolean | undefined;
-    newSplitChunks?: boolean | undefined;
     css?: boolean | undefined;
     futureDefaults?: boolean | undefined;
     rspackFuture?: {
@@ -2815,7 +2813,6 @@ const experiments: z.ZodObject<{
     asyncWebAssembly?: boolean | undefined;
     outputModule?: boolean | undefined;
     topLevelAwait?: boolean | undefined;
-    newSplitChunks?: boolean | undefined;
     css?: boolean | undefined;
     futureDefaults?: boolean | undefined;
     rspackFuture?: {
@@ -2837,8 +2834,6 @@ export interface ExperimentsNormalized {
     futureDefaults?: boolean;
     // (undocumented)
     lazyCompilation?: boolean;
-    // (undocumented)
-    newSplitChunks?: boolean;
     // (undocumented)
     outputModule?: boolean;
     // (undocumented)
@@ -8444,7 +8439,6 @@ export const rspackOptions: z.ZodObject<{
         asyncWebAssembly: z.ZodOptional<z.ZodBoolean>;
         outputModule: z.ZodOptional<z.ZodBoolean>;
         topLevelAwait: z.ZodOptional<z.ZodBoolean>;
-        newSplitChunks: z.ZodEffects<z.ZodOptional<z.ZodBoolean>, boolean | undefined, boolean | undefined>;
         css: z.ZodOptional<z.ZodBoolean>;
         futureDefaults: z.ZodOptional<z.ZodBoolean>;
         rspackFuture: z.ZodOptional<z.ZodObject<{
@@ -8477,7 +8471,6 @@ export const rspackOptions: z.ZodObject<{
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
-        newSplitChunks?: boolean | undefined;
         css?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
@@ -8492,7 +8485,6 @@ export const rspackOptions: z.ZodObject<{
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
-        newSplitChunks?: boolean | undefined;
         css?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
@@ -9904,7 +9896,6 @@ export const rspackOptions: z.ZodObject<{
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
-        newSplitChunks?: boolean | undefined;
         css?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
@@ -10326,7 +10317,6 @@ export const rspackOptions: z.ZodObject<{
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
-        newSplitChunks?: boolean | undefined;
         css?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
