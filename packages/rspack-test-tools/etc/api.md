@@ -1092,7 +1092,7 @@ export type TCompilerStatsCompilation<T> = T extends ECompilerType.Rspack ? Stat
 export type TCompilerTypeId = ECompilerType.Rspack | ECompilerType.Webpack | "common";
 
 // @public (undocumented)
-export type TConfigCaseConfig = Omit<TTestConfig<ECompilerType.Rspack>, 'validate'>;
+export type TConfigCaseConfig = Omit<TTestConfig<ECompilerType.Rspack>, "validate">;
 
 // @public (undocumented)
 export type TDefaultsCaseConfig = Omit<IDefaultsConfigProcessorOptions, "name"> & {
@@ -1198,7 +1198,7 @@ export type TFileCompareResult = TCompareResult & {
 };
 
 // @public (undocumented)
-export type THashCaseConfig = Pick<TTestConfig<ECompilerType.Rspack>, 'validate'>;
+export type THashCaseConfig = Pick<TTestConfig<ECompilerType.Rspack>, "validate">;
 
 // @public (undocumented)
 export type THookCaseConfig = Omit<IHookProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType" | "runable"> & {
