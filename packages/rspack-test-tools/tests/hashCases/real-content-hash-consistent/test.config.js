@@ -1,3 +1,4 @@
+/** @type {import('../../..').THashCaseConfig} */
 module.exports = {
 	validate(stats) {
 		const a = stats.stats[0].toJson({

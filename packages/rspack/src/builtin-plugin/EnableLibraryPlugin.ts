@@ -1,6 +1,7 @@
 import { BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
-import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
+
 import { Compiler, LibraryType } from "..";
+import { createBuiltinPlugin, RspackBuiltinPlugin } from "./base";
 
 const enabledTypes = new WeakMap();
 

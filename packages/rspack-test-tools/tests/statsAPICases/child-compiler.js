@@ -1,3 +1,4 @@
+const { createFsFromVolume, Volume } = require("memfs")
 let statsJson;
 
 class TestPlugin {

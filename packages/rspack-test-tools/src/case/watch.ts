@@ -1,11 +1,12 @@
 import fs from "fs";
 import path from "path";
+
 import {
 	RspackWatchProcessor,
 	RspackWatchStepProcessor
 } from "../processor/watch";
-import { BasicCaseCreator } from "../test/creator";
 import { WatchRunnerFactory } from "../runner";
+import { BasicCaseCreator } from "../test/creator";
 
 const creator = new BasicCaseCreator({
 	clean: true,

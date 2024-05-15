@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "single runtimeChunk",
 	options: () => ({ optimization: { runtimeChunk: "single" } }),

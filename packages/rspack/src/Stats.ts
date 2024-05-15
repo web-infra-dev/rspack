@@ -8,16 +8,17 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import type * as binding from "@rspack/binding";
+
 import { Compilation, FilterItemTypes } from ".";
-import { StatsValue, StatsOptions } from "./config";
+import { StatsOptions, StatsValue } from "./config";
 import type { StatsCompilation } from "./stats/statsFactoryUtils";
 
 export type {
-	StatsCompilation,
 	StatsAsset,
 	StatsChunk,
-	StatsModule,
+	StatsCompilation,
 	StatsError,
+	StatsModule,
 	StatsWarnings
 } from "./stats/statsFactoryUtils";
 

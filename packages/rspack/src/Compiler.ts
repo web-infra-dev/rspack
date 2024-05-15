@@ -8,55 +8,59 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import * as binding from "@rspack/binding";
-import { rspack } from "./index";
 import fs from "fs";
 import * as tapable from "tapable";
-import * as liteTapable from "./lite-tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type Watchpack from "watchpack";
+
+import { Compilation, CompilationParams } from "./Compilation";
 import {
-	getRawOptions,
 	EntryNormalized,
+	getRawOptions,
 	OutputNormalized,
 	RspackOptionsNormalized,
 	RspackPluginInstance
 } from "./config";
+import { ContextModuleFactory } from "./ContextModuleFactory";
+import { rspack } from "./index";
+import * as liteTapable from "./lite-tapable";
 import { RuleSetCompiler } from "./RuleSetCompiler";
 import { Stats } from "./Stats";
-import { Compilation, CompilationParams } from "./Compilation";
-import { ContextModuleFactory } from "./ContextModuleFactory";
 import ResolverFactory = require("./ResolverFactory");
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
-import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
+import { ThreadsafeWritableNodeFS } from "./fileSystem";
 import Cache = require("./lib/Cache");
 import CacheFacade = require("./lib/CacheFacade");
-import { Logger } from "./logging/Logger";
+import { Source } from "webpack-sources";
+
 import {
-	NormalModuleCreateData,
-	NormalModuleFactory
-} from "./NormalModuleFactory";
-import { WatchFileSystem } from "./util/fs";
-import { checkVersion } from "./util/bindingVersionCheck";
-import { Watching } from "./Watching";
-import {
-	JsLoaderRspackPlugin,
-	deprecated_resolveBuiltins
+	deprecated_resolveBuiltins,
+	JsLoaderRspackPlugin
 } from "./builtin-plugin";
+import { canInherentFromParent } from "./builtin-plugin/base";
+import { Chunk } from "./Chunk";
 import { applyRspackOptionsDefaults } from "./config/defaults";
-import { assertNotNill } from "./util/assertNotNil";
+import ExecuteModulePlugin from "./ExecuteModulePlugin";
 import { FileSystemInfoEntry } from "./FileSystemInfo";
-import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
+import { Logger } from "./logging/Logger";
 import {
 	CodeGenerationResult,
 	ContextModuleFactoryAfterResolveResult,
 	Module,
 	ResolveData
 } from "./Module";
-import { canInherentFromParent } from "./builtin-plugin/base";
-import ExecuteModulePlugin from "./ExecuteModulePlugin";
-import { Chunk } from "./Chunk";
-import { Source } from "webpack-sources";
+import {
+	NormalModuleCreateData,
+	NormalModuleFactory
+} from "./NormalModuleFactory";
+import { RuntimeGlobals } from "./RuntimeGlobals";
+import { unsupported } from "./util";
+import { assertNotNill } from "./util/assertNotNil";
+import { checkVersion } from "./util/bindingVersionCheck";
+import { OutputFileSystem, WatchFileSystem } from "./util/fs";
+import { makePathsRelative } from "./util/identifier";
+import { Watching } from "./Watching";
 
 export interface AssetEmittedInfo {
 	content: Buffer;
@@ -68,39 +72,20 @@ export interface AssetEmittedInfo {
 
 class Compiler {
 	#instance?: binding.Rspack;
+	#initial: boolean;
 
-	webpack = rspack;
-	compilation?: Compilation;
-	compilationParams?: CompilationParams;
-	// TODO: remove this after remove rebuild on the rust side.
-	#initial: boolean = true;
-	builtinPlugins: binding.BuiltinPlugin[];
-	root: Compiler;
-	running: boolean;
-	idle: boolean;
-	resolverFactory: ResolverFactory;
-	infrastructureLogger: any;
-	watching?: Watching;
-	outputPath!: string;
-	name?: string;
-	inputFileSystem: any;
-	outputFileSystem: typeof import("fs");
-	ruleSet: RuleSetCompiler;
-	// @ts-expect-error
-	watchFileSystem: WatchFileSystem;
-	intermediateFileSystem: any;
-	// @ts-expect-error
-	watchMode: boolean;
-	context: string;
-	cache: Cache;
-	compilerPath: string;
-	modifiedFiles?: ReadonlySet<string>;
-	removedFiles?: ReadonlySet<string>;
-	fileTimestamps?: ReadonlyMap<string, FileSystemInfoEntry | "ignore" | null>;
-	contextTimestamps?: ReadonlyMap<
-		string,
-		FileSystemInfoEntry | "ignore" | null
-	>;
+	#compilation?: Compilation;
+	#compilationParams?: CompilationParams;
+
+	#builtinPlugins: binding.BuiltinPlugin[];
+
+	#moduleExecutionResultsMap: Map<number, any>;
+
+	#nonSkippableRegisters: binding.RegisterJsTapKind[];
+	#registers?: binding.RegisterJsTaps;
+
+	#ruleSet: RuleSetCompiler;
+
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
@@ -132,28 +117,50 @@ class Compiler {
 		finishMake: liteTapable.AsyncSeriesHook<[Compilation]>;
 		entryOption: tapable.SyncBailHook<[string, EntryNormalized], any>;
 	};
-	options: RspackOptionsNormalized;
-	#disabledHooks: string[];
-	#nonSkippableRegisters: binding.RegisterJsTapKind[];
-	#registers?: binding.RegisterJsTaps;
-	parentCompilation?: Compilation;
 
-	#moduleExecutionResultsMap: Map<number, any>;
+	webpack: typeof rspack;
+	name?: string;
+	parentCompilation?: Compilation;
+	root: Compiler;
+	outputPath: string;
+
+	running: boolean;
+	idle: boolean;
+	resolverFactory: ResolverFactory;
+	infrastructureLogger: any;
+	watching?: Watching;
+
+	inputFileSystem: any;
+	intermediateFileSystem: any;
+	outputFileSystem: OutputFileSystem | null;
+	watchFileSystem: WatchFileSystem | null;
+
+	records: Record<string, any[]>;
+	modifiedFiles?: ReadonlySet<string>;
+	removedFiles?: ReadonlySet<string>;
+	fileTimestamps?: ReadonlyMap<string, FileSystemInfoEntry | "ignore" | null>;
+	contextTimestamps?: ReadonlyMap<
+		string,
+		FileSystemInfoEntry | "ignore" | null
+	>;
+	fsStartTime?: number;
+
+	watchMode: boolean;
+	context: string;
+	cache: Cache;
+	compilerPath: string;
+	options: RspackOptionsNormalized;
 
 	constructor(context: string, options: RspackOptionsNormalized) {
-		this.outputFileSystem = fs;
-		this.options = options;
-		this.cache = new Cache();
-		this.compilerPath = "";
-		this.builtinPlugins = [];
-		this.root = this;
-		this.ruleSet = new RuleSetCompiler();
-		this.running = false;
-		this.idle = false;
-		this.context = context;
-		this.resolverFactory = new ResolverFactory();
-		this.modifiedFiles = undefined;
-		this.removedFiles = undefined;
+		this.#initial = true;
+
+		this.#builtinPlugins = [];
+
+		this.#nonSkippableRegisters = [];
+		this.#moduleExecutionResultsMap = new Map();
+
+		this.#ruleSet = new RuleSetCompiler();
+
 		this.hooks = {
 			initialize: new SyncHook([]),
 			shouldEmit: new liteTapable.SyncBailHook(["compilation"]),
@@ -194,14 +201,69 @@ class Compiler {
 			finishMake: new liteTapable.AsyncSeriesHook(["compilation"]),
 			entryOption: new tapable.SyncBailHook(["context", "entry"])
 		};
-		this.modifiedFiles = undefined;
-		this.removedFiles = undefined;
-		this.#disabledHooks = [];
-		this.#nonSkippableRegisters = [];
-		this.#moduleExecutionResultsMap = new Map();
+
+		this.webpack = rspack;
+		this.root = this;
+		this.outputPath = "";
+
+		this.inputFileSystem = null;
+		this.intermediateFileSystem = null;
+		this.outputFileSystem = null;
+		this.watchFileSystem = null;
+
+		this.records = {};
+
+		this.resolverFactory = new ResolverFactory();
+		this.options = options;
+		this.context = context;
+		this.cache = new Cache();
+
+		this.compilerPath = "";
+
+		this.running = false;
+
+		this.idle = false;
+
+		this.watchMode = false;
 
 		new JsLoaderRspackPlugin(this).apply(this);
 		new ExecuteModulePlugin().apply(this);
+	}
+
+	get recordsInputPath() {
+		return unsupported("Compiler.recordsInputPath");
+	}
+
+	get recordsOutputPath() {
+		return unsupported("Compiler.recordsOutputPath");
+	}
+
+	get managedPaths() {
+		return unsupported("Compiler.managedPaths");
+	}
+
+	get immutablePaths() {
+		return unsupported("Compiler.immutablePaths");
+	}
+
+	get _lastCompilation() {
+		return this.#compilation;
+	}
+
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
+	 */
+	get __internal__builtinPlugins() {
+		return this.#builtinPlugins;
+	}
+
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
+	 */
+	get __internal__ruleSet() {
+		return this.#ruleSet;
 	}
 
 	/**
@@ -214,6 +276,447 @@ class Compiler {
 			`${this.compilerPath}${name}`,
 			this.options.output.hashFunction
 		);
+	}
+
+	/**
+	 * @param name - name of the logger, or function called once to get the logger name
+	 * @returns a logger with that name
+	 */
+	getInfrastructureLogger(name: string | (() => string)) {
+		if (!name) {
+			throw new TypeError(
+				"Compiler.getInfrastructureLogger(name) called without a name"
+			);
+		}
+		return new Logger(
+			(type, args) => {
+				if (typeof name === "function") {
+					name = name();
+					if (!name) {
+						throw new TypeError(
+							"Compiler.getInfrastructureLogger(name) called with a function not returning a name"
+						);
+					}
+				} else {
+					if (
+						this.hooks.infrastructureLog.call(name, type, args) === undefined
+					) {
+						if (this.infrastructureLogger !== undefined) {
+							this.infrastructureLogger(name, type, args);
+						}
+					}
+				}
+			},
+			(childName): any => {
+				if (typeof name === "function") {
+					if (typeof childName === "function") {
+						// @ts-expect-error
+						return this.getInfrastructureLogger(_ => {
+							if (typeof name === "function") {
+								name = name();
+								if (!name) {
+									throw new TypeError(
+										"Compiler.getInfrastructureLogger(name) called with a function not returning a name"
+									);
+								}
+							}
+							if (typeof childName === "function") {
+								childName = childName();
+								if (!childName) {
+									throw new TypeError(
+										"Logger.getChildLogger(name) called with a function not returning a name"
+									);
+								}
+							}
+							return `${name}/${childName}`;
+						});
+					} else {
+						return this.getInfrastructureLogger(() => {
+							if (typeof name === "function") {
+								name = name();
+								if (!name) {
+									throw new TypeError(
+										"Compiler.getInfrastructureLogger(name) called with a function not returning a name"
+									);
+								}
+							}
+							return `${name}/${childName}`;
+						});
+					}
+				} else {
+					if (typeof childName === "function") {
+						return this.getInfrastructureLogger(() => {
+							if (typeof childName === "function") {
+								childName = childName();
+								if (!childName) {
+									throw new TypeError(
+										"Logger.getChildLogger(name) called with a function not returning a name"
+									);
+								}
+							}
+							return `${name}/${childName}`;
+						});
+					} else {
+						return this.getInfrastructureLogger(`${name}/${childName}`);
+					}
+				}
+			}
+		);
+	}
+
+	/**
+	 * @param watchOptions - the watcher's options
+	 * @param handler - signals when the call finishes
+	 * @returns a compiler watcher
+	 */
+	watch(
+		watchOptions: Watchpack.WatchOptions,
+		handler: Callback<Error, Stats>
+	): Watching {
+		if (this.running) {
+			// @ts-expect-error
+			return handler(new ConcurrentCompilationError());
+		}
+		this.running = true;
+		this.watchMode = true;
+		// @ts-expect-error
+		this.watching = new Watching(this, watchOptions, handler);
+		return this.watching;
+	}
+
+	/**
+	 * @param callback - signals when the call finishes
+	 */
+	run(callback: Callback<Error, Stats>) {
+		if (this.running) {
+			return callback(new ConcurrentCompilationError());
+		}
+		const startTime = Date.now();
+		this.running = true;
+		const doRun = () => {
+			// @ts-expect-error
+			const finalCallback = (err, stats?) => {
+				this.idle = true;
+				this.cache.beginIdle();
+				this.idle = true;
+				this.running = false;
+				if (err) {
+					this.hooks.failed.call(err);
+				}
+				if (callback) {
+					callback(err, stats);
+				}
+				this.hooks.afterDone.call(stats);
+			};
+			this.hooks.beforeRun.callAsync(this, err => {
+				if (err) {
+					return finalCallback(err);
+				}
+				this.hooks.run.callAsync(this, err => {
+					if (err) {
+						return finalCallback(err);
+					}
+
+					this.compile(err => {
+						if (err) {
+							return finalCallback(err);
+						}
+						this.#compilation!.startTime = startTime;
+						this.#compilation!.endTime = Date.now();
+						const stats = new Stats(this.#compilation!);
+						this.hooks.done.callAsync(stats, err => {
+							if (err) {
+								return finalCallback(err);
+							} else {
+								return finalCallback(null, stats);
+							}
+						});
+					});
+				});
+			});
+		};
+
+		if (this.idle) {
+			this.cache.endIdle(err => {
+				if (err) return callback(err);
+
+				this.idle = false;
+				doRun();
+			});
+		} else {
+			doRun();
+		}
+	}
+
+	runAsChild(
+		callback: (
+			err?: null | Error,
+			entries?: Chunk[],
+			compilation?: Compilation
+		) => any
+	) {
+		const finalCallback = (
+			err: Error | null,
+			entries?: Chunk[],
+			compilation?: Compilation
+		) => {
+			try {
+				callback(err, entries, compilation);
+			} catch (e) {
+				const err = new Error(`compiler.runAsChild callback error: ${e}`);
+				// err.details = e.stack;
+				this.parentCompilation!.errors.push(err);
+				// TODO: remove once this works
+				console.log(e);
+			}
+		};
+
+		this.compile((err, compilation) => {
+			if (err) {
+				return finalCallback(err);
+			}
+
+			assertNotNill(compilation);
+
+			this.parentCompilation!.children.push(compilation);
+			for (const { name, source, info } of compilation.getAssets()) {
+				// Do not emit asset if source is not available.
+				// Webpack will emit it anyway.
+				if (source) {
+					this.parentCompilation!.emitAsset(name, source, info);
+				}
+			}
+
+			const entries = [];
+			for (const ep of compilation.entrypoints.values()) {
+				entries.push(...ep.chunks);
+			}
+
+			return finalCallback(null, entries, compilation);
+		});
+	}
+
+	purgeInputFileSystem() {
+		if (this.inputFileSystem && this.inputFileSystem.purge) {
+			this.inputFileSystem.purge();
+		}
+	}
+
+	/**
+	 * @param compilation - the compilation
+	 * @param compilerName - the compiler's name
+	 * @param compilerIndex - the compiler's index
+	 * @param outputOptions - the output options
+	 * @param plugins - the plugins to apply
+	 * @returns a child compiler
+	 */
+	createChildCompiler(
+		compilation: Compilation,
+		compilerName: string,
+		compilerIndex: number,
+		outputOptions: OutputNormalized,
+		plugins: RspackPluginInstance[]
+	): Compiler {
+		const options: RspackOptionsNormalized = {
+			...this.options,
+			output: {
+				...this.options.output,
+				...outputOptions
+			},
+			// TODO: check why we need to have builtins otherwise this.#instance will fail to initialize Rspack
+			builtins: this.options.builtins
+		};
+		applyRspackOptionsDefaults(options);
+		const childCompiler = new Compiler(this.context, options);
+		childCompiler.name = compilerName;
+		childCompiler.outputPath = this.outputPath;
+		childCompiler.inputFileSystem = this.inputFileSystem;
+		childCompiler.outputFileSystem = null;
+		childCompiler.resolverFactory = this.resolverFactory;
+		childCompiler.modifiedFiles = this.modifiedFiles;
+		childCompiler.removedFiles = this.removedFiles;
+		childCompiler.fileTimestamps = this.fileTimestamps;
+		childCompiler.contextTimestamps = this.contextTimestamps;
+		childCompiler.fsStartTime = this.fsStartTime;
+		childCompiler.cache = this.cache;
+		childCompiler.compilerPath = `${this.compilerPath}${compilerName}|${compilerIndex}|`;
+
+		const relativeCompilerName = makePathsRelative(
+			this.context,
+			compilerName,
+			this.root
+		);
+		if (!this.records[relativeCompilerName]) {
+			this.records[relativeCompilerName] = [];
+		}
+		if (this.records[relativeCompilerName][compilerIndex]) {
+			childCompiler.records = this.records[relativeCompilerName][compilerIndex];
+		} else {
+			this.records[relativeCompilerName].push((childCompiler.records = {}));
+		}
+
+		childCompiler.parentCompilation = compilation;
+		childCompiler.root = this.root;
+		if (Array.isArray(plugins)) {
+			for (const plugin of plugins) {
+				if (plugin) {
+					plugin.apply(childCompiler);
+				}
+			}
+		}
+
+		childCompiler.#builtinPlugins = [
+			...childCompiler.#builtinPlugins,
+			...this.#builtinPlugins.filter(
+				plugin => plugin.canInherentFromParent === true
+			)
+		];
+
+		for (const name in this.hooks) {
+			if (canInherentFromParent(name as keyof Compiler["hooks"])) {
+				//@ts-ignore
+				if (childCompiler.hooks[name]) {
+					//@ts-ignore
+					childCompiler.hooks[name].taps = this.hooks[name].taps.slice();
+				}
+			}
+		}
+
+		compilation.hooks.childCompiler.call(
+			childCompiler,
+			compilerName,
+			compilerIndex
+		);
+
+		return childCompiler;
+	}
+
+	isChild() {
+		const isRoot = this.root === this;
+		return !isRoot;
+	}
+
+	compile(callback: Callback<Error, Compilation>) {
+		const startTime = Date.now();
+		const params = this.#newCompilationParams();
+		this.hooks.beforeCompile.callAsync(params, (err: any) => {
+			if (err) {
+				return callback(err);
+			}
+			this.hooks.compile.call(params);
+			this.#resetThisCompilation();
+
+			this.#build(err => {
+				if (err) {
+					return callback(err);
+				}
+				this.#compilation!.startTime = startTime;
+				this.#compilation!.endTime = Date.now();
+				this.hooks.afterCompile.callAsync(this.#compilation!, err => {
+					if (err) {
+						return callback(err);
+					}
+					return callback(null, this.#compilation);
+				});
+			});
+		});
+	}
+
+	close(callback: (error?: Error | null) => void) {
+		if (this.watching) {
+			// When there is still an active watching, close this #initial
+			this.watching.close(() => {
+				this.close(callback);
+			});
+			return;
+		}
+		this.hooks.shutdown.callAsync(err => {
+			if (err) return callback(err);
+			this.cache.shutdown(callback);
+		});
+	}
+
+	#build(callback?: (error: Error | null) => void) {
+		this.#getInstance((error, instance) => {
+			if (error) {
+				return callback?.(error);
+			}
+			if (!this.#initial) {
+				instance!.rebuild(
+					Array.from(this.modifiedFiles || []),
+					Array.from(this.removedFiles || []),
+					error => {
+						if (error) {
+							return callback?.(error);
+						}
+						callback?.(null);
+					}
+				);
+				return;
+			}
+			this.#initial = false;
+			instance!.build(error => {
+				if (error) {
+					return callback?.(error);
+				}
+				callback?.(null);
+			});
+		});
+	}
+
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
+	 */
+	__internal__rebuild(
+		modifiedFiles?: ReadonlySet<string>,
+		removedFiles?: ReadonlySet<string>,
+		callback?: (error: Error | null) => void
+	) {
+		this.#getInstance((error, instance) => {
+			if (error) {
+				return callback?.(error);
+			}
+			instance!.rebuild(
+				Array.from(modifiedFiles || []),
+				Array.from(removedFiles || []),
+				error => {
+					if (error) {
+						return callback?.(error);
+					}
+					callback?.(null);
+				}
+			);
+		});
+	}
+
+	#createCompilation(native: binding.JsCompilation): Compilation {
+		const compilation = new Compilation(this, native);
+		compilation.name = this.name;
+		this.#compilation = compilation;
+		return compilation;
+	}
+
+	#resetThisCompilation() {
+		// reassign new compilation in thisCompilation
+		this.#compilation = undefined;
+		// ensure thisCompilation must call
+		this.hooks.thisCompilation.intercept({
+			call: () => {}
+		});
+	}
+
+	#newCompilationParams(): CompilationParams {
+		const normalModuleFactory = new NormalModuleFactory();
+		this.hooks.normalModuleFactory.call(normalModuleFactory);
+		const contextModuleFactory = new ContextModuleFactory();
+		this.hooks.contextModuleFactory.call(contextModuleFactory);
+		const params = {
+			normalModuleFactory,
+			contextModuleFactory
+		};
+		this.#compilationParams = params;
+		return params;
 	}
 
 	/**
@@ -246,42 +749,42 @@ class Compiler {
 				binding.RegisterJsTapKind.CompilerThisCompilation,
 				() => this.hooks.thisCompilation,
 				queried => (native: binding.JsCompilation) => {
-					if (this.compilation === undefined) {
+					if (this.#compilation === undefined) {
 						this.#createCompilation(native);
 					}
-					queried.call(this.compilation!, this.compilationParams!);
+					queried.call(this.#compilation!, this.#compilationParams!);
 				}
 			),
 			registerCompilerCompilationTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerCompilation,
 				() => this.hooks.compilation,
 				queried => () =>
-					queried.call(this.compilation!, this.compilationParams!)
+					queried.call(this.#compilation!, this.#compilationParams!)
 			),
 			registerCompilerMakeTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerMake,
 				() => this.hooks.make,
-				queried => async () => await queried.promise(this.compilation!)
+				queried => async () => await queried.promise(this.#compilation!)
 			),
 			registerCompilerFinishMakeTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerFinishMake,
 				() => this.hooks.finishMake,
-				queried => async () => await queried.promise(this.compilation!)
+				queried => async () => await queried.promise(this.#compilation!)
 			),
 			registerCompilerShouldEmitTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerShouldEmit,
 				() => this.hooks.shouldEmit,
-				queried => () => queried.call(this.compilation!)
+				queried => () => queried.call(this.#compilation!)
 			),
 			registerCompilerEmitTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerEmit,
 				() => this.hooks.emit,
-				queried => async () => await queried.promise(this.compilation!)
+				queried => async () => await queried.promise(this.#compilation!)
 			),
 			registerCompilerAfterEmitTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerAfterEmit,
 				() => this.hooks.afterEmit,
-				queried => async () => await queried.promise(this.compilation!)
+				queried => async () => await queried.promise(this.#compilation!)
 			),
 			registerCompilerAssetEmittedTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerAssetEmitted,
@@ -293,7 +796,7 @@ class Compiler {
 						outputPath
 					}: binding.JsAssetEmittedArgs) => {
 						return queried.promise(filename, {
-							compilation: this.compilation!,
+							compilation: this.#compilation!,
 							targetPath,
 							outputPath,
 							get source() {
@@ -307,13 +810,13 @@ class Compiler {
 			),
 			registerCompilationRuntimeModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationRuntimeModule,
-				() => this.compilation!.hooks.runtimeModule,
+				() => this.#compilation!.hooks.runtimeModule,
 				queried =>
 					({ module, chunk }: binding.JsRuntimeModuleArg) => {
 						const originSource = module.source?.source;
 						queried.call(
 							module,
-							Chunk.__from_binding(chunk, this.compilation!)
+							Chunk.__from_binding(chunk, this.#compilation!)
 						);
 						const newSource = module.source?.source;
 						if (newSource && newSource !== originSource) {
@@ -324,25 +827,25 @@ class Compiler {
 			),
 			registerCompilationBuildModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationBuildModule,
-				() => this.compilation!.hooks.buildModule,
+				() => this.#compilation!.hooks.buildModule,
 				queired => (m: binding.JsModule) =>
 					queired.call(Module.__from_binding(m))
 			),
 			registerCompilationStillValidModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationStillValidModule,
-				() => this.compilation!.hooks.stillValidModule,
+				() => this.#compilation!.hooks.stillValidModule,
 				queired => (m: binding.JsModule) =>
 					queired.call(Module.__from_binding(m))
 			),
 			registerCompilationSucceedModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationSucceedModule,
-				() => this.compilation!.hooks.succeedModule,
+				() => this.#compilation!.hooks.succeedModule,
 				queired => (m: binding.JsModule) =>
 					queired.call(Module.__from_binding(m))
 			),
 			registerCompilationExecuteModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationExecuteModule,
-				() => this.compilation!.hooks.executeModule,
+				() => this.#compilation!.hooks.executeModule,
 				queried =>
 					({
 						entry,
@@ -416,66 +919,67 @@ class Compiler {
 			),
 			registerCompilationFinishModulesTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationFinishModules,
-				() => this.compilation!.hooks.finishModules,
-				queried => async () => await queried.promise(this.compilation!.modules)
+				() => this.#compilation!.hooks.finishModules,
+				queried => async () => await queried.promise(this.#compilation!.modules)
 			),
 			registerCompilationOptimizeModulesTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationOptimizeModules,
-				() => this.compilation!.hooks.optimizeModules,
-				queried => () => queried.call(this.compilation!.modules)
+				() => this.#compilation!.hooks.optimizeModules,
+				queried => () => queried.call(this.#compilation!.modules)
 			),
 			registerCompilationAfterOptimizeModulesTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationAfterOptimizeModules,
-				() => this.compilation!.hooks.afterOptimizeModules,
-				queried => () => queried.call(this.compilation!.modules)
+				() => this.#compilation!.hooks.afterOptimizeModules,
+				queried => () => queried.call(this.#compilation!.modules)
 			),
 			registerCompilationOptimizeTreeTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationOptimizeTree,
-				() => this.compilation!.hooks.optimizeTree,
+				() => this.#compilation!.hooks.optimizeTree,
 				queried => async () =>
 					await queried.promise(
-						this.compilation!.chunks,
-						this.compilation!.modules
+						this.#compilation!.chunks,
+						this.#compilation!.modules
 					)
 			),
 			registerCompilationOptimizeChunkModulesTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationOptimizeChunkModules,
-				() => this.compilation!.hooks.optimizeChunkModules,
+				() => this.#compilation!.hooks.optimizeChunkModules,
 				queried => async () =>
 					await queried.promise(
-						this.compilation!.chunks,
-						this.compilation!.modules
+						this.#compilation!.chunks,
+						this.#compilation!.modules
 					)
 			),
 			registerCompilationChunkAssetTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationChunkAsset,
-				() => this.compilation!.hooks.chunkAsset,
+				() => this.#compilation!.hooks.chunkAsset,
 				queried =>
 					({ chunk, filename }: binding.JsChunkAssetArgs) =>
 						queried.call(
-							Chunk.__from_binding(chunk, this.compilation!),
+							Chunk.__from_binding(chunk, this.#compilation!),
 							filename
 						)
 			),
 			registerCompilationProcessAssetsTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationProcessAssets,
-				() => this.compilation!.hooks.processAssets,
-				queried => async () => await queried.promise(this.compilation!.assets)
+				() => this.#compilation!.hooks.processAssets,
+				queried => async () => await queried.promise(this.#compilation!.assets)
 			),
 			registerCompilationAfterProcessAssetsTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationAfterProcessAssets,
-				() => this.compilation!.hooks.afterProcessAssets,
-				queried => () => queried.call(this.compilation!.assets)
+				() => this.#compilation!.hooks.afterProcessAssets,
+				queried => () => queried.call(this.#compilation!.assets)
 			),
 			registerCompilationAfterSealTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationAfterSeal,
-				() => this.compilation!.hooks.afterSeal,
+				() => this.#compilation!.hooks.afterSeal,
 				queried => async () => await queried.promise()
 			),
 			registerNormalModuleFactoryBeforeResolveTaps:
 				this.#createHookRegisterTaps(
 					binding.RegisterJsTapKind.NormalModuleFactoryBeforeResolve,
-					() => this.compilationParams!.normalModuleFactory.hooks.beforeResolve,
+					() =>
+						this.#compilationParams!.normalModuleFactory.hooks.beforeResolve,
 					queried => async (resolveData: binding.JsBeforeResolveArgs) => {
 						const normalizedResolveData: ResolveData = {
 							request: resolveData.request,
@@ -494,7 +998,7 @@ class Compiler {
 				this.#createHookMapRegisterTaps(
 					binding.RegisterJsTapKind.NormalModuleFactoryResolveForScheme,
 					() =>
-						this.compilationParams!.normalModuleFactory.hooks.resolveForScheme,
+						this.#compilationParams!.normalModuleFactory.hooks.resolveForScheme,
 					queried => async (args: binding.JsResolveForSchemeArgs) => {
 						const ret = await queried
 							.for(args.scheme)
@@ -504,7 +1008,7 @@ class Compiler {
 				),
 			registerNormalModuleFactoryAfterResolveTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.NormalModuleFactoryAfterResolve,
-				() => this.compilationParams!.normalModuleFactory.hooks.afterResolve,
+				() => this.#compilationParams!.normalModuleFactory.hooks.afterResolve,
 				queried => async (arg: binding.JsAfterResolveData) => {
 					const data: ResolveData = {
 						request: arg.request,
@@ -520,7 +1024,7 @@ class Compiler {
 			),
 			registerNormalModuleFactoryCreateModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.NormalModuleFactoryCreateModule,
-				() => this.compilationParams!.normalModuleFactory.hooks.createModule,
+				() => this.#compilationParams!.normalModuleFactory.hooks.createModule,
 				queried =>
 					async (args: binding.JsNormalModuleFactoryCreateModuleArgs) => {
 						const data: NormalModuleCreateData = {
@@ -534,7 +1038,7 @@ class Compiler {
 				this.#createHookRegisterTaps(
 					binding.RegisterJsTapKind.ContextModuleFactoryBeforeResolve,
 					() =>
-						this.compilationParams!.contextModuleFactory.hooks.beforeResolve,
+						this.#compilationParams!.contextModuleFactory.hooks.beforeResolve,
 					queried =>
 						async (
 							bindingData:
@@ -547,7 +1051,8 @@ class Compiler {
 			registerContextModuleFactoryAfterResolveTaps:
 				this.#createHookRegisterTaps(
 					binding.RegisterJsTapKind.ContextModuleFactoryAfterResolve,
-					() => this.compilationParams!.contextModuleFactory.hooks.afterResolve,
+					() =>
+						this.#compilationParams!.contextModuleFactory.hooks.afterResolve,
 					queried =>
 						async (
 							bindingData:
@@ -582,224 +1087,12 @@ class Compiler {
 
 		this.#instance = new instanceBinding.Rspack(
 			rawOptions,
-			this.builtinPlugins,
+			this.#builtinPlugins,
 			this.#registers,
-			createThreadsafeNodeFSFromRaw(this.outputFileSystem)
+			ThreadsafeWritableNodeFS.__into_binding(this.outputFileSystem!)
 		);
 
 		callback(null, this.#instance);
-	}
-
-	createChildCompiler(
-		compilation: Compilation,
-		compilerName: string,
-		compilerIndex: number,
-		outputOptions: OutputNormalized,
-		plugins: RspackPluginInstance[]
-	): Compiler {
-		const options: RspackOptionsNormalized = {
-			...this.options,
-			output: {
-				...this.options.output,
-				...outputOptions
-			},
-			// TODO: check why we need to have builtins otherwise this.#instance will fail to initialize Rspack
-			builtins: this.options.builtins
-		};
-		applyRspackOptionsDefaults(options);
-		const childCompiler = new Compiler(this.context, options);
-		childCompiler.name = compilerName;
-		childCompiler.outputPath = this.outputPath;
-		childCompiler.inputFileSystem = this.inputFileSystem;
-		// childCompiler.outputFileSystem = null;
-		childCompiler.resolverFactory = this.resolverFactory;
-		childCompiler.modifiedFiles = this.modifiedFiles;
-		childCompiler.removedFiles = this.removedFiles;
-		// childCompiler.fileTimestamps = this.fileTimestamps;
-		// childCompiler.contextTimestamps = this.contextTimestamps;
-		// childCompiler.fsStartTime = this.fsStartTime;
-		childCompiler.cache = this.cache;
-		childCompiler.compilerPath = `${this.compilerPath}${compilerName}|${compilerIndex}|`;
-		// childCompiler._backCompat = this._backCompat;
-
-		// const relativeCompilerName = makePathsRelative(
-		// 	this.context,
-		// 	compilerName,
-		// 	this.root
-		// );
-		// if (!this.records[relativeCompilerName]) {
-		// 	this.records[relativeCompilerName] = [];
-		// }
-		// if (this.records[relativeCompilerName][compilerIndex]) {
-		// 	childCompiler.records = this.records[relativeCompilerName][compilerIndex];
-		// } else {
-		// 	this.records[relativeCompilerName].push((childCompiler.records = {}));
-		// }
-
-		childCompiler.parentCompilation = compilation;
-		childCompiler.root = this.root;
-		if (Array.isArray(plugins)) {
-			for (const plugin of plugins) {
-				if (plugin) {
-					plugin.apply(childCompiler);
-				}
-			}
-		}
-
-		childCompiler.builtinPlugins = [
-			...childCompiler.builtinPlugins,
-			...this.builtinPlugins.filter(
-				plugin => plugin.canInherentFromParent === true
-			)
-		];
-
-		for (const name in this.hooks) {
-			if (canInherentFromParent(name as keyof Compiler["hooks"])) {
-				//@ts-ignore
-				if (childCompiler.hooks[name]) {
-					//@ts-ignore
-					childCompiler.hooks[name].taps = this.hooks[name].taps.slice();
-				}
-			}
-		}
-
-		compilation.hooks.childCompiler.call(
-			childCompiler,
-			compilerName,
-			compilerIndex
-		);
-
-		return childCompiler;
-	}
-
-	runAsChild(callback: any) {
-		const finalCallback = (
-			err: Error | null,
-			entries?: any,
-			compilation?: Compilation
-		) => {
-			try {
-				callback(err, entries, compilation);
-			} catch (e) {
-				const err = new Error(`compiler.runAsChild callback error: ${e}`);
-				// err.details = e.stack;
-				this.parentCompilation!.errors.push(err);
-				// TODO: remove once this works
-				console.log(e);
-			}
-		};
-
-		this.compile((err, compilation) => {
-			if (err) {
-				return finalCallback(err);
-			}
-
-			assertNotNill(compilation);
-
-			this.parentCompilation!.children.push(compilation);
-			for (const { name, source, info } of compilation.getAssets()) {
-				// Do not emit asset if source is not available.
-				// Webpack will emit it anyway.
-				if (source) {
-					this.parentCompilation!.emitAsset(name, source, info);
-				}
-			}
-
-			const entries = [];
-			for (const ep of compilation.entrypoints.values()) {
-				entries.push(...ep.getFiles());
-			}
-
-			return finalCallback(null, entries, compilation);
-		});
-	}
-
-	isChild(): boolean {
-		const isRoot = this.root === this;
-		return !isRoot;
-	}
-
-	getInfrastructureLogger(name: string | Function) {
-		if (!name) {
-			throw new TypeError(
-				"Compiler.getInfrastructureLogger(name) called without a name"
-			);
-		}
-		return new Logger(
-			(type, args) => {
-				if (typeof name === "function") {
-					name = name();
-					if (!name) {
-						throw new TypeError(
-							"Compiler.getInfrastructureLogger(name) called with a function not returning a name"
-						);
-					}
-				} else {
-					if (
-						// @ts-expect-error
-						this.hooks.infrastructureLog.call(name, type, args) === undefined
-					) {
-						if (this.infrastructureLogger !== undefined) {
-							this.infrastructureLogger(name, type, args);
-						}
-					}
-				}
-			},
-			(childName): any => {
-				if (typeof name === "function") {
-					if (typeof childName === "function") {
-						// @ts-expect-error
-						return this.getInfrastructureLogger(_ => {
-							if (typeof name === "function") {
-								name = name();
-								if (!name) {
-									throw new TypeError(
-										"Compiler.getInfrastructureLogger(name) called with a function not returning a name"
-									);
-								}
-							}
-							if (typeof childName === "function") {
-								childName = childName();
-								if (!childName) {
-									throw new TypeError(
-										"Logger.getChildLogger(name) called with a function not returning a name"
-									);
-								}
-							}
-							return `${name}/${childName}`;
-						});
-					} else {
-						return this.getInfrastructureLogger(() => {
-							if (typeof name === "function") {
-								name = name();
-								if (!name) {
-									throw new TypeError(
-										"Compiler.getInfrastructureLogger(name) called with a function not returning a name"
-									);
-								}
-							}
-							return `${name}/${childName}`;
-						});
-					}
-				} else {
-					if (typeof childName === "function") {
-						return this.getInfrastructureLogger(() => {
-							if (typeof childName === "function") {
-								childName = childName();
-								if (!childName) {
-									throw new TypeError(
-										"Logger.getChildLogger(name) called with a function not returning a name"
-									);
-								}
-							}
-							return `${name}/${childName}`;
-						});
-					} else {
-						return this.getInfrastructureLogger(`${name}/${childName}`);
-					}
-				}
-			}
-		);
 	}
 
 	#updateNonSkippableRegisters() {
@@ -905,220 +1198,8 @@ class Compiler {
 		return getTaps;
 	}
 
-	run(callback: Callback<Error, Stats>) {
-		if (this.running) {
-			return callback(new ConcurrentCompilationError());
-		}
-		const startTime = Date.now();
-		this.running = true;
-		const doRun = () => {
-			// @ts-expect-error
-			const finalCallback = (err, stats?) => {
-				this.idle = true;
-				this.cache.beginIdle();
-				this.idle = true;
-				this.running = false;
-				if (err) {
-					this.hooks.failed.call(err);
-				}
-				if (callback) {
-					callback(err, stats);
-				}
-				this.hooks.afterDone.call(stats);
-			};
-			this.hooks.beforeRun.callAsync(this, err => {
-				if (err) {
-					return finalCallback(err);
-				}
-				this.hooks.run.callAsync(this, err => {
-					if (err) {
-						return finalCallback(err);
-					}
-
-					this.compile(err => {
-						if (err) {
-							return finalCallback(err);
-						}
-						this.compilation!.startTime = startTime;
-						this.compilation!.endTime = Date.now();
-						const stats = new Stats(this.compilation!);
-						this.hooks.done.callAsync(stats, err => {
-							if (err) {
-								return finalCallback(err);
-							} else {
-								return finalCallback(null, stats);
-							}
-						});
-					});
-				});
-			});
-		};
-
-		if (this.idle) {
-			this.cache.endIdle(err => {
-				if (err) return callback(err);
-
-				this.idle = false;
-				doRun();
-			});
-		} else {
-			doRun();
-		}
-	}
-	#build(callback?: (error: Error | null) => void) {
-		this.#getInstance((error, instance) => {
-			if (error) {
-				return callback?.(error);
-			}
-			if (!this.#initial) {
-				instance!.rebuild(
-					Array.from(this.modifiedFiles || []),
-					Array.from(this.removedFiles || []),
-					error => {
-						if (error) {
-							return callback?.(error);
-						}
-						callback?.(null);
-					}
-				);
-				return;
-			}
-			this.#initial = false;
-			instance!.build(error => {
-				if (error) {
-					return callback?.(error);
-				}
-				callback?.(null);
-			});
-		});
-	}
-
-	/**
-	 * * Note: This is not a webpack public API, maybe removed in future.
-	 * @internal
-	 */
-	__internal__rebuild(
-		modifiedFiles?: ReadonlySet<string>,
-		removedFiles?: ReadonlySet<string>,
-		callback?: (error: Error | null) => void
-	) {
-		this.#getInstance((error, instance) => {
-			if (error) {
-				return callback?.(error);
-			}
-			instance!.rebuild(
-				Array.from(modifiedFiles || []),
-				Array.from(removedFiles || []),
-				error => {
-					if (error) {
-						return callback?.(error);
-					}
-					callback?.(null);
-				}
-			);
-		});
-	}
-
-	#createCompilation(native: binding.JsCompilation): Compilation {
-		const compilation = new Compilation(this, native);
-		compilation.name = this.name;
-		this.compilation = compilation;
-		return compilation;
-	}
-
-	#resetThisCompilation() {
-		// reassign new compilation in thisCompilation
-		this.compilation = undefined;
-		// ensure thisCompilation must call
-		this.hooks.thisCompilation.intercept({
-			call: () => {}
-		});
-	}
-
-	#newCompilationParams(): CompilationParams {
-		const normalModuleFactory = new NormalModuleFactory();
-		this.hooks.normalModuleFactory.call(normalModuleFactory);
-		const contextModuleFactory = new ContextModuleFactory();
-		this.hooks.contextModuleFactory.call(contextModuleFactory);
-		const params = {
-			normalModuleFactory,
-			contextModuleFactory
-		};
-		this.compilationParams = params;
-		return params;
-	}
-
-	compile(callback: Callback<Error, Compilation>) {
-		const startTime = Date.now();
-		const params = this.#newCompilationParams();
-		this.hooks.beforeCompile.callAsync(params, (err: any) => {
-			if (err) {
-				return callback(err);
-			}
-			this.hooks.compile.call(params);
-			this.#resetThisCompilation();
-
-			this.#build(err => {
-				if (err) {
-					return callback(err);
-				}
-				this.compilation!.startTime = startTime;
-				this.compilation!.endTime = Date.now();
-				this.hooks.afterCompile.callAsync(this.compilation!, err => {
-					if (err) {
-						return callback(err);
-					}
-					return callback(null, this.compilation);
-				});
-			});
-		});
-	}
-
-	watch(
-		watchOptions: Watchpack.WatchOptions,
-		handler: Callback<Error, Stats>
-	): Watching {
-		if (this.running) {
-			// @ts-expect-error
-			return handler(new ConcurrentCompilationError());
-		}
-		this.running = true;
-		this.watchMode = true;
-		// @ts-expect-error
-		this.watching = new Watching(this, watchOptions, handler);
-		return this.watching;
-	}
-
-	purgeInputFileSystem() {
-		if (this.inputFileSystem && this.inputFileSystem.purge) {
-			this.inputFileSystem.purge();
-		}
-	}
-
-	close(callback: (error?: Error | null) => void) {
-		if (this.watching) {
-			// When there is still an active watching, close this #initial
-			this.watching.close(() => {
-				this.close(callback);
-			});
-			return;
-		}
-		this.hooks.shutdown.callAsync(err => {
-			if (err) return callback(err);
-			this.cache.shutdown(callback);
-		});
-	}
-
-	getAsset(name: string) {
-		let source = this.compilation!.__internal__getAssetSource(name);
-		if (!source) {
-			return null;
-		}
-		return source.buffer();
-	}
-
 	__internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin) {
-		this.builtinPlugins.push(plugin);
+		this.#builtinPlugins.push(plugin);
 	}
 
 	__internal__getModuleExecutionResult(id: number) {

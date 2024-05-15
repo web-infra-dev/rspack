@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "library",
 	options: () => ({ output: { library: ["myLib", "awesome"] } }),

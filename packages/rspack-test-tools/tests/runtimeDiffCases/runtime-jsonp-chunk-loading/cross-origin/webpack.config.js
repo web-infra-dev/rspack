@@ -1,4 +1,4 @@
-/** @type {import("../../../../").Configuration} */
+/** @type {import("webpack").Configuration} */
 module.exports = {
 	target: "web",
 	output: {

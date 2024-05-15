@@ -1,11 +1,12 @@
+import fs from "fs-extra";
+import path from "path";
+
 import {
 	ITestReporter,
 	TDiffStats,
 	TDiffStatsItem,
 	TModuleCompareResult
 } from "../type";
-import fs from "fs-extra";
-import path from "path";
 
 const VIEWER_DIR = path.join(__dirname, "../../template");
 const DIFF_STATS_PLACEHOLDER = "$$RSPACK_DIFF_STATS_PLACEHOLDER$$";

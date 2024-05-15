@@ -14,7 +14,7 @@ import { PackageManagerTabs } from '@theme';
 
 Now you can use `rspack.CssExtractRspackPlugin` as a replacement for `mini-css-extract-plugin`.
 
-This is very useful in some scenarios, for example when the built-in CSS parser cannot meet your needs, there are more customized CSS module names, or you want to use some loaders that depend on the output of css-loader, but still want to extract the CSS into a separate file.
+This is very useful in some scenarios, for example when the built-in CSS parser cannot meet your needs, there are more customized CSS Modules names, or you want to use some loaders that depend on the output of css-loader, but still want to extract the CSS into a separate file.
 
 For more details, please see [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin#cssextractrspackplugin).
 
@@ -87,7 +87,7 @@ In addition, there are some changes to the default values:
    import classes, { class1, class2 } from './index.module.css';
    ```
 
-3. The default value of `namedExports` changed from `false` to `true`, meaning you'll have to use a namespace import (like `import * as classes from './style.css'`) or named import (like `import { class1 } from './style.css'`) by default, which will improve future compatibility with [native CSS modules](https://web.dev/articles/css-module-scripts). And this does not mean you have to migrate all imports at once; you can disable this behavior by setting `namedExports: false`, and since now `namedExports: false` also supports named export and namespace export, you can migrate these imports progressively.
+3. The default value of `namedExports` changed from `false` to `true`, meaning you'll have to use a namespace import (like `import * as classes from './style.css'`) or named import (like `import { class1 } from './style.css'`) by default, which will improve future compatibility with [native CSS module](https://web.dev/articles/css-module-scripts). And this does not mean you have to migrate all imports at once; you can disable this behavior by setting `namedExports: false`, and since now `namedExports: false` also supports named export and namespace export, you can migrate these imports progressively.
 4. The default value of `localIdentName` has changed from `'[path][name][ext]__[local]'` in development mode and `'[hash]'` in production mode to `'[uniqueName]-[id]-[local]'` in both development and production modes, which will slightly improve the gzip compression size of the CSS output.
 5. The default value of `exportsOnly` in `target: 'node'` has changed from `false` to `true`.
 6. The default rule type for CSS has changed from `css` to `css/auto`. `css/auto` will automatically process CSS files with `.module.` or `.modules.` as infixes as [CSS Modules](https://github.com/css-modules/css-modules), consistent with [`css-loader`'s `modules.auto: true`](https://github.com/webpack-contrib/css-loader?tab=readme-ov-file#auto), which will [simplify the writing rules for using less or sass with CSS Modules](https://github.com/webpack/webpack/issues/16572).
@@ -96,7 +96,7 @@ In addition, there are some changes to the default values:
 
 Upgraded the Rust crate `swc_core` to `0.90.x`. This will affect users of the SWC Wasm plugin.
 
-### Emit warnings when css order is inconsistent in multiple chunks
+### Emit warnings when CSS order is inconsistent in multiple chunks
 
 When the order of CSS in multiple chunks is inconsistent, a warning will be issued. For example, if you have two entries, `entryA` and `entryB`, where `entryA` imports `a.css` and then `b.css`, while `entryB` imports `b.css` and then `a.css`.
 When splitChunks conditions are met, `a.css` and `b.css` will become a separate chunk. The order of `a.css` and `b.css` in this chunk cannot be guaranteed, resulting in the following warning.
@@ -195,6 +195,6 @@ If it is necessary to configure some modules separately, you can use the [`rule.
 
 ### Upgrade the SWC plugins
 
-In version `0.6.0`, the Rust crate `swc_core` has been upgraded to `0.90.x`. Users of the swc wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
+In version `0.6.0`, the Rust crate `swc_core` has been upgraded to `0.90.x`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
 
-For more details, please see this [document](https://swc.rs/docs/plugin/selecting-swc-core#090x) of swc。
+For more details, please see this [document](https://swc.rs/docs/plugin/selecting-swc-core#090x) of SWC.

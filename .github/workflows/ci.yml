@@ -40,7 +40,7 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
-          predicate-quantifier: 'every'
+          predicate-quantifier: "every"
           filters: |
             changed:
               - "!**/*.md"
@@ -175,6 +175,10 @@ jobs:
       - name: Oxlint
         if: steps.changes.outputs.src == 'true'
         run: pnpm run lint:js
+
+      - name: Eslint
+        if: steps.changes.outputs.src == 'true'
+        run: pnpm run eslint:js
 
       - name: Prettier
         if: steps.changes.outputs.src == 'true'
@@ -357,14 +361,7 @@ jobs:
   failure_notification:
     name: Failure Notification
     needs:
-      [
-        test-linux,
-        test-windows,
-        test-mac,
-        rust_check,
-        rust_test,
-        run_benchmark
-      ]
+      [test-linux, test-windows, test-mac, rust_check, rust_test, run_benchmark]
     if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
     runs-on: ubuntu-latest
     steps:

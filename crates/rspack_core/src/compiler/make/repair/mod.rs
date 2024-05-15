@@ -15,9 +15,9 @@ use crate::{
   module_graph::{ModuleGraph, ModuleGraphPartial},
   tree_shaking::visitor::OptimizeAnalyzeResult,
   utils::task_loop::{run_task_loop, Task},
-  BuildDependency, CacheCount, CacheOptions, Compilation, CompilationLogger, CompilerOptions,
-  DependencyId, DependencyType, Logger, Module, ModuleFactory, ModuleIdentifier, ModuleProfile,
-  NormalModuleSource, ResolverFactory, SharedPluginDriver,
+  BuildDependency, Compilation, CompilerOptions, DependencyId, DependencyType, Module,
+  ModuleFactory, ModuleIdentifier, ModuleProfile, NormalModuleSource, ResolverFactory,
+  SharedPluginDriver,
 };
 
 pub struct MakeTaskContext {
@@ -29,10 +29,6 @@ pub struct MakeTaskContext {
   pub cache: Arc<Cache>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
 
-  // TODO move outof context
-  logger: CompilationLogger,
-  build_cache_counter: Option<CacheCount>,
-  factorize_cache_counter: Option<CacheCount>,
   //  add_timer: StartTimeAggregate,
   //  process_deps_timer: StartTimeAggregate,
   //  factorize_timer: StartTimeAggregate,
@@ -57,14 +53,6 @@ pub struct MakeTaskContext {
 
 impl MakeTaskContext {
   pub fn new(compilation: &Compilation, artifact: MakeArtifact) -> Self {
-    let logger = compilation.get_logger("rspack.Compilation");
-    let mut build_cache_counter = None;
-    let mut factorize_cache_counter = None;
-    if !(matches!(compilation.options.cache, CacheOptions::Disabled)) {
-      build_cache_counter = Some(logger.cache("module build cache"));
-      factorize_cache_counter = Some(logger.cache("module factorize cache"));
-    }
-
     Self {
       plugin_driver: compilation.plugin_driver.clone(),
       compiler_options: compilation.options.clone(),
@@ -74,9 +62,6 @@ impl MakeTaskContext {
       dependency_factories: compilation.dependency_factories.clone(),
 
       // TODO use timer in tasks
-      logger,
-      build_cache_counter,
-      factorize_cache_counter,
       //      add_timer: logger.time_aggregate("module add task"),
       //      process_deps_timer: logger.time_aggregate("module process dependencies task"),
       //      factorize_timer: logger.time_aggregate("module factorize task"),
@@ -111,18 +96,9 @@ impl MakeTaskContext {
       missing_dependencies,
       build_dependencies,
       has_module_graph_change,
-      build_cache_counter,
-      factorize_cache_counter,
       entry_dependencies,
-      logger,
       ..
     } = self;
-    if let Some(counter) = build_cache_counter {
-      logger.cache_end(counter);
-    }
-    if let Some(counter) = factorize_cache_counter {
-      logger.cache_end(counter);
-    }
     MakeArtifact {
       module_graph_partial,
       make_failed_dependencies,

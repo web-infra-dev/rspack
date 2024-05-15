@@ -1,7 +1,4 @@
-const { createFsFromVolume, Volume } = require("memfs");
-
-const outputFileSystem = createFsFromVolume(new Volume());
-
+/** @type {import("../../../..").THookCaseConfig} */
 module.exports = {
 	description: "should call afterProcessAssets correctly",
 	options(context) {
@@ -24,8 +21,4 @@ module.exports = {
 			]
 		};
 	},
-	async compiler(context, compiler) {
-		compiler.outputFileSystem = outputFileSystem;
-	},
-	async check() {}
 };

@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "ecmaVersion",
 	options: () => ({ output: { ecmaVersion: 2020 } }),

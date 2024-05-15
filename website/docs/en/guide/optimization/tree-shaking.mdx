@@ -107,7 +107,7 @@ var __webpack_modules__ = {
 // ...
 ```
 
-As you can see, if we don't enable the treeShaking, all the code is kept as is, except wrapping with
+As you can see, if we don't enable the tree shaking, all the code is kept as is, except wrapping with
 some runtime code.
 
 Now, we switch to production mode and rebuild the project. In order to make the output more readable, we also turn off the `minimize` option and switch the `moduleIds` to `named`. To compare with the later chapters, we turn off `optimization.sideEffects`.
@@ -131,7 +131,7 @@ const config = {
 module.exports = config;
 ```
 
-Rebuilding the project, the `square` function got dropped.
+Rebuild the project, the `square` function got dropped.
 
 ## SideEffects
 

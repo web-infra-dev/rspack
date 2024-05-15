@@ -16,23 +16,24 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
-import { Compiler } from "../Compiler";
-import { NormalModule } from "../NormalModule";
 import { Compilation } from "../Compilation";
+import { Compiler } from "../Compiler";
 import {
-	LoaderContext,
-	LoaderObject,
 	isUseSimpleSourceMap,
-	isUseSourceMap
+	isUseSourceMap,
+	LoaderContext,
+	LoaderObject
 } from "../config/adapterRuleUse";
+import { NormalModule } from "../NormalModule";
 import {
 	concatErrorMsgAndStack,
 	isNil,
 	serializeObject,
+	stringifyLoaderObject,
 	toBuffer,
-	toObject,
-	stringifyLoaderObject
+	toObject
 } from "../util";
+import { createHash } from "../util/createHash";
 import {
 	absolutify,
 	contextify,
@@ -40,7 +41,6 @@ import {
 	parseResourceWithoutFragment
 } from "../util/identifier";
 import { memoize } from "../util/memoize";
-import { createHash } from "../util/createHash";
 import loadLoader = require("./loadLoader");
 const querystring = require("node:querystring");
 
@@ -193,7 +193,7 @@ export async function runLoaders(
 						"provide an 'ident' property for referenced loader options."
 				);
 			}
-			obj.options = compiler.ruleSet.references.get(ident);
+			obj.options = compiler.__internal__ruleSet.references.get(ident);
 			if (obj.options === undefined) {
 				throw new Error(
 					`Invalid ident("${ident}") is provided by referenced loader`
@@ -250,7 +250,7 @@ export async function runLoaders(
 		if (!callback) {
 			return new Promise((resolve, reject) => {
 				compiler
-					.compilation!.__internal_getInner()
+					._lastCompilation!.__internal_getInner()
 					.importModule(
 						request,
 						options.publicPath,
@@ -281,7 +281,7 @@ export async function runLoaders(
 			});
 		}
 		return compiler
-			.compilation!.__internal_getInner()
+			._lastCompilation!.__internal_getInner()
 			.importModule(
 				request,
 				options.publicPath,
@@ -461,7 +461,7 @@ export async function runLoaders(
 		};
 	};
 	loaderContext.getLogger = function getLogger(name) {
-		return compiler.compilation!.getLogger(
+		return compiler._lastCompilation!.getLogger(
 			[name, resource].filter(Boolean).join("|")
 		);
 	};
@@ -470,7 +470,7 @@ export async function runLoaders(
 		const title = "Module Error";
 		const message =
 			error instanceof Error ? concatErrorMsgAndStack(error) : error;
-		compiler.compilation!.pushDiagnostic(
+		compiler._lastCompilation!.__internal__pushDiagnostic(
 			"error",
 			title,
 			`${message}\n(from: ${stringifyLoaderObject(
@@ -482,7 +482,7 @@ export async function runLoaders(
 		const title = "Module Warning";
 		const message =
 			warning instanceof Error ? concatErrorMsgAndStack(warning) : warning;
-		compiler.compilation!.pushDiagnostic(
+		compiler._lastCompilation!.__internal__pushDiagnostic(
 			"warning",
 			title,
 			`${message}\n(from: ${stringifyLoaderObject(
@@ -492,7 +492,7 @@ export async function runLoaders(
 	};
 	loaderContext.__internal__pushNativeDiagnostics =
 		function __internal__pushNativeDiagnostics(diagnostics) {
-			compiler.compilation!.__internal__pushNativeDiagnostics(diagnostics);
+			compiler._lastCompilation!.__internal__pushNativeDiagnostics(diagnostics);
 		};
 	loaderContext.emitFile = function emitFile(
 		name,
@@ -530,7 +530,7 @@ export async function runLoaders(
 		}
 		assetFilenames.push(name),
 			// @ts-expect-error
-			compiler.compilation.emitAsset(name, source, assetInfo);
+			compiler._lastCompilation.emitAsset(name, source, assetInfo);
 	};
 	loaderContext.fs = compiler.inputFileSystem;
 
@@ -556,7 +556,7 @@ export async function runLoaders(
 		},
 		createHash: type => {
 			return createHash(
-				type || compiler.compilation!.outputOptions.hashFunction
+				type || compiler._lastCompilation!.outputOptions.hashFunction
 			);
 		}
 	};
@@ -590,7 +590,7 @@ export async function runLoaders(
 		return missingDependencies.slice();
 	};
 	loaderContext._compiler = compiler;
-	loaderContext._compilation = compiler.compilation;
+	loaderContext._compilation = compiler._lastCompilation!;
 	loaderContext.getOptions = function () {
 		const loader = getCurrentLoader(loaderContext);
 		let options = loader?.options;
@@ -615,7 +615,7 @@ export async function runLoaders(
 		return options;
 	};
 
-	let compilation: Compilation | undefined = compiler.compilation;
+	let compilation: Compilation | undefined = compiler._lastCompilation;
 	let step = 0;
 	while (compilation) {
 		NormalModule.getCompilationHooks(compilation).loader.call(loaderContext);

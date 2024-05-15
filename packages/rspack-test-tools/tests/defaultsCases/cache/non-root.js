@@ -1,4 +1,5 @@
 const path = require("path");
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "non-root directory",
 	options: () => ({

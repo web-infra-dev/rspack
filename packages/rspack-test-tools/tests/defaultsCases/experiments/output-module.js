@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "output module",
 	options: () => ({ experiments: { outputModule: true } }),

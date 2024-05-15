@@ -1,4 +1,5 @@
 import type { RawCssExtractPluginOption } from "@rspack/binding";
+
 import { Compiler } from "../..";
 import { MODULE_TYPE } from "./loader";
 
@@ -7,7 +8,9 @@ export * from "./loader";
 const DEFAULT_FILENAME = "[name].css";
 const LOADER_PATH = require.resolve("./loader");
 
-export interface PluginOptions {
+export type { CssExtractRspackLoaderOptions } from "./loader";
+
+export interface CssExtractRspackPluginOptions {
 	filename?: string;
 	chunkFilename?: string;
 	ignoreOrder?: boolean;
@@ -24,9 +27,9 @@ export class CssExtractRspackPlugin {
 	static pluginName: string = "css-extract-rspack-plugin";
 	static loader: string = LOADER_PATH;
 
-	options: PluginOptions;
+	options: CssExtractRspackPluginOptions;
 
-	constructor(options?: PluginOptions) {
+	constructor(options?: CssExtractRspackPluginOptions) {
 		this.options = options || {};
 	}
 
@@ -56,7 +59,9 @@ export class CssExtractRspackPlugin {
 		});
 	}
 
-	normalizeOptions(options: PluginOptions): RawCssExtractPluginOption {
+	normalizeOptions(
+		options: CssExtractRspackPluginOptions
+	): RawCssExtractPluginOption {
 		let chunkFilename = options.chunkFilename;
 
 		if (!chunkFilename) {

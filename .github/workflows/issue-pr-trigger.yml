@@ -16,7 +16,7 @@ jobs:
           node-version: '20'
       - name: Check if triggered by project member
         id: check_member
-        if: github.event.sender.type == 'User'
+        if: github.event.sender.type == 'User' && github.actor != 'renovate'
         run: |
           SENDER=${{ github.event.sender.login }}
           TEAMS_FILE="./.github/teams.yml"

@@ -11,34 +11,14 @@ This plugin can be used to configure the progress bar.
 new rspack.ProgressPlugin(options);
 ```
 
-- options
-  - **Type:** `{ prefix?: string }`
-  - **Default:** `{}`
-    <Table
-      header={[
-        {
-          name: 'Name',
-          key: 'name',
-        },
-        {
-          name: 'Type',
-          key: 'type',
-        },
-        {
-          name: 'Default',
-          key: 'default',
-        },
-        {
-          name: 'Description',
-          key: 'description',
-        },
-      ]}
-      body={[
-        {
-          name: '`prefix`',
-          type: '`string`',
-          default: "'Rspack'",
-          description: 'The text will be displayed before the progress bar.',
-        },
-      ]}
-    />
+## Options
+
+- **Type:** `{ prefix?: string }`
+- **Default:** `{}`
+
+### prefix
+
+- **Type:** `string`
+- **Default:** `'Rspack'`
+
+The text will be displayed before the progress bar.

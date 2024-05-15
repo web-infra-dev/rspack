@@ -1,4 +1,6 @@
 import EventEmitter from "events";
+import merge from "webpack-merge";
+
 import {
 	ECompilerType,
 	ITestCompilerManager,
@@ -7,7 +9,6 @@ import {
 	TCompilerOptions,
 	TCompilerStats
 } from "./type";
-import merge from "webpack-merge";
 
 export const enum ECompilerEvent {
 	Build = "build",

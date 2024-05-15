@@ -9,9 +9,10 @@ import {
 	type JsChunk,
 	type JsCompilation
 } from "@rspack/binding";
+
+import { Compilation } from ".";
 import { ChunkGroup } from "./ChunkGroup";
 import { compareChunkGroupsByIndex } from "./util/comparators";
-import { Compilation } from ".";
 
 export class Chunk {
 	#inner: JsChunk;

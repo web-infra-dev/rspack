@@ -46,7 +46,7 @@ function useFooterData() {
         },
         {
           title: 'JavaScript API',
-          link: getLink('/api/node-api'),
+          link: getLink('/api/javascript-api'),
         },
       ],
     },

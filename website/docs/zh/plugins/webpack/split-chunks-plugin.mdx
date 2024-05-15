@@ -5,7 +5,7 @@ import { ApiMeta } from '../../../../components/ApiMeta';
 
 # SplitChunksPlugin
 
-### 默认值
+## 默认值
 
 开箱即用的 `SplitChunksPlugin` 对于大部分用户来说非常友好。
 
@@ -18,14 +18,12 @@ rspack 将根据以下条件自动拆分 chunk：
 - 当按需加载 chunks 时，并行请求的最大数量小于或等于 30
 - 当加载初始化页面时，并发请求的最大数量小于或等于 30
 
-### 配置
+## 配置
 
 rspack 为希望对该功能进行更多控制的开发者提供了一组选项。
 
 :::warning
-
 Rspack 的默认配置符合 Web 性能最佳实践，但是项目的最佳策略可能有所不同。如果要更改配置，则应评估所做更改的影响，以确保有真正的收益。
-
 :::
 
 ### optimization.splitChunks
@@ -92,8 +90,8 @@ module.exports = {
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.chunks
 
-- **Type:** `string 'initial' | 'all' | 'async'`
-- **Default:：** `'async'`
+- **类型：** `string 'initial' | 'all' | 'async'`
+- **默认值：** `'async'`
 
 这表明将选择哪些 chunk 进行优化。当提供一个字符串，有效值为 `all` ，`async` 和 `initial`。设置为 `all` 可能会更强大，因为这意味着 chunk 可以在异步和非异步 chunk 之间共享。
 
