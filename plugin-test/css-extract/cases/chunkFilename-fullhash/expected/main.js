@@ -16,25 +16,29 @@ __webpack_require__.r(__webpack_exports__);
 
 }
 // The module cache
- var __webpack_module_cache__ = {};
+var __webpack_module_cache__ = {};
+
+// The require function
 function __webpack_require__(moduleId) {
+
 // Check if module is in cache
-        var cachedModule = __webpack_module_cache__[moduleId];
-        if (cachedModule !== undefined) {
-      return cachedModule.exports;
-      }
-      // Create a new module (and put it into the cache)
-      var module = (__webpack_module_cache__[moduleId] = {
-       exports: {}
-      });
-      // Execute the module function
-      __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 // Return the exports of the module
- return module.exports;
+return module.exports;
 
 }
+
 // expose the modules object (__webpack_modules__)
- __webpack_require__.m = __webpack_modules__;
+__webpack_require__.m = __webpack_modules__;
 // webpack/runtime/ensure_chunk
 !function() {
 __webpack_require__.f = {};
@@ -75,7 +79,7 @@ __webpack_require__.e = function (chunkId) {
 // webpack/runtime/get_full_hash
 !function() {
 __webpack_require__.h = function () {
-	return "048dd0ea10a262087819";
+	return "dec0863f5e812ee7cadd";
 };
 
 }();
@@ -386,5 +390,7 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(
 );
 
 }();
+// startup
+// Load entry module and return exports
 var __webpack_exports__ = __webpack_require__("./index.js");
 })()

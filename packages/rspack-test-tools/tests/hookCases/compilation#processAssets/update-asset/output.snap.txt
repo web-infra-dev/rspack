@@ -1,4 +1,4 @@
-```js title=main.72cf2b1eb9f1ef5c7d0a.js
+```js title=main.cb18450578c7263b2f4e.js
 // UPDATED
 (function() {
 var __webpack_modules__ = {
@@ -8,23 +8,28 @@ module.exports = "This is hook";
 
 }
 // The module cache
- var __webpack_module_cache__ = {};
+var __webpack_module_cache__ = {};
+
+// The require function
 function __webpack_require__(moduleId) {
+
 // Check if module is in cache
-        var cachedModule = __webpack_module_cache__[moduleId];
-        if (cachedModule !== undefined) {
-      return cachedModule.exports;
-      }
-      // Create a new module (and put it into the cache)
-      var module = (__webpack_module_cache__[moduleId] = {
-       exports: {}
-      });
-      // Execute the module function
-      __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 // Return the exports of the module
- return module.exports;
+return module.exports;
 
 }
+// startup
+// Load entry module and return exports
 var __webpack_exports__ = __webpack_require__("600");
 })()
 

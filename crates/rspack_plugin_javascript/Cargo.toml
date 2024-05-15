@@ -10,6 +10,7 @@ async-trait = { workspace = true }
 bitflags = { workspace = true }
 dashmap = { workspace = true }
 indexmap = { workspace = true }
+indoc = { workspace = true }
 itertools = { workspace = true }
 linked_hash_set = { workspace = true }
 num-bigint = { version = "0.4.4" }
