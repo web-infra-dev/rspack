@@ -5,14 +5,13 @@
       "DOM",
       "ES2020"
     ],
-    "module": "ESNext",
+    "module": "CommonJS",
     "jsx": "preserve",
     "jsxImportSource": "vue",
     "strict": true,
     "skipLibCheck": true,
     "isolatedModules": true,
     "resolveJsonModule": true,
-    "moduleResolution": "bundler",
     "useDefineForClassFields": true
   },
   "include": [

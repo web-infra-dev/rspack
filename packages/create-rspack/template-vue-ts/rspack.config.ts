@@ -1,9 +1,13 @@
-import rspack, { Configuration } from "@rspack/core";
-const { VueLoaderPlugin } = require("vue-loader");
+import {
+	Configuration,
+	HtmlRspackPlugin,
+	DefinePlugin,
+	RspackPluginFunction
+} from "@rspack/core";
+import { VueLoaderPlugin } from "vue-loader";
 
 const isDev = process.env.NODE_ENV == "development";
 
-/** @type {import('@rspack/cli').Configuration} */
 const config: Configuration = {
 	context: __dirname,
 	entry: {
@@ -13,11 +17,11 @@ const config: Configuration = {
 		extensions: ["...", ".ts"]
 	},
 	plugins: [
-		new VueLoaderPlugin(),
-		new rspack.HtmlRspackPlugin({
+		new VueLoaderPlugin() as RspackPluginFunction,
+		new HtmlRspackPlugin({
 			template: "./index.html"
 		}),
-		new rspack.DefinePlugin({
+		new DefinePlugin({
 			__VUE_PROD_DEVTOOLS__: isDev
 		})
 	],
