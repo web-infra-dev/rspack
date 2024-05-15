@@ -135,6 +135,23 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       description: i18n[lang]['webpack-virtual-modules-desc'],
     },
     {
+      name: 'node-polyfill-webpack-plugin',
+      url: 'https://www.npmjs.com/package/node-polyfill-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'workbox-webpack-plugin',
+      url: 'https://www.npmjs.com/package/workbox-webpack-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['workbox-webpack-plugin-desc'],
+    },
+    {
+      name: '@pmmmwh/react-refresh-webpack-plugin',
+      url: 'https://www.npmjs.com/package/@pmmmwh/react-refresh-webpack-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['react-refresh-webpack-plugin-desc'],
+    },
+    {
       name: '@sentry/webpack-plugin',
       url: 'https://www.npmjs.com/package/@sentry/webpack-plugin',
       status: CompatibleStatus.Compatible,
@@ -163,7 +180,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
         },
       ]}
       body={pluginList
-        .sort((a, b) => b.status - a.status)
+        .sort((a, b) => b.status - a.status || a.name.localeCompare(b.name))
         .map(({ name, url, status, description }) => {
           const { symbol, en, zh } = SUPPORT_STATUS_LOCALIZED[status];
           const statusText = `${symbol} ${lang === 'zh' ? zh : en}`;
