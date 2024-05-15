@@ -87,12 +87,6 @@ export class Module {
 			return null;
 		}
 	}
-
-	get buildMeta() {
-		return {
-			...this.#inner.buildMeta
-		};
-	}
 }
 
 export class CodeGenerationResult {

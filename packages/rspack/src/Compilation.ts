@@ -1059,12 +1059,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this._rebuildModuleCaller.push([m.identifier(), f]);
 	}
 
-	findModule(identifier: string): Module | undefined {
-		return this.modules.find(module => {
-			return module.identifier() === identifier;
-		});
-	}
-
 	/**
 	 * Get the `Source` of a given asset filename.
 	 *
