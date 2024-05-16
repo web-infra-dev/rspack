@@ -1069,7 +1069,7 @@ class Compiler {
 										context: bindingData.context,
 										// TODO: Dependencies are not fully supported yet; this is a placeholder to prevent errors in moment-locales-webpack-plugin.
 										dependencies: []
-									} satisfies ContextModuleFactoryAfterResolveResult)
+								  } satisfies ContextModuleFactoryAfterResolveResult)
 								: false;
 							const ret = await queried.promise(data);
 							const result = ret
@@ -1078,7 +1078,7 @@ class Compiler {
 										context: ret.context,
 										request: ret.request,
 										regExp: ret.regExp?.toString()
-									} satisfies binding.JsContextModuleFactoryAfterResolveData)
+								  } satisfies binding.JsContextModuleFactoryAfterResolveData)
 								: false;
 							return result;
 						}

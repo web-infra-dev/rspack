@@ -42,11 +42,11 @@ export class SharePlugin {
 					item === key || !isRequiredVersion(item)
 						? {
 								import: item
-							}
+						  }
 						: {
 								import: key,
 								requiredVersion: item
-							};
+						  };
 				return config;
 			},
 			item => item

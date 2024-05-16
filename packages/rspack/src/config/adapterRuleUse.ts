@@ -107,6 +107,7 @@ export interface LoaderContext<OptionsType = {}> {
 	loaders: LoaderObject[];
 	mode?: Mode;
 	hot?: boolean;
+	_module: object;
 	/**
 	 * @param schema To provide the best performance, Rspack does not perform the schema validation. If your loader requires schema validation, please call scheme-utils or zod on your own.
 	 */

@@ -309,8 +309,8 @@ const getItemSize = (item: Child) => {
 	return !item.children
 		? 1
 		: item.filteredChildren
-			? 2 + getTotalSize(item.children)
-			: 1 + getTotalSize(item.children);
+		? 2 + getTotalSize(item.children)
+		: 1 + getTotalSize(item.children);
 };
 
 export const spaceLimited = (

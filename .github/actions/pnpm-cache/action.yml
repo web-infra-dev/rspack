@@ -4,7 +4,7 @@ description: Install Node.js with pnpm global cache
 
 inputs:
   node-version:
-    default: '20'
+    default: "20"
     required: false
     type: string
   frozen-lockfile:

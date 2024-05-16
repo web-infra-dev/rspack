@@ -76,6 +76,7 @@
     "source-map-loader": "^5.0.0",
     "styled-components": "^6.0.8",
     "terser": "5.27.2",
+    "ts-loader": "^9.5.1",
     "tsc-alias": "^1.8.8",
     "wast-loader": "^1.11.4",
     "watchpack": "^2.4.0",

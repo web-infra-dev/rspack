@@ -4,12 +4,8 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "viewer"
-  ],
+  "include": ["src"],
+  "exclude": ["viewer"],
   "references": [
     {
       "path": "../rspack"

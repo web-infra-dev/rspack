@@ -1,6 +1,6 @@
-import { ApiItemKind,ApiModel } from "@microsoft/api-extractor-model";
+import { ApiItemKind, ApiModel } from "@microsoft/api-extractor-model";
 import { readdirSync, readFileSync } from "fs";
-import { basename, dirname, extname, join,resolve } from "path";
+import { basename, dirname, extname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -9,7 +9,10 @@ const __dirname = dirname(__filename);
 const PLUGIN_REGEX = /^[A-Z][a-zA-Z]+Plugin$/;
 const PLUGIN_API_JSON = resolve(__dirname, "../temp/core.api.json");
 const PLUGIN_DOCS_DIR = resolve(__dirname, "../../../website/docs/en/plugins");
-const INTERNAL_PLUGINS_DOC = join(PLUGIN_DOCS_DIR, "webpack/internal-plugins.mdx");
+const INTERNAL_PLUGINS_DOC = join(
+	PLUGIN_DOCS_DIR,
+	"webpack/internal-plugins.mdx"
+);
 
 function getImplementedPlugins() {
 	const apiModel = new ApiModel();
@@ -73,7 +76,7 @@ function getDocumentedPlugins() {
 	}
 	visitDir(PLUGIN_DOCS_DIR);
 
-	const internalPluginsDoc = readFileSync(INTERNAL_PLUGINS_DOC, 'utf-8');
+	const internalPluginsDoc = readFileSync(INTERNAL_PLUGINS_DOC, "utf-8");
 	const headings = extractMarkdownHeadings(internalPluginsDoc);
 	for (const heading of headings) {
 		if (PLUGIN_REGEX.test(heading)) {

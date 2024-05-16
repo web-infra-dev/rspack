@@ -72,7 +72,7 @@ export class SnapshotProcessor<
 			: path.resolve(
 					context.getSource(),
 					`./snapshot/${this._snapshotOptions.snapshot}`
-				);
+			  );
 
 		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
 			fs.ensureDirSync(path.dirname(snapshotPath));

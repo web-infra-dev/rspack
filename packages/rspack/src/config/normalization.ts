@@ -98,7 +98,7 @@ export const getNormalizedRspackOptions = (
 								return ignore.test(warning.message);
 							};
 						}
-					})
+				  })
 				: undefined,
 		name: config.name,
 		dependencies: config.dependencies,
@@ -108,11 +108,11 @@ export const getNormalizedRspackOptions = (
 			config.entry === undefined
 				? { main: {} }
 				: typeof config.entry === "function"
-					? (
-							fn => () =>
-								Promise.resolve().then(fn).then(getNormalizedEntryStatic)
-						)(config.entry)
-					: getNormalizedEntryStatic(config.entry),
+				? (
+						fn => () =>
+							Promise.resolve().then(fn).then(getNormalizedEntryStatic)
+				  )(config.entry)
+				: getNormalizedEntryStatic(config.entry),
 		output: nestedConfig(config.output, output => {
 			const { library } = output;
 			const libraryAsName = library;
@@ -123,10 +123,10 @@ export const getNormalizedRspackOptions = (
 				"type" in library
 					? library
 					: libraryAsName || output.libraryTarget
-						? ({
-								name: libraryAsName
-							} as LibraryOptions)
-						: undefined;
+					? ({
+							name: libraryAsName
+					  } as LibraryOptions)
+					: undefined;
 			return {
 				path: output.path,
 				pathinfo: output.pathinfo,
@@ -350,8 +350,8 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 				dependOn: Array.isArray(value.dependOn)
 					? value.dependOn
 					: value.dependOn
-						? [value.dependOn]
-						: undefined
+					? [value.dependOn]
+					: undefined
 			};
 		}
 	}
@@ -415,7 +415,7 @@ const keyedNestedConfig = <T, R>(
 						obj
 					),
 					{} as Record<string, R>
-				);
+			  );
 	if (customKeys) {
 		for (const key of Object.keys(customKeys)) {
 			if (!(key in result)) {

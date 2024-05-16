@@ -23,9 +23,10 @@ export function createHookCase(
 	dist: string,
 	source: string
 ) {
-	const caseConfig: Partial<THookCaseConfig> = require(
-		path.join(src, "test.js")
-	);
+	const caseConfig: Partial<THookCaseConfig> = require(path.join(
+		src,
+		"test.js"
+	));
 	const testName = path.basename(
 		name.slice(0, name.indexOf(path.extname(name)))
 	);

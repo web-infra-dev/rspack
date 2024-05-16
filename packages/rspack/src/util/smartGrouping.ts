@@ -140,7 +140,7 @@ export const smartGrouping = <T, R>(
 							(totalSize * 2) / targetGroupCount +
 								itemsWithGroups.size -
 								items.size
-						);
+					  );
 				if (
 					sizeValue > bestGroupSize ||
 					(force && (!bestGroupOptions || !bestGroupOptions.force))

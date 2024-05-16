@@ -130,7 +130,7 @@ export = ({ colors, appendOnly, stream }) => {
 		status: appendOnly
 			? writeColored("<s> ", "", "")
 			: // @ts-expect-error
-				(name, ...args) => {
+			  (name, ...args) => {
 					args = args.filter(Boolean);
 					if (name === undefined && args.length === 0) {
 						clearStatusMessage();
@@ -148,6 +148,6 @@ export = ({ colors, appendOnly, stream }) => {
 						currentStatusMessage = [name, ...args];
 						writeStatusMessage();
 					}
-				}
+			  }
 	};
 };

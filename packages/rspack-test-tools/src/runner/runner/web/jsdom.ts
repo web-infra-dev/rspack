@@ -182,7 +182,9 @@ export class JSDOMWebRunner<
                 get(target, prop, receiver) {
                   if (prop === "currentScript") {
                     var script = target.createElement("script");
-                    script.src = "https://test.cases/path/${escapeSep(file.subPath)}index.js";
+                    script.src = "https://test.cases/path/${escapeSep(
+											file.subPath
+										)}index.js";
                     return script;
                   }
                   return Reflect.get(target, prop, receiver);

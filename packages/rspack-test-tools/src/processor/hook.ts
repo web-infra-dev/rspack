@@ -133,7 +133,7 @@ export class HookCasesContext extends TestContext {
 			: serialize(content, undefined, {
 					escapeString: true,
 					printBasicPrototype: true
-				}).replace(/\r\n/g, "\n");
+			  }).replace(/\r\n/g, "\n");
 		(this.snapshots[group] = this.snapshots[group] || []).push([
 			content as Buffer | string,
 			name

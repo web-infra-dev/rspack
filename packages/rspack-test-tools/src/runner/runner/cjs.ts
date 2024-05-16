@@ -88,11 +88,9 @@ export class CommonJsRunner<
 			if (modules && modulePathStr in modules) {
 				return modules[modulePathStr];
 			} else {
-				return require(
-					modulePathStr.startsWith("node:")
-						? modulePathStr.slice(5)
-						: modulePathStr
-				);
+				return require(modulePathStr.startsWith("node:")
+					? modulePathStr.slice(5)
+					: modulePathStr);
 			}
 		};
 	}

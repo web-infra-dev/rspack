@@ -37,13 +37,13 @@ exports.toMatchFileSnapshot = function toMatchFileSnapshot(
 	const filename =
 		filepath === undefined
 			? // If file name is not specified, generate one from the test title
-				path.join(
+			  path.join(
 					path.dirname(this.testPath),
 					"__file_snapshots__",
 					`${filenamify(this.currentTestName, {
 						replacement: "-"
 					}).replace(/\s/g, "-")}-${this.assertionCalls}`
-				)
+			  )
 			: filepath;
 
 	options = {
