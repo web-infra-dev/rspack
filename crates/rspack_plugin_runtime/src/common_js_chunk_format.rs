@@ -9,7 +9,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_javascript::runtime::{render_chunk_runtime_modules, render_iife};
+use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
 use rspack_plugin_javascript::{
   JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
   PluginRenderJsChunkHookOutput, RenderJsChunkArgs, RenderJsStartupArgs,
@@ -55,6 +55,7 @@ impl JavascriptModulesPluginPlugin for CommonJsChunkFormatJavascriptModulesPlugi
     let chunk = args.chunk();
     let base_chunk_output_name = get_chunk_output_name(chunk, args.compilation)?;
     let mut sources = ConcatSource::default();
+    sources.add(RawSource::from("(function() {\n"));
     sources.add(RawSource::from(format!(
       "exports.ids = ['{}'];\n",
       &chunk.expect_id().to_string()
@@ -105,7 +106,8 @@ impl JavascriptModulesPluginPlugin for CommonJsChunkFormatJavascriptModulesPlugi
       })? {
         sources.add(s);
       }
-      return Ok(Some(render_iife(sources.boxed())));
+      sources.add(RawSource::from("\n})()"));
+      return Ok(Some(sources.boxed()));
     }
     Ok(Some(sources.boxed()))
   }

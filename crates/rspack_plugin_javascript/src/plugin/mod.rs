@@ -22,16 +22,18 @@ use once_cell::sync::Lazy;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
   basic_function, render_init_fragments, ChunkRenderContext, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, RuntimeGlobals,
+  CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ExportsArgument,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::plugin;
-use rspack_util::diff_mode::is_diff_mode;
 use rspack_util::fx_hash::{BuildFxHasher, FxDashMap};
 pub use side_effects_flag_plugin::*;
 
-use crate::runtime::{render_chunk_modules, render_iife, render_runtime_modules, stringify_array};
+use crate::runtime::{
+  render_chunk_modules, render_module, render_runtime_modules, stringify_array,
+};
 
 static COMPILATION_DRIVES_MAP: Lazy<FxDashMap<CompilationId, JavascriptModulesPluginPluginDrive>> =
   Lazy::new(Default::default);
@@ -65,7 +67,7 @@ impl JsPlugin {
     COMPILATION_DRIVES_MAP.entry(compilation.id()).or_default()
   }
 
-  pub fn render_require(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> String {
+  pub fn render_require(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> Vec<Cow<str>> {
     let runtime_requirements = compilation
       .chunk_graph
       .get_chunk_runtime_requirements(chunk_ukey);
@@ -147,7 +149,7 @@ impl JsPlugin {
 
     sources.push("// Return the exports of the module\nreturn module.exports;".into());
 
-    sources.join("")
+    sources
   }
 
   pub fn render_bootstrap(
@@ -170,12 +172,6 @@ impl JsPlugin {
     let mut header: Vec<Cow<str>> = Vec::new();
     let mut startup: Vec<Cow<str>> = Vec::new();
     let mut allow_inline_startup = true;
-
-    if is_diff_mode() {
-      header.push(
-        "\n/************************************************************************/\n".into(),
-      );
-    }
 
     if allow_inline_startup && module_factories {
       startup.push("// module factories are used so entry inlining is disabled".into());
@@ -202,7 +198,7 @@ impl JsPlugin {
         )
         .into(),
       );
-      header.push(self.render_require(chunk_ukey, compilation).into());
+      header.extend(self.render_require(chunk_ukey, compilation));
       header.push("\n}\n".into());
     } else if require_scope_used {
       header.push(
@@ -465,14 +461,10 @@ impl JsPlugin {
       startup.push("// run startup".into());
       startup.push(format!("var __webpack_exports__ = {}();", RuntimeGlobals::STARTUP).into());
     }
-    if is_diff_mode() {
-      header.push(
-        "\n/************************************************************************/\n".into(),
-      );
-    }
+
     RenderBootstrapResult {
-      header: RawSource::from(header.join("\n")).boxed(),
-      startup: RawSource::from(startup.join("\n")).boxed(),
+      header,
+      startup,
       allow_inline_startup,
     }
   }
@@ -487,19 +479,168 @@ impl JsPlugin {
     let runtime_requirements = compilation
       .chunk_graph
       .get_tree_runtime_requirements(chunk_ukey);
+    let iife = compilation.options.output.iife;
+    let mut all_strict = compilation.options.output.module;
     let RenderBootstrapResult {
       header,
       startup,
-      allow_inline_startup: _,
+      allow_inline_startup,
     } = self.render_bootstrap(chunk_ukey, compilation);
-    let (module_source, chunk_init_fragments) = render_chunk_modules(compilation, chunk_ukey)?;
+    let module_graph = &compilation.get_module_graph();
+    let all_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+      chunk_ukey,
+      SourceType::JavaScript,
+      module_graph,
+    );
+    let has_entry_modules = chunk.has_entry_module(&compilation.chunk_graph);
+    let inlined_modules = if allow_inline_startup && has_entry_modules {
+      Some(
+        compilation
+          .chunk_graph
+          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey),
+      )
+    } else {
+      None
+    };
     let mut sources = ConcatSource::default();
-    sources.add(RawSource::from("var __webpack_modules__ = "));
-    sources.add(module_source);
-    sources.add(RawSource::from("\n"));
-    sources.add(header);
-    sources.add(render_runtime_modules(compilation, chunk_ukey)?);
-    if chunk.has_entry_module(&compilation.chunk_graph) {
+    if iife {
+      sources.add(RawSource::from("(function() {// webpackBootstrap\n"));
+    }
+    if !all_strict
+      && all_modules.iter().all(|m| {
+        let build_info = m
+          .build_info()
+          .expect("should have build_info in render_main");
+        build_info.strict
+      })
+    {
+      all_strict = true;
+      sources.add(RawSource::from("\"use strict\";\n"));
+    }
+    let chunk_modules = if let Some(inlined_modules) = inlined_modules {
+      all_modules
+        .into_iter()
+        .filter(|m| inlined_modules.contains_key(&m.identifier()))
+        .collect()
+    } else {
+      all_modules
+    };
+    let (chunk_modules_source, mut chunk_init_fragments) =
+      render_chunk_modules(compilation, chunk_ukey, chunk_modules, all_strict)?;
+    if runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES)
+      || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY)
+      || runtime_requirements.contains(RuntimeGlobals::REQUIRE)
+    {
+      sources.add(RawSource::from("var __webpack_modules__ = ("));
+      sources.add(chunk_modules_source);
+      sources.add(RawSource::from(");\n"));
+      sources.add(RawSource::from(
+        "/************************************************************************/\n",
+      ));
+    }
+    if !header.is_empty() {
+      let mut header = header.join("\n");
+      header.push('\n');
+      sources.add(RawSource::from(header));
+      sources.add(RawSource::from(
+        "/************************************************************************/\n",
+      ));
+    }
+
+    if compilation
+      .chunk_graph
+      .has_chunk_runtime_modules(chunk_ukey)
+    {
+      sources.add(render_runtime_modules(compilation, chunk_ukey)?);
+      sources.add(RawSource::from(
+        "/************************************************************************/\n",
+      ));
+    }
+    if let Some(inlined_modules) = inlined_modules {
+      let last_entry_module = inlined_modules
+        .keys()
+        .last()
+        .expect("should have last entry module");
+      let mut startup_sources = ConcatSource::default();
+      startup_sources.add(RawSource::from(format!(
+        "var {} = {{}};\n",
+        RuntimeGlobals::EXPORTS
+      )));
+      for (m_identifier, _) in inlined_modules {
+        let m = module_graph
+          .module_by_identifier(m_identifier)
+          .expect("should have module");
+        let Some((rendered_module, fragments, additional_fragments)) =
+          render_module(compilation, chunk_ukey, m, all_strict)?
+        else {
+          continue;
+        };
+        chunk_init_fragments.extend(fragments);
+        chunk_init_fragments.extend(additional_fragments);
+        let inner_strict = !all_strict && m.build_info().expect("should have build_info").strict;
+        let module_runtime_requirements = compilation
+          .chunk_graph
+          .get_module_runtime_requirements(*m_identifier, &chunk.runtime);
+        let exports = module_runtime_requirements
+          .map(|r| r.contains(RuntimeGlobals::EXPORTS))
+          .unwrap_or_default();
+        let exports_argument = m.get_exports_argument();
+        let webpack_exports_argument = matches!(exports_argument, ExportsArgument::WebpackExports);
+        let webpack_exports = exports && webpack_exports_argument;
+        let iife: Option<Cow<str>> = if inner_strict {
+          Some("it need to be in strict mode.".into())
+        } else if inlined_modules.len() > 1 {
+          Some("it need to be isolated against other entry modules.".into())
+        } else if exports && !webpack_exports {
+          Some(format!("it uses a non-standard name for the exports ({exports_argument}).").into())
+        } else {
+          None
+        };
+        let footer;
+        if let Some(iife) = iife {
+          startup_sources.add(RawSource::from(format!(
+            "// This entry need to be wrapped in an IIFE because {iife}\n"
+          )));
+          startup_sources.add(RawSource::from("!function() {\n"));
+          footer = "\n}();\n";
+          if inner_strict {
+            startup_sources.add(RawSource::from("\"use strict\";\n"));
+          }
+        } else {
+          footer = "\n";
+        }
+        if exports {
+          if m_identifier != last_entry_module {
+            startup_sources.add(RawSource::from(format!("var {exports_argument} = {{}};\n")));
+          } else if !webpack_exports_argument {
+            startup_sources.add(RawSource::from(format!(
+              "var {exports_argument} = {};\n",
+              RuntimeGlobals::EXPORTS
+            )));
+          }
+        }
+        startup_sources.add(rendered_module);
+        startup_sources.add(RawSource::from(footer));
+      }
+      if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
+        startup_sources.add(RawSource::from(format!(
+          "{} = {}({})",
+          RuntimeGlobals::EXPORTS,
+          RuntimeGlobals::ON_CHUNKS_LOADED,
+          RuntimeGlobals::EXPORTS,
+        )));
+      }
+      if let Some(source) = drive.render_startup(RenderJsStartupArgs {
+        compilation,
+        chunk: chunk_ukey,
+        module: *last_entry_module,
+        source: startup_sources.boxed(),
+      })? {
+        sources.add(source);
+      }
+    } else {
+    }
+    if has_entry_modules {
       let last_entry_module = compilation
         .chunk_graph
         .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
@@ -510,21 +651,19 @@ impl JsPlugin {
         compilation,
         chunk: chunk_ukey,
         module: *last_entry_module,
-        source: startup,
+        source: RawSource::from(startup.join("\n") + "\n").boxed(),
       })? {
         sources.add(source);
       }
-      if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
-        sources.add(RawSource::from("return __webpack_exports__;\n"));
-      }
     }
-    let mut final_source = if compilation.options.output.iife {
-      render_iife(sources.boxed())
-    } else {
-      sources.boxed()
-    };
-    final_source = render_init_fragments(
-      final_source,
+    if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
+      sources.add(RawSource::from("return __webpack_exports__;\n"));
+    }
+    if iife {
+      sources.add(RawSource::from("})()\n"));
+    }
+    let final_source = render_init_fragments(
+      sources.boxed(),
       chunk_init_fragments,
       &mut ChunkRenderContext {},
     )?;
@@ -545,7 +684,25 @@ impl JsPlugin {
     chunk_ukey: &ChunkUkey,
   ) -> Result<BoxSource> {
     let drive = Self::get_compilation_drives(compilation);
-    let (module_source, chunk_init_fragments) = render_chunk_modules(compilation, chunk_ukey)?;
+    let module_graph = &compilation.get_module_graph();
+    let mut all_strict = compilation.options.output.module;
+    let chunk_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+      chunk_ukey,
+      SourceType::JavaScript,
+      module_graph,
+    );
+    if !all_strict
+      && chunk_modules.iter().all(|m| {
+        let build_info = m
+          .build_info()
+          .expect("should have build_info in render_main");
+        build_info.strict
+      })
+    {
+      all_strict = true;
+    }
+    let (module_source, chunk_init_fragments) =
+      render_chunk_modules(compilation, chunk_ukey, chunk_modules, all_strict)?;
     let source = drive
       .render_chunk(RenderJsChunkArgs {
         compilation,
@@ -614,8 +771,8 @@ pub struct ExtractedCommentsInfo {
 }
 
 #[derive(Debug)]
-pub struct RenderBootstrapResult {
-  header: BoxSource,
-  startup: BoxSource,
+pub struct RenderBootstrapResult<'a> {
+  header: Vec<Cow<'a, str>>,
+  startup: Vec<Cow<'a, str>>,
   allow_inline_startup: bool,
 }

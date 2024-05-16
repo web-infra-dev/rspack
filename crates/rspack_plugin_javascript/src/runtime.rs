@@ -10,19 +10,12 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{JsPlugin, RenderJsModuleContentArgs};
 
-pub fn render_chunk_modules(
+pub fn render_chunk_modules<'a>(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
+  ordered_modules: Vec<&BoxModule>,
+  all_strict: bool,
 ) -> Result<(BoxSource, ChunkInitFragments)> {
-  let drive = JsPlugin::get_compilation_drives(compilation);
-  let module_graph = &compilation.get_module_graph();
-  let ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
-    chunk_ukey,
-    SourceType::JavaScript,
-    module_graph,
-  );
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-
   let include_module_ids = &compilation.include_module_ids;
 
   let mut module_code_array = ordered_modules
@@ -31,43 +24,11 @@ pub fn render_chunk_modules(
       compilation.options.is_new_tree_shaking() || include_module_ids.contains(&module.identifier())
     })
     .filter_map(|module| {
-      let code_gen_result = compilation
-        .code_generation_results
-        .get(&module.identifier(), Some(&chunk.runtime));
-      if let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) {
-        let render_module_result = drive
-          .render_module_content(RenderJsModuleContentArgs {
-            compilation,
-            module,
-            module_source: origin_source.clone(),
-            chunk_init_fragments: ChunkInitFragments::default(),
-          })
-          .expect("render_module_content failed");
-
-        let runtime_requirements = compilation
-          .chunk_graph
-          .get_module_runtime_requirements(module.identifier(), &chunk.runtime);
-
-        Some((
-          module.identifier(),
-          render_module(
-            render_module_result.module_source,
-            module,
-            runtime_requirements,
-            compilation
-              .chunk_graph
-              .get_module_id(module.identifier())
-              .as_ref()
-              .expect("should have module id"),
-          ),
-          &code_gen_result.chunk_init_fragments,
-          render_module_result.chunk_init_fragments,
-        ))
-      } else {
-        None
-      }
+      render_module(compilation, chunk_ukey, &module, all_strict)
+        .transpose()
+        .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
     })
-    .collect::<Vec<_>>();
+    .collect::<Result<Vec<_>>>()?;
 
   module_code_array.sort_unstable_by_key(|(module_identifier, _, _, _)| *module_identifier);
 
@@ -83,7 +44,7 @@ pub fn render_chunk_modules(
   let module_sources: Vec<_> = module_code_array
     .into_iter()
     .map(|(_, source, _, _)| source)
-    .collect::<Result<_>>()?;
+    .collect();
   let module_sources = module_sources
     .into_par_iter()
     .fold(ConcatSource::default, |mut output, source| {
@@ -100,12 +61,38 @@ pub fn render_chunk_modules(
   Ok((sources.boxed(), chunk_init_fragments))
 }
 
-fn render_module(
-  source: BoxSource,
+pub fn render_module(
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
   module: &BoxModule,
-  runtime_requirements: Option<&RuntimeGlobals>,
-  module_id: &str,
-) -> Result<BoxSource> {
+  all_strict: bool,
+) -> Result<Option<(BoxSource, ChunkInitFragments, ChunkInitFragments)>> {
+  let drive = JsPlugin::get_compilation_drives(compilation);
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let code_gen_result = compilation
+    .code_generation_results
+    .get(&module.identifier(), Some(&chunk.runtime));
+  let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) else {
+    return Ok(None);
+  };
+  let module_id = compilation
+    .chunk_graph
+    .get_module_id(module.identifier())
+    .as_deref()
+    .expect("should have module_id in render_module");
+  let render_module_result = drive
+    .render_module_content(RenderJsModuleContentArgs {
+      compilation,
+      module,
+      module_source: origin_source.clone(),
+      chunk_init_fragments: ChunkInitFragments::default(),
+    })
+    .expect("render_module_content failed");
+
+  let runtime_requirements = compilation
+    .chunk_graph
+    .get_module_runtime_requirements(module.identifier(), &chunk.runtime);
+
   let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
   let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
   let need_require = runtime_requirements.is_some_and(|r| {
@@ -134,7 +121,7 @@ fn render_module(
     args.push(RuntimeGlobals::REQUIRE.to_string());
   }
   let mut sources = ConcatSource::new([
-    RawSource::from(serde_json::to_string(module_id).map_err(|e| error!(e.to_string()))?),
+    RawSource::from(serde_json::to_string(&module_id).map_err(|e| error!(e.to_string()))?),
     RawSource::from(": "),
   ]);
   if is_diff_mode() {
@@ -149,10 +136,11 @@ fn render_module(
   )));
   if let Some(build_info) = &module.build_info()
     && build_info.strict
+    && !all_strict
   {
     sources.add(RawSource::from("\"use strict\";\n"));
   }
-  sources.add(source);
+  sources.add(render_module_result.module_source);
   sources.add(RawSource::from("})"));
   if is_diff_mode() {
     sources.add(RawSource::from(format!(
@@ -162,7 +150,11 @@ fn render_module(
   }
   sources.add(RawSource::from(",\n"));
 
-  Ok(sources.boxed())
+  Ok(Some((
+    sources.boxed(),
+    code_gen_result.chunk_init_fragments.clone(),
+    render_module_result.chunk_init_fragments,
+  )))
 }
 
 pub fn render_chunk_runtime_modules(
@@ -256,12 +248,4 @@ pub fn stringify_array(vec: &[String]) -> String {
       .collect::<Vec<_>>()
       .join(", ")
   )
-}
-
-pub fn render_iife(content: BoxSource) -> BoxSource {
-  let mut sources = ConcatSource::default();
-  sources.add(RawSource::from("(function() {\n"));
-  sources.add(content);
-  sources.add(RawSource::from("\n})()\n"));
-  sources.boxed()
 }
