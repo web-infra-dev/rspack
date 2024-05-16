@@ -913,7 +913,6 @@ impl ModuleConcatenationPlugin {
               module: new_module.id(),
               module_context: None,
               module_source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
-              cache: compilation.cache.clone(),
               plugin_driver: compilation.plugin_driver.clone(),
             },
             plugin_driver: compilation.plugin_driver.clone(),

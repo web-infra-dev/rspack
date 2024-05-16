@@ -11,8 +11,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{file_counter::FileCounter, MakeArtifact};
 use crate::{
-  cache::Cache,
   module_graph::{ModuleGraph, ModuleGraphPartial},
+  old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},
   BuildDependency, Compilation, CompilerOptions, DependencyId, DependencyType, Module,
   ModuleFactory, ModuleIdentifier, ModuleProfile, NormalModuleSource, ResolverFactory,
@@ -25,7 +25,7 @@ pub struct MakeTaskContext {
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
-  pub cache: Arc<Cache>,
+  pub old_cache: Arc<OldCache>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
 
   //  add_timer: StartTimeAggregate,
@@ -56,7 +56,7 @@ impl MakeTaskContext {
       compiler_options: compilation.options.clone(),
       resolver_factory: compilation.resolver_factory.clone(),
       loader_resolver_factory: compilation.loader_resolver_factory.clone(),
-      cache: compilation.cache.clone(),
+      old_cache: compilation.old_cache.clone(),
       dependency_factories: compilation.dependency_factories.clone(),
 
       // TODO use timer in tasks
@@ -123,7 +123,7 @@ impl MakeTaskContext {
       self.resolver_factory.clone(),
       self.loader_resolver_factory.clone(),
       None,
-      self.cache.clone(),
+      self.old_cache.clone(),
       None,
       Default::default(),
       Default::default(),
@@ -208,7 +208,6 @@ pub fn repair(
         loader_resolver_factory: compilation.loader_resolver_factory.clone(),
         options: compilation.options.clone(),
         plugin_driver: compilation.plugin_driver.clone(),
-        cache: compilation.cache.clone(),
         current_profile,
       }))
     })

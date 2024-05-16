@@ -25,20 +25,19 @@ use super::{
   make::{make_module_graph, update_module_graph, MakeArtifact, MakeParam},
   module_executor::ModuleExecutor,
 };
-use crate::ExecuteModuleId;
 use crate::{
   build_chunk_graph::build_chunk_graph,
-  cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal, prepare_get_exports_type,
-  to_identifier,
+  get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
+  old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
+  prepare_get_exports_type, to_identifier,
   tree_shaking::visitor::SymbolRef,
   BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash,
   ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResults,
   CompilationLogger, CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry,
-  EntryData, EntryOptions, Entrypoint, ErrorSpan, Filename, ImportVarMap, LocalFilenameFn, Logger,
-  Module, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData,
-  ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType,
-  Stats,
+  EntryData, EntryOptions, Entrypoint, ErrorSpan, ExecuteModuleId, Filename, ImportVarMap,
+  LocalFilenameFn, Logger, Module, ModuleFactory, ModuleGraph, ModuleGraphPartial,
+  ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec,
+  SharedPluginDriver, SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -162,7 +161,7 @@ pub struct Compilation {
 
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: IdentifierSet,
-  pub cache: Arc<Cache>,
+  pub old_cache: Arc<OldCache>,
   pub code_splitting_cache: CodeSplittingCache,
   pub hash: Option<RspackHashDigest>,
   // lazy compilation visit module
@@ -213,7 +212,7 @@ impl Compilation {
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
     records: Option<CompilationRecords>,
-    cache: Arc<Cache>,
+    old_cache: Arc<OldCache>,
     module_executor: Option<ModuleExecutor>,
     modified_files: HashSet<PathBuf>,
     removed_files: HashSet<PathBuf>,
@@ -247,7 +246,7 @@ impl Compilation {
 
       code_generation_results: Default::default(),
       code_generated_modules: Default::default(),
-      cache,
+      old_cache,
       code_splitting_cache: Default::default(),
       hash: None,
       lazy_visit_modules: Default::default(),
@@ -783,7 +782,7 @@ impl Compilation {
           .module_by_identifier(&module_identifier)
           .expect("module should exist");
         let res = self
-          .cache
+          .old_cache
           .code_generate_occasion
           .use_cache(module, runtimes, self, |module, runtimes| {
             let take_length = if used_exports_optimization {
