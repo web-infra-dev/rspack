@@ -187,7 +187,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         exports
           .iter()
           .map(|(name, elements)| {
-            let mut names = export_locals_convention(name, &convention);
+            let mut names = export_locals_convention(name, convention);
             names.sort_unstable();
             names.dedup();
             (names, stringify_css_modules_exports_elements(elements))
