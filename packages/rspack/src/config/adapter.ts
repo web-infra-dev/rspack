@@ -765,7 +765,6 @@ function getRawCssGeneratorOptions(
 	options: CssGeneratorOptions
 ): RawCssGeneratorOptions {
 	return {
-		exportsConvention: options.exportsConvention,
 		exportsOnly: options.exportsOnly,
 		esModule: options.esModule
 	};

@@ -297,17 +297,19 @@ module.exports = {
         exportsConvention: 'as-is',
         exportsOnly: false,
         localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
       },
       // Generator options for `css` modules
       css: {
-        exportsConvention: 'as-is',
         exportsOnly: false,
+        esModule: true,
       },
       // Generator options for css/module modules
       'css/module': {
         exportsConvention: 'as-is',
         exportsOnly: false,
         localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
       },
     },
   },
@@ -562,7 +564,7 @@ This configuration will only take effect when `experiments.css = true`.
 
 #### module.generator.css.exportsConvention
 
-<ApiMeta addedVersion="0.6.0" />
+<ApiMeta addedVersion="0.6.0" removedVersion="0.7.0" />
 
 Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
 

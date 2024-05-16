@@ -297,17 +297,19 @@ module.exports = {
         exportsConvention: 'as-is',
         exportsOnly: false,
         localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
       },
       // `css` 模块的生成器选项
       css: {
-        exportsConvention: 'as-is',
         exportsOnly: false,
+        esModule: true,
       },
       // css/module 模块的生成器选项
       'css/module': {
         exportsConvention: 'as-is',
         exportsOnly: false,
         localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
       },
     },
   },
@@ -562,7 +564,7 @@ function Button() {
 
 #### module.generator.css.exportsConvention
 
-<ApiMeta addedVersion="0.6.0" />
+<ApiMeta addedVersion="0.6.0" removedVersion="0.7.0" />
 
 和 [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention) 一样。
 

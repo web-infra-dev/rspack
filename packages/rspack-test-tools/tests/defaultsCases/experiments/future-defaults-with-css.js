@@ -46,7 +46,6 @@ module.exports = {
 		-     "generator": Object {
 		-       "css": Object {
 		-         "esModule": true,
-		-         "exportsConvention": "as-is",
 		-         "exportsOnly": false,
 		-       },
 		-       "css/auto": Object {
@@ -64,15 +63,16 @@ module.exports = {
 		-     },
 		+     "generator": Object {},
 		@@ ... @@
+		-         },
+		-       },
 		-       "css": Object {
 		-         "namedExports": true,
 		-       },
 		-       "css/auto": Object {
 		-         "namedExports": true,
-		-       },
+		@@ ... @@
 		-       "css/module": Object {
 		-         "namedExports": true,
-		-       },
 		@@ ... @@
 		-         "css",
 		@@ ... @@

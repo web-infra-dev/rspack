@@ -320,7 +320,6 @@ const applyModuleDefaults = (
 			"exportsOnly",
 			!targetProperties || !targetProperties.document
 		);
-		D(module.generator["css"], "exportsConvention", "as-is");
 		D(module.generator["css"], "esModule", true);
 
 		F(module.generator, "css/auto", () => ({}));

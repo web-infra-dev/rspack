@@ -1641,15 +1641,12 @@ export type CssGeneratorOptions = z.infer<typeof cssGeneratorOptions>;
 
 // @public (undocumented)
 const cssGeneratorOptions: z.ZodObject<{
-    exportsConvention: z.ZodOptional<z.ZodEnum<["as-is", "camel-case", "camel-case-only", "dashes", "dashes-only"]>>;
     exportsOnly: z.ZodOptional<z.ZodBoolean>;
     esModule: z.ZodOptional<z.ZodBoolean>;
 }, "strict", z.ZodTypeAny, {
-    exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
     exportsOnly?: boolean | undefined;
     esModule?: boolean | undefined;
 }, {
-    exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
     exportsOnly?: boolean | undefined;
     esModule?: boolean | undefined;
 }>;
@@ -3235,15 +3232,12 @@ const generatorOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         publicPath?: string | undefined;
     }>>;
     css: z.ZodOptional<z.ZodObject<{
-        exportsConvention: z.ZodOptional<z.ZodEnum<["as-is", "camel-case", "camel-case-only", "dashes", "dashes-only"]>>;
         exportsOnly: z.ZodOptional<z.ZodBoolean>;
         esModule: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
-        exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
         exportsOnly?: boolean | undefined;
         esModule?: boolean | undefined;
     }, {
-        exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
         exportsOnly?: boolean | undefined;
         esModule?: boolean | undefined;
     }>>;
@@ -3307,7 +3301,6 @@ const generatorOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         publicPath?: string | undefined;
     } | undefined;
     css?: {
-        exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
         exportsOnly?: boolean | undefined;
         esModule?: boolean | undefined;
     } | undefined;
@@ -3351,7 +3344,6 @@ const generatorOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         publicPath?: string | undefined;
     } | undefined;
     css?: {
-        exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
         exportsOnly?: boolean | undefined;
         esModule?: boolean | undefined;
     } | undefined;
@@ -3471,15 +3463,12 @@ const generatorOptionsByModuleTypeKnown: z.ZodObject<{
         publicPath?: string | undefined;
     }>>;
     css: z.ZodOptional<z.ZodObject<{
-        exportsConvention: z.ZodOptional<z.ZodEnum<["as-is", "camel-case", "camel-case-only", "dashes", "dashes-only"]>>;
         exportsOnly: z.ZodOptional<z.ZodBoolean>;
         esModule: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
-        exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
         exportsOnly?: boolean | undefined;
         esModule?: boolean | undefined;
     }, {
-        exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
         exportsOnly?: boolean | undefined;
         esModule?: boolean | undefined;
     }>>;
@@ -3543,7 +3532,6 @@ const generatorOptionsByModuleTypeKnown: z.ZodObject<{
         publicPath?: string | undefined;
     } | undefined;
     css?: {
-        exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
         exportsOnly?: boolean | undefined;
         esModule?: boolean | undefined;
     } | undefined;
@@ -3587,7 +3575,6 @@ const generatorOptionsByModuleTypeKnown: z.ZodObject<{
         publicPath?: string | undefined;
     } | undefined;
     css?: {
-        exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
         exportsOnly?: boolean | undefined;
         esModule?: boolean | undefined;
     } | undefined;
@@ -5195,15 +5182,12 @@ const moduleOptions: z.ZodObject<{
             publicPath?: string | undefined;
         }>>;
         css: z.ZodOptional<z.ZodObject<{
-            exportsConvention: z.ZodOptional<z.ZodEnum<["as-is", "camel-case", "camel-case-only", "dashes", "dashes-only"]>>;
             exportsOnly: z.ZodOptional<z.ZodBoolean>;
             esModule: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
-            exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
             exportsOnly?: boolean | undefined;
             esModule?: boolean | undefined;
         }, {
-            exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
             exportsOnly?: boolean | undefined;
             esModule?: boolean | undefined;
         }>>;
@@ -5267,7 +5251,6 @@ const moduleOptions: z.ZodObject<{
             publicPath?: string | undefined;
         } | undefined;
         css?: {
-            exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
             exportsOnly?: boolean | undefined;
             esModule?: boolean | undefined;
         } | undefined;
@@ -5311,7 +5294,6 @@ const moduleOptions: z.ZodObject<{
             publicPath?: string | undefined;
         } | undefined;
         css?: {
-            exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
             exportsOnly?: boolean | undefined;
             esModule?: boolean | undefined;
         } | undefined;
@@ -5408,7 +5390,6 @@ const moduleOptions: z.ZodObject<{
             publicPath?: string | undefined;
         } | undefined;
         css?: {
-            exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
             exportsOnly?: boolean | undefined;
             esModule?: boolean | undefined;
         } | undefined;
@@ -5505,7 +5486,6 @@ const moduleOptions: z.ZodObject<{
             publicPath?: string | undefined;
         } | undefined;
         css?: {
-            exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
             exportsOnly?: boolean | undefined;
             esModule?: boolean | undefined;
         } | undefined;
@@ -9495,15 +9475,12 @@ export const rspackOptions: z.ZodObject<{
                 publicPath?: string | undefined;
             }>>;
             css: z.ZodOptional<z.ZodObject<{
-                exportsConvention: z.ZodOptional<z.ZodEnum<["as-is", "camel-case", "camel-case-only", "dashes", "dashes-only"]>>;
                 exportsOnly: z.ZodOptional<z.ZodBoolean>;
                 esModule: z.ZodOptional<z.ZodBoolean>;
             }, "strict", z.ZodTypeAny, {
-                exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 exportsOnly?: boolean | undefined;
                 esModule?: boolean | undefined;
             }, {
-                exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 exportsOnly?: boolean | undefined;
                 esModule?: boolean | undefined;
             }>>;
@@ -9567,7 +9544,6 @@ export const rspackOptions: z.ZodObject<{
                 publicPath?: string | undefined;
             } | undefined;
             css?: {
-                exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 exportsOnly?: boolean | undefined;
                 esModule?: boolean | undefined;
             } | undefined;
@@ -9611,7 +9587,6 @@ export const rspackOptions: z.ZodObject<{
                 publicPath?: string | undefined;
             } | undefined;
             css?: {
-                exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 exportsOnly?: boolean | undefined;
                 esModule?: boolean | undefined;
             } | undefined;
@@ -9708,7 +9683,6 @@ export const rspackOptions: z.ZodObject<{
                 publicPath?: string | undefined;
             } | undefined;
             css?: {
-                exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 exportsOnly?: boolean | undefined;
                 esModule?: boolean | undefined;
             } | undefined;
@@ -9805,7 +9779,6 @@ export const rspackOptions: z.ZodObject<{
                 publicPath?: string | undefined;
             } | undefined;
             css?: {
-                exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 exportsOnly?: boolean | undefined;
                 esModule?: boolean | undefined;
             } | undefined;
@@ -10239,7 +10212,6 @@ export const rspackOptions: z.ZodObject<{
                 publicPath?: string | undefined;
             } | undefined;
             css?: {
-                exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 exportsOnly?: boolean | undefined;
                 esModule?: boolean | undefined;
             } | undefined;
@@ -10663,7 +10635,6 @@ export const rspackOptions: z.ZodObject<{
                 publicPath?: string | undefined;
             } | undefined;
             css?: {
-                exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 exportsOnly?: boolean | undefined;
                 esModule?: boolean | undefined;
             } | undefined;
