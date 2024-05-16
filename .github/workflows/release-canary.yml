@@ -1,5 +1,3 @@
-# Release Canary by comment with "!canary"
-
 name: Release Canary
 
 on:

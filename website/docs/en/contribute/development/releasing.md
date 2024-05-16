@@ -31,14 +31,3 @@ The [nightly release workflow](https://github.com/web-infra-dev/rspack/actions/w
 is triggered every day at UTC 16:00:07, which is 00:07 AM Beijing Time (offset with an odd minute to avoid cron jobs firing off at the same time).
 
 The nightly build fully replicates the full release build for catching errors early.
-
-## Canary
-
-Commenting on a PR with the text `!canary` triggers the [canary release workflow](https://github.com/web-infra-dev/rspack/actions/workflows/release-canary.yml?query=is%3Asuccess).
-Only contributors have the permission to publish canary releases.
-
-The canary release only builds three targets for quicker feedback
-
-- aarch64-apple-darwin
-- x86_64-apple-darwin
-- x86_64-unknown-linux-gnu
