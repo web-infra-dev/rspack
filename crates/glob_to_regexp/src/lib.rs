@@ -1,6 +1,4 @@
-use std::error::Error;
-
-pub fn glob_to_regex(glob: &str, opts: &GlobOptions) -> Result<regex::Regex, Box<dyn Error>> {
+pub fn glob_to_regexp(glob: &str, opts: &GlobOptions) -> regex::Regex {
   let mut re_str = String::new();
   let mut in_group = false;
 
@@ -92,7 +90,12 @@ pub fn glob_to_regex(glob: &str, opts: &GlobOptions) -> Result<regex::Regex, Box
     re_str = format!("^{}$", re_str);
   }
 
-  Ok(regex::Regex::new(&re_str)?)
+  regex::Regex::new(&re_str).unwrap_or_else(|err| {
+    panic!(
+      "Failed to create a regex pattern from '{}': {:?}, this origin glob is '{}'",
+      re_str, err, glob
+    );
+  })
 }
 
 #[derive(Default)]
@@ -107,12 +110,12 @@ mod test {
   use super::*;
 
   fn assert_match(glob: &str, text: &str, opts: &GlobOptions) {
-    let re = glob_to_regex(glob, opts).unwrap();
+    let re = glob_to_regexp(glob, opts);
     assert!(re.is_match(text));
   }
 
   fn assert_not_match(glob: &str, text: &str, opts: &GlobOptions) {
-    let re = glob_to_regex(glob, opts).unwrap();
+    let re = glob_to_regexp(glob, opts);
     assert!(!re.is_match(text));
   }
 

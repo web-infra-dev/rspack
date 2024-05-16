@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::{collections::hash_map::Entry, collections::VecDeque, hash::Hash, path::PathBuf};
 
 use bitflags::bitflags;
+use glob_to_regexp::{glob_to_regexp, GlobOptions};
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
@@ -1397,13 +1398,29 @@ pub fn get_side_effects_from_package_json(
 }
 
 fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
-  let trim_start = pattern.trim_start_matches("./");
-  let normalized_glob = if trim_start.contains('/') {
-    trim_start.to_string()
+  let new_glob = if !pattern.contains('/') {
+    format!("**/{}", pattern)
   } else {
-    String::from("**/") + trim_start
+    pattern.to_string()
   };
-  glob_match::glob_match(&normalized_glob, string.trim_start_matches("./"))
+  // TODO: cache result
+  let base_regexp = glob_to_regexp(
+    &new_glob,
+    &GlobOptions {
+      globstar: true,
+      extended: true,
+      ..GlobOptions::default()
+    },
+  );
+  let regexp_source = base_regexp.as_str();
+  let regexp_pattern = format!("^(\\./)?{}", &regexp_source[1..]);
+  let regexp = regex::Regex::new(&regexp_pattern).unwrap_or_else(|err| {
+    panic!(
+      "Failed to compile regex pattern '{}': {}",
+      regexp_pattern, err
+    );
+  });
+  regexp.is_match(string)
 }
 
 impl<'a> ModuleRefAnalyze<'a> {

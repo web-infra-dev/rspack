@@ -15,7 +15,7 @@ derivative = { workspace = true }
 dyn-clone = "1.0.17"
 either = "1"
 futures = { workspace = true }
-glob-match = "0.2.1"
+glob_to_regexp = { path = "../glob_to_regexp" }
 hashlink = { workspace = true }
 hex = "0.4.3"
 indexmap = { workspace = true }
