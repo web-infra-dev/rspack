@@ -7,3 +7,13 @@ version    = "0.1.0"
 
 [dependencies]
 regex = { workspace = true }
+
+[dev-dependencies]
+criterion  = "0.4.0"
+glob       = "0.3.1"
+glob-match = "0.2.1"
+globset    = "0.4.10"
+
+[[bench]]
+harness = false
+name    = "bench"
