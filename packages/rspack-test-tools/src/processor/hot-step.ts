@@ -149,7 +149,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 
 		const lastHash = this.hashes[this.hashes.length - 1];
 		const snapshotPath = context.getSource(
-			`snapshot/${compilerOptions.target}/${step}.snap.txt`
+			`__snapshots__/${compilerOptions.target}/${step}.snap.txt`
 		);
 		const title = `Case ${this._options.name}: Step ${step}`;
 		const hotUpdateFile: Array<{
