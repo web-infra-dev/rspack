@@ -643,8 +643,6 @@ export interface IStatsAPITaskProcessorOptions<T extends ECompilerType> {
     // (undocumented)
     compilerType: T;
     // (undocumented)
-    cwd?: string;
-    // (undocumented)
     name: string;
     // (undocumented)
     options?: (context: ITestContext) => TCompilerOptions<T>;
