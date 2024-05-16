@@ -1,0 +1,25 @@
+---
+date: 2024-05-21 16:00:00
+---
+
+import { PackageManagerTabs } from '@theme';
+
+# Announcing Rspack v0.7
+
+> May 21, 2024
+
+## Major Feature Updates
+
+## Breaking Changes
+
+### Upgrade SWC to 0.91.x
+
+Upgraded the Rust crate `swc_core` to `0.91.x`. This will affect users of the SWC Wasm plugin.
+
+## Migration Guide
+
+### Upgrade the SWC plugins
+
+In version `0.7.0`, the Rust crate `swc_core` has been upgraded to `0.91.x`. Users of the swc wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
+
+For more details, please see this [document](https://swc.rs/docs/plugin/selecting-swc-core#091x) of swc。

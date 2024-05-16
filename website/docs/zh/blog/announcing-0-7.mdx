@@ -1,0 +1,25 @@
+---
+date: 2024-05-21 16:00:00
+---
+
+import { PackageManagerTabs } from '@theme';
+
+# Rspack v0.7 发布公告
+
+> 2024 年 5 月 21 日
+
+## 主要功能更新
+
+## 不兼容更新
+
+### 升级 SWC 到 0.91.x
+
+升级 Rust crate `swc_core` 到 `0.91.x`，这会对使用 SWC Wasm 插件的用户产生影响。
+
+## 迁移指南
+
+### 升级 SWC 插件
+
+在 `0.7.0` 中，Rust crate `swc_core` 的版本升级到 `0.91.x`，使用到的 swc wasm 插件需要确保其使用的 `swc_core` 的版本一致性，否则可能产生无法预知的问题。
+
+详情请参考[文档](https://swc.rs/docs/plugin/selecting-swc-core#091x)。
