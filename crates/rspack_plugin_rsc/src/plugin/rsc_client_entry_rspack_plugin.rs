@@ -5,8 +5,8 @@ use async_trait::async_trait;
 use indexmap::set::IndexSet;
 use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{
-  ApplyContext, AssetInfo, Compilation, CompilationAsset, CompilerFinishMake, CompilerOptions,
-  Module, ModuleType, Plugin, PluginContext,
+  ApplyContext, AssetInfo, Compilation, CompilationAsset, CompilationProcessAssets,
+  CompilerFinishMake, CompilerOptions, Module, ModuleType, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -14,6 +14,7 @@ use serde_json::to_string;
 
 use crate::utils::has_client_directive;
 use crate::utils::reference_manifest::ClientImports;
+use crate::utils::sever_reference::RSCServerReferenceManifest;
 use crate::utils::shared_data::SHARED_CLIENT_IMPORTS;
 
 #[derive(Debug, Clone)]
@@ -176,6 +177,12 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+#[plugin_hook(CompilationProcessAssets for RSCClientEntryRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let plugin: RSCServerReferenceManifest = RSCServerReferenceManifest {};
+  plugin.process_assets_stage_optimize_hash(compilation)
+}
+
 #[async_trait]
 impl Plugin for RSCClientEntryRspackPlugin {
   fn apply(
@@ -188,6 +195,11 @@ impl Plugin for RSCClientEntryRspackPlugin {
       .compiler_hooks
       .finish_make
       .tap(finish_make::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
     Ok(())
   }
 }
