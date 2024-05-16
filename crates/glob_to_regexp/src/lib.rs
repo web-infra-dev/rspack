@@ -213,7 +213,7 @@ mod test {
       },
     );
 
-    // More complex matches with RegExp 'g' flag (complex regression)
+    // More complex matches with RegExp 'g' flag
     assert_match(
       "*.min.*",
       "http://example.com/jquery.min.js",
@@ -460,7 +460,7 @@ mod test {
       },
     );
 
-    // []: Match a character range and RegExp 'g' (regresion)
+    // []: Match a character range and RegExp 'g'
     assert_match(
       "fo[oz]",
       "foo",
@@ -526,7 +526,7 @@ mod test {
       },
     );
 
-    // {}: Match a choice of different substrings and RegExp 'g' (regression)
+    // {}: Match a choice of different substrings and RegExp 'g'
     assert_match(
       "foo{bar,baaz}",
       "foobaaz",
