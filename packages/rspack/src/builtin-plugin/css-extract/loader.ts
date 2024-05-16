@@ -89,19 +89,6 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		return;
 	}
 
-	if (
-		this._compiler &&
-		this._compiler.options &&
-		this._compiler.options.experiments &&
-		this._compiler.options.experiments.rspackFuture &&
-		this._compiler.options.experiments.rspackFuture.newTreeshaking === false
-	) {
-		this.emitError(
-			new Error("Cannot use CssExtractRspackPlugin without newTreeshaking")
-		);
-		return;
-	}
-
 	const options = this.getOptions(schema) as CssExtractRspackLoaderOptions;
 	const emit = typeof options.emit !== "undefined" ? options.emit : true;
 	const callback = this.async();

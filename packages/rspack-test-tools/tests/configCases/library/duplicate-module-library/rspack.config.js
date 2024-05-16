@@ -9,8 +9,5 @@ module.exports = {
 	target: ["es2022"],
 	experiments: {
 		outputModule: true,
-		rspackFuture: {
-			newTreeshaking: true,
-		}
 	}
 };

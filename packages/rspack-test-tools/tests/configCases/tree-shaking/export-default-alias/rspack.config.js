@@ -5,11 +5,6 @@ module.exports = {
 	builtins: {
 		treeShaking: true
 	},
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: false
-		}
-	},
 	optimization: {
 		moduleIds: "named",
 		minimize: false

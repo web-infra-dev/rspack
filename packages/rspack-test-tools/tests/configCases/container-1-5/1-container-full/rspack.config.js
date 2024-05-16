@@ -45,9 +45,6 @@ module.exports = [
 		...common,
 		experiments: {
 			outputModule: true,
-			rspackFuture: {
-				newTreeshaking: true
-			}
 		},
 		output: {
 			filename: "module/[name].mjs",

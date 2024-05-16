@@ -119,7 +119,6 @@ pub fn export_from_import(
   else {
     return missing_module(request);
   };
-  let is_new_treeshaking = compilation.options.is_new_tree_shaking();
 
   let exports_type = get_exports_type(&compilation.get_module_graph(), id, &module.identifier());
 
@@ -178,7 +177,7 @@ pub fn export_from_import(
   }
 
   if !export_name.is_empty() {
-    let used_name = if is_new_treeshaking {
+    let used_name: Cow<Vec<Atom>> = {
       let exports_info_id = compilation
         .get_module_graph()
         .get_exports_info(&module_identifier)
@@ -200,8 +199,6 @@ pub fn export_from_import(
           to_normal_comment(&property_access(&export_name, 0))
         );
       }
-    } else {
-      Cow::Borrowed(&export_name)
     };
     let comment = if *used_name != export_name {
       to_normal_comment(&property_access(&export_name, 0))

@@ -319,11 +319,16 @@ module.exports = {
 
 ### experiments.rspackFuture.newTreeshaking
 
-<ApiMeta addedVersion="0.4.2" />
+<ApiMeta addedVersion="0.4.2" removedVersion="0.7.0" />
 
 - **Type:** `boolean`
 - **Introduced in Version:** v0.4.2
 - **Enabled by Default in Version:** v0.6.0
+- **Removed in Version:** v0.7.0
+
+:::warning
+newTreeshaking has been enabled and cannot go back to the deprecated tree shaking algorithm since version 0.7.0.
+:::
 
 This feature enables the new treeshaking implementation the same as webpack, which would generate more efficient and smaller code
 

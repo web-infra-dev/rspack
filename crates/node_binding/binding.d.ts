@@ -1282,7 +1282,7 @@ export interface RawResolveTsconfigOptions {
 }
 
 export interface RawRspackFuture {
-  newTreeshaking: boolean
+
 }
 
 export interface RawRuleSetCondition {

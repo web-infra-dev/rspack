@@ -207,9 +207,6 @@ describe("emit option", () => {
 			],
 			experiments: {
 				css: false,
-				rspackFuture: {
-					newTreeshaking: true
-				}
 			}
 		};
 
@@ -314,9 +311,6 @@ describe("emit option", () => {
 			],
 			experiments: {
 				css: false,
-				rspackFuture: {
-					newTreeshaking: true
-				}
 			}
 		};
 
@@ -435,9 +429,6 @@ describe("emit option", () => {
 			],
 			experiments: {
 				css: false,
-				rspackFuture: {
-					newTreeshaking: true
-				}
 			}
 		};
 

@@ -186,7 +186,6 @@ const applyExperimentsDefaults = (
 
 	D(experiments, "rspackFuture", {});
 	if (typeof experiments.rspackFuture === "object") {
-		D(experiments.rspackFuture, "newTreeshaking", true);
 		D(experiments.rspackFuture, "bundlerInfo", {});
 		if (typeof experiments.rspackFuture.bundlerInfo === "object") {
 			D(

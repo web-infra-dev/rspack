@@ -11,11 +11,6 @@ module.exports = {
 				usedExports: true,
 				providedExports: true
 			},
-			experiments: {
-				rspackFuture: {
-					newTreeshaking: true
-				}
-			}
 		};
 	},
 	async check(stats) {

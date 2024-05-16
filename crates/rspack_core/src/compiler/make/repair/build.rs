@@ -116,11 +116,6 @@ impl Task<MakeTaskContext> for BuildResultTask {
 
     let module_graph =
       &mut MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
-    if context.compiler_options.builtins.tree_shaking.enable() {
-      context
-        .optimize_analyze_result_map
-        .insert(module.identifier(), build_result.analyze_result);
-    }
 
     if !diagnostics.is_empty() {
       context.make_failed_module.insert(module.identifier());

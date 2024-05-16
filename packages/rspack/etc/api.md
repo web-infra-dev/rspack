@@ -2862,7 +2862,6 @@ const experiments: z.ZodObject<{
     css: z.ZodOptional<z.ZodBoolean>;
     futureDefaults: z.ZodOptional<z.ZodBoolean>;
     rspackFuture: z.ZodOptional<z.ZodObject<{
-        newTreeshaking: z.ZodOptional<z.ZodBoolean>;
         bundlerInfo: z.ZodOptional<z.ZodObject<{
             version: z.ZodOptional<z.ZodString>;
             force: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodArray<z.ZodEnum<["version"]>, "many">]>>;
@@ -2874,13 +2873,11 @@ const experiments: z.ZodObject<{
             force?: boolean | "version"[] | undefined;
         }>>;
     }, "strict", z.ZodTypeAny, {
-        newTreeshaking?: boolean | undefined;
         bundlerInfo?: {
             version?: string | undefined;
             force?: boolean | "version"[] | undefined;
         } | undefined;
     }, {
-        newTreeshaking?: boolean | undefined;
         bundlerInfo?: {
             version?: string | undefined;
             force?: boolean | "version"[] | undefined;
@@ -2898,7 +2895,6 @@ const experiments: z.ZodObject<{
     css?: boolean | undefined;
     futureDefaults?: boolean | undefined;
     rspackFuture?: {
-        newTreeshaking?: boolean | undefined;
         bundlerInfo?: {
             version?: string | undefined;
             force?: boolean | "version"[] | undefined;
@@ -2916,7 +2912,6 @@ const experiments: z.ZodObject<{
     css?: boolean | undefined;
     futureDefaults?: boolean | undefined;
     rspackFuture?: {
-        newTreeshaking?: boolean | undefined;
         bundlerInfo?: {
             version?: string | undefined;
             force?: boolean | "version"[] | undefined;
@@ -8092,7 +8087,6 @@ export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
 // @public (undocumented)
 const rspackFutureOptions: z.ZodObject<{
-    newTreeshaking: z.ZodOptional<z.ZodBoolean>;
     bundlerInfo: z.ZodOptional<z.ZodObject<{
         version: z.ZodOptional<z.ZodString>;
         force: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodArray<z.ZodEnum<["version"]>, "many">]>>;
@@ -8104,13 +8098,11 @@ const rspackFutureOptions: z.ZodObject<{
         force?: boolean | "version"[] | undefined;
     }>>;
 }, "strict", z.ZodTypeAny, {
-    newTreeshaking?: boolean | undefined;
     bundlerInfo?: {
         version?: string | undefined;
         force?: boolean | "version"[] | undefined;
     } | undefined;
 }, {
-    newTreeshaking?: boolean | undefined;
     bundlerInfo?: {
         version?: string | undefined;
         force?: boolean | "version"[] | undefined;
@@ -8788,7 +8780,6 @@ export const rspackOptions: z.ZodObject<{
         css: z.ZodOptional<z.ZodBoolean>;
         futureDefaults: z.ZodOptional<z.ZodBoolean>;
         rspackFuture: z.ZodOptional<z.ZodObject<{
-            newTreeshaking: z.ZodOptional<z.ZodBoolean>;
             bundlerInfo: z.ZodOptional<z.ZodObject<{
                 version: z.ZodOptional<z.ZodString>;
                 force: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodArray<z.ZodEnum<["version"]>, "many">]>>;
@@ -8800,13 +8791,11 @@ export const rspackOptions: z.ZodObject<{
                 force?: boolean | "version"[] | undefined;
             }>>;
         }, "strict", z.ZodTypeAny, {
-            newTreeshaking?: boolean | undefined;
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
             } | undefined;
         }, {
-            newTreeshaking?: boolean | undefined;
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
@@ -8824,7 +8813,6 @@ export const rspackOptions: z.ZodObject<{
         css?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
-            newTreeshaking?: boolean | undefined;
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
@@ -8842,7 +8830,6 @@ export const rspackOptions: z.ZodObject<{
         css?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
-            newTreeshaking?: boolean | undefined;
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
@@ -10287,7 +10274,6 @@ export const rspackOptions: z.ZodObject<{
         css?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
-            newTreeshaking?: boolean | undefined;
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
@@ -10730,7 +10716,6 @@ export const rspackOptions: z.ZodObject<{
         css?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
-            newTreeshaking?: boolean | undefined;
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;

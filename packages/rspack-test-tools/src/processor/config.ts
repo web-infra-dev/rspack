@@ -58,11 +58,6 @@ export class ConfigProcessor<
 			},
 			optimization: {
 				minimize: false
-			},
-			experiments: {
-				rspackFuture: {
-					newTreeshaking: true
-				}
 			}
 		} as TCompilerOptions<T>;
 	}

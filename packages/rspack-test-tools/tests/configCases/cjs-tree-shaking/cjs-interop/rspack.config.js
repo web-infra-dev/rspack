@@ -4,9 +4,4 @@ module.exports = {
 	optimization: {
 		minimize: false
 	},
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: false
-		}
-	}
 };

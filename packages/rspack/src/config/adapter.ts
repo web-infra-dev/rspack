@@ -844,12 +844,9 @@ function getRawExperiments(
 }
 
 function getRawRspackFutureOptions(
-	future: RspackFutureOptions
+	_future: RspackFutureOptions
 ): RawRspackFuture {
-	assert(!isNil(future.newTreeshaking));
-	return {
-		newTreeshaking: future.newTreeshaking
-	};
+	return {};
 }
 
 function getRawNode(node: Node): RawOptions["node"] {
