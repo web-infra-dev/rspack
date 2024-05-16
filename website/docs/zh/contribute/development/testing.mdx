@@ -56,6 +56,7 @@ Rspack 的测试用例存放在在 `packages/rspack-test-tools/tests` 文件夹�
 通过在根文件夹下运行 `./x test unit` 或 `pnpm run test:unit` 即可运行 Rspack 测试。
 
 也可以进入 `packages/rspack-test-tools` 文件夹并运行 `npm run test` 来运行测试用例，并且对测试流程进行更精细的控制：
+
 - **需要刷新测试快照时**：添加 `-u` 参数，如 `npm run test -- -u`
 - **需要过滤测试用例时**：添加 `-t` 参数，如 `npm run test -- -t config/asset` 即可仅运行 `packages/rspack-test-tools/configCases/asset` 文件夹下的用例（`config` 会自动映射到 `configCases`，其他文件夹类似）。匹配支持正则，详见 [jest](https://jestjs.io/docs/cli#--testnamepatternregex)
 
