@@ -71,7 +71,7 @@ export class SnapshotProcessor<
 			? this._snapshotOptions.snapshot
 			: path.resolve(
 					context.getSource(),
-					`./snapshot/${this._snapshotOptions.snapshot}`
+					`./__snapshots__/${this._snapshotOptions.snapshot}`
 				);
 
 		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
