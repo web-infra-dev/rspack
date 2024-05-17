@@ -258,7 +258,7 @@ export { SourceMapDevToolPlugin } from "./builtin-plugin";
 export { EvalSourceMapDevToolPlugin } from "./builtin-plugin";
 export { EvalDevToolModulePlugin } from "./builtin-plugin";
 export { CssExtractRspackPlugin } from "./builtin-plugin";
-export { RSCClientEntryPlugin } from "./builtin-plugin";
+export { RSCClientEntryRspackPlugin } from "./builtin-plugin";
 export { RSCClientReferenceManifestRspackPlugin } from "./builtin-plugin";
 export { RSCServerReferenceManifestRspackPlugin } from "./builtin-plugin";
 

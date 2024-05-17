@@ -10,6 +10,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use serde::{Deserialize, Serialize};
 use serde_json::to_string;
 
 use crate::utils::decl::ClientImports;
@@ -17,7 +18,7 @@ use crate::utils::has_client_directive;
 use crate::utils::sever_reference::RSCServerReferenceManifest;
 use crate::utils::shared_data::SHARED_CLIENT_IMPORTS;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ReactRoute {
   pub name: String,
   pub import: String,
