@@ -1,6 +1,12 @@
+import { ECompilerType, TTestConfig } from "..";
 import { RspackConfigProcessor } from "../processor/config";
 import { MultipleRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
+
+export type TConfigCaseConfig = Omit<
+	TTestConfig<ECompilerType.Rspack>,
+	"validate"
+>;
 
 const creator = new BasicCaseCreator({
 	clean: true,

@@ -1,3 +1,8 @@
+import fs from "fs";
+import path from "path";
+
+import { ECompilerEvent } from "../compiler";
+import copyDiff from "../helper/legacy/copyDiff";
 import {
 	ECompilerType,
 	ITestContext,
@@ -7,12 +12,8 @@ import {
 	TTestConfig
 } from "../type";
 import { MultiTaskProcessor } from "./multi";
-import path from "path";
-import fs from "fs";
-import copyDiff from "../helper/legacy/copyDiff";
-import { ECompilerEvent } from "../compiler";
 
-// This file is used to port step number to webpack.config.js
+// This file is used to port step number to rspack.config.js/webpack.config.js
 const currentWatchStepModulePath = path.resolve(
 	__dirname,
 	"../helper/util/currentWatchStep"

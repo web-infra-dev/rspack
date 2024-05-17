@@ -28,5 +28,10 @@
     "text": "About",
     "link": "/misc/faq",
     "activeMatch": "/misc"
+  },
+  {
+    "text": "Contribute",
+    "link": "/contribute/index",
+    "activeMatch": "/contribute"
   }
 ]

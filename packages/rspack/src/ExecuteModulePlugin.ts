@@ -1,6 +1,7 @@
+import vm from "node:vm";
+
 import { RuntimeGlobals } from ".";
 import type { Compiler } from "./Compiler";
-import vm from "node:vm";
 
 export default class ExecuteModulePlugin {
 	constructor() {}

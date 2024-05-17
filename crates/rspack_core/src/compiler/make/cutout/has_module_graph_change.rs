@@ -6,27 +6,33 @@ use crate::{AsyncDependenciesBlockIdentifier, GroupOptions, ModuleGraph, ModuleI
 #[derive(Debug, Default, Eq, PartialEq)]
 struct ModuleDeps {
   // child module identifier of current module
-  child_modules: HashSet<ModuleIdentifier>,
+  child_modules: Vec<ModuleIdentifier>,
   // blocks in current module
-  module_blocks: HashSet<(AsyncDependenciesBlockIdentifier, Option<GroupOptions>)>,
+  module_blocks: Vec<(AsyncDependenciesBlockIdentifier, Option<GroupOptions>)>,
 }
 
 impl ModuleDeps {
   fn from_module(module_graph: &ModuleGraph, module_identifier: &ModuleIdentifier) -> Self {
     let mut res = Self::default();
-    for connection in module_graph.get_outgoing_connections(module_identifier) {
-      res.child_modules.insert(*connection.module_identifier());
-    }
     let module = module_graph
       .module_by_identifier(module_identifier)
       .expect("should have module");
+
+    let deps = module
+      .get_dependencies()
+      .iter()
+      .filter_map(|dep_id| module_graph.connection_by_dependency(dep_id))
+      .map(|conn| *conn.module_identifier())
+      .collect::<Vec<_>>();
+
+    res.child_modules = remove_dup(deps);
     for block_id in module.get_blocks() {
       let block = module_graph
         .block_by_id(block_id)
         .expect("should have block");
       res
         .module_blocks
-        .insert((*block_id, block.get_group_options().cloned()));
+        .push((*block_id, block.get_group_options().cloned()));
     }
 
     res
@@ -73,4 +79,18 @@ impl HasModuleGraphChange {
       }
     }
   }
+}
+
+fn remove_dup<T: Copy + std::cmp::Eq + std::hash::Hash>(items: Vec<T>) -> Vec<T> {
+  let mut new_items = vec![];
+  let mut s = HashSet::default();
+
+  for item in items {
+    if !s.contains(&item) {
+      new_items.push(item);
+      s.insert(item);
+    }
+  }
+
+  new_items
 }

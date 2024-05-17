@@ -1,5 +1,5 @@
-import path from "path";
 import type { RawRelayConfig } from "@rspack/binding";
+import path from "path";
 
 type RelayOptions = boolean | RawRelayConfig | undefined;
 

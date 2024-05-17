@@ -1,0 +1,77 @@
+# Testing
+
+Because Rspack uses a mix of Rust and Node.js code, different testing strategies are used for each.
+
+## Rust Testing
+
+:::info Tip
+Rust test cases are only suitable for unit testing. To test the complete build process, please add Node.js test cases.
+:::
+
+### Running Rust Tests
+
+You can run the Rust code's test cases using `./x test rust` or `cargo test`.
+
+### Writing Rust Tests
+
+Test cases are written within the Rust code. For example:
+
+```rust
+fn add(a: u8, b: u8) -> u8 {
+  a + b
+}
+
+#[test]
+fn test_add() {
+  assert_eq!(add(1, 2), 3);
+}
+```
+
+> For more information, please refer to: [Rust: How to Write Tests](https://doc.rust-lang.org/book/ch11-01-writing-tests.html)
+
+## Node.js Testing
+
+Node.js testing provides three test suites:
+
+- **Webpack Testing**: Running Webpack test cases using Rspack
+- **Webpack Plugin Testing**: Running test cases of native supported plugins using Rspack
+- **Rspack Testing**: Running test cases of Rspack itself
+
+### Webpack Testing
+
+Rspack copied the whole Webpack test suite to the `webpack-test` folder to check the compatibility of webpack. If you need to add new test cases, it is recommended to first check if the case has been exists in this folder. You can enable a test case by removing the `test.filter.js` file or modifying its return value to `true`.
+
+You can run Webpack tests by running `./x test webpack` or `pnpm run test:webpack` at the root folder.
+
+:::warning Notice
+If you encounter any problems, please do not modify the original code of the Webpack test cases. You can copy it and follow the [Rspack Testing](./testing-rspack) to create new test cases in `packages/rspack-test-tools/tests`.
+:::
+
+> For more details, please refer to: [Webpack Testing](./testing-webpack#testing-webpack-cases).
+
+### Rspack Testing
+
+Rspack's test cases are stored in the `packages/rspack-test-tools/tests` folder, including unique test cases and cases that require modification for Webpack and Webpack plugins.
+
+You can run Rspack tests by running `./x test unit` or `pnpm run test:unit` at the root folder.
+
+You can also go to the `packages/rspack-test-tools` folder and run `npm run test` to run test cases and add some arguments:
+
+- **When refreshing test snapshots is needed**: Add `-u`, like `npm run test -- -u`
+- **When filtering test cases is needed**: Add `-t`, like `npm run test -- -t config/asset` to only run test cases from the `packages/rspack-test-tools/configCases/asset` folder (`config` will be automatically mapped to `configCases`, and other folders work similarly). Pattern matching supports regex, see [jest](https://jestjs.io/docs/cli#--testnamepatternregex) for details.
+
+> For more details, please refer to: [Rspack Testing](./testing-rspack).
+
+### Webpack Plugin Testing
+
+Due to implementation differences and performance considerations, Rspack will internally support some Webpack plugins. Similarly, the test suites for these plugins are copied to the `plugin-test` folder to test the compatibility of the plugins.
+
+You can run Webpack plugin tests by running `./x test plugin` or `pnpm run test:plugin` at the root folder.
+
+:::warning Notice
+In most cases, even if you modify the functionality of the corresponding plugin, you only need to follow [Rspack Testing](./testing-rspack) to add new test cases.
+
+Only when you native implement a new Webpack plugin and need to copy its test cases, you can add them to this suite.
+:::
+
+> For more details, please refer to: [Webpack Plugin Testing](./testing-webpack#testing-webpack-plugins-cases).

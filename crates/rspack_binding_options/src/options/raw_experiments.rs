@@ -10,7 +10,6 @@ pub struct RawRspackFuture {
 #[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawExperiments {
-  pub new_split_chunks: bool,
   pub top_level_await: bool,
   pub rspack_future: RawRspackFuture,
 }

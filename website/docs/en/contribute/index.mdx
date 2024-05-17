@@ -1,0 +1,92 @@
+# Overview
+
+We are grateful for your interest in contributing to Rspack!
+Every single contribution counts and helps us take Rspack to the next level.
+
+## Asking Questions
+
+If you have any questions,
+please do not hesitate to ask in either the [Discord](https://discord.gg/79ZZ66GH9E) support channel or on the [Github discussion board](https://github.com/web-infra-dev/rspack/discussions).
+
+### Minimal reproduction
+
+The [rspack repro template](https://github.com/web-infra-dev/rspack-repro) can be used to create a minimal reproducible example.
+
+A minimal reproducible example (MRE) is a code that is:
+
+- Short
+- Self-contained
+- Demonstrates the problem being encountered
+
+An MRE is essential because it allows us to quickly understand and reproduce your issue.
+This, in turn, increases the likelihood of getting a helpful and accurate response in a shorter amount of time.
+It is important to note that an MRE should not include extraneous code related to unrelated functionality,
+and should instead focus solely on the problem at hand.
+
+> Please see also [How to create a Minimal, Reproducible Example](https://stackoverflow.com/help/minimal-reproducible-example) from Stack Overflow.
+
+## What should I work on?
+
+### Good First Issue
+
+If you are looking to dive into the codebase and get started,
+we recommend checking out our issue list labeled with [good first issue](https://github.com/web-infra-dev/rspack/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22).
+This will help you get acquainted with the project and start contributing.
+
+### Tracking Issue
+
+If you are interested in understanding our project's direction and want to work on issues that are aligned with our priorities,
+our [tracking issues list](https://github.com/web-infra-dev/rspack/issues?q=is%3Aopen+label%3A%22tracking+issue%22+sort%3Aupdated-desc)
+provides an overview of our progress and current goals.
+
+## Sending pull request
+
+1. [Fork](https://help.github.com/articles/fork-a-repo/) the Rspack repository into your own GitHub account.
+2. [Clone](https://help.github.com/articles/cloning-a-repository/) the repository to your local.
+3. Checkout a new branch from `main`.
+4. Set up the development environment, you can read the [Prerequisites](/contribute/development/prerequisites) section to learn about it.
+5. If you've fixed a bug or added code that should be tested, then add some tests.
+6. Make sure all the tests pass, you can read the [Testing](/contribute/development/testing) section below to learn about it.
+7. Run `pnpm run lint:js` and `pnpm run lint:rs` to check the code style.
+8. Submit the Pull Request, make sure all CI runs pass.
+9. The maintainers will review your Pull Request soon.
+
+When submitting a Pull Request, please note the following:
+
+- Keep your PRs small enough, so that each PR only addresses a single issue or adds a single feature.
+- Please include an appropriate description in the PR, and link related issues.
+
+### Format of PR titles
+
+The format of PR titles follow Conventional Commits.
+
+A example
+
+```
+feat(ui): Add `Button` component
+^    ^    ^
+|    |    |__ Subject
+|    |_______ Scope
+|____________ Type
+```
+
+Your PR
+
+- must have a `Type`
+- Optionally have a `Scope`
+  - `Scope` should be lower case
+- must have a `Subject`
+
+## Other ways to contribute
+
+We are always looking for contributors, and that goes beyond just our main repository.
+
+Check out these other ways to get involved and start making a difference today.
+
+- The documentation site is at [web-infra-dev/rspack/website](https://github.com/web-infra-dev/rspack/tree/main/website)
+- The community packages are at [github.com/rspack-contrib](https://github.com/rspack-contrib)
+- Welcome to add Rspack related projects to [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack)
+
+---
+
+As a reminder, all contributors are expected to follow our [Code of Conduct](https://github.com/web-infra-dev/rspack/blob/main/CODE_OF_CONDUCT.md).

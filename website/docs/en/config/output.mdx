@@ -564,7 +564,7 @@ export function hello(name) {
 }
 ```
 
-Now the variable `MyLibrary` will be bound with the exports of your entry file, and here's how to consume the rspack bundled library:
+Now the variable `MyLibrary` will be bound with the exports of your entry file, and here's how to consume the Rspack bundled library:
 
 ```html
 <script src="https://example.org/path/to/my-library.js"></script>
@@ -573,7 +573,7 @@ Now the variable `MyLibrary` will be bound with the exports of your entry file, 
 </script>
 ```
 
-In the above example, we're passing a single entry file to `entry`, however, rspack can accept [many kinds of entry point](/config/entry), e.g., an `array`, or an `object`.
+In the above example, we're passing a single entry file to `entry`, however, Rspack can accept [many kinds of entry point](/config/entry), e.g., an `array`, or an `object`.
 
 1. If you provide an `array` as the `entry` point, only the last one in the array will be exposed.
 

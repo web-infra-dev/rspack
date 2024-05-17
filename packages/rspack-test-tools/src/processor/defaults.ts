@@ -1,12 +1,13 @@
-import { SimpleTaskProcessor } from "./simple";
+import { diff as jestDiff } from "jest-diff";
+import stripAnsi from "strip-ansi";
+
 import {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
 	TCompilerOptions
 } from "../type";
-import { diff as jestDiff } from "jest-diff";
-import stripAnsi from "strip-ansi";
+import { SimpleTaskProcessor } from "./simple";
 
 const CURRENT_CWD = process.cwd();
 
@@ -42,7 +43,10 @@ export interface IDefaultsConfigProcessorOptions {
 	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
 	cwd?: string;
 	name: string;
-	diff: (diff: any, defaults: any) => Promise<void>;
+	diff: (
+		diff: jest.JestMatchers<Diff>,
+		defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>
+	) => Promise<void>;
 }
 
 export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerType.Rspack> {

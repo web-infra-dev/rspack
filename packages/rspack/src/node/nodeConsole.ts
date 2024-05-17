@@ -112,19 +112,18 @@ export = ({ colors, appendOnly, stream }) => {
 			else if (currentIndent.length >= 2)
 				currentIndent = currentIndent.slice(0, currentIndent.length - 2);
 		},
-		// eslint-disable-next-line node/no-unsupported-features/node-builtins
+
 		// @ts-expect-error
 		profile: console.profile && (name => console.profile(name)),
-		// eslint-disable-next-line node/no-unsupported-features/node-builtins
+
 		// @ts-expect-error
 		profileEnd: console.profileEnd && (name => console.profileEnd(name)),
 		clear:
 			!appendOnly &&
-			// eslint-disable-next-line node/no-unsupported-features/node-builtins
 			console.clear &&
 			(() => {
 				clearStatusMessage();
-				// eslint-disable-next-line node/no-unsupported-features/node-builtins
+
 				console.clear();
 				writeStatusMessage();
 			}),

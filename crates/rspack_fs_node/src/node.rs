@@ -61,15 +61,15 @@ cfg_async! {
 
   #[napi(object, object_to_js = false, js_name = "ThreadsafeNodeFS")]
   pub struct ThreadsafeNodeFS {
-    #[napi(ts_type = "(name: string, content: Buffer) => void")]
+    #[napi(ts_type = "(name: string, content: Buffer) => Promise<void> | void")]
     pub write_file: ThreadsafeFunction<(String, Buffer), ()>,
-    #[napi(ts_type = "(name: string) => void")]
+    #[napi(ts_type = "(name: string) => Promise<void> | void")]
     pub remove_file: ThreadsafeFunction<String, ()>,
-    #[napi(ts_type = "(name: string) => void")]
+    #[napi(ts_type = "(name: string) => Promise<void> | void")]
     pub mkdir: ThreadsafeFunction<String, ()>,
-    #[napi(ts_type = "(name: string) => string | void")]
+    #[napi(ts_type = "(name: string) => Promise<string | void> | string | void")]
     pub mkdirp: ThreadsafeFunction<String, Either<String, ()>>,
-    #[napi(ts_type = "(name: string) => string | void")]
+    #[napi(ts_type = "(name: string) => Promise<string | void> | string | void")]
     pub remove_dir_all: ThreadsafeFunction<String, Either<String, ()>>,
   }
 }

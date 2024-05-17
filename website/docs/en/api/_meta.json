@@ -6,7 +6,7 @@
     "name": "modules",
     "label": "Modules"
   },
-  "node-api",
+  "javascript-api",
   "hmr",
   {
     "type": "dir",

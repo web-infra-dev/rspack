@@ -1,12 +1,18 @@
-const { createFsFromVolume, Volume } = require("memfs");
-
-const outputFileSystem = createFsFromVolume(new Volume());
 let contentHashes = [];
+let files = [];
 
+/** @type {import("../../../..").THookCaseConfig} */
 module.exports = {
 	description: "should emit assets correctly",
+	findBundle() {
+		return files;
+	},
+
 	options(context) {
 		return {
+			output: {
+				filename: '[name].[contenthash].js'
+			},
 			plugins: [
 				function plugin(compiler) {
 					compiler.hooks.compilation.tap("test", compilation => {
@@ -39,13 +45,22 @@ module.exports = {
 								});
 							})
 						);
+
+						compilation.hooks.afterProcessAssets.tap(
+							{
+								name: "test",
+								stage:
+									compiler.webpack.Compilation
+										.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
+							},
+							(assets) => {
+								files.push(...Object.keys(assets));
+							}
+						);
 					});
 				}
 			]
 		};
-	},
-	async compiler(context, compiler) {
-		compiler.outputFileSystem = outputFileSystem;
 	},
 	async check() {
 		contentHashes.forEach(hash => {

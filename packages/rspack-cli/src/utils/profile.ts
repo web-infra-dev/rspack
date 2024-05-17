@@ -31,16 +31,16 @@ The full syntax, remember update this when you change something in this file.
 
 */
 
-import inspector from "inspector";
+import {
+	type Compiler,
+	experimental_cleanupGlobalTrace as cleanupGlobalTrace,
+	experimental_registerGlobalTrace as registerGlobalTrace,
+	RspackOptions
+} from "@rspack/core";
 import fs from "fs";
+import inspector from "inspector";
 import path from "path";
 import { URLSearchParams } from "url";
-import {
-	experimental_registerGlobalTrace as registerGlobalTrace,
-	experimental_cleanupGlobalTrace as cleanupGlobalTrace,
-	RspackOptions,
-	type Compiler
-} from "@rspack/core";
 
 type JSCPUProfileOptionsOutput = string;
 type JSCPUProfileOptions = {

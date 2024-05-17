@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "cache filesystem development",
 	options: () => ({ mode: "development", cache: { type: "filesystem" } }),

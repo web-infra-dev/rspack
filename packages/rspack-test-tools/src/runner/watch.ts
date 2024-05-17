@@ -5,8 +5,8 @@ import {
 	TCompilerOptions,
 	TCompilerStatsCompilation
 } from "../type";
-import { WatchRunner } from "./runner/watch";
 import { BasicRunnerFactory } from "./basic";
+import { WatchRunner } from "./runner/watch";
 
 export class WatchRunnerFactory<
 	T extends ECompilerType

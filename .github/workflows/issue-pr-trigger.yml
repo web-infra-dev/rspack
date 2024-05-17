@@ -16,7 +16,7 @@ jobs:
           node-version: '20'
       - name: Check if triggered by project member
         id: check_member
-        if: github.event.sender.type == 'User'
+        if: github.event.sender.type == 'User' && github.actor != 'renovate'
         run: |
           SENDER=${{ github.event.sender.login }}
           TEAMS_FILE="./.github/teams.yml"
@@ -29,7 +29,7 @@ jobs:
       - name: Notify Lark for Issue
         if: steps.check_member.outputs.skip != 'true' && github.event_name == 'issues'
         env:
-          LARK_WEBHOOK_URL: ${{ secrets.LARK_WEBHOOK_URL }}
+          LARK_WEBHOOK_URL: ${{ secrets.LARK_CONTRIBUTION_HOOK }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           AUTHOR_ID: ${{ github.event.issue.user.login }}
           BODY: ${{ github.event.issue.body }}
@@ -40,7 +40,7 @@ jobs:
       - name: Notify Lark for PR
         if: steps.check_member.outputs.skip != 'true' && github.event_name == 'pull_request'
         env:
-          LARK_WEBHOOK_URL: ${{ secrets.LARK_WEBHOOK_URL }}
+          LARK_WEBHOOK_URL: ${{ secrets.LARK_CONTRIBUTION_HOOK }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           AUTHOR_ID: ${{ github.event.pull_request.user.login }}
           BODY: ${{ github.event.pull_request.body }}

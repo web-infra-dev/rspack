@@ -1,8 +1,9 @@
-import { ECompilerType } from "../../type";
-import vm, { SourceTextModule } from "vm";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
+import vm, { SourceTextModule } from "vm";
+
 import asModule from "../../helper/legacy/asModule";
+import { ECompilerType } from "../../type";
 import { EEsmMode, TRunnerRequirer } from "../type";
 import { CommonJsRunner } from "./cjs";
 

@@ -1771,7 +1771,7 @@ impl ExportInfo {
         key,
         ExportInfoTargetValue {
           connection: connection_inner_dep_id,
-          export: Some(export_name.cloned().unwrap_or_default()),
+          export: export_name.cloned(),
           priority: normalized_priority,
         },
       );

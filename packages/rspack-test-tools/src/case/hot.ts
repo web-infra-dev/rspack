@@ -1,7 +1,7 @@
 import { RspackHotProcessor } from "../processor/hot";
-import { ECompilerType, TCompilerOptions } from "../type";
-import { BasicCaseCreator } from "../test/creator";
 import { HotRunnerFactory } from "../runner";
+import { BasicCaseCreator } from "../test/creator";
+import { ECompilerType, TCompilerOptions } from "../type";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
 

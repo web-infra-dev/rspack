@@ -1,8 +1,7 @@
-import { diffLinesRaw, diffStringsUnified } from "jest-diff";
-import { IFormatCodeOptions, formatCode } from "./format-code";
-import { replaceRuntimeModuleName } from "./replace-runtime-module-name";
-import { parseModules } from "../helper";
 import fs from "fs-extra";
+import { diffLinesRaw, diffStringsUnified } from "jest-diff";
+
+import { parseModules } from "../helper";
 import {
 	ECompareResultType,
 	TCompareModules,
@@ -10,6 +9,8 @@ import {
 	TFileCompareResult,
 	TModuleCompareResult
 } from "../type";
+import { formatCode, IFormatCodeOptions } from "./format-code";
+import { replaceRuntimeModuleName } from "./replace-runtime-module-name";
 
 export interface ICompareOptions {
 	modules?: TCompareModules;

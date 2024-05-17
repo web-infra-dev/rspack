@@ -8,14 +8,16 @@
  * https://github.com/webpack/webpack-dev-server/blob/b0f15ace0123c125d5870609ef4691c141a6d187/LICENSE
  */
 import path from "node:path";
+
 import { Compiler, MultiCompiler } from "@rspack/core";
-import type { Socket } from "net";
 import type { FSWatcher } from "chokidar";
-import rdm from "webpack-dev-middleware";
-import type { Server } from "http";
 import fs from "fs";
+import type { Server } from "http";
+import type { Socket } from "net";
+import rdm from "webpack-dev-middleware";
 import WebpackDevServer from "webpack-dev-server";
-import type { ResolvedDevServer, DevServer } from "./config";
+
+import type { DevServer, ResolvedDevServer } from "./config";
 import { applyDevServerPatch } from "./patch";
 
 applyDevServerPatch();

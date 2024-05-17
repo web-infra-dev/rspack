@@ -137,7 +137,7 @@ Used to control whether to enable Rspack future default options, check out the d
 
   2. **[target](/config/target) will not downgrade user-side code**
 
-  In **previous** versions, we typically set `target: ["web", "es5"]` to produce web-compatible and downgraded code. Now, when the `disableTransformByDefault` configuration item is enabled, the `target` will only be used to control runtime code (except for user-written code, rspack generated code within node_modules, like chunk loading, etc.)
+  In **previous** versions, we typically set `target: ["web", "es5"]` to produce web-compatible and downgraded code. Now, when the `disableTransformByDefault` configuration item is enabled, the `target` will only be used to control runtime code (except for user-written code, Rspack generated code within node_modules, like chunk loading, etc.)
 
   This aligns with webpack's plugin-based design philosophy. You can migrate using `builtin:swc-loader`'s [`env`](https://swc.rs/docs/configuration/compilation#env) or [`target`](https://swc.rs/docs/configuration/compilation#jsctarget), and precisely control the modules that need to be transpiled:
 
@@ -188,9 +188,9 @@ Used to control whether to enable Rspack future default options, check out the d
   - `"javascript/esm"`
   - `"javascript/dynamic"`
 
-  With `disableTransformByDefault` enabled, rspack will only support input compliant with web standards, aligning with webpack's design philosophy.
+  With `disableTransformByDefault` enabled, Rspack will only support input compliant with web standards, aligning with webpack's design philosophy.
 
-  After discussions with webpack, both webpack and rspack will offer more out-of-the-box configurations to support non-standard inputs like TypeScript.
+  After discussions with webpack, both webpack and Rspack will offer more out-of-the-box configurations to support non-standard inputs like TypeScript.
 
   Since files with the extensions `jsx`, `tsx`, and `ts` are implicitly set for transpilation, an error will be prompted when `disableTransformByDefault` is enabled. You can migrate like this:
 
@@ -261,8 +261,7 @@ Used to control whether to enable Rspack future default options, check out the d
 - **Enabled by Default in Version:** v0.4.0
 - **Removed in Version:** v0.5.0
 
-This feature enables the new resolver implementation provided by [oxc](https://github.com/web-infra-dev/oxc),
-which is 5 times faster than the previous resolver implementation.
+This feature enables the new resolver implementation.
 
 ```js title="rspack.config.js"
 module.exports = {

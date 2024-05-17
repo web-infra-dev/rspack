@@ -121,7 +121,7 @@ For more information about web workers support, see [web workers](/guide/feature
 
 ### `builtin:swc-loader` Support
 
-Although Rspack provides many SWC compilation configuration options, these configurations are global and cannot fulfill the requirement of using different swc transformation logic for different modules. Therefore, Rspack supports `builtin:swc-loader` to provide more fine-grained SWC transformation configuration. Compared to the JavaScript version of `swc-loader`, `builtin:swc-loader` has better performance. You can use `builtin:swc-loader` as follows:
+Although Rspack provides many SWC compilation configuration options, these configurations are global and cannot fulfill the requirement of using different SWC transformation logic for different modules. Therefore, Rspack supports `builtin:swc-loader` to provide more fine-grained SWC transformation configuration. Compared to the JavaScript version of `swc-loader`, `builtin:swc-loader` has better performance. You can use `builtin:swc-loader` as follows:
 
 ```js
 const path = require('path');
@@ -158,7 +158,7 @@ const config = {
 module.exports = config;
 ```
 
-You can refer to [examples/builtin-swc-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/builtin-swc-loader) for more examples. Currently, `builtin:swc-loader` still has limitations, such as not supporting wasm plugins, etc. Rspack will continue to iterate and support more features of `builtin:swc-loader` in future versions.
+You can refer to [examples/builtin-swc-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/builtin-swc-loader) for more examples. Currently, `builtin:swc-loader` still has limitations, such as not supporting Wasm plugins, etc. Rspack will continue to iterate and support more features of `builtin:swc-loader` in future versions.
 
 ### Improved Profile Support
 

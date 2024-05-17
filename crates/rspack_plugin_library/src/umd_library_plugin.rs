@@ -232,7 +232,7 @@ impl JavascriptModulesPluginPlugin for UmdLibraryJavascriptModulesPluginPlugin {
       external_arguments(&externals, compilation)
     )));
     source.add(args.source.clone());
-    source.add(RawSource::from("\n});"));
+    source.add(RawSource::from("\n})"));
     Ok(Some(source.boxed()))
   }
 

@@ -149,7 +149,7 @@ module.exports = {
 
 ### 将 @swc/helpers 和 react-refresh 调整为 peerDependencies
 
-在我们移除默认转换之前，可以通过 `target` 将您的代码降级为 es5，并通过 `builtin.react.refresh` 将 react 刷新助手代码插入到您的 react 组件中，因此我们安装了 `@swc/helpers` 和 `react-refresh` 作为 `@rspack/core` 的依赖项，以提供开箱即用的体验。但是现在我们已经移除了默认转换，并建议使用 rsbuild 来获得开箱即用的体验，因此 `@swc/helpers` 和 `react-refresh` 不再需要由 `@rspack/core` 安装，我们将它们调整为 `@rspack/core` 的 peerDependencies。
+在我们移除默认转换之前，可以通过 `target` 将您的代码降级为 es5，并通过 `builtin.react.refresh` 将 react 刷新助手代码插入到您的 react 组件中，因此我们安装了 `@swc/helpers` 和 `react-refresh` 作为 `@rspack/core` 的依赖项，以提供开箱即用的体验。但是现在我们已经移除了默认转换，并建议使用 Rsbuild 来获得开箱即用的体验，因此 `@swc/helpers` 和 `react-refresh` 不再需要由 `@rspack/core` 安装，我们将它们调整为 `@rspack/core` 的 peerDependencies。
 
 如果您正在使用 `builtin:swc-loader` 或 `swc-loader` 的 `externalHelpers: true` 功能，现在您需要将 `@swc/helpers` 安装为项目的 dependencies。如果您正在使用 `@rspack/plugin-react-refresh`，现在您需要将 `react-refresh` 安装为项目的 devDependencies。
 

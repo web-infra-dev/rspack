@@ -1,9 +1,10 @@
 import path from 'node:path';
-import { defineConfig } from 'rspress/config';
+
 import { pluginRss } from '@rspress/plugin-rss';
-import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
-import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
+import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
+import { defineConfig } from 'rspress/config';
+import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
 
 const PUBLISH_URL = 'https://rspack.dev';
 const COPYRIGHT = '© 2022-present ByteDance Inc. All Rights Reserved.';
@@ -22,6 +23,7 @@ export default defineConfig({
   globalStyles: path.join(__dirname, 'theme', 'index.css'),
   markdown: {
     checkDeadLinks: true,
+    highlightLanguages: [['rs', 'rust']],
   },
   route: {
     cleanUrls: true,

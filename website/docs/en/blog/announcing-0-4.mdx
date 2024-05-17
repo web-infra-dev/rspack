@@ -183,9 +183,9 @@ In order to full migrate to Webpack's split chunks implementation, these fields 
 
 ### Enable newResolver by default
 
-[oxc_resolver](https://crates.io/crates/oxc_resolver) is now enabled by default.
+New resolver is now enabled by default.
 
-`oxc_resolver` is a module resolver written in Rust provided by the [oxc project](https://github.com/oxc-project/oxc). The new resolver has passed all of [enhanced-resolve](https://www.npmjs.com/package/enhanced-resolve)'s test suite. It is 5 times faster than previous implementation, and 28 times faster than enhanced-resolve.
+The new resolver has passed all of [enhanced-resolve](https://www.npmjs.com/package/enhanced-resolve)'s test suite. It is 5 times faster than previous implementation, and 28 times faster than enhanced-resolve.
 
 The new resolver can be configured to read `tsconfig.json`'s `compilerOptions.paths` and `references` field and provides better support for nested path alias. See API [resolve.tsConfig](/config/resolve#resolvetsconfig) for details.
 

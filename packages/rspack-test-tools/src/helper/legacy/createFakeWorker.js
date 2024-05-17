@@ -61,7 +61,6 @@ self.postMessage = data => {
 };
 require(${JSON.stringify(path.resolve(outputDirectory, file))});
 `;
-			// eslint-disable-next-line n/no-unsupported-features/node-builtins
 			this.worker = new (require("worker_threads").Worker)(workerBootstrap, {
 				eval: true
 			});

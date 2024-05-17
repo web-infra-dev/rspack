@@ -619,16 +619,15 @@ impl From<RawAssetGeneratorDataUrlOptions> for AssetGeneratorDataUrlOptions {
 #[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawCssGeneratorOptions {
-  #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
-  pub exports_convention: Option<String>,
   pub exports_only: Option<bool>,
+  pub es_module: Option<bool>,
 }
 
 impl From<RawCssGeneratorOptions> for CssGeneratorOptions {
   fn from(value: RawCssGeneratorOptions) -> Self {
     Self {
-      exports_convention: value.exports_convention.map(|n| n.into()),
       exports_only: value.exports_only,
+      es_module: value.es_module,
     }
   }
 }
@@ -640,6 +639,7 @@ pub struct RawCssAutoGeneratorOptions {
   pub exports_convention: Option<String>,
   pub exports_only: Option<bool>,
   pub local_ident_name: Option<String>,
+  pub es_module: Option<bool>,
 }
 
 impl From<RawCssAutoGeneratorOptions> for CssAutoGeneratorOptions {
@@ -648,6 +648,7 @@ impl From<RawCssAutoGeneratorOptions> for CssAutoGeneratorOptions {
       exports_convention: value.exports_convention.map(|n| n.into()),
       exports_only: value.exports_only,
       local_ident_name: value.local_ident_name.map(|n| n.into()),
+      es_module: value.es_module,
     }
   }
 }
@@ -659,6 +660,7 @@ pub struct RawCssModuleGeneratorOptions {
   pub exports_convention: Option<String>,
   pub exports_only: Option<bool>,
   pub local_ident_name: Option<String>,
+  pub es_module: Option<bool>,
 }
 
 impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
@@ -667,6 +669,7 @@ impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
       exports_convention: value.exports_convention.map(|n| n.into()),
       exports_only: value.exports_only,
       local_ident_name: value.local_ident_name.map(|n| n.into()),
+      es_module: value.es_module,
     }
   }
 }

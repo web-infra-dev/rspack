@@ -1,5 +1,6 @@
 use std::collections::hash_map::Entry;
 
+use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_core::{
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
@@ -81,8 +82,8 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     while let Some(module_id) = q.dequeue() {
       self.changed = false;
       self.current_module_id = module_id;
-      let mut exports_specs_from_dependencies: HashMap<DependencyId, ExportsSpec> =
-        HashMap::default();
+      let mut exports_specs_from_dependencies: IndexMap<DependencyId, ExportsSpec> =
+        IndexMap::default();
       self.process_dependencies_block(&module_id, &mut exports_specs_from_dependencies);
       let exports_info_id = self.mg.get_exports_info(&module_id).id;
       for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
@@ -105,7 +106,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   pub fn process_dependencies_block(
     &self,
     module_identifier: &ModuleIdentifier,
-    exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
+    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
     let block = &**self.mg.module_by_identifier(module_identifier)?;
     self.process_dependencies_block_inner(block, exports_specs_from_dependencies)
@@ -114,7 +115,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   fn process_dependencies_block_inner<B: DependenciesBlock + ?Sized>(
     &self,
     block: &B,
-    exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
+    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
     for dep_id in block.get_dependencies().iter() {
       let dep = self
@@ -150,7 +151,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     &self,
     dep_id: DependencyId,
     exports_specs: Option<ExportsSpec>,
-    exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
+    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
     // this is why we can bubble here. https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/FlagDependencyExportsPlugin.js#L140
     let exports_specs = exports_specs?;

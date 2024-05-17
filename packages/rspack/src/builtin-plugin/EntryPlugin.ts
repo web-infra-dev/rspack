@@ -3,17 +3,18 @@ import {
 	RawEntryOptions,
 	RawEntryPluginOptions
 } from "@rspack/binding";
-import { create } from "./base";
+
 import {
 	ChunkLoading,
 	EntryRuntime,
 	FilenameTemplate,
-	LibraryOptions,
-	PublicPath,
 	getRawChunkLoading,
-	getRawLibrary
+	getRawLibrary,
+	LibraryOptions,
+	PublicPath
 } from "../config";
 import { isNil } from "../util";
+import { create } from "./base";
 
 export type EntryOptions = {
 	name?: string;

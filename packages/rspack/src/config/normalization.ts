@@ -9,77 +9,79 @@
  */
 
 import assert from "assert";
+
 import type { Compilation } from "../Compilation";
 import type {
+	AssetModuleFilename,
+	Bail,
+	Builtins,
+	CacheOptions,
+	ChunkFilename,
+	ChunkLoading,
+	ChunkLoadingGlobal,
+	Clean,
 	Context,
+	CrossOriginLoading,
+	CssChunkFilename,
+	CssFilename,
 	Dependencies,
-	Node,
+	DevServer,
 	DevTool,
+	DevtoolFallbackModuleFilenameTemplate,
+	DevtoolModuleFilenameTemplate,
+	DevtoolNamespace,
+	EnabledLibraryTypes,
+	EnabledWasmLoadingTypes,
+	EntryFilename,
+	EntryRuntime,
 	EntryStatic,
 	Externals,
 	ExternalsPresets,
 	ExternalsType,
-	InfrastructureLogging,
-	LibraryOptions,
-	Mode,
-	Name,
-	OptimizationRuntimeChunk,
-	Resolve,
-	Target,
-	SnapshotOptions,
-	CacheOptions,
-	StatsValue,
-	Optimization,
-	Plugins,
-	Watch,
-	WatchOptions,
-	DevServer,
-	Profile,
-	Bail,
-	Builtins,
-	EntryRuntime,
-	ChunkLoading,
-	PublicPath,
-	EntryFilename,
-	Path,
-	Clean,
 	Filename,
-	ChunkFilename,
-	CrossOriginLoading,
-	CssFilename,
-	CssChunkFilename,
-	HotUpdateMainFilename,
-	HotUpdateChunkFilename,
-	AssetModuleFilename,
-	UniqueName,
-	ChunkLoadingGlobal,
-	EnabledLibraryTypes,
-	OutputModule,
-	StrictModuleErrorHandling,
+	GeneratorOptionsByModuleType,
 	GlobalObject,
-	ImportFunctionName,
-	Iife,
-	WasmLoading,
-	EnabledWasmLoadingTypes,
-	WebassemblyModuleFilename,
-	TrustedTypes,
-	SourceMapFilename,
 	HashDigest,
 	HashDigestLength,
 	HashFunction,
 	HashSalt,
-	WorkerPublicPath,
-	RuleSetRules,
-	ParserOptionsByModuleType,
-	GeneratorOptionsByModuleType,
-	RspackFutureOptions,
+	HotUpdateChunkFilename,
 	HotUpdateGlobal,
-	ScriptType,
+	HotUpdateMainFilename,
+	Iife,
+	ImportFunctionName,
+	InfrastructureLogging,
+	LibraryOptions,
+	Mode,
+	Name,
+	Node,
 	NoParseOption,
-	DevtoolNamespace,
-	DevtoolModuleFilenameTemplate,
-	DevtoolFallbackModuleFilenameTemplate,
-	RspackOptions
+	Optimization,
+	OptimizationRuntimeChunk,
+	OutputModule,
+	ParserOptionsByModuleType,
+	Path,
+	Performance,
+	Plugins,
+	Profile,
+	PublicPath,
+	Resolve,
+	RspackFutureOptions,
+	RspackOptions,
+	RuleSetRules,
+	ScriptType,
+	SnapshotOptions,
+	SourceMapFilename,
+	StatsValue,
+	StrictModuleErrorHandling,
+	Target,
+	TrustedTypes,
+	UniqueName,
+	WasmLoading,
+	Watch,
+	WatchOptions,
+	WebassemblyModuleFilename,
+	WorkerPublicPath
 } from "./zod";
 
 export const getNormalizedRspackOptions = (
@@ -293,6 +295,7 @@ export const getNormalizedRspackOptions = (
 				)
 			};
 		}),
+		performance: config.performance,
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
 			...experiments
@@ -499,7 +502,6 @@ export interface ExperimentsNormalized {
 	lazyCompilation?: boolean;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
-	newSplitChunks?: boolean;
 	topLevelAwait?: boolean;
 	css?: boolean;
 	futureDefaults?: boolean;
@@ -544,6 +546,7 @@ export interface RspackOptionsNormalized {
 	watchOptions: WatchOptions;
 	devServer?: DevServer;
 	ignoreWarnings?: IgnoreWarningsNormalized;
+	performance?: Performance;
 	profile?: Profile;
 	bail?: Bail;
 	builtins: Builtins;

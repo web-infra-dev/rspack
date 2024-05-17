@@ -2,9 +2,10 @@ import {
 	BuiltinPluginName,
 	RawDynamicEntryPluginOptions
 } from "@rspack/binding";
-import { create } from "./base";
+
 import { EntryDynamicNormalized } from "../config";
 import EntryOptionPlugin from "../lib/EntryOptionPlugin";
+import { create } from "./base";
 import { getRawEntryOptions } from "./EntryPlugin";
 
 export const DynamicEntryPlugin = create(

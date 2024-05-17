@@ -1,79 +1,80 @@
 import type {
-	RawModuleRule,
-	RawOptions,
-	RawRuleSetCondition,
-	RawRuleSetLogicalConditions,
-	RawGeneratorOptions,
 	RawAssetGeneratorOptions,
-	RawParserOptions,
-	RawAssetParserOptions,
-	RawAssetParserDataUrl,
 	RawAssetInlineGeneratorOptions,
+	RawAssetParserDataUrl,
+	RawAssetParserOptions,
 	RawAssetResourceGeneratorOptions,
-	RawModuleRuleUses,
+	RawCssAutoGeneratorOptions,
+	RawCssAutoParserOptions,
+	RawCssGeneratorOptions,
+	RawCssModuleGeneratorOptions,
+	RawCssModuleParserOptions,
+	RawCssParserOptions,
 	RawFuncUseCtx,
-	RawRspackFuture,
+	RawGeneratorOptions,
+	RawJavascriptParserOptions,
 	RawLibraryName,
 	RawLibraryOptions,
+	RawModuleRule,
 	RawModuleRuleUse,
-	RawCssParserOptions,
-	RawCssAutoParserOptions,
-	RawCssModuleParserOptions,
-	RawCssGeneratorOptions,
-	RawCssAutoGeneratorOptions,
-	RawCssModuleGeneratorOptions,
-	RawJavascriptParserOptions
+	RawModuleRuleUses,
+	RawOptions,
+	RawParserOptions,
+	RawRspackFuture,
+	RawRuleSetCondition,
+	RawRuleSetLogicalConditions
 } from "@rspack/binding";
 import assert from "assert";
+
 import { Compiler } from "../Compiler";
 import { normalizeStatsPreset } from "../Stats";
 import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
 import {
 	ComposeJsUseOptions,
-	LoaderContext,
 	createRawModuleRuleUses,
+	LoaderContext,
 	LoaderDefinition,
 	LoaderDefinitionFunction
 } from "./adapterRuleUse";
-import {
-	CrossOriginLoading,
-	LibraryOptions,
-	Node,
-	Optimization,
-	Resolve,
-	RuleSetCondition,
-	RuleSetLogicalConditions,
-	RuleSetRule,
-	SnapshotOptions,
-	StatsValue,
-	Target,
-	AssetGeneratorDataUrl,
-	AssetGeneratorOptions,
-	AssetInlineGeneratorOptions,
-	AssetResourceGeneratorOptions,
-	AssetParserDataUrl,
-	AssetParserOptions,
-	ParserOptionsByModuleType,
-	GeneratorOptionsByModuleType,
-	RspackFutureOptions,
-	JavascriptParserOptions,
-	LibraryName,
-	EntryRuntime,
-	ChunkLoading,
-	CssParserOptions,
-	CssAutoParserOptions,
-	CssModuleParserOptions,
-	CssGeneratorOptions,
-	CssAutoGeneratorOptions,
-	CssModuleGeneratorOptions
-} from "./zod";
 import {
 	ExperimentsNormalized,
 	ModuleOptionsNormalized,
 	OutputNormalized,
 	RspackOptionsNormalized
 } from "./normalization";
+import {
+	AssetGeneratorDataUrl,
+	AssetGeneratorOptions,
+	AssetInlineGeneratorOptions,
+	AssetParserDataUrl,
+	AssetParserOptions,
+	AssetResourceGeneratorOptions,
+	ChunkLoading,
+	CrossOriginLoading,
+	CssAutoGeneratorOptions,
+	CssAutoParserOptions,
+	CssGeneratorOptions,
+	CssModuleGeneratorOptions,
+	CssModuleParserOptions,
+	CssParserOptions,
+	EntryRuntime,
+	GeneratorOptionsByModuleType,
+	JavascriptParserOptions,
+	LibraryName,
+	LibraryOptions,
+	Node,
+	Optimization,
+	ParserOptionsByModuleType,
+	Resolve,
+	RspackFutureOptions,
+	RuleSetCondition,
+	RuleSetLogicalConditions,
+	RuleSetRule,
+	SnapshotOptions,
+	StatsValue,
+	Target
+} from "./zod";
 
 export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
 
@@ -764,8 +765,8 @@ function getRawCssGeneratorOptions(
 	options: CssGeneratorOptions
 ): RawCssGeneratorOptions {
 	return {
-		exportsConvention: options.exportsConvention,
-		exportsOnly: options.exportsOnly
+		exportsOnly: options.exportsOnly,
+		esModule: options.esModule
 	};
 }
 
@@ -775,7 +776,8 @@ function getRawCssAutoOrModuleGeneratorOptions(
 	return {
 		localIdentName: options.localIdentName,
 		exportsConvention: options.exportsConvention,
-		exportsOnly: options.exportsOnly
+		exportsOnly: options.exportsOnly,
+		esModule: options.esModule
 	};
 }
 
@@ -830,13 +832,10 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
-	const { newSplitChunks, topLevelAwait, rspackFuture } = experiments;
-	assert(
-		!isNil(newSplitChunks) && !isNil(topLevelAwait) && !isNil(rspackFuture)
-	);
+	const { topLevelAwait, rspackFuture } = experiments;
+	assert(!isNil(topLevelAwait) && !isNil(rspackFuture));
 
 	return {
-		newSplitChunks,
 		topLevelAwait,
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
 	};

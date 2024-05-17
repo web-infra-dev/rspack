@@ -1,12 +1,13 @@
 mod clean_isolated_module;
+mod fix_build_meta;
 mod fix_issuers;
 mod has_module_graph_change;
 
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{
-  clean_isolated_module::CleanIsolatedModule, fix_issuers::FixIssuers,
-  has_module_graph_change::HasModuleGraphChange,
+  clean_isolated_module::CleanIsolatedModule, fix_build_meta::FixBuildMeta,
+  fix_issuers::FixIssuers, has_module_graph_change::HasModuleGraphChange,
 };
 use super::{MakeArtifact, MakeParam};
 use crate::BuildDependency;
@@ -14,6 +15,7 @@ use crate::BuildDependency;
 #[derive(Debug, Default)]
 pub struct Cutout {
   fix_issuers: FixIssuers,
+  fix_build_meta: FixBuildMeta,
   clean_isolated_module: CleanIsolatedModule,
   has_module_graph_change: HasModuleGraphChange,
 }
@@ -84,6 +86,9 @@ impl Cutout {
         .fix_issuers
         .analyze_force_build_module(artifact, module_identifier);
       self
+        .fix_build_meta
+        .analyze_force_build_module(artifact, module_identifier);
+      self
         .clean_isolated_module
         .analyze_force_build_module(artifact, module_identifier);
       self
@@ -91,13 +96,8 @@ impl Cutout {
         .analyze_force_build_module(artifact, module_identifier);
     }
 
-    let mut module_graph = artifact.get_module_graph_mut();
     // do revoke module and collect deps
-    force_build_deps.extend(
-      force_build_modules
-        .iter()
-        .flat_map(|id| module_graph.revoke_module(id)),
-    );
+    force_build_deps.extend(artifact.revoke_modules(force_build_modules));
 
     if !next_entry_deps.is_empty() {
       let mut old_entry_deps = std::mem::take(&mut artifact.entry_dependencies);
@@ -128,10 +128,12 @@ impl Cutout {
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
     let Self {
       fix_issuers,
+      fix_build_meta,
       clean_isolated_module,
       has_module_graph_change,
     } = self;
     fix_issuers.fix_artifact(artifact);
+    fix_build_meta.fix_artifact(artifact);
     clean_isolated_module.fix_artifact(artifact);
     has_module_graph_change.fix_artifact(artifact);
   }

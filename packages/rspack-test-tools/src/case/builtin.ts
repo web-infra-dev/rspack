@@ -1,9 +1,10 @@
+import path from "path";
+
 import {
 	IRspackBuiltinProcessorOptions,
 	RspackBuiltinProcessor
 } from "../processor";
 import { BasicCaseCreator } from "../test/creator";
-import path from "path";
 
 const FILTERS: Record<
 	string,

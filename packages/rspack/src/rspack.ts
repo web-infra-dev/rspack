@@ -7,28 +7,28 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import {
-	getNormalizedRspackOptions,
-	RspackOptions,
-	applyRspackOptionsBaseDefaults,
-	applyRspackOptionsDefaults,
-	RspackPluginFunction,
-	rspackOptions
-} from "./config";
-import { Compiler } from "./Compiler";
-import { Stats } from "./Stats";
+import assert from "assert";
+import { Callback } from "tapable";
 import util from "util";
 
-import { RspackOptionsApply } from "./rspackOptionsApply";
-import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
+import { Compiler } from "./Compiler";
+import {
+	applyRspackOptionsBaseDefaults,
+	applyRspackOptionsDefaults,
+	getNormalizedRspackOptions,
+	RspackOptions,
+	rspackOptions,
+	RspackPluginFunction
+} from "./config";
 import {
 	MultiCompiler,
 	MultiCompilerOptions,
 	MultiRspackOptions
 } from "./MultiCompiler";
-import { Callback } from "tapable";
 import MultiStats from "./MultiStats";
-import assert from "assert";
+import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
+import { RspackOptionsApply } from "./rspackOptionsApply";
+import { Stats } from "./Stats";
 import { asArray, isNil } from "./util";
 import { validate } from "./util/validate";
 
@@ -157,5 +157,5 @@ function rspack(
 }
 
 // deliberately alias rspack as webpack
-export { rspack, createCompiler, createMultiCompiler, Stats, MultiStats };
+export { createCompiler, createMultiCompiler, MultiStats, rspack, Stats };
 export default rspack;

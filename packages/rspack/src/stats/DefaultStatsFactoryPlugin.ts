@@ -7,40 +7,40 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import { compareSelect, compareIds as _compareIds } from "../util/comparators";
-import { makePathsRelative } from "../util/identifier";
 import * as util from "node:util";
+
 import type { Compiler } from "../Compiler";
 import type { StatsOptions } from "../config";
-import type { GroupConfig } from "../util/smartGrouping";
-
-import type { StatsFactory, KnownStatsFactoryContext } from "./StatsFactory";
 import {
-	iterateConfig,
-	spaceLimited,
-	moduleGroup,
-	countWithChildren,
-	sortByField,
-	assetGroup,
-	resolveStatsMillisecond
-} from "./statsFactoryUtils";
+	getLogTypeBitFlag,
+	getLogTypesBitFlag,
+	LogType,
+	LogTypeEnum
+} from "../logging/Logger";
+import { compareIds as _compareIds, compareSelect } from "../util/comparators";
+import { makePathsRelative } from "../util/identifier";
+import type { GroupConfig } from "../util/smartGrouping";
+import type { KnownStatsFactoryContext, StatsFactory } from "./StatsFactory";
 import type {
 	KnownStatsAsset,
-	KnownStatsModule,
 	KnownStatsChunkGroup,
+	KnownStatsLoggingEntry,
+	KnownStatsModule,
+	NormalizedStatsOptions,
 	SimpleExtractors,
 	StatsAsset,
 	StatsChunk,
-	NormalizedStatsOptions,
-	KnownStatsLoggingEntry,
 	StatsProfile
 } from "./statsFactoryUtils";
 import {
-	LogType,
-	getLogTypesBitFlag,
-	getLogTypeBitFlag,
-	LogTypeEnum
-} from "../logging/Logger";
+	assetGroup,
+	countWithChildren,
+	iterateConfig,
+	moduleGroup,
+	resolveStatsMillisecond,
+	sortByField,
+	spaceLimited
+} from "./statsFactoryUtils";
 
 const compareIds = _compareIds as <T>(a: T, b: T) => -1 | 0 | 1;
 const GROUP_EXTENSION_REGEXP = /(\.[^.]+?)(?:\?|(?: \+ \d+ modules?)?$)/;

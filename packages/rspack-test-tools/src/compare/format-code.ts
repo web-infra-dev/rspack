@@ -1,7 +1,8 @@
-import { parse } from "@babel/parser";
 import generate from "@babel/generator";
+import { parse } from "@babel/parser";
 import traverse, { NodePath } from "@babel/traverse";
 import * as T from "@babel/types";
+
 import { replaceModuleArgument } from "./replace-module-argument";
 
 export interface IFormatCodeOptions {
