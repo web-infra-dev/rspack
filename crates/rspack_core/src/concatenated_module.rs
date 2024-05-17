@@ -780,7 +780,7 @@ impl Module for ConcatenatedModule {
           if let Some(namespace_object_name) = namespace_object_name {
             all_used_names.insert(namespace_object_name.clone());
             info.namespace_object_name = Some(namespace_object_name.clone());
-            top_level_declarations.insert(namespace_object_name.into());
+            top_level_declarations.insert(namespace_object_name);
           }
           // dbg!(info.module, &info.internal_names);
         }

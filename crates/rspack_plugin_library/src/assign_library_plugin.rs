@@ -314,7 +314,7 @@ impl JavascriptModulesPluginPlugin for AssignLibraryJavascriptModulesPluginPlugi
     };
     if self.options.declare
       || matches!(self.options.prefix, Prefix::Global)
-      || self.options.prefix.len() > 0
+      || !self.options.prefix.is_empty()
       || options.name.is_none()
     {
       return Ok(None);

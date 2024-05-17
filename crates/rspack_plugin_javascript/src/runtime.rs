@@ -10,7 +10,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{JsPlugin, RenderJsModuleContentArgs};
 
-pub fn render_chunk_modules<'a>(
+pub fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   ordered_modules: Vec<&BoxModule>,
@@ -24,7 +24,7 @@ pub fn render_chunk_modules<'a>(
       compilation.options.is_new_tree_shaking() || include_module_ids.contains(&module.identifier())
     })
     .filter_map(|module| {
-      render_module(compilation, chunk_ukey, &module, all_strict, true)
+      render_module(compilation, chunk_ukey, module, all_strict, true)
         .transpose()
         .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
     })
