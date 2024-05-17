@@ -42,6 +42,9 @@ on:
       runner: # Runner labels
         required: true
         type: string
+      test_runner: # Runner labels
+        required: false
+        type: string
       profile: # Rust profile, "debug" or "release"
         default: "release"
         required: false
@@ -230,7 +233,7 @@ jobs:
   test:
     needs: build
     if: inputs.test
-    runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
+    runs-on: ${{ inputs.test_runner || fromJSON(needs.build.outputs.runner-labels) }}
     timeout-minutes: 60
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
