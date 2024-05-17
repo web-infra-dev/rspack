@@ -15,6 +15,10 @@ use rspack_error::{error, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_plugin_javascript::ast::{self, SourceMapConfig};
 use rspack_plugin_javascript::TransformOutput;
+use rspack_plugin_rsc::{
+  export_visitor::ImportExportVisitor, has_client_directive::has_client_directive,
+  rsc_visitor::ReactServerComponentsVisitor, RSCAdditionalData,
+};
 use rspack_util::source_map::SourceMapKind;
 use swc_config::{config_types::MergingOption, merge::Merge};
 use swc_core::base::config::SourceMapsConfig;
@@ -128,7 +132,20 @@ impl SwcLoader {
       program.visit_with(&mut v);
       codegen_options.source_map_config.names = v.names;
     }
-    let ast = c.into_js_ast(program);
+    let mut ast = c.into_js_ast(program);
+    // TODO: enable with rspack_experiments
+    ast.transform(|program, _context| {
+      let mut rsc_visitor = ReactServerComponentsVisitor::new();
+      program.visit_with(&mut rsc_visitor);
+      if has_client_directive(&rsc_visitor.directives) {
+        let mut export_visitor: ImportExportVisitor = ImportExportVisitor::new();
+        program.visit_with(&mut export_visitor);
+        loader_context.additional_data.insert(RSCAdditionalData {
+          directives: rsc_visitor.directives,
+          exports: export_visitor.exports,
+        });
+      }
+    });
     let TransformOutput { code, map } = ast::stringify(&ast, codegen_options)?;
     loader_context.finish_with((code, map));
 

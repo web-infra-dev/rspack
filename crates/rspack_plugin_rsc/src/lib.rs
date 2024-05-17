@@ -5,5 +5,10 @@
 #![recursion_limit = "256"]
 
 mod plugin;
+pub use crate::loader::*;
 pub use crate::plugin::*;
+pub use crate::utils::{
+  decl::RSCAdditionalData, export_visitor, has_client_directive, rsc_visitor,
+};
+mod loader;
 mod utils;

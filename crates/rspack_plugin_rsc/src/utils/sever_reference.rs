@@ -5,8 +5,8 @@ use rspack_core::{Compilation, ExportInfoProvided};
 use rspack_error::Result;
 use rspack_hook::plugin;
 
+use crate::utils::decl::{ServerRef, ServerReferenceManifest};
 use crate::utils::has_client_directive;
-use crate::utils::reference_manifest::{ServerRef, ServerReferenceManifest};
 use crate::utils::shared_data::{SHARED_CLIENT_IMPORTS, SHARED_DATA};
 
 #[plugin]

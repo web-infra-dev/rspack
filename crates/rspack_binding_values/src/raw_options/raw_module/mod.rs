@@ -20,6 +20,8 @@ use rspack_core::{
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
+use rspack_plugin_rsc::RSC_PROXY_LOADER_IDENTIFIER;
+use tokio::runtime::Handle;
 
 use crate::RawResolveOptions;
 use crate::{JsFilename, JsModuleWrapper};

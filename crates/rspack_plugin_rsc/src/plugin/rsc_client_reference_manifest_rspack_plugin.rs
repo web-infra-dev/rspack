@@ -13,10 +13,8 @@ use rspack_util::path::relative;
 use serde_json::to_string;
 use sugar_path::SugarPath;
 
+use crate::utils::decl::{ClientRef, ClientReferenceManifest, ServerRef, ServerReferenceManifest};
 use crate::utils::has_client_directive;
-use crate::utils::reference_manifest::{
-  ClientRef, ClientReferenceManifest, ServerRef, ServerReferenceManifest,
-};
 use crate::utils::shared_data::{SHARED_CLIENT_IMPORTS, SHARED_DATA};
 
 #[plugin]
