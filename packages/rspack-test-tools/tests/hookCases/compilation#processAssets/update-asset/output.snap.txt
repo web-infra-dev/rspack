@@ -1,12 +1,13 @@
-```js title=main.cb18450578c7263b2f4e.js
+```js title=main.765bbb126ec08e4da973.js
 // UPDATED
-(function() {
-var __webpack_modules__ = {
+(function() { // webpackBootstrap
+var __webpack_modules__ = ({
 "600": (function (module) {
 module.exports = "This is hook";
 }),
 
-}
+});
+/************************************************************************/
 // The module cache
 var __webpack_module_cache__ = {};
 
@@ -24,12 +25,16 @@ exports: {}
 });
 // Execute the module function
 __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
 // Return the exports of the module
 return module.exports;
 
 }
+
+/************************************************************************/
 // startup
 // Load entry module and return exports
+// This entry module is referenced by other modules so it can't be inlined
 var __webpack_exports__ = __webpack_require__("600");
 })()
 

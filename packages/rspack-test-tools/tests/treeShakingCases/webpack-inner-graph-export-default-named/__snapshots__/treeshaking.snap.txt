@@ -1,7 +1,7 @@
 ```js title=main.js
+"use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return abc; }
 });
@@ -12,7 +12,6 @@ function abc() {
 }
 }),
 "./b.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _dep_b__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dep.js?b");
 
 function abc() {
@@ -20,7 +19,6 @@ function abc() {
 }
 }),
 "./c.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _dep_c__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dep.js?c");
 
 function abc() {
@@ -29,7 +27,6 @@ function abc() {
 abc();
 }),
 "./d.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return def; }
 });
@@ -42,7 +39,6 @@ class def {
 }
 }),
 "./dep.js?a": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.d(__webpack_exports__, {
   x: function() { return x; }
 });
@@ -50,12 +46,10 @@ const x = "x";
 /* harmony default export */ __webpack_exports__["default"] = (true);
 }),
 "./dep.js?b": (function (__unused_webpack_module, __webpack_exports__) {
-"use strict";
 const x = "x";
 /* harmony default export */ __webpack_exports__["default"] = (false);
 }),
 "./dep.js?c": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.d(__webpack_exports__, {
   x: function() { return x; }
 });
@@ -63,7 +57,6 @@ const x = "x";
 /* harmony default export */ __webpack_exports__["default"] = (true);
 }),
 "./dep.js?d": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.d(__webpack_exports__, {
   x: function() { return x; }
 });
@@ -71,12 +64,10 @@ const x = "x";
 /* harmony default export */ __webpack_exports__["default"] = (true);
 }),
 "./dep.js?e": (function (__unused_webpack_module, __webpack_exports__) {
-"use strict";
 const x = "x";
 /* harmony default export */ __webpack_exports__["default"] = (false);
 }),
 "./dep.js?f": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.d(__webpack_exports__, {
   x: function() { return x; }
 });
@@ -84,7 +75,6 @@ const x = "x";
 /* harmony default export */ __webpack_exports__["default"] = (true);
 }),
 "./e.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _dep_e__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dep.js?e");
 
 class def {
@@ -94,7 +84,6 @@ class def {
 }
 }),
 "./f.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _dep_f__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dep.js?f");
 
 class def {
@@ -105,7 +94,6 @@ class def {
 new def().method();
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
 /* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./b.js");
 /* harmony import */var _c__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("./c.js");

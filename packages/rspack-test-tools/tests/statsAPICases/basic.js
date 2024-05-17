@@ -25,16 +25,18 @@ module.exports = {
 		chunk {909} main.js (main) [entry]
 		  ./fixtures/a.js [585] {909}
 		    [no exports]
-		    [no exports used]
+		    [used exports unknown]
 		    Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2
 		    entry ./fixtures/a
+		    cjs self exports reference self [585]
 		./fixtures/a.js [585] {909}
 		  [no exports]
-		  [no exports used]
+		  [used exports unknown]
 		  Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2
 		  entry ./fixtures/a
+		  cjs self exports reference self [585]
 		  
-		Rspack compiled successfully (bca12e9a78756a7efe53)"
+		Rspack compiled successfully (d64955662040c788c943)"
 	`);
 	}
 };

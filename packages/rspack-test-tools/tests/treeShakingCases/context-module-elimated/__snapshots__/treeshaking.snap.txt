@@ -1,7 +1,7 @@
 ```js title=main.js
+"use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function () {
-"use strict";
 
 function test() {
     a;

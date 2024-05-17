@@ -1,7 +1,7 @@
 ```js title=dynamic-1_js-_1d740.js
+"use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["dynamic-1_js-_1d740"], {
 "./dynamic-1.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
@@ -32,9 +32,9 @@ console.log("shared");
 ```
 
 ```js title=dynamic-2_js-_15a90.js
+"use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["dynamic-2_js-_15a90"], {
 "./dynamic-2.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);

@@ -24,36 +24,32 @@
 ```
 
 ```js title=main.js
+"use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _style_module_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.module.css");
 
 }),
 "./b.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
-"use strict";
 __webpack_require__.r(module.exports = {
   "b-1": "___b_module____b-1--___eca6dd2253f6b569_eca",
   "b": "___b_module____b--___eca6dd2253f6b569_eca" + " " + "___b_module____b-1--___eca6dd2253f6b569_eca",
 });
 }),
 "./d.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
-"use strict";
 __webpack_require__.r(module.exports = {
   "d-1": "___d_module____d-1--___a41e34edaa1ca3c_a41",
   "d": "___d_module____d--___a41e34edaa1ca3c_a41" + " " + "___d_module____d-1--___a41e34edaa1ca3c_a41",
 });
 }),
 "./f.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
-"use strict";
 __webpack_require__.r(module.exports = {
   "f-1": "___f_module____f-1--___af10a85c64a6b515_af1",
   "f": "___f_module____f--___af10a85c64a6b515_af1" + " " + "___f_module____f-1--___af10a85c64a6b515_af1",
 });
 }),
 "./style.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
-"use strict";
 __webpack_require__.r(module.exports = {
   "chain2": "___style_module____chain2--___afc435275e612570_afc" + " " + "e" + " " + __webpack_require__("./f.module.css")["f"],
   "chain1": "___style_module____chain1--___afc435275e612570_afc" + " " + "___style_module____chain2--___afc435275e612570_afc" + " " + "c" + " " + __webpack_require__("./d.module.css")["d"] + " " + "e" + " " + __webpack_require__("./f.module.css")["f"],
