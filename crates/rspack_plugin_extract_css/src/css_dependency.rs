@@ -10,23 +10,26 @@ use crate::css_module::DEPENDENCY_TYPE;
 
 #[derive(Debug, Clone)]
 pub struct CssDependency {
-  pub id: DependencyId,
-  pub identifier: String,
-  pub content: String,
-  pub context: String,
-  pub media: String,
-  pub supports: String,
-  pub source_map: String,
+  pub(crate) id: DependencyId,
+  pub(crate) identifier: String,
+  pub(crate) content: String,
+  pub(crate) context: String,
+  pub(crate) media: String,
+  pub(crate) supports: String,
+  pub(crate) source_map: String,
 
   // One module can be split apart by using `@import` in the middle of one module
-  pub identifier_index: u32,
+  pub(crate) identifier_index: u32,
 
   // determine module's postOrderIndex
-  pub order_index: u32,
+  pub(crate) order_index: u32,
 
   resource_identifier: String,
 
-  pub filepath: PathBuf,
+  pub(crate) file_dependencies: FxHashSet<PathBuf>,
+  pub(crate) context_dependencies: FxHashSet<PathBuf>,
+  pub(crate) missing_dependencies: FxHashSet<PathBuf>,
+  pub(crate) build_dependencies: FxHashSet<PathBuf>,
 }
 
 impl CssDependency {
@@ -40,7 +43,10 @@ impl CssDependency {
     source_map: String,
     identifier_index: u32,
     order_index: u32,
-    filepath: PathBuf,
+    file_dependencies: FxHashSet<PathBuf>,
+    context_dependencies: FxHashSet<PathBuf>,
+    missing_dependencies: FxHashSet<PathBuf>,
+    build_dependencies: FxHashSet<PathBuf>,
   ) -> Self {
     let resource_identifier = format!("css-module-{}-{}", &identifier, identifier_index);
     Self {
@@ -54,7 +60,10 @@ impl CssDependency {
       identifier_index,
       order_index,
       resource_identifier,
-      filepath,
+      file_dependencies,
+      context_dependencies,
+      missing_dependencies,
+      build_dependencies,
     }
   }
 }

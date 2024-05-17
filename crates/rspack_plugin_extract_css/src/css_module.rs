@@ -40,7 +40,11 @@ pub(crate) struct CssModule {
   dependencies: Vec<DependencyId>,
 
   identifier__: Identifier,
-  filepath: PathBuf,
+
+  file_dependencies: FxHashSet<PathBuf>,
+  context_dependencies: FxHashSet<PathBuf>,
+  missing_dependencies: FxHashSet<PathBuf>,
+  build_dependencies: FxHashSet<PathBuf>,
 }
 
 impl Hash for CssModule {
@@ -80,7 +84,10 @@ impl CssModule {
       build_meta: None,
       source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
       identifier__,
-      filepath: dep.filepath,
+      file_dependencies: dep.file_dependencies,
+      context_dependencies: dep.context_dependencies,
+      missing_dependencies: dep.missing_dependencies,
+      build_dependencies: dep.build_dependencies,
     }
   }
 
@@ -150,13 +157,13 @@ impl Module for CssModule {
     build_context: BuildContext<'_>,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut file_deps = FxHashSet::default();
-    file_deps.insert(self.filepath.clone());
-
     Ok(BuildResult {
       build_info: BuildInfo {
         hash: Some(self.compute_hash(build_context.compiler_options)),
-        file_dependencies: file_deps,
+        file_dependencies: self.file_dependencies.clone(),
+        context_dependencies: self.context_dependencies.clone(),
+        missing_dependencies: self.missing_dependencies.clone(),
+        build_dependencies: self.build_dependencies.clone(),
         ..Default::default()
       },
       ..Default::default()
