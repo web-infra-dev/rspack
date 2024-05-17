@@ -52,6 +52,7 @@ impl ModuleExecutor {
       let modules = std::mem::take(&mut make_artifact.make_failed_module);
       params.push(MakeParam::ForceBuildModules(modules));
     }
+    make_artifact.diagnostics = Default::default();
 
     make_artifact =
       if let Ok(artifact) = update_module_graph_with_artifact(compilation, make_artifact, params) {

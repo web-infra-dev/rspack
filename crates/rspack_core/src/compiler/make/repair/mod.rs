@@ -67,10 +67,10 @@ impl MakeTaskContext {
       //      factorize_timer: logger.time_aggregate("module factorize task"),
       //      build_timer: logger.time_aggregate("module build task"),
       module_graph_partial: artifact.module_graph_partial,
-      // ignore make_failed_xxx and diagnostics
-      make_failed_dependencies: Default::default(),
-      make_failed_module: Default::default(),
-      diagnostics: Default::default(),
+
+      make_failed_dependencies: artifact.make_failed_dependencies,
+      make_failed_module: artifact.make_failed_module,
+      diagnostics: artifact.diagnostics,
 
       entry_dependencies: artifact.entry_dependencies,
       entry_module_identifiers: artifact.entry_module_identifiers,
