@@ -108,7 +108,7 @@ jobs:
     with:
       target: x86_64-apple-darwin
       profile: "debug"
-      runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+      runner: '["self-hosted","macOS","ci","ve-macos"]'
       test_runner: macos-latest-large
       skipable: ${{ needs.check-changed.outputs.changed  != 'true' }}
 
