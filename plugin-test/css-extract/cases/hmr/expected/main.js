@@ -1,5 +1,5 @@
-(function() {
-var __webpack_modules__ = {
+(() => { // webpackBootstrap
+var __webpack_modules__ = ({
 "../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js": (function (module, __unused_webpack_exports, __webpack_require__) {
 "use strict";
 /* eslint-env browser */ /*
@@ -222,7 +222,8 @@ if (true) {
 }
 }),
 
-}
+});
+/************************************************************************/
 // The module cache
 var __webpack_module_cache__ = {};
 
@@ -232,7 +233,8 @@ function __webpack_require__(moduleId) {
 // Check if module is in cache
 var cachedModule = __webpack_module_cache__[moduleId];
 if (cachedModule !== undefined) {
-if (cachedModule.error !== undefined) throw cachedModule.error;return cachedModule.exports;
+if (cachedModule.error !== undefined) throw cachedModule.error;
+return cachedModule.exports;
 }
 // Create a new module (and put it into the cache)
 var module = (__webpack_module_cache__[moduleId] = {
@@ -241,6 +243,7 @@ exports: {}
 });
 // Execute the module function
 try {
+
 var execOptions = { id: moduleId, module: module, factory: __webpack_modules__[moduleId], require: __webpack_require__ };
 __webpack_require__.i.forEach(function(handler) { handler(execOptions); });
 module = execOptions.module;
@@ -248,8 +251,12 @@ if (!execOptions.factory) {
   console.error("undefined factory", moduleId)
 }
 execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
-} catch (e) {module.error = e;
-throw e;}// Return the exports of the module
+
+} catch (e) {
+module.error = e;
+throw e;
+}
+// Return the exports of the module
 return module.exports;
 
 }
@@ -262,8 +269,10 @@ __webpack_require__.c = __webpack_module_cache__;
 
 // expose the module execution interceptor
 __webpack_require__.i = [];
+
+/************************************************************************/
 // webpack/runtime/get mini-css chunk filename
-!function() {
+(() => {
 // This function allow to reference chunks
         __webpack_require__.miniCssF = function (chunkId) {
           // return url for filenames not based on template
@@ -272,28 +281,28 @@ __webpack_require__.i = [];
           return "" + chunkId + ".css";
         };
       
-}();
+})();
 // webpack/runtime/get_chunk_update_filename
-!function() {
+(() => {
 __webpack_require__.hu = function (chunkId) {
             return '' + chunkId + '.' + __webpack_require__.h() + '.hot-update.js';
          };
         
-}();
+})();
 // webpack/runtime/get_full_hash
-!function() {
+(() => {
 __webpack_require__.h = function () { return "xxxxxxxxxxxxxxxxxxxxxx" }
 
-}();
+})();
 // webpack/runtime/get_main_filename/update manifest
-!function() {
+(() => {
 __webpack_require__.hmrF = function () {
             return "main." + __webpack_require__.h() + ".hot-update.json";
          };
         
-}();
+})();
 // webpack/runtime/global
-!function() {
+(() => {
 __webpack_require__.g = (function () {
 	if (typeof globalThis === 'object') return globalThis;
 	try {
@@ -303,16 +312,16 @@ __webpack_require__.g = (function () {
 	}
 })();
 
-}();
+})();
 // webpack/runtime/has_own_property
-!function() {
+(() => {
 __webpack_require__.o = function (obj, prop) {
 	return Object.prototype.hasOwnProperty.call(obj, prop);
 };
 
-}();
+})();
 // webpack/runtime/hot_module_replacement
-!function() {
+(() => {
 var currentModuleData = {};
 var installedModules = __webpack_require__.c;
 
@@ -677,9 +686,9 @@ function applyInvalidatedModules() {
 	}
 }
 
-}();
+})();
 // webpack/runtime/load_script
-!function() {
+(() => {
 var inProgress = {};
 
 
@@ -739,9 +748,9 @@ __webpack_require__.l = function (url, done, key, chunkId) {
 	needAttach && document.head.appendChild(script);
 };
 
-}();
+})();
 // webpack/runtime/make_namespace_object
-!function() {
+(() => {
 // define __esModule on exports
 __webpack_require__.r = function(exports) {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
@@ -750,9 +759,9 @@ __webpack_require__.r = function(exports) {
 	Object.defineProperty(exports, '__esModule', { value: true });
 };
 
-}();
+})();
 // webpack/runtime/auto_public_path
-!function() {
+(() => {
 
     var scriptUrl;
     if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
@@ -774,9 +783,9 @@ __webpack_require__.r = function(exports) {
     scriptUrl = scriptUrl.replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
     __webpack_require__.p = scriptUrl
     
-}();
+})();
 // webpack/runtime/css loading
-!function() {
+(() => {
 if (typeof document === "undefined") return;
 var createStylesheet = function (
 	chunkId, fullhref, oldTag, resolve, reject
@@ -881,9 +890,9 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 }
 
 
-}();
+})();
 // webpack/runtime/jsonp_chunk_loading
-!function() {
+(() => {
 
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
@@ -1387,9 +1396,11 @@ __webpack_require__.hmrM = function () {
 	);
 };
 
-}();
+})();
+/************************************************************************/
 // module cache are used so entry inlining is disabled
 // startup
 // Load entry module and return exports
 var __webpack_exports__ = __webpack_require__("./index.css?6fbf");
 })()
+;

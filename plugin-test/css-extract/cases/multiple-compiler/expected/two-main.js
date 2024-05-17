@@ -1,19 +1,14 @@
-(function() {
-var __webpack_modules__ = {
-"./style.css?b16f": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+(() => { // webpackBootstrap
 "use strict";
+var __webpack_modules__ = ({
+"./style.css?b16f": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
 }),
-"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?b16f");
 
-}),
-
-}
+});
+/************************************************************************/
 // The module cache
 var __webpack_module_cache__ = {};
 
@@ -31,12 +26,15 @@ exports: {}
 });
 // Execute the module function
 __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
 // Return the exports of the module
 return module.exports;
 
 }
+
+/************************************************************************/
 // webpack/runtime/make_namespace_object
-!function() {
+(() => {
 // define __esModule on exports
 __webpack_require__.r = function(exports) {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
@@ -45,8 +43,16 @@ __webpack_require__.r = function(exports) {
 	Object.defineProperty(exports, '__esModule', { value: true });
 };
 
-}();
-// startup
-// Load entry module and return exports
-var __webpack_exports__ = __webpack_require__("./index.js");
+})();
+/************************************************************************/
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+(() => {
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?b16f");
+
+
+})();
+
 })()
+;

@@ -1,7 +1,7 @@
-(function() {
-var __webpack_modules__ = {
-
-}
+(() => { // webpackBootstrap
+"use strict";
+var __webpack_modules__ = ({});
+/************************************************************************/
 // The module cache
 var __webpack_module_cache__ = {};
 
@@ -19,6 +19,7 @@ exports: {}
 });
 // Execute the module function
 __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
 // Return the exports of the module
 return module.exports;
 
@@ -26,8 +27,10 @@ return module.exports;
 
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
+
+/************************************************************************/
 // webpack/runtime/create_fake_namespace_object
-!function() {
+(() => {
 var getProto = Object.getPrototypeOf ? function(obj) { return Object.getPrototypeOf(obj); } : function(obj) { return obj.__proto__ };
 var leafPrototypes;
 // create a fake namespace object
@@ -54,9 +57,9 @@ __webpack_require__.t = function(value, mode) {
 	__webpack_require__.d(ns, def);
 	return ns;
 };
-}();
+})();
 // webpack/runtime/define_property_getters
-!function() {
+(() => {
 __webpack_require__.d = function(exports, definition) {
 	for(var key in definition) {
         if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
@@ -64,9 +67,9 @@ __webpack_require__.d = function(exports, definition) {
         }
     }
 };
-}();
+})();
 // webpack/runtime/ensure_chunk
-!function() {
+(() => {
 __webpack_require__.f = {};
 // This file contains only the entry chunk.
 // The chunk loading function for additional chunks
@@ -79,9 +82,9 @@ __webpack_require__.e = function (chunkId) {
 	);
 };
 
-}();
+})();
 // webpack/runtime/get javascript chunk filename
-!function() {
+(() => {
 // This function allow to reference chunks
         __webpack_require__.u = function (chunkId) {
           // return url for filenames not based on template
@@ -90,9 +93,9 @@ __webpack_require__.e = function (chunkId) {
           return "" + chunkId + ".js";
         };
       
-}();
+})();
 // webpack/runtime/global
-!function() {
+(() => {
 __webpack_require__.g = (function () {
 	if (typeof globalThis === 'object') return globalThis;
 	try {
@@ -102,16 +105,16 @@ __webpack_require__.g = (function () {
 	}
 })();
 
-}();
+})();
 // webpack/runtime/has_own_property
-!function() {
+(() => {
 __webpack_require__.o = function (obj, prop) {
 	return Object.prototype.hasOwnProperty.call(obj, prop);
 };
 
-}();
+})();
 // webpack/runtime/load_script
-!function() {
+(() => {
 var inProgress = {};
 
 
@@ -171,9 +174,9 @@ __webpack_require__.l = function (url, done, key, chunkId) {
 	needAttach && document.head.appendChild(script);
 };
 
-}();
+})();
 // webpack/runtime/make_namespace_object
-!function() {
+(() => {
 // define __esModule on exports
 __webpack_require__.r = function(exports) {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
@@ -182,9 +185,9 @@ __webpack_require__.r = function(exports) {
 	Object.defineProperty(exports, '__esModule', { value: true });
 };
 
-}();
+})();
 // webpack/runtime/on_chunk_loaded
-!function() {
+(() => {
 var deferred = [];
 __webpack_require__.O = function (result, chunkIds, fn, priority) {
 	if (chunkIds) {
@@ -222,9 +225,9 @@ __webpack_require__.O = function (result, chunkIds, fn, priority) {
 	return result;
 };
 
-}();
+})();
 // webpack/runtime/auto_public_path
-!function() {
+(() => {
 
     var scriptUrl;
     if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
@@ -246,9 +249,9 @@ __webpack_require__.O = function (result, chunkIds, fn, priority) {
     scriptUrl = scriptUrl.replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
     __webpack_require__.p = scriptUrl
     
-}();
+})();
 // webpack/runtime/jsonp_chunk_loading
-!function() {
+(() => {
 
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
@@ -350,6 +353,7 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(
 	chunkLoadingGlobal.push.bind(chunkLoadingGlobal)
 );
 
-}();
-
+})();
+/************************************************************************/
 })()
+;
