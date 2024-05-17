@@ -12,8 +12,8 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use serde_json::to_string;
 
+use crate::utils::decl::ClientImports;
 use crate::utils::has_client_directive;
-use crate::utils::reference_manifest::ClientImports;
 use crate::utils::sever_reference::RSCServerReferenceManifest;
 use crate::utils::shared_data::SHARED_CLIENT_IMPORTS;
 
