@@ -21,7 +21,7 @@ pub use module_concatenation_plugin::*;
 use once_cell::sync::Lazy;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  basic_function, render_init_fragments, ChunkRenderContext, ChunkUkey,
+  basic_function, render_init_fragments, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ExportsArgument,
   RuntimeGlobals, SourceType,
 };
@@ -79,8 +79,7 @@ impl JsPlugin {
       indoc! {r#"
         // Check if module is in cache
         var cachedModule = __webpack_module_cache__[moduleId];
-        if (cachedModule !== undefined) {
-      "#}
+        if (cachedModule !== undefined) {"#}
       .into(),
     );
 
@@ -93,27 +92,20 @@ impl JsPlugin {
         return cachedModule.exports;
         }
         // Create a new module (and put it into the cache)
-        var module = (__webpack_module_cache__[moduleId] = {
-      "#}
+        var module = (__webpack_module_cache__[moduleId] = {"#}
       .into(),
     );
 
     if runtime_requirements.contains(RuntimeGlobals::MODULE_ID) {
-      sources.push("id: moduleId,\n".into());
+      sources.push("id: moduleId,".into());
     }
 
     if runtime_requirements.contains(RuntimeGlobals::MODULE_LOADED) {
-      sources.push("loaded: false,\n".into());
+      sources.push("loaded: false,".into());
     }
 
-    sources.push("exports: {}\n".into());
-    sources.push(
-      indoc! {r#"
-        });
-        // Execute the module function
-      "#}
-      .into(),
-    );
+    sources.push("exports: {}".into());
+    sources.push("});\n// Execute the module function".into());
 
     let module_execution = if runtime_requirements
       .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
@@ -479,6 +471,7 @@ impl JsPlugin {
     let runtime_requirements = compilation
       .chunk_graph
       .get_tree_runtime_requirements(chunk_ukey);
+    let mut chunk_init_fragments = ChunkInitFragments::default();
     let iife = compilation.options.output.iife;
     let mut all_strict = compilation.options.output.module;
     let RenderBootstrapResult {
@@ -504,7 +497,7 @@ impl JsPlugin {
     };
     let mut sources = ConcatSource::default();
     if iife {
-      sources.add(RawSource::from("(function() {// webpackBootstrap\n"));
+      sources.add(RawSource::from("(function() { // webpackBootstrap\n"));
     }
     if !all_strict
       && all_modules.iter().all(|m| {
@@ -520,17 +513,25 @@ impl JsPlugin {
     let chunk_modules = if let Some(inlined_modules) = inlined_modules {
       all_modules
         .into_iter()
-        .filter(|m| inlined_modules.contains_key(&m.identifier()))
+        .filter(|m| !inlined_modules.contains_key(&m.identifier()))
         .collect()
     } else {
       all_modules
     };
-    let (chunk_modules_source, mut chunk_init_fragments) =
+    let render_chunk_modules_result =
       render_chunk_modules(compilation, chunk_ukey, chunk_modules, all_strict)?;
-    if runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES)
+    if render_chunk_modules_result.is_some()
+      || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES)
       || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY)
       || runtime_requirements.contains(RuntimeGlobals::REQUIRE)
     {
+      let chunk_modules_source =
+        if let Some((chunk_modules_source, fragments)) = render_chunk_modules_result {
+          chunk_init_fragments.extend(fragments);
+          chunk_modules_source
+        } else {
+          RawSource::from("{}").boxed()
+        };
       sources.add(RawSource::from("var __webpack_modules__ = ("));
       sources.add(chunk_modules_source);
       sources.add(RawSource::from(");\n"));
@@ -571,7 +572,7 @@ impl JsPlugin {
           .module_by_identifier(m_identifier)
           .expect("should have module");
         let Some((rendered_module, fragments, additional_fragments)) =
-          render_module(compilation, chunk_ukey, m, all_strict)?
+          render_module(compilation, chunk_ukey, m, all_strict, false)?
         else {
           continue;
         };
@@ -638,15 +639,12 @@ impl JsPlugin {
       })? {
         sources.add(source);
       }
-    } else {
-    }
-    if has_entry_modules {
-      let last_entry_module = compilation
-        .chunk_graph
-        .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
-        .keys()
-        .last()
-        .expect("should have last entry module");
+    } else if let Some(last_entry_module) = compilation
+      .chunk_graph
+      .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
+      .keys()
+      .last()
+    {
       if let Some(source) = drive.render_startup(RenderJsStartupArgs {
         compilation,
         chunk: chunk_ukey,
@@ -656,7 +654,9 @@ impl JsPlugin {
         sources.add(source);
       }
     }
-    if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
+    if has_entry_modules
+      && runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME)
+    {
       sources.add(RawSource::from("return __webpack_exports__;\n"));
     }
     if iife {
@@ -691,6 +691,7 @@ impl JsPlugin {
       SourceType::JavaScript,
       module_graph,
     );
+    let mut header = "";
     if !all_strict
       && chunk_modules.iter().all(|m| {
         let build_info = m
@@ -699,10 +700,12 @@ impl JsPlugin {
         build_info.strict
       })
     {
+      header = "\"use strict\";\n";
       all_strict = true;
     }
     let (module_source, chunk_init_fragments) =
-      render_chunk_modules(compilation, chunk_ukey, chunk_modules, all_strict)?;
+      render_chunk_modules(compilation, chunk_ukey, chunk_modules, all_strict)?
+        .unwrap_or_else(|| (RawSource::from("{}").boxed(), Vec::new()));
     let source = drive
       .render_chunk(RenderJsChunkArgs {
         compilation,
@@ -715,6 +718,7 @@ impl JsPlugin {
       render_init_fragments(source, chunk_init_fragments, &mut ChunkRenderContext {})?;
     Ok(
       ConcatSource::new([
+        RawSource::from(header).boxed(),
         if let Some(source) = drive.render(RenderJsArgs {
           compilation,
           chunk: chunk_ukey,

@@ -6,7 +6,7 @@ it("should name define", function () {
 
 	expect(source).toMatch('define("NamedLibrary",');
 	expect(source.includes("return __webpack_exports__")).toBe(true);
-	expect(source.includes("return (function() {\nvar __webpack_modules__")).toBe(
+	expect(source.includes("return (function() { // webpackBootstrap\nvar __webpack_modules__")).toBe(
 		true
 	);
 });

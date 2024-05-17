@@ -15,7 +15,7 @@ pub fn render_chunk_modules<'a>(
   chunk_ukey: &ChunkUkey,
   ordered_modules: Vec<&BoxModule>,
   all_strict: bool,
-) -> Result<(BoxSource, ChunkInitFragments)> {
+) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
   let include_module_ids = &compilation.include_module_ids;
 
   let mut module_code_array = ordered_modules
@@ -24,11 +24,15 @@ pub fn render_chunk_modules<'a>(
       compilation.options.is_new_tree_shaking() || include_module_ids.contains(&module.identifier())
     })
     .filter_map(|module| {
-      render_module(compilation, chunk_ukey, &module, all_strict)
+      render_module(compilation, chunk_ukey, &module, all_strict, true)
         .transpose()
         .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
     })
     .collect::<Result<Vec<_>>>()?;
+
+  if module_code_array.is_empty() {
+    return Ok(None);
+  }
 
   module_code_array.sort_unstable_by_key(|(module_identifier, _, _, _)| *module_identifier);
 
@@ -58,7 +62,7 @@ pub fn render_chunk_modules<'a>(
   sources.add(ConcatSource::new(module_sources));
   sources.add(RawSource::from("\n}"));
 
-  Ok((sources.boxed(), chunk_init_fragments))
+  Ok(Some((sources.boxed(), chunk_init_fragments)))
 }
 
 pub fn render_module(
@@ -66,8 +70,8 @@ pub fn render_module(
   chunk_ukey: &ChunkUkey,
   module: &BoxModule,
   all_strict: bool,
+  factory: bool,
 ) -> Result<Option<(BoxSource, ChunkInitFragments, ChunkInitFragments)>> {
-  let drive = JsPlugin::get_compilation_drives(compilation);
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let code_gen_result = compilation
     .code_generation_results
@@ -75,11 +79,8 @@ pub fn render_module(
   let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) else {
     return Ok(None);
   };
-  let module_id = compilation
-    .chunk_graph
-    .get_module_id(module.identifier())
-    .as_deref()
-    .expect("should have module_id in render_module");
+  let drive = JsPlugin::get_compilation_drives(compilation);
+  let mut sources = ConcatSource::default();
   let render_module_result = drive
     .render_module_content(RenderJsModuleContentArgs {
       compilation,
@@ -89,66 +90,75 @@ pub fn render_module(
     })
     .expect("render_module_content failed");
 
-  let runtime_requirements = compilation
-    .chunk_graph
-    .get_module_runtime_requirements(module.identifier(), &chunk.runtime);
+  if factory {
+    let runtime_requirements = compilation
+      .chunk_graph
+      .get_module_runtime_requirements(module.identifier(), &chunk.runtime);
 
-  let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
-  let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
-  let need_require = runtime_requirements.is_some_and(|r| {
-    r.contains(RuntimeGlobals::REQUIRE) || r.contains(RuntimeGlobals::REQUIRE_SCOPE)
-  });
-
-  let mut args = Vec::new();
-  if need_module || need_exports || need_require {
-    let module_argument = module.get_module_argument();
-    args.push(if need_module {
-      module_argument.to_string()
-    } else {
-      format!("__unused_webpack_{module_argument}")
+    let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
+    let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
+    let need_require = runtime_requirements.is_some_and(|r| {
+      r.contains(RuntimeGlobals::REQUIRE) || r.contains(RuntimeGlobals::REQUIRE_SCOPE)
     });
-  }
 
-  if need_exports || need_require {
-    let exports_argument = module.get_exports_argument();
-    args.push(if need_exports {
-      exports_argument.to_string()
-    } else {
-      format!("__unused_webpack_{exports_argument}")
-    });
-  }
-  if need_require {
-    args.push(RuntimeGlobals::REQUIRE.to_string());
-  }
-  let mut sources = ConcatSource::new([
-    RawSource::from(serde_json::to_string(&module_id).map_err(|e| error!(e.to_string()))?),
-    RawSource::from(": "),
-  ]);
-  if is_diff_mode() {
+    let mut args = Vec::new();
+    if need_module || need_exports || need_require {
+      let module_argument = module.get_module_argument();
+      args.push(if need_module {
+        module_argument.to_string()
+      } else {
+        format!("__unused_webpack_{module_argument}")
+      });
+    }
+
+    if need_exports || need_require {
+      let exports_argument = module.get_exports_argument();
+      args.push(if need_exports {
+        exports_argument.to_string()
+      } else {
+        format!("__unused_webpack_{exports_argument}")
+      });
+    }
+    if need_require {
+      args.push(RuntimeGlobals::REQUIRE.to_string());
+    }
+    let module_id = compilation
+      .chunk_graph
+      .get_module_id(module.identifier())
+      .as_deref()
+      .expect("should have module_id in render_module");
+    sources.add(RawSource::from(
+      serde_json::to_string(&module_id).map_err(|e| error!(e.to_string()))?,
+    ));
+    sources.add(RawSource::from(": "));
+    if is_diff_mode() {
+      sources.add(RawSource::from(format!(
+        "\n{}\n",
+        to_normal_comment(&format!("start::{}", module.identifier()))
+      )));
+    }
     sources.add(RawSource::from(format!(
-      "\n{}\n",
-      to_normal_comment(&format!("start::{}", module.identifier()))
+      "(function ({}) {{\n",
+      args.join(", ")
     )));
+    if let Some(build_info) = &module.build_info()
+      && build_info.strict
+      && !all_strict
+    {
+      sources.add(RawSource::from("\"use strict\";\n"));
+    }
+    sources.add(render_module_result.module_source);
+    sources.add(RawSource::from("})"));
+    if is_diff_mode() {
+      sources.add(RawSource::from(format!(
+        "\n{}\n",
+        to_normal_comment(&format!("end::{}", module.identifier()))
+      )));
+    }
+    sources.add(RawSource::from(",\n"));
+  } else {
+    sources.add(render_module_result.module_source);
   }
-  sources.add(RawSource::from(format!(
-    "(function ({}) {{\n",
-    args.join(", ")
-  )));
-  if let Some(build_info) = &module.build_info()
-    && build_info.strict
-    && !all_strict
-  {
-    sources.add(RawSource::from("\"use strict\";\n"));
-  }
-  sources.add(render_module_result.module_source);
-  sources.add(RawSource::from("})"));
-  if is_diff_mode() {
-    sources.add(RawSource::from(format!(
-      "\n{}\n",
-      to_normal_comment(&format!("end::{}", module.identifier()))
-    )));
-  }
-  sources.add(RawSource::from(",\n"));
 
   Ok(Some((
     sources.boxed(),

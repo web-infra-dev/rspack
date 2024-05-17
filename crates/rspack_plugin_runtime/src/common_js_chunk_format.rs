@@ -14,6 +14,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
   PluginRenderJsChunkHookOutput, RenderJsChunkArgs, RenderJsStartupArgs,
 };
+use rspack_util::json_stringify;
 
 use crate::{
   generate_entry_startup, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
@@ -55,7 +56,6 @@ impl JavascriptModulesPluginPlugin for CommonJsChunkFormatJavascriptModulesPlugi
     let chunk = args.chunk();
     let base_chunk_output_name = get_chunk_output_name(chunk, args.compilation)?;
     let mut sources = ConcatSource::default();
-    sources.add(RawSource::from("(function() {\n"));
     sources.add(RawSource::from(format!(
       "exports.ids = ['{}'];\n",
       &chunk.expect_id().to_string()
@@ -79,9 +79,12 @@ impl JavascriptModulesPluginPlugin for CommonJsChunkFormatJavascriptModulesPlugi
     if chunk.has_entry_module(&args.compilation.chunk_graph) {
       let runtime_chunk_output_name = get_runtime_chunk_output_name(args)?;
       sources.add(RawSource::from(format!(
-        "var {} = require('{}');\n",
+        "// load runtime\nvar {} = require({});\n",
         RuntimeGlobals::REQUIRE,
-        get_relative_path(&base_chunk_output_name, &runtime_chunk_output_name)
+        json_stringify(&get_relative_path(
+          &base_chunk_output_name,
+          &runtime_chunk_output_name
+        ))
       )));
       sources.add(RawSource::from(format!(
         "{}(exports)\n",
@@ -106,8 +109,14 @@ impl JavascriptModulesPluginPlugin for CommonJsChunkFormatJavascriptModulesPlugi
       })? {
         sources.add(s);
       }
-      sources.add(RawSource::from("\n})()"));
-      return Ok(Some(sources.boxed()));
+      return Ok(Some(
+        ConcatSource::new([
+          RawSource::from("(function() {\n").boxed(),
+          sources.boxed(),
+          RawSource::from("\n})()").boxed(),
+        ])
+        .boxed(),
+      ));
     }
     Ok(Some(sources.boxed()))
   }
