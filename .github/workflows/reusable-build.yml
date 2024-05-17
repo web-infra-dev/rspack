@@ -42,7 +42,7 @@ on:
       runner: # Runner labels
         required: true
         type: string
-      test_runner: # Runner labels
+      test_runner:
         required: false
         type: string
       profile: # Rust profile, "debug" or "release"
