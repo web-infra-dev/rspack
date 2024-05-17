@@ -1,5 +1,5 @@
 ```js title=main.js
-(function() { // webpackBootstrap
+(() => { // webpackBootstrap
 var __webpack_modules__ = ({
 "600": (function (module) {
 module.exports = "This is hook";
@@ -36,5 +36,5 @@ return module.exports;
 // This entry module is referenced by other modules so it can't be inlined
 var __webpack_exports__ = __webpack_require__("600");
 })()
-
+;
 ```

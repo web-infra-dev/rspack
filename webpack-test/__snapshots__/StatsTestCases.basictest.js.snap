@@ -7,16 +7,16 @@ Entrypoint main 294 KiB = warning.pro-web.js
 ./index.js
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
-  │   warning.pro-web.js (293.719 KiB)
+  │   warning.pro-web.js (293.959 KiB)
 
 WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (293.719 KiB)
+  │   main (293.959 KiB)
   │       warning.pro-web.js
 
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
   │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
 
-Rspack x.x.x compiled with 3 warnings in X s (fdcda4a05775a95633ca)
+Rspack x.x.x compiled with 3 warnings in X s (b953c5393c20babd176f)
 
 PublicPath: auto
 asset warning.pro-webworker.js 294 KiB [emitted] (name: main)
@@ -24,40 +24,40 @@ Entrypoint main 294 KiB = warning.pro-webworker.js
 ./index.js
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
-  │   warning.pro-webworker.js (293.719 KiB)
+  │   warning.pro-webworker.js (293.959 KiB)
 
 WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (293.719 KiB)
+  │   main (293.959 KiB)
   │       warning.pro-webworker.js
 
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
   │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
 
-Rspack x.x.x compiled with 3 warnings in X s (fdcda4a05775a95633ca)
+Rspack x.x.x compiled with 3 warnings in X s (b953c5393c20babd176f)
 
 PublicPath: (none)
 asset no-warning.pro-node.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = no-warning.pro-node.js
 ./index.js
-Rspack x.x.x compiled successfully in X s (fdcda4a05775a95633ca)
+Rspack x.x.x compiled successfully in X s (b953c5393c20babd176f)
 
 PublicPath: auto
 asset no-warning.dev-web.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = no-warning.dev-web.js
 ./index.js
-Rspack x.x.x compiled successfully in X s (451db70fa838cd6e895d)
+Rspack x.x.x compiled successfully in X s (508f35f2580171cda521)
 
 PublicPath: (none)
 asset no-warning.dev-node.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = no-warning.dev-node.js
 ./index.js
-Rspack x.x.x compiled successfully in X s (451db70fa838cd6e895d)
+Rspack x.x.x compiled successfully in X s (508f35f2580171cda521)
 
 PublicPath: auto
 asset no-warning.dev-web-with-limit-set.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = no-warning.dev-web-with-limit-set.js
 ./index.js
-Rspack x.x.x compiled successfully in X s (451db70fa838cd6e895d)
+Rspack x.x.x compiled successfully in X s (508f35f2580171cda521)
 
 PublicPath: (none)
 asset warning.pro-node-with-hints-set.js 294 KiB [emitted] (name: main)
@@ -65,24 +65,24 @@ Entrypoint main 294 KiB = warning.pro-node-with-hints-set.js
 ./index.js
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
-  │   warning.pro-node-with-hints-set.js (293.719 KiB)
+  │   warning.pro-node-with-hints-set.js (293.959 KiB)
 
 WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (293.719 KiB)
+  │   main (293.959 KiB)
   │       warning.pro-node-with-hints-set.js
 
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
   │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
 
-Rspack x.x.x compiled with 3 warnings in X s (fdcda4a05775a95633ca)"
+Rspack x.x.x compiled with 3 warnings in X s (b953c5393c20babd176f)"
 `;
 
 exports[`StatsTestCases should print correct stats for performance-no-async-chunks-shown 1`] = `
 "PublicPath: <CLR=BOLD>auto</CLR>
 asset <CLR=32,BOLD>main.js</CLR> 294 KiB <CLR=32,BOLD>[emitted]</CLR> (name: main)
-asset <CLR=32,BOLD>sec.js</CLR> 1.03 KiB <CLR=32,BOLD>[emitted]</CLR> (name: sec)
+asset <CLR=32,BOLD>sec.js</CLR> 1.16 KiB <CLR=32,BOLD>[emitted]</CLR> (name: sec)
 Entrypoint <CLR=BOLD>main</CLR> 294 KiB = <CLR=32,BOLD>main.js</CLR>
-Entrypoint <CLR=BOLD>sec</CLR> 1.03 KiB = <CLR=32,BOLD>sec.js</CLR>
+Entrypoint <CLR=BOLD>sec</CLR> 1.16 KiB = <CLR=32,BOLD>sec.js</CLR>
 <CLR=BOLD>./a.js</CLR>
 <CLR=BOLD>./b.js</CLR>
 <CLR=BOLD>./c.js</CLR>
@@ -92,12 +92,12 @@ Entrypoint <CLR=BOLD>sec</CLR> 1.03 KiB = <CLR=32,BOLD>sec.js</CLR>
 
 <CLR=33,BOLD>WARNING</CLR> in <CLR=33>⚠<CLR=0> asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.
   <CLR=33>│<CLR=0> Assets:
-  <CLR=33>│<CLR=0>   main.js (293.920 KiB)
+  <CLR=33>│<CLR=0>   main.js (294.047 KiB)
 <CLR=0>
 
 <CLR=33,BOLD>WARNING</CLR> in <CLR=33>⚠<CLR=0> entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.
   <CLR=33>│<CLR=0> Entrypoints:
-  <CLR=33>│<CLR=0>   main (293.920 KiB)
+  <CLR=33>│<CLR=0>   main (294.047 KiB)
   <CLR=33>│<CLR=0>       main.js
 <CLR=0>
 
@@ -121,15 +121,15 @@ Entrypoint <CLR=BOLD>sec</CLR> 294 KiB = <CLR=32,BOLD>sec.js</CLR>
 
 <CLR=31,BOLD>ERROR</CLR> in <CLR=31>×<CLR=0> asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.
   <CLR=31>│<CLR=0> Assets:
-  <CLR=31>│<CLR=0>   main.js (293.840 KiB)
-  <CLR=31>│<CLR=0>   sec.js (293.840 KiB)
+  <CLR=31>│<CLR=0>   main.js (293.967 KiB)
+  <CLR=31>│<CLR=0>   sec.js (293.967 KiB)
 <CLR=0>
 
 <CLR=31,BOLD>ERROR</CLR> in <CLR=31>×<CLR=0> entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.
   <CLR=31>│<CLR=0> Entrypoints:
-  <CLR=31>│<CLR=0>   main (293.840 KiB)
+  <CLR=31>│<CLR=0>   main (293.967 KiB)
   <CLR=31>│<CLR=0>       main.js
-  <CLR=31>│<CLR=0>   sec (293.840 KiB)
+  <CLR=31>│<CLR=0>   sec (293.967 KiB)
   <CLR=31>│<CLR=0>       sec.js
 <CLR=0>
 

@@ -13,7 +13,7 @@
 - Update: a.LAST_HASH.hot-update.js, size: 94
 - Update: b.LAST_HASH.hot-update.js, size: 94
 - Update: main.LAST_HASH.hot-update.js, size: 97
-- Update: runtime.LAST_HASH.hot-update.js, size: 204
+- Update: runtime.LAST_HASH.hot-update.js, size: 212
 
 ## Manifest
 
@@ -97,16 +97,15 @@ module.exports = 2;
 
 #### Changed Content
 ```js
-self["webpackHotUpdate"]('runtime', {
-
-},function(__webpack_require__) {
+"use strict";
+self["webpackHotUpdate"]('runtime', {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
-!function() {
+(() => {
 __webpack_require__.h = function () {
 	return "CURRENT_HASH";
 };
 
-}();
+})();
 
 }
 );

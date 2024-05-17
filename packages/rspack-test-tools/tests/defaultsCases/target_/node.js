@@ -41,6 +41,9 @@ module.exports = {
 		-       "fetch",
 		+       "async-node",
 		@@ ... @@
+		-       "document": true,
+		+       "document": false,
+		@@ ... @@
 		-     "globalObject": "self",
 		+     "globalObject": "global",
 		@@ ... @@

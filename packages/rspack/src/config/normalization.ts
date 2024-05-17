@@ -35,6 +35,7 @@ import type {
 	EntryFilename,
 	EntryRuntime,
 	EntryStatic,
+	Environment,
 	Externals,
 	ExternalsPresets,
 	ExternalsType,
@@ -208,7 +209,8 @@ export const getNormalizedRspackOptions = (
 				devtoolNamespace: output.devtoolNamespace,
 				devtoolModuleFilenameTemplate: output.devtoolModuleFilenameTemplate,
 				devtoolFallbackModuleFilenameTemplate:
-					output.devtoolFallbackModuleFilenameTemplate
+					output.devtoolFallbackModuleFilenameTemplate,
+				environment: cloneObject(output.environment)
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
@@ -488,6 +490,7 @@ export interface OutputNormalized {
 	devtoolNamespace?: DevtoolNamespace;
 	devtoolModuleFilenameTemplate?: DevtoolModuleFilenameTemplate;
 	devtoolFallbackModuleFilenameTemplate?: DevtoolFallbackModuleFilenameTemplate;
+	environment?: Environment;
 }
 
 export interface ModuleOptionsNormalized {

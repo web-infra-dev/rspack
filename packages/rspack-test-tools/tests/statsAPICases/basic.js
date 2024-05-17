@@ -20,8 +20,8 @@ module.exports = {
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 211 bytes {909} [emitted] (name: main)
-		Entrypoint main 211 bytes = main.js
+		asset main.js 207 bytes {909} [emitted] (name: main)
+		Entrypoint main 207 bytes = main.js
 		chunk {909} main.js (main) [entry]
 		  ./fixtures/a.js [585] {909}
 		    [no exports]

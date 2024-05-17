@@ -12,7 +12,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 1881
+- Update: main.LAST_HASH.hot-update.js, size: 1793
 
 ## Manifest
 
@@ -42,41 +42,35 @@
 
 #### Changed Content
 ```js
+"use strict";
 self["webpackHotUpdate"]('main', {
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = (2);
 }),
 "./c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = (2);
 }),
 "./e.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = (2);
 }),
 "./g.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = (2);
 }),
 "./i.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = (2);
 throw new Error("Error while loading module i");
 }),
 "./j.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = (2);
 throw new Error("Error while loading module j");
 }),
 "./l.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = (2);
 throw new Error("Error while loading module l");
@@ -84,12 +78,12 @@ throw new Error("Error while loading module l");
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash
-!function() {
+(() => {
 __webpack_require__.h = function () {
 	return "CURRENT_HASH";
 };
 
-}();
+})();
 
 }
 );

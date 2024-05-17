@@ -3,6 +3,9 @@ module.exports = {
 	target: "web",
 	output: {
 		library: ["a", "b"],
-		libraryTarget: "this"
+		libraryTarget: "this",
+		environment: {
+			arrowFunction: false,
+		}
 	}
 };

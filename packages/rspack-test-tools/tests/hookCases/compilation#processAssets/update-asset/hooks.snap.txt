@@ -5,7 +5,7 @@
 ```javascript
 Array [
   Object {
-    "main.5aece4956ef367dbcfb6.js": (function() { // webpackBootstrap
+    "main.5aece4956ef367dbcfb6.js": (() => { // webpackBootstrap
 var __webpack_modules__ = ({
 "600": (function (module) {
 module.exports = "This is hook";
@@ -42,7 +42,7 @@ return module.exports;
 // This entry module is referenced by other modules so it can't be inlined
 var __webpack_exports__ = __webpack_require__("600");
 })()
-,
+;,
   },
 ]
 ```
@@ -61,7 +61,7 @@ undefined
 Array [
   Object {
     "main.5aece4956ef367dbcfb6.js": // UPDATED
-(function() { // webpackBootstrap
+(() => { // webpackBootstrap
 var __webpack_modules__ = ({
 "600": (function (module) {
 module.exports = "This is hook";
@@ -98,7 +98,7 @@ return module.exports;
 // This entry module is referenced by other modules so it can't be inlined
 var __webpack_exports__ = __webpack_require__("600");
 })()
-,
+;,
   },
 ]
 ```

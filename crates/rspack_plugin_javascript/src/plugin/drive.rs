@@ -36,6 +36,23 @@ pub trait JavascriptModulesPluginPlugin {
   fn inline_in_runtime_bailout(&self) -> Option<String> {
     None
   }
+
+  fn embed_in_runtime_bailout(
+    &self,
+    _compilation: &Compilation,
+    _module: &BoxModule,
+    _chunk: &Chunk,
+  ) -> Result<Option<String>> {
+    Ok(None)
+  }
+
+  fn strict_runtime_bailout(
+    &self,
+    _compilation: &Compilation,
+    _chunk_ukey: &ChunkUkey,
+  ) -> Result<Option<String>> {
+    Ok(None)
+  }
 }
 
 #[derive(Debug)]
@@ -131,6 +148,29 @@ impl<T: JavascriptModulesPluginPlugin + Send + Sync> JavascriptModulesPluginPlug
   fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
     self.deref().js_chunk_hash(args)
   }
+
+  fn inline_in_runtime_bailout(&self) -> Option<String> {
+    self.deref().inline_in_runtime_bailout()
+  }
+
+  fn embed_in_runtime_bailout(
+    &self,
+    compilation: &Compilation,
+    module: &BoxModule,
+    chunk: &Chunk,
+  ) -> Result<Option<String>> {
+    self
+      .deref()
+      .embed_in_runtime_bailout(compilation, module, chunk)
+  }
+
+  fn strict_runtime_bailout(
+    &self,
+    compilation: &Compilation,
+    chunk_ukey: &ChunkUkey,
+  ) -> Result<Option<String>> {
+    self.deref().strict_runtime_bailout(compilation, chunk_ukey)
+  }
 }
 
 #[derive(Default)]
@@ -206,5 +246,32 @@ impl JavascriptModulesPluginPluginDrive {
       }
     }
     None
+  }
+
+  pub fn embed_in_runtime_bailout(
+    &self,
+    compilation: &Compilation,
+    module: &BoxModule,
+    chunk: &Chunk,
+  ) -> Result<Option<String>> {
+    for plugin in &self.plugins {
+      if let Some(reason) = plugin.embed_in_runtime_bailout(compilation, module, chunk)? {
+        return Ok(Some(reason));
+      }
+    }
+    Ok(None)
+  }
+
+  pub fn strict_runtime_bailout(
+    &self,
+    compilation: &Compilation,
+    chunk_ukey: &ChunkUkey,
+  ) -> Result<Option<String>> {
+    for plugin in &self.plugins {
+      if let Some(reason) = plugin.strict_runtime_bailout(compilation, chunk_ukey)? {
+        return Ok(Some(reason));
+      }
+    }
+    Ok(None)
   }
 }

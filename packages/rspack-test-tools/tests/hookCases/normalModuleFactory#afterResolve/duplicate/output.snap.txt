@@ -1,5 +1,5 @@
 ```js title=main.js
-(function() { // webpackBootstrap
+(() => { // webpackBootstrap
 var __webpack_modules__ = ({
 "./a.js": (function (module) {
 module.exports = "a";
@@ -37,7 +37,7 @@ return module.exports;
 
 /************************************************************************/
 // webpack/runtime/compat_get_default_export
-!function() {
+(() => {
 // getDefaultExport function for compatibility with non-harmony modules
 __webpack_require__.n = function (module) {
 	var getter = module && module.__esModule ?
@@ -50,9 +50,9 @@ __webpack_require__.n = function (module) {
 
 
 
-}();
+})();
 // webpack/runtime/define_property_getters
-!function() {
+(() => {
 __webpack_require__.d = function(exports, definition) {
 	for(var key in definition) {
         if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
@@ -60,18 +60,18 @@ __webpack_require__.d = function(exports, definition) {
         }
     }
 };
-}();
+})();
 // webpack/runtime/has_own_property
-!function() {
+(() => {
 __webpack_require__.o = function (obj, prop) {
 	return Object.prototype.hasOwnProperty.call(obj, prop);
 };
 
-}();
+})();
 /************************************************************************/
 var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be in strict mode.
-!function() {
+(() => {
 "use strict";
 /* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
 /* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_a__WEBPACK_IMPORTED_MODULE_0__);
@@ -94,7 +94,8 @@ it("should remove duplicate request modules generate by after resolve hook", ()=
     expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8").split("./c" + ext).length - 1).toBe(2);
 });
 
-}();
-})()
+})();
 
+})()
+;
 ```

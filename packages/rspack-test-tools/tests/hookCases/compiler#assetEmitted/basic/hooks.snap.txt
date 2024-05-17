@@ -10,16 +10,11 @@ Array [
     "content": Object {
       "data": Array [
         40,
-        102,
-        117,
-        110,
-        99,
-        116,
-        105,
-        111,
-        110,
         40,
         41,
+        32,
+        61,
+        62,
         32,
         123,
         32,
@@ -1041,11 +1036,12 @@ Array [
         40,
         41,
         10,
+        59,
       ],
       "type": "Buffer",
     },
     "outputPath": "<HOOK_DIST_DIR>/compiler#assetEmitted/basic",
-    "source": (function() { // webpackBootstrap
+    "source": (() => { // webpackBootstrap
 var __webpack_modules__ = ({
 "600": (function (module) {
 module.exports = "This is hook";
@@ -1082,7 +1078,7 @@ return module.exports;
 // This entry module is referenced by other modules so it can't be inlined
 var __webpack_exports__ = __webpack_require__("600");
 })()
-,
+;,
     "targetPath": "<HOOK_DIST_DIR>/compiler#assetEmitted/basic/main.js",
   },
 ]

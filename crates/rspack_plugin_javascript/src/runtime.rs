@@ -215,16 +215,29 @@ pub fn render_runtime_modules(
       } else {
         sources.add(RawSource::from(format!("// {}\n", module.identifier())));
       }
-      if !module.should_isolate() {
-        sources.add(RawSource::from("!function() {\n"));
+      let supports_arrow_function = compilation
+        .options
+        .output
+        .environment
+        .supports_arrow_function();
+      if module.should_isolate() {
+        sources.add(RawSource::from(if supports_arrow_function {
+          "(() => {\n"
+        } else {
+          "!function() {\n"
+        }));
       }
       if module.cacheable() {
         sources.add(source.clone());
       } else {
         sources.add(module.generate_with_custom(compilation)?);
       }
-      if !module.should_isolate() {
-        sources.add(RawSource::from("\n}();\n"));
+      if module.should_isolate() {
+        sources.add(RawSource::from(if supports_arrow_function {
+          "\n})();\n"
+        } else {
+          "\n}();\n"
+        }));
       }
       if is_diff_mode() {
         sources.add(RawSource::from(format!(

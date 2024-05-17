@@ -16,7 +16,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 211,
+      "size": 207,
       "type": "asset",
     },
   ],
@@ -96,10 +96,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 211,
+          "size": 207,
         },
       ],
-      "assetsSize": 211,
+      "assetsSize": 207,
       "chunks": Array [
         "909",
       ],
@@ -161,10 +161,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 211,
+          "size": 207,
         },
       ],
-      "assetsSize": 211,
+      "assetsSize": 207,
       "chunks": Array [
         "909",
       ],
@@ -194,7 +194,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 715,
+      "size": 720,
       "type": "asset",
     },
   ],
@@ -403,10 +403,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 715,
+          "size": 720,
         },
       ],
-      "assetsSize": 715,
+      "assetsSize": 720,
       "chunks": Array [
         "909",
       ],
@@ -663,10 +663,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 715,
+          "size": 720,
         },
       ],
-      "assetsSize": 715,
+      "assetsSize": 720,
       "chunks": Array [
         "909",
       ],
@@ -696,7 +696,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 211,
+      "size": 207,
       "type": "asset",
     },
   ],
@@ -761,7 +761,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 348,
+      "size": 352,
       "type": "asset",
     },
   ],
@@ -990,10 +990,10 @@ exports.c = require(\\"./c?c=3\\");
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 348,
+          "size": 352,
         },
       ],
-      "assetsSize": 348,
+      "assetsSize": 352,
       "chunks": Array [
         "909",
       ],
@@ -1204,10 +1204,10 @@ exports.c = require(\\"./c?c=3\\");
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 348,
+          "size": 352,
         },
       ],
-      "assetsSize": 348,
+      "assetsSize": 352,
       "chunks": Array [
         "909",
       ],

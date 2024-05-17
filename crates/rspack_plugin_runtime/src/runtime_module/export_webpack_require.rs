@@ -32,6 +32,6 @@ impl RuntimeModule for ExportWebpackRequireRuntimeModule {
   }
 
   fn should_isolate(&self) -> bool {
-    true
+    false
   }
 }

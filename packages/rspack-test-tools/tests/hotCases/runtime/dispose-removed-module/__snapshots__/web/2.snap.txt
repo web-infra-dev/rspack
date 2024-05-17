@@ -7,7 +7,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 36
-- Update: main.LAST_HASH.hot-update.js, size: 1170
+- Update: main.LAST_HASH.hot-update.js, size: 1148
 
 ## Manifest
 
@@ -33,14 +33,13 @@
 
 #### Changed Content
 ```js
+"use strict";
 self["webpackHotUpdate"]('main', {
 "./a.js": (function (module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = (module.id);
 }),
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return /* reexport safe */ _a__WEBPACK_IMPORTED_MODULE_0__["default"]; }
@@ -51,7 +50,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 },function(__webpack_require__) {
 // webpack/runtime/define_property_getters
-!function() {
+(() => {
 __webpack_require__.d = function(exports, definition) {
 	for(var key in definition) {
         if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
@@ -59,14 +58,14 @@ __webpack_require__.d = function(exports, definition) {
         }
     }
 };
-}();
+})();
 // webpack/runtime/get_full_hash
-!function() {
+(() => {
 __webpack_require__.h = function () {
 	return "CURRENT_HASH";
 };
 
-}();
+})();
 
 }
 );

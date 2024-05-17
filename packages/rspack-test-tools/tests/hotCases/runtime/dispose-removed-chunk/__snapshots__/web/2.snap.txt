@@ -10,7 +10,7 @@
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 35
 - Update: b_js.LAST_HASH.hot-update.js, size: 269
-- Update: main.LAST_HASH.hot-update.js, size: 201
+- Update: main.LAST_HASH.hot-update.js, size: 209
 
 ## Manifest
 
@@ -34,9 +34,9 @@
 
 #### Changed Content
 ```js
+"use strict";
 self["webpackHotUpdate"]('b_js', {
 "./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = ("version b2");
 }),
@@ -56,16 +56,15 @@ __webpack_require__.r(__webpack_exports__);
 
 #### Changed Content
 ```js
-self["webpackHotUpdate"]('main', {
-
-},function(__webpack_require__) {
+"use strict";
+self["webpackHotUpdate"]('main', {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
-!function() {
+(() => {
 __webpack_require__.h = function () {
 	return "CURRENT_HASH";
 };
 
-}();
+})();
 
 }
 );

@@ -411,7 +411,7 @@ impl JsPlugin {
           allow_inline_startup = false;
           header.push(
             format!(
-              "// the startup function\n{} = {}\n",
+              "// the startup function\n{} = {};\n",
               RuntimeGlobals::STARTUP,
               basic_function(
                 "",
@@ -468,6 +468,11 @@ impl JsPlugin {
   ) -> Result<BoxSource> {
     let drive = Self::get_compilation_drives(compilation);
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let supports_arrow_function = compilation
+      .options
+      .output
+      .environment
+      .supports_arrow_function();
     let runtime_requirements = compilation
       .chunk_graph
       .get_tree_runtime_requirements(chunk_ukey);
@@ -497,7 +502,11 @@ impl JsPlugin {
     };
     let mut sources = ConcatSource::default();
     if iife {
-      sources.add(RawSource::from("(function() { // webpackBootstrap\n"));
+      sources.add(RawSource::from(if supports_arrow_function {
+        "(() => { // webpackBootstrap\n"
+      } else {
+        "(function() { // webpackBootstrap\n"
+      }));
     }
     if !all_strict
       && all_modules.iter().all(|m| {
@@ -507,8 +516,14 @@ impl JsPlugin {
         build_info.strict
       })
     {
-      all_strict = true;
-      sources.add(RawSource::from("\"use strict\";\n"));
+      if let Some(strict_bailout) = drive.strict_runtime_bailout(compilation, chunk_ukey)? {
+        sources.add(RawSource::from(format!(
+          "// runtime can't be in strict mode because {strict_bailout}.\n"
+        )));
+      } else {
+        all_strict = true;
+        sources.add(RawSource::from("\"use strict\";\n"));
+      }
     }
     let chunk_modules = if let Some(inlined_modules) = inlined_modules {
       all_modules
@@ -518,15 +533,16 @@ impl JsPlugin {
     } else {
       all_modules
     };
-    let render_chunk_modules_result =
+    let chunk_modules_result =
       render_chunk_modules(compilation, chunk_ukey, chunk_modules, all_strict)?;
-    if render_chunk_modules_result.is_some()
+    let has_chunk_modules_result = chunk_modules_result.is_some();
+    if has_chunk_modules_result
       || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES)
       || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY)
       || runtime_requirements.contains(RuntimeGlobals::REQUIRE)
     {
       let chunk_modules_source =
-        if let Some((chunk_modules_source, fragments)) = render_chunk_modules_result {
+        if let Some((chunk_modules_source, fragments)) = chunk_modules_result {
           chunk_init_fragments.extend(fragments);
           chunk_modules_source
         } else {
@@ -592,18 +608,27 @@ impl JsPlugin {
           Some("it need to be in strict mode.".into())
         } else if inlined_modules.len() > 1 {
           Some("it need to be isolated against other entry modules.".into())
+        } else if has_chunk_modules_result {
+          Some("it need to be isolated against other modules in the chunk.".into())
         } else if exports && !webpack_exports {
           Some(format!("it uses a non-standard name for the exports ({exports_argument}).").into())
         } else {
-          None
+          drive
+            .embed_in_runtime_bailout(compilation, m, chunk)?
+            .map(|s| s.into())
         };
         let footer;
         if let Some(iife) = iife {
           startup_sources.add(RawSource::from(format!(
             "// This entry need to be wrapped in an IIFE because {iife}\n"
           )));
-          startup_sources.add(RawSource::from("!function() {\n"));
-          footer = "\n}();\n";
+          if supports_arrow_function {
+            startup_sources.add(RawSource::from("(() => {\n"));
+            footer = "\n})();\n\n";
+          } else {
+            startup_sources.add(RawSource::from("!function() {\n"));
+            footer = "\n}();\n";
+          }
           if inner_strict {
             startup_sources.add(RawSource::from("\"use strict\";\n"));
           }
@@ -625,7 +650,7 @@ impl JsPlugin {
       }
       if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
         startup_sources.add(RawSource::from(format!(
-          "{} = {}({})",
+          "{} = {}({});\n",
           RuntimeGlobals::EXPORTS,
           RuntimeGlobals::ON_CHUNKS_LOADED,
           RuntimeGlobals::EXPORTS,
@@ -662,7 +687,7 @@ impl JsPlugin {
     if iife {
       sources.add(RawSource::from("})()\n"));
     }
-    let final_source = render_init_fragments(
+    let mut final_source = render_init_fragments(
       sources.boxed(),
       chunk_init_fragments,
       &mut ChunkRenderContext {},
@@ -672,26 +697,30 @@ impl JsPlugin {
       chunk: chunk_ukey,
       source: &final_source,
     })? {
-      return Ok(source);
-    }
-    Ok(final_source)
+      final_source = source;
+    };
+    Ok(if iife {
+      ConcatSource::new([final_source, RawSource::from(";").boxed()]).boxed()
+    } else {
+      final_source
+    })
   }
 
-  #[inline]
-  pub async fn render_chunk_impl(
+  pub async fn render_chunk(
     &self,
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
   ) -> Result<BoxSource> {
     let drive = Self::get_compilation_drives(compilation);
     let module_graph = &compilation.get_module_graph();
+    let is_module = compilation.options.output.module;
     let mut all_strict = compilation.options.output.module;
     let chunk_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
       chunk_ukey,
       SourceType::JavaScript,
       module_graph,
     );
-    let mut header = "";
+    let mut sources = ConcatSource::default();
     if !all_strict
       && chunk_modules.iter().all(|m| {
         let build_info = m
@@ -700,38 +729,45 @@ impl JsPlugin {
         build_info.strict
       })
     {
-      header = "\"use strict\";\n";
-      all_strict = true;
+      if let Some(strict_bailout) = drive.strict_runtime_bailout(compilation, chunk_ukey)? {
+        sources.add(RawSource::from(format!(
+          "// runtime can't be in strict mode because {strict_bailout}.\n"
+        )));
+      } else {
+        sources.add(RawSource::from("\"use strict\";\n"));
+        all_strict = true;
+      }
     }
-    let (module_source, chunk_init_fragments) =
+    let (chunk_modules_source, chunk_init_fragments) =
       render_chunk_modules(compilation, chunk_ukey, chunk_modules, all_strict)?
         .unwrap_or_else(|| (RawSource::from("{}").boxed(), Vec::new()));
-    let source = drive
+    let chunk_modules_source = drive
       .render_chunk(RenderJsChunkArgs {
         compilation,
         chunk_ukey,
-        module_source,
+        module_source: chunk_modules_source,
       })
       .await?
       .expect("should run render_chunk hook");
-    let source_with_fragments =
-      render_init_fragments(source, chunk_init_fragments, &mut ChunkRenderContext {})?;
-    Ok(
-      ConcatSource::new([
-        RawSource::from(header).boxed(),
-        if let Some(source) = drive.render(RenderJsArgs {
-          compilation,
-          chunk: chunk_ukey,
-          source: &source_with_fragments,
-        })? {
-          source
-        } else {
-          source_with_fragments
-        },
-        RawSource::from(";").boxed(),
-      ])
-      .boxed(),
-    )
+    let source_with_fragments = render_init_fragments(
+      chunk_modules_source,
+      chunk_init_fragments,
+      &mut ChunkRenderContext {},
+    )?;
+    let chunk_modules_source = if let Some(source) = drive.render(RenderJsArgs {
+      compilation,
+      chunk: chunk_ukey,
+      source: &source_with_fragments,
+    })? {
+      source
+    } else {
+      source_with_fragments
+    };
+    sources.add(chunk_modules_source);
+    if !is_module {
+      sources.add(RawSource::from(";"));
+    }
+    Ok(sources.boxed())
   }
 
   #[inline]

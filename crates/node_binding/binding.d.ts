@@ -838,6 +838,10 @@ export interface RawEntryPluginOptions {
   options: RawEntryOptions
 }
 
+export interface RawEnvironment {
+  arrowFunction?: boolean
+}
+
 export interface RawEvalDevToolModulePluginOptions {
   namespace?: string
   moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
@@ -1150,6 +1154,7 @@ export interface RawOutputOptions {
   workerWasmLoading: string
   workerPublicPath: string
   scriptType: "module" | "text/javascript" | "false"
+  environment: RawEnvironment
 }
 
 export interface RawParserOptions {
