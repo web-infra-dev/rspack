@@ -53,7 +53,7 @@ export * from "./ProgressPlugin";
 export * from "./ProvidePlugin";
 export * from "./RealContentHashPlugin";
 export * from "./RemoveEmptyChunksPlugin";
-export * from "./RSCClientEntryPlugin";
+export * from "./RSCClientEntryRspackPlugin";
 export * from "./RSCClientReferenceManifestRspackPlugin";
 export * from "./RuntimeChunkPlugin";
 export * from "./RuntimePlugin";
