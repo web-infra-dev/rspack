@@ -1,13 +1,12 @@
 ```js title=main.js
+"use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 
 (0, _app__WEBPACK_IMPORTED_MODULE_0__["default"])();
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return /* export default binding */ __WEBPACK_DEFAULT_EXPORT__; }
 });

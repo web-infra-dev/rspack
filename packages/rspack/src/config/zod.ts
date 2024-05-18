@@ -315,6 +315,24 @@ export type DevtoolFallbackModuleFilenameTemplate = z.infer<
 	typeof devtoolFallbackModuleFilenameTemplate
 >;
 
+const environment = z.strictObject({
+	arrowFunction: z.boolean().optional(),
+	asyncFunction: z.boolean().optional(),
+	bigIntLiteral: z.boolean().optional(),
+	const: z.boolean().optional(),
+	destructuring: z.boolean().optional(),
+	document: z.boolean().optional(),
+	dynamicImport: z.boolean().optional(),
+	dynamicImportInWorker: z.boolean().optional(),
+	forOf: z.boolean().optional(),
+	globalThis: z.boolean().optional(),
+	module: z.boolean().optional(),
+	nodePrefixForCoreModules: z.boolean().optional(),
+	optionalChaining: z.boolean().optional(),
+	templateLiteral: z.boolean().optional()
+});
+export type Environment = z.infer<typeof environment>;
+
 const output = z.strictObject({
 	path: path.optional(),
 	pathinfo: pathinfo.optional(),
@@ -364,7 +382,8 @@ const output = z.strictObject({
 	devtoolNamespace: devtoolNamespace.optional(),
 	devtoolModuleFilenameTemplate: devtoolModuleFilenameTemplate.optional(),
 	devtoolFallbackModuleFilenameTemplate:
-		devtoolFallbackModuleFilenameTemplate.optional()
+		devtoolFallbackModuleFilenameTemplate.optional(),
+	environment: environment.optional()
 });
 export type Output = z.infer<typeof output>;
 //#endregion

@@ -1,17 +1,14 @@
-(function() {
-var __webpack_modules__ = {
+(() => { // webpackBootstrap
+var __webpack_modules__ = ({
 "./style.css?b16f": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
 }),
-"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-const myURL = new URL(/* asset import */__webpack_require__("./style.css?b16f"), __webpack_require__.b);
-console.log(myURL);
-}),
 
-}
+});
+/************************************************************************/
 // The module cache
 var __webpack_module_cache__ = {};
 
@@ -29,6 +26,7 @@ exports: {}
 });
 // Execute the module function
 __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
 // Return the exports of the module
 return module.exports;
 
@@ -36,15 +34,17 @@ return module.exports;
 
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
+
+/************************************************************************/
 // webpack/runtime/has_own_property
-!function() {
+(() => {
 __webpack_require__.o = function (obj, prop) {
 	return Object.prototype.hasOwnProperty.call(obj, prop);
 };
 
-}();
+})();
 // webpack/runtime/make_namespace_object
-!function() {
+(() => {
 // define __esModule on exports
 __webpack_require__.r = function(exports) {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
@@ -53,9 +53,9 @@ __webpack_require__.r = function(exports) {
 	Object.defineProperty(exports, '__esModule', { value: true });
 };
 
-}();
+})();
 // webpack/runtime/jsonp_chunk_loading
-!function() {
+(() => {
 __webpack_require__.b = document.baseURI || self.location.href;
 
       // object to store loaded and loading chunks
@@ -63,8 +63,15 @@ __webpack_require__.b = document.baseURI || self.location.href;
       // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
       var installedChunks = {"main": 0,};
       
-}();
-// startup
-// Load entry module and return exports
-var __webpack_exports__ = __webpack_require__("./index.js");
+})();
+/************************************************************************/
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+(() => {
+const myURL = new URL(/* asset import */__webpack_require__("./style.css?b16f"), __webpack_require__.b);
+console.log(myURL);
+
+})();
+
 })()
+;

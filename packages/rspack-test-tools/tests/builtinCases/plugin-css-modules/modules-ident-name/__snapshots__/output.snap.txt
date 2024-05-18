@@ -6,16 +6,15 @@
 ```
 
 ```js title=main.js
+"use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _style_module_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.module.css");
 
 console.log(_style_module_css__WEBPACK_IMPORTED_MODULE_0__);
 }),
 "./style.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
-"use strict";
 __webpack_require__.r(module.exports = {
   "foo": "___style_module____foo--___afc435275e612570_afc",
 });

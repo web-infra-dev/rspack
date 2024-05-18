@@ -57,6 +57,17 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
+  fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.finish(parser);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
   fn pre_module_declaration(
     &self,
     parser: &mut JavascriptParser,

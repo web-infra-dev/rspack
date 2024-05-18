@@ -1,20 +1,14 @@
-(function() {
-var __webpack_modules__ = {
-"./style.css?b16f": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+(() => { // webpackBootstrap
 "use strict";
+var __webpack_modules__ = ({
+"./style.css?b16f": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
 }),
-"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?b16f");
 
-__webpack_require__.e(/* import() | async */ "async").then(__webpack_require__.bind(__webpack_require__, "./async.css?833a"));
-}),
-
-}
+});
+/************************************************************************/
 // The module cache
 var __webpack_module_cache__ = {};
 
@@ -32,6 +26,7 @@ exports: {}
 });
 // Execute the module function
 __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
 // Return the exports of the module
 return module.exports;
 
@@ -39,8 +34,10 @@ return module.exports;
 
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
+
+/************************************************************************/
 // webpack/runtime/ensure_chunk
-!function() {
+(() => {
 __webpack_require__.f = {};
 // This file contains only the entry chunk.
 // The chunk loading function for additional chunks
@@ -53,9 +50,9 @@ __webpack_require__.e = function (chunkId) {
 	);
 };
 
-}();
+})();
 // webpack/runtime/get javascript chunk filename
-!function() {
+(() => {
 // This function allow to reference chunks
         __webpack_require__.u = function (chunkId) {
           // return url for filenames not based on template
@@ -64,9 +61,9 @@ __webpack_require__.e = function (chunkId) {
           return "" + chunkId + ".js";
         };
       
-}();
+})();
 // webpack/runtime/global
-!function() {
+(() => {
 __webpack_require__.g = (function () {
 	if (typeof globalThis === 'object') return globalThis;
 	try {
@@ -76,16 +73,16 @@ __webpack_require__.g = (function () {
 	}
 })();
 
-}();
+})();
 // webpack/runtime/has_own_property
-!function() {
+(() => {
 __webpack_require__.o = function (obj, prop) {
 	return Object.prototype.hasOwnProperty.call(obj, prop);
 };
 
-}();
+})();
 // webpack/runtime/load_script
-!function() {
+(() => {
 var inProgress = {};
 
 
@@ -145,9 +142,9 @@ __webpack_require__.l = function (url, done, key, chunkId) {
 	needAttach && document.head.appendChild(script);
 };
 
-}();
+})();
 // webpack/runtime/make_namespace_object
-!function() {
+(() => {
 // define __esModule on exports
 __webpack_require__.r = function(exports) {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
@@ -156,9 +153,9 @@ __webpack_require__.r = function(exports) {
 	Object.defineProperty(exports, '__esModule', { value: true });
 };
 
-}();
+})();
 // webpack/runtime/auto_public_path
-!function() {
+(() => {
 
     var scriptUrl;
     if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
@@ -180,9 +177,9 @@ __webpack_require__.r = function(exports) {
     scriptUrl = scriptUrl.replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
     __webpack_require__.p = scriptUrl
     
-}();
+})();
 // webpack/runtime/jsonp_chunk_loading
-!function() {
+(() => {
 
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
@@ -280,8 +277,17 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(
 	chunkLoadingGlobal.push.bind(chunkLoadingGlobal)
 );
 
-}();
-// startup
-// Load entry module and return exports
-var __webpack_exports__ = __webpack_require__("./index.js");
+})();
+/************************************************************************/
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+(() => {
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?b16f");
+
+__webpack_require__.e(/* import() | async */ "async").then(__webpack_require__.bind(__webpack_require__, "./async.css?833a"));
+
+})();
+
 })()
+;

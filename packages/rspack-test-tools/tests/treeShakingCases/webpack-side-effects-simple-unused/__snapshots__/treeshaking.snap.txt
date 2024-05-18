@@ -1,7 +1,7 @@
 ```js title=main.js
+"use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "../node_modules/pmodule/b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.d(__webpack_exports__, {
   x: function() { return x; }
 });
@@ -14,7 +14,6 @@ var y = "y";
 (0, _tracker__WEBPACK_IMPORTED_MODULE_1__.track)("b.js");
 }),
 "../node_modules/pmodule/c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.d(__webpack_exports__, {
   z: function() { return z; }
 });
@@ -25,7 +24,6 @@ var z = "z";
 (0, _tracker__WEBPACK_IMPORTED_MODULE_0__.track)("c.js");
 }),
 "../node_modules/pmodule/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("../node_modules/pmodule/tracker.js");
 
 
@@ -34,7 +32,6 @@ var z = "z";
 /* harmony default export */ __webpack_exports__["default"] = ("def");
 }),
 "../node_modules/pmodule/tracker.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.d(__webpack_exports__, {
   log: function() { return log; },
   track: function() { return track; }
@@ -49,7 +46,6 @@ function reset() {
 }
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var pmodule_tracker__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__("../node_modules/pmodule/tracker.js");
 /* harmony import */var pmodule__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("../node_modules/pmodule/b.js");
 /* harmony import */var pmodule__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("../node_modules/pmodule/c.js");

@@ -57,9 +57,9 @@ console.log("shared");
 ```
 
 ```js title=shared_js-_ac581.js
+"use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["shared_js-_ac581"], {
 "./shared.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _exist__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./exist.js");
 /* harmony import */var _exist__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_exist__WEBPACK_IMPORTED_MODULE_0__);

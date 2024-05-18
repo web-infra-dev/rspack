@@ -888,6 +888,10 @@ impl JavascriptModulesPluginPlugin for EvalSourceMapDevToolJavascriptModulesPlug
     EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME.hash(&mut args.hasher);
     Ok(())
   }
+
+  fn inline_in_runtime_bailout(&self) -> Option<String> {
+    Some("the eval-source-map devtool is used.".to_string())
+  }
 }
 
 const EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME: &str = "rspack.EvalSourceMapDevToolPlugin";
@@ -1105,6 +1109,10 @@ impl JavascriptModulesPluginPlugin for EvalDevToolModuleJavascriptModulesPluginP
   fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
     EVAL_DEV_TOOL_MODULE_PLUGIN_NAME.hash(&mut args.hasher);
     Ok(())
+  }
+
+  fn inline_in_runtime_bailout(&self) -> Option<String> {
+    Some("the eval devtool is used.".to_string())
   }
 }
 

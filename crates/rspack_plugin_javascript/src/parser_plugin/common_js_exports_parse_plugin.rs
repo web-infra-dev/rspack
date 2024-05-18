@@ -403,12 +403,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       }
 
       if remaining.is_empty() {
-        // exports = {};
-        // module.exports = {};
-        // this = {};
-        parser.bailout();
-        parser.walk_expression(&assign_expr.right);
-        return Some(true);
+        return None;
       }
 
       parser.enable();

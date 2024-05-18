@@ -8,7 +8,7 @@
 - Bundle: file_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 38
 - Update: file_js.LAST_HASH.hot-update.js, size: 100
-- Update: main.LAST_HASH.hot-update.js, size: 201
+- Update: main.LAST_HASH.hot-update.js, size: 209
 
 ## Manifest
 
@@ -52,16 +52,15 @@ module.exports = 2;
 
 #### Changed Content
 ```js
-self["webpackHotUpdate"]('main', {
-
-},function(__webpack_require__) {
+"use strict";
+self["webpackHotUpdate"]('main', {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
-!function() {
+(() => {
 __webpack_require__.h = function () {
 	return "CURRENT_HASH";
 };
 
-}();
+})();
 
 }
 );

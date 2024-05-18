@@ -1,7 +1,7 @@
 ```js title=main.js
+"use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./bar.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
 /* harmony import */var _result__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./result.js");
 function b() {}
@@ -9,7 +9,6 @@ function b() {}
 
 }),
 "./foo.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./bar.js");
 /* harmony import */var _result__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./result.js");
 const a = 3;
@@ -17,7 +16,6 @@ const a = 3;
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./bar.js");
 /* harmony import */var _result__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("./result.js");
@@ -26,7 +24,6 @@ const a = 3;
 
 }),
 "./result.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./bar.js");
 const c = 103330;

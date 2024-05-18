@@ -1,7 +1,7 @@
 ```js title=main.js
+"use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./package/autogen/a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; }
 });
@@ -11,7 +11,6 @@ function dddd() {}
 
 }),
 "./package/autogen/aa.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.d(__webpack_exports__, {
   aa: function() { return aa; }
 });
@@ -19,7 +18,6 @@ const aa = 3;
 const cc = 3;
 }),
 "./src/index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _package_src_index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./package/autogen/a.js");
 /* harmony import */var _package_src_index_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./package/autogen/aa.js");
 

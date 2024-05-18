@@ -1,7 +1,7 @@
 ```js title=main.js
+"use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./bar.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.d(__webpack_exports__, {
   b: function() { return b; }
 });
@@ -12,7 +12,6 @@ function b() {}
 
 }),
 "./foo.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _bar_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./bar.js");
 /* harmony import */var _result_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./result.js");
 const a = 3;
@@ -21,13 +20,11 @@ const b = 3;
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _bar_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./bar.js");
 
 (0, _bar_js__WEBPACK_IMPORTED_MODULE_0__.b)();
 }),
 "./result.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-"use strict";
 /* harmony import */var _foo_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
 /* harmony import */var _bar_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./bar.js");
 const c = 103330;
