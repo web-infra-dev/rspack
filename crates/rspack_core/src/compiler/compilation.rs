@@ -22,7 +22,7 @@ use tracing::instrument;
 
 use super::{
   hmr::CompilationRecords,
-  make::{update_module_graph, MakeArtifact, MakeParam},
+  make::{make_module_graph, update_module_graph, MakeArtifact, MakeParam},
   module_executor::ModuleExecutor,
 };
 use crate::{
@@ -141,9 +141,6 @@ pub struct Compilation {
   pub global_entry: EntryData,
   other_module_graph: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
-  pub make_failed_dependencies: HashSet<BuildDependency>,
-  pub make_failed_module: HashSet<ModuleIdentifier>,
-  pub has_module_import_export_change: bool,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_module_code_generation_results: IdentifierMap<(RspackHashDigest, BoxSource)>,
   pub chunk_graph: ChunkGraph,
@@ -160,12 +157,10 @@ pub struct Compilation {
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
-  pub entry_module_identifiers: IdentifierSet,
   /// Collecting all used export symbol
   pub used_symbol_ref: HashSet<SymbolRef>,
   /// Collecting all module that need to skip in tree-shaking ast modification phase
   pub bailout_module_identifiers: IdentifierMap<BailoutFlag>,
-  pub optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
 
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: IdentifierSet,
@@ -188,6 +183,8 @@ pub struct Compilation {
 
   pub module_executor: Option<ModuleExecutor>,
 
+  pub modified_files: HashSet<PathBuf>,
+  pub removed_files: HashSet<PathBuf>,
   make_artifact: MakeArtifact,
 }
 
@@ -221,6 +218,8 @@ impl Compilation {
     records: Option<CompilationRecords>,
     cache: Arc<Cache>,
     module_executor: Option<ModuleExecutor>,
+    modified_files: HashSet<PathBuf>,
+    removed_files: HashSet<PathBuf>,
   ) -> Self {
     Self {
       id: CompilationId::new(),
@@ -229,9 +228,6 @@ impl Compilation {
       options,
       other_module_graph: None,
       dependency_factories: Default::default(),
-      make_failed_dependencies: HashSet::default(),
-      make_failed_module: HashSet::default(),
-      has_module_import_export_change: true,
       runtime_modules: Default::default(),
       runtime_module_code_generation_results: Default::default(),
       chunk_by_ukey: Default::default(),
@@ -250,9 +246,7 @@ impl Compilation {
       loader_resolver_factory,
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
-      entry_module_identifiers: IdentifierSet::default(),
       used_symbol_ref: HashSet::default(),
-      optimize_analyze_result_map: IdentifierMap::default(),
       bailout_module_identifiers: IdentifierMap::default(),
 
       code_generation_results: Default::default(),
@@ -276,6 +270,8 @@ impl Compilation {
       module_executor,
 
       make_artifact: Default::default(),
+      modified_files,
+      removed_files,
     }
   }
 
@@ -316,6 +312,74 @@ impl Compilation {
         Some(self.make_artifact.get_module_graph_partial_mut()),
       )
     }
+  }
+
+  pub fn file_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
+    self
+      .make_artifact
+      .file_dependencies
+      .files()
+      .chain(
+        self
+          .module_executor
+          .as_ref()
+          .expect("should have module_executor")
+          .make_artifact
+          .file_dependencies
+          .files(),
+      )
+      .chain(&self.file_dependencies)
+  }
+
+  pub fn context_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
+    self
+      .make_artifact
+      .context_dependencies
+      .files()
+      .chain(
+        self
+          .module_executor
+          .as_ref()
+          .expect("should have module_executor")
+          .make_artifact
+          .context_dependencies
+          .files(),
+      )
+      .chain(&self.context_dependencies)
+  }
+
+  pub fn missing_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
+    self
+      .make_artifact
+      .missing_dependencies
+      .files()
+      .chain(
+        self
+          .module_executor
+          .as_ref()
+          .expect("should have module_executor")
+          .make_artifact
+          .missing_dependencies
+          .files(),
+      )
+      .chain(&self.missing_dependencies)
+  }
+
+  pub fn build_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
+    self
+      .make_artifact
+      .build_dependencies
+      .files()
+      .chain(
+        self
+          .module_executor
+          .as_ref()
+          .expect("should have module_executor")
+          .make_artifact
+          .build_dependencies
+          .files(),
+      )
+      .chain(&self.build_dependencies)
   }
 
   // TODO move out from compilation
@@ -608,15 +672,17 @@ impl Compilation {
   }
 
   #[instrument(name = "compilation:make", skip_all)]
-  pub async fn make(&mut self, mut params: Vec<MakeParam>) -> Result<()> {
-    let make_failed_module =
-      MakeParam::ForceBuildModules(std::mem::take(&mut self.make_failed_module));
-    let make_failed_dependencies =
-      MakeParam::ForceBuildDeps(std::mem::take(&mut self.make_failed_dependencies));
+  pub async fn make(&mut self) -> Result<()> {
+    // run module_executor
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.hook_before_make(self).await;
+      self.module_executor = Some(module_executor);
+    }
 
-    params.push(make_failed_module);
-    params.push(make_failed_dependencies);
-    update_module_graph(self, params).await
+    let artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = make_module_graph(self, artifact)?;
+    Ok(())
   }
 
   pub async fn rebuild_module<T>(
@@ -624,10 +690,6 @@ impl Compilation {
     module_identifiers: HashSet<ModuleIdentifier>,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    for id in &module_identifiers {
-      self.cache.build_module_occasion.remove_cache(id);
-    }
-
     update_module_graph(
       self,
       vec![MakeParam::ForceBuildModules(module_identifiers.clone())],
@@ -898,8 +960,8 @@ impl Compilation {
     result
   }
 
-  pub fn entry_modules(&self) -> impl Iterator<Item = ModuleIdentifier> {
-    self.entry_module_identifiers.clone().into_iter()
+  pub fn entry_modules(&self) -> IdentifierSet {
+    self.make_artifact.entry_module_identifiers.clone()
   }
 
   pub fn entrypoint_by_name(&self, name: &str) -> &Entrypoint {
@@ -1042,13 +1104,10 @@ impl Compilation {
     logger.time_end(start);
 
     // sync assets to compilation from module_executor
-    let assets = self
-      .module_executor
-      .as_mut()
-      .map(|module_executor| std::mem::take(&mut module_executor.assets))
-      .unwrap_or_default();
-    for (filename, asset) in assets {
-      self.emit_asset(filename, asset)
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.hook_before_process_assets(self).await;
+      self.module_executor = Some(module_executor);
     }
 
     let start = logger.time("process assets");
@@ -1568,6 +1627,20 @@ impl Compilation {
         )
       })
       .clone()
+  }
+
+  // TODO remove it after code splitting support incremental rebuild
+  pub fn has_module_import_export_change(&self) -> bool {
+    self.make_artifact.has_module_graph_change
+  }
+
+  // TODO remove it after remove old treeshaking
+  pub fn optimize_analyze_result_map(&self) -> &IdentifierMap<OptimizeAnalyzeResult> {
+    &self.make_artifact.optimize_analyze_result_map
+  }
+  // TODO remove it after remove old treeshaking
+  pub fn optimize_analyze_result_map_mut(&mut self) -> &mut IdentifierMap<OptimizeAnalyzeResult> {
+    &mut self.make_artifact.optimize_analyze_result_map
   }
 }
 

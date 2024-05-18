@@ -94,7 +94,7 @@ jobs:
     steps:
       - uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.ECOSYSTEM_CI_ACCESS_TOKEN }}
+          github-token: ${{ secrets.RSPACK_ACCESS_TOKEN }}
           script: |
             const result = await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,

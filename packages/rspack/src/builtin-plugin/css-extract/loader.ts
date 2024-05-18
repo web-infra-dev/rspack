@@ -1,9 +1,9 @@
-import schema from "./loader-options.json";
-import { CssExtractRspackPlugin } from "./index";
 import path from "path";
-import { stringifyLocal, stringifyRequest } from "./utils";
 
 import type { LoaderContext, LoaderDefinition } from "../..";
+import { CssExtractRspackPlugin } from "./index";
+import schema from "./loader-options.json";
+import { stringifyLocal, stringifyRequest } from "./utils";
 
 export const MODULE_TYPE = "css/mini-extract";
 export const AUTO_PUBLIC_PATH = "__mini_css_extract_plugin_public_path_auto__";
@@ -26,7 +26,7 @@ interface DependencyDescription {
 	filepath: string;
 }
 
-export interface LoaderOptions {
+export interface CssExtractRspackLoaderOptions {
 	publicPath?: string | ((resourcePath: string, context: string) => string);
 	emit?: boolean;
 	esModule?: boolean;
@@ -39,7 +39,7 @@ function hotLoader(
 	content: string,
 	context: {
 		loaderContext: LoaderContext;
-		options: LoaderOptions;
+		options: CssExtractRspackLoaderOptions;
 		locals: Record<string, string>;
 	}
 ) {
@@ -102,7 +102,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		return;
 	}
 
-	const options = this.getOptions(schema) as LoaderOptions;
+	const options = this.getOptions(schema) as CssExtractRspackLoaderOptions;
 	const emit = typeof options.emit !== "undefined" ? options.emit : true;
 	const callback = this.async();
 	const filepath = this.resourcePath;

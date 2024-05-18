@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "target electron-main",
 	options: () => ({ target: "electron-main" }),
@@ -44,6 +45,9 @@ module.exports = {
 		@@ ... @@
 		-       "fetch",
 		+       "async-node",
+		@@ ... @@
+		-       "document": true,
+		+       "document": false,
 		@@ ... @@
 		-     "globalObject": "self",
 		+     "globalObject": "global",

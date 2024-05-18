@@ -562,7 +562,7 @@ export function hello(name) {
 }
 ```
 
-此时，变量 `MyLibrary` 将与你的入口文件所导出的文件进行绑定，下面是如何使用 rspack 构建的库的实现：
+此时，变量 `MyLibrary` 将与你的入口文件所导出的文件进行绑定，下面是如何使用 Rspack 构建的库的实现：
 
 ```html
 <script src="https://example.org/path/to/my-library.js"></script>
@@ -571,7 +571,7 @@ export function hello(name) {
 </script>
 ```
 
-在上面的例子中，我们为 `entry` 设置了一个入口文件，然而 rspack 可以接受 [多个入口](/config/entry)，例如一个 `array` 或者一个 `object`。
+在上面的例子中，我们为 `entry` 设置了一个入口文件，然而 Rspack 可以接受 [多个入口](/config/entry)，例如一个 `array` 或者一个 `object`。
 
 1. 如果你将 `entry` 设置为一个 `array`，那么只有数组中的最后一个会被暴露。
 
@@ -850,7 +850,7 @@ require('MyLibrary').doSomething();
 
 如果我们指定 `output.library.name` 为 `type: commmonjs2`，你的入口起点的返回值将会被赋值给 `module.exports.[output.library.name]`。
 
-在考虑 CommonJS 与 CommonJS2 之间的区别？虽然它们很相似，但是它们之间有一些细微的差别，这些差别在 rspack 的上下文中通常是不相关的。（要获取更多详细内容，请 [阅读这个 issue](https://github.com/webpack/webpack/issues/1114)。）
+在考虑 CommonJS 与 CommonJS2 之间的区别？虽然它们很相似，但是它们之间有一些细微的差别，这些差别在 Rspack 的上下文中通常是不相关的。（要获取更多详细内容，请 [阅读这个 issue](https://github.com/webpack/webpack/issues/1114)。）
 
 ##### type: 'commonjs-static'
 
@@ -1212,7 +1212,7 @@ MyModule.doSomething();
 MySubModule.doSomething();
 ```
 
-## `output.libraryTarget`
+## output.libraryTarget
 
 - **类型：** `string`
 - **默认值：** `var`
@@ -1241,7 +1241,7 @@ module.exports = {
 - **类型：** `string`
 - **默认值：** 默认使用 [`output.library`](/config/output#outputlibrary) 名称或者上下文中的 package.json 的 包名称(package name)， 如果两者都不存在，值为 ''。
 
-此选项决定了在全局环境下为防止多个 rspack 运行时 冲突所使用的唯一名称。
+此选项决定了在全局环境下为防止多个 Rspack 运行时 冲突所使用的唯一名称。
 
 `output.uniqueName` 将用于生成唯一全局变量:
 

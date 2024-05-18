@@ -1,17 +1,18 @@
 import {
-	RspackOptions,
 	Compiler as RspackCompiler,
+	RspackOptions,
 	Stats as RspackStats,
 	StatsCompilation as RspackStatsCompilation
 } from "@rspack/core";
+import EventEmitter from "events";
 import type {
-	Configuration as WebpackOptions,
 	Compiler as WebpackCompiler,
+	Configuration as WebpackOptions,
 	Stats as WebpackStats,
 	StatsCompilation as WebpackStatsCompilation
 } from "webpack";
+
 import { IBasicModuleScope, TRunnerRequirer } from "./runner/type";
-import EventEmitter from "events";
 
 export interface ITestContext {
 	getSource(sub?: string): string;

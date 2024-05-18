@@ -70,7 +70,7 @@ impl JavascriptModulesPluginPlugin for ModuleLibraryJavascriptModulesPluginPlugi
       }
     } else if let Some(analyze_results) = args
       .compilation
-      .optimize_analyze_result_map
+      .optimize_analyze_result_map()
       .get(&args.module)
     {
       use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;

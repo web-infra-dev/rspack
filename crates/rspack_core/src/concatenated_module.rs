@@ -35,13 +35,13 @@ use crate::{
   reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
   subtract_runtime_condition, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
-  ChunkInitFragments, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConnectionId, ConnectionState, Context, DependenciesBlock, DependencyId,
-  DependencyTemplate, ErrorSpan, ExportInfoId, ExportInfoProvided, ExportsArgument, ExportsType,
-  FactoryMeta, IdentCollector, LibIdentOptions, Module, ModuleDependency, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ModuleType, Resolve, RuntimeCondition, RuntimeGlobals,
-  RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
-  NAMESPACE_OBJECT_EXPORT,
+  ChunkInitFragments, CodeGenerationDataTopLevelDeclarations, CodeGenerationResult, Compilation,
+  ConcatenatedModuleIdent, ConcatenationScope, ConnectionId, ConnectionState, Context,
+  DependenciesBlock, DependencyId, DependencyTemplate, ErrorSpan, ExportInfoId, ExportInfoProvided,
+  ExportsArgument, ExportsType, FactoryMeta, IdentCollector, LibIdentOptions, Module,
+  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, Resolve,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState,
+  UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 #[derive(Debug)]
@@ -395,7 +395,7 @@ impl ConcatenatedModule {
       diagnostics: Mutex::new(vec![]),
       cached_hash: OnceCell::default(),
       build_info: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 
@@ -550,6 +550,7 @@ impl Module for ConcatenatedModule {
       all_star_exports: Default::default(),
       need_create_require: Default::default(),
       json_data: Default::default(),
+      top_level_declarations: Some(Default::default()),
       module_concatenation_bailout: Default::default(),
     };
     self.clear_diagnostics();
@@ -599,6 +600,17 @@ impl Module for ConcatenatedModule {
       }
       // release guard ASAP
       drop(diagnostics_guard);
+
+      // populate topLevelDeclarations
+      if let Some(module_build_info) = module.build_info() {
+        if let Some(decls) = &module_build_info.top_level_declarations
+          && let Some(top_level_declarations) = &mut build_info.top_level_declarations
+        {
+          top_level_declarations.extend(decls.iter().cloned());
+        } else {
+          build_info.top_level_declarations = None;
+        }
+      }
     }
     self.set_build_info(build_info);
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
@@ -650,6 +662,7 @@ impl Module for ConcatenatedModule {
     }
 
     let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string()));
+    let mut top_level_declarations: HashSet<String> = HashSet::default();
 
     for module in modules_with_info.iter() {
       let ModuleInfoOrReference::Concatenated(m) = module else {
@@ -727,6 +740,7 @@ impl Module for ConcatenatedModule {
               // dbg!(&name, &new_name);
               all_used_names.insert(new_name.clone());
               info.internal_names.insert(name.clone(), new_name.clone());
+              top_level_declarations.insert(new_name.as_str().into());
 
               // Update source
               let source = info.source.as_mut().expect("should have source");
@@ -746,6 +760,7 @@ impl Module for ConcatenatedModule {
               // Handle the case when the name is not already used
               all_used_names.insert(name.to_string());
               info.internal_names.insert(name.clone(), name.to_string());
+              top_level_declarations.insert(name.to_string());
             }
           }
 
@@ -764,7 +779,8 @@ impl Module for ConcatenatedModule {
 
           if let Some(namespace_object_name) = namespace_object_name {
             all_used_names.insert(namespace_object_name.clone());
-            info.namespace_object_name = Some(namespace_object_name);
+            info.namespace_object_name = Some(namespace_object_name.clone());
+            top_level_declarations.insert(namespace_object_name);
           }
           // dbg!(info.module, &info.internal_names);
         }
@@ -774,6 +790,7 @@ impl Module for ConcatenatedModule {
           let external_name = Self::find_new_name("", &all_used_names, None, &readable_identifier);
           all_used_names.insert(external_name.clone());
           info.name = Some(external_name.as_str().into());
+          top_level_declarations.insert(external_name.as_str().into());
         }
       }
       // Handle additional logic based on module build meta
@@ -786,6 +803,7 @@ impl Module for ConcatenatedModule {
         );
         all_used_names.insert(external_name_interop.as_str().into());
         info.set_interop_namespace_object_name(Some(external_name_interop.as_str().into()));
+        top_level_declarations.insert(external_name_interop.as_str().into());
       }
 
       if exports_type == Some(BuildMetaExportsType::Default)
@@ -799,6 +817,7 @@ impl Module for ConcatenatedModule {
         );
         all_used_names.insert(external_name_interop.as_str().into());
         info.set_interop_namespace_object2_name(Some(external_name_interop.as_str().into()));
+        top_level_declarations.insert(external_name_interop.as_str().into());
       }
 
       if matches!(
@@ -809,6 +828,7 @@ impl Module for ConcatenatedModule {
           Self::find_new_name("default", &all_used_names, None, &readable_identifier);
         all_used_names.insert(external_name_interop.clone());
         info.set_interop_default_access_name(Some(external_name_interop.as_str().into()));
+        top_level_declarations.insert(external_name_interop.as_str().into());
       }
     }
 
@@ -1253,6 +1273,11 @@ impl Module for ConcatenatedModule {
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
     code_generation_result.chunk_init_fragments = chunk_init_fragments;
     code_generation_result.runtime_requirements = runtime_requirements;
+    code_generation_result
+      .data
+      .insert(CodeGenerationDataTopLevelDeclarations::new(
+        top_level_declarations,
+      ));
     Ok(code_generation_result)
   }
 

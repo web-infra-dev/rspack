@@ -45,7 +45,7 @@ const LOG_SYMBOL = Symbol("webpack logger raw log method");
 const TIMERS_SYMBOL = Symbol("webpack logger times");
 const TIMERS_AGGREGATES_SYMBOL = Symbol("webpack logger aggregated times");
 
-export type LogFunction = (type: LogTypeEnum, args?: any[]) => void;
+export type LogFunction = (type: LogTypeEnum, args: any[]) => void;
 export type GetChildLogger = (name: string | (() => string)) => Logger;
 
 export class Logger {

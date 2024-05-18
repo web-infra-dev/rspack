@@ -1,6 +1,6 @@
-import { ECompilerType } from "../type";
-import { getSimpleProcessorRunner } from "../test/simple";
 import { ErrorTaskProcessor, IErrorTaskProcessorOptions } from "../processor";
+import { getSimpleProcessorRunner } from "../test/simple";
+import { ECompilerType } from "../type";
 
 let addedSerializer = false;
 

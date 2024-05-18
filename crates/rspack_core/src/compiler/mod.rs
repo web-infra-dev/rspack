@@ -20,7 +20,6 @@ use tracing::instrument;
 
 pub use self::compilation::*;
 pub use self::hmr::{collect_changed_modules, CompilationRecords};
-pub use self::make::MakeParam;
 pub use self::module_executor::{ExecuteModuleId, ModuleExecutor};
 use crate::cache::Cache;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
@@ -33,8 +32,8 @@ use crate::{ContextModuleFactory, NormalModuleFactory};
 define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
 // should be SyncHook, but rspack need call js hook
 define_hook!(CompilerCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
-// should be AsyncParallelHook, but rspack need add MakeParam to incremental rebuild
-define_hook!(CompilerMake: AsyncSeries(compilation: &mut Compilation, params: &mut Vec<MakeParam>));
+// should be AsyncParallelHook
+define_hook!(CompilerMake: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilerFinishMake: AsyncSeries(compilation: &mut Compilation));
 // should be SyncBailHook, but rspack need call js hook
 define_hook!(CompilerShouldEmit: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
@@ -99,6 +98,8 @@ where
         None,
         cache.clone(),
         Some(module_executor),
+        Default::default(),
+        Default::default(),
       ),
       output_filesystem,
       plugin_driver,
@@ -132,19 +133,19 @@ where
         None,
         self.cache.clone(),
         Some(module_executor),
+        Default::default(),
+        Default::default(),
       ),
     );
 
-    self
-      .compile(vec![MakeParam::ForceBuildDeps(Default::default())])
-      .await?;
+    self.compile().await?;
     self.cache.begin_idle();
     self.compile_done().await?;
     Ok(())
   }
 
   #[instrument(name = "compile", skip_all)]
-  async fn compile(&mut self, mut params: Vec<MakeParam>) -> Result<()> {
+  async fn compile(&mut self) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
     // FOR BINDING SAFETY:
     // Make sure `thisCompilation` hook was called for each `JsCompilation` update before any access to it.
@@ -172,14 +173,14 @@ where
       .plugin_driver
       .compiler_hooks
       .make
-      .call(&mut self.compilation, &mut params)
+      .call(&mut self.compilation)
       .await
       .err()
     {
       self.compilation.push_batch_diagnostic(vec![e.into()]);
     }
     logger.time_end(make_hook_start);
-    self.compilation.make(params).await?;
+    self.compilation.make().await?;
     logger.time_end(make_start);
 
     let start = logger.time("finish make hook");
@@ -215,7 +216,7 @@ where
         })
         .unwrap_or(false)
     {
-      let (analyze_result, diagnostics) = self
+      let (mut analyze_result, diagnostics) = self
         .compilation
         .optimize_dependency()
         .await?
@@ -280,7 +281,10 @@ where
       {
         self.compilation.include_module_ids = analyze_result.include_module_ids;
       }
-      self.compilation.optimize_analyze_result_map = analyze_result.analyze_results;
+      std::mem::swap(
+        self.compilation.optimize_analyze_result_map_mut(),
+        &mut analyze_result.analyze_results,
+      );
     }
     let start = logger.time("seal compilation");
     self.compilation.seal(self.plugin_driver.clone()).await?;
@@ -434,12 +438,10 @@ where
         self.options.clone(),
         self.loader_resolver_factory.clone(),
         self.plugin_driver.clone(),
-        self.cache.clone(),
       )),
       context_module_factory: Arc::new(ContextModuleFactory::new(
         self.loader_resolver_factory.clone(),
         self.plugin_driver.clone(),
-        self.cache.clone(),
       )),
     }
   }

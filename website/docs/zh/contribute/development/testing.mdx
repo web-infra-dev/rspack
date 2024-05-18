@@ -1,0 +1,77 @@
+# 测试
+
+由于 Rspack 使用 Rust + TypeScript 代码混合编写，因此会针对两者使用不同的测试方案。
+
+## Rust 测试
+
+:::info Tip
+Rust 测试仅适用于原子功能的单元测试，无法测试完整构建流程。如需测试完整构建流程，请编写 Node 测试用例
+:::
+
+### 运行 Rust 测试
+
+通过 `./x test rust` 或者 `cargo test` 可运行 Rust 代码中的测试用例。
+
+### 编写 Rust 测试
+
+用例编写在 Rust 代码内部，用于对当前文件内的函数提供单元测试。如：
+
+```rust
+fn add(a: u8, b: u8) -> u8 {
+  a + b
+}
+
+#[test]
+fn test_add() {
+  assert_eq!(add(1, 2), 3);
+}
+```
+
+> 更多信息请参考：[Rust: How to Write Tests](https://doc.rust-lang.org/book/ch11-01-writing-tests.html)
+
+## Node 测试
+
+Node 测试提供了三组测试套件：
+
+- **Webpack 测试**：使用 Rspack 运行 Webpack 的测试用例
+- **Webpack Plugin 测试**：使用 Rspack 运行部分内置支持的 Webpack 插件的测试用例
+- **Rspack 测试**：运行 Rspack 自身的测试用例
+
+### Webpack 测试
+
+Rspack 将整个 Webpack 测试套件拷贝到 `webpack-test` 文件夹中，用于检查 webpack 的兼容性。 如果您需要添加新的用例，建议首先在这个文件夹下查找相应的用例是否存在。移除文件夹中的 `test.filter.js` 或修改其返回值为 `true` 即可启用该用例。
+
+通过在根文件夹下运行 `./x test webpack` 或 `pnpm run test:webpack` 即可运行 Webpack 测试。
+
+:::warning 注意
+如果您遇到问题，请不要修改 Webpack 用例的原始代码。你可以拷贝用例代码，并遵循 [Rspack 测试](./testing-rspack) 来创建新的用例。
+:::
+
+> 更多细节请参考：[Webpack 测试](./testing-webpack)。
+
+### Rspack 测试
+
+Rspack 的测试用例存放在在 `packages/rspack-test-tools/tests` 文件夹下，包括独有的测试用例，以及需要修改的 Webpack 和 Webpack 插件的用例。
+
+通过在根文件夹下运行 `./x test unit` 或 `pnpm run test:unit` 即可运行 Rspack 测试。
+
+也可以进入 `packages/rspack-test-tools` 文件夹并运行 `npm run test` 来运行测试用例，并且对测试流程进行更精细的控制：
+
+- **需要刷新测试快照时**：添加 `-u` 参数，如 `npm run test -- -u`
+- **需要过滤测试用例时**：添加 `-t` 参数，如 `npm run test -- -t config/asset` 即可仅运行 `packages/rspack-test-tools/configCases/asset` 文件夹下的用例（`config` 会自动映射到 `configCases`，其他文件夹类似）。匹配支持正则，详见 [jest](https://jestjs.io/docs/cli#--testnamepatternregex)
+
+> 更多细节请参考：[Rspack 测试](./testing-rspack)
+
+### Webpack 插件测试
+
+基于实现差异和性能考虑，Rspack 会将部分 Webpack 生态插件内置。同样会将插件的测试套件拷贝到 `plugin-test` 文件夹下，用于测试插件的兼容性。
+
+通过在根文件夹下运行 `./x test plugin` 或 `pnpm run test:plugin` 即可运行 Webpack 插件测试。
+
+:::warning 注意
+通常情况下，即使您修改了对应插件的功能，也仅需要遵循 [Rspack 测试](./testing-rspack) 来添加新的用例。
+
+仅当您内置实现了新的 Webpack 插件并需要拷贝它的测试用例时，可将用例添加到此测试中。
+:::
+
+> 更多细节请参考：[Webpack 插件测试](./testing-webpack)。

@@ -7,7 +7,7 @@ use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_macros::impl_source_map_config;
 use rspack_util::source_map::SourceMapKind;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
@@ -110,7 +110,7 @@ impl ExternalModule {
       factory_meta: None,
       build_info: None,
       build_meta: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 
@@ -389,6 +389,7 @@ impl Module for ExternalModule {
 
     let build_info = BuildInfo {
       hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
+      top_level_declarations: Some(FxHashSet::default()),
       ..Default::default()
     };
 

@@ -19,7 +19,7 @@ impl Default for RuntimeIdRuntimeModule {
     Self {
       id: Identifier::from("webpack/runtime/runtime_id"),
       chunk: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }

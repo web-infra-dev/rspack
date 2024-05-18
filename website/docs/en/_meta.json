@@ -21,12 +21,17 @@
   },
   {
     "text": "Blog",
-    "link": "/blog/announcing-0-6",
+    "link": "/blog/index",
     "activeMatch": "/blog"
   },
   {
     "text": "About",
     "link": "/misc/faq",
     "activeMatch": "/misc"
+  },
+  {
+    "text": "Contribute",
+    "link": "/contribute/index",
+    "activeMatch": "/contribute"
   }
 ]

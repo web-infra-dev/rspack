@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+
 import { escapeSep } from ".";
 
 export const isDirectory = (p: string) => fs.lstatSync(p).isDirectory();

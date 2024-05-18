@@ -9,6 +9,7 @@
  */
 
 import assert from "assert";
+
 import { Compiler, EntryDescriptionNormalized, EntryNormalized } from "..";
 import {
 	DynamicEntryPlugin,

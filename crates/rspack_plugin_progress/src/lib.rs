@@ -14,8 +14,8 @@ use rspack_core::{
   CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationOptimizeModules,
   CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
   CompilationSucceedModule, CompilerAfterEmit, CompilerCompilation, CompilerEmit,
-  CompilerFinishMake, CompilerMake, CompilerOptions, CompilerThisCompilation, MakeParam,
-  ModuleIdentifier, Plugin, PluginContext,
+  CompilerFinishMake, CompilerMake, CompilerOptions, CompilerThisCompilation, ModuleIdentifier,
+  Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -230,7 +230,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilerMake for ProgressPlugin)]
-async fn make(&self, _compilation: &mut Compilation, _params: &mut Vec<MakeParam>) -> Result<()> {
+async fn make(&self, _compilation: &mut Compilation) -> Result<()> {
   if !self.options.profile {
     self.progress_bar.reset();
     self.progress_bar.set_prefix(self.options.prefix.clone());

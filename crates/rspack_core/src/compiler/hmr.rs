@@ -8,8 +8,9 @@ use rspack_identifier::{Identifier, IdentifierMap};
 use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
-use super::MakeParam;
-use crate::{fast_set, get_chunk_from_ukey, ChunkKind, Compilation, Compiler, RuntimeSpec};
+use crate::{
+  fast_set, get_chunk_from_ukey, ChunkKind, Compilation, Compiler, ModuleExecutor, RuntimeSpec,
+};
 
 impl<T> Compiler<T>
 where
@@ -18,7 +19,7 @@ where
   pub async fn rebuild(
     &mut self,
     changed_files: std::collections::HashSet<String>,
-    removed_files: std::collections::HashSet<String>,
+    deleted_files: std::collections::HashSet<String>,
   ) -> Result<()> {
     let old = self.compilation.get_stats();
     let old_hash = self.compilation.hash.clone();
@@ -54,11 +55,11 @@ where
     {
       let mut modified_files = HashSet::default();
       modified_files.extend(changed_files.iter().map(PathBuf::from));
-      let mut deleted_files = HashSet::default();
-      deleted_files.extend(removed_files.iter().map(PathBuf::from));
+      let mut removed_files = HashSet::default();
+      removed_files.extend(deleted_files.iter().map(PathBuf::from));
 
       let mut all_files = modified_files.clone();
-      all_files.extend(deleted_files.clone());
+      all_files.extend(removed_files.clone());
 
       self.cache.end_idle();
       self
@@ -73,8 +74,9 @@ where
         self.loader_resolver_factory.clone(),
         Some(records),
         self.cache.clone(),
-        // reuse module executor
-        std::mem::take(&mut self.compilation.module_executor),
+        Some(ModuleExecutor::default()),
+        modified_files,
+        removed_files,
       );
 
       if let Some(state) = self.options.get_incremental_rebuild_make_state() {
@@ -90,45 +92,16 @@ where
         self
           .compilation
           .swap_make_artifact_with_compilation(&mut new_compilation);
-        new_compilation.make_failed_dependencies =
-          std::mem::take(&mut self.compilation.make_failed_dependencies);
-        new_compilation.make_failed_module =
-          std::mem::take(&mut self.compilation.make_failed_module);
-        new_compilation.entries = std::mem::take(&mut self.compilation.entries);
-        new_compilation.global_entry = std::mem::take(&mut self.compilation.global_entry);
         new_compilation.lazy_visit_modules =
           std::mem::take(&mut self.compilation.lazy_visit_modules);
-        new_compilation.file_dependencies = std::mem::take(&mut self.compilation.file_dependencies);
-        new_compilation.context_dependencies =
-          std::mem::take(&mut self.compilation.context_dependencies);
-        new_compilation.missing_dependencies =
-          std::mem::take(&mut self.compilation.missing_dependencies);
-        new_compilation.build_dependencies =
-          std::mem::take(&mut self.compilation.build_dependencies);
-        // tree shaking usage start
-        new_compilation.optimize_analyze_result_map =
-          std::mem::take(&mut self.compilation.optimize_analyze_result_map);
-        new_compilation.entry_module_identifiers =
-          std::mem::take(&mut self.compilation.entry_module_identifiers);
-        new_compilation.bailout_module_identifiers =
-          std::mem::take(&mut self.compilation.bailout_module_identifiers);
-        // tree shaking usage end
 
         // seal stage used
         new_compilation.code_splitting_cache =
           std::mem::take(&mut self.compilation.code_splitting_cache);
 
-        new_compilation.has_module_import_export_change = false;
+        // reuse module executor
+        new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
-
-      let setup_make_params = if is_incremental_rebuild_make {
-        vec![
-          MakeParam::ModifiedFiles(modified_files),
-          MakeParam::DeletedFiles(deleted_files),
-        ]
-      } else {
-        vec![MakeParam::ForceBuildDeps(Default::default())]
-      };
 
       new_compilation.lazy_visit_modules = changed_files.clone();
 
@@ -136,7 +109,7 @@ where
       // Update `compilation` for each rebuild.
       // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
       fast_set(&mut self.compilation, new_compilation);
-      self.compile(setup_make_params).await?;
+      self.compile().await?;
 
       self.cache.begin_idle();
     }

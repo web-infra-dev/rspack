@@ -38,11 +38,15 @@ function useFooterData() {
         },
         {
           title: 'Plugin API',
-          link: getLink('/api/plugin-api'),
+          link: getLink('/api/plugin-api/index'),
         },
         {
           title: 'Loader API',
-          link: getLink('/api/loader-api'),
+          link: getLink('/api/loader-api/index'),
+        },
+        {
+          title: 'JavaScript API',
+          link: getLink('/api/javascript-api'),
         },
       ],
     },
@@ -79,8 +83,12 @@ function useFooterData() {
           link: 'https://discord.gg/ab2Rv4BXwf',
         },
         {
-          title: 'X',
+          title: 'Twitter (X)',
           link: 'https://twitter.com/rspack_dev',
+        },
+        {
+          title: 'Awesome Rspack',
+          link: 'https://github.com/web-infra-dev/awesome-rspack',
         },
       ],
     },
@@ -111,7 +119,7 @@ export function HomeFooter() {
         ))}
       </div>
       <div className="flex flex-center">
-        <h2 className="font-normal text-sm text-gray-600 dark:text-light-600 py-4">
+        <h2 className="font-normal text-sm text-gray-400 dark:text-light-600 pt-6 pb-10">
           © 2022-present ByteDance Inc. All Rights Reserved.
         </h2>
       </div>

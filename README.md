@@ -54,6 +54,7 @@ Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and R
 | Name                                                                                     | Description                                                                   |
 | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | [Rspack website](https://rspack.dev)                                                     | Official documentation for Rspack                                             |
+| [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack)                        | A curated list of awesome things related to Rspack                            |
 | [rspack-examples](https://github.com/rspack-contrib/rspack-examples)                     | Rspack configuration examples                                                 |
 | [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                        | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
 | [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase)  | Migration showcases for Rspack                                                |

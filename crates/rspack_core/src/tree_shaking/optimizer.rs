@@ -106,7 +106,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     //   analyze_result_map
     // };
     let mut optimize_analyze_result_map =
-      std::mem::take(&mut self.compilation.optimize_analyze_result_map);
+      std::mem::take(self.compilation.optimize_analyze_result_map_mut());
     let module_graph = self.compilation.get_module_graph();
     optimize_analyze_result_map.iter_mut().for_each(
       |(module_identifier, optimize_analyze_result)| {
@@ -118,10 +118,13 @@ impl<'a> CodeSizeOptimizer<'a> {
         }
       },
     );
-    self.compilation.optimize_analyze_result_map = optimize_analyze_result_map;
+    std::mem::swap(
+      &mut optimize_analyze_result_map,
+      self.compilation.optimize_analyze_result_map_mut(),
+    );
     // We will set it back and return the analyze result, take is safe here.
     let mut finalized_result_map =
-      std::mem::take(&mut self.compilation.optimize_analyze_result_map);
+      std::mem::take(self.compilation.optimize_analyze_result_map_mut());
     let mut evaluated_used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
     let side_effects_options = self
@@ -140,7 +143,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       let forced_side_effects = !side_effects_options
         || self
           .compilation
-          .entry_module_identifiers
+          .entry_modules()
           .contains(&analyze_result.module_identifier);
       // side_effects: true
       if forced_side_effects
@@ -427,7 +430,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           side_effects_free: self.side_effects_free_modules.contains(&module_identifier),
           is_entry: self
             .compilation
-            .entry_module_identifiers
+            .entry_modules()
             .contains(&module_identifier),
           module_identifier,
         };
@@ -587,9 +590,9 @@ impl<'a> CodeSizeOptimizer<'a> {
     mut side_effect_map: IdentifierMap<SideEffectType>,
   ) -> IdentifierSet {
     // normalize side_effects, there are two kinds of `side_effects` one from configuration and another from analyze ast
-    for entry_module_ident in self.compilation.entry_module_identifiers.iter() {
+    for entry_module_ident in self.compilation.entry_modules() {
       Self::normalize_side_effects(
-        *entry_module_ident,
+        entry_module_ident,
         &self.compilation.get_module_graph(),
         &mut IdentifierSet::default(),
         &mut side_effect_map,

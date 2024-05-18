@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "async wasm",
 	options: () => ({ experiments: { asyncWebAssembly: true } }),

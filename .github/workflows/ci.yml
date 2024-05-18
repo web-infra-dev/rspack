@@ -40,7 +40,7 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
-          predicate-quantifier: 'every'
+          predicate-quantifier: "every"
           filters: |
             changed:
               - "!**/*.md"
@@ -175,6 +175,10 @@ jobs:
       - name: Oxlint
         if: steps.changes.outputs.src == 'true'
         run: pnpm run lint:js
+
+      - name: Eslint
+        if: steps.changes.outputs.src == 'true'
+        run: pnpm run eslint:js
 
       - name: Prettier
         if: steps.changes.outputs.src == 'true'
@@ -316,7 +320,7 @@ jobs:
           owner: ${{ github.repository_owner }}
           repo: "rspack-ecosystem-benchmark"
           workflow_file_name: "bench_rspack_commit.yml"
-          github_token: ${{ secrets.RSPACK_BOT_ACCESS_TOKEN }}
+          github_token: ${{ secrets.RSPACK_ACCESS_TOKEN }}
           ref: "main"
           client_payload: '{"commit_sha":"${{ github.sha }}"}'
 
@@ -333,7 +337,7 @@ jobs:
           owner: ${{ github.repository_owner }}
           repo: "rspack-ecosystem-ci"
           workflow_file_name: "ecosystem-ci-from-commit.yml"
-          github_token: ${{ secrets.ECOSYSTEM_CI_ACCESS_TOKEN }}
+          github_token: ${{ secrets.RSPACK_ACCESS_TOKEN }}
           ref: "main"
           client_payload: '{"commitSHA":"${{ github.sha }}","repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
 
@@ -357,14 +361,7 @@ jobs:
   failure_notification:
     name: Failure Notification
     needs:
-      [
-        test-linux,
-        test-windows,
-        test-mac,
-        rust_check,
-        rust_test,
-        run_benchmark
-      ]
+      [test-linux, test-windows, test-mac, rust_check, rust_test, run_benchmark]
     if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
     runs-on: ubuntu-latest
     steps:

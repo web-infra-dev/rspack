@@ -20,7 +20,6 @@ Object {
     "asyncWebAssembly": false,
     "css": true,
     "lazyCompilation": false,
-    "newSplitChunks": true,
     "rspackFuture": Object {
       "bundlerInfo": Object {
         "force": false,
@@ -148,15 +147,17 @@ Object {
     ],
     "generator": Object {
       "css": Object {
-        "exportsConvention": "as-is",
+        "esModule": true,
         "exportsOnly": false,
       },
       "css/auto": Object {
+        "esModule": true,
         "exportsConvention": "as-is",
         "exportsOnly": false,
         "localIdentName": "[uniqueName]-[id]-[local]",
       },
       "css/module": Object {
+        "esModule": true,
         "exportsConvention": "as-is",
         "exportsOnly": false,
         "localIdentName": "[uniqueName]-[id]-[local]",
@@ -307,6 +308,22 @@ Object {
     "enabledWasmLoadingTypes": Array [
       "fetch",
     ],
+    "environment": Object {
+      "arrowFunction": true,
+      "asyncFunction": true,
+      "bigIntLiteral": undefined,
+      "const": true,
+      "destructuring": true,
+      "document": true,
+      "dynamicImport": undefined,
+      "dynamicImportInWorker": undefined,
+      "forOf": true,
+      "globalThis": undefined,
+      "module": undefined,
+      "nodePrefixForCoreModules": true,
+      "optionalChaining": true,
+      "templateLiteral": true,
+    },
     "filename": "[name].js",
     "globalObject": "self",
     "hashDigest": "hex",
@@ -334,6 +351,7 @@ Object {
     "workerPublicPath": "",
     "workerWasmLoading": "fetch",
   },
+  "performance": false,
   "plugins": Array [],
   "profile": false,
   "resolve": Object {

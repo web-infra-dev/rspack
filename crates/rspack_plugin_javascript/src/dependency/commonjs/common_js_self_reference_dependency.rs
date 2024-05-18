@@ -44,6 +44,10 @@ impl Dependency for CommonJsSelfReferenceDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::CjsSelfReference
   }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some("self")
+  }
 }
 
 impl ModuleDependency for CommonJsSelfReferenceDependency {

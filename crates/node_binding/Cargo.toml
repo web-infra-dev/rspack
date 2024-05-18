@@ -24,6 +24,7 @@ rspack_hook            = { path = "../rspack_hook" }
 rspack_identifier      = { path = "../rspack_identifier" }
 rspack_napi            = { path = "../rspack_napi" }
 rspack_tracing         = { path = "../rspack_tracing" }
+rspack_regex = { path = "../rspack_regex" }
 tokio                  = { workspace = true, features = ["rt", "rt-multi-thread"] }
 
 async-trait = { workspace = true }

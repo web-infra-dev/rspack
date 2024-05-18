@@ -268,7 +268,7 @@ impl<'a> ModuleGraph<'a> {
   /// Remove a connection and return connection origin module identifier and dependency
   ///
   /// force will completely remove dependency, and you will not regenerate it from dependency_id
-  fn revoke_connection(
+  pub fn revoke_connection(
     &mut self,
     connection_id: &ConnectionId,
     force: bool,
@@ -828,6 +828,20 @@ impl<'a> ModuleGraph<'a> {
   /// Uniquely identify a module by its identifier and return the aliased reference
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
     self.loop_partials(|p| p.modules.get(identifier))?.as_ref()
+  }
+
+  pub fn module_by_identifier_mut(
+    &mut self,
+    identifier: &ModuleIdentifier,
+  ) -> Option<&mut BoxModule> {
+    let Some(active_partial) = &mut self.active else {
+      panic!("should have active partial");
+    };
+    if let Some(res) = active_partial.modules.get_mut(identifier) {
+      res.as_mut()
+    } else {
+      panic!("can not find module in active_partial")
+    }
   }
 
   /// Aggregate function which combine `get_normal_module_by_identifier`, `as_normal_module`, `get_resource_resolved_data`

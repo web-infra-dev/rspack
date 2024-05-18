@@ -1,12 +1,13 @@
+import { Compiler, DevServer } from "@rspack/core";
+import type { RspackDevServer as RspackDevServerType } from "@rspack/dev-server";
+
 import type { RspackCLI } from "../rspack-cli";
-import { RspackDevServer } from "@rspack/dev-server";
 import { RspackCommand } from "../types";
 import {
 	commonOptions,
 	ensureEnvObject,
 	setBuiltinEnvArg
 } from "../utils/options";
-import { Compiler, DevServer } from "@rspack/core";
 
 export class ServeCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
@@ -22,6 +23,17 @@ export class ServeCommand implements RspackCommand {
 						...options
 					}
 				};
+				/**
+				 * webpack-dev-server will set `process.env.WEBPACK_SERVE` to true
+				 * when its module is imported, so we have to lazy load the package
+				 * to make sure the envvar is not set on build mode.
+				 * when run in serve mode, we have to load the package before config
+				 * module is imported so that the envvar `process.env.WEBPACK_SERVE`
+				 * got in config module could be `true`.
+				 * related issue: https://github.com/web-infra-dev/rspack/issues/6359
+				 */
+				const { RspackDevServer } = await import("@rspack/dev-server");
+
 				const compiler = await cli.createCompiler(rspackOptions, "serve");
 				if (!compiler) return;
 				const compilers = cli.isMultipleCompiler(compiler)
@@ -32,7 +44,7 @@ export class ServeCommand implements RspackCommand {
 				);
 
 				const usedPorts: number[] = [];
-				const servers: RspackDevServer[] = [];
+				const servers: RspackDevServerType[] = [];
 
 				/**
 				 * Webpack uses an Array of compilerForDevServer,

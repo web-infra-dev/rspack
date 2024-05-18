@@ -151,7 +151,7 @@ pub struct ContextOptions {
   pub end: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ContextModuleOptions {
   pub addon: String,
   pub resource: String,
@@ -198,7 +198,7 @@ impl ContextModule {
       factory_meta: None,
       build_info: None,
       build_meta: None,
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 

@@ -18,7 +18,6 @@ use rspack_core::{
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
 use swc_core::{
   css::{parser::parser::ParserConfig, visit::VisitWith},
@@ -56,11 +55,12 @@ pub type CssExportsType = IndexMap<Vec<String>, Vec<CssExport>>;
 
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
-  pub convention: CssExportsConvention,
+  pub convention: Option<CssExportsConvention>,
   pub local_ident_name: Option<LocalIdentName>,
   pub exports_only: bool,
   pub named_exports: bool,
   pub exports: Option<CssExportsType>,
+  pub es_module: bool,
 }
 
 impl ParserAndGenerator for CssParserAndGenerator {
@@ -154,9 +154,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
       let (code, map) = swc_compiler.codegen(
         &stylesheet,
         SwcCssSourceMapGenConfig {
-          enable: !matches!(module_source_map_kind, SourceMapKind::None),
-          inline_sources_content: false,
-          emit_columns: matches!(module_source_map_kind, SourceMapKind::SourceMap),
+          enable: module_source_map_kind.enabled(),
+          inline_sources_content: module_source_map_kind.source_map(),
+          emit_columns: !module_source_map_kind.cheap(),
         },
       )?;
       source_code = code;
@@ -172,7 +172,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
       Default::default(),
     )?;
 
-    if let Some(exports) = &mut exports {
+    if let Some(exports) = &mut exports
+      && let Some(convention) = &self.convention
+    {
       let mut exports_analyzer = ExportsAnalyzer::new(&source_code);
       new_stylesheet_ast.visit_with(&mut exports_analyzer);
       presentational_dependencies = Some(exports_analyzer.presentation_deps);
@@ -181,12 +183,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
         exports.insert(key, vec![value]);
       }
 
-      exports.sort_keys();
       let normalized_exports = IndexMap::from_iter(
         exports
           .iter()
           .map(|(name, elements)| {
-            let mut names = export_locals_convention(name, &self.convention);
+            let mut names = export_locals_convention(name, convention);
             names.sort_unstable();
             names.dedup();
             (names, stringify_css_modules_exports_elements(elements))
@@ -249,7 +250,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       dependencies
     };
 
-    let new_source = if !matches!(module_source_map_kind, SourceMapKind::None) {
+    let new_source = if module_source_map_kind.enabled() {
       if let Some(source_map) = source_map {
         SourceMapSource::new(SourceMapSourceOptions {
           value: source_code,
@@ -343,30 +344,39 @@ impl ParserAndGenerator for CssParserAndGenerator {
             )?;
           }
           return Ok(concate_source.boxed());
-        } else if let Some(exports) = &self.exports {
-          css_modules_exports_to_string(
-            exports,
-            module,
-            generate_context.compilation,
-            generate_context.runtime_requirements,
-          )?
-        } else if generate_context.compilation.options.dev_server.hot {
-          format!(
-            "module.hot.accept();\n{}(module.exports = {{}});\n",
-            RuntimeGlobals::MAKE_NAMESPACE_OBJECT
-          )
         } else {
-          format!(
-            "{}(module.exports = {{}})\n",
-            RuntimeGlobals::MAKE_NAMESPACE_OBJECT
-          )
+          let (ns_obj, left, right) = if self.es_module {
+            (RuntimeGlobals::MAKE_NAMESPACE_OBJECT.name(), "(", ")")
+          } else {
+            ("", "", "")
+          };
+          if let Some(exports) = &self.exports {
+            css_modules_exports_to_string(
+              exports,
+              module,
+              generate_context.compilation,
+              generate_context.runtime_requirements,
+              ns_obj,
+              left,
+              right,
+            )?
+          } else if generate_context.compilation.options.dev_server.hot {
+            format!(
+              "module.hot.accept();\n{}{}module.exports = {{}}{};\n",
+              ns_obj, left, right
+            )
+          } else {
+            format!("{}{}module.exports = {{}}{};\n", ns_obj, left, right)
+          }
         };
         generate_context
           .runtime_requirements
           .insert(RuntimeGlobals::MODULE);
-        generate_context
-          .runtime_requirements
-          .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+        if self.es_module {
+          generate_context
+            .runtime_requirements
+            .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+        }
         Ok(RawSource::from(exports).boxed())
       }
       _ => panic!(

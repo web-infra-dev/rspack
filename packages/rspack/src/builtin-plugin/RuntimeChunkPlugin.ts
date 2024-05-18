@@ -1,4 +1,5 @@
 import { BuiltinPluginName, RawRuntimeChunkOptions } from "@rspack/binding";
+
 import { create } from "./base";
 
 export type RuntimeChunkPluginOptions = RawRuntimeChunkOptions;

@@ -4,6 +4,8 @@ import {
 	type JsCompilation
 } from "@rspack/binding";
 
+import { Chunk } from "./Chunk";
+
 export class ChunkGroup {
 	#inner: JsChunkGroup;
 	#inner_compilation: JsCompilation;
@@ -37,6 +39,12 @@ export class ChunkGroup {
 			);
 			return ChunkGroup.__from_binding(cg, this.#inner_compilation);
 		});
+	}
+
+	get chunks(): Chunk[] {
+		return this.#inner.chunks.map(c =>
+			Chunk.__from_binding(c, this.#inner_compilation)
+		);
 	}
 
 	get index(): number | undefined {

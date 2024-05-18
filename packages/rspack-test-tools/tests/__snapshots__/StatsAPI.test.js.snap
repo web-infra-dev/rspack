@@ -16,7 +16,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 211,
+      "size": 207,
       "type": "asset",
     },
   ],
@@ -65,6 +65,13 @@ Object {
               "type": "entry",
               "userRequest": "./fixtures/a",
             },
+            Object {
+              "moduleId": "585",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+              "moduleName": "./fixtures/a.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
+            },
           ],
           "size": 59,
           "source": "module.exports = function a() {
@@ -72,7 +79,7 @@ Object {
 };
 ",
           "type": "module",
-          "usedExports": Array [],
+          "usedExports": null,
         },
       ],
       "names": Array [
@@ -89,10 +96,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 211,
+          "size": 207,
         },
       ],
-      "assetsSize": 211,
+      "assetsSize": 207,
       "chunks": Array [
         "909",
       ],
@@ -102,7 +109,7 @@ Object {
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "57e46af248a1c1fe076f",
+  "hash": "d64955662040c788c943",
   "logging": Object {},
   "modules": Array [
     Object {
@@ -132,6 +139,13 @@ Object {
           "type": "entry",
           "userRequest": "./fixtures/a",
         },
+        Object {
+          "moduleId": "585",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "moduleName": "./fixtures/a.js",
+          "type": "cjs self exports reference",
+          "userRequest": "self",
+        },
       ],
       "size": 59,
       "source": "module.exports = function a() {
@@ -139,7 +153,7 @@ Object {
 };
 ",
       "type": "module",
-      "usedExports": Array [],
+      "usedExports": null,
     },
   ],
   "namedChunkGroups": Object {
@@ -147,10 +161,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 211,
+          "size": 207,
         },
       ],
-      "assetsSize": 211,
+      "assetsSize": 207,
       "chunks": Array [
         "909",
       ],
@@ -180,7 +194,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 784,
+      "size": 720,
       "type": "asset",
     },
   ],
@@ -389,10 +403,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 784,
+          "size": 720,
         },
       ],
-      "assetsSize": 784,
+      "assetsSize": 720,
       "chunks": Array [
         "909",
       ],
@@ -402,7 +416,7 @@ Object {
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "4b5e3314a79376e83a18",
+  "hash": "c0db196ceebe2a004f20",
   "logging": Object {},
   "modules": Array [
     Object {
@@ -649,10 +663,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 784,
+          "size": 720,
         },
       ],
-      "assetsSize": 784,
+      "assetsSize": 720,
       "chunks": Array [
         "909",
       ],
@@ -682,7 +696,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 211,
+      "size": 207,
       "type": "asset",
     },
   ],
@@ -747,7 +761,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 378,
+      "size": 352,
       "type": "asset",
     },
   ],
@@ -801,6 +815,13 @@ Object {
           "providedExports": Array [],
           "reasons": Array [
             Object {
+              "moduleId": "585",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+              "moduleName": "./fixtures/a.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
+            },
+            Object {
               "moduleId": "432",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
               "moduleName": "./fixtures/c.js?c=3",
@@ -842,6 +863,13 @@ Object {
           "orphan": false,
           "providedExports": Array [],
           "reasons": Array [
+            Object {
+              "moduleId": "958",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js?a=1",
+              "moduleName": "./fixtures/a.js?a=1",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
+            },
             Object {
               "moduleId": "919",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -890,6 +918,13 @@ Object {
               "moduleName": "./fixtures/abc-query.js",
               "type": "cjs export require",
               "userRequest": "./c?c=3",
+            },
+            Object {
+              "moduleId": "432",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+              "moduleName": "./fixtures/c.js?c=3",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
             },
           ],
           "size": 79,
@@ -955,10 +990,10 @@ exports.c = require(\\"./c?c=3\\");
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 378,
+          "size": 352,
         },
       ],
-      "assetsSize": 378,
+      "assetsSize": 352,
       "chunks": Array [
         "909",
       ],
@@ -968,7 +1003,7 @@ exports.c = require(\\"./c?c=3\\");
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "aa85e38b2dc3e3f7dbda",
+  "hash": "9cdb43d7a78e4c33a99a",
   "logging": Object {},
   "modules": Array [
     Object {
@@ -1002,6 +1037,13 @@ exports.c = require(\\"./c?c=3\\");
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [
+        Object {
+          "moduleId": "585",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "moduleName": "./fixtures/a.js",
+          "type": "cjs self exports reference",
+          "userRequest": "self",
+        },
         Object {
           "moduleId": "432",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
@@ -1044,6 +1086,13 @@ exports.c = require(\\"./c?c=3\\");
       "orphan": false,
       "providedExports": Array [],
       "reasons": Array [
+        Object {
+          "moduleId": "958",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js?a=1",
+          "moduleName": "./fixtures/a.js?a=1",
+          "type": "cjs self exports reference",
+          "userRequest": "self",
+        },
         Object {
           "moduleId": "919",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -1092,6 +1141,13 @@ exports.c = require(\\"./c?c=3\\");
           "moduleName": "./fixtures/abc-query.js",
           "type": "cjs export require",
           "userRequest": "./c?c=3",
+        },
+        Object {
+          "moduleId": "432",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+          "moduleName": "./fixtures/c.js?c=3",
+          "type": "cjs self exports reference",
+          "userRequest": "self",
         },
       ],
       "size": 79,
@@ -1148,10 +1204,10 @@ exports.c = require(\\"./c?c=3\\");
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 378,
+          "size": 352,
         },
       ],
-      "assetsSize": 378,
+      "assetsSize": 352,
       "chunks": Array [
         "909",
       ],

@@ -1,7 +1,8 @@
-import { getLastVersion } from "./version.mjs";
 import * as core from "@actions/core";
 import * as path from "path";
 import { fileURLToPath } from "url";
+
+import { getLastVersion } from "./version.mjs";
 
 const __filename = path.resolve(fileURLToPath(import.meta.url));
 const __dirname = path.dirname(__filename);

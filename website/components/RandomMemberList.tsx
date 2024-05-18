@@ -66,12 +66,6 @@ const coreTeam: Member[] = [
     desc: 'Rspack / Rust contributor',
   },
   {
-    id: 'Boshen',
-    avatar: 'https://avatars.githubusercontent.com/u/1430279?s=120&v=4',
-    x: 'https://twitter.com/boshen_c',
-    desc: 'Rspack / Oxc contributor',
-  },
-  {
     id: 'h-a-n-a',
     name: 'Hana',
     avatar: 'https://avatars.githubusercontent.com/u/10465670?s=120&v=4',
@@ -202,6 +196,12 @@ export const RandomContributorsList = () => {
       id: 'underfin',
       avatar: 'https://avatars.githubusercontent.com/u/14008915?s=120&v=4',
       desc: 'Rspack / Rolldown / Vite contributor',
+    },
+    {
+      id: 'Boshen',
+      avatar: 'https://avatars.githubusercontent.com/u/1430279?s=120&v=4',
+      x: 'https://twitter.com/boshen_c',
+      desc: 'Rspack contributor / Creator of Oxc',
     },
   ];
 

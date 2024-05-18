@@ -227,7 +227,7 @@ async fn render_manifest(
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let source = if matches!(chunk.kind, ChunkKind::HotUpdate) {
-    self.render_chunk_impl(compilation, chunk_ukey).await?
+    self.render_chunk(compilation, chunk_ukey).await?
   } else if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
     self.render_main(compilation, chunk_ukey).await?
   } else {
@@ -239,7 +239,7 @@ async fn render_manifest(
       return Ok(());
     }
 
-    self.render_chunk_impl(compilation, chunk_ukey).await?
+    self.render_chunk(compilation, chunk_ukey).await?
   };
 
   let filename_template = get_js_chunk_filename_template(

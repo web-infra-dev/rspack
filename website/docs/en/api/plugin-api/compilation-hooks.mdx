@@ -1,0 +1,43 @@
+# Compilation Hooks
+
+## `buildModule`
+
+`SyncHook<[JsModule]>`
+
+Triggered before a module build has started, can be used to modify the module (Rspack currently only support reading the module, modifying is not supported yet).
+
+## `processAssets`
+
+`AsyncSeriesHook<[CompilationAssets]>`
+
+Process the assets before emit.
+
+## `optimizeModules`
+
+`SyncBailHook<[JsModule[]]>`
+
+Called at the beginning of the module optimization phase. A plugin can tap into this hook to perform optimizations on modules.
+
+## `optimizeChunkModule`
+
+`AsyncSeriesBailHook<[JsModule[]]>`
+
+Called after the tree optimization, at the beginning of the chunk modules optimization. A plugin can tap into this hook to perform optimizations of chunk modules.
+
+## `succeedModule`
+
+`SyncHook<[JsModule]>`
+
+Executed when a module has been built successfully.
+
+## `finishModules`
+
+`AsyncSeriesHook<[JsModule[]]>`
+
+Called when all modules have been built without errors.
+
+## `chunkAsset`
+
+`SyncHook<[JsChunk[], string /** filename*/ ]>`
+
+Triggered when an asset from a chunk was added to the compilation.

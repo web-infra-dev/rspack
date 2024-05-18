@@ -1,0 +1,14 @@
+```html title=output.html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Rspack App</title>
+<script src="/runtime.js" crossorigin="anonymous" integrity="sha512-qyhUuqHVdwj/Q9+Dtb1J/RpIQ6/apsVojguBUxXfxPGe63FTb3d+Pvr+g2ViE+MIiSQtyTeNPXZk8Qy2scoy2w=="></script><script src="/index.js" crossorigin="anonymous" integrity="sha512-ozK+OX5Qt8v1aO8HPVqZ2YdASy5/rCFP7SyHcIBNdyqRBLleYvX+PnEi5ypfiK5GOL1imc7conmjt7eQ6gTNiQ=="></script><link href="/index.css" rel="stylesheet" crossorigin="anonymous" integrity="sha512-vjhejkvTX8D8jzzC5Lc9ToCtcEDb0/NqtYmEHOid+ycq64hvW+JTG7Dw/ACFP6rApgiYwVMbEt6Zfb8j4EoZTA==" /></head>
+
+<body>
+
+
+
+</body></html>
+```

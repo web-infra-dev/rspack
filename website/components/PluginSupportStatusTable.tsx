@@ -12,24 +12,25 @@ enum SupportStatus {
 const SUPPORT_STATUS_LOCALIZED = {
   [SupportStatus.NotSupported]: {
     symbol: '🔴',
-    en: 'Not Supported',
-    zh: '不支持',
+    en: 'Unsupported yet',
+    zh: '暂未支持',
   },
   [SupportStatus.PartiallySupported]: {
     symbol: '🟡',
-    en: 'Partially Supported',
+    en: 'Partially supported',
     zh: '部分支持',
   },
   [SupportStatus.FullySupported]: {
     symbol: '🟢',
-    en: 'Fully Supported',
-    zh: '完全支持',
+    en: 'Supported',
+    zh: '支持',
   },
 };
 
 interface PluginSupportStatus {
   name: string;
   status: SupportStatus;
+  url?: string;
   notes?: {
     en: string;
     zh: string;
@@ -43,6 +44,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'BannerPlugin',
+    url: '/plugins/webpack/banner-plugin',
     status: SupportStatus.PartiallySupported,
     notes: {
       en: '`stage` option not supported',
@@ -59,6 +61,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'DefinePlugin',
+    url: '/plugins/webpack/define-plugin',
     status: SupportStatus.PartiallySupported,
     notes: {
       en: '`rspack.DefinePlugin.runtimeValue` function not supported',
@@ -71,6 +74,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'EnvironmentPlugin',
+    url: '/plugins/webpack/environment-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -87,14 +91,17 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'HotModuleReplacementPlugin',
+    url: '/plugins/webpack/hot-module-replacement-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'IgnorePlugin',
+    url: '/plugins/webpack/ignore-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'LimitChunkCountPlugin',
+    url: '/plugins/webpack/limit-chunk-count-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -107,6 +114,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ModuleFederationPlugin',
+    url: '/plugins/webpack/module-federation-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -115,6 +123,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'NormalModuleReplacementPlugin',
+    url: '/plugins/webpack/normal-module-replacement-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -127,6 +136,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ProgressPlugin',
+    url: '/plugins/webpack/progress-plugin',
     status: SupportStatus.PartiallySupported,
     notes: {
       zh: '仅支持 `profile` 选项',
@@ -135,14 +145,17 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ProvidePlugin',
+    url: '/plugins/webpack/provide-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'SourceMapDevToolPlugin',
+    url: '/plugins/webpack/source-map-dev-tool-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'SplitChunksPlugin',
+    url: '/plugins/webpack/split-chunks-plugin',
     status: SupportStatus.PartiallySupported,
     notes: {
       en: '`minSizeReduction`, `usedExports` options not supported',
@@ -169,6 +182,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'EntryPlugin',
+    url: '/plugins/webpack/entry-plugin',
     status: SupportStatus.PartiallySupported,
     notes: {
       en: '`layer` and `wasmLoading` options are not supported, and `filename` cannot accept a function as a value',
@@ -181,6 +195,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'NodeTemplatePlugin',
+    url: '/plugins/webpack/node-template-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -213,6 +228,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'NodeTargetPlugin',
+    url: '/plugins/webpack/node-target-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -331,18 +347,22 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ElectronTargetPlugin',
+    url: '/plugins/webpack/electron-target-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'EnableChunkLoadingPlugin',
+    url: '/plugins/webpack/enable-chunk-loading-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'EnableLibraryPlugin',
+    url: '/plugins/webpack/enable-library-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'EnableWasmLoadingPlugin',
+    url: '/plugins/webpack/enable-wasm-loading-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -351,6 +371,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ExternalsPlugin',
+    url: '/plugins/webpack/externals-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -450,7 +471,7 @@ export const PluginSupportStatusTable: React.FC = () => {
           name: lang === 'zh' ? '支持情况' : 'Support status',
           key: 'status',
           style: {
-            width: '200px',
+            width: '190px',
           },
         },
         {
@@ -459,8 +480,13 @@ export const PluginSupportStatusTable: React.FC = () => {
         },
       ]}
       body={pluginSupportStatusList
-        .sort((a, b) => b.status - a.status)
-        .map(({ name, status, notes }) => {
+        .sort((a, b) => {
+          return (
+            b.status - a.status ||
+            (b.url && a.url ? 0 : (b.url?.length || 0) - (a.url?.length || 0))
+          );
+        })
+        .map(({ name, url, status, notes }) => {
           const { symbol, en, zh } = SUPPORT_STATUS_LOCALIZED[status];
           const statusText = `${symbol} ${lang === 'zh' ? zh : en}`;
 
@@ -474,7 +500,7 @@ export const PluginSupportStatusTable: React.FC = () => {
           })();
 
           return {
-            name,
+            name: url ? <a href={url}>{name}</a> : name,
             status: statusText,
             notes: notesText,
           };

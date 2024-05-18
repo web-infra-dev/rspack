@@ -16,7 +16,6 @@ use rspack_core::{
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_util::source_map::SourceMapKind;
 use swc_core::common::{Span, SyntaxContext};
 use swc_core::ecma::parser::{EsConfig, Syntax};
 
@@ -106,8 +105,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       allow_super_outside_method: true,
       ..Default::default()
     });
-    let use_source_map = matches!(module_source_map_kind, SourceMapKind::SourceMap);
-    let enable_source_map = !matches!(module_source_map_kind, SourceMapKind::None);
+    let use_source_map = module_source_map_kind.source_map();
+    let enable_source_map = module_source_map_kind.enabled();
     let original_map = source.map(&MapOptions::new(use_source_map));
     let source = source.source();
 
@@ -152,7 +151,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .0
       };
 
-    run_before_pass(&mut ast, compiler_options)?;
+    run_before_pass(&mut ast, compiler_options, &mut diagnostics)?;
 
     let output: crate::TransformOutput = crate::ast::stringify(
       &ast,

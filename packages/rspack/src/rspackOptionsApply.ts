@@ -7,67 +7,68 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import {
-	RspackOptionsNormalized,
-	Compiler,
-	OptimizationRuntimeChunkNormalized,
-	RspackPluginFunction
-} from ".";
+import assert from "assert";
 import fs from "graceful-fs";
 
-import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
-import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
-import { cleverMerge } from "./util/cleverMerge";
-import assert from "assert";
-import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
-import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 import {
+	Compiler,
+	OptimizationRuntimeChunkNormalized,
+	RspackOptionsNormalized,
+	RspackPluginFunction
+} from ".";
+import {
+	APIPlugin,
 	ArrayPushCallbackChunkFormatPlugin,
+	AssetModulesPlugin,
+	AsyncWebAssemblyModulesPlugin,
+	BundlerInfoRspackPlugin,
+	ChunkPrefetchPreloadPlugin,
 	CommonJsChunkFormatPlugin,
+	CssModulesPlugin,
+	DataUriPlugin,
+	DefinePlugin,
+	DeterministicChunkIdsPlugin,
+	DeterministicModuleIdsPlugin,
 	ElectronTargetPlugin,
 	EnableChunkLoadingPlugin,
 	EnableLibraryPlugin,
 	EnableWasmLoadingPlugin,
-	ExternalsPlugin,
-	HttpExternalsRspackPlugin,
-	ModuleChunkFormatPlugin,
-	NodeTargetPlugin,
-	DefinePlugin,
-	MergeDuplicateChunksPlugin,
-	SplitChunksPlugin,
-	ChunkPrefetchPreloadPlugin,
-	NamedModuleIdsPlugin,
-	DeterministicModuleIdsPlugin,
-	NamedChunkIdsPlugin,
-	DeterministicChunkIdsPlugin,
-	RealContentHashPlugin,
-	RemoveEmptyChunksPlugin,
 	EnsureChunkConditionsPlugin,
-	WarnCaseSensitiveModulesPlugin,
-	DataUriPlugin,
-	FileUriPlugin,
-	JavascriptModulesPlugin,
-	JsonModulesPlugin,
-	AsyncWebAssemblyModulesPlugin,
-	RuntimePlugin,
-	InferAsyncModulesPlugin,
-	WorkerPlugin,
+	EvalDevToolModulePlugin,
 	EvalSourceMapDevToolPlugin,
-	SourceMapDevToolPlugin,
-	AssetModulesPlugin,
-	MangleExportsPlugin,
+	ExternalsPlugin,
+	FileUriPlugin,
 	FlagDependencyExportsPlugin,
 	FlagDependencyUsagePlugin,
-	SideEffectsFlagPlugin,
-	BundlerInfoRspackPlugin,
-	ModuleConcatenationPlugin,
-	EvalDevToolModulePlugin,
+	HttpExternalsRspackPlugin,
+	InferAsyncModulesPlugin,
+	JavascriptModulesPlugin,
 	JsLoaderRspackPlugin,
-	CssModulesPlugin,
-	APIPlugin,
-	RuntimeChunkPlugin
+	JsonModulesPlugin,
+	MangleExportsPlugin,
+	MergeDuplicateChunksPlugin,
+	ModuleChunkFormatPlugin,
+	ModuleConcatenationPlugin,
+	NamedChunkIdsPlugin,
+	NamedModuleIdsPlugin,
+	NodeTargetPlugin,
+	RealContentHashPlugin,
+	RemoveEmptyChunksPlugin,
+	RuntimeChunkPlugin,
+	RuntimePlugin,
+	SideEffectsFlagPlugin,
+	SizeLimitsPlugin,
+	SourceMapDevToolPlugin,
+	SplitChunksPlugin,
+	WarnCaseSensitiveModulesPlugin,
+	WorkerPlugin
 } from "./builtin-plugin";
+import EntryOptionPlugin from "./lib/EntryOptionPlugin";
+import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
+import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { assertNotNill } from "./util/assertNotNil";
+import { cleverMerge } from "./util/cleverMerge";
 
 export class RspackOptionsApply {
 	constructor() {}
@@ -317,6 +318,10 @@ export class RspackOptionsApply {
 					item.apply(compiler);
 				}
 			}
+		}
+
+		if (options.performance) {
+			new SizeLimitsPlugin(options.performance).apply(compiler);
 		}
 
 		new WarnCaseSensitiveModulesPlugin().apply(compiler);

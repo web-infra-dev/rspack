@@ -1,1 +1,21 @@
-["index", "cli", "modules", "node-api", "hmr", "loader-api", "plugin-api"]
+[
+  "index",
+  "cli",
+  {
+    "type": "dir",
+    "name": "modules",
+    "label": "模块"
+  },
+  "javascript-api",
+  "hmr",
+  {
+    "type": "dir",
+    "name": "loader-api",
+    "label": "Loader API"
+  },
+  {
+    "type": "dir",
+    "name": "plugin-api",
+    "label": "插件 API"
+  }
+]

@@ -12,13 +12,13 @@ Rspack 提供了多种界面来自定义编译过程。一些功能在不同的�
 
 在使用 Rspack 处理模块时，理解支持的不同模块语法——特别是方法和变量——是非常重要的。
 
-[了解更多关于模块的信息！](/api/modules)
+[了解更多关于模块的信息！](/api/modules/module-methods)
 
-## Node
+## JavaScript API
 
-虽然大多数用户可以通过命令行界面（CLI）和配置文件来进行操作，但通过 Node 接口可以实现对编译过程更为细致的控制。这包括传递多个配置、以编程方式运行或监控，以及收集统计信息。
+虽然大多数用户可以通过命令行界面（CLI）和配置文件来进行操作，但通过 JavaScript API 可以实现对编译过程更为细致的控制。这包括传递多个配置、以编程方式运行或监控，以及收集统计信息。
 
-[了解更多关于 Node API 的信息！](/api/node-api)
+[了解更多关于 JavaScript API 的信息！](/api/javascript-api)
 
 ## Hot Module Replacement
 
@@ -30,10 +30,10 @@ Hot Module Replacement（HMR）通过在运行时更新浏览器中的模块而�
 
 Loader 用于模块源代码的转换。它们被编写为函数，接收源代码作为参数，并返回转换后的代码。
 
-[了解更多关于 Loader 的信息！](/api/loader-api)
+[了解更多关于 Loader 的信息！](/api/loader-api/index)
 
 ## 插件
 
 插件允许用户直接介入编译过程。插件可以在生命周期钩子上注册处理程序，这些钩子在编译过程的不同节点处运行。当钩子被执行时，插件将能完全访问当前编译的状态。
 
-[了解更多关于插件的信息！](/api/plugin-api)
+[了解更多关于插件的信息！](/api/plugin-api/index)

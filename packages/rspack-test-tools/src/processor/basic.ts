@@ -1,3 +1,6 @@
+import fs from "fs";
+import path from "path";
+
 import { readConfigFile } from "../helper";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import {
@@ -8,8 +11,6 @@ import {
 	ITestRunner,
 	TCompilerOptions
 } from "../type";
-import fs from "fs";
-import path from "path";
 
 export interface IBasicProcessorOptions<
 	T extends ECompilerType = ECompilerType.Rspack

@@ -1,13 +1,15 @@
 #!/usr/bin/env zx
 
 import "zx/globals";
+
 import { Command } from "commander";
-import { version_handler } from "./scripts/release/version.mjs";
-import { publish_handler } from "./scripts/release/publish.mjs";
+
 import {
-	launchRspackCli,
-	launchJestWithArgs
+	launchJestWithArgs,
+	launchRspackCli
 } from "./scripts/debug/launch.mjs";
+import { publish_handler } from "./scripts/release/publish.mjs";
+import { version_handler } from "./scripts/release/version.mjs";
 
 process.env.CARGO_TERM_COLOR = "always"; // Assume every terminal that using zx supports color
 process.env.FORCE_COLOR = 3; // Fix zx losing color output in subprocesses
@@ -132,12 +134,21 @@ testCommand
 	.action(async function () {
 		await $`./x test unit`;
 	});
+
 // x test webpack
 testCommand
 	.command("webpack")
 	.description("run webpack test suites")
 	.action(async function () {
 		await $`pnpm --filter "webpack-test" test`;
+	});
+
+// x test plugin
+testCommand
+	.command("plugin")
+	.description("run plugin test suites")
+	.action(async function () {
+		await $`pnpm --filter "plugin-test" test`;
 	});
 
 // x rspack / x rs

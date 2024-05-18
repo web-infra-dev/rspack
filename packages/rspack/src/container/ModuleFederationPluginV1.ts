@@ -1,11 +1,12 @@
 import { Compiler } from "../Compiler";
 import {
-	LibraryOptions,
 	EntryRuntime,
 	ExternalsType,
-	externalsType
+	externalsType,
+	LibraryOptions
 } from "../config";
-import { SharePlugin, Shared } from "../sharing/SharePlugin";
+import { Shared, SharePlugin } from "../sharing/SharePlugin";
+import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
 import { isValidate } from "../util/validate";
 import { ContainerPlugin, Exposes } from "./ContainerPlugin";
 import { ContainerReferencePlugin, Remotes } from "./ContainerReferencePlugin";
@@ -43,6 +44,7 @@ export class ModuleFederationPluginV1 {
 			compiler.options.output.enabledLibraryTypes!.push(library.type);
 		}
 		compiler.hooks.afterPlugins.tap("ModuleFederationPlugin", () => {
+			new ShareRuntimePlugin(this._options.enhanced).apply(compiler);
 			if (
 				options.exposes &&
 				(Array.isArray(options.exposes)

@@ -298,7 +298,7 @@ type PresetEnv =
       type: '`string[]|undefined`',
       default: 'undefined',
       description:
-        '通过该配置可以使用 [browserslist query](https://github.com/browserslist/browserslist#queries) 来控制用户代码中 js 和 css 语法的降级，当此值为 undefined 时，rspack 将尝试使用[基础目录](config/context) 下的 [browserslist](https://github.com/browserslist/browserslist) 配置来进行转换。',
+        '通过该配置可以使用 [browserslist query](https://github.com/browserslist/browserslist#queries) 来控制用户代码中 JS 和 CSS 语法的降级，当此值为 undefined 时，rspack 将尝试使用[基础目录](config/context) 下的 [browserslist](https://github.com/browserslist/browserslist) 配置来进行转换。',
     },
     {
       name: '`mode`',
@@ -819,7 +819,7 @@ type BuiltinsDecorator =
 
 <ApiMeta removedVersion="0.6.0" stability={Stability.Removed} />
 
-此选项可以用来配置默认 css 打包策略。
+此选项可以用来配置默认 CSS 打包策略。
 
 - **类型：**
 
@@ -888,14 +888,10 @@ type BuiltinsCssModules = {
       name: '`exportsOnly`',
       type: '`boolean`',
       default: 'false',
-      description: '只输出 js 对象，不输出 css 文件。常在 SSR 场景下使用',
+      description: '只输出 JS 对象，不输出 CSS 文件。常在 SSR 场景下使用',
     },
   ]}
 />
-
-{/* ## builtins.postcss */}
-
-{/* ## builtins.treeShaking */}
 
 ## builtins.progress
 

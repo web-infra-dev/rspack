@@ -16,7 +16,7 @@ impl ExportWebpackRequireRuntimeModule {
   pub fn new() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/export_webpack_runtime"),
-      source_map_kind: SourceMapKind::None,
+      source_map_kind: SourceMapKind::empty(),
       custom_source: None,
     }
   }
@@ -32,6 +32,6 @@ impl RuntimeModule for ExportWebpackRequireRuntimeModule {
   }
 
   fn should_isolate(&self) -> bool {
-    true
+    false
   }
 }

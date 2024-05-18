@@ -7,7 +7,7 @@ version    = "0.1.0"
 
 
 [dependencies]
-data-encoding = { version = "2.5.0" }
+data-encoding = { version = "2.6.0" }
 md4           = "0.10.2"
 smol_str      = { version = "*" }
 xxhash-rust   = { workspace = true, features = ["xxh3"] }

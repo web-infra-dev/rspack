@@ -1,14 +1,14 @@
-import type { RspackCLI } from "../rspack-cli";
-import { RspackDevServer } from "@rspack/dev-server";
-import { RspackCommand, RspackPreviewCLIOptions } from "../types";
-import { previewOptions } from "../utils/options";
 import {
 	DevServer,
+	MultiRspackOptions,
 	rspack,
-	RspackOptions,
-	MultiRspackOptions
+	RspackOptions
 } from "@rspack/core";
 import path from "path";
+
+import type { RspackCLI } from "../rspack-cli";
+import { RspackCommand, RspackPreviewCLIOptions } from "../types";
+import { previewOptions } from "../utils/options";
 
 const defaultRoot = "dist";
 export class PreviewCommand implements RspackCommand {
@@ -26,6 +26,7 @@ export class PreviewCommand implements RspackCommand {
 						...options
 					}
 				};
+				const { RspackDevServer } = await import("@rspack/dev-server");
 
 				let config = await cli.loadConfig(rspackOptions);
 				config = await getPreviewConfig(config, options);
