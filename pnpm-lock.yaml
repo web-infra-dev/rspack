@@ -754,9 +754,6 @@ importers:
       '@babel/types':
         specifier: 7.23.0
         version: 7.23.0
-      '@rspack/core':
-        specifier: workspace:*
-        version: link:../rspack
       csv-to-markdown-table:
         specifier: ^1.3.0
         version: 1.4.1
@@ -821,6 +818,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../rspack
       '@rspack/plugin-minify':
         specifier: workspace:*
         version: link:../rspack-plugin-minify
