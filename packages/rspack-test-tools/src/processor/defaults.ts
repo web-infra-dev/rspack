@@ -93,8 +93,8 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 			jestDiff(this.defaultConfig, config, { expand: false, contextLines: 0 })!
 		);
 		await this._defaultsConfigOptions.diff(
-			expect(new Diff(diff)),
-			expect(this.defaultConfig)
+			env.expect(new Diff(diff)),
+			env.expect(this.defaultConfig)
 		);
 	}
 
@@ -122,8 +122,8 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 		return config;
 	}
 
-	static addSnapshotSerializer() {
-		expect.addSnapshotSerializer({
+	static addSnapshotSerializer(expectImpl: jest.Expect) {
+		expectImpl.addSnapshotSerializer({
 			test(value) {
 				return value instanceof Diff;
 			},
@@ -132,7 +132,7 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 			}
 		});
 
-		expect.addSnapshotSerializer({
+		expectImpl.addSnapshotSerializer({
 			test(value) {
 				return typeof value === "string";
 			},

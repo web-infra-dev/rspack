@@ -50,11 +50,11 @@ export class StatsAPITaskProcessor<
 	async check(env: ITestEnv, context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		const stats = compiler.getStats();
-		expect(typeof stats).toBe("object");
+		env.expect(typeof stats).toBe("object");
 		await this._statsAPIOptions.check?.(stats!, compiler.getCompiler()!);
 	}
 
-	static addSnapshotSerializer() {
-		expect.addSnapshotSerializer(serializer);
+	static addSnapshotSerializer(expectImpl: jest.Expect) {
+		expectImpl.addSnapshotSerializer(serializer);
 	}
 }

@@ -126,7 +126,7 @@ export function createWatchCase(name: string, src: string, dist: string, temp: s
 export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerType.Rspack> {
     constructor(_defaultsConfigOptions: IDefaultsConfigProcessorOptions);
     // (undocumented)
-    static addSnapshotSerializer(): void;
+    static addSnapshotSerializer(expectImpl: jest.Expect): void;
     // (undocumented)
     after(context: ITestContext): Promise<void>;
     // (undocumented)
@@ -249,7 +249,7 @@ export enum EEsmMode {
 export class ErrorTaskProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
     constructor(_errorOptions: IErrorTaskProcessorOptions<T>);
     // (undocumented)
-    static addSnapshotSerializer(): void;
+    static addSnapshotSerializer(expectImpl: jest.Expect): void;
     // (undocumented)
     check(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
@@ -281,7 +281,7 @@ export class HookCasesContext extends TestContext {
     // @internal (undocumented)
     _addSnapshot(content: unknown, name: string, group: string | number): void;
     // @internal (undocumented)
-    collectSnapshots(options?: {
+    collectSnapshots(env: ITestEnv, options?: {
         diff: {};
     }): Promise<void>;
     // (undocumented)
@@ -334,8 +334,6 @@ export interface IBasicGlobalContext {
     clearTimeout: typeof clearTimeout;
     // (undocumented)
     console: Console;
-    // (undocumented)
-    expect: jest.Expect;
     // (undocumented)
     setTimeout: typeof setTimeout;
 }
@@ -716,6 +714,8 @@ export interface ITestEnv {
     // (undocumented)
     beforeEach: (...args: any[]) => void;
     // (undocumented)
+    expect: jest.Expect;
+    // (undocumented)
     it: (...args: any[]) => void;
 }
 
@@ -932,7 +932,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
     // (undocumented)
     protected _hotOptions: IRspackHotProcessorOptions;
     // (undocumented)
-    protected matchStepSnapshot(context: ITestContext, step: number, stats: StatsCompilation, runtime?: THotStepRuntimeData): void;
+    protected matchStepSnapshot(env: ITestEnv, context: ITestContext, step: number, stats: StatsCompilation, runtime?: THotStepRuntimeData): void;
     // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
 }
@@ -1026,7 +1026,7 @@ export class SnapshotProcessor<T extends ECompilerType> extends BasicTaskProcess
 export class StatsAPITaskProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
     constructor(_statsAPIOptions: IStatsAPITaskProcessorOptions<T>);
     // (undocumented)
-    static addSnapshotSerializer(): void;
+    static addSnapshotSerializer(expectImpl: jest.Expect): void;
     // (undocumented)
     check(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)

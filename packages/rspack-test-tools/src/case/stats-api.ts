@@ -21,7 +21,7 @@ export function createStatsAPICase(
 	testConfig: string
 ) {
 	if (!addedSerializer) {
-		StatsAPITaskProcessor.addSnapshotSerializer();
+		StatsAPITaskProcessor.addSnapshotSerializer(expect);
 		addedSerializer = true;
 	}
 	const caseConfig: TStatsAPICaseConfig = require(testConfig);

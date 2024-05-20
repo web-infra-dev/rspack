@@ -31,14 +31,14 @@ export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack
 		const testConfig = context.getTestConfig();
 		const stats = compiler.getStats();
 		if (!stats) {
-			expect(false);
+			env.expect(false);
 			return;
 		}
 		const statsJson = stats.toJson({ assets: true });
 		if (REG_ERROR_CASE.test(this._options.name)) {
-			expect((statsJson.errors || []).length > 0);
+			env.expect((statsJson.errors || []).length > 0);
 		} else {
-			expect((statsJson.errors || []).length === 0);
+			env.expect((statsJson.errors || []).length === 0);
 		}
 
 		if (typeof testConfig.validate === "function") {

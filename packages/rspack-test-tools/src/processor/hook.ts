@@ -147,6 +147,7 @@ export class HookCasesContext extends TestContext {
 	 * @internal
 	 */
 	async collectSnapshots(
+		env: ITestEnv,
 		options = {
 			diff: {}
 		}
@@ -169,10 +170,9 @@ export class HookCasesContext extends TestContext {
 		}, "");
 
 		// @ts-ignore
-		expect(snapshots).toMatchFileSnapshot(
-			path.join(this.src, "hooks.snap.txt"),
-			options
-		);
+		env
+			.expect(snapshots)
+			.toMatchFileSnapshot(path.join(this.src, "hooks.snap.txt"), options);
 	}
 }
 
@@ -230,7 +230,7 @@ export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
 	}
 
 	async check(env: ITestEnv, context: HookCasesContext) {
-		await (context as any).collectSnapshots();
+		await (context as any).collectSnapshots(env);
 		await super.check(env, context);
 		if (typeof this._hookOptions.check === "function") {
 			await this._hookOptions.check(context);

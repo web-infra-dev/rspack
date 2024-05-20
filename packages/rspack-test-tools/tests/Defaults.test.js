@@ -5,7 +5,7 @@ const {
 	describeByWalk
 } = require("..");
 
-DefaultsConfigTaskProcessor.addSnapshotSerializer();
+DefaultsConfigTaskProcessor.addSnapshotSerializer(expect);
 
 describe("Base Defaults Snapshot", () => {
 	const baseConfig = DefaultsConfigTaskProcessor.getDefaultConfig(

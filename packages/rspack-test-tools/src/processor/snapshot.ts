@@ -80,6 +80,6 @@ export class SnapshotProcessor<
 			return;
 		}
 		const snapshotContent = escapeEOL(fs.readFileSync(snapshotPath, "utf-8"));
-		expect(content).toBe(snapshotContent);
+		env.expect(content).toBe(snapshotContent);
 	}
 }

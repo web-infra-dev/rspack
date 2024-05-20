@@ -30,7 +30,6 @@ export interface IBasicModuleScope extends ITestEnv {
 
 export interface IBasicGlobalContext {
 	console: Console;
-	expect: jest.Expect;
 	setTimeout: typeof setTimeout;
 	clearTimeout: typeof clearTimeout;
 	[key: string]: any;

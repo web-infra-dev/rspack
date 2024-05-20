@@ -65,7 +65,7 @@ export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.
 			fs.writeFileSync(errorOutputPath, escapeEOL(output));
 		} else {
 			const expectContent = fs.readFileSync(errorOutputPath, "utf-8");
-			expect(escapeEOL(output)).toBe(escapeEOL(expectContent));
+			env.expect(escapeEOL(output)).toBe(escapeEOL(expectContent));
 		}
 	}
 

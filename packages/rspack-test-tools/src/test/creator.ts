@@ -6,6 +6,7 @@ import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
 import {
 	ECompilerType,
 	ITestContext,
+	ITestEnv,
 	ITester,
 	ITestProcessor,
 	TRunnerFactory,
@@ -88,11 +89,12 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		});
 	}
 
-	protected createEnv(testConfig: TTestConfig<T>) {
+	protected createEnv(testConfig: TTestConfig<T>): ITestEnv {
 		if (typeof this._options.runner === "function" && !testConfig.noTest) {
 			return createLazyTestEnv(10000);
 		} else {
 			return {
+				expect,
 				it,
 				beforeEach,
 				afterEach

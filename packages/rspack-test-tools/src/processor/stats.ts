@@ -98,7 +98,7 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 		}
 
 		if (REG_ERROR_CASE.test(this._options.name)) {
-			expect(stats.hasErrors()).toBe(true);
+			env.expect(stats.hasErrors()).toBe(true);
 		} else if (stats.hasErrors()) {
 			throw new Error(
 				stats.toString({
@@ -141,14 +141,14 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 		for (const { compilation: s } of [].concat(
 			(stats as any).stats || stats
 		) as Stats[]) {
-			expect(s.startTime).toBeGreaterThan(0);
-			expect(s.endTime).toBeGreaterThan(0);
+			env.expect(s.startTime).toBeGreaterThan(0);
+			env.expect(s.endTime).toBeGreaterThan(0);
 			s.endTime = new Date("04/20/1970, 12:42:42 PM").getTime();
 			s.startTime = s.endTime - 1234;
 		}
 
 		let actual = stats.toString(toStringOptions);
-		expect(typeof actual).toBe("string");
+		env.expect(typeof actual).toBe("string");
 		if (!hasColorSetting) {
 			actual = this.stderr.toString() + actual;
 			actual = actual
@@ -181,7 +181,7 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 			.replace(/(\w)\\(\w)/g, "$1/$2")
 			.replace(/, additional resolving: X ms/g, "")
 			.replace(/Unexpected identifier '.+?'/g, "Unexpected identifier");
-		expect(actual).toMatchSnapshot();
+		env.expect(actual).toMatchSnapshot();
 		const testConfig = context.getTestConfig();
 		if (typeof testConfig?.validate === "function") {
 			testConfig.validate(stats, this.stderr.toString());
