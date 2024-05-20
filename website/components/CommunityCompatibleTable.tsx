@@ -108,6 +108,21 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       description: i18n[lang]['terser-webpack-plugin-desc'],
     },
     {
+      name: 'html-minimizer-webpack-plugin',
+      url: 'https://github.com/webpack-contrib/html-minimizer-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'json-minimizer-webpack-plugin',
+      url: 'https://github.com/webpack-contrib/json-minimizer-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'stylelint-webpack-plugin',
+      url: 'https://github.com/webpack-contrib/stylelint-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
       name: 'tsconfig-paths-webpack-plugin',
       url: 'https://www.npmjs.com/package/tsconfig-paths-webpack-plugin',
       status: CompatibleStatus.Included,
