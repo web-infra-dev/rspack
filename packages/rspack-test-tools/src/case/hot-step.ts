@@ -1,4 +1,4 @@
-import { RspackHotStepProcessor } from "../processor/hot-step";
+import { HotSnapshotProcessor } from "../processor/hot-step";
 import { HotStepRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 import { ECompilerType, TCompilerOptions } from "../type";
@@ -19,9 +19,11 @@ function getCreator(target: TTarget) {
 				describe: false,
 				target,
 				steps: ({ name, target }) => [
-					new RspackHotStepProcessor({
+					new HotSnapshotProcessor({
 						name,
-						target: target as TTarget
+						target: target as TTarget,
+						compilerType: ECompilerType.Rspack,
+						configFiles: ["rspack.config.js", "webpack.config.js"]
 					})
 				],
 				runner: HotStepRunnerFactory

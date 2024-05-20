@@ -1,14 +1,11 @@
-import {
-	IStatsAPITaskProcessorOptions,
-	StatsAPITaskProcessor
-} from "../processor";
+import { IStatsAPIProcessorOptions, StatsAPIProcessor } from "../processor";
 import { getSimpleProcessorRunner } from "../test/simple";
 import { ECompilerType } from "../type";
 
 let addedSerializer = false;
 
 export type TStatsAPICaseConfig = Omit<
-	IStatsAPITaskProcessorOptions<ECompilerType.Rspack>,
+	IStatsAPIProcessorOptions<ECompilerType.Rspack>,
 	"name" | "compilerType"
 > & {
 	description: string;
@@ -21,7 +18,7 @@ export function createStatsAPICase(
 	testConfig: string
 ) {
 	if (!addedSerializer) {
-		StatsAPITaskProcessor.addSnapshotSerializer(expect);
+		StatsAPIProcessor.addSnapshotSerializer(expect);
 		addedSerializer = true;
 	}
 	const caseConfig: TStatsAPICaseConfig = require(testConfig);
@@ -30,7 +27,7 @@ export function createStatsAPICase(
 	it(caseConfig.description, async () => {
 		await runner(
 			name,
-			new StatsAPITaskProcessor({
+			new StatsAPIProcessor({
 				name: name,
 				compilerType: ECompilerType.Rspack,
 				...caseConfig

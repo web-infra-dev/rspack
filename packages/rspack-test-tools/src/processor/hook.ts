@@ -176,38 +176,18 @@ export class HookCasesContext extends TestContext {
 }
 
 export interface IHookProcessorOptions<T extends ECompilerType>
-	extends ISnapshotProcessorOptions<T> {
+	extends Omit<ISnapshotProcessorOptions<T>, "defaultOptions"> {
 	options?: (context: ITestContext) => TCompilerOptions<T>;
 	compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
 	check?: (context: ITestContext) => Promise<void>;
 }
 
-export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
-	constructor(
-		protected _hookOptions: IHookProcessorOptions<ECompilerType.Rspack>
-	) {
+export class HookTaskProcessor<
+	T extends ECompilerType
+> extends SnapshotProcessor<T> {
+	constructor(protected _hookOptions: IHookProcessorOptions<T>) {
 		super({
-			defaultOptions: context => {
-				return {
-					context: context.getSource(),
-					mode: "production",
-					target: "async-node",
-					devtool: false,
-					cache: false,
-					entry: "./hook",
-					output: {
-						path: context.getDist()
-					},
-					optimization: {
-						minimize: false
-					},
-					experiments: {
-						rspackFuture: {
-							newTreeshaking: true
-						}
-					}
-				};
-			},
+			defaultOptions: HookTaskProcessor.defaultOptions<T>,
 			..._hookOptions
 		});
 	}
@@ -234,5 +214,29 @@ export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
 		if (typeof this._hookOptions.check === "function") {
 			await this._hookOptions.check(context);
 		}
+	}
+
+	static defaultOptions<T extends ECompilerType>(
+		context: ITestContext
+	): TCompilerOptions<T> {
+		return {
+			context: context.getSource(),
+			mode: "production",
+			target: "async-node",
+			devtool: false,
+			cache: false,
+			entry: "./hook",
+			output: {
+				path: context.getDist()
+			},
+			optimization: {
+				minimize: false
+			},
+			experiments: {
+				rspackFuture: {
+					newTreeshaking: true
+				}
+			}
+		} as TCompilerOptions<T>;
 	}
 }

@@ -65,7 +65,7 @@ const prettyFormatOptions = {
 	]
 };
 
-export interface IErrorTaskProcessorOptions<T extends ECompilerType> {
+export interface IErrorProcessorOptions<T extends ECompilerType> {
 	name: string;
 	compilerType: T;
 	options?: (
@@ -76,10 +76,10 @@ export interface IErrorTaskProcessorOptions<T extends ECompilerType> {
 	check?: (stats: TStatsDiagnostics) => Promise<void>;
 }
 
-export class ErrorTaskProcessor<
+export class ErrorProcessor<
 	T extends ECompilerType
 > extends SimpleTaskProcessor<T> {
-	constructor(protected _errorOptions: IErrorTaskProcessorOptions<T>) {
+	constructor(protected _errorOptions: IErrorProcessorOptions<T>) {
 		super({
 			options: (context: ITestContext): TCompilerOptions<T> => {
 				let options = {

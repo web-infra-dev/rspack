@@ -5,14 +5,11 @@ import {
 	ECompilerType,
 	ITestContext,
 	ITestProcessor,
-	ITestRunner,
 	TCompilerOptions
 } from "../type";
-import { BasicTaskProcessor } from "./basic";
+import { BasicProcessor } from "./basic";
 
-export interface IMultiTaskProcessorOptions<
-	T extends ECompilerType = ECompilerType.Rspack
-> {
+export interface IMultiTaskProcessorOptions<T extends ECompilerType> {
 	defaultOptions?: (
 		index: number,
 		context: ITestContext
@@ -27,14 +24,14 @@ export interface IMultiTaskProcessorOptions<
 		context: ITestContext,
 		options: TCompilerOptions<T>
 	) => string[] | string | void;
-	compilerType: ECompilerType.Rspack;
+	compilerType: T;
 	name: string;
 	configFiles?: string[];
 	runable: boolean;
 }
 
-export class MultiTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
-	extends BasicTaskProcessor<T>
+export class MultiTaskProcessor<T extends ECompilerType>
+	extends BasicProcessor<T>
 	implements ITestProcessor
 {
 	protected multiCompilerOptions: TCompilerOptions<T>[] = [];

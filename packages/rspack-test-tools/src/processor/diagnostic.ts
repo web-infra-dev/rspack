@@ -9,7 +9,7 @@ import {
 	ITestEnv,
 	TCompilerOptions
 } from "../type";
-import { BasicTaskProcessor } from "./basic";
+import { BasicProcessor, IBasicProcessorOptions } from "./basic";
 const serializer = require("jest-serializer-path");
 const normalizePaths = serializer.normalizePaths;
 const rspackPath = path.resolve(__dirname, "../../../rspack");
@@ -23,18 +23,19 @@ declare var global: {
 	updateSnapshot: boolean;
 };
 
-export interface IRspackDiagnosticProcessorOptions {
-	name: string;
+export interface IDiagnosticProcessorOptions<T extends ECompilerType>
+	extends Omit<IBasicProcessorOptions<T>, "defaultOptions" | "runable"> {
+	snapshot: string;
 }
 
-export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
-	constructor(protected _diagnosticOptions: IRspackDiagnosticProcessorOptions) {
+export class DiagnosticProcessor<
+	T extends ECompilerType
+> extends BasicProcessor<T> {
+	constructor(protected _diagnosticOptions: IDiagnosticProcessorOptions<T>) {
 		super({
-			defaultOptions: RspackDiagnosticProcessor.defaultOptions,
-			configFiles: ["rspack.config.js", "webpack.config.js"],
-			compilerType: ECompilerType.Rspack,
-			name: _diagnosticOptions.name,
-			runable: false
+			defaultOptions: DiagnosticProcessor.defaultOptions<T>,
+			runable: false,
+			..._diagnosticOptions
 		});
 	}
 
@@ -60,18 +61,20 @@ export class RspackDiagnosticProcessor extends BasicTaskProcessor<ECompilerType.
 			.map((s: string) => s.trim())
 			.join("");
 
-		const errorOutputPath = path.resolve(context.getSource(), `./stats.err`);
+		const errorOutputPath = path.resolve(
+			context.getSource(this._diagnosticOptions.snapshot)
+		);
 		if (!fs.existsSync(errorOutputPath) || global.updateSnapshot) {
 			fs.writeFileSync(errorOutputPath, escapeEOL(output));
 		} else {
 			const expectContent = fs.readFileSync(errorOutputPath, "utf-8");
-			env.expect(escapeEOL(output)).toBe(escapeEOL(expectContent));
+			expect(escapeEOL(output)).toBe(escapeEOL(expectContent));
 		}
 	}
 
-	static defaultOptions(
+	static defaultOptions<T extends ECompilerType>(
 		context: ITestContext
-	): TCompilerOptions<ECompilerType.Rspack> {
+	): TCompilerOptions<T> {
 		return {
 			target: "node",
 			context: context.getSource(),
