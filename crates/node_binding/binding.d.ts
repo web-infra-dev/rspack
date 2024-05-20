@@ -7,6 +7,8 @@ export type JsFilename =
 	| ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
+
+export type RawLazyCompilationTest = RegExp | ((m: JsModule) => boolean);
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -171,7 +173,8 @@ export enum BuiltinPluginName {
   SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
-  JsLoaderRspackPlugin = 'JsLoaderRspackPlugin'
+  JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
+  LazyCompilationPlugin = 'LazyCompilationPlugin'
 }
 
 export function cleanupGlobalTrace(): void
@@ -969,6 +972,14 @@ export interface RawJavascriptParserOptions {
   wrappedContextCritical: boolean
 }
 
+export interface RawLazyCompilationOption {
+  module: (err: Error | null, arg: RawModuleArg) => any
+  test?: RawLazyCompilationTest
+  entries: boolean
+  imports: boolean
+  cacheable: boolean
+}
+
 export interface RawLibraryAuxiliaryComment {
   root?: string
   commonjs?: string
@@ -1004,6 +1015,11 @@ export interface RawLimitChunkCountPluginOptions {
   maxChunks: number
 }
 
+export interface RawModuleArg {
+  module: string
+  path: string
+}
+
 export interface RawModuleFilenameTemplateFnCtx {
   identifier: string
   shortIdentifier: string
@@ -1016,6 +1032,12 @@ export interface RawModuleFilenameTemplateFnCtx {
   moduleId: string
   hash: string
   namespace: string
+}
+
+export interface RawModuleInfo {
+  active: boolean
+  client: string
+  data: string
 }
 
 export interface RawModuleOptions {

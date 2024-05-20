@@ -2831,6 +2831,7 @@ dependencies = [
  "rspack_plugin_ignore",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
+ "rspack_plugin_lazy_compilation",
  "rspack_plugin_library",
  "rspack_plugin_limit_chunk_count",
  "rspack_plugin_merge_duplicate_chunks",
@@ -3402,6 +3403,23 @@ dependencies = [
  "ropey",
  "rspack_core",
  "rspack_error",
+]
+
+[[package]]
+name = "rspack_plugin_lazy_compilation"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "once_cell",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_identifier",
+ "rspack_plugin_javascript",
+ "rspack_regex",
+ "rspack_util",
+ "rustc-hash",
+ "tokio",
 ]
 
 [[package]]

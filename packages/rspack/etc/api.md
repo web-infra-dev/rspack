@@ -2826,7 +2826,19 @@ export type Experiments = z.infer<typeof experiments>;
 
 // @public (undocumented)
 const experiments: z.ZodObject<{
-    lazyCompilation: z.ZodOptional<z.ZodBoolean>;
+    lazyCompilation: z.ZodUnion<[z.ZodOptional<z.ZodBoolean>, z.ZodObject<{
+        imports: z.ZodOptional<z.ZodBoolean>;
+        entries: z.ZodOptional<z.ZodBoolean>;
+        test: z.ZodOptional<z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodBoolean>]>>;
+    }, "strip", z.ZodTypeAny, {
+        imports?: boolean | undefined;
+        entries?: boolean | undefined;
+        test?: RegExp | ((args_0: Module, ...args_1: unknown[]) => boolean) | undefined;
+    }, {
+        imports?: boolean | undefined;
+        entries?: boolean | undefined;
+        test?: RegExp | ((args_0: Module, ...args_1: unknown[]) => boolean) | undefined;
+    }>]>;
     asyncWebAssembly: z.ZodOptional<z.ZodBoolean>;
     outputModule: z.ZodOptional<z.ZodBoolean>;
     topLevelAwait: z.ZodOptional<z.ZodBoolean>;
@@ -2858,7 +2870,11 @@ const experiments: z.ZodObject<{
         } | undefined;
     }>>;
 }, "strict", z.ZodTypeAny, {
-    lazyCompilation?: boolean | undefined;
+    lazyCompilation?: boolean | {
+        imports?: boolean | undefined;
+        entries?: boolean | undefined;
+        test?: RegExp | ((args_0: Module, ...args_1: unknown[]) => boolean) | undefined;
+    } | undefined;
     asyncWebAssembly?: boolean | undefined;
     outputModule?: boolean | undefined;
     topLevelAwait?: boolean | undefined;
@@ -2872,7 +2888,11 @@ const experiments: z.ZodObject<{
         } | undefined;
     } | undefined;
 }, {
-    lazyCompilation?: boolean | undefined;
+    lazyCompilation?: boolean | {
+        imports?: boolean | undefined;
+        entries?: boolean | undefined;
+        test?: RegExp | ((args_0: Module, ...args_1: unknown[]) => boolean) | undefined;
+    } | undefined;
     asyncWebAssembly?: boolean | undefined;
     outputModule?: boolean | undefined;
     topLevelAwait?: boolean | undefined;
@@ -2896,7 +2916,7 @@ export interface ExperimentsNormalized {
     // (undocumented)
     futureDefaults?: boolean;
     // (undocumented)
-    lazyCompilation?: boolean;
+    lazyCompilation?: false | LazyCompilationOptions;
     // (undocumented)
     outputModule?: boolean;
     // (undocumented)
@@ -4255,6 +4275,24 @@ type KnownStatsProfile = {
     integration: number;
     building: number;
 };
+
+// @public (undocumented)
+export type LazyCompilationOptions = z.infer<typeof lazyCompilationOptions>;
+
+// @public (undocumented)
+const lazyCompilationOptions: z.ZodObject<{
+    imports: z.ZodOptional<z.ZodBoolean>;
+    entries: z.ZodOptional<z.ZodBoolean>;
+    test: z.ZodOptional<z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodBoolean>]>>;
+}, "strip", z.ZodTypeAny, {
+    imports?: boolean | undefined;
+    entries?: boolean | undefined;
+    test?: RegExp | ((args_0: Module, ...args_1: unknown[]) => boolean) | undefined;
+}, {
+    imports?: boolean | undefined;
+    entries?: boolean | undefined;
+    test?: RegExp | ((args_0: Module, ...args_1: unknown[]) => boolean) | undefined;
+}>;
 
 // @public (undocumented)
 export type Library = z.infer<typeof library_2>;
@@ -7995,6 +8033,7 @@ declare namespace rspackExports {
         OptimizationSplitChunksOptions,
         Optimization,
         RspackFutureOptions,
+        LazyCompilationOptions,
         Experiments,
         Watch,
         WatchOptions,
@@ -8692,7 +8731,19 @@ export const rspackOptions: z.ZodObject<{
     target: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["web", "webworker", "es3", "es5", "es2015", "es2016", "es2017", "es2018", "es2019", "es2020", "es2021", "es2022", "browserslist"]>, z.ZodLiteral<"node">]>, z.ZodLiteral<"async-node">]>, z.ZodType<`node${number}`, z.ZodTypeDef, `node${number}`>]>, z.ZodType<`async-node${number}`, z.ZodTypeDef, `async-node${number}`>]>, z.ZodType<`node${number}.${number}`, z.ZodTypeDef, `node${number}.${number}`>]>, z.ZodType<`async-node${number}.${number}`, z.ZodTypeDef, `async-node${number}.${number}`>]>, z.ZodLiteral<"electron-main">]>, z.ZodType<`electron${number}-main`, z.ZodTypeDef, `electron${number}-main`>]>, z.ZodType<`electron${number}.${number}-main`, z.ZodTypeDef, `electron${number}.${number}-main`>]>, z.ZodLiteral<"electron-renderer">]>, z.ZodType<`electron${number}-renderer`, z.ZodTypeDef, `electron${number}-renderer`>]>, z.ZodType<`electron${number}.${number}-renderer`, z.ZodTypeDef, `electron${number}.${number}-renderer`>]>, z.ZodLiteral<"electron-preload">]>, z.ZodType<`electron${number}-preload`, z.ZodTypeDef, `electron${number}-preload`>]>, z.ZodType<`electron${number}.${number}-preload`, z.ZodTypeDef, `electron${number}.${number}-preload`>]>]>, z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["web", "webworker", "es3", "es5", "es2015", "es2016", "es2017", "es2018", "es2019", "es2020", "es2021", "es2022", "browserslist"]>, z.ZodLiteral<"node">]>, z.ZodLiteral<"async-node">]>, z.ZodType<`node${number}`, z.ZodTypeDef, `node${number}`>]>, z.ZodType<`async-node${number}`, z.ZodTypeDef, `async-node${number}`>]>, z.ZodType<`node${number}.${number}`, z.ZodTypeDef, `node${number}.${number}`>]>, z.ZodType<`async-node${number}.${number}`, z.ZodTypeDef, `async-node${number}.${number}`>]>, z.ZodLiteral<"electron-main">]>, z.ZodType<`electron${number}-main`, z.ZodTypeDef, `electron${number}-main`>]>, z.ZodType<`electron${number}.${number}-main`, z.ZodTypeDef, `electron${number}.${number}-main`>]>, z.ZodLiteral<"electron-renderer">]>, z.ZodType<`electron${number}-renderer`, z.ZodTypeDef, `electron${number}-renderer`>]>, z.ZodType<`electron${number}.${number}-renderer`, z.ZodTypeDef, `electron${number}.${number}-renderer`>]>, z.ZodLiteral<"electron-preload">]>, z.ZodType<`electron${number}-preload`, z.ZodTypeDef, `electron${number}-preload`>]>, z.ZodType<`electron${number}.${number}-preload`, z.ZodTypeDef, `electron${number}.${number}-preload`>]>, "many">]>>;
     mode: z.ZodOptional<z.ZodEnum<["development", "production", "none"]>>;
     experiments: z.ZodOptional<z.ZodObject<{
-        lazyCompilation: z.ZodOptional<z.ZodBoolean>;
+        lazyCompilation: z.ZodUnion<[z.ZodOptional<z.ZodBoolean>, z.ZodObject<{
+            imports: z.ZodOptional<z.ZodBoolean>;
+            entries: z.ZodOptional<z.ZodBoolean>;
+            test: z.ZodOptional<z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodBoolean>]>>;
+        }, "strip", z.ZodTypeAny, {
+            imports?: boolean | undefined;
+            entries?: boolean | undefined;
+            test?: RegExp | ((args_0: Module, ...args_1: unknown[]) => boolean) | undefined;
+        }, {
+            imports?: boolean | undefined;
+            entries?: boolean | undefined;
+            test?: RegExp | ((args_0: Module, ...args_1: unknown[]) => boolean) | undefined;
+        }>]>;
         asyncWebAssembly: z.ZodOptional<z.ZodBoolean>;
         outputModule: z.ZodOptional<z.ZodBoolean>;
         topLevelAwait: z.ZodOptional<z.ZodBoolean>;
@@ -8724,7 +8775,11 @@ export const rspackOptions: z.ZodObject<{
             } | undefined;
         }>>;
     }, "strict", z.ZodTypeAny, {
-        lazyCompilation?: boolean | undefined;
+        lazyCompilation?: boolean | {
+            imports?: boolean | undefined;
+            entries?: boolean | undefined;
+            test?: RegExp | ((args_0: Module, ...args_1: unknown[]) => boolean) | undefined;
+        } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
@@ -8738,7 +8793,11 @@ export const rspackOptions: z.ZodObject<{
             } | undefined;
         } | undefined;
     }, {
-        lazyCompilation?: boolean | undefined;
+        lazyCompilation?: boolean | {
+            imports?: boolean | undefined;
+            entries?: boolean | undefined;
+            test?: RegExp | ((args_0: Module, ...args_1: unknown[]) => boolean) | undefined;
+        } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
@@ -10179,7 +10238,11 @@ export const rspackOptions: z.ZodObject<{
     target?: false | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | ("es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload`)[] | undefined;
     mode?: "none" | "development" | "production" | undefined;
     experiments?: {
-        lazyCompilation?: boolean | undefined;
+        lazyCompilation?: boolean | {
+            imports?: boolean | undefined;
+            entries?: boolean | undefined;
+            test?: RegExp | ((args_0: Module, ...args_1: unknown[]) => boolean) | undefined;
+        } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
@@ -10618,7 +10681,11 @@ export const rspackOptions: z.ZodObject<{
     target?: false | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | ("es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload`)[] | undefined;
     mode?: "none" | "development" | "production" | undefined;
     experiments?: {
-        lazyCompilation?: boolean | undefined;
+        lazyCompilation?: boolean | {
+            imports?: boolean | undefined;
+            entries?: boolean | undefined;
+            test?: RegExp | ((args_0: Module, ...args_1: unknown[]) => boolean) | undefined;
+        } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
@@ -12261,6 +12328,8 @@ export class Watching {
     isBlocked?: () => boolean;
     // (undocumented)
     lastWatcherStartTime: number;
+    // (undocumented)
+    lazyCompilationInvalidate(files: Set<string>): void;
     // (undocumented)
     onChange?: () => void;
     // (undocumented)

@@ -52,6 +52,7 @@ import type {
 	Iife,
 	ImportFunctionName,
 	InfrastructureLogging,
+	LazyCompilationOptions,
 	LibraryOptions,
 	Mode,
 	Name,
@@ -300,7 +301,11 @@ export const getNormalizedRspackOptions = (
 		performance: config.performance,
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
-			...experiments
+			...experiments,
+			lazyCompilation: optionalNestedConfig(
+				experiments.lazyCompilation,
+				options => (options === true ? {} : options)
+			)
 		})),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
@@ -502,7 +507,7 @@ export interface ModuleOptionsNormalized {
 }
 
 export interface ExperimentsNormalized {
-	lazyCompilation?: boolean;
+	lazyCompilation?: false | LazyCompilationOptions;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	topLevelAwait?: boolean;
