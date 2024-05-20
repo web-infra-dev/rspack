@@ -88,6 +88,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 					}
 				}
 				this.matchStepSnapshot(
+					env,
 					context,
 					hotUpdateContext.updateIndex,
 					statsJson,
@@ -114,7 +115,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 		const compiler = this.getCompiler(context);
 		const stats = compiler.getStats();
 		if (!stats || !stats.hash) {
-			expect(false);
+			env.expect(false);
 			return;
 		}
 		const statsJson = stats.toJson({ assets: true, chunks: true });
@@ -125,7 +126,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 		}
 		let matchFailed: Error | null = null;
 		try {
-			this.matchStepSnapshot(context, 0, statsJson);
+			this.matchStepSnapshot(env, context, 0, statsJson);
 		} catch (e) {
 			matchFailed = e as Error;
 		}
@@ -136,6 +137,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 	}
 
 	protected matchStepSnapshot(
+		env: ITestEnv,
 		context: ITestContext,
 		step: number,
 		stats: StatsCompilation,
@@ -145,7 +147,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 		const compilerOptions = compiler.getOptions();
 		const getModuleHandler =
 			GET_MODULE_HANDLER[compilerOptions.target as TSupportTarget];
-		expect(typeof getModuleHandler).toBe("function");
+		env.expect(typeof getModuleHandler).toBe("function");
 
 		const lastHash = this.hashes[this.hashes.length - 1];
 		const snapshotPath = context.getSource(
@@ -359,6 +361,6 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 			return;
 		}
 		const snapshotContent = escapeEOL(fs.readFileSync(snapshotPath, "utf-8"));
-		expect(content).toBe(snapshotContent);
+		env.expect(content).toBe(snapshotContent);
 	}
 }

@@ -168,6 +168,7 @@ export type TDiffStats = {
 };
 
 export interface ITestEnv {
+	expect: jest.Expect;
 	it: (...args: any[]) => void;
 	beforeEach: (...args: any[]) => void;
 	afterEach: (...args: any[]) => void;
