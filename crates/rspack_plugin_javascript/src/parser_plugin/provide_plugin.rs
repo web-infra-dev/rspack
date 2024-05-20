@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use once_cell::sync::OnceCell;
 use rspack_core::SpanExt;
 use swc_core::{atoms::Atom, common::Spanned};
 
@@ -29,9 +30,37 @@ fn dep(parser: &JavascriptParser, name: &str, start: u32, end: u32) -> Option<Pr
   None
 }
 
-pub struct ProviderPlugin;
+#[derive(Default)]
+pub struct ProviderPlugin {
+  cached_names: OnceCell<Vec<String>>,
+}
 
 impl JavascriptParserPlugin for ProviderPlugin {
+  fn can_rename(&self, parser: &mut JavascriptParser, str: &str) -> Option<bool> {
+    let names = self.cached_names.get_or_init(|| {
+      let names = parser.compiler_options.builtins.provide.keys();
+      names
+        .map(|name| {
+          let splitted: Vec<&str> = name.split('.').collect();
+          if !splitted.is_empty() {
+            (0..splitted.len() - 1)
+              .map(|i| splitted[0..i + 1].join("."))
+              .collect::<Vec<_>>()
+          } else {
+            vec![]
+          }
+        })
+        .flatten()
+        .collect::<Vec<_>>()
+    });
+
+    if names.iter().any(|l| &*l == str) {
+      return Some(true);
+    }
+
+    None
+  }
+
   fn call(
     &self,
     parser: &mut crate::visitors::JavascriptParser,

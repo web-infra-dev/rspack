@@ -9,11 +9,35 @@ it("should provide a module for a nested var", function () {
 });
 
 it("should provide a module for a nested var within a IIFE's argument", function () {
-	(function (process) {
-		expect(process.env.NODE_ENV).toBe("production");
+	(function(process) {
+		expect((process.env.NODE_ENV)).toBe("development");
 		var x = process.env.NODE_ENV;
-		expect(x).toBe("production");
+		expect(x).toBe("development");
+	}(process));
+
+	(function(process) {
+		expect((process.env.NODE_ENV)).toBe("development");
+		var x = process.env.NODE_ENV;
+		expect(x).toBe("development");
 	})(process);
+});
+
+it("should provide a module for a nested var within a IIFE's this", function() {
+	(function() {
+		expect((this.env.NODE_ENV)).toBe("development");
+		var x = this.env.NODE_ENV;
+		expect(x).toBe("development");
+	}.call(process));
+});
+
+it("should provide a module for a nested var within a nested IIFE's this", function() {
+	(function() {
+		(function() {
+			expect((this.env.NODE_ENV)).toBe("development");
+			var x = this.env.NODE_ENV;
+			expect(x).toBe("development");
+		}.call(this));
+	}.call(process));
 });
 
 it("should provide a module for thisExpression", () => {

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use swc_core::ecma::ast::{
   ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AssignTarget, AssignTargetPat, AwaitExpr,
-  SimpleAssignTarget,
+  Param, SimpleAssignTarget,
 };
 use swc_core::ecma::ast::{BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause};
 use swc_core::ecma::ast::{Class, ClassDecl, ClassExpr, ClassMember, CondExpr, Decl, DefaultDecl};
@@ -20,7 +20,7 @@ use swc_core::ecma::ast::{ThrowStmt, UnaryExpr, UpdateExpr};
 use super::TopLevelScope;
 use super::{AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName};
 use crate::parser_plugin::{is_logic_op, JavascriptParserPlugin};
-use crate::visitors::scope_info::FreeName;
+use crate::visitors::scope_info::{FreeName, VariableInfo};
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
   Pat::Ident(ident.into())
@@ -654,6 +654,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_member_expression(&mut self, expr: &MemberExpr) {
+    // println!("{:#?}", expr);
     if let Some(expr_info) = self.get_member_expression_info(expr, AllowedMemberTypes::all()) {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
@@ -740,6 +741,90 @@ impl<'parser> JavascriptParser<'parser> {
     self.walk_expr_or_spread(&call.args);
   }
 
+  /// Walk IIFE function
+  ///
+  /// # Panics
+  /// Either `Params` of `expr` or `params` passed in should be `BindingIdent`.
+  fn _walk_iife<'a>(
+    &mut self,
+    expr: &'a Expr,
+    params: impl Iterator<Item = &'a Expr>,
+    current_this: Option<&Expr>,
+  ) {
+    let mut fn_params = vec![];
+    let mut scope_params = vec![];
+    if let Some(expr) = expr.as_fn_expr() {
+      for param in &expr.function.params {
+        let ident = param.pat.as_ident().expect("should be a `BindingIdent`");
+        fn_params.push(ident);
+        if get_variable_info(self, &Expr::Ident(ident.id.clone())).is_none() {
+          scope_params.push(Cow::Borrowed(&param.pat));
+        }
+      }
+    } else if let Some(expr) = expr.as_arrow() {
+      for param in &expr.params {
+        let ident = param.as_ident().expect("should be a `BindingIdent`");
+        fn_params.push(ident);
+        if get_variable_info(self, &Expr::Ident(ident.id.clone())).is_none() {
+          scope_params.push(Cow::Borrowed(&param));
+        }
+      }
+    };
+    let variable_info_for_args = params
+      .map(|param| get_variable_name(self, &param))
+      .collect::<Vec<_>>();
+    if let Some(expr) = expr.as_fn_expr() {
+      if let Some(ident) = &expr.ident {
+        scope_params.push(Cow::Owned(Pat::Ident(ident.clone().into())));
+      }
+    }
+
+    let was_top_level_scope = self.top_level_scope;
+    self.top_level_scope =
+      if !matches!(was_top_level_scope, TopLevelScope::False) && expr.as_arrow().is_some() {
+        TopLevelScope::ArrowFunction
+      } else {
+        TopLevelScope::False
+      };
+
+    let rename_this = current_this.and_then(|this| get_variable_name(self, this));
+    self.in_function_scope(true, scope_params.into_iter(), |parser| {
+      if let Some(this) = rename_this
+        && matches!(expr, Expr::Fn(_))
+      {
+        parser.set_variable("this".to_string(), this)
+      }
+      for (variable_info, param) in variable_info_for_args.into_iter().zip(fn_params) {
+        let Some(variable_info) = variable_info else {
+          continue;
+        };
+        parser.set_variable(param.sym.to_string(), variable_info);
+      }
+
+      if let Some(expr) = expr.as_fn_expr() {
+        if let Some(stmt) = &expr.function.body {
+          parser.detect_mode(&stmt.stmts);
+          // FIXME: webpack use `pre_walk_statement` here
+          parser.pre_walk_block_statement(stmt);
+          // FIXME: webpack use `walk_statement` here
+          parser.walk_block_statement(stmt);
+        }
+      } else if let Some(expr) = expr.as_arrow() {
+        match &*expr.body {
+          BlockStmtOrExpr::BlockStmt(stmt) => {
+            parser.detect_mode(&stmt.stmts);
+            // FIXME: webpack use `pre_walk_statement` here
+            parser.pre_walk_block_statement(stmt);
+            // FIXME: webpack use `walk_statement` here
+            parser.walk_block_statement(stmt);
+          }
+          BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
+        }
+      }
+    });
+    self.top_level_scope = was_top_level_scope;
+  }
+
   fn walk_call_expression(&mut self, expr: &CallExpr) {
     // every time into new call_expr, reset enter callee
     let old = self.enter_new_expr;
@@ -747,67 +832,110 @@ impl<'parser> JavascriptParser<'parser> {
     self.enter_callee = true;
     self.enter_call += 1;
 
+    fn is_simple_function(params: &[Param]) -> bool {
+      params.iter().all(|p| matches!(p.pat, Pat::Ident(_)))
+    }
+
     // FIXME: should align to webpack
     match &expr.callee {
       Callee::Expr(callee) => {
-        // TODO: iife
-        if let Expr::Member(member) = &**callee
-          && let Some(MemberExpressionInfo::Call(expr_info)) =
-            self.get_member_expression_info(member, AllowedMemberTypes::CallExpression)
-          && expr_info
-            .root_info
-            .call_hooks_name(self, |this, for_name| {
-              this
-                .plugin_drive
-                .clone()
-                .call_member_chain_of_call_member_chain(this, expr, for_name)
-            })
-            .unwrap_or_default()
+        if let Expr::Member(member_expr) = &**callee
+          && let Expr::Paren(paren_expr) = &*member_expr.obj
+          && let Expr::Fn(fn_expr) = &*paren_expr.expr
+          && let MemberProp::Ident(ident) = &member_expr.prop
+          && (ident.sym == "call" || ident.sym == "bind")
+          && !expr.args.is_empty()
+          && is_simple_function(&fn_expr.function.params)
         {
-          self.enter_call -= 1;
-          self.enter_new_expr = old;
-          self.enter_callee = false;
-          return;
-        }
-        let evaluated_callee = self.evaluate_expression(callee);
-        if evaluated_callee.is_identifier() {
-          let drive = self.plugin_drive.clone();
-          if drive
-            .call_member_chain(
-              self,
-              evaluated_callee.root_info(),
-              expr,
-              // evaluated_callee.get_members(),
-              // evaluated_callee.identifier(),
-            )
-            .unwrap_or_default()
-          {
-            /* result1 */
-            self.enter_call -= 1;
-            self.enter_new_expr = old;
-            self.enter_callee = false;
-            return;
-          }
-
-          if drive
-            .call(self, expr, evaluated_callee.identifier())
-            .unwrap_or_default()
-          {
-            /* result2 */
-            self.enter_call -= 1;
-            self.enter_new_expr = old;
-            self.enter_callee = false;
-            return;
-          }
-        }
-
-        if let Some(member) = callee.as_member() {
-          self.walk_expression(&member.obj);
-          if let Some(computed) = member.prop.as_computed() {
-            self.walk_expression(&computed.expr);
-          }
+          // (function(…) { }).call(…)
+          let mut params = expr.args.iter().map(|arg| &*arg.expr);
+          let this = params.next();
+          self._walk_iife(&paren_expr.expr, params, this)
+        } else if let Expr::Member(member_expr) = &**callee
+          && let Expr::Fn(fn_expr) = &*member_expr.obj
+          && let MemberProp::Ident(ident) = &member_expr.prop
+          && (ident.sym == "call" || ident.sym == "bind")
+          && !expr.args.is_empty()
+          && is_simple_function(&fn_expr.function.params)
+        {
+          // (function(…) { }.call(…))
+          let mut params = expr.args.iter().map(|arg| &*arg.expr);
+          let this = params.next();
+          self._walk_iife(&member_expr.obj, params, this)
+        } else if let Expr::Paren(paren_expr) = &**callee
+          && let Expr::Fn(fn_expr) = &*paren_expr.expr
+          && is_simple_function(&fn_expr.function.params)
+        {
+          // (function(…) { })(…)
+          self._walk_iife(
+            &paren_expr.expr,
+            expr.args.iter().map(|arg| &*arg.expr),
+            None,
+          )
+        } else if let Expr::Fn(fn_expr) = &**callee
+          && is_simple_function(&fn_expr.function.params)
+        {
+          // (function(…) { }(…))
+          self._walk_iife(&**callee, expr.args.iter().map(|arg| &*arg.expr), None)
         } else {
-          self.walk_expression(callee);
+          if let Expr::Member(member) = &**callee
+            && let Some(MemberExpressionInfo::Call(expr_info)) =
+              self.get_member_expression_info(member, AllowedMemberTypes::CallExpression)
+            && expr_info
+              .root_info
+              .call_hooks_name(self, |this, for_name| {
+                this
+                  .plugin_drive
+                  .clone()
+                  .call_member_chain_of_call_member_chain(this, expr, for_name)
+              })
+              .unwrap_or_default()
+          {
+            self.enter_call -= 1;
+            self.enter_new_expr = old;
+            self.enter_callee = false;
+            return;
+          }
+          let evaluated_callee = self.evaluate_expression(callee);
+          if evaluated_callee.is_identifier() {
+            let drive = self.plugin_drive.clone();
+            if drive
+              .call_member_chain(
+                self,
+                evaluated_callee.root_info(),
+                expr,
+                // evaluated_callee.get_members(),
+                // evaluated_callee.identifier(),
+              )
+              .unwrap_or_default()
+            {
+              /* result1 */
+              self.enter_call -= 1;
+              self.enter_new_expr = old;
+              self.enter_callee = false;
+              return;
+            }
+
+            if drive
+              .call(self, expr, evaluated_callee.identifier())
+              .unwrap_or_default()
+            {
+              /* result2 */
+              self.enter_call -= 1;
+              self.enter_new_expr = old;
+              self.enter_callee = false;
+              return;
+            }
+          }
+
+          if let Some(member) = callee.as_member() {
+            self.walk_expression(&member.obj);
+            if let Some(computed) = member.prop.as_computed() {
+              self.walk_expression(&computed.expr);
+            }
+          } else {
+            self.walk_expression(callee);
+          }
         }
       }
       Callee::Import(_) => {
@@ -1264,4 +1392,50 @@ fn member_prop_len(member_prop: &MemberProp) -> Option<usize> {
     MemberProp::PrivateName(name) => Some(name.id.sym.len() + 1),
     MemberProp::Computed(_) => None,
   }
+}
+
+fn get_variable_info<'p>(
+  parser: &'p mut JavascriptParser,
+  expr: &Expr,
+) -> Option<&'p VariableInfo> {
+  if let Some(rename_identifier) = parser.get_rename_identifier(&expr)
+    && let drive = parser.plugin_drive.clone()
+    && rename_identifier
+      .call_hooks_name(parser, |this, for_name| drive.can_rename(this, for_name))
+      .unwrap_or_default()
+  {
+    if !rename_identifier
+      .call_hooks_name(parser, |this, for_name| drive.rename(this, &expr, for_name))
+      .unwrap_or_default()
+    {
+      return parser.get_variable_info(&rename_identifier);
+    }
+  }
+  return None;
+}
+
+fn get_variable_name(parser: &mut JavascriptParser, expr: &Expr) -> Option<String> {
+  if let Some(rename_identifier) = parser.get_rename_identifier(&expr)
+    && let drive = parser.plugin_drive.clone()
+    && rename_identifier
+      .call_hooks_name(parser, |this, for_name| drive.can_rename(this, for_name))
+      .unwrap_or_default()
+  {
+    if !rename_identifier
+      .call_hooks_name(parser, |this, for_name| drive.rename(this, &expr, for_name))
+      .unwrap_or_default()
+    {
+      let variable = parser
+        .get_variable_info(&rename_identifier)
+        .map(|info| info.free_name.as_ref())
+        .and_then(|free_name| free_name)
+        .and_then(|free_name| match free_name {
+          FreeName::String(s) => Some(s.to_string()),
+          FreeName::True => None,
+        })
+        .unwrap_or(rename_identifier);
+      return Some(variable);
+    }
+  }
+  return None;
 }

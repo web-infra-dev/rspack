@@ -264,7 +264,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       if !compiler_options.builtins.provide.is_empty() {
-        plugins.push(Box::new(parser_plugin::ProviderPlugin));
+        plugins.push(Box::new(parser_plugin::ProviderPlugin::default()));
       }
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
@@ -755,6 +755,31 @@ impl JavascriptParser<'_> {
           // avoid ownership
           let name = name.to_string();
           return drive.evaluate_identifier(self, &name, ident.span.real_lo(), ident.span.hi.0);
+        }
+        None
+      }
+      Expr::This(this) => {
+        let drive = self.plugin_drive.clone();
+        let default_eval = || {
+          let mut eval = BasicEvaluatedExpression::with_range(this.span.real_lo(), this.span.hi.0);
+          eval.set_identifier(
+            "this".to_string(),
+            ExportedVariableInfo::Name("this".to_string()),
+          );
+          Some(eval)
+        };
+        let Some(info) = self.get_variable_info("this") else {
+          // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
+          return drive
+            .evaluate_identifier(self, "this", this.span.real_lo(), this.span.hi.0)
+            .or_else(|| default_eval());
+        };
+        if let Some(FreeName::String(name)) = info.free_name.as_ref() {
+          // avoid ownership
+          let name = name.to_string();
+          return drive
+            .evaluate_identifier(self, &name, this.span.real_lo(), this.span.hi.0)
+            .or_else(|| default_eval());
         }
         None
       }

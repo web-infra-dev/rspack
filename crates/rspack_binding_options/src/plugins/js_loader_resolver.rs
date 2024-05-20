@@ -104,7 +104,6 @@ async fn resolve_loader(
   }
 }
 
-#[async_trait::async_trait]
 impl Plugin for JsLoaderResolverPlugin {
   fn name(&self) -> &'static str {
     "JsLoaderResolverPlugin"
