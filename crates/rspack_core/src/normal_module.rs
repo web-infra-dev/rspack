@@ -489,6 +489,13 @@ impl Module for NormalModule {
 
     let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = Vec::new();
 
+    build_info.cacheable = loader_result.cacheable;
+    build_info.file_dependencies = loader_result.file_dependencies;
+    build_info.context_dependencies = loader_result.context_dependencies;
+    build_info.missing_dependencies = loader_result.missing_dependencies;
+    build_info.build_dependencies = loader_result.build_dependencies;
+    build_info.asset_filenames = loader_result.asset_filenames;
+
     let (
       ParseResult {
         source,
@@ -540,12 +547,6 @@ impl Module for NormalModule {
     build_meta.hash(&mut hasher);
 
     build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
-    build_info.cacheable = loader_result.cacheable;
-    build_info.file_dependencies = loader_result.file_dependencies;
-    build_info.context_dependencies = loader_result.context_dependencies;
-    build_info.missing_dependencies = loader_result.missing_dependencies;
-    build_info.build_dependencies = loader_result.build_dependencies;
-    build_info.asset_filenames = loader_result.asset_filenames;
 
     Ok(BuildResult {
       build_info,
