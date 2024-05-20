@@ -16,21 +16,25 @@ import { PackageManagerTabs } from '@theme';
 
 ### Switch experiments.css to false by default
 
-### Remove resolve.browserField
-
-### Remove experiments.newSplitChunks
-
-### Remove builtins.treeShaking (oldTreeShaking) and builtins
-
-### Remove exportsConvention for module type css
-
-### Remove resolve.browserField
-
-### Deprecating unstable JavaScript APIs
-
 ### Upgrade SWC to 0.91.x
 
 Upgraded the Rust crate `swc_core` to `0.91.x`. This will affect users of the SWC Wasm plugin.
+
+### Deprecating unstable JavaScript APIs
+
+### Remove builtins.treeShaking (oldTreeShaking) and builtins
+
+### Remove resolve.browserField
+
+This configuration is shorthand for `resolve.aliasFields = ["browser"]`, and since Rspack already supports `resolve.aliasFields`, this configuration is no longer necessary.
+
+### Remove experiments.newSplitChunks
+
+This configuration is used to enable the new splitChunks implementation, and since Rspack already uses the new splitChunks implementation by default, this configuration is no longer needed.
+
+### Remove exportsConvention for module type css
+
+This configuration is used to control the naming convention of CSS module exports in experiments.css. It only has an effect on modules with the module type `css/module`, which have exports. For modules with the module type `css`, there are no exports, so this configuration is not needed.
 
 ## Migration Guide
 
@@ -41,3 +45,14 @@ Upgraded the Rust crate `swc_core` to `0.91.x`. This will affect users of the SW
 In version `0.7.0`, the Rust crate `swc_core` has been upgraded to `0.91.x`. Users of the swc wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
 
 For more details, please see this [document](https://swc.rs/docs/plugin/selecting-swc-core#091x) of swc。
+
+### Replace resolve.browserField with resolve.aliasFields
+
+If you previously configured `resolve.browserField`, you will need to replace it with `resolve.aliasFields`:
+
+- `resolve.browserField = true` is replaced with `resolve.aliasFields = ["browser"]`
+- `resolve.browserField = false` is replaced with `resolve.aliasFields = []`
+
+### Remove generator.css.exportsConvention
+
+If you previously configured `module.generator.css.exportsConvention` or `generator.exportsConvention` in `module.rule`, you only need to delete that configuration.
