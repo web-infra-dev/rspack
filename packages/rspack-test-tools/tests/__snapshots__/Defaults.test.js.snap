@@ -487,6 +487,9 @@ Object {
       "exports",
     ],
     "extensions": Array [],
+    "importsFields": Array [
+      "imports",
+    ],
     "mainFields": Array [
       "main",
     ],

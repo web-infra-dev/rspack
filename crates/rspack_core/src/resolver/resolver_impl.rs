@@ -252,7 +252,7 @@ fn to_oxc_resolver_options(
     .collect();
   let fully_specified = options.fully_specified.unwrap_or_default();
   let exports_fields = options
-    .exports_field
+    .exports_fields
     .unwrap_or_else(|| vec![vec!["exports".to_string()]]);
   let extension_alias = options.extension_alias.unwrap_or_default();
   let alias_fields = options

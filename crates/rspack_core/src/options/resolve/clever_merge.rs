@@ -2,7 +2,7 @@ use hashlink::LinkedHashMap;
 
 use super::value_type::{GetValueType, ValueType};
 use super::{
-  Alias, AliasFields, ConditionNames, DescriptionFiles, EnforceExtension, ExportsField,
+  Alias, AliasFields, ConditionNames, DescriptionFiles, EnforceExtension, ExportsFields,
   ExtensionAlias, Extensions, Fallback, FullySpecified, ImportsFields, MainFields, MainFiles,
   Modules, PreferAbsolute, PreferRelative, Restrictions, Roots, Symlink, TsconfigOptions,
 };
@@ -30,7 +30,7 @@ fn is_empty(resolve: &Resolve) -> bool {
     && is_none!(modules)
     && is_none!(fallback)
     && is_none!(fully_specified)
-    && is_none!(exports_field)
+    && is_none!(exports_fields)
     && is_none!(imports_fields)
     && is_none!(description_files)
     && is_none!(enforce_extension)
@@ -62,7 +62,7 @@ struct ResolveWithEntry {
   fallback: Entry<Fallback>,
   tsconfig: Entry<TsconfigOptions>,
   fully_specified: Entry<FullySpecified>,
-  exports_field: Entry<ExportsField>,
+  exports_fields: Entry<ExportsFields>,
   imports_fields: Entry<ImportsFields>,
   description_files: Entry<DescriptionFiles>,
   enforce_extension: Entry<EnforceExtension>,
@@ -94,7 +94,7 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
     fallback: entry!(fallback),
     tsconfig: entry!(tsconfig),
     fully_specified: entry!(fully_specified),
-    exports_field: entry!(exports_field),
+    exports_fields: entry!(exports_fields),
     imports_fields: entry!(imports_fields),
     description_files: entry!(description_files),
     enforce_extension: entry!(enforce_extension),
@@ -141,7 +141,7 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
   update_by_value!(modules);
   update_by_value!(fallback);
   update_by_value!(fully_specified);
-  update_by_value!(exports_field);
+  update_by_value!(exports_fields);
   update_by_value!(imports_fields);
   update_by_value!(description_files);
   update_by_value!(enforce_extension);
@@ -317,7 +317,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     ),
     fallback: merge!(fallback, ValueType::Other, |_| false, extend_alias),
     alias: merge!(alias, ValueType::Other, |_| false, extend_alias),
-    exports_field: merge!(exports_field, ValueType::Other, |_| false, |_, b| b),
+    exports_fields: merge!(exports_fields, ValueType::Other, |_| false, |_, b| b),
     imports_fields: merge!(imports_fields, ValueType::Other, |_| false, |_, b| b),
     description_files: merge!(
       description_files,
@@ -366,7 +366,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   setup_by_values!(modules);
   setup_by_values!(fallback);
   setup_by_values!(fully_specified);
-  setup_by_values!(exports_field);
+  setup_by_values!(exports_fields);
   setup_by_values!(imports_fields);
   setup_by_values!(description_files);
   setup_by_values!(enforce_extension);
@@ -399,7 +399,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   to_resolve!(modules);
   to_resolve!(fallback);
   to_resolve!(fully_specified);
-  to_resolve!(exports_field);
+  to_resolve!(exports_fields);
   to_resolve!(imports_fields);
   to_resolve!(description_files);
   to_resolve!(enforce_extension);
@@ -428,7 +428,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     modules: result_entry.modules.base,
     fallback: result_entry.fallback.base,
     fully_specified: result_entry.fully_specified.base,
-    exports_field: result_entry.exports_field.base,
+    exports_fields: result_entry.exports_fields.base,
     imports_fields: result_entry.imports_fields.base,
     description_files: result_entry.description_files.base,
     enforce_extension: result_entry.enforce_extension.base,

@@ -22,7 +22,7 @@ pub(super) type ConditionNames = Vec<String>;
 pub(super) type Fallback = Alias;
 pub(super) type FullySpecified = bool;
 pub(super) type EnforceExtension = bool;
-pub(super) type ExportsField = Vec<Vec<String>>;
+pub(super) type ExportsFields = Vec<Vec<String>>;
 pub(super) type ImportsFields = Vec<Vec<String>>;
 pub(super) type ExtensionAlias = Vec<(String, Vec<String>)>;
 pub(super) type Modules = Vec<String>;
@@ -67,7 +67,7 @@ pub struct Resolve {
   pub fully_specified: Option<FullySpecified>,
   /// A list of exports fields in descriptions files
   /// Default is `[["exports"]]`.
-  pub exports_field: Option<ExportsField>,
+  pub exports_fields: Option<ExportsFields>,
   /// A list map ext to another.
   /// Default is `[]`
   pub extension_alias: Option<ExtensionAlias>,
