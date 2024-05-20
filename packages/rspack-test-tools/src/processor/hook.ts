@@ -131,9 +131,9 @@ export class HookCasesContext extends TestContext {
 		content = Buffer.isBuffer(content)
 			? content
 			: serialize(content, undefined, {
-					escapeString: true,
-					printBasicPrototype: true
-				}).replace(/\r\n/g, "\n");
+				escapeString: true,
+				printBasicPrototype: true
+			}).replace(/\r\n/g, "\n");
 		(this.snapshots[group] = this.snapshots[group] || []).push([
 			content as Buffer | string,
 			name
@@ -169,9 +169,10 @@ export class HookCasesContext extends TestContext {
 			return (acc += group + block);
 		}, "");
 
-		// @ts-ignore
+
 		env
 			.expect(snapshots)
+			// @ts-ignore
 			.toMatchFileSnapshot(path.join(this.src, "hooks.snap.txt"), options);
 	}
 }
