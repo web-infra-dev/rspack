@@ -16,21 +16,25 @@ import { PackageManagerTabs } from '@theme';
 
 ### 将 experiments.css 默认值调整为 false
 
-### 移除 resolve.browserField
-
-### 移除 experiments.newSplitChunks
-
-### 移除 builtins.treeShaking (oldTreeShaking) and builtins
-
-### 移除 exportsConvention for module type css
-
-### 移除 resolve.browserField
-
-### 移除一些不稳定的 JavaScript API
-
 ### 升级 SWC 到 0.91.x
 
 升级 Rust crate `swc_core` 到 `0.91.x`，这会对使用 SWC Wasm 插件的用户产生影响。
+
+### 移除一些不稳定的 JavaScript API
+
+### 移除 builtins.treeShaking (oldTreeShaking) and builtins
+
+### 移除 resolve.browserField
+
+该配置为 `resolve.aliasFields = ["browser"]` 的简写，在 Rspack 支持 `resolve.aliasFields` 后不再需要该配置。
+
+### 移除 experiments.newSplitChunks
+
+该配置用于开启新的 splitChunks 实现，Rspack 已经默认使用新的 splitChunks 实现，不再需要该配置。
+
+### 移除 generator.css.exportsConvention
+
+该配置用于控制 experiments.css 的 CSS 模块导出的命名形式，仅对于模块类型为 `css/module` 的模块才会有导出，对于模块类型为 `css` 的模块并不存在导出所以不需要该配置。
 
 ## 迁移指南
 
@@ -39,3 +43,14 @@ import { PackageManagerTabs } from '@theme';
 在 `0.7.0` 中，Rust crate `swc_core` 的版本升级到 `0.91.x`，使用到的 swc wasm 插件需要确保其使用的 `swc_core` 的版本一致性，否则可能产生无法预知的问题。
 
 详情请参考[文档](https://swc.rs/docs/plugin/selecting-swc-core#091x)。
+
+### 替换 resolve.browserField 为 resolve.aliasFields
+
+如果你之前配置了 `resolve.browserField`，则需要使用 `resolve.aliasFields` 进行替换：
+
+- `resolve.browserField = true` 替换为 `resolve.aliasFields = ["browser"]`
+- `resolve.browserField = false` 替换为 `resolve.aliasFields = []`
+
+### 移除 generator.css.exportsConvention
+
+如果你之前配置了 `module.generator.css.exportsConvention` 或在 `module.rule` 中配置了 `generator.exportsConvention`，只需要删除该配置即可。
