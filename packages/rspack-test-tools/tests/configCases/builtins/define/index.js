@@ -165,3 +165,14 @@ it("should builtins define works", () => {
 	// assert.equal(wurst).toBe(unde);
 	// assert.equal(suppe).toBe(wurst);
 });
+
+async function renderInBrowser() {
+	const jsx = () => {};
+	const RootApp = {};
+  if (process.env.__IS_REACT_18__) {
+    /* @__PURE__ */ jsx(RootApp, {});
+  } else {
+    /* @__PURE__ */ jsx(RootApp, {});
+  }
+}
+renderInBrowser();

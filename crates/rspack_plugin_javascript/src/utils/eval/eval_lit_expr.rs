@@ -30,6 +30,12 @@ pub fn eval_lit_expr(expr: &Lit) -> Option<BasicEvaluatedExpression> {
       res.set_null();
       Some(res)
     }
+    Lit::Bool(boolean) => {
+      let mut res =
+        BasicEvaluatedExpression::with_range(boolean.span().real_lo(), boolean.span_hi().0);
+      res.set_bool(boolean.value);
+      Some(res)
+    }
     Lit::Num(num) => Some(eval_number(num)),
     // TODO:
     _ => None,

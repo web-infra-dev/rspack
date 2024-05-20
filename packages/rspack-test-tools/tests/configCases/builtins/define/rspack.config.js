@@ -48,6 +48,19 @@ module.exports = {
 			"M1.M2.M3": "{}",
 			SHOULD_CONVERTED: "205",
 			CONVERTED_TO_MEMBER: "A1.A2.A3"
-		})
+		}),
+		new rspack.DefinePlugin({
+			"process.env.__IS_REACT_18__": "true"
+		}),
+		{
+			apply(compiler) {
+				compiler.hooks.compilation.tap("Test", (compilation) => {
+					compilation.hooks.processAssets.tap("Test", (assets) => {
+						let source = assets["bundle0.js"].source();
+						expect(source.match(/\/\* @__PURE__ \*\/ jsx/g) || []).toHaveLength(1);
+					})
+				})
+			}
+		}
 	]
 };
