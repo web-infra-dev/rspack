@@ -40,7 +40,7 @@ impl JavascriptParserPlugin for ProviderPlugin {
     let names = self.cached_names.get_or_init(|| {
       let names = parser.compiler_options.builtins.provide.keys();
       names
-        .map(|name| {
+        .flat_map(|name| {
           let splitted: Vec<&str> = name.split('.').collect();
           if !splitted.is_empty() {
             (0..splitted.len() - 1)
@@ -50,11 +50,10 @@ impl JavascriptParserPlugin for ProviderPlugin {
             vec![]
           }
         })
-        .flatten()
         .collect::<Vec<_>>()
     });
 
-    if names.iter().any(|l| &*l == str) {
+    if names.iter().any(|l| *l == str) {
       return Some(true);
     }
 

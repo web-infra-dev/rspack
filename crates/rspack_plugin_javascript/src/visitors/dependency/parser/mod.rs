@@ -264,7 +264,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       if !compiler_options.builtins.provide.is_empty() {
-        plugins.push(Box::new(parser_plugin::ProviderPlugin::default()));
+        plugins.push(Box::<parser_plugin::ProviderPlugin>::default());
       }
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
@@ -772,14 +772,14 @@ impl JavascriptParser<'_> {
           // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
           return drive
             .evaluate_identifier(self, "this", this.span.real_lo(), this.span.hi.0)
-            .or_else(|| default_eval());
+            .or_else(default_eval);
         };
         if let Some(FreeName::String(name)) = info.free_name.as_ref() {
           // avoid ownership
           let name = name.to_string();
           return drive
             .evaluate_identifier(self, &name, this.span.real_lo(), this.span.hi.0)
-            .or_else(|| default_eval());
+            .or_else(default_eval);
         }
         None
       }

@@ -766,12 +766,12 @@ impl<'parser> JavascriptParser<'parser> {
         let ident = param.as_ident().expect("should be a `BindingIdent`");
         fn_params.push(ident);
         if get_variable_info(self, &Expr::Ident(ident.id.clone())).is_none() {
-          scope_params.push(Cow::Borrowed(&param));
+          scope_params.push(Cow::Borrowed(param));
         }
       }
     };
     let variable_info_for_args = params
-      .map(|param| get_variable_name(self, &param))
+      .map(|param| get_variable_name(self, param))
       .collect::<Vec<_>>();
     if let Some(expr) = expr.as_fn_expr() {
       if let Some(ident) = &expr.ident {
@@ -876,7 +876,7 @@ impl<'parser> JavascriptParser<'parser> {
           && is_simple_function(&fn_expr.function.params)
         {
           // (function(…) { }(…))
-          self._walk_iife(&**callee, expr.args.iter().map(|arg| &*arg.expr), None)
+          self._walk_iife(callee, expr.args.iter().map(|arg| &*arg.expr), None)
         } else {
           if let Expr::Member(member) = &**callee
             && let Some(MemberExpressionInfo::Call(expr_info)) =
@@ -1398,44 +1398,40 @@ fn get_variable_info<'p>(
   parser: &'p mut JavascriptParser,
   expr: &Expr,
 ) -> Option<&'p VariableInfo> {
-  if let Some(rename_identifier) = parser.get_rename_identifier(&expr)
+  if let Some(rename_identifier) = parser.get_rename_identifier(expr)
     && let drive = parser.plugin_drive.clone()
     && rename_identifier
       .call_hooks_name(parser, |this, for_name| drive.can_rename(this, for_name))
       .unwrap_or_default()
-  {
-    if !rename_identifier
-      .call_hooks_name(parser, |this, for_name| drive.rename(this, &expr, for_name))
+    && !rename_identifier
+      .call_hooks_name(parser, |this, for_name| drive.rename(this, expr, for_name))
       .unwrap_or_default()
-    {
-      return parser.get_variable_info(&rename_identifier);
-    }
+  {
+    return parser.get_variable_info(&rename_identifier);
   }
-  return None;
+  None
 }
 
 fn get_variable_name(parser: &mut JavascriptParser, expr: &Expr) -> Option<String> {
-  if let Some(rename_identifier) = parser.get_rename_identifier(&expr)
+  if let Some(rename_identifier) = parser.get_rename_identifier(expr)
     && let drive = parser.plugin_drive.clone()
     && rename_identifier
       .call_hooks_name(parser, |this, for_name| drive.can_rename(this, for_name))
       .unwrap_or_default()
-  {
-    if !rename_identifier
-      .call_hooks_name(parser, |this, for_name| drive.rename(this, &expr, for_name))
+    && !rename_identifier
+      .call_hooks_name(parser, |this, for_name| drive.rename(this, expr, for_name))
       .unwrap_or_default()
-    {
-      let variable = parser
-        .get_variable_info(&rename_identifier)
-        .map(|info| info.free_name.as_ref())
-        .and_then(|free_name| free_name)
-        .and_then(|free_name| match free_name {
-          FreeName::String(s) => Some(s.to_string()),
-          FreeName::True => None,
-        })
-        .unwrap_or(rename_identifier);
-      return Some(variable);
-    }
+  {
+    let variable = parser
+      .get_variable_info(&rename_identifier)
+      .map(|info| info.free_name.as_ref())
+      .and_then(|free_name| free_name)
+      .and_then(|free_name| match free_name {
+        FreeName::String(s) => Some(s.to_string()),
+        FreeName::True => None,
+      })
+      .unwrap_or(rename_identifier);
+    return Some(variable);
   }
-  return None;
+  None
 }
