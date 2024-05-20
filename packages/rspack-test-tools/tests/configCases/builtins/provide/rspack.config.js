@@ -5,6 +5,9 @@ module.exports = {
 	entry: {
 		main: ["./index.js"]
 	},
+	optimization: {
+		nodeEnv: false,
+	},
 	plugins: [
 		new rspack.ProvidePlugin({
 			aaa: "./aaa",
