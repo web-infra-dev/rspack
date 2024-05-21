@@ -1,2 +1,2 @@
 #[derive(Debug, Clone, Default)]
-pub struct SnapshotOptions {}
+pub struct SnapshotOptions;
