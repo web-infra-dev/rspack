@@ -15,16 +15,24 @@ pub struct CssUrlDependency {
   span: Option<ErrorSpan>,
   start: u32,
   end: u32,
+  replace_function: bool,
 }
 
 impl CssUrlDependency {
-  pub fn new(request: String, span: Option<ErrorSpan>, start: u32, end: u32) -> Self {
+  pub fn new(
+    request: String,
+    span: Option<ErrorSpan>,
+    start: u32,
+    end: u32,
+    replace_function: bool,
+  ) -> Self {
     Self {
       request,
       span,
       start,
       end,
       id: DependencyId::new(),
+      replace_function,
     }
   }
 
@@ -102,7 +110,12 @@ impl DependencyTemplate for CssUrlDependency {
       .module_graph_module_by_dependency_id(self.id())
       && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation)
     {
-      let content = format!("url({})", css_escape_string(&target_url));
+      let target_url = css_escape_string(&target_url);
+      let content = if self.replace_function {
+        format!("url({target_url})")
+      } else {
+        target_url
+      };
       source.replace(self.start, self.end, &content, None);
     }
   }

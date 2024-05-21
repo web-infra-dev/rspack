@@ -677,6 +677,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "css-module-lexer"
+version = "0.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "066dd5e0365c4b67387890858ccf3a38bb8e4b5782f5b3889efa9021ca60b5c0"
+dependencies = [
+ "smallvec",
+]
+
+[[package]]
 name = "ctor"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3203,6 +3212,7 @@ name = "rspack_plugin_css"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "css-module-lexer",
  "heck 0.5.0",
  "indexmap 1.9.3",
  "once_cell",
@@ -4058,9 +4068,9 @@ checksum = "826167069c09b99d56f31e9ae5c99049e932a98c9dc2dac47645b08dbbf76ba7"
 
 [[package]]
 name = "smallvec"
-version = "1.11.2"
+version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dccd0940a2dcdf68d092b8cbab7dc0ad8fa938bf95787e1b916b0e3d0e8e970"
+checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
 name = "smartstring"

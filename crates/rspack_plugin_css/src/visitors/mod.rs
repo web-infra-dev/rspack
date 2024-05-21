@@ -112,6 +112,7 @@ impl Analyzer<'_> {
       Some(span.into()),
       span.real_lo(),
       span.real_hi(),
+      true,
     ));
     self.deps.push(dep.clone());
     self.code_generation_dependencies.push(dep);

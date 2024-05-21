@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt::Write;
 use std::hash::Hasher;
 
@@ -10,12 +11,13 @@ use rspack_core::{
   ResourceData, RuntimeGlobals,
 };
 use rspack_core::{CssExportsConvention, LocalIdentName};
-use rspack_error::{error, Result};
+use rspack_error::{error, miette::Diagnostic, Result, TraceableError};
+use rspack_error::{miette::Severity, DiagnosticExt};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
 use rspack_util::identifier::make_paths_relative;
 use rspack_util::infallible::ResultInfallibleExt;
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::common::Spanned;
+use swc_core::common::{Span, Spanned};
 use swc_core::css::modules::CssClassName;
 use swc_core::ecma::atoms::Atom;
 
@@ -336,4 +338,43 @@ pub fn normalize_url(s: &str) -> String {
   }
 
   result.to_string()
+}
+
+pub fn css_parsing_traceable_warning(
+  source_code: impl Into<String>,
+  start: css_module_lexer::Pos,
+  end: css_module_lexer::Pos,
+  message: impl Into<String>,
+) -> TraceableError {
+  TraceableError::from_file(
+    source_code.into(),
+    start as usize,
+    end as usize,
+    "CSS parsing warning".to_string(),
+    message.into(),
+  )
+}
+
+pub fn replace_module_request_prefix(
+  specifier: &str,
+  diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  source_code: &str,
+  start: css_module_lexer::Pos,
+) -> String {
+  if specifier.starts_with('~') {
+    diagnostics.push(
+      css_parsing_traceable_warning(
+        source_code,
+        start,
+        start + 1,
+        "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
+      )
+      .with_help(Some("Remove '~' from the request."))
+      .with_severity(Severity::Warning)
+      .boxed(),
+    );
+    String::from(&specifier[1..])
+  } else {
+    specifier.to_string()
+  }
 }

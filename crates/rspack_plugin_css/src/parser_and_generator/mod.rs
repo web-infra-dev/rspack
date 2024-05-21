@@ -1,6 +1,6 @@
 #![allow(clippy::comparison_chain)]
 
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
@@ -13,12 +13,15 @@ use rspack_core::{
     SourceMapSource, SourceMapSourceOptions,
   },
   BoxDependency, BuildExtraDataType, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
-  CssExportsConvention, ErrorSpan, GenerateContext, LocalIdentName, Module, ModuleDependency,
-  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType,
-  TemplateContext,
+  ConstDependency, CssExportsConvention, Dependency, DependencyTemplate, ErrorSpan,
+  GenerateContext, LocalIdentName, Module, ModuleDependency, ModuleGraph, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  miette::Diagnostic, DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+  TraceableError,
+};
 use rustc_hash::FxHashSet;
 use swc_core::{
   css::{parser::parser::ParserConfig, visit::VisitWith},
@@ -26,9 +29,14 @@ use swc_core::{
 };
 
 use crate::{
-  dependency::{CssComposeDependency, CssModuleExportDependency},
+  dependency::{
+    CssComposeDependency, CssImportDependency, CssModuleExportDependency, CssUrlDependency,
+  },
   swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig},
-  utils::css_modules_exports_to_concatenate_module_string,
+  utils::{
+    css_modules_exports_to_concatenate_module_string, css_parsing_traceable_warning,
+    replace_module_request_prefix,
+  },
 };
 use crate::{
   utils::{css_modules_exports_to_string, ModulesTransformConfig},
@@ -107,183 +115,104 @@ impl ParserAndGenerator for CssParserAndGenerator {
       BuildMetaDefaultObject::Redirect
     };
 
-    let swc_compiler = SwcCssCompiler::default();
+    let source_code = source.source();
+    let resource_path = &resource_data.resource_path;
 
-    let mut source_code = source.source().into_owned();
-    let resource_path = &parse_context.resource_data.resource_path;
-
-    let is_enable_css_modules = match module_type {
-      ModuleType::CssModule => true,
+    let mode = match module_type {
+      ModuleType::CssModule => css_module_lexer::Mode::Local,
       ModuleType::CssAuto
         if REGEX_IS_MODULES.is_match(resource_path.to_string_lossy().as_ref()) =>
       {
-        true
+        css_module_lexer::Mode::Local
       }
-      _ => false,
+      _ => css_module_lexer::Mode::Css,
     };
 
-    let mut source_map = None;
-    let mut diagnostic_vec = vec![];
-
-    let mut exports_pairs = vec![];
-    let mut presentational_dependencies = None;
+    let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync + 'static>> = vec![];
+    let mut dependencies: Vec<Box<dyn Dependency>> = vec![];
+    let mut presentational_dependencies: Vec<Box<dyn DependencyTemplate>> = vec![];
     let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
-    let mut exports = if is_enable_css_modules {
-      let mut stylesheet = swc_compiler.parse_file(
-        &resource_path.to_string_lossy(),
-        source_code.clone(),
-        ParserConfig {
-          css_modules: is_enable_css_modules,
-          legacy_ie: true,
-          ..Default::default()
-        },
-      )?;
 
-      let result = swc_core::css::modules::compile(
-        &mut stylesheet,
-        ModulesTransformConfig::new(
-          resource_data,
-          self
-            .local_ident_name
-            .as_ref()
-            .expect("should have local_ident_name for module_type css/auto or css/module"),
-          compiler_options,
-        ),
-      );
-      let exports: IndexMap<Atom, _> = result.renamed.into_iter().collect();
-
-      let (code, map) = swc_compiler.codegen(
-        &stylesheet,
-        SwcCssSourceMapGenConfig {
-          enable: module_source_map_kind.enabled(),
-          inline_sources_content: module_source_map_kind.source_map(),
-          emit_columns: !module_source_map_kind.cheap(),
-        },
-      )?;
-      source_code = code;
-      source_map = map;
-      Some(exports)
-    } else {
-      None
-    };
-
-    let new_stylesheet_ast = SwcCssCompiler::default().parse_file(
-      &parse_context.resource_data.resource_path.to_string_lossy(),
-      source_code.clone(),
-      Default::default(),
-    )?;
-
-    if let Some(exports) = &mut exports
-      && let Some(convention) = &self.convention
-    {
-      let mut exports_analyzer = ExportsAnalyzer::new(&source_code);
-      new_stylesheet_ast.visit_with(&mut exports_analyzer);
-      presentational_dependencies = Some(exports_analyzer.presentation_deps);
-
-      for (key, value) in exports_analyzer.exports {
-        exports.insert(key, vec![value]);
-      }
-
-      let normalized_exports = IndexMap::from_iter(
-        exports
-          .iter()
-          .map(|(name, elements)| {
-            let mut names = export_locals_convention(name, convention);
-            names.sort_unstable();
-            names.dedup();
-            (names, stringify_css_modules_exports_elements(elements))
-          })
-          .collect::<Vec<_>>(),
-      );
-
-      for (k, v) in normalized_exports.iter() {
-        for kk in k {
-          exports_pairs.push((kk.to_string(), v[0].0.to_owned()));
+    let (deps, warnings) = css_module_lexer::collect_dependencies(&source_code, mode);
+    for dependency in deps {
+      match dependency {
+        css_module_lexer::Dependency::Url {
+          request,
+          range,
+          kind,
+        } => {
+          if request.is_empty() {
+            continue;
+          }
+          let request =
+            replace_module_request_prefix(request, &mut diagnostics, &source_code, range.start);
+          let dep = Box::new(CssUrlDependency::new(
+            request,
+            Some(ErrorSpan::new(range.start, range.end)),
+            range.start,
+            range.end,
+            matches!(kind, css_module_lexer::UrlRangeKind::Function),
+          ));
+          dependencies.push(dep.clone());
+          code_generation_dependencies.push(dep);
         }
+        css_module_lexer::Dependency::Import { request, range, .. } => {
+          if request.is_empty() {
+            presentational_dependencies.push(Box::new(ConstDependency::new(
+              range.start,
+              range.end,
+              "".into(),
+              None,
+            )));
+            continue;
+          }
+          let request =
+            replace_module_request_prefix(request, &mut diagnostics, &source_code, range.start);
+          dependencies.push(Box::new(CssImportDependency::new(
+            request,
+            Some(ErrorSpan::new(range.start, range.end)),
+            range.start,
+            range.end,
+          )));
+        }
+        css_module_lexer::Dependency::Replace { content, range } => presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            range.start,
+            range.end,
+            content.into(),
+            None,
+          ))),
+        css_module_lexer::Dependency::LocalClass { name, range, .. } => {}
+        css_module_lexer::Dependency::LocalId { name, range, .. } => {}
+        css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {}
+        css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {}
+        css_module_lexer::Dependency::Composes { names, from } => {}
+        css_module_lexer::Dependency::ICSSExportValue { prop, value } => {}
+        _ => {}
       }
-
-      self.exports = Some(normalized_exports);
     }
-
-    let mut dependencies = analyze_dependencies(
-      &new_stylesheet_ast,
-      &mut code_generation_dependencies,
-      &mut diagnostic_vec,
-      &source_code,
-      module_user_request,
-    );
-    for (k, v) in exports_pairs {
-      dependencies.push(Box::new(CssModuleExportDependency::new(
-        k[1..k.len() - 1].to_owned(),
-        v,
+    for warning in warnings {
+      let range = warning.range();
+      diagnostics.push(Box::new(css_parsing_traceable_warning(
+        source_code.to_owned(),
+        range.start,
+        range.end,
+        warning.to_string(),
       )));
     }
-
-    let dependencies = if let Some(locals) = &self.exports
-      && !locals.is_empty()
-    {
-      let mut dep_set = FxHashSet::default();
-      let mut compose_deps = locals
-        .iter()
-        .flat_map(|(_, value)| value)
-        .filter_map(|CssExport(_, span, from)| {
-          if let Some(from) = from {
-            if dep_set.contains(&from) {
-              None
-            } else {
-              dep_set.insert(from);
-              Some(Box::new(CssComposeDependency::new(from.to_owned(), *span)) as BoxDependency)
-            }
-          } else {
-            None
-          }
-        })
-        .collect::<Vec<_>>();
-
-      compose_deps.sort_by(|a, b| match (a.span(), b.span()) {
-        (Some(span_a), Some(span_b)) => span_a.cmp(&span_b),
-        _ => unreachable!(),
-      });
-
-      dependencies.extend(compose_deps);
-      dependencies
-    } else {
-      dependencies
-    };
-
-    let new_source = if module_source_map_kind.enabled() {
-      if let Some(source_map) = source_map {
-        SourceMapSource::new(SourceMapSourceOptions {
-          value: source_code,
-          name: module_user_request,
-          source_map: SourceMap::from_slice(&source_map)
-            .expect("should be able to generate source-map"),
-          // Safety: original source exists in code generation
-          original_source: Some(source.source().to_string()),
-          // Safety: original source exists in code generation
-          inner_source_map: source.map(&MapOptions::default()),
-          remove_original_source: false,
-        })
-        .boxed()
-      } else {
-        source
-      }
-    } else {
-      RawSource::from(source_code).boxed()
-    };
 
     Ok(
       ParseResult {
         dependencies,
         blocks: vec![],
-        presentational_dependencies: presentational_dependencies.unwrap_or_default(),
+        presentational_dependencies,
         code_generation_dependencies,
-        source: new_source,
+        source,
         analyze_result: Default::default(),
         side_effects_bailout: None,
       }
       .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
-        diagnostic_vec,
+        diagnostics,
         loaders,
       )),
     )
