@@ -8,9 +8,4 @@ module.exports = {
       }
     }
   },
-  plugins: [
-    function (compiler) {
-      console.log(compiler.options)
-    }
-  ]
 }
