@@ -807,28 +807,9 @@ function getRawOptimization(
 }
 
 function getRawSnapshotOptions(
-	snapshot: SnapshotOptions
+	_snapshot: SnapshotOptions
 ): RawOptions["snapshot"] {
-	const { resolve, module } = snapshot;
-	assert(!isNil(resolve) && !isNil(module));
-	const { timestamp: resolveTimestamp, hash: resolveHash } = resolve;
-	const { timestamp: moduleTimestamp, hash: moduleHash } = module;
-	assert(
-		!isNil(resolveTimestamp) &&
-			!isNil(resolveHash) &&
-			!isNil(moduleTimestamp) &&
-			!isNil(moduleHash)
-	);
-	return {
-		resolve: {
-			timestamp: resolveTimestamp,
-			hash: resolveHash
-		},
-		module: {
-			timestamp: moduleTimestamp,
-			hash: moduleHash
-		}
-	};
+	return {};
 }
 
 function getRawExperiments(

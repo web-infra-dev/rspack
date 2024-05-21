@@ -1316,13 +1316,7 @@ export interface RawSizeLimitsPluginOptions {
 }
 
 export interface RawSnapshotOptions {
-  resolve: RawSnapshotStrategy
-  module: RawSnapshotStrategy
-}
 
-export interface RawSnapshotStrategy {
-  hash: boolean
-  timestamp: boolean
 }
 
 export interface RawSourceMapDevToolPluginOptions {

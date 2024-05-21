@@ -988,20 +988,7 @@ export type Node = z.infer<typeof node>;
 //#endregion
 
 //#region Snapshot
-const snapshotOptions = z.strictObject({
-	module: z
-		.strictObject({
-			hash: z.boolean().optional(),
-			timestamp: z.boolean().optional()
-		})
-		.optional(),
-	resolve: z
-		.strictObject({
-			hash: z.boolean().optional(),
-			timestamp: z.boolean().optional()
-		})
-		.optional()
-});
+const snapshotOptions = z.strictObject({});
 export type SnapshotOptions = z.infer<typeof snapshotOptions>;
 //#endregion
 
