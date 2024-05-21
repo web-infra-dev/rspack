@@ -12,7 +12,7 @@ const creator = new BasicCaseCreator({
 			configFiles: ["rspack.config.js", "webpack.config.js"]
 		})
 	],
-	description: name => `should print correct stats for ${name}`
+	description: () => `should print correct stats for`
 });
 
 export function createStatsOutputCase(name: string, src: string, dist: string) {

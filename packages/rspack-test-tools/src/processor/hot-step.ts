@@ -155,7 +155,7 @@ export class HotSnapshotProcessor<
 		const snapshotPath = context.getSource(
 			`__snapshots__/${compilerOptions.target}/${step}.snap.txt`
 		);
-		const title = `Case ${this._options.name}: Step ${step}`;
+		const title = `Case ${path.basename(this._options.name)}: Step ${step}`;
 		const hotUpdateFile: Array<{
 			name: string;
 			content: string;
