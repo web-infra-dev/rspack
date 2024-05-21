@@ -51,6 +51,7 @@
     "copy-webpack-plugin": "5.1.2",
     "cross-env": "^7.0.3",
     "del": "^6.0.0",
+    "enhanced-resolve": "5.12.0",
     "file-loader": "^6.2.0",
     "glob": "^10.3.10",
     "graceful-fs": "4.2.10",
@@ -86,7 +87,6 @@
     "@module-federation/runtime-tools": "0.1.6",
     "@rspack/binding": "workspace:*",
     "caniuse-lite": "^1.0.30001616",
-    "enhanced-resolve": "5.12.0",
     "tapable": "2.2.1",
     "webpack-sources": "3.2.3"
   },

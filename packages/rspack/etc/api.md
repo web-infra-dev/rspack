@@ -61,7 +61,6 @@ import type { RawRelayConfig } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
 import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
-import { ResolveRequest } from 'enhanced-resolve';
 import ResolverFactory = require('./ResolverFactory');
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import { Source } from 'webpack-sources';
@@ -645,6 +644,24 @@ const baseResolveOptions: z.ZodObject<{
     restrictions?: string[] | undefined;
     roots?: string[] | undefined;
 }>;
+
+// @public (undocumented)
+interface BaseResolveRequest {
+    	// (undocumented)
+    descriptionFileData?: object;
+    	// (undocumented)
+    descriptionFilePath?: string;
+    	// (undocumented)
+    descriptionFileRoot?: string;
+    	// (undocumented)
+    fullySpecified?: boolean;
+    	// (undocumented)
+    ignoreSymlinks?: boolean;
+    	// (undocumented)
+    path: string | false;
+    	// (undocumented)
+    relativePath?: string;
+}
 
 // @public (undocumented)
 const baseRuleSetCondition: z.ZodUnion<[z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodString]>, z.ZodFunction<z.ZodTuple<[z.ZodString], z.ZodUnknown>, z.ZodBoolean>]>;
@@ -6975,6 +6992,24 @@ export interface OutputNormalized {
 }
 
 // @public (undocumented)
+interface ParsedIdentifier {
+    	// (undocumented)
+    directory: boolean;
+    	// (undocumented)
+    file: boolean;
+    	// (undocumented)
+    fragment: string;
+    	// (undocumented)
+    internal: boolean;
+    	// (undocumented)
+    module: boolean;
+    	// (undocumented)
+    query: string;
+    	// (undocumented)
+    request: string;
+}
+
+// @public (undocumented)
 export type ParserOptionsByModuleType = z.infer<typeof parserOptionsByModuleType>;
 
 // @public (undocumented)
@@ -7683,6 +7718,9 @@ type ResolveData = {
 export type ResolveOptions = z.infer<typeof baseResolveOptions> & {
     byDependency?: Record<string, ResolveOptions>;
 };
+
+// @public (undocumented)
+type ResolveRequest = BaseResolveRequest & Partial<ParsedIdentifier>;
 
 // @public (undocumented)
 export type ResolveTsconfig = z.infer<typeof resolveTsconfig>;

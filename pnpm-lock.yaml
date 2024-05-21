@@ -466,9 +466,6 @@ importers:
       caniuse-lite:
         specifier: ^1.0.30001616
         version: 1.0.30001616
-      enhanced-resolve:
-        specifier: 5.12.0
-        version: 5.12.0
       tapable:
         specifier: 2.2.1
         version: 2.2.1
@@ -515,6 +512,9 @@ importers:
       del:
         specifier: ^6.0.0
         version: 6.1.1
+      enhanced-resolve:
+        specifier: 5.12.0
+        version: 5.12.0
       file-loader:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.90.1)
@@ -9258,7 +9258,6 @@ packages:
     dependencies:
       graceful-fs: 4.2.10
       tapable: 2.2.1
-    dev: false
 
   /enhanced-resolve@5.16.0:
     resolution: {integrity: sha512-O+QWCviPNSSLAD9Ucn8Awv+poAkqn3T1XY5/N7kR7rQO9yfSGWkYZDwpJ+iKF7B8rxaQKWngSqACpgzeapSyoA==}
