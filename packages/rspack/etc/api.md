@@ -7720,7 +7720,7 @@ export type ResolveOptions = z.infer<typeof baseResolveOptions> & {
 };
 
 // @public (undocumented)
-type ResolveRequest BaseResolveRequest & Partial<ParsedIdentifier>;
+type ResolveRequest = BaseResolveRequest & Partial<ParsedIdentifier>;
 
 // @public (undocumented)
 export type ResolveTsconfig = z.infer<typeof resolveTsconfig>;
