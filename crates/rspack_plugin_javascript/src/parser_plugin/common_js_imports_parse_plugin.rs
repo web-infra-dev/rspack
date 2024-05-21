@@ -41,7 +41,14 @@ fn create_commonjs_require_context_dependency(
     start: callee_start,
     end: callee_end,
   };
-  CommonJsRequireContextDependency::new(callee_start, callee_end, args_end, options, span)
+  CommonJsRequireContextDependency::new(
+    callee_start,
+    callee_end,
+    args_end,
+    options,
+    span,
+    parser.in_try,
+  )
 }
 
 pub struct CommonJsImportsParserPlugin;
@@ -220,6 +227,7 @@ impl CommonJsImportsParserPlugin {
         end: ident.span().real_hi(),
       },
       Some(ident.span().into()),
+      parser.in_try,
     );
     parser.warning_diagnostics.push(Box::new(
       create_traceable_error(

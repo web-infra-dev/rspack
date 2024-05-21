@@ -212,7 +212,7 @@ impl ContextModuleFactory {
 
     let resolve_args = ResolveArgs {
       context: data.context.clone(),
-      importer: None,
+      importer: data.issuer_identifier.as_ref(),
       issuer: data.issuer.as_deref(),
       specifier,
       dependency_type: dependency.dependency_type(),
@@ -220,7 +220,7 @@ impl ContextModuleFactory {
       span: dependency.span(),
       resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
-      optional: false,
+      optional: dependency.get_optional(),
       file_dependencies: &mut file_dependencies,
       missing_dependencies: &mut missing_dependencies,
     };
