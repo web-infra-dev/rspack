@@ -157,8 +157,7 @@ assert.deepStrictEqual(301, 301);
 assert.deepStrictEqual("302", "302");
 assert.deepStrictEqual(303, 303);
 assert.deepStrictEqual(304, 304);
-assert.deepStrictEqual(303..P4, undefined);
-// "303.P4"
+assert.deepStrictEqual(303..P4, undefined); // "303.P4"
 try {
     error_count += 1;
     P4.P1;
@@ -260,8 +259,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 const DO_NOT_CONVERTED7 = 402;
 const DO_NOT_CONVERTED9 = 403;
-/* harmony default export */ __webpack_exports__["default"] = (401);
-// DO_NOT_CONVERTED8
+/* harmony default export */ __webpack_exports__["default"] = (401); // DO_NOT_CONVERTED8
 
 }),
 
