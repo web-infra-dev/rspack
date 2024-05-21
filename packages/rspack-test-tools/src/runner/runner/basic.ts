@@ -60,7 +60,9 @@ export abstract class BasicRunner<
 	constructor(protected _options: IBasicRunnerOptions<T>) {}
 
 	run(file: string): Promise<unknown> {
-		this.globalContext = this.createGlobalContext();
+		if (!this.globalContext) {
+			this.globalContext = this.createGlobalContext();
+		}
 		this.baseModuleScope = this.createBaseModuleScope();
 		if (typeof this._options.testConfig.moduleScope === "function") {
 			this._options.testConfig.moduleScope(this.baseModuleScope);

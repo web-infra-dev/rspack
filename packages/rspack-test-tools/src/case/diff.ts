@@ -41,61 +41,55 @@ export function createDiffCase(name: string, src: string, dist: string) {
 		steps: [processor]
 	});
 
-	describe(name, () => {
-		beforeAll(async () => {
-			rimraf.sync(dist);
-			await tester.prepare();
-		});
+	beforeAll(async () => {
+		rimraf.sync(dist);
+		await tester.prepare();
+	});
 
-		do {
-			const prefix = `[${name}][${tester.step + 1}]:`;
-			describe(`${prefix}build`, () => {
-				beforeAll(async () => {
-					await tester.compile();
-				});
-				checkBundleFiles(
-					"webpack",
-					path.join(dist, "webpack"),
-					caseConfig.files!
-				);
-				checkBundleFiles(
-					"rspack",
-					path.join(dist, "rspack"),
-					caseConfig.files!
-				);
+	do {
+		const prefix = path.basename(name);
+		describe(`${prefix}:build`, () => {
+			beforeAll(async () => {
+				await tester.compile();
 			});
-			describe(`${prefix}check`, () => {
-				beforeAll(async () => {
-					compareMap.clear();
-					await tester.check(env);
-				});
-				for (let file of caseConfig.files!) {
-					describe(`Comparing "${file}"`, () => {
-						let moduleResults: TModuleCompareResult[] = [];
-						let runtimeResults: TModuleCompareResult[] = [];
-						beforeAll(() => {
-							const fileResult = compareMap.get(file);
-							if (!fileResult) {
-								throw new Error(`File ${file} has no results`);
-							}
-							moduleResults = fileResult.modules;
-							runtimeResults = fileResult.runtimeModules;
-						});
-						if (caseConfig.modules) {
-							checkCompareResults("modules", () => moduleResults);
+			checkBundleFiles(
+				"webpack",
+				path.join(dist, "webpack"),
+				caseConfig.files!
+			);
+			checkBundleFiles("rspack", path.join(dist, "rspack"), caseConfig.files!);
+		});
+		describe(`${prefix}:check`, () => {
+			beforeAll(async () => {
+				compareMap.clear();
+				await tester.check(env);
+			});
+			for (let file of caseConfig.files!) {
+				describe(`Comparing "${file}"`, () => {
+					let moduleResults: TModuleCompareResult[] = [];
+					let runtimeResults: TModuleCompareResult[] = [];
+					beforeAll(() => {
+						const fileResult = compareMap.get(file);
+						if (!fileResult) {
+							throw new Error(`File ${file} has no results`);
 						}
-						if (caseConfig.runtimeModules) {
-							checkCompareResults("runtime modules", () => runtimeResults);
-						}
+						moduleResults = fileResult.modules;
+						runtimeResults = fileResult.runtimeModules;
 					});
-				}
-				const env = createLazyTestEnv(1000);
-			});
-		} while (tester.next());
-
-		afterAll(async () => {
-			await tester.resume();
+					if (caseConfig.modules) {
+						checkCompareResults("modules", () => moduleResults);
+					}
+					if (caseConfig.runtimeModules) {
+						checkCompareResults("runtime modules", () => runtimeResults);
+					}
+				});
+			}
+			const env = createLazyTestEnv(1000);
 		});
+	} while (tester.next());
+
+	afterAll(async () => {
+		await tester.resume();
 	});
 }
 

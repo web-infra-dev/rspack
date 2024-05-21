@@ -364,6 +364,8 @@ export class HookTaskProcessor<T extends ECompilerType> extends SnapshotProcesso
 export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
     constructor(_hotOptions: IHotProcessorOptions<T>);
     // (undocumented)
+    afterAll(context: ITestContext): Promise<void>;
+    // (undocumented)
     static defaultOptions<T extends ECompilerType>(hotOptions: IHotProcessorOptions<T>, updateOptions: TUpdateOptions): IBasicProcessorOptions<T>["defaultOptions"];
     // (undocumented)
     static findBundle<T extends ECompilerType>(hotOptions: IHotProcessorOptions<T>): IBasicProcessorOptions<T>["findBundle"];
@@ -1234,6 +1236,7 @@ export type TTestRunResult = Record<string, any>;
 // @public (undocumented)
 export type TUpdateOptions = {
     updateIndex: number;
+    totalIndex: number;
 };
 
 // @public (undocumented)

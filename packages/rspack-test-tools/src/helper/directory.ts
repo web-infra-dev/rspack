@@ -64,7 +64,7 @@ export function describeByWalk(
 								dist = path.join(sourceBase, caseName, relativeDist);
 							}
 						}
-						createCase(folder, source, dist);
+						createCase(name, source, dist);
 					});
 				}
 			});
