@@ -1,5 +1,6 @@
 import { StatsCompilation } from "@rspack/core";
 
+import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import {
 	ECompilerType,
 	ITestEnv,
@@ -61,6 +62,30 @@ export class HotStepRunnerFactory<
 							stats as TCompilerStats<T>,
 							runner.getGlobal("__HMR_UPDATED_RUNTIME__") as THotStepRuntimeData
 						);
+						if (
+							checkArrayExpectation(
+								source,
+								jsonStats,
+								"error",
+								"errors" + hotUpdateContext.updateIndex,
+								"Error",
+								callback
+							)
+						) {
+							return;
+						}
+						if (
+							checkArrayExpectation(
+								source,
+								jsonStats,
+								"warning",
+								"warnings" + hotUpdateContext.updateIndex,
+								"Warning",
+								callback
+							)
+						) {
+							return;
+						}
 						callback(null, jsonStats as StatsCompilation);
 					} catch (e) {
 						callback(e as Error);
