@@ -100,24 +100,26 @@ impl Cutout {
     force_build_deps.extend(artifact.revoke_modules(force_build_modules));
 
     if !next_entry_deps.is_empty() {
-      let mut old_entry_deps = std::mem::take(&mut artifact.entry_dependencies);
+      let mut remove_entry_deps = std::mem::take(&mut artifact.entry_dependencies);
       for dep_id in &next_entry_deps {
-        if old_entry_deps.contains(dep_id) {
-          old_entry_deps.remove(dep_id);
+        if remove_entry_deps.contains(dep_id) {
+          remove_entry_deps.remove(dep_id);
         } else {
           force_build_deps.insert((*dep_id, None));
         }
       }
+
       artifact.entry_dependencies = next_entry_deps;
-      for dep_id in old_entry_deps {
-        self
-          .clean_isolated_module
-          .analyze_removed_deps(artifact, &dep_id);
+      for dep_id in remove_entry_deps {
         let mut module_graph = artifact.get_module_graph_mut();
-        let con_id = *module_graph
-          .connection_id_by_dependency_id(&dep_id)
-          .expect("should have connection");
-        module_graph.revoke_connection(&con_id, true);
+        // connection may have been deleted by revoke module
+        if let Some(con) = module_graph.connection_by_dependency(&dep_id) {
+          self
+            .clean_isolated_module
+            .add_need_check_module(*con.module_identifier());
+          let con_id = con.id;
+          module_graph.revoke_connection(&con_id, true);
+        }
         force_build_deps.remove(&(dep_id, None));
       }
     }
