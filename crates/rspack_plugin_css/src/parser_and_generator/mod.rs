@@ -13,8 +13,9 @@ use rspack_core::{
     SourceMapSource, SourceMapSourceOptions,
   },
   BoxDependency, BuildExtraDataType, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
-  CssExportsConvention, ErrorSpan, GenerateContext, LocalIdentName, Module, ModuleGraph,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
+  CssExportsConvention, ErrorSpan, GenerateContext, LocalIdentName, Module, ModuleDependency,
+  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType,
+  TemplateContext,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -90,7 +91,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
       compiler_options,
       build_info,
       build_meta,
-      code_generation_dependencies,
       loaders,
       ..
     } = parse_context;
@@ -127,6 +127,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let mut exports_pairs = vec![];
     let mut presentational_dependencies = None;
+    let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
     let mut exports = if is_enable_css_modules {
       let mut stylesheet = swc_compiler.parse_file(
         &resource_path.to_string_lossy(),
@@ -206,7 +207,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let mut dependencies = analyze_dependencies(
       &new_stylesheet_ast,
-      code_generation_dependencies,
+      &mut code_generation_dependencies,
       &mut diagnostic_vec,
       &source_code,
       module_user_request,
@@ -276,6 +277,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         dependencies,
         blocks: vec![],
         presentational_dependencies: presentational_dependencies.unwrap_or_default(),
+        code_generation_dependencies,
         source: new_source,
         analyze_result: Default::default(),
         side_effects_bailout: None,
