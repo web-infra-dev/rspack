@@ -222,6 +222,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = Vec::with_capacity(32);
     plugins.push(Box::new(parser_plugin::InitializeEvaluating));
+    plugins.push(Box::new(parser_plugin::JavascriptMetaInfoPlugin));
     plugins.push(Box::new(parser_plugin::CheckVarDeclaratorIdent));
     plugins.push(Box::new(parser_plugin::ConstPlugin));
     plugins.push(Box::new(
@@ -359,6 +360,13 @@ impl<'parser> JavascriptParser<'parser> {
       name,
       info: Some(info),
     })
+  }
+
+  pub fn get_all_variables_from_current_scope(
+    &self,
+  ) -> impl Iterator<Item = (&str, &VariableInfoId)> {
+    let scope = self.definitions_db.expect_get_scope(&self.definitions);
+    scope.variables()
   }
 
   fn define_variable(&mut self, name: String) {
@@ -642,7 +650,7 @@ impl<'parser> JavascriptParser<'parser> {
         }
       };
     }
-    // TODO: `hooks.finish.call`
+    self.plugin_drive.clone().finish(self);
   }
 
   fn set_strict(&mut self, value: bool) {

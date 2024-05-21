@@ -94,6 +94,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         dependencies,
         blocks: vec![],
         presentational_dependencies: vec![],
+        code_generation_dependencies: vec![],
         source,
         analyze_result: Default::default(),
         side_effects_bailout: None,

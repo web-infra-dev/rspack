@@ -320,6 +320,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         blocks: vec![],
         source,
         presentational_dependencies: vec![],
+        code_generation_dependencies: vec![],
         analyze_result,
         side_effects_bailout: None,
       }

@@ -1,0 +1,44 @@
+```js title=main.js
+"use strict";
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./src/App.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/containers.js");
+
+const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0__;
+const Index = ()=>{
+    console.log("PlatformProvider", PlatformProvider);
+    return "something";
+};
+/* harmony default export */ __webpack_exports__["default"] = (Index);
+}),
+"./src/containers/containers.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  PlatformProvider: function() { return /* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.PlatformProvider; },
+  usePlatform: function() { return /* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.usePlatform; }
+});
+/* harmony import */var _platform_container__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/platform-container/index.js");
+
+
+}),
+"./src/containers/platform-container/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  PlatformProvider: function() { return PlatformProvider; },
+  usePlatform: function() { return usePlatform; }
+});
+const usePlatform = 3;
+const PlatformProvider = 1000;
+}),
+"./src/index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+/* harmony import */var _App__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/App.js");
+
+(0, _App__WEBPACK_IMPORTED_MODULE_0__["default"])();
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./src/index.js"));
+
+}
+]);
+```

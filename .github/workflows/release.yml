@@ -12,6 +12,7 @@ on:
           - canary
           - nightly
           - latest
+          - beta
       dry_run:
         type: boolean
         description: "DryRun release"

@@ -5,6 +5,7 @@ import {
 	JsModule
 } from "@rspack/binding";
 import { Source } from "webpack-sources";
+
 import { JsSource } from "./util/source";
 
 export type ResourceData = {

@@ -1,8 +1,9 @@
-import { ECompilerType } from "../../type";
-import { IBasicRunnerOptions } from "./basic";
-import { IBasicModuleScope, TBasicRunnerFile, TRunnerRequirer } from "../type";
 import path from "path";
+
 import FakeDocument from "../../helper/legacy/FakeDocument";
+import { ECompilerType } from "../../type";
+import { IBasicModuleScope, TBasicRunnerFile, TRunnerRequirer } from "../type";
+import { IBasicRunnerOptions } from "./basic";
 import { CommonJsRunner } from "./cjs";
 
 interface IWatchRunnerOptions<T extends ECompilerType = ECompilerType.Rspack>

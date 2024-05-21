@@ -85,6 +85,7 @@ module.exports = (globalTimeout = 2000, nameSuffix = "") => {
 		getNumberOfTests() {
 			return numberOfTests;
 		},
+		expect,
 		it(...args) {
 			numberOfTests++;
 			if (runTests >= numberOfTests) throw new Error("it called too late");

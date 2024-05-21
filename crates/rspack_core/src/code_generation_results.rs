@@ -7,7 +7,7 @@ use anymap::CloneAny;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_identifier::IdentifierMap;
 use rspack_sources::BoxSource;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
@@ -64,6 +64,21 @@ impl CodeGenerationDataAssetInfo {
   }
 
   pub fn inner(&self) -> &AssetInfo {
+    &self.inner
+  }
+}
+
+#[derive(Clone, Debug)]
+pub struct CodeGenerationDataTopLevelDeclarations {
+  inner: FxHashSet<String>,
+}
+
+impl CodeGenerationDataTopLevelDeclarations {
+  pub fn new(inner: FxHashSet<String>) -> Self {
+    Self { inner }
+  }
+
+  pub fn inner(&self) -> &FxHashSet<String> {
     &self.inner
   }
 }

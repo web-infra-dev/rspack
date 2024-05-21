@@ -2,6 +2,7 @@ import {
 	BuiltinPluginName,
 	RawLimitChunkCountPluginOptions
 } from "@rspack/binding";
+
 import { create } from "./base";
 
 export type LimitChunkCountOptions = {

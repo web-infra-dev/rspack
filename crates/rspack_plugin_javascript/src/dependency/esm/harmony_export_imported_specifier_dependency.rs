@@ -309,14 +309,13 @@ impl HarmonyExportImportedSpecifierDependency {
     let hidden_exports = self
       .discover_active_exports_from_other_star_exports(module_graph)
       .map(|other_star_exports| {
-        let mut hide_exports = HashSet::default();
-        for i in 0..other_star_exports.names_slice {
-          hide_exports.insert(other_star_exports.names[i].clone());
-        }
-        for e in ignored_exports.iter() {
-          hide_exports.remove(e);
-        }
-        hide_exports
+        other_star_exports
+          .names
+          .into_iter()
+          .take(other_star_exports.names_slice)
+          .filter(|name| !ignored_exports.contains(name))
+          .cloned()
+          .collect::<HashSet<_>>()
       });
     if !no_extra_exports && !no_extra_imports {
       return StarReexportsInfo {
@@ -419,10 +418,10 @@ impl HarmonyExportImportedSpecifierDependency {
     }
   }
 
-  pub fn discover_active_exports_from_other_star_exports(
+  pub fn discover_active_exports_from_other_star_exports<'a>(
     &self,
-    module_graph: &ModuleGraph,
-  ) -> Option<DiscoverActiveExportsFromOtherStarExportsRet> {
+    module_graph: &'a ModuleGraph,
+  ) -> Option<DiscoverActiveExportsFromOtherStarExportsRet<'a>> {
     if let Some(other_star_exports) = &self.other_star_exports {
       if other_star_exports.is_empty() {
         return None;
@@ -435,7 +434,7 @@ impl HarmonyExportImportedSpecifierDependency {
     let all_star_exports = self.all_star_exports(module_graph);
     if !all_star_exports.is_empty() {
       let (names, dependency_indices) =
-        determine_export_assignments(module_graph, all_star_exports.clone(), None);
+        determine_export_assignments(module_graph, all_star_exports, None);
 
       return Some(DiscoverActiveExportsFromOtherStarExportsRet {
         names,
@@ -447,7 +446,7 @@ impl HarmonyExportImportedSpecifierDependency {
 
     if let Some(other_star_exports) = &self.other_star_exports {
       let (names, dependency_indices) =
-        determine_export_assignments(module_graph, other_star_exports.clone(), Some(self.id));
+        determine_export_assignments(module_graph, other_star_exports, Some(self.id));
       return Some(DiscoverActiveExportsFromOtherStarExportsRet {
         names,
         names_slice: dependency_indices[i - 1],
@@ -829,8 +828,8 @@ impl HarmonyExportImportedSpecifierDependency {
 }
 
 #[derive(Debug)]
-pub struct DiscoverActiveExportsFromOtherStarExportsRet {
-  names: Vec<Atom>,
+pub struct DiscoverActiveExportsFromOtherStarExportsRet<'a> {
+  names: Vec<&'a Atom>,
   names_slice: usize,
   pub dependency_indices: Vec<usize>,
   pub dependency_index: usize,
@@ -1350,39 +1349,34 @@ pub struct StarReexportsInfo {
 }
 
 /// return (names, dependency_indices)
-fn determine_export_assignments(
-  module_graph: &ModuleGraph,
-  mut dependencies: Vec<DependencyId>,
+fn determine_export_assignments<'a>(
+  module_graph: &'a ModuleGraph,
+  dependencies: &[DependencyId],
   additional_dependency: Option<DependencyId>,
-) -> (Vec<Atom>, Vec<usize>) {
-  if let Some(additional_dependency) = additional_dependency {
-    dependencies.push(additional_dependency);
-  }
-
+) -> (Vec<&'a Atom>, Vec<usize>) {
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L109
   // js `Set` keep the insertion order, use `IndexSet` to align there behavior
-  let mut names: IndexSet<Atom, BuildHasherDefault<FxHasher>> = IndexSet::default();
-  let mut dependency_indices = vec![];
+  let mut names: IndexSet<&Atom, BuildHasherDefault<FxHasher>> = IndexSet::default();
+  let mut dependency_indices =
+    Vec::with_capacity(dependencies.len() + usize::from(additional_dependency.is_some()));
 
-  for dependency in dependencies.iter() {
-    dependency_indices.push(names.len());
+  for dependency in dependencies.iter().chain(additional_dependency.iter()) {
     if let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(dependency) {
       let exports_info = module_graph.get_exports_info(module_identifier);
       for export_info_id in exports_info.exports.values() {
         let export_info = module_graph.get_export_info_by_id(export_info_id);
         // SAFETY: This is safe because a real export can't export empty string
-        let export_info_name = export_info.name.clone().unwrap_or_default();
+        let export_info_name = export_info.name.as_ref().expect("export name is empty");
         if matches!(export_info.provided, Some(ExportInfoProvided::True))
-          && &export_info_name != "default"
-          && !names.contains(&export_info_name)
+          && export_info_name != "default"
+          && !names.contains(export_info_name)
         {
-          names.insert(export_info_name.clone());
-          let cur_len = dependency_indices.len();
-          dependency_indices[cur_len - 1] = names.len();
+          names.insert(export_info_name);
         }
       }
     }
+    dependency_indices.push(names.len());
   }
 
-  (names.into_iter().collect::<Vec<Atom>>(), dependency_indices)
+  (names.into_iter().collect(), dependency_indices)
 }

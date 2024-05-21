@@ -1,9 +1,9 @@
-import schema from "./loader-options.json";
-import { CssExtractRspackPlugin } from "./index";
 import path from "path";
-import { stringifyLocal, stringifyRequest } from "./utils";
 
 import type { LoaderContext, LoaderDefinition } from "../..";
+import { CssExtractRspackPlugin } from "./index";
+import schema from "./loader-options.json";
+import { stringifyLocal, stringifyRequest } from "./utils";
 
 export const MODULE_TYPE = "css/mini-extract";
 export const AUTO_PUBLIC_PATH = "__mini_css_extract_plugin_public_path_auto__";

@@ -1,13 +1,14 @@
-import { BasicTaskProcessor, IBasicProcessorOptions } from "./basic";
-import { ECompilerType, ITestContext, ITestEnv } from "../type";
-import path from "path";
-import fs from "fs-extra";
 import { type Compiler as RspackCompiler } from "@rspack/core";
+import fs from "fs-extra";
+import path from "path";
 import {
 	type Compilation as WebpackCompilation,
 	type Compiler as WebpackCompiler
 } from "webpack";
+
 import { escapeEOL } from "../helper";
+import { ECompilerType, ITestContext, ITestEnv } from "../type";
+import { BasicProcessor, IBasicProcessorOptions } from "./basic";
 
 declare var global: {
 	updateSnapshot: boolean;
@@ -21,7 +22,7 @@ export interface ISnapshotProcessorOptions<T extends ECompilerType>
 
 export class SnapshotProcessor<
 	T extends ECompilerType
-> extends BasicTaskProcessor<T> {
+> extends BasicProcessor<T> {
 	constructor(protected _snapshotOptions: ISnapshotProcessorOptions<T>) {
 		super(_snapshotOptions);
 		if (path.extname(_snapshotOptions.snapshot) === ".snap") {
@@ -70,7 +71,7 @@ export class SnapshotProcessor<
 			? this._snapshotOptions.snapshot
 			: path.resolve(
 					context.getSource(),
-					`./snapshot/${this._snapshotOptions.snapshot}`
+					`./__snapshots__/${this._snapshotOptions.snapshot}`
 				);
 
 		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
@@ -79,6 +80,6 @@ export class SnapshotProcessor<
 			return;
 		}
 		const snapshotContent = escapeEOL(fs.readFileSync(snapshotPath, "utf-8"));
-		expect(content).toBe(snapshotContent);
+		env.expect(content).toBe(snapshotContent);
 	}
 }

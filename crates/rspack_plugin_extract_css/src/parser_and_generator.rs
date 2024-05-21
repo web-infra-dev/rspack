@@ -76,7 +76,7 @@ impl ParserAndGenerator for CssExtractParserAndGenerator {
                supports,
                source_map,
                identifier_index,
-               filepath,
+               ..
              }| {
               let dep = Box::new(CssDependency::new(
                 identifier.into(),
@@ -87,7 +87,10 @@ impl ParserAndGenerator for CssExtractParserAndGenerator {
                 source_map.clone(),
                 *identifier_index,
                 idx,
-                filepath.clone(),
+                parse_context.build_info.file_dependencies.clone(),
+                parse_context.build_info.context_dependencies.clone(),
+                parse_context.build_info.missing_dependencies.clone(),
+                parse_context.build_info.build_dependencies.clone(),
               ));
               idx += 1;
               dep

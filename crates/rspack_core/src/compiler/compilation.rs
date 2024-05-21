@@ -690,10 +690,6 @@ impl Compilation {
     module_identifiers: HashSet<ModuleIdentifier>,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    for id in &module_identifiers {
-      self.cache.build_module_occasion.remove_cache(id);
-    }
-
     update_module_graph(
       self,
       vec![MakeParam::ForceBuildModules(module_identifiers.clone())],

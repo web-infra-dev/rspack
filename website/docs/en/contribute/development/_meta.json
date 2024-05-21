@@ -1,1 +1,10 @@
-["prerequisites", "building", "testing", "debugging", "profiling", "releasing"]
+[
+  "prerequisites",
+  "building",
+  "testing",
+  "testing-webpack",
+  "testing-rspack",
+  "debugging",
+  "profiling",
+  "releasing"
+]

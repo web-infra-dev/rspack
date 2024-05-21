@@ -1,3 +1,7 @@
+import { rspack } from "@rspack/core";
+import fs from "fs-extra";
+import path from "path";
+
 import {
 	ECompilerType,
 	ITestContext,
@@ -5,46 +9,59 @@ import {
 	ITestRunner,
 	TCompilerOptions
 } from "../type";
-import { BasicTaskProcessor, IBasicProcessorOptions } from "./basic";
-import path from "path";
-import { rspack } from "@rspack/core";
+import { BasicProcessor, IBasicProcessorOptions } from "./basic";
 
-export interface IRspackHotProcessorOptions {
-	name: string;
-	target: TCompilerOptions<ECompilerType.Rspack>["target"];
+export interface IHotProcessorOptions<T extends ECompilerType>
+	extends Omit<
+		IBasicProcessorOptions<T>,
+		"defaultOptions" | "overrideOptions" | "runable" | "findBundle"
+	> {
+	target: TCompilerOptions<T>["target"];
 }
 
 export type TUpdateOptions = {
 	updateIndex: number;
+	totalIndex: number;
 };
 
-export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
+export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 	protected updateOptions: TUpdateOptions;
 	protected runner: ITestRunner | null = null;
 
-	constructor(protected _hotOptions: IRspackHotProcessorOptions) {
+	constructor(protected _hotOptions: IHotProcessorOptions<T>) {
 		const fakeUpdateLoaderOptions: TUpdateOptions = {
-			updateIndex: 0
+			updateIndex: 0,
+			totalIndex: 0
 		};
 		super({
-			defaultOptions: RspackHotProcessor.defaultOptions(
+			defaultOptions: HotProcessor.defaultOptions(
 				_hotOptions,
 				fakeUpdateLoaderOptions
 			),
-			overrideOptions: RspackHotProcessor.overrideOptions(
+			overrideOptions: HotProcessor.overrideOptions(
 				_hotOptions,
 				fakeUpdateLoaderOptions
 			),
-			compilerType: ECompilerType.Rspack,
-			findBundle: RspackHotProcessor.findBundle(_hotOptions),
-			configFiles: ["rspack.config.js", "webpack.config.js"],
-			name: _hotOptions.name,
-			runable: true
+			findBundle: HotProcessor.findBundle(_hotOptions),
+			runable: true,
+			..._hotOptions
 		});
 		this.updateOptions = fakeUpdateLoaderOptions;
 	}
 
 	async run(env: ITestEnv, context: ITestContext) {
+		const changedFiles: string[] = require(
+			context.getSource("changed-file.js")
+		);
+		this.updateOptions.totalIndex = changedFiles.reduce<number>(
+			(res: number, file: string) => {
+				return Math.max(
+					fs.readFileSync(file, "utf-8").split("---").length,
+					res
+				);
+			},
+			0
+		);
 		context.setValue(
 			this._options.name,
 			"hotUpdateContext",
@@ -53,9 +70,9 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 		await super.run(env, context);
 	}
 
-	static findBundle(
-		hotOptions: IRspackHotProcessorOptions
-	): IBasicProcessorOptions<ECompilerType.Rspack>["findBundle"] {
+	static findBundle<T extends ECompilerType>(
+		hotOptions: IHotProcessorOptions<T>
+	): IBasicProcessorOptions<T>["findBundle"] {
 		return context => {
 			let files: string[] = [];
 			let prefiles: string[] = [];
@@ -82,37 +99,52 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 		};
 	}
 
-	static defaultOptions(
-		hotOptions: IRspackHotProcessorOptions,
-		updateOptions: TUpdateOptions
-	): IBasicProcessorOptions<ECompilerType.Rspack>["defaultOptions"] {
-		return (context: ITestContext) => ({
-			context: context.getSource(),
-			mode: "development",
-			devtool: false,
-			output: {
-				path: context.getDist(),
-				filename: "bundle.js",
-				chunkFilename: "[name].chunk.[fullhash].js",
-				publicPath: "https://test.cases/path/",
-				library: { type: "commonjs2" }
-			},
-			optimization: {
-				moduleIds: "named"
-			},
-			target: hotOptions.target,
-			plugins: [new rspack.HotModuleReplacementPlugin()]
-		});
+	async afterAll(context: ITestContext) {
+		await super.afterAll(context);
+		if (this.updateOptions.updateIndex + 1 !== this.updateOptions.totalIndex) {
+			throw new Error(
+				`Should run all hot steps (${this.updateOptions.updateIndex + 1} / ${this.updateOptions.totalIndex}): ${this._options.name}`
+			);
+		}
 	}
 
-	static overrideOptions(
-		hotOptions: IRspackHotProcessorOptions,
+	static defaultOptions<T extends ECompilerType>(
+		hotOptions: IHotProcessorOptions<T>,
 		updateOptions: TUpdateOptions
-	): IBasicProcessorOptions<ECompilerType.Rspack>["overrideOptions"] {
-		return (
-			context: ITestContext,
-			options: TCompilerOptions<ECompilerType.Rspack>
-		) => {
+	): IBasicProcessorOptions<T>["defaultOptions"] {
+		return (context: ITestContext) => {
+			const options = {
+				context: context.getSource(),
+				mode: "development",
+				devtool: false,
+				output: {
+					path: context.getDist(),
+					filename: "bundle.js",
+					chunkFilename: "[name].chunk.[fullhash].js",
+					publicPath: "https://test.cases/path/",
+					library: { type: "commonjs2" }
+				},
+				optimization: {
+					moduleIds: "named"
+				},
+				target: hotOptions.target
+			} as TCompilerOptions<T>;
+
+			if (hotOptions.compilerType === ECompilerType.Rspack) {
+				options.plugins ??= [];
+				(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
+					new rspack.HotModuleReplacementPlugin()
+				);
+			}
+			return options;
+		};
+	}
+
+	static overrideOptions<T extends ECompilerType>(
+		hotOptions: IHotProcessorOptions<T>,
+		updateOptions: TUpdateOptions
+	): IBasicProcessorOptions<T>["overrideOptions"] {
+		return (context: ITestContext, options: TCompilerOptions<T>) => {
 			if (!options.entry) {
 				options.entry = "./index.js";
 			}
@@ -130,8 +162,12 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 					}
 				]
 			});
-			options.plugins ??= [];
-			options.plugins.push(new rspack.LoaderOptionsPlugin(updateOptions));
+			if (hotOptions.compilerType === ECompilerType.Rspack) {
+				options.plugins ??= [];
+				(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
+					new rspack.LoaderOptionsPlugin(updateOptions)
+				);
+			}
 		};
 	}
 }

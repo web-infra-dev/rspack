@@ -1,3 +1,12 @@
+import path from "path";
+
+import { readConfigFile } from "..";
+import {
+	compareFile,
+	IFormatCodeOptions,
+	replaceRuntimeModuleName
+} from "../compare";
+import { RspackDiffConfigPlugin, WebpackDiffConfigPlugin } from "../plugin";
 import {
 	ECompilerType,
 	ITestContext,
@@ -8,15 +17,7 @@ import {
 	TFileCompareResult,
 	TModuleCompareResult
 } from "../type";
-import path from "path";
-import {
-	IFormatCodeOptions,
-	compareFile,
-	replaceRuntimeModuleName
-} from "../compare";
-import { RspackDiffConfigPlugin, WebpackDiffConfigPlugin } from "../plugin";
-import { BasicTaskProcessor } from "./basic";
-import { readConfigFile } from "..";
+import { BasicProcessor } from "./basic";
 
 export interface IDiffProcessorOptions extends IFormatCodeOptions {
 	webpackPath: string;
@@ -35,10 +36,10 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
 }
 export class DiffProcessor implements ITestProcessor {
 	private hashes: string[] = [];
-	private webpack: BasicTaskProcessor<ECompilerType.Webpack>;
-	private rspack: BasicTaskProcessor<ECompilerType.Rspack>;
+	private webpack: BasicProcessor<ECompilerType.Webpack>;
+	private rspack: BasicProcessor<ECompilerType.Rspack>;
 	constructor(private options: IDiffProcessorOptions) {
-		this.webpack = new BasicTaskProcessor<ECompilerType.Webpack>({
+		this.webpack = new BasicProcessor<ECompilerType.Webpack>({
 			defaultOptions: context =>
 				this.getDefaultOptions(
 					ECompilerType.Webpack,
@@ -51,7 +52,7 @@ export class DiffProcessor implements ITestProcessor {
 			runable: false
 		});
 
-		this.rspack = new BasicTaskProcessor<ECompilerType.Rspack>({
+		this.rspack = new BasicProcessor<ECompilerType.Rspack>({
 			defaultOptions: context =>
 				this.getDefaultOptions(
 					ECompilerType.Rspack,

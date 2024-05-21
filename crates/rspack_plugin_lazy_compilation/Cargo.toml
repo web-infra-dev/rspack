@@ -1,0 +1,19 @@
+[package]
+edition = "2021"
+license = "MIT"
+name    = "rspack_plugin_lazy_compilation"
+version = "0.1.0"
+
+[dependencies]
+async-trait = { workspace = true }
+once_cell   = { workspace = true }
+rustc-hash  = { workspace = true }
+tokio       = { workspace = true }
+
+rspack_core              = { path = "../rspack_core" }
+rspack_error             = { path = "../rspack_error" }
+rspack_hook              = { path = "../rspack_hook" }
+rspack_identifier        = { path = "../rspack_identifier" }
+rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
+rspack_regex             = { path = "../rspack_regex" }
+rspack_util              = { path = "../rspack_util" }

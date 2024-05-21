@@ -1,4 +1,4 @@
-const { createFsFromVolume, Volume } = require("memfs")
+const { createFsFromVolume, Volume } = require("memfs");
 let statsJson;
 
 class TestPlugin {
@@ -56,7 +56,7 @@ module.exports = {
 		        "hotModuleReplacement": false,
 		      },
 		      "name": "TestChild.js",
-		      "size": 726,
+		      "size": 700,
 		      "type": "asset",
 		    },
 		    Object {
@@ -69,7 +69,7 @@ module.exports = {
 		        "hotModuleReplacement": false,
 		      },
 		      "name": "main.js",
-		      "size": 211,
+		      "size": 207,
 		      "type": "asset",
 		    },
 		  ],
@@ -91,7 +91,7 @@ module.exports = {
 		            "hotModuleReplacement": false,
 		          },
 		          "name": "TestChild.js",
-		          "size": 726,
+		          "size": 700,
 		          "type": "asset",
 		        },
 		      ],

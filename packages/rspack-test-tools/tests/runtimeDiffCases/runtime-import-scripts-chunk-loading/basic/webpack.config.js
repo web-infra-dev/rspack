@@ -1,4 +1,4 @@
-/** @type {import("@rspack/core").Configuration} */
+/** @type {import("webpack").Configuration} */
 module.exports = {
 	output: {
 		chunkLoading: "import-scripts",

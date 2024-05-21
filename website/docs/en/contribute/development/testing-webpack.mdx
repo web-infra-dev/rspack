@@ -1,0 +1,61 @@
+# Testing Webpack
+
+## Testing Webpack Cases
+
+> **Note**: The `rspack/webpack-test` is heavily based on [webpack/test](https://github.com/webpack/webpack/tree/main/test)
+
+### Progressively migrate webpack test
+
+Originally, we use this formula to calculate the compatibility `passedTestCaseCount / totalTestCount`, totalTestCount = passedTestCaseCount + failedTestCount + skippedTestCount , but sometimes it maybe hard to compatible with all webpack test cases for some reasons (e.g. performance, legacy feature that we don't want to support), we need a method to skip these tests that we will not support. Thus, we adjust the original formula to `(passedTestCaseCount + willNotSupportTestCount) / totalTestCount`.
+
+Currently, we use a `test.filter.js` under each failed test case directory to skip failed test case, using this method could let us migrate webpack test case progressively without affect the real compatibility (Because this method will not influence the real `passedTestCaseCount`).
+
+e.g.
+
+```js
+// test.filter.js
+module.exports = () => {
+  return false; // false means this testcase is skipped for now, but maybe we will support in the future, `-1` means this test case we don't want to compatible with, this related to `willNotSupportTest`.
+};
+```
+
+When you find that we have passed some failed testcases which is skipped for now, you could change the `test.filter.js` to
+
+```js
+module.exports = () => {
+  return true;
+};
+```
+
+or delete the `test.filter.js`
+
+## Testing Webpack Plugins Cases
+
+Based on implementation differences and performance considerations, Rspack will integrate some Webpack plugins internally. The test suite for the plugins will also be copied to the `plugin-test` folder for testing plugin compatibility.
+
+Therefore, in order to maintain consistency with the original repository, it is not recommended to modify these test cases, except in the following scenarios:
+
+- When a new Webpack plugin is integrated into Rspack, the test cases for that plugin need to be copied.
+- When there are differences between the artifacts of Rspack and Webpack (e.g., different hashes), some test cases may need modification.
+
+In scenarios other than those mentioned above, please follow the [Rspack Testing](./testing-rspack) guidelines for adding test cases.
+
+### Running Tests
+
+You can run these test cases in the following ways:
+
+- Run `./x test plugin` or `pnpm run test:plugin` in the root directory.
+- Or run `npm run test` in the `rspack/plugin-test` directory.
+- To update snapshots, run `npm run test -- -u` in the `plugin-test` directory.
+- To pass specific jest cli parameters, run `npm run test -- {args}` in the `plugin-test` directory.
+
+### Adding Test Cases
+
+1. Create a `plugin-test/{plugin-name}` folder and copy the test cases for that plugin into the folder.
+2. Adapt the test configuration in `plugin-test/jest.config.js`. If there are special configurations, follow the process below:
+   1. Create `plugin-test/jest.{plugin-name}.config.js`, import `jest.config.js`, and modify it based on that.
+   2. Add the `test:{plugin-name}` command to the `scripts` property of `plugin-test/package.json`.
+   3. If snapshot testing is included, use the `global.updateSnapshot` to determine whether to update the snapshot.
+3. Update License information:
+   1. Add a `plugin-test/{plugin-name}/README.md` file and include the License information from the source repository of the test cases.
+   2. Update the `plugin-test/README.md` file to include the link and credits information from the source repository of the test cases.

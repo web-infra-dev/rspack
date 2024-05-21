@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+
 import { escapeSep } from ".";
 
 export const isDirectory = (p: string) => fs.lstatSync(p).isDirectory();
@@ -63,7 +64,7 @@ export function describeByWalk(
 								dist = path.join(sourceBase, caseName, relativeDist);
 							}
 						}
-						createCase(folder, source, dist);
+						createCase(name, source, dist);
 					});
 				}
 			});

@@ -4,6 +4,7 @@ mod raw_copy;
 mod raw_css_extract;
 mod raw_html;
 mod raw_ignore;
+mod raw_lazy_compilation;
 mod raw_limit_chunk_count;
 mod raw_mf;
 mod raw_progress;
@@ -14,7 +15,7 @@ mod raw_to_be_deprecated;
 
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
-use rspack_core::{BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin};
+use rspack_core::{BoxPlugin, Define, DefinePlugin, Plugin, PluginExt, Provide, ProvidePlugin};
 use rspack_error::Result;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
@@ -79,6 +80,7 @@ pub use self::{
 use self::{
   raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
   raw_css_extract::RawCssExtractPluginOption,
+  raw_lazy_compilation::{JsBackend, RawLazyCompilationOption},
   raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
   raw_runtime_chunk::RawRuntimeChunkOptions,
   raw_size_limits::RawSizeLimitsPluginOptions,
@@ -165,6 +167,7 @@ pub enum BuiltinPluginName {
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
   JsLoaderRspackPlugin,
+  LazyCompilationPlugin,
 }
 
 #[napi(object)]
@@ -467,6 +470,19 @@ impl BuiltinPlugin {
         plugins.push(
           JsLoaderResolverPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed(),
         );
+      }
+      BuiltinPluginName::LazyCompilationPlugin => {
+        let options = downcast_into::<RawLazyCompilationOption>(self.options)?;
+        let js_backend = JsBackend::from(&options);
+        plugins.push(Box::new(
+          rspack_plugin_lazy_compilation::plugin::LazyCompilationPlugin::new(
+            options.cacheable,
+            js_backend,
+            options.test.map(|test| test.into()),
+            options.entries,
+            options.imports,
+          ),
+        ) as Box<dyn Plugin>)
       }
     }
     Ok(())

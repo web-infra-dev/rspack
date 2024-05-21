@@ -14,7 +14,8 @@ export function getSimpleProcessorRunner(
 		context?: (src: string, dist: string) => ITestContext;
 	} = {}
 ) {
-	const createEnv = options.env || (() => ({ it, beforeEach, afterEach }));
+	const createEnv =
+		options.env || (() => ({ expect, it, beforeEach, afterEach }));
 	const createContext =
 		options.context ||
 		((src: string, dist: string) => new TestContext({ src, dist }));

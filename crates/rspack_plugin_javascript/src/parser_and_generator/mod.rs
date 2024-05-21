@@ -122,6 +122,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             dependencies: vec![],
             blocks: vec![],
             presentational_dependencies: vec![],
+            code_generation_dependencies: vec![],
             analyze_result: Default::default(),
             side_effects_bailout: None,
           }
@@ -151,7 +152,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .0
       };
 
-    run_before_pass(&mut ast, compiler_options)?;
+    run_before_pass(&mut ast, compiler_options, &mut diagnostics)?;
 
     let output: crate::TransformOutput = crate::ast::stringify(
       &ast,
@@ -308,6 +309,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         dependencies,
         blocks,
         presentational_dependencies,
+        code_generation_dependencies: vec![],
         analyze_result,
         side_effects_bailout,
       }

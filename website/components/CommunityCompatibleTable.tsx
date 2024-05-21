@@ -7,6 +7,8 @@ import * as i18n from './i18n';
 
 export enum CompatibleStatus {
   NotCompatible,
+  PartiallyCompatible,
+  Alternative,
   Compatible,
   Included,
 }
@@ -16,6 +18,16 @@ const SUPPORT_STATUS_LOCALIZED = {
     symbol: '🔴',
     en: 'Incompatible',
     zh: '不兼容',
+  },
+  [CompatibleStatus.PartiallyCompatible]: {
+    symbol: '🟡',
+    en: 'Partially compatible',
+    zh: '部分兼容',
+  },
+  [CompatibleStatus.Alternative]: {
+    symbol: '🟡',
+    en: 'Alternative',
+    zh: '可替代',
   },
   [CompatibleStatus.Compatible]: {
     symbol: '🟢',
@@ -92,8 +104,23 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'terser-webpack-plugin',
       url: 'https://webpack.js.org/plugins/terser-webpack-plugin',
-      status: CompatibleStatus.NotCompatible,
+      status: CompatibleStatus.Alternative,
       description: i18n[lang]['terser-webpack-plugin-desc'],
+    },
+    {
+      name: 'html-minimizer-webpack-plugin',
+      url: 'https://github.com/webpack-contrib/html-minimizer-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'json-minimizer-webpack-plugin',
+      url: 'https://github.com/webpack-contrib/json-minimizer-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'stylelint-webpack-plugin',
+      url: 'https://github.com/webpack-contrib/stylelint-webpack-plugin',
+      status: CompatibleStatus.Compatible,
     },
     {
       name: 'tsconfig-paths-webpack-plugin',
@@ -112,9 +139,15 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       status: CompatibleStatus.Compatible,
     },
     {
+      name: 'image-minimizer-webpack-plugin',
+      url: 'https://www.npmjs.com/package/image-minimizer-webpack-plugin',
+      status: CompatibleStatus.PartiallyCompatible,
+      description: i18n[lang]['image-minimizer-webpack-plugin-desc'],
+    },
+    {
       name: 'webpack-manifest-plugin',
       url: 'https://github.com/shellscape/webpack-manifest-plugin',
-      status: CompatibleStatus.NotCompatible,
+      status: CompatibleStatus.Alternative,
       description: i18n[lang]['webpack-manifest-plugin-desc'],
     },
     {
@@ -131,8 +164,25 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'webpack-virtual-modules',
       url: 'https://github.com/sysgears/webpack-virtual-modules',
-      status: CompatibleStatus.NotCompatible,
+      status: CompatibleStatus.Alternative,
       description: i18n[lang]['webpack-virtual-modules-desc'],
+    },
+    {
+      name: 'node-polyfill-webpack-plugin',
+      url: 'https://www.npmjs.com/package/node-polyfill-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'workbox-webpack-plugin',
+      url: 'https://www.npmjs.com/package/workbox-webpack-plugin',
+      status: CompatibleStatus.Alternative,
+      description: i18n[lang]['workbox-webpack-plugin-desc'],
+    },
+    {
+      name: '@pmmmwh/react-refresh-webpack-plugin',
+      url: 'https://www.npmjs.com/package/@pmmmwh/react-refresh-webpack-plugin',
+      status: CompatibleStatus.Alternative,
+      description: i18n[lang]['react-refresh-webpack-plugin-desc'],
     },
     {
       name: '@sentry/webpack-plugin',
@@ -163,7 +213,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
         },
       ]}
       body={pluginList
-        .sort((a, b) => b.status - a.status)
+        .sort((a, b) => b.status - a.status || a.name.localeCompare(b.name))
         .map(({ name, url, status, description }) => {
           const { symbol, en, zh } = SUPPORT_STATUS_LOCALIZED[status];
           const statusText = `${symbol} ${lang === 'zh' ? zh : en}`;

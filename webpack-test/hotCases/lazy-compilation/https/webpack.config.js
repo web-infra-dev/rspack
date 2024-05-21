@@ -7,6 +7,7 @@ const path = require("path");
 module.exports = {
 	experiments: {
 		lazyCompilation: {
+			cacheable: false,
 			entries: false,
 			backend: {
 				server: {

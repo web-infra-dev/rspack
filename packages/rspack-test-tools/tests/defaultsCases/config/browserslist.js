@@ -20,6 +20,34 @@ module.exports = {
 		-     "devtoolNamespace": "@rspack/test-tools",
 		+     "devtoolNamespace": "browserslist-test",
 		@@ ... @@
+		-       "arrowFunction": true,
+		-       "asyncFunction": true,
+		-       "bigIntLiteral": undefined,
+		-       "const": true,
+		-       "destructuring": true,
+		+       "arrowFunction": false,
+		+       "asyncFunction": false,
+		+       "bigIntLiteral": false,
+		+       "const": false,
+		+       "destructuring": false,
+		@@ ... @@
+		-       "dynamicImport": undefined,
+		-       "dynamicImportInWorker": undefined,
+		-       "forOf": true,
+		-       "globalThis": undefined,
+		-       "module": undefined,
+		-       "nodePrefixForCoreModules": true,
+		-       "optionalChaining": true,
+		-       "templateLiteral": true,
+		+       "dynamicImport": false,
+		+       "dynamicImportInWorker": false,
+		+       "forOf": false,
+		+       "globalThis": false,
+		+       "module": false,
+		+       "nodePrefixForCoreModules": false,
+		+       "optionalChaining": false,
+		+       "templateLiteral": false,
+		@@ ... @@
 		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_test_tools",
 		+     "hotUpdateGlobal": "webpackHotUpdatebrowserslist_test",
 		@@ ... @@
@@ -28,5 +56,8 @@ module.exports = {
 		@@ ... @@
 		-       "<cwd>",
 		+       "<cwd>/tests/fixtures/browserslist",
+		@@ ... @@
+		-   "target": "web",
+		+   "target": "browserslist",
 	`)
 };

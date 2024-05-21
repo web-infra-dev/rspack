@@ -16,6 +16,7 @@ use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_util::source_map::SourceMapKind;
+use rustc_hash::FxHashSet;
 
 use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
@@ -160,6 +161,7 @@ impl Module for ContainerEntryModule {
       build_info: BuildInfo {
         hash: Some(hash),
         strict: true,
+        top_level_declarations: Some(FxHashSet::default()),
         ..Default::default()
       },
       build_meta: BuildMeta {

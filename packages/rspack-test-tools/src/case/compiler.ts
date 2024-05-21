@@ -1,9 +1,9 @@
-import { ECompilerType } from "../type";
 import { ISimpleProcessorOptions, SimpleTaskProcessor } from "../processor";
 import { getSimpleProcessorRunner } from "../test/simple";
+import { ECompilerType } from "../type";
 
 export type TCompilerCaseConfig = Omit<
-	ISimpleProcessorOptions,
+	ISimpleProcessorOptions<ECompilerType.Rspack>,
 	"name" | "compilerType"
 > & {
 	description: string;

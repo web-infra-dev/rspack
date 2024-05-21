@@ -1,4 +1,9 @@
-import { SimpleTaskProcessor } from "./simple";
+import { StatsError, StatsWarnings } from "@rspack/core";
+import fs from "fs";
+import path from "path";
+import prettyFormat from "pretty-format";
+import merge from "webpack-merge";
+
 import {
 	ECompilerType,
 	ITestContext,
@@ -6,11 +11,7 @@ import {
 	TCompiler,
 	TCompilerOptions
 } from "../type";
-import fs from "fs";
-import path from "path";
-import prettyFormat from "pretty-format";
-import { StatsError, StatsWarnings } from "@rspack/core";
-import merge from "webpack-merge";
+import { SimpleTaskProcessor } from "./simple";
 
 type TStatsDiagnostics = {
 	errors: StatsError[];
@@ -64,7 +65,7 @@ const prettyFormatOptions = {
 	]
 };
 
-export interface IErrorTaskProcessorOptions<T extends ECompilerType> {
+export interface IErrorProcessorOptions<T extends ECompilerType> {
 	name: string;
 	compilerType: T;
 	options?: (
@@ -75,10 +76,10 @@ export interface IErrorTaskProcessorOptions<T extends ECompilerType> {
 	check?: (stats: TStatsDiagnostics) => Promise<void>;
 }
 
-export class ErrorTaskProcessor<
+export class ErrorProcessor<
 	T extends ECompilerType
 > extends SimpleTaskProcessor<T> {
-	constructor(protected _errorOptions: IErrorTaskProcessorOptions<T>) {
+	constructor(protected _errorOptions: IErrorProcessorOptions<T>) {
 		super({
 			options: (context: ITestContext): TCompilerOptions<T> => {
 				let options = {
@@ -139,12 +140,12 @@ export class ErrorTaskProcessor<
 	async check(env: ITestEnv, context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		const stats = compiler.getStats();
-		expect(typeof stats).toBe("object");
+		env.expect(typeof stats).toBe("object");
 		const statsResult = stats!.toJson({ errorDetails: false });
-		expect(typeof statsResult).toBe("object");
+		env.expect(typeof statsResult).toBe("object");
 		const { errors, warnings } = statsResult;
-		expect(Array.isArray(errors)).toBe(true);
-		expect(Array.isArray(warnings)).toBe(true);
+		env.expect(Array.isArray(errors)).toBe(true);
+		env.expect(Array.isArray(warnings)).toBe(true);
 
 		await this._errorOptions.check?.({
 			errors: errors as StatsError[],
@@ -152,8 +153,8 @@ export class ErrorTaskProcessor<
 		});
 	}
 
-	static addSnapshotSerializer() {
-		expect.addSnapshotSerializer({
+	static addSnapshotSerializer(expectImpl: jest.Expect) {
+		expectImpl.addSnapshotSerializer({
 			test(received) {
 				return received.errors || received.warnings;
 			},
@@ -169,7 +170,7 @@ export class ErrorTaskProcessor<
 			}
 		});
 
-		expect.addSnapshotSerializer({
+		expectImpl.addSnapshotSerializer({
 			test(received) {
 				return received.message;
 			},

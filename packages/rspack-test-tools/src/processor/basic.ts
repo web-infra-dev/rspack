@@ -1,3 +1,6 @@
+import fs from "fs";
+import path from "path";
+
 import { readConfigFile } from "../helper";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import {
@@ -5,15 +8,10 @@ import {
 	ITestContext,
 	ITestEnv,
 	ITestProcessor,
-	ITestRunner,
 	TCompilerOptions
 } from "../type";
-import fs from "fs";
-import path from "path";
 
-export interface IBasicProcessorOptions<
-	T extends ECompilerType = ECompilerType.Rspack
-> {
+export interface IBasicProcessorOptions<T extends ECompilerType> {
 	defaultOptions?: (context: ITestContext) => TCompilerOptions<T>;
 	configFiles?: string[];
 	overrideOptions?: (
@@ -29,9 +27,7 @@ export interface IBasicProcessorOptions<
 	name: string;
 }
 
-export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
-	implements ITestProcessor
-{
+export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 	constructor(protected _options: IBasicProcessorOptions<T>) {}
 
 	async config(context: ITestContext) {
