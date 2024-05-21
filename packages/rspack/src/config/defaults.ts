@@ -1007,6 +1007,7 @@ const getResolveDefaults = ({
 		exportsFields: ["exports"],
 		roots: [context],
 		mainFields: ["main"],
+		importsFields: ["imports"],
 		byDependency: {
 			wasm: esmDeps(),
 			esm: esmDeps(),
