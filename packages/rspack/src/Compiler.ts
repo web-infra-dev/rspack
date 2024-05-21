@@ -1063,7 +1063,10 @@ class Compiler {
 								? ({
 										resource: bindingData.resource,
 										regExp: bindingData.regExp
-											? new RegExp(bindingData.regExp)
+											? new RegExp(
+													bindingData.regExp.source,
+													bindingData.regExp.flags
+												)
 											: undefined,
 										request: bindingData.request,
 										context: bindingData.context,
@@ -1077,7 +1080,12 @@ class Compiler {
 										resource: ret.resource,
 										context: ret.context,
 										request: ret.request,
-										regExp: ret.regExp?.toString()
+										regExp: ret.regExp
+											? {
+													source: ret.regExp.source,
+													flags: ret.regExp.flags
+												}
+											: undefined
 									} satisfies binding.JsContextModuleFactoryAfterResolveData)
 								: false;
 							return result;

@@ -2870,6 +2870,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_napi",
+ "rspack_regex",
  "rustc-hash",
  "serde",
 ]

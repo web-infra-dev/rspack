@@ -1,6 +1,6 @@
 #![feature(let_chains)]
 
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 
 use rspack_error::Error;
 use swc_core::ecma::ast::Regex as SwcRegex;
@@ -48,10 +48,24 @@ impl RspackRegex {
     })
   }
 
+  pub fn source(&self) -> &str {
+    &self.source
+  }
+
+  pub fn flags(&self) -> &str {
+    &self.flags
+  }
+
   pub fn new(expr: &str) -> Result<Self, Error> {
     Self::with_flags(expr, "")
   }
 
+  // https://github.com/webpack/webpack/blob/4baf1c075d59babd028f8201526cb8c4acfd24a0/lib/dependencies/ContextDependency.js#L30
+  pub fn to_string(&self) -> String {
+    format!("/{}/{}", self.source, self.flags)
+  }
+
+  // https://github.com/webpack/webpack/blob/4baf1c075d59babd028f8201526cb8c4acfd24a0/lib/ContextModule.js#L192
   pub fn to_pretty_string(&self, strip_slash: bool) -> String {
     if strip_slash {
       format!("{}{}", self.source, self.flags)
@@ -60,12 +74,6 @@ impl RspackRegex {
     }
     .replace('!', "%21")
     .replace('|', "%7C")
-  }
-}
-
-impl Display for RspackRegex {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "/{}/{}", self.source, self.flags)
   }
 }
 

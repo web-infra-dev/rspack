@@ -1045,8 +1045,6 @@ impl ContextModule {
         let Some(reg_exp) = &options.context_options.reg_exp else {
           return Ok(());
         };
-        // dbg!(reg_exp.to_pretty_string(true));
-        // dbg!(&requests);
 
         requests.iter().for_each(|r| {
           if !reg_exp.test(&r.request) {

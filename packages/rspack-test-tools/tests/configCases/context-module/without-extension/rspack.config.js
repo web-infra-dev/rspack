@@ -6,8 +6,7 @@ module.exports = {
         "test",
         contextModuleFactory => {
           contextModuleFactory.hooks.afterResolve.tap("test", resolveData => {
-            console.log(resolveData)
-            // return resolveData
+            // do nothing
           });
         }
       );

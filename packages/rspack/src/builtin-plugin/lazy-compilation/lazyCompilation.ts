@@ -1,4 +1,4 @@
-import { BuiltinPluginName, JsModule, RawRegexMatcher } from "@rspack/binding";
+import { BuiltinPluginName, JsModule, RawRegex } from "@rspack/binding";
 
 import { create } from "../base";
 
@@ -13,7 +13,7 @@ export const BuiltinLazyCompilationPlugin = create(
 		cacheable: boolean,
 		entries: boolean,
 		imports: boolean,
-		test?: RawRegexMatcher | ((m: JsModule) => boolean)
+		test?: RawRegex | ((m: JsModule) => boolean)
 	) => ({ module, cacheable, imports, entries, test }),
 	"thisCompilation"
 );
