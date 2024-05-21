@@ -20,7 +20,7 @@ pub struct RspackRegex {
 impl Debug for RspackRegex {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_tuple("RspackRegex")
-      .field(&self.to_string())
+      .field(&self.to_source_string())
       .finish()
   }
 }
@@ -61,7 +61,7 @@ impl RspackRegex {
   }
 
   // https://github.com/webpack/webpack/blob/4baf1c075d59babd028f8201526cb8c4acfd24a0/lib/dependencies/ContextDependency.js#L30
-  pub fn to_string(&self) -> String {
+  pub fn to_source_string(&self) -> String {
     format!("/{}/{}", self.source, self.flags)
   }
 
@@ -70,7 +70,7 @@ impl RspackRegex {
     if strip_slash {
       format!("{}{}", self.source, self.flags)
     } else {
-      self.to_string()
+      self.to_source_string()
     }
     .replace('!', "%21")
     .replace('|', "%7C")
