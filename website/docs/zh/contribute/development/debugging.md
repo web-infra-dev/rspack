@@ -9,7 +9,7 @@
 
 ## Tracing
 
-[`tracing`](https://crates.io/crates/tracing) 被用于度量(instrumenting) Rspack。
+[`tracing`](https://crates.io/crates/tracing) 被用于度量（instrumenting） Rspack。
 
 被支持 tracing 等级有：
 
