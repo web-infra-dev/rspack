@@ -5,6 +5,7 @@ var __webpack_modules__ = ({
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
+
 }),
 
 });
@@ -69,6 +70,7 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
 const myURL = new URL(/* asset import */__webpack_require__("./style.css?b16f"), __webpack_require__.b);
+
 console.log(myURL);
 
 })();

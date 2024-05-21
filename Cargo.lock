@@ -3077,6 +3077,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64 0.22.1",
  "dashmap",
  "either",
  "jsonc-parser 0.23.0",
@@ -3093,6 +3094,7 @@ dependencies = [
  "swc_config",
  "swc_core",
  "tokio",
+ "url",
  "xxhash-rust",
 ]
 
@@ -3395,7 +3397,6 @@ dependencies = [
  "rspack_identifier",
  "rspack_ids",
  "rspack_regex",
- "rspack_swc_visitors",
  "rspack_util",
  "rustc-hash",
  "serde",

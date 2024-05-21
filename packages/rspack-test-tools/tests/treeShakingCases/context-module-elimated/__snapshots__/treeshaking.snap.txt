@@ -4,8 +4,10 @@
 "./index.js": (function () {
 
 function test() {
-    a;
+	a;
 }
+
+
 }),
 
 },function(__webpack_require__) {

@@ -24,13 +24,21 @@ it("verify es6 (esmodule) bundle source map", async () => {
 			// *${id}* as the search key to aviod conflict with `Object.defineProperty(exports, ${id}, ...)`
 			['"*a0*"']: "webpack:///a.js",
 			['"*a1*"']: "webpack:///a.js",
-			['"*a2*"']: "webpack:///a.js",
+			// The result is generated upon `OriginalSource`
+			// and webpack generates sourcemap of`("xx")` as a block.
+			['("*a2*")']: checkColumn("webpack:///a.js"),
 			['"*b0*"']: "webpack:///b-dir/b.js",
 			['"*b1*"']: "webpack:///b-dir/b.js",
-			['"*b2*"']: "webpack:///b-dir/b.js",
+			// The result is generated upon `OriginalSource`
+			// and webpack generates sourcemap of`("xx")` as a block.
+			['("*b2*")']: checkColumn("webpack:///b-dir/b.js"),
 			['"*c0*"']: "webpack:///b-dir/c-dir/c.js",
 			['"*c1*"']: "webpack:///b-dir/c-dir/c.js",
 			['"*c2*"']: "webpack:///b-dir/c-dir/c.js"
-		})
+		}, false)
 	).toBe(true);
 });
+
+const checkColumn = (s) => {
+	return [s, true]
+}

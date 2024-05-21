@@ -4,7 +4,10 @@
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 
+
 _app__WEBPACK_IMPORTED_MODULE_0__;
+
+
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
@@ -12,6 +15,8 @@ __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; }
 });
 const a = 20000;
+
+
 }),
 
 },function(__webpack_require__) {

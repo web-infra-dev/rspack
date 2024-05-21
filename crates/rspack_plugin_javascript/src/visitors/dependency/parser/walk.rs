@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use swc_core::common::Spanned;
 use swc_core::ecma::ast::{
   ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AssignTarget, AssignTargetPat, AwaitExpr,
   Param, SimpleAssignTarget,
@@ -106,18 +107,22 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_module_declaration(&mut self, statement: &ModuleItem) {
     match statement {
-      ModuleItem::ModuleDecl(m) => match m {
-        ModuleDecl::ExportDefaultDecl(decl) => {
-          self.walk_export_default_declaration(decl);
+      ModuleItem::ModuleDecl(m) => {
+        self.statement_path.push(m.span().into());
+        match m {
+          ModuleDecl::ExportDefaultDecl(decl) => {
+            self.walk_export_default_declaration(decl);
+          }
+          ModuleDecl::ExportDecl(decl) => self.walk_export_decl(decl),
+          ModuleDecl::ExportNamed(named) => self.walk_export_named_declaration(named),
+          ModuleDecl::ExportDefaultExpr(expr) => self.walk_export_default_expr(expr),
+          ModuleDecl::ExportAll(_) | ModuleDecl::Import(_) => (),
+          ModuleDecl::TsImportEquals(_)
+          | ModuleDecl::TsExportAssignment(_)
+          | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
         }
-        ModuleDecl::ExportDecl(decl) => self.walk_export_decl(decl),
-        ModuleDecl::ExportNamed(named) => self.walk_export_named_declaration(named),
-        ModuleDecl::ExportDefaultExpr(expr) => self.walk_export_default_expr(expr),
-        ModuleDecl::ExportAll(_) | ModuleDecl::Import(_) => (),
-        ModuleDecl::TsImportEquals(_)
-        | ModuleDecl::TsExportAssignment(_)
-        | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
-      },
+        self.prev_statement = self.statement_path.pop();
+      }
       ModuleItem::Stmt(s) => self.walk_statement(s),
     }
   }
@@ -178,6 +183,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_statement(&mut self, statement: &Stmt) {
+    self.statement_path.push(statement.span().into());
     // TODO: `self.hooks.statement.call`
     let old_last_stmt_is_expr_stmt = self.last_stmt_is_expr_stmt;
     self.stmt_level += 1;
@@ -214,6 +220,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     self.last_stmt_is_expr_stmt = old_last_stmt_is_expr_stmt;
     self.stmt_level -= 1;
+    self.prev_statement = self.statement_path.pop();
   }
 
   fn walk_with_statement(&mut self, stmt: &WithStmt) {
@@ -255,7 +262,9 @@ impl<'parser> JavascriptParser<'parser> {
         });
         this.walk_pattern(param)
       }
+      let prev = this.prev_statement.clone();
       this.block_pre_walk_statements(&catch_clause.body.stmts);
+      this.prev_statement = prev;
       // FIXME: webpack use `this.walk_statement(catch_clause.body)`
       this.walk_block_statement(&catch_clause.body);
     })
@@ -270,7 +279,9 @@ impl<'parser> JavascriptParser<'parser> {
     self.in_block_scope(|this| {
       for case in cases {
         if !case.cons.is_empty() {
+          let prev = this.prev_statement.clone();
           this.block_pre_walk_statements(&case.cons);
+          this.prev_statement = prev;
         }
       }
       for case in cases {
@@ -301,8 +312,12 @@ impl<'parser> JavascriptParser<'parser> {
     if let Some(result) = self.plugin_drive.clone().statement_if(self, stmt) {
       if result {
         self.walk_nested_statement(&stmt.cons);
+        // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
+        self.path_ignored_spans.push(stmt.alt.span());
       } else if let Some(alt) = &stmt.alt {
         self.walk_nested_statement(alt);
+        // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
+        self.path_ignored_spans.push(stmt.cons.span());
       }
     } else {
       self.walk_expression(&stmt.test);
@@ -319,6 +334,7 @@ impl<'parser> JavascriptParser<'parser> {
         match init {
           VarDeclOrExpr::VarDecl(decl) => {
             this.block_pre_walk_variable_declaration(decl);
+            this.prev_statement = None;
             this.walk_variable_declaration(decl);
           }
           VarDeclOrExpr::Expr(expr) => this.walk_expression(expr),
@@ -331,7 +347,9 @@ impl<'parser> JavascriptParser<'parser> {
         this.walk_expression(update)
       }
       if let Some(body) = stmt.body.as_block() {
+        let prev = this.prev_statement.clone();
         this.block_pre_walk_statements(&body.stmts);
+        this.prev_statement = prev;
         this.walk_statements(&body.stmts);
       } else {
         this.walk_nested_statement(&stmt.body);
@@ -344,7 +362,9 @@ impl<'parser> JavascriptParser<'parser> {
       this.walk_for_head(&stmt.left);
       this.walk_expression(&stmt.right);
       if let Some(body) = stmt.body.as_block() {
+        let prev = this.prev_statement.clone();
         this.block_pre_walk_statements(&body.stmts);
+        this.prev_statement = prev;
         this.walk_statements(&body.stmts);
       } else {
         this.walk_nested_statement(&stmt.body);
@@ -357,7 +377,9 @@ impl<'parser> JavascriptParser<'parser> {
       this.walk_for_head(&stmt.left);
       this.walk_expression(&stmt.right);
       if let Some(body) = stmt.body.as_block() {
+        let prev = this.prev_statement.clone();
         this.block_pre_walk_statements(&body.stmts);
+        this.prev_statement = prev;
         this.walk_statements(&body.stmts);
       } else {
         this.walk_nested_statement(&stmt.body);
@@ -749,7 +771,7 @@ impl<'parser> JavascriptParser<'parser> {
     &mut self,
     expr: &'a Expr,
     params: impl Iterator<Item = &'a Expr>,
-    current_this: Option<&Expr>,
+    current_this: Option<&'a Expr>,
   ) {
     let mut fn_params = vec![];
     let mut scope_params = vec![];
@@ -804,8 +826,10 @@ impl<'parser> JavascriptParser<'parser> {
       if let Some(expr) = expr.as_fn_expr() {
         if let Some(stmt) = &expr.function.body {
           parser.detect_mode(&stmt.stmts);
+          let prev = parser.prev_statement.clone();
           // FIXME: webpack use `pre_walk_statement` here
           parser.pre_walk_block_statement(stmt);
+          parser.prev_statement = prev;
           // FIXME: webpack use `walk_statement` here
           parser.walk_block_statement(stmt);
         }
@@ -813,8 +837,10 @@ impl<'parser> JavascriptParser<'parser> {
         match &*expr.body {
           BlockStmtOrExpr::BlockStmt(stmt) => {
             parser.detect_mode(&stmt.stmts);
+            let prev = parser.prev_statement.clone();
             // FIXME: webpack use `pre_walk_statement` here
             parser.pre_walk_block_statement(stmt);
+            parser.prev_statement = prev;
             // FIXME: webpack use `walk_statement` here
             parser.walk_block_statement(stmt);
           }
@@ -981,6 +1007,9 @@ impl<'parser> JavascriptParser<'parser> {
       {
         if keep_right {
           self.walk_expression(&expr.right);
+        } else {
+          // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
+          self.path_ignored_spans.push(expr.right.span());
         }
       } else {
         self.walk_left_right_expression(expr)
@@ -1093,8 +1122,10 @@ impl<'parser> JavascriptParser<'parser> {
       match &*expr.body {
         BlockStmtOrExpr::BlockStmt(stmt) => {
           this.detect_mode(&stmt.stmts);
+          let prev = this.prev_statement.clone();
           // FIXME: webpack use `pre_walk_statement` here
           this.pre_walk_block_statement(stmt);
+          this.prev_statement = prev;
           // FIXME: webpack use `walk_statement` here
           this.walk_block_statement(stmt);
         }
@@ -1122,7 +1153,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_nested_statement(&mut self, stmt: &Stmt) {
-    // TODO: self.prev_statement = undefined;
+    self.prev_statement = None;
     self.walk_statement(stmt);
   }
 
@@ -1133,7 +1164,9 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_block_statement(&mut self, stmt: &BlockStmt) {
     self.in_block_scope(|this| {
+      let prev = this.prev_statement.clone();
       this.block_pre_walk_statements(&stmt.stmts);
+      this.prev_statement = prev;
       this.walk_statements(&stmt.stmts);
     })
   }
@@ -1161,8 +1194,10 @@ impl<'parser> JavascriptParser<'parser> {
     }
     if let Some(body) = &f.body {
       self.detect_mode(&body.stmts);
+      let prev = self.prev_statement.clone();
       // FIXME: webpack use `pre_walk_statement` here
       self.pre_walk_block_statement(body);
+      self.prev_statement = prev;
       // FIXME: webpack use `walk_statement` here
       self.walk_block_statement(body);
     }

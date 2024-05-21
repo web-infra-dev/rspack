@@ -308,6 +308,7 @@ pub fn minify(
               emit_columns: true,
               names: source_map_names,
             },
+            None,
             true,
             Some(&comments),
             &opts.format,

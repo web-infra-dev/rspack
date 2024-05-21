@@ -15,9 +15,9 @@
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 62
 - Manifest: main.LAST_HASH.hot-update.json, size: 62
 - Update: main.LAST_HASH.hot-update.js, size: 209
-- Update: shared.LAST_HASH.hot-update.js, size: 479
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 428
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 428
+- Update: shared.LAST_HASH.hot-update.js, size: 483
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 430
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 430
 
 ## Manifest
 
@@ -89,10 +89,14 @@ self["webpackHotUpdate"]('shared', {
 "./moduleAs.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = (1);
+
+
 }),
 "./moduleBs.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = (1);
+
+
 }),
 
 });
@@ -115,6 +119,8 @@ self["webpackHotUpdate"]('workerA_js', {
 "./moduleA.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = (1);
+
+
 }),
 
 },function(__webpack_require__) {
@@ -147,6 +153,8 @@ self["webpackHotUpdate"]('workerB_js', {
 "./moduleB.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = (1);
+
+
 }),
 
 },function(__webpack_require__) {

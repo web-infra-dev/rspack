@@ -73,11 +73,10 @@ Object {
               "userRequest": "self",
             },
           ],
-          "size": 59,
+          "size": 55,
           "source": "module.exports = function a() {
-    return \\"This is a\\";
-};
-",
+	return \\"This is a\\";
+};",
           "type": "module",
           "usedExports": null,
         },
@@ -87,7 +86,7 @@ Object {
       ],
       "parents": Array [],
       "siblings": Array [],
-      "size": 59,
+      "size": 55,
       "type": "chunk",
     },
   ],
@@ -109,7 +108,7 @@ Object {
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "d64955662040c788c943",
+  "hash": "99b766bb1908ecab2ebb",
   "logging": Object {},
   "modules": Array [
     Object {
@@ -147,11 +146,10 @@ Object {
           "userRequest": "self",
         },
       ],
-      "size": 59,
+      "size": 55,
       "source": "module.exports = function a() {
-    return \\"This is a\\";
-};
-",
+	return \\"This is a\\";
+};",
       "type": "module",
       "usedExports": null,
     },
@@ -258,7 +256,7 @@ Object {
               "userRequest": "./a",
             },
           ],
-          "size": 38,
+          "size": 37,
           "type": "module",
           "usedExports": Array [
             "a",
@@ -354,7 +352,7 @@ Object {
               "userRequest": "./c",
             },
           ],
-          "size": 38,
+          "size": 37,
           "type": "module",
           "usedExports": true,
         },
@@ -384,7 +382,7 @@ Object {
               "userRequest": "./fixtures/esm/abc",
             },
           ],
-          "size": 81,
+          "size": 80,
           "type": "module",
           "usedExports": Array [],
         },
@@ -394,7 +392,7 @@ Object {
       ],
       "parents": Array [],
       "siblings": Array [],
-      "size": 195,
+      "size": 192,
       "type": "chunk",
     },
   ],
@@ -416,7 +414,7 @@ Object {
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "e1b96ce92324c665cb1c",
+  "hash": "23ccfb7f871f0e79f18a",
   "logging": Object {},
   "modules": Array [
     Object {
@@ -461,7 +459,7 @@ Object {
           "userRequest": "./a",
         },
       ],
-      "size": 38,
+      "size": 37,
       "type": "module",
       "usedExports": Array [
         "a",
@@ -557,7 +555,7 @@ Object {
           "userRequest": "./c",
         },
       ],
-      "size": 38,
+      "size": 37,
       "type": "module",
       "usedExports": true,
     },
@@ -587,7 +585,7 @@ Object {
           "userRequest": "./fixtures/esm/abc",
         },
       ],
-      "size": 81,
+      "size": 80,
       "type": "module",
       "usedExports": Array [],
     },
@@ -718,7 +716,7 @@ Object {
       "names": Array [
         "main",
       ],
-      "size": 59,
+      "size": 55,
       "type": "chunk",
     },
   ],
@@ -738,7 +736,7 @@ Object {
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
       "orphan": false,
-      "size": 59,
+      "size": 55,
       "type": "module",
     },
   ],
@@ -829,11 +827,10 @@ Object {
               "userRequest": "./a",
             },
           ],
-          "size": 59,
+          "size": 55,
           "source": "module.exports = function a() {
-    return \\"This is a\\";
-};
-",
+	return \\"This is a\\";
+};",
           "type": "module",
           "usedExports": null,
         },
@@ -878,11 +875,10 @@ Object {
               "userRequest": "./a?a=1",
             },
           ],
-          "size": 59,
+          "size": 55,
           "source": "module.exports = function a() {
-    return \\"This is a\\";
-};
-",
+	return \\"This is a\\";
+};",
           "type": "module",
           "usedExports": null,
         },
@@ -927,12 +923,11 @@ Object {
               "userRequest": "self",
             },
           ],
-          "size": 79,
+          "size": 72,
           "source": "module.exports = function b() {
-    require(\\"./a\\");
-    return \\"This is c\\";
-};
-",
+	require(\\"./a\\");
+	return \\"This is c\\";
+};",
           "type": "module",
           "usedExports": null,
         },
@@ -981,7 +976,7 @@ exports.c = require(\\"./c?c=3\\");
       ],
       "parents": Array [],
       "siblings": Array [],
-      "size": 296,
+      "size": 281,
       "type": "chunk",
     },
   ],
@@ -1003,7 +998,7 @@ exports.c = require(\\"./c?c=3\\");
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "876088c0ff81aad2f717",
+  "hash": "9065311db3fa4c6235f4",
   "logging": Object {},
   "modules": Array [
     Object {
@@ -1052,11 +1047,10 @@ exports.c = require(\\"./c?c=3\\");
           "userRequest": "./a",
         },
       ],
-      "size": 59,
+      "size": 55,
       "source": "module.exports = function a() {
-    return \\"This is a\\";
-};
-",
+	return \\"This is a\\";
+};",
       "type": "module",
       "usedExports": null,
     },
@@ -1101,11 +1095,10 @@ exports.c = require(\\"./c?c=3\\");
           "userRequest": "./a?a=1",
         },
       ],
-      "size": 59,
+      "size": 55,
       "source": "module.exports = function a() {
-    return \\"This is a\\";
-};
-",
+	return \\"This is a\\";
+};",
       "type": "module",
       "usedExports": null,
     },
@@ -1150,12 +1143,11 @@ exports.c = require(\\"./c?c=3\\");
           "userRequest": "self",
         },
       ],
-      "size": 79,
+      "size": 72,
       "source": "module.exports = function b() {
-    require(\\"./a\\");
-    return \\"This is c\\";
-};
-",
+	require(\\"./a\\");
+	return \\"This is c\\";
+};",
       "type": "module",
       "usedExports": null,
     },

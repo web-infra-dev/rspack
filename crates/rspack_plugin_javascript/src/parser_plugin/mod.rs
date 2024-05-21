@@ -5,6 +5,7 @@ mod common_js_imports_parse_plugin;
 mod common_js_plugin;
 mod compatibility_plugin;
 mod r#const;
+mod define_plugin;
 mod drive;
 mod exports_info_api_plugin;
 mod harmony_detection_parser_plugin;
@@ -33,6 +34,7 @@ pub(crate) use self::common_js_exports_parse_plugin::CommonJsExportsParserPlugin
 pub(crate) use self::common_js_imports_parse_plugin::CommonJsImportsParserPlugin;
 pub(crate) use self::common_js_plugin::CommonJsPlugin;
 pub(crate) use self::compatibility_plugin::CompatibilityPlugin;
+pub(crate) use self::define_plugin::DefinePlugin;
 pub(crate) use self::drive::JavaScriptParserPluginDrive;
 pub(crate) use self::exports_info_api_plugin::ExportsInfoApiPlugin;
 pub(crate) use self::harmony_detection_parser_plugin::HarmonyDetectionParserPlugin;

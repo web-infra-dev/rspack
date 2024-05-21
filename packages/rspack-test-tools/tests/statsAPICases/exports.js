@@ -39,7 +39,7 @@ module.exports = {
 		./fixtures/esm/abc.js
 		  [no exports]
 		  [no exports used]
-		Rspack compiled successfully (e1b96ce92324c665cb1c)"
+		Rspack compiled successfully (23ccfb7f871f0e79f18a)"
 	`);
 	}
 };
