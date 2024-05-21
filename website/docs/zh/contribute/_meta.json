@@ -3,11 +3,11 @@
   {
     "type": "dir",
     "name": "development",
-    "label": "Development"
+    "label": "开发"
   },
   {
     "type": "dir",
     "name": "architecture",
-    "label": "Architecture"
+    "label": "架构"
   }
 ]
