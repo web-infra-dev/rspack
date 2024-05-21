@@ -1,6 +1,6 @@
 import path from "path";
 
-import { BuiltinProcessor,IBuiltinProcessorOptions } from "../processor";
+import { BuiltinProcessor, IBuiltinProcessorOptions } from "../processor";
 import { BasicCaseCreator } from "../test/creator";
 import { ECompilerType } from "../type";
 
