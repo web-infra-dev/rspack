@@ -1,22 +1,22 @@
 # Debugging
 
-## Debugging with VSCode
+## 通过 VSCode 调试
 
-1. Install `go install github.com/go-delve/delve/cmd/dlv@latest`
-2. Install VSCode extension [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer) and [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb)
-3. build `@rspack/cli` and napi binding by run `pnpm install && pnpm -w build:cli:debug`
-4. In VSCode's `Run and Debug` tab, select `debug-rspack` to start debugging the initial launch of `@rspack/cli`. This task can be configured in `.vscode/launch.json`, which launches the Node and Rust debugger together.
+1. 安装 `go install github.com/go-delve/delve/cmd/dlv@latest`
+2. 安装 VSCode 扩展 [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer) 和 [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb)
+3. 通过执行 `pnpm install && pnpm -w build:cli:debug` 构建 `@rspack/cli` 和 napi binding
+4. 在 VSCode 的 `Run and Debug` 栏中, 选择 `debug-rspack` 开始调试`@rspack/cli` 的启动过程。 该任务可以在 `.vscode/launch.json` 中配置，会同时启动 Node 和 Rust 的调试器。
 
 ## Tracing
 
-[`tracing`](https://crates.io/crates/tracing) is used to instrumenting Rspack.
+[`tracing`](https://crates.io/crates/tracing) 被用于度量(instrumenting) Rspack。
 
-The supported tracing levels for
+被支持 tracing 等级有：
 
-- release builds are `INFO`, `WARN` and `ERROR`
-- debug builds are `TRACE`, `DEBUG`, `INFO`, `WARN` and `ERROR`
+- release 版本是 `INFO`, `WARN` and `ERROR`
+- debug 版本是 `TRACE`, `DEBUG`, `INFO`, `WARN` and `ERROR`
 
-Use the `RSPACK_PROFILE` environment variable for displaying trace information
+使用 `RSPACK_PROFILE` 环境变量来展示 trace 信息。
 
 ```bash
 RSPACK_PROFILE=TRACE=layer=logger rspack build
@@ -51,15 +51,15 @@ RSPACK_PROFILE='TRACE=filter=oxc_resolver=trace&layer=logger' rspack build
 
 ## rust-lldb
 
-`rust-lldb` can be used to get panic information from debug builds
+`rust-lldb` 可用于从 debug 版本中获取 panic 信息
 
 ```bash
 rust-lldb -- node /path/to/rspack build
 ```
 
-Once it launches, press `r` for running the program.
+启动后，按住 `r` 来执行程序。
 
-For example, `examples/arco-pro` crashes without any information before [this fix](https://github.com/web-infra-dev/rspack/pull/3195/files):
+例如，`examples/arco-pro` 崩溃了并且没有任何信息在[这个修复](https://github.com/web-infra-dev/rspack/pull/3195/files) 之前:
 
 ```
 rspack/examples/arco-pro ❯ node ../../packages/rspack-cli/bin/rspack build
@@ -67,13 +67,13 @@ Rspack ██████████████████████░░�
 zsh: bus error  node ../../packages/rspack-cli/bin/rspack build
 ```
 
-Using `rust-lldb`
+使用 `rust-lldb`
 
 ```bash
 rspack/examples/arco-pro ❯ rust-lldb -- node ../../packages/rspack-cli/bin/rspack build
 ```
 
-Press `r` and it prints:
+按下 `r` 然后会打印:
 
 ```
 Process 23110 stopped
@@ -89,49 +89,49 @@ Process 23110 stopped
 Target 0: (node) stopped.
 ```
 
-## Mixed Debug
+## 混合调试
 
-This section aims to illustrate the method for mixed debugging between JavaScript and Rust.
+本节旨在说明 JavaScript 和 Rust 混合调试的方法。
 
-### Prerequisites
+### 准备工作
 
-To illustrate this process, I'll use an example. Let's start by introduce the environment and example I have used.
+为了说明这个过程，我将使用一个例子。首先介绍一下我使用的环境和例子。
 
 - System: macos
 - IDE: vscode
 - Debugging target: `rspack build ${projectRoot}/basic`
 
-Firstly, you need to build rspack in debug mode. To do this, execute the following commands in the project's root directory:
+首先，您需要在调试模式下构建 rspack。为此，请在项目的根目录中执行以下命令：
 
 ```bash
 npm run build:binding:debug
 npm run build:js
 ```
 
-### Configure `launch.json` in vscode
+### 在 VSCode 中设置 `launch.json`
 
-It's necessary to configure two debug configurations within in `.vscode/launch.json.`
+需要在 `.vscode/launch.json` 中配置两个调试配置。
 
-- attach for node:
+- 给 node 添加 attach:
 
 ```jsonc
 {
-  "name": "attach:node”,
-  "request": "attach",  // refer: https://code.visualstudio.com/docs/editor/debugging#_launch-versus-attach-configurations
+  "name": "attach:node",
+  "request": "attach", // refer: https://code.visualstudio.com/docs/editor/debugging#_launch-versus-attach-configurations
   "type": "node",
   // `9229` is the default port of message
-  "port": 9229
+  "port": 9229,
 }
 ```
 
-- and launch for lldb
+- 和 lldb 的 launch 配置
 
 ```jsonc
 {
   "name": "launch:rust-from-node",
-  "request": "launch”,
-  "type": "lldb",    // it means we use `lldb` to launch the binary file of `node`
-  "program": "node”,
+  "request": "launch",
+  "type": "lldb", // it means we use `lldb` to launch the binary file of `node`
+  "program": "node",
   "args": [
     "--inspect",
     "--enable-source-maps",
@@ -140,8 +140,8 @@ It's necessary to configure two debug configurations within in `.vscode/launch.j
     "-c",
     "${workspaceFolder}/examples/basic/rspack.config.js",
   ],
-   // `cwd` is just for repack find the correctly entry.
-  "cwd": "${workspaceFolder}/examples/basic/"
+  // `cwd` is just for repack find the correctly entry.
+  "cwd": "${workspaceFolder}/examples/basic/",
 }
 ```
 

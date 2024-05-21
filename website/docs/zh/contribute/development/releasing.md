@@ -1,19 +1,19 @@
 # Releasing
 
-All releases are automated through GitHub actions.
+所有发布都是通过 GitHub Action 自动进行的。
 
-All published releases of `@rspack/cli` can be found on the [npm versions page](https://www.npmjs.com/package/@rspack/cli?activeTab=versions). They are tagged as
+所有 `@rspack/cli` 的发版可以在 [npm versions page](https://www.npmjs.com/package/@rspack/cli?activeTab=versions) 找到。它们被打上了 tag
 
-- `latest` with semver version `x.y.z`
+- `latest` 和语义化版本 `x.y.z`
 - `nightly`
 - `canary`
 
-## Latest Full Release
+## latest 的全量发布
 
-The [full release workflow](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml?query=is%3Asuccess)
-is currently triggered manually every Tuesday with full release notes.
+[全量发布工作流](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml?query=is%3Asuccess)
+目前在每个周二被手动触发，配合全量发布的通知。
 
-The following 9 targets are built
+下面的 9 个目标产物会被构建
 
 - x86_64-unknown-linux-gnu
 - aarch64-unknown-linux-gnu
@@ -27,7 +27,7 @@ The following 9 targets are built
 
 ## Nightly
 
-The [nightly release workflow](https://github.com/web-infra-dev/rspack/actions/workflows/release-nightly.yml?query=is%3Asuccess)
-is triggered every day at UTC 16:00:07, which is 00:07 AM Beijing Time (offset with an odd minute to avoid cron jobs firing off at the same time).
+[nightly 发布工作流](https://github.com/web-infra-dev/rspack/actions/workflows/release-nightly.yml?query=is%3Asuccess)
+在每天的 UTC 16:00:07 被触发，是 北京时间的凌晨 00:07 (偏移奇数分钟以避免 cron 作业同时触发)。
 
-The nightly build fully replicates the full release build for catching errors early.
+nightly 构建完全复制了全量发布构建，以便尽早发现错误。

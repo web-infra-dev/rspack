@@ -108,7 +108,7 @@ npm run build:binding:debug
 npm run build:js
 ```
 
-### Configure `launch.json` in vscode
+### Configure `launch.json` in VSCode
 
 It's necessary to configure two debug configurations within in `.vscode/launch.json.`
 
@@ -116,11 +116,11 @@ It's necessary to configure two debug configurations within in `.vscode/launch.j
 
 ```jsonc
 {
-  "name": "attach:node”,
-  "request": "attach",  // refer: https://code.visualstudio.com/docs/editor/debugging#_launch-versus-attach-configurations
+  "name": "attach:node",
+  "request": "attach", // refer: https://code.visualstudio.com/docs/editor/debugging#_launch-versus-attach-configurations
   "type": "node",
   // `9229` is the default port of message
-  "port": 9229
+  "port": 9229,
 }
 ```
 
@@ -129,9 +129,9 @@ It's necessary to configure two debug configurations within in `.vscode/launch.j
 ```jsonc
 {
   "name": "launch:rust-from-node",
-  "request": "launch”,
-  "type": "lldb",    // it means we use `lldb` to launch the binary file of `node`
-  "program": "node”,
+  "request": "launch",
+  "type": "lldb", // it means we use `lldb` to launch the binary file of `node`
+  "program": "node",
   "args": [
     "--inspect",
     "--enable-source-maps",
@@ -140,8 +140,8 @@ It's necessary to configure two debug configurations within in `.vscode/launch.j
     "-c",
     "${workspaceFolder}/examples/basic/rspack.config.js",
   ],
-   // `cwd` is just for repack find the correctly entry.
-  "cwd": "${workspaceFolder}/examples/basic/"
+  // `cwd` is just for repack find the correctly entry.
+  "cwd": "${workspaceFolder}/examples/basic/",
 }
 ```
 

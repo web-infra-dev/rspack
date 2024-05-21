@@ -1,10 +1,10 @@
 # Building
 
-Please see [prerequisites](./prerequisites) for setting up Rust and Node.js.
+请查看 [准备工作](./prerequisites) 安装 Rust 和 Node.js 环境。
 
-## Install Node.js dependencies
+## 安装 Node.js 依赖
 
-Install Node.js dependencies via [pnpm](https://pnpm.io/).
+通过 [pnpm](https://pnpm.io/) 安装 Node.js 依赖。
 
 ```bash
 # enable pnpm with corepack
@@ -14,9 +14,9 @@ corepack enable
 pnpm i
 ```
 
-## Building Rspack
+## 构建 Rspack
 
-- Run `cargo build` to compile Rust code.
-- Run `pnpm run build:cli:debug` to compile both Node.js and Rust code.
+- 执行 `cargo build` 编译 Rust 代码。
+- 执行 `pnpm run build:cli:debug` 编译 Node.js 和 Rust 代码。
 
-The built binary is located at `packages/rspack-cli/bin/rspack`.
+被编译的二进制产物位于 `packages/rspack-cli/bin/rspack` 。
