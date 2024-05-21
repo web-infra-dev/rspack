@@ -1,12 +1,15 @@
-import { RspackStatsProcessor } from "../processor/stats";
+import { StatsProcessor } from "../processor/stats";
 import { BasicCaseCreator } from "../test/creator";
+import { ECompilerType } from "../type";
 
 const creator = new BasicCaseCreator({
 	clean: true,
 	describe: false,
 	steps: ({ name }) => [
-		new RspackStatsProcessor({
-			name
+		new StatsProcessor({
+			name,
+			compilerType: ECompilerType.Rspack,
+			configFiles: ["rspack.config.js", "webpack.config.js"]
 		})
 	],
 	description: name => `should print correct stats for ${name}`

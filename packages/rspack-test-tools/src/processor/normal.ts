@@ -4,40 +4,42 @@ import path from "path";
 import {
 	ECompilerType,
 	ITestContext,
-	ITestEnv,
-	ITestRunner,
-	TCompilerOptions,
-	TTestConfig
+	TCompiler,
+	TCompilerOptions
 } from "../type";
-import { BasicTaskProcessor } from "./basic";
+import { BasicProcessor } from "./basic";
 
-export interface IRspackNormalProcessorOptions {
+export interface INormalProcessorOptions<T extends ECompilerType> {
 	name: string;
 	root: string;
-	compilerOptions?: TCompilerOptions<ECompilerType.Rspack>;
+	compilerOptions?: TCompilerOptions<T>;
 	runable: boolean;
+	compilerType: T;
 }
 
-export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
-	constructor(protected _normalOptions: IRspackNormalProcessorOptions) {
+export class NormalProcessor<
+	T extends ECompilerType
+> extends BasicProcessor<T> {
+	constructor(protected _normalOptions: INormalProcessorOptions<T>) {
 		super({
-			compilerType: ECompilerType.Rspack,
+			compilerType: _normalOptions.compilerType,
 			findBundle: (context, options) => {
 				const filename = options.output?.filename;
 				return typeof filename === "string" ? filename : undefined;
 			},
-			defaultOptions: RspackNormalProcessor.defaultOptions(_normalOptions),
+			defaultOptions: NormalProcessor.defaultOptions<T>(_normalOptions),
 			name: _normalOptions.name,
 			runable: _normalOptions.runable
 		});
 	}
 
-	static defaultOptions({
+	static defaultOptions<T extends ECompilerType>({
 		compilerOptions,
-		root
-	}: IRspackNormalProcessorOptions) {
-		return (context: ITestContext): TCompilerOptions<ECompilerType.Rspack> => {
-			let testConfig: TCompilerOptions<ECompilerType.Rspack> = {};
+		root,
+		compilerType
+	}: INormalProcessorOptions<T>) {
+		return (context: ITestContext): TCompilerOptions<T> => {
+			let testConfig: TCompilerOptions<T> = {};
 			const testConfigPath = path.join(context.getSource(), "test.config.js");
 			if (fs.existsSync(testConfigPath)) {
 				testConfig = require(testConfigPath);
@@ -137,8 +139,9 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 					]
 				},
 				plugins: (compilerOptions?.plugins || [])
+					// @ts-ignore
 					.concat(testConfig.plugins || [])
-					.concat(function () {
+					.concat(function (this: TCompiler<T>) {
 						this.hooks.compilation.tap("TestCasesTest", compilation => {
 							[
 								// CHANGE: the follwing hooks are not supported yet, so comment it out
@@ -161,7 +164,7 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 					// backCompat: false,
 					// CHANGE: Rspack enables `css` by default.
 					// Turning off here to fallback to webpack's default css processing logic.
-
+					// @ts-ignore
 					rspackFuture: testConfig?.experiments?.rspackFuture ?? {
 						newTreeshaking: true
 					},
@@ -172,7 +175,7 @@ export class RspackNormalProcessor extends BasicTaskProcessor<ECompilerType.Rspa
 				//   debug: true,
 				//   console: createLogger(infraStructureLog)
 				// }
-			};
+			} as TCompilerOptions<T>;
 		};
 	}
 }

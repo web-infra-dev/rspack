@@ -1,7 +1,7 @@
-import { ECompilerType, TTestConfig } from "..";
-import { RspackConfigProcessor } from "../processor/config";
+import { ConfigProcessor } from "../processor/config";
 import { MultipleRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
+import { ECompilerType, TTestConfig } from "../type";
 
 export type TConfigCaseConfig = Omit<
 	TTestConfig<ECompilerType.Rspack>,
@@ -12,9 +12,11 @@ const creator = new BasicCaseCreator({
 	clean: true,
 	describe: false,
 	steps: ({ name }) => [
-		new RspackConfigProcessor({
+		new ConfigProcessor({
 			name,
-			runable: true
+			runable: true,
+			compilerType: ECompilerType.Rspack,
+			configFiles: ["rspack.config.js", "webpack.config.js"]
 		})
 	],
 	runner: MultipleRunnerFactory

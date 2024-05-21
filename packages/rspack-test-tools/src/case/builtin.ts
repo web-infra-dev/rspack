@@ -1,14 +1,12 @@
 import path from "path";
 
-import {
-	IRspackBuiltinProcessorOptions,
-	RspackBuiltinProcessor
-} from "../processor";
+import { BuiltinProcessor, IBuiltinProcessorOptions } from "../processor";
 import { BasicCaseCreator } from "../test/creator";
+import { ECompilerType } from "../type";
 
 const FILTERS: Record<
 	string,
-	IRspackBuiltinProcessorOptions["snapshotFileFilter"]
+	IBuiltinProcessorOptions<ECompilerType>["snapshotFileFilter"]
 > = {
 	"plugin-css": (file: string) => file.endsWith(".css"),
 	"plugin-css-modules": (file: string) =>
@@ -27,10 +25,12 @@ const creator = new BasicCaseCreator({
 		const cat = path.basename(path.dirname(src));
 		const filter = FILTERS[cat];
 		return [
-			new RspackBuiltinProcessor({
+			new BuiltinProcessor({
 				name,
 				snapshot: "output.snap.txt",
-				snapshotFileFilter: filter
+				snapshotFileFilter: filter,
+				compilerType: ECompilerType.Rspack,
+				configFiles: ["rspack.config.js", "webpack.config.js"]
 			})
 		];
 	}

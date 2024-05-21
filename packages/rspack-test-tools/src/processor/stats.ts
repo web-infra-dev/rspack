@@ -10,30 +10,31 @@ import {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
-	TCompilerOptions,
-	TTestConfig
+	TCompilerOptions
 } from "../type";
-import { MultiTaskProcessor } from "./multi";
+import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
-export interface IRspackStatsProcessorOptions<T extends ECompilerType.Rspack> {
-	name: string;
-}
+export interface IStatsProcessorOptions<T extends ECompilerType>
+	extends Omit<
+		IMultiTaskProcessorOptions<T>,
+		"defaultOptions" | "overrideOptions" | "runable"
+	> {}
 
 const REG_ERROR_CASE = /error$/;
 const quoteMeta = (str: string) => {
 	return str.replace(/[-[\]\\/{}()*+?.^$|]/g, "\\$&");
 };
 
-export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspack> {
+export class StatsProcessor<
+	T extends ECompilerType
+> extends MultiTaskProcessor<T> {
 	private stderr: any;
-	constructor(options: IRspackStatsProcessorOptions<ECompilerType.Rspack>) {
+	constructor(_statsOptions: IStatsProcessorOptions<T>) {
 		super({
-			defaultOptions: RspackStatsProcessor.defaultOptions,
-			overrideOptions: RspackStatsProcessor.overrideOptions,
-			compilerType: ECompilerType.Rspack,
-			configFiles: ["rspack.config.js", "webpack.config.js"],
-			name: options.name,
-			runable: false
+			defaultOptions: StatsProcessor.defaultOptions<T>,
+			overrideOptions: StatsProcessor.overrideOptions<T>,
+			runable: false,
+			..._statsOptions
 		});
 	}
 
@@ -188,10 +189,10 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 		}
 	}
 
-	static defaultOptions(
+	static defaultOptions<T extends ECompilerType>(
 		index: number,
 		context: ITestContext
-	): TCompilerOptions<ECompilerType.Rspack> {
+	): TCompilerOptions<T> {
 		if (fs.existsSync(path.join(context.getSource(), "rspack.config.js"))) {
 			return {};
 		}
@@ -208,10 +209,10 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 			}
 		};
 	}
-	static overrideOptions(
+	static overrideOptions<T extends ECompilerType>(
 		index: number,
 		context: ITestContext,
-		options: TCompilerOptions<ECompilerType.Rspack>
+		options: TCompilerOptions<T>
 	): void {
 		if (!options.context) options.context = context.getSource();
 		if (!options.output) options.output = options.output || {};

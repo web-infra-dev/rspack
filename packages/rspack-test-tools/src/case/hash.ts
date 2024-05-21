@@ -1,4 +1,4 @@
-import { RspackHashProcessor } from "../processor";
+import { HashProcessor } from "../processor";
 import { BasicCaseCreator } from "../test/creator";
 import { ECompilerType, ITester, TTestConfig } from "../type";
 
@@ -26,8 +26,10 @@ const creator = new HashCaseCreator({
 	clean: true,
 	describe: false,
 	steps: ({ name }) => [
-		new RspackHashProcessor({
-			name
+		new HashProcessor({
+			name,
+			compilerType: ECompilerType.Rspack,
+			configFiles: ["rspack.config.js", "webpack.config.js"]
 		})
 	]
 });

@@ -39,21 +39,24 @@ class Diff {
 	constructor(public value: string) {}
 }
 
-export interface IDefaultsConfigProcessorOptions {
-	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
+export interface IDefaultsConfigProcessorOptions<T extends ECompilerType> {
+	options?: (context: ITestContext) => TCompilerOptions<T>;
 	cwd?: string;
 	name: string;
 	diff: (
 		diff: jest.JestMatchers<Diff>,
-		defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>
+		defaults: jest.JestMatchers<TCompilerOptions<T>>
 	) => Promise<void>;
+	compilerType: T;
 }
 
-export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerType.Rspack> {
-	private defaultConfig: TCompilerOptions<ECompilerType.Rspack>;
+export class DefaultsConfigProcessor<
+	T extends ECompilerType
+> extends SimpleTaskProcessor<T> {
+	private defaultConfig: TCompilerOptions<T>;
 
 	constructor(
-		protected _defaultsConfigOptions: IDefaultsConfigProcessorOptions
+		protected _defaultsConfigOptions: IDefaultsConfigProcessorOptions<T>
 	) {
 		super({
 			options: context => {
@@ -68,15 +71,12 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 				}
 				return res;
 			},
-			compilerType: ECompilerType.Rspack,
+			compilerType: _defaultsConfigOptions.compilerType,
 			name: _defaultsConfigOptions.name
 		});
-		this.defaultConfig = DefaultsConfigTaskProcessor.getDefaultConfig(
-			CURRENT_CWD,
-			{
-				mode: "none"
-			}
-		);
+		this.defaultConfig = DefaultsConfigProcessor.getDefaultConfig(CURRENT_CWD, {
+			mode: "none"
+		}) as TCompilerOptions<T>;
 	}
 
 	async compiler(context: ITestContext) {}
@@ -85,7 +85,7 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 
 	async check(env: ITestEnv, context: ITestContext) {
 		const compiler = this.getCompiler(context);
-		const config = DefaultsConfigTaskProcessor.getDefaultConfig(
+		const config = DefaultsConfigProcessor.getDefaultConfig(
 			this._defaultsConfigOptions.cwd || CURRENT_CWD,
 			compiler.getOptions()
 		);
@@ -109,8 +109,8 @@ export class DefaultsConfigTaskProcessor extends SimpleTaskProcessor<ECompilerTy
 
 	static getDefaultConfig(
 		cwd: string,
-		config: TCompilerOptions<ECompilerType.Rspack>
-	): TCompilerOptions<ECompilerType.Rspack> {
+		config: TCompilerOptions<ECompilerType>
+	): TCompilerOptions<ECompilerType> {
 		process.chdir(cwd);
 		const { applyWebpackOptionsDefaults, getNormalizedWebpackOptions } =
 			require("@rspack/core").config;

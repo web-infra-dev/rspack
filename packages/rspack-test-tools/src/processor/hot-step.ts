@@ -1,4 +1,4 @@
-import { StatsCompilation } from "@rspack/core";
+import { Chunk, StatsCompilation } from "@rspack/core";
 import fs from "fs-extra";
 import path from "path";
 
@@ -9,13 +9,10 @@ import {
 	ITestContext,
 	ITestEnv,
 	TCompilerOptions,
-	TCompilerStats
+	TCompilerStats,
+	TCompilerStatsCompilation
 } from "../type";
-import {
-	IRspackHotProcessorOptions,
-	RspackHotProcessor,
-	TUpdateOptions
-} from "./hot";
+import { HotProcessor, IHotProcessorOptions, TUpdateOptions } from "./hot";
 
 const escapeLocalName = (str: string) => str.split(/[-<>:"/|?*.]/).join("_");
 
@@ -28,7 +25,7 @@ declare var global: {
 
 const SELF_HANDLER = (
 	file: string,
-	options: TCompilerOptions<ECompilerType.Rspack>
+	options: TCompilerOptions<ECompilerType>
 ): string[] => {
 	let res: string[] = [];
 	const hotUpdateGlobal = (_: string, modules: Record<string, unknown>) => {
@@ -59,14 +56,16 @@ const GET_MODULE_HANDLER = {
 
 type TSupportTarget = keyof typeof GET_MODULE_HANDLER;
 
-export interface IRspackHotStepProcessorOptions
-	extends IRspackHotProcessorOptions {}
+export interface IHotSnapshotProcessorOptions<T extends ECompilerType>
+	extends IHotProcessorOptions<T> {}
 
-export class RspackHotStepProcessor extends RspackHotProcessor {
+export class HotSnapshotProcessor<
+	T extends ECompilerType
+> extends HotProcessor<T> {
 	private hashes: string[] = [];
 	private entries: Record<string, string[]> = {};
 
-	constructor(protected _hotOptions: IRspackHotProcessorOptions) {
+	constructor(protected _hotOptions: IHotSnapshotProcessorOptions<T>) {
 		super(_hotOptions);
 	}
 
@@ -76,12 +75,15 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 			"hotUpdateStepChecker",
 			(
 				hotUpdateContext: TUpdateOptions,
-				stats: TCompilerStats<ECompilerType.Rspack>,
+				stats: TCompilerStats<T>,
 				runtime: THotStepRuntimeData
 			) => {
-				const statsJson = stats.toJson({ assets: true, chunks: true });
-				for (let entry of (stats?.compilation.chunks || []).filter(i =>
-					i.hasRuntime()
+				const statsJson: TCompilerStatsCompilation<T> = stats.toJson({
+					assets: true,
+					chunks: true
+				});
+				for (let entry of ((stats?.compilation.chunks as Chunk[]) || []).filter(
+					i => i.hasRuntime()
 				)) {
 					if (!this.entries[entry.id!]) {
 						this.entries[entry.id!] = entry.runtime!;
@@ -102,7 +104,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 			"hotUpdateStepErrorChecker",
 			(
 				_: TUpdateOptions,
-				stats: TCompilerStats<ECompilerType.Rspack>,
+				stats: TCompilerStats<T>,
 				runtime: THotStepRuntimeData
 			) => {
 				this.hashes.push(stats.hash!);
@@ -119,7 +121,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 			return;
 		}
 		const statsJson = stats.toJson({ assets: true, chunks: true });
-		for (let entry of (stats?.compilation.chunks || []).filter(i =>
+		for (let entry of ((stats?.compilation.chunks as Chunk[]) || []).filter(i =>
 			i.hasRuntime()
 		)) {
 			this.entries[entry.id!] = entry.runtime!;
@@ -140,7 +142,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 		env: ITestEnv,
 		context: ITestContext,
 		step: number,
-		stats: StatsCompilation,
+		stats: TCompilerStatsCompilation<T>,
 		runtime?: THotStepRuntimeData
 	) {
 		const compiler = this.getCompiler(context);
