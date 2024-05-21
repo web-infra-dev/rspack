@@ -16,11 +16,19 @@ Rspack v0.7 版本支持 lazy compilation，同时，将更多配置和 API 与 
 
 ### 支持 Lazy Compilation
 
-#### treeShaking 功能达到稳定状态
+Rspack 0.7.0 支持了 Lazy Compilation（懒编译）功能，懒编译对提高多入口项目或大型项目的构建性能非常有帮助。
 
-新版 tree shaking 在 0.4.2 引入，并在 0.6.0 默认开启，经过几个月的 bug 修复和优化，目前已达到稳定状态。
+TODO: 性能对比数据
 
-0.7.0 已移除 `builtins.treeShaking` (oldTreeShaking) 配置，将旧的 tree shaking 功能彻底下线。
+现在，你可以通过 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 配置项在 Rspack 中开启懒编译功能：
+
+```file=rspack.config.js
+module.exports = {
+  experiments: {
+    lazyCompilation: true,
+  },
+};
+```
 
 ## 不兼容更新
 
@@ -29,6 +37,10 @@ Rspack 会在 1.0 版本前，逐步下线所有不稳定的 API 和配置，更
 ### 移除一些不稳定的 JavaScript API
 
 ### 移除 builtins.treeShaking (oldTreeShaking)
+
+新版 tree shaking 在 Rspack 0.4.2 版本引入，并在 0.6.0 默认开启，经过几个月的 bug 修复和优化，目前已达到稳定状态。
+
+0.7.0 已移除 `builtins.treeShaking` (oldTreeShaking) 配置，将旧的 tree shaking 功能彻底下线。
 
 ### 移除 resolve.browserField
 
