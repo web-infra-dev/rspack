@@ -487,8 +487,6 @@ impl Module for NormalModule {
       });
     }
 
-    let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = Vec::new();
-
     build_info.cacheable = loader_result.cacheable;
     build_info.file_dependencies = loader_result.file_dependencies;
     build_info.context_dependencies = loader_result.context_dependencies;
@@ -502,6 +500,7 @@ impl Module for NormalModule {
         dependencies,
         blocks,
         presentational_dependencies,
+        code_generation_dependencies,
         analyze_result,
         side_effects_bailout,
       },
@@ -520,7 +519,6 @@ impl Module for NormalModule {
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
         additional_data: loader_result.additional_data,
-        code_generation_dependencies: &mut code_generation_dependencies,
         build_info: &mut build_info,
         build_meta: &mut build_meta,
       })?

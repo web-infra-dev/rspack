@@ -122,6 +122,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             dependencies: vec![],
             blocks: vec![],
             presentational_dependencies: vec![],
+            code_generation_dependencies: vec![],
             analyze_result: Default::default(),
             side_effects_bailout: None,
           }
@@ -308,6 +309,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         dependencies,
         blocks,
         presentational_dependencies,
+        code_generation_dependencies: vec![],
         analyze_result,
         side_effects_bailout,
       }
