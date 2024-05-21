@@ -11,7 +11,7 @@ module.exports = {
 				compiler.hooks.compilation.tap("Test", (compilation) => {
 					compilation.hooks.processAssets.tap("Test", (assets) => {
 						let source = assets["bundle0.js"].source();
-						expect(source.match(/\/\* @__PURE__ \*\//g) || []).toHaveLength(1);
+						expect(source.match(/\/\* @__PURE__ \*\/ jsx/g) || []).toHaveLength(2);
 					})
 				})
 			}

@@ -37,6 +37,7 @@ const b = "foo";
 /* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./c.js");
 // require("./c.js");
 
+
 _c_js__WEBPACK_IMPORTED_MODULE_0__.a;
 _c_js__WEBPACK_IMPORTED_MODULE_0__.b;
 _c_js__WEBPACK_IMPORTED_MODULE_0__.c;

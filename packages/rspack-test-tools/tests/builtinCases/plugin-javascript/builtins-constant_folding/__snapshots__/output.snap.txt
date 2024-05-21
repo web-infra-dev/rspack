@@ -3,7 +3,9 @@
 "./development.js": (function () {
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-__webpack_require__("./development.js");
+if (true) {
+	__webpack_require__("./development.js");
+} else {}
 }),
 
 },function(__webpack_require__) {

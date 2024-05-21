@@ -33,7 +33,7 @@ webpack/runtime/auto_public_path {909}
   [no exports]
   [used exports unknown]
   
-Rspack compiled successfully (ecb93a91f44e8655019a)"
+Rspack compiled successfully (e771c34e47ddd705b844)"
 `;
 
 exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print correct stats for builtin-swc-loader-parse-error 1`] = `
@@ -71,7 +71,7 @@ Entrypoint main 8.78 KiB = 909.xxxx.js
 runtime modules 11 modules
 ./index.js
 ./dynamic.js
-Rspack x.x.x compiled successfully in X s (1441f057611125a5f036)"
+Rspack x.x.x compiled successfully in X s (e8a113a0c6c10940e6d3)"
 `;
 
 exports[`statsOutput statsOutput/hot+production should print correct stats for hot+production 1`] = `
@@ -306,11 +306,11 @@ runtime modules 12 modules
 ./index.js
 
 ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
-  │   main.js (303.486 KiB)
+  │   main.js (303.482 KiB)
 
 
 ERROR in × entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (303.486 KiB)
+  │   main (303.482 KiB)
   │       main.js
 
 
@@ -406,7 +406,7 @@ Entrypoint main 1.79 KiB = main.js
 ./increment.js
   [exports: decrement, increment, incrementBy2]
   [only some exports used: increment]
-Rspack x.x.x compiled successfully in X s (a74012a3fffb51e812fe)"
+Rspack x.x.x compiled successfully in X s (dbb11f014baedc01a0a1)"
 `;
 
 exports[`statsOutput statsOutput/side-effects-bailouts should print correct stats for side-effects-bailouts 1`] = `
@@ -417,7 +417,7 @@ chunk {909} main.js (main) [entry]
   ./lib.js [467] {909}
     [exports: test]
     [all exports used]
-    Statement with side_effects in source code at ./lib.js:3:0-9
+    Statement with side_effects in source code at ./lib.js:5:0-9
     esm import ./lib.js [10]
     esm import specifier ./lib.js [10]
   ./index.js [10] {909}
@@ -427,7 +427,7 @@ chunk {909} main.js (main) [entry]
 ./lib.js [467] {909}
   [exports: test]
   [all exports used]
-  Statement with side_effects in source code at ./lib.js:3:0-9
+  Statement with side_effects in source code at ./lib.js:5:0-9
   esm import ./lib.js [10]
   esm import specifier ./lib.js [10]
 ./index.js [10] {909}
@@ -441,7 +441,7 @@ webpack/runtime/define_property_getters {909}
   [no exports]
   [used exports unknown]
   
-1970-04-20 12:42:42: Rspack x.x.x compiled successfully in X s (60c70856f42105a844ca)"
+1970-04-20 12:42:42: Rspack x.x.x compiled successfully in X s (7e56c53a8fb566d4b984)"
 `;
 
 exports[`statsOutput statsOutput/simple-export should print correct stats for simple-export 1`] = `
@@ -461,7 +461,7 @@ runtime modules 3 modules
 orphan modules [orphan] 1 module
 ./raw.png
 ./index.js
-Rspack compiled successfully (bf8a828b2158bcb51e2e)"
+Rspack compiled successfully (c39c6873188c3d7d014b)"
 `;
 
 exports[`statsOutput statsOutput/stats-hooks should print correct stats for stats-hooks 1`] = `
@@ -477,9 +477,10 @@ exports[`statsOutput statsOutput/try-require-module should print correct stats f
   ⚠ Resolve error: Can't resolve './missing-module' in 'Xdir/try-require-module'
    ╭─[1:1]
  1 │ try {
- 2 │     require('./missing-module');
+ 2 │     require('./missing-module')
    ·     ───────────────────────────
- 3 │ } catch (e) {}
+ 3 │ } catch (e) {
+ 4 │ 
    ╰────
 
 Rspack compiled with 1 warning"
@@ -490,9 +491,10 @@ exports[`statsOutput statsOutput/try-require-resolve-module should print correct
   ⚠ Resolve error: Can't resolve './missing-module' in 'Xdir/try-require-resolve-module'
    ╭─[1:1]
  1 │ try {
- 2 │     require.resolve('./missing-module');
+ 2 │     require.resolve('./missing-module')
    ·     ───────────────────────────────────
- 3 │ } catch (e) {}
+ 3 │ } catch (e) {
+ 4 │ 
    ╰────
 
 Rspack compiled with 1 warning"
@@ -503,9 +505,10 @@ exports[`statsOutput statsOutput/try-require-resolve-weak-module should print co
   ⚠ Resolve error: Can't resolve './missing-module' in 'Xdir/try-require-resolve-weak-module'
    ╭─[1:1]
  1 │ try {
- 2 │     require.resolveWeak('./missing-module');
+ 2 │     require.resolveWeak('./missing-module')
    ·     ───────────────────────────────────────
- 3 │ } catch (e) {}
+ 3 │ } catch (e) {
+ 4 │ 
    ╰────
 
 Rspack compiled with 1 warning"

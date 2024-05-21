@@ -18,6 +18,7 @@ const a = 3;
 /* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./ b.js");
 
 
+
 _a_js__WEBPACK_IMPORTED_MODULE_0__.a;
 _b_js__WEBPACK_IMPORTED_MODULE_1__.b;
 }),

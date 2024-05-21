@@ -20,8 +20,8 @@ __webpack_require__.d(__webpack_exports__, {
   "default": function() { return formatNumber_default; }
 });
 function formatNumber(config) {}
-const plugin = (cls)=>{
-    cls.prototype.formatNumber = formatNumber;
+const plugin = cls => {
+	cls.prototype.formatNumber = formatNumber;
 };
 var formatNumber_default = plugin;
 

@@ -18,6 +18,7 @@ plugin = [
 [dependencies]
 anyhow                   = { workspace = true }
 async-trait              = { workspace = true }
+base64                   = { version = "0.22" }
 dashmap                  = { workspace = true }
 either                   = "1"
 jsonc-parser             = { version = "0.23.0", features = ["serde"] }
@@ -34,4 +35,5 @@ serde_json               = { workspace = true }
 swc_config               = { workspace = true }
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
 tokio                    = { workspace = true }
+url                      = "2.5.0"
 xxhash-rust              = { workspace = true, features = ["xxh32"] }

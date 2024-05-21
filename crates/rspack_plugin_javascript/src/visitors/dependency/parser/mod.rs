@@ -266,6 +266,9 @@ impl<'parser> JavascriptParser<'parser> {
       if !compiler_options.builtins.provide.is_empty() {
         plugins.push(Box::<parser_plugin::ProviderPlugin>::default());
       }
+      if !compiler_options.builtins.define.is_empty() {
+        plugins.push(Box::<parser_plugin::DefinePlugin>::default());
+      }
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
       plugins.push(Box::new(parser_plugin::APIPlugin::new(
@@ -689,6 +692,10 @@ impl JavascriptParser<'_> {
       Some(evaluated) => evaluated,
       None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0),
     }
+  }
+
+  pub fn evaluate(&mut self, source: String, title: String) -> Option<BasicEvaluatedExpression> {
+    eval::eval_source(self, source, title)
   }
 
   // same as `JavascriptParser._initializeEvaluating` in webpack

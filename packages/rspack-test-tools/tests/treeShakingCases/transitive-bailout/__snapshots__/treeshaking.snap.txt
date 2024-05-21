@@ -11,8 +11,8 @@ const b = 3;
 }),
 "./answer.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 const res = __webpack_require__("./lib.js");
-exports.test = function() {
-    res;
+exports.test = function () {
+	res;
 };
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {

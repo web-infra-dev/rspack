@@ -1,10 +1,6 @@
-use rspack_ast::RspackAst;
 use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
 use rspack_core::needs_refactor::WorkerSyntaxList;
-use rspack_core::rspack_sources::{
-  BoxSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
-  SourceMapSource, SourceMapSourceOptions,
-};
+use rspack_core::rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt};
 use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
@@ -19,11 +15,10 @@ use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnos
 use swc_core::common::{Span, SyntaxContext};
 use swc_core::ecma::parser::{EsConfig, Syntax};
 
-use crate::ast::CodegenOptions;
 use crate::dependency::HarmonyCompatibilityDependency;
 use crate::inner_graph_plugin::InnerGraphPlugin;
 use crate::visitors::ScanDependenciesResult;
-use crate::visitors::{run_before_pass, scan_dependencies, swc_visitor::resolver};
+use crate::visitors::{scan_dependencies, swc_visitor::resolver};
 use crate::{SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 
 #[derive(Debug)]
@@ -85,95 +80,53 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let ParseContext {
       source,
       module_type,
-      module_source_map_kind,
       resource_data,
       compiler_options,
       build_info,
       build_meta,
       module_identifier,
       loaders,
-      mut additional_data,
       module_parser_options,
       ..
     } = parse_context;
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
-    let syntax = Syntax::Es(EsConfig {
-      jsx: false,
-      export_default_from: false,
-      decorators: false,
-      fn_bind: true,
-      allow_super_outside_method: true,
-      ..Default::default()
-    });
-    let use_source_map = module_source_map_kind.source_map();
-    let enable_source_map = module_source_map_kind.enabled();
-    let original_map = source.map(&MapOptions::new(use_source_map));
-    let source = source.source();
 
-    let result_with_diagnostics =
-      |source: String, diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {
-        Ok(
-          ParseResult {
-            source: create_source(
-              source,
-              resource_data.resource_path.to_string_lossy().to_string(),
-              enable_source_map,
-            ),
-            dependencies: vec![],
-            blocks: vec![],
-            presentational_dependencies: vec![],
-            analyze_result: Default::default(),
-            side_effects_bailout: None,
-          }
-          .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
-            diagnostics,
-            loaders,
-          )),
-        )
-      };
-
-    let mut ast =
-      if let Some(RspackAst::JavaScript(loader_ast)) = additional_data.remove::<RspackAst>() {
-        loader_ast
-      } else {
-        match crate::ast::parse(
-          source.to_string(),
-          syntax,
-          &resource_data.resource_path.to_string_lossy(),
-          module_type,
-        ) {
-          Ok(ast) => ast,
-          Err(e) => {
-            diagnostics.append(&mut e.into_iter().map(|e| e.boxed()).collect());
-            return result_with_diagnostics(source.to_string(), diagnostics);
-          }
+    let default_with_diagnostics = |diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {
+      Ok(
+        ParseResult {
+          source: source.clone(),
+          dependencies: vec![],
+          blocks: vec![],
+          presentational_dependencies: vec![],
+          analyze_result: Default::default(),
+          side_effects_bailout: None,
         }
-        .0
-      };
+        .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
+          diagnostics,
+          loaders,
+        )),
+      )
+    };
 
-    run_before_pass(&mut ast, compiler_options, &mut diagnostics)?;
-
-    let output: crate::TransformOutput = crate::ast::stringify(
-      &ast,
-      additional_data
-        .remove::<CodegenOptions>()
-        .unwrap_or_else(|| CodegenOptions::new(&module_source_map_kind, Some(true))),
-    )?;
-
-    let parse_result = match crate::ast::parse(
-      output.code.clone(),
-      syntax,
+    let (mut ast, fm) = match crate::ast::parse(
+      source.source().to_string(),
+      Syntax::Es(EsConfig {
+        jsx: false,
+        export_default_from: false,
+        decorators: false,
+        fn_bind: true,
+        allow_super_outside_method: true,
+        ..Default::default()
+      }),
       &resource_data.resource_path.to_string_lossy(),
       module_type,
     ) {
-      Ok(parse_result) => parse_result,
+      Ok(ast) => ast,
       Err(e) => {
         diagnostics.append(&mut e.into_iter().map(|e| e.boxed()).collect());
-        return result_with_diagnostics(output.code.clone(), diagnostics);
+        return default_with_diagnostics(diagnostics);
       }
     };
-
-    ast = parse_result.0;
 
     ast.transform(|program, context| {
       program.visit_mut_with(&mut resolver(
@@ -194,7 +147,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut warning_diagnostics,
     } = match ast.visit(|program, _| {
       scan_dependencies(
-        &parse_result.1,
+        &fm,
         program,
         &mut worker_syntax_list,
         resource_data,
@@ -209,7 +162,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Ok(result) => result,
       Err(mut e) => {
         diagnostics.append(&mut e);
-        return result_with_diagnostics(output.code.clone(), diagnostics);
+        return default_with_diagnostics(diagnostics);
       }
     };
     diagnostics.append(&mut warning_diagnostics);
@@ -247,7 +200,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .side_effects_item
           .take()
           .and_then(|item| -> Option<_> {
-            let msg = span_to_location(item.span, &output.code)?;
+            let msg = span_to_location(item.span, &source.source())?;
             Some(SideEffectsBailoutItem { msg, ty: item.ty })
           })
       });
@@ -276,28 +229,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         None
       };
 
-    let source = if let Some(map) = output.map {
-      SourceMapSource::new(SourceMapSourceOptions {
-        value: output.code,
-        name: resource_data.resource_path.to_string_lossy().to_string(),
-        source_map: SourceMap::from_json(&map).expect("should be able to generate source-map"),
-        inner_source_map: use_source_map.then_some(original_map).flatten(),
-        remove_original_source: true,
-        ..Default::default()
-      })
-      .boxed()
-    } else if enable_source_map {
-      OriginalSource::new(output.code, resource_data.resource_path.to_string_lossy()).boxed()
-    } else {
-      RawSource::from(output.code).boxed()
-    };
-
-    fn create_source(content: String, resource_path: String, devtool: bool) -> BoxSource {
-      if devtool {
-        return OriginalSource::new(content, resource_path).boxed();
-      }
-      RawSource::from(content).boxed()
-    }
     if let Some(mut inner_graph) = inner_graph {
       inner_graph.infer_dependency_usage();
     }

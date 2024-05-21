@@ -8,17 +8,20 @@
 
 
 
-it("should load module correctly", ()=>{
-    __webpack_require__("./module.js");
+
+it("should load module correctly", () => {
+	__webpack_require__("./module.js");
 });
+
 // if (process.env.NODE_ENV === "production") {
-it("default export should be unused", ()=>{
-    expect(_package1_script__WEBPACK_IMPORTED_MODULE_0__.exportDefaultUsed).toBe(false);
-    expect(_package1_script2__WEBPACK_IMPORTED_MODULE_1__.exportDefaultUsed).toBe(false);
+it("default export should be unused", () => {
+	expect(_package1_script__WEBPACK_IMPORTED_MODULE_0__.exportDefaultUsed).toBe(false);
+	expect(_package1_script2__WEBPACK_IMPORTED_MODULE_1__.exportDefaultUsed).toBe(false);
 });
 // }
-it("default export should be used", ()=>{
-    expect(_package2_script__WEBPACK_IMPORTED_MODULE_2__.exportDefaultUsed).toBe(true);
+
+it("default export should be used", () => {
+	expect(_package2_script__WEBPACK_IMPORTED_MODULE_2__.exportDefaultUsed).toBe(true);
 });
 }),
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -30,6 +33,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* harmony import */var _package2_script__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./package2/script.js");
 
 
+
 const mod = _package2_script__WEBPACK_IMPORTED_MODULE_1__["default"];
 }),
 "./package1/script.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -39,6 +43,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./package1/script1.js");
 
 /* unused harmony default export */ var __WEBPACK_DEFAULT_EXPORT__ = ((/* unused pure expression or super */ null && (mod)));
+
 
 const exportDefaultUsed = false;
 }),
@@ -53,8 +58,9 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 /* harmony default export */ function __WEBPACK_DEFAULT_EXPORT__() {
-    return mod;
+	return mod;
 }
+
 
 const exportDefaultUsed = false;
 }),
@@ -65,6 +71,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./package2/script1.js");
 
 /* harmony default export */ __webpack_exports__["default"] = (_script1__WEBPACK_IMPORTED_MODULE_0__["default"]);
+
 
 const exportDefaultUsed = true;
 }),

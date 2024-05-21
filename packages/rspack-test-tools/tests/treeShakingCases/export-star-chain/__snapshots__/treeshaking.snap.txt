@@ -44,6 +44,7 @@ const result = "ssss";
 /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./colors/index.js");
 /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./something/Something.js");
 
+
 _export__WEBPACK_IMPORTED_MODULE_0__;
 _export__WEBPACK_IMPORTED_MODULE_1__.Something;
 }),
@@ -51,8 +52,7 @@ _export__WEBPACK_IMPORTED_MODULE_1__.Something;
 __webpack_require__.d(__webpack_exports__, {
   Something: function() { return Something; }
 });
-class Something {
-}
+class Something {}
 }),
 
 },function(__webpack_require__) {

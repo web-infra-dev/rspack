@@ -9,30 +9,32 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
 const container = document.createElement("div");
 Object.assign(container.style, {
-    display: "flex",
-    justifyContent: "center"
+	display: "flex",
+	justifyContent: "center"
 });
 document.body.appendChild(container);
+
 function createImageElement(title, src) {
-    const div = document.createElement("div");
-    div.style.textAlign = "center";
-    const h2 = document.createElement("h2");
-    h2.textContent = title;
-    div.appendChild(h2);
-    const img = document.createElement("img");
-    img.setAttribute("src", src);
-    img.setAttribute("width", "150");
-    div.appendChild(img);
-    container.appendChild(div);
+	const div = document.createElement("div");
+	div.style.textAlign = "center";
+
+	const h2 = document.createElement("h2");
+	h2.textContent = title;
+	div.appendChild(h2);
+
+	const img = document.createElement("img");
+	img.setAttribute("src", src);
+	img.setAttribute("width", "150");
+	div.appendChild(img);
+
+	container.appendChild(div);
 }
-[
-    _images_file_png__WEBPACK_IMPORTED_MODULE_0__,
-    _images_file_jpg__WEBPACK_IMPORTED_MODULE_1__,
-    _images_file_svg__WEBPACK_IMPORTED_MODULE_2__
-].forEach((src)=>{
-    createImageElement(src.split(".").pop(), src);
+
+[_images_file_png__WEBPACK_IMPORTED_MODULE_0__, _images_file_jpg__WEBPACK_IMPORTED_MODULE_1__, _images_file_svg__WEBPACK_IMPORTED_MODULE_2__].forEach(src => {
+	createImageElement(src.split(".").pop(), src);
 });
 }),
 "./images/file.jpg": (function (module) {

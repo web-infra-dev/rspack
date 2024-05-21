@@ -13,6 +13,7 @@ const a = 3;
 
 
 _a_js__WEBPACK_IMPORTED_MODULE_0__.a;
+
 _a_svg__WEBPACK_IMPORTED_MODULE_1__;
 }),
 "./a.svg": (function (module) {

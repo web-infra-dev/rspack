@@ -7,17 +7,20 @@ __webpack_require__.d(__webpack_exports__, {
 });
 /* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./b.js");
 
+
 class Test {
-    static c = (0, _b_js__WEBPACK_IMPORTED_MODULE_0__.bb)();
-    static test() {
-        _b_js__WEBPACK_IMPORTED_MODULE_0__.bb;
-    }
+	static c = (0, _b_js__WEBPACK_IMPORTED_MODULE_0__.bb)();
+	static test() {
+		_b_js__WEBPACK_IMPORTED_MODULE_0__.bb;
+	}
 }
+
 class Result {
-    static test() {
-        cc;
-    }
+	static test() {
+		cc;
+	}
 }
+
 const a = 3;
 }),
 "./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

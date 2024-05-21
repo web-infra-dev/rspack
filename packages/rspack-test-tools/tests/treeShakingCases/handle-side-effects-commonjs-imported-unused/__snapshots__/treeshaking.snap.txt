@@ -3,6 +3,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function () {
 
+
 console.log("something");
 }),
 

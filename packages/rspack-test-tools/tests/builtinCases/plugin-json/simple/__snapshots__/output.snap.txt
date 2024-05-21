@@ -7,7 +7,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _string_json__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./string.json");
 
 
-console.log(_json_json__WEBPACK_IMPORTED_MODULE_0__, _string_json__WEBPACK_IMPORTED_MODULE_1__);
+console.log(_json_json__WEBPACK_IMPORTED_MODULE_0__,_string_json__WEBPACK_IMPORTED_MODULE_1__)
 }),
 "./json.json": (function (module) {
 module.exports = JSON.parse('{"hello":"world is better \'","b":"\\\\"}')}),

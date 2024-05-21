@@ -1,8 +1,8 @@
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-it("should be able to load package without side effects where modules are unused", ()=>{
-    __webpack_require__("./module.js");
+it("should be able to load package without side effects where modules are unused", () => {
+	__webpack_require__("./module.js");
 });
 }),
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -13,7 +13,9 @@ __webpack_require__.d(__webpack_exports__, {
 });
 /* harmony import */var _package__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./package/index.js");
 
+
 /* harmony default export */ __webpack_exports__["default"] = (_package__WEBPACK_IMPORTED_MODULE_0__.a);
+
 function test() {}
 }),
 "./package/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -22,11 +24,13 @@ __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; }
 });
 
+
 function a() {
-    return 42;
+	return 42;
 }
+
 function b() {
-    return value;
+	return value;
 }
 }),
 

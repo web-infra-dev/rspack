@@ -7,13 +7,16 @@ __webpack_require__.d(__webpack_exports__, {
 });
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 
-var app = function() {
-    _lib__WEBPACK_IMPORTED_MODULE_0__.result;
+var app = function () {
+	_lib__WEBPACK_IMPORTED_MODULE_0__.result;
 };
-var app2 = ()=>{
-    secret;
+var app2 = () => {
+	secret;
 };
-var app4 = (0, _lib__WEBPACK_IMPORTED_MODULE_0__.something)("app4"), app5 = 10000;
+
+var app4 = (0, _lib__WEBPACK_IMPORTED_MODULE_0__.something)("app4"),
+	app5 = 10000;
+
 var app3 = (0, _lib__WEBPACK_IMPORTED_MODULE_0__.something)("app3");
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
@@ -28,7 +31,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 const secret = "888";
 const result = 20000;
-const something = function() {};
+const something = function () {};
 }),
 
 },function(__webpack_require__) {

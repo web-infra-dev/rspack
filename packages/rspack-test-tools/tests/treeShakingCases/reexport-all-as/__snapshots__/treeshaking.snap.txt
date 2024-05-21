@@ -6,6 +6,7 @@ __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; }
 });
 function a() {}
+
 function dddd() {}
 }),
 "./src/index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
