@@ -447,7 +447,7 @@ export interface IBasicProcessorOptions<T extends ECompilerType> {
 }
 
 // @public (undocumented)
-export interface IBuiltinProcessorOptions<T extends ECompilerType> extends Omit<ISnapshotProcessorOptions<T>, 'defaultOptions' | 'runable'> {
+export interface IBuiltinProcessorOptions<T extends ECompilerType> extends Omit<ISnapshotProcessorOptions<T>, "defaultOptions" | "runable"> {
 }
 
 // @public (undocumented)
@@ -467,7 +467,7 @@ export interface ICompareOptions {
 }
 
 // @public (undocumented)
-export interface IConfigProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, 'defaultOptions' | "overrideOptions" | "findBundle"> {
+export interface IConfigProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "defaultOptions" | "overrideOptions" | "findBundle"> {
 }
 
 // @public (undocumented)
@@ -485,7 +485,7 @@ export interface IDefaultsConfigProcessorOptions<T extends ECompilerType> {
 }
 
 // @public (undocumented)
-export interface IDiagnosticProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, 'defaultOptions' | 'runable'> {
+export interface IDiagnosticProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "defaultOptions" | "runable"> {
     // (undocumented)
     snapshot: string;
 }
@@ -605,7 +605,7 @@ export interface IHookProcessorOptions<T extends ECompilerType> extends Omit<ISn
 }
 
 // @public (undocumented)
-export interface IHotProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, 'defaultOptions' | 'overrideOptions' | 'runable' | 'findBundle'> {
+export interface IHotProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "defaultOptions" | "overrideOptions" | "runable" | "findBundle"> {
     // (undocumented)
     target: TCompilerOptions<T>["target"];
 }
@@ -679,7 +679,7 @@ export interface IStatsAPIProcessorOptions<T extends ECompilerType> {
 }
 
 // @public (undocumented)
-export interface IStatsProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, 'defaultOptions' | 'overrideOptions' | 'runable'> {
+export interface IStatsProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "defaultOptions" | "overrideOptions" | "runable"> {
 }
 
 // @public (undocumented)
@@ -842,7 +842,7 @@ export interface ITestRunner {
 }
 
 // @public (undocumented)
-export interface IWatchProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, 'overrideOptinos' | 'findBundle'> {
+export interface IWatchProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "overrideOptinos" | "findBundle"> {
     // (undocumented)
     experiments?: TRspackExperiments;
     // (undocumented)
@@ -854,7 +854,7 @@ export interface IWatchProcessorOptions<T extends ECompilerType> extends Omit<IM
 }
 
 // @public (undocumented)
-export interface IWatchStepProcessorOptions<T extends ECompilerType> extends Omit<IWatchProcessorOptions<T>, 'experiments' | 'optimization'> {
+export interface IWatchStepProcessorOptions<T extends ECompilerType> extends Omit<IWatchProcessorOptions<T>, "experiments" | "optimization"> {
 }
 
 // @public (undocumented)
