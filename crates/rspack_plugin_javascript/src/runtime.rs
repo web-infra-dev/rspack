@@ -16,13 +16,8 @@ pub fn render_chunk_modules(
   ordered_modules: Vec<&BoxModule>,
   all_strict: bool,
 ) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
-  let include_module_ids = &compilation.include_module_ids;
-
   let mut module_code_array = ordered_modules
     .par_iter()
-    .filter(|module| {
-      compilation.options.is_new_tree_shaking() || include_module_ids.contains(&module.identifier())
-    })
     .filter_map(|module| {
       render_module(compilation, chunk_ukey, module, all_strict, true)
         .transpose()

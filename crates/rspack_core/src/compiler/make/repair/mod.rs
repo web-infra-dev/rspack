@@ -6,14 +6,13 @@ pub mod process_dependencies;
 use std::sync::Arc;
 
 use rspack_error::{Diagnostic, Result};
-use rspack_identifier::{IdentifierMap, IdentifierSet};
+use rspack_identifier::IdentifierSet;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{file_counter::FileCounter, MakeArtifact};
 use crate::{
   cache::Cache,
   module_graph::{ModuleGraph, ModuleGraphPartial},
-  tree_shaking::visitor::OptimizeAnalyzeResult,
   utils::task_loop::{run_task_loop, Task},
   BuildDependency, Compilation, CompilerOptions, DependencyId, DependencyType, Module,
   ModuleFactory, ModuleIdentifier, ModuleProfile, NormalModuleSource, ResolverFactory,
@@ -43,7 +42,6 @@ pub struct MakeTaskContext {
   entry_dependencies: HashSet<DependencyId>,
   entry_module_identifiers: IdentifierSet,
   diagnostics: Vec<Diagnostic>,
-  optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
   file_dependencies: FileCounter,
   context_dependencies: FileCounter,
   missing_dependencies: FileCounter,
@@ -74,7 +72,6 @@ impl MakeTaskContext {
 
       entry_dependencies: artifact.entry_dependencies,
       entry_module_identifiers: artifact.entry_module_identifiers,
-      optimize_analyze_result_map: artifact.optimize_analyze_result_map,
       file_dependencies: artifact.file_dependencies,
       context_dependencies: artifact.context_dependencies,
       missing_dependencies: artifact.missing_dependencies,
@@ -90,7 +87,6 @@ impl MakeTaskContext {
       make_failed_module,
       diagnostics,
       entry_module_identifiers,
-      optimize_analyze_result_map,
       file_dependencies,
       context_dependencies,
       missing_dependencies,
@@ -106,7 +102,6 @@ impl MakeTaskContext {
       diagnostics,
       entry_dependencies,
       entry_module_identifiers,
-      optimize_analyze_result_map,
       file_dependencies,
       context_dependencies,
       missing_dependencies,

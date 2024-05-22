@@ -9,9 +9,6 @@ module.exports = {
 	},
 	experiments: {
 		outputModule: true,
-		rspackFuture: {
-			newTreeshaking: false
-		}
 	},
 	target: "node"
 };

@@ -231,11 +231,6 @@ export class HookTaskProcessor<
 			},
 			optimization: {
 				minimize: false
-			},
-			experiments: {
-				rspackFuture: {
-					newTreeshaking: true
-				}
 			}
 		} as TCompilerOptions<T>;
 	}

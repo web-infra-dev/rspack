@@ -1184,7 +1184,6 @@ export type Optimization = z.infer<typeof optimization>;
 
 //#region Experiments
 const rspackFutureOptions = z.strictObject({
-	newTreeshaking: z.boolean().optional(),
 	bundlerInfo: z
 		.strictObject({
 			version: z.string().optional(),
@@ -1281,11 +1280,6 @@ const performance = z
 export type Performance = z.infer<typeof performance>;
 //#endregion
 
-//#region Builtins (deprecated)
-const builtins = z.custom<BuiltinsType>();
-export type Builtins = z.infer<typeof builtins>;
-//#endregion
-
 export const rspackOptions = z.strictObject({
 	name: name.optional(),
 	dependencies: dependencies.optional(),
@@ -1312,7 +1306,6 @@ export const rspackOptions = z.strictObject({
 	resolveLoader: resolve.optional(),
 	plugins: plugins.optional(),
 	devServer: devServer.optional(),
-	builtins: builtins.optional(),
 	module: moduleOptions.optional(),
 	profile: profile.optional(),
 	bail: bail.optional(),

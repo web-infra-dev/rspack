@@ -6,9 +6,4 @@ module.exports = {
 			"process.env.NODE_ENV": "development"
 		}
 	},
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: false
-		}
-	}
 }

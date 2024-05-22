@@ -328,11 +328,16 @@ module.exports = {
 
 ### experiments.rspackFuture.newTreeshaking
 
-<ApiMeta addedVersion="0.4.2" />
+<ApiMeta addedVersion="0.4.2" removedVersion="0.7.0" />
 
 - **类型：** `boolean`
 - **引入版本：** v0.4.2
 - **默认开启版本：** v0.6.0
+- **移除版本：** v0.7.0
+
+:::warning
+从 0.7.0 版本开始，newTreeshaking 默认开启并且不能切换回已废弃的老 tree shaking 算法。
+:::
 
 该功能启用了与 webpack 相同的新摇树优化实现，可以生成更高效和更小的代码。
 

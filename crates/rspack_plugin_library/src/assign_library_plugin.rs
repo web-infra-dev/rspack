@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
 use rspack_core::{
   get_entry_runtime, property_access, ApplyContext, BoxModule, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, CompilationFinishModules, CompilationParams,
@@ -205,18 +204,6 @@ impl JavascriptModulesPluginPlugin for AssignLibraryJavascriptModulesPluginPlugi
       .unwrap_or_default();
     if matches!(self.options.unnamed, Unnamed::Static) {
       let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
-      if let Some(analyze_results) = args
-        .compilation
-        .optimize_analyze_result_map()
-        .get(&args.module)
-      {
-        for info in analyze_results.ordered_exports() {
-          let name_access = property_access(&vec![info.name], 0);
-          source.add(RawSource::from(format!(
-            "{export_target}{name_access} = __webpack_exports__{export_access}{name_access};\n",
-          )));
-        }
-      }
       source.add(RawSource::from(format!(
         "Object.defineProperty({export_target}, '__esModule', {{ value: true }});\n",
       )));

@@ -164,10 +164,6 @@ export class NormalProcessor<
 					// backCompat: false,
 					// CHANGE: Rspack enables `css` by default.
 					// Turning off here to fallback to webpack's default css processing logic.
-					// @ts-ignore
-					rspackFuture: testConfig?.experiments?.rspackFuture ?? {
-						newTreeshaking: true
-					},
 					css: false,
 					...(compilerOptions?.module ? { outputModule: true } : {})
 				}
