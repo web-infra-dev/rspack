@@ -11,7 +11,7 @@
 ## latest 的全量发布
 
 [全量发布工作流](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml?query=is%3Asuccess)
-目前在每个周二被手动触发，配合全量发布的通知。
+目前在每个周二被手动触发，配合全量发布的 release notes。
 
 下面的 9 个目标产物会被构建
 
