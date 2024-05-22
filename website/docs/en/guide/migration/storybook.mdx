@@ -1,23 +1,22 @@
+import { PackageManagerTabs } from '@theme';
+
 # Migrating Storybook
 
-If you are using React / Vue with [Storybook 8.0](https://storybook.js.org/) and building with webpack 5, you can replace the `@storybook/react-webpack5` build with [storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild), which is implemented based on Rsbuild and uses Rspack as the underlying build tool. It supports out-of-the-box use, and the documentation can be found at [storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild).
+If you are using React / Vue with [Storybook](https://storybook.js.org/) and building with webpack 5, you can replace the `@storybook/react-webpack5` build with [storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild), which is implemented based on Rsbuild and uses Rspack as the underlying bundler. It supports out-of-the-box use, and the documentation can be found at [storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild).
 
 Next, we will take React as an example to introduce how to migrate a Storybook webpack 5 project. The migration steps for Vue projects are similar to React.
 
+:::info
+
+Storybook Rsbuild requires at least version 8.0 of Storybook. It's highly recommended to upgrade Storybook to the latest version, check Storybook 8's [release note](https://storybook.js.org/blog/storybook-8/) for detail changes and migration guide.
+
+:::
+
 ## Update Dependencies
 
-First, add the [`storybook-react-rsbuild`](https://www.npmjs.com/package/storybook-react-rsbuild) dependency (for Vue projects, use [`storybook-vue3-rsbuild`](https://www.npmjs.com/package/storybook-vue3-rsbuild)) and replace the `@storybook/react-webpack5` dependency with `@rsbuild/core` and `@rsbuild/plugin-react` (for Vue projects, use `@rsbuild/plugin-vue`).
+First, replace `@storybook/react-webpack5` with [`storybook-react-rsbuild`](https://www.npmjs.com/package/storybook-react-rsbuild) (for Vue projects, use [`storybook-vue3-rsbuild`](https://www.npmjs.com/package/storybook-vue3-rsbuild)), add `@rsbuild/core` and `@rsbuild/plugin-react` (for Vue projects, use `@rsbuild/plugin-vue`).
 
-```diff title=package.json
-{
-  "devDependencies": {
--   "@storybook/react-webpack5": "^8"
-+   "storybook-react-rsbuild": "latest",
-+   "@rsbuild/core": "latest"
-+   "@rsbuild/plugin-react": "latest",
-  }
-}
-```
+<PackageManagerTabs command="install storybook-react-rsbuild @rsbuild/core @rsbuild/plugin-react -D" />
 
 ## Configure Rsbuild
 
