@@ -55,6 +55,7 @@ export * from "./RealContentHashPlugin";
 export * from "./RemoveEmptyChunksPlugin";
 export * from "./RSCClientEntryRspackPlugin";
 export * from "./RSCClientReferenceManifestRspackPlugin";
+export * from "./RSCProxyRspackPlugin";
 export * from "./RuntimeChunkPlugin";
 export * from "./RuntimePlugin";
 export * from "./SideEffectsFlagPlugin";

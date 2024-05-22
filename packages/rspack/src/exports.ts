@@ -272,8 +272,8 @@ export { EvalDevToolModulePlugin } from "./builtin-plugin";
 export { CssExtractRspackPlugin } from "./builtin-plugin";
 export { ContextReplacementPlugin } from "./builtin-plugin";
 export { RSCClientEntryRspackPlugin } from "./builtin-plugin";
+export { RSCProxyRspackPlugin } from "./builtin-plugin";
 export { RSCClientReferenceManifestRspackPlugin } from "./builtin-plugin";
-export { RSCServerReferenceManifestRspackPlugin } from "./builtin-plugin";
 
 ///// Rspack Postfixed Internal Loaders /////
 export type {

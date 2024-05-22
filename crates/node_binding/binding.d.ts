@@ -366,7 +366,8 @@ export declare enum BuiltinPluginName {
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
   RSCClientEntryRspackPlugin = 'RSCClientEntryRspackPlugin',
-  RSCClientReferenceManifestRspackPlugin = 'RSCClientReferenceManifestRspackPlugin'
+  RSCClientReferenceManifestRspackPlugin = 'RSCClientReferenceManifestRspackPlugin',
+  RSCServerReferenceManifestRspackPlugin = 'RSCServerReferenceManifestRspackPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -1114,6 +1115,12 @@ export interface NodeFsStats {
   ctimeMs: number
   birthtimeMs: number
   size: number
+}
+export interface NodeFS {
+  writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
 }
 
 export interface PathWithInfo {
