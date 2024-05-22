@@ -28,5 +28,10 @@
     "text": "关于",
     "link": "/misc/faq",
     "activeMatch": "/misc"
+  },
+  {
+    "text": "贡献",
+    "link": "/contribute/index",
+    "activeMatch": "/contribute"
   }
 ]

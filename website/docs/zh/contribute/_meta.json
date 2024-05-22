@@ -1,0 +1,13 @@
+[
+  "index",
+  {
+    "type": "dir",
+    "name": "development",
+    "label": "开发"
+  },
+  {
+    "type": "dir",
+    "name": "architecture",
+    "label": "架构"
+  }
+]
