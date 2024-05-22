@@ -1,6 +1,6 @@
 # Debugging
 
-## 通过 VSCode 调试
+## 通过 VS Code 调试
 
 1. 安装 `go install github.com/go-delve/delve/cmd/dlv@latest`
 2. 安装 VSCode 扩展 [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer) 和 [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb)
