@@ -108,7 +108,7 @@ npm run build:binding:debug
 npm run build:js
 ```
 
-### Configure `launch.json` in VSCode
+### Configure `launch.json` in VS Code
 
 It's necessary to configure two debug configurations within in `.vscode/launch.json.`
 
