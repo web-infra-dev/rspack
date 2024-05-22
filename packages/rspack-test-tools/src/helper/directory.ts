@@ -17,11 +17,13 @@ export function describeByWalk(
 		source?: string;
 		dist?: string;
 		absoluteDist?: boolean;
+		describe?: jest.Describe;
 	} = {}
 ) {
+	const describeFn = options.describe || describe;
 	const testBasename = path
 		.basename(testFile)
-		.replace(/\.(diff|hot)?test\.js/, "");
+		.replace(/\.(diff|hot)?test\.(j|t)s/, "");
 	const testId = testBasename.charAt(0).toLowerCase() + testBasename.slice(1);
 	const sourceBase =
 		options.source || path.join(path.dirname(testFile), `${testId}Cases`);
@@ -51,7 +53,7 @@ export function describeByWalk(
 					const name = escapeSep(
 						path.join(testId, caseName).split(".").shift()!
 					);
-					describe(name, () => {
+					describeFn(name, () => {
 						let source = path.join(sourceBase, caseName);
 						let dist = "";
 						if (absoluteDist) {
@@ -70,7 +72,7 @@ export function describeByWalk(
 			});
 	}
 
-	describe(testId, () => {
+	describeFn(testId, () => {
 		describeDirectory("", level);
 	});
 }

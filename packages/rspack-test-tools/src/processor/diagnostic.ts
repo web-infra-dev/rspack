@@ -24,7 +24,7 @@ declare var global: {
 };
 
 export interface IDiagnosticProcessorOptions<T extends ECompilerType>
-	extends Omit<IBasicProcessorOptions<T>, "defaultOptions" | "runable"> {
+	extends Omit<IBasicProcessorOptions<T>, "runable"> {
 	snapshot: string;
 }
 

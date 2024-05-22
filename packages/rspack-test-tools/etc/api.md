@@ -180,6 +180,7 @@ export function describeByWalk(testFile: string, createCase: (name: string, src:
     source?: string;
     dist?: string;
     absoluteDist?: boolean;
+    describe?: jest.Describe;
 }): void;
 
 // @public (undocumented)
@@ -447,7 +448,7 @@ export interface IBasicProcessorOptions<T extends ECompilerType> {
 }
 
 // @public (undocumented)
-export interface IBuiltinProcessorOptions<T extends ECompilerType> extends Omit<ISnapshotProcessorOptions<T>, "defaultOptions" | "runable"> {
+export interface IBuiltinProcessorOptions<T extends ECompilerType> extends Omit<ISnapshotProcessorOptions<T>, "runable"> {
 }
 
 // @public (undocumented)
@@ -467,7 +468,7 @@ export interface ICompareOptions {
 }
 
 // @public (undocumented)
-export interface IConfigProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "defaultOptions" | "overrideOptions" | "findBundle"> {
+export interface IConfigProcessorOptions<T extends ECompilerType> extends IMultiTaskProcessorOptions<T> {
 }
 
 // @public (undocumented)
@@ -485,7 +486,7 @@ export interface IDefaultsConfigProcessorOptions<T extends ECompilerType> {
 }
 
 // @public (undocumented)
-export interface IDiagnosticProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "defaultOptions" | "runable"> {
+export interface IDiagnosticProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
     // (undocumented)
     snapshot: string;
 }
@@ -591,11 +592,11 @@ export interface IFormatCodeOptions {
 }
 
 // @public (undocumented)
-export interface IHashProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "defaultOptions" | "overrideOptions" | "runable"> {
+export interface IHashProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {
 }
 
 // @public (undocumented)
-export interface IHookProcessorOptions<T extends ECompilerType> extends Omit<ISnapshotProcessorOptions<T>, "defaultOptions"> {
+export interface IHookProcessorOptions<T extends ECompilerType> extends ISnapshotProcessorOptions<T> {
     // (undocumented)
     check?: (context: ITestContext) => Promise<void>;
     // (undocumented)
@@ -605,7 +606,7 @@ export interface IHookProcessorOptions<T extends ECompilerType> extends Omit<ISn
 }
 
 // @public (undocumented)
-export interface IHotProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "defaultOptions" | "overrideOptions" | "runable" | "findBundle"> {
+export interface IHotProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
     // (undocumented)
     target: TCompilerOptions<T>["target"];
 }
@@ -679,7 +680,7 @@ export interface IStatsAPIProcessorOptions<T extends ECompilerType> {
 }
 
 // @public (undocumented)
-export interface IStatsProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "defaultOptions" | "overrideOptions" | "runable"> {
+export interface IStatsProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {
 }
 
 // @public (undocumented)
@@ -842,7 +843,7 @@ export interface ITestRunner {
 }
 
 // @public (undocumented)
-export interface IWatchProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "overrideOptinos" | "findBundle"> {
+export interface IWatchProcessorOptions<T extends ECompilerType> extends IMultiTaskProcessorOptions<T> {
     // (undocumented)
     experiments?: TRspackExperiments;
     // (undocumented)

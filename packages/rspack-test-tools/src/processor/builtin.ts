@@ -6,7 +6,7 @@ import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
 import { ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
 export interface IBuiltinProcessorOptions<T extends ECompilerType>
-	extends Omit<ISnapshotProcessorOptions<T>, "defaultOptions" | "runable"> {}
+	extends Omit<ISnapshotProcessorOptions<T>, "runable"> {}
 
 export class BuiltinProcessor<
 	T extends ECompilerType
