@@ -16,23 +16,24 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
-import { Compiler } from "../Compiler";
-import { NormalModule } from "../NormalModule";
 import { Compilation } from "../Compilation";
+import { Compiler } from "../Compiler";
 import {
-	LoaderContext,
-	LoaderObject,
 	isUseSimpleSourceMap,
-	isUseSourceMap
+	isUseSourceMap,
+	LoaderContext,
+	LoaderObject
 } from "../config/adapterRuleUse";
+import { NormalModule } from "../NormalModule";
 import {
 	concatErrorMsgAndStack,
 	isNil,
 	serializeObject,
+	stringifyLoaderObject,
 	toBuffer,
-	toObject,
-	stringifyLoaderObject
+	toObject
 } from "../util";
+import { createHash } from "../util/createHash";
 import {
 	absolutify,
 	contextify,
@@ -40,7 +41,6 @@ import {
 	parseResourceWithoutFragment
 } from "../util/identifier";
 import { memoize } from "../util/memoize";
-import { createHash } from "../util/createHash";
 import loadLoader = require("./loadLoader");
 const querystring = require("node:querystring");
 

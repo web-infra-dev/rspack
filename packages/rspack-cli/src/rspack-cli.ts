@@ -1,31 +1,32 @@
+import type { RspackPluginFunction, RspackPluginInstance } from "@rspack/core";
+import {
+	Compiler,
+	MultiCompiler,
+	MultiRspackOptions,
+	MultiStats,
+	rspack,
+	RspackOptions,
+	Stats
+} from "@rspack/core";
+import * as rspackCore from "@rspack/core";
+import path from "path";
 import semver from "semver";
-import { hideBin } from "yargs/helpers";
-import yargs from "yargs";
 import util from "util";
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
+
+import { BuildCommand } from "./commands/build";
+import { PreviewCommand } from "./commands/preview";
+import { ServeCommand } from "./commands/serve";
 import {
 	RspackBuildCLIOptions,
 	RspackCLIColors,
 	RspackCLILogger,
 	RspackCLIOptions
 } from "./types";
-import { BuildCommand } from "./commands/build";
-import { ServeCommand } from "./commands/serve";
-import { PreviewCommand } from "./commands/preview";
-import {
-	RspackOptions,
-	MultiCompiler,
-	rspack,
-	MultiRspackOptions,
-	Stats,
-	MultiStats,
-	Compiler
-} from "@rspack/core";
-import { normalizeEnv } from "./utils/options";
-import { LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig";
 import findConfig from "./utils/findConfig";
-import type { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
-import * as rspackCore from "@rspack/core";
-import path from "path";
+import { LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig";
+import { normalizeEnv } from "./utils/options";
 
 type Command = "serve" | "build";
 
@@ -175,7 +176,6 @@ export class RspackCLI {
 			if (typeof item.devtool === "undefined") {
 				item.devtool = isBuild ? "source-map" : "cheap-module-source-map";
 			}
-			item.builtins = item.builtins || {};
 			if (isServe) {
 				let installed = (item.plugins ||= []).find(
 					item => item instanceof rspackCore.ProgressPlugin
@@ -183,22 +183,6 @@ export class RspackCLI {
 				if (!installed) {
 					(item.plugins ??= []).push(new rspackCore.ProgressPlugin());
 				}
-			}
-
-			// Tells webpack to set process.env.NODE_ENV to a given string value.
-			// optimization.nodeEnv uses DefinePlugin unless set to false.
-			// optimization.nodeEnv defaults to mode if set, else falls back to 'production'.
-			// See doc: https://webpack.js.org/configuration/optimization/#optimizationnodeenv
-			// See source: https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/WebpackOptionsApply.js#L563
-
-			// When mode is set to 'none', optimization.nodeEnv defaults to false.
-			if (item.mode !== "none") {
-				(item.plugins ||= []).push(
-					new rspackCore.DefinePlugin({
-						// User defined `process.env.NODE_ENV` always has highest priority than default define
-						"process.env.NODE_ENV": JSON.stringify(item.mode)
-					})
-				);
 			}
 
 			if (typeof item.stats === "undefined") {

@@ -1,0 +1,19 @@
+```js title=main.js
+"use strict";
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _data_txt__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./data.txt");
+
+console.log(_data_txt__WEBPACK_IMPORTED_MODULE_0__);
+}),
+"./data.txt": (function (module) {
+module.exports = "- Isn't Rspack a gamechanging bundler?\n  - Hella yeah!";}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

@@ -31,7 +31,6 @@ pub struct ParseContext<'a> {
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
   pub additional_data: AdditionalData,
-  pub code_generation_dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
 }
@@ -67,6 +66,7 @@ pub struct ParseResult {
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<AsyncDependenciesBlock>,
   pub presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
+  pub code_generation_dependencies: Vec<Box<dyn ModuleDependency>>,
   pub source: BoxSource,
   pub analyze_result: OptimizeAnalyzeResult,
   pub side_effects_bailout: Option<SideEffectsBailoutItem>,

@@ -244,3 +244,17 @@ pub struct ScopeInfo {
   map: FxHashMap<String, VariableInfoId>,
   pub is_strict: bool,
 }
+
+impl ScopeInfo {
+  pub fn variable_map(&self) -> &FxHashMap<String, VariableInfoId> {
+    &self.map
+  }
+
+  pub fn variables(&self) -> impl Iterator<Item = (&str, &VariableInfoId)> {
+    self
+      .map
+      .iter()
+      .filter(|(_, &info_id)| info_id != VariableInfo::TOMBSTONE)
+      .map(|(name, info_id)| (name.as_str(), info_id))
+  }
+}

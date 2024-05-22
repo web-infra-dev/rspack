@@ -1,16 +1,18 @@
-import {
-	ECompilerType,
-	ITestContext,
-	ITestProcessor,
-	ITester,
-	TRunnerFactory,
-	TTestConfig
-} from "../type";
 import fs from "fs";
 import path from "path";
 import rimraf from "rimraf";
-import { Tester } from "./tester";
+
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
+import {
+	ECompilerType,
+	ITestContext,
+	ITestEnv,
+	ITester,
+	ITestProcessor,
+	TRunnerFactory,
+	TTestConfig
+} from "../type";
+import { Tester } from "./tester";
 
 export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
 	clean?: boolean;
@@ -87,11 +89,12 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		});
 	}
 
-	protected createEnv(testConfig: TTestConfig<T>) {
+	protected createEnv(testConfig: TTestConfig<T>): ITestEnv {
 		if (typeof this._options.runner === "function" && !testConfig.noTest) {
 			return createLazyTestEnv(10000);
 		} else {
 			return {
+				expect,
 				it,
 				beforeEach,
 				afterEach

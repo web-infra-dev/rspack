@@ -11,7 +11,11 @@
   "terser-webpack-plugin-desc": "使用 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 替代",
   "tsconfig-paths-webpack-plugin-desc": "使用 [resolve.tsconfigPath](/config/resolve#resolvetsconfigpath) 替代",
   "case-sensitive-paths-webpack-plugin-desc": "不支持 `useBeforeEmitHook` 选项",
+  "moment-locales-webpack-plugin-desc": "在 v0.7.0 已实现对该插件的支持，请升级 Rspack 版本来使用",
+  "image-minimizer-webpack-plugin-desc": "仅支持 [loader](https://www.npmjs.com/package/image-minimizer-webpack-plugin#standalone-loader) 用法",
   "resolve-plugin-un-support-desc": "不支持 `resolve.plugins`",
   "webpack-virtual-modules-desc": "使用 [rspack-plugin-virtual-module](https://github.com/rspack-contrib/rspack-plugins/tree/main/packages/plugin-virtual-module) 替代",
-  "webpack-manifest-plugin-desc": "使用 [rspack-manifest-plugin](https://github.com/rspack-contrib/rspack-manifest-plugin) 替代"
+  "webpack-manifest-plugin-desc": "使用 [rspack-manifest-plugin](https://github.com/rspack-contrib/rspack-manifest-plugin) 替代",
+  "workbox-webpack-plugin-desc": "使用 [@aaroon/workbox-rspack-plugin](https://github.com/Clarkkkk/workbox-rspack-plugin) 替代",
+  "react-refresh-webpack-plugin-desc": "使用 [@rspack/plugin-react-refresh](/guide/tech/react#rspackplugin-react-refresh) 替代"
 }

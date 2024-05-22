@@ -2,12 +2,12 @@
 
 const path = require("path");
 
-module.exports = ({ outputDirectory }) =>
+module.exports = (env, { outputDirectory }) =>
 	class Worker {
 		constructor(url, options = {}) {
-			expect(url).toBeInstanceOf(URL);
-			expect(url.origin).toBe("https://test.cases");
-			expect(url.pathname.startsWith("/path/")).toBe(true);
+			env.expect(url).toBeInstanceOf(URL);
+			env.expect(url.origin).toBe("https://test.cases");
+			env.expect(url.pathname.startsWith("/path/")).toBe(true);
 			this.url = url;
 			const file = url.pathname.slice(6);
 			const workerBootstrap = `
@@ -61,7 +61,6 @@ self.postMessage = data => {
 };
 require(${JSON.stringify(path.resolve(outputDirectory, file))});
 `;
-			// eslint-disable-next-line n/no-unsupported-features/node-builtins
 			this.worker = new (require("worker_threads").Worker)(workerBootstrap, {
 				eval: true
 			});

@@ -5,8 +5,6 @@ use rspack_core::rspack_sources::{
   BoxSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
   SourceMapSource, SourceMapSourceOptions,
 };
-use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
-use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
   render_init_fragments, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph,
@@ -122,6 +120,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             dependencies: vec![],
             blocks: vec![],
             presentational_dependencies: vec![],
+            code_generation_dependencies: vec![],
             analyze_result: Default::default(),
             side_effects_bailout: None,
           }
@@ -151,7 +150,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .0
       };
 
-    run_before_pass(&mut ast, compiler_options)?;
+    run_before_pass(&mut ast, compiler_options, &mut diagnostics)?;
 
     let output: crate::TransformOutput = crate::ast::stringify(
       &ast,
@@ -214,26 +213,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     };
     diagnostics.append(&mut warning_diagnostics);
     let mut side_effects_bailout = None;
-    let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
-      let mut all_dependencies = dependencies.clone();
-      for mut block in blocks.clone() {
-        all_dependencies.extend(block.take_dependencies());
-      }
-      JsModule::new(
-        &ast,
-        &worker_syntax_list,
-        &all_dependencies,
-        module_identifier,
-        compiler_options,
-      )
-      .analyze()
-    } else {
-      OptimizeAnalyzeResult::default()
-    };
+    let analyze_result = OptimizeAnalyzeResult::default();
 
-    if compiler_options.is_new_tree_shaking()
-      && compiler_options.optimization.side_effects.is_true()
-    {
+    if compiler_options.optimization.side_effects.is_true() {
       ast.transform(|program, context| {
         let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
         let mut visitor = SideEffectsFlagPluginVisitor::new(
@@ -253,28 +235,27 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       });
     }
 
-    let inner_graph =
-      if compiler_options.is_new_tree_shaking() && compiler_options.optimization.inner_graph {
-        ast.transform(|program, context| {
-          let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
-          let top_level_ctxt = SyntaxContext::empty().apply_mark(context.top_level_mark);
-          let mut plugin = InnerGraphPlugin::new(
-            &mut dependencies,
-            unresolved_ctxt,
-            top_level_ctxt,
-            &mut usage_span_record,
-            &import_map,
-            module_identifier,
-            program.comments.take(),
-          );
-          plugin.enable();
-          program.visit_with(&mut plugin);
-          program.comments = plugin.comments.take();
-          Some(plugin)
-        })
-      } else {
-        None
-      };
+    let inner_graph = if compiler_options.optimization.inner_graph {
+      ast.transform(|program, context| {
+        let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
+        let top_level_ctxt = SyntaxContext::empty().apply_mark(context.top_level_mark);
+        let mut plugin = InnerGraphPlugin::new(
+          &mut dependencies,
+          unresolved_ctxt,
+          top_level_ctxt,
+          &mut usage_span_record,
+          &import_map,
+          module_identifier,
+          program.comments.take(),
+        );
+        plugin.enable();
+        program.visit_with(&mut plugin);
+        program.comments = plugin.comments.take();
+        Some(plugin)
+      })
+    } else {
+      None
+    };
 
     let source = if let Some(map) = output.map {
       SourceMapSource::new(SourceMapSourceOptions {
@@ -308,6 +289,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         dependencies,
         blocks,
         presentational_dependencies,
+        code_generation_dependencies: vec![],
         analyze_result,
         side_effects_bailout,
       }

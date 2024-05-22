@@ -10,16 +10,13 @@ use sugar_path::SugarPath;
 use swc_core::common::Span;
 
 use crate::{
-  cache::Cache,
-  diagnostics::EmptyDependency,
-  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
-  tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
-  BoxLoader, BoxModule, CompilerContext, CompilerOptions, Context, DependencyCategory, FactoryMeta,
-  FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
-  ModuleRuleUseLoader, ModuleType, NormalModule, ParserOptions, RawModule, Resolve, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
-  ResourceParsedData, SharedPluginDriver,
+  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
+  stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerContext, CompilerOptions, Context,
+  DependencyCategory, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserOptions, RawModule, Resolve,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
@@ -50,7 +47,6 @@ pub struct NormalModuleFactory {
   options: Arc<CompilerOptions>,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
-  cache: Arc<Cache>,
 }
 
 #[async_trait::async_trait]
@@ -83,13 +79,11 @@ impl NormalModuleFactory {
     options: Arc<CompilerOptions>,
     loader_resolver_factory: Arc<ResolverFactory>,
     plugin_driver: SharedPluginDriver,
-    cache: Arc<Cache>,
   ) -> Self {
     Self {
       options,
       loader_resolver_factory,
       plugin_driver,
-      cache,
     }
   }
 
@@ -150,7 +144,7 @@ impl NormalModuleFactory {
     let mut no_pre_post_auto_loaders = false;
 
     // with scheme, windows absolute path is considered scheme by `url`
-    let (resource_data, from_cache) = if scheme != Scheme::None
+    let resource_data = if scheme != Scheme::None
       && !Path::is_absolute(Path::new(request_without_match_resource))
     {
       let mut resource_data =
@@ -161,7 +155,7 @@ impl NormalModuleFactory {
         .resolve_for_scheme
         .call(data, &mut resource_data)
         .await?;
-      (resource_data, false)
+      resource_data
     }
     // TODO: resource within scheme, call resolveInScheme hook
     else {
@@ -272,10 +266,9 @@ impl NormalModuleFactory {
           query,
           fragment,
         } = parse_resource(request_without_match_resource).expect("Should parse resource");
-        let resource_data = ResourceData::new(request_without_match_resource.to_string(), path)
+        ResourceData::new(request_without_match_resource.to_string(), path)
           .query_optional(query)
-          .fragment_optional(fragment);
-        (resource_data, false)
+          .fragment_optional(fragment)
       } else {
         let optional = dependency.get_optional();
 
@@ -301,26 +294,15 @@ impl NormalModuleFactory {
         };
 
         // default resolve
-        let (resource_data, from_cache) = match self
-          .cache
-          .resolve_module_occasion
-          .use_cache(resolve_args, |args| resolve(args, plugin_driver))
-          .await
-        {
-          Ok(result) => result,
-          Err(err) => (Err(err), false),
-        };
+        let resource_data = resolve(resolve_args, plugin_driver).await;
 
         match resource_data {
           Ok(ResolveResult::Resource(resource)) => {
             let uri = resource.full_path().display().to_string();
-            (
-              ResourceData::new(uri, resource.path)
-                .query(resource.query)
-                .fragment(resource.fragment)
-                .description_optional(resource.description_data),
-              from_cache,
-            )
+            ResourceData::new(uri, resource.path)
+              .query(resource.query)
+              .fragment(resource.fragment)
+              .description_optional(resource.description_data)
           }
           Ok(ResolveResult::Ignored) => {
             let ident = format!("{}/{}", &data.context, request_without_match_resource);
@@ -334,9 +316,7 @@ impl NormalModuleFactory {
             )
             .boxed();
 
-            return Ok(Some(
-              ModuleFactoryResult::new_with_module(raw_module).from_cache(from_cache),
-            ));
+            return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
           }
           Err(err) => {
             data.add_file_dependencies(file_dependencies);
@@ -517,9 +497,6 @@ impl NormalModuleFactory {
       resolved_generator_options.as_ref(),
     );
 
-    let resource_path = resource_data.resource_path.clone();
-    let resource_description = resource_data.resource_description.clone();
-
     let mut create_data = {
       let mut create_data = NormalModuleCreateData {
         raw_request,
@@ -583,31 +560,7 @@ impl NormalModuleFactory {
     data.add_file_dependency(file_dependency);
     data.add_missing_dependencies(missing_dependencies);
 
-    // Compat for old tree shaking
-    if !self.options.is_new_tree_shaking() {
-      if resolved_side_effects.is_some() {
-        module.set_factory_meta(FactoryMeta {
-          side_effect_free: None,
-          side_effect_free_old: resolved_side_effects.map(|has_side_effects| !has_side_effects),
-        })
-      } else if let Some(description) = resource_description.as_ref()
-        && let Some(side_effects) = SideEffects::from_description(description.json())
-      {
-        let package_path = description.path();
-        let relative_path = resource_path.relative(package_path);
-        module.set_factory_meta(FactoryMeta {
-          side_effect_free: None,
-          side_effect_free_old: Some(!get_side_effects_from_package_json(
-            side_effects,
-            relative_path,
-          )),
-        })
-      }
-    }
-
-    Ok(Some(
-      ModuleFactoryResult::new_with_module(module).from_cache(from_cache),
-    ))
+    Ok(Some(ModuleFactoryResult::new_with_module(module)))
   }
 
   async fn calculate_module_rules<'a>(

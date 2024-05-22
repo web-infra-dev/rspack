@@ -1,13 +1,14 @@
-import { ECompilerType } from "../../../type";
-import { IBasicRunnerOptions } from "../basic";
-import { TBasicRunnerFile, TRunnerRequirer } from "../../type";
-import FakeDocument, { FakeElement } from "../../../helper/legacy/FakeDocument";
-import CurrentScript from "../../../helper/legacy/currentScript";
-import createFakeWorker from "../../../helper/legacy/createFakeWorker";
-import path from "path";
 import fs from "fs";
-import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
+import path from "path";
+
+import createFakeWorker from "../../../helper/legacy/createFakeWorker";
+import CurrentScript from "../../../helper/legacy/currentScript";
 import EventSource from "../../../helper/legacy/EventSourceForNode";
+import FakeDocument, { FakeElement } from "../../../helper/legacy/FakeDocument";
+import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
+import { ECompilerType } from "../../../type";
+import { TBasicRunnerFile, TRunnerRequirer } from "../../type";
+import { IBasicRunnerOptions } from "../basic";
 import { CommonJsRunner } from "../cjs";
 
 export class FakeDocumentWebRunner<
@@ -72,11 +73,11 @@ export class FakeDocumentWebRunner<
 			}
 		};
 		globalContext["importScripts"] = (url: string) => {
-			expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
+			this._options.env.expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 			this.requirers.get("entry")!(this._options.dist, urlToRelativePath(url));
 		};
 		globalContext["document"] = this.document;
-		globalContext["Worker"] = createFakeWorker({
+		globalContext["Worker"] = createFakeWorker(this._options.env, {
 			outputDirectory: this._options.dist
 		});
 		globalContext["EventSource"] = EventSource;
@@ -97,7 +98,7 @@ export class FakeDocumentWebRunner<
 	) {
 		const subModuleScope = super.createModuleScope(requireFn, m, file);
 		subModuleScope["importScripts"] = (url: string) => {
-			expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
+			this._options.env.expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 			this.getRequire()(
 				this._options.dist,
 				`.${url.slice("https://test.cases/path".length)}`
@@ -117,7 +118,7 @@ export class FakeDocumentWebRunner<
 		moduleScope["Worker"] = this.globalContext!["Worker"];
 		moduleScope["EventSource"] = this.globalContext!["EventSource"];
 		moduleScope["URL"] = URL;
-		moduleScope["Worker"] = createFakeWorker({
+		moduleScope["Worker"] = createFakeWorker(this._options.env, {
 			outputDirectory: this._options.dist
 		});
 		moduleScope["__dirname"] = this._options.dist;

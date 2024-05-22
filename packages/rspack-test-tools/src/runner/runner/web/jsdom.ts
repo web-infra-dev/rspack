@@ -1,14 +1,15 @@
-import { ECompilerType } from "../../../type";
-import { IBasicRunnerOptions } from "../basic";
-import { JSDOM, VirtualConsole, ResourceLoader } from "jsdom";
-import { TRunnerRequirer } from "../../type";
-import createFakeWorker from "../../../helper/legacy/createFakeWorker";
 import fs from "fs";
+import { JSDOM, ResourceLoader, VirtualConsole } from "jsdom";
 import path from "path";
+
+import { escapeSep } from "../../../helper";
+import createFakeWorker from "../../../helper/legacy/createFakeWorker";
 import EventSource from "../../../helper/legacy/EventSourceForNode";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
+import { ECompilerType } from "../../../type";
+import { TRunnerRequirer } from "../../type";
+import { IBasicRunnerOptions } from "../basic";
 import { CommonJsRunner } from "../cjs";
-import { escapeSep } from "../../../helper";
 
 export class JSDOMWebRunner<
 	T extends ECompilerType = ECompilerType.Rspack
@@ -102,7 +103,7 @@ export class JSDOMWebRunner<
 	protected createBaseModuleScope() {
 		const moduleScope = super.createBaseModuleScope();
 		moduleScope["EventSource"] = EventSource;
-		moduleScope["Worker"] = createFakeWorker({
+		moduleScope["Worker"] = createFakeWorker(this._options.env, {
 			outputDirectory: this._options.dist
 		});
 		const urlToPath = (url: string) => {
@@ -133,7 +134,7 @@ export class JSDOMWebRunner<
 		};
 		moduleScope["URL"] = URL;
 		moduleScope["importScripts"] = (url: string) => {
-			expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
+			this._options.env.expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 			this.requirers.get("entry")!(this._options.dist, urlToRelativePath(url));
 		};
 		moduleScope["STATS"] = moduleScope.__STATS__;

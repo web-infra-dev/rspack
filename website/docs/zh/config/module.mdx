@@ -297,17 +297,19 @@ module.exports = {
         exportsConvention: 'as-is',
         exportsOnly: false,
         localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
       },
       // `css` 模块的生成器选项
       css: {
-        exportsConvention: 'as-is',
         exportsOnly: false,
+        esModule: true,
       },
       // css/module 模块的生成器选项
       'css/module': {
         exportsConvention: 'as-is',
         exportsOnly: false,
         localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
       },
     },
   },
@@ -511,6 +513,47 @@ module.exports = {
 
 自定义生成的 CSS Modules 的局部类名格式，除了在[文件级别](/config/output#file-context)和[模块级别](/config/output#module-context)的替换之外，还包括 `[uniqueName]` 和 `[local]`。
 
+#### module.generator["css/auto"].esModule
+
+<ApiMeta addedVersion="0.6.4" />
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+是否为 CSS 的导出添加 `__esModule`，如果添加则会在 esm-cjs interop 时当作 ES Module，否则当作 CommonJS Module。
+
+比如在使用第三方组件库的 cjs 产物时，有时需要添加该配置确保 esm-cjs interop 正确，以拿到正确的导出（可配合 [Rule.test](#ruletest) 等匹配条件只为该组件库添加）。
+
+组件库源码：
+
+```js
+import style from './style.css';
+export function Button() {
+  return <button className={style.btn}></button>;
+}
+```
+
+组件库发布的 cjs 产物：
+
+```js
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+  value: true,
+});
+exports.Button = Button;
+var _style = _interopRequireDefault(require('./style.css'));
+var _jsxRuntime = require('react/jsx-runtime');
+function _interopRequireDefault(obj) {
+  return obj && obj.__esModule ? obj : { default: obj };
+}
+function Button() {
+  return /*#__PURE__*/ (0, _jsxRuntime.jsx)('button', {
+    className: _style['default'].btn, // <-- 注意：这里经过 _interopRequireDefault 后需要访问 default
+  });
+}
+```
+
 ### module.generator.css
 
 `css` 模块的生成器选项。
@@ -521,7 +564,7 @@ module.exports = {
 
 #### module.generator.css.exportsConvention
 
-<ApiMeta addedVersion="0.6.0" />
+<ApiMeta addedVersion="0.6.0" removedVersion="0.7.0" />
 
 和 [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention) 一样。
 
@@ -530,6 +573,12 @@ module.exports = {
 <ApiMeta addedVersion="0.6.0" />
 
 和 [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly) 一样。
+
+#### module.generator.css.esModule
+
+<ApiMeta addedVersion="0.6.4" />
+
+和 [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule) 一样。
 
 ### module.generator["css/module"]
 
@@ -556,6 +605,12 @@ module.exports = {
 <ApiMeta addedVersion="0.6.0" />
 
 和 [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname) 一样。
+
+#### module.generator["css/module"].esModule
+
+<ApiMeta addedVersion="0.6.4" />
+
+和 [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule) 一样。
 
 ## module.rules
 

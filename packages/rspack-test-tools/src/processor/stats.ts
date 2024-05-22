@@ -1,38 +1,37 @@
 /* eslint-disable no-control-regex */
 
 import { Compiler, Stats } from "@rspack/core";
+import fs from "fs";
+import path from "path";
+
+import { escapeEOL } from "../helper";
+import captureStdio from "../helper/legacy/captureStdio";
 import {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
-	TCompilerOptions,
-	TTestConfig
+	TCompilerOptions
 } from "../type";
-import { MultiTaskProcessor } from "./multi";
-import fs from "fs";
-import path from "path";
-import captureStdio from "../helper/legacy/captureStdio";
-import { escapeEOL } from "../helper";
+import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
-export interface IRspackStatsProcessorOptions<T extends ECompilerType.Rspack> {
-	name: string;
-}
+export interface IStatsProcessorOptions<T extends ECompilerType>
+	extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {}
 
 const REG_ERROR_CASE = /error$/;
 const quoteMeta = (str: string) => {
 	return str.replace(/[-[\]\\/{}()*+?.^$|]/g, "\\$&");
 };
 
-export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspack> {
+export class StatsProcessor<
+	T extends ECompilerType
+> extends MultiTaskProcessor<T> {
 	private stderr: any;
-	constructor(options: IRspackStatsProcessorOptions<ECompilerType.Rspack>) {
+	constructor(_statsOptions: IStatsProcessorOptions<T>) {
 		super({
-			defaultOptions: RspackStatsProcessor.defaultOptions,
-			overrideOptions: RspackStatsProcessor.overrideOptions,
-			compilerType: ECompilerType.Rspack,
-			configFiles: ["rspack.config.js", "webpack.config.js"],
-			name: options.name,
-			runable: false
+			defaultOptions: StatsProcessor.defaultOptions<T>,
+			overrideOptions: StatsProcessor.overrideOptions<T>,
+			runable: false,
+			..._statsOptions
 		});
 	}
 
@@ -97,7 +96,7 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 		}
 
 		if (REG_ERROR_CASE.test(this._options.name)) {
-			expect(stats.hasErrors()).toBe(true);
+			env.expect(stats.hasErrors()).toBe(true);
 		} else if (stats.hasErrors()) {
 			throw new Error(
 				stats.toString({
@@ -140,14 +139,14 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 		for (const { compilation: s } of [].concat(
 			(stats as any).stats || stats
 		) as Stats[]) {
-			expect(s.startTime).toBeGreaterThan(0);
-			expect(s.endTime).toBeGreaterThan(0);
+			env.expect(s.startTime).toBeGreaterThan(0);
+			env.expect(s.endTime).toBeGreaterThan(0);
 			s.endTime = new Date("04/20/1970, 12:42:42 PM").getTime();
 			s.startTime = s.endTime - 1234;
 		}
 
 		let actual = stats.toString(toStringOptions);
-		expect(typeof actual).toBe("string");
+		env.expect(typeof actual).toBe("string");
 		if (!hasColorSetting) {
 			actual = this.stderr.toString() + actual;
 			actual = actual
@@ -175,23 +174,23 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 			.replace(/Rspack [^ )]+(\)?) compiled/g, "Rspack x.x.x$1 compiled")
 			.replace(
 				new RegExp(quoteMeta(testPath), "g"),
-				"Xdir/" + this._options.name
+				"Xdir/" + path.basename(this._options.name)
 			)
 			.replace(/(\w)\\(\w)/g, "$1/$2")
 			.replace(/, additional resolving: X ms/g, "")
 			.replace(/Unexpected identifier '.+?'/g, "Unexpected identifier");
-		expect(actual).toMatchSnapshot();
+		env.expect(actual).toMatchSnapshot();
 		const testConfig = context.getTestConfig();
 		if (typeof testConfig?.validate === "function") {
 			testConfig.validate(stats, this.stderr.toString());
 		}
 	}
 
-	static defaultOptions(
+	static defaultOptions<T extends ECompilerType>(
 		index: number,
 		context: ITestContext
-	): TCompilerOptions<ECompilerType.Rspack> {
-		if (fs.existsSync(path.join(context.getSource(), "webpack.config.js"))) {
+	): TCompilerOptions<T> {
+		if (fs.existsSync(path.join(context.getSource(), "rspack.config.js"))) {
 			return {};
 		}
 		return {
@@ -207,10 +206,10 @@ export class RspackStatsProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 			}
 		};
 	}
-	static overrideOptions(
+	static overrideOptions<T extends ECompilerType>(
 		index: number,
 		context: ITestContext,
-		options: TCompilerOptions<ECompilerType.Rspack>
+		options: TCompilerOptions<T>
 	): void {
 		if (!options.context) options.context = context.getSource();
 		if (!options.output) options.output = options.output || {};

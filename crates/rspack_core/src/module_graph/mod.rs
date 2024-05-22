@@ -782,21 +782,15 @@ impl<'a> ModuleGraph<'a> {
     original_module_identifier: Option<ModuleIdentifier>,
     dependency_id: DependencyId,
     module_identifier: ModuleIdentifier,
-    // TODO: removed when new treeshaking is stable
-    is_new_treeshaking: bool,
   ) -> Result<()> {
     let dependency = self
       .dependency_by_id(&dependency_id)
       .expect("should have dependency");
     let is_module_dependency =
       dependency.as_module_dependency().is_some() || dependency.as_context_dependency().is_some();
-    let condition = if is_new_treeshaking {
-      dependency
-        .as_module_dependency()
-        .and_then(|dep| dep.get_condition())
-    } else {
-      None
-    };
+    let condition = dependency
+      .as_module_dependency()
+      .and_then(|dep| dep.get_condition());
     let Some(active_partial) = &mut self.active else {
       panic!("should have active partial");
     };
@@ -828,6 +822,20 @@ impl<'a> ModuleGraph<'a> {
   /// Uniquely identify a module by its identifier and return the aliased reference
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
     self.loop_partials(|p| p.modules.get(identifier))?.as_ref()
+  }
+
+  pub fn module_by_identifier_mut(
+    &mut self,
+    identifier: &ModuleIdentifier,
+  ) -> Option<&mut BoxModule> {
+    let Some(active_partial) = &mut self.active else {
+      panic!("should have active partial");
+    };
+    if let Some(res) = active_partial.modules.get_mut(identifier) {
+      res.as_mut()
+    } else {
+      panic!("can not find module in active_partial")
+    }
   }
 
   /// Aggregate function which combine `get_normal_module_by_identifier`, `as_normal_module`, `get_resource_resolved_data`
@@ -913,24 +921,6 @@ impl<'a> ModuleGraph<'a> {
           .filter_map(|dep_id| self.connection_id_by_dependency_id(dep_id))
           .collect()
       })
-  }
-
-  /// # Deprecated!!!
-  /// # Don't use this anymore!!!
-  /// A module is a DependenciesBlock, which means it has some Dependencies and some AsyncDependenciesBlocks
-  /// a static import is a Dependency, but a dynamic import is a AsyncDependenciesBlock
-  /// AsyncDependenciesBlock means it is a code-splitting point, and will create a ChunkGroup in code-splitting
-  /// and AsyncDependenciesBlock also is DependenciesBlock, so it can has some Dependencies and some AsyncDependenciesBlocks
-  /// so if you want get a module's dependencies and its blocks' dependencies (all dependencies)
-  /// just use module.get_dependencies() and module.get_blocks().map(|b| b.get_dependencyes())
-  /// you don't need this one
-  pub(crate) fn get_module_all_dependencies(
-    &self,
-    module_identifier: &ModuleIdentifier,
-  ) -> Option<&[DependencyId]> {
-    self
-      .module_graph_module_by_identifier(module_identifier)
-      .map(|m| &*m.__deprecated_all_dependencies)
   }
 
   pub fn parent_module_by_dependency_id(

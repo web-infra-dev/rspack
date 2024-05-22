@@ -3,8 +3,9 @@ import {
 	type JsChunkGroup,
 	type JsCompilation
 } from "@rspack/binding";
-import { ChunkGroup } from "./ChunkGroup";
+
 import { Chunk } from "./Chunk";
+import { ChunkGroup } from "./ChunkGroup";
 
 export class Entrypoint extends ChunkGroup {
 	static __from_binding(chunk: JsChunkGroup, compilation: JsCompilation) {

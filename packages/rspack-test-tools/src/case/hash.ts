@@ -1,6 +1,12 @@
-import { ECompilerType, ITester, TTestConfig } from "../type";
-import { RspackHashProcessor } from "../processor";
+import { HashProcessor } from "../processor";
 import { BasicCaseCreator } from "../test/creator";
+import { ECompilerType, ITester, TTestConfig } from "../type";
+
+export type THashCaseConfig = Pick<
+	TTestConfig<ECompilerType.Rspack>,
+	"validate"
+>;
+
 class HashCaseCreator<T extends ECompilerType> extends BasicCaseCreator<T> {
 	protected describe(
 		name: string,
@@ -20,8 +26,10 @@ const creator = new HashCaseCreator({
 	clean: true,
 	describe: false,
 	steps: ({ name }) => [
-		new RspackHashProcessor({
-			name
+		new HashProcessor({
+			name,
+			compilerType: ECompilerType.Rspack,
+			configFiles: ["rspack.config.js", "webpack.config.js"]
 		})
 	]
 });

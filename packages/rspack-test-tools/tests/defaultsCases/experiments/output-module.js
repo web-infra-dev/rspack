@@ -16,6 +16,14 @@ module.exports = {
 		-     "chunkFilename": "[name].js",
 		+     "chunkFilename": "[name].mjs",
 		@@ ... @@
+		-       "dynamicImport": undefined,
+		-       "dynamicImportInWorker": undefined,
+		+       "dynamicImport": true,
+		+       "dynamicImportInWorker": true,
+		@@ ... @@
+		-       "module": undefined,
+		+       "module": true,
+		@@ ... @@
 		-     "filename": "[name].js",
 		+     "filename": "[name].mjs",
 		@@ ... @@

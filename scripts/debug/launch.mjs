@@ -1,5 +1,6 @@
-import chalk from "chalk";
 import { fileURLToPath } from "node:url";
+
+import chalk from "chalk";
 
 const { yellow } = chalk;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

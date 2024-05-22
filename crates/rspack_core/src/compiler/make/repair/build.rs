@@ -38,58 +38,45 @@ impl Task<MakeTaskContext> for BuildTask {
       current_profile.mark_building_start();
     }
 
-    let (build_result, is_cache_valid) = cache
-      .build_module_occasion
-      .use_cache(&mut module, |module| async {
-        plugin_driver
-          .compilation_hooks
-          .build_module
-          .call(module)
-          .await?;
-
-        let result = module
-          .build(
-            BuildContext {
-              compiler_context: CompilerContext {
-                options: compiler_options.clone(),
-                resolver_factory: resolver_factory.clone(),
-                module: module.identifier(),
-                module_context: module.as_normal_module().and_then(|m| m.get_context()),
-                module_source_map_kind: *module.get_source_map_kind(),
-                plugin_driver: plugin_driver.clone(),
-                cache: cache.clone(),
-              },
-              plugin_driver: plugin_driver.clone(),
-              compiler_options: &compiler_options,
-            },
-            None,
-          )
-          .await;
-
-        plugin_driver
-          .compilation_hooks
-          .succeed_module
-          .call(module)
-          .await?;
-
-        result.map(|t| {
-          let diagnostics = module
-            .clone_diagnostics()
-            .into_iter()
-            .map(|d| d.with_module_identifier(Some(module.identifier())))
-            .collect();
-          (t.with_diagnostic(diagnostics), module)
-        })
-      })
+    plugin_driver
+      .compilation_hooks
+      .build_module
+      .call(&mut module)
       .await?;
 
-    if is_cache_valid {
-      plugin_driver
-        .compilation_hooks
-        .still_valid_module
-        .call(&mut module)
-        .await?;
-    }
+    let result = module
+      .build(
+        BuildContext {
+          compiler_context: CompilerContext {
+            options: compiler_options.clone(),
+            resolver_factory: resolver_factory.clone(),
+            module: module.identifier(),
+            module_context: module.as_normal_module().and_then(|m| m.get_context()),
+            module_source_map_kind: *module.get_source_map_kind(),
+            plugin_driver: plugin_driver.clone(),
+            cache: cache.clone(),
+          },
+          plugin_driver: plugin_driver.clone(),
+          compiler_options: &compiler_options,
+        },
+        None,
+      )
+      .await;
+
+    plugin_driver
+      .compilation_hooks
+      .succeed_module
+      .call(&mut module)
+      .await?;
+
+    let build_result = result.map(|t| {
+      let diagnostics = module
+        .clone_diagnostics()
+        .into_iter()
+        .map(|d| d.with_module_identifier(Some(module.identifier())))
+        .collect();
+      t.with_diagnostic(diagnostics)
+    });
 
     if let Some(current_profile) = &current_profile {
       current_profile.mark_building_end();
@@ -102,7 +89,6 @@ impl Task<MakeTaskContext> for BuildTask {
         build_result: Box::new(build_result),
         diagnostics,
         current_profile,
-        from_cache: is_cache_valid,
       })]
     })
   }
@@ -114,7 +100,6 @@ struct BuildResultTask {
   pub build_result: Box<BuildResult>,
   pub diagnostics: Vec<Diagnostic>,
   pub current_profile: Option<Box<ModuleProfile>>,
-  pub from_cache: bool,
 }
 
 impl Task<MakeTaskContext> for BuildResultTask {
@@ -127,24 +112,10 @@ impl Task<MakeTaskContext> for BuildResultTask {
       build_result,
       diagnostics,
       current_profile,
-      from_cache,
     } = *self;
-
-    if let Some(counter) = &mut context.build_cache_counter {
-      if from_cache {
-        counter.hit();
-      } else {
-        counter.miss();
-      }
-    }
 
     let module_graph =
       &mut MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
-    if context.compiler_options.builtins.tree_shaking.enable() {
-      context
-        .optimize_analyze_result_map
-        .insert(module.identifier(), build_result.analyze_result);
-    }
 
     if !diagnostics.is_empty() {
       context.make_failed_module.insert(module.identifier());

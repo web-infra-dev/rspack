@@ -13,8 +13,9 @@ use rspack_core::{
     SourceMapSource, SourceMapSourceOptions,
   },
   BoxDependency, BuildExtraDataType, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
-  CssExportsConvention, ErrorSpan, GenerateContext, LocalIdentName, Module, ModuleGraph,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
+  CssExportsConvention, ErrorSpan, GenerateContext, LocalIdentName, Module, ModuleDependency,
+  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType,
+  TemplateContext,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -55,11 +56,12 @@ pub type CssExportsType = IndexMap<Vec<String>, Vec<CssExport>>;
 
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
-  pub convention: CssExportsConvention,
+  pub convention: Option<CssExportsConvention>,
   pub local_ident_name: Option<LocalIdentName>,
   pub exports_only: bool,
   pub named_exports: bool,
   pub exports: Option<CssExportsType>,
+  pub es_module: bool,
 }
 
 impl ParserAndGenerator for CssParserAndGenerator {
@@ -89,7 +91,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
       compiler_options,
       build_info,
       build_meta,
-      code_generation_dependencies,
       loaders,
       ..
     } = parse_context;
@@ -126,6 +127,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let mut exports_pairs = vec![];
     let mut presentational_dependencies = None;
+    let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
     let mut exports = if is_enable_css_modules {
       let mut stylesheet = swc_compiler.parse_file(
         &resource_path.to_string_lossy(),
@@ -171,7 +173,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
       Default::default(),
     )?;
 
-    if let Some(exports) = &mut exports {
+    if let Some(exports) = &mut exports
+      && let Some(convention) = &self.convention
+    {
       let mut exports_analyzer = ExportsAnalyzer::new(&source_code);
       new_stylesheet_ast.visit_with(&mut exports_analyzer);
       presentational_dependencies = Some(exports_analyzer.presentation_deps);
@@ -180,12 +184,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
         exports.insert(key, vec![value]);
       }
 
-      exports.sort_keys();
       let normalized_exports = IndexMap::from_iter(
         exports
           .iter()
           .map(|(name, elements)| {
-            let mut names = export_locals_convention(name, &self.convention);
+            let mut names = export_locals_convention(name, convention);
             names.sort_unstable();
             names.dedup();
             (names, stringify_css_modules_exports_elements(elements))
@@ -204,7 +207,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let mut dependencies = analyze_dependencies(
       &new_stylesheet_ast,
-      code_generation_dependencies,
+      &mut code_generation_dependencies,
       &mut diagnostic_vec,
       &source_code,
       module_user_request,
@@ -274,6 +277,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         dependencies,
         blocks: vec![],
         presentational_dependencies: presentational_dependencies.unwrap_or_default(),
+        code_generation_dependencies,
         source: new_source,
         analyze_result: Default::default(),
         side_effects_bailout: None,
@@ -342,30 +346,39 @@ impl ParserAndGenerator for CssParserAndGenerator {
             )?;
           }
           return Ok(concate_source.boxed());
-        } else if let Some(exports) = &self.exports {
-          css_modules_exports_to_string(
-            exports,
-            module,
-            generate_context.compilation,
-            generate_context.runtime_requirements,
-          )?
-        } else if generate_context.compilation.options.dev_server.hot {
-          format!(
-            "module.hot.accept();\n{}(module.exports = {{}});\n",
-            RuntimeGlobals::MAKE_NAMESPACE_OBJECT
-          )
         } else {
-          format!(
-            "{}(module.exports = {{}})\n",
-            RuntimeGlobals::MAKE_NAMESPACE_OBJECT
-          )
+          let (ns_obj, left, right) = if self.es_module {
+            (RuntimeGlobals::MAKE_NAMESPACE_OBJECT.name(), "(", ")")
+          } else {
+            ("", "", "")
+          };
+          if let Some(exports) = &self.exports {
+            css_modules_exports_to_string(
+              exports,
+              module,
+              generate_context.compilation,
+              generate_context.runtime_requirements,
+              ns_obj,
+              left,
+              right,
+            )?
+          } else if generate_context.compilation.options.dev_server.hot {
+            format!(
+              "module.hot.accept();\n{}{}module.exports = {{}}{};\n",
+              ns_obj, left, right
+            )
+          } else {
+            format!("{}{}module.exports = {{}}{};\n", ns_obj, left, right)
+          }
         };
         generate_context
           .runtime_requirements
           .insert(RuntimeGlobals::MODULE);
-        generate_context
-          .runtime_requirements
-          .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+        if self.es_module {
+          generate_context
+            .runtime_requirements
+            .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+        }
         Ok(RawSource::from(exports).boxed())
       }
       _ => panic!(

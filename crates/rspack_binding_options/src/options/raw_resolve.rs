@@ -110,7 +110,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
           .collect::<Result<ByDependency, Self::Error>>()
       })
       .transpose()?;
-    let exports_field = value
+    let exports_fields = value
       .exports_fields
       .map(|v| v.into_iter().map(|s| vec![s]).collect());
     let extension_alias = value.extension_alias.map(|v| v.into_iter().collect());
@@ -121,7 +121,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
     let roots = value.roots;
     let enforce_extension = value.enforce_extension;
     let description_files = value.description_files;
-    let imports_field = value
+    let imports_fields = value
       .imports_fields
       .map(|v| v.into_iter().map(|s| vec![s]).collect());
 
@@ -139,14 +139,14 @@ impl TryFrom<RawResolveOptions> for Resolve {
       fallback,
       by_dependency,
       fully_specified,
-      exports_field,
+      exports_fields,
       extension_alias,
       alias_fields,
       restrictions,
       roots,
       enforce_extension,
       description_files,
-      imports_field,
+      imports_fields,
     })
   }
 }

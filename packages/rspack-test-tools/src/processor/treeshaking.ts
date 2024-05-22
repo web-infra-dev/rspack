@@ -1,48 +1,32 @@
 import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
-import { SnapshotProcessor } from "./snapshot";
-import { RspackBuiltinProcessor } from "./builtin";
+import { BuiltinProcessor } from "./builtin";
+import { ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
-export interface IRspackTreeShakingProcessorOptions {
-	name: string;
-	snapshot: string;
-	type: "new" | "builtin";
-}
+export interface ITreeShakingProcessorOptions<T extends ECompilerType>
+	extends Omit<ISnapshotProcessorOptions<T>, "runable"> {}
 
-export class RspackTreeShakingProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
-	constructor(
-		protected _treeShakingOptions: IRspackTreeShakingProcessorOptions
-	) {
+export class TreeShakingProcessor<
+	T extends ECompilerType
+> extends SnapshotProcessor<T> {
+	constructor(protected _treeShakingOptions: ITreeShakingProcessorOptions<T>) {
 		super({
-			snapshot: _treeShakingOptions.snapshot,
-			compilerType: ECompilerType.Rspack,
-			defaultOptions: RspackBuiltinProcessor.defaultOptions,
-			overrideOptions: RspackTreeShakingProcessor.overrideOptions(
-				_treeShakingOptions.type
+			defaultOptions: BuiltinProcessor.defaultOptions<T>(
+				_treeShakingOptions.compilerType
 			),
-			name: _treeShakingOptions.name,
-			runable: false
+			overrideOptions: TreeShakingProcessor.overrideOptions<T>,
+			runable: false,
+			..._treeShakingOptions
 		});
 	}
 
-	static overrideOptions(type: IRspackTreeShakingProcessorOptions["type"]) {
-		return (
-			context: ITestContext,
-			options: TCompilerOptions<ECompilerType.Rspack>
-		) => {
-			options.target = options.target || ["web", "es2022"];
-			if (type === "new") {
-				options.optimization ??= {};
-				options.optimization.providedExports = true;
-				options.optimization.innerGraph = true;
-				options.optimization.usedExports = true;
-
-				options.builtins ??= {};
-				options.builtins.treeShaking = false;
-			} else {
-				options.experiments ??= {};
-				options.experiments.rspackFuture ??= {};
-				options.experiments.rspackFuture.newTreeshaking = false;
-			}
-		};
+	static overrideOptions<T extends ECompilerType>(
+		context: ITestContext,
+		options: TCompilerOptions<T>
+	) {
+		options.target = options.target || ["web", "es2022"];
+		options.optimization ??= {};
+		options.optimization.providedExports = true;
+		options.optimization.innerGraph = true;
+		options.optimization.usedExports = true;
 	}
 }

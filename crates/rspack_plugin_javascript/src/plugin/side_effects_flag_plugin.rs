@@ -525,7 +525,6 @@ async fn nmf_module(
   if let Some(has_side_effects) = create_data.side_effects {
     module.set_factory_meta(FactoryMeta {
       side_effect_free: Some(!has_side_effects),
-      side_effect_free_old: None,
     });
     return Ok(());
   }
@@ -542,7 +541,6 @@ async fn nmf_module(
   let has_side_effects = get_side_effects_from_package_json(side_effects, relative_path);
   module.set_factory_meta(FactoryMeta {
     side_effect_free: Some(!has_side_effects),
-    side_effect_free_old: None,
   });
   Ok(())
 }

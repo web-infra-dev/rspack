@@ -62,6 +62,32 @@ Enable support for [top level await](https://github.com/tc39/proposal-top-level-
 
 Enabled by default and can be turned off with this configuration.
 
+## experiments.lazyCompilation
+
+<ApiMeta addedVersion="0.7.0" />
+
+- **Type:**
+
+```ts
+type LazyCompilationOptions =
+  | boolean
+  | {
+      entries?: boolean;
+
+      imports?: boolean;
+
+      test?: RegExp | ((m: Module) => boolean);
+    };
+```
+
+- **Default:** `false`
+
+Enable lazy compilation, which can greatly improve the build performance of multi-entry projects or large projects. For example, if you have twenty entry points, only the accessed entry points will be built. Or if there are many `import()` statements in the project, each module pointed to by `import()` will only be built when it is actually accessed.
+
+If set to true, lazy compilation will be applied by default to both entry modules and modules pointed to by `import()`. You can decide whether it applies only to entries or only to `import()` through a configuration object. The `entries` option determines whether it applies to entries, while the `import()` option determines whether it applies to `import()`.
+
+In addition, you can also configure a `test` parameter for more fine-grained control over which modules are lazily compiled. The `test` parameter can be a regular expression that matches only those modules that should be lazily compiled. It can also be a function where the input is of type 'Module' and returns a boolean value indicating whether it meets the criteria for lazy compilation logic.
+
 ## experiments.rspackFuture
 
 <ApiMeta addedVersion="0.3.2" />
@@ -293,11 +319,16 @@ module.exports = {
 
 ### experiments.rspackFuture.newTreeshaking
 
-<ApiMeta addedVersion="0.4.2" />
+<ApiMeta addedVersion="0.4.2" removedVersion="0.7.0" />
 
 - **Type:** `boolean`
 - **Introduced in Version:** v0.4.2
 - **Enabled by Default in Version:** v0.6.0
+- **Removed in Version:** v0.7.0
+
+:::warning
+newTreeshaking has been enabled and cannot go back to the deprecated tree shaking algorithm since version 0.7.0.
+:::
 
 This feature enables the new treeshaking implementation the same as webpack, which would generate more efficient and smaller code
 

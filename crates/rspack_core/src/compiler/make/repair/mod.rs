@@ -6,18 +6,17 @@ pub mod process_dependencies;
 use std::sync::Arc;
 
 use rspack_error::{Diagnostic, Result};
-use rspack_identifier::{IdentifierMap, IdentifierSet};
+use rspack_identifier::IdentifierSet;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{file_counter::FileCounter, MakeArtifact};
 use crate::{
   cache::Cache,
   module_graph::{ModuleGraph, ModuleGraphPartial},
-  tree_shaking::visitor::OptimizeAnalyzeResult,
   utils::task_loop::{run_task_loop, Task},
-  BuildDependency, CacheCount, CacheOptions, Compilation, CompilationLogger, CompilerOptions,
-  DependencyId, DependencyType, Logger, Module, ModuleFactory, ModuleIdentifier, ModuleProfile,
-  NormalModuleSource, ResolverFactory, SharedPluginDriver,
+  BuildDependency, Compilation, CompilerOptions, DependencyId, DependencyType, Module,
+  ModuleFactory, ModuleIdentifier, ModuleProfile, NormalModuleSource, ResolverFactory,
+  SharedPluginDriver,
 };
 
 pub struct MakeTaskContext {
@@ -29,10 +28,6 @@ pub struct MakeTaskContext {
   pub cache: Arc<Cache>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
 
-  // TODO move outof context
-  logger: CompilationLogger,
-  build_cache_counter: Option<CacheCount>,
-  factorize_cache_counter: Option<CacheCount>,
   //  add_timer: StartTimeAggregate,
   //  process_deps_timer: StartTimeAggregate,
   //  factorize_timer: StartTimeAggregate,
@@ -47,7 +42,6 @@ pub struct MakeTaskContext {
   entry_dependencies: HashSet<DependencyId>,
   entry_module_identifiers: IdentifierSet,
   diagnostics: Vec<Diagnostic>,
-  optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
   file_dependencies: FileCounter,
   context_dependencies: FileCounter,
   missing_dependencies: FileCounter,
@@ -57,14 +51,6 @@ pub struct MakeTaskContext {
 
 impl MakeTaskContext {
   pub fn new(compilation: &Compilation, artifact: MakeArtifact) -> Self {
-    let logger = compilation.get_logger("rspack.Compilation");
-    let mut build_cache_counter = None;
-    let mut factorize_cache_counter = None;
-    if !(matches!(compilation.options.cache, CacheOptions::Disabled)) {
-      build_cache_counter = Some(logger.cache("module build cache"));
-      factorize_cache_counter = Some(logger.cache("module factorize cache"));
-    }
-
     Self {
       plugin_driver: compilation.plugin_driver.clone(),
       compiler_options: compilation.options.clone(),
@@ -74,22 +60,18 @@ impl MakeTaskContext {
       dependency_factories: compilation.dependency_factories.clone(),
 
       // TODO use timer in tasks
-      logger,
-      build_cache_counter,
-      factorize_cache_counter,
       //      add_timer: logger.time_aggregate("module add task"),
       //      process_deps_timer: logger.time_aggregate("module process dependencies task"),
       //      factorize_timer: logger.time_aggregate("module factorize task"),
       //      build_timer: logger.time_aggregate("module build task"),
       module_graph_partial: artifact.module_graph_partial,
-      // ignore make_failed_xxx and diagnostics
-      make_failed_dependencies: Default::default(),
-      make_failed_module: Default::default(),
-      diagnostics: Default::default(),
+
+      make_failed_dependencies: artifact.make_failed_dependencies,
+      make_failed_module: artifact.make_failed_module,
+      diagnostics: artifact.diagnostics,
 
       entry_dependencies: artifact.entry_dependencies,
       entry_module_identifiers: artifact.entry_module_identifiers,
-      optimize_analyze_result_map: artifact.optimize_analyze_result_map,
       file_dependencies: artifact.file_dependencies,
       context_dependencies: artifact.context_dependencies,
       missing_dependencies: artifact.missing_dependencies,
@@ -105,24 +87,14 @@ impl MakeTaskContext {
       make_failed_module,
       diagnostics,
       entry_module_identifiers,
-      optimize_analyze_result_map,
       file_dependencies,
       context_dependencies,
       missing_dependencies,
       build_dependencies,
       has_module_graph_change,
-      build_cache_counter,
-      factorize_cache_counter,
       entry_dependencies,
-      logger,
       ..
     } = self;
-    if let Some(counter) = build_cache_counter {
-      logger.cache_end(counter);
-    }
-    if let Some(counter) = factorize_cache_counter {
-      logger.cache_end(counter);
-    }
     MakeArtifact {
       module_graph_partial,
       make_failed_dependencies,
@@ -130,7 +102,6 @@ impl MakeTaskContext {
       diagnostics,
       entry_dependencies,
       entry_module_identifiers,
-      optimize_analyze_result_map,
       file_dependencies,
       context_dependencies,
       missing_dependencies,

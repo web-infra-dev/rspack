@@ -107,11 +107,6 @@ const describeCases = config => {
 								if (!options.experiments) {
 									options.experiments = {};
 								}
-								if (!options.experiments.rspackFuture) {
-									options.experiments.rspackFuture = {
-										newTreeshaking: true
-									};
-								}
 								// CHANGE: use rspack internal swc minimizer
 								// if (options.optimization.minimizer === undefined) {
 								// 	options.optimization.minimizer = [

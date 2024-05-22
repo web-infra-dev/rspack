@@ -177,11 +177,11 @@ pub fn css_modules_exports_to_string(
   module: &dyn rspack_core::Module,
   compilation: &Compilation,
   runtime_requirements: &mut RuntimeGlobals,
+  ns_obj: &str,
+  left: &str,
+  right: &str,
 ) -> Result<String> {
-  let mut code = format!(
-    "{}(module.exports = {{\n",
-    RuntimeGlobals::MAKE_NAMESPACE_OBJECT
-  );
+  let mut code = format!("{}{}module.exports = {{\n", ns_obj, left);
   let module_graph = compilation.get_module_graph();
   for (key, elements) in exports {
     let content = elements
@@ -221,7 +221,9 @@ pub fn css_modules_exports_to_string(
       writeln!(code, "  {}: {},", item, content).map_err(|e| error!(e.to_string()))?;
     }
   }
-  code += "});\n";
+  code += "}";
+  code += right;
+  code += ";\n";
   Ok(code)
 }
 

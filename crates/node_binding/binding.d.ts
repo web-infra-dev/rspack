@@ -7,6 +7,8 @@ export type JsFilename =
 	| ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
+
+export type RawLazyCompilationTest = RegExp | ((m: JsModule) => boolean);
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -171,7 +173,8 @@ export enum BuiltinPluginName {
   SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
-  JsLoaderRspackPlugin = 'JsLoaderRspackPlugin'
+  JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
+  LazyCompilationPlugin = 'LazyCompilationPlugin'
 }
 
 export function cleanupGlobalTrace(): void
@@ -298,7 +301,7 @@ export interface JsContextModuleFactoryAfterResolveData {
   resource: string
   context: string
   request: string
-  regExp?: string
+  regExp?: RawRegex
 }
 
 export interface JsContextModuleFactoryBeforeResolveData {
@@ -772,6 +775,7 @@ export interface RawCssAutoGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
   localIdentName?: string
+  esModule?: boolean
 }
 
 export interface RawCssAutoParserOptions {
@@ -790,14 +794,15 @@ export interface RawCssExtractPluginOption {
 }
 
 export interface RawCssGeneratorOptions {
-  exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
+  esModule?: boolean
 }
 
 export interface RawCssModuleGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
   localIdentName?: string
+  esModule?: boolean
 }
 
 export interface RawCssModuleParserOptions {
@@ -836,6 +841,10 @@ export interface RawEntryPluginOptions {
   options: RawEntryOptions
 }
 
+export interface RawEnvironment {
+  arrowFunction?: boolean
+}
+
 export interface RawEvalDevToolModulePluginOptions {
   namespace?: string
   moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
@@ -843,7 +852,6 @@ export interface RawEvalDevToolModulePluginOptions {
 }
 
 export interface RawExperiments {
-  newSplitChunks: boolean
   topLevelAwait: boolean
   rspackFuture: RawRspackFuture
 }
@@ -964,6 +972,14 @@ export interface RawJavascriptParserOptions {
   wrappedContextCritical: boolean
 }
 
+export interface RawLazyCompilationOption {
+  module: (err: Error | null, arg: RawModuleArg) => any
+  test?: RawLazyCompilationTest
+  entries: boolean
+  imports: boolean
+  cacheable: boolean
+}
+
 export interface RawLibraryAuxiliaryComment {
   root?: string
   commonjs?: string
@@ -999,6 +1015,11 @@ export interface RawLimitChunkCountPluginOptions {
   maxChunks: number
 }
 
+export interface RawModuleArg {
+  module: string
+  path: string
+}
+
 export interface RawModuleFilenameTemplateFnCtx {
   identifier: string
   shortIdentifier: string
@@ -1011,6 +1032,12 @@ export interface RawModuleFilenameTemplateFnCtx {
   moduleId: string
   hash: string
   namespace: string
+}
+
+export interface RawModuleInfo {
+  active: boolean
+  client: string
+  data: string
 }
 
 export interface RawModuleOptions {
@@ -1107,7 +1134,6 @@ export interface RawOptions {
   node?: RawNodeOption
   profile: boolean
   bail: boolean
-  builtins: RawBuiltins
 }
 
 export interface RawOutputOptions {
@@ -1149,6 +1175,7 @@ export interface RawOutputOptions {
   workerWasmLoading: string
   workerPublicPath: string
   scriptType: "module" | "text/javascript" | "false"
+  environment: RawEnvironment
 }
 
 export interface RawParserOptions {
@@ -1203,7 +1230,7 @@ export interface RawReactOptions {
   refresh?: boolean
 }
 
-export interface RawRegexMatcher {
+export interface RawRegex {
   source: string
   flags: string
 }
@@ -1254,13 +1281,13 @@ export interface RawResolveTsconfigOptions {
 }
 
 export interface RawRspackFuture {
-  newTreeshaking: boolean
+
 }
 
 export interface RawRuleSetCondition {
   type: "string" | "regexp" | "logical" | "array" | "function"
   stringMatcher?: string
-  regexpMatcher?: RawRegexMatcher
+  regexpMatcher?: RawRegex
   logicalMatcher?: Array<RawRuleSetLogicalConditions>
   arrayMatcher?: Array<RawRuleSetCondition>
   funcMatcher?: (value: string) => boolean
@@ -1288,13 +1315,7 @@ export interface RawSizeLimitsPluginOptions {
 }
 
 export interface RawSnapshotOptions {
-  resolve: RawSnapshotStrategy
-  module: RawSnapshotStrategy
-}
 
-export interface RawSnapshotStrategy {
-  hash: boolean
-  timestamp: boolean
 }
 
 export interface RawSourceMapDevToolPluginOptions {

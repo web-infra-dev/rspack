@@ -4,6 +4,7 @@ pub mod swc_visitor;
 
 use rspack_ast::javascript::Ast;
 use rspack_core::CompilerOptions;
+use rspack_error::miette::Diagnostic;
 use rspack_error::{AnyhowError, Result};
 use swc_core::common::comments::Comments;
 use swc_core::common::{chain, Mark};
@@ -11,15 +12,19 @@ use swc_core::ecma::transforms::base::pass::Optional;
 use swc_core::ecma::visit::Fold;
 
 pub use self::dependency::*;
-use self::swc_visitor::dropped_comments_preserver;
+// use self::swc_visitor::dropped_comments_preserver;
 pub use self::JavascriptParser;
 
 /// Webpack builtin plugins
 /// - `define`: a port of `DefinePlugin`
-fn builtins_webpack_plugin(options: &CompilerOptions, unresolved_mark: Mark) -> impl Fold + '_ {
+fn builtins_webpack_plugin<'a>(
+  options: &'a CompilerOptions,
+  unresolved_mark: Mark,
+  diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+) -> impl Fold + 'a {
   chain!(
     Optional::new(
-      rspack_swc_visitors::define(&options.builtins.define),
+      rspack_swc_visitors::define(&options.builtins.define, diagnostics),
       !options.builtins.define.is_empty()
     ),
     Optional::new(
@@ -53,7 +58,11 @@ fn builtins_webpack_plugin_define_optimizer(unresolved_mark: Mark) -> impl Fold 
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn run_before_pass(ast: &mut Ast, options: &CompilerOptions) -> Result<()> {
+pub fn run_before_pass(
+  ast: &mut Ast,
+  options: &CompilerOptions,
+  diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+) -> Result<()> {
   let cm = ast.get_context().source_map.clone();
   ast
     .transform_with_handler(cm.clone(), |_handler, program, context| {
@@ -62,9 +71,9 @@ pub fn run_before_pass(ast: &mut Ast, options: &CompilerOptions) -> Result<()> {
       let comments = program.comments.take();
       {
         let mut pass = chain!(
-          dropped_comments_preserver(comments.clone()),
+          // dropped_comments_preserver(comments.clone()),
           swc_visitor::resolver(unresolved_mark, top_level_mark, false),
-          builtins_webpack_plugin(options, unresolved_mark),
+          builtins_webpack_plugin(options, unresolved_mark, diagnostics),
           swc_visitor::hygiene(false, top_level_mark),
           swc_visitor::fixer(Some(&comments as &dyn Comments)),
         );

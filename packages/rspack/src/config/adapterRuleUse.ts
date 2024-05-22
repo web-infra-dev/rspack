@@ -9,9 +9,6 @@ import { ResolveRequest } from "enhanced-resolve";
 import { Compiler } from "../Compiler";
 import { Logger } from "../logging/Logger";
 import Hash = require("../util/hash");
-import { Mode, Resolve, RuleSetUseItem, RuleSetLoaderWithOptions } from "./zod";
-import { parsePathQueryFragment } from "../loader-runner";
-import { isNil } from "../util";
 import {
 	resolveEmotion,
 	resolvePluginImport,
@@ -19,6 +16,9 @@ import {
 	resolveRelay
 } from "../builtin-loader";
 import { Compilation } from "../Compilation";
+import { parsePathQueryFragment } from "../loader-runner";
+import { isNil } from "../util";
+import { Mode, Resolve, RuleSetLoaderWithOptions, RuleSetUseItem } from "./zod";
 
 const BUILTIN_LOADER_PREFIX = "builtin:";
 

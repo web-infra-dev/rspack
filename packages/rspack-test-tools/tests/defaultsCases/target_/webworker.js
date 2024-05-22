@@ -22,6 +22,9 @@ module.exports = {
 		@@ ... @@
 		-       "jsonp",
 		@@ ... @@
+		-       "document": true,
+		+       "document": false,
+		@@ ... @@
 		+       "worker",
 		@@ ... @@
 		-   "target": "web",

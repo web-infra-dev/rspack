@@ -10,8 +10,9 @@ it("should map to the original content if `module` enabled", async () => {
 	const app = fs.readFileSync(path.resolve(CONTEXT, "./App.jsx"), "utf-8");
 	const map = JSON.parse(source);
 	const consumer = await new sourceMap.SourceMapConsumer(map);
-	expect(map.sources).toContain("webpack:///./App.jsx");
-	expect(map.sourcesContent[1]).toEqual(app);
+	const appSourceIndex = map.sources.indexOf("webpack:///./App.jsx")
+	expect(appSourceIndex).toBeGreaterThanOrEqual(0);
+	expect(map.sourcesContent[appSourceIndex]).toEqual(app);
 	const STUB = ["Hello", " ", "Rspack!"].join("");
 	const { line, column } = consumer.originalPositionFor(
 		positionFor(generated, STUB)

@@ -1,9 +1,9 @@
-import schema from "./loader-options.json";
-import { CssExtractRspackPlugin } from "./index";
 import path from "path";
-import { stringifyLocal, stringifyRequest } from "./utils";
 
 import type { LoaderContext, LoaderDefinition } from "../..";
+import { CssExtractRspackPlugin } from "./index";
+import schema from "./loader-options.json";
+import { stringifyLocal, stringifyRequest } from "./utils";
 
 export const MODULE_TYPE = "css/mini-extract";
 export const AUTO_PUBLIC_PATH = "__mini_css_extract_plugin_public_path_auto__";
@@ -86,19 +86,6 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		e.stack = undefined;
 		this.emitWarning(e);
 
-		return;
-	}
-
-	if (
-		this._compiler &&
-		this._compiler.options &&
-		this._compiler.options.experiments &&
-		this._compiler.options.experiments.rspackFuture &&
-		this._compiler.options.experiments.rspackFuture.newTreeshaking === false
-	) {
-		this.emitError(
-			new Error("Cannot use CssExtractRspackPlugin without newTreeshaking")
-		);
 		return;
 	}
 

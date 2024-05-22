@@ -1,4 +1,4 @@
-/** @type {import("@rspack/core").Configuration} */
+/** @type {import("webpack").Configuration} */
 module.exports = {
 	entry: {
 		a: "./src/a/index.js",

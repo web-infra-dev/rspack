@@ -297,17 +297,19 @@ module.exports = {
         exportsConvention: 'as-is',
         exportsOnly: false,
         localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
       },
       // Generator options for `css` modules
       css: {
-        exportsConvention: 'as-is',
         exportsOnly: false,
+        esModule: true,
       },
       // Generator options for css/module modules
       'css/module': {
         exportsConvention: 'as-is',
         exportsOnly: false,
         localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
       },
     },
   },
@@ -511,6 +513,47 @@ Avoid generating and loading a stylesheet and only embed exports from CSS into o
 
 Customize the format of the local class names generated for CSS modules, besides the substitutions at [File-level](/config/output#file-context) and [Module-level](/config/output#module-context), also include `[uniqueName]` and `[local]`.
 
+#### module.generator["css/auto"].esModule
+
+<ApiMeta addedVersion="0.6.4" />
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to add `__esModule` to the exports of CSS; if added, it will be treated as an ES Module during esm-cjs interop, otherwise, it will be treated as a CommonJS Module.
+
+For example, when using the cjs output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct esm-cjs interop, to obtain the correct exports (this can be used in conjunction with [Rule.test](#ruletest) and other matching conditions to add it only for that particular component library).
+
+The original source code of the third-party component library:
+
+```js
+import style from './style.css';
+export function Button() {
+  return <button className={style.btn}></button>;
+}
+```
+
+The cjs format output published by the third-party component library:
+
+```js
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+  value: true,
+});
+exports.Button = Button;
+var _style = _interopRequireDefault(require('./style.css'));
+var _jsxRuntime = require('react/jsx-runtime');
+function _interopRequireDefault(obj) {
+  return obj && obj.__esModule ? obj : { default: obj };
+}
+function Button() {
+  return /*#__PURE__*/ (0, _jsxRuntime.jsx)('button', {
+    className: _style['default'].btn, // <-- Note: After passing through _interopRequireDefault, this need to access default here.
+  });
+}
+```
+
 ### module.generator.css
 
 Generator options for `css` modules.
@@ -521,7 +564,7 @@ This configuration will only take effect when `experiments.css = true`.
 
 #### module.generator.css.exportsConvention
 
-<ApiMeta addedVersion="0.6.0" />
+<ApiMeta addedVersion="0.6.0" removedVersion="0.7.0" />
 
 Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
 
@@ -530,6 +573,12 @@ Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssau
 <ApiMeta addedVersion="0.6.0" />
 
 Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
+
+#### module.generator.css.esModule
+
+<ApiMeta addedVersion="0.6.4" />
+
+Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
 
 ### module.generator["css/module"]
 
@@ -556,6 +605,12 @@ Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexpo
 <ApiMeta addedVersion="0.6.0" />
 
 Same as [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname).
+
+#### module.generator["css/module"].esModule
+
+<ApiMeta addedVersion="0.6.4" />
+
+Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
 
 ## module.rules
 
