@@ -440,6 +440,7 @@ where
         self.plugin_driver.clone(),
       )),
       context_module_factory: Arc::new(ContextModuleFactory::new(
+        self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         self.plugin_driver.clone(),
       )),

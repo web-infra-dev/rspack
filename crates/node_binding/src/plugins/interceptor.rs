@@ -45,7 +45,6 @@ use rspack_core::{
 use rspack_hook::{Hook, Interceptor};
 use rspack_identifier::IdentifierSet;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use rspack_regex::RspackRegex;
 
 #[napi(object)]
 pub struct JsTap {
@@ -1246,7 +1245,7 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
           resource: d.resource.to_owned(),
           context: d.context.to_owned(),
           request: d.request.to_owned(),
-          reg_exp: d.reg_exp.clone().map(|r| r.to_string()),
+          reg_exp: d.reg_exp.clone().map(|r| r.into()),
         })
       }
     };
@@ -1258,7 +1257,7 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
           context: d.context,
           request: d.request,
           reg_exp: match d.reg_exp {
-            Some(r) => Some(RspackRegex::new(&r)?),
+            Some(r) => Some(r.try_into()?),
             None => None,
           },
         };

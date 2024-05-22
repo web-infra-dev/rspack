@@ -7,6 +7,7 @@ use derivative::Derivative;
 use napi::bindgen_prelude::Either3;
 use napi::Either;
 use napi_derive::napi;
+use rspack_binding_values::RawRegex;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
@@ -90,19 +91,12 @@ impl Debug for RawModuleRuleUses {
   }
 }
 
-#[derive(Debug)]
-#[napi(object)]
-pub struct RawRegexMatcher {
-  pub source: String,
-  pub flags: String,
-}
-
 #[napi(object, object_to_js = false)]
 pub struct RawRuleSetCondition {
   #[napi(ts_type = r#""string" | "regexp" | "logical" | "array" | "function""#)]
   pub r#type: String,
   pub string_matcher: Option<String>,
-  pub regexp_matcher: Option<RawRegexMatcher>,
+  pub regexp_matcher: Option<RawRegex>,
   pub logical_matcher: Option<Vec<RawRuleSetLogicalConditions>>,
   pub array_matcher: Option<Vec<RawRuleSetCondition>>,
   #[napi(ts_type = r#"(value: string) => boolean"#)]

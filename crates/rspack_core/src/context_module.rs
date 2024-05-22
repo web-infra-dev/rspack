@@ -161,6 +161,7 @@ pub struct ContextModuleOptions {
   pub resolve_options: Option<Box<Resolve>>,
 }
 
+#[derive(Debug)]
 pub enum FakeMapValue {
   Bit(FakeNamespaceObjectMode),
   Map(HashMap<String, FakeNamespaceObjectMode>),
