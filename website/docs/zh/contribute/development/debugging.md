@@ -3,9 +3,9 @@
 ## 通过 VS Code 调试
 
 1. 安装 `go install github.com/go-delve/delve/cmd/dlv@latest`
-2. 安装 VSCode 扩展 [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer) 和 [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb)
+2. 安装 VS Code 扩展 [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer) 和 [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb)
 3. 通过执行 `pnpm install && pnpm -w build:cli:debug` 构建 `@rspack/cli` 和 napi binding
-4. 在 VSCode 的 `Run and Debug` 栏中, 选择 `debug-rspack` 开始调试 `@rspack/cli` 的启动过程。 该任务可以在 `.vscode/launch.json` 中配置，会同时启动 Node 和 Rust 的调试器。
+4. 在 VS Code 的 `Run and Debug` 栏中, 选择 `debug-rspack` 开始调试 `@rspack/cli` 的启动过程。 该任务可以在 `.vscode/launch.json` 中配置，会同时启动 Node 和 Rust 的调试器。
 
 ## Tracing
 
@@ -108,7 +108,7 @@ npm run build:binding:debug
 npm run build:js
 ```
 
-### 在 VSCode 中设置 `launch.json`
+### 在 VS Code 中设置 `launch.json`
 
 需要在 `.vscode/launch.json` 中配置两个调试配置。
 
