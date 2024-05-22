@@ -36,10 +36,10 @@ Upgraded the Rust crate `swc_core` to `0.91.x`. This will affect users of the SW
 
 ### Deprecating unstable JavaScript APIs
 
-### Remove builtins.treeShaking (oldTreeShaking) and experiments.rspackFuture.newTreeshaking
+### Remove builtins and experiments.rspackFuture.newTreeshaking
 
 The new version of tree shaking was introduced in Rspack 0.4.2 and enabled by default in 0.6.0, after several months of bug fixes and optimizations, it has now reached a stable state.
-In version 0.7.0, the `builtins.treeShaking` (oldTreeShaking) configuration has been removed, completely phasing out the old tree shaking as well as the switch for the new tree shaking feature.
+In version 0.7.0, the `builtins` configuration which contains the feature of old tree shaking, has been removed, completely phasing out the old tree shaking as well as the switch for the new tree shaking feature.
 
 ### Remove resolve.browserField
 

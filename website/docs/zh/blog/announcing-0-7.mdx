@@ -36,11 +36,11 @@ Rspack 会在 1.0 版本前，逐步下线所有不稳定的 API 和配置，更
 
 ### 移除一些不稳定的 JavaScript API
 
-### 移除 builtins.treeShaking (oldTreeShaking) 以及 experiments.rspackFuture.newTreeshaking
+### 移除 builtins 以及 experiments.rspackFuture.newTreeshaking
 
 新版 tree shaking 在 Rspack 0.4.2 版本引入，并在 0.6.0 默认开启，经过几个月的 bug 修复和优化，目前已达到稳定状态。
 
-0.7.0 已移除 `builtins.treeShaking` (oldTreeShaking) 配置，将旧的 tree shaking 功能以及新 tree shaking 的开关彻底下线。
+0.7.0 已移除包含有旧 tree shaking 开关的 `builtins` 配置，将旧的 tree shaking 功能以及新 tree shaking 的开关彻底下线。
 
 ### 移除 resolve.browserField
 
