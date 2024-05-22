@@ -9092,46 +9092,7 @@ export const rspackOptions: z.ZodObject<{
         optimizationBailout?: boolean | undefined;
         orphanModules?: boolean | undefined;
     }>]>>;
-    snapshot: z.ZodOptional<z.ZodObject<{
-        module: z.ZodOptional<z.ZodObject<{
-            hash: z.ZodOptional<z.ZodBoolean>;
-            timestamp: z.ZodOptional<z.ZodBoolean>;
-        }, "strict", z.ZodTypeAny, {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        }, {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        }>>;
-        resolve: z.ZodOptional<z.ZodObject<{
-            hash: z.ZodOptional<z.ZodBoolean>;
-            timestamp: z.ZodOptional<z.ZodBoolean>;
-        }, "strict", z.ZodTypeAny, {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        }, {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        }>>;
-    }, "strict", z.ZodTypeAny, {
-        module?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-        resolve?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-    }, {
-        module?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-        resolve?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-    }>>;
+    snapshot: z.ZodOptional<z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>>;
     optimization: z.ZodOptional<z.ZodObject<{
         moduleIds: z.ZodOptional<z.ZodEnum<["named", "deterministic"]>>;
         chunkIds: z.ZodOptional<z.ZodEnum<["named", "deterministic"]>>;
@@ -10383,16 +10344,7 @@ export const rspackOptions: z.ZodObject<{
         optimizationBailout?: boolean | undefined;
         orphanModules?: boolean | undefined;
     } | undefined;
-    snapshot?: {
-        module?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-        resolve?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-    } | undefined;
+    snapshot?: {} | undefined;
     optimization?: {
         moduleIds?: "named" | "deterministic" | undefined;
         chunkIds?: "named" | "deterministic" | undefined;
@@ -10826,16 +10778,7 @@ export const rspackOptions: z.ZodObject<{
         optimizationBailout?: boolean | undefined;
         orphanModules?: boolean | undefined;
     } | undefined;
-    snapshot?: {
-        module?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-        resolve?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-    } | undefined;
+    snapshot?: {} | undefined;
     optimization?: {
         moduleIds?: "named" | "deterministic" | undefined;
         chunkIds?: "named" | "deterministic" | undefined;
@@ -11397,46 +11340,7 @@ export const sharing: {
 export type SnapshotOptions = z.infer<typeof snapshotOptions>;
 
 // @public (undocumented)
-const snapshotOptions: z.ZodObject<{
-    module: z.ZodOptional<z.ZodObject<{
-        hash: z.ZodOptional<z.ZodBoolean>;
-        timestamp: z.ZodOptional<z.ZodBoolean>;
-    }, "strict", z.ZodTypeAny, {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    }, {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    }>>;
-    resolve: z.ZodOptional<z.ZodObject<{
-        hash: z.ZodOptional<z.ZodBoolean>;
-        timestamp: z.ZodOptional<z.ZodBoolean>;
-    }, "strict", z.ZodTypeAny, {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    }, {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    }>>;
-}, "strict", z.ZodTypeAny, {
-    module?: {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    } | undefined;
-    resolve?: {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    } | undefined;
-}, {
-    module?: {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    } | undefined;
-    resolve?: {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    } | undefined;
-}>;
+const snapshotOptions: z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>;
 
 // @public (undocumented)
 interface SourceMap {
