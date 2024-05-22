@@ -1,53 +1,51 @@
-# Migrate Storybook
+import { PackageManagerTabs } from '@theme';
 
-If you are using the React framework of [Storybook 7.0](https://storybook.js.org/) and building with Webpack 5, you can replace the `@storybook/react-webpack5` with [@modern-js/storybook](https://www.npmjs.com/package/@modern-js/storybook), which supports Rspack as an out-of-the-box underlying build tool. Documentation can be referred to at [Modern.js - Using Storybook](https://modernjs.dev/en/guides/advanced-features/using-storybook.html).
+# Migrating Storybook
+
+If you are using React / Vue with [Storybook](https://storybook.js.org/) and building with webpack 5, you can replace the `@storybook/react-webpack5` build with [storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild), which is implemented based on Rsbuild and uses Rspack as the underlying bundler. It supports out-of-the-box use, and the documentation can be found at [storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild).
+
+Next, we will take React as an example to introduce how to migrate a Storybook webpack 5 project. The migration steps for Vue projects are similar to React.
+
+:::info
+
+Storybook Rsbuild requires at least version 8.0 of Storybook. It's highly recommended to upgrade Storybook to the latest version, check Storybook 8's [release note](https://storybook.js.org/blog/storybook-8/) for detail changes and migration guide.
+
+:::
 
 ## Update Dependencies
 
-First, we need to add the `@modern-js/storybook` dependency and remove the `webpack` dependency.
+First, replace `@storybook/react-webpack5` with [`storybook-react-rsbuild`](https://www.npmjs.com/package/storybook-react-rsbuild) (for Vue projects, use [`storybook-vue3-rsbuild`](https://www.npmjs.com/package/storybook-vue3-rsbuild)), add `@rsbuild/core` and `@rsbuild/plugin-react` (for Vue projects, use `@rsbuild/plugin-vue`).
 
-```diff title=package.json
-{
-  "devDependencies": {
--   "@storybook/react-webpack5": "^7"
-+   "@modern-js/storybook": "^2"
-  }
-}
+<PackageManagerTabs command="install storybook-react-rsbuild @rsbuild/core @rsbuild/plugin-react -D" />
+
+## Configure Rsbuild
+
+Storybook Rsbuild will automatically load the Rsbuild configuration file from the working directory. Install [`@rsbuild/plugin-react`](https://rsbuild.dev/guide/framework/react) (for Vue projects, install and use [`@rsbuild/plugin-vue`](https://rsbuild.dev/guide/framework/vue3)).
+
+```js
+import { defineConfig } from '@rsbuild/core';
+import { pluginReact } from '@rsbuild/plugin-react';
+
+export default defineConfig({
+  plugins: [pluginReact()],
+});
 ```
 
-## Configure Storybook
+## Update Storybook Configuration
 
-Refer to the following configuration, modify the `main.js` configuration of Storybook, and specify Rspack as the build tool:
+Refer to the following configuration to modify the `main.js` configuration of Storybook, and specify `'storybook-react-rsbuild'` as the Storybook framework (for Vue projects, use `'storybook-vue3-rsbuild'`).
 
 ```diff title=.storybook/main.js
 export default {
 -  framework: '@storybook/react-webpack5'
-+  framework: {
-+    name: '@modern-js/storybook',
-+    options: {
-+      bundler: 'rspack'
-+    },
++  framework: 'storybook-react-rsbuild',
   },
 ```
 
-## Example
+## Examples
 
-Here is an example of building Storybook with Rspack based on @modern-js/storybook: [react-storybook](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-storybook).
+The [rspack-contrib/storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild/tree/main/sandboxes) repository provides examples of Storybook for React / Vue projects.
 
 ## Limitations
 
-Support for Storybook 7.0 is still experimental, and there are currently some limitations:
-
-1. Support for frameworks other than React is not yet available.
-2. Support for Next.js is not available, as Next.js has its own build solution.
-3. If you find the build speed is very slow, check if the automatic documentation generation feature is enabled. For the highest performance, configure it to `react-docgen`. The difference between `react-docgen` and `react-docgen-typescript` is that the former is based on Babel, while the latter is based on TypeScript. The former has better performance, but weaker type inference capabilities. If using Rspack to build, only `react-docgen` is supported.
-
-   ```js title=main.js
-   export default {
-     typescript: {
-       reactDocgen: 'react-docgen',
-     },
-   };
-   ```
-
-We plan to provide a framework-agnostic builder based on [Rsbuild](https://github.com/web-infra-dev/rsbuild) to integrate with the framework, refer to [rsbuild#1974](https://github.com/web-infra-dev/rsbuild/issues/1974).
+Rspack is gradually improving full support for Storybook. Currently, there are some capabilities that are not supported, see [storybook-rsbuild - Roadmap](https://github.com/rspack-contrib/storybook-rsbuild#roadmap) for details.
