@@ -10,7 +10,7 @@ import { PackageManagerTabs } from '@theme';
 
 ![](https://assets.rspack.dev/rspack/rspack-banner-v0-7.png)
 
-Rspack v0.7 版本支持 lazy compilation，同时，将更多配置和 API 与 webpack 进行了对齐。
+Rspack v0.7 版本支持 lazy compilation，同时，Rspack 配置和对外 API 趋于稳定，更多插件兼容性得到验证。
 
 ## 主要功能更新
 
@@ -30,17 +30,33 @@ module.exports = {
 };
 ```
 
+### Tree shaking 功能达到稳定状态
+
+新版 tree shaking 在 Rspack 0.4.2 版本引入，并在 0.6.0 默认开启，经过几个月的 bug 修复和优化，目前已达到稳定状态。
+
+0.7.0 已移除 `builtins.treeShaking` (oldTreeShaking) 配置，将旧的 tree shaking 功能彻底下线。
+
+### 更多插件兼容性得到验证
+
+我们在 0.7 版本梳理了一些常见的社区插件的兼容状态及其替代方案，如 `@vanilla-extract/webpack-plugin`、`moment-locales-webpack-plugin` 等目前已兼容，如 `workbox-webpack-plugin`、`webpack-manifest-plugin` 等存在替代方案。
+
+详情可查看 [Plugin 兼容列表](/guide/compatibility/plugin)。
+
+另外，[插件 API 支持](/api/plugin-api/index)和插件兼容是一个需要持续进行的事情，如果你有发现其他 Rspack 不兼容的插件，欢迎通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 与我们交流，我们会尽快支持或提供替代方案。
+
 ## 不兼容更新
 
 Rspack 会在 1.0 版本前，逐步下线所有不稳定的 API 和配置，更多配置 / API / 默认行为将与 webpack 保持一致。
 
 ### 移除一些不稳定的 JavaScript API
 
+Rspack 初期暴露了一些预期仅供内部使用且不稳定的 API，如 `compiler.compilation` 和 `compiler.builtinPlugins` 等，这些 API 并不稳定且无法在 webpack 中使用。
+
+在 0.7 版本中，我们重新整理了目前暴露的 API 及其接口定义。如果你使用到这些 API，我们希望你进行相应的调整，切换到与 webpack 一致的实现方式。
+
 ### 移除 builtins.treeShaking (oldTreeShaking)
 
-新版 tree shaking 在 Rspack 0.4.2 版本引入，并在 0.6.0 默认开启，经过几个月的 bug 修复和优化，目前已达到稳定状态。
-
-0.7.0 已移除 `builtins.treeShaking` (oldTreeShaking) 配置，将旧的 tree shaking 功能彻底下线。
+0.7 版本已移除 `builtins.treeShaking` (oldTreeShaking) 配置，将旧的 tree shaking 功能彻底下线。
 
 ### 移除 resolve.browserField
 
