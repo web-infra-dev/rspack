@@ -28,5 +28,6 @@ module.exports = {
 		expect(errors[0].toString()).toContain(
 			'Number must be greater than or equal to 1 at "optimization.splitChunks.minChunks"'
 		);
+		context.clearError('compiler/splitchunks-minchunks');
 	}
 };

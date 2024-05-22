@@ -764,6 +764,8 @@ export interface ITester {
     // (undocumented)
     compile(): Promise<void>;
     // (undocumented)
+    getContext(): ITestContext;
+    // (undocumented)
     next(): boolean;
     // (undocumented)
     prepare(): Promise<void>;
@@ -1122,6 +1124,8 @@ export class Tester implements ITester {
     check(env: ITestEnv): Promise<void>;
     // (undocumented)
     compile(): Promise<void>;
+    // (undocumented)
+    getContext(): ITestContext;
     // (undocumented)
     next(): boolean;
     // (undocumented)
