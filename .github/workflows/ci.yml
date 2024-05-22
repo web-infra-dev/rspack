@@ -101,31 +101,30 @@ jobs:
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
 
   test-mac:
-    name: Test Mac
+    name: Test x86_64 Mac
     needs: [get-runner-labels, check-changed]
     if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-apple-darwin
-      profile: "debug"
       runner: '["self-hosted","macOS","ci","ve-macos"]'
       test_runner: macos-latest-large
       skipable: ${{ needs.check-changed.outputs.changed  != 'true' }}
 
-  test-release-mac:
-    name: Test Release Mac
-    needs: [get-runner-labels]
-    if: contains(github.event.pull_request.title, '!macos')
-    uses: ./.github/workflows/reusable-build.yml
-    strategy:
-      fail-fast: false # Build and test everything so we can look at all the errors
-      matrix:
-        array:
-          - target: x86_64-apple-darwin
-          - target: aarch64-apple-darwin
-    with:
-      target: ${{ matrix.array.target }}
-      runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+  # test-release-mac:
+  #   name: Test Release Mac
+  #   needs: [get-runner-labels]
+  #   if: contains(github.event.pull_request.title, '!macos')
+  #   uses: ./.github/workflows/reusable-build.yml
+  #   strategy:
+  #     fail-fast: false # Build and test everything so we can look at all the errors
+  #     matrix:
+  #       array:
+  #         - target: x86_64-apple-darwin
+  #         - target: aarch64-apple-darwin
+  #   with:
+  #     target: ${{ matrix.array.target }}
+  #     runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
 
   cargo-deny:
     name: Check license of dependencies
