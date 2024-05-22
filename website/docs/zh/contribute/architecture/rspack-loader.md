@@ -35,16 +35,15 @@ style-loader 等其他可能会消费以下 loader 的处理结果的 loader 可
 
 ![旧架构](https://user-images.githubusercontent.com/10465670/233357319-e80f6b32-331c-416d-b4b5-30f3e0e394bd.png)
 
-loader 运行程序仅位于 Rust 端，并直接从 Rust 端执行加载器。
+loader 运行程序仅位于 Rust 端，并直接从 Rust 端执行 loader。
 这种机制对于我们使用 webpack 的 loader-runner 来组合 loader 有很大的限制。
 
 在新架构中，我们将把来自 Rust 核心的 loader 请求委托给位于 JS 端的调度程序。
-调度程序将规范化加载程序并使用修改后的代码执行这些加载程序
-webpack 的 loader-runner 版本：
+调度程序将规范化 loader 并使用修改后的 webpack loader-runner 执行这些 loader：
 
 ![image](https://user-images.githubusercontent.com/10465670/233357805-923e0a27-609d-409a-b38d-96a083613235.png)
 
-normal 或者 pitch 的 loader 函数不会传递到 Rust 端。相反，每个 JS 加载器都有
+normal 或者 pitch 的 loader 函数不会传递到 Rust 端。相反，每个 JS loader 都有
 它的唯一的标识符。如果一个模块请求 loader 来处理该模块，
 Rspack 会将带有选项的标识符传递给 JS 端，以指示 Webpack（如 loader-runner）
 处理转换。这也降低了编写我们自己的 loader 编译的复杂度。
@@ -64,7 +63,7 @@ Rspack 会将带有选项的标识符传递给 JS 端，以指示 Webpack（如 
 
 ![image](https://user-images.githubusercontent.com/10465670/233360942-7517f22e-3861-47cb-be9e-6dd5f5e02a4a.png)
 
-上面的加载器的执行顺序如下所示：
+上面 loader 的执行顺序如下所示：
 
 ```
 loader-A(pitch)

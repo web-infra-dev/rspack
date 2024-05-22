@@ -5,13 +5,13 @@
 1. 安装 `go install github.com/go-delve/delve/cmd/dlv@latest`
 2. 安装 VSCode 扩展 [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer) 和 [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb)
 3. 通过执行 `pnpm install && pnpm -w build:cli:debug` 构建 `@rspack/cli` 和 napi binding
-4. 在 VSCode 的 `Run and Debug` 栏中, 选择 `debug-rspack` 开始调试`@rspack/cli` 的启动过程。 该任务可以在 `.vscode/launch.json` 中配置，会同时启动 Node 和 Rust 的调试器。
+4. 在 VSCode 的 `Run and Debug` 栏中, 选择 `debug-rspack` 开始调试 `@rspack/cli` 的启动过程。 该任务可以在 `.vscode/launch.json` 中配置，会同时启动 Node 和 Rust 的调试器。
 
 ## Tracing
 
 [`tracing`](https://crates.io/crates/tracing) 被用于度量（instrumenting） Rspack。
 
-被支持 tracing 等级有：
+被支持的 tracing 等级有：
 
 - release 版本是 `INFO`, `WARN` and `ERROR`
 - debug 版本是 `TRACE`, `DEBUG`, `INFO`, `WARN` and `ERROR`
@@ -43,7 +43,7 @@ NO_COLOR=1 RSPACK_PROFILE=TRACE=layer=logger rspack build
 
 ### Resolver
 
-`oxc_resolver` emits some tracing information for debugging purposes.
+`oxc_resolver` 为了调试也会有一些 tracing 信息。
 
 ```bash
 RSPACK_PROFILE='TRACE=filter=oxc_resolver=trace&layer=logger' rspack build
@@ -59,7 +59,7 @@ rust-lldb -- node /path/to/rspack build
 
 启动后，按住 `r` 来执行程序。
 
-例如，`examples/arco-pro` 崩溃了并且没有任何信息在[这个修复](https://github.com/web-infra-dev/rspack/pull/3195/files) 之前:
+例如，`examples/arco-pro` 运行崩溃了并且没有任何信息在[这个修复](https://github.com/web-infra-dev/rspack/pull/3195/files) 之前:
 
 ```
 rspack/examples/arco-pro ❯ node ../../packages/rspack-cli/bin/rspack build
@@ -145,7 +145,7 @@ npm run build:js
 }
 ```
 
-Next, we can utilize [compounds](https://code.visualstudio.com/docs/editor/debugging#_compound-launch-configurations) to amalgamate the two commands:
+之后，我们可以利用 [compounds](https://code.visualstudio.com/docs/editor/debugging#_compound-launch-configurations) 合并这两个命令：
 
 ```json
 {
@@ -154,7 +154,7 @@ Next, we can utilize [compounds](https://code.visualstudio.com/docs/editor/debug
 }
 ```
 
-Finally, your `﻿launch.json` should appear as follows:
+最终，你的 `launch.json` 应如下所示:
 
 ```json
 {
@@ -190,11 +190,11 @@ Finally, your `﻿launch.json` should appear as follows:
 }
 ```
 
-### Debugging Attempt
+### Debugging 尝试
 
-Next, we can introduce some breakpoints and commence debugging.
+接下来，我们可以引入一些断点并开始调试。
 
-The result appears as follows:
+结果如下:
 
 <video width="640" height="480" controls>
   <source src="https://github.com/web-infra-dev/rspack/assets/30187863/106983f7-a59e-4d9e-9001-552f4441d88b" type="video/mp4">
