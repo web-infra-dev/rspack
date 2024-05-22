@@ -830,7 +830,7 @@ export interface RawEntryOptions {
   asyncChunks?: boolean
   publicPath?: string
   baseUri?: string
-  filename?: string
+  filename?: string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)
   library?: RawLibraryOptions
   dependOn?: Array<string>
 }

@@ -155,7 +155,7 @@ const filename = filenameTemplate.or(
 );
 export type Filename = z.infer<typeof filename>;
 
-const entryFilename = filenameTemplate;
+const entryFilename = filename;
 export type EntryFilename = z.infer<typeof entryFilename>;
 
 const entryRuntime = z.literal(false).or(z.string());
