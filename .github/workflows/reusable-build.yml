@@ -286,6 +286,11 @@ jobs:
         if: ${{ inputs.target == 'x86_64-apple-darwin' && !inputs.skipable }}
         run: pnpm run test:ci
 
+      - name: Test aarch64-apple-darwin
+        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        if: ${{ inputs.target == 'aarch64-apple-darwin' && !inputs.skipable }}
+        run: pnpm run test:ci
+
       ### x86_64-pc-windows-msvc
 
       - name: Test x86_64-pc-windows-msvc
