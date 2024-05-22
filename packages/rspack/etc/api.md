@@ -799,18 +799,6 @@ export type BaseUri = z.infer<typeof baseUri>;
 const baseUri: z.ZodString;
 
 // @public (undocumented)
-export type Builtins = z.infer<typeof builtins>;
-
-// @public (undocumented)
-const builtins: z.ZodType<Builtins_2, z.ZodTypeDef, Builtins_2>;
-
-// @public (undocumented)
-interface Builtins_2 {
-    // (undocumented)
-    treeShaking?: boolean | "module";
-}
-
-// @public (undocumented)
 type CacheHookMap = Map<string, SyncBailHook_2<[any[], StatsFactoryContext], any>[]>;
 
 // @public (undocumented)
@@ -8075,7 +8063,6 @@ declare namespace rspackExports {
         Profile,
         Bail,
         Performance_2 as Performance,
-        Builtins,
         rspackOptions,
         RspackOptions,
         Configuration
@@ -9445,7 +9432,6 @@ export const rspackOptions: z.ZodObject<{
     resolveLoader: z.ZodOptional<z.ZodType<ResolveOptions, z.ZodTypeDef, ResolveOptions>>;
     plugins: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodType<RspackPluginInstance, z.ZodTypeDef, RspackPluginInstance>, z.ZodType<RspackPluginFunction, z.ZodTypeDef, RspackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
     devServer: z.ZodOptional<z.ZodType<DevServer, z.ZodTypeDef, DevServer>>;
-    builtins: z.ZodOptional<z.ZodType<Builtins_2, z.ZodTypeDef, Builtins_2>>;
     module: z.ZodOptional<z.ZodObject<{
         defaultRules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<RuleSetRule, z.ZodTypeDef, RuleSetRule>]>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
         rules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<RuleSetRule, z.ZodTypeDef, RuleSetRule>]>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
@@ -10445,7 +10431,6 @@ export const rspackOptions: z.ZodObject<{
     resolveLoader?: ResolveOptions | undefined;
     plugins?: (false | "" | 0 | RspackPluginInstance | RspackPluginFunction | null | undefined)[] | undefined;
     devServer?: DevServer | undefined;
-    builtins?: Builtins_2 | undefined;
     module?: {
         defaultRules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
         rules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
@@ -10887,7 +10872,6 @@ export const rspackOptions: z.ZodObject<{
     resolveLoader?: ResolveOptions | undefined;
     plugins?: (false | "" | 0 | RspackPluginInstance | RspackPluginFunction | null | undefined)[] | undefined;
     devServer?: DevServer | undefined;
-    builtins?: Builtins_2 | undefined;
     module?: {
         defaultRules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
         rules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
@@ -11008,8 +10992,6 @@ export { RspackOptionsApply as WebpackOptionsApply }
 export interface RspackOptionsNormalized {
     // (undocumented)
     bail?: Bail;
-    // (undocumented)
-    builtins: Builtins;
     // (undocumented)
     cache?: CacheOptions;
     // (undocumented)

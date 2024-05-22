@@ -14,7 +14,6 @@ import type { Compilation } from "../Compilation";
 import type {
 	AssetModuleFilename,
 	Bail,
-	Builtins,
 	CacheOptions,
 	ChunkFilename,
 	ChunkLoading,
@@ -311,10 +310,7 @@ export const getNormalizedRspackOptions = (
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
 		profile: config.profile,
-		bail: config.bail,
-		builtins: nestedConfig(config.builtins, builtins => ({
-			...builtins
-		}))
+		bail: config.bail
 	};
 };
 
@@ -557,5 +553,4 @@ export interface RspackOptionsNormalized {
 	performance?: Performance;
 	profile?: Profile;
 	bail?: Bail;
-	builtins: Builtins;
 }

@@ -58,7 +58,6 @@ pub struct RawOptions {
   pub node: Option<RawNodeOption>,
   pub profile: bool,
   pub bail: bool,
-  pub builtins: RawBuiltins,
 }
 
 impl TryFrom<RawOptions> for CompilerOptions {
@@ -90,8 +89,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let snapshot = value.snapshot.into();
     let node = value.node.map(|n| n.into());
 
-    let builtins = value.builtins.apply()?;
-
     Ok(CompilerOptions {
       context,
       mode,
@@ -109,7 +106,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
       dev_server: Default::default(),
       profile: value.profile,
       bail: value.bail,
-      builtins,
+      builtins: Default::default(),
     })
   }
 }

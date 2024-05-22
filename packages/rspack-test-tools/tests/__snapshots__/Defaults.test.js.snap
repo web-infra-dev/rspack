@@ -3,7 +3,6 @@
 exports[`Base Defaults Snapshot should have the correct base config 1`] = `
 Object {
   "bail": false,
-  "builtins": Object {},
   "cache": false,
   "context": "<cwd>",
   "dependencies": undefined,

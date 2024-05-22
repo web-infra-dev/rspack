@@ -1134,7 +1134,6 @@ export interface RawOptions {
   node?: RawNodeOption
   profile: boolean
   bail: boolean
-  builtins: RawBuiltins
 }
 
 export interface RawOutputOptions {
