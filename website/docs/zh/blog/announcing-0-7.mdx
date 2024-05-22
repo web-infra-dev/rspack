@@ -50,6 +50,10 @@ Rspack 会在 1.0 版本前，逐步下线所有不稳定的 API 和配置，更
 
 该配置用于开启新的 splitChunks 实现，由于 Rspack 已经默认使用新的 splitChunks 实现，所以不再需要该配置。
 
+### 移除 snapshot
+
+该配置用于配置 cache snapshot 的行为。在 Rspack 目前的增量架构下，cache 不再依赖 snapshot，所以不再需要该配置。
+
 ### 移除 generator.css.exportsConvention
 
 该配置用于控制 experiments.css 的 CSS 模块导出的命名形式，仅对于模块类型为 `css/module` 的模块才会有导出，对于模块类型为 `css` 的模块并不存在导出，所以不需要该配置。

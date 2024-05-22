@@ -34,6 +34,10 @@ This configuration is shorthand for `resolve.aliasFields = ["browser"]`, and sin
 
 This configuration is used to enable the new splitChunks implementation, and since Rspack already uses the new splitChunks implementation by default, this configuration is no longer needed.
 
+### Remove snapshot
+
+This configuration is used to control the snapshot strategy when using cache. Under Rspack's current incremental rebuild architecture, cache no longer relies on snapshot, so this configuration is no longer needed.
+
 ### Remove exportsConvention for module type css
 
 This configuration is used to control the naming convention of CSS module exports in experiments.css. It only has an effect on modules with the module type `css/module`, which have exports. For modules with the module type `css`, there are no exports, so this configuration is not needed.
