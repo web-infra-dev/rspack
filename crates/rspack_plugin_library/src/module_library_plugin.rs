@@ -59,12 +59,15 @@ impl JavascriptModulesPluginPlugin for ModuleLibraryJavascriptModulesPluginPlugi
       let exports_info = module_graph.get_exports_info(&args.module);
       for id in exports_info.get_ordered_exports() {
         let info = id.get_export_info(&module_graph);
-        let info_name = info.name.as_ref().expect("name can't be empty").as_str();
-        let name = to_identifier(info_name);
-        let var_name = format!("__webpack_exports__{name}");
+        let chunk = args.compilation.chunk_by_ukey.expect_get(args.chunk);
+        let info_name = info.name.as_ref().expect("should have name");
+        let used_name = info
+          .get_used_name(info.name.as_ref(), Some(&chunk.runtime))
+          .expect("name can't be empty");
+        let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
         source.add(RawSource::from(format!(
           "var {var_name} = __webpack_exports__{};\n",
-          property_access(&vec![info_name], 0)
+          property_access(&vec![used_name], 0)
         )));
         exports.push(format!("{var_name} as {}", info_name));
       }
