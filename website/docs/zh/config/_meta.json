@@ -12,7 +12,6 @@
   "plugins",
   "dev-server",
   "cache",
-  "snapshot",
   "devtool",
   "target",
   "watch",

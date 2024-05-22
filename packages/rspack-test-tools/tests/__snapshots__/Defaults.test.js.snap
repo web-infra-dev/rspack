@@ -523,16 +523,7 @@ Object {
       "index",
     ],
   },
-  "snapshot": Object {
-    "module": Object {
-      "hash": false,
-      "timestamp": true,
-    },
-    "resolve": Object {
-      "hash": false,
-      "timestamp": true,
-    },
-  },
+  "snapshot": Object {},
   "stats": Object {},
   "target": "web",
   "watch": false,
