@@ -176,7 +176,7 @@ export class HookCasesContext extends TestContext {
 }
 
 export interface IHookProcessorOptions<T extends ECompilerType>
-	extends Omit<ISnapshotProcessorOptions<T>, "defaultOptions"> {
+	extends ISnapshotProcessorOptions<T> {
 	options?: (context: ITestContext) => TCompilerOptions<T>;
 	compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
 	check?: (context: ITestContext) => Promise<void>;

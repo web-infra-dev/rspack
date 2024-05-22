@@ -12,10 +12,7 @@ import {
 import { BasicProcessor, IBasicProcessorOptions } from "./basic";
 
 export interface IHotProcessorOptions<T extends ECompilerType>
-	extends Omit<
-		IBasicProcessorOptions<T>,
-		"defaultOptions" | "overrideOptions" | "runable" | "findBundle"
-	> {
+	extends Omit<IBasicProcessorOptions<T>, "runable"> {
 	target: TCompilerOptions<T>["target"];
 }
 

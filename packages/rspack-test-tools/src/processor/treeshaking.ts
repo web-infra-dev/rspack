@@ -3,10 +3,7 @@ import { BuiltinProcessor } from "./builtin";
 import { ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
 export interface ITreeShakingProcessorOptions<T extends ECompilerType>
-	extends Omit<
-		ISnapshotProcessorOptions<T>,
-		"defaultOptions" | "overrideOptions" | "runable"
-	> {}
+	extends Omit<ISnapshotProcessorOptions<T>, "runable"> {}
 
 export class TreeShakingProcessor<
 	T extends ECompilerType
