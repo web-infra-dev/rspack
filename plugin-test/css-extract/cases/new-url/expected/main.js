@@ -67,13 +67,9 @@ __webpack_require__.b = document.baseURI || self.location.href;
 })();
 /************************************************************************/
 var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
-(() => {
 const myURL = new URL(/* asset import */__webpack_require__("./style.css?b16f"), __webpack_require__.b);
 
 console.log(myURL);
-
-})();
 
 })()
 ;
