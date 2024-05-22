@@ -36,11 +36,11 @@ Rspack 会在 1.0 版本前，逐步下线所有不稳定的 API 和配置，更
 
 ### 移除一些不稳定的 JavaScript API
 
-### 移除 builtins.treeShaking (oldTreeShaking)
+### 移除 builtins.treeShaking (oldTreeShaking) 以及 experiments.rspackFuture.newTreeshaking
 
 新版 tree shaking 在 Rspack 0.4.2 版本引入，并在 0.6.0 默认开启，经过几个月的 bug 修复和优化，目前已达到稳定状态。
 
-0.7.0 已移除 `builtins.treeShaking` (oldTreeShaking) 配置，将旧的 tree shaking 功能彻底下线。
+0.7.0 已移除 `builtins.treeShaking` (oldTreeShaking) 配置，将旧的 tree shaking 功能以及新 tree shaking 的开关彻底下线。
 
 ### 移除 resolve.browserField
 
@@ -79,4 +79,4 @@ Rspack 会在 1.0 版本前，逐步下线所有不稳定的 API 和配置，更
 
 ### 移除 generator.css.exportsConvention
 
-如果你之前配置了 `module.generator.css.exportsConvention` 或在 `module.rule` 中配置了 `generator.exportsConvention`，只需要删除该配置即可。
+如果你之前配置了 `module.generator.css.exportsConvention` 或在 `module.rule` 中配置了 `generator.exportsConvention`，只需要删除该配置即可。import { experiments } from 'webpack';

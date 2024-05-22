@@ -14,9 +14,21 @@ import { PackageManagerTabs } from '@theme';
 
 ### Lazy Compilation Support
 
-## Breaking Changes
+Rspack 0.7.0 supports Lazy Compilation feature, which is very helpful for improving the build performance of multi-entry projects or large projects.
 
-### Switch experiments.css to false by default
+TODO: Performance comparison data
+
+Now, you can enable the lazy compilation feature in Rspack through the [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) configuration option:
+
+```file=rspack.config.js
+module.exports = {
+  experiments: {
+    lazyCompilation: true,
+  },
+};
+```
+
+## Breaking Changes
 
 ### Upgrade SWC to 0.91.x
 
@@ -24,7 +36,10 @@ Upgraded the Rust crate `swc_core` to `0.91.x`. This will affect users of the SW
 
 ### Deprecating unstable JavaScript APIs
 
-### Remove builtins.treeShaking (oldTreeShaking) and builtins
+### Remove builtins.treeShaking (oldTreeShaking) and experiments.rspackFuture.newTreeshaking
+
+The new version of tree shaking was introduced in Rspack 0.4.2 and enabled by default in 0.6.0, after several months of bug fixes and optimizations, it has now reached a stable state.
+In version 0.7.0, the `builtins.treeShaking` (oldTreeShaking) configuration has been removed, completely phasing out the old tree shaking as well as the switch for the new tree shaking feature.
 
 ### Remove resolve.browserField
 
