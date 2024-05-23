@@ -82,7 +82,7 @@ impl<'a> LocalIdentOptions<'a> {
       local,
       unique_name: &output.unique_name,
     }
-    .render_local_ident_name(&self.local_name_ident)
+    .render_local_ident_name(self.local_name_ident)
   }
 }
 
@@ -236,7 +236,7 @@ pub fn css_modules_exports_to_concatenate_module_string(
       })
       .collect::<Vec<_>>()
       .join(" + \" \" + ");
-    let mut identifier = to_identifier(&key);
+    let mut identifier = to_identifier(key);
     let mut i = 0;
     while used_identifiers.contains(&identifier) {
       identifier = format!("{key}{i}");
@@ -350,14 +350,14 @@ pub fn css_parsing_traceable_error(
   )
 }
 
-pub fn replace_module_request_prefix(
-  specifier: &str,
+pub fn replace_module_request_prefix<'s>(
+  specifier: &'s str,
   diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   source_code: &str,
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
-) -> String {
-  if specifier.starts_with('~') {
+) -> &'s str {
+  if let Some(specifier) = specifier.strip_prefix('~') {
     diagnostics.push(
       css_parsing_traceable_error(
         source_code,
@@ -369,8 +369,8 @@ pub fn replace_module_request_prefix(
       .with_help(Some("Remove '~' from the request."))
       .boxed(),
     );
-    String::from(&specifier[1..])
+    specifier
   } else {
-    specifier.to_string()
+    specifier
   }
 }

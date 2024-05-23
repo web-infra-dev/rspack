@@ -133,7 +133,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             range.start,
             range.end,
           );
-          let request = normalize_url(&request);
+          let request = normalize_url(request);
           let dep = Box::new(CssUrlDependency::new(
             request,
             Some(ErrorSpan::new(range.start, range.end)),
@@ -162,7 +162,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             range.end,
           );
           dependencies.push(Box::new(CssImportDependency::new(
-            request,
+            request.to_string(),
             Some(ErrorSpan::new(range.start, range.end)),
             range.start,
             range.end,
@@ -198,7 +198,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .convention
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
-          for name in export_locals_convention(&name, convention) {
+          for name in export_locals_convention(name, convention) {
             exports.insert(
               name,
               vec![CssExport {
@@ -230,7 +230,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .convention
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
-          for name in export_locals_convention(&name, convention) {
+          for name in export_locals_convention(name, convention) {
             exports.insert(
               name,
               vec![CssExport {
@@ -260,14 +260,20 @@ impl ParserAndGenerator for CssParserAndGenerator {
             for &local_class in local_classes.iter() {
               if let Some(existing) = exports.get(name) {
                 let existing = existing.clone();
-                exports.get_mut(local_class).unwrap().extend(existing);
+                exports
+                  .get_mut(local_class)
+                  .expect("composes local class must already added to exports")
+                  .extend(existing);
               } else {
-                exports.get_mut(local_class).unwrap().push(CssExport {
-                  ident: name.to_string(),
-                  from: from
-                    .filter(|f| *f != "global")
-                    .map(|f| f.trim_matches(|c| c == '\'' || c == '"').to_string()),
-                });
+                exports
+                  .get_mut(local_class)
+                  .expect("composes local class must already added to exports")
+                  .push(CssExport {
+                    ident: name.to_string(),
+                    from: from
+                      .filter(|f| *f != "global")
+                      .map(|f| f.trim_matches(|c| c == '\'' || c == '"').to_string()),
+                  });
               }
             }
           }
@@ -278,7 +284,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .convention
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
-          for name in export_locals_convention(&prop, convention) {
+          for name in export_locals_convention(prop, convention) {
             dependencies.push(Box::new(CssExportDependency::new(
               name.clone(),
               value.to_string(),
@@ -298,7 +304,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     for warning in warnings {
       let range = warning.range();
       diagnostics.push(Box::new(css_parsing_traceable_error(
-        source_code.to_owned(),
+        source_code.clone(),
         range.start,
         range.end,
         warning.to_string(),

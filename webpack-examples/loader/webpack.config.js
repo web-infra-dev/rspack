@@ -7,8 +7,5 @@ module.exports = {
 				loader: "css-loader"
 			}
 		]
-	},
-	experiments: {
-		css: false,
 	}
 };
