@@ -10,6 +10,8 @@ import { PackageManagerTabs } from '@theme';
 
 ![](https://assets.rspack.dev/rspack/rspack-banner-v0-7.png)
 
+Rspack v0.7 supports lazy compilation. At the same time, Rspack configuration and external API tend to be stable, and more plugins compatibility has been verified.
+
 ## Major Feature Updates
 
 ### Lazy Compilation Support
@@ -28,17 +30,34 @@ module.exports = {
 };
 ```
 
+### Tree Shaking Functionality Stability
+
+The new tree shaking was introduced in Rspack 0.4.2 and enabled by default in version 0.6.0. After several months of bug fixes and optimizations, it has now reached a stable status.
+
+Rspack 0.7.0 has removed the `builtins.treeShaking` (oldTreeShaking) configuration and the switch for toggling between the new and old tree shaking features, completely phasing out the old tree shaking functionality.
+
+### More Plugins Compatibility Verified
+
+In 0.7.0, we reviewed the compatibility status and alternative solutions for some common community plugins, such as `@vanilla-extract/webpack-plugin` and `moment-locales-webpack-plugin`, which are now compatible. There are alternatives for plugins like `workbox-webpack-plugin` and `webpack-manifest-plugin`.
+
+For more details, see the [Plugin Compatibility List](/guide/compatibility/plugin).
+
+Additionally, [Plugin API Support](/api/plugin-api/index) and plugin compatibility are ongoing efforts. If you encounter any plugins that are not compatible with Rspack, you are welcome to communicate with us through [GitHub Issues](https://github.com/web-infra-dev/rspack/issues), and we will promptly support or provide alternatives.
+
 ## Breaking Changes
 
-### Upgrade SWC to 0.91.x
-
-Upgraded the Rust crate `swc_core` to `0.91.x`. This will affect users of the SWC Wasm plugin.
+Rspack will gradually remove all unstable APIs and configurations before version 1.0, and more configurations / APIs / default behaviors will be align with webpack.
 
 ### Deprecating unstable JavaScript APIs
+
+Rspack early exposed some APIs that were intended for internal use only and were unstable, such as `compiler.compilation` and `compiler.builtinPlugins`. These APIs were not stable and could not be used in webpack.
+
+In 0.7.0, we reorganized the currently exposed APIs and their interface definitions. If you have been using these APIs, you will need to make the necessary adjustments to align with the implementations consistent with webpack.
 
 ### Remove builtins and experiments.rspackFuture.newTreeshaking
 
 The new version of tree shaking was introduced in Rspack 0.4.2 and enabled by default in 0.6.0, after several months of bug fixes and optimizations, it has now reached a stable state.
+
 In version 0.7.0, the `builtins` configuration which contains the feature of old tree shaking, has been removed, completely phasing out the old tree shaking as well as the switch for the new tree shaking feature.
 
 ### Remove resolve.browserField
@@ -57,9 +76,11 @@ This configuration is used to control the snapshot strategy when using cache. Un
 
 This configuration is used to control the naming convention of CSS module exports in experiments.css. It only has an effect on modules with the module type `css/module`, which have exports. For modules with the module type `css`, there are no exports, so this configuration is not needed.
 
-## Migration Guide
+### Upgrade SWC to 0.91.x
 
-### Enable experiments.css or use rspack.CssExtractRspackPlugin
+Upgraded the Rust crate `swc_core` to `0.91.x`. This will affect users of the SWC Wasm plugin.
+
+## Migration Guide
 
 ### Upgrade the SWC plugins
 
