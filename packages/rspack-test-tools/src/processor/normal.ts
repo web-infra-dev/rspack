@@ -7,14 +7,11 @@ import {
 	TCompiler,
 	TCompilerOptions
 } from "../type";
-import { BasicProcessor } from "./basic";
+import { BasicProcessor, IBasicProcessorOptions } from "./basic";
 
-export interface INormalProcessorOptions<T extends ECompilerType> {
-	name: string;
-	root: string;
+export interface INormalProcessorOptions<T extends ECompilerType> extends IBasicProcessorOptions<T> {
 	compilerOptions?: TCompilerOptions<T>;
-	runable: boolean;
-	compilerType: T;
+	root: string;
 }
 
 export class NormalProcessor<
@@ -22,14 +19,12 @@ export class NormalProcessor<
 > extends BasicProcessor<T> {
 	constructor(protected _normalOptions: INormalProcessorOptions<T>) {
 		super({
-			compilerType: _normalOptions.compilerType,
 			findBundle: (context, options) => {
 				const filename = options.output?.filename;
 				return typeof filename === "string" ? filename : undefined;
 			},
 			defaultOptions: NormalProcessor.defaultOptions<T>(_normalOptions),
-			name: _normalOptions.name,
-			runable: _normalOptions.runable
+			..._normalOptions,
 		});
 	}
 
@@ -56,33 +51,33 @@ export class NormalProcessor<
 				mode: compilerOptions?.mode || "none",
 				optimization: compilerOptions?.mode
 					? {
-							// emitOnErrors: true,
-							minimizer: [terserForTesting],
-							...testConfig.optimization
-						}
+						// emitOnErrors: true,
+						minimizer: [terserForTesting],
+						...testConfig.optimization
+					}
 					: {
-							removeAvailableModules: true,
-							removeEmptyChunks: true,
-							mergeDuplicateChunks: true,
-							// CHANGE: rspack does not support `flagIncludedChunks` yet.
-							// flagIncludedChunks: true,
-							sideEffects: true,
-							providedExports: true,
-							usedExports: true,
-							mangleExports: true,
-							// CHANGE: rspack does not support `emitOnErrors` yet.
-							// emitOnErrors: true,
-							concatenateModules:
-								!!testConfig?.optimization?.concatenateModules,
-							innerGraph: true,
-							// CHANGE: size is not supported yet
-							// moduleIds: "size",
-							// chunkIds: "size",
-							moduleIds: "named",
-							chunkIds: "named",
-							minimizer: [terserForTesting],
-							...compilerOptions?.optimization
-						},
+						removeAvailableModules: true,
+						removeEmptyChunks: true,
+						mergeDuplicateChunks: true,
+						// CHANGE: rspack does not support `flagIncludedChunks` yet.
+						// flagIncludedChunks: true,
+						sideEffects: true,
+						providedExports: true,
+						usedExports: true,
+						mangleExports: true,
+						// CHANGE: rspack does not support `emitOnErrors` yet.
+						// emitOnErrors: true,
+						concatenateModules:
+							!!testConfig?.optimization?.concatenateModules,
+						innerGraph: true,
+						// CHANGE: size is not supported yet
+						// moduleIds: "size",
+						// chunkIds: "size",
+						moduleIds: "named",
+						chunkIds: "named",
+						minimizer: [terserForTesting],
+						...compilerOptions?.optimization
+					},
 				// CHANGE: rspack does not support `performance` yet.
 				// performance: {
 				// 	hints: false

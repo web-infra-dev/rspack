@@ -28,7 +28,7 @@ export interface IBasicProcessorOptions<T extends ECompilerType> {
 }
 
 export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
-	constructor(protected _options: IBasicProcessorOptions<T>) {}
+	constructor(protected _options: IBasicProcessorOptions<T>) { }
 
 	async config(context: ITestContext) {
 		const compiler = this.getCompiler(context);
@@ -182,9 +182,9 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 		}
 	}
 
-	async before(context: ITestContext): Promise<void> {}
-	async after(context: ITestContext): Promise<void> {}
-	async beforeAll(context: ITestContext): Promise<void> {}
+	async before(context: ITestContext): Promise<void> { }
+	async after(context: ITestContext): Promise<void> { }
+	async beforeAll(context: ITestContext): Promise<void> { }
 	async afterAll(context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		await compiler.close();

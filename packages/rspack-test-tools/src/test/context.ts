@@ -21,7 +21,7 @@ export class TestContext implements ITestContext {
 	protected runners: Map<string, ITestRunner> = new Map();
 	protected runnerFactory: TRunnerFactory<ECompilerType> | null = null;
 
-	constructor(private config: TTestContextOptions) {}
+	constructor(private config: TTestContextOptions) { }
 
 	getSource(sub?: string): string {
 		if (sub) {

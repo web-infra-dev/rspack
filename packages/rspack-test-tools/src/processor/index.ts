@@ -15,3 +15,4 @@ export * from "./snapshot";
 export * from "./stats";
 export * from "./stats-api";
 export * from "./watch";
+export * from "./normal";

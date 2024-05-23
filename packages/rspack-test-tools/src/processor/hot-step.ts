@@ -2,7 +2,7 @@ import { Chunk, StatsCompilation } from "@rspack/core";
 import fs from "fs-extra";
 import path from "path";
 
-import { escapeEOL, escapeSep } from "../helper";
+import { escapeEOL, escapeSep, isUpdateSnapshot } from "../helper";
 import { THotStepRuntimeData } from "../runner";
 import {
 	ECompilerType,
@@ -20,7 +20,6 @@ declare var global: {
 	self?: {
 		[key: string]: (name: string, modules: Record<string, unknown>) => void;
 	};
-	updateSnapshot: boolean;
 };
 
 const SELF_HANDLER = (
@@ -32,8 +31,7 @@ const SELF_HANDLER = (
 		res = Object.keys(modules);
 	};
 	const hotUpdateGlobalKey = escapeLocalName(
-		`${options.output?.hotUpdateGlobal || "webpackHotUpdate"}${
-			options.output?.uniqueName || ""
+		`${options.output?.hotUpdateGlobal || "webpackHotUpdate"}${options.output?.uniqueName || ""
 		}`
 	);
 	global["self"] ??= {};
@@ -57,7 +55,7 @@ const GET_MODULE_HANDLER = {
 type TSupportTarget = keyof typeof GET_MODULE_HANDLER;
 
 export interface IHotSnapshotProcessorOptions<T extends ECompilerType>
-	extends IHotProcessorOptions<T> {}
+	extends IHotProcessorOptions<T> { }
 
 export class HotSnapshotProcessor<
 	T extends ECompilerType
@@ -271,22 +269,22 @@ ${fileList.join("\n")}
 
 ## Manifest
 ${hotUpdateManifest
-	.map(
-		i => `
+				.map(
+					i => `
 ### ${i.name}
 
 \`\`\`json
 ${i.content}
 \`\`\`
 `
-	)
-	.join("\n\n")}
+				)
+				.join("\n\n")}
 		
 ## Update
 
 ${hotUpdateFile
-	.map(
-		i => `
+				.map(
+					i => `
 ### ${i.name}
 
 #### Changed Modules
@@ -300,13 +298,12 @@ ${i.runtime.map(i => `- ${i}`).join("\n")}
 ${i.content}
 \`\`\`
 `
-	)
-	.join("\n\n")}
+				)
+				.join("\n\n")}
 
 
-${
-	runtime
-		? `
+${runtime
+				? `
 ## Runtime
 ### Status
 
@@ -314,9 +311,8 @@ ${
 ${runtime.statusPath.join(" => ")}
 \`\`\`
 
-${
-	runtime.javascript
-		? `
+${runtime.javascript
+					? `
 
 ### JavaScript
 
@@ -348,16 +344,16 @@ ${runtime.javascript.acceptedModules.map(i => `- ${i}`).join("\n")}
 Disposed Callback:
 ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 `
-		: ""
-}
+					: ""
+				}
 
 `
-		: ""
-}
+				: ""
+			}
 
 				`.trim();
 
-		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
+		if (!fs.existsSync(snapshotPath) || isUpdateSnapshot()) {
 			fs.ensureDirSync(path.dirname(snapshotPath));
 			fs.writeFileSync(snapshotPath, content, "utf-8");
 			return;
