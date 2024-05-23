@@ -145,6 +145,48 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       status: CompatibleStatus.Compatible,
     },
     {
+      name: 'webpack-stats-plugin',
+      url: 'https://www.npmjs.com/package/webpack-stats-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'license-webpack-plugin',
+      url: 'https://www.npmjs.com/package/license-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'monaco-editor-webpack-plugin',
+      url: 'https://www.npmjs.com/package/monaco-editor-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'friendly-errors-webpack-plugin',
+      url: 'https://www.npmjs.com/package/friendly-errors-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'dotenv-webpack',
+      url: 'https://www.npmjs.com/package/dotenv-webpack',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'friendly-errors-webpack-plugin',
+      url: 'https://www.npmjs.com/package/friendly-errors-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'webpackbar',
+      url: 'https://www.npmjs.com/package/webpackbar',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['progress-plugin-function-un-support-desc'],
+    },
+    {
+      name: 'progress-bar-webpack-plugin',
+      url: 'https://www.npmjs.com/package/progress-bar-webpack-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['progress-plugin-function-un-support-desc'],
+    },
+    {
       name: 'image-minimizer-webpack-plugin',
       url: 'https://www.npmjs.com/package/image-minimizer-webpack-plugin',
       status: CompatibleStatus.PartiallyCompatible,
