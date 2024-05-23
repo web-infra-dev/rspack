@@ -40,11 +40,9 @@ export class CommonJsRunner<
 			console: this.globalContext!.console,
 			setTimeout: this.globalContext!.setTimeout,
 			clearTimeout: this.globalContext!.clearTimeout,
-			it: this._options.env.it,
-			beforeEach: this._options.env.beforeEach,
-			afterEach: this._options.env.afterEach,
-			expect: this._options.env.expect,
-			jest,
+			jest: this._options.env,
+			...this._options.env,
+
 			nsObj: (m: Object) => {
 				Object.defineProperty(m, Symbol.toStringTag, {
 					value: "Module"

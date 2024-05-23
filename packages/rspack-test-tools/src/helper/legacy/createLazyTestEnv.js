@@ -85,7 +85,6 @@ module.exports = (globalTimeout = 2000, nameSuffix = "") => {
 		getNumberOfTests() {
 			return numberOfTests;
 		},
-		expect,
 		it(...args) {
 			numberOfTests++;
 			if (runTests >= numberOfTests) throw new Error("it called too late");
@@ -119,6 +118,9 @@ module.exports = (globalTimeout = 2000, nameSuffix = "") => {
 					currentDescribeBlock.hooks[currentDescribeBlock.hooks.length - 1]
 				);
 			});
-		}
+		},
+		expect,
+		fn: jest.fn,
+		spyOn: jest.spyOn
 	};
 };

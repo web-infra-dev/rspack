@@ -35,7 +35,7 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
 }
 
 export class BasicCaseCreator<T extends ECompilerType> {
-	constructor(protected _options: IBasicCaseCreatorOptions<T>) {}
+	constructor(protected _options: IBasicCaseCreatorOptions<T>) { }
 
 	create(name: string, src: string, dist: string, temp?: string) {
 		const testConfig = this.readTestConfig(src);
@@ -111,7 +111,9 @@ export class BasicCaseCreator<T extends ECompilerType> {
 				expect,
 				it,
 				beforeEach,
-				afterEach
+				afterEach,
+				fn: jest.fn,
+				spyOn: jest.spyOn
 			};
 		}
 	}
@@ -127,7 +129,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		describe.skip(name, () => {
 			it(
 				typeof reason === "string" ? `filtered by ${reason}` : "filtered",
-				() => {}
+				() => { }
 			);
 		});
 	}

@@ -15,7 +15,7 @@ export function getSimpleProcessorRunner(
 	} = {}
 ) {
 	const createEnv =
-		options.env || (() => ({ expect, it, beforeEach, afterEach }));
+		options.env || (() => ({ expect, it, beforeEach, afterEach, fn: jest.fn, spyOn: jest.spyOn }));
 	const createContext =
 		options.context ||
 		((src: string, dist: string) => new TestContext({ src, dist }));

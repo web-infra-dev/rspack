@@ -173,6 +173,8 @@ export interface ITestEnv {
 	it: (...args: any[]) => void;
 	beforeEach: (...args: any[]) => void;
 	afterEach: (...args: any[]) => void;
+	fn: typeof jest.fn;
+	spyOn: typeof jest.spyOn;
 }
 
 export type TTestConfig<T extends ECompilerType> = {
