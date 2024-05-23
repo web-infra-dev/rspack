@@ -16,9 +16,11 @@ Rspack v0.7 版本支持 lazy compilation，同时，Rspack 配置和对外 API 
 
 ### 支持 Lazy Compilation
 
-Rspack 0.7.0 支持了 Lazy Compilation（懒编译）功能，懒编译对提高多入口项目或大型项目的构建性能非常有帮助。
+Rspack 0.7.0 支持 Lazy Compilation（懒编译），Lazy Compilation 对提高多入口项目或大型项目的构建性能非常有帮助。
 
-TODO: 性能对比数据
+尽管 Rspack 目前有很好的性能，但是面对具有大量页面的项目，其性能仍然具有较大的提升空间，Lazy Compilation 是一个提升性能的良好手段，它可以在需要时才编译代码模块，而不是在启动时就编译所有模块。这意味着开发者在启动开发服务器时，可以更快地看到应用运行，因为只有访问特定功能时，相关的模块才会被编译。
+
+以 Rspack 官网为例，Rspack 官网包含多个页面，当开启 Lazy Compilation 后，只有访问到的入口及其依赖的文件才会进行构建，这极大的提升了编译速度，使得 Rspack 官网的启动时间从 2.5s 降至 1s 内 ⚡️。
 
 现在，你可以通过 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 配置项在 Rspack 中开启懒编译功能：
 
@@ -30,19 +32,19 @@ module.exports = {
 };
 ```
 
+此特性目前仍在实验阶段，如果你在使用过程中遇到问题，欢迎通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 向我们反馈。
+
+### 更多插件兼容性得到验证
+
+Rspack 致力于兼容 webpack 生态下的插件，以使用社区中已经积累和验证的优秀功能。[插件兼容列表](/guide/compatibility/plugin) 在持续更新中，通过插件兼容列表可查看目前一些社区插件的兼容性状态及其替代方案。目前已兼容的插件包括 `@vanilla-extract/webpack-plugin` 和 `moment-locales-webpack-plugin` 等，而 `workbox-webpack-plugin` 和 `webpack-manifest-plugin` 等则提供了替代方案。
+
+另外，[插件 API 支持](/api/plugin-api/index) 和插件兼容是一个需要持续进行的事情，如果你有发现其他 Rspack 不兼容的插件，欢迎通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 与我们交流，我们会尽快支持或提供替代方案。
+
 ### Tree shaking 功能达到稳定状态
 
 新版 tree shaking 在 Rspack 0.4.2 版本引入，并在 0.6.0 默认开启，经过几个月的 bug 修复和优化，目前已达到稳定状态。
 
 0.7.0 已移除 `builtins.treeShaking` (oldTreeShaking) 配置和 treeShaking 新旧切换的开关，将旧的 tree shaking 功能彻底下线。
-
-### 更多插件兼容性得到验证
-
-我们在 0.7.0 版本梳理了一些常见的社区插件的兼容状态及其替代方案，如 `@vanilla-extract/webpack-plugin`、`moment-locales-webpack-plugin` 等目前已兼容，如 `workbox-webpack-plugin`、`webpack-manifest-plugin` 等存在替代方案。
-
-详情可查看 [Plugin 兼容列表](/guide/compatibility/plugin)。
-
-另外，[插件 API 支持](/api/plugin-api/index)和插件兼容是一个需要持续进行的事情，如果你有发现其他 Rspack 不兼容的插件，欢迎通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 与我们交流，我们会尽快支持或提供替代方案。
 
 ## 不兼容更新
 
@@ -52,7 +54,19 @@ Rspack 会在 1.0 版本前，逐步下线所有不稳定的 API 和配置，更
 
 Rspack 初期暴露了一些预期仅供内部使用且不稳定的 API，如 `compiler.compilation` 和 `compiler.builtinPlugins` 等，这些 API 并不稳定且无法在 webpack 中使用。
 
-在 0.7.0 版本中，我们重新整理了目前暴露的 API 及其接口定义。如果你使用到这些 API，我们希望你进行相应的调整，切换到与 webpack 一致的实现方式。
+在 0.7.0 版本中，我们重新整理了目前暴露的 API 及其接口定义。如果你有使用到这些 API，你需要进行一些调整，切换到与 webpack 一致的实现方式。
+
+以下 API 已废弃：
+
+- `compiler.builtinPlugins`
+- `compiler.compilation`
+- `compiler.compilationParams`
+- `compiler.getAsset(name)`
+- `statsError.formatted`
+- `statsWarning.formatted`
+- ...
+
+关于废弃 API 的详细情况可参考 [rspack#6448](https://github.com/web-infra-dev/rspack/pull/6448)、[rspack#6505](https://github.com/web-infra-dev/rspack/pull/6505)。
 
 ### 移除 builtins 以及 experiments.rspackFuture.newTreeshaking
 
@@ -95,4 +109,4 @@ Rspack 初期暴露了一些预期仅供内部使用且不稳定的 API，如 `c
 
 ### 移除 generator.css.exportsConvention
 
-如果你之前配置了 `module.generator.css.exportsConvention` 或在 `module.rule` 中配置了 `generator.exportsConvention`，只需要删除该配置即可。import { experiments } from 'webpack';
+如果你之前配置了 `module.generator.css.exportsConvention` 或在 `module.rule` 中配置了 `generator.exportsConvention`，只需要删除该配置即可。
