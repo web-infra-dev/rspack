@@ -6,22 +6,22 @@ repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
 [dependencies]
-async-trait = { workspace = true }
-css-module-lexer = { workspace = true }
-heck = { workspace = true }
-indexmap = { version = "=1.9.3", features = ["serde-1"] } # pinned by rkyv
-once_cell = { workspace = true }
-rayon = { workspace = true }
-regex = { workspace = true }
-rkyv = { workspace = true, features = ["indexmap", "validation"] }
-rspack_core = { path = "../rspack_core" }
-rspack_error = { path = "../rspack_error" }
-rspack_hash = { path = "../rspack_hash" }
-rspack_hook = { path = "../rspack_hook" }
-rspack_identifier = { path = "../rspack_identifier" }
+async-trait           = { workspace = true }
+css-module-lexer      = { workspace = true }
+heck                  = { workspace = true }
+indexmap              = { version = "=1.9.3", features = ["serde-1"] }              # pinned by rkyv
+once_cell             = { workspace = true }
+rayon                 = { workspace = true }
+regex                 = { workspace = true }
+rkyv                  = { workspace = true, features = ["indexmap", "validation"] }
+rspack_core           = { path = "../rspack_core" }
+rspack_error          = { path = "../rspack_error" }
+rspack_hash           = { path = "../rspack_hash" }
+rspack_hook           = { path = "../rspack_hook" }
+rspack_identifier     = { path = "../rspack_identifier" }
 rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
-rspack_util = { path = "../rspack_util" }
-rustc-hash = { workspace = true }
-serde_json = { workspace = true }
-tracing = { workspace = true }
-urlencoding = { workspace = true }
+rspack_util           = { path = "../rspack_util" }
+rustc-hash            = { workspace = true }
+serde_json            = { workspace = true }
+tracing               = { workspace = true }
+urlencoding           = { workspace = true }

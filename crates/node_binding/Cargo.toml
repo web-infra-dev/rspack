@@ -23,6 +23,7 @@ rspack_fs_node         = { path = "../rspack_fs_node" }
 rspack_hook            = { path = "../rspack_hook" }
 rspack_identifier      = { path = "../rspack_identifier" }
 rspack_napi            = { path = "../rspack_napi" }
+rspack_regex           = { path = "../rspack_regex" }
 rspack_tracing         = { path = "../rspack_tracing" }
 tokio                  = { workspace = true, features = ["rt", "rt-multi-thread"] }
 
