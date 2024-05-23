@@ -85,6 +85,34 @@ type LazyCompilationOptions =
 
 除此以外你还可以配置 `test` 来更细粒度控制对哪些模块进行懒编译。`test` 可以是一个正则表达式，只对该正则匹配到的模块进行懒编译，`test` 也可以是一个函数，函数的输入是 `Module` 类型，返回 `boolean` 类型，表示是否命中懒编译逻辑。
 
+:::note
+如果不使用 rspack 自己的 dev-server 而是使用自己的 server 作为开发服务器，一般会在 entry 配置中加入另外的 client 来开启 hmr 等能力，那么最好通过配置 test 来将该 client 从懒编译模块中排除出去。
+如果不排除掉，并且开启 entry 的懒编译，该 client 在第一次访问页面时不会被编译，因此需要一次额外的刷新才能让其真正生效。
+
+```ts
+const rspack = require('@rspack/core');
+
+const options = {
+  experiments: {
+    lazyCompilation: {
+      test(module) {
+        const isMyClient = module.nameForCondition().endsWith('dev-client.js');
+        // 让 dev-client.js 不被懒编译
+        return !isMyClient;
+      },
+    },
+  },
+};
+const compiler = rspack(options);
+
+new compiler.webpack.EntryPlugin(compiler.context, 'dev-client.js', {
+  // name: undefined 代表这是全局 entry，会插入到每一个 entry 前
+  name: undefined,
+}).apply(compiler);
+```
+
+:::
+
 ## experiments.rspackFuture
 
 <ApiMeta addedVersion="0.3.2" />
