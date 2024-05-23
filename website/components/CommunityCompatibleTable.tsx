@@ -160,11 +160,6 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       status: CompatibleStatus.Compatible,
     },
     {
-      name: 'friendly-errors-webpack-plugin',
-      url: 'https://www.npmjs.com/package/friendly-errors-webpack-plugin',
-      status: CompatibleStatus.Compatible,
-    },
-    {
       name: 'dotenv-webpack',
       url: 'https://www.npmjs.com/package/dotenv-webpack',
       status: CompatibleStatus.Compatible,
