@@ -164,6 +164,7 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 			);
 			resolve();
 		});
+
 		await new Promise<void>((resolve, reject) => {
 			checkArrayExpectation(
 				context.getSource(),
@@ -175,7 +176,10 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 			resolve();
 		});
 
-		context.clearError(this._options.name);
+		// clear error if checked
+		if (fs.existsSync(context.getSource("errors.js"))) {
+			context.clearError(this._options.name);
+		}
 	}
 
 	async before(context: ITestContext): Promise<void> {}

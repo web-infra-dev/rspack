@@ -95,6 +95,7 @@ export interface ITesterConfig {
 export interface ITester {
 	step: number;
 	total: number;
+	getContext(): ITestContext;
 	prepare(): Promise<void>;
 	compile(): Promise<void>;
 	check(env: ITestEnv): Promise<void>;
