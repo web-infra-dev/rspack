@@ -355,7 +355,7 @@ impl Plugin for CssPlugin {
           .and_then(|g| g.get_css_module())
           .expect("should have CssModuleGeneratorOptions");
         Box::new(CssParserAndGenerator {
-          exports: Some(Default::default()),
+          exports: None,
           convention: Some(
             g.exports_convention
               .expect("should have exports_convention"),
@@ -381,7 +381,7 @@ impl Plugin for CssPlugin {
           .and_then(|g| g.get_css_auto())
           .expect("should have CssAutoGeneratorOptions");
         Box::new(CssParserAndGenerator {
-          exports: Some(Default::default()),
+          exports: None,
           convention: Some(
             g.exports_convention
               .expect("should have exports_convention"),

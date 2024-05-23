@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt::Write;
 use std::hash::Hasher;
 
@@ -28,7 +29,7 @@ pub static LEADING_DIGIT_REGEX: Lazy<Regex> =
 
 #[derive(Debug, Clone)]
 pub struct LocalIdentOptions<'a> {
-  relative_path: String,
+  relative_resource: String,
   local_name_ident: &'a LocalIdentName,
   compiler_options: &'a CompilerOptions,
 }
@@ -39,12 +40,9 @@ impl<'a> LocalIdentOptions<'a> {
     local_name_ident: &'a LocalIdentName,
     compiler_options: &'a CompilerOptions,
   ) -> Self {
-    let relative_path = make_paths_relative(
-      &compiler_options.context,
-      &resource_data.resource_path.to_string_lossy(),
-    );
+    let relative_resource = make_paths_relative(&compiler_options.context, &resource_data.resource);
     Self {
-      relative_path,
+      relative_resource,
       local_name_ident,
       compiler_options,
     }
@@ -54,7 +52,7 @@ impl<'a> LocalIdentOptions<'a> {
     let output = &self.compiler_options.output;
     let hash = {
       let mut hasher = RspackHash::with_salt(&output.hash_function, &output.hash_salt);
-      hasher.write(self.relative_path.as_bytes());
+      hasher.write(self.relative_resource.as_bytes());
       let contains_local = self
         .local_name_ident
         .template
@@ -71,13 +69,13 @@ impl<'a> LocalIdentOptions<'a> {
     };
     LocalIdentNameRenderOptions {
       path_data: PathData::default()
-        .filename(&self.relative_path)
+        .filename(&self.relative_resource)
         .hash(&hash)
         // TODO: should be moduleId, but we don't have it at parse,
         // and it's lots of work to move css module compile to generator,
         // so for now let's use hash for compatibility.
         .id(if self.compiler_options.mode.is_development() {
-          &self.relative_path
+          &self.relative_resource
         } else {
           &hash
         }),
@@ -103,10 +101,9 @@ impl LocalIdentNameRenderOptions<'_> {
       .template
       .render(self.path_data, None)
       .always_ok();
-    s = s.replace("[local]", self.local);
     s = s.replace("[uniqueName]", self.unique_name);
-
     s = ESCAPE_LOCAL_IDENT_REGEX.replace_all(&s, "_").into_owned();
+    s = s.replace("[local]", self.local);
     s
   }
 }
@@ -143,7 +140,7 @@ pub fn css_modules_exports_to_string(
     let content = elements
       .iter()
       .map(|CssExport { ident, from }| match from {
-        None => json_stringify(ident),
+        None => json_stringify(&unescape(ident)),
         Some(from_name) => {
           let from = module
             .get_dependencies()
@@ -171,13 +168,14 @@ pub fn css_modules_exports_to_string(
           format!(
             "{}({from})[{}]",
             RuntimeGlobals::REQUIRE,
-            json_stringify(ident)
+            json_stringify(&unescape(ident))
           )
         }
       })
       .collect::<Vec<_>>()
       .join(" + \" \" + ");
-    writeln!(code, "  {}: {},", json_stringify(key), content).map_err(|e| error!(e.to_string()))?;
+    writeln!(code, "  {}: {},", json_stringify(&unescape(key)), content)
+      .map_err(|e| error!(e.to_string()))?;
   }
   code += "}";
   code += right;
@@ -205,7 +203,7 @@ pub fn css_modules_exports_to_concatenate_module_string(
     let content = elements
       .iter()
       .map(|CssExport { ident, from }| match from {
-        None => json_stringify(ident),
+        None => json_stringify(&unescape(ident)),
         Some(from_name) => {
           let from = module
             .get_dependencies()
@@ -232,7 +230,7 @@ pub fn css_modules_exports_to_concatenate_module_string(
           format!(
             "{}({from})[{}]",
             RuntimeGlobals::REQUIRE,
-            json_stringify(ident)
+            json_stringify(&unescape(ident))
           )
         }
       })
@@ -247,7 +245,7 @@ pub fn css_modules_exports_to_concatenate_module_string(
     // TODO: conditional support `const or var` after we finished runtimeTemplate utils
     concate_source.add(RawSource::from(format!("var {identifier} = {content};\n")));
     used_identifiers.insert(identifier.clone());
-    scope.register_export(key.as_str().into(), identifier);
+    scope.register_export(unescape(key).as_ref().into(), identifier);
   }
   Ok(())
 }
@@ -263,10 +261,8 @@ static UNESCAPE: Lazy<Regex> =
 
 static DATA: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?i)data:").expect("Invalid RegExp"));
 
-pub fn normalize_url(s: &str) -> String {
-  let result = STRING_MULTILINE.replace_all(s, "");
-  let result = TRIM_WHITE_SPACES.replace_all(&result, "");
-  let result = UNESCAPE.replace_all(&result, |caps: &Captures| {
+pub fn unescape(s: &str) -> Cow<str> {
+  UNESCAPE.replace_all(s.as_ref(), |caps: &Captures| {
     caps
       .get(0)
       .and_then(|m| {
@@ -283,7 +279,49 @@ pub fn normalize_url(s: &str) -> String {
         }
       })
       .unwrap_or(caps[0].to_string())
-  });
+  })
+}
+
+static WHITE_OR_BRACKET_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r#"[\n\t ()'"\\]"#).expect("Invalid Regexp"));
+static QUOTATION_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r#"[\n"\\]"#).expect("Invalid Regexp"));
+static APOSTROPHE_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r#"[\n'\\]"#).expect("Invalid Regexp"));
+
+pub fn css_escape_string(s: &str) -> String {
+  let mut count_white_or_bracket = 0;
+  let mut count_quotation = 0;
+  let mut count_apostrophe = 0;
+  for c in s.chars() {
+    match c {
+      '\t' | '\n' | ' ' | '(' | ')' => count_white_or_bracket += 1,
+      '"' => count_quotation += 1,
+      '\'' => count_apostrophe += 1,
+      _ => {}
+    }
+  }
+  if count_white_or_bracket < 2 {
+    WHITE_OR_BRACKET_REGEX
+      .replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
+      .into_owned()
+  } else if count_quotation <= count_apostrophe {
+    format!(
+      "\"{}\"",
+      QUOTATION_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
+    )
+  } else {
+    format!(
+      "\'{}\'",
+      APOSTROPHE_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
+    )
+  }
+}
+
+pub fn normalize_url(s: &str) -> String {
+  let result = STRING_MULTILINE.replace_all(s, "");
+  let result = TRIM_WHITE_SPACES.replace_all(&result, "");
+  let result = unescape(&result);
 
   if DATA.is_match(&result) {
     return result.to_string();
@@ -297,7 +335,7 @@ pub fn normalize_url(s: &str) -> String {
   result.to_string()
 }
 
-pub fn css_parsing_traceable_warning(
+pub fn css_parsing_traceable_error(
   source_code: impl Into<String>,
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
@@ -317,17 +355,18 @@ pub fn replace_module_request_prefix(
   diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   source_code: &str,
   start: css_module_lexer::Pos,
+  end: css_module_lexer::Pos,
 ) -> String {
   if specifier.starts_with('~') {
     diagnostics.push(
-      css_parsing_traceable_warning(
+      css_parsing_traceable_error(
         source_code,
         start,
-        start + 1,
+        end,
         "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
       )
-      .with_help(Some("Remove '~' from the request."))
       .with_severity(Severity::Warning)
+      .with_help(Some("Remove '~' from the request."))
       .boxed(),
     );
     String::from(&specifier[1..])

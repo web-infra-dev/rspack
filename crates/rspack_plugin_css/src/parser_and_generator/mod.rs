@@ -23,7 +23,7 @@ use crate::{
     CssUrlDependency,
   },
   utils::{
-    css_modules_exports_to_concatenate_module_string, css_parsing_traceable_warning, normalize_url,
+    css_modules_exports_to_concatenate_module_string, css_parsing_traceable_error, normalize_url,
     replace_module_request_prefix,
   },
 };
@@ -126,8 +126,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
           if request.is_empty() {
             continue;
           }
-          let request =
-            replace_module_request_prefix(request, &mut diagnostics, &source_code, range.start);
+          let request = replace_module_request_prefix(
+            request,
+            &mut diagnostics,
+            &source_code,
+            range.start,
+            range.end,
+          );
           let request = normalize_url(&request);
           let dep = Box::new(CssUrlDependency::new(
             request,
@@ -149,8 +154,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
             )));
             continue;
           }
-          let request =
-            replace_module_request_prefix(request, &mut diagnostics, &source_code, range.start);
+          let request = replace_module_request_prefix(
+            request,
+            &mut diagnostics,
+            &source_code,
+            range.start,
+            range.end,
+          );
           dependencies.push(Box::new(CssImportDependency::new(
             request,
             Some(ErrorSpan::new(range.start, range.end)),
@@ -183,15 +193,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
             range.start,
             range.end,
           )));
-          let exports = self
-            .exports
-            .as_mut()
-            .expect("should have local_ident_name for module_type css/auto or css/module");
+          let exports = self.exports.get_or_insert_default();
           let convention = self
             .convention
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
-          dbg!(name);
           for name in export_locals_convention(&name, convention) {
             exports.insert(
               name,
@@ -219,10 +225,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             range.start,
             range.end,
           )));
-          let exports = self
-            .exports
-            .as_mut()
-            .expect("should have local_ident_name for module_type css/auto or css/module");
+          let exports = self.exports.get_or_insert_default();
           let convention = self
             .convention
             .as_ref()
@@ -252,10 +255,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
               ErrorSpan::new(range.start, range.end),
             )));
           }
-          let exports = self
-            .exports
-            .as_mut()
-            .expect("should have local_ident_name for module_type css/auto or css/module");
+          let exports = self.exports.get_or_insert_default();
           for name in names {
             for &local_class in local_classes.iter() {
               if let Some(existing) = exports.get(name) {
@@ -273,10 +273,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           }
         }
         css_module_lexer::Dependency::ICSSExportValue { prop, value } => {
-          let exports = self
-            .exports
-            .as_mut()
-            .expect("should have local_ident_name for module_type css/auto or css/module");
+          let exports = self.exports.get_or_insert_default();
           let convention = self
             .convention
             .as_ref()
@@ -300,7 +297,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
     for warning in warnings {
       let range = warning.range();
-      diagnostics.push(Box::new(css_parsing_traceable_warning(
+      diagnostics.push(Box::new(css_parsing_traceable_error(
         source_code.to_owned(),
         range.start,
         range.end,
