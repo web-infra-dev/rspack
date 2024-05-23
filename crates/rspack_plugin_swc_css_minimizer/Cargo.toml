@@ -9,10 +9,14 @@ version    = "0.1.0"
 
 [dependencies]
 once_cell         = { workspace = true }
+rayon             = { workspace = true }
 regex             = { workspace = true }
 rspack_core       = { path = "../rspack_core" }
 rspack_error      = { path = "../rspack_error" }
 rspack_hook       = { path = "../rspack_hook" }
-rspack_plugin_css = { path = "../rspack_plugin_css" }
 
-rayon = { workspace = true }
+swc_core = { workspace = true, features = [
+  "css_codegen",
+  "css_parser",
+  "css_minifier",
+] }

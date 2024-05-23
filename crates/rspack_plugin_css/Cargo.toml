@@ -23,17 +23,5 @@ rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
 rspack_util = { path = "../rspack_util" }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
-swc_core = { workspace = true, features = [
-  "css_ast",
-  "css_codegen",
-  "css_parser",
-  "css_utils",
-  "css_visit",
-  "css_visit_path",
-  "css_compat",
-  "css_modules",
-  "css_prefixer",
-  "css_minifier",
-] }
 tracing = { workspace = true }
 urlencoding = { workspace = true }

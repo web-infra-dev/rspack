@@ -1,6 +1,4 @@
-#![allow(clippy::comparison_chain)]
-
-use std::{borrow::Cow, collections::HashMap};
+use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
@@ -8,43 +6,26 @@ use regex::Regex;
 use rkyv::{from_bytes, to_bytes, AlignedVec};
 use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
-  rspack_sources::{
-    BoxSource, ConcatSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
-    SourceMapSource, SourceMapSourceOptions,
-  },
-  BoxDependency, BuildExtraDataType, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
-  ConstDependency, CssExportsConvention, Dependency, DependencyTemplate, ErrorSpan,
-  GenerateContext, LocalIdentName, Module, ModuleDependency, ModuleGraph, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, SourceType, TemplateContext,
+  rspack_sources::{BoxSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt},
+  BuildExtraDataType, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ConstDependency,
+  CssExportsConvention, Dependency, DependencyTemplate, ErrorSpan, GenerateContext, LocalIdentName,
+  Module, ModuleDependency, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
+  SourceType, TemplateContext,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
-use rspack_error::{
-  miette::Diagnostic, DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-  TraceableError,
-};
-use rustc_hash::FxHashSet;
-use swc_core::{
-  css::{parser::parser::ParserConfig, visit::VisitWith},
-  ecma::atoms::Atom,
-};
+use rspack_error::{miette::Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
+use crate::utils::export_locals_convention;
+use crate::utils::{css_modules_exports_to_string, LocalIdentOptions};
 use crate::{
   dependency::{
-    CssComposeDependency, CssImportDependency, CssModuleExportDependency, CssUrlDependency,
+    CssComposeDependency, CssExportDependency, CssImportDependency, CssLocalIdentDependency,
+    CssUrlDependency,
   },
-  swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig},
   utils::{
-    css_modules_exports_to_concatenate_module_string, css_parsing_traceable_warning,
+    css_modules_exports_to_concatenate_module_string, css_parsing_traceable_warning, normalize_url,
     replace_module_request_prefix,
   },
-};
-use crate::{
-  utils::{css_modules_exports_to_string, ModulesTransformConfig},
-  visitors::ExportsAnalyzer,
-};
-use crate::{
-  utils::{export_locals_convention, stringify_css_modules_exports_elements},
-  visitors::analyze_dependencies,
 };
 
 static REGEX_IS_MODULES: Lazy<Regex> =
@@ -58,9 +39,12 @@ pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(check_bytes)]
-pub struct CssExport(pub String, pub ErrorSpan, pub Option<String>);
+pub struct CssExport {
+  pub ident: String,
+  pub from: Option<String>,
+}
 
-pub type CssExportsType = IndexMap<Vec<String>, Vec<CssExport>>;
+pub type CssExports = IndexMap<String, Vec<CssExport>>;
 
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
@@ -68,8 +52,8 @@ pub struct CssParserAndGenerator {
   pub local_ident_name: Option<LocalIdentName>,
   pub exports_only: bool,
   pub named_exports: bool,
-  pub exports: Option<CssExportsType>,
   pub es_module: bool,
+  pub exports: Option<CssExports>,
 }
 
 impl ParserAndGenerator for CssParserAndGenerator {
@@ -93,8 +77,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let ParseContext {
       source,
       module_type,
-      module_user_request,
-      module_source_map_kind,
       resource_data,
       compiler_options,
       build_info,
@@ -146,6 +128,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           }
           let request =
             replace_module_request_prefix(request, &mut diagnostics, &source_code, range.start);
+          let request = normalize_url(&request);
           let dep = Box::new(CssUrlDependency::new(
             request,
             Some(ErrorSpan::new(range.start, range.end)),
@@ -182,12 +165,136 @@ impl ParserAndGenerator for CssParserAndGenerator {
             content.into(),
             None,
           ))),
-        css_module_lexer::Dependency::LocalClass { name, range, .. } => {}
-        css_module_lexer::Dependency::LocalId { name, range, .. } => {}
-        css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {}
-        css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {}
-        css_module_lexer::Dependency::Composes { names, from } => {}
-        css_module_lexer::Dependency::ICSSExportValue { prop, value } => {}
+        css_module_lexer::Dependency::LocalClass { name, range, .. }
+        | css_module_lexer::Dependency::LocalId { name, range, .. } => {
+          let (prefix, name) = name.split_at(1); // split '#' or '.'
+          let local_ident = LocalIdentOptions::new(
+            resource_data,
+            self
+              .local_ident_name
+              .as_ref()
+              .expect("should have local_ident_name for module_type css/auto or css/module"),
+            compiler_options,
+          )
+          .get_local_ident(name);
+          presentational_dependencies.push(Box::new(CssLocalIdentDependency::new(
+            name.to_string(),
+            format!("{prefix}{local_ident}"),
+            range.start,
+            range.end,
+          )));
+          let exports = self
+            .exports
+            .as_mut()
+            .expect("should have local_ident_name for module_type css/auto or css/module");
+          let convention = self
+            .convention
+            .as_ref()
+            .expect("should have local_ident_name for module_type css/auto or css/module");
+          dbg!(name);
+          for name in export_locals_convention(&name, convention) {
+            exports.insert(
+              name,
+              vec![CssExport {
+                ident: local_ident.clone(),
+                from: None,
+              }],
+            );
+          }
+        }
+        css_module_lexer::Dependency::LocalKeyframes { name, range, .. }
+        | css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
+          let local_ident = LocalIdentOptions::new(
+            resource_data,
+            self
+              .local_ident_name
+              .as_ref()
+              .expect("should have local_ident_name for module_type css/auto or css/module"),
+            compiler_options,
+          )
+          .get_local_ident(name);
+          presentational_dependencies.push(Box::new(CssLocalIdentDependency::new(
+            name.to_string(),
+            local_ident.clone(),
+            range.start,
+            range.end,
+          )));
+          let exports = self
+            .exports
+            .as_mut()
+            .expect("should have local_ident_name for module_type css/auto or css/module");
+          let convention = self
+            .convention
+            .as_ref()
+            .expect("should have local_ident_name for module_type css/auto or css/module");
+          for name in export_locals_convention(&name, convention) {
+            exports.insert(
+              name,
+              vec![CssExport {
+                ident: local_ident.clone(),
+                from: None,
+              }],
+            );
+          }
+        }
+        css_module_lexer::Dependency::Composes {
+          local_classes,
+          names,
+          from,
+          range,
+        } => {
+          if let Some(from) = from
+            && from != "global"
+          {
+            let from = from.trim_matches(|c| c == '\'' || c == '"');
+            dependencies.push(Box::new(CssComposeDependency::new(
+              from.to_string(),
+              ErrorSpan::new(range.start, range.end),
+            )));
+          }
+          let exports = self
+            .exports
+            .as_mut()
+            .expect("should have local_ident_name for module_type css/auto or css/module");
+          for name in names {
+            for &local_class in local_classes.iter() {
+              if let Some(existing) = exports.get(name) {
+                let existing = existing.clone();
+                exports.get_mut(local_class).unwrap().extend(existing);
+              } else {
+                exports.get_mut(local_class).unwrap().push(CssExport {
+                  ident: name.to_string(),
+                  from: from
+                    .filter(|f| *f != "global")
+                    .map(|f| f.trim_matches(|c| c == '\'' || c == '"').to_string()),
+                });
+              }
+            }
+          }
+        }
+        css_module_lexer::Dependency::ICSSExportValue { prop, value } => {
+          let exports = self
+            .exports
+            .as_mut()
+            .expect("should have local_ident_name for module_type css/auto or css/module");
+          let convention = self
+            .convention
+            .as_ref()
+            .expect("should have local_ident_name for module_type css/auto or css/module");
+          for name in export_locals_convention(&prop, convention) {
+            dependencies.push(Box::new(CssExportDependency::new(
+              name.clone(),
+              value.to_string(),
+            )));
+            exports.insert(
+              name,
+              vec![CssExport {
+                ident: value.to_string(),
+                from: None,
+              }],
+            );
+          }
+        }
         _ => {}
       }
     }
@@ -241,6 +348,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           runtime: generate_context.runtime,
           init_fragments: &mut init_fragments,
           concatenation_scope: generate_context.concatenation_scope.take(),
+          data: generate_context.data,
         };
 
         module.get_dependencies().iter().for_each(|id| {
@@ -329,7 +437,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
   fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {
     if let Some(data) = extra_data.get(&BuildExtraDataType::CssParserAndGenerator) {
-      let data = from_bytes::<Option<CssExportsType>>(data).expect("Failed to resume extra data");
+      let data = from_bytes::<Option<CssExports>>(data).expect("Failed to resume extra data");
       self.exports = data;
     }
   }

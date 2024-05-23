@@ -678,9 +678,9 @@ dependencies = [
 
 [[package]]
 name = "css-module-lexer"
-version = "0.0.5"
+version = "0.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "066dd5e0365c4b67387890858ccf3a38bb8e4b5782f5b3889efa9021ca60b5c0"
+checksum = "f93803bade76b613f096d42e7e7637a59efb47bbff6d9be65f01f3629d80d0f5"
 dependencies = [
  "smallvec",
 ]
@@ -3228,7 +3228,6 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
- "swc_core",
  "tracing",
  "urlencoding",
 ]
@@ -3614,7 +3613,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rspack_plugin_css",
+ "swc_core",
 ]
 
 [[package]]
@@ -4499,7 +4498,6 @@ dependencies = [
  "swc_css_minifier",
  "swc_css_modules",
  "swc_css_parser",
- "swc_css_prefixer",
  "swc_css_utils",
  "swc_css_visit",
  "swc_ecma_ast",
@@ -4620,23 +4618,6 @@ dependencies = [
  "swc_atoms",
  "swc_common",
  "swc_css_ast",
-]
-
-[[package]]
-name = "swc_css_prefixer"
-version = "0.153.37"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12416e97bced06666368f3cf7801abacb1a8962c9a4b9b2924faa4f45dc512aa"
-dependencies = [
- "once_cell",
- "preset_env_base",
- "serde",
- "serde_json",
- "swc_atoms",
- "swc_common",
- "swc_css_ast",
- "swc_css_utils",
- "swc_css_visit",
 ]
 
 [[package]]

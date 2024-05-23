@@ -320,8 +320,6 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     )
   }
 
-  // Safety: `original_source` and `ast_and_source` are available in code generation.
-  #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
     source: &BoxSource,
