@@ -176,7 +176,6 @@ export class RspackCLI {
 			if (typeof item.devtool === "undefined") {
 				item.devtool = isBuild ? "source-map" : "cheap-module-source-map";
 			}
-			item.builtins = item.builtins || {};
 			if (isServe) {
 				let installed = (item.plugins ||= []).find(
 					item => item instanceof rspackCore.ProgressPlugin

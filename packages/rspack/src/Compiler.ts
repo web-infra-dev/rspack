@@ -33,10 +33,7 @@ import Cache = require("./lib/Cache");
 import CacheFacade = require("./lib/CacheFacade");
 import { Source } from "webpack-sources";
 
-import {
-	deprecated_resolveBuiltins,
-	JsLoaderRspackPlugin
-} from "./builtin-plugin";
+import { JsLoaderRspackPlugin } from "./builtin-plugin";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import { Chunk } from "./Chunk";
 import { applyRspackOptionsDefaults } from "./config/defaults";
@@ -522,9 +519,7 @@ class Compiler {
 			output: {
 				...this.options.output,
 				...outputOptions
-			},
-			// TODO: check why we need to have builtins otherwise this.#instance will fail to initialize Rspack
-			builtins: this.options.builtins
+			}
 		};
 		applyRspackOptionsDefaults(options);
 		const childCompiler = new Compiler(this.context, options);
@@ -735,11 +730,6 @@ class Compiler {
 		}
 
 		const options = this.options;
-		// TODO: remove this when drop support for builtins options
-		options.builtins = deprecated_resolveBuiltins(
-			options.builtins,
-			options
-		) as any;
 		const rawOptions = getRawOptions(options, this);
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
@@ -1063,7 +1053,10 @@ class Compiler {
 								? ({
 										resource: bindingData.resource,
 										regExp: bindingData.regExp
-											? new RegExp(bindingData.regExp)
+											? new RegExp(
+													bindingData.regExp.source,
+													bindingData.regExp.flags
+												)
 											: undefined,
 										request: bindingData.request,
 										context: bindingData.context,
@@ -1077,7 +1070,12 @@ class Compiler {
 										resource: ret.resource,
 										context: ret.context,
 										request: ret.request,
-										regExp: ret.regExp?.toString()
+										regExp: ret.regExp
+											? {
+													source: ret.regExp.source,
+													flags: ret.regExp.flags
+												}
+											: undefined
 									} satisfies binding.JsContextModuleFactoryAfterResolveData)
 								: false;
 							return result;

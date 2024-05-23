@@ -6,7 +6,7 @@ import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
 import { ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
 export interface IBuiltinProcessorOptions<T extends ECompilerType>
-	extends Omit<ISnapshotProcessorOptions<T>, "defaultOptions" | "runable"> {}
+	extends Omit<ISnapshotProcessorOptions<T>, "runable"> {}
 
 export class BuiltinProcessor<
 	T extends ECompilerType
@@ -125,10 +125,7 @@ export class BuiltinProcessor<
 				},
 				devtool: false,
 				context: context.getSource(),
-				plugins: [],
-				builtins: {
-					treeShaking: false
-				}
+				plugins: []
 			} as TCompilerOptions<T>;
 
 			if (compilerType === ECompilerType.Rspack) {
@@ -144,23 +141,21 @@ export class BuiltinProcessor<
 				}
 
 				// TODO: remove builtin compatible code
-				const defineOptions = (rspackDefaultOptions.builtins as any)?.define;
+				const defineOptions = (rspackDefaultOptions as any).builtins?.define;
 				if (defineOptions) {
 					rspackDefaultOptions.plugins!.push(
 						new rspack.DefinePlugin(defineOptions)
 					);
-					delete (rspackDefaultOptions.builtins as any)?.define;
 				}
 
-				const provideOptions = (rspackDefaultOptions.builtins as any)?.provide;
+				const provideOptions = (rspackDefaultOptions as any).builtins?.provide;
 				if (provideOptions) {
 					rspackDefaultOptions.plugins!.push(
 						new rspack.ProvidePlugin(provideOptions)
 					);
-					delete (rspackDefaultOptions.builtins as any)?.provide;
 				}
 
-				const htmlOptions = (rspackDefaultOptions.builtins as any)?.html;
+				const htmlOptions = (rspackDefaultOptions as any).builtins?.html;
 				if (htmlOptions) {
 					if (Array.isArray(htmlOptions)) {
 						for (let item of htmlOptions) {
@@ -173,8 +168,9 @@ export class BuiltinProcessor<
 							new rspack.HtmlRspackPlugin(htmlOptions)
 						);
 					}
-					delete (rspackDefaultOptions.builtins as any)?.html;
 				}
+
+				delete (rspackDefaultOptions as any).builtins;
 
 				defaultOptions = rspackDefaultOptions as TCompilerOptions<T>;
 			}

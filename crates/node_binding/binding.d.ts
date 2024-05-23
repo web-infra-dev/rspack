@@ -301,7 +301,7 @@ export interface JsContextModuleFactoryAfterResolveData {
   resource: string
   context: string
   request: string
-  regExp?: string
+  regExp?: RawRegex
 }
 
 export interface JsContextModuleFactoryBeforeResolveData {
@@ -1134,7 +1134,6 @@ export interface RawOptions {
   node?: RawNodeOption
   profile: boolean
   bail: boolean
-  builtins: RawBuiltins
 }
 
 export interface RawOutputOptions {
@@ -1231,7 +1230,7 @@ export interface RawReactOptions {
   refresh?: boolean
 }
 
-export interface RawRegexMatcher {
+export interface RawRegex {
   source: string
   flags: string
 }
@@ -1282,13 +1281,13 @@ export interface RawResolveTsconfigOptions {
 }
 
 export interface RawRspackFuture {
-  newTreeshaking: boolean
+
 }
 
 export interface RawRuleSetCondition {
   type: "string" | "regexp" | "logical" | "array" | "function"
   stringMatcher?: string
-  regexpMatcher?: RawRegexMatcher
+  regexpMatcher?: RawRegex
   logicalMatcher?: Array<RawRuleSetLogicalConditions>
   arrayMatcher?: Array<RawRuleSetCondition>
   funcMatcher?: (value: string) => boolean
@@ -1316,13 +1315,7 @@ export interface RawSizeLimitsPluginOptions {
 }
 
 export interface RawSnapshotOptions {
-  resolve: RawSnapshotStrategy
-  module: RawSnapshotStrategy
-}
 
-export interface RawSnapshotStrategy {
-  hash: boolean
-  timestamp: boolean
 }
 
 export interface RawSourceMapDevToolPluginOptions {

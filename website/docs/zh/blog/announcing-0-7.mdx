@@ -34,11 +34,11 @@ module.exports = {
 
 新版 tree shaking 在 Rspack 0.4.2 版本引入，并在 0.6.0 默认开启，经过几个月的 bug 修复和优化，目前已达到稳定状态。
 
-0.7.0 已移除 `builtins.treeShaking` (oldTreeShaking) 配置，将旧的 tree shaking 功能彻底下线。
+0.7.0 已移除 `builtins.treeShaking` (oldTreeShaking) 配置和 treeShaking 新旧切换的开关，将旧的 tree shaking 功能彻底下线。
 
 ### 更多插件兼容性得到验证
 
-我们在 0.7 版本梳理了一些常见的社区插件的兼容状态及其替代方案，如 `@vanilla-extract/webpack-plugin`、`moment-locales-webpack-plugin` 等目前已兼容，如 `workbox-webpack-plugin`、`webpack-manifest-plugin` 等存在替代方案。
+我们在 0.7.0 版本梳理了一些常见的社区插件的兼容状态及其替代方案，如 `@vanilla-extract/webpack-plugin`、`moment-locales-webpack-plugin` 等目前已兼容，如 `workbox-webpack-plugin`、`webpack-manifest-plugin` 等存在替代方案。
 
 详情可查看 [Plugin 兼容列表](/guide/compatibility/plugin)。
 
@@ -52,11 +52,11 @@ Rspack 会在 1.0 版本前，逐步下线所有不稳定的 API 和配置，更
 
 Rspack 初期暴露了一些预期仅供内部使用且不稳定的 API，如 `compiler.compilation` 和 `compiler.builtinPlugins` 等，这些 API 并不稳定且无法在 webpack 中使用。
 
-在 0.7 版本中，我们重新整理了目前暴露的 API 及其接口定义。如果你使用到这些 API，我们希望你进行相应的调整，切换到与 webpack 一致的实现方式。
+在 0.7.0 版本中，我们重新整理了目前暴露的 API 及其接口定义。如果你使用到这些 API，我们希望你进行相应的调整，切换到与 webpack 一致的实现方式。
 
-### 移除 builtins.treeShaking (oldTreeShaking)
+### 移除 builtins 以及 experiments.rspackFuture.newTreeshaking
 
-0.7 版本已移除 `builtins.treeShaking` (oldTreeShaking) 配置，将旧的 tree shaking 功能彻底下线。
+0.7.0 已移除 `builtins.treeShaking` (oldTreeShaking) 和 `experiments.rspackFuture.newTreeshaking` (新 tree shaking 开关) 配置，将旧的 tree shaking 功能彻底下线。
 
 ### 移除 resolve.browserField
 
@@ -65,6 +65,10 @@ Rspack 初期暴露了一些预期仅供内部使用且不稳定的 API，如 `c
 ### 移除 experiments.newSplitChunks
 
 该配置用于开启新的 splitChunks 实现，由于 Rspack 已经默认使用新的 splitChunks 实现，所以不再需要该配置。
+
+### 移除 snapshot
+
+该配置用于配置 cache snapshot 的行为。在 Rspack 目前的增量架构下，cache 不再依赖 snapshot，所以不再需要该配置。
 
 ### 移除 generator.css.exportsConvention
 
@@ -91,4 +95,4 @@ Rspack 初期暴露了一些预期仅供内部使用且不稳定的 API，如 `c
 
 ### 移除 generator.css.exportsConvention
 
-如果你之前配置了 `module.generator.css.exportsConvention` 或在 `module.rule` 中配置了 `generator.exportsConvention`，只需要删除该配置即可。
+如果你之前配置了 `module.generator.css.exportsConvention` 或在 `module.rule` 中配置了 `generator.exportsConvention`，只需要删除该配置即可。import { experiments } from 'webpack';

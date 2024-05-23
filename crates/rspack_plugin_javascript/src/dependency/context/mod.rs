@@ -21,7 +21,7 @@ fn create_resource_identifier_for_context_dependency(
   let regexp = options
     .reg_exp
     .as_ref()
-    .map(|r| r.to_string())
+    .map(|r| r.to_source_string())
     .unwrap_or_default();
   let include = options.include.as_deref().unwrap_or_default();
   let exclude = options.exclude.as_deref().unwrap_or_default();

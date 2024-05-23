@@ -64,6 +64,12 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       status: CompatibleStatus.Compatible,
     },
     {
+      name: 'moment-locales-webpack-plugin',
+      url: 'https://www.npmjs.com/package/moment-locales-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+      description: i18n[lang]['moment-locales-webpack-plugin-desc'],
+    },
+    {
       name: 'copy-webpack-plugin',
       url: 'https://www.npmjs.com/package/copy-webpack-plugin',
       status: CompatibleStatus.Included,

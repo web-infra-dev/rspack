@@ -799,18 +799,6 @@ export type BaseUri = z.infer<typeof baseUri>;
 const baseUri: z.ZodString;
 
 // @public (undocumented)
-export type Builtins = z.infer<typeof builtins>;
-
-// @public (undocumented)
-const builtins: z.ZodType<Builtins_2, z.ZodTypeDef, Builtins_2>;
-
-// @public (undocumented)
-interface Builtins_2 {
-    // (undocumented)
-    treeShaking?: boolean | "module";
-}
-
-// @public (undocumented)
 type CacheHookMap = Map<string, SyncBailHook_2<[any[], StatsFactoryContext], any>[]>;
 
 // @public (undocumented)
@@ -2862,7 +2850,6 @@ const experiments: z.ZodObject<{
     css: z.ZodOptional<z.ZodBoolean>;
     futureDefaults: z.ZodOptional<z.ZodBoolean>;
     rspackFuture: z.ZodOptional<z.ZodObject<{
-        newTreeshaking: z.ZodOptional<z.ZodBoolean>;
         bundlerInfo: z.ZodOptional<z.ZodObject<{
             version: z.ZodOptional<z.ZodString>;
             force: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodArray<z.ZodEnum<["version"]>, "many">]>>;
@@ -2874,13 +2861,11 @@ const experiments: z.ZodObject<{
             force?: boolean | "version"[] | undefined;
         }>>;
     }, "strict", z.ZodTypeAny, {
-        newTreeshaking?: boolean | undefined;
         bundlerInfo?: {
             version?: string | undefined;
             force?: boolean | "version"[] | undefined;
         } | undefined;
     }, {
-        newTreeshaking?: boolean | undefined;
         bundlerInfo?: {
             version?: string | undefined;
             force?: boolean | "version"[] | undefined;
@@ -2898,7 +2883,6 @@ const experiments: z.ZodObject<{
     css?: boolean | undefined;
     futureDefaults?: boolean | undefined;
     rspackFuture?: {
-        newTreeshaking?: boolean | undefined;
         bundlerInfo?: {
             version?: string | undefined;
             force?: boolean | "version"[] | undefined;
@@ -2916,7 +2900,6 @@ const experiments: z.ZodObject<{
     css?: boolean | undefined;
     futureDefaults?: boolean | undefined;
     rspackFuture?: {
-        newTreeshaking?: boolean | undefined;
         bundlerInfo?: {
             version?: string | undefined;
             force?: boolean | "version"[] | undefined;
@@ -8080,7 +8063,6 @@ declare namespace rspackExports {
         Profile,
         Bail,
         Performance_2 as Performance,
-        Builtins,
         rspackOptions,
         RspackOptions,
         Configuration
@@ -8092,7 +8074,6 @@ export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
 // @public (undocumented)
 const rspackFutureOptions: z.ZodObject<{
-    newTreeshaking: z.ZodOptional<z.ZodBoolean>;
     bundlerInfo: z.ZodOptional<z.ZodObject<{
         version: z.ZodOptional<z.ZodString>;
         force: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodArray<z.ZodEnum<["version"]>, "many">]>>;
@@ -8104,13 +8085,11 @@ const rspackFutureOptions: z.ZodObject<{
         force?: boolean | "version"[] | undefined;
     }>>;
 }, "strict", z.ZodTypeAny, {
-    newTreeshaking?: boolean | undefined;
     bundlerInfo?: {
         version?: string | undefined;
         force?: boolean | "version"[] | undefined;
     } | undefined;
 }, {
-    newTreeshaking?: boolean | undefined;
     bundlerInfo?: {
         version?: string | undefined;
         force?: boolean | "version"[] | undefined;
@@ -8788,7 +8767,6 @@ export const rspackOptions: z.ZodObject<{
         css: z.ZodOptional<z.ZodBoolean>;
         futureDefaults: z.ZodOptional<z.ZodBoolean>;
         rspackFuture: z.ZodOptional<z.ZodObject<{
-            newTreeshaking: z.ZodOptional<z.ZodBoolean>;
             bundlerInfo: z.ZodOptional<z.ZodObject<{
                 version: z.ZodOptional<z.ZodString>;
                 force: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodArray<z.ZodEnum<["version"]>, "many">]>>;
@@ -8800,13 +8778,11 @@ export const rspackOptions: z.ZodObject<{
                 force?: boolean | "version"[] | undefined;
             }>>;
         }, "strict", z.ZodTypeAny, {
-            newTreeshaking?: boolean | undefined;
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
             } | undefined;
         }, {
-            newTreeshaking?: boolean | undefined;
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
@@ -8824,7 +8800,6 @@ export const rspackOptions: z.ZodObject<{
         css?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
-            newTreeshaking?: boolean | undefined;
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
@@ -8842,7 +8817,6 @@ export const rspackOptions: z.ZodObject<{
         css?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
-            newTreeshaking?: boolean | undefined;
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
@@ -9092,46 +9066,7 @@ export const rspackOptions: z.ZodObject<{
         optimizationBailout?: boolean | undefined;
         orphanModules?: boolean | undefined;
     }>]>>;
-    snapshot: z.ZodOptional<z.ZodObject<{
-        module: z.ZodOptional<z.ZodObject<{
-            hash: z.ZodOptional<z.ZodBoolean>;
-            timestamp: z.ZodOptional<z.ZodBoolean>;
-        }, "strict", z.ZodTypeAny, {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        }, {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        }>>;
-        resolve: z.ZodOptional<z.ZodObject<{
-            hash: z.ZodOptional<z.ZodBoolean>;
-            timestamp: z.ZodOptional<z.ZodBoolean>;
-        }, "strict", z.ZodTypeAny, {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        }, {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        }>>;
-    }, "strict", z.ZodTypeAny, {
-        module?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-        resolve?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-    }, {
-        module?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-        resolve?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-    }>>;
+    snapshot: z.ZodOptional<z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>>;
     optimization: z.ZodOptional<z.ZodObject<{
         moduleIds: z.ZodOptional<z.ZodEnum<["named", "deterministic"]>>;
         chunkIds: z.ZodOptional<z.ZodEnum<["named", "deterministic"]>>;
@@ -9458,7 +9393,6 @@ export const rspackOptions: z.ZodObject<{
     resolveLoader: z.ZodOptional<z.ZodType<ResolveOptions, z.ZodTypeDef, ResolveOptions>>;
     plugins: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodType<RspackPluginInstance, z.ZodTypeDef, RspackPluginInstance>, z.ZodType<RspackPluginFunction, z.ZodTypeDef, RspackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
     devServer: z.ZodOptional<z.ZodType<DevServer, z.ZodTypeDef, DevServer>>;
-    builtins: z.ZodOptional<z.ZodType<Builtins_2, z.ZodTypeDef, Builtins_2>>;
     module: z.ZodOptional<z.ZodObject<{
         defaultRules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<RuleSetRule, z.ZodTypeDef, RuleSetRule>]>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
         rules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<RuleSetRule, z.ZodTypeDef, RuleSetRule>]>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
@@ -10287,7 +10221,6 @@ export const rspackOptions: z.ZodObject<{
         css?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
-            newTreeshaking?: boolean | undefined;
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
@@ -10383,16 +10316,7 @@ export const rspackOptions: z.ZodObject<{
         optimizationBailout?: boolean | undefined;
         orphanModules?: boolean | undefined;
     } | undefined;
-    snapshot?: {
-        module?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-        resolve?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-    } | undefined;
+    snapshot?: {} | undefined;
     optimization?: {
         moduleIds?: "named" | "deterministic" | undefined;
         chunkIds?: "named" | "deterministic" | undefined;
@@ -10459,7 +10383,6 @@ export const rspackOptions: z.ZodObject<{
     resolveLoader?: ResolveOptions | undefined;
     plugins?: (false | "" | 0 | RspackPluginInstance | RspackPluginFunction | null | undefined)[] | undefined;
     devServer?: DevServer | undefined;
-    builtins?: Builtins_2 | undefined;
     module?: {
         defaultRules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
         rules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
@@ -10730,7 +10653,6 @@ export const rspackOptions: z.ZodObject<{
         css?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
-            newTreeshaking?: boolean | undefined;
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
@@ -10826,16 +10748,7 @@ export const rspackOptions: z.ZodObject<{
         optimizationBailout?: boolean | undefined;
         orphanModules?: boolean | undefined;
     } | undefined;
-    snapshot?: {
-        module?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-        resolve?: {
-            hash?: boolean | undefined;
-            timestamp?: boolean | undefined;
-        } | undefined;
-    } | undefined;
+    snapshot?: {} | undefined;
     optimization?: {
         moduleIds?: "named" | "deterministic" | undefined;
         chunkIds?: "named" | "deterministic" | undefined;
@@ -10902,7 +10815,6 @@ export const rspackOptions: z.ZodObject<{
     resolveLoader?: ResolveOptions | undefined;
     plugins?: (false | "" | 0 | RspackPluginInstance | RspackPluginFunction | null | undefined)[] | undefined;
     devServer?: DevServer | undefined;
-    builtins?: Builtins_2 | undefined;
     module?: {
         defaultRules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
         rules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
@@ -11023,8 +10935,6 @@ export { RspackOptionsApply as WebpackOptionsApply }
 export interface RspackOptionsNormalized {
     // (undocumented)
     bail?: Bail;
-    // (undocumented)
-    builtins: Builtins;
     // (undocumented)
     cache?: CacheOptions;
     // (undocumented)
@@ -11397,46 +11307,7 @@ export const sharing: {
 export type SnapshotOptions = z.infer<typeof snapshotOptions>;
 
 // @public (undocumented)
-const snapshotOptions: z.ZodObject<{
-    module: z.ZodOptional<z.ZodObject<{
-        hash: z.ZodOptional<z.ZodBoolean>;
-        timestamp: z.ZodOptional<z.ZodBoolean>;
-    }, "strict", z.ZodTypeAny, {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    }, {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    }>>;
-    resolve: z.ZodOptional<z.ZodObject<{
-        hash: z.ZodOptional<z.ZodBoolean>;
-        timestamp: z.ZodOptional<z.ZodBoolean>;
-    }, "strict", z.ZodTypeAny, {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    }, {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    }>>;
-}, "strict", z.ZodTypeAny, {
-    module?: {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    } | undefined;
-    resolve?: {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    } | undefined;
-}, {
-    module?: {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    } | undefined;
-    resolve?: {
-        hash?: boolean | undefined;
-        timestamp?: boolean | undefined;
-    } | undefined;
-}>;
+const snapshotOptions: z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>;
 
 // @public (undocumented)
 interface SourceMap {

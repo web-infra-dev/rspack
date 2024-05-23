@@ -1,4 +1,4 @@
-import { JsModule, RawRegexMatcher } from "@rspack/binding";
+import { JsModule, RawRegex } from "@rspack/binding";
 
 import type { Compiler } from "../..";
 import getBackend, {
@@ -12,14 +12,14 @@ export default class LazyCompilationPlugin {
 	cacheable: boolean;
 	entries: boolean;
 	imports: boolean;
-	test?: RawRegexMatcher | ((m: JsModule) => boolean);
+	test?: RawRegex | ((m: JsModule) => boolean);
 	backend?: LazyCompilationDefaultBackendOptions;
 
 	constructor(
 		cacheable: boolean,
 		entries: boolean,
 		imports: boolean,
-		test?: RawRegexMatcher | ((m: JsModule) => boolean),
+		test?: RawRegex | ((m: JsModule) => boolean),
 		backend?: LazyCompilationDefaultBackendOptions
 	) {
 		this.cacheable = cacheable;

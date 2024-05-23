@@ -1,13 +1,13 @@
 use std::hash::BuildHasherDefault;
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use indexmap::IndexSet;
 use rspack_core::{
-  create_exports_object_referenced, create_no_exports_referenced, export_from_import,
-  get_exports_type, process_export_info, property_access, property_name, string_of_used_name,
-  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
-  DependencyId, DependencyTemplate, DependencyType, ExportInfoId, ExportInfoProvided,
-  ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  create_exports_object_referenced, create_no_exports_referenced, get_exports_type,
+  process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
+  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyId,
+  DependencyTemplate, DependencyType, ExportInfoId, ExportInfoProvided, ExportNameOrSpec,
+  ExportSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ExportsType,
   ExtendedReferencedExport, HarmonyExportInitFragment, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
   RuntimeGlobals, RuntimeSpec, Template, TemplateContext, TemplateReplaceSource, UsageState,
@@ -843,7 +843,6 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
   ) {
     let TemplateContext {
       compilation,
-      module,
       runtime,
       concatenation_scope,
       ..
@@ -861,103 +860,10 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       return;
     }
 
-    let module = module_graph
-      .module_by_identifier(&module.identifier())
-      .expect("should have module graph module");
-
-    let import_var = compilation.get_import_var(&self.id);
-    let is_new_treeshaking = compilation.options.is_new_tree_shaking();
-
-    let mut used_exports = if is_new_treeshaking {
-      let exports_info_id = module_graph.get_exports_info(&module.identifier()).id;
-      let res = self
-        .ids
-        .iter()
-        .filter_map(|(local, _)| {
-          exports_info_id
-            .get_used_name(&module_graph, *runtime, UsedName::Str(local.clone()))
-            .map(|item| match item {
-              UsedName::Str(str) => (local.clone(), vec![str]),
-              UsedName::Vec(strs) => (local.clone(), strs),
-            })
-        })
-        .collect::<HashMap<_, _>>();
-      Some(res)
-    } else if compilation.options.builtins.tree_shaking.is_true() {
-      Some(
-        module_graph
-          .get_exports_info(&module.identifier())
-          .old_get_used_exports()
-          .into_iter()
-          .map(|item| (item.clone(), vec![item]))
-          .collect::<HashMap<_, _>>(),
-      )
-    } else {
-      None
-    };
-
-    if is_new_treeshaking {
-      // dbg!(&mode, self.request());
-      if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
-        harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
-        self.add_export_fragments(code_generatable_context, mode);
-      }
-      return;
-    }
-
-    let mut exports = vec![];
-    for id in &self.ids {
-      if let Some(used_exports) = used_exports.as_mut() {
-        let Some(item) = used_exports.remove(&id.0) else {
-          continue;
-        };
-        // in webpack, id.0 is local binding and it doesn't always equal to used name, because it
-        // maybe mangled
-        let key = if is_new_treeshaking {
-          item[0].clone()
-        } else {
-          id.0.clone()
-        };
-        // __webpack_require__.d({
-        //  'key' / *key maybe mangled**/: ${export_expr} /**value*/
-        // })
-        exports.push((
-          key,
-          Atom::from(export_from_import(
-            code_generatable_context,
-            true,
-            &self.request,
-            &import_var,
-            id.1.clone().map(|i| vec![i]).unwrap_or_default(),
-            &self.id,
-            false,
-            false,
-          )),
-        ));
-      } else {
-        exports.push((
-          id.0.clone(),
-          Atom::from(export_from_import(
-            code_generatable_context,
-            true,
-            &self.request,
-            &import_var,
-            id.1.clone().map(|i| vec![i]).unwrap_or_default(),
-            &self.id,
-            false,
-            false,
-          )),
-        ));
-      }
-    }
-
-    if !exports.is_empty() {
-      code_generatable_context
-        .init_fragments
-        .push(Box::new(HarmonyExportInitFragment::new(
-          module.get_exports_argument(),
-          exports,
-        )));
+    // dbg!(&mode, self.request());
+    if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
+      harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
+      self.add_export_fragments(code_generatable_context, mode);
     }
   }
 

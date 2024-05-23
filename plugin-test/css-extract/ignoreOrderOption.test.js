@@ -21,9 +21,6 @@ describe("IgnoreOrder", () => {
 			cache: false,
 			experiments: {
 				css: false,
-				rspackFuture: {
-					newTreeshaking: true
-				}
 			}
 		});
 		compiler.run((err1, stats) => {
@@ -50,9 +47,6 @@ describe("IgnoreOrder", () => {
 			cache: false,
 			experiments: {
 				css: false,
-				rspackFuture: {
-					newTreeshaking: true
-				}
 			}
 		});
 		compiler.run((err1, stats) => {

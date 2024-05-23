@@ -161,8 +161,6 @@ pub struct BuildResult {
 #[derive(Debug, Default, Clone)]
 pub struct FactoryMeta {
   pub side_effect_free: Option<bool>,
-  /// For old tree shaking
-  pub side_effect_free_old: Option<bool>,
 }
 
 pub type ModuleIdentifier = Identifier;

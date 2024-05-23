@@ -6,10 +6,7 @@ import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
 import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 export interface IConfigProcessorOptions<T extends ECompilerType>
-	extends Omit<
-		IMultiTaskProcessorOptions<T>,
-		"defaultOptions" | "overrideOptions" | "findBundle"
-	> {}
+	extends IMultiTaskProcessorOptions<T> {}
 
 export class ConfigProcessor<
 	T extends ECompilerType
@@ -58,11 +55,6 @@ export class ConfigProcessor<
 			},
 			optimization: {
 				minimize: false
-			},
-			experiments: {
-				rspackFuture: {
-					newTreeshaking: true
-				}
 			}
 		} as TCompilerOptions<T>;
 	}

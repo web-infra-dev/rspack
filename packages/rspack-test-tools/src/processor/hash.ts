@@ -7,10 +7,7 @@ import {
 import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 export interface IHashProcessorOptions<T extends ECompilerType>
-	extends Omit<
-		IMultiTaskProcessorOptions<T>,
-		"defaultOptions" | "overrideOptions" | "runable"
-	> {}
+	extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {}
 
 const REG_ERROR_CASE = /error$/;
 

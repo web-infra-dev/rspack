@@ -234,28 +234,26 @@ export class RspackOptionsApply {
 			new MergeDuplicateChunksPlugin().apply(compiler);
 		}
 
-		if (options.experiments.rspackFuture?.newTreeshaking) {
-			if (options.optimization.sideEffects) {
-				new SideEffectsFlagPlugin(/* options.optimization.sideEffects === true */).apply(
-					compiler
-				);
-			}
-			if (options.optimization.providedExports) {
-				new FlagDependencyExportsPlugin().apply(compiler);
-			}
-			if (options.optimization.usedExports) {
-				new FlagDependencyUsagePlugin(
-					options.optimization.usedExports === "global"
-				).apply(compiler);
-			}
-			if (options.optimization.concatenateModules) {
-				new ModuleConcatenationPlugin().apply(compiler);
-			}
-			if (options.optimization.mangleExports) {
-				new MangleExportsPlugin(
-					options.optimization.mangleExports !== "size"
-				).apply(compiler);
-			}
+		if (options.optimization.sideEffects) {
+			new SideEffectsFlagPlugin(/* options.optimization.sideEffects === true */).apply(
+				compiler
+			);
+		}
+		if (options.optimization.providedExports) {
+			new FlagDependencyExportsPlugin().apply(compiler);
+		}
+		if (options.optimization.usedExports) {
+			new FlagDependencyUsagePlugin(
+				options.optimization.usedExports === "global"
+			).apply(compiler);
+		}
+		if (options.optimization.concatenateModules) {
+			new ModuleConcatenationPlugin().apply(compiler);
+		}
+		if (options.optimization.mangleExports) {
+			new MangleExportsPlugin(
+				options.optimization.mangleExports !== "size"
+			).apply(compiler);
 		}
 
 		if (options.experiments.lazyCompilation) {

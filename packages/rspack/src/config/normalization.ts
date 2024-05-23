@@ -14,7 +14,6 @@ import type { Compilation } from "../Compilation";
 import type {
 	AssetModuleFilename,
 	Bail,
-	Builtins,
 	CacheOptions,
 	ChunkFilename,
 	ChunkLoading,
@@ -248,16 +247,7 @@ export const getNormalizedRspackOptions = (
 					...node
 				}
 		),
-		snapshot: nestedConfig(config.snapshot, snapshot => ({
-			resolve: optionalNestedConfig(snapshot.resolve, resolve => ({
-				timestamp: resolve.timestamp,
-				hash: resolve.hash
-			})),
-			module: optionalNestedConfig(snapshot.module, module => ({
-				timestamp: module.timestamp,
-				hash: module.hash
-			}))
-		})),
+		snapshot: nestedConfig(config.snapshot, _snapshot => ({})),
 		cache: optionalNestedConfig(config.cache, cache => cache),
 		stats: nestedConfig(config.stats, stats => {
 			if (stats === false) {
@@ -311,10 +301,7 @@ export const getNormalizedRspackOptions = (
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
 		profile: config.profile,
-		bail: config.bail,
-		builtins: nestedConfig(config.builtins, builtins => ({
-			...builtins
-		}))
+		bail: config.bail
 	};
 };
 
@@ -557,5 +544,4 @@ export interface RspackOptionsNormalized {
 	performance?: Performance;
 	profile?: Profile;
 	bail?: Bail;
-	builtins: Builtins;
 }
