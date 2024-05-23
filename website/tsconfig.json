@@ -1,20 +1,24 @@
 {
-  "extends": "@modern-js/tsconfig/base",
   "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["DOM", "ESNext"],
+    "allowJs": true,
+    "module": "ES2020",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "Bundler",
     "jsx": "react-jsx",
+    "baseUrl": "./",
     "paths": {
+      "@theme": ["./theme"],
       "@hooks/*": ["./hooks/*"],
       "@components/*": ["./components/*"],
       "@builtIns/*": ["./components/builtIns/*"]
     }
   },
-  "include": [
-    "src",
-    "./rspress.config.ts",
-    "./docs/**/*.tsx",
-    "./docs/**/*.ts",
-    "./components/**/*.ts",
-    "./components/**/*.tsx",
-    "./theme/**/*"
-  ]
+  "mdx": {
+    "checkMdx": true
+  },
+  "include": ["src", "docs", "theme", "components", "./rspress.config.ts"]
 }
