@@ -69,6 +69,8 @@ pub struct BannerPluginOptions {
   pub include: Option<BannerRules>,
   // Exclude all modules matching any of these conditions.
   pub exclude: Option<BannerRules>,
+  // Specifies the stage of banner.
+  pub stage: Option<i32>,
 }
 
 pub struct BannerContentFnCtx<'a> {
@@ -175,7 +177,7 @@ impl BannerPlugin {
   }
 }
 
-#[plugin_hook(CompilationProcessAssets for BannerPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONS)]
+#[plugin_hook(CompilationProcessAssets for BannerPlugin, stage = self.config.stage.unwrap_or(Compilation::PROCESS_ASSETS_STAGE_ADDITIONS))]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.BannerPlugin");
   let start = logger.time("add banner");
