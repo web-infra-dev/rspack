@@ -103,8 +103,8 @@ module.exports = {
           {
             loader: 'sass-loader',
             options: {
-              // using `modern-compiler` and `sass-embedded` together significantly improve build performance,
-              // requires `sass-loader >= 14.2.1`
+              // 同时使用 `modern-compiler` 和 `sass-embedded` 可以显著提升构建性能
+              // 需要 `sass-loader >= 14.2.1`
               api: 'modern-compiler',
               implementation: require.resolve('sass-embedded'),
             },
