@@ -1,9 +1,8 @@
 # Case dispose-removed-chunk: Step 2
 
 ## Changed Files
-- module.js
-- a.js
 - b.js
+- module.js
 
 ## Asset Files
 - Bundle: b_js.CURRENT_HASH.js

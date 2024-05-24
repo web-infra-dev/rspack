@@ -1,6 +1,7 @@
 # Case replace-runtime-module: Step 1
 
 ## Changed Files
+- b.js
 - module.js
 
 ## Asset Files

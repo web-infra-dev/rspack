@@ -1263,7 +1263,8 @@ export type TTestRunResult = Record<string, any>;
 // @public (undocumented)
 export type TUpdateOptions = {
     updateIndex: number;
-    totalIndex: number;
+    totalUpdates: number;
+    changedFiles: string[];
 };
 
 // @public (undocumented)

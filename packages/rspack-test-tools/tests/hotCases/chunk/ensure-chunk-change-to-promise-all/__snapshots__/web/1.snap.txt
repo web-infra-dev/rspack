@@ -2,6 +2,7 @@
 
 ## Changed Files
 - file.js
+- node_modules/vue.js
 
 ## Asset Files
 - Bundle: bundle.js

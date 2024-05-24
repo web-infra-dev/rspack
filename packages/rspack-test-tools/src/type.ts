@@ -214,3 +214,9 @@ export interface TRunnerFactory<T extends ECompilerType> {
 		env: ITestEnv
 	): ITestRunner;
 }
+
+export type TUpdateOptions = {
+	updateIndex: number;
+	totalUpdates: number;
+	changedFiles: string[];
+};
