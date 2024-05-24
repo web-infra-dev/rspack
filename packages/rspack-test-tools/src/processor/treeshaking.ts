@@ -10,9 +10,7 @@ export class TreeShakingProcessor<
 > extends SnapshotProcessor<T> {
 	constructor(protected _treeShakingOptions: ITreeShakingProcessorOptions<T>) {
 		super({
-			defaultOptions: BuiltinProcessor.defaultOptions<T>(
-				_treeShakingOptions.compilerType
-			),
+			defaultOptions: BuiltinProcessor.defaultOptions,
 			overrideOptions: TreeShakingProcessor.overrideOptions<T>,
 			runable: false,
 			..._treeShakingOptions

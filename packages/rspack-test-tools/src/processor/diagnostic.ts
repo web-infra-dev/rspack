@@ -2,7 +2,7 @@ import assert from "assert";
 import fs from "fs";
 import path from "path";
 
-import { escapeEOL } from "../helper";
+import { escapeEOL, isUpdateSnapshot } from "../helper";
 import {
 	ECompilerType,
 	ITestContext,
@@ -19,13 +19,10 @@ const replacePaths = (input: string) => {
 	return normalizePaths(input).split(rspackRoot).join("<RSPACK_ROOT>");
 };
 
-declare var global: {
-	updateSnapshot: boolean;
-};
-
 export interface IDiagnosticProcessorOptions<T extends ECompilerType>
 	extends Omit<IBasicProcessorOptions<T>, "runable"> {
 	snapshot: string;
+	format?: (output: string) => string;
 }
 
 export class DiagnosticProcessor<
@@ -53,22 +50,19 @@ export class DiagnosticProcessor<
 				warnings: true
 			})
 		);
-		// TODO: change to stats.errorStack
-		output = output
-			.split("│")
-			.join("")
-			.split(/\r?\n/)
-			.map((s: string) => s.trim())
-			.join("");
+
+		if (typeof this._diagnosticOptions.format === "function") {
+			output = this._diagnosticOptions.format(output);
+		}
 
 		const errorOutputPath = path.resolve(
 			context.getSource(this._diagnosticOptions.snapshot)
 		);
-		if (!fs.existsSync(errorOutputPath) || global.updateSnapshot) {
+		if (!fs.existsSync(errorOutputPath) || isUpdateSnapshot()) {
 			fs.writeFileSync(errorOutputPath, escapeEOL(output));
 		} else {
 			const expectContent = fs.readFileSync(errorOutputPath, "utf-8");
-			expect(escapeEOL(output)).toBe(escapeEOL(expectContent));
+			env.expect(escapeEOL(output)).toBe(escapeEOL(expectContent));
 		}
 	}
 

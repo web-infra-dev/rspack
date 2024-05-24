@@ -2,7 +2,7 @@ import { Chunk, StatsCompilation } from "@rspack/core";
 import fs from "fs-extra";
 import path from "path";
 
-import { escapeEOL, escapeSep } from "../helper";
+import { escapeEOL, escapeSep, isUpdateSnapshot } from "../helper";
 import { THotStepRuntimeData } from "../runner";
 import {
 	ECompilerType,
@@ -20,7 +20,6 @@ declare var global: {
 	self?: {
 		[key: string]: (name: string, modules: Record<string, unknown>) => void;
 	};
-	updateSnapshot: boolean;
 };
 
 const SELF_HANDLER = (
@@ -357,7 +356,7 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 
 				`.trim();
 
-		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
+		if (!fs.existsSync(snapshotPath) || isUpdateSnapshot()) {
 			fs.ensureDirSync(path.dirname(snapshotPath));
 			fs.writeFileSync(snapshotPath, content, "utf-8");
 			return;

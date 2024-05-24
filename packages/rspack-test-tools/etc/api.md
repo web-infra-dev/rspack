@@ -71,7 +71,7 @@ export class BuiltinProcessor<T extends ECompilerType> extends SnapshotProcessor
     // (undocumented)
     protected _builtinOptions: IBuiltinProcessorOptions<T>;
     // (undocumented)
-    static defaultOptions<T extends ECompilerType>(compilerType: T): (context: ITestContext) => TCompilerOptions<T>;
+    static defaultOptions<T extends ECompilerType>(this: BuiltinProcessor<T>, context: ITestContext): TCompilerOptions<T>;
 }
 
 // @public (undocumented)
@@ -367,13 +367,13 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
     // (undocumented)
     afterAll(context: ITestContext): Promise<void>;
     // (undocumented)
-    static defaultOptions<T extends ECompilerType>(hotOptions: IHotProcessorOptions<T>, updateOptions: TUpdateOptions): IBasicProcessorOptions<T>["defaultOptions"];
+    static defaultOptions<T extends ECompilerType>(this: HotProcessor<T>, context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
-    static findBundle<T extends ECompilerType>(hotOptions: IHotProcessorOptions<T>): IBasicProcessorOptions<T>["findBundle"];
+    static findBundle<T extends ECompilerType>(this: HotProcessor<T>, context: ITestContext): string[];
     // (undocumented)
     protected _hotOptions: IHotProcessorOptions<T>;
     // (undocumented)
-    static overrideOptions<T extends ECompilerType>(hotOptions: IHotProcessorOptions<T>, updateOptions: TUpdateOptions): IBasicProcessorOptions<T>["overrideOptions"];
+    static overrideOptions<T extends ECompilerType>(this: HotProcessor<T>, context: ITestContext, options: TCompilerOptions<T>): void;
     // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
@@ -427,8 +427,6 @@ export interface IBasicModuleScope extends ITestEnv {
     console: Console;
     // (undocumented)
     expect: jest.Expect;
-    // (undocumented)
-    jest: typeof jest;
 }
 
 // @public (undocumented)
@@ -489,6 +487,8 @@ export interface IDefaultsConfigProcessorOptions<T extends ECompilerType> {
 
 // @public (undocumented)
 export interface IDiagnosticProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
+    // (undocumented)
+    format?: (output: string) => string;
     // (undocumented)
     snapshot: string;
 }
@@ -636,6 +636,14 @@ export interface IMultiTaskProcessorOptions<T extends ECompilerType> {
 }
 
 // @public (undocumented)
+export interface INormalProcessorOptions<T extends ECompilerType> extends IBasicProcessorOptions<T> {
+    // (undocumented)
+    compilerOptions?: TCompilerOptions<T>;
+    // (undocumented)
+    root: string;
+}
+
+// @public (undocumented)
 export const isDirectory: (p: string) => boolean;
 
 // @public (undocumented)
@@ -684,6 +692,9 @@ export interface IStatsAPIProcessorOptions<T extends ECompilerType> {
 // @public (undocumented)
 export interface IStatsProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {
 }
+
+// @public (undocumented)
+export function isUpdateSnapshot(): boolean;
 
 // @public (undocumented)
 export const isValidCaseDirectory: (name: string) => boolean;
@@ -748,6 +759,8 @@ export interface ITestContext {
 
 // @public (undocumented)
 export interface ITestEnv {
+    // (undocumented)
+    [key: string]: unknown;
     // (undocumented)
     afterEach: (...args: any[]) => void;
     // (undocumented)
@@ -886,6 +899,15 @@ export class MultiTaskProcessor<T extends ECompilerType> extends BasicProcessor<
     protected multiCompilerOptions: TCompilerOptions<T>[];
     // (undocumented)
     protected _multiOptions: IMultiTaskProcessorOptions<T>;
+}
+
+// @public (undocumented)
+export class NormalProcessor<T extends ECompilerType> extends BasicProcessor<T> {
+    constructor(_normalOptions: INormalProcessorOptions<T>);
+    // (undocumented)
+    static defaultOptions<T extends ECompilerType>(this: NormalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
+    // (undocumented)
+    protected _normalOptions: INormalProcessorOptions<T>;
 }
 
 // @public (undocumented)

@@ -40,17 +40,13 @@ export class CommonJsRunner<
 			console: this.globalContext!.console,
 			setTimeout: this.globalContext!.setTimeout,
 			clearTimeout: this.globalContext!.clearTimeout,
-			it: this._options.env.it,
-			beforeEach: this._options.env.beforeEach,
-			afterEach: this._options.env.afterEach,
-			expect: this._options.env.expect,
-			jest,
 			nsObj: (m: Object) => {
 				Object.defineProperty(m, Symbol.toStringTag, {
 					value: "Module"
 				});
 				return m;
-			}
+			},
+			...this._options.env
 		};
 		if (this._options.stats) {
 			baseModuleScope["__STATS__"] = this._options.stats;
