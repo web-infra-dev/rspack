@@ -41,18 +41,18 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 	}
 
 	async run(env: ITestEnv, context: ITestContext) {
-		// const changedFiles: string[] = require(
-		// 	context.getSource("changed-file.js")
-		// );
-		// this.updateOptions.totalIndex = changedFiles.reduce<number>(
-		// 	(res: number, file: string) => {
-		// 		return Math.max(
-		// 			fs.readFileSync(file, "utf-8").split("---").length,
-		// 			res
-		// 		);
-		// 	},
-		// 	0
-		// );
+		const changedFiles: string[] = require(
+			context.getSource("changed-file.js")
+		);
+		this.updateOptions.totalIndex = changedFiles.reduce<number>(
+			(res: number, file: string) => {
+				return Math.max(
+					fs.readFileSync(file, "utf-8").split("---").length,
+					res
+				);
+			},
+			0
+		);
 		context.setValue(
 			this._options.name,
 			"hotUpdateContext",
@@ -91,11 +91,11 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 
 	async afterAll(context: ITestContext) {
 		await super.afterAll(context);
-		// if (this.updateOptions.updateIndex + 1 !== this.updateOptions.totalIndex) {
-		// 	throw new Error(
-		// 		`Should run all hot steps (${this.updateOptions.updateIndex + 1} / ${this.updateOptions.totalIndex}): ${this._options.name}`
-		// 	);
-		// }
+		if (this.updateOptions.updateIndex + 1 !== this.updateOptions.totalIndex) {
+			throw new Error(
+				`Should run all hot steps (${this.updateOptions.updateIndex + 1} / ${this.updateOptions.totalIndex}): ${this._options.name}`
+			);
+		}
 	}
 
 	static defaultOptions<T extends ECompilerType>(

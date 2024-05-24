@@ -490,6 +490,8 @@ export interface IDefaultsConfigProcessorOptions<T extends ECompilerType> {
 // @public (undocumented)
 export interface IDiagnosticProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
     // (undocumented)
+    format?: (output: string) => string;
+    // (undocumented)
     snapshot: string;
 }
 
@@ -636,6 +638,14 @@ export interface IMultiTaskProcessorOptions<T extends ECompilerType> {
 }
 
 // @public (undocumented)
+export interface INormalProcessorOptions<T extends ECompilerType> extends IBasicProcessorOptions<T> {
+    // (undocumented)
+    compilerOptions?: TCompilerOptions<T>;
+    // (undocumented)
+    root: string;
+}
+
+// @public (undocumented)
 export const isDirectory: (p: string) => boolean;
 
 // @public (undocumented)
@@ -684,6 +694,9 @@ export interface IStatsAPIProcessorOptions<T extends ECompilerType> {
 // @public (undocumented)
 export interface IStatsProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {
 }
+
+// @public (undocumented)
+export function isUpdateSnapshot(): boolean;
 
 // @public (undocumented)
 export const isValidCaseDirectory: (name: string) => boolean;
@@ -886,6 +899,15 @@ export class MultiTaskProcessor<T extends ECompilerType> extends BasicProcessor<
     protected multiCompilerOptions: TCompilerOptions<T>[];
     // (undocumented)
     protected _multiOptions: IMultiTaskProcessorOptions<T>;
+}
+
+// @public (undocumented)
+export class NormalProcessor<T extends ECompilerType> extends BasicProcessor<T> {
+    constructor(_normalOptions: INormalProcessorOptions<T>);
+    // (undocumented)
+    static defaultOptions<T extends ECompilerType>({ compilerOptions, root, compilerType }: INormalProcessorOptions<T>): (context: ITestContext) => TCompilerOptions<T>;
+    // (undocumented)
+    protected _normalOptions: INormalProcessorOptions<T>;
 }
 
 // @public (undocumented)
