@@ -35,7 +35,7 @@ export class TestCompilerManager<T extends ECompilerType>
 	protected compilerStats: TCompilerStats<T> | null = null;
 	protected emitter: EventEmitter = new EventEmitter();
 
-	constructor(protected type: T) { }
+	constructor(protected type: T) {}
 
 	getOptions(): TCompilerOptions<T> {
 		return this.compilerOptions;

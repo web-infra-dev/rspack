@@ -173,7 +173,7 @@ export interface ITestEnv {
 	it: (...args: any[]) => void;
 	beforeEach: (...args: any[]) => void;
 	afterEach: (...args: any[]) => void;
-	[key: string]: unknown
+	[key: string]: unknown;
 }
 
 export type TTestConfig<T extends ECompilerType> = {

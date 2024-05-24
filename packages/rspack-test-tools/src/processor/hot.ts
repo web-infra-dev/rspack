@@ -72,7 +72,10 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 		const stats = compiler.getStats();
 		if (!stats) throw new Error("Stats should exists when find bundle");
 		const info = stats.toJson({ all: false, entrypoints: true });
-		if (this._hotOptions.target === "web" || this._hotOptions.target === "webworker") {
+		if (
+			this._hotOptions.target === "web" ||
+			this._hotOptions.target === "webworker"
+		) {
 			for (const file of info.entrypoints!.main.assets!) {
 				if (file.name.endsWith(".js")) {
 					files.push(file.name);
@@ -100,7 +103,7 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 
 	static defaultOptions<T extends ECompilerType>(
 		this: HotProcessor<T>,
-		context: ITestContext,
+		context: ITestContext
 	): TCompilerOptions<T> {
 		const options = {
 			context: context.getSource(),
@@ -128,7 +131,11 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 		return options;
 	}
 
-	static overrideOptions<T extends ECompilerType>(this: HotProcessor<T>, context: ITestContext, options: TCompilerOptions<T>): void {
+	static overrideOptions<T extends ECompilerType>(
+		this: HotProcessor<T>,
+		context: ITestContext,
+		options: TCompilerOptions<T>
+	): void {
 		if (!options.entry) {
 			options.entry = "./index.js";
 		}

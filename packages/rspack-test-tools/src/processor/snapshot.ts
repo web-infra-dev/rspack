@@ -66,9 +66,9 @@ export class SnapshotProcessor<
 		const snapshotPath = path.isAbsolute(this._snapshotOptions.snapshot)
 			? this._snapshotOptions.snapshot
 			: path.resolve(
-				context.getSource(),
-				`./__snapshots__/${this._snapshotOptions.snapshot}`
-			);
+					context.getSource(),
+					`./__snapshots__/${this._snapshotOptions.snapshot}`
+				);
 
 		if (!fs.existsSync(snapshotPath) || isUpdateSnapshot()) {
 			fs.ensureDirSync(path.dirname(snapshotPath));

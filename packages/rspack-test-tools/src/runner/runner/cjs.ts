@@ -46,7 +46,7 @@ export class CommonJsRunner<
 				});
 				return m;
 			},
-			...this._options.env,
+			...this._options.env
 		};
 		if (this._options.stats) {
 			baseModuleScope["__STATS__"] = this._options.stats;

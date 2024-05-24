@@ -9,7 +9,8 @@ import {
 } from "../type";
 import { BasicProcessor, IBasicProcessorOptions } from "./basic";
 
-export interface INormalProcessorOptions<T extends ECompilerType> extends IBasicProcessorOptions<T> {
+export interface INormalProcessorOptions<T extends ECompilerType>
+	extends IBasicProcessorOptions<T> {
 	compilerOptions?: TCompilerOptions<T>;
 	root: string;
 }
@@ -24,13 +25,13 @@ export class NormalProcessor<
 				return typeof filename === "string" ? filename : undefined;
 			},
 			defaultOptions: NormalProcessor.defaultOptions,
-			..._normalOptions,
+			..._normalOptions
 		});
 	}
 
 	static defaultOptions<T extends ECompilerType>(
 		this: NormalProcessor<T>,
-		context: ITestContext,
+		context: ITestContext
 	): TCompilerOptions<T> {
 		let testConfig: TCompilerOptions<T> = {};
 		const testConfigPath = path.join(context.getSource(), "test.config.js");
@@ -50,33 +51,32 @@ export class NormalProcessor<
 			mode: compilerOptions?.mode || "none",
 			optimization: compilerOptions?.mode
 				? {
-					// emitOnErrors: true,
-					minimizer: [terserForTesting],
-					...testConfig.optimization
-				}
+						// emitOnErrors: true,
+						minimizer: [terserForTesting],
+						...testConfig.optimization
+					}
 				: {
-					removeAvailableModules: true,
-					removeEmptyChunks: true,
-					mergeDuplicateChunks: true,
-					// CHANGE: rspack does not support `flagIncludedChunks` yet.
-					// flagIncludedChunks: true,
-					sideEffects: true,
-					providedExports: true,
-					usedExports: true,
-					mangleExports: true,
-					// CHANGE: rspack does not support `emitOnErrors` yet.
-					// emitOnErrors: true,
-					concatenateModules:
-						!!testConfig?.optimization?.concatenateModules,
-					innerGraph: true,
-					// CHANGE: size is not supported yet
-					// moduleIds: "size",
-					// chunkIds: "size",
-					moduleIds: "named",
-					chunkIds: "named",
-					minimizer: [terserForTesting],
-					...compilerOptions?.optimization
-				},
+						removeAvailableModules: true,
+						removeEmptyChunks: true,
+						mergeDuplicateChunks: true,
+						// CHANGE: rspack does not support `flagIncludedChunks` yet.
+						// flagIncludedChunks: true,
+						sideEffects: true,
+						providedExports: true,
+						usedExports: true,
+						mangleExports: true,
+						// CHANGE: rspack does not support `emitOnErrors` yet.
+						// emitOnErrors: true,
+						concatenateModules: !!testConfig?.optimization?.concatenateModules,
+						innerGraph: true,
+						// CHANGE: size is not supported yet
+						// moduleIds: "size",
+						// chunkIds: "size",
+						moduleIds: "named",
+						chunkIds: "named",
+						minimizer: [terserForTesting],
+						...compilerOptions?.optimization
+					},
 			// CHANGE: rspack does not support `performance` yet.
 			// performance: {
 			// 	hints: false
@@ -101,12 +101,7 @@ export class NormalProcessor<
 				extensions: [".webpack.js", ".web.js", ".js", ".json"]
 			},
 			resolveLoader: {
-				modules: [
-					"web_loaders",
-					"web_modules",
-					"node_loaders",
-					"node_modules"
-				],
+				modules: ["web_loaders", "web_modules", "node_loaders", "node_modules"],
 				mainFields: ["webpackLoader", "webLoader", "loader", "main"],
 				extensions: [
 					".webpack-loader.js",
