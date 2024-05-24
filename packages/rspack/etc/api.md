@@ -465,6 +465,7 @@ export const BannerPlugin: {
         include?: string | RegExp | (string | RegExp)[] | undefined;
         raw?: boolean | undefined;
         footer?: boolean | undefined;
+        stage?: number | undefined;
         test?: string | RegExp | (string | RegExp)[] | undefined;
     }): {
         name: BuiltinPluginName;
@@ -527,6 +528,7 @@ const bannerPluginArgument: z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodFunction<z
     include?: string | RegExp | (string | RegExp)[] | undefined;
     raw?: boolean | undefined;
     footer?: boolean | undefined;
+    stage?: number | undefined;
     test?: string | RegExp | (string | RegExp)[] | undefined;
 }, {
     banner: (string | ((args_0: {
@@ -543,6 +545,7 @@ const bannerPluginArgument: z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodFunction<z
     include?: string | RegExp | (string | RegExp)[] | undefined;
     raw?: boolean | undefined;
     footer?: boolean | undefined;
+    stage?: number | undefined;
     test?: string | RegExp | (string | RegExp)[] | undefined;
 }>]>;
 
