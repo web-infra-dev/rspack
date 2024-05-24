@@ -57,7 +57,9 @@ document.getElementById('element').className = styles.red;
 
 ## PostCSS
 
-Rspack 已经完成了对 [postcss-loader](https://github.com/webpack-contrib/postcss-loader) 的兼容，你可以这样配置：
+Rspack 支持使用 [postcss-loader](https://github.com/webpack-contrib/postcss-loader)，你可以这样配置：
+
+<PackageManagerTabs command="add postcss postcss-loader -D" />
 
 ```ts title="rspack.config.js"
 module.exports = {
@@ -75,7 +77,8 @@ module.exports = {
             },
           },
         ],
-        type: 'css/auto', // 如果你需要将 '*.module.css' 视为 CSS Module 那么将 'type' 设置为 'css/auto' 否则设置为 'css'
+        // 如果你需要将 '*.module.css' 视为 CSS Module 那么将 'type' 设置为 'css/auto' 否则设置为 'css'
+        type: 'css/auto',
       },
     ],
   },
@@ -84,9 +87,44 @@ module.exports = {
 
 上述配置会将所有 `*.css` 文件经过 [postcss-loader](https://github.com/webpack-contrib/postcss-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
 
+## Sass
+
+Rspack 支持使用 [sass-loader](https://github.com/webpack-contrib/sass-loader)，你可以这样配置：
+
+<PackageManagerTabs command="add sass-embedded sass-loader -D" />
+
+```ts title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.(sass|scss)$/,
+        use: [
+          {
+            loader: 'sass-loader',
+            options: {
+              // using `modern-compiler` and `sass-embedded` together significantly improve build performance,
+              // requires `sass-loader >= 14.2.1`
+              api: 'modern-compiler',
+              implementation: require.resolve('sass-embedded'),
+            },
+          },
+        ],
+        // 如果你需要将 '*.module.(sass|scss)' 视为 CSS Module 那么将 'type' 设置为 'css/auto' 否则设置为 'css'
+        type: 'css/auto',
+      },
+    ],
+  },
+};
+```
+
+上述配置会将所有 `*.sass` 文件经过 [sass-loader](https://github.com/webpack-contrib/sass-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
+
 ## Less
 
-Rspack 已经完成了对 [less-loader](https://github.com/webpack-contrib/less-loader) 的兼容，你可以这样配置：
+Rspack 支持使用 [less-loader](https://github.com/webpack-contrib/less-loader)，你可以这样配置：
+
+<PackageManagerTabs command="add less less-loader -D" />
 
 ```ts title="rspack.config.js"
 module.exports = {
@@ -102,7 +140,8 @@ module.exports = {
             },
           },
         ],
-        type: 'css/auto', // 如果你需要将 '*.module.less' 视为 CSS Module 那么将 'type' 设置为 'css/auto' 否则设置为 'css'
+        // 如果你需要将 '*.module.less' 视为 CSS Module 那么将 'type' 设置为 'css/auto' 否则设置为 'css'
+        type: 'css/auto',
       },
     ],
   },
@@ -110,33 +149,6 @@ module.exports = {
 ```
 
 上述配置会将所有 `*.less` 文件经过 [less-loader](https://github.com/webpack-contrib/less-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
-
-## Sass
-
-Rspack 已经完成了对 [sass-loader](https://github.com/webpack-contrib/sass-loader) 的兼容，你可以这样配置：
-
-```ts title="rspack.config.js"
-module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.sass$/,
-        use: [
-          {
-            loader: 'sass-loader',
-            options: {
-              // ...
-            },
-          },
-        ],
-        type: 'css/auto', // 如果你需要将 '*.module.(sass|scss)' 视为 CSS Module 那么将 'type' 设置为 'css/auto' 否则设置为 'css'
-      },
-    ],
-  },
-};
-```
-
-上述配置会将所有 `*.sass` 文件经过 [sass-loader](https://github.com/webpack-contrib/sass-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
 
 ## Tailwind CSS
 
