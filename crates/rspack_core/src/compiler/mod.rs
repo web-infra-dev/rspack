@@ -17,9 +17,10 @@ use tracing::instrument;
 pub use self::compilation::*;
 pub use self::hmr::{collect_changed_modules, CompilationRecords};
 pub use self::module_executor::{ExecuteModuleId, ModuleExecutor};
-use crate::cache::Cache;
-use crate::BoxPlugin;
-use crate::{fast_set, CompilerOptions, Logger, PluginDriver, ResolverFactory, SharedPluginDriver};
+use crate::old_cache::Cache as OldCache;
+use crate::{
+  fast_set, BoxPlugin, CompilerOptions, Logger, PluginDriver, ResolverFactory, SharedPluginDriver,
+};
 use crate::{ContextModuleFactory, NormalModuleFactory};
 
 // should be SyncHook, but rspack need call js hook
@@ -58,7 +59,7 @@ where
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
-  pub cache: Arc<Cache>,
+  pub old_cache: Arc<OldCache>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
@@ -79,7 +80,7 @@ where
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
     let loader_resolver_factory = Arc::new(ResolverFactory::new(options.resolve_loader.clone()));
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
-    let cache = Arc::new(Cache::new(options.clone()));
+    let old_cache = Arc::new(OldCache::new(options.clone()));
     let module_executor = ModuleExecutor::default();
     Self {
       options: options.clone(),
@@ -89,7 +90,7 @@ where
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
         None,
-        cache.clone(),
+        old_cache.clone(),
         Some(module_executor),
         Default::default(),
         Default::default(),
@@ -98,7 +99,7 @@ where
       plugin_driver,
       resolver_factory,
       loader_resolver_factory,
-      cache,
+      old_cache,
       emitted_asset_versions: Default::default(),
     }
   }
@@ -110,7 +111,7 @@ where
 
   #[instrument(name = "build", skip_all)]
   pub async fn build(&mut self) -> Result<()> {
-    self.cache.end_idle();
+    self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.resolver_factory.clear_cache();
@@ -124,7 +125,7 @@ where
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
-        self.cache.clone(),
+        self.old_cache.clone(),
         Some(module_executor),
         Default::default(),
         Default::default(),
@@ -132,7 +133,7 @@ where
     );
 
     self.compile().await?;
-    self.cache.begin_idle();
+    self.old_cache.begin_idle();
     self.compile_done().await?;
     Ok(())
   }

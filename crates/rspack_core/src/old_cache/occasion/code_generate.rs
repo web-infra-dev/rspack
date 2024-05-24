@@ -1,8 +1,8 @@
 use rspack_error::Result;
 use rspack_identifier::Identifier;
 
-use crate::{cache::storage, BoxModule, CodeGenerationResult, Compilation, NormalModuleSource};
 use crate::{get_runtime_key, RuntimeSpec, RuntimeSpecSet};
+use crate::{old_cache::storage, BoxModule, CodeGenerationResult, Compilation, NormalModuleSource};
 
 type Storage = dyn storage::Storage<Vec<(CodeGenerationResult, RuntimeSpec)>>;
 

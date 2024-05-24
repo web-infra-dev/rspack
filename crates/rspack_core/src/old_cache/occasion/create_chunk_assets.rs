@@ -2,7 +2,7 @@ use futures::Future;
 use rspack_error::Result;
 use rspack_identifier::Identifier;
 
-use crate::{cache::storage, Chunk, Compilation, NormalModuleSource, RenderManifestEntry};
+use crate::{old_cache::storage, Chunk, Compilation, NormalModuleSource, RenderManifestEntry};
 
 type Storage = dyn storage::Storage<Vec<RenderManifestEntry>>;
 
