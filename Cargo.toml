@@ -9,7 +9,7 @@ async-scoped       = { version = "0.9.0" }
 async-trait        = { version = "0.1.79" }
 bitflags           = { version = "2.5.0" }
 concat-string      = "1.0.1"
-css-module-lexer   = "0.0.9"
+css-module-lexer   = "0.0.10"
 dashmap            = { version = "5.5.3" }
 derivative         = { version = "2.2.0" }
 futures            = { version = "0.3.30" }
