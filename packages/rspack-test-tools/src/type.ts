@@ -86,6 +86,7 @@ export interface ITesterConfig {
 	temp?: string;
 	steps?: ITestProcessor[];
 	testConfig?: TTestConfig<ECompilerType>;
+	compilerFactories?: TCompilerFactories;
 	runnerFactory?: new (
 		name: string,
 		context: ITestContext
@@ -220,3 +221,8 @@ export type TUpdateOptions = {
 	totalUpdates: number;
 	changedFiles: string[];
 };
+
+export type TCompilerFactories = Record<
+	ECompilerType,
+	TCompilerFactory<ECompilerType>
+>;
