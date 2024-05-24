@@ -1,6 +1,7 @@
 # Case require-disposed-module-warning: Step 1
 
 ## Changed Files
+- b.js
 - module.js
 
 ## Asset Files

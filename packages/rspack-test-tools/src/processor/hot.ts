@@ -7,7 +7,8 @@ import {
 	ITestContext,
 	ITestEnv,
 	ITestRunner,
-	TCompilerOptions
+	TCompilerOptions,
+	TUpdateOptions
 } from "../type";
 import { BasicProcessor, IBasicProcessorOptions } from "./basic";
 
@@ -16,11 +17,6 @@ export interface IHotProcessorOptions<T extends ECompilerType>
 	target: TCompilerOptions<T>["target"];
 }
 
-export type TUpdateOptions = {
-	updateIndex: number;
-	totalIndex: number;
-};
-
 export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 	protected updateOptions: TUpdateOptions;
 	protected runner: ITestRunner | null = null;
@@ -28,7 +24,8 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 	constructor(protected _hotOptions: IHotProcessorOptions<T>) {
 		const fakeUpdateLoaderOptions: TUpdateOptions = {
 			updateIndex: 0,
-			totalIndex: 0
+			totalUpdates: 1,
+			changedFiles: []
 		};
 		super({
 			defaultOptions: HotProcessor.defaultOptions,
@@ -41,18 +38,6 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 	}
 
 	async run(env: ITestEnv, context: ITestContext) {
-		const changedFiles: string[] = require(
-			context.getSource("changed-file.js")
-		);
-		this.updateOptions.totalIndex = changedFiles.reduce<number>(
-			(res: number, file: string) => {
-				return Math.max(
-					fs.readFileSync(file, "utf-8").split("---").length,
-					res
-				);
-			},
-			0
-		);
 		context.setValue(
 			this._options.name,
 			"hotUpdateContext",
@@ -94,9 +79,12 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 
 	async afterAll(context: ITestContext) {
 		await super.afterAll(context);
-		if (this.updateOptions.updateIndex + 1 !== this.updateOptions.totalIndex) {
+		if (
+			this.updateOptions.updateIndex + 1 !==
+			this.updateOptions.totalUpdates
+		) {
 			throw new Error(
-				`Should run all hot steps (${this.updateOptions.updateIndex + 1} / ${this.updateOptions.totalIndex}): ${this._options.name}`
+				`Should run all hot steps (${this.updateOptions.updateIndex + 1} / ${this.updateOptions.totalUpdates}): ${this._options.name}`
 			);
 		}
 	}

@@ -6,10 +6,15 @@ import {
 	ITestEnv,
 	ITestRunner,
 	TCompilerOptions,
-	TCompilerStatsCompilation
+	TCompilerStatsCompilation,
+	TUpdateOptions
 } from "../type";
 import { BasicRunnerFactory } from "./basic";
 import { WebRunner } from "./runner/web";
+
+declare var global: {
+	__CHANGED_FILES__: Map<string, number>;
+};
 
 export class HotRunnerFactory<
 	T extends ECompilerType
@@ -24,10 +29,10 @@ export class HotRunnerFactory<
 		const testConfig = this.context.getTestConfig();
 		const source = this.context.getSource();
 		const dist = this.context.getDist();
-		const hotUpdateContext = this.context.getValue(
+		const hotUpdateContext = this.context.getValue<TUpdateOptions>(
 			this.name,
 			"hotUpdateContext"
-		) as { updateIndex: number };
+		)!;
 
 		const next = (
 			callback: (
@@ -36,6 +41,9 @@ export class HotRunnerFactory<
 			) => void
 		) => {
 			hotUpdateContext.updateIndex++;
+			// TODO: find a better way to collect changed files from fake-update-loader
+			const changedFiles = new Map();
+			global["__CHANGED_FILES__"] = changedFiles;
 			compiler
 				.build()
 				.then(stats => {
@@ -44,6 +52,13 @@ export class HotRunnerFactory<
 					const jsonStats = stats.toJson({
 						// errorDetails: true
 					});
+
+					hotUpdateContext.totalUpdates = Math.max(
+						hotUpdateContext.totalUpdates,
+						...changedFiles.values()
+					);
+					hotUpdateContext.changedFiles = [...changedFiles.keys()];
+
 					if (
 						checkArrayExpectation(
 							source,
