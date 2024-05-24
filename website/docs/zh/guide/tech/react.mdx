@@ -133,6 +133,87 @@ module.exports = {
 - 配合 `builtin:swc-loader` 使用方式可参考：[examples/react-refresh](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-refresh/rspack.config.js)，使用 `swc-loader` 只需将 `builtin:swc-loader` 换为 `swc-loader` 即可。
 - 配合 `babel-loader` 的使用方式可参考：[examples/react-refresh-babel-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-refresh-babel-loader/rspack.config.js)
 
+## React Compiler
+
+React Compiler 是 React 19 引入的一个实验性编译器，它可以自动优化你的 React 代码。
+
+在开始使用 React Compiler 之前，建议阅读 [React Compiler 文档](https://react.dev/learn/react-compiler)，以了解 React Compiler 的功能、当前状态和使用方法。
+
+:::tip
+React Compiler 目前仅支持 Babel 编译，这会导致构建时间变慢。
+:::
+
+### 如何使用
+
+在 Rspack 中使用 React Compiler 的步骤如下：
+
+1. 升级 `react` 和 `react-dom` 版本到 19。
+2. 目前 React Compiler 仅提供了 Babel 插件，你需要安装：
+
+- [@babel/core](https://www.npmjs.com/package/@babel/core)
+- [babel-loader](https://www.npmjs.com/package/babel-loader)
+- [babel-plugin-react-compiler](https://www.npmjs.com/package/babel-plugin-react-compiler)
+- [@babel/plugin-syntax-jsx](https://www.npmjs.com/package/@babel/plugin-syntax-jsx)
+
+3. 在你的 Rspack 配置文件中注册 babel-loader：
+
+```ts title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              // SWC options for JS
+            },
+          },
+        ],
+      },
+      {
+        test: /\.jsx$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              // SWC options for JSX
+            },
+          },
+          { loader: 'babel-loader' },
+        ],
+      },
+    ],
+  },
+};
+```
+
+4. 创建 `babel.config.js` 并配置插件：
+
+```js title="babel.config.js"
+// babel.config.js
+const ReactCompilerConfig = {
+  /* ... */
+};
+
+module.exports = function () {
+  return {
+    plugins: [
+      ['babel-plugin-react-compiler', ReactCompilerConfig], // must run first!
+      '@babel/plugin-syntax-jsx',
+    ],
+  };
+};
+```
+
+### 示例
+
+你可以参考以下示例项目：
+
+- [Rspack + React Compiler](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-compiler-babel)
+- [Rspack + React Compiler + TypeScript](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-compiler-babel-ts)
+
 ## 集成 SVGR
 
 [SVGR](https://react-svgr.com/) 是一个用于将 SVG 转换为 React 组件的工具，

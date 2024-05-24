@@ -133,6 +133,87 @@ Compared to the previous approach, this method decouples the React Fast Refresh 
 - For usage with `builtin:swc-loader`, you can refer to the example at [examples/react-refresh](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-refresh/rspack.config.js), When using with `swc-loader`, simply replace `builtin:swc-loader` with `swc-loader`.
 - For usage with `babel-loader`, you can refer to the example at [examples/react-refresh-babel-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-refresh-babel-loader/rspack.config.js)
 
+## React Compiler
+
+React Compiler is an experimental compiler introduced in React 19 that can automatically optimize your React code.
+
+Before you start using React Compiler, it's recommended to read the [React Compiler documentation](https://react.dev/learn/react-compiler) to understand the functionality, current state, and usage of the React Compiler.
+
+:::tip
+At present, React Compiler only supports Babel compilation, which may slow down the build time.
+:::
+
+### How to use
+
+The steps to use React Compiler in Rspack:
+
+1. Upgrade versions of `react` and `react-dom` to 19.
+2. React Compiler currently only provides a Babel plugin, you need to install:
+
+- [@babel/core](https://www.npmjs.com/package/@babel/core)
+- [babel-loader](https://www.npmjs.com/package/babel-loader)
+- [babel-plugin-react-compiler](https://www.npmjs.com/package/babel-plugin-react-compiler)
+- [@babel/plugin-syntax-jsx](https://www.npmjs.com/package/@babel/plugin-syntax-jsx)
+
+3. Register babel-loader in your Rspack config file:
+
+```ts title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              // SWC options for JS
+            },
+          },
+        ],
+      },
+      {
+        test: /\.jsx$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              // SWC options for JSX
+            },
+          },
+          { loader: 'babel-loader' },
+        ],
+      },
+    ],
+  },
+};
+```
+
+4. Create a `babel.config.js` and configure the plugins:
+
+```js title="babel.config.js"
+// babel.config.js
+const ReactCompilerConfig = {
+  /* ... */
+};
+
+module.exports = function () {
+  return {
+    plugins: [
+      ['babel-plugin-react-compiler', ReactCompilerConfig], // must run first!
+      '@babel/plugin-syntax-jsx',
+    ],
+  };
+};
+```
+
+### Examples
+
+You can refer to the following example projects:
+
+- [Rspack + React Compiler](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-compiler-babel)
+- [Rspack + React Compiler + TypeScript](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-compiler-babel-ts)
+
 ## Integrating SVGR
 
 [SVGR](https://react-svgr.com/) is an universal tool for transforming [Scalable Vector Graphics (SVG)](https://en.wikipedia.org/wiki/SVG) files into React components.
