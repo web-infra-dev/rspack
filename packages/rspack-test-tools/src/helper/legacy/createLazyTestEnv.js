@@ -120,7 +120,6 @@ module.exports = (globalTimeout = 2000, nameSuffix = "") => {
 			});
 		},
 		expect,
-		fn: jest.fn,
-		spyOn: jest.spyOn
+		jest
 	};
 };

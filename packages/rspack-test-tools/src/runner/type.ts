@@ -24,10 +24,6 @@ export enum EEsmMode {
 export interface IBasicModuleScope extends ITestEnv {
 	console: Console;
 	expect: jest.Expect;
-	jest: {
-		fn: typeof jest.fn;
-		spyOn: typeof jest.spyOn;
-	};
 	[key: string]: any;
 }
 

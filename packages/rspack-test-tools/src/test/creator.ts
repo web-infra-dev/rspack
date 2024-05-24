@@ -112,8 +112,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 				it,
 				beforeEach,
 				afterEach,
-				fn: jest.fn,
-				spyOn: jest.spyOn
+				jest
 			};
 		}
 	}

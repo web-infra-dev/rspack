@@ -29,7 +29,7 @@ async function run(name: string, processor: ITestProcessor) {
 	} catch (e: unknown) {
 		context.emitError(name, e as Error);
 	} finally {
-		await processor.check?.({ expect, it, beforeEach, afterEach, fn: jest.fn, spyOn: jest.spyOn }, context);
+		await processor.check?.({ expect, it, beforeEach, afterEach, jest }, context);
 		await processor.after?.(context);
 	}
 }
