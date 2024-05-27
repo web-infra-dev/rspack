@@ -10,13 +10,11 @@ import { PackageManagerTabs } from '@theme';
 
 ![](https://assets.rspack.dev/rspack/rspack-banner-v0-7.png)
 
-## Major Feature Updates
+## Lazy Compilation Support
 
-### Lazy Compilation Support
+Rspack 0.7.0 supports lazy compilation, which is very helpful for improving the build performance of multi-entry projects or large projects.
 
-Rspack 0.7.0 supports Lazy Compilation feature, which is very helpful for improving the build performance of multi-entry projects or large projects.
-
-:::tip What is lazy compilation?
+### What is lazy compilation
 
 Lazy Compilation is a good way to improve performance. It can compile code modules only when needed instead of compiling all modules at startup. This means developers can see their applications running faster when they launch a development server, because the relevant modules will only be compiled when specific functionality is accessed.
 
@@ -33,13 +31,16 @@ When we compile A, we make B just an empty file, pretend user never write any co
 `A -dyn import()-> B'(empty content)`
 
 Once we access B, which means we do need to build B, we fill B with its original content, pretend that user write content immediately
-:::
+
+### Why need lazy compilation
 
 Although Rspack currently has good performance, there is still a lot of room to improve performance for projects with a large number of pages.
 
 Take the Rspack official website as an example. The Rspack official website contains multiple pages. When Lazy Compilation is turned on, only the accessed entry and its dependent files will be built. This greatly improves the compilation speed and makes the startup time of the Rspack official website from 2s+ dropped to within 1s ⚡️.
 
 ![lazy-compilation-compare](https://assets.rspack.dev/rspack/assets/lazy-compilation-compare.png)
+
+### How to use
 
 Now, you can enable the lazy compilation feature in Rspack through the [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) configuration:
 
@@ -53,11 +54,11 @@ module.exports = {
 
 This feature is still in the experimental stage. If you encounter problems during use, please give us feedback through [GitHub Issues](https://github.com/web-infra-dev/rspack/issues).
 
-### Faster Native CSS bundling speed
+## Faster CSS Builds
 
 In Rspack 0.7, we have partially refactored the internal implementation of [experiments.css](/config/experiments#experimentscss).
 
-Mainly in the CSS dependency analysis part, the switch from `swc-css` to `css-module-lexer` not only fixes the boundary problem of css modules, but also brings faster bundling speed to experiments.css.
+Mainly in the CSS dependency analysis part, the switch from `swc-css` to `css-module-lexer` not only fixes the boundary problem of CSS Modules, but also brings faster bundling speed to experiments.css.
 
 ![rspack-css-lexer](https://assets.rspack.dev/rspack/assets/rspack-css-lexer.png)
 
