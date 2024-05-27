@@ -10,9 +10,19 @@ import { PackageManagerTabs } from '@theme';
 
 ![](https://assets.rspack.dev/rspack/rspack-banner-v0-7.png)
 
+Rsbuild v0.7 版本已经正式发布！
+
+这是 Rsbuild v1.0 版本发布前的最后一个 minor 版本，此后 Rspack 团队将投入到 v1.0 版本的开发中，并致力于尽快推出 Rspack v1.0 alpha 版本。
+
+在 Rsbuild v0.7 中，值得关注的变更如下：
+
+- [支持 Lazy Compilation](#支持-lazy-compilation)：通过按需编译，显著提升大型应用的 dev startup 性能。
+- [更快的 CSS 构建](#更快的-css-构建)：引入全新的 css-module-lexer，使 CSS 打包速度提升 4 倍。
+- [不兼容更新](#不兼容更新)：移除一些不稳定的 API，使默认行为与 webpack 更加一致。
+
 ## 支持 Lazy Compilation
 
-Rspack 0.7.0 支持 Lazy Compilation（懒编译），Lazy Compilation 对提高多入口项目或大型项目的构建性能非常有帮助。
+Rspack v0.7 支持 Lazy Compilation（懒编译），Lazy Compilation 对提高多入口项目或大型项目的构建性能非常有帮助。
 
 ### 什么是 lazy compilation
 
@@ -75,7 +85,7 @@ Rspack 会在 1.0 版本前，逐步下线所有不稳定的 API 和配置，更
 
 Rspack 初期暴露了一些预期仅供内部使用且不稳定的 API，如 `compiler.compilation` 和 `compiler.builtinPlugins` 等，这些 API 并不稳定且无法在 webpack 中使用。
 
-在 0.7.0 版本中，我们重新整理了目前暴露的 API 及其接口定义。如果你有使用到这些 API，你需要进行一些调整，切换到与 webpack 一致的实现方式。
+在 v0.7 版本中，我们重新整理了目前暴露的 API 及其接口定义。如果你有使用到这些 API，你需要进行一些调整，切换到与 webpack 一致的实现方式。
 
 以下 API 已废弃：
 
@@ -114,7 +124,7 @@ ERROR in ./src/main.css
 
 ### 移除 builtins 以及 experiments.rspackFuture.newTreeshaking
 
-0.7.0 已移除 `builtins.treeShaking` (oldTreeShaking) 和 `experiments.rspackFuture.newTreeshaking` (新 tree shaking 开关) 配置，将旧的 tree shaking 功能彻底下线。
+v0.7 已移除 `builtins.treeShaking` (oldTreeShaking) 和 `experiments.rspackFuture.newTreeshaking` (新 tree shaking 开关) 配置，将旧的 tree shaking 功能彻底下线。
 
 ### 移除 resolve.browserField
 
@@ -140,7 +150,7 @@ ERROR in ./src/main.css
 
 ### 升级 SWC 插件
 
-在 `0.7.0` 中，Rust crate `swc_core` 的版本升级到 `0.91.x`，使用到的 swc wasm 插件需要确保其使用的 `swc_core` 的版本一致性，否则可能产生无法预知的问题。
+在 v0.7 中，Rust crate `swc_core` 的版本升级到 `0.91.x`，使用到的 swc wasm 插件需要确保其使用的 `swc_core` 的版本一致性，否则可能产生无法预知的问题。
 
 详情请参考[文档](https://swc.rs/docs/plugin/selecting-swc-core#091x)。
 

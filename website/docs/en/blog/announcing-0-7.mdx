@@ -10,9 +10,19 @@ import { PackageManagerTabs } from '@theme';
 
 ![](https://assets.rspack.dev/rspack/rspack-banner-v0-7.png)
 
-## Lazy Compilation Support
+Rsbuild v0.7 has been released!
 
-Rspack 0.7.0 supports lazy compilation, which is very helpful for improving the build performance of multi-entry projects or large projects.
+This is the last minor release before the Rsbuild v1.0. After this, the Rspack team will focus on the development of v1.0 and aim to launch the Rspack v1.0 alpha version soon.
+
+Notable changes in Rsbuild v0.7:
+
+- [Support for Lazy Compilation](#support-for-lazy-compilation): Significantly improves the dev startup performance of large applications by compiling on demand.
+- [Faster CSS Build](#faster-css-builds): Introducing a new css-module-lexer, which increases CSS bundling speed by 4 times.
+- [Breaking Changes](#breaking-changes): Removed some unstable APIs to make default behaviors more consistent with webpack.
+
+## Support for Lazy Compilation
+
+Rspack v0.7 supports lazy compilation, which is very helpful for improving the build performance of multi-entry projects or large projects.
 
 ### What is lazy compilation
 
@@ -75,7 +85,7 @@ Rspack will gradually remove all unstable APIs and configurations before version
 
 Rspack early exposed some APIs that were intended for internal use only and were unstable, such as `compiler.compilation` and `compiler.builtinPlugins`. These APIs were not stable and could not be used in webpack.
 
-In 0.7.0, we reorganized the currently exposed APIs and their interface definitions. If you have been using these APIs, you will need to make the necessary adjustments to align with the implementations consistent with webpack.
+In v0.7, we reorganized the currently exposed APIs and their interface definitions. If you have been using these APIs, you will need to make the necessary adjustments to align with the implementations consistent with webpack.
 
 The following APIs are deprecated:
 
@@ -114,7 +124,7 @@ ERROR in ./src/main.css
 
 ### Remove builtins and experiments.rspackFuture.newTreeshaking
 
-0.7.0 has removed the `builtins.treeShaking` (oldTreeShaking) and `experiments.rspackFuture.newTreeshaking` (new tree shaking switch) configurations, taking the old tree shaking functionality completely offline.
+v0.7 has removed the `builtins.treeShaking` (oldTreeShaking) and `experiments.rspackFuture.newTreeshaking` (new tree shaking switch) configurations, taking the old tree shaking functionality completely offline.
 
 ### Remove resolve.browserField
 
@@ -140,7 +150,7 @@ Upgraded the Rust crate `swc_core` to `0.91.x`. This will affect users of the SW
 
 ### Upgrade the SWC plugins
 
-In version `0.7.0`, the Rust crate `swc_core` has been upgraded to `0.91.x`. Users of the swc wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
+In version v0.7, the Rust crate `swc_core` has been upgraded to `0.91.x`. Users of the swc wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
 
 For more details, please see this [document](https://swc.rs/docs/plugin/selecting-swc-core#091x) of swc。
 
