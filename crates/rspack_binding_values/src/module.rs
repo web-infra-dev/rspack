@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::Module;
+use rspack_core::{CompilerModuleContext, Module};
 use rspack_napi::napi::bindgen_prelude::*;
 
 use super::{JsCompatSource, ToJsCompatSource};
@@ -85,6 +85,26 @@ impl ToJsModule for dyn Module {
           ..Default::default()
         })
       })
+  }
+}
+
+impl ToJsModule for CompilerModuleContext {
+  fn to_js_module(&self) -> Result<JsModule> {
+    let module = JsModule {
+      context: self.context.as_ref().map(|c| c.to_string()),
+      module_identifier: self.module_identifier.to_string(),
+      name_for_condition: self.name_for_condition.clone(),
+      raw_request: self.raw_request.clone(),
+      resource: self
+        .resource
+        .as_ref()
+        .map(|r| r.resource_path.to_string_lossy().to_string()),
+      original_source: self
+        .original_source
+        .as_ref()
+        .and_then(|source| source.to_js_compat_source().ok()),
+    };
+    Ok(module)
   }
 }
 

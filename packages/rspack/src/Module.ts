@@ -6,6 +6,7 @@ import {
 } from "@rspack/binding";
 import { Source } from "webpack-sources";
 
+import { Compilation } from "./Compilation";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {
@@ -49,14 +50,20 @@ export class Module {
 	_originalSource?: Source;
 
 	rawRequest?: string;
+	buildInfo: Record<string, any>;
+	buildMeta: Record<string, any>;
 
-	static __from_binding(module: JsModule) {
-		return new Module(module);
+	static __from_binding(module: JsModule, compilation?: Compilation) {
+		return new Module(module, compilation);
 	}
 
-	constructor(module: JsModule) {
+	constructor(module: JsModule, compilation?: Compilation) {
 		this.#inner = module;
 		this.rawRequest = module.rawRequest;
+
+		const customModule = compilation?.getCustomModule(module.moduleIdentifier);
+		this.buildInfo = customModule?.buildInfo || {};
+		this.buildMeta = customModule?.buildMeta || {};
 	}
 
 	get context(): string | undefined {

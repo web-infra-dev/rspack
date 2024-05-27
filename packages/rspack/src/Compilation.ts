@@ -156,9 +156,18 @@ export class Compilation {
 		}
 	};
 
+	#customModules: Record<
+		string,
+		{
+			buildInfo: Record<string, unknown>;
+			buildMeta: Record<string, unknown>;
+		}
+	>;
+
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.#inner = inner;
 		this.#cachedAssets = this.#createCachedAssets();
+		this.#customModules = {};
 
 		const processAssetsHook = new liteTapable.AsyncSeriesHook<Assets>([
 			"assets"
@@ -290,7 +299,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	get modules() {
 		return memoizeValue(() => {
 			return this.__internal__getModules().map(item =>
-				Module.__from_binding(item)
+				Module.__from_binding(item, this)
 			);
 		});
 	}
@@ -360,6 +369,17 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				}
 			}
 		);
+	}
+
+	getCustomModule(moduleIdentifier: string) {
+		let module = this.#customModules[moduleIdentifier];
+		if (!module) {
+			module = this.#customModules[moduleIdentifier] = {
+				buildInfo: {},
+				buildMeta: {}
+			};
+		}
+		return module;
 	}
 
 	getCache(name: string) {
@@ -938,24 +958,26 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	_rebuildModuleCaller = new MergeCaller(
-		(args: Array<[string, (err: Error, m: Module) => void]>) => {
-			this.#inner.rebuildModule(
-				args.map(item => item[0]),
-				function (err: Error, modules: JsModule[]) {
-					for (const [id, callback] of args) {
-						const m = modules.find(item => item.moduleIdentifier === id);
-						if (m) {
-							callback(err, Module.__from_binding(m));
-						} else {
-							callback(err || new Error("module no found"), null as any);
+	_rebuildModuleCaller = (function (compilation: Compilation) {
+		return new MergeCaller(
+			(args: Array<[string, (err: Error, m: Module) => void]>) => {
+				compilation.#inner.rebuildModule(
+					args.map(item => item[0]),
+					function (err: Error, modules: JsModule[]) {
+						for (const [id, callback] of args) {
+							const m = modules.find(item => item.moduleIdentifier === id);
+							if (m) {
+								callback(err, Module.__from_binding(m, compilation));
+							} else {
+								callback(err || new Error("module no found"), null as any);
+							}
 						}
 					}
-				}
-			);
-		},
-		10
-	);
+				);
+			},
+			10
+		);
+	})(this);
 
 	rebuildModule(m: Module, f: (err: Error, m: Module) => void) {
 		this._rebuildModuleCaller.push([m.identifier(), f]);

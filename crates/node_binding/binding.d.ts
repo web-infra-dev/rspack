@@ -388,7 +388,7 @@ export interface JsLoaderContext {
    * @internal
    */
   diagnosticsExternal: ExternalObject<'Diagnostic[]'>
-  _moduleIdentifier: string
+  _module: JsModule
   hot: boolean
 }
 

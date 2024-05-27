@@ -1049,6 +1049,11 @@ export class Compilation {
     // (undocumented)
     getCache(name: string): libCacheFacade;
     // (undocumented)
+    getCustomModule(moduleIdentifier: string): {
+        buildInfo: Record<string, unknown>;
+        buildMeta: Record<string, unknown>;
+    };
+    // (undocumented)
     getLogger(name: string | (() => string)): Logger;
     // (undocumented)
     getPath(filename: Filename, data?: PathData): string;
@@ -4668,6 +4673,8 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     mode?: Mode;
     // (undocumented)
+    _module: Module;
+    // (undocumented)
     previousRequest: string;
     // (undocumented)
     query: string | OptionsType;
@@ -4900,9 +4907,13 @@ const mode: z.ZodEnum<["development", "production", "none"]>;
 
 // @public (undocumented)
 export class Module {
-    constructor(module: JsModule);
+    constructor(module: JsModule, compilation?: Compilation);
     // (undocumented)
-    static __from_binding(module: JsModule): Module;
+    static __from_binding(module: JsModule, compilation?: Compilation): Module;
+    // (undocumented)
+    buildInfo: Record<string, any>;
+    // (undocumented)
+    buildMeta: Record<string, any>;
     // (undocumented)
     get context(): string | undefined;
     // (undocumented)

@@ -6,7 +6,8 @@ use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
   AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilerContext,
-  CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
+  CompilerModuleContext, CompilerOptions, DependencyParents, Module, ModuleProfile,
+  ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -47,8 +48,7 @@ impl Task<MakeTaskContext> for BuildTask {
           compiler_context: CompilerContext {
             options: compiler_options.clone(),
             resolver_factory: resolver_factory.clone(),
-            module: module.identifier(),
-            module_context: module.as_normal_module().and_then(|m| m.get_context()),
+            module: CompilerModuleContext::from_module(module.as_ref()),
             module_source_map_kind: *module.get_source_map_kind(),
             plugin_driver: plugin_driver.clone(),
           },
