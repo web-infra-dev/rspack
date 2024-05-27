@@ -10,8 +10,6 @@ import { PackageManagerTabs } from '@theme';
 
 ![](https://assets.rspack.dev/rspack/rspack-banner-v0-7.png)
 
-Rspack v0.7 supports lazy compilation. At the same time, Rspack configuration and external API tend to be stable, and more plugins compatibility has been verified.
-
 ## Major Feature Updates
 
 ### Lazy Compilation Support
@@ -39,7 +37,9 @@ Once we access B, which means we do need to build B, we fill B with its original
 
 Although Rspack currently has good performance, there is still a lot of room to improve performance for projects with a large number of pages.
 
-Take the Rspack official website as an example. The Rspack official website contains multiple pages. When Lazy Compilation is turned on, only the accessed entry and its dependent files will be built. This greatly improves the compilation speed and makes the startup time of the Rspack official website from 2.5s dropped to within 1s ⚡️.
+Take the Rspack official website as an example. The Rspack official website contains multiple pages. When Lazy Compilation is turned on, only the accessed entry and its dependent files will be built. This greatly improves the compilation speed and makes the startup time of the Rspack official website from 2s+ dropped to within 1s ⚡️.
+
+![lazy-compilation-compare](https://assets.rspack.dev/rspack/assets/lazy-compilation-compare.png)
 
 Now, you can enable the lazy compilation feature in Rspack through the [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) configuration:
 
@@ -63,14 +63,6 @@ After actual testing, `bootstrap.css` bundling speed increased by 4 times:
 
 - Before refactoring: ~84 ms (analyzing CSS dependencies ~71 ms)
 - After refactoring: ~25 ms (analyzing CSS dependencies ~11 ms)
-
-### More Plugins Compatibility Verified
-
-Rspack is committed to being compatible with plugins in the webpack ecosystem to use the excellent features that have been accumulated and verified in the community.
-
-[Plugin Compatibility List](/guide/compatibility/plugin) in continuous updates, you can view the current compatibility status of some community plugins and their alternatives through the plugin compatibility list. Currently compatible plugins include `@vanilla-extract/webpack-plugin` and `moment-locales-webpack-plugin`, while `workbox-webpack-plugin` and `webpack-manifest-plugin` provide alternatives.
-
-In addition, [Plugin API support](/api/plugin-api/index) and plugin compatibility are a matter that needs to be continued. If you find other Rspack-incompatible plugins, please feel free to submit them through [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) and we will support or provide an alternative as soon as possible.
 
 ## Breaking Changes
 
