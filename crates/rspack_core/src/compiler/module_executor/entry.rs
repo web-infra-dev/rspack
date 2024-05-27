@@ -59,7 +59,6 @@ impl Task<MakeTaskContext> for EntryTask {
           loader_resolver_factory: context.loader_resolver_factory.clone(),
           options: context.compiler_options.clone(),
           plugin_driver: context.plugin_driver.clone(),
-          cache: context.cache.clone(),
           current_profile: context
             .compiler_options
             .profile

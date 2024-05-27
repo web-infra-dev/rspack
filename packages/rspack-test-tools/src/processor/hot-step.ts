@@ -2,7 +2,7 @@ import { Chunk, StatsCompilation } from "@rspack/core";
 import fs from "fs-extra";
 import path from "path";
 
-import { escapeEOL, escapeSep } from "../helper";
+import { escapeEOL, escapeSep, isUpdateSnapshot } from "../helper";
 import { THotStepRuntimeData } from "../runner";
 import {
 	ECompilerType,
@@ -10,9 +10,10 @@ import {
 	ITestEnv,
 	TCompilerOptions,
 	TCompilerStats,
-	TCompilerStatsCompilation
+	TCompilerStatsCompilation,
+	TUpdateOptions
 } from "../type";
-import { HotProcessor, IHotProcessorOptions, TUpdateOptions } from "./hot";
+import { HotProcessor, IHotProcessorOptions } from "./hot";
 
 const escapeLocalName = (str: string) => str.split(/[-<>:"/|?*.]/).join("_");
 
@@ -20,7 +21,6 @@ declare var global: {
 	self?: {
 		[key: string]: (name: string, modules: Record<string, unknown>) => void;
 	};
-	updateSnapshot: boolean;
 };
 
 const SELF_HANDLER = (
@@ -163,9 +163,10 @@ export class HotSnapshotProcessor<
 			runtime: string[];
 		}> = [];
 		const hotUpdateManifest: Array<{ name: string; content: string }> = [];
-		const changedFiles: string[] = require(
-			context.getSource("changed-file.js")
-		).map((i: string) => escapeSep(path.relative(context.getSource(), i)));
+		const changedFiles: string[] = this.updateOptions.changedFiles.map(
+			(i: string) => escapeSep(path.relative(context.getSource(), i))
+		);
+		changedFiles.sort();
 
 		const hashes: Record<string, string> = {
 			[lastHash || "LAST_HASH"]: "LAST_HASH",
@@ -357,7 +358,7 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 
 				`.trim();
 
-		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
+		if (!fs.existsSync(snapshotPath) || isUpdateSnapshot()) {
 			fs.ensureDirSync(path.dirname(snapshotPath));
 			fs.writeFileSync(snapshotPath, content, "utf-8");
 			return;

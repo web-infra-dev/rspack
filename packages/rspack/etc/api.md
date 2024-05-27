@@ -465,6 +465,7 @@ export const BannerPlugin: {
         include?: string | RegExp | (string | RegExp)[] | undefined;
         raw?: boolean | undefined;
         footer?: boolean | undefined;
+        stage?: number | undefined;
         test?: string | RegExp | (string | RegExp)[] | undefined;
     }): {
         name: BuiltinPluginName;
@@ -510,6 +511,7 @@ const bannerPluginArgument: z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodFunction<z
     include: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">]>>;
     raw: z.ZodOptional<z.ZodBoolean>;
     footer: z.ZodOptional<z.ZodBoolean>;
+    stage: z.ZodOptional<z.ZodNumber>;
     test: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">]>>;
 }, "strict", z.ZodTypeAny, {
     banner: (string | ((args_0: {
@@ -526,6 +528,7 @@ const bannerPluginArgument: z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodFunction<z
     include?: string | RegExp | (string | RegExp)[] | undefined;
     raw?: boolean | undefined;
     footer?: boolean | undefined;
+    stage?: number | undefined;
     test?: string | RegExp | (string | RegExp)[] | undefined;
 }, {
     banner: (string | ((args_0: {
@@ -542,6 +545,7 @@ const bannerPluginArgument: z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodFunction<z
     include?: string | RegExp | (string | RegExp)[] | undefined;
     raw?: boolean | undefined;
     footer?: boolean | undefined;
+    stage?: number | undefined;
     test?: string | RegExp | (string | RegExp)[] | undefined;
 }>]>;
 

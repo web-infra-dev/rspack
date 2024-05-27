@@ -107,14 +107,7 @@ module.exports = {
 | 默认配置 | [HotProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/hot.ts#L86) |
 | 产物运行 | `是`                                                                                                                  |
 
-此测试用例与常规的 rspack 项目相同，可通过添加 `rspack.config.js` 来指定构建配置，但需要额外在用例目录下添加 `changed-file.js` 来指定变更的文件，如下所示：
-
-```js title="changed-file.js"
-const path = require('path');
-module.exports = [
-  path.resolve(__dirname, './file.js'), // file.js 变化并触发热更新
-];
-```
+此测试用例与常规的 rspack 项目相同，可通过添加 `rspack.config.js` 来指定构建配置
 
 对应的在变更的文件内通过 `---` 分割变更前后的代码：
 

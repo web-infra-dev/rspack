@@ -7,7 +7,6 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::{add::AddTask, MakeTaskContext};
 use crate::{
-  cache::Cache,
   module_graph::ModuleGraphModule,
   utils::task_loop::{Task, TaskResult, TaskType},
   BoxDependency, CompilerOptions, Context, DependencyId, ExportInfo, ExportsInfo, ModuleFactory,
@@ -30,7 +29,6 @@ pub struct FactorizeTask {
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
-  pub cache: Arc<Cache>,
   pub current_profile: Option<Box<ModuleProfile>>,
 }
 

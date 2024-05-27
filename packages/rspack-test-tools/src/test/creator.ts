@@ -111,7 +111,8 @@ export class BasicCaseCreator<T extends ECompilerType> {
 				expect,
 				it,
 				beforeEach,
-				afterEach
+				afterEach,
+				jest
 			};
 		}
 	}

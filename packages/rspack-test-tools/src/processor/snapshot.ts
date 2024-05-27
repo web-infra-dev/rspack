@@ -6,13 +6,9 @@ import {
 	type Compiler as WebpackCompiler
 } from "webpack";
 
-import { escapeEOL } from "../helper";
+import { escapeEOL, isUpdateSnapshot } from "../helper";
 import { ECompilerType, ITestContext, ITestEnv } from "../type";
 import { BasicProcessor, IBasicProcessorOptions } from "./basic";
-
-declare var global: {
-	updateSnapshot: boolean;
-};
 
 export interface ISnapshotProcessorOptions<T extends ECompilerType>
 	extends IBasicProcessorOptions<T> {
@@ -74,7 +70,7 @@ export class SnapshotProcessor<
 					`./__snapshots__/${this._snapshotOptions.snapshot}`
 				);
 
-		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
+		if (!fs.existsSync(snapshotPath) || isUpdateSnapshot()) {
 			fs.ensureDirSync(path.dirname(snapshotPath));
 			fs.writeFileSync(snapshotPath, content, "utf-8");
 			return;

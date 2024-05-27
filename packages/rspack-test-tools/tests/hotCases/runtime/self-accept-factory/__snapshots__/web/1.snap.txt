@@ -2,6 +2,7 @@
 
 ## Changed Files
 - a.js
+- b.js
 
 ## Asset Files
 - Bundle: bundle.js

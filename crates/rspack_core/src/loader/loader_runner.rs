@@ -3,9 +3,7 @@ use std::sync::Arc;
 pub use rspack_loader_runner::{run_loaders, Content, Loader, LoaderContext};
 use rspack_util::source_map::SourceMapKind;
 
-use crate::{
-  cache::Cache, CompilerOptions, Context, ModuleIdentifier, ResolverFactory, SharedPluginDriver,
-};
+use crate::{CompilerOptions, Context, ModuleIdentifier, ResolverFactory, SharedPluginDriver};
 
 #[derive(Debug, Clone)]
 pub struct CompilerContext {
@@ -15,7 +13,6 @@ pub struct CompilerContext {
   pub module_context: Option<Box<Context>>, // current module context
   pub module_source_map_kind: SourceMapKind,
   pub plugin_driver: SharedPluginDriver,
-  pub cache: Arc<Cache>,
 }
 
 pub type LoaderRunnerContext = CompilerContext;

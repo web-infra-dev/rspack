@@ -4,7 +4,6 @@ use rspack_error::{Diagnostic, IntoTWithDiagnosticArray};
 
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
-  cache::Cache,
   utils::task_loop::{Task, TaskResult, TaskType},
   AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilerContext,
   CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
@@ -17,7 +16,6 @@ pub struct BuildTask {
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
-  pub cache: Arc<Cache>,
 }
 
 #[async_trait::async_trait]
@@ -30,7 +28,6 @@ impl Task<MakeTaskContext> for BuildTask {
       compiler_options,
       resolver_factory,
       plugin_driver,
-      cache,
       current_profile,
       mut module,
     } = *self;
@@ -54,7 +51,6 @@ impl Task<MakeTaskContext> for BuildTask {
             module_context: module.as_normal_module().and_then(|m| m.get_context()),
             module_source_map_kind: *module.get_source_map_kind(),
             plugin_driver: plugin_driver.clone(),
-            cache: cache.clone(),
           },
           plugin_driver: plugin_driver.clone(),
           compiler_options: &compiler_options,

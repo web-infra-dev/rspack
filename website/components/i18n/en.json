@@ -14,6 +14,7 @@
   "case-sensitive-paths-webpack-plugin-desc": "`useBeforeEmitHook` option not supported",
   "moment-locales-webpack-plugin-desc": "Support for this plugin was implemented in v0.7.0, please upgrade the Rspack version to use it",
   "resolve-plugin-un-support-desc": "`resolve.plugins` option not supported",
+  "progress-plugin-function-un-support-desc": "rspack.ProgressPlugin `function` option not supported",
   "webpack-virtual-modules-desc": "Use [rspack-plugin-virtual-module](https://github.com/rspack-contrib/rspack-plugins/tree/main/packages/plugin-virtual-module) instead",
   "webpack-manifest-plugin-desc": "Use [rspack-manifest-plugin](https://github.com/rspack-contrib/rspack-manifest-plugin) instead",
   "workbox-webpack-plugin-desc": "Use [@aaroon/workbox-rspack-plugin](https://github.com/Clarkkkk/workbox-rspack-plugin) instead",

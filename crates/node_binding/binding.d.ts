@@ -653,6 +653,7 @@ export interface RawBannerPluginOptions {
   entryOnly?: boolean
   footer?: boolean
   raw?: boolean
+  stage?: number
   test?: string | RegExp | (string | RegExp)[]
   include?: string | RegExp | (string | RegExp)[]
   exclude?: string | RegExp | (string | RegExp)[]
