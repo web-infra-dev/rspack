@@ -22,9 +22,9 @@ Notable changes in Rsbuild v0.7:
 
 ## Support for Lazy Compilation
 
-Rspack v0.7 supports lazy compilation, which is very helpful for improving the build performance of multi-entry projects or large projects.
+Rspack v0.7 now supports lazy compilation, which is very helpful for improving the build performance of multi-page applications (MPA) or large single-page applications (SPA).
 
-### What is lazy compilation
+### What is Lazy Compilation
 
 Lazy Compilation is a good way to improve performance. It can compile code modules only when needed instead of compiling all modules at startup. This means developers can see their applications running faster when they launch a development server, because the relevant modules will only be compiled when specific functionality is accessed.
 
@@ -42,9 +42,11 @@ When we compile A, we make B just an empty file, pretend user never write any co
 
 Once we access B, which means we do need to build B, we fill B with its original content, pretend that user write content immediately
 
-### Why need lazy compilation
+### Why need Lazy Compilation
 
-Although Rspack currently has good performance, there is still a lot of room to improve performance for projects with a large number of pages.
+Although Rspack itself has good performance, the overall build time can still be less than ideal when building applications with a large number of modules. This is because the modules in the application need to be compiled by various loaders, such as `postcss-loader`, `sass-loader`, `vue-loader`, etc., which introduce additional compilation overhead.
+
+With lazy compilation enabled, Rspack will only compile the entrypoints and dynamic import modules that are requested. This can significantly reduce the number of modules that are compiled at development startup, improving startup time.
 
 Take the Rspack official website as an example. The Rspack official website contains multiple pages. When Lazy Compilation is turned on, only the accessed entry and its dependent files will be built. This greatly improves the compilation speed and makes the startup time of the Rspack official website from 2s+ dropped to within 1s ⚡️.
 
@@ -62,7 +64,7 @@ module.exports = {
 };
 ```
 
-This feature is still in the experimental stage. If you encounter problems during use, please give us feedback through [GitHub Issues](https://github.com/web-infra-dev/rspack/issues).
+Please note that the current lazy compilation aligns with the webpack implementation, **and is still in the experimental stage**. We will continue to improve the usability of lazy compilation in different scenarios to achieve a more stable state. If you encounter any issues while using it, feel free to provide feedback to us via [GitHub Issues](https://github.com/web-infra-dev/rspack/issues).
 
 ## Faster CSS Builds
 

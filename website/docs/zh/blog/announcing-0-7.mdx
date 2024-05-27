@@ -22,11 +22,11 @@ Rsbuild v0.7 版本已经正式发布！
 
 ## 支持 Lazy Compilation
 
-Rspack v0.7 支持 Lazy Compilation（懒编译），Lazy Compilation 对提高多入口项目或大型项目的构建性能非常有帮助。
+Rspack v0.7 支持了 lazy compilation（懒编译），它对于提高多入口应用（MPA）或大型单页面应用（SPA）的构建性能非常有帮助。
 
-### 什么是 lazy compilation
+### 什么是 Lazy Compilation
 
-Lazy Compilation 是一个提升性能的良好手段，它可以在需要时才编译代码模块，而不是在启动时就编译所有模块。这意味着开发者在启动开发服务器时，可以更快地看到应用运行，因为只有访问特定功能时，相关的模块才会被编译。
+Lazy compilation 是一个提升性能的良好手段，它可以在需要时才编译代码模块，而不是在启动时就编译所有模块。这意味着开发者在启动开发服务器时，可以更快地看到应用运行，因为只有访问特定功能时，相关的模块才会被编译。
 
 想象下面的场景：
 
@@ -42,17 +42,19 @@ Lazy Compilation 是一个提升性能的良好手段，它可以在需要时才
 
 一旦我们访问 B，这意味着我们确实需要构建 B，我们就用其原始内容填充 B，假装用户立即编写了内容。
 
-### 为什么需要 lazy compilation
+### 为什么需要 Lazy Compilation
 
-尽管 Rspack 目前有很好的性能，但是面对具有大量页面的项目，其性能仍然具有较大的提升空间。
+尽管 Rspack 本身具备良好的性能，但是面对具有大量模块的应用，其整体构建时间仍然可能不够理想。这是因为应用中的模块需要经过不同 loader 的编译，包括 `postcss-loader`、`sass-loader`、`vue-loader` 等，它们都会产生额外的编译开销。
 
-以 Rspack 官网为例，Rspack 官网包含多个页面，当开启 Lazy Compilation 后，只有访问到的入口及其依赖的文件才会进行构建，这极大的提升了编译速度，使得 Rspack 官网的启动时间从 2s+ 降至 1s 内 ⚡️。
+在启用 lazy compilation 的情况下，Rspack 仅会编译被请求的「页面入口」和「动态 import 模块」，这可以显著减少开发启动时编译的模块数量，从而提升启动时间。
+
+以 Rspack 官网为例，Rspack 官网包含多个页面，当开启 lazy compilation 后，只有访问到的入口及其依赖的文件才会进行构建，这极大的提升了编译速度，使得 Rspack 官网的启动时间从 2s+ 降至 1s 内 ⚡️。
 
 ![lazy-compilation-compare](https://assets.rspack.dev/rspack/assets/lazy-compilation-compare.png)
 
 ### 如何使用
 
-现在，你可以通过 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 配置项在 Rspack 中开启懒编译功能：
+现在，你可以通过 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 配置项来开启懒编译功能：
 
 ```file=rspack.config.js
 module.exports = {
@@ -62,7 +64,7 @@ module.exports = {
 };
 ```
 
-此特性目前仍在实验阶段，如果你在使用过程中遇到问题，欢迎通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 向我们反馈。
+注意，当前 lazy compilation 是对齐 webpack 实现的，**并且仍处于实验性阶段**。我们将持续完善 lazy compilation 在不同场景下的可用性，使之达到更稳定的状态。如果你在使用过程中遇到任何问题，欢迎通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 向我们反馈。
 
 ## 更快的 CSS 构建
 
