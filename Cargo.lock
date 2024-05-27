@@ -677,6 +677,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "css-module-lexer"
+version = "0.0.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e01522be965b820f079302b103c0b04d714b5abca8433a0071e0cd6f006d3a5"
+dependencies = [
+ "smallvec",
+]
+
+[[package]]
 name = "ctor"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3203,6 +3212,7 @@ name = "rspack_plugin_css"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "css-module-lexer",
  "heck 0.5.0",
  "indexmap 1.9.3",
  "once_cell",
@@ -3218,7 +3228,6 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
- "swc_core",
  "tracing",
  "urlencoding",
 ]
@@ -3604,7 +3613,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rspack_plugin_css",
+ "swc_core",
 ]
 
 [[package]]
@@ -4058,9 +4067,9 @@ checksum = "826167069c09b99d56f31e9ae5c99049e932a98c9dc2dac47645b08dbbf76ba7"
 
 [[package]]
 name = "smallvec"
-version = "1.11.2"
+version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dccd0940a2dcdf68d092b8cbab7dc0ad8fa938bf95787e1b916b0e3d0e8e970"
+checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
 name = "smartstring"
@@ -4489,7 +4498,6 @@ dependencies = [
  "swc_css_minifier",
  "swc_css_modules",
  "swc_css_parser",
- "swc_css_prefixer",
  "swc_css_utils",
  "swc_css_visit",
  "swc_ecma_ast",
@@ -4610,23 +4618,6 @@ dependencies = [
  "swc_atoms",
  "swc_common",
  "swc_css_ast",
-]
-
-[[package]]
-name = "swc_css_prefixer"
-version = "0.153.37"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12416e97bced06666368f3cf7801abacb1a8962c9a4b9b2924faa4f45dc512aa"
-dependencies = [
- "once_cell",
- "preset_env_base",
- "serde",
- "serde_json",
- "swc_atoms",
- "swc_common",
- "swc_css_ast",
- "swc_css_utils",
- "swc_css_visit",
 ]
 
 [[package]]

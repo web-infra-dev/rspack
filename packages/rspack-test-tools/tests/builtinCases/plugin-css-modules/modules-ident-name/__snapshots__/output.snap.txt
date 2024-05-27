@@ -1,6 +1,6 @@
 ```css title=main.css
 .___style_module____foo--___afc435275e612570_afc {
-  color: hotpink;
+    color: hotpink;
 }
 
 ```

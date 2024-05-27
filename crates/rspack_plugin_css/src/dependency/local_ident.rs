@@ -6,25 +6,29 @@ use rspack_core::{
 
 #[allow(unused)]
 #[derive(Debug, Clone)]
-pub struct CssModuleExportDependency {
+pub struct CssLocalIdentDependency {
   id: DependencyId,
   name: String,
-  value: String,
+  local_ident: String,
+  start: u32,
+  end: u32,
 }
 
-impl CssModuleExportDependency {
-  pub fn new(name: String, value: String) -> Self {
+impl CssLocalIdentDependency {
+  pub fn new(name: String, local_ident: String, start: u32, end: u32) -> Self {
     Self {
       id: DependencyId::new(),
       name,
-      value,
+      local_ident,
+      start,
+      end,
     }
   }
 }
 
-impl Dependency for CssModuleExportDependency {
+impl Dependency for CssLocalIdentDependency {
   fn dependency_debug_name(&self) -> &'static str {
-    "CssModuleExportDependency"
+    "CssLocalIdentDependency"
   }
 
   fn id(&self) -> &DependencyId {
@@ -32,11 +36,11 @@ impl Dependency for CssModuleExportDependency {
   }
 
   fn category(&self) -> &DependencyCategory {
-    &DependencyCategory::CssModuleExport
+    &DependencyCategory::CssLocalIdent
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::CssModuleExport
+    &DependencyType::CssLocalIdent
   }
 
   fn get_exports(&self, _mg: &rspack_core::ModuleGraph) -> Option<ExportsSpec> {
@@ -51,14 +55,13 @@ impl Dependency for CssModuleExportDependency {
   }
 }
 
-impl DependencyTemplate for CssModuleExportDependency {
+impl DependencyTemplate for CssLocalIdentDependency {
   fn apply(
     &self,
-    _source: &mut TemplateReplaceSource,
+    source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
-    // TODO: currently our css module implementation is different from `webpack`, so we do
-    // nothing here. ref: https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/dependencies/CssExportDependency.js#L85-L86
+    source.replace(self.start, self.end, &self.local_ident, None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
@@ -66,5 +69,5 @@ impl DependencyTemplate for CssModuleExportDependency {
   }
 }
 
-impl AsContextDependency for CssModuleExportDependency {}
-impl AsModuleDependency for CssModuleExportDependency {}
+impl AsContextDependency for CssLocalIdentDependency {}
+impl AsModuleDependency for CssLocalIdentDependency {}

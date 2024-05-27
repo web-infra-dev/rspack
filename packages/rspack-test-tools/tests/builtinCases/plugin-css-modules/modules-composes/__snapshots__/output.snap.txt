@@ -1,25 +1,45 @@
 ```css title=main.css
 .___f_module____f-1--___af10a85c64a6b515_af1 {
-  color: black;
+    color: black;
 }
-.___f_module____f--___af10a85c64a6b515_af1 {}
+.___f_module____f--___af10a85c64a6b515_af1 {
+    
+}
+
 .___d_module____d-1--___a41e34edaa1ca3c_a41 {
-  color: green;
+    color: green;
 }
-.___d_module____d--___a41e34edaa1ca3c_a41 {}
+
+.___d_module____d--___a41e34edaa1ca3c_a41 {
+    
+}
+
 .___b_module____b-1--___eca6dd2253f6b569_eca {
-  color: red;
+    color: red;
 }
-.___b_module____b--___eca6dd2253f6b569_eca {}
+.___b_module____b--___eca6dd2253f6b569_eca {
+    
+}
 .___style_module____chain2--___afc435275e612570_afc {
+  
+  
   background: blue;
 }
+
 .___style_module____chain1--___afc435275e612570_afc {
+  
+  
+  
   background: green;
 }
+
 .___style_module____root-class--___afc435275e612570_afc {
+  
+  
+  
   background: red;
 }
+
 
 ```
 
@@ -52,8 +72,8 @@ __webpack_require__.r(module.exports = {
 "./style.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
 __webpack_require__.r(module.exports = {
   "chain2": "___style_module____chain2--___afc435275e612570_afc" + " " + "e" + " " + __webpack_require__("./f.module.css")["f"],
-  "chain1": "___style_module____chain1--___afc435275e612570_afc" + " " + "___style_module____chain2--___afc435275e612570_afc" + " " + "c" + " " + __webpack_require__("./d.module.css")["d"] + " " + "e" + " " + __webpack_require__("./f.module.css")["f"],
-  "root-class": "___style_module____root-class--___afc435275e612570_afc" + " " + "___style_module____chain1--___afc435275e612570_afc" + " " + "a" + " " + __webpack_require__("./b.module.css")["b"] + " " + "___style_module____chain2--___afc435275e612570_afc" + " " + "c" + " " + __webpack_require__("./d.module.css")["d"] + " " + "e" + " " + __webpack_require__("./f.module.css")["f"],
+  "chain1": "___style_module____chain1--___afc435275e612570_afc" + " " + "___style_module____chain2--___afc435275e612570_afc" + " " + "e" + " " + __webpack_require__("./f.module.css")["f"] + " " + "c" + " " + __webpack_require__("./d.module.css")["d"],
+  "root-class": "___style_module____root-class--___afc435275e612570_afc" + " " + "___style_module____chain1--___afc435275e612570_afc" + " " + "___style_module____chain2--___afc435275e612570_afc" + " " + "e" + " " + __webpack_require__("./f.module.css")["f"] + " " + "c" + " " + __webpack_require__("./d.module.css")["d"] + " " + "a" + " " + __webpack_require__("./b.module.css")["b"],
 });
 }),
 

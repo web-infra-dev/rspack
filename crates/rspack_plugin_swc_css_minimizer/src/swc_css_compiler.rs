@@ -29,14 +29,6 @@ impl SwcCssCompiler {
     stylesheet.map_err(|e| error!("Css parsing failed {}", e.message()))
   }
 
-  pub fn codegen(
-    &self,
-    ast: &Stylesheet,
-    gen_source_map: SwcCssSourceMapGenConfig,
-  ) -> Result<(String, Option<Vec<u8>>)> {
-    self.codegen_impl(ast, gen_source_map, false)
-  }
-
   fn codegen_impl(
     &self,
     ast: &Stylesheet,
