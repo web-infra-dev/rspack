@@ -794,6 +794,8 @@ export interface ITester {
 // @public (undocumented)
 export interface ITesterConfig {
     // (undocumented)
+    compilerFactories?: TCompilerFactories;
+    // (undocumented)
     dist: string;
     // (undocumented)
     name: string;
@@ -1046,6 +1048,9 @@ export type TCompiler<T> = T extends ECompilerType.Rspack ? Compiler : Compiler_
 export type TCompilerCaseConfig = Omit<ISimpleProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
     description: string;
 };
+
+// @public (undocumented)
+export type TCompilerFactories = Record<ECompilerType, TCompilerFactory<ECompilerType>>;
 
 // @public (undocumented)
 export type TCompilerFactory<T extends ECompilerType> = (options: TCompilerOptions<T> | TCompilerOptions<T>[]) => TCompiler<T>;
