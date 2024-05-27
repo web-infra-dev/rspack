@@ -415,6 +415,8 @@ export interface JsModule {
   resource?: string
   moduleIdentifier: string
   nameForCondition?: string
+  request?: string
+  userRequest?: string
   rawRequest?: string
 }
 

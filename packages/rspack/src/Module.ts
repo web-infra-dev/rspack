@@ -49,7 +49,6 @@ export class Module {
 	#inner: JsModule;
 	_originalSource?: Source;
 
-	rawRequest?: string;
 	buildInfo: Record<string, any>;
 	buildMeta: Record<string, any>;
 
@@ -59,7 +58,6 @@ export class Module {
 
 	constructor(module: JsModule, compilation?: Compilation) {
 		this.#inner = module;
-		this.rawRequest = module.rawRequest;
 
 		const customModule = compilation?.getCustomModule(module.moduleIdentifier);
 		this.buildInfo = customModule?.buildInfo || {};
@@ -74,7 +72,19 @@ export class Module {
 		return this.#inner.resource;
 	}
 
-	get originalSource(): Source | null {
+	get request(): string | undefined {
+		return this.#inner.request;
+	}
+
+	get userRequest(): string | undefined {
+		return this.#inner.userRequest;
+	}
+
+	get rawRequest(): string | undefined {
+		return this.rawRequest;
+	}
+
+	originalSource(): Source | null {
 		if (this._originalSource) return this._originalSource;
 		if (this.#inner.originalSource) {
 			this._originalSource = JsSource.__from_binding(

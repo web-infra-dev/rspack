@@ -16,6 +16,8 @@ pub struct CompilerModuleContext {
   pub resource: Option<ResourceData>,
   pub module_identifier: ModuleIdentifier,
   pub name_for_condition: Option<String>,
+  pub request: Option<String>,
+  pub user_request: Option<String>,
   pub raw_request: Option<String>,
 }
 
@@ -35,6 +37,8 @@ impl CompilerModuleContext {
       resource: normal_module.map(|normal_module| normal_module.resource_resolved_data().clone()),
       module_identifier: module.identifier(),
       name_for_condition: module.name_for_condition().map(|s| s.to_string()),
+      request: normal_module.map(|normal_module| normal_module.request().to_owned()),
+      user_request: normal_module.map(|normal_module| normal_module.user_request().to_owned()),
       raw_request: normal_module.map(|normal_module| normal_module.raw_request().to_owned()),
     }
   }

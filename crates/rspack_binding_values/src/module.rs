@@ -13,6 +13,8 @@ pub struct JsModule {
   pub resource: Option<String>,
   pub module_identifier: String,
   pub name_for_condition: Option<String>,
+  pub request: Option<String>,
+  pub user_request: Option<String>,
   pub raw_request: Option<String>,
 }
 
@@ -45,6 +47,8 @@ impl ToJsModule for dyn Module {
         ),
         module_identifier: module_identifier(),
         name_for_condition: name_for_condition(),
+        request: Some(normal_module.request().to_string()),
+        user_request: Some(normal_module.user_request().to_string()),
         raw_request: Some(normal_module.raw_request().to_string()),
       })
       .or_else(|_| {
@@ -55,6 +59,8 @@ impl ToJsModule for dyn Module {
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
           raw_request: None,
+          user_request: None,
+          request: None,
         })
       })
       .or_else(|_| {
@@ -65,6 +71,8 @@ impl ToJsModule for dyn Module {
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
           raw_request: None,
+          user_request: None,
+          request: None,
         })
       })
       .or_else(|_| {
@@ -75,6 +83,8 @@ impl ToJsModule for dyn Module {
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
           raw_request: None,
+          user_request: None,
+          request: None,
         })
       })
       .or_else(|_| {
@@ -94,7 +104,6 @@ impl ToJsModule for CompilerModuleContext {
       context: self.context.as_ref().map(|c| c.to_string()),
       module_identifier: self.module_identifier.to_string(),
       name_for_condition: self.name_for_condition.clone(),
-      raw_request: self.raw_request.clone(),
       resource: self
         .resource
         .as_ref()
@@ -103,6 +112,9 @@ impl ToJsModule for CompilerModuleContext {
         .original_source
         .as_ref()
         .and_then(|source| source.to_js_compat_source().ok()),
+      request: self.request.clone(),
+      user_request: self.user_request.clone(),
+      raw_request: self.raw_request.clone(),
     };
     Ok(module)
   }

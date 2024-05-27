@@ -4921,13 +4921,17 @@ export class Module {
     // (undocumented)
     nameForCondition(): string | null;
     // (undocumented)
-    get originalSource(): Source | null;
+    originalSource(): Source | null;
     // (undocumented)
     _originalSource?: Source;
     // (undocumented)
-    rawRequest?: string;
+    get rawRequest(): string | undefined;
+    // (undocumented)
+    get request(): string | undefined;
     // (undocumented)
     get resource(): string | undefined;
+    // (undocumented)
+    get userRequest(): string | undefined;
 }
 
 // @public (undocumented)
