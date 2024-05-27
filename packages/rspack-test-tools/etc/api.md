@@ -11,6 +11,9 @@ import { Compiler } from '@rspack/core';
 import { Compiler as Compiler_2 } from 'webpack';
 import type { Configuration } from 'webpack';
 import EventEmitter from 'events';
+import { IBasicGlobalContext as IBasicGlobalContext_2 } from '../type';
+import { IBasicGlobalContext as IBasicGlobalContext_3 } from '../../type';
+import { IBasicModuleScope as IBasicModuleScope_2 } from '../../type';
 import { ITestCompilerManager as ITestCompilerManager_2 } from '../type';
 import { RspackOptions } from '@rspack/core';
 import { RspackOptionsNormalized } from '@rspack/core';
@@ -21,6 +24,7 @@ import { StatsCompilation } from '@rspack/core';
 import type { StatsCompilation as StatsCompilation_2 } from 'webpack';
 import { StatsError } from '@rspack/core';
 import { StatsWarnings } from '@rspack/core';
+import { TRunnerRequirer as TRunnerRequirer_2 } from '..';
 import { WebpackOptionsNormalized } from 'webpack';
 
 // @public (undocumented)
@@ -51,6 +55,39 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 }
 
 // @public (undocumented)
+export abstract class BasicRunner<T extends ECompilerType = ECompilerType.Rspack> implements ITestRunner {
+    constructor(_options: IBasicRunnerOptions<T>);
+    // (undocumented)
+    protected baseModuleScope: IBasicModuleScope | null;
+    // (undocumented)
+    protected abstract createBaseModuleScope(): IBasicModuleScope;
+    // (undocumented)
+    protected abstract createGlobalContext(): IBasicGlobalContext;
+    // (undocumented)
+    protected abstract createModuleScope(requireFn: TRunnerRequirer, m: TModuleObject, file: TBasicRunnerFile): IBasicModuleScope;
+    // (undocumented)
+    protected createRunner(): void;
+    // (undocumented)
+    protected getFile(modulePath: string[] | string, currentDirectory: string): TBasicRunnerFile | null;
+    // (undocumented)
+    getGlobal(name: string): unknown;
+    // (undocumented)
+    getRequire(): TRunnerRequirer;
+    // (undocumented)
+    protected globalContext: IBasicGlobalContext | null;
+    // (undocumented)
+    protected _options: IBasicRunnerOptions<T>;
+    // (undocumented)
+    protected postExecute(m: Object, file: TBasicRunnerFile): void;
+    // (undocumented)
+    protected preExecute(code: string, file: TBasicRunnerFile): void;
+    // (undocumented)
+    protected requirers: Map<string, TRunnerRequirer>;
+    // (undocumented)
+    run(file: string): Promise<unknown>;
+}
+
+// @public (undocumented)
 export class BasicRunnerFactory<T extends ECompilerType> implements TRunnerFactory<T> {
     constructor(name: string, context: ITestContext);
     // (undocumented)
@@ -72,6 +109,22 @@ export class BuiltinProcessor<T extends ECompilerType> extends SnapshotProcessor
     protected _builtinOptions: IBuiltinProcessorOptions<T>;
     // (undocumented)
     static defaultOptions<T extends ECompilerType>(this: BuiltinProcessor<T>, context: ITestContext): TCompilerOptions<T>;
+}
+
+// @public (undocumented)
+export class CommonJsRunner<T extends ECompilerType = ECompilerType.Rspack> extends BasicRunner<T> {
+    // (undocumented)
+    protected createBaseModuleScope(): IBasicModuleScope;
+    // (undocumented)
+    protected createCjsRequirer(): TRunnerRequirer;
+    // (undocumented)
+    protected createGlobalContext(): IBasicGlobalContext;
+    // (undocumented)
+    protected createMissRequirer(): TRunnerRequirer;
+    // (undocumented)
+    protected createModuleScope(requireFn: TRunnerRequirer, m: TModuleObject, file: TBasicRunnerFile): IBasicModuleScope;
+    // (undocumented)
+    protected createRunner(): void;
 }
 
 // @public (undocumented)
@@ -301,6 +354,37 @@ export function escapeEOL(str: string): string;
 export function escapeSep(str: string): string;
 
 // @public (undocumented)
+export class EsmRunner<T extends ECompilerType = ECompilerType.Rspack> extends CommonJsRunner<T> {
+    // (undocumented)
+    protected createEsmRequirer(): TRunnerRequirer;
+    // (undocumented)
+    protected createRunner(): void;
+}
+
+// @public (undocumented)
+export class FakeDocumentWebRunner<T extends ECompilerType = ECompilerType.Rspack> extends CommonJsRunner<T> {
+    constructor(_webOptions: IBasicRunnerOptions<T>);
+    // (undocumented)
+    protected createBaseModuleScope(): IBasicModuleScope_2;
+    // (undocumented)
+    protected createGlobalContext(): IBasicGlobalContext_3;
+    // (undocumented)
+    protected createJsonRequirer(): TRunnerRequirer;
+    // (undocumented)
+    protected createModuleScope(requireFn: TRunnerRequirer, m: any, file: TBasicRunnerFile): IBasicModuleScope_2;
+    // (undocumented)
+    protected createRunner(): void;
+    // (undocumented)
+    protected postExecute(_: Object, file: TBasicRunnerFile): void;
+    // (undocumented)
+    protected preExecute(_: string, file: TBasicRunnerFile): void;
+    // (undocumented)
+    run(file: string): Promise<unknown>;
+    // (undocumented)
+    protected _webOptions: IBasicRunnerOptions<T>;
+}
+
+// @public (undocumented)
 export function formatCode(name: string, raw: string, options: IFormatCodeOptions): string;
 
 // @public (undocumented)
@@ -445,6 +529,26 @@ export interface IBasicProcessorOptions<T extends ECompilerType> {
     overrideOptions?: (context: ITestContext, options: TCompilerOptions<T>) => void;
     // (undocumented)
     runable: boolean;
+}
+
+// @public (undocumented)
+export interface IBasicRunnerOptions<T extends ECompilerType> {
+    // (undocumented)
+    compilerOptions: TCompilerOptions<T>;
+    // (undocumented)
+    dist: string;
+    // (undocumented)
+    env: ITestEnv;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    runInNewContext?: boolean;
+    // (undocumented)
+    source: string;
+    // (undocumented)
+    stats?: TCompilerStatsCompilation<T>;
+    // (undocumented)
+    testConfig: TTestConfig<T>;
 }
 
 // @public (undocumented)
@@ -874,7 +978,42 @@ export interface IWatchProcessorOptions<T extends ECompilerType> extends IMultiT
 }
 
 // @public (undocumented)
+interface IWatchRunnerOptions<T extends ECompilerType = ECompilerType.Rspack> extends IBasicRunnerOptions<T> {
+    // (undocumented)
+    stepName: string;
+}
+
+// @public (undocumented)
 export interface IWatchStepProcessorOptions<T extends ECompilerType> extends Omit<IWatchProcessorOptions<T>, "experiments" | "optimization"> {
+}
+
+// @public (undocumented)
+export interface IWebRunnerOptions<T extends ECompilerType = ECompilerType.Rspack> extends IBasicRunnerOptions<T> {
+    // (undocumented)
+    dom: "fake" | "jsdom";
+}
+
+// @public (undocumented)
+export class JSDOMWebRunner<T extends ECompilerType = ECompilerType.Rspack> extends CommonJsRunner<T> {
+    constructor(_webOptions: IBasicRunnerOptions<T>);
+    // (undocumented)
+    protected createBaseModuleScope(): IBasicModuleScope_2;
+    // (undocumented)
+    protected createJSDOMRequirer(): TRunnerRequirer;
+    // (undocumented)
+    protected createResourceLoader(): {
+        fetch(url: string, _: {
+            element: HTMLScriptElement;
+        }): any;
+    };
+    // (undocumented)
+    protected createRunner(): void;
+    // (undocumented)
+    getGlobal(name: string): unknown;
+    // (undocumented)
+    run(file: string): Promise<unknown>;
+    // (undocumented)
+    protected _webOptions: IBasicRunnerOptions<T>;
 }
 
 // @public (undocumented)
@@ -910,6 +1049,16 @@ export class NormalProcessor<T extends ECompilerType> extends BasicProcessor<T> 
     static defaultOptions<T extends ECompilerType>(this: NormalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
     protected _normalOptions: INormalProcessorOptions<T>;
+}
+
+// @public (undocumented)
+export class NormalRunner<T extends ECompilerType = ECompilerType.Rspack> extends EsmRunner<T> {
+    // (undocumented)
+    protected createBaseModuleScope(): IBasicModuleScope;
+    // (undocumented)
+    protected createModuleScope(requireFn: TRunnerRequirer, m: {
+        exports: unknown;
+    }, file: TBasicRunnerFile): IBasicModuleScope;
 }
 
 // @public (undocumented)
@@ -1294,6 +1443,17 @@ export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<
 }
 
 // @public (undocumented)
+export class WatchRunner<T extends ECompilerType = ECompilerType.Rspack> extends CommonJsRunner<T> {
+    constructor(_watchOptions: IWatchRunnerOptions<T>);
+    // (undocumented)
+    protected createGlobalContext(): IBasicGlobalContext_2;
+    // (undocumented)
+    protected createModuleScope(requireFn: TRunnerRequirer, m: any, file: TBasicRunnerFile): IBasicModuleScope;
+    // (undocumented)
+    protected _watchOptions: IWatchRunnerOptions<T>;
+}
+
+// @public (undocumented)
 export class WatchRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
     // (undocumented)
     protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
@@ -1326,6 +1486,21 @@ export class WebpackModulePlaceholderPlugin {
     constructor();
     // (undocumented)
     apply(compiler: any): void;
+}
+
+// @public (undocumented)
+export class WebRunner<T extends ECompilerType = ECompilerType.Rspack> implements ITestRunner {
+    constructor(_webOptions: IWebRunnerOptions<T>);
+    // (undocumented)
+    getGlobal(name: string): unknown;
+    // (undocumented)
+    getRequire(): TRunnerRequirer_2;
+    // (undocumented)
+    protected originMethods: Partial<CommonJsRunner>;
+    // (undocumented)
+    run(file: string): Promise<unknown>;
+    // (undocumented)
+    protected _webOptions: IWebRunnerOptions<T>;
 }
 
 // (No @packageDocumentation comment for this package)
