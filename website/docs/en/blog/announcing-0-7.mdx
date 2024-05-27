@@ -57,7 +57,9 @@ This feature is still in the experimental stage. If you encounter problems durin
 
 In Rspack 0.7, we have partially refactored the internal implementation of [experiments.css](/config/experiments#experimentscss).
 
-Mainly in the CSS dependency analysis part, the switch from `swc-css` to `css-module-lexer` not only fixes the boundary problem of css modules, but also brings faster bundling speed to experiments.css. For relevant changes, please see PR: [rspack#6594](https://github.com/web-infra-dev/rspack/pull/6594).
+Mainly in the CSS dependency analysis part, the switch from `swc-css` to `css-module-lexer` not only fixes the boundary problem of css modules, but also brings faster bundling speed to experiments.css.
+
+![rspack-css-lexer](https://assets.rspack.dev/rspack/assets/rspack-css-lexer.png)
 
 After actual testing, `bootstrap.css` bundling speed increased by 4 times:
 

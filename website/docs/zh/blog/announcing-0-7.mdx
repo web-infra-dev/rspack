@@ -20,9 +20,9 @@ Rspack 0.7.0 支持 Lazy Compilation（懒编译），Lazy Compilation 对提高
 
 Lazy Compilation 是一个提升性能的良好手段，它可以在需要时才编译代码模块，而不是在启动时就编译所有模块。这意味着开发者在启动开发服务器时，可以更快地看到应用运行，因为只有访问特定功能时，相关的模块才会被编译。
 
-最简单的思维模型可能是：
+想象下面的场景：
 
-想象一下某些你可能在第一次运行时不会使用的代码，例如，当你点击一个按钮、加载另一个页面时，如果在你开发其他东西时根本没有点击那个按钮，那么那个页面就是无用的，因此我们不需要构建它。我们在执行点击操作时才构建它。
+某些你可能在第一次运行时不会使用的代码，例如，当你点击一个按钮、加载另一个页面时，如果在你开发其他东西时根本没有点击那个按钮，那么那个页面就是无用的，因此我们不需要构建它。我们在执行点击操作时才构建它。
 
 我们尝试将入口和动态导入作为分割点，例如，考虑以下结构：
 
@@ -57,7 +57,9 @@ module.exports = {
 
 0.7 版本我们对 [experiments.css](/config/experiments#experimentscss) 的内部实现进行了部分重构。
 
-主要是 CSS 依赖分析部分，从 `swc-css` 切换为了 `css-module-lexer`，在修复 css modules 边界问题的同时，也给 experiments.css 带来了更快的打包速度。相关改动详见 PR：[rspack#6594](https://github.com/web-infra-dev/rspack/pull/6594)。
+主要是 CSS 依赖分析部分，从 `swc-css` 切换为了 `css-module-lexer`，在修复 css modules 边界问题的同时，也给 experiments.css 带来了更快的打包速度。
+
+![rspack-css-lexer](https://assets.rspack.dev/rspack/assets/rspack-css-lexer.png)
 
 经过实际测试，`bootstrap.css` 打包速度提升了4倍：
 
