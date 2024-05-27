@@ -1,13 +1,6 @@
-(function () {
-	var __webpack_modules__ = {
-		"./src/entry.js": function () {
-			console.log("CONFIG");
-		}
-	};
-	// startup
-	// Load entry module and return exports
+(() => {
+	// webpackBootstrap
 	var __webpack_exports__ = {};
-	__webpack_modules__["./src/entry.js"]();
+	console.log("CONFIG");
 })();
-
 //# sourceMappingURL=main.js.map
