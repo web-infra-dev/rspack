@@ -108,10 +108,7 @@ impl ToJsModule for CompilerModuleContext {
         .resource
         .as_ref()
         .map(|r| r.resource_path.to_string_lossy().to_string()),
-      original_source: self
-        .original_source
-        .as_ref()
-        .and_then(|source| source.to_js_compat_source().ok()),
+      original_source: None,
       request: self.request.clone(),
       user_request: self.user_request.clone(),
       raw_request: self.raw_request.clone(),
