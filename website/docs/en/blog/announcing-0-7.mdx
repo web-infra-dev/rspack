@@ -1,12 +1,12 @@
 ---
-date: 2024-05-21 16:00:00
+date: 2024-05-28 16:00:00
 ---
 
 import { PackageManagerTabs } from '@theme';
 
 # Announcing Rspack v0.7
 
-> May 21, 2024
+> May 28, 2024
 
 ![](https://assets.rspack.dev/rspack/rspack-banner-v0-7.png)
 
@@ -18,9 +18,30 @@ Rspack v0.7 supports lazy compilation. At the same time, Rspack configuration an
 
 Rspack 0.7.0 supports Lazy Compilation feature, which is very helpful for improving the build performance of multi-entry projects or large projects.
 
-TODO: Performance comparison data
+:::tip What is lazy compilation?
 
-Now, you can enable the lazy compilation feature in Rspack through the [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) configuration option:
+Lazy Compilation is a good way to improve performance. It can compile code modules only when needed instead of compiling all modules at startup. This means developers can see their applications running faster when they launch a development server, because the relevant modules will only be compiled when specific functionality is accessed.
+
+The easiest mental model would be:
+
+Imagine some code that you may not use at the first run, for example, when you click a button, load another page, if you don't click that button at all when you develop other stuff, that page is useless, so we don't need to build it. We build it once we do execute the click.
+
+We try to make entries and dynamic imports as split point, for example, consider:
+
+`A -dyn import()-> B -dyn import()-> C`
+
+When we compile A, we make B just an empty file, pretend user never write any code in it:
+
+`A -dyn import()-> B'(empty content)`
+
+Once we access B, which means we do need to build B, we fill B with its original content, pretend that user write content immediately
+:::
+
+Although Rspack currently has good performance, there is still a lot of room to improve performance for projects with a large number of pages.
+
+Take the Rspack official website as an example. The Rspack official website contains multiple pages. When Lazy Compilation is turned on, only the accessed entry and its dependent files will be built. This greatly improves the compilation speed and makes the startup time of the Rspack official website from 2.5s dropped to within 1s ⚡️.
+
+Now, you can enable the lazy compilation feature in Rspack through the [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) configuration:
 
 ```file=rspack.config.js
 module.exports = {
@@ -30,19 +51,26 @@ module.exports = {
 };
 ```
 
-### Tree Shaking Functionality Stability
+This feature is still in the experimental stage. If you encounter problems during use, please give us feedback through [GitHub Issues](https://github.com/web-infra-dev/rspack/issues).
 
-The new tree shaking was introduced in Rspack 0.4.2 and enabled by default in version 0.6.0. After several months of bug fixes and optimizations, it has now reached a stable status.
+### Faster Native CSS bundling speed
 
-Rspack 0.7.0 has removed the `builtins.treeShaking` (oldTreeShaking) configuration and the switch for toggling between the new and old tree shaking features, completely phasing out the old tree shaking functionality.
+In Rspack 0.7, we have partially refactored the internal implementation of [experiments.css](/config/experiments#experimentscss).
+
+Mainly in the CSS dependency analysis part, the switch from `swc-css` to `css-module-lexer` not only fixes the boundary problem of css modules, but also brings faster bundling speed to experiments.css. For relevant changes, please see PR: [rspack#6594](https://github.com/web-infra-dev/rspack/pull/6594).
+
+After actual testing, `bootstrap.css` bundling speed increased by 4 times:
+
+- Before refactoring: ~84 ms (analyzing CSS dependencies ~71 ms)
+- After refactoring: ~25 ms (analyzing CSS dependencies ~11 ms)
 
 ### More Plugins Compatibility Verified
 
-In 0.7.0, we reviewed the compatibility status and alternative solutions for some common community plugins, such as `@vanilla-extract/webpack-plugin` and `moment-locales-webpack-plugin`, which are now compatible. There are alternatives for plugins like `workbox-webpack-plugin` and `webpack-manifest-plugin`.
+Rspack is committed to being compatible with plugins in the webpack ecosystem to use the excellent features that have been accumulated and verified in the community.
 
-For more details, see the [Plugin Compatibility List](/guide/compatibility/plugin).
+[Plugin Compatibility List](/guide/compatibility/plugin) in continuous updates, you can view the current compatibility status of some community plugins and their alternatives through the plugin compatibility list. Currently compatible plugins include `@vanilla-extract/webpack-plugin` and `moment-locales-webpack-plugin`, while `workbox-webpack-plugin` and `webpack-manifest-plugin` provide alternatives.
 
-Additionally, [Plugin API Support](/api/plugin-api/index) and plugin compatibility are ongoing efforts. If you encounter any plugins that are not compatible with Rspack, you are welcome to communicate with us through [GitHub Issues](https://github.com/web-infra-dev/rspack/issues), and we will promptly support or provide alternatives.
+In addition, [Plugin API support](/api/plugin-api/index) and plugin compatibility are a matter that needs to be continued. If you find other Rspack-incompatible plugins, please feel free to submit them through [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) and we will support or provide an alternative as soon as possible.
 
 ## Breaking Changes
 
@@ -54,11 +82,44 @@ Rspack early exposed some APIs that were intended for internal use only and were
 
 In 0.7.0, we reorganized the currently exposed APIs and their interface definitions. If you have been using these APIs, you will need to make the necessary adjustments to align with the implementations consistent with webpack.
 
+The following APIs are deprecated:
+
+- `compiler.builtinPlugins`
+- `compiler.compilation`
+- `compiler.compilationParams`
+- `compiler.getAsset(name)`
+- `statsError.formatted`
+- `statsWarning.formatted`
+- ...
+
+For details about the deprecated API, please refer to [rspack#6448](https://github.com/web-infra-dev/rspack/pull/6448), [rspack#6505](https://github.com/web-infra-dev/rspack/pull/6505).
+
+### CSS @import rules must precede all other rules
+
+In Rspack 0.7, we have partially refactored the internal implementation of [experiments.css](/config/experiments#experimentscss).
+
+After refactoring, when `@import` is not at the top, you will get the following error. In this case, you need to manually adjust the `@import` rule to the top.
+
+```bash
+ERROR in ./src/main.css
+  × Module parse failed:
+  ╰─▶   × CSS parsing warning: Any '@import' rules must precede all other rules
+         ╭─[4:1]
+       4 │ };
+       5 │
+       6 │ @import 'bootstrap/dist/css/bootstrap.css';
+         · ───────
+       7 │
+       8 │
+         ╰────
+
+  help:
+        You may need an appropriate loader to handle this file type.
+```
+
 ### Remove builtins and experiments.rspackFuture.newTreeshaking
 
-The new version of tree shaking was introduced in Rspack 0.4.2 and enabled by default in 0.6.0, after several months of bug fixes and optimizations, it has now reached a stable state.
-
-In version 0.7.0, the `builtins` configuration which contains the feature of old tree shaking, has been removed, completely phasing out the old tree shaking as well as the switch for the new tree shaking feature.
+0.7.0 has removed the `builtins.treeShaking` (oldTreeShaking) and `experiments.rspackFuture.newTreeshaking` (new tree shaking switch) configurations, taking the old tree shaking functionality completely offline.
 
 ### Remove resolve.browserField
 

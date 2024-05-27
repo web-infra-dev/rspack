@@ -1,12 +1,12 @@
 ---
-date: 2024-05-21 16:00:00
+date: 2024-05-28 16:00:00
 ---
 
 import { PackageManagerTabs } from '@theme';
 
 # Rspack v0.7 发布公告
 
-> 2024 年 5 月 21 日
+> 2024 年 5 月 28 日
 
 ![](https://assets.rspack.dev/rspack/rspack-banner-v0-7.png)
 
@@ -18,7 +18,26 @@ Rspack v0.7 版本支持 lazy compilation，同时，Rspack 配置和对外 API 
 
 Rspack 0.7.0 支持 Lazy Compilation（懒编译），Lazy Compilation 对提高多入口项目或大型项目的构建性能非常有帮助。
 
-尽管 Rspack 目前有很好的性能，但是面对具有大量页面的项目，其性能仍然具有较大的提升空间，Lazy Compilation 是一个提升性能的良好手段，它可以在需要时才编译代码模块，而不是在启动时就编译所有模块。这意味着开发者在启动开发服务器时，可以更快地看到应用运行，因为只有访问特定功能时，相关的模块才会被编译。
+:::tip 什么是 lazy compilation?
+
+Lazy Compilation 是一个提升性能的良好手段，它可以在需要时才编译代码模块，而不是在启动时就编译所有模块。这意味着开发者在启动开发服务器时，可以更快地看到应用运行，因为只有访问特定功能时，相关的模块才会被编译。
+
+最简单的思维模型可能是：
+
+想象一下某些你可能在第一次运行时不会使用的代码，例如，当你点击一个按钮、加载另一个页面时，如果在你开发其他东西时根本没有点击那个按钮，那么那个页面就是无用的，因此我们不需要构建它。我们在执行点击操作时才构建它。
+
+我们尝试将入口和动态导入作为分割点，例如，考虑以下结构：
+
+`A -动态导入()-> B -动态导入()-> C`
+
+当我们编译 A 时，我们将 B 当成一个空文件，假装用户从未在其中编写过任何代码：
+
+`A -动态导入()-> B'(空内容)`
+
+一旦我们访问 B，这意味着我们确实需要构建 B，我们就用其原始内容填充 B，假装用户立即编写了内容。
+:::
+
+尽管 Rspack 目前有很好的性能，但是面对具有大量页面的项目，其性能仍然具有较大的提升空间。
 
 以 Rspack 官网为例，Rspack 官网包含多个页面，当开启 Lazy Compilation 后，只有访问到的入口及其依赖的文件才会进行构建，这极大的提升了编译速度，使得 Rspack 官网的启动时间从 2.5s 降至 1s 内 ⚡️。
 
@@ -34,17 +53,22 @@ module.exports = {
 
 此特性目前仍在实验阶段，如果你在使用过程中遇到问题，欢迎通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 向我们反馈。
 
+### 更快的 Native CSS 打包速度
+
+0.7 版本我们对 [experiments.css](/config/experiments#experimentscss) 的内部实现进行了部分重构。
+
+主要是 CSS 依赖分析部分，从 `swc-css` 切换为了 `css-module-lexer`，在修复 css modules 边界问题的同时，也给 experiments.css 带来了更快的打包速度。相关改动详见 PR：[rspack#6594](https://github.com/web-infra-dev/rspack/pull/6594)。
+
+经过实际测试，`bootstrap.css` 打包速度提升了4倍：
+
+- 重构前：约 84 毫秒（分析 CSS 依赖约 71 毫秒）
+- 重构后：约 25 毫秒（分析 CSS 依赖约 11 毫秒）
+
 ### 更多插件兼容性得到验证
 
 Rspack 致力于兼容 webpack 生态下的插件，以使用社区中已经积累和验证的优秀功能。[插件兼容列表](/guide/compatibility/plugin) 在持续更新中，通过插件兼容列表可查看目前一些社区插件的兼容性状态及其替代方案。目前已兼容的插件包括 `@vanilla-extract/webpack-plugin` 和 `moment-locales-webpack-plugin` 等，而 `workbox-webpack-plugin` 和 `webpack-manifest-plugin` 等则提供了替代方案。
 
 另外，[插件 API 支持](/api/plugin-api/index) 和插件兼容是一个需要持续进行的事情，如果你有发现其他 Rspack 不兼容的插件，欢迎通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 与我们交流，我们会尽快支持或提供替代方案。
-
-### Tree shaking 功能达到稳定状态
-
-新版 tree shaking 在 Rspack 0.4.2 版本引入，并在 0.6.0 默认开启，经过几个月的 bug 修复和优化，目前已达到稳定状态。
-
-0.7.0 已移除 `builtins.treeShaking` (oldTreeShaking) 配置和 treeShaking 新旧切换的开关，将旧的 tree shaking 功能彻底下线。
 
 ## 不兼容更新
 
@@ -67,6 +91,29 @@ Rspack 初期暴露了一些预期仅供内部使用且不稳定的 API，如 `c
 - ...
 
 关于废弃 API 的详细情况可参考 [rspack#6448](https://github.com/web-infra-dev/rspack/pull/6448)、[rspack#6505](https://github.com/web-infra-dev/rspack/pull/6505)。
+
+### CSS @import 规则须先于其他规则
+
+0.7 版本我们对 [experiments.css](/config/experiments#experimentscss) 的内部实现进行了部分重构。
+
+重构后，当 `@import` 不在最顶部时，会得到如下报错，此时需要你手动将 `@import` 规则调整到顶部。
+
+```bash
+ERROR in ./src/main.css
+  × Module parse failed:
+  ╰─▶   × CSS parsing warning: Any '@import' rules must precede all other rules
+         ╭─[4:1]
+       4 │ };
+       5 │
+       6 │ @import 'bootstrap/dist/css/bootstrap.css';
+         · ───────
+       7 │
+       8 │
+         ╰────
+
+  help:
+        You may need an appropriate loader to handle this file type.
+```
 
 ### 移除 builtins 以及 experiments.rspackFuture.newTreeshaking
 

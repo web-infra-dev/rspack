@@ -166,3 +166,4 @@ modulegeneratorcssautolocalidentname
 modulegeneratorcssautoesmodule
 cssextractrspackplugin
 mysecretkey
+experimentscss
