@@ -409,6 +409,7 @@ export async function runLoaders(
 		? isUseSourceMap(compiler.options.devtool)
 		: false;
 	loaderContext.mode = compiler.options.mode;
+	loaderContext.target = compiler.options.target;
 
 	const getResolveContext = () => {
 		// FIXME: resolve's fileDependencies will includes lots of dir, '/', etc
