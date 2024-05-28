@@ -13,6 +13,12 @@ module.exports = {
 		+     "node": true,
 		+     "web": false,
 		@@ ... @@
+		-       "document": true,
+		+       "document": false,
+		@@ ... @@
+		-     "target": "web",
+		+     "target": "node",
+		@@ ... @@
 		-         "exportsOnly": false,
 		+         "exportsOnly": true,
 		@@ ... @@
