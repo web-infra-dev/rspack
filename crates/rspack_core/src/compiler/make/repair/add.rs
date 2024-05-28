@@ -27,7 +27,6 @@ impl Task<MakeTaskContext> for AddTask {
     }
 
     let module_identifier = self.module.identifier();
-    let is_new_treeshaking = context.compiler_options.is_new_tree_shaking();
     let module_graph =
       &mut MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
 
@@ -43,7 +42,6 @@ impl Task<MakeTaskContext> for AddTask {
         self.original_module_identifier,
         self.dependencies,
         *issuer,
-        is_new_treeshaking,
       )?;
 
       // reused module
@@ -59,7 +57,6 @@ impl Task<MakeTaskContext> for AddTask {
         self.original_module_identifier,
         self.dependencies,
         module_identifier,
-        is_new_treeshaking,
       )?;
 
       // reused module
@@ -73,7 +70,6 @@ impl Task<MakeTaskContext> for AddTask {
       self.original_module_identifier,
       self.dependencies,
       module_identifier,
-      is_new_treeshaking,
     )?;
 
     if self.is_entry {
@@ -92,7 +88,6 @@ impl Task<MakeTaskContext> for AddTask {
       resolver_factory: context.resolver_factory.clone(),
       compiler_options: context.compiler_options.clone(),
       plugin_driver: context.plugin_driver.clone(),
-      cache: context.cache.clone(),
     })])
   }
 }
@@ -102,16 +97,9 @@ fn set_resolved_module(
   original_module_identifier: Option<ModuleIdentifier>,
   dependencies: Vec<DependencyId>,
   module_identifier: ModuleIdentifier,
-  // TODO: removed when new treeshaking is stable
-  is_new_treeshaking: bool,
 ) -> Result<()> {
   for dependency in dependencies {
-    module_graph.set_resolved_module(
-      original_module_identifier,
-      dependency,
-      module_identifier,
-      is_new_treeshaking,
-    )?;
+    module_graph.set_resolved_module(original_module_identifier, dependency, module_identifier)?;
   }
   Ok(())
 }

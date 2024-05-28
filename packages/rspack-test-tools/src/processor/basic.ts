@@ -1,3 +1,6 @@
+import fs from "fs";
+import path from "path";
+
 import { readConfigFile } from "../helper";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import {
@@ -5,15 +8,10 @@ import {
 	ITestContext,
 	ITestEnv,
 	ITestProcessor,
-	ITestRunner,
 	TCompilerOptions
 } from "../type";
-import fs from "fs";
-import path from "path";
 
-export interface IBasicProcessorOptions<
-	T extends ECompilerType = ECompilerType.Rspack
-> {
+export interface IBasicProcessorOptions<T extends ECompilerType> {
 	defaultOptions?: (context: ITestContext) => TCompilerOptions<T>;
 	configFiles?: string[];
 	overrideOptions?: (
@@ -29,15 +27,13 @@ export interface IBasicProcessorOptions<
 	name: string;
 }
 
-export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
-	implements ITestProcessor
-{
+export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 	constructor(protected _options: IBasicProcessorOptions<T>) {}
 
 	async config(context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		if (typeof this._options.defaultOptions === "function") {
-			compiler.setOptions(this._options.defaultOptions(context));
+			compiler.setOptions(this._options.defaultOptions.apply(this, [context]));
 		}
 
 		if (Array.isArray(this._options.configFiles)) {
@@ -49,7 +45,7 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 
 		if (typeof this._options.overrideOptions === "function") {
 			const compilerOptions = compiler.getOptions();
-			this._options.overrideOptions(context, compilerOptions);
+			this._options.overrideOptions.apply(this, [context, compilerOptions]);
 		}
 	}
 
@@ -77,7 +73,10 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 		if (testConfig.bundlePath) {
 			bundles = testConfig.bundlePath;
 		} else if (typeof this._options.findBundle === "function") {
-			bundles = this._options.findBundle(context, compiler.getOptions());
+			bundles = this._options.findBundle.apply(this, [
+				context,
+				compiler.getOptions()
+			]);
 		} else {
 			bundles = [];
 		}
@@ -168,6 +167,7 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 			);
 			resolve();
 		});
+
 		await new Promise<void>((resolve, reject) => {
 			checkArrayExpectation(
 				context.getSource(),
@@ -179,7 +179,10 @@ export class BasicTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
 			resolve();
 		});
 
-		context.clearError(this._options.name);
+		// clear error if checked
+		if (fs.existsSync(context.getSource("errors.js"))) {
+			context.clearError(this._options.name);
+		}
 	}
 
 	async before(context: ITestContext): Promise<void> {}

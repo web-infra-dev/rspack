@@ -1,0 +1,14 @@
+# Case remove-chunk-with-shared-in-other-runtime: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: chunk1_js.chunk.CURRENT_HASH.js
+- Bundle: chunk2_js.chunk.CURRENT_HASH.js
+
+## Manifest
+
+		
+## Update

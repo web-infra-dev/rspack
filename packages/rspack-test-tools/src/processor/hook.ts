@@ -1,15 +1,17 @@
+import { Compilation, Compiler } from "@rspack/core";
+import { getSerializers } from "jest-snapshot";
 import path from "path";
+import { format as prettyFormat, PrettyFormatOptions } from "pretty-format";
+import { Source } from "webpack-sources";
+
+import { TestContext, TTestContextOptions } from "../test/context";
 import {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
+	TCompiler,
 	TCompilerOptions
 } from "../type";
-import { Source } from "webpack-sources";
-import { Compilation, Compiler } from "@rspack/core";
-import { format as prettyFormat, PrettyFormatOptions } from "pretty-format";
-import { getSerializers } from "jest-snapshot";
-import { TTestContextOptions, TestContext } from "../test/context";
 import { ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
 const pathSerializer = require("jest-serializer-path");
@@ -145,6 +147,7 @@ export class HookCasesContext extends TestContext {
 	 * @internal
 	 */
 	async collectSnapshots(
+		env: ITestEnv,
 		options = {
 			diff: {}
 		}
@@ -165,61 +168,70 @@ export class HookCasesContext extends TestContext {
 			group = `# ${group}\n\n`;
 			return (acc += group + block);
 		}, "");
-
-		// @ts-ignore
-		expect(snapshots).toMatchFileSnapshot(
-			path.join(this.src, "hooks.snap.txt"),
-			options
-		);
+		env
+			.expect(snapshots)
+			// @ts-ignore
+			.toMatchFileSnapshot(path.join(this.src, "hooks.snap.txt"), options);
 	}
 }
 
-interface IHookProcessorOptions<T extends ECompilerType>
+export interface IHookProcessorOptions<T extends ECompilerType>
 	extends ISnapshotProcessorOptions<T> {
 	options?: (context: ITestContext) => TCompilerOptions<T>;
+	compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
+	check?: (context: ITestContext) => Promise<void>;
 }
 
-export class HookTaskProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
-	constructor(
-		protected hookOptions: IHookProcessorOptions<ECompilerType.Rspack>
-	) {
+export class HookTaskProcessor<
+	T extends ECompilerType
+> extends SnapshotProcessor<T> {
+	constructor(protected _hookOptions: IHookProcessorOptions<T>) {
 		super({
-			defaultOptions: context => {
-				return {
-					context: context.getSource(),
-					mode: "production",
-					target: "async-node",
-					devtool: false,
-					cache: false,
-					entry: "./hook",
-					output: {
-						path: context.getDist()
-					},
-					optimization: {
-						minimize: false
-					},
-					experiments: {
-						rspackFuture: {
-							newTreeshaking: true
-						}
-					}
-				};
-			},
-			...hookOptions,
-			runable: true
+			defaultOptions: HookTaskProcessor.defaultOptions<T>,
+			..._hookOptions
 		});
 	}
 
 	async config(context: ITestContext): Promise<void> {
 		await super.config(context);
 		const compiler = this.getCompiler(context);
-		if (typeof this.hookOptions.options === "function") {
-			compiler.mergeOptions(this.hookOptions.options(context));
+		if (typeof this._hookOptions.options === "function") {
+			compiler.mergeOptions(this._hookOptions.options(context));
+		}
+	}
+
+	async compiler(context: ITestContext): Promise<void> {
+		await super.compiler(context);
+		if (typeof this._hookOptions.compiler === "function") {
+			const compiler = this.getCompiler(context);
+			await this._hookOptions.compiler(context, compiler.getCompiler()!);
 		}
 	}
 
 	async check(env: ITestEnv, context: HookCasesContext) {
-		await (context as any).collectSnapshots();
+		await (context as any).collectSnapshots(env);
 		await super.check(env, context);
+		if (typeof this._hookOptions.check === "function") {
+			await this._hookOptions.check(context);
+		}
+	}
+
+	static defaultOptions<T extends ECompilerType>(
+		context: ITestContext
+	): TCompilerOptions<T> {
+		return {
+			context: context.getSource(),
+			mode: "production",
+			target: "async-node",
+			devtool: false,
+			cache: false,
+			entry: "./hook",
+			output: {
+				path: context.getDist()
+			},
+			optimization: {
+				minimize: false
+			}
+		} as TCompilerOptions<T>;
 	}
 }

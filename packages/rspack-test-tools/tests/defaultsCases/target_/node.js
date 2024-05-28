@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "target node",
 	options: () => ({ target: "node" }),
@@ -11,6 +12,12 @@ module.exports = {
 		-     "web": true,
 		+     "node": true,
 		+     "web": false,
+		@@ ... @@
+		-       "document": true,
+		+       "document": false,
+		@@ ... @@
+		-     "target": "web",
+		+     "target": "node",
 		@@ ... @@
 		-         "exportsOnly": false,
 		+         "exportsOnly": true,
@@ -39,6 +46,9 @@ module.exports = {
 		@@ ... @@
 		-       "fetch",
 		+       "async-node",
+		@@ ... @@
+		-       "document": true,
+		+       "document": false,
 		@@ ... @@
 		-     "globalObject": "self",
 		+     "globalObject": "global",

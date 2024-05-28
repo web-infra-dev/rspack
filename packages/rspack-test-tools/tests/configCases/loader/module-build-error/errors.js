@@ -1,1 +1,1 @@
-module.exports = [/SassError: Undefined variable./];
+module.exports = [/Module build failed/];

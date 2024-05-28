@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+
 import { escapeSep } from ".";
 
 export const isDirectory = (p: string) => fs.lstatSync(p).isDirectory();
@@ -16,11 +17,13 @@ export function describeByWalk(
 		source?: string;
 		dist?: string;
 		absoluteDist?: boolean;
+		describe?: jest.Describe;
 	} = {}
 ) {
+	const describeFn = options.describe || describe;
 	const testBasename = path
 		.basename(testFile)
-		.replace(/\.(diff|hot)?test\.js/, "");
+		.replace(/\.(diff|hot)?test\.(j|t)s/, "");
 	const testId = testBasename.charAt(0).toLowerCase() + testBasename.slice(1);
 	const sourceBase =
 		options.source || path.join(path.dirname(testFile), `${testId}Cases`);
@@ -50,7 +53,7 @@ export function describeByWalk(
 					const name = escapeSep(
 						path.join(testId, caseName).split(".").shift()!
 					);
-					describe(name, () => {
+					describeFn(name, () => {
 						let source = path.join(sourceBase, caseName);
 						let dist = "";
 						if (absoluteDist) {
@@ -63,13 +66,13 @@ export function describeByWalk(
 								dist = path.join(sourceBase, caseName, relativeDist);
 							}
 						}
-						createCase(folder, source, dist);
+						createCase(name, source, dist);
 					});
 				}
 			});
 	}
 
-	describe(testId, () => {
+	describeFn(testId, () => {
 		describeDirectory("", level);
 	});
 }

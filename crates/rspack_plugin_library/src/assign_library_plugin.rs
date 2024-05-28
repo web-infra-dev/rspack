@@ -3,11 +3,11 @@ use std::sync::Arc;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
 use rspack_core::{
-  get_entry_runtime, property_access, ApplyContext, ChunkUkey, CompilationFinishModules,
-  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, FilenameTemplate,
-  LibraryExport, LibraryName, LibraryNonUmdObject, UsageState,
+  get_entry_runtime, property_access, ApplyContext, BoxModule, ChunkUkey,
+  CodeGenerationDataTopLevelDeclarations, CompilationFinishModules, CompilationParams,
+  CompilerCompilation, CompilerOptions, EntryData, FilenameTemplate, LibraryExport, LibraryName,
+  LibraryNonUmdObject, UsageState,
 };
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
@@ -204,18 +204,6 @@ impl JavascriptModulesPluginPlugin for AssignLibraryJavascriptModulesPluginPlugi
       .unwrap_or_default();
     if matches!(self.options.unnamed, Unnamed::Static) {
       let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
-      if let Some(analyze_results) = args
-        .compilation
-        .optimize_analyze_result_map()
-        .get(&args.module)
-      {
-        for info in analyze_results.ordered_exports() {
-          let name_access = property_access(&vec![info.name], 0);
-          source.add(RawSource::from(format!(
-            "{export_target}{name_access} = __webpack_exports__{export_access}{name_access};\n",
-          )));
-        }
-      }
       source.add(RawSource::from(format!(
         "Object.defineProperty({export_target}, '__esModule', {{ value: true }});\n",
       )));
@@ -264,6 +252,63 @@ impl JavascriptModulesPluginPlugin for AssignLibraryJavascriptModulesPluginPlugi
       export.hash(&mut args.hasher);
     }
     Ok(())
+  }
+
+  fn embed_in_runtime_bailout(
+    &self,
+    compilation: &Compilation,
+    module: &BoxModule,
+    chunk: &Chunk,
+  ) -> Result<Option<String>> {
+    let Some(options) = self.get_options_for_chunk(compilation, &chunk.ukey)? else {
+      return Ok(None);
+    };
+    let codegen = compilation
+      .code_generation_results
+      .get(&module.identifier(), Some(&chunk.runtime));
+    let top_level_decls = codegen
+      .data
+      .get::<CodeGenerationDataTopLevelDeclarations>()
+      .map(|d| d.inner())
+      .or_else(|| {
+        module
+          .build_info()
+          .and_then(|build_info| build_info.top_level_declarations.as_ref())
+      });
+    if let Some(top_level_decls) = top_level_decls {
+      let full_name = self.get_resolved_full_name(&options, compilation, chunk);
+      if let Some(base) = full_name.first()
+        && top_level_decls.contains(base)
+      {
+        return Ok(Some(format!(
+          "it declares '{base}' on top-level, which conflicts with the current library output."
+        )));
+      }
+      return Ok(None);
+    }
+    Ok(Some(
+      "it doesn't tell about top level declarations.".to_string(),
+    ))
+  }
+
+  fn strict_runtime_bailout(
+    &self,
+    compilation: &Compilation,
+    chunk_ukey: &ChunkUkey,
+  ) -> Result<Option<String>> {
+    let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+      return Ok(None);
+    };
+    if self.options.declare
+      || matches!(self.options.prefix, Prefix::Global)
+      || !self.options.prefix.is_empty()
+      || options.name.is_none()
+    {
+      return Ok(None);
+    }
+    Ok(Some(
+      "a global variable is assign and maybe created".to_string(),
+    ))
   }
 }
 

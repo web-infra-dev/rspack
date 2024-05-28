@@ -3,14 +3,15 @@ import {
 	BuiltinPluginName,
 	RawConsumeSharedPluginOptions
 } from "@rspack/binding";
-import { Compiler } from "../Compiler";
+
 import {
-	RspackBuiltinPlugin,
-	createBuiltinPlugin
+	createBuiltinPlugin,
+	RspackBuiltinPlugin
 } from "../builtin-plugin/base";
+import { Compiler } from "../Compiler";
 import { parseOptions } from "../container/options";
-import { isRequiredVersion } from "./utils";
 import { ShareRuntimePlugin } from "./ShareRuntimePlugin";
+import { isRequiredVersion } from "./utils";
 
 export type ConsumeSharedPluginOptions = {
 	consumes: Consumes;

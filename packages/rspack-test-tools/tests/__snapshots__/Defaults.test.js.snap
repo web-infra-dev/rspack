@@ -3,7 +3,6 @@
 exports[`Base Defaults Snapshot should have the correct base config 1`] = `
 Object {
   "bail": false,
-  "builtins": Object {},
   "cache": false,
   "context": "<cwd>",
   "dependencies": undefined,
@@ -20,13 +19,11 @@ Object {
     "asyncWebAssembly": false,
     "css": true,
     "lazyCompilation": false,
-    "newSplitChunks": true,
     "rspackFuture": Object {
       "bundlerInfo": Object {
         "force": false,
         "version": "$version$",
       },
-      "newTreeshaking": true,
     },
     "topLevelAwait": true,
   },
@@ -42,6 +39,25 @@ Object {
   "externalsType": "var",
   "ignoreWarnings": undefined,
   "infrastructureLogging": Object {},
+  "loader": Object {
+    "environment": Object {
+      "arrowFunction": true,
+      "asyncFunction": true,
+      "bigIntLiteral": undefined,
+      "const": true,
+      "destructuring": true,
+      "document": true,
+      "dynamicImport": undefined,
+      "dynamicImportInWorker": undefined,
+      "forOf": true,
+      "globalThis": undefined,
+      "module": undefined,
+      "nodePrefixForCoreModules": true,
+      "optionalChaining": true,
+      "templateLiteral": true,
+    },
+    "target": "web",
+  },
   "mode": "none",
   "module": Object {
     "defaultRules": Array [
@@ -148,15 +164,17 @@ Object {
     ],
     "generator": Object {
       "css": Object {
-        "exportsConvention": "as-is",
+        "esModule": true,
         "exportsOnly": false,
       },
       "css/auto": Object {
+        "esModule": true,
         "exportsConvention": "as-is",
         "exportsOnly": false,
         "localIdentName": "[uniqueName]-[id]-[local]",
       },
       "css/module": Object {
+        "esModule": true,
         "exportsConvention": "as-is",
         "exportsOnly": false,
         "localIdentName": "[uniqueName]-[id]-[local]",
@@ -307,6 +325,22 @@ Object {
     "enabledWasmLoadingTypes": Array [
       "fetch",
     ],
+    "environment": Object {
+      "arrowFunction": true,
+      "asyncFunction": true,
+      "bigIntLiteral": undefined,
+      "const": true,
+      "destructuring": true,
+      "document": true,
+      "dynamicImport": undefined,
+      "dynamicImportInWorker": undefined,
+      "forOf": true,
+      "globalThis": undefined,
+      "module": undefined,
+      "nodePrefixForCoreModules": true,
+      "optionalChaining": true,
+      "templateLiteral": true,
+    },
     "filename": "[name].js",
     "globalObject": "self",
     "hashDigest": "hex",
@@ -334,6 +368,7 @@ Object {
     "workerPublicPath": "",
     "workerWasmLoading": "fetch",
   },
+  "performance": false,
   "plugins": Array [],
   "profile": false,
   "resolve": Object {
@@ -469,6 +504,9 @@ Object {
       "exports",
     ],
     "extensions": Array [],
+    "importsFields": Array [
+      "imports",
+    ],
     "mainFields": Array [
       "main",
     ],
@@ -502,16 +540,7 @@ Object {
       "index",
     ],
   },
-  "snapshot": Object {
-    "module": Object {
-      "hash": false,
-      "timestamp": true,
-    },
-    "resolve": Object {
-      "hash": false,
-      "timestamp": true,
-    },
-  },
+  "snapshot": Object {},
   "stats": Object {},
   "target": "web",
   "watch": false,

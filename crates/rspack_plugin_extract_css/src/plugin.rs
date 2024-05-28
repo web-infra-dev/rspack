@@ -1,4 +1,9 @@
-use std::{borrow::Cow, cmp::max, hash::Hash, sync::Arc};
+use std::{
+  borrow::Cow,
+  cmp::max,
+  hash::Hash,
+  sync::{atomic::AtomicBool, Arc},
+};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -58,7 +63,8 @@ struct CssOrderConflicts {
 #[plugin]
 #[derive(Debug)]
 pub struct PluginCssExtract {
-  pub options: Arc<CssExtractOptions>,
+  pub(crate) options: Arc<CssExtractOptions>,
+  registered: AtomicBool,
 }
 
 impl Eq for PluginCssExtractInner {}
@@ -113,7 +119,7 @@ pub enum InsertType {
 
 impl PluginCssExtract {
   pub fn new(options: CssExtractOptions) -> Self {
-    Self::new_inner(Arc::new(options))
+    Self::new_inner(Arc::new(options), false.into())
   }
 
   // port from https://github.com/webpack-contrib/mini-css-extract-plugin/blob/d5e540baf8280442e523530ebbbe31c57a4c4336/src/index.js#L1127
@@ -430,22 +436,27 @@ async fn compilation(
 ) -> Result<()> {
   compilation.set_dependency_factory(DEPENDENCY_TYPE.clone(), Arc::new(CssModuleFactory));
 
-  let (_, parser_and_generator) = compilation
-    .plugin_driver
-    .registered_parser_and_generator_builder
-    .remove(&ModuleType::Js)
-    .expect("No JavaScript parser registered");
+  if !self
+    .registered
+    .swap(true, std::sync::atomic::Ordering::Relaxed)
+  {
+    let (_, parser_and_generator) = compilation
+      .plugin_driver
+      .registered_parser_and_generator_builder
+      .remove(&ModuleType::Js)
+      .expect("No JavaScript parser registered");
 
-  compilation
-    .plugin_driver
-    .registered_parser_and_generator_builder
-    .insert(
-      ModuleType::Js,
-      Box::new(move |parser_opt, generator_opt| {
-        let parser = parser_and_generator(parser_opt, generator_opt);
-        Box::new(CssExtractParserAndGenerator::new(parser))
-      }),
-    );
+    compilation
+      .plugin_driver
+      .registered_parser_and_generator_builder
+      .insert(
+        ModuleType::Js,
+        Box::new(move |parser_opt, generator_opt| {
+          let parser = parser_and_generator(parser_opt, generator_opt);
+          Box::new(CssExtractParserAndGenerator::new(parser))
+        }),
+      );
+  }
   Ok(())
 }
 

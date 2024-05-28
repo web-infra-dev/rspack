@@ -20,21 +20,23 @@ module.exports = {
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 211 bytes {909} [emitted] (name: main)
-		Entrypoint main 211 bytes = main.js
+		asset main.js 207 bytes {909} [emitted] (name: main)
+		Entrypoint main 207 bytes = main.js
 		chunk {909} main.js (main) [entry]
 		  ./fixtures/a.js [585] {909}
 		    [no exports]
-		    [no exports used]
+		    [used exports unknown]
 		    Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2
 		    entry ./fixtures/a
+		    cjs self exports reference self [585]
 		./fixtures/a.js [585] {909}
 		  [no exports]
-		  [no exports used]
+		  [used exports unknown]
 		  Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2
 		  entry ./fixtures/a
+		  cjs self exports reference self [585]
 		  
-		Rspack compiled successfully (ee9a5ee8da42dac2c2aa)"
+		Rspack compiled successfully (d64955662040c788c943)"
 	`);
 	}
 };

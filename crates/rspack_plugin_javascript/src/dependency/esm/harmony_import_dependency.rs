@@ -7,8 +7,7 @@ use rspack_core::{
   AwaitDependenciesInitFragment, ConditionalInitFragment, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
   ErrorSpan, ExtendedReferencedExport, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleIdentifier, NormalInitFragment, RuntimeCondition, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource,
+  ModuleDependency, ModuleIdentifier, RuntimeCondition, TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
@@ -97,23 +96,11 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   } = code_generatable_context;
   // Only available when module factorization is successful.
   let module_graph = compilation.get_module_graph();
-  let ref_mgm = module_graph.module_graph_module_by_dependency_id(module_dependency.id());
-  let is_target_active = if compilation.options.is_new_tree_shaking() {
-    let connection = module_graph.connection_by_dependency(module_dependency.id());
-    if let Some(con) = connection {
-      Some(con.is_target_active(&module_graph, *runtime))
-    } else {
-      Some(true)
-    }
-  } else if let Some(ref_mgm) = ref_mgm {
-    Some(
-      compilation
-        .include_module_ids
-        .contains(&ref_mgm.module_identifier),
-    )
+  let connection = module_graph.connection_by_dependency(module_dependency.id());
+  let is_target_active = if let Some(con) = connection {
+    Some(con.is_target_active(&module_graph, *runtime))
   } else {
-    // This represents if module does not exist.
-    None
+    Some(true)
   };
   // Bailout only if the module does exist and not active.
   if is_target_active.is_some_and(|x| !x) {
@@ -139,7 +126,6 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     init_fragments,
     compilation,
     module,
-    runtime_requirements,
     ..
   } = code_generatable_context;
   let ref_module = module_graph.module_identifier_by_dependency_id(module_dependency.id());
@@ -209,31 +195,6 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       InitFragmentKey::HarmonyImport(key.to_string()),
       None,
       runtime_condition,
-    )));
-  }
-
-  let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
-  if module_dependency.is_export_all() == Some(true) && !is_new_tree_shaking {
-    runtime_requirements.insert(RuntimeGlobals::EXPORT_STAR);
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    let exports_argument = module_graph
-      .module_by_identifier(&module.identifier())
-      .expect("should have mgm")
-      .get_exports_argument();
-    init_fragments.push(Box::new(NormalInitFragment::new(
-      format!(
-        "{}.{}({import_var}, {exports_argument});\n",
-        RuntimeGlobals::REQUIRE,
-        RuntimeGlobals::EXPORT_STAR,
-      ),
-      if is_async_module {
-        InitFragmentStage::StageAsyncHarmonyImports
-      } else {
-        InitFragmentStage::StageHarmonyImports
-      },
-      source_order,
-      InitFragmentKey::HarmonyExportStar(key.to_string()),
-      None,
     )));
   }
 }

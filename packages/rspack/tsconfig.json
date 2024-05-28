@@ -10,6 +10,10 @@
       "watchpack": ["../compiled/watchpack"],
       "graceful-fs": ["../compiled/graceful-fs"],
       "browserslist": ["../compiled/browserslist"],
+      "enhanced-resolve": ["../compiled/enhanced-resolve"],
+      "enhanced-resolve/lib/CachedInputFileSystem": [
+        "../compiled/enhanced-resolve/CachedInputFileSystem"
+      ],
       "zod-validation-error": ["../compiled/zod-validation-error"],
       "json-parse-even-better-errors": [
         "../compiled/json-parse-even-better-errors"

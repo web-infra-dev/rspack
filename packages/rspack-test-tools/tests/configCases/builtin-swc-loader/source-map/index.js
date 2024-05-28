@@ -9,8 +9,9 @@ it("should generate correct sourceMap", async () => {
 		__dirname + "/" + require("!!./a.ts?resource"),
 		"utf-8"
 	);
-	expect(map.sources).toContain("webpack:///./a.ts");
-	expect(map.sourcesContent[1]).toEqual(sourceContent);
+	const aSourceIndex = map.sources.indexOf("webpack:///./a.ts");
+	expect(aSourceIndex).toBeGreaterThanOrEqual(0);
+	expect(map.sourcesContent[aSourceIndex]).toEqual(sourceContent);
 
 	checkStub(["fo", "o"].join(""), sourceContent);
 	checkStub(["ba", "r"].join(""), sourceContent);

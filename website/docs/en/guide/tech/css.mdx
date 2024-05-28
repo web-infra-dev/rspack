@@ -4,7 +4,7 @@ import { PackageManagerTabs } from '@theme';
 
 CSS is a first-class citizen with Rspack. Rspack has the ability to handle CSS out-of-box, so additional configuration isn't required.
 
-By default, files ending in `*.css` are treated as CSS module types. Files ending in `*.module.css` are treated as [CSS Modules](https://github.com/css-modules/css-modules) module types.
+By default, files ending in `*.css` are treated as CSS types. Files ending in `*.module.css` are treated as [CSS Modules](https://github.com/css-modules/css-modules) module types.
 
 If you're migrating from Webpack, you can remove the `css-loader` or `style-loader` components from your configuration to use Rspack's built-in CSS processing capabilities, as described in [migration guide](/guide/migration/webpack#removing-css-loader-and-style-loader-and-mini-css-extract-plugin).
 
@@ -57,7 +57,9 @@ For more on CSS Modules configuration, please refer to [module.parser.css](/conf
 
 ## PostCSS
 
-Rspack is compatible with [postcss-loader](https://github.com/webpack-contrib/postcss-loader), which you can configure like this:
+Rspack supports [postcss-loader](https://github.com/webpack-contrib/postcss-loader), which you can configure like this:
+
+<PackageManagerTabs command="add postcss postcss-loader -D" />
 
 ```ts title="rspack.config.js"
 module.exports = {
@@ -75,7 +77,8 @@ module.exports = {
             },
           },
         ],
-        type: 'css/auto', // set to 'css/auto' if you want to support '*.module.css' as CSS Module, otherwise set type to 'css'
+        // set to 'css/auto' if you want to support '*.module.css' as CSS Module, otherwise set type to 'css'
+        type: 'css/auto',
       },
     ],
   },
@@ -84,9 +87,44 @@ module.exports = {
 
 The above configuration will have all `*.css` files processed by [postcss-loader](https://github.com/webpack-contrib/postcss-loader). The output will be passed to Rspack for CSS post-processing.
 
+## Sass
+
+Rspack supports [sass-loader](https://github.com/webpack-contrib/sass-loader), which you can configure like this:
+
+<PackageManagerTabs command="add sass-embedded sass-loader -D" />
+
+```ts title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.(sass|scss)$/,
+        use: [
+          {
+            loader: 'sass-loader',
+            options: {
+              // using `modern-compiler` and `sass-embedded` together significantly improve build performance,
+              // requires `sass-loader >= 14.2.1`
+              api: 'modern-compiler',
+              implementation: require.resolve('sass-embedded'),
+            },
+          },
+        ],
+        // set to 'css/auto' if you want to support '*.module.(scss|sass)' as CSS Module, otherwise set type to 'css'
+        type: 'css/auto',
+      },
+    ],
+  },
+};
+```
+
+The above configuration runs all `*.sass` and `*.scss` files through the [sass-loader](https://github.com/webpack-contrib/sass-loader) and passes the resulting results to Rspack for CSS post-processing.
+
 ## Less
 
-Rspack is compatible with [less-loader](https://github.com/webpack-contrib/less-loader), which you can configure like this:
+Rspack supports [less-loader](https://github.com/webpack-contrib/less-loader), which you can configure like this:
+
+<PackageManagerTabs command="add less less-loader -D" />
 
 ```ts title="rspack.config.js"
 module.exports = {
@@ -102,7 +140,8 @@ module.exports = {
             },
           },
         ],
-        type: 'css/auto', // set to 'css/auto' if you want to support '*.module.less' as CSS Module, otherwise set type to 'css'
+        // set to 'css/auto' if you want to support '*.module.less' as CSS Module, otherwise set type to 'css'
+        type: 'css/auto',
       },
     ],
   },
@@ -110,33 +149,6 @@ module.exports = {
 ```
 
 The above configuration runs all `*.less` files through the [less-loader](https://github.com/webpack-contrib/less-loader) and passes the generated results to Rspack for CSS post-processing.
-
-## Sass
-
-Rspack is compatible with [sass-loader](https://github.com/webpack-contrib/sass-loader), which you can configure like this:
-
-```ts title="rspack.config.js"
-module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.(sass|scss)$/,
-        use: [
-          {
-            loader: 'sass-loader',
-            options: {
-              // ...
-            },
-          },
-        ],
-        type: 'css/auto', // set to 'css/auto' if you want to support '*.module.(scss|sass)' as CSS Module, otherwise set type to 'css'
-      },
-    ],
-  },
-};
-```
-
-The above configuration runs all `*.sass` files through the [sass-loader](https://github.com/webpack-contrib/sass-loader) and passes the resulting results to Rspack for CSS post-processing.
 
 ## Tailwind CSS
 

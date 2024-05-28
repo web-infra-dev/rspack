@@ -7,6 +7,8 @@ export type JsFilename =
 	| ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
+
+export type RawLazyCompilationTest = RegExp | ((m: JsModule) => boolean);
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */

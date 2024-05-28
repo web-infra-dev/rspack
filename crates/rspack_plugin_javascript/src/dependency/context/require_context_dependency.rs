@@ -13,10 +13,17 @@ pub struct RequireContextDependency {
   options: ContextOptions,
   span: Option<ErrorSpan>,
   resource_identifier: String,
+  optional: bool,
 }
 
 impl RequireContextDependency {
-  pub fn new(start: u32, end: u32, options: ContextOptions, span: Option<ErrorSpan>) -> Self {
+  pub fn new(
+    start: u32,
+    end: u32,
+    options: ContextOptions,
+    span: Option<ErrorSpan>,
+    optional: bool,
+  ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
       start,
@@ -25,6 +32,7 @@ impl RequireContextDependency {
       span,
       id: DependencyId::new(),
       resource_identifier,
+      optional,
     }
   }
 }
@@ -70,6 +78,10 @@ impl ContextDependency for RequireContextDependency {
 
   fn set_request(&mut self, request: String) {
     self.options.request = request;
+  }
+
+  fn get_optional(&self) -> bool {
+    self.optional
   }
 }
 

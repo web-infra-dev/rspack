@@ -118,6 +118,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           vec![]
         },
         blocks: vec![],
+        code_generation_dependencies: vec![],
         source: box_source,
         analyze_result: Default::default(),
         side_effects_bailout: None,

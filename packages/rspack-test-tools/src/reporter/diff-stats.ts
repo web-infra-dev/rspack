@@ -1,11 +1,12 @@
+import csvToMarkdown from "csv-to-markdown-table";
+import fs from "fs-extra";
+
 import {
 	ECompareResultType,
 	ECompilerType,
 	ITestReporter,
 	TModuleCompareResult
 } from "../type";
-import fs from "fs-extra";
-import csvToMarkdown from "csv-to-markdown-table";
 
 export interface IDiffStatsReporterOptions {
 	header?: string[];

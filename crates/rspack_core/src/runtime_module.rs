@@ -18,7 +18,7 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   }
   // if wrap iife
   fn should_isolate(&self) -> bool {
-    false
+    true
   }
 
   fn generate_with_custom(

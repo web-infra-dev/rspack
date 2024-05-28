@@ -151,7 +151,7 @@ pub struct ContextOptions {
   pub end: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ContextModuleOptions {
   pub addon: String,
   pub resource: String,
@@ -161,6 +161,7 @@ pub struct ContextModuleOptions {
   pub resolve_options: Option<Box<Resolve>>,
 }
 
+#[derive(Debug)]
 pub enum FakeMapValue {
   Bit(FakeNamespaceObjectMode),
   Map(HashMap<String, FakeNamespaceObjectMode>),

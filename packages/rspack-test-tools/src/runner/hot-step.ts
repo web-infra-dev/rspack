@@ -1,15 +1,22 @@
 import { StatsCompilation } from "@rspack/core";
+
+import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import {
 	ECompilerType,
 	ITestEnv,
 	ITestRunner,
 	TCompilerOptions,
 	TCompilerStats,
-	TCompilerStatsCompilation
+	TCompilerStatsCompilation,
+	TUpdateOptions
 } from "../type";
 import { HotRunnerFactory } from "./hot";
 import { WebRunner } from "./runner/web";
 import { THotStepRuntimeData } from "./type";
+
+declare var global: {
+	__CHANGED_FILES__: Map<string, number>;
+};
 
 export class HotStepRunnerFactory<
 	T extends ECompilerType
@@ -24,10 +31,10 @@ export class HotStepRunnerFactory<
 		const testConfig = this.context.getTestConfig();
 		const source = this.context.getSource();
 		const dist = this.context.getDist();
-		const hotUpdateContext = this.context.getValue(
+		const hotUpdateContext = this.context.getValue<TUpdateOptions>(
 			this.name,
 			"hotUpdateContext"
-		) as { updateIndex: number };
+		)!;
 
 		const next = (
 			callback: (
@@ -36,14 +43,25 @@ export class HotStepRunnerFactory<
 			) => void
 		) => {
 			hotUpdateContext.updateIndex++;
+			// TODO: find a better way to collect changed files from fake-update-loader
+			const changedFiles = new Map();
+			global["__CHANGED_FILES__"] = changedFiles;
 			compiler
 				.build()
 				.then(stats => {
 					if (!stats)
 						return callback(new Error("Should generate stats during build"));
+
 					const jsonStats = stats.toJson({
 						errorDetails: true
 					});
+
+					hotUpdateContext.totalUpdates = Math.max(
+						hotUpdateContext.totalUpdates,
+						...changedFiles.values()
+					);
+					hotUpdateContext.changedFiles = [...changedFiles.keys()];
+
 					try {
 						const checker = this.context.getValue(
 							this.name,
@@ -60,6 +78,30 @@ export class HotStepRunnerFactory<
 							stats as TCompilerStats<T>,
 							runner.getGlobal("__HMR_UPDATED_RUNTIME__") as THotStepRuntimeData
 						);
+						if (
+							checkArrayExpectation(
+								source,
+								jsonStats,
+								"error",
+								"errors" + hotUpdateContext.updateIndex,
+								"Error",
+								callback
+							)
+						) {
+							return;
+						}
+						if (
+							checkArrayExpectation(
+								source,
+								jsonStats,
+								"warning",
+								"warnings" + hotUpdateContext.updateIndex,
+								"Warning",
+								callback
+							)
+						) {
+							return;
+						}
 						callback(null, jsonStats as StatsCompilation);
 					} catch (e) {
 						callback(e as Error);

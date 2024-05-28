@@ -1,3 +1,6 @@
+import fs from "fs";
+import path from "path";
+
 import {
 	ECompilerType,
 	ITestEnv,
@@ -6,8 +9,6 @@ import {
 	TCompilerStatsCompilation,
 	TTestConfig
 } from "../../type";
-import path from "path";
-import fs from "fs";
 import {
 	IBasicGlobalContext,
 	IBasicModuleScope,
@@ -59,7 +60,9 @@ export abstract class BasicRunner<
 	constructor(protected _options: IBasicRunnerOptions<T>) {}
 
 	run(file: string): Promise<unknown> {
-		this.globalContext = this.createGlobalContext();
+		if (!this.globalContext) {
+			this.globalContext = this.createGlobalContext();
+		}
 		this.baseModuleScope = this.createBaseModuleScope();
 		if (typeof this._options.testConfig.moduleScope === "function") {
 			this._options.testConfig.moduleScope(this.baseModuleScope);
@@ -77,7 +80,13 @@ export abstract class BasicRunner<
 	}
 
 	getRequire(): TRunnerRequirer {
-		return this.requirers.get("entry")!;
+		const entryRequire = this.requirers.get("entry")!;
+		return (currentDirectory, modulePath, context = {}) => {
+			const p = Array.isArray(modulePath)
+				? modulePath
+				: modulePath.split("?")[0]!;
+			return entryRequire(currentDirectory, p, context);
+		};
 	}
 
 	getGlobal(name: string): unknown {

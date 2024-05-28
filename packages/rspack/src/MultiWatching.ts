@@ -8,9 +8,10 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import asyncLib from "neo-async";
+
 import { MultiCompiler } from "./MultiCompiler";
 import { Watching } from "./Watching";
-import asyncLib from "neo-async";
 
 class MultiWatching {
 	watchings: Watching[];

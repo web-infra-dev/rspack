@@ -10,6 +10,7 @@ version    = "0.1.0"
 [dependencies]
 once_cell = { workspace = true }
 regex = { workspace = true }
+rspack_error = { path = "../rspack_error" }
 serde = { workspace = true, features = ["derive"] }
 styled_components = { workspace = true }
 swc_core = { workspace = true, features = [

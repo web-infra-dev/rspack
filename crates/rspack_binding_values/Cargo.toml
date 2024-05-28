@@ -12,5 +12,6 @@ napi-derive  = { workspace = true }
 rspack_core  = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_napi  = { path = "../rspack_napi" }
+rspack_regex = { path = "../rspack_regex" }
 rustc-hash   = { workspace = true }
 serde        = { workspace = true }

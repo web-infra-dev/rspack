@@ -11,8 +11,16 @@
 import assert from "assert";
 import fs from "fs";
 import path from "path";
+
 import { isNil } from "../util";
 import { cleverMerge } from "../util/cleverMerge";
+import {
+	EntryDescriptionNormalized,
+	EntryNormalized,
+	ExperimentsNormalized,
+	OutputNormalized,
+	RspackOptionsNormalized
+} from "./normalization";
 import {
 	getDefaultTarget,
 	getTargetProperties,
@@ -24,26 +32,21 @@ import type {
 	InfrastructureLogging,
 	JavascriptParserOptions,
 	Library,
+	Loader,
 	Mode,
 	ModuleOptions,
 	Node,
 	Optimization,
+	Performance,
 	ResolveOptions,
 	RuleSetRules,
 	SnapshotOptions
 } from "./zod";
-import {
-	EntryDescriptionNormalized,
-	EntryNormalized,
-	ExperimentsNormalized,
-	OutputNormalized,
-	RspackOptionsNormalized
-} from "./normalization";
 import Template = require("../Template");
-import { assertNotNill } from "../util/assertNotNil";
-import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
-import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";
 import { SwcCssMinimizerRspackPlugin } from "../builtin-plugin/SwcCssMinimizerPlugin";
+import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";
+import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
+import { assertNotNill } from "../util/assertNotNil";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
@@ -58,7 +61,7 @@ export const applyRspackOptionsDefaults = (
 
 	let targetProperties =
 		target === false
-			? false
+			? (false as const)
 			: typeof target === "string"
 				? getTargetProperties(target, options.context!)
 				: getTargetsProperties(target, options.context!);
@@ -121,6 +124,22 @@ export const applyRspackOptionsDefaults = (
 
 	applyNodeDefaults(options.node, { targetProperties });
 
+	applyLoaderDefaults(options.loader, {
+		targetProperties,
+		environment: options.output.environment
+	});
+
+	F(options, "performance", () =>
+		production &&
+		targetProperties &&
+		(targetProperties.browser || targetProperties.browser === null)
+			? {}
+			: false
+	);
+	applyPerformanceDefaults(options.performance!, {
+		production
+	});
+
 	applyOptimizationDefaults(options.optimization, {
 		production,
 		development,
@@ -168,13 +187,11 @@ const applyExperimentsDefaults = (
 ) => {
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", false);
-	D(experiments, "newSplitChunks", true);
 	D(experiments, "css", true); // we not align with webpack about the default value for better DX
 	D(experiments, "topLevelAwait", true);
 
 	D(experiments, "rspackFuture", {});
 	if (typeof experiments.rspackFuture === "object") {
-		D(experiments.rspackFuture, "newTreeshaking", true);
 		D(experiments.rspackFuture, "bundlerInfo", {});
 		if (typeof experiments.rspackFuture.bundlerInfo === "object") {
 			D(
@@ -188,30 +205,9 @@ const applyExperimentsDefaults = (
 };
 
 const applySnapshotDefaults = (
-	snapshot: SnapshotOptions,
-	{ production }: { production: boolean }
-) => {
-	if (typeof snapshot.module === "object") {
-		D(snapshot.module, "timestamp", false);
-		D(snapshot.module, "hash", false);
-	} else {
-		F(snapshot, "module", () =>
-			production
-				? { timestamp: true, hash: true }
-				: { timestamp: true, hash: false }
-		);
-	}
-	if (typeof snapshot.resolve === "object") {
-		D(snapshot.resolve, "timestamp", false);
-		D(snapshot.resolve, "hash", false);
-	} else {
-		F(snapshot, "resolve", () =>
-			production
-				? { timestamp: true, hash: true }
-				: { timestamp: true, hash: false }
-		);
-	}
-};
+	_snapshot: SnapshotOptions,
+	_env: { production: boolean }
+) => {};
 
 const applyJavascriptParserOptionsDefaults = (
 	parserOptions: JavascriptParserOptions,
@@ -308,7 +304,7 @@ const applyModuleDefaults = (
 			"exportsOnly",
 			!targetProperties || !targetProperties.document
 		);
-		D(module.generator["css"], "exportsConvention", "as-is");
+		D(module.generator["css"], "esModule", true);
 
 		F(module.generator, "css/auto", () => ({}));
 		assertNotNill(module.generator["css/auto"]);
@@ -323,6 +319,7 @@ const applyModuleDefaults = (
 			"localIdentName",
 			"[uniqueName]-[id]-[local]"
 		);
+		D(module.generator["css/auto"], "esModule", true);
 
 		F(module.generator, "css/module", () => ({}));
 		assertNotNill(module.generator["css/module"]);
@@ -337,6 +334,7 @@ const applyModuleDefaults = (
 			"localIdentName",
 			"[uniqueName]-[id]-[local]"
 		);
+		D(module.generator["css/module"], "esModule", true);
 	}
 
 	A(module, "defaultRules", () => {
@@ -752,6 +750,40 @@ const applyOutputDefaults = (
 		// });
 		return Array.from(enabledWasmLoadingTypes);
 	});
+
+	const environment = output.environment!;
+	const optimistic = (v?: boolean) => v || v === undefined;
+	const conditionallyOptimistic = (v?: boolean, c?: boolean) =>
+		(v === undefined && c) || v;
+
+	F(environment, "globalThis", () => tp && tp.globalThis);
+	F(environment, "bigIntLiteral", () => tp && tp.bigIntLiteral);
+	F(environment, "const", () => tp && optimistic(tp.const));
+	F(environment, "arrowFunction", () => tp && optimistic(tp.arrowFunction));
+	F(environment, "asyncFunction", () => tp && optimistic(tp.asyncFunction));
+	F(environment, "forOf", () => tp && optimistic(tp.forOf));
+	F(environment, "destructuring", () => tp && optimistic(tp.destructuring));
+	F(
+		environment,
+		"optionalChaining",
+		() => tp && optimistic(tp.optionalChaining)
+	);
+	F(
+		environment,
+		"nodePrefixForCoreModules",
+		() => tp && optimistic(tp.nodePrefixForCoreModules)
+	);
+	F(environment, "templateLiteral", () => tp && optimistic(tp.templateLiteral));
+	F(environment, "dynamicImport", () =>
+		conditionallyOptimistic(tp && tp.dynamicImport, output.module)
+	);
+	F(environment, "dynamicImportInWorker", () =>
+		conditionallyOptimistic(tp && tp.dynamicImportInWorker, output.module)
+	);
+	F(environment, "module", () =>
+		conditionallyOptimistic(tp && tp.module, output.module)
+	);
+	F(environment, "document", () => tp && optimistic(tp.document));
 };
 
 const applyExternalsPresetsDefaults = (
@@ -788,6 +820,26 @@ const applyExternalsPresetsDefaults = (
 	);
 };
 
+const applyLoaderDefaults = (
+	loader: Loader,
+	{ targetProperties, environment }: { targetProperties: any; environment: any }
+) => {
+	F(loader, "target", () => {
+		if (targetProperties) {
+			if (targetProperties.electron) {
+				if (targetProperties.electronMain) return "electron-main";
+				if (targetProperties.electronPreload) return "electron-preload";
+				if (targetProperties.electronRenderer) return "electron-renderer";
+				return "electron";
+			}
+			if (targetProperties.nwjs) return "nwjs";
+			if (targetProperties.node) return "node";
+			if (targetProperties.web) return "web";
+		}
+	});
+	D(loader, "environment", environment);
+};
+
 const applyNodeDefaults = (
 	node: Node,
 	{ targetProperties }: { targetProperties: any }
@@ -806,6 +858,16 @@ const applyNodeDefaults = (
 		if (targetProperties && targetProperties.node) return "eval-only";
 		return "warn-mock";
 	});
+};
+
+const applyPerformanceDefaults = (
+	performance: Performance,
+	{ production }: { production: boolean }
+) => {
+	if (performance === false) return;
+	D(performance, "maxAssetSize", 250000);
+	D(performance, "maxEntrypointSize", 250000);
+	F(performance, "hints", () => (production ? "warning" : false));
 };
 
 const applyOptimizationDefaults = (
@@ -949,6 +1011,7 @@ const getResolveDefaults = ({
 		exportsFields: ["exports"],
 		roots: [context],
 		mainFields: ["main"],
+		importsFields: ["imports"],
 		byDependency: {
 			wasm: esmDeps(),
 			esm: esmDeps(),

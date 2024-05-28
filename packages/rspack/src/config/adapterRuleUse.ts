@@ -9,15 +9,22 @@ import { ResolveRequest } from "enhanced-resolve";
 import { Compiler } from "../Compiler";
 import { Logger } from "../logging/Logger";
 import Hash = require("../util/hash");
-import { Mode, Resolve, RuleSetUseItem, RuleSetLoaderWithOptions } from "./zod";
-import { parsePathQueryFragment } from "../loader-runner";
-import { isNil } from "../util";
 import {
 	resolveEmotion,
 	resolvePluginImport,
 	resolveReact,
 	resolveRelay
 } from "../builtin-loader";
+import { Compilation } from "../Compilation";
+import { parsePathQueryFragment } from "../loader-runner";
+import { isNil } from "../util";
+import {
+	Mode,
+	Resolve,
+	RuleSetLoaderWithOptions,
+	RuleSetUseItem,
+	Target
+} from "./zod";
 
 const BUILTIN_LOADER_PREFIX = "builtin:";
 
@@ -105,6 +112,7 @@ export interface LoaderContext<OptionsType = {}> {
 	 */
 	loaders: LoaderObject[];
 	mode?: Mode;
+	target?: Target;
 	hot?: boolean;
 	/**
 	 * @param schema To provide the best performance, Rspack does not perform the schema validation. If your loader requires schema validation, please call scheme-utils or zod on your own.
@@ -154,7 +162,7 @@ export interface LoaderContext<OptionsType = {}> {
 	query: string | OptionsType;
 	data: unknown;
 	_compiler: Compiler;
-	_compilation: Compiler["compilation"];
+	_compilation: Compilation;
 	/**
 	 * Internal field for interoperability.
 	 * Do not use this in anywhere else.
@@ -313,7 +321,7 @@ function resolveStringifyLoaders(
 
 	if (use.options && typeof use.options === "object") {
 		if (!ident) ident = "[[missing ident]]";
-		compiler.ruleSet.references.set(ident, use.options);
+		compiler.__internal__ruleSet.references.set(ident, use.options);
 	}
 
 	return obj.path + obj.query + obj.fragment;

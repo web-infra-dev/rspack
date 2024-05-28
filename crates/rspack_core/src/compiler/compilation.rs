@@ -10,14 +10,13 @@ use dashmap::{DashMap, DashSet};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
-use rspack_error::{error, Diagnostic, Result, Severity, TWithDiagnosticArray};
+use rspack_error::{error, Diagnostic, Result, Severity};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_identifier::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
-use swc_core::ecma::ast::ModuleItem;
 use tracing::instrument;
 
 use super::{
@@ -27,19 +26,16 @@ use super::{
 };
 use crate::{
   build_chunk_graph::build_chunk_graph,
-  cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal, prepare_get_exports_type,
-  to_identifier,
-  tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
-  BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash,
-  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry,
-  EntryData, EntryOptions, Entrypoint, ErrorSpan, Filename, ImportVarMap, LocalFilenameFn, Logger,
-  Module, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData,
-  ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType,
-  Stats,
+  get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
+  old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
+  prepare_get_exports_type, to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions,
+  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind,
+  ChunkUkey, CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions,
+  DependencyId, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, ErrorSpan,
+  ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory,
+  ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals,
+  RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
-use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, ExecuteModuleId};
 
 pub type BuildDependency = (
   DependencyId,
@@ -157,28 +153,18 @@ pub struct Compilation {
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
-  pub entry_module_identifiers: IdentifierSet,
-  /// Collecting all used export symbol
-  pub used_symbol_ref: HashSet<SymbolRef>,
-  /// Collecting all module that need to skip in tree-shaking ast modification phase
-  pub bailout_module_identifiers: IdentifierMap<BailoutFlag>,
 
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: IdentifierSet,
-  pub cache: Arc<Cache>,
+  pub old_cache: Arc<OldCache>,
   pub code_splitting_cache: CodeSplittingCache,
   pub hash: Option<RspackHashDigest>,
-  // lazy compilation visit module
-  pub lazy_visit_modules: std::collections::HashSet<String>,
   pub used_chunk_ids: HashSet<String>,
-  pub include_module_ids: IdentifierSet,
 
   pub file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  pub side_effects_free_modules: IdentifierSet,
-  pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
 
   import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
 
@@ -217,7 +203,7 @@ impl Compilation {
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
     records: Option<CompilationRecords>,
-    cache: Arc<Cache>,
+    old_cache: Arc<OldCache>,
     module_executor: Option<ModuleExecutor>,
     modified_files: HashSet<PathBuf>,
     removed_files: HashSet<PathBuf>,
@@ -247,25 +233,18 @@ impl Compilation {
       loader_resolver_factory,
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
-      entry_module_identifiers: IdentifierSet::default(),
-      used_symbol_ref: HashSet::default(),
-      bailout_module_identifiers: IdentifierMap::default(),
 
       code_generation_results: Default::default(),
       code_generated_modules: Default::default(),
-      cache,
+      old_cache,
       code_splitting_cache: Default::default(),
       hash: None,
-      lazy_visit_modules: Default::default(),
       used_chunk_ids: Default::default(),
 
       file_dependencies: Default::default(),
       context_dependencies: Default::default(),
       missing_dependencies: Default::default(),
       build_dependencies: Default::default(),
-      side_effects_free_modules: IdentifierSet::default(),
-      module_item_map: IdentifierMap::default(),
-      include_module_ids: IdentifierSet::default(),
 
       import_var_map: DashMap::new(),
 
@@ -314,6 +293,74 @@ impl Compilation {
         Some(self.make_artifact.get_module_graph_partial_mut()),
       )
     }
+  }
+
+  pub fn file_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
+    self
+      .make_artifact
+      .file_dependencies
+      .files()
+      .chain(
+        self
+          .module_executor
+          .as_ref()
+          .expect("should have module_executor")
+          .make_artifact
+          .file_dependencies
+          .files(),
+      )
+      .chain(&self.file_dependencies)
+  }
+
+  pub fn context_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
+    self
+      .make_artifact
+      .context_dependencies
+      .files()
+      .chain(
+        self
+          .module_executor
+          .as_ref()
+          .expect("should have module_executor")
+          .make_artifact
+          .context_dependencies
+          .files(),
+      )
+      .chain(&self.context_dependencies)
+  }
+
+  pub fn missing_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
+    self
+      .make_artifact
+      .missing_dependencies
+      .files()
+      .chain(
+        self
+          .module_executor
+          .as_ref()
+          .expect("should have module_executor")
+          .make_artifact
+          .missing_dependencies
+          .files(),
+      )
+      .chain(&self.missing_dependencies)
+  }
+
+  pub fn build_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
+    self
+      .make_artifact
+      .build_dependencies
+      .files()
+      .chain(
+        self
+          .module_executor
+          .as_ref()
+          .expect("should have module_executor")
+          .make_artifact
+          .build_dependencies
+          .files(),
+      )
+      .chain(&self.build_dependencies)
   }
 
   // TODO move out from compilation
@@ -624,22 +671,16 @@ impl Compilation {
     module_identifiers: HashSet<ModuleIdentifier>,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    for id in &module_identifiers {
-      self.cache.build_module_occasion.remove_cache(id);
-    }
-
     update_module_graph(
       self,
       vec![MakeParam::ForceBuildModules(module_identifiers.clone())],
     )
     .await?;
 
-    if self.options.is_new_tree_shaking() {
-      let logger = self.get_logger("rspack.Compilation");
-      let start = logger.time("finish module");
-      self.finish(self.plugin_driver.clone()).await?;
-      logger.time_end(start);
-    }
+    let logger = self.get_logger("rspack.Compilation");
+    let start = logger.time("finish module");
+    self.finish(self.plugin_driver.clone()).await?;
+    logger.time_end(start);
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -663,8 +704,7 @@ impl Compilation {
     ) -> Result<()> {
       // If the runtime optimization is not opt out, a module codegen should be executed for each runtime.
       // Else, share same codegen result for all runtimes.
-      let used_exports_optimization = compilation.options.is_new_tree_shaking()
-        && compilation.options.optimization.used_exports.is_true();
+      let used_exports_optimization = compilation.options.optimization.used_exports.is_true();
       let results = compilation.code_generation_modules(
         codegen_cache_counter,
         used_exports_optimization,
@@ -729,7 +769,7 @@ impl Compilation {
           .module_by_identifier(&module_identifier)
           .expect("module should exist");
         let res = self
-          .cache
+          .old_cache
           .code_generate_occasion
           .use_cache(module, runtimes, self, |module, runtimes| {
             let take_length = if used_exports_optimization {
@@ -888,18 +928,8 @@ impl Compilation {
     Ok(())
   }
 
-  pub async fn optimize_dependency(
-    &mut self,
-  ) -> Result<TWithDiagnosticArray<OptimizeDependencyResult>> {
-    let logger = self.get_logger("rspack.Compilation");
-    let start = logger.time("optimize dependencies");
-    let result = optimizer::CodeSizeOptimizer::new(self).run().await;
-    logger.time_end(start);
-    result
-  }
-
-  pub fn entry_modules(&self) -> impl Iterator<Item = ModuleIdentifier> {
-    self.entry_module_identifiers.clone().into_iter()
+  pub fn entry_modules(&self) -> IdentifierSet {
+    self.make_artifact.entry_module_identifiers.clone()
   }
 
   pub fn entrypoint_by_name(&self, name: &str) -> &Entrypoint {
@@ -1570,15 +1600,6 @@ impl Compilation {
   // TODO remove it after code splitting support incremental rebuild
   pub fn has_module_import_export_change(&self) -> bool {
     self.make_artifact.has_module_graph_change
-  }
-
-  // TODO remove it after remove old treeshaking
-  pub fn optimize_analyze_result_map(&self) -> &IdentifierMap<OptimizeAnalyzeResult> {
-    &self.make_artifact.optimize_analyze_result_map
-  }
-  // TODO remove it after remove old treeshaking
-  pub fn optimize_analyze_result_map_mut(&mut self) -> &mut IdentifierMap<OptimizeAnalyzeResult> {
-    &mut self.make_artifact.optimize_analyze_result_map
   }
 }
 

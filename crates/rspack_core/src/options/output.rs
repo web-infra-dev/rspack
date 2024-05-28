@@ -61,6 +61,7 @@ pub struct OutputOptions {
   pub worker_wasm_loading: WasmLoading,
   pub worker_public_path: String,
   pub script_type: String,
+  pub environment: Environment,
 }
 
 impl From<&OutputOptions> for RspackHash {
@@ -379,4 +380,15 @@ pub struct LibraryCustomUmdObject {
   pub amd: Option<String>,
   pub commonjs: Option<String>,
   pub root: Option<Vec<String>>,
+}
+
+#[derive(Debug)]
+pub struct Environment {
+  pub arrow_function: Option<bool>,
+}
+
+impl Environment {
+  pub fn supports_arrow_function(&self) -> bool {
+    self.arrow_function.unwrap_or_default()
+  }
 }

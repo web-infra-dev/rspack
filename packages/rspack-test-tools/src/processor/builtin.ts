@@ -1,31 +1,29 @@
-import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
+import { rspack } from "@rspack/core";
 import fs from "fs-extra";
 import { merge } from "webpack-merge";
-import { rspack } from "@rspack/core";
+
+import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
 import { ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
-export interface IRspackBuiltinProcessorOptions {
-	name: string;
-	snapshot: string;
-	snapshotFileFilter?: ISnapshotProcessorOptions<ECompilerType.Rspack>["snapshotFileFilter"];
-}
+export interface IBuiltinProcessorOptions<T extends ECompilerType>
+	extends Omit<ISnapshotProcessorOptions<T>, "runable"> {}
 
-export class RspackBuiltinProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
-	constructor(protected _builtinOptions: IRspackBuiltinProcessorOptions) {
+export class BuiltinProcessor<
+	T extends ECompilerType
+> extends SnapshotProcessor<T> {
+	constructor(protected _builtinOptions: IBuiltinProcessorOptions<T>) {
 		super({
-			snapshotFileFilter: _builtinOptions.snapshotFileFilter,
-			snapshot: _builtinOptions.snapshot,
-			compilerType: ECompilerType.Rspack,
-			defaultOptions: RspackBuiltinProcessor.defaultOptions,
-			name: _builtinOptions.name,
-			runable: false
+			defaultOptions: BuiltinProcessor.defaultOptions,
+			runable: false,
+			..._builtinOptions
 		});
 	}
 
-	static defaultOptions(
+	static defaultOptions<T extends ECompilerType>(
+		this: BuiltinProcessor<T>,
 		context: ITestContext
-	): TCompilerOptions<ECompilerType.Rspack> {
-		let defaultOptions: TCompilerOptions<ECompilerType.Rspack> = {
+	): TCompilerOptions<T> {
+		let defaultOptions = {
 			entry: {
 				main: {
 					import: "./index"
@@ -125,44 +123,54 @@ export class RspackBuiltinProcessor extends SnapshotProcessor<ECompilerType.Rspa
 			},
 			devtool: false,
 			context: context.getSource(),
-			plugins: [],
-			builtins: {
-				treeShaking: false
-			}
-		};
+			plugins: []
+		} as TCompilerOptions<T>;
 
-		const testConfigFile = context.getSource("test.config.js");
-		if (fs.existsSync(testConfigFile)) {
-			let caseOptions = require(testConfigFile);
-			if (caseOptions.entry) {
-				delete defaultOptions.entry;
-			}
-			defaultOptions = merge(defaultOptions, caseOptions);
-		}
-
-		// TODO: remove builtin compatible code
-		const defineOptions = (defaultOptions.builtins as any)?.define;
-		if (defineOptions) {
-			defaultOptions.plugins!.push(new rspack.DefinePlugin(defineOptions));
-			delete (defaultOptions.builtins as any)?.define;
-		}
-
-		const provideOptions = (defaultOptions.builtins as any)?.provide;
-		if (provideOptions) {
-			defaultOptions.plugins!.push(new rspack.ProvidePlugin(provideOptions));
-			delete (defaultOptions.builtins as any)?.provide;
-		}
-
-		const htmlOptions = (defaultOptions.builtins as any)?.html;
-		if (htmlOptions) {
-			if (Array.isArray(htmlOptions)) {
-				for (let item of htmlOptions) {
-					defaultOptions.plugins!.push(new rspack.HtmlRspackPlugin(item));
+		if (this._options.compilerType === ECompilerType.Rspack) {
+			let rspackDefaultOptions =
+				defaultOptions as TCompilerOptions<ECompilerType.Rspack>;
+			const testConfigFile = context.getSource("rspack.config.js");
+			if (fs.existsSync(testConfigFile)) {
+				let caseOptions = require(testConfigFile);
+				if (caseOptions.entry) {
+					delete rspackDefaultOptions.entry;
 				}
-			} else {
-				defaultOptions.plugins!.push(new rspack.HtmlRspackPlugin(htmlOptions));
+				rspackDefaultOptions = merge(rspackDefaultOptions, caseOptions);
 			}
-			delete (defaultOptions.builtins as any)?.html;
+
+			// TODO: remove builtin compatible code
+			const defineOptions = (rspackDefaultOptions as any).builtins?.define;
+			if (defineOptions) {
+				rspackDefaultOptions.plugins!.push(
+					new rspack.DefinePlugin(defineOptions)
+				);
+			}
+
+			const provideOptions = (rspackDefaultOptions as any).builtins?.provide;
+			if (provideOptions) {
+				rspackDefaultOptions.plugins!.push(
+					new rspack.ProvidePlugin(provideOptions)
+				);
+			}
+
+			const htmlOptions = (rspackDefaultOptions as any).builtins?.html;
+			if (htmlOptions) {
+				if (Array.isArray(htmlOptions)) {
+					for (let item of htmlOptions) {
+						rspackDefaultOptions.plugins!.push(
+							new rspack.HtmlRspackPlugin(item)
+						);
+					}
+				} else {
+					rspackDefaultOptions.plugins!.push(
+						new rspack.HtmlRspackPlugin(htmlOptions)
+					);
+				}
+			}
+
+			delete (rspackDefaultOptions as any).builtins;
+
+			defaultOptions = rspackDefaultOptions as TCompilerOptions<T>;
 		}
 
 		return defaultOptions;

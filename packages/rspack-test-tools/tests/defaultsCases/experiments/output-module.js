@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "output module",
 	options: () => ({ experiments: { outputModule: true } }),
@@ -12,8 +13,24 @@ module.exports = {
 		-   "externalsType": "var",
 		+   "externalsType": "module",
 		@@ ... @@
+		-       "dynamicImport": undefined,
+		-       "dynamicImportInWorker": undefined,
+		+       "dynamicImport": true,
+		+       "dynamicImportInWorker": true,
+		@@ ... @@
+		-       "module": undefined,
+		+       "module": true,
+		@@ ... @@
 		-     "chunkFilename": "[name].js",
 		+     "chunkFilename": "[name].mjs",
+		@@ ... @@
+		-       "dynamicImport": undefined,
+		-       "dynamicImportInWorker": undefined,
+		+       "dynamicImport": true,
+		+       "dynamicImportInWorker": true,
+		@@ ... @@
+		-       "module": undefined,
+		+       "module": true,
 		@@ ... @@
 		-     "filename": "[name].js",
 		+     "filename": "[name].mjs",

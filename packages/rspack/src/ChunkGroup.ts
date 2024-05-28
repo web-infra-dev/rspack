@@ -3,6 +3,7 @@ import {
 	type JsChunkGroup,
 	type JsCompilation
 } from "@rspack/binding";
+
 import { Chunk } from "./Chunk";
 
 export class ChunkGroup {
@@ -40,18 +41,18 @@ export class ChunkGroup {
 		});
 	}
 
+	get chunks(): Chunk[] {
+		return this.#inner.chunks.map(c =>
+			Chunk.__from_binding(c, this.#inner_compilation)
+		);
+	}
+
 	get index(): number | undefined {
 		return this.#inner.index;
 	}
 
 	get name(): string | undefined {
 		return this.#inner.name;
-	}
-
-	get chunks(): Chunk[] {
-		return this.#inner.chunks.map(c =>
-			Chunk.__from_binding(c, this.#inner_compilation)
-		);
 	}
 
 	__internal_inner_ukey() {

@@ -1,0 +1,15 @@
+# Case issue-5597: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: main.CURRENT_HASH.js
+- Bundle: shared.chunk.CURRENT_HASH.js
+- Bundle: workerA_js.chunk.CURRENT_HASH.js
+- Bundle: workerB_js.chunk.CURRENT_HASH.js
+
+## Manifest
+
+		
+## Update

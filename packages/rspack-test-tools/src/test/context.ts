@@ -1,14 +1,15 @@
+import path from "path";
+
 import { TestCompilerManager } from "../compiler";
 import {
-	ITestCompilerManager,
 	ECompilerType,
+	ITestCompilerManager,
 	ITestContext,
 	ITesterConfig,
 	ITestRunner,
-	TTestConfig,
-	TRunnerFactory
+	TRunnerFactory,
+	TTestConfig
 } from "../type";
-import path from "path";
 
 export type TTestContextOptions = Omit<ITesterConfig, "name" | "steps">;
 
@@ -53,7 +54,7 @@ export class TestContext implements ITestContext {
 			if (!type) {
 				throw new Error("Compiler does not exists");
 			}
-			compiler = new TestCompilerManager(type);
+			compiler = new TestCompilerManager(type, this.config.compilerFactories);
 			this.compilers.set(name, compiler);
 		}
 		return compiler;

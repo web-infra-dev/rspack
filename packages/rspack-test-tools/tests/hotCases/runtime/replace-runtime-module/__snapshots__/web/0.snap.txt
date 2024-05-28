@@ -1,0 +1,13 @@
+# Case replace-runtime-module: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: a.chunk.CURRENT_HASH.js
+- Bundle: bundle.js
+
+## Manifest
+
+		
+## Update

@@ -7,9 +7,7 @@ use rayon::prelude::*;
 use rkyv::{from_bytes, to_bytes, AlignedVec, Archive, Deserialize, Serialize};
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  tree_shaking::{
-    analyzer::OptimizeAnalyzer, asset_module::AssetModule, visitor::OptimizeAnalyzeResult,
-  },
+  tree_shaking::visitor::OptimizeAnalyzeResult,
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetParserDataUrl, BuildExtraDataType,
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey, CodeGenerationDataAssetInfo,
   CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilationRenderManifest,
@@ -274,8 +272,6 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       source,
       build_meta,
       build_info,
-      compiler_options,
-      module_identifier,
       ..
     } = parse_context;
     build_info.strict = true;
@@ -307,11 +303,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         ))
       }
     };
-    let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
-      AssetModule::new(module_identifier).analyze()
-    } else {
-      OptimizeAnalyzeResult::default()
-    };
+    let analyze_result = OptimizeAnalyzeResult::default();
 
     Ok(
       rspack_core::ParseResult {
@@ -320,6 +312,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         blocks: vec![],
         source,
         presentational_dependencies: vec![],
+        code_generation_dependencies: vec![],
         analyze_result,
         side_effects_bailout: None,
       }
@@ -327,8 +320,6 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     )
   }
 
-  // Safety: `original_source` and `ast_and_source` are available in code generation.
-  #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
     source: &BoxSource,
@@ -500,43 +491,14 @@ async fn render_manifest(
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
 
-  let ordered_modules = compilation
-    .chunk_graph
-    .get_chunk_modules(chunk_ukey, &module_graph);
+  let ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SourceType::Asset,
+    &module_graph,
+  );
 
   let assets = ordered_modules
     .par_iter()
-    .filter(|m| {
-      let module = module_graph
-        .module_by_identifier(&m.identifier())
-        // FIXME: use result
-        .expect("Failed to get module");
-
-      let all_incoming_analyzed = module_graph
-        .get_incoming_connections(&module.identifier())
-        .iter()
-        .all(|c| {
-          if let Some(original_module_identifier) = c.original_module_identifier {
-            module_graph
-              .module_graph_module_by_identifier(&original_module_identifier)
-              .map(|original_module| {
-                !compilation
-                  .bailout_module_identifiers
-                  .contains_key(&original_module.module_identifier)
-                  && original_module.module_type.is_js_like()
-              })
-              .unwrap_or(false)
-          } else {
-            false
-          }
-        });
-
-      module.source_types().contains(&SourceType::Asset)
-        && (!all_incoming_analyzed
-          || compilation
-            .include_module_ids
-            .contains(&module.identifier()))
-    })
     .map(|m| {
       let code_gen_result = compilation
         .code_generation_results

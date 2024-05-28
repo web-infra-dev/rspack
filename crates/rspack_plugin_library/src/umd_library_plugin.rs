@@ -103,6 +103,11 @@ impl JavascriptModulesPluginPlugin for UmdLibraryJavascriptModulesPluginPlugin {
     let Some(options) = self.get_options_for_chunk(compilation, args.chunk) else {
       return Ok(None);
     };
+    let supports_arrow_function = compilation
+      .options
+      .output
+      .environment
+      .supports_arrow_function();
     let chunk = args.chunk();
     let module_graph = compilation.get_module_graph();
     let modules = compilation
@@ -225,14 +230,18 @@ impl JavascriptModulesPluginPlugin for UmdLibraryJavascriptModulesPluginPlugin {
             {}
             {define}
             {factory}
-        }})({}, function({}) {{
+        }})({}, {} {{
             return ",
       get_auxiliary_comment("amd", auxiliary_comment),
       compilation.options.output.global_object,
-      external_arguments(&externals, compilation)
+      if supports_arrow_function {
+        format!("({}) =>", external_arguments(&externals, compilation))
+      } else {
+        format!("function({})", external_arguments(&externals, compilation))
+      },
     )));
     source.add(args.source.clone());
-    source.add(RawSource::from("\n});"));
+    source.add(RawSource::from("\n})"));
     Ok(Some(source.boxed()))
   }
 

@@ -1,31 +1,27 @@
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
-  get_exports_type, tree_shaking::symbol::DEFAULT_JS_WORD, AsContextDependency, Compilation,
-  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyId,
-  DependencyTemplate, DependencyType, ExportsType, ExtendedReferencedExport, ModuleDependency,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedByExports,
+  get_exports_type, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
+  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportsType,
+  ExtendedReferencedExport, ModuleDependency, ModuleGraph, ModuleIdentifier, ReferencedExport,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{common::Span, ecma::atoms::Atom};
 
-use super::{
-  create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply, Specifier,
-};
+use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
 
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSpecifierDependency {
-  pub id: DependencyId,
+  id: DependencyId,
   request: Atom,
   source_order: i32,
   shorthand: bool,
   start: u32,
   end: u32,
   ids: Vec<Atom>,
-  pub(crate) call: bool,
+  call: bool,
   direct_import: bool,
-  specifier: Specifier,
   used_by_exports: Option<UsedByExports>,
   pub namespace_object_as_context: bool,
   referenced_properties_in_destructuring: Option<HashSet<Atom>>,
@@ -44,7 +40,6 @@ impl HarmonyImportSpecifierDependency {
     ids: Vec<Atom>,
     call: bool,
     direct_import: bool,
-    specifier: Specifier,
     referenced_properties_in_destructuring: Option<HashSet<Atom>>,
     span_for_on_usage_search: Span,
   ) -> Self {
@@ -59,59 +54,11 @@ impl HarmonyImportSpecifierDependency {
       ids,
       call,
       direct_import,
-      specifier,
       used_by_exports: None,
       namespace_object_as_context: false,
       referenced_properties_in_destructuring,
       resource_identifier,
       span_for_on_usage_search,
-    }
-  }
-
-  // TODO move export_info
-  pub fn check_used(&self, reference_mgm: &ModuleGraphModule, compilation: &Compilation) -> bool {
-    if compilation.options.builtins.tree_shaking.is_false()
-      || compilation
-        .bailout_module_identifiers
-        .contains_key(&reference_mgm.module_identifier)
-    {
-      return true;
-    }
-    if !compilation
-      .include_module_ids
-      .contains(&reference_mgm.module_identifier)
-    {
-      return false;
-    }
-
-    if !reference_mgm.module_type.is_js_like() {
-      return true;
-    }
-    let module_graph = compilation.get_module_graph();
-    let related_symbol = module_graph
-      .get_parent_module(&self.id)
-      .and_then(|parent_module| compilation.optimize_analyze_result_map().get(parent_module))
-      .and_then(|analyze_res| {
-        analyze_res
-          .harmony_import_specifier_dependency_alias_map
-          .get(&self.span_for_on_usage_search)
-      });
-    if let Some(related_symbol) = related_symbol
-      && !compilation.used_symbol_ref.contains(related_symbol)
-    {
-      return false;
-    }
-
-    match &self.specifier {
-      Specifier::Namespace(_) => true,
-      Specifier::Default(_) => module_graph
-        .get_exports_info(&reference_mgm.module_identifier)
-        .old_get_used_exports()
-        .contains(&DEFAULT_JS_WORD),
-      Specifier::Named(local, imported) => module_graph
-        .get_exports_info(&reference_mgm.module_identifier)
-        .old_get_used_exports()
-        .contains(imported.as_ref().unwrap_or(local)),
     }
   }
 
@@ -156,22 +103,18 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     let module_graph = compilation.get_module_graph();
     // Only available when module factorization is successful.
     let reference_mgm = module_graph.module_graph_module_by_dependency_id(&self.id);
-    let is_new_treeshaking = compilation.options.is_new_tree_shaking();
-    if is_new_treeshaking {
-      let connection = module_graph.connection_by_dependency(&self.id);
-      let is_target_active = if let Some(con) = connection {
-        con.is_target_active(&module_graph, *runtime)
-      } else {
-        true
-      };
-
-      if !is_target_active {
-        return;
-      }
+    let connection = module_graph.connection_by_dependency(&self.id);
+    let is_target_active = if let Some(con) = connection {
+      con.is_target_active(&module_graph, *runtime)
+    } else {
+      true
     };
 
-    let used =
-      matches!(reference_mgm, Some(reference_mgm) if self.check_used(reference_mgm, compilation));
+    if !is_target_active {
+      return;
+    }
+
+    let used = reference_mgm.is_some();
     if reference_mgm.is_some() && !used {
       // TODO do this by PureExpressionDependency.
       let value = format!("/* \"{}\" unused */null", self.request);
@@ -223,9 +166,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
         )
       }
     } else {
-      if is_new_treeshaking {
-        harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
-      }
+      harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
       export_from_import(
         code_generatable_context,
         true,

@@ -191,8 +191,19 @@ fn to_oxc_resolver_options(
 ) -> oxc_resolver::ResolveOptions {
   let options = options.merge_by_dependency(dependency_type);
   let tsconfig = options.tsconfig.map(|c| c.into());
-  let enforce_extension = oxc_resolver::EnforceExtension::Auto;
-  let description_files = vec!["package.json".to_string()];
+  let enforce_extension = options
+    .enforce_extension
+    .map(|e| match e {
+      true => oxc_resolver::EnforceExtension::Enabled,
+      false => oxc_resolver::EnforceExtension::Disabled,
+    })
+    .unwrap_or(oxc_resolver::EnforceExtension::Auto);
+  let description_files = options
+    .description_files
+    .unwrap_or_else(|| vec!["package.json".to_string()]);
+  let imports_fields = options
+    .imports_fields
+    .unwrap_or_else(|| vec![vec!["imports".to_string()]]);
   let extensions = options.extensions.expect("should have extensions");
   let alias = options
     .alias
@@ -241,7 +252,7 @@ fn to_oxc_resolver_options(
     .collect();
   let fully_specified = options.fully_specified.unwrap_or_default();
   let exports_fields = options
-    .exports_field
+    .exports_fields
     .unwrap_or_else(|| vec![vec!["exports".to_string()]]);
   let extension_alias = options.extension_alias.unwrap_or_default();
   let alias_fields = options
@@ -259,6 +270,7 @@ fn to_oxc_resolver_options(
     .into_iter()
     .map(PathBuf::from)
     .collect();
+
   oxc_resolver::ResolveOptions {
     fallback,
     modules,
@@ -281,7 +293,7 @@ fn to_oxc_resolver_options(
     restrictions,
     roots,
     builtin_modules: false,
-    imports_fields: vec![vec!["imports".to_string()]],
+    imports_fields,
   }
 }
 

@@ -2,8 +2,8 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_binding_values::JsFilename;
 use rspack_core::{
-  CrossOriginLoading, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  PathInfo,
+  CrossOriginLoading, Environment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, PathInfo,
 };
 use rspack_core::{LibraryAuxiliaryComment, OutputOptions, TrustedTypes};
 
@@ -141,6 +141,20 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
   }
 }
 
+#[derive(Debug, Clone)]
+#[napi(object)]
+pub struct RawEnvironment {
+  pub arrow_function: Option<bool>,
+}
+
+impl From<RawEnvironment> for Environment {
+  fn from(value: RawEnvironment) -> Self {
+    Self {
+      arrow_function: value.arrow_function,
+    }
+  }
+}
+
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawOutputOptions {
@@ -184,6 +198,7 @@ pub struct RawOutputOptions {
   pub worker_public_path: String,
   #[napi(ts_type = r#""module" | "text/javascript" | "false""#)]
   pub script_type: String,
+  pub environment: RawEnvironment,
 }
 
 impl TryFrom<RawOutputOptions> for OutputOptions {
@@ -232,6 +247,7 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       worker_wasm_loading: value.worker_wasm_loading.as_str().into(),
       worker_public_path: value.worker_public_path,
       script_type: value.script_type,
+      environment: value.environment.into(),
     })
   }
 }

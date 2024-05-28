@@ -1,45 +1,38 @@
+import { rspack } from "@rspack/core";
+import fs from "fs-extra";
+import path from "path";
+
 import {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
 	ITestRunner,
-	TCompilerOptions
+	TCompilerOptions,
+	TUpdateOptions
 } from "../type";
-import { BasicTaskProcessor, IBasicProcessorOptions } from "./basic";
-import path from "path";
-import { rspack } from "@rspack/core";
+import { BasicProcessor, IBasicProcessorOptions } from "./basic";
 
-export interface IRspackHotProcessorOptions {
-	name: string;
-	target: TCompilerOptions<ECompilerType.Rspack>["target"];
+export interface IHotProcessorOptions<T extends ECompilerType>
+	extends Omit<IBasicProcessorOptions<T>, "runable"> {
+	target: TCompilerOptions<T>["target"];
 }
 
-export type TUpdateOptions = {
-	updateIndex: number;
-};
-
-export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack> {
+export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 	protected updateOptions: TUpdateOptions;
 	protected runner: ITestRunner | null = null;
 
-	constructor(protected _hotOptions: IRspackHotProcessorOptions) {
+	constructor(protected _hotOptions: IHotProcessorOptions<T>) {
 		const fakeUpdateLoaderOptions: TUpdateOptions = {
-			updateIndex: 0
+			updateIndex: 0,
+			totalUpdates: 1,
+			changedFiles: []
 		};
 		super({
-			defaultOptions: RspackHotProcessor.defaultOptions(
-				_hotOptions,
-				fakeUpdateLoaderOptions
-			),
-			overrideOptions: RspackHotProcessor.overrideOptions(
-				_hotOptions,
-				fakeUpdateLoaderOptions
-			),
-			compilerType: ECompilerType.Rspack,
-			findBundle: RspackHotProcessor.findBundle(_hotOptions),
-			configFiles: ["rspack.config.js", "webpack.config.js"],
-			name: _hotOptions.name,
-			runable: true
+			defaultOptions: HotProcessor.defaultOptions,
+			overrideOptions: HotProcessor.overrideOptions,
+			findBundle: HotProcessor.findBundle,
+			runable: true,
+			..._hotOptions
 		});
 		this.updateOptions = fakeUpdateLoaderOptions;
 	}
@@ -53,40 +46,54 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 		await super.run(env, context);
 	}
 
-	static findBundle(
-		hotOptions: IRspackHotProcessorOptions
-	): IBasicProcessorOptions<ECompilerType.Rspack>["findBundle"] {
-		return context => {
-			let files: string[] = [];
-			let prefiles: string[] = [];
-			const compiler = context.getCompiler(hotOptions.name);
-			if (!compiler) throw new Error("Compiler should exists when find bundle");
-			const stats = compiler.getStats();
-			if (!stats) throw new Error("Stats should exists when find bundle");
-			const info = stats.toJson({ all: false, entrypoints: true });
-			if (hotOptions.target === "web" || hotOptions.target === "webworker") {
-				for (const file of info.entrypoints!.main.assets!) {
-					if (file.name.endsWith(".js")) {
-						files.push(file.name);
-					} else {
-						prefiles.push(file.name);
-					}
+	static findBundle<T extends ECompilerType>(
+		this: HotProcessor<T>,
+		context: ITestContext
+	): string[] {
+		let files: string[] = [];
+		let prefiles: string[] = [];
+		const compiler = context.getCompiler(this._hotOptions.name);
+		if (!compiler) throw new Error("Compiler should exists when find bundle");
+		const stats = compiler.getStats();
+		if (!stats) throw new Error("Stats should exists when find bundle");
+		const info = stats.toJson({ all: false, entrypoints: true });
+		if (
+			this._hotOptions.target === "web" ||
+			this._hotOptions.target === "webworker"
+		) {
+			for (const file of info.entrypoints!.main.assets!) {
+				if (file.name.endsWith(".js")) {
+					files.push(file.name);
+				} else {
+					prefiles.push(file.name);
 				}
-			} else {
-				const assets = info.entrypoints!.main.assets!.filter(s =>
-					s.name.endsWith(".js")
-				);
-				files.push(assets[assets.length - 1].name);
 			}
-			return [...prefiles, ...files];
-		};
+		} else {
+			const assets = info.entrypoints!.main.assets!.filter(s =>
+				s.name.endsWith(".js")
+			);
+			files.push(assets[assets.length - 1].name);
+		}
+		return [...prefiles, ...files];
 	}
 
-	static defaultOptions(
-		hotOptions: IRspackHotProcessorOptions,
-		updateOptions: TUpdateOptions
-	): IBasicProcessorOptions<ECompilerType.Rspack>["defaultOptions"] {
-		return (context: ITestContext) => ({
+	async afterAll(context: ITestContext) {
+		await super.afterAll(context);
+		if (
+			this.updateOptions.updateIndex + 1 !==
+			this.updateOptions.totalUpdates
+		) {
+			throw new Error(
+				`Should run all hot steps (${this.updateOptions.updateIndex + 1} / ${this.updateOptions.totalUpdates}): ${this._options.name}`
+			);
+		}
+	}
+
+	static defaultOptions<T extends ECompilerType>(
+		this: HotProcessor<T>,
+		context: ITestContext
+	): TCompilerOptions<T> {
+		const options = {
 			context: context.getSource(),
 			mode: "development",
 			devtool: false,
@@ -100,38 +107,45 @@ export class RspackHotProcessor extends BasicTaskProcessor<ECompilerType.Rspack>
 			optimization: {
 				moduleIds: "named"
 			},
-			target: hotOptions.target,
-			plugins: [new rspack.HotModuleReplacementPlugin()]
-		});
+			target: this._hotOptions.target
+		} as TCompilerOptions<T>;
+
+		if (this._hotOptions.compilerType === ECompilerType.Rspack) {
+			options.plugins ??= [];
+			(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
+				new rspack.HotModuleReplacementPlugin()
+			);
+		}
+		return options;
 	}
 
-	static overrideOptions(
-		hotOptions: IRspackHotProcessorOptions,
-		updateOptions: TUpdateOptions
-	): IBasicProcessorOptions<ECompilerType.Rspack>["overrideOptions"] {
-		return (
-			context: ITestContext,
-			options: TCompilerOptions<ECompilerType.Rspack>
-		) => {
-			if (!options.entry) {
-				options.entry = "./index.js";
-			}
-			options.module ??= {};
-			options.module.rules ??= [];
-			options.module.rules.push({
-				test: /\.(js|css|json)/,
-				use: [
-					{
-						loader: path.resolve(
-							__dirname,
-							"../helper/legacy/fake-update-loader.js"
-						),
-						options: updateOptions
-					}
-				]
-			});
+	static overrideOptions<T extends ECompilerType>(
+		this: HotProcessor<T>,
+		context: ITestContext,
+		options: TCompilerOptions<T>
+	): void {
+		if (!options.entry) {
+			options.entry = "./index.js";
+		}
+		options.module ??= {};
+		options.module.rules ??= [];
+		options.module.rules.push({
+			test: /\.(js|css|json)/,
+			use: [
+				{
+					loader: path.resolve(
+						__dirname,
+						"../helper/legacy/fake-update-loader.js"
+					),
+					options: this.updateOptions
+				}
+			]
+		});
+		if (this._hotOptions.compilerType === ECompilerType.Rspack) {
 			options.plugins ??= [];
-			options.plugins.push(new rspack.LoaderOptionsPlugin(updateOptions));
-		};
+			(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
+				new rspack.LoaderOptionsPlugin(this.updateOptions)
+			);
+		}
 	}
 }

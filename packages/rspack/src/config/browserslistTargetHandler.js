@@ -28,7 +28,7 @@ const inputRx = /^(?:((?:[A-Z]:)?[/\\].*?))?(?::(.+?))?$/i;
  */
 
 /**
- * @param {string} input input string
+ * @param {string | null | undefined} input input string
  * @param {string} context the context directory
  * @returns {BrowserslistHandlerConfig} config
  */
@@ -52,9 +52,9 @@ const parse = (input, context) => {
 };
 
 /**
- * @param {string} input input string
+ * @param {string | null | undefined} input input string
  * @param {string} context the context directory
- * @returns {string[] | undefined | null} selected browsers
+ * @returns {string[] | undefined} selected browsers
  */
 const load = (input, context) => {
 	const { configPath, env, query } = parse(input, context);
@@ -71,7 +71,7 @@ const load = (input, context) => {
 				})
 			: browserslist.loadConfig({ path: context, env });
 
-	if (!config) return null;
+	if (!config) return;
 	return browserslist(config);
 };
 
@@ -95,7 +95,9 @@ const resolve = browsers => {
 				// safari TP supports all features for normal safari
 				parsedVersion === "TP"
 					? [Infinity, Infinity]
-					: parsedVersion.split(".");
+					: parsedVersion.includes("-")
+						? parsedVersion.split("-")[0].split(".")
+						: parsedVersion.split(".");
 			if (typeof requiredVersion === "number") {
 				return +parsedMajor >= requiredVersion;
 			}
@@ -123,9 +125,9 @@ const resolve = browsers => {
 		samsung: [8, 2],
 		android: 63,
 		and_qq: [10, 4],
-		// baidu: Not supported
-		// and_uc: Not supported
-		// kaios: Not supported
+		baidu: [13, 18],
+		and_uc: [15, 5],
+		kaios: [3, 0],
 		node: [12, 17]
 	});
 
@@ -149,7 +151,7 @@ const resolve = browsers => {
 			android: 37,
 			and_qq: [10, 4],
 			// Supported correctly in strict mode, otherwise supported without block scope
-			// baidu: Not supported
+			baidu: [13, 18],
 			and_uc: [12, 12],
 			kaios: [2, 5],
 			node: [6, 0]
@@ -192,7 +194,7 @@ const resolve = browsers => {
 			// and_qq: Unknown support
 			// baidu: Unknown support
 			// and_uc: Unknown support
-			// kaios: Unknown support
+			kaios: [3, 0],
 			node: [0, 12]
 		}),
 		destructuring: rawChecker({
@@ -211,7 +213,7 @@ const resolve = browsers => {
 			// and_qq: Unknown support
 			// baidu: Unknown support
 			// and_uc: Unknown support
-			// kaios: Unknown support
+			kaios: [2, 5],
 			node: [6, 0]
 		}),
 		bigIntLiteral: rawChecker({
@@ -227,10 +229,10 @@ const resolve = browsers => {
 			ios_saf: 14,
 			samsung: [9, 2],
 			android: 67,
-			// and_qq: Not supported
-			// baidu: Not supported
-			// and_uc: Not supported
-			// kaios: Not supported
+			and_qq: [13, 1],
+			baidu: [13, 18],
+			and_uc: [15, 5],
+			kaios: [3, 0],
 			node: [10, 4]
 		}),
 		// Support syntax `import` and `export` and no limitations and bugs on Node.js
@@ -249,9 +251,9 @@ const resolve = browsers => {
 			samsung: [8, 0],
 			android: 61,
 			and_qq: [10, 4],
-			// baidu: Not supported
-			// and_uc: Not supported
-			// kaios: Not supported
+			baidu: [13, 18],
+			and_uc: [15, 5],
+			kaios: [3, 0],
 			node: [12, 17]
 		}),
 		dynamicImport: es6DynamicImport,
@@ -274,7 +276,7 @@ const resolve = browsers => {
 			// and_qq: Unknown support
 			// baidu: Unknown support
 			// and_uc: Unknown support
-			// kaios: Unknown support
+			kaios: [3, 0],
 			node: 12
 		}),
 		optionalChaining: rawChecker({
@@ -293,7 +295,7 @@ const resolve = browsers => {
 			// and_qq: Not supported
 			// baidu: Not supported
 			// and_uc: Not supported
-			// kaios: Not supported
+			kaios: [3, 0],
 			node: 14
 		}),
 		templateLiteral: rawChecker({
@@ -315,6 +317,25 @@ const resolve = browsers => {
 			kaios: [2, 5],
 			node: 4
 		}),
+		asyncFunction: rawChecker({
+			chrome: 55,
+			and_chr: 55,
+			edge: 15,
+			firefox: 52,
+			and_ff: 52,
+			// ie: Not supported,
+			opera: 42,
+			op_mob: 42,
+			safari: 11,
+			ios_saf: 11,
+			samsung: [6, 2],
+			android: 55,
+			and_qq: [13, 1],
+			baidu: [13, 18],
+			and_uc: [15, 5],
+			kaios: 3,
+			node: [7, 6]
+		}),
 		browser: browserProperty,
 		electron: false,
 		node: nodeProperty,
@@ -328,6 +349,12 @@ const resolve = browsers => {
 		importScripts: false,
 		importScriptsInWorker: true,
 		nodeBuiltins: nodeProperty,
+		nodePrefixForCoreModules:
+			nodeProperty &&
+			!browsers.some(b => b.startsWith("node 15")) &&
+			rawChecker({
+				node: [14, 18]
+			}),
 		require: nodeProperty
 	};
 };

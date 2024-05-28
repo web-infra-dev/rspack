@@ -1,13 +1,15 @@
 import EventEmitter from "events";
+import merge from "webpack-merge";
+
 import {
 	ECompilerType,
 	ITestCompilerManager,
 	TCompiler,
+	TCompilerFactories,
 	TCompilerFactory,
 	TCompilerOptions,
 	TCompilerStats
 } from "./type";
-import merge from "webpack-merge";
 
 export const enum ECompilerEvent {
 	Build = "build",
@@ -16,10 +18,7 @@ export const enum ECompilerEvent {
 	Close = "close"
 }
 
-export const COMPILER_FACTORIES: Record<
-	ECompilerType,
-	TCompilerFactory<ECompilerType>
-> = {
+export const COMPILER_FACTORIES: TCompilerFactories = {
 	[ECompilerType.Rspack]: ((options: TCompilerOptions<ECompilerType.Rspack>) =>
 		require("@rspack/core")(options)) as TCompilerFactory<ECompilerType>,
 	[ECompilerType.Webpack]: ((
@@ -34,7 +33,10 @@ export class TestCompilerManager<T extends ECompilerType>
 	protected compilerStats: TCompilerStats<T> | null = null;
 	protected emitter: EventEmitter = new EventEmitter();
 
-	constructor(protected type: T) {}
+	constructor(
+		protected type: T,
+		protected factories: TCompilerFactories = COMPILER_FACTORIES
+	) {}
 
 	getOptions(): TCompilerOptions<T> {
 		return this.compilerOptions;
@@ -57,7 +59,7 @@ export class TestCompilerManager<T extends ECompilerType>
 	}
 
 	createCompiler(): TCompiler<T> {
-		this.compilerInstance = COMPILER_FACTORIES[this.type](
+		this.compilerInstance = this.factories[this.type](
 			this.compilerOptions
 		) as TCompiler<T>;
 		this.emitter.emit(ECompilerEvent.Create, this.compilerInstance);

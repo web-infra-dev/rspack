@@ -115,9 +115,8 @@ export = ({ level = "info", debug = false, console }: any) => {
 		switch (type) {
 			case LogType.debug:
 				if (!debug) return;
-				// eslint-disable-next-line node/no-unsupported-features/node-builtins
+
 				if (typeof console.debug === "function") {
-					// eslint-disable-next-line node/no-unsupported-features/node-builtins
 					console.debug(...labeledArgs());
 				} else {
 					console.log(...labeledArgs());
@@ -146,9 +145,7 @@ export = ({ level = "info", debug = false, console }: any) => {
 			case LogType.groupCollapsed:
 				if (!debug && loglevel > LogLevel.log) return;
 				if (!debug && loglevel > LogLevel.verbose) {
-					// eslint-disable-next-line node/no-unsupported-features/node-builtins
 					if (typeof console.groupCollapsed === "function") {
-						// eslint-disable-next-line node/no-unsupported-features/node-builtins
 						console.groupCollapsed(...labeledArgs());
 					} else {
 						console.log(...labeledArgs());
@@ -158,9 +155,8 @@ export = ({ level = "info", debug = false, console }: any) => {
 			// falls through
 			case LogType.group:
 				if (!debug && loglevel > LogLevel.log) return;
-				// eslint-disable-next-line node/no-unsupported-features/node-builtins
+
 				if (typeof console.group === "function") {
-					// eslint-disable-next-line node/no-unsupported-features/node-builtins
 					console.group(...labeledArgs());
 				} else {
 					console.log(...labeledArgs());
@@ -168,9 +164,8 @@ export = ({ level = "info", debug = false, console }: any) => {
 				break;
 			case LogType.groupEnd:
 				if (!debug && loglevel > LogLevel.log) return;
-				// eslint-disable-next-line node/no-unsupported-features/node-builtins
+
 				if (typeof console.groupEnd === "function") {
-					// eslint-disable-next-line node/no-unsupported-features/node-builtins
 					console.groupEnd();
 				}
 				break;
@@ -186,24 +181,19 @@ export = ({ level = "info", debug = false, console }: any) => {
 				break;
 			}
 			case LogType.profile:
-				// eslint-disable-next-line node/no-unsupported-features/node-builtins
 				if (typeof console.profile === "function") {
-					// eslint-disable-next-line node/no-unsupported-features/node-builtins
 					console.profile(...labeledArgs());
 				}
 				break;
 			case LogType.profileEnd:
-				// eslint-disable-next-line node/no-unsupported-features/node-builtins
 				if (typeof console.profileEnd === "function") {
-					// eslint-disable-next-line node/no-unsupported-features/node-builtins
 					console.profileEnd(...labeledArgs());
 				}
 				break;
 			case LogType.clear:
 				if (!debug && loglevel > LogLevel.log) return;
-				// eslint-disable-next-line node/no-unsupported-features/node-builtins
+
 				if (typeof console.clear === "function") {
-					// eslint-disable-next-line node/no-unsupported-features/node-builtins
 					console.clear();
 				}
 				break;

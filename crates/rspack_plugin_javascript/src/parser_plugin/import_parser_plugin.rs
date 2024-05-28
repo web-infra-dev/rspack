@@ -141,6 +141,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             end: node.span().real_hi(),
           },
           Some(node.span.into()),
+          parser.in_try,
         )));
       // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
       parser.walk_expression(&dyn_imported.expr);

@@ -1,0 +1,117 @@
+# Case dispose-removed-chunk: Step 2
+
+## Changed Files
+- b.js
+- module.js
+
+## Asset Files
+- Bundle: b_js.CURRENT_HASH.js
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 35
+- Update: b_js.LAST_HASH.hot-update.js, size: 269
+- Update: main.LAST_HASH.hot-update.js, size: 209
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["b_js","main"],"r":[],"m":[]}
+```
+
+		
+## Update
+
+
+### b_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./b.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["webpackHotUpdate"]('b_js', {
+"./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* harmony default export */ __webpack_exports__["default"] = ("version b2");
+}),
+
+});
+```
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["webpackHotUpdate"]('main', {},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./a.js
+- ./module.js
+
+
+Outdated Dependencies:
+```json
+{
+  "./index.js": [
+    "./module.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./a.js
+- ./module.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+- ./module.js
+
+Disposed Callback:

@@ -8,14 +8,16 @@
  * https://github.com/webpack/webpack-dev-server/blob/b0f15ace0123c125d5870609ef4691c141a6d187/LICENSE
  */
 import path from "node:path";
+
 import { Compiler, MultiCompiler } from "@rspack/core";
-import type { Socket } from "net";
 import type { FSWatcher } from "chokidar";
-import rdm from "webpack-dev-middleware";
-import type { Server } from "http";
 import fs from "fs";
+import type { Server } from "http";
+import type { Socket } from "net";
+import rdm from "webpack-dev-middleware";
 import WebpackDevServer from "webpack-dev-server";
-import type { ResolvedDevServer, DevServer } from "./config";
+
+import type { DevServer, ResolvedDevServer } from "./config";
 import { applyDevServerPatch } from "./patch";
 
 applyDevServerPatch();
@@ -217,38 +219,6 @@ export class RspackDevServer extends WebpackDevServer {
 
 	private override setupMiddlewares() {
 		const middlewares: WebpackDevServer.Middleware[] = [];
-		const compilers =
-			this.compiler instanceof MultiCompiler
-				? this.compiler.compilers
-				: [this.compiler];
-
-		compilers.forEach(compiler => {
-			if (compiler.options.experiments.lazyCompilation) {
-				middlewares.push({
-					// @ts-expect-error
-					middleware: (req, res) => {
-						if (req.url.indexOf("/lazy-compilation-web/") > -1) {
-							const path = req.url.replace("/lazy-compilation-web/", "");
-							if (fs.existsSync(path)) {
-								compiler.__internal__rebuild(
-									new Set([path]),
-									new Set(),
-									error => {
-										if (error) {
-											throw error;
-										}
-										res.write("");
-										res.end();
-										console.log("lazy compiler success");
-									}
-								);
-							}
-						}
-					}
-				});
-			}
-		});
-
 		middlewares.forEach(middleware => {
 			if (typeof middleware === "function") {
 				// @ts-expect-error

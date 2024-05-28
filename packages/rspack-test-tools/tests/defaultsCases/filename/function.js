@@ -1,3 +1,4 @@
+/** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
 	description: "function filename",
 	options: () => ({ output: { filename: () => "bundle.js" } }),

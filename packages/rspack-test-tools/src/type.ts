@@ -1,17 +1,18 @@
 import {
-	RspackOptions,
 	Compiler as RspackCompiler,
+	RspackOptions,
 	Stats as RspackStats,
 	StatsCompilation as RspackStatsCompilation
 } from "@rspack/core";
+import EventEmitter from "events";
 import type {
-	Configuration as WebpackOptions,
 	Compiler as WebpackCompiler,
+	Configuration as WebpackOptions,
 	Stats as WebpackStats,
 	StatsCompilation as WebpackStatsCompilation
 } from "webpack";
+
 import { IBasicModuleScope, TRunnerRequirer } from "./runner/type";
-import EventEmitter from "events";
 
 export interface ITestContext {
 	getSource(sub?: string): string;
@@ -85,6 +86,7 @@ export interface ITesterConfig {
 	temp?: string;
 	steps?: ITestProcessor[];
 	testConfig?: TTestConfig<ECompilerType>;
+	compilerFactories?: TCompilerFactories;
 	runnerFactory?: new (
 		name: string,
 		context: ITestContext
@@ -94,6 +96,7 @@ export interface ITesterConfig {
 export interface ITester {
 	step: number;
 	total: number;
+	getContext(): ITestContext;
 	prepare(): Promise<void>;
 	compile(): Promise<void>;
 	check(env: ITestEnv): Promise<void>;
@@ -167,9 +170,11 @@ export type TDiffStats = {
 };
 
 export interface ITestEnv {
+	expect: jest.Expect;
 	it: (...args: any[]) => void;
 	beforeEach: (...args: any[]) => void;
 	afterEach: (...args: any[]) => void;
+	[key: string]: unknown;
 }
 
 export type TTestConfig<T extends ECompilerType> = {
@@ -210,3 +215,14 @@ export interface TRunnerFactory<T extends ECompilerType> {
 		env: ITestEnv
 	): ITestRunner;
 }
+
+export type TUpdateOptions = {
+	updateIndex: number;
+	totalUpdates: number;
+	changedFiles: string[];
+};
+
+export type TCompilerFactories = Record<
+	ECompilerType,
+	TCompilerFactory<ECompilerType>
+>;

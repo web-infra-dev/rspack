@@ -87,7 +87,7 @@ async fn resolve_loader(
 
   match resolve_result {
     ResolveResult::Resource(resource) => {
-      // TODO: Should move this logic to `resolver`, since `resolve.alias` may contain query or fragment too. @Boshen
+      // TODO: Should move this logic to `resolver`, since `resolve.alias` may contain query or fragment too.
       let resource = resource.path.to_string_lossy().to_string() + rest.unwrap_or_default();
       Ok(Some(Arc::new(JsLoaderAdapter {
         identifier: resource.into(),
@@ -104,7 +104,6 @@ async fn resolve_loader(
   }
 }
 
-#[async_trait::async_trait]
 impl Plugin for JsLoaderResolverPlugin {
   fn name(&self) -> &'static str {
     "JsLoaderResolverPlugin"

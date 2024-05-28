@@ -337,12 +337,11 @@ impl Plugin for CssPlugin {
           .expect("should have CssGeneratorOptions");
         Box::new(CssParserAndGenerator {
           exports: None,
-          convention: g
-            .exports_convention
-            .expect("should have exports_convention"),
+          convention: None,
           local_ident_name: None,
           exports_only: g.exports_only.expect("should have exports_only"),
           named_exports: p.named_exports.expect("should have named_exports"),
+          es_module: g.es_module.expect("should have es_module"),
         }) as Box<dyn ParserAndGenerator>
       }),
     );
@@ -357,9 +356,10 @@ impl Plugin for CssPlugin {
           .expect("should have CssModuleGeneratorOptions");
         Box::new(CssParserAndGenerator {
           exports: None,
-          convention: g
-            .exports_convention
-            .expect("should have exports_convention"),
+          convention: Some(
+            g.exports_convention
+              .expect("should have exports_convention"),
+          ),
           local_ident_name: Some(
             g.local_ident_name
               .clone()
@@ -367,6 +367,7 @@ impl Plugin for CssPlugin {
           ),
           exports_only: g.exports_only.expect("should have exports_only"),
           named_exports: p.named_exports.expect("should have named_exports"),
+          es_module: g.es_module.expect("should have es_module"),
         }) as Box<dyn ParserAndGenerator>
       }),
     );
@@ -381,9 +382,10 @@ impl Plugin for CssPlugin {
           .expect("should have CssAutoGeneratorOptions");
         Box::new(CssParserAndGenerator {
           exports: None,
-          convention: g
-            .exports_convention
-            .expect("should have exports_convention"),
+          convention: Some(
+            g.exports_convention
+              .expect("should have exports_convention"),
+          ),
           local_ident_name: Some(
             g.local_ident_name
               .clone()
@@ -391,6 +393,7 @@ impl Plugin for CssPlugin {
           ),
           exports_only: g.exports_only.expect("should have exports_only"),
           named_exports: p.named_exports.expect("should have named_exports"),
+          es_module: g.es_module.expect("should have es_module"),
         }) as Box<dyn ParserAndGenerator>
       }),
     );

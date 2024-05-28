@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::super::MakeArtifact;
-use crate::{DependencyId, ModuleIdentifier};
+use crate::ModuleIdentifier;
 
 #[derive(Debug, Default)]
 pub struct CleanIsolatedModule {
@@ -24,18 +24,15 @@ impl CleanIsolatedModule {
     }
   }
 
-  pub fn analyze_removed_deps(&mut self, artifact: &MakeArtifact, dep_id: &DependencyId) {
-    let module_graph = artifact.get_module_graph();
-    let connection = module_graph
-      .connection_by_dependency(dep_id)
-      .expect("should have connection");
+  pub fn add_need_check_module(&mut self, module_identifier: ModuleIdentifier) {
     self
       .need_check_isolated_module_ids
-      .insert(*connection.module_identifier());
+      .insert(module_identifier);
   }
 
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
-    let mut module_graph = artifact.get_module_graph_mut();
+    let module_graph = artifact.get_module_graph_mut();
+    let mut need_remove_modules = HashSet::default();
     let mut queue = VecDeque::from(
       self
         .need_check_isolated_module_ids
@@ -56,8 +53,9 @@ impl CleanIsolatedModule {
         // clean child module
         queue.push_back(*connection.module_identifier());
       }
-      module_graph.revoke_module(&module_identifier);
       tracing::trace!("Module is cleaned: {}", module_identifier);
+      need_remove_modules.insert(module_identifier);
     }
+    artifact.revoke_modules(need_remove_modules);
   }
 }

@@ -1,22 +1,18 @@
-export { resolveEmotion } from "./emotion";
 export type { EmotionOptions } from "./emotion";
-
-export { resolveReact } from "./react";
-export type { ReactOptions } from "./react";
-
-export { resolveRelay } from "./relay";
-export type { RelayOptions } from "./relay";
-
-export { resolvePluginImport } from "./pluginImport";
+export { resolveEmotion } from "./emotion";
 export type { PluginImportOptions } from "./pluginImport";
-
+export { resolvePluginImport } from "./pluginImport";
+export type { ReactOptions } from "./react";
+export { resolveReact } from "./react";
+export type { RelayOptions } from "./relay";
+export { resolveRelay } from "./relay";
 export type {
-	SwcLoaderOptions,
 	SwcLoaderEnvConfig,
+	SwcLoaderEsParserConfig,
 	SwcLoaderJscConfig,
 	SwcLoaderModuleConfig,
+	SwcLoaderOptions,
 	SwcLoaderParserConfig,
-	SwcLoaderEsParserConfig,
-	SwcLoaderTsParserConfig,
-	SwcLoaderTransformConfig
+	SwcLoaderTransformConfig,
+	SwcLoaderTsParserConfig
 } from "./types";

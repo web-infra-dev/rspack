@@ -1,9 +1,10 @@
-import { z } from "zod";
 import {
 	BuiltinPluginName,
 	JsChunk,
 	RawBannerPluginOptions
 } from "@rspack/binding";
+import { z } from "zod";
+
 import { create } from "./base";
 
 const rule = z.string().or(z.instanceof(RegExp));
@@ -34,6 +35,7 @@ const bannerPluginOptions = z.strictObject({
 	include: rules.optional(),
 	raw: z.boolean().optional(),
 	footer: z.boolean().optional(),
+	stage: z.number().optional(),
 	test: rules.optional()
 });
 export type BannerPluginOptions = z.infer<typeof bannerPluginOptions>;
@@ -56,6 +58,7 @@ export const BannerPlugin = create(
 			footer: args.footer,
 			raw: args.raw,
 			test: args.test,
+			stage: args.stage,
 			include: args.include,
 			exclude: args.exclude
 		};

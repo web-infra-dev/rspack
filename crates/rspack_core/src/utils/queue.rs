@@ -32,6 +32,14 @@ impl<T, K: Eq + PartialEq + std::hash::Hash> WorkerQueue<T, K> {
     }
   }
 
+  pub fn len(&self) -> usize {
+    self.inner.len()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.inner.is_empty()
+  }
+
   pub fn add_task(&mut self, task: T) -> usize {
     self.inner.push_back(task);
     self.inner.len()
