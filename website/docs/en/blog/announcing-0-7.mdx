@@ -68,13 +68,23 @@ Please note that the current lazy compilation aligns with the webpack implementa
 
 ## Faster CSS Builds
 
-In Rspack 0.7, we have partially refactored the internal implementation of [experiments.css](/config/experiments#experimentscss).
+In v0.7, we have refactored the internal implementation of the [experiments.css](/config/experiments#experimentscss).
 
-Mainly in the CSS dependency analysis part, the switch from `swc-css` to `css-module-lexer` not only fixes the boundary problem of CSS Modules, but also brings faster bundling speed to experiments.css.
+For CSS dependency analysis, we have developed [css-module-lexer](https://github.com/ahabhgk/css-module-lexer) using Rust. This is a high performance lexer for CSS Modules that can parse CSS or CSS Modules and return their dependency metadata.
+
+With the integration of css-module-lexer, Rspack can now support more complex CSS Modules syntax, making its behaviour align with webpack's `css-loader`. For example, it can support the following CSS Modules syntax:
+
+```css title="style.module.css"
+:local(.parent):global(.child) > ul {
+  color: red;
+}
+```
+
+The CSS parsing process before and after the refactor is shown in the diagram below:
 
 ![rspack-css-lexer](https://assets.rspack.dev/rspack/assets/rspack-css-lexer.png)
 
-After actual testing, `bootstrap.css` bundling speed increased by 4 times:
+`css-module-lexer` has also brought significant performance improvements to Rspack's `experiments.css`. In performance tests, the building performance of `bootstrap.css` has increased by about 4x.
 
 - Before refactoring: ~84 ms (analyzing CSS dependencies ~71 ms)
 - After refactoring: ~25 ms (analyzing CSS dependencies ~11 ms)

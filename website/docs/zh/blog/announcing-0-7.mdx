@@ -68,16 +68,26 @@ module.exports = {
 
 ## 更快的 CSS 构建
 
-0.7 版本我们对 [experiments.css](/config/experiments#experimentscss) 的内部实现进行了部分重构。
+在 v0.7 版本中，我们对 [experiments.css](/config/experiments#experimentscss) 的内部实现进行了重构。
 
-主要是 CSS 依赖分析部分，从 `swc-css` 切换为了 `css-module-lexer`，在修复 CSS Modules 边界问题的同时，也给 experiments.css 带来了更快的打包速度。
+针对 CSS 依赖分析，我们使用 Rust 开发了 [css-module-lexer](https://github.com/ahabhgk/css-module-lexer)，这是一个针对 CSS Modules 的高性能 lexer，能够解析 CSS 或 CSS Modules 并返回其依赖元信息。
+
+在接入 css-module-lexer 后，Rspack 能够支持更复杂的 CSS Modules 语法，对齐了 webpack 的 `css-loader` 的行为。比如能够支持以下 CSS Modules 语法：
+
+```css title="style.module.css"
+:local(.parent):global(.child) > ul {
+  color: red;
+}
+```
+
+下图是重构前后的 CSS 解析流程示意：
 
 ![rspack-css-lexer](https://assets.rspack.dev/rspack/assets/rspack-css-lexer.png)
 
-经过实际测试，`bootstrap.css` 打包速度提升了4倍：
+同时，`css-module-lexer` 也给 Rspack 的 `experiments.css` 带来了显著的性能提升。经过性能测试，`bootstrap.css` 打包速度提升约 4 倍：
 
-- 重构前：约 84 毫秒（分析 CSS 依赖约 71 毫秒）
-- 重构后：约 25 毫秒（分析 CSS 依赖约 11 毫秒）
+- 重构前：约 84ms（分析 CSS 依赖约 71ms）
+- 重构后：约 25ms（分析 CSS 依赖约 11ms）
 
 ## 不兼容更新
 
