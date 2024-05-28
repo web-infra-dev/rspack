@@ -26,21 +26,7 @@ Rspack v0.7 now supports lazy compilation, which is very helpful for improving t
 
 ### What is Lazy Compilation
 
-Lazy Compilation is a good way to improve performance. It can compile code modules only when needed instead of compiling all modules at startup. This means developers can see their applications running faster when they launch a development server, because the relevant modules will only be compiled when specific functionality is accessed.
-
-The easiest mental model would be:
-
-Imagine some code that you may not use at the first run, for example, when you click a button, load another page, if you don't click that button at all when you develop other stuff, that page is useless, so we don't need to build it. We build it once we do execute the click.
-
-We try to make entries and dynamic imports as split point, for example, consider:
-
-`A -dyn import()-> B -dyn import()-> C`
-
-When we compile A, we make B just an empty file, pretend user never write any code in it:
-
-`A -dyn import()-> B'(empty content)`
-
-Once we access B, which means we do need to build B, we fill B with its original content, pretend that user write content immediately
+Lazy compilation is an excellent way to improve startup performance. It compiles modules on demand rather than compiling all modules at startup. This means developers can quickly see the application running when they start the dev server and build the necessary modules in stages.
 
 ### Why need Lazy Compilation
 
@@ -48,7 +34,23 @@ Although Rspack itself has good performance, the overall build time can still be
 
 With lazy compilation enabled, Rspack will only compile the entrypoints and dynamic import modules that are requested. This can significantly reduce the number of modules that are compiled at development startup, improving startup time.
 
-Take the Rspack official website as an example. The Rspack official website contains multiple pages. When Lazy Compilation is turned on, only the accessed entry and its dependent files will be built. This greatly improves the compilation speed and makes the startup time of the Rspack official website from 2s+ dropped to within 1s ⚡️.
+Consider the following scenario:
+
+Your team is developing an MPA application with dozens of pages. Most of the time, you only work on a few pages and don't need to build the code for other pages. In this case, you can enable lazy compilation, allowing Rspack to compile only the modules referenced by the pages you access.
+
+When lazy compilation is enabled, Rspack treats "entry points" and "dynamic imports" as split points. For example:
+
+```js title="src/a.js"
+if (someCondition) {
+  import('./b.js');
+}
+```
+
+When we compile a.js, Rspack treats b.js as an empty module, as if no code had ever been written to it. As soon as we need to access b.js, Rspack fills the b.js module with its original content, as if the user had just written that piece of code.
+
+Take the Rspack documentation site as an example, it contains several pages. With lazy compilation is enabled, only the entry points and their dependent modules will be built. This greatly improves startup speed, reducing the startup time from 2.1 seconds to 0.05 seconds.
+
+When a developer accesses a particular page of the site, the build for that page is triggered, and this build time will still be significantly less than the full build time.
 
 ![lazy-compilation-compare](https://assets.rspack.dev/rspack/assets/lazy-compilation-compare.png)
 
