@@ -22,7 +22,7 @@ Rspack v0.7 版本已经正式发布！
 
 ## 支持 Lazy Compilation
 
-Rspack v0.7 支持了 lazy compilation（懒编译），它对于提高多入口应用（MPA）或大型单页面应用（SPA）的构建性能非常有帮助。
+Rspack v0.7 支持了 lazy compilation（懒编译），它对于提高多入口应用（MPA）或大型单页面应用（SPA）的 dev 启动性能非常有帮助。
 
 ### 什么是 Lazy Compilation
 
@@ -168,7 +168,7 @@ v0.7 已移除 `builtins.treeShaking` (oldTreeShaking) 和 `experiments.rspackFu
 
 ### 升级 SWC 插件
 
-在 v0.7 中，Rust crate `swc_core` 的版本升级到 `0.91.x`，使用到的 swc wasm 插件需要确保其使用的 `swc_core` 的版本一致性，否则可能产生无法预知的问题。
+在 v0.7 中，Rust crate `swc_core` 的版本升级到 `0.91.x`，使用到的 SWC Wasm 插件需要确保其使用的 `swc_core` 的版本一致性，否则可能产生无法预知的问题。
 
 详情请参考[文档](https://swc.rs/docs/plugin/selecting-swc-core#091x)。
 
