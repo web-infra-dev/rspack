@@ -88,9 +88,16 @@ If set to true, lazy compilation will be applied by default to both entry module
 
 In addition, you can also configure a `test` parameter for more fine-grained control over which modules are lazily compiled. The `test` parameter can be a regular expression that matches only those modules that should be lazily compiled. It can also be a function where the input is of type 'Module' and returns a boolean value indicating whether it meets the criteria for lazy compilation logic.
 
-:::note
-If you do not use rspack's own dev-server and instead use your own server as the development server, you generally need to add another client in the entry configuration to enable capabilities such as hmr. It is best to exclude this client from lazy compilation by configuring `test`.
+:::tip
+The current lazy compilation aligns with the webpack implementation, **and is still in the experimental stage**. In some scenarios, lazy compilation might not work as expected, or the performance improvement may be insignificant.
+:::
+
+### Exclude HMR client
+
+If you do not use Rspack's own dev server and instead use your own server as the dev server, you generally need to add another client modules in the entry configuration to enable capabilities such as HMR. It is best to exclude these client module from lazy compilation by configuring `test`.
+
 If not excluded and lazy compilation of entry is enabled, this client will not be compiled when accessing the page for the first time, so an additional refresh is needed to make it take effect.
+
 For example:
 
 ```ts
@@ -114,8 +121,6 @@ new compiler.webpack.EntryPlugin(compiler.context, 'dev-client.js', {
   name: undefined,
 }).apply(compiler);
 ```
-
-:::
 
 ## experiments.rspackFuture
 
