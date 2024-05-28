@@ -22,7 +22,7 @@ Notable changes in Rspack v0.7:
 
 ## Support for Lazy Compilation
 
-Rspack v0.7 now supports lazy compilation, which is very helpful for improving the build performance of multi-page applications (MPA) or large single-page applications (SPA).
+Rspack v0.7 now supports lazy compilation, which is very helpful for improving the dev startup performance of multi-page applications (MPA) or large single-page applications (SPA).
 
 ### What is Lazy Compilation
 
@@ -168,9 +168,9 @@ Upgraded the Rust crate `swc_core` to `0.91.x`. This will affect users of the SW
 
 ### Upgrade the SWC plugins
 
-In version v0.7, the Rust crate `swc_core` has been upgraded to `0.91.x`. Users of the swc wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
+In version v0.7, the Rust crate `swc_core` has been upgraded to `0.91.x`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
 
-For more details, please see this [document](https://swc.rs/docs/plugin/selecting-swc-core#091x) of swc。
+For more details, please see this [document](https://swc.rs/docs/plugin/selecting-swc-core#091x) of SWC。
 
 ### Replace resolve.browserField with resolve.aliasFields
 

@@ -69,19 +69,37 @@ module.exports = {
 type LazyCompilationOptions =
   | boolean
   | {
+      /**
+       * 为 entries 启用 lazy compilation
+       */
       entries?: boolean;
-
+      /**
+       * 为 dynamic imports 启用 lazy compilation
+       */
       imports?: boolean;
-
+      /**
+       * 指定哪些导入的模块应该被延迟编译
+       */
       test?: RegExp | ((m: Module) => boolean);
     };
 ```
 
 - **默认值：** `false`
 
-开启懒编译，这对提高多入口项目或大型项目的构建性能会非常有帮助。例如你有二十个入口，只有访问到的入口才会进行构建，或者如果项目中存在非常多的 `import()`，每一个 `import()` 所指向的模块都只有在被真正访问到时，才进行构建。
+开启懒编译，这对提高多入口应用（MPA）或大型单页面应用（SPA）的 dev 启动性能会非常有帮助。例如你有二十个入口，只有访问到的入口才会进行构建，或者如果项目中存在非常多的 `import()`，每一个 `import()` 所指向的模块都只有在被真正访问到时，才进行构建。
 
 如果设置为 true，则默认会对入口模块以及 `import()` 指向的模块进行懒编译。你可以通过配置对象形式，来决定是否只对入口或只对 `import()` 生效。`entries` 决定是否对入口生效，`import()` 决定是否对 `import()` 生效。
+
+```js title="rspack.config.js"
+const isDev = process.env.NODE_ENV === 'development';
+
+module.exports = {
+  experiments: {
+    // 仅在 dev 模式下开启
+    lazyCompilation: isDev,
+  },
+};
+```
 
 除此以外你还可以配置 `test` 来更细粒度控制对哪些模块进行懒编译。`test` 可以是一个正则表达式，只对该正则匹配到的模块进行懒编译，`test` 也可以是一个函数，函数的输入是 `Module` 类型，返回 `boolean` 类型，表示是否命中懒编译逻辑。
 
