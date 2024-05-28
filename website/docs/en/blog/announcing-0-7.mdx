@@ -58,8 +58,8 @@ When a developer accesses a particular page of the site, the build for that page
 
 Now, you can enable the lazy compilation feature in Rspack through the [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) configuration:
 
-```file=rspack.config.js
-const isDev = process.env.NODE_ENV === "development";
+```js title="rspack.config.js"
+const isDev = process.env.NODE_ENV === 'development';
 
 module.exports = {
   experiments: {
