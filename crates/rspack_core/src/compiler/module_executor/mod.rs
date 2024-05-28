@@ -82,7 +82,7 @@ impl ModuleExecutor {
     });
   }
 
-  pub async fn hook_before_process_assets(&mut self, compilation: &mut Compilation) {
+  pub async fn hook_after_finish_modules(&mut self, compilation: &mut Compilation) {
     let sender = std::mem::take(&mut self.event_sender);
     sender
       .expect("should have sender")

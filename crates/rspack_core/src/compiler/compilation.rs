@@ -964,6 +964,13 @@ impl Compilation {
     logger.time_end(start);
     let diagnostics = self.make_artifact.take_diagnostics();
     self.push_batch_diagnostic(diagnostics);
+
+    // sync assets to compilation from module_executor
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.hook_after_finish_modules(self).await;
+      self.module_executor = Some(module_executor);
+    }
     Ok(())
   }
 
@@ -1086,13 +1093,6 @@ impl Compilation {
     let start = logger.time("create chunk assets");
     self.create_chunk_assets(plugin_driver.clone()).await?;
     logger.time_end(start);
-
-    // sync assets to compilation from module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_before_process_assets(self).await;
-      self.module_executor = Some(module_executor);
-    }
 
     let start = logger.time("process assets");
     plugin_driver
