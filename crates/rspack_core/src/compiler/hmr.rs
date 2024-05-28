@@ -92,8 +92,6 @@ where
         self
           .compilation
           .swap_make_artifact_with_compilation(&mut new_compilation);
-        new_compilation.lazy_visit_modules =
-          std::mem::take(&mut self.compilation.lazy_visit_modules);
 
         // seal stage used
         new_compilation.code_splitting_cache =
@@ -102,8 +100,6 @@ where
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
-
-      new_compilation.lazy_visit_modules = changed_files.clone();
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.

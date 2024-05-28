@@ -13,14 +13,14 @@ use super::{create_resource_identifier_for_esm_dependency, harmony_import_depend
 
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSpecifierDependency {
-  pub id: DependencyId,
+  id: DependencyId,
   request: Atom,
   source_order: i32,
   shorthand: bool,
   start: u32,
   end: u32,
   ids: Vec<Atom>,
-  pub(crate) call: bool,
+  call: bool,
   direct_import: bool,
   used_by_exports: Option<UsedByExports>,
   pub namespace_object_as_context: bool,

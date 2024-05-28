@@ -17,7 +17,6 @@ use rspack_hook::define_hook;
 use rspack_identifier::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
-use swc_core::ecma::ast::ModuleItem;
 use tracing::instrument;
 
 use super::{
@@ -29,15 +28,13 @@ use crate::{
   build_chunk_graph::build_chunk_graph,
   get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
-  prepare_get_exports_type, to_identifier,
-  tree_shaking::visitor::SymbolRef,
-  BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash,
-  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry,
-  EntryData, EntryOptions, Entrypoint, ErrorSpan, ExecuteModuleId, Filename, ImportVarMap,
-  LocalFilenameFn, Logger, Module, ModuleFactory, ModuleGraph, ModuleGraphPartial,
-  ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec,
-  SharedPluginDriver, SourceType, Stats,
+  prepare_get_exports_type, to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions,
+  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind,
+  ChunkUkey, CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions,
+  DependencyId, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, ErrorSpan,
+  ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory,
+  ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals,
+  RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -156,24 +153,18 @@ pub struct Compilation {
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
-  /// Collecting all used export symbol
-  pub used_symbol_ref: HashSet<SymbolRef>,
 
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: IdentifierSet,
   pub old_cache: Arc<OldCache>,
   pub code_splitting_cache: CodeSplittingCache,
   pub hash: Option<RspackHashDigest>,
-  // lazy compilation visit module
-  pub lazy_visit_modules: std::collections::HashSet<String>,
   pub used_chunk_ids: HashSet<String>,
 
   pub file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  pub side_effects_free_modules: IdentifierSet,
-  pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
 
   import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
 
@@ -242,22 +233,18 @@ impl Compilation {
       loader_resolver_factory,
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
-      used_symbol_ref: HashSet::default(),
 
       code_generation_results: Default::default(),
       code_generated_modules: Default::default(),
       old_cache,
       code_splitting_cache: Default::default(),
       hash: None,
-      lazy_visit_modules: Default::default(),
       used_chunk_ids: Default::default(),
 
       file_dependencies: Default::default(),
       context_dependencies: Default::default(),
       missing_dependencies: Default::default(),
       build_dependencies: Default::default(),
-      side_effects_free_modules: IdentifierSet::default(),
-      module_item_map: IdentifierMap::default(),
 
       import_var_map: DashMap::new(),
 
