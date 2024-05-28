@@ -438,13 +438,16 @@ impl Compilation {
     } else {
       self.global_entry.include_dependencies.push(entry_id);
     }
-    update_module_graph(
+
+    let artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
       self,
+      artifact,
       vec![MakeParam::ForceBuildDeps(HashSet::from_iter([(
         entry_id, None,
       )]))],
-    )
-    .await
+    )?;
+    Ok(())
   }
 
   pub fn update_asset(
@@ -671,16 +674,12 @@ impl Compilation {
     module_identifiers: HashSet<ModuleIdentifier>,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    update_module_graph(
+    let artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
       self,
+      artifact,
       vec![MakeParam::ForceBuildModules(module_identifiers.clone())],
-    )
-    .await?;
-
-    let logger = self.get_logger("rspack.Compilation");
-    let start = logger.time("finish module");
-    self.finish(self.plugin_driver.clone()).await?;
-    logger.time_end(start);
+    )?;
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -963,7 +962,8 @@ impl Compilation {
     }
     self.extend_diagnostics(diagnostics);
     logger.time_end(start);
-
+    let diagnostics = self.make_artifact.take_diagnostics();
+    self.push_batch_diagnostic(diagnostics);
     Ok(())
   }
 
