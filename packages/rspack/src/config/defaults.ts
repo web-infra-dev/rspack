@@ -32,6 +32,7 @@ import type {
 	InfrastructureLogging,
 	JavascriptParserOptions,
 	Library,
+	Loader,
 	Mode,
 	ModuleOptions,
 	Node,
@@ -122,6 +123,11 @@ export const applyRspackOptionsDefaults = (
 	});
 
 	applyNodeDefaults(options.node, { targetProperties });
+
+	applyLoaderDefaults(options.loader, {
+		targetProperties,
+		environment: options.output.environment
+	});
 
 	F(options, "performance", () =>
 		production &&
@@ -812,6 +818,26 @@ const applyExternalsPresetsDefaults = (
 			targetProperties.electron &&
 			targetProperties.electronRenderer
 	);
+};
+
+const applyLoaderDefaults = (
+	loader: Loader,
+	{ targetProperties, environment }: { targetProperties: any; environment: any }
+) => {
+	F(loader, "target", () => {
+		if (targetProperties) {
+			if (targetProperties.electron) {
+				if (targetProperties.electronMain) return "electron-main";
+				if (targetProperties.electronPreload) return "electron-preload";
+				if (targetProperties.electronRenderer) return "electron-renderer";
+				return "electron";
+			}
+			if (targetProperties.nwjs) return "nwjs";
+			if (targetProperties.node) return "node";
+			if (targetProperties.web) return "web";
+		}
+	});
+	D(loader, "environment", environment);
 };
 
 const applyNodeDefaults = (

@@ -8,6 +8,9 @@ module.exports = {
 		+ Received
 
 		@@ ... @@
+		-       "document": true,
+		+       "document": false,
+		@@ ... @@
 		-         "exportsOnly": false,
 		+         "exportsOnly": true,
 		@@ ... @@

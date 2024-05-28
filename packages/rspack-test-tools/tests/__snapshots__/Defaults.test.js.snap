@@ -39,6 +39,25 @@ Object {
   "externalsType": "var",
   "ignoreWarnings": undefined,
   "infrastructureLogging": Object {},
+  "loader": Object {
+    "environment": Object {
+      "arrowFunction": true,
+      "asyncFunction": true,
+      "bigIntLiteral": undefined,
+      "const": true,
+      "destructuring": true,
+      "document": true,
+      "dynamicImport": undefined,
+      "dynamicImportInWorker": undefined,
+      "forOf": true,
+      "globalThis": undefined,
+      "module": undefined,
+      "nodePrefixForCoreModules": true,
+      "optionalChaining": true,
+      "templateLiteral": true,
+    },
+    "target": "web",
+  },
   "mode": "none",
   "module": Object {
     "defaultRules": Array [

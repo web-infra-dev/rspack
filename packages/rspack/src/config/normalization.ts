@@ -53,6 +53,7 @@ import type {
 	InfrastructureLogging,
 	LazyCompilationOptions,
 	LibraryOptions,
+	Loader,
 	Mode,
 	Name,
 	Node,
@@ -247,6 +248,7 @@ export const getNormalizedRspackOptions = (
 					...node
 				}
 		),
+		loader: cloneObject(config.loader),
 		snapshot: nestedConfig(config.snapshot, _snapshot => ({})),
 		cache: optionalNestedConfig(config.cache, cache => cache),
 		stats: nestedConfig(config.stats, stats => {
@@ -531,6 +533,7 @@ export interface RspackOptionsNormalized {
 	infrastructureLogging: InfrastructureLogging;
 	devtool?: DevTool;
 	node: Node;
+	loader: Loader;
 	snapshot: SnapshotOptions;
 	cache?: CacheOptions;
 	stats: StatsValue;
