@@ -204,10 +204,7 @@ pub fn repair(
         dependencies: vec![id],
         is_entry: parent_module_identifier.is_none(),
         resolve_options: parent_module.and_then(|module| module.get_resolve_options()),
-        resolver_factory: compilation.resolver_factory.clone(),
-        loader_resolver_factory: compilation.loader_resolver_factory.clone(),
         options: compilation.options.clone(),
-        plugin_driver: compilation.plugin_driver.clone(),
         current_profile,
       }))
     })

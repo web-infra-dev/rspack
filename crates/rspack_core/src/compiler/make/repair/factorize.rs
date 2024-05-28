@@ -11,7 +11,7 @@ use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
   BoxDependency, CompilerOptions, Context, DependencyId, ExportInfo, ExportsInfo, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleProfile, Resolve,
-  ResolverFactory, SharedPluginDriver, UsageState,
+  UsageState,
 };
 
 #[derive(Debug)]
@@ -25,10 +25,7 @@ pub struct FactorizeTask {
   pub dependencies: Vec<DependencyId>,
   pub is_entry: bool,
   pub resolve_options: Option<Box<Resolve>>,
-  pub resolver_factory: Arc<ResolverFactory>,
-  pub loader_resolver_factory: Arc<ResolverFactory>,
   pub options: Arc<CompilerOptions>,
-  pub plugin_driver: SharedPluginDriver,
   pub current_profile: Option<Box<ModuleProfile>>,
 }
 

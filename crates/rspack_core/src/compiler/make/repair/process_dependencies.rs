@@ -113,10 +113,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
         dependencies,
         is_entry: false,
         resolve_options: module.get_resolve_options(),
-        resolver_factory: context.resolver_factory.clone(),
-        loader_resolver_factory: context.loader_resolver_factory.clone(),
         options: context.compiler_options.clone(),
-        plugin_driver: context.plugin_driver.clone(),
         current_profile,
       }));
     }
