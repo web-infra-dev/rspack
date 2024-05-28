@@ -57,9 +57,11 @@ Take the Rspack official website as an example. The Rspack official website cont
 Now, you can enable the lazy compilation feature in Rspack through the [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) configuration:
 
 ```file=rspack.config.js
+const isDev = process.env.NODE_ENV === "development";
+
 module.exports = {
   experiments: {
-    lazyCompilation: true,
+    lazyCompilation: isDev,
   },
 };
 ```

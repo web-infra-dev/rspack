@@ -57,9 +57,11 @@ Lazy compilation 是一个提升性能的良好手段，它可以在需要时才
 现在，你可以通过 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 配置项来开启懒编译功能：
 
 ```file=rspack.config.js
+const isDev = process.env.NODE_ENV === "development";
+
 module.exports = {
   experiments: {
-    lazyCompilation: true,
+    lazyCompilation: isDev,
   },
 };
 ```
