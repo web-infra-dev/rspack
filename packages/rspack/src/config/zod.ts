@@ -985,6 +985,9 @@ export type NodeOptions = z.infer<typeof nodeOptions>;
 
 const node = z.literal(false).or(nodeOptions);
 export type Node = z.infer<typeof node>;
+
+const loader = z.record(z.string(), z.any());
+export type Loader = z.infer<typeof loader>;
 //#endregion
 
 //#region Snapshot
@@ -1296,6 +1299,7 @@ export const rspackOptions = z.strictObject({
 	context: context.optional(),
 	devtool: devTool.optional(),
 	node: node.optional(),
+	loader: loader.optional(),
 	ignoreWarnings: ignoreWarnings.optional(),
 	watchOptions: watchOptions.optional(),
 	watch: watch.optional(),

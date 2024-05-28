@@ -4578,6 +4578,12 @@ declare namespace liteTapable {
 }
 
 // @public (undocumented)
+export type Loader = z.infer<typeof loader>;
+
+// @public (undocumented)
+const loader: z.ZodRecord<z.ZodString, z.ZodAny>;
+
+// @public (undocumented)
 export interface LoaderContext<OptionsType = {}> {
     // @internal
     __internal__context: JsLoaderContext;
@@ -8047,6 +8053,7 @@ declare namespace rspackExports {
         DevTool,
         NodeOptions,
         Node_2 as Node,
+        Loader,
         SnapshotOptions,
         CacheOptions,
         StatsOptions,
@@ -8942,6 +8949,7 @@ export const rspackOptions: z.ZodObject<{
         __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
         global?: boolean | "warn" | undefined;
     }>]>>;
+    loader: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
     ignoreWarnings: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodFunction<z.ZodTuple<[z.ZodType<Error, z.ZodTypeDef, Error>, z.ZodType<Compilation, z.ZodTypeDef, Compilation>], z.ZodUnknown>, z.ZodBoolean>]>, "many">>;
     watchOptions: z.ZodOptional<z.ZodObject<{
         aggregateTimeout: z.ZodOptional<z.ZodNumber>;
@@ -10213,7 +10221,7 @@ export const rspackOptions: z.ZodObject<{
             templateLiteral?: boolean | undefined;
         } | undefined;
     } | undefined;
-    target?: false | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "web" | "webworker" | "browserslist" | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | ("es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "web" | "webworker" | "browserslist" | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload`)[] | undefined;
+    target?: false | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | ("es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload`)[] | undefined;
     mode?: "none" | "development" | "production" | undefined;
     experiments?: {
         lazyCompilation?: boolean | {
@@ -10276,6 +10284,7 @@ export const rspackOptions: z.ZodObject<{
         __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
         global?: boolean | "warn" | undefined;
     } | undefined;
+    loader?: Record<string, any> | undefined;
     ignoreWarnings?: (RegExp | ((args_0: Error, args_1: Compilation, ...args_2: unknown[]) => boolean))[] | undefined;
     watchOptions?: {
         aggregateTimeout?: number | undefined;
@@ -10645,7 +10654,7 @@ export const rspackOptions: z.ZodObject<{
             templateLiteral?: boolean | undefined;
         } | undefined;
     } | undefined;
-    target?: false | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "web" | "webworker" | "browserslist" | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | ("es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "web" | "webworker" | "browserslist" | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload`)[] | undefined;
+    target?: false | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | ("es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload`)[] | undefined;
     mode?: "none" | "development" | "production" | undefined;
     experiments?: {
         lazyCompilation?: boolean | {
@@ -10708,6 +10717,7 @@ export const rspackOptions: z.ZodObject<{
         __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
         global?: boolean | "warn" | undefined;
     } | undefined;
+    loader?: Record<string, any> | undefined;
     ignoreWarnings?: (RegExp | ((args_0: Error, args_1: Compilation, ...args_2: unknown[]) => boolean))[] | undefined;
     watchOptions?: {
         aggregateTimeout?: number | undefined;
@@ -10965,6 +10975,8 @@ export interface RspackOptionsNormalized {
     ignoreWarnings?: IgnoreWarningsNormalized;
     // (undocumented)
     infrastructureLogging: InfrastructureLogging;
+    // (undocumented)
+    loader: Loader;
     // (undocumented)
     mode?: Mode;
     // (undocumented)
