@@ -25,7 +25,7 @@ function useFooterData() {
         },
         {
           title: t('compatibility'),
-          link: getLink('/guide/compatibility/config-diff'),
+          link: getLink('/guide/compatibility/plugin'),
         },
       ],
     },

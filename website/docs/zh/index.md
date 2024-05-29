@@ -31,7 +31,7 @@ features:
   - title: 兼容 webpack
     details: 针对 webpack 的架构和生态进行兼容，无需从头搭建生态。
     icon: 📦
-    link: /zh/guide/compatibility/config-diff
+    link: /zh/guide/compatibility/plugin
   - title: 内置常见构建能力
     details: 对 Typescript、JSX、CSS、CSS Modules、Sass 等提供开箱即用的支持。
     icon: 🎨
