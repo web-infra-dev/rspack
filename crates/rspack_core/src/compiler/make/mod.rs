@@ -15,7 +15,8 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct MakeArtifact {
-  // temporary data, should be reset when rebuild
+  // temporary data, used by subsequent steps of make
+  // should be reset when rebuild
   pub diagnostics: Vec<Diagnostic>,
   pub has_module_graph_change: bool,
 

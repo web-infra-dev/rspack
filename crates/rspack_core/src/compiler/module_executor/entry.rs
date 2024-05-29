@@ -25,7 +25,8 @@ impl Task<MakeTaskContext> for EntryTask {
 
   fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self { param } = *self;
-    let mut module_graph = MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
+    let mut module_graph =
+      MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
     match param {
       EntryParam::DependencyId(dep_id, sender) => {

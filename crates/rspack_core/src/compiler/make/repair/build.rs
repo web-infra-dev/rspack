@@ -110,28 +110,29 @@ impl Task<MakeTaskContext> for BuildResultTask {
       current_profile,
     } = *self;
 
+    let artifact = &mut context.artifact;
     let module_graph =
-      &mut MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
+      &mut MakeTaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
 
     if !diagnostics.is_empty() {
-      context.make_failed_module.insert(module.identifier());
+      artifact.make_failed_module.insert(module.identifier());
     }
 
     tracing::trace!("Module built: {}", module.identifier());
-    context.diagnostics.extend(diagnostics);
+    artifact.diagnostics.extend(diagnostics);
     module_graph
       .get_optimization_bailout_mut(&module.identifier())
       .extend(build_result.optimization_bailouts);
-    context
+    artifact
       .file_dependencies
       .add_batch_file(&build_result.build_info.file_dependencies);
-    context
+    artifact
       .context_dependencies
       .add_batch_file(&build_result.build_info.context_dependencies);
-    context
+    artifact
       .missing_dependencies
       .add_batch_file(&build_result.build_info.missing_dependencies);
-    context
+    artifact
       .build_dependencies
       .add_batch_file(&build_result.build_info.build_dependencies);
 

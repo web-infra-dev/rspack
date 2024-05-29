@@ -203,31 +203,34 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       diagnostics,
       ..
     } = *self;
+    let artifact = &mut context.artifact;
     if !diagnostics.is_empty() {
       if let Some(id) = original_module_identifier {
-        context.make_failed_module.insert(id);
+        artifact.make_failed_module.insert(id);
       } else {
-        context
+        artifact
           .make_failed_dependencies
           .insert((dependencies[0], None));
       }
     }
 
-    context.diagnostics.extend(
+    artifact.diagnostics.extend(
       diagnostics
         .into_iter()
         .map(|d| d.with_module_identifier(original_module_identifier)),
     );
 
-    context.file_dependencies.add_batch_file(&file_dependencies);
-    context
+    artifact
+      .file_dependencies
+      .add_batch_file(&file_dependencies);
+    artifact
       .context_dependencies
       .add_batch_file(&context_dependencies);
-    context
+    artifact
       .missing_dependencies
       .add_batch_file(&missing_dependencies);
     let module_graph =
-      &mut MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
+      &mut MakeTaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
     let Some(factory_result) = factory_result else {
       let dep = module_graph
         .dependency_by_id(&dependencies[0])

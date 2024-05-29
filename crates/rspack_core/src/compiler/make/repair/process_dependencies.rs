@@ -25,7 +25,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
     } = *self;
     let mut sorted_dependencies = HashMap::default();
     let module_graph =
-      &mut MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
+      &mut MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
     dependencies.into_iter().for_each(|dependency_id| {
       let dependency = module_graph

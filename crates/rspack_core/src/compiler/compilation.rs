@@ -963,7 +963,7 @@ impl Compilation {
     self.extend_diagnostics(diagnostics);
     logger.time_end(start);
     let diagnostics = self.make_artifact.take_diagnostics();
-    self.push_batch_diagnostic(diagnostics);
+    self.extend_diagnostics(diagnostics);
 
     // sync assets to compilation from module_executor
     if let Some(module_executor) = &mut self.module_executor {
