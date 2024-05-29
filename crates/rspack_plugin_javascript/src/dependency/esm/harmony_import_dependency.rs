@@ -322,6 +322,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
             "export {} {} was not found in '{}'{more_info}",
             ids
               .iter()
+              .take(pos)
               .map(|id| format!("'{id}'"))
               .collect::<Vec<_>>()
               .join("."),
