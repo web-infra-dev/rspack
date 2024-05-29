@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   fmt::Debug,
   hash::Hash,
   path::{Path, PathBuf},
@@ -7,6 +8,8 @@ use std::{
 };
 
 use derivative::Derivative;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
@@ -178,7 +181,14 @@ pub struct PathData<'a> {
   pub id: Option<&'a str>,
 }
 
+static PREPARE_ID_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
+
 impl<'a> PathData<'a> {
+  pub fn prepare_id(v: &str) -> Cow<str> {
+    PREPARE_ID_REGEX.replace_all(v, "_")
+  }
+
   pub fn filename(mut self, v: &'a str) -> Self {
     self.filename = Some(v);
     self
