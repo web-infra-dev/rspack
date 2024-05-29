@@ -288,7 +288,7 @@ impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
 }
 
 static PATH_QUERY_FRAGMENT_REGEXP: Lazy<Regex> = Lazy::new(|| {
-  Regex::new("^((?:\0.|[^?#\0])*)(\\?(?:\0.|[^#\0])*)?(#.*)?$")
+  Regex::new("^((?:\\u200b.|[^?#\\u200b])*)(\\?(?:\\u200b.|[^#\\u200b])*)?(#.*)?$")
     .expect("Failed to initialize `PATH_QUERY_FRAGMENT_REGEXP`")
 });
 
