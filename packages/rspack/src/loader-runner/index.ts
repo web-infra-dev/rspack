@@ -45,7 +45,7 @@ import loadLoader = require("./loadLoader");
 const querystring = require("node:querystring");
 
 const PATH_QUERY_FRAGMENT_REGEXP =
-	/^((?:\0.|[^?#\0])*)(\?(?:\0.|[^#\0])*)?(#.*)?$/;
+	/^((?:\u200b.|[^?#\u200b])*)(\?(?:\u200b.|[^#\u200b])*)?(#.*)?$/;
 
 export function parsePathQueryFragment(str: string): {
 	path: string;
@@ -54,8 +54,8 @@ export function parsePathQueryFragment(str: string): {
 } {
 	const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
 	return {
-		path: match?.[1].replace(/\0(.)/g, "$1") || "",
-		query: match?.[2] ? match[2].replace(/\0(.)/g, "$1") : "",
+		path: match?.[1].replace(/\u200b(.)/g, "$1") || "",
+		query: match?.[2] ? match[2].replace(/\u200b(.)/g, "$1") : "",
 		fragment: match?.[3] || ""
 	};
 }
@@ -91,8 +91,8 @@ function createLoaderObject(loader: any, compiler: Compiler): LoaderObject {
 		enumerable: true,
 		get: function () {
 			return (
-				obj.path.replace(/#/g, "\0#") +
-				obj.query.replace(/#/g, "\0#") +
+				obj.path.replace(/#/g, "\u200b#") +
+				obj.query.replace(/#/g, "\u200b#") +
 				obj.fragment
 			);
 		},
@@ -320,8 +320,8 @@ export async function runLoaders(
 		get: function () {
 			if (loaderContext.resourcePath === undefined) return undefined;
 			return (
-				loaderContext.resourcePath.replace(/#/g, "\0#") +
-				loaderContext.resourceQuery.replace(/#/g, "\0#") +
+				loaderContext.resourcePath.replace(/#/g, "\u200b#") +
+				loaderContext.resourceQuery.replace(/#/g, "\u200b#") +
 				loaderContext.resourceFragment
 			);
 		},
