@@ -27,9 +27,10 @@ use crate::{
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType,
   BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation,
   ConcatenationScope, ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory,
-  DependencyId, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
-  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
+  DependencyId, DependencyType, DynamicImportMode, ExportsType, FactoryMeta,
+  FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
+  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -132,6 +133,12 @@ pub fn clean_regexp_in_context_module(regexp: RspackRegex) -> Option<RspackRegex
   }
 }
 
+#[derive(Debug, Clone, Copy, Hash, PartialEq, PartialOrd, Ord, Eq)]
+pub enum ContextTypePrefix {
+  Import,
+  Normal,
+}
+
 #[derive(Derivative, Debug, Clone)]
 #[derivative(Hash, PartialEq)]
 pub struct ContextOptions {
@@ -159,6 +166,7 @@ pub struct ContextModuleOptions {
   pub resource_fragment: String,
   pub context_options: ContextOptions,
   pub resolve_options: Option<Box<Resolve>>,
+  pub type_prefix: ContextTypePrefix,
 }
 
 #[derive(Debug)]
@@ -1065,6 +1073,7 @@ impl ContextModule {
             options: options.context_options.clone(),
             resource_identifier: format!("context{}|{}", &options.resource, path.to_string_lossy()),
             referenced_exports: None,
+            dependency_type: DependencyType::ContextElement(options.type_prefix),
           });
         })
       }

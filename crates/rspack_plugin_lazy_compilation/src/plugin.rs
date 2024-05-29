@@ -117,7 +117,7 @@ async fn normal_module_factory_module(
     dep_type,
     DependencyType::DynamicImport
       | DependencyType::DynamicImportEager
-      | DependencyType::ContextElement
+      | DependencyType::ContextElement(rspack_core::ContextTypePrefix::Import)
   );
   let is_entries = matches!(dep_type, DependencyType::Entry);
 
