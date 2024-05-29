@@ -4915,7 +4915,7 @@ export class Module {
     // (undocumented)
     buildMeta: Record<string, any>;
     // (undocumented)
-    get context(): string | undefined;
+    context?: string;
     // (undocumented)
     identifier(): string;
     // (undocumented)
@@ -4925,13 +4925,13 @@ export class Module {
     // (undocumented)
     _originalSource?: Source;
     // (undocumented)
-    get rawRequest(): string | undefined;
+    rawRequest?: string;
     // (undocumented)
-    get request(): string | undefined;
+    request?: string;
     // (undocumented)
-    get resource(): string | undefined;
+    resource?: string;
     // (undocumented)
-    get userRequest(): string | undefined;
+    userRequest?: string;
 }
 
 // @public (undocumented)
