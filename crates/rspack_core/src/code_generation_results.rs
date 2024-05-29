@@ -113,6 +113,7 @@ pub struct CodeGenerationResult {
   pub hash: Option<RspackHashDigest>,
   pub id: CodeGenResultId,
   pub concatenation_scope: Option<ConcatenationScope>,
+  // Collect diagnostics in codegen phase
   pub diagnostics: Vec<Diagnostic>,
 }
 

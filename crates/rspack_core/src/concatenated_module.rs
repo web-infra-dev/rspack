@@ -171,6 +171,7 @@ pub struct ConcatenatedModuleInfo {
   pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
+  pub diagnostics: Vec<Diagnostic>,
 }
 
 #[derive(Debug, Clone)]
@@ -1139,6 +1140,7 @@ impl Module for ConcatenatedModule {
     }
 
     let mut chunk_init_fragments = Vec::new();
+    let mut diagnostics = Vec::new();
 
     // Evaluate modules in order
     let module_graph = compilation.get_module_graph();
@@ -1189,6 +1191,9 @@ impl Module for ConcatenatedModule {
 
           for f in info.chunk_init_fragments.iter() {
             chunk_init_fragments.push(f.clone());
+          }
+          for d in info.diagnostics.iter() {
+            diagnostics.push(d.clone());
           }
 
           runtime_requirements = runtime_requirements.union(info.runtime_requirements);
@@ -1273,6 +1278,7 @@ impl Module for ConcatenatedModule {
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
     code_generation_result.chunk_init_fragments = chunk_init_fragments;
     code_generation_result.runtime_requirements = runtime_requirements;
+    code_generation_result.diagnostics = diagnostics;
     code_generation_result
       .data
       .insert(CodeGenerationDataTopLevelDeclarations::new(
@@ -1655,6 +1661,7 @@ impl ConcatenatedModule {
         chunk_init_fragments,
         runtime_requirements,
         concatenation_scope,
+        diagnostics,
         ..
       } = codegen_res;
       let concatenation_scope = concatenation_scope.expect("should have concatenation_scope");
@@ -1725,6 +1732,7 @@ impl ConcatenatedModule {
       module_info.internal_source = Some(source);
       module_info.source = Some(result_source);
       module_info.chunk_init_fragments = chunk_init_fragments;
+      module_info.diagnostics = diagnostics;
       Ok(ModuleInfo::Concatenated(module_info))
     } else {
       Ok(info)
