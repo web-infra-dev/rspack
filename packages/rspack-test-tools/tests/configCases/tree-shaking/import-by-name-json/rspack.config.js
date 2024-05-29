@@ -2,9 +2,6 @@
 module.exports = {
 	mode: "production",
 	context: __dirname,
-	module: {
-		rules: []
-	},
 	optimization: {
 		moduleIds: "named",
 		minimize: false

@@ -971,6 +971,10 @@ export interface RawJavascriptParserOptions {
   url: string
   exprContextCritical: boolean
   wrappedContextCritical: boolean
+  exportsPresence?: string
+  importExportsPresence?: string
+  reexportExportsPresence?: string
+  strictExportPresence: boolean
 }
 
 export interface RawLazyCompilationOption {

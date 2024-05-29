@@ -7,13 +7,16 @@ use rspack_core::{
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
   ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyId,
   DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId, ExportInfoProvided,
-  ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, HarmonyExportInitFragment, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
-  RuntimeGlobals, RuntimeSpec, Template, TemplateContext, TemplateReplaceSource, UsageState,
-  UsedName,
+  ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfoId, ExportsOfExportsSpec,
+  ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName,
 };
-use rspack_error::{miette::MietteDiagnostic, Diagnostic, DiagnosticExt, TraceableError};
+use rspack_error::{
+  miette::{MietteDiagnostic, Severity},
+  Diagnostic, DiagnosticExt, TraceableError,
+};
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::Atom;
 
@@ -37,15 +40,14 @@ pub struct HarmonyExportImportedSpecifierDependency {
   pub mode_ids: Vec<(Atom, Option<Atom>)>,
   pub name: Option<Atom>,
   resource_identifier: String,
-  // Because it is shared by multiply HarmonyExportImportedSpecifierDependency, so put it to `BuildInfo`
-  // pub active_exports: HashSet<Atom>,
-  // pub all_star_exports: Option<Vec<DependencyId>>,
   pub other_star_exports: Option<Vec<DependencyId>>,
   pub export_all: bool,
+  export_presence_mode: ExportPresenceMode,
   span: ErrorSpan,
 }
 
 impl HarmonyExportImportedSpecifierDependency {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: Atom,
     source_order: i32,
@@ -55,6 +57,7 @@ impl HarmonyExportImportedSpecifierDependency {
     export_all: bool,
     other_star_exports: Option<Vec<DependencyId>>,
     span: ErrorSpan,
+    export_presence_mode: ExportPresenceMode,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
@@ -68,9 +71,11 @@ impl HarmonyExportImportedSpecifierDependency {
       export_all,
       other_star_exports,
       span,
+      export_presence_mode,
     }
   }
 
+  // Because it is shared by multiply HarmonyExportImportedSpecifierDependency, so put it to `BuildInfo`
   pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<Atom> {
     let build_info = module_graph
       .parent_module_by_dependency_id(&self.id)
@@ -81,6 +86,7 @@ impl HarmonyExportImportedSpecifierDependency {
     &build_info.harmony_named_exports
   }
 
+  // Because it is shared by multiply HarmonyExportImportedSpecifierDependency, so put it to `BuildInfo`
   pub fn all_star_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a Vec<DependencyId> {
     let build_info = module_graph
       .parent_module_by_dependency_id(&self.id)
@@ -834,30 +840,57 @@ impl HarmonyExportImportedSpecifierDependency {
     )
   }
 
+  pub fn create_export_presence_mode(options: &JavascriptParserOptions) -> ExportPresenceMode {
+    options
+      .reexport_exports_presence
+      .or(options.exports_presence)
+      .unwrap_or(if options.strict_export_presence {
+        ExportPresenceMode::Error
+      } else {
+        ExportPresenceMode::Auto
+      })
+  }
+
   fn get_conflicting_star_exports_errors(
     &self,
     ids: &[Atom],
     module_graph: &ModuleGraph,
-  ) -> Option<Vec<Box<dyn rspack_error::miette::Diagnostic + Send + Sync>>> {
+    should_error: bool,
+  ) -> Option<Vec<Diagnostic>> {
     let create_error = |message: String| {
-      if let Some(span) = self.span()
-        && let Some(parent_module) = module_graph.get_parent_module(&self.id)
-        && let Some(parent_module) = module_graph.module_by_identifier(parent_module)
+      let (severity, title) = if should_error {
+        (Severity::Error, "HarmonyLinkingError")
+      } else {
+        (Severity::Warning, "HarmonyLinkingWarning")
+      };
+      let parent_module_identifier = module_graph
+        .get_parent_module(&self.id)
+        .expect("should have parent module for dependency");
+      let mut diagnostic = if let Some(span) = self.span()
+        && let Some(parent_module) = module_graph.module_by_identifier(parent_module_identifier)
         && let Some(source) = parent_module.original_source().map(|s| s.source())
       {
-        TraceableError::from_file(
-          source.into_owned(),
-          span.start as usize,
-          span.end as usize,
-          "HarmonyLinkingError".to_string(),
-          message,
+        Diagnostic::from(
+          TraceableError::from_file(
+            source.into_owned(),
+            span.start as usize,
+            span.end as usize,
+            title.to_string(),
+            message,
+          )
+          .with_severity(severity)
+          .boxed(),
         )
-        .boxed()
       } else {
-        MietteDiagnostic::new(message)
-          .with_code("HarmonyLinkingError")
-          .boxed()
-      }
+        Diagnostic::from(
+          MietteDiagnostic::new(message)
+            .with_code(title)
+            .with_severity(severity)
+            .boxed(),
+        )
+      };
+      diagnostic = diagnostic.with_module_identifier(Some(*parent_module_identifier));
+      diagnostic
     };
 
     if ids.is_empty()
@@ -894,7 +927,7 @@ impl HarmonyExportImportedSpecifierDependency {
           continue;
         }
         let Some(conflicting_dependency) = find_dependency_for_name(
-          potential_conflicts.names.iter().map(|&n| n).enumerate(),
+          potential_conflicts.names.iter().copied().enumerate(),
           potential_conflicts.dependency_indices.iter(),
           name,
           self
@@ -969,29 +1002,33 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       runtime,
       concatenation_scope,
       diagnostics,
+      module,
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
-    let ids = self
-      .ids
-      .iter()
-      .map(|(a, b)| b.as_ref().unwrap_or(a))
-      .map(|id| id.clone())
-      .collect::<Vec<_>>();
-    if let Some(error) = harmony_import_dependency_get_linking_error(
-      self,
-      &ids,
-      &module_graph,
-      self
-        .name
-        .as_ref()
-        .map(|name| format!("(reexported as '{}')", name))
-        .unwrap_or_default(),
-    ) {
-      diagnostics.push(error.into());
-    }
-    if let Some(errors) = self.get_conflicting_star_exports_errors(&ids, &module_graph) {
-      diagnostics.extend(errors.into_iter().map(|e| Diagnostic::from(e)));
+    let ids = self.get_ids(&module_graph);
+    if let Some(should_error) = self
+      .export_presence_mode
+      .get_effective_export_presence(*module)
+    {
+      if let Some(error) = harmony_import_dependency_get_linking_error(
+        self,
+        &ids,
+        &module_graph,
+        self
+          .name
+          .as_ref()
+          .map(|name| format!("(reexported as '{}')", name))
+          .unwrap_or_default(),
+        should_error,
+      ) {
+        diagnostics.push(error);
+      }
+      if let Some(errors) =
+        self.get_conflicting_star_exports_errors(&ids, &module_graph, should_error)
+      {
+        diagnostics.extend(errors);
+      }
     }
     let module_graph = compilation.get_module_graph();
     let mode = self.get_mode(self.name.clone(), &module_graph, &self.id, *runtime);

@@ -1,9 +1,10 @@
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
   get_exports_type, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportsType,
-  ExtendedReferencedExport, ModuleDependency, ModuleGraph, ModuleIdentifier, ReferencedExport,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
+  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportPresenceMode,
+  ExportsType, ExtendedReferencedExport, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
 use rustc_hash::FxHashSet as HashSet;
@@ -29,6 +30,7 @@ pub struct HarmonyImportSpecifierDependency {
   referenced_properties_in_destructuring: Option<HashSet<Atom>>,
   resource_identifier: String,
   span_for_on_usage_search: Span,
+  export_presence_mode: ExportPresenceMode,
 }
 
 impl HarmonyImportSpecifierDependency {
@@ -43,6 +45,7 @@ impl HarmonyImportSpecifierDependency {
     ids: Vec<Atom>,
     call: bool,
     direct_import: bool,
+    export_presence_mode: ExportPresenceMode,
     referenced_properties_in_destructuring: Option<HashSet<Atom>>,
     span_for_on_usage_search: Span,
   ) -> Self {
@@ -58,6 +61,7 @@ impl HarmonyImportSpecifierDependency {
       ids,
       call,
       direct_import,
+      export_presence_mode,
       used_by_exports: None,
       namespace_object_as_context: false,
       referenced_properties_in_destructuring,
@@ -90,6 +94,17 @@ impl HarmonyImportSpecifierDependency {
       create_exports_object_referenced()
     }
   }
+
+  pub fn create_export_presence_mode(options: &JavascriptParserOptions) -> ExportPresenceMode {
+    options
+      .import_exports_presence
+      .or(options.exports_presence)
+      .unwrap_or(if options.strict_export_presence {
+        ExportPresenceMode::Error
+      } else {
+        ExportPresenceMode::Auto
+      })
+  }
 }
 
 impl DependencyTemplate for HarmonyImportSpecifierDependency {
@@ -103,16 +118,22 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       runtime,
       concatenation_scope,
       diagnostics,
+      module,
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
-    if let Some(diagnostic) = harmony_import_dependency_get_linking_error(
-      self,
-      &self.get_ids(&module_graph)[..],
-      &module_graph,
-      format!("(imported as '{}')", self.name),
-    ) {
-      diagnostics.push(diagnostic.into());
+    if let Some(should_error) = self
+      .export_presence_mode
+      .get_effective_export_presence(*module)
+      && let Some(diagnostic) = harmony_import_dependency_get_linking_error(
+        self,
+        &self.get_ids(&module_graph)[..],
+        &module_graph,
+        format!("(imported as '{}')", self.name),
+        should_error,
+      )
+    {
+      diagnostics.push(diagnostic);
     }
     let module_graph = compilation.get_module_graph();
     // Only available when module factorization is successful.

@@ -631,7 +631,18 @@ function getRawJavascriptParserOptions(
 					? parser.url
 					: "true",
 		exprContextCritical: parser.exprContextCritical ?? true,
-		wrappedContextCritical: parser.wrappedContextCritical ?? false
+		wrappedContextCritical: parser.wrappedContextCritical ?? false,
+		exportsPresence:
+			parser.exportsPresence === false ? "false" : parser.exportsPresence,
+		importExportsPresence:
+			parser.importExportsPresence === false
+				? "false"
+				: parser.importExportsPresence,
+		reexportExportsPresence:
+			parser.reexportExportsPresence === false
+				? "false"
+				: parser.reexportExportsPresence,
+		strictExportPresence: parser.strictExportPresence ?? false
 	};
 }
 

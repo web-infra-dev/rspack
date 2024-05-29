@@ -1576,7 +1576,7 @@ impl ExportInfo {
     }
     let target = self
       .id
-      .get_target(&mut ImmutableModuleGraph::new(&module_graph), None)?;
+      .get_target(&mut ImmutableModuleGraph::new(module_graph), None)?;
     let exports_info = module_graph.get_exports_info(&target.module);
     let Some(export) = target.export else {
       return Some(TerminalBinding::ExportsInfo(exports_info.id));

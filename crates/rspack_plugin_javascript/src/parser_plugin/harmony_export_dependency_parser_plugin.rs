@@ -41,6 +41,9 @@ fn handle_esm_export_harmony_import_side_effects_dep(
             false,
             None,
             span.into(),
+            HarmonyExportImportedSpecifierDependency::create_export_presence_mode(
+              parser.javascript_options,
+            ),
           )));
         parser.build_info.harmony_named_exports.insert(n.clone());
       }
@@ -62,6 +65,9 @@ fn handle_esm_export_harmony_import_side_effects_dep(
             false,
             None,
             span.into(),
+            HarmonyExportImportedSpecifierDependency::create_export_presence_mode(
+              parser.javascript_options,
+            ),
           )));
         parser.build_info.harmony_named_exports.insert(name);
       }
@@ -165,6 +171,9 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
       true,
       list,
       export_all.span.into(),
+      HarmonyExportImportedSpecifierDependency::create_export_presence_mode(
+        parser.javascript_options,
+      ),
     );
 
     parser
@@ -403,6 +412,9 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
                     false,
                     None,
                     named.span.into(),
+                    HarmonyExportImportedSpecifierDependency::create_export_presence_mode(
+                      parser.javascript_options,
+                    ),
                   )));
               } else {
                 parser
