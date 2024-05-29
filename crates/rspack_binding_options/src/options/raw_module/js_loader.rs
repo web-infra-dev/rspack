@@ -254,7 +254,11 @@ impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContex
       additional_data_external: External::new(cx.additional_data.clone()),
       context_external: External::new(cx.context.clone()),
       diagnostics_external: External::new(cx.__diagnostics.drain(..).collect()),
-      module: cx.context.module.to_js_module().unwrap(),
+      module: cx
+        .context
+        .module
+        .to_js_module()
+        .expect("CompilerModuleContext::to_js_module should not fail."),
       hot: cx.hot,
     })
   }
