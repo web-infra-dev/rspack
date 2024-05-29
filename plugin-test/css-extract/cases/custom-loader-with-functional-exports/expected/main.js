@@ -4,12 +4,13 @@ var __webpack_modules__ = ({
 "./style.css?3e20": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  cnA: function() { return cnA; },
-  cnB: function() { return cnB; }
+  cnA: function() { return _1; },
+  cnB: function() { return _2; }
 });
 // extracted by css-extract-rspack-plugin
-var cnA = ()=>"class-name-a";
-var cnB = ()=>"class-name-b";
+var _1 = ()=>"class-name-a";
+var _2 = ()=>"class-name-b";
+
 }),
 
 });
