@@ -81,7 +81,7 @@ export class Module {
 	}
 
 	get rawRequest(): string | undefined {
-		return this.rawRequest;
+		return this.#inner.rawRequest;
 	}
 
 	originalSource(): Source | null {
