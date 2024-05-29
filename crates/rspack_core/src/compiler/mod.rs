@@ -170,7 +170,7 @@ where
       .await
       .err()
     {
-      self.compilation.push_batch_diagnostic(vec![e.into()]);
+      self.compilation.extend_diagnostics(vec![e.into()]);
     }
     logger.time_end(make_hook_start);
     self.compilation.make().await?;
@@ -196,7 +196,7 @@ where
     let plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
     self
       .compilation
-      .push_batch_diagnostic(plugin_driver_diagnostics);
+      .extend_diagnostics(plugin_driver_diagnostics);
 
     Ok(())
   }

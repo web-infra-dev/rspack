@@ -165,6 +165,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
           .dependencies
           .push(Box::new(HarmonyImportSpecifierDependency::new(
             reference.request.clone(),
+            reference.specifier.name(),
             reference.source_order,
             true,
             ident.span.real_lo(),
@@ -185,6 +186,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
         .dependencies
         .push(Box::new(HarmonyImportSpecifierDependency::new(
           reference.request.clone(),
+          reference.specifier.name(),
           reference.source_order,
           false,
           ident.span.real_lo(),
@@ -239,6 +241,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
           .dependencies
           .push(Box::new(HarmonyImportSpecifierDependency::new(
             reference.request.clone(),
+            reference.specifier.name(),
             reference.source_order,
             false,
             callee.span().real_lo(),
@@ -285,6 +288,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
           .dependencies
           .push(Box::new(HarmonyImportSpecifierDependency::new(
             reference.request.clone(),
+            reference.specifier.name(),
             reference.source_order,
             false,
             member_expr.span.real_lo(),
@@ -360,6 +364,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
         .dependencies
         .push(Box::new(HarmonyImportSpecifierDependency::new(
           reference.request.clone(),
+          reference.specifier.name(),
           reference.source_order,
           false,
           start,

@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Debug};
 
 use derivative::Derivative;
 use rkyv::AlignedVec;
-use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
 use rspack_util::source_map::SourceMapKind;
@@ -78,6 +78,7 @@ pub struct GenerateContext<'a> {
   pub module_generator_options: Option<&'a GeneratorOptions>,
   pub runtime_requirements: &'a mut RuntimeGlobals,
   pub data: &'a mut CodeGenerationData,
+  pub diagnostics: &'a mut Vec<Diagnostic>,
   pub requested_source_type: SourceType,
   pub runtime: Option<&'a RuntimeSpec>,
   pub concatenation_scope: Option<&'a mut ConcatenationScope>,

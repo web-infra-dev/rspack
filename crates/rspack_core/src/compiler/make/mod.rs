@@ -120,7 +120,7 @@ pub fn make_module_graph(
 
   artifact = update_module_graph_with_artifact(compilation, artifact, params)?;
 
-  compilation.push_batch_diagnostic(std::mem::take(&mut artifact.diagnostics));
+  compilation.extend_diagnostics(std::mem::take(&mut artifact.diagnostics));
   Ok(artifact)
 }
 
@@ -133,7 +133,7 @@ pub async fn update_module_graph(
 
   artifact = update_module_graph_with_artifact(compilation, artifact, params)?;
 
-  compilation.push_batch_diagnostic(std::mem::take(&mut artifact.diagnostics));
+  compilation.extend_diagnostics(std::mem::take(&mut artifact.diagnostics));
   compilation.swap_make_artifact(&mut artifact);
   Ok(())
 }

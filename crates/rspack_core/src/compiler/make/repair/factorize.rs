@@ -247,11 +247,7 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       return Ok(vec![]);
     };
     let module_identifier = module.identifier();
-    let mut mgm = ModuleGraphModule::new(
-      module.identifier(),
-      *module.module_type(),
-      exports_info_related.exports_info.id,
-    );
+    let mut mgm = ModuleGraphModule::new(module.identifier(), exports_info_related.exports_info.id);
     mgm.set_issuer_if_unset(original_module_identifier);
 
     module_graph.set_exports_info(

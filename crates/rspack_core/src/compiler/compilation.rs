@@ -559,7 +559,7 @@ impl Compilation {
     self.diagnostics.splice(s..e, replace_with).collect()
   }
 
-  pub fn push_batch_diagnostic(&mut self, diagnostics: Vec<Diagnostic>) {
+  pub fn extend_diagnostics(&mut self, diagnostics: impl IntoIterator<Item = Diagnostic>) {
     self.diagnostics.extend(diagnostics);
   }
 
@@ -800,12 +800,16 @@ impl Compilation {
             }
           }
 
-          let runtimes = chunk_graph.get_module_runtimes(module_identifier, &self.chunk_by_ukey);
+          self.extend_diagnostics(result.diagnostics.clone());
+
+          let runtimes = self
+            .chunk_graph
+            .get_module_runtimes(module_identifier, &self.chunk_by_ukey);
           let result_id = result.id;
           self
             .code_generation_results
             .module_generation_result_map
-            .insert(result.id, result);
+            .insert(result_id, result);
           if used_exports_optimization {
             self
               .code_generation_results
@@ -866,7 +870,7 @@ impl Compilation {
 
     for result in chunk_ukey_and_manifest.into_iter() {
       let (chunk_ukey, manifest, diagnostics) = result?;
-      self.push_batch_diagnostic(diagnostics);
+      self.extend_diagnostics(diagnostics);
 
       for file_manifest in manifest {
         let filename = file_manifest.filename().to_string();

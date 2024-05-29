@@ -1,22 +1,27 @@
 use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, get_exports_type,
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
   ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyId,
-  DependencyTemplate, DependencyType, ExportInfoId, ExportInfoProvided, ExportNameOrSpec,
-  ExportSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId, ExportInfoProvided,
+  ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ExportsType,
   ExtendedReferencedExport, HarmonyExportInitFragment, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
   RuntimeGlobals, RuntimeSpec, Template, TemplateContext, TemplateReplaceSource, UsageState,
   UsedName,
 };
+use rspack_error::{miette::MietteDiagnostic, Diagnostic, DiagnosticExt, TraceableError};
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::Atom;
 
-use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
+use super::{
+  create_resource_identifier_for_esm_dependency,
+  harmony_import_dependency::harmony_import_dependency_get_linking_error,
+  harmony_import_dependency_apply,
+};
 
 // Create _webpack_require__.d(__webpack_exports__, {}).
 // case1: `import { a } from 'a'; export { a }`
@@ -37,6 +42,7 @@ pub struct HarmonyExportImportedSpecifierDependency {
   // pub all_star_exports: Option<Vec<DependencyId>>,
   pub other_star_exports: Option<Vec<DependencyId>>,
   pub export_all: bool,
+  span: ErrorSpan,
 }
 
 impl HarmonyExportImportedSpecifierDependency {
@@ -48,6 +54,7 @@ impl HarmonyExportImportedSpecifierDependency {
     name: Option<Atom>,
     export_all: bool,
     other_star_exports: Option<Vec<DependencyId>>,
+    span: ErrorSpan,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
@@ -60,6 +67,7 @@ impl HarmonyExportImportedSpecifierDependency {
       resource_identifier,
       export_all,
       other_star_exports,
+      span,
     }
   }
 
@@ -825,6 +833,121 @@ impl HarmonyExportImportedSpecifierDependency {
       return_value
     )
   }
+
+  fn get_conflicting_star_exports_errors(
+    &self,
+    ids: &[Atom],
+    module_graph: &ModuleGraph,
+  ) -> Option<Vec<Box<dyn rspack_error::miette::Diagnostic + Send + Sync>>> {
+    let create_error = |message: String| {
+      if let Some(span) = self.span()
+        && let Some(parent_module) = module_graph.get_parent_module(&self.id)
+        && let Some(parent_module) = module_graph.module_by_identifier(parent_module)
+        && let Some(source) = parent_module.original_source().map(|s| s.source())
+      {
+        TraceableError::from_file(
+          source.into_owned(),
+          span.start as usize,
+          span.end as usize,
+          "HarmonyLinkingError".to_string(),
+          message,
+        )
+        .boxed()
+      } else {
+        MietteDiagnostic::new(message)
+          .with_code("HarmonyLinkingError")
+          .boxed()
+      }
+    };
+
+    if ids.is_empty()
+      && self.name.is_none()
+      && let Some(potential_conflicts) =
+        self.discover_active_exports_from_other_star_exports(module_graph)
+      && potential_conflicts.names_slice > 0
+    {
+      let own_names = HashSet::from_iter(
+        &potential_conflicts.names[potential_conflicts.names_slice
+          ..potential_conflicts.dependency_indices[potential_conflicts.dependency_index]],
+      );
+      let Some(imported_module) = module_graph.get_module_by_dependency_id(&self.id) else {
+        return None;
+      };
+      let exports_info = module_graph.get_exports_info(&imported_module.identifier());
+      let mut conflicts: IndexMap<&str, Vec<&Atom>, BuildHasherDefault<FxHasher>> =
+        IndexMap::default();
+      for export_info_id in exports_info.get_ordered_exports() {
+        let export_info = export_info_id.get_export_info(module_graph);
+        if !matches!(export_info.provided, Some(ExportInfoProvided::True)) {
+          continue;
+        }
+        let Some(name) = &export_info.name else {
+          continue;
+        };
+        if name == "default" {
+          continue;
+        }
+        if self.active_exports(module_graph).contains(name) {
+          continue;
+        }
+        if own_names.contains(&name) {
+          continue;
+        }
+        let Some(conflicting_dependency) = find_dependency_for_name(
+          potential_conflicts.names.iter().map(|&n| n).enumerate(),
+          potential_conflicts.dependency_indices.iter(),
+          name,
+          self
+            .all_star_exports(module_graph)
+            .iter()
+            .filter_map(|id| module_graph.dependency_by_id(id))
+            .filter_map(|dep| dep.as_module_dependency()),
+        ) else {
+          continue;
+        };
+        let Some(target) = export_info.get_terminal_binding(module_graph) else {
+          continue;
+        };
+        let Some(conflicting_module) =
+          module_graph.get_module_by_dependency_id(conflicting_dependency.id())
+        else {
+          continue;
+        };
+        if conflicting_module == imported_module {
+          continue;
+        }
+        let Some(conflicting_export_info) =
+          module_graph.get_read_only_export_info(&conflicting_module.identifier(), name.to_owned())
+        else {
+          continue;
+        };
+        let Some(conflicting_target) = conflicting_export_info.get_terminal_binding(module_graph)
+        else {
+          continue;
+        };
+        if target == conflicting_target {
+          continue;
+        }
+        if let Some(list) = conflicts.get_mut(conflicting_dependency.request()) {
+          list.push(name);
+        } else {
+          conflicts.insert(conflicting_dependency.request(), vec![name]);
+        }
+      }
+      if !conflicts.is_empty() {
+        return Some(conflicts.iter().map(|(request, exports)| {
+          let msg = format!(
+            "The requested module '{}' contains conflicting star exports for the {} {} with the previous requested module '{request}'",
+            self.request(),
+            if exports.len() > 1 { "names" } else { "name" },
+            exports.iter().map(|e| format!("'{e}'")).collect::<Vec<_>>().join(", "),
+          );
+          create_error(msg)
+        }).collect());
+      }
+    }
+    None
+  }
 }
 
 #[derive(Debug)]
@@ -845,8 +968,31 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       compilation,
       runtime,
       concatenation_scope,
+      diagnostics,
       ..
     } = code_generatable_context;
+    let module_graph = compilation.get_module_graph();
+    let ids = self
+      .ids
+      .iter()
+      .map(|(a, b)| b.as_ref().unwrap_or(a))
+      .map(|id| id.clone())
+      .collect::<Vec<_>>();
+    if let Some(error) = harmony_import_dependency_get_linking_error(
+      self,
+      &ids,
+      &module_graph,
+      self
+        .name
+        .as_ref()
+        .map(|name| format!("(reexported as '{}')", name))
+        .unwrap_or_default(),
+    ) {
+      diagnostics.push(error.into());
+    }
+    if let Some(errors) = self.get_conflicting_star_exports_errors(&ids, &module_graph) {
+      diagnostics.extend(errors.into_iter().map(|e| Diagnostic::from(e)));
+    }
     let module_graph = compilation.get_module_graph();
     let mode = self.get_mode(self.name.clone(), &module_graph, &self.id, *runtime);
 
@@ -875,6 +1021,10 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
 impl Dependency for HarmonyExportImportedSpecifierDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    Some(self.span)
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -1285,4 +1435,24 @@ fn determine_export_assignments<'a>(
   }
 
   (names.into_iter().collect(), dependency_indices)
+}
+
+fn find_dependency_for_name<'a>(
+  names: impl Iterator<Item = (usize, &'a Atom)>,
+  mut dependency_indices: impl Iterator<Item = &'a usize>,
+  name: &Atom,
+  mut dependencies: impl Iterator<Item = &'a dyn ModuleDependency>,
+) -> Option<&'a dyn ModuleDependency> {
+  let mut idx = *dependency_indices.next()?;
+  let mut dependency = dependencies.next();
+  for (i, n) in names {
+    while i >= idx {
+      dependency = dependencies.next();
+      idx = *dependency_indices.next()?;
+    }
+    if n == name {
+      return dependency;
+    }
+  }
+  None
 }

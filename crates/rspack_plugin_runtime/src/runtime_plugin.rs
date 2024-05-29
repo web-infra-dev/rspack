@@ -24,8 +24,8 @@ use crate::runtime_module::{
   GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
   HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule,
   MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule, NonceRuntimeModule,
-  NormalRuntimeModule, OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
-  RelativeUrlRuntimeModule, RuntimeIdRuntimeModule, SystemContextRuntimeModule,
+  OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, RelativeUrlRuntimeModule,
+  RuntimeIdRuntimeModule, SystemContextRuntimeModule,
 };
 
 static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
@@ -204,17 +204,6 @@ fn runtime_requirements_in_tree(
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
-  if runtime_requirements.contains(RuntimeGlobals::EXPORT_STAR) {
-    compilation.add_runtime_module(
-      chunk_ukey,
-      NormalRuntimeModule::new(
-        RuntimeGlobals::EXPORT_STAR,
-        include_str!("runtime/common/_export_star.js"),
-      )
-      .boxed(),
-    )?
-  }
-
   if compilation.options.output.trusted_types.is_some() {
     if runtime_requirements.contains(RuntimeGlobals::LOAD_SCRIPT) {
       runtime_requirements_mut.insert(RuntimeGlobals::CREATE_SCRIPT_URL);

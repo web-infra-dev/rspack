@@ -9,12 +9,14 @@ use rspack_core::{property_access, ModuleReferenceOptions};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{common::Span, ecma::atoms::Atom};
 
+use super::harmony_import_dependency::harmony_import_dependency_get_linking_error;
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
 
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSpecifierDependency {
   id: DependencyId,
   request: Atom,
+  name: Atom,
   source_order: i32,
   shorthand: bool,
   start: u32,
@@ -33,6 +35,7 @@ impl HarmonyImportSpecifierDependency {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: Atom,
+    name: Atom,
     source_order: i32,
     shorthand: bool,
     start: u32,
@@ -47,6 +50,7 @@ impl HarmonyImportSpecifierDependency {
     Self {
       id: DependencyId::new(),
       request,
+      name,
       source_order,
       shorthand,
       start,
@@ -98,8 +102,18 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       compilation,
       runtime,
       concatenation_scope,
+      diagnostics,
       ..
     } = code_generatable_context;
+    let module_graph = compilation.get_module_graph();
+    if let Some(diagnostic) = harmony_import_dependency_get_linking_error(
+      self,
+      &self.get_ids(&module_graph)[..],
+      &module_graph,
+      format!("(imported as '{}')", self.name),
+    ) {
+      diagnostics.push(diagnostic.into());
+    }
     let module_graph = compilation.get_module_graph();
     // Only available when module factorization is successful.
     let reference_mgm = module_graph.module_graph_module_by_dependency_id(&self.id);

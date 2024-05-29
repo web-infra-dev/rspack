@@ -105,7 +105,7 @@ impl ModuleExecutor {
     }
 
     let diagnostics = std::mem::take(&mut self.make_artifact.diagnostics);
-    compilation.push_batch_diagnostic(diagnostics);
+    compilation.extend_diagnostics(diagnostics);
   }
 
   #[allow(clippy::too_many_arguments)]

@@ -3,6 +3,7 @@ use std::{
   fmt::Display,
   fs,
   hash::Hash,
+  ops::DerefMut,
   path::{Path, PathBuf, MAIN_SEPARATOR},
   sync::{Arc, Mutex},
 };
@@ -594,13 +595,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   compilation
     .context_dependencies
     .extend(context_dependencies);
-  compilation.push_batch_diagnostic(
+  compilation.extend_diagnostics(std::mem::take(
     diagnostics
       .lock()
       .expect("failed to obtain lock of `diagnostics`")
-      .drain(..)
-      .collect(),
-  );
+      .deref_mut(),
+  ));
 
   copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
   copied_result.into_iter().for_each(|(_priority, result)| {

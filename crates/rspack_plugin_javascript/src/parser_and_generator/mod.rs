@@ -300,7 +300,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     )
   }
 
-  #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
     source: &BoxSource,
@@ -322,6 +321,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         runtime: generate_context.runtime,
         concatenation_scope: generate_context.concatenation_scope.take(),
         data: generate_context.data,
+        diagnostics: generate_context.diagnostics,
       };
 
       module.get_dependencies().iter().for_each(|dependency_id| {

@@ -8,9 +8,6 @@ bitflags! {
   pub struct RuntimeGlobals: u64 {
     const REQUIRE_SCOPE = 1 << 0;
 
-    const EXPORT_STAR = 1 << 1;
-    // port from webpack RuntimeGlobals
-
     /**
      * the internal module object
      */
@@ -267,7 +264,6 @@ impl RuntimeGlobals {
     use RuntimeGlobals as R;
     match *self {
       R::REQUIRE_SCOPE => "__webpack_require__.*",
-      R::EXPORT_STAR => "es",
       R::MODULE => "module",
       R::MODULE_ID => "module.id",
       R::MODULE_LOADED => "module.loaded",

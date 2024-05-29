@@ -4,12 +4,16 @@ use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
-  AwaitDependenciesInitFragment, ConditionalInitFragment, ConnectionState, Dependency,
-  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ExtendedReferencedExport, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleIdentifier, RuntimeCondition, TemplateContext, TemplateReplaceSource,
+  AwaitDependenciesInitFragment, BuildMetaDefaultObject, Compilation, ConditionalInitFragment,
+  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyId,
+  DependencyTemplate, DependencyType, ErrorSpan, ExportsType, ExtendedReferencedExport,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleIdentifier,
+  RuntimeCondition, TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
+use rspack_error::miette::MietteDiagnostic;
+use rspack_error::{miette::Diagnostic, TraceableError};
+use rspack_error::{Diagnosable, DiagnosticExt, Error};
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
@@ -41,6 +45,16 @@ pub enum Specifier {
   Namespace(Atom),
   Default(Atom),
   Named(Atom, Option<Atom>),
+}
+
+impl Specifier {
+  pub fn name(&self) -> Atom {
+    match self {
+      Specifier::Namespace(name) => name.clone(),
+      Specifier::Default(name) => name.clone(),
+      Specifier::Named(a, b) => b.as_ref().unwrap_or(a).clone(),
+    }
+  }
 }
 
 // HarmonyImportDependency is merged HarmonyImportSideEffectDependency.
@@ -197,6 +211,119 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       runtime_condition,
     )));
   }
+}
+
+pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
+  module_dependency: &T,
+  ids: &[Atom],
+  module_graph: &ModuleGraph,
+  additional_msg: String,
+) -> Option<Box<dyn Diagnostic + Send + Sync + 'static>> {
+  let Some(imported_module) = module_graph.get_module_by_dependency_id(module_dependency.id())
+  else {
+    return None;
+  };
+  if !imported_module.get_diagnostics().is_empty() {
+    return None;
+  }
+  let parent_module = module_graph
+    .get_parent_module(module_dependency.id())
+    .expect("should have parent module for dependency");
+  let parent_module = module_graph
+    .module_by_identifier(parent_module)
+    .expect("should have module");
+  let exports_type = imported_module.get_exports_type_readonly(
+    &module_graph,
+    parent_module
+      .build_meta()
+      .expect("should have build_meta")
+      .strict_harmony_module,
+  );
+  let create_error = |message: String| {
+    if let Some(span) = module_dependency.span()
+      && let Some(source) = parent_module.original_source().map(|s| s.source())
+    {
+      TraceableError::from_file(
+        source.into_owned(),
+        span.start as usize,
+        span.end as usize,
+        "HarmonyLinkingError".to_string(),
+        message,
+      )
+      .boxed()
+    } else {
+      MietteDiagnostic::new(message)
+        .with_code("HarmonyLinkingError")
+        .boxed()
+    }
+  };
+  if matches!(
+    exports_type,
+    ExportsType::Namespace | ExportsType::DefaultWithNamed
+  ) {
+    if ids.is_empty() {
+      return None;
+    }
+    if (!matches!(exports_type, ExportsType::DefaultWithNamed) || ids[0] != "default")
+      && matches!(
+        module_graph.is_export_provided(&imported_module.identifier(), ids),
+        Some(false)
+      )
+    {
+      let msg = format!(
+        "export {} {} was not found in '{}'",
+        ids
+          .iter()
+          .map(|id| format!("'{id}'"))
+          .collect::<Vec<_>>()
+          .join("'.'"),
+        additional_msg,
+        module_dependency.user_request()
+      );
+      return Some(create_error(msg));
+    }
+  }
+  match exports_type {
+    ExportsType::DefaultOnly => {
+      if !ids.is_empty() && ids[0] != "default" {
+        let msg = format!(
+          "Can't import the named export {} {} from default-exporting module (only default export is available)",
+          ids
+            .iter()
+            .map(|id| format!("'{id}'"))
+            .collect::<Vec<_>>()
+            .join("'.'"),
+          additional_msg,
+        );
+        return Some(create_error(msg));
+      }
+    }
+    ExportsType::DefaultWithNamed => {
+      if !ids.is_empty()
+        && ids[0] != "default"
+        && matches!(
+          imported_module
+            .build_meta()
+            .expect("should have build_meta")
+            .default_object,
+          BuildMetaDefaultObject::RedirectWarn
+        )
+      {
+        let msg = format!(
+          "Should not import the named export {} {} from default-exporting module (only default export is available soon)",
+          ids
+            .iter()
+            .map(|id| format!("'{id}'"))
+            .collect::<Vec<_>>()
+            .join("'.'"),
+          additional_msg,
+        );
+        return Some(create_error(msg));
+      }
+    }
+    _ => {}
+  }
+  None
 }
 
 impl Dependency for HarmonyImportSideEffectDependency {
