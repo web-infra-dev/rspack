@@ -1,39 +1,39 @@
 ```css title=main.css
-.___f_module____f-1--___af10a85c64a6b515_af1 {
+.\.\/_f\.module_\.\/_f-1--\/__af10a85c64a6b515\<af1 {
     color: black;
 }
-.___f_module____f--___af10a85c64a6b515_af1 {
+.\.\/_f\.module_\.\/_f--\/__af10a85c64a6b515\<af1 {
     
 }
 
-.___d_module____d-1--___a41e34edaa1ca3c_a41 {
+.\.\/_d\.module_\.\/_d-1--\/__a41e34edaa1ca3c\<a41 {
     color: green;
 }
 
-.___d_module____d--___a41e34edaa1ca3c_a41 {
+.\.\/_d\.module_\.\/_d--\/__a41e34edaa1ca3c\<a41 {
     
 }
 
-.___b_module____b-1--___eca6dd2253f6b569_eca {
+.\.\/_b\.module_\.\/_b-1--\/__eca6dd2253f6b569\<eca {
     color: red;
 }
-.___b_module____b--___eca6dd2253f6b569_eca {
+.\.\/_b\.module_\.\/_b--\/__eca6dd2253f6b569\<eca {
     
 }
-.___style_module____chain2--___afc435275e612570_afc {
+.\.\/_style\.module_\.\/_chain2--\/__afc435275e612570\<afc {
   
   
   background: blue;
 }
 
-.___style_module____chain1--___afc435275e612570_afc {
+.\.\/_style\.module_\.\/_chain1--\/__afc435275e612570\<afc {
   
   
   
   background: green;
 }
 
-.___style_module____root-class--___afc435275e612570_afc {
+.\.\/_style\.module_\.\/_root-class--\/__afc435275e612570\<afc {
   
   
   
@@ -53,27 +53,27 @@ __webpack_require__.r(__webpack_exports__);
 }),
 "./b.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
 __webpack_require__.r(module.exports = {
-  "b-1": "___b_module____b-1--___eca6dd2253f6b569_eca",
-  "b": "___b_module____b--___eca6dd2253f6b569_eca" + " " + "___b_module____b-1--___eca6dd2253f6b569_eca",
+  "b-1": "./_b.module_./_b-1--/__eca6dd2253f6b569<eca",
+  "b": "./_b.module_./_b--/__eca6dd2253f6b569<eca" + " " + "./_b.module_./_b-1--/__eca6dd2253f6b569<eca",
 });
 }),
 "./d.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
 __webpack_require__.r(module.exports = {
-  "d-1": "___d_module____d-1--___a41e34edaa1ca3c_a41",
-  "d": "___d_module____d--___a41e34edaa1ca3c_a41" + " " + "___d_module____d-1--___a41e34edaa1ca3c_a41",
+  "d-1": "./_d.module_./_d-1--/__a41e34edaa1ca3c<a41",
+  "d": "./_d.module_./_d--/__a41e34edaa1ca3c<a41" + " " + "./_d.module_./_d-1--/__a41e34edaa1ca3c<a41",
 });
 }),
 "./f.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
 __webpack_require__.r(module.exports = {
-  "f-1": "___f_module____f-1--___af10a85c64a6b515_af1",
-  "f": "___f_module____f--___af10a85c64a6b515_af1" + " " + "___f_module____f-1--___af10a85c64a6b515_af1",
+  "f-1": "./_f.module_./_f-1--/__af10a85c64a6b515<af1",
+  "f": "./_f.module_./_f--/__af10a85c64a6b515<af1" + " " + "./_f.module_./_f-1--/__af10a85c64a6b515<af1",
 });
 }),
 "./style.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
 __webpack_require__.r(module.exports = {
-  "chain2": "___style_module____chain2--___afc435275e612570_afc" + " " + "e" + " " + __webpack_require__("./f.module.css")["f"],
-  "chain1": "___style_module____chain1--___afc435275e612570_afc" + " " + "___style_module____chain2--___afc435275e612570_afc" + " " + "e" + " " + __webpack_require__("./f.module.css")["f"] + " " + "c" + " " + __webpack_require__("./d.module.css")["d"],
-  "root-class": "___style_module____root-class--___afc435275e612570_afc" + " " + "___style_module____chain1--___afc435275e612570_afc" + " " + "___style_module____chain2--___afc435275e612570_afc" + " " + "e" + " " + __webpack_require__("./f.module.css")["f"] + " " + "c" + " " + __webpack_require__("./d.module.css")["d"] + " " + "a" + " " + __webpack_require__("./b.module.css")["b"],
+  "chain2": "./_style.module_./_chain2--/__afc435275e612570<afc" + " " + "e" + " " + __webpack_require__("./f.module.css")["f"],
+  "chain1": "./_style.module_./_chain1--/__afc435275e612570<afc" + " " + "./_style.module_./_chain2--/__afc435275e612570<afc" + " " + "e" + " " + __webpack_require__("./f.module.css")["f"] + " " + "c" + " " + __webpack_require__("./d.module.css")["d"],
+  "root-class": "./_style.module_./_root-class--/__afc435275e612570<afc" + " " + "./_style.module_./_chain1--/__afc435275e612570<afc" + " " + "./_style.module_./_chain2--/__afc435275e612570<afc" + " " + "e" + " " + __webpack_require__("./f.module.css")["f"] + " " + "c" + " " + __webpack_require__("./d.module.css")["d"] + " " + "a" + " " + __webpack_require__("./b.module.css")["b"],
 });
 }),
 

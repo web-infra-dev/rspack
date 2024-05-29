@@ -74,20 +74,19 @@ impl<'a> LocalIdentOptions<'a> {
         // TODO: should be moduleId, but we don't have it at parse,
         // and it's lots of work to move css module compile to generator,
         // so for now let's use hash for compatibility.
-        .id(if self.compiler_options.mode.is_development() {
-          &self.relative_resource
-        } else {
-          &hash
-        }),
+        .id(&PathData::prepare_id(
+          if self.compiler_options.mode.is_development() {
+            &self.relative_resource
+          } else {
+            &hash
+          },
+        )),
       local,
       unique_name: &output.unique_name,
     }
     .render_local_ident_name(self.local_name_ident)
   }
 }
-
-static ESCAPE_LOCAL_IDENT_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r#"[<>:"/\\|?*\.]"#).expect("Invalid regex"));
 
 struct LocalIdentNameRenderOptions<'a> {
   path_data: PathData<'a>,
@@ -102,10 +101,17 @@ impl LocalIdentNameRenderOptions<'_> {
       .render(self.path_data, None)
       .always_ok();
     s = s.replace("[uniqueName]", self.unique_name);
-    s = ESCAPE_LOCAL_IDENT_REGEX.replace_all(&s, "_").into_owned();
-    s = s.replace("[local]", self.local);
+    s = escape_css_ident(&s);
+    s = s.replace(r"\[local\]", self.local); // [local] is escaped to \[local\]
     s
   }
+}
+
+static UNESCAPE_CSS_IDENT_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
+
+pub fn escape_css_ident(s: &str) -> String {
+  UNESCAPE_CSS_IDENT_REGEX.replace_all(s, "\\$1").into_owned()
 }
 
 pub(crate) fn export_locals_convention(

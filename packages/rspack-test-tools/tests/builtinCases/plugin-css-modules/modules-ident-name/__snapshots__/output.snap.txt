@@ -1,5 +1,5 @@
 ```css title=main.css
-.___style_module____foo--___afc435275e612570_afc {
+.\.\/_style\.module_\.\/_foo--\/__afc435275e612570\<afc {
     color: hotpink;
 }
 
@@ -16,7 +16,7 @@ console.log(_style_module_css__WEBPACK_IMPORTED_MODULE_0__);
 }),
 "./style.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
 __webpack_require__.r(module.exports = {
-  "foo": "___style_module____foo--___afc435275e612570_afc",
+  "foo": "./_style.module_./_foo--/__afc435275e612570<afc",
 });
 }),
 
