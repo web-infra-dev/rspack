@@ -1571,6 +1571,8 @@ const cssChunkFilename: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.Zod
 // @public (undocumented)
 export interface CssExtractRspackLoaderOptions {
     // (undocumented)
+    defaultExport?: boolean;
+    // (undocumented)
     emit?: boolean;
     // (undocumented)
     esModule?: boolean;
