@@ -20,7 +20,7 @@ See [documentation](./website/README.md).
 
 ## Getting help
 
-If you have any questions, please do not hesitate to ask in either the [Discord][discord] support channel or on the [Github discussion board][github-discussion].
+If you have any questions, please do not hesitate to ask in either the [Discord][discord] support channel or on the [GitHub discussion board][github-discussion].
 
 [discord]: https://discord.gg/79ZZ66GH9E
 [github-discussion]: https://github.com/web-infra-dev/rspack/discussions
