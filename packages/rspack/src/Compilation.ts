@@ -156,6 +156,10 @@ export class Compilation {
 		}
 	};
 
+	/**
+	 * Records the dynamically added fields for Module on the JavaScript side, using the Module identifier for association.
+	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
+	 */
 	#customModules: Record<
 		string,
 		{
@@ -371,7 +375,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	getCustomModule(moduleIdentifier: string) {
+	__getCustomModule(moduleIdentifier: string) {
 		let module = this.#customModules[moduleIdentifier];
 		if (!module) {
 			module = this.#customModules[moduleIdentifier] = {

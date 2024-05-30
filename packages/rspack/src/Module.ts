@@ -55,7 +55,18 @@ export class Module {
 	userRequest?: string;
 	rawRequest?: string;
 
+	/**
+	 * Records the dynamically added fields for Module on the JavaScript side.
+	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
+	 * @see {@link Compilation#customModules}
+	 */
 	buildInfo: Record<string, any>;
+
+	/**
+	 * Records the dynamically added fields for Module on the JavaScript side.
+	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
+	 * @see {@link Compilation#customModules}
+	 */
 	buildMeta: Record<string, any>;
 
 	static __from_binding(module: JsModule, compilation?: Compilation) {
@@ -70,7 +81,9 @@ export class Module {
 		this.userRequest = module.userRequest;
 		this.rawRequest = module.rawRequest;
 
-		const customModule = compilation?.getCustomModule(module.moduleIdentifier);
+		const customModule = compilation?.__getCustomModule(
+			module.moduleIdentifier
+		);
 		this.buildInfo = customModule?.buildInfo || {};
 		this.buildMeta = customModule?.buildMeta || {};
 	}
