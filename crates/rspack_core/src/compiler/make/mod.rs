@@ -15,12 +15,14 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct MakeArtifact {
-  // should be reset when make
-  pub make_failed_dependencies: HashSet<BuildDependency>,
-  pub make_failed_module: HashSet<ModuleIdentifier>,
+  // temporary data, used by subsequent steps of make
+  // should be reset when rebuild
   pub diagnostics: Vec<Diagnostic>,
   pub has_module_graph_change: bool,
 
+  // data
+  pub make_failed_dependencies: HashSet<BuildDependency>,
+  pub make_failed_module: HashSet<ModuleIdentifier>,
   pub module_graph_partial: ModuleGraphPartial,
   entry_dependencies: HashSet<DependencyId>,
   pub entry_module_identifiers: IdentifierSet,
@@ -44,6 +46,10 @@ impl MakeArtifact {
   // TODO remove it
   pub fn get_module_graph_partial_mut(&mut self) -> &mut ModuleGraphPartial {
     &mut self.module_graph_partial
+  }
+
+  pub fn take_diagnostics(&mut self) -> Vec<Diagnostic> {
+    std::mem::take(&mut self.diagnostics)
   }
 
   fn revoke_modules(&mut self, ids: HashSet<ModuleIdentifier>) -> Vec<BuildDependency> {
@@ -83,7 +89,7 @@ pub enum MakeParam {
 }
 
 pub fn make_module_graph(
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   mut artifact: MakeArtifact,
 ) -> Result<MakeArtifact> {
   let mut params = Vec::with_capacity(5);
@@ -117,28 +123,11 @@ pub fn make_module_graph(
   // reset diagnostics
   artifact.diagnostics = Default::default();
   artifact.has_module_graph_change = false;
-
-  artifact = update_module_graph_with_artifact(compilation, artifact, params)?;
-
-  compilation.extend_diagnostics(std::mem::take(&mut artifact.diagnostics));
+  artifact = update_module_graph(compilation, artifact, params)?;
   Ok(artifact)
 }
 
-pub async fn update_module_graph(
-  compilation: &mut Compilation,
-  params: Vec<MakeParam>,
-) -> Result<()> {
-  let mut artifact = MakeArtifact::default();
-  compilation.swap_make_artifact(&mut artifact);
-
-  artifact = update_module_graph_with_artifact(compilation, artifact, params)?;
-
-  compilation.extend_diagnostics(std::mem::take(&mut artifact.diagnostics));
-  compilation.swap_make_artifact(&mut artifact);
-  Ok(())
-}
-
-pub fn update_module_graph_with_artifact(
+pub fn update_module_graph(
   compilation: &Compilation,
   mut artifact: MakeArtifact,
   params: Vec<MakeParam>,

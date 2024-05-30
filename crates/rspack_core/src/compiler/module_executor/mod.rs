@@ -18,9 +18,7 @@ use self::{
   execute::{ExecuteModuleResult, ExecuteTask},
   overwrite::OverwriteTask,
 };
-use super::make::{
-  repair::MakeTaskContext, update_module_graph_with_artifact, MakeArtifact, MakeParam,
-};
+use super::make::{repair::MakeTaskContext, update_module_graph, MakeArtifact, MakeParam};
 use crate::{
   task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context, Dependency,
   DependencyId, EntryDependency,
@@ -54,12 +52,11 @@ impl ModuleExecutor {
     }
     make_artifact.diagnostics = Default::default();
 
-    make_artifact =
-      if let Ok(artifact) = update_module_graph_with_artifact(compilation, make_artifact, params) {
-        artifact
-      } else {
-        MakeArtifact::default()
-      };
+    make_artifact = if let Ok(artifact) = update_module_graph(compilation, make_artifact, params) {
+      artifact
+    } else {
+      MakeArtifact::default()
+    };
 
     let mut ctx = MakeTaskContext::new(compilation, make_artifact);
     let (event_sender, event_receiver) = unbounded_channel();
@@ -85,7 +82,7 @@ impl ModuleExecutor {
     });
   }
 
-  pub async fn hook_before_process_assets(&mut self, compilation: &mut Compilation) {
+  pub async fn hook_after_finish_modules(&mut self, compilation: &mut Compilation) {
     let sender = std::mem::take(&mut self.event_sender);
     sender
       .expect("should have sender")
@@ -104,7 +101,7 @@ impl ModuleExecutor {
       compilation.emit_asset(filename, asset);
     }
 
-    let diagnostics = std::mem::take(&mut self.make_artifact.diagnostics);
+    let diagnostics = self.make_artifact.take_diagnostics();
     compilation.extend_diagnostics(diagnostics);
   }
 
