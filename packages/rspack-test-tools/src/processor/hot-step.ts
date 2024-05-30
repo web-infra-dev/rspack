@@ -1,8 +1,8 @@
-import { Chunk, StatsCompilation } from "@rspack/core";
+import { Chunk } from "@rspack/core";
 import fs from "fs-extra";
 import path from "path";
 
-import { escapeEOL, escapeSep, isUpdateSnapshot } from "../helper";
+import { escapeEOL, escapeSep } from "../helper";
 import { THotStepRuntimeData } from "../runner";
 import {
 	ECompilerType,
@@ -358,12 +358,6 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 
 				`.trim();
 
-		if (!fs.existsSync(snapshotPath) || isUpdateSnapshot()) {
-			fs.ensureDirSync(path.dirname(snapshotPath));
-			fs.writeFileSync(snapshotPath, content, "utf-8");
-			return;
-		}
-		const snapshotContent = escapeEOL(fs.readFileSync(snapshotPath, "utf-8"));
-		env.expect(content).toBe(snapshotContent);
+		expect(escapeEOL(content)).toMatchFileSnapshot(snapshotPath);
 	}
 }

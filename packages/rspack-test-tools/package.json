@@ -27,7 +27,8 @@
   "files": [
     "client",
     "dist",
-    "template"
+    "template",
+    "jest.d.ts"
   ],
   "publishConfig": {
     "access": "public"

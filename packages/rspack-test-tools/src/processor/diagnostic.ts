@@ -1,8 +1,7 @@
 import assert from "assert";
-import fs from "fs";
 import path from "path";
 
-import { escapeEOL, isUpdateSnapshot } from "../helper";
+import { escapeEOL } from "../helper";
 import {
 	ECompilerType,
 	ITestContext,
@@ -58,12 +57,7 @@ export class DiagnosticProcessor<
 		const errorOutputPath = path.resolve(
 			context.getSource(this._diagnosticOptions.snapshot)
 		);
-		if (!fs.existsSync(errorOutputPath) || isUpdateSnapshot()) {
-			fs.writeFileSync(errorOutputPath, escapeEOL(output));
-		} else {
-			const expectContent = fs.readFileSync(errorOutputPath, "utf-8");
-			env.expect(escapeEOL(output)).toBe(escapeEOL(expectContent));
-		}
+		env.expect(escapeEOL(output)).toMatchFileSnapshot(errorOutputPath);
 	}
 
 	static defaultOptions<T extends ECompilerType>(
