@@ -52,7 +52,8 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   let decs = entry_fn().await?;
   for EntryDynamicResult { import, options } in decs {
     for entry in import {
-      let dependency: BoxDependency = Box::new(EntryDependency::new(entry, self.context.clone()));
+      let dependency: BoxDependency =
+        Box::new(EntryDependency::new(entry, self.context.clone(), false));
       compilation.add_entry(dependency, options.clone()).await?;
     }
   }
