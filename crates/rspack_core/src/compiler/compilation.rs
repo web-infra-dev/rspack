@@ -951,15 +951,14 @@ impl Compilation {
     // 1. after finish_modules: has provide exports info
     // 2. before optimize dependencies: side effects free module hasn't been skipped (move_target)
     let module_graph = self.get_module_graph();
-    let mut diagnostics = Vec::new();
-    for (_, mgm) in module_graph.module_graph_modules() {
-      for dependency_id in &mgm.all_dependencies {
-        let Some(dependency) = module_graph.dependency_by_id(dependency_id) else {
-          continue;
-        };
-        dependency.get_diagnostics(&module_graph, &mut diagnostics);
-      }
-    }
+    let diagnostics: Vec<_> = module_graph
+      .module_graph_modules()
+      .par_iter()
+      .flat_map(|(_, mgm)| &mgm.all_dependencies)
+      .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
+      .filter_map(|dependency| dependency.get_diagnostics(&module_graph))
+      .flat_map(|ds| ds)
+      .collect();
     self.extend_diagnostics(diagnostics);
     logger.time_end(start);
     let diagnostics = self.make_artifact.take_diagnostics();

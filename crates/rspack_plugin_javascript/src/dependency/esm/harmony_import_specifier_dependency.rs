@@ -262,13 +262,9 @@ impl Dependency for HarmonyImportSpecifierDependency {
     Some(&self.resource_identifier)
   }
 
-  fn get_diagnostics(&self, module_graph: &ModuleGraph, diagnostics: &mut Vec<Diagnostic>) {
-    let Some(module) = module_graph.get_parent_module(&self.id) else {
-      return;
-    };
-    let Some(module) = module_graph.module_by_identifier(module) else {
-      return;
-    };
+  fn get_diagnostics(&self, module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+    let module = module_graph.get_parent_module(&self.id)?;
+    let module = module_graph.module_by_identifier(module)?;
     if let Some(should_error) = self
       .export_presence_mode
       .get_effective_export_presence(&**module)
@@ -280,8 +276,9 @@ impl Dependency for HarmonyImportSpecifierDependency {
         should_error,
       )
     {
-      diagnostics.push(diagnostic);
+      return Some(vec![diagnostic]);
     }
+    None
   }
 }
 
