@@ -959,6 +959,11 @@ interface CommonJsConfig extends BaseModuleConfig {
 // @public (undocumented)
 export class Compilation {
     constructor(compiler: Compiler, inner: JsCompilation);
+    // (undocumented)
+    __getCustomModule(moduleIdentifier: string): {
+        buildInfo: Record<string, unknown>;
+        buildMeta: Record<string, unknown>;
+    };
     // @internal
     __internal__deleteAssetSource(filename: string): void;
     // @internal
@@ -1048,11 +1053,6 @@ export class Compilation {
     getAssets(): ReadonlyArray<Asset>;
     // (undocumented)
     getCache(name: string): libCacheFacade;
-    // (undocumented)
-    getCustomModule(moduleIdentifier: string): {
-        buildInfo: Record<string, unknown>;
-        buildMeta: Record<string, unknown>;
-    };
     // (undocumented)
     getLogger(name: string | (() => string)): Logger;
     // (undocumented)
@@ -4910,9 +4910,7 @@ export class Module {
     constructor(module: JsModule, compilation?: Compilation);
     // (undocumented)
     static __from_binding(module: JsModule, compilation?: Compilation): Module;
-    // (undocumented)
     buildInfo: Record<string, any>;
-    // (undocumented)
     buildMeta: Record<string, any>;
     // (undocumented)
     context?: string;
