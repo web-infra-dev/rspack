@@ -100,7 +100,13 @@ pub fn stringify_map<T: Display>(map: &HashMap<String, T>) -> String {
       .keys()
       .sorted_unstable()
       .fold(String::new(), |prev, cur| {
-        prev + format!(r#""{}": {},"#, cur, map.get(cur).expect("get key from map")).as_str()
+        prev
+          + format!(
+            r#"{}: {},"#,
+            serde_json::to_string(cur).expect("json stringify failed"),
+            map.get(cur).expect("get key from map")
+          )
+          .as_str()
       })
   )
 }
