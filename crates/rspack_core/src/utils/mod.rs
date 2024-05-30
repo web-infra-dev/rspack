@@ -150,8 +150,8 @@ pub fn compare_modules_by_pre_order_index_or_identifier(
   a: &Identifier,
   b: &Identifier,
 ) -> std::cmp::Ordering {
-  if let Some(a) = module_graph.get_pre_order_index(&a)
-    && let Some(b) = module_graph.get_pre_order_index(&b)
+  if let Some(a) = module_graph.get_pre_order_index(a)
+    && let Some(b) = module_graph.get_pre_order_index(b)
   {
     compare_numbers(a, b)
   } else {
