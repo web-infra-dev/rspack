@@ -125,6 +125,7 @@ impl ModuleExecutor {
         let dep = EntryDependency::new(
           request.clone(),
           original_module_context.unwrap_or(Context::from("")),
+          false,
         );
         let dep_id = *dep.id();
         v.insert(dep_id);
