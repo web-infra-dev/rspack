@@ -1,12 +1,102 @@
 # Migrate webpack
 
-While Rspack is aimed at maximizing compatibility with Webpack API contracts, some minor changes are necessary to accommodate differences in implementation, as well as enabling optimizations by replacing some plugins/loaders with Rspack's built-in equivalents.
+This chapter introduces how to migrate projects using webpack to Rspack.
 
-## Configuration Migration
+This document is primarily aimed at projects using webpack v5. Since Rspack's API and configuration align with webpack v5, migrating from webpack v5 to Rspack will be relatively easy.
 
-You can refer to ["Webpack configuration compatibility"](/guide/compatibility/config-diff) for configuration migration.
+For projects not using webpack v5, there are other migration guides that can be referenced:
 
-## Modify Loader
+- For projects using webpack v4 or earlier versions, you can refer to [webpack - To v5 from v4](https://webpack.js.org/migrate/5/) to understand the differences.
+- For projects using create-react-app or CRACO, you can refer to [Migrating Create React App](/guide/migration/cra).
+- For projects using Vue CLI, you can refer to [Rsbuild - Migrating from Vue CLI](https://rsbuild.dev/guide/migration/vue-cli).
+
+## Notes
+
+- The supported Node.js version for Rspack is >= 16. If you are still using an older version of Node.js, please upgrade first.
+- Rspack is designed to be as compatible as possible with common webpack APIs and configurations, but some differences are inevitable. You can read Rspack's documentation to understand the differences in each API and configuration.
+- Some functionalities in Rspack have more efficient implementations. If you adopt the recommended practices of Rspack, you will achieve more significant performance improvements.
+
+## Install Dependencies
+
+First, you need to replace the webpack-related npm dependencies with those of Rspack.
+
+import { PackageManagerTabs } from '@theme';
+
+- Remove the webpack dependencies:
+
+<PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />
+
+- Install the Rspack dependencies:
+
+<PackageManagerTabs command="add @rspack/core @rspack/cli -D" />
+
+Here are the mapping relationships for some common npm packages:
+
+- `webpack` -> `@rspack/core`
+- `webpack-cli` -> `@rspack/cli`
+- `webpack-dev-server` -> `@rspack/dev-server`
+- `@pmmmwh/react-refresh-webpack-plugin` -> `@rspack/plugin-react-refresh`
+
+## Update npm scripts
+
+Next, you need to update the npm scripts in the package.json file to Rspack's CLI commands.
+
+```diff title="package.json"
+{
+  "scripts": {
+-   "serve": "webpack serve -c webpack.config.js",
+-   "build": "webpack build -c webpack.config.js",
++   "serve": "rspack serve -c rspack.config.js",
++   "build": "rspack build -c rspack.config.js",
+  }
+}
+```
+
+## Configuration File
+
+Please rename the `webpack.config.js` file to `rspack.config.js`.
+
+Rspack offers configurations similar to webpack. You can refer to [Configure Rspack](/config/index) to see the configurations supported by Rspack.
+
+## Built-in Plugins
+
+Rspack has implemented most of webpack's built-in plugins. They maintain the same naming and configuration parameters as closely as possible and provide the same features.
+
+For example, replacing [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin) with the original configuration would look like this:
+
+```js title="webpack.config.js"
+const webpack = require('webpack');
+
+const isDev = process.env.NODE_ENV === 'development';
+
+module.exports = {
+  plugins: [isDev && new webpack.HotModuleReplacementPlugin()].filter(Boolean),
+};
+```
+
+In Rspack, it can be replaced with:
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+const isDev = process.env.NODE_ENV === 'development';
+
+module.exports = {
+  plugins: [isDev && new rspack.HotModuleReplacementPlugin()].filter(Boolean),
+};
+```
+
+You can refer to [webpack aligned built-in plugins](/plugins/webpack/index) to understand which webpack built-in plugins are supported by Rspack.
+
+## Community Plugins
+
+Rspack supports most of the webpack community plugins and also offers alternative solutions for some currently unsupported plugins.
+
+You can refer to [Plugin compat](/guide/compatibility/plugin) to understand the compatibility status of some commonly community plugins in Rspack.
+
+## Handle Loaders
+
+Rspack supports most of the webpack loaders. Below are some examples of migrating loaders. By referring to these examples for replacement, you can achieve more significant performance improvements.
 
 ### Removing babel-loader
 
