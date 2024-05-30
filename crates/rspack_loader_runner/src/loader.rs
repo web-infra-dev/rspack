@@ -288,7 +288,7 @@ impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
 }
 
 static PATH_QUERY_FRAGMENT_REGEXP: Lazy<Regex> = Lazy::new(|| {
-  Regex::new("^((?:\0.|[^?#\0])*)(\\?(?:\0.|[^#\0])*)?(#.*)?$")
+  Regex::new("^((?:\u{200b}.|[^?#\u{200b}])*)(\\?(?:\u{200b}.|[^#\u{200b}])*)?(#.*)?$")
     .expect("Failed to initialize `PATH_QUERY_FRAGMENT_REGEXP`")
 });
 
@@ -412,6 +412,42 @@ pub(crate) mod test {
     }
   }
 
+  pub(crate) struct PosixNonLenBlankUnicode;
+
+  #[async_trait::async_trait]
+  impl Loader<()> for PosixNonLenBlankUnicode {
+    async fn run(&self, _loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+      Ok(())
+    }
+    async fn pitch(&self, _loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+      Ok(())
+    }
+  }
+
+  impl Identifiable for PosixNonLenBlankUnicode {
+    fn identifier(&self) -> Identifier {
+      "/a/b/c.js?{\"c\": \"\u{200b}#foo\"}$/d/e/f.js?{\"c\": \"\u{200b}#baz\"}".into()
+    }
+  }
+
+  pub(crate) struct WinNonLenBlankUnicode;
+
+  #[async_trait::async_trait]
+  impl Loader<()> for WinNonLenBlankUnicode {
+    async fn run(&self, _loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+      Ok(())
+    }
+    async fn pitch(&self, _loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+      Ok(())
+    }
+  }
+
+  impl Identifiable for WinNonLenBlankUnicode {
+    fn identifier(&self) -> Identifier {
+      "\\a\\b\\c.js?{\"c\": \"\u{200b}#foo\"}$\\d\\e\\f.js?{\"c\": \"\u{200b}#baz\"}".into()
+    }
+  }
+
   #[test]
   fn should_extract_and_compose_loader_info_correctly() {
     let c1 = Arc::new(Custom) as Arc<dyn Loader<()>>;
@@ -461,5 +497,35 @@ pub(crate) mod test {
     let l = vec![l, c2.into()];
     let ll = LoaderItemList(&l[..]);
     assert_eq!(ll.to_string(), ident1.to_string() + "!" + ident2.as_str());
+  }
+
+  #[test]
+  fn should_handle_posix_non_len_blank_unicode_correctly() {
+    let c1 = Arc::new(PosixNonLenBlankUnicode) as Arc<dyn Loader<()>>;
+    let l: LoaderItem<()> = c1.into();
+    let items = l.data.try_as_composed().unwrap();
+    assert_eq!(items.len(), 2);
+    assert_eq!(items[0].path, "/a/b/c.js".into());
+    assert_eq!(items[0].query, Some("?{\"c\": \"\u{200b}#foo\"}".into()));
+    assert_eq!(items[1].fragment, None);
+
+    assert_eq!(items[1].path, "/d/e/f.js".into());
+    assert_eq!(items[1].query, Some("?{\"c\": \"\u{200b}#baz\"}".into()));
+    assert_eq!(items[1].fragment, None);
+  }
+
+  #[test]
+  fn should_handle_win_non_len_blank_unicode_correctly() {
+    let c1 = Arc::new(WinNonLenBlankUnicode) as Arc<dyn Loader<()>>;
+    let l: LoaderItem<()> = c1.into();
+    let items = l.data.try_as_composed().unwrap();
+    assert_eq!(items.len(), 2);
+    assert_eq!(items[0].path, r#"\a\b\c.js"#.into());
+    assert_eq!(items[0].query, Some("?{\"c\": \"\u{200b}#foo\"}".into()));
+    assert_eq!(items[1].fragment, None);
+
+    assert_eq!(items[1].path, r#"\d\e\f.js"#.into());
+    assert_eq!(items[1].query, Some("?{\"c\": \"\u{200b}#baz\"}".into()));
+    assert_eq!(items[1].fragment, None);
   }
 }
