@@ -1389,7 +1389,7 @@ fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
   } else {
     String::from("**/") + trim_start
   };
-  glob_match::glob_match(&normalized_glob, string.trim_start_matches("./"))
+  fast_glob::glob_match(&normalized_glob, string.trim_start_matches("./"))
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
