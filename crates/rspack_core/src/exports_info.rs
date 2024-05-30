@@ -80,6 +80,29 @@ impl ExportsInfoId {
     mg.get_exports_info_mut_by_id(self)
   }
 
+  pub fn is_export_provided(&self, names: &[Atom], mg: &ModuleGraph) -> Option<ExportProvided> {
+    let Some(name) = names.first() else {
+      return None;
+    };
+    let info = self.get_read_only_export_info(name, mg);
+    if let Some(exports_info) = info.exports_info
+      && names.len() > 1
+    {
+      return exports_info.is_export_provided(&names[1..], mg);
+    }
+    match info.provided? {
+      ExportInfoProvided::True => {
+        if names.len() == 1 {
+          Some(ExportProvided::True)
+        } else {
+          None
+        }
+      }
+      ExportInfoProvided::False => Some(ExportProvided::False),
+      ExportInfoProvided::Null => Some(ExportProvided::Null),
+    }
+  }
+
   pub fn is_module_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
     if self.is_used(runtime, mg) {
       return true;
@@ -221,6 +244,24 @@ impl ExportsInfoId {
       }
     }
     changed
+  }
+
+  pub fn get_read_only_export_info_recursive<'a>(
+    &self,
+    names: &[Atom],
+    mg: &'a ModuleGraph,
+  ) -> Option<&'a ExportInfo> {
+    if names.is_empty() {
+      return None;
+    }
+    let export_info = self.get_read_only_export_info(&names[0], mg);
+    if names.len() == 1 {
+      return Some(export_info);
+    }
+    let Some(exports_info) = export_info.exports_info else {
+      return None;
+    };
+    exports_info.get_read_only_export_info_recursive(&names[1..], mg)
   }
 
   pub fn get_read_only_export_info<'a>(&self, name: &Atom, mg: &'a ModuleGraph) -> &'a ExportInfo {
@@ -1400,6 +1441,19 @@ pub enum ExportInfoProvided {
   Null,
 }
 
+#[derive(Debug, Hash, Clone, Copy)]
+pub enum ExportProvided {
+  True,
+  False,
+  Null,
+}
+
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
+pub enum TerminalBinding {
+  ExportInfo(ExportInfoId),
+  ExportsInfo(ExportsInfoId),
+}
+
 #[derive(Clone, Debug)]
 pub struct ResolvedExportInfoTarget {
   pub module: ModuleIdentifier,
@@ -1511,6 +1565,23 @@ impl ExportInfo {
 
   pub fn is_reexport(&self) -> bool {
     !self.terminal_binding && self.target_is_set && !self.target.is_empty()
+  }
+
+  pub fn get_terminal_binding(&self, module_graph: &ModuleGraph) -> Option<TerminalBinding> {
+    if self.terminal_binding {
+      return Some(TerminalBinding::ExportInfo(self.id));
+    }
+    let target = self
+      .id
+      .get_target(&mut ImmutableModuleGraph::new(module_graph), None)?;
+    let exports_info = module_graph.get_exports_info(&target.module);
+    let Some(export) = target.export else {
+      return Some(TerminalBinding::ExportsInfo(exports_info.id));
+    };
+    exports_info
+      .id
+      .get_read_only_export_info_recursive(&export, module_graph)
+      .map(|r| TerminalBinding::ExportInfo(r.id))
   }
 
   pub fn can_mangle(&self) -> Option<bool> {

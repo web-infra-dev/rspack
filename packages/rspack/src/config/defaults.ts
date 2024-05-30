@@ -235,6 +235,18 @@ const applyJavascriptParserOptionsDefaults = (
 		"wrappedContextCritical",
 		fallback?.wrappedContextCritical ?? false
 	);
+	D(parserOptions, "exportsPresence", fallback?.exportsPresence);
+	D(parserOptions, "importExportsPresence", fallback?.importExportsPresence);
+	D(
+		parserOptions,
+		"reexportExportsPresence",
+		fallback?.reexportExportsPresence
+	);
+	D(
+		parserOptions,
+		"strictExportPresence",
+		fallback?.strictExportPresence ?? false
+	);
 };
 
 const applyModuleDefaults = (

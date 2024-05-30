@@ -564,13 +564,20 @@ const cssModuleParserOptions = z.strictObject({
 });
 export type CssModuleParserOptions = z.infer<typeof cssModuleParserOptions>;
 
-//TODO: "weak", "lazy-once"
-const dynamicImportMode = z.enum(["eager", "lazy"]);
+const dynamicImportMode = z.enum(["eager", "lazy", "weak", "lazy-once"]);
 const dynamicImportPreload = z.union([z.boolean(), z.number()]);
 const dynamicImportPrefetch = z.union([z.boolean(), z.number()]);
 const javascriptParserUrl = z.union([z.literal("relative"), z.boolean()]);
 const exprContextCritical = z.boolean();
 const wrappedContextCritical = z.boolean();
+const exportsPresence = z.enum(["error", "warn", "auto"]).or(z.literal(false));
+const importExportsPresence = z
+	.enum(["error", "warn", "auto"])
+	.or(z.literal(false));
+const reexportExportsPresence = z
+	.enum(["error", "warn", "auto"])
+	.or(z.literal(false));
+const strictExportPresence = z.boolean();
 
 const javascriptParserOptions = z.strictObject({
 	dynamicImportMode: dynamicImportMode.optional(),
@@ -578,7 +585,11 @@ const javascriptParserOptions = z.strictObject({
 	dynamicImportPrefetch: dynamicImportPrefetch.optional(),
 	url: javascriptParserUrl.optional(),
 	exprContextCritical: exprContextCritical.optional(),
-	wrappedContextCritical: wrappedContextCritical.optional()
+	wrappedContextCritical: wrappedContextCritical.optional(),
+	exportsPresence: exportsPresence.optional(),
+	importExportsPresence: importExportsPresence.optional(),
+	reexportExportsPresence: reexportExportsPresence.optional(),
+	strictExportPresence: strictExportPresence.optional()
 });
 export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
 

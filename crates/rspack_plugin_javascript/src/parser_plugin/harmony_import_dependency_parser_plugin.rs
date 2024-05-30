@@ -165,6 +165,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
           .dependencies
           .push(Box::new(HarmonyImportSpecifierDependency::new(
             reference.request.clone(),
+            reference.specifier.name(),
             reference.source_order,
             true,
             ident.span.real_lo(),
@@ -172,6 +173,9 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
             reference.names.clone().map(|f| vec![f]).unwrap_or_default(),
             false,
             false,
+            HarmonyImportSpecifierDependency::create_export_presence_mode(
+              parser.javascript_options,
+            ),
             None,
             ident.span,
           )));
@@ -185,6 +189,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
         .dependencies
         .push(Box::new(HarmonyImportSpecifierDependency::new(
           reference.request.clone(),
+          reference.specifier.name(),
           reference.source_order,
           false,
           ident.span.real_lo(),
@@ -192,6 +197,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
           reference.names.clone().map(|f| vec![f]).unwrap_or_default(),
           parser.enter_callee && !parser.enter_new_expr,
           true, // x()
+          HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
           parser.properties_in_destructuring.remove(&ident.sym),
           ident.span,
         )));
@@ -239,6 +245,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
           .dependencies
           .push(Box::new(HarmonyImportSpecifierDependency::new(
             reference.request.clone(),
+            reference.specifier.name(),
             reference.source_order,
             false,
             callee.span().real_lo(),
@@ -246,6 +253,9 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
             ids,
             true,
             direct_import,
+            HarmonyImportSpecifierDependency::create_export_presence_mode(
+              parser.javascript_options,
+            ),
             None,
             callee.span(),
           )));
@@ -285,6 +295,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
           .dependencies
           .push(Box::new(HarmonyImportSpecifierDependency::new(
             reference.request.clone(),
+            reference.specifier.name(),
             reference.source_order,
             false,
             member_expr.span.real_lo(),
@@ -292,6 +303,9 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
             ids,
             parser.enter_callee && !parser.enter_new_expr,
             !parser.enter_callee, // x.xx()
+            HarmonyImportSpecifierDependency::create_export_presence_mode(
+              parser.javascript_options,
+            ),
             None,
             member_expr.span,
           )));
@@ -360,6 +374,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
         .dependencies
         .push(Box::new(HarmonyImportSpecifierDependency::new(
           reference.request.clone(),
+          reference.specifier.name(),
           reference.source_order,
           false,
           start,
@@ -367,6 +382,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
           ids,
           parser.enter_callee && !parser.enter_new_expr,
           !parser.enter_callee, // x.xx()
+          HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
           None,
           opt_chain_expr.span,
         )));

@@ -84,7 +84,7 @@ fn seal(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  compilation.push_batch_diagnostic(diagnostics);
+  compilation.extend_diagnostics(diagnostics);
   logger.time_end(start);
   Ok(())
 }

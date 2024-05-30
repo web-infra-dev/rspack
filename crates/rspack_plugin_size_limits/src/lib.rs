@@ -212,7 +212,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
         Self::add_diagnostic(hints, title, message, &mut diagnostics);
       }
 
-      compilation.push_batch_diagnostic(diagnostics);
+      compilation.extend_diagnostics(diagnostics);
     }
   }
 

@@ -8,8 +8,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Dependency, ProvidedExports,
-  RuntimeSpec, UsedExports,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Dependency, ExportProvided,
+  ProvidedExports, RuntimeSpec, UsedExports,
 };
 mod module;
 pub use module::*;
@@ -916,7 +916,7 @@ impl<'a> ModuleGraph<'a> {
     self
       .module_graph_module_by_identifier(module_identifier)
       .map(|m| {
-        m.__deprecated_all_dependencies
+        m.all_dependencies
           .iter()
           .filter_map(|dep_id| self.connection_id_by_dependency_id(dep_id))
           .collect()
@@ -1229,5 +1229,19 @@ impl<'a> ModuleGraph<'a> {
       DependencyCondition::False => ConnectionState::Bool(false),
       DependencyCondition::Fn(f) => f(connection, runtime, self),
     }
+  }
+
+  // returns: Option<bool>
+  //   - None: it's unknown
+  //   - Some(true): provided
+  //   - Some(false): not provided
+  pub fn is_export_provided(&self, id: &ModuleIdentifier, names: &[Atom]) -> Option<bool> {
+    self.module_graph_module_by_identifier(id).and_then(|mgm| {
+      match mgm.exports.is_export_provided(names, self)? {
+        ExportProvided::True => Some(true),
+        ExportProvided::False => Some(false),
+        ExportProvided::Null => None,
+      }
+    })
   }
 }
