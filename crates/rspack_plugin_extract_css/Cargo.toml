@@ -18,4 +18,5 @@ rspack_plugin_css     = { path = "../rspack_plugin_css" }
 rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
 rspack_util           = { path = "../rspack_util" }
 rustc-hash            = { workspace = true }
+serde_json            = { workspace = true }
 ustr                  = { workspace = true }
