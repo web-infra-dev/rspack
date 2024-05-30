@@ -1567,10 +1567,7 @@ impl ExportInfo {
     !self.terminal_binding && self.target_is_set && !self.target.is_empty()
   }
 
-  pub fn get_terminal_binding<'a>(
-    &'a self,
-    module_graph: &'a ModuleGraph,
-  ) -> Option<TerminalBinding> {
+  pub fn get_terminal_binding(&self, module_graph: &ModuleGraph) -> Option<TerminalBinding> {
     if self.terminal_binding {
       return Some(TerminalBinding::ExportInfo(self.id));
     }
