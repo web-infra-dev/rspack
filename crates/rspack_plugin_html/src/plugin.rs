@@ -90,7 +90,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let (mut current_ast, diagnostic) = ast_with_diagnostic.split_into_parts();
 
   if !diagnostic.is_empty() {
-    compilation.push_batch_diagnostic(diagnostic);
+    compilation.extend_diagnostics(diagnostic);
   }
   let included_assets = compilation
     .entrypoints

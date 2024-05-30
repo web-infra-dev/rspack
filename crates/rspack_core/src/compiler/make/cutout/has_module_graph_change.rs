@@ -292,17 +292,9 @@ mod t {
     let module1_id = module1.id;
 
     mg.add_module(module_orig);
-    mg.add_module_graph_module(ModuleGraphModule::new(
-      module_orig_id,
-      ModuleType::JsEsm,
-      ExportsInfoId::new(),
-    ));
+    mg.add_module_graph_module(ModuleGraphModule::new(module_orig_id, ExportsInfoId::new()));
     mg.add_module(module1);
-    mg.add_module_graph_module(ModuleGraphModule::new(
-      module1_id,
-      ModuleType::JsEsm,
-      ExportsInfoId::new(),
-    ));
+    mg.add_module_graph_module(ModuleGraphModule::new(module1_id, ExportsInfoId::new()));
     mg.add_dependency(dep1);
     mg.set_resolved_module(Some(module_orig_id), dep1_id, module1_id)
       .unwrap();
