@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::fmt::{Debug, Display};
 
-use crate::ErrorSpan;
+use crate::{ContextTypePrefix, ErrorSpan};
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
@@ -57,7 +57,7 @@ pub enum DependencyType {
   // css modules local ident
   CssLocalIdent,
   // context element
-  ContextElement,
+  ContextElement(ContextTypePrefix),
   // import context
   ImportContext,
   // import.meta.webpackContext
@@ -127,7 +127,10 @@ impl DependencyType {
       DependencyType::CssCompose => Cow::Borrowed("css compose"),
       DependencyType::CssExport => Cow::Borrowed("css export"),
       DependencyType::CssLocalIdent => Cow::Borrowed("css local ident"),
-      DependencyType::ContextElement => Cow::Borrowed("context element"),
+      DependencyType::ContextElement(type_prefix) => match type_prefix {
+        ContextTypePrefix::Import => Cow::Borrowed("import() context element"),
+        ContextTypePrefix::Normal => Cow::Borrowed("context element"),
+      },
       // TODO: mode
       DependencyType::ImportContext => Cow::Borrowed("import context"),
       DependencyType::DynamicImportEager => Cow::Borrowed("import() eager"),

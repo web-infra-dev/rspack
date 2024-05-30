@@ -17,6 +17,7 @@ pub struct ContextElementDependency {
   pub context: Context,
   pub resource_identifier: String,
   pub referenced_exports: Option<Vec<Atom>>,
+  pub dependency_type: DependencyType,
 }
 
 impl Dependency for ContextElementDependency {
@@ -33,7 +34,7 @@ impl Dependency for ContextElementDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::ContextElement
+    &self.dependency_type
   }
 
   fn get_context(&self) -> Option<&Context> {
