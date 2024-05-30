@@ -129,6 +129,10 @@ export class Compilation {
 		executeModule: liteTapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
+		additionalTreeRuntimeRequirements: liteTapable.SyncHook<
+			[Chunk, Set<string>],
+			void
+		>;
 		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 	};
@@ -234,6 +238,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
 			buildModule: new liteTapable.SyncHook(["module"]),
 			executeModule: new liteTapable.SyncHook(["options", "context"]),
+			additionalTreeRuntimeRequirements: new liteTapable.SyncHook([
+				"chunk",
+				"runtimeRequirements"
+			]),
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
 			afterSeal: new liteTapable.AsyncSeriesHook([])
 		};

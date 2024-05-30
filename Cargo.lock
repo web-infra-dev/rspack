@@ -2874,6 +2874,7 @@ name = "rspack_binding_values"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "heck 0.5.0",
  "napi-derive",
  "napi-h",
  "rspack_core",

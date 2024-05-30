@@ -51,7 +51,11 @@ import {
 	NormalModuleCreateData,
 	NormalModuleFactory
 } from "./NormalModuleFactory";
-import { RuntimeGlobals } from "./RuntimeGlobals";
+import {
+	__from_binding_runtime_globals,
+	__to_binding_runtime_globals,
+	RuntimeGlobals
+} from "./RuntimeGlobals";
 import { unsupported } from "./util";
 import { assertNotNill } from "./util/assertNotNil";
 import { checkVersion } from "./util/bindingVersionCheck";
@@ -798,6 +802,26 @@ class Compiler {
 						});
 					}
 			),
+			registerCompilationAdditionalTreeRuntimeRequirements:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind
+						.CompilationAdditionalTreeRuntimeRequirements,
+					() => this.#compilation!.hooks.additionalTreeRuntimeRequirements,
+					queried =>
+						({
+							chunk,
+							runtimeRequirements
+						}: binding.JsAdditionalTreeRuntimeRequirementsArg) => {
+							const set = __from_binding_runtime_globals(runtimeRequirements);
+							queried.call(
+								Chunk.__from_binding(chunk, this.#compilation!),
+								set
+							);
+							return {
+								runtimeRequirements: __to_binding_runtime_globals(set)
+							};
+						}
+				),
 			registerCompilationRuntimeModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationRuntimeModule,
 				() => this.#compilation!.hooks.runtimeModule,

@@ -7,6 +7,7 @@ version    = "0.1.0"
 
 [dependencies]
 futures      = { workspace = true }
+heck         = { workspace = true }
 napi         = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive  = { workspace = true }
 rspack_core  = { path = "../rspack_core" }

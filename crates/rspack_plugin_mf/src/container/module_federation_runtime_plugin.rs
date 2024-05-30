@@ -90,7 +90,7 @@ if(!{federation_global}){{
 pub struct ModuleFederationRuntimePlugin;
 
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ModuleFederationRuntimePlugin)]
-fn additional_tree_runtime_requirements(
+async fn additional_tree_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,

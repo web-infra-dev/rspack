@@ -1087,6 +1087,7 @@ export class Compilation {
         ExecuteModuleArgument,
         ExecuteModuleContext
         ]>;
+        additionalTreeRuntimeRequirements: liteTapable.SyncHook<[Chunk, Set<string>], void>;
         runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
     };
@@ -11594,7 +11595,7 @@ const RuntimeChunkPlugin: {
     };
 };
 
-// @public
+// @public (undocumented)
 export const RuntimeGlobals: {
     readonly require: "__webpack_require__";
     readonly requireScope: "__webpack_require__.*";
