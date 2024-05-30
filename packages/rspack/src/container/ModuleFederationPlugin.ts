@@ -186,6 +186,5 @@ function getDefaultEntryRuntime(
 		)}`,
 		compiler.webpack.Template.getFunctionContent(require("./default.runtime"))
 	].join("\n");
-	// use "data:text/javascript" to use moduleType "javascript/auto"
-	return `data:text/javascript,${content}`;
+	return `@module-federation/runtime/rspack.js!=!data:text/javascript,${content}`;
 }
