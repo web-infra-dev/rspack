@@ -197,6 +197,7 @@ impl Module for LazyCompilationProxyModule {
     runtime_requirements.insert(RuntimeGlobals::MODULE);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     let mut codegen_data = CodeGenerationData::default();
+    let mut diagnostics = Vec::new();
 
     let client_dep_id = self.dependencies[0];
     let module_graph = &compilation.get_module_graph();
@@ -243,6 +244,7 @@ impl Module for LazyCompilationProxyModule {
         runtime: None,
         concatenation_scope: concatenation_scope.as_mut(),
         data: &mut codegen_data,
+        diagnostics: &mut diagnostics,
       };
 
       RawSource::from(format!(

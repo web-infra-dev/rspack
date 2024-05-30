@@ -791,7 +791,7 @@ impl Compilation {
     let results = results
       .into_iter()
       .map(|(module_identifier, item, from_cache)| {
-        item.into_iter().for_each(|(result, runtime)| {
+        item.into_iter().for_each(|(mut result, runtime)| {
           if let Some(counter) = codegen_cache_counter {
             if from_cache {
               counter.hit();
@@ -799,6 +799,8 @@ impl Compilation {
               counter.miss();
             }
           }
+
+          self.extend_diagnostics(std::mem::take(&mut result.diagnostics));
 
           let runtimes = self
             .chunk_graph
@@ -948,20 +950,6 @@ impl Compilation {
       .finish_modules
       .call(self)
       .await?;
-    // Collect dependencies diagnostics at here to make sure:
-    // 1. after finish_modules: has provide exports info
-    // 2. before optimize dependencies: side effects free module hasn't been skipped (move_target)
-    let module_graph = self.get_module_graph();
-    let mut diagnostics = Vec::new();
-    for (_, mgm) in module_graph.module_graph_modules() {
-      for dependency_id in &mgm.all_dependencies {
-        let Some(dependency) = module_graph.dependency_by_id(dependency_id) else {
-          continue;
-        };
-        dependency.get_diagnostics(&module_graph, &mut diagnostics);
-      }
-    }
-    self.extend_diagnostics(diagnostics);
     logger.time_end(start);
 
     Ok(())

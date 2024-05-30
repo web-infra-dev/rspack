@@ -7,7 +7,6 @@ use rspack_core::{
   UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
-use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{common::Span, ecma::atoms::Atom};
 
@@ -118,9 +117,26 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       compilation,
       runtime,
       concatenation_scope,
+      module,
+      diagnostics,
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
+
+    if let Some(should_error) = self
+      .export_presence_mode
+      .get_effective_export_presence(*module)
+      && let Some(diagnostic) = harmony_import_dependency_get_linking_error(
+        self,
+        &self.get_ids(&module_graph)[..],
+        &module_graph,
+        format!("(imported as '{}')", self.name),
+        should_error,
+      )
+    {
+      diagnostics.push(diagnostic);
+    }
+
     // Only available when module factorization is successful.
     let reference_mgm = module_graph.module_graph_module_by_dependency_id(&self.id);
     let connection = module_graph.connection_by_dependency(&self.id);
@@ -260,28 +276,6 @@ impl Dependency for HarmonyImportSpecifierDependency {
 
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
-  }
-
-  fn get_diagnostics(&self, module_graph: &ModuleGraph, diagnostics: &mut Vec<Diagnostic>) {
-    let Some(module) = module_graph.get_parent_module(&self.id) else {
-      return;
-    };
-    let Some(module) = module_graph.module_by_identifier(module) else {
-      return;
-    };
-    if let Some(should_error) = self
-      .export_presence_mode
-      .get_effective_export_presence(&**module)
-      && let Some(diagnostic) = harmony_import_dependency_get_linking_error(
-        self,
-        &self.get_ids(module_graph)[..],
-        module_graph,
-        format!("(imported as '{}')", self.name),
-        should_error,
-      )
-    {
-      diagnostics.push(diagnostic);
-    }
   }
 }
 

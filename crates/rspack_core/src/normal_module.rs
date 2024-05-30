@@ -587,6 +587,7 @@ impl Module for NormalModule {
             requested_source_type: *source_type,
             runtime,
             concatenation_scope: concatenation_scope.as_mut(),
+            diagnostics: &mut code_generation_result.diagnostics,
           },
         )?;
         code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());

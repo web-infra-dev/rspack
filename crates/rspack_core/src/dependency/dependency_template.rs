@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use dyn_clone::{clone_trait_object, DynClone};
+use rspack_error::Diagnostic;
 use rspack_sources::{BoxSource, ReplaceSource};
 use rspack_util::ext::AsAny;
 
@@ -17,6 +18,7 @@ pub struct TemplateContext<'a, 'b, 'c> {
   pub runtime: Option<&'a RuntimeSpec>,
   pub concatenation_scope: Option<&'c mut ConcatenationScope>,
   pub data: &'a mut CodeGenerationData,
+  pub diagnostics: &'a mut Vec<Diagnostic>,
 }
 
 pub type TemplateReplaceSource = ReplaceSource<BoxSource>;
