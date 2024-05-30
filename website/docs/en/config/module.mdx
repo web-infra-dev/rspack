@@ -175,6 +175,36 @@ Enable warnings for full dynamic dependencies (`import(variable)`).
 
 Enable warnings for partial dynamic dependencies (`import("./path/to/" + variable)`).
 
+#### module.parser.javascript.exportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **Type:** `"error" | "warn" | "auto" | false`
+- **Default:** `"auto"`
+
+Warn or error for using non-existent exports and conflicting re-exports
+
+- `"error"`: Report errors.
+- `"warn"`: Report warnings.
+- `"auto"`: Depending on whether the module is a strict ESM, give an error if it is, otherwise give a warning.
+- `false`: Disable this feature.
+
+#### module.parser.javascript.importExportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **Type:** `"error" | "warn" | "auto" | false`
+
+Warn or error for using non-existent exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
+
+#### module.parser.javascript.reexportExportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **Type:** `"error" | "warn" | "auto" | false`
+
+Warn or error for conflicting re-exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
+
 ### module.parser["javascript/auto"]
 
 <ApiMeta addedVersion="0.6.3" />
