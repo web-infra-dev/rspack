@@ -1087,7 +1087,10 @@ export class Compilation {
         ExecuteModuleArgument,
         ExecuteModuleContext
         ]>;
-        additionalTreeRuntimeRequirements: liteTapable.SyncHook<[Chunk, Set<string>], void>;
+        additionalTreeRuntimeRequirements: liteTapable.SyncHook<[
+        Chunk,
+        Set<string>
+        ], void>;
         runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
     };
