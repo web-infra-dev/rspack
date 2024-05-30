@@ -30,7 +30,7 @@ pub fn to_identifier(v: &str) -> String {
 }
 
 static PATH_QUERY_FRAGMENT_REGEXP: Lazy<Regex> = Lazy::new(|| {
-  Regex::new("^((?:\\u200b.|[^?#\\u200b])*)(\\?(?:\\u200b.|[^#\\u200b])*)?(#.*)?$")
+  Regex::new("^((?:\u{200b}.|[^?#\u{200b}])*)(\\?(?:\u{200b}.|[^#\u{200b}])*)?(#.*)?$")
     .expect("Failed to initialize `PATH_QUERY_FRAGMENT_REGEXP`")
 });
 
