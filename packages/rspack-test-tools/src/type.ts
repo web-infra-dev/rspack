@@ -1,3 +1,5 @@
+/// <reference types="../jest.d.ts" />
+
 import {
 	Compiler as RspackCompiler,
 	RspackOptions,

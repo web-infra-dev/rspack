@@ -4,6 +4,7 @@
 
 ```ts
 
+/// <reference types="../jest.d.ts" />
 /// <reference types="jest" />
 /// <reference types="node" />
 

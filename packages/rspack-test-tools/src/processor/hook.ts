@@ -170,7 +170,6 @@ export class HookCasesContext extends TestContext {
 		}, "");
 		env
 			.expect(snapshots)
-			// @ts-ignore
 			.toMatchFileSnapshot(path.join(this.src, "hooks.snap.txt"), options);
 	}
 }
