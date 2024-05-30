@@ -8,11 +8,11 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-once_cell         = { workspace = true }
-regex             = { workspace = true }
-rspack_core       = { path = "../rspack_core" }
-rspack_error      = { path = "../rspack_error" }
-rspack_hook       = { path = "../rspack_hook" }
-rspack_plugin_css = { path = "../rspack_plugin_css" }
+once_cell    = { workspace = true }
+rayon        = { workspace = true }
+regex        = { workspace = true }
+rspack_core  = { path = "../rspack_core" }
+rspack_error = { path = "../rspack_error" }
+rspack_hook  = { path = "../rspack_hook" }
 
-rayon = { workspace = true }
+swc_core = { workspace = true, features = ["css_codegen", "css_parser", "css_minifier"] }

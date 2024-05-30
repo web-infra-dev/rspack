@@ -10,15 +10,13 @@ use sugar_path::SugarPath;
 use swc_core::common::Span;
 
 use crate::{
-  diagnostics::EmptyDependency,
-  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
-  tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
-  BoxLoader, BoxModule, CompilerContext, CompilerOptions, Context, DependencyCategory, FactoryMeta,
-  FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
-  ModuleRuleUseLoader, ModuleType, NormalModule, ParserOptions, RawModule, Resolve, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
-  ResourceParsedData, SharedPluginDriver,
+  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
+  stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerContext, CompilerOptions, Context,
+  DependencyCategory, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserOptions, RawModule, Resolve,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
@@ -499,9 +497,6 @@ impl NormalModuleFactory {
       resolved_generator_options.as_ref(),
     );
 
-    let resource_path = resource_data.resource_path.clone();
-    let resource_description = resource_data.resource_description.clone();
-
     let mut create_data = {
       let mut create_data = NormalModuleCreateData {
         raw_request,
@@ -564,28 +559,6 @@ impl NormalModuleFactory {
     data.add_file_dependencies(file_dependencies);
     data.add_file_dependency(file_dependency);
     data.add_missing_dependencies(missing_dependencies);
-
-    // Compat for old tree shaking
-    if !self.options.is_new_tree_shaking() {
-      if resolved_side_effects.is_some() {
-        module.set_factory_meta(FactoryMeta {
-          side_effect_free: None,
-          side_effect_free_old: resolved_side_effects.map(|has_side_effects| !has_side_effects),
-        })
-      } else if let Some(description) = resource_description.as_ref()
-        && let Some(side_effects) = SideEffects::from_description(description.json())
-      {
-        let package_path = description.path();
-        let relative_path = resource_path.relative(package_path);
-        module.set_factory_meta(FactoryMeta {
-          side_effect_free: None,
-          side_effect_free_old: Some(!get_side_effects_from_package_json(
-            side_effects,
-            relative_path,
-          )),
-        })
-      }
-    }
 
     Ok(Some(ModuleFactoryResult::new_with_module(module)))
   }

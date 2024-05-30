@@ -4,9 +4,10 @@ use rspack_core::{
   impl_module_meta_info, module_namespace_promise,
   rspack_sources::{RawSource, Source},
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleFactoryCreateData, ModuleIdentifier,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
+  BuildMeta, BuildResult, CodeGenerationData, CodeGenerationResult, Compilation,
+  ConcatenationScope, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
+  ModuleFactoryCreateData, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  TemplateContext,
 };
 use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_identifier::Identifiable;
@@ -195,6 +196,7 @@ impl Module for LazyCompilationProxyModule {
     let mut runtime_requirements = RuntimeGlobals::empty();
     runtime_requirements.insert(RuntimeGlobals::MODULE);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+    let mut codegen_data = CodeGenerationData::default();
 
     let client_dep_id = self.dependencies[0];
     let module_graph = &compilation.get_module_graph();
@@ -240,6 +242,7 @@ impl Module for LazyCompilationProxyModule {
         init_fragments: &mut vec![],
         runtime: None,
         concatenation_scope: concatenation_scope.as_mut(),
+        data: &mut codegen_data,
       };
 
       RawSource::from(format!(
@@ -288,6 +291,7 @@ impl Module for LazyCompilationProxyModule {
 
     let mut codegen_result = CodeGenerationResult::default().with_javascript(Arc::new(source));
     codegen_result.runtime_requirements = runtime_requirements;
+    codegen_result.data = codegen_data;
     codegen_result.set_hash(
       &compilation.options.output.hash_function,
       &compilation.options.output.hash_digest,

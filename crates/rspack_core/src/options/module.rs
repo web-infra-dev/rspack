@@ -13,7 +13,7 @@ use rspack_regex::RspackRegex;
 use rspack_util::{try_all, try_any, MergeFrom};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{Filename, ModuleType, PublicPath, Resolve};
+use crate::{Filename, Module, ModuleType, PublicPath, Resolve};
 
 #[derive(Debug)]
 pub struct ParserOptionsByModuleType(HashMap<ModuleType, ParserOptions>);
@@ -59,9 +59,8 @@ impl ParserOptions {
   get_variant!(get_javascript, Javascript, JavascriptParserOptions);
 }
 
-#[derive(Debug, Clone, Copy, Default, MergeFrom)]
+#[derive(Debug, Clone, Copy, MergeFrom)]
 pub enum DynamicImportMode {
-  #[default]
   Lazy,
   Weak,
   Eager,
@@ -77,15 +76,14 @@ impl From<&str> for DynamicImportMode {
       "lazy-once" => DynamicImportMode::LazyOnce,
       _ => {
         // TODO: warning
-        DynamicImportMode::default()
+        DynamicImportMode::Lazy
       }
     }
   }
 }
 
-#[derive(Debug, Clone, Copy, Default, MergeFrom)]
+#[derive(Debug, Clone, Copy, MergeFrom)]
 pub enum JavascriptParserUrl {
-  #[default]
   Enable,
   Disable,
   Relative,
@@ -101,9 +99,8 @@ impl From<&str> for JavascriptParserUrl {
   }
 }
 
-#[derive(Debug, Clone, Copy, Default, MergeFrom)]
+#[derive(Debug, Clone, Copy, MergeFrom)]
 pub enum JavascriptParserOrder {
-  #[default]
   Disable,
   Order(u32),
 }
@@ -133,7 +130,42 @@ impl From<&str> for JavascriptParserOrder {
   }
 }
 
-#[derive(Debug, Clone, Default, MergeFrom)]
+#[derive(Debug, Clone, Copy, MergeFrom)]
+pub enum ExportPresenceMode {
+  None,
+  Warn,
+  Auto,
+  Error,
+}
+
+impl From<&str> for ExportPresenceMode {
+  fn from(value: &str) -> Self {
+    match value {
+      "false" => Self::None,
+      "warn" => Self::Warn,
+      "error" => Self::Error,
+      _ => Self::Auto,
+    }
+  }
+}
+
+impl ExportPresenceMode {
+  pub fn get_effective_export_presence(&self, module: &dyn Module) -> Option<bool> {
+    match self {
+      ExportPresenceMode::None => None,
+      ExportPresenceMode::Warn => Some(false),
+      ExportPresenceMode::Error => Some(true),
+      ExportPresenceMode::Auto => Some(
+        module
+          .build_meta()
+          .map(|m| m.strict_harmony_module)
+          .unwrap_or_default(),
+      ),
+    }
+  }
+}
+
+#[derive(Debug, Clone, MergeFrom)]
 pub struct JavascriptParserOptions {
   pub dynamic_import_mode: DynamicImportMode,
   pub dynamic_import_preload: JavascriptParserOrder,
@@ -141,6 +173,10 @@ pub struct JavascriptParserOptions {
   pub url: JavascriptParserUrl,
   pub expr_context_critical: bool,
   pub wrapped_context_critical: bool,
+  pub exports_presence: Option<ExportPresenceMode>,
+  pub import_exports_presence: Option<ExportPresenceMode>,
+  pub reexport_exports_presence: Option<ExportPresenceMode>,
+  pub strict_export_presence: bool,
 }
 
 #[derive(Debug, Clone, MergeFrom)]

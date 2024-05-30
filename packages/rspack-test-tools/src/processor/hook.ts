@@ -170,13 +170,12 @@ export class HookCasesContext extends TestContext {
 		}, "");
 		env
 			.expect(snapshots)
-			// @ts-ignore
 			.toMatchFileSnapshot(path.join(this.src, "hooks.snap.txt"), options);
 	}
 }
 
 export interface IHookProcessorOptions<T extends ECompilerType>
-	extends Omit<ISnapshotProcessorOptions<T>, "defaultOptions"> {
+	extends ISnapshotProcessorOptions<T> {
 	options?: (context: ITestContext) => TCompilerOptions<T>;
 	compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
 	check?: (context: ITestContext) => Promise<void>;
@@ -231,11 +230,6 @@ export class HookTaskProcessor<
 			},
 			optimization: {
 				minimize: false
-			},
-			experiments: {
-				rspackFuture: {
-					newTreeshaking: true
-				}
 			}
 		} as TCompilerOptions<T>;
 	}

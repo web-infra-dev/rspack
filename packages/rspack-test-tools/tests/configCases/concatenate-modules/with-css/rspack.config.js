@@ -25,8 +25,5 @@ module.exports = {
 	},
 	experiments: {
 		css: true,
-		rspackFuture: {
-			newTreeshaking: true
-		}
 	}
 };

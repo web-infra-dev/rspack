@@ -12,9 +12,4 @@ module.exports = {
 	optimization: {
 		runtimeChunk: "single"
 	},
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: true
-		}
-	}
 };

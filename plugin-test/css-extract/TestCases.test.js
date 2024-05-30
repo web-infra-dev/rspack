@@ -142,9 +142,6 @@ describe("TestCases", () => {
 							optimization: { chunkIds: "named", ...config.optimization },
 							experiments: {
 								css: false,
-								rspackFuture: {
-									newTreeshaking: true
-								},
 								...config.experiments
 							}
 						};
@@ -153,9 +150,6 @@ describe("TestCases", () => {
 						...config,
 						experiments: {
 							css: false,
-							rspackFuture: {
-								newTreeshaking: true
-							},
 							...config.experiments
 						}
 					};

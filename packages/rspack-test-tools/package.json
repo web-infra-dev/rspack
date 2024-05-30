@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "0.7.0-beta.1",
+  "version": "0.7.0",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -27,7 +27,8 @@
   "files": [
     "client",
     "dist",
-    "template"
+    "template",
+    "jest.d.ts"
   ],
   "publishConfig": {
     "access": "public"
@@ -69,8 +70,8 @@
     "@arco-design/web-react": "^2.56.1",
     "@monaco-editor/react": "^4.6.0",
     "@rspack/cli": "workspace:*",
-    "@rspack/plugin-minify": "workspace:*",
     "@rspack/core": "workspace:*",
+    "@rspack/plugin-minify": "workspace:*",
     "@swc/jest": "^0.2.29",
     "@types/prettier": "^2.7.2",
     "@types/react": "^18.2.48",

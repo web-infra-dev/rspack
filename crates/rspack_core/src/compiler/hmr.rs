@@ -61,9 +61,9 @@ where
       let mut all_files = modified_files.clone();
       all_files.extend(removed_files.clone());
 
-      self.cache.end_idle();
+      self.old_cache.end_idle();
       self
-        .cache
+        .old_cache
         .set_modified_files(all_files.into_iter().collect());
       self.plugin_driver.resolver_factory.clear_cache();
 
@@ -73,7 +73,7 @@ where
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         Some(records),
-        self.cache.clone(),
+        self.old_cache.clone(),
         Some(ModuleExecutor::default()),
         modified_files,
         removed_files,
@@ -92,8 +92,6 @@ where
         self
           .compilation
           .swap_make_artifact_with_compilation(&mut new_compilation);
-        new_compilation.lazy_visit_modules =
-          std::mem::take(&mut self.compilation.lazy_visit_modules);
 
         // seal stage used
         new_compilation.code_splitting_cache =
@@ -103,15 +101,13 @@ where
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
 
-      new_compilation.lazy_visit_modules = changed_files.clone();
-
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.
       // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
       fast_set(&mut self.compilation, new_compilation);
       self.compile().await?;
 
-      self.cache.begin_idle();
+      self.old_cache.begin_idle();
     }
 
     self.compile_done().await?;

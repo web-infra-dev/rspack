@@ -1,3 +1,5 @@
+/// <reference types="../jest.d.ts" />
+
 import {
 	Compiler as RspackCompiler,
 	RspackOptions,
@@ -86,6 +88,7 @@ export interface ITesterConfig {
 	temp?: string;
 	steps?: ITestProcessor[];
 	testConfig?: TTestConfig<ECompilerType>;
+	compilerFactories?: TCompilerFactories;
 	runnerFactory?: new (
 		name: string,
 		context: ITestContext
@@ -95,6 +98,7 @@ export interface ITesterConfig {
 export interface ITester {
 	step: number;
 	total: number;
+	getContext(): ITestContext;
 	prepare(): Promise<void>;
 	compile(): Promise<void>;
 	check(env: ITestEnv): Promise<void>;
@@ -172,6 +176,7 @@ export interface ITestEnv {
 	it: (...args: any[]) => void;
 	beforeEach: (...args: any[]) => void;
 	afterEach: (...args: any[]) => void;
+	[key: string]: unknown;
 }
 
 export type TTestConfig<T extends ECompilerType> = {
@@ -212,3 +217,14 @@ export interface TRunnerFactory<T extends ECompilerType> {
 		env: ITestEnv
 	): ITestRunner;
 }
+
+export type TUpdateOptions = {
+	updateIndex: number;
+	totalUpdates: number;
+	changedFiles: string[];
+};
+
+export type TCompilerFactories = Record<
+	ECompilerType,
+	TCompilerFactory<ECompilerType>
+>;

@@ -239,6 +239,7 @@ impl ContextModuleFactory {
           resource_fragment: resource.fragment,
           resolve_options: data.resolve_options.clone(),
           context_options: dependency.options().clone(),
+          type_prefix: dependency.type_prefix(),
         };
         let module = Box::new(ContextModule::new(
           options.clone(),

@@ -1,10 +1,12 @@
+mod swc_css_compiler;
+
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{rspack_sources::MapOptions, Compilation, CompilationProcessAssets, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_css::swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig};
+use swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig};
 
 static CSS_ASSET_REGEXP: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));

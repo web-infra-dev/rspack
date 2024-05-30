@@ -15,7 +15,7 @@ export function getSimpleProcessorRunner(
 	} = {}
 ) {
 	const createEnv =
-		options.env || (() => ({ expect, it, beforeEach, afterEach }));
+		options.env || (() => ({ expect, it, beforeEach, afterEach, jest }));
 	const createContext =
 		options.context ||
 		((src: string, dist: string) => new TestContext({ src, dist }));
@@ -32,13 +32,23 @@ export function getSimpleProcessorRunner(
 			} catch (e: unknown) {
 				context.emitError(name, e as Error);
 			} finally {
-				await processor.run?.(createEnv(), context);
+				if (!context.hasError()) {
+					await processor.run?.(createEnv(), context);
+				}
 				await processor.check?.(createEnv(), context);
 				await processor.after?.(context);
 				await processor.afterAll?.(context);
 			}
+			if (context.hasError()) {
+				const errors = context
+					.getError()
+					.map(i => `${i.stack}`.split("\n").join("\t\n"))
+					.join("\n\n");
+				throw new Error(`Case "${name}" failed:\n${errors}`);
+			}
 		};
 		CONTEXT_MAP.set(key, runner);
 	}
+
 	return CONTEXT_MAP.get(key)!;
 }

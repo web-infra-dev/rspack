@@ -4,14 +4,15 @@ var __webpack_modules__ = ({
 "./style.css?eccb": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  aClass: function() { return aClass; },
-  bClass: function() { return bClass; },
-  cClass: function() { return cClass; }
+  "a-class": function() { return _1; },
+  b__class: function() { return _2; },
+  cClass: function() { return _3; }
 });
 // extracted by css-extract-rspack-plugin
-var aClass = "foo__style__a-class";
-var bClass = "foo__style__b__class";
-var cClass = "foo__style__cClass";
+var _1 = "foo__style__a-class";
+var _2 = "foo__style__b__class";
+var _3 = "foo__style__cClass";
+
 }),
 
 });

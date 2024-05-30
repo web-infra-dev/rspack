@@ -30,7 +30,7 @@ features:
   - title: Webpack Compatible
     details: Interoperates with existing webpack plugins and config. No need to reinvent your ecosystem from scratch.
     icon: 📦
-    link: /guide/compatibility/loader
+    link: /guide/compatibility/plugin
   - title: Batteries Included
     details: Out-of-the-box support for TypeScript, JSX, CSS, CSS Modules, Sass, and more.
     icon: 🎨

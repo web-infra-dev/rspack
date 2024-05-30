@@ -1382,11 +1382,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let modules = map
         .get_mut(&block_id)
         .expect("should have modules in block_modules_runtime_map");
-      let active_state = if self.compilation.options.is_new_tree_shaking() {
-        get_active_state_of_connections(&connections, runtime, &self.compilation.get_module_graph())
-      } else {
-        ConnectionState::Bool(true)
-      };
+      let active_state = get_active_state_of_connections(
+        &connections,
+        runtime,
+        &self.compilation.get_module_graph(),
+      );
       modules.push((module_identifier, active_state, connections));
     }
   }

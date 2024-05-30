@@ -88,6 +88,10 @@ impl ContextDependency for CommonJsRequireContextDependency {
   fn get_optional(&self) -> bool {
     self.optional
   }
+
+  fn type_prefix(&self) -> rspack_core::ContextTypePrefix {
+    rspack_core::ContextTypePrefix::Normal
+  }
 }
 
 impl DependencyTemplate for CommonJsRequireContextDependency {

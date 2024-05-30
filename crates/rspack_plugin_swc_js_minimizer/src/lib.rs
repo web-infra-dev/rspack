@@ -310,7 +310,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       Ok(())
   })?;
 
-  compilation.push_batch_diagnostic(rx.into_iter().flatten().collect::<Vec<_>>());
+  compilation.extend_diagnostics(rx.into_iter().flatten().collect::<Vec<_>>());
 
   // write all extracted comments to assets
   all_extracted_comments

@@ -71,13 +71,27 @@ export class BasicCaseCreator<T extends ECompilerType> {
 			const description =
 				typeof this._options.description === "function"
 					? this._options.description(name, index)
-					: `${name}${index ? `[${index}]` : ""} should compile`;
+					: `step ${index ? `[${index}]` : ""} should pass`;
+			let bailout = false;
 			it(
 				description,
 				async () => {
+					if (bailout) {
+						throw `Case "${name}" step ${index + 1} bailout because ${tester.step + 1} failed`;
+					}
 					await tester.compile();
 					await tester.check(env);
-					tester.next();
+					const context = tester.getContext();
+					if (!tester.next() && context.hasError()) {
+						bailout = true;
+						const errors = context
+							.getError()
+							.map(i => `${i.stack}`.split("\n").join("\t\n"))
+							.join("\n\n");
+						throw new Error(
+							`Case "${name}" failed at step ${tester.step + 1}:\n${errors}`
+						);
+					}
 				},
 				this._options.timeout || 30000
 			);
@@ -97,7 +111,8 @@ export class BasicCaseCreator<T extends ECompilerType> {
 				expect,
 				it,
 				beforeEach,
-				afterEach
+				afterEach,
+				jest
 			};
 		}
 	}

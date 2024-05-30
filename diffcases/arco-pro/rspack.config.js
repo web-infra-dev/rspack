@@ -127,10 +127,7 @@ const config = {
 		debug: false
 	},
 	experiments: {
-		css: true,
-		rspackFuture: {
-			newTreeshaking: true
-		}
+		css: true
 	}
 };
 module.exports = config;

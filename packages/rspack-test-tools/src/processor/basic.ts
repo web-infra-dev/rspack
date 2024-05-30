@@ -33,7 +33,7 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 	async config(context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		if (typeof this._options.defaultOptions === "function") {
-			compiler.setOptions(this._options.defaultOptions(context));
+			compiler.setOptions(this._options.defaultOptions.apply(this, [context]));
 		}
 
 		if (Array.isArray(this._options.configFiles)) {
@@ -45,7 +45,7 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 
 		if (typeof this._options.overrideOptions === "function") {
 			const compilerOptions = compiler.getOptions();
-			this._options.overrideOptions(context, compilerOptions);
+			this._options.overrideOptions.apply(this, [context, compilerOptions]);
 		}
 	}
 
@@ -73,7 +73,10 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 		if (testConfig.bundlePath) {
 			bundles = testConfig.bundlePath;
 		} else if (typeof this._options.findBundle === "function") {
-			bundles = this._options.findBundle(context, compiler.getOptions());
+			bundles = this._options.findBundle.apply(this, [
+				context,
+				compiler.getOptions()
+			]);
 		} else {
 			bundles = [];
 		}
@@ -164,6 +167,7 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 			);
 			resolve();
 		});
+
 		await new Promise<void>((resolve, reject) => {
 			checkArrayExpectation(
 				context.getSource(),
@@ -175,7 +179,10 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 			resolve();
 		});
 
-		context.clearError(this._options.name);
+		// clear error if checked
+		if (fs.existsSync(context.getSource("errors.js"))) {
+			context.clearError(this._options.name);
+		}
 	}
 
 	async before(context: ITestContext): Promise<void> {}

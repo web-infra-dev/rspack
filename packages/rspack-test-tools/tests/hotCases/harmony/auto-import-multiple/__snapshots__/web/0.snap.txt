@@ -1,8 +1,7 @@
 # Case auto-import-multiple: Step 0
 
 ## Changed Files
-- file.js
-- commonjs.js
+
 
 ## Asset Files
 - Bundle: bundle.js

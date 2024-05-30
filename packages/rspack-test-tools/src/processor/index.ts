@@ -10,6 +10,7 @@ export * from "./hook";
 export * from "./hot";
 export * from "./hot-step";
 export * from "./multi";
+export * from "./normal";
 export * from "./simple";
 export * from "./snapshot";
 export * from "./stats";

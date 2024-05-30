@@ -33,6 +33,7 @@ export interface CssExtractRspackLoaderOptions {
 
 	// TODO: support layer
 	layer?: boolean;
+	defaultExport?: boolean;
 }
 
 function hotLoader(
@@ -86,19 +87,6 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		e.stack = undefined;
 		this.emitWarning(e);
 
-		return;
-	}
-
-	if (
-		this._compiler &&
-		this._compiler.options &&
-		this._compiler.options.experiments &&
-		this._compiler.options.experiments.rspackFuture &&
-		this._compiler.options.experiments.rspackFuture.newTreeshaking === false
-	) {
-		this.emitError(
-			new Error("Cannot use CssExtractRspackPlugin without newTreeshaking")
-		);
 		return;
 	}
 
@@ -212,22 +200,53 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 			return;
 		}
 
-		const result = locals!
-			? namedExport
-				? Object.keys(locals)
+		const result = (function makeResult() {
+			if (locals!) {
+				if (namedExport) {
+					const identifiers = Array.from(
+						(function* generateIdentifiers() {
+							let identifierId = 0;
+
+							for (const key of Object.keys(locals)) {
+								identifierId += 1;
+
+								yield [`_${identifierId.toString(16)}`, key];
+							}
+						})()
+					);
+
+					const localsString = identifiers
 						.map(
-							key =>
-								`\nexport var ${key} = ${stringifyLocal(
+							([id, key]) =>
+								`\nvar ${id} = ${stringifyLocal(
 									/** @type {Locals} */ locals[key]
 								)};`
 						)
-						.join("")
-				: `\n${
-						esModule ? "export default" : "module.exports ="
-					} ${JSON.stringify(locals)};`
-			: esModule
-				? `\nexport {};`
-				: "";
+						.join("");
+					const exportsString = `export { ${identifiers
+						.map(([id, key]) => `${id} as ${JSON.stringify(key)}`)
+						.join(", ")} }`;
+
+					const defaultExport =
+						typeof options.defaultExport !== "undefined"
+							? options.defaultExport
+							: false;
+
+					return defaultExport
+						? `${localsString}\n${exportsString}\nexport default { ${identifiers
+								.map(([id, key]) => `${JSON.stringify(key)}: ${id}`)
+								.join(", ")} }\n`
+						: `${localsString}\n${exportsString}\n`;
+				}
+
+				return `\n${
+					esModule ? "export default" : "module.exports = "
+				} ${JSON.stringify(locals)};`;
+			} else if (esModule) {
+				return "\nexport {};";
+			}
+			return "";
+		})();
 
 		let resultSource = `// extracted by ${CssExtractRspackPlugin.pluginName}`;
 

@@ -653,6 +653,7 @@ export interface RawBannerPluginOptions {
   entryOnly?: boolean
   footer?: boolean
   raw?: boolean
+  stage?: number
   test?: string | RegExp | (string | RegExp)[]
   include?: string | RegExp | (string | RegExp)[]
   exclude?: string | RegExp | (string | RegExp)[]
@@ -970,6 +971,10 @@ export interface RawJavascriptParserOptions {
   url: string
   exprContextCritical: boolean
   wrappedContextCritical: boolean
+  exportsPresence?: string
+  importExportsPresence?: string
+  reexportExportsPresence?: string
+  strictExportPresence: boolean
 }
 
 export interface RawLazyCompilationOption {
@@ -1134,7 +1139,6 @@ export interface RawOptions {
   node?: RawNodeOption
   profile: boolean
   bail: boolean
-  builtins: RawBuiltins
 }
 
 export interface RawOutputOptions {
@@ -1282,7 +1286,7 @@ export interface RawResolveTsconfigOptions {
 }
 
 export interface RawRspackFuture {
-  newTreeshaking: boolean
+
 }
 
 export interface RawRuleSetCondition {

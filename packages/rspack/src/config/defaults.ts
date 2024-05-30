@@ -32,6 +32,7 @@ import type {
 	InfrastructureLogging,
 	JavascriptParserOptions,
 	Library,
+	Loader,
 	Mode,
 	ModuleOptions,
 	Node,
@@ -123,6 +124,11 @@ export const applyRspackOptionsDefaults = (
 
 	applyNodeDefaults(options.node, { targetProperties });
 
+	applyLoaderDefaults(options.loader, {
+		targetProperties,
+		environment: options.output.environment
+	});
+
 	F(options, "performance", () =>
 		production &&
 		targetProperties &&
@@ -186,7 +192,6 @@ const applyExperimentsDefaults = (
 
 	D(experiments, "rspackFuture", {});
 	if (typeof experiments.rspackFuture === "object") {
-		D(experiments.rspackFuture, "newTreeshaking", true);
 		D(experiments.rspackFuture, "bundlerInfo", {});
 		if (typeof experiments.rspackFuture.bundlerInfo === "object") {
 			D(
@@ -229,6 +234,18 @@ const applyJavascriptParserOptionsDefaults = (
 		parserOptions,
 		"wrappedContextCritical",
 		fallback?.wrappedContextCritical ?? false
+	);
+	D(parserOptions, "exportsPresence", fallback?.exportsPresence);
+	D(parserOptions, "importExportsPresence", fallback?.importExportsPresence);
+	D(
+		parserOptions,
+		"reexportExportsPresence",
+		fallback?.reexportExportsPresence
+	);
+	D(
+		parserOptions,
+		"strictExportPresence",
+		fallback?.strictExportPresence ?? false
 	);
 };
 
@@ -813,6 +830,26 @@ const applyExternalsPresetsDefaults = (
 			targetProperties.electron &&
 			targetProperties.electronRenderer
 	);
+};
+
+const applyLoaderDefaults = (
+	loader: Loader,
+	{ targetProperties, environment }: { targetProperties: any; environment: any }
+) => {
+	F(loader, "target", () => {
+		if (targetProperties) {
+			if (targetProperties.electron) {
+				if (targetProperties.electronMain) return "electron-main";
+				if (targetProperties.electronPreload) return "electron-preload";
+				if (targetProperties.electronRenderer) return "electron-renderer";
+				return "electron";
+			}
+			if (targetProperties.nwjs) return "nwjs";
+			if (targetProperties.node) return "node";
+			if (targetProperties.web) return "web";
+		}
+	});
+	D(loader, "environment", environment);
 };
 
 const applyNodeDefaults = (

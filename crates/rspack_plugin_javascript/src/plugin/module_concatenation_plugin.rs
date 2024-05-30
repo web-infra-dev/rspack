@@ -913,7 +913,6 @@ impl ModuleConcatenationPlugin {
               module: new_module.id(),
               module_context: None,
               module_source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
-              cache: compilation.cache.clone(),
               plugin_driver: compilation.plugin_driver.clone(),
             },
             plugin_driver: compilation.plugin_driver.clone(),
@@ -928,8 +927,7 @@ impl ModuleConcatenationPlugin {
         .module_graph_module_by_identifier(&root_module_id)
         .expect("should have mgm")
         .exports;
-      let module_graph_module =
-        ModuleGraphModule::new(new_module.id(), *new_module.module_type(), root_mgm_exports);
+      let module_graph_module = ModuleGraphModule::new(new_module.id(), root_mgm_exports);
       module_graph.add_module_graph_module(module_graph_module);
       module_graph.clone_module_attributes(&root_module_id, &new_module.id());
       // integrate

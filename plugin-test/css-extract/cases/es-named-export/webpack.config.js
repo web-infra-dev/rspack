@@ -16,6 +16,7 @@ module.exports = {
 							esModule: true,
 							modules: {
 								namedExport: true,
+                exportLocalsConvention: "asIs",
 								localIdentName: "foo__[name]__[local]"
 							}
 						}

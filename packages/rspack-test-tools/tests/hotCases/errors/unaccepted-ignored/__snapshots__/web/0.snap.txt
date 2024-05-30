@@ -1,8 +1,7 @@
 # Case unaccepted-ignored: Step 0
 
 ## Changed Files
-- a.js
-- c.js
+
 
 ## Asset Files
 - Bundle: bundle.js

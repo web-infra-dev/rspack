@@ -1,54 +1,51 @@
+import { PackageManagerTabs } from '@theme';
+
 # 迁移 Storybook
 
-如果你正在使用 [Storybook 7.0](https://storybook.js.org/) 的 React 框架并且使用 Webpack 5 构建，那么可以使用 [@modern-js/storybook
-](https://www.npmjs.com/package/@modern-js/storybook) 替换 @storybook/react-webpack5 构建，@modern-js/storybook 支持 Rspack 作为开箱即用的底层构建工具，文档可参考 [Modern.js - Using Storybook](https://modernjs.dev/en/guides/advanced-features/using-storybook.html)。
+如果你正在使用 [Storybook](https://storybook.js.org/) 的 React / Vue 框架并且使用 webpack 5 构建，那么可以使用 [storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild) 替换 `@storybook/react-webpack5` 构建，`storybook-rsbuild` 基于 Rsbuild 实现，以 Rspack 作为底层构建工具，支持开箱即用，文档可参考 [storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild)。
+
+下面将以 React 为例，介绍如何迁移 Storybook webpack 5 项目，Vue 项目迁移步骤与 React 相似。
+
+:::info
+
+Storybook Rsbuild 要求至少 8.0 的 Storybook 版本，建议将 Storybook 升级到最新版本，你可以查看 Storybook 8 [发布说明](https://storybook.js.org/blog/storybook-8/) 中的变更详情及迁移指南。
+
+:::
 
 ## 更新依赖
 
-首先，我们需要添加 `@modern-js/storybook` 依赖并且可以去掉 `webpack` 的依赖。
+首先，将 `@storybook/react-webpack5` 替换为 [`storybook-react-rsbuild`](https://www.npmjs.com/package/storybook-react-rsbuild)（对于 Vue 项目，使用 [`storybook-vue3-rsbuild`](https://www.npmjs.com/package/storybook-vue3-rsbuild)），添加 `@rsbuild/core` 和 `@rsbuild/plugin-react`（对于 Vue 项目，使用 `@rsbuild/plugin-vue`）。
 
-```diff title=package.json
-{
-  "devDependencies": {
--   "@storybook/react-webpack5": "^7"
-+   "@modern-js/storybook": "^2"
-  }
-}
+<PackageManagerTabs command="install storybook-react-rsbuild @rsbuild/core @rsbuild/plugin-react -D" />
+
+## 配置 Rsbuild
+
+Storybook Rsbuild 会自动加载工作目录的 Rsbuild 配置文件，安装 [`@rsbuild/plugin-react`](https://rsbuild.dev/guide/framework/react)（对于 Vue 项目，需要安装及使用 [`@rsbuild/plugin-vue`](https://rsbuild.dev/guide/framework/vue3)）。
+
+```js
+import { defineConfig } from '@rsbuild/core';
+import { pluginReact } from '@rsbuild/plugin-react';
+
+export default defineConfig({
+  plugins: [pluginReact()],
+});
 ```
 
-## 配置 Storybook
+## 更新 Storybook 配置
 
-参考下列配置，修改 Storybook 的 `main.js` 配置，并指定 Rspack 作为构建工具：
+参考下列配置，修改 Storybook 的 `main.js` 配置，并指定 `'storybook-react-rsbuild'` 作为 Storybook 框架（对于 Vue 项目则为 `'storybook-vue3-rsbuild'`）。
 
 ```diff title=.storybook/main.js
 export default {
 -  framework: '@storybook/react-webpack5'
-+  framework: {
-+    name: '@modern-js/storybook',
-+    options: {
-+      bundler: 'rspack'
-+    },
++  framework: 'storybook-react-rsbuild',
   },
 ```
 
 ## 示例
 
-这里有一个基于 @modern-js/storybook 使用 Rspack 构建 Storybook 的示例：[react-storybook](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-storybook)。
+在 [rspack-contrib/storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild/tree/main/sandboxes) 仓库中提供了 React / Vue 项目的 Storybook 示例。
 
 ## 局限
 
-对 Storybook 7.0 的支持仍然是实验性的，并且目前有一些局限：
-
-1. 暂不支持 React 以外的框架
-2. 暂不支持 Next.js，Next.js 有自己的构建方案
-3. 如果发现构建速度很慢，请检查是否开启了自动文档生成功能，如果想要最高的性能，请配置为 `react-docgen`。`react-docgen` 和 `react-docgen-typescript` 的区别是，前者基于 Babel 实现，后者基于 TypeScript 实现，前者性能会更好，但类型推断能力更弱。如果使用 Rspack 构建，则只支持 `react-docgen`。
-
-   ```js title=main.js
-   export default {
-     typescript: {
-       reactDocgen: 'react-docgen',
-     },
-   };
-   ```
-
-我们有计划提供基于 [Rsbuild](https://github.com/web-infra-dev/rsbuild) 的框架无关的 builder 与 framework 集成，参考 [rsbuild#1974](https://github.com/web-infra-dev/rsbuild/issues/1974)。
+Rspack 正在逐步完善对 Storybook 的完整支持，目前有部分能力不支持，具体见 [storybook-rsbuild - Roadmap](https://github.com/rspack-contrib/storybook-rsbuild#roadmap)。

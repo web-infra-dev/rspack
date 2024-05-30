@@ -109,14 +109,7 @@ module.exports = {
 | Default Configuration | [HotProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/hot.ts#L86) |
 | Run Output            | `Yes`                                                                                                                 |
 
-This test case is similar to a regular rspack project. You can specify the build configuration by adding a `rspack.config.js`, but you also need to add a `changed-file.js` in the case directory to specify the files that have changed, as shown below:
-
-```js title="changed-file.js"
-const path = require('path');
-module.exports = [
-  path.resolve(__dirname, './file.js'), // file.js has changed and triggers hot update
-];
-```
+This test case is similar to a regular rspack project. You can specify the build configuration by adding a `rspack.config.js`.
 
 And also, within the file that has changed, use `---` to separate the code before and after the change:
 

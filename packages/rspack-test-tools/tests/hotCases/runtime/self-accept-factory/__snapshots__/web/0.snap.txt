@@ -1,7 +1,7 @@
 # Case self-accept-factory: Step 0
 
 ## Changed Files
-- a.js
+
 
 ## Asset Files
 - Bundle: bundle.js

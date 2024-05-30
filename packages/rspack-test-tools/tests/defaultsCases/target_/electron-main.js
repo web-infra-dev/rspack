@@ -18,6 +18,12 @@ module.exports = {
 		+     "node": true,
 		+     "web": false,
 		@@ ... @@
+		-       "document": true,
+		+       "document": false,
+		@@ ... @@
+		-     "target": "web",
+		+     "target": "electron-main",
+		@@ ... @@
 		-         "exportsOnly": false,
 		+         "exportsOnly": true,
 		@@ ... @@

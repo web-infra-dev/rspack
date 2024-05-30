@@ -13,11 +13,11 @@ use rspack_core::{
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions, BoxLoader,
   CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
-  CssModuleParserOptions, CssParserOptions, DescriptionData, DynamicImportMode, FuncUseCtx,
-  GeneratorOptions, GeneratorOptionsByModuleType, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
-  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions,
-  ParserOptionsByModuleType,
+  CssModuleParserOptions, CssParserOptions, DescriptionData, DynamicImportMode, ExportPresenceMode,
+  FuncUseCtx, GeneratorOptions, GeneratorOptionsByModuleType, JavascriptParserOptions,
+  JavascriptParserOrder, JavascriptParserUrl, ModuleNoParseRule, ModuleNoParseRules,
+  ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
+  ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
 };
 use rspack_error::error;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
@@ -318,6 +318,10 @@ pub struct RawJavascriptParserOptions {
   pub url: String,
   pub expr_context_critical: bool,
   pub wrapped_context_critical: bool,
+  pub exports_presence: Option<String>,
+  pub import_exports_presence: Option<String>,
+  pub reexport_exports_presence: Option<String>,
+  pub strict_export_presence: bool,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
@@ -329,6 +333,16 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       url: JavascriptParserUrl::from(value.url.as_str()),
       expr_context_critical: value.expr_context_critical,
       wrapped_context_critical: value.wrapped_context_critical,
+      exports_presence: value
+        .exports_presence
+        .map(|e| ExportPresenceMode::from(e.as_str())),
+      import_exports_presence: value
+        .import_exports_presence
+        .map(|e| ExportPresenceMode::from(e.as_str())),
+      reexport_exports_presence: value
+        .reexport_exports_presence
+        .map(|e| ExportPresenceMode::from(e.as_str())),
+      strict_export_presence: value.strict_export_presence,
     }
   }
 }

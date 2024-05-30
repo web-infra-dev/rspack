@@ -1,8 +1,8 @@
 # Case dispose-removed-module: Step 2
 
 ## Changed Files
-- module.js
 - a.js
+- module.js
 
 ## Asset Files
 - Bundle: bundle.js

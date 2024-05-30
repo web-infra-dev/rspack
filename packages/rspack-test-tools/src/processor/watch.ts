@@ -21,10 +21,7 @@ type TRspackExperiments = TCompilerOptions<ECompilerType>["experiments"];
 type TRspackOptimization = TCompilerOptions<ECompilerType>["optimization"];
 
 export interface IWatchProcessorOptions<T extends ECompilerType>
-	extends Omit<
-		IMultiTaskProcessorOptions<T>,
-		"overrideOptinos" | "findBundle"
-	> {
+	extends IMultiTaskProcessorOptions<T> {
 	stepName: string;
 	tempDir: string;
 	experiments?: TRspackExperiments;

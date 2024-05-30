@@ -8,8 +8,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Dependency, ProvidedExports,
-  RuntimeSpec, UsedExports,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Dependency, ExportProvided,
+  ProvidedExports, RuntimeSpec, UsedExports,
 };
 mod module;
 pub use module::*;
@@ -782,21 +782,15 @@ impl<'a> ModuleGraph<'a> {
     original_module_identifier: Option<ModuleIdentifier>,
     dependency_id: DependencyId,
     module_identifier: ModuleIdentifier,
-    // TODO: removed when new treeshaking is stable
-    is_new_treeshaking: bool,
   ) -> Result<()> {
     let dependency = self
       .dependency_by_id(&dependency_id)
       .expect("should have dependency");
     let is_module_dependency =
       dependency.as_module_dependency().is_some() || dependency.as_context_dependency().is_some();
-    let condition = if is_new_treeshaking {
-      dependency
-        .as_module_dependency()
-        .and_then(|dep| dep.get_condition())
-    } else {
-      None
-    };
+    let condition = dependency
+      .as_module_dependency()
+      .and_then(|dep| dep.get_condition());
     let Some(active_partial) = &mut self.active else {
       panic!("should have active partial");
     };
@@ -922,29 +916,11 @@ impl<'a> ModuleGraph<'a> {
     self
       .module_graph_module_by_identifier(module_identifier)
       .map(|m| {
-        m.__deprecated_all_dependencies
+        m.all_dependencies
           .iter()
           .filter_map(|dep_id| self.connection_id_by_dependency_id(dep_id))
           .collect()
       })
-  }
-
-  /// # Deprecated!!!
-  /// # Don't use this anymore!!!
-  /// A module is a DependenciesBlock, which means it has some Dependencies and some AsyncDependenciesBlocks
-  /// a static import is a Dependency, but a dynamic import is a AsyncDependenciesBlock
-  /// AsyncDependenciesBlock means it is a code-splitting point, and will create a ChunkGroup in code-splitting
-  /// and AsyncDependenciesBlock also is DependenciesBlock, so it can has some Dependencies and some AsyncDependenciesBlocks
-  /// so if you want get a module's dependencies and its blocks' dependencies (all dependencies)
-  /// just use module.get_dependencies() and module.get_blocks().map(|b| b.get_dependencyes())
-  /// you don't need this one
-  pub(crate) fn get_module_all_dependencies(
-    &self,
-    module_identifier: &ModuleIdentifier,
-  ) -> Option<&[DependencyId]> {
-    self
-      .module_graph_module_by_identifier(module_identifier)
-      .map(|m| &*m.__deprecated_all_dependencies)
   }
 
   pub fn parent_module_by_dependency_id(
@@ -1253,5 +1229,19 @@ impl<'a> ModuleGraph<'a> {
       DependencyCondition::False => ConnectionState::Bool(false),
       DependencyCondition::Fn(f) => f(connection, runtime, self),
     }
+  }
+
+  // returns: Option<bool>
+  //   - None: it's unknown
+  //   - Some(true): provided
+  //   - Some(false): not provided
+  pub fn is_export_provided(&self, id: &ModuleIdentifier, names: &[Atom]) -> Option<bool> {
+    self.module_graph_module_by_identifier(id).and_then(|mgm| {
+      match mgm.exports.is_export_provided(names, self)? {
+        ExportProvided::True => Some(true),
+        ExportProvided::False => Some(false),
+        ExportProvided::Null => None,
+      }
+    })
   }
 }
