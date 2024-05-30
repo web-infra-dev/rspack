@@ -1175,7 +1175,7 @@ export type OptimizationSplitChunksOptions = z.infer<
 >;
 
 const optimization = z.strictObject({
-	moduleIds: z.enum(["named", "deterministic"]).optional(),
+	moduleIds: z.enum(["named", "natural", "deterministic"]).optional(),
 	chunkIds: z.enum(["named", "deterministic"]).optional(),
 	minimize: z.boolean().optional(),
 	minimizer: z.literal("...").or(plugin).array().optional(),

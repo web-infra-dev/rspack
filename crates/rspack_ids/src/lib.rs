@@ -8,3 +8,5 @@ mod named_chunk_ids_plugin;
 pub use named_chunk_ids_plugin::*;
 mod deterministic_chunk_ids_plugin;
 pub use deterministic_chunk_ids_plugin::DeterministicChunkIdsPlugin;
+mod natural_module_ids_plugin;
+pub use natural_module_ids_plugin::NaturalModuleIdsPlugin;

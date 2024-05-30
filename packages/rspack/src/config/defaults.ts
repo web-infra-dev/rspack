@@ -893,9 +893,10 @@ const applyOptimizationDefaults = (
 	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
-	F(optimization, "moduleIds", (): "named" | "deterministic" => {
+	F(optimization, "moduleIds", (): "named" | "natural" | "deterministic" => {
 		if (production) return "deterministic";
-		return "named";
+		if (development) return "named";
+		return "natural";
 	});
 	F(optimization, "chunkIds", (): "named" | "deterministic" => {
 		if (production) return "deterministic";
