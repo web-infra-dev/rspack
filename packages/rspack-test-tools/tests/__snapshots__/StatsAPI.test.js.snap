@@ -194,7 +194,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 720,
+      "size": 714,
       "type": "asset",
     },
   ],
@@ -403,10 +403,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 720,
+          "size": 714,
         },
       ],
-      "assetsSize": 720,
+      "assetsSize": 714,
       "chunks": Array [
         "909",
       ],
@@ -416,7 +416,7 @@ Object {
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "c0db196ceebe2a004f20",
+  "hash": "e1b96ce92324c665cb1c",
   "logging": Object {},
   "modules": Array [
     Object {
@@ -663,10 +663,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 720,
+          "size": 714,
         },
       ],
-      "assetsSize": 720,
+      "assetsSize": 714,
       "chunks": Array [
         "909",
       ],
@@ -761,7 +761,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 352,
+      "size": 346,
       "type": "asset",
     },
   ],
@@ -990,10 +990,10 @@ exports.c = require(\\"./c?c=3\\");
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 352,
+          "size": 346,
         },
       ],
-      "assetsSize": 352,
+      "assetsSize": 346,
       "chunks": Array [
         "909",
       ],
@@ -1003,7 +1003,7 @@ exports.c = require(\\"./c?c=3\\");
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "9cdb43d7a78e4c33a99a",
+  "hash": "876088c0ff81aad2f717",
   "logging": Object {},
   "modules": Array [
     Object {
@@ -1204,10 +1204,10 @@ exports.c = require(\\"./c?c=3\\");
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 352,
+          "size": 346,
         },
       ],
-      "assetsSize": 352,
+      "assetsSize": 346,
       "chunks": Array [
         "909",
       ],
