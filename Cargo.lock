@@ -2877,6 +2877,7 @@ dependencies = [
  "heck 0.5.0",
  "napi-derive",
  "napi-h",
+ "once_cell",
  "rspack_core",
  "rspack_error",
  "rspack_napi",

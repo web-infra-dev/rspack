@@ -10,6 +10,7 @@ futures      = { workspace = true }
 heck         = { workspace = true }
 napi         = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive  = { workspace = true }
+once_cell    = { workspace = true }
 rspack_core  = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_napi  = { path = "../rspack_napi" }
