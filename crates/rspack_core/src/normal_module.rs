@@ -584,7 +584,6 @@ impl Module for NormalModule {
             module_generator_options: self.generator_options.as_ref(),
             runtime_requirements: &mut code_generation_result.runtime_requirements,
             data: &mut code_generation_result.data,
-            diagnostics: &mut code_generation_result.diagnostics,
             requested_source_type: *source_type,
             runtime,
             concatenation_scope: concatenation_scope.as_mut(),

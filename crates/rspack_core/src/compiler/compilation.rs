@@ -800,8 +800,6 @@ impl Compilation {
             }
           }
 
-          self.extend_diagnostics(result.diagnostics.clone());
-
           let runtimes = self
             .chunk_graph
             .get_module_runtimes(module_identifier, &self.chunk_by_ukey);
@@ -950,6 +948,20 @@ impl Compilation {
       .finish_modules
       .call(self)
       .await?;
+    // Collect dependencies diagnostics at here to make sure:
+    // 1. after finish_modules: has provide exports info
+    // 2. before optimize dependencies: side effects free module hasn't been skipped (move_target)
+    let module_graph = self.get_module_graph();
+    let mut diagnostics = Vec::new();
+    for (_, mgm) in module_graph.module_graph_modules() {
+      for dependency_id in &mgm.all_dependencies {
+        let Some(dependency) = module_graph.dependency_by_id(dependency_id) else {
+          continue;
+        };
+        dependency.get_diagnostics(&module_graph, &mut diagnostics);
+      }
+    }
+    self.extend_diagnostics(diagnostics);
     logger.time_end(start);
 
     Ok(())

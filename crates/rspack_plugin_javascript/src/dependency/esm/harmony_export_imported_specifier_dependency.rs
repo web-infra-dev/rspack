@@ -1001,35 +1001,9 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       compilation,
       runtime,
       concatenation_scope,
-      diagnostics,
-      module,
       ..
     } = code_generatable_context;
-    let module_graph = compilation.get_module_graph();
-    let ids = self.get_ids(&module_graph);
-    if let Some(should_error) = self
-      .export_presence_mode
-      .get_effective_export_presence(*module)
-    {
-      if let Some(error) = harmony_import_dependency_get_linking_error(
-        self,
-        &ids,
-        &module_graph,
-        self
-          .name
-          .as_ref()
-          .map(|name| format!("(reexported as '{}')", name))
-          .unwrap_or_default(),
-        should_error,
-      ) {
-        diagnostics.push(error);
-      }
-      if let Some(errors) =
-        self.get_conflicting_star_exports_errors(&ids, &module_graph, should_error)
-      {
-        diagnostics.extend(errors);
-      }
-    }
+
     let module_graph = compilation.get_module_graph();
     let mode = self.get_mode(self.name.clone(), &module_graph, &self.id, *runtime);
 
@@ -1253,6 +1227,39 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
 
   fn source_order(&self) -> Option<i32> {
     Some(self.source_order)
+  }
+
+  fn get_diagnostics(&self, module_graph: &ModuleGraph, diagnostics: &mut Vec<Diagnostic>) {
+    let Some(module) = module_graph.get_parent_module(&self.id) else {
+      return;
+    };
+    let Some(module) = module_graph.module_by_identifier(module) else {
+      return;
+    };
+    let ids = self.get_ids(module_graph);
+    if let Some(should_error) = self
+      .export_presence_mode
+      .get_effective_export_presence(&**module)
+    {
+      if let Some(error) = harmony_import_dependency_get_linking_error(
+        self,
+        &ids,
+        module_graph,
+        self
+          .name
+          .as_ref()
+          .map(|name| format!("(reexported as '{}')", name))
+          .unwrap_or_default(),
+        should_error,
+      ) {
+        diagnostics.push(error);
+      }
+      if let Some(errors) =
+        self.get_conflicting_star_exports_errors(&ids, module_graph, should_error)
+      {
+        diagnostics.extend(errors);
+      }
+    }
   }
 }
 

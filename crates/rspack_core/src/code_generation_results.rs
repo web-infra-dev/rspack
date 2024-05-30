@@ -4,7 +4,6 @@ use std::ops::{Deref, DerefMut};
 use std::sync::atomic::AtomicU32;
 
 use anymap::CloneAny;
-use rspack_error::Diagnostic;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_identifier::IdentifierMap;
 use rspack_sources::BoxSource;
@@ -113,8 +112,6 @@ pub struct CodeGenerationResult {
   pub hash: Option<RspackHashDigest>,
   pub id: CodeGenResultId,
   pub concatenation_scope: Option<ConcatenationScope>,
-  // Collect diagnostics in codegen phase
-  pub diagnostics: Vec<Diagnostic>,
 }
 
 impl CodeGenerationResult {

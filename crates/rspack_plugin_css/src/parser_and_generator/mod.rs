@@ -352,7 +352,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
           init_fragments: &mut init_fragments,
           concatenation_scope: generate_context.concatenation_scope.take(),
           data: generate_context.data,
-          diagnostics: generate_context.diagnostics,
         };
 
         module.get_dependencies().iter().for_each(|id| {
