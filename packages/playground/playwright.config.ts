@@ -5,7 +5,7 @@ const TIMEOUT = 2 * 60 * 1000;
 
 export default defineConfig<RspackOptions>({
 	// Look for test files in the "fixtures" directory, relative to this configuration file.
-	testDir: "./cases/lazy-compilation",
+	testDir: "./cases",
 
 	//	globalSetup: require.resolve("./scripts/globalSetup"),
 
