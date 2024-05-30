@@ -1,5 +1,5 @@
 var __webpack_modules__ = ({
-"./style.css?eccb": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"1": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   aClass: function() { return _1; },
@@ -72,7 +72,7 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?eccb");
+/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("1");
 
 // eslint-disable-next-line no-console
 console.log({

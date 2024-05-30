@@ -1,7 +1,7 @@
 (() => { // webpackBootstrap
 "use strict";
 var __webpack_modules__ = ({
-"./style.css?b16f": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"1": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
@@ -76,7 +76,7 @@ __webpack_require__.e = function (chunkId) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = function () {
-	return "98438b00a876a2cbe211";
+	return "0460f5651e712968b625";
 };
 
 })();
@@ -392,9 +392,9 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?b16f");
+/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("1");
 
-/* eslint-disable-next-line no-unused-expressions */ __webpack_require__.e(/* import() | async */ "async").then(__webpack_require__.bind(__webpack_require__, "./async.css?833a"));
+/* eslint-disable-next-line no-unused-expressions */ __webpack_require__.e(/* import() | async */ "async").then(__webpack_require__.bind(__webpack_require__, "3"));
 
 })();
 
