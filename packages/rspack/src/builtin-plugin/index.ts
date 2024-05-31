@@ -43,6 +43,7 @@ export * from "./ModuleChunkFormatPlugin";
 export * from "./ModuleConcatenationPlugin";
 export * from "./NamedChunkIdsPlugin";
 export * from "./NamedModuleIdsPlugin";
+export * from "./NaturalChunkIdsPlugin";
 export * from "./NaturalModuleIdsPlugin";
 export * from "./NodeTargetPlugin";
 export * from "./ProgressPlugin";

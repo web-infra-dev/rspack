@@ -10,3 +10,5 @@ mod deterministic_chunk_ids_plugin;
 pub use deterministic_chunk_ids_plugin::DeterministicChunkIdsPlugin;
 mod natural_module_ids_plugin;
 pub use natural_module_ids_plugin::NaturalModuleIdsPlugin;
+mod natural_chunk_ids_plugin;
+pub use natural_chunk_ids_plugin::NaturalChunkIdsPlugin;
