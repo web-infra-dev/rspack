@@ -369,7 +369,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
             .build_meta()
             .expect("should have build_meta")
             .default_object,
-          BuildMetaDefaultObject::RedirectWarn
+          BuildMetaDefaultObject::RedirectWarn { ignore: false }
         )
       {
         let msg = format!(
