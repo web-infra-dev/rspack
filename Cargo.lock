@@ -2177,8 +2177,7 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 [[package]]
 name = "oxc_resolver"
 version = "1.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1759975cb2af8d8d4132995769388fcd490bad24b20c6e2116ee94696df3d5a8"
+source = "git+https://github.com/ahabhgk/oxc-resolver.git?branch=fix-alias-fragment-as-path#b57dfc902d81c499e4192e62a72bef81915f2c98"
 dependencies = [
  "dashmap",
  "dunce",
