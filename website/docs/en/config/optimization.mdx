@@ -10,10 +10,11 @@ Rspack will select appropriate optimization configuration based on the [`mode`](
 
 ## optimization.moduleIds
 
-<PropertyType type="'named' | 'deterministic'" />
+<PropertyType type="'natural' | 'named' | 'deterministic'" />
 
 | option          | description                                                                                                                         |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `natural`       | Use numeric ids in order of usage. This option is enabled by default when mode is `'none'`.                                         |
 | `named`         | Use meaningful, easy-to-debug content as id. This option is enabled by default in development mode.                                 |
 | `deterministic` | Use the hashed module identifier as the id to benefit from long-term caching. This option is enabled by default in production mode. |
 
