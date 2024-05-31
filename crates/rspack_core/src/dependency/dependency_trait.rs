@@ -86,7 +86,9 @@ pub trait Dependency:
     None
   }
 
-  fn get_diagnostics(&self, _module_graph: &ModuleGraph, _diagnostics: &mut Vec<Diagnostic>) {}
+  fn get_diagnostics(&self, _module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+    None
+  }
 }
 
 impl dyn Dependency + '_ {
