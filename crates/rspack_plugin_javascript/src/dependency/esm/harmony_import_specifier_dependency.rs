@@ -21,6 +21,7 @@ pub struct HarmonyImportSpecifierDependency {
   name: Atom,
   source_order: i32,
   shorthand: bool,
+  asi_safe: bool,
   start: u32,
   end: u32,
   ids: Vec<Atom>,
@@ -41,6 +42,7 @@ impl HarmonyImportSpecifierDependency {
     name: Atom,
     source_order: i32,
     shorthand: bool,
+    asi_safe: bool,
     start: u32,
     end: u32,
     ids: Vec<Atom>,
@@ -57,6 +59,7 @@ impl HarmonyImportSpecifierDependency {
       name,
       source_order,
       shorthand,
+      asi_safe,
       start,
       end,
       ids,
@@ -157,8 +160,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
         scope.create_module_reference(
           con.module_identifier(),
           &ModuleReferenceOptions {
-            // TODO: should add asi safe
-            asi_safe: Some(false),
+            asi_safe: Some(self.asi_safe),
             ..Default::default()
           },
         )
@@ -167,8 +169,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
         scope.create_module_reference(
           con.module_identifier(),
           &ModuleReferenceOptions {
-            // TODO: align asi_safe when we have it
-            asi_safe: Some(false),
+            asi_safe: Some(self.asi_safe),
             ..Default::default()
           },
         ) + property_access(ids, 0).as_str()
@@ -176,8 +177,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
         scope.create_module_reference(
           con.module_identifier(),
           &ModuleReferenceOptions {
-            // TODO: should add asi safe
-            asi_safe: Some(true),
+            asi_safe: Some(self.asi_safe),
             ids,
             call: self.call,
             direct_import: self.direct_import,
@@ -187,6 +187,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       }
     } else {
       harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
+      // dbg!(&self.shorthand, self.asi_safe);
       export_from_import(
         code_generatable_context,
         true,
@@ -196,6 +197,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
         &self.id,
         self.call,
         !self.direct_import,
+        Some(self.shorthand || self.asi_safe),
       )
     };
 

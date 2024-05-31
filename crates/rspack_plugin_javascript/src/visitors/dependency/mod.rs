@@ -10,14 +10,14 @@ use rspack_core::{
 };
 use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::comments::Comments;
-use swc_core::common::{SourceFile, Span};
+use swc_core::common::{BytePos, SourceFile, Span};
 use swc_core::ecma::atoms::Atom;
 
 pub use self::context_dependency_helper::create_context_dependency;
 pub use self::context_helper::{scanner_context_module, ContextModuleScanResult};
-pub use self::parser::{CallExpressionInfo, CallHooksName, ExportedVariableInfo};
+pub use self::parser::{CallExpressionInfo, CallHooksName, ExportedVariableInfo, PathIgnoredSpans};
 pub use self::parser::{JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope};
 pub use self::util::*;
 use crate::dependency::Specifier;
@@ -73,6 +73,8 @@ pub fn scan_dependencies(
   build_meta: &mut BuildMeta,
   module_identifier: ModuleIdentifier,
   module_parser_options: Option<&ParserOptions>,
+  semicolons: &mut FxHashSet<BytePos>,
+  path_ignored_spans: &mut PathIgnoredSpans,
 ) -> Result<ScanDependenciesResult, Vec<Box<dyn Diagnostic + Send + Sync>>> {
   let mut parser = JavascriptParser::new(
     source_file,
@@ -87,6 +89,8 @@ pub fn scan_dependencies(
     resource_data,
     build_meta,
     build_info,
+    semicolons,
+    path_ignored_spans,
   );
 
   parser.walk_program(program.get_inner_program());

@@ -3,6 +3,7 @@ use swc_core::ecma::ast::CondExpr;
 use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;
 
+#[inline]
 pub fn eval_cond_expression(
   scanner: &mut JavascriptParser,
   cond: &CondExpr,

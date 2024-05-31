@@ -10,8 +10,9 @@ use swc_core::common::{SourceFile, Span, Spanned};
 
 pub use self::get_prop_from_obj::*;
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct EcmaError(String, Span);
+#[derive(Debug)]
 pub struct EcmaErrorsDeduped(Vec<EcmaError>);
 
 impl IntoIterator for EcmaErrorsDeduped {

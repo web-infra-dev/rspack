@@ -6,6 +6,7 @@ use super::BasicEvaluatedExpression;
 use crate::parser_plugin::JavascriptParserPlugin;
 use crate::visitors::JavascriptParser;
 
+#[inline]
 fn eval_typeof(
   parser: &mut JavascriptParser,
   expr: &UnaryExpr,
@@ -41,6 +42,7 @@ fn eval_typeof(
   }
 }
 
+#[inline]
 pub fn eval_unary_expression(
   scanner: &mut JavascriptParser,
   expr: &UnaryExpr,

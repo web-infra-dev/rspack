@@ -2,15 +2,23 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 __webpack_require__("./resources sync recursive ^\\.\\/pre_.*\\.js$")(`./pre_${i + 1}.js`);
+
+
 }),
 "./resources/pre_a.js": (function () {
 console.log("a");
+
+
 }),
 "./resources/pre_b.js": (function () {
 console.log("a");
+
+
 }),
 "./resources/pre_c.js": (function () {
 console.log("a");
+
+
 }),
 "./resources sync recursive ^\\.\\/pre_.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
 var map = {
@@ -38,6 +46,8 @@ webpackContext.keys = function webpackContextKeys() {
 webpackContext.resolve = webpackContextResolve;
 module.exports = webpackContext;
 webpackContext.id = "./resources sync recursive ^\\.\\/pre_.*\\.js$";
+
+
 }),
 
 },function(__webpack_require__) {

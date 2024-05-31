@@ -31,7 +31,7 @@ impl CallHooksName for &str {
 }
 
 impl CallHooksName for String {
-  fn call_hooks_name<F>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<bool>
+  fn call_hooks_name<'parser, F>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<bool>
   where
     F: Fn(&mut JavascriptParser, &str) -> Option<bool>,
   {
@@ -40,7 +40,7 @@ impl CallHooksName for String {
 }
 
 impl CallHooksName for Atom {
-  fn call_hooks_name<F>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<bool>
+  fn call_hooks_name<'parser, F>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<bool>
   where
     F: Fn(&mut JavascriptParser, &str) -> Option<bool>,
   {
@@ -49,7 +49,11 @@ impl CallHooksName for Atom {
 }
 
 impl CallHooksName for ExportedVariableInfo {
-  fn call_hooks_name<F>(&self, parser: &mut JavascriptParser, hooks_call: F) -> Option<bool>
+  fn call_hooks_name<'parser, F>(
+    &self,
+    parser: &mut JavascriptParser,
+    hooks_call: F,
+  ) -> Option<bool>
   where
     F: Fn(&mut JavascriptParser, &str) -> Option<bool>,
   {

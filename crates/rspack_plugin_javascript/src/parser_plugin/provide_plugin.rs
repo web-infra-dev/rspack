@@ -62,7 +62,7 @@ impl JavascriptParserPlugin for ProviderPlugin {
 
   fn call(
     &self,
-    parser: &mut crate::visitors::JavascriptParser,
+    parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::CallExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -82,7 +82,7 @@ impl JavascriptParserPlugin for ProviderPlugin {
 
   fn member(
     &self,
-    parser: &mut crate::visitors::JavascriptParser,
+    parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -100,7 +100,7 @@ impl JavascriptParserPlugin for ProviderPlugin {
 
   fn identifier(
     &self,
-    parser: &mut crate::visitors::JavascriptParser,
+    parser: &mut JavascriptParser,
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {

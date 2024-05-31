@@ -33,7 +33,7 @@ webpack/runtime/auto_public_path {909}
   [no exports]
   [used exports unknown]
   
-Rspack compiled successfully (2a9b73a931b16eaff84e)"
+Rspack compiled successfully (a5dc3d7712fbe39d3eed)"
 `;
 
 exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print correct stats for 1`] = `
@@ -65,13 +65,13 @@ Rspack x.x.x compiled with 1 error in X s (ab49ea8e12ee2eaedeac)"
 
 exports[`statsOutput statsOutput/filename should print correct stats for 1`] = `
 "PublicPath: auto
-asset 521.xxxx.js 335 bytes [emitted]
+asset 521.xxxx.js 337 bytes [emitted]
 asset 909.xxxx.js 8.78 KiB [emitted] (name: main)
 Entrypoint main 8.78 KiB = 909.xxxx.js
 runtime modules 11 modules
 ./index.js
 ./dynamic.js
-Rspack x.x.x compiled successfully in X s (c909dc67080bb290e34e)"
+Rspack x.x.x compiled successfully in X s (dc4b64563383dc09e6f2)"
 `;
 
 exports[`statsOutput statsOutput/hot+production should print correct stats for 1`] = `
@@ -137,7 +137,7 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
 
 2 chunks:
   PublicPath: auto
-  asset 76.bundle2.js 491 bytes [emitted] (name: c)
+  asset 76.bundle2.js 497 bytes [emitted] (name: c)
   asset bundle2.js 10.3 KiB [emitted] (name: main)
   Entrypoint main 10.3 KiB = bundle2.js
   chunk 76.bundle2.js (c) <{76}> <{909}> >{76}<
@@ -151,8 +151,8 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
 
 3 chunks:
   PublicPath: auto
-  asset 345.bundle3.js 182 bytes [emitted]
-  asset 76.bundle3.js 385 bytes [emitted] (name: c)
+  asset 345.bundle3.js 186 bytes [emitted]
+  asset 76.bundle3.js 387 bytes [emitted] (name: c)
   asset bundle3.js 10.3 KiB [emitted] (name: main)
   Entrypoint main 10.3 KiB = bundle3.js
   chunk 345.bundle3.js <{76}>
@@ -167,9 +167,9 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
 
 4 chunks:
   PublicPath: auto
-  asset 697.bundle4.js 128 bytes [emitted]
-  asset 753.bundle4.js 128 bytes [emitted]
-  asset 76.bundle4.js 385 bytes [emitted] (name: c)
+  asset 697.bundle4.js 130 bytes [emitted]
+  asset 753.bundle4.js 130 bytes [emitted]
+  asset 76.bundle4.js 387 bytes [emitted] (name: c)
   asset bundle4.js 10.3 KiB [emitted] (name: main)
   Entrypoint main 10.3 KiB = bundle4.js
   chunk 697.bundle4.js <{76}>
@@ -207,7 +207,7 @@ Rspack compiled with 1 error"
 
 exports[`statsOutput statsOutput/named-chunk-group should print correct stats for 1`] = `
 "Entrypoint main 8.77 KiB = main.js
-Chunk Group cimanyd 335 bytes = cimanyd.js"
+Chunk Group cimanyd 337 bytes = cimanyd.js"
 `;
 
 exports[`statsOutput statsOutput/nonexistent-import-source-error should print correct stats for 1`] = `
@@ -232,8 +232,8 @@ chunk e2.js (e2) [entry]"
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk should print correct stats for 1`] = `
-"Entrypoint e1 4.01 KiB = e1~runtime.js 3.68 KiB e1.js 336 bytes
-Entrypoint e2 4.01 KiB = e2~runtime.js 3.68 KiB e2.js 336 bytes
+"Entrypoint e1 4.01 KiB = e1~runtime.js 3.68 KiB e1.js 338 bytes
+Entrypoint e2 4.01 KiB = e2~runtime.js 3.68 KiB e2.js 338 bytes
 chunk e1.js (e1) [entry]
 chunk e1~runtime.js (e1~runtime) [initial]
 chunk e2.js (e2) [entry]
@@ -241,8 +241,8 @@ chunk e2~runtime.js (e2~runtime) [initial]"
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk-multiple should print correct stats for 1`] = `
-"Entrypoint e1 4.01 KiB = runtime~e1.js 3.68 KiB e1.js 336 bytes
-Entrypoint e2 4.01 KiB = runtime~e2.js 3.68 KiB e2.js 336 bytes
+"Entrypoint e1 4.01 KiB = runtime~e1.js 3.68 KiB e1.js 338 bytes
+Entrypoint e2 4.01 KiB = runtime~e2.js 3.68 KiB e2.js 338 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime~e1.js (runtime~e1) [initial]
@@ -250,16 +250,16 @@ chunk runtime~e2.js (runtime~e2) [initial]"
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk-single should print correct stats for 1`] = `
-"Entrypoint e1 4.01 KiB = runtime.js 3.68 KiB e1.js 336 bytes
-Entrypoint e2 4.01 KiB = runtime.js 3.68 KiB e2.js 336 bytes
+"Entrypoint e1 4.01 KiB = runtime.js 3.68 KiB e1.js 338 bytes
+Entrypoint e2 4.01 KiB = runtime.js 3.68 KiB e2.js 338 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime.js (runtime) [initial]"
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk-true should print correct stats for 1`] = `
-"Entrypoint e1 4.01 KiB = runtime~e1.js 3.68 KiB e1.js 336 bytes
-Entrypoint e2 4.01 KiB = runtime~e2.js 3.68 KiB e2.js 336 bytes
+"Entrypoint e1 4.01 KiB = runtime~e1.js 3.68 KiB e1.js 338 bytes
+Entrypoint e2 4.01 KiB = runtime~e2.js 3.68 KiB e2.js 338 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime~e1.js (runtime~e1) [initial]
@@ -287,8 +287,8 @@ Rspack compiled with 1 error"
 
 exports[`statsOutput statsOutput/performance-disabled should print correct stats for 1`] = `
 "PublicPath: auto
-asset 697.js 128 bytes [emitted]
-asset 753.js 128 bytes [emitted]
+asset 697.js 130 bytes [emitted]
+asset 753.js 130 bytes [emitted]
 asset main.js 303 KiB [emitted] (name: main)
 Entrypoint main 303 KiB = main.js
 runtime modules 12 modules
@@ -303,8 +303,8 @@ Rspack x.x.x compiled successfully in X s"
 
 exports[`statsOutput statsOutput/performance-error should print correct stats for 1`] = `
 "PublicPath: auto
-asset 697.js 128 bytes [emitted]
-asset 753.js 128 bytes [emitted]
+asset 697.js 130 bytes [emitted]
+asset 753.js 130 bytes [emitted]
 asset main.js 303 KiB [emitted] (name: main)
 Entrypoint main 303 KiB = main.js
 runtime modules 12 modules
@@ -316,11 +316,11 @@ runtime modules 12 modules
 ./index.js
 
 ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
-  │   main.js (303.477 KiB)
+  │   main.js (303.479 KiB)
 
 
 ERROR in × entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (303.477 KiB)
+  │   main (303.479 KiB)
   │       main.js
 
 
@@ -329,8 +329,8 @@ Rspack x.x.x compiled with 2 errors in X s"
 
 exports[`statsOutput statsOutput/performance-no-hints should print correct stats for 1`] = `
 "PublicPath: auto
-asset 697.js 128 bytes [emitted]
-asset 753.js 128 bytes [emitted]
+asset 697.js 130 bytes [emitted]
+asset 753.js 130 bytes [emitted]
 asset main.js 303 KiB [emitted] (name: main)
 Entrypoint main 303 KiB = main.js
 runtime modules 12 modules
@@ -405,8 +405,8 @@ webpack/runtime/define_property_getters"
 
 exports[`statsOutput statsOutput/runtime-specific-exports should print correct stats for 1`] = `
 "PublicPath: auto
-asset main.js 1.79 KiB [emitted] (name: main)
-Entrypoint main 1.79 KiB = main.js
+asset main.js 1.8 KiB [emitted] (name: main)
+Entrypoint main 1.8 KiB = main.js
 ./math.js
   [exports: add, multiply]
   [only some exports used: add]
@@ -416,18 +416,18 @@ Entrypoint main 1.79 KiB = main.js
 ./increment.js
   [exports: decrement, increment, incrementBy2]
   [only some exports used: increment]
-Rspack x.x.x compiled successfully in X s (227804ed5727e0a79df1)"
+Rspack x.x.x compiled successfully in X s (df258688ac5f176fb388)"
 `;
 
 exports[`statsOutput statsOutput/side-effects-bailouts should print correct stats for 1`] = `
 "PublicPath: auto
-asset main.js 1.85 KiB {909} [emitted] (name: main)
-Entrypoint main 1.85 KiB = main.js
+asset main.js 1.86 KiB {909} [emitted] (name: main)
+Entrypoint main 1.86 KiB = main.js
 chunk {909} main.js (main) [entry]
   ./lib.js [467] {909}
     [exports: test]
     [all exports used]
-    Statement with side_effects in source code at ./lib.js:3:0-9
+    Statement with side_effects in source code at ./lib.js:5:0-9
     esm import ./lib.js [10]
     esm import specifier ./lib.js [10]
   ./index.js [10] {909}
@@ -437,7 +437,7 @@ chunk {909} main.js (main) [entry]
 ./lib.js [467] {909}
   [exports: test]
   [all exports used]
-  Statement with side_effects in source code at ./lib.js:3:0-9
+  Statement with side_effects in source code at ./lib.js:5:0-9
   esm import ./lib.js [10]
   esm import specifier ./lib.js [10]
 ./index.js [10] {909}
@@ -451,7 +451,7 @@ webpack/runtime/define_property_getters {909}
   [no exports]
   [used exports unknown]
   
-1970-04-20 12:42:42: Rspack x.x.x compiled successfully in X s (566f7bf47297346307db)"
+1970-04-20 12:42:42: Rspack x.x.x compiled successfully in X s (35c20f1ddae2e2a7dbbe)"
 `;
 
 exports[`statsOutput statsOutput/simple-export should print correct stats for 1`] = `
@@ -471,7 +471,7 @@ runtime modules 3 modules
 orphan modules [orphan] 1 module
 ./raw.png
 ./index.js
-Rspack compiled successfully (7a114822715e07ce90fd)"
+Rspack compiled successfully (9d096abf3cd4f469ffd6)"
 `;
 
 exports[`statsOutput statsOutput/stats-hooks should print correct stats for 1`] = `
@@ -487,9 +487,10 @@ exports[`statsOutput statsOutput/try-require-module should print correct stats f
   ⚠ Resolve error: Can't resolve './missing-module' in 'Xdir/try-require-module'
    ╭─[1:1]
  1 │ try {
- 2 │     require('./missing-module');
+ 2 │     require('./missing-module')
    ·     ───────────────────────────
- 3 │ } catch (e) {}
+ 3 │ } catch (e) {
+ 4 │ 
    ╰────
 
 Rspack compiled with 1 warning"
@@ -500,9 +501,10 @@ exports[`statsOutput statsOutput/try-require-resolve-module should print correct
   ⚠ Resolve error: Can't resolve './missing-module' in 'Xdir/try-require-resolve-module'
    ╭─[1:1]
  1 │ try {
- 2 │     require.resolve('./missing-module');
+ 2 │     require.resolve('./missing-module')
    ·     ───────────────────────────────────
- 3 │ } catch (e) {}
+ 3 │ } catch (e) {
+ 4 │ 
    ╰────
 
 Rspack compiled with 1 warning"
@@ -513,9 +515,10 @@ exports[`statsOutput statsOutput/try-require-resolve-weak-module should print co
   ⚠ Resolve error: Can't resolve './missing-module' in 'Xdir/try-require-resolve-weak-module'
    ╭─[1:1]
  1 │ try {
- 2 │     require.resolveWeak('./missing-module');
+ 2 │     require.resolveWeak('./missing-module')
    ·     ───────────────────────────────────────
- 3 │ } catch (e) {}
+ 3 │ } catch (e) {
+ 4 │ 
    ╰────
 
 Rspack compiled with 1 warning"

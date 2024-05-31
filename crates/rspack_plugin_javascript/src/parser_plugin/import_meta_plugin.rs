@@ -7,6 +7,7 @@ use super::JavascriptParserPlugin;
 use crate::visitors::create_traceable_error;
 use crate::visitors::expr_name;
 use crate::visitors::ExportedVariableInfo;
+use crate::visitors::JavascriptParser;
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/ImportMetaPlugin.js
 // TODO:
@@ -19,7 +20,7 @@ pub struct ImportMetaPlugin;
 impl JavascriptParserPlugin for ImportMetaPlugin {
   fn r#typeof(
     &self,
-    parser: &mut crate::visitors::JavascriptParser,
+    parser: &mut JavascriptParser,
     unary_expr: &swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -50,7 +51,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 
   fn meta_property(
     &self,
-    parser: &mut crate::visitors::JavascriptParser,
+    parser: &mut JavascriptParser,
     root_name: &swc_core::atoms::Atom,
     span: Span,
   ) -> Option<bool> {
@@ -63,12 +64,18 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       parser.source_file,
       span.into()
     ).with_severity(Severity::Warning)));
+
+      let content = if parser.is_asi_position(span.lo()) {
+        ";({})"
+      } else {
+        "({})"
+      };
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
           span.real_lo(),
           span.real_hi(),
-          "({})".into(),
+          content.into(),
           None,
         )));
       Some(true)
@@ -79,7 +86,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 
   fn member(
     &self,
-    parser: &mut crate::visitors::JavascriptParser,
+    parser: &mut JavascriptParser,
     member_expr: &swc_core::ecma::ast::MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -102,7 +109,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 
   fn unhandled_expression_member_chain(
     &self,
-    parser: &mut crate::visitors::JavascriptParser,
+    parser: &mut JavascriptParser,
     root_info: &ExportedVariableInfo,
     expr: &swc_core::ecma::ast::MemberExpr,
   ) -> Option<bool> {

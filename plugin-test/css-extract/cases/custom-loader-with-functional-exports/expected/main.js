@@ -8,8 +8,10 @@ __webpack_require__.d(__webpack_exports__, {
   cnB: function() { return _2; }
 });
 // extracted by css-extract-rspack-plugin
-var _1 = ()=>"class-name-a";
-var _2 = ()=>"class-name-b";
+var _1 = () => "class-name-a";
+var _2 = () => "class-name-b";
+
+
 
 }),
 
@@ -74,8 +76,9 @@ var __webpack_exports__ = {};
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?3e20");
 
+
 // eslint-disable-next-line no-console
-console.log((0, _style_css__WEBPACK_IMPORTED_MODULE_0__.cnA)(), (0, _style_css__WEBPACK_IMPORTED_MODULE_0__.cnB)());
+console.log((0,_style_css__WEBPACK_IMPORTED_MODULE_0__.cnA)(), (0,_style_css__WEBPACK_IMPORTED_MODULE_0__.cnB)());
 
 })();
 

@@ -1,7 +1,7 @@
 use rspack_core::SpanExt;
 
 use super::JavascriptParserPlugin;
-use crate::dependency::URLDependency;
+use crate::{dependency::URLDependency, visitors::JavascriptParser};
 
 pub struct URLPlugin {
   pub relative: bool,
@@ -10,7 +10,7 @@ pub struct URLPlugin {
 impl JavascriptParserPlugin for URLPlugin {
   fn new_expression(
     &self,
-    parser: &mut crate::visitors::JavascriptParser,
+    parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::NewExpr,
   ) -> Option<bool> {
     if parser.worker_syntax_list.match_new_worker(expr) {
