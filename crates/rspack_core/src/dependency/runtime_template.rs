@@ -305,7 +305,11 @@ pub fn module_id_expr(
         ..Default::default()
       }
     ),
-    serde_json::to_string(module_id).expect("should render module id")
+    match module_id.parse::<i32>() {
+      Ok(id) => serde_json::to_string(&id),
+      Err(_) => serde_json::to_string(module_id),
+    }
+    .expect("should render module id")
   )
 }
 

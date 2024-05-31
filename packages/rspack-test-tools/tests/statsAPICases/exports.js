@@ -10,7 +10,7 @@ module.exports = {
 			optimization: {
 				usedExports: true,
 				providedExports: true
-			},
+			}
 		};
 	},
 	async check(stats) {
@@ -25,8 +25,8 @@ module.exports = {
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 720 bytes [emitted] (name: main)
-		Entrypoint main 720 bytes = main.js
+		asset main.js 714 bytes [emitted] (name: main)
+		Entrypoint main 714 bytes = main.js
 		runtime modules 3 modules
 		./fixtures/esm/a.js
 		  [exports: a, default]
@@ -39,7 +39,7 @@ module.exports = {
 		./fixtures/esm/abc.js
 		  [no exports]
 		  [no exports used]
-		Rspack compiled successfully (c0db196ceebe2a004f20)"
+		Rspack compiled successfully (e1b96ce92324c665cb1c)"
 	`);
 	}
 };
