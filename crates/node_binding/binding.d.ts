@@ -388,6 +388,8 @@ export interface JsLoaderContext {
    * @internal
    */
   diagnosticsExternal: ExternalObject<'Diagnostic[]'>
+  /** Will be deprecated. Use module.module_identifier instead */
+  _moduleIdentifier: string
   _module: JsModule
   hot: boolean
 }

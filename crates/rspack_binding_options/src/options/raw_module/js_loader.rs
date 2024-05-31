@@ -190,6 +190,9 @@ pub struct JsLoaderContext {
   #[napi(ts_type = "ExternalObject<'Diagnostic[]'>")]
   pub diagnostics_external: External<Vec<Diagnostic>>,
 
+  /// Will be deprecated. Use module.module_identifier instead
+  #[napi(js_name = "_moduleIdentifier")]
+  pub module_identifier: String,
   #[napi(js_name = "_module")]
   pub module: JsModule,
 
@@ -254,6 +257,7 @@ impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContex
       additional_data_external: External::new(cx.additional_data.clone()),
       context_external: External::new(cx.context.clone()),
       diagnostics_external: External::new(cx.__diagnostics.drain(..).collect()),
+      module_identifier: cx.context.module.module_identifier.to_string(),
       module: cx
         .context
         .module
