@@ -45,11 +45,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   {
     name: 'BannerPlugin',
     url: '/plugins/webpack/banner-plugin',
-    status: SupportStatus.PartiallySupported,
-    notes: {
-      en: '`stage` option not supported',
-      zh: '不支持 `stage` 选项',
-    },
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'ContextExclusionPlugin',
