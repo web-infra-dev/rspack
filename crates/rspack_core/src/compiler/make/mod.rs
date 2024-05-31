@@ -97,7 +97,7 @@ pub fn make_module_graph(
   let mut params = Vec::with_capacity(6);
 
   if !compilation.entries.is_empty() {
-    params.push(MakeParam::BuildEntryAndClean(
+    params.push(MakeParam::BuildEntry(
       compilation
         .entries
         .values()

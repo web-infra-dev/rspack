@@ -439,14 +439,6 @@ impl Compilation {
       self.global_entry.include_dependencies.push(entry_id);
     }
 
-    let artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = update_module_graph(
-      self,
-      artifact,
-      vec![MakeParam::ForceBuildDeps(HashSet::from_iter([(
-        entry_id, None,
-      )]))],
-    )?;
     Ok(())
   }
 
@@ -962,6 +954,24 @@ impl Compilation {
     }
     self.extend_diagnostics(diagnostics);
     logger.time_end(start);
+
+    // recheck entry and clean useless entry
+    let make_artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
+      self,
+      make_artifact,
+      vec![MakeParam::BuildEntryAndClean(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .cloned()
+          .collect(),
+      )],
+    )?;
+
+    // take make diagnostics
     let diagnostics = self.make_artifact.take_diagnostics();
     self.extend_diagnostics(diagnostics);
 
