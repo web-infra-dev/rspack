@@ -6000,7 +6000,7 @@ export type Optimization = z.infer<typeof optimization>;
 
 // @public (undocumented)
 const optimization: z.ZodObject<{
-    moduleIds: z.ZodOptional<z.ZodEnum<["named", "deterministic"]>>;
+    moduleIds: z.ZodOptional<z.ZodEnum<["named", "natural", "deterministic"]>>;
     chunkIds: z.ZodOptional<z.ZodEnum<["named", "deterministic"]>>;
     minimize: z.ZodOptional<z.ZodBoolean>;
     minimizer: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodLiteral<"...">, z.ZodUnion<[z.ZodType<RspackPluginInstance, z.ZodTypeDef, RspackPluginInstance>, z.ZodType<RspackPluginFunction, z.ZodTypeDef, RspackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>]>, "many">>;
@@ -6199,7 +6199,7 @@ const optimization: z.ZodObject<{
     mangleExports: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["size", "deterministic"]>, z.ZodBoolean]>>;
     nodeEnv: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>>;
 }, "strict", z.ZodTypeAny, {
-    moduleIds?: "named" | "deterministic" | undefined;
+    moduleIds?: "named" | "natural" | "deterministic" | undefined;
     chunkIds?: "named" | "deterministic" | undefined;
     minimize?: boolean | undefined;
     minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
@@ -6260,7 +6260,7 @@ const optimization: z.ZodObject<{
     mangleExports?: boolean | "deterministic" | "size" | undefined;
     nodeEnv?: string | false | undefined;
 }, {
-    moduleIds?: "named" | "deterministic" | undefined;
+    moduleIds?: "named" | "natural" | "deterministic" | undefined;
     chunkIds?: "named" | "deterministic" | undefined;
     minimize?: boolean | undefined;
     minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
@@ -9372,7 +9372,7 @@ export const rspackOptions: z.ZodObject<{
     }>]>>;
     snapshot: z.ZodOptional<z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>>;
     optimization: z.ZodOptional<z.ZodObject<{
-        moduleIds: z.ZodOptional<z.ZodEnum<["named", "deterministic"]>>;
+        moduleIds: z.ZodOptional<z.ZodEnum<["named", "natural", "deterministic"]>>;
         chunkIds: z.ZodOptional<z.ZodEnum<["named", "deterministic"]>>;
         minimize: z.ZodOptional<z.ZodBoolean>;
         minimizer: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodLiteral<"...">, z.ZodUnion<[z.ZodType<RspackPluginInstance, z.ZodTypeDef, RspackPluginInstance>, z.ZodType<RspackPluginFunction, z.ZodTypeDef, RspackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>]>, "many">>;
@@ -9571,7 +9571,7 @@ export const rspackOptions: z.ZodObject<{
         mangleExports: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["size", "deterministic"]>, z.ZodBoolean]>>;
         nodeEnv: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>>;
     }, "strict", z.ZodTypeAny, {
-        moduleIds?: "named" | "deterministic" | undefined;
+        moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "deterministic" | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
@@ -9632,7 +9632,7 @@ export const rspackOptions: z.ZodObject<{
         mangleExports?: boolean | "deterministic" | "size" | undefined;
         nodeEnv?: string | false | undefined;
     }, {
-        moduleIds?: "named" | "deterministic" | undefined;
+        moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "deterministic" | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
@@ -10735,7 +10735,7 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     snapshot?: {} | undefined;
     optimization?: {
-        moduleIds?: "named" | "deterministic" | undefined;
+        moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "deterministic" | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
@@ -11184,7 +11184,7 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     snapshot?: {} | undefined;
     optimization?: {
-        moduleIds?: "named" | "deterministic" | undefined;
+        moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "deterministic" | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;

@@ -19,7 +19,7 @@ use rspack_core::{BoxPlugin, Define, DefinePlugin, Plugin, PluginExt, Provide, P
 use rspack_error::Result;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
-  NamedModuleIdsPlugin,
+  NamedModuleIdsPlugin, NaturalModuleIdsPlugin,
 };
 use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
@@ -126,6 +126,7 @@ pub enum BuiltinPluginName {
   ConsumeSharedPlugin,
   ModuleFederationRuntimePlugin,
   NamedModuleIdsPlugin,
+  NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
@@ -322,6 +323,9 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::NamedModuleIdsPlugin => {
         plugins.push(NamedModuleIdsPlugin::default().boxed())
+      }
+      BuiltinPluginName::NaturalModuleIdsPlugin => {
+        plugins.push(NaturalModuleIdsPlugin::default().boxed())
       }
       BuiltinPluginName::DeterministicModuleIdsPlugin => {
         plugins.push(DeterministicModuleIdsPlugin::default().boxed())

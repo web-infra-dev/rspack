@@ -1,7 +1,9 @@
 use std::{cmp::Ordering, fmt::Display};
 
 use itertools::Itertools;
+use rspack_identifier::Identifier;
 use rspack_util::comparators::compare_ids;
+use rspack_util::comparators::compare_numbers;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -140,6 +142,20 @@ pub fn compare_chunk_group(
       chunks_a,
       chunks_b,
     ),
+  }
+}
+
+pub fn compare_modules_by_pre_order_index_or_identifier(
+  module_graph: &ModuleGraph,
+  a: &Identifier,
+  b: &Identifier,
+) -> std::cmp::Ordering {
+  if let Some(a) = module_graph.get_pre_order_index(a)
+    && let Some(b) = module_graph.get_pre_order_index(b)
+  {
+    compare_numbers(a, b)
+  } else {
+    compare_ids(a, b)
   }
 }
 
