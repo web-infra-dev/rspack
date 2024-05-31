@@ -7,6 +7,46 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
+
+import { JsRuntimeGlobals } from "@rspack/binding";
+
+const REVERSE_RUNTIME_GLOBALS = new Map<string, string>();
+
+export function __from_binding_runtime_globals(
+	runtimeRequirements: JsRuntimeGlobals
+): Set<string> {
+	const res = new Set<string>();
+
+	for (let flag of runtimeRequirements.value) {
+		if (flag in RuntimeGlobals) {
+			res.add(RuntimeGlobals[flag as keyof typeof RuntimeGlobals]);
+		} else {
+			res.add(flag);
+		}
+	}
+
+	return res;
+}
+
+export function __to_binding_runtime_globals(
+	runtimeRequirements: Set<string>
+): JsRuntimeGlobals {
+	const res: JsRuntimeGlobals = {
+		value: []
+	};
+
+	for (let flag of Array.from(runtimeRequirements)) {
+		const item = REVERSE_RUNTIME_GLOBALS.get(flag);
+		if (typeof item === "string") {
+			res.value.push(item);
+		} else {
+			res.value.push(flag);
+		}
+	}
+
+	return res;
+}
+
 export const RuntimeGlobals = {
 	/**
 	 * the internal require function
@@ -388,3 +428,7 @@ export const RuntimeGlobals = {
 	 */
 	asyncModule: "__webpack_require__.a"
 } as const;
+
+for (let entry of Object.entries(RuntimeGlobals)) {
+	REVERSE_RUNTIME_GLOBALS.set(entry[1], entry[0]);
+}
