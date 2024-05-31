@@ -22,7 +22,7 @@ module.exports = {
 		-     "minimize": false,
 		+     "minimize": true,
 		@@ ... @@
-		-     "moduleIds": "natural",
+		-     "moduleIds": "named",
 		-     "nodeEnv": false,
 		+     "moduleIds": "deterministic",
 		+     "nodeEnv": "production",

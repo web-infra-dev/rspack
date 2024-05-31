@@ -281,7 +281,7 @@ Object {
         "name": "SwcCssMinimizerRspackPlugin",
       },
     ],
-    "moduleIds": "natural",
+    "moduleIds": "named",
     "nodeEnv": false,
     "providedExports": true,
     "realContentHash": false,

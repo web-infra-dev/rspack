@@ -1,6 +1,6 @@
 (() => { // webpackBootstrap
 var __webpack_modules__ = ({
-"1": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./style.css?b16f": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
@@ -68,7 +68,7 @@ __webpack_require__.b = document.baseURI || self.location.href;
 var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
-const myURL = new URL(/* asset import */__webpack_require__("1"), __webpack_require__.b);
+const myURL = new URL(/* asset import */__webpack_require__("./style.css?b16f"), __webpack_require__.b);
 console.log(myURL);
 
 })();
