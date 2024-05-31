@@ -88,30 +88,27 @@ fn deterministic_grouping_for_modules(
 
   let context = compilation.options.context.as_ref();
 
-  let nodes: Vec<GroupItem> = items
-    .into_iter()
-    .map(|module| {
-      let module: &dyn Module = &**module;
-      let name: String = if module.name_for_condition().is_some() {
-        make_paths_relative(context, module.identifier().as_str())
-      } else {
-        REPLACE_MODULE_IDENTIFIER_REG
-          .replace_all(&module.identifier(), "")
-          .to_string()
-      };
-      let key = format!(
-        "{}{}{}",
-        name,
-        delimiter,
-        hash_filename(&name, &compilation.options)
-      );
-      GroupItem {
-        module: module.identifier(),
-        size: get_size(module),
-        key: request_to_id(&key),
-      }
-    })
-    .collect::<Vec<_>>();
+  let nodes = items.into_iter().map(|module| {
+    let module: &dyn Module = &**module;
+    let name: String = if module.name_for_condition().is_some() {
+      make_paths_relative(context, module.identifier().as_str())
+    } else {
+      REPLACE_MODULE_IDENTIFIER_REG
+        .replace_all(&module.identifier(), "")
+        .to_string()
+    };
+    let key = format!(
+      "{}{}{}",
+      name,
+      delimiter,
+      hash_filename(&name, &compilation.options)
+    );
+    GroupItem {
+      module: module.identifier(),
+      size: get_size(module),
+      key: request_to_id(&key),
+    }
+  });
 
   let initial_nodes = nodes
     .into_iter()
