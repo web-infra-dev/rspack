@@ -52,6 +52,7 @@ import {
 	ModuleConcatenationPlugin,
 	NamedChunkIdsPlugin,
 	NamedModuleIdsPlugin,
+	NaturalChunkIdsPlugin,
 	NaturalModuleIdsPlugin,
 	NodeTargetPlugin,
 	RealContentHashPlugin,
@@ -324,6 +325,9 @@ export class RspackOptionsApply {
 		const chunkIds = options.optimization.chunkIds;
 		if (chunkIds) {
 			switch (chunkIds) {
+				case "natural": {
+					new NaturalChunkIdsPlugin().apply(compiler);
+				}
 				case "named": {
 					new NamedChunkIdsPlugin().apply(compiler);
 					break;

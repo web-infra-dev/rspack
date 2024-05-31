@@ -221,6 +221,16 @@ exports[`statsOutput statsOutput/nonexistent-import-source-error should print co
 Rspack compiled with 1 error"
 `;
 
+exports[`statsOutput statsOutput/optimization-chunk-ids-natural should print correct stats for 1`] = `
+"Entrypoint e1 10.4 KiB = e1.js
+Entrypoint e2 10.3 KiB = e2.js
+chunk 0.js
+chunk 1.js
+chunk 2.js
+chunk e1.js (e1) [entry]
+chunk e2.js (e2) [entry]"
+`;
+
 exports[`statsOutput statsOutput/optimization-runtime-chunk should print correct stats for 1`] = `
 "Entrypoint e1 4.01 KiB = e1~runtime.js 3.68 KiB e1.js 336 bytes
 Entrypoint e2 4.01 KiB = e2~runtime.js 3.68 KiB e2.js 336 bytes

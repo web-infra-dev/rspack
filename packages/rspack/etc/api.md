@@ -6001,7 +6001,7 @@ export type Optimization = z.infer<typeof optimization>;
 // @public (undocumented)
 const optimization: z.ZodObject<{
     moduleIds: z.ZodOptional<z.ZodEnum<["named", "natural", "deterministic"]>>;
-    chunkIds: z.ZodOptional<z.ZodEnum<["named", "deterministic"]>>;
+    chunkIds: z.ZodOptional<z.ZodEnum<["natural", "named", "deterministic"]>>;
     minimize: z.ZodOptional<z.ZodBoolean>;
     minimizer: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodLiteral<"...">, z.ZodUnion<[z.ZodType<RspackPluginInstance, z.ZodTypeDef, RspackPluginInstance>, z.ZodType<RspackPluginFunction, z.ZodTypeDef, RspackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>]>, "many">>;
     mergeDuplicateChunks: z.ZodOptional<z.ZodBoolean>;
@@ -6200,7 +6200,7 @@ const optimization: z.ZodObject<{
     nodeEnv: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>>;
 }, "strict", z.ZodTypeAny, {
     moduleIds?: "named" | "natural" | "deterministic" | undefined;
-    chunkIds?: "named" | "deterministic" | undefined;
+    chunkIds?: "named" | "natural" | "deterministic" | undefined;
     minimize?: boolean | undefined;
     minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
     mergeDuplicateChunks?: boolean | undefined;
@@ -6261,7 +6261,7 @@ const optimization: z.ZodObject<{
     nodeEnv?: string | false | undefined;
 }, {
     moduleIds?: "named" | "natural" | "deterministic" | undefined;
-    chunkIds?: "named" | "deterministic" | undefined;
+    chunkIds?: "named" | "natural" | "deterministic" | undefined;
     minimize?: boolean | undefined;
     minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
     mergeDuplicateChunks?: boolean | undefined;
@@ -9373,7 +9373,7 @@ export const rspackOptions: z.ZodObject<{
     snapshot: z.ZodOptional<z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>>;
     optimization: z.ZodOptional<z.ZodObject<{
         moduleIds: z.ZodOptional<z.ZodEnum<["named", "natural", "deterministic"]>>;
-        chunkIds: z.ZodOptional<z.ZodEnum<["named", "deterministic"]>>;
+        chunkIds: z.ZodOptional<z.ZodEnum<["natural", "named", "deterministic"]>>;
         minimize: z.ZodOptional<z.ZodBoolean>;
         minimizer: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodLiteral<"...">, z.ZodUnion<[z.ZodType<RspackPluginInstance, z.ZodTypeDef, RspackPluginInstance>, z.ZodType<RspackPluginFunction, z.ZodTypeDef, RspackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>]>, "many">>;
         mergeDuplicateChunks: z.ZodOptional<z.ZodBoolean>;
@@ -9572,7 +9572,7 @@ export const rspackOptions: z.ZodObject<{
         nodeEnv: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>>;
     }, "strict", z.ZodTypeAny, {
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
-        chunkIds?: "named" | "deterministic" | undefined;
+        chunkIds?: "named" | "natural" | "deterministic" | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
         mergeDuplicateChunks?: boolean | undefined;
@@ -9633,7 +9633,7 @@ export const rspackOptions: z.ZodObject<{
         nodeEnv?: string | false | undefined;
     }, {
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
-        chunkIds?: "named" | "deterministic" | undefined;
+        chunkIds?: "named" | "natural" | "deterministic" | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
         mergeDuplicateChunks?: boolean | undefined;
@@ -10736,7 +10736,7 @@ export const rspackOptions: z.ZodObject<{
     snapshot?: {} | undefined;
     optimization?: {
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
-        chunkIds?: "named" | "deterministic" | undefined;
+        chunkIds?: "named" | "natural" | "deterministic" | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
         mergeDuplicateChunks?: boolean | undefined;
@@ -11185,7 +11185,7 @@ export const rspackOptions: z.ZodObject<{
     snapshot?: {} | undefined;
     optimization?: {
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
-        chunkIds?: "named" | "deterministic" | undefined;
+        chunkIds?: "named" | "natural" | "deterministic" | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
         mergeDuplicateChunks?: boolean | undefined;

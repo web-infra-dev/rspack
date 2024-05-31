@@ -403,6 +403,10 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     status: SupportStatus.FullySupported,
   },
   {
+    name: 'NaturalChunkIdsPlugin',
+    status: SupportStatus.FullySupported,
+  },
+  {
     name: 'NamedChunkIdsPlugin',
     status: SupportStatus.PartiallySupported,
     notes: {
@@ -420,7 +424,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'NaturalModuleIdsPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'OccurrenceChunkIdsPlugin',
