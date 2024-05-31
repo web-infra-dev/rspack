@@ -532,8 +532,8 @@ Customize how CSS export names are exported to javascript modules, such as keepi
 - **Type:** `boolean`
 - **Default:** `true` for node environments, `false` for web environments.
 
-The default behaviour is to generate a CSS file for the stylesheets, and load this file as an external resource in the html `<head>` of the template.
-You can override this behaviour, by embedding exported CSS into the bundled javascript file.
+By default **only exports** the identifier mappings, without embedding any stylesheets in the template.
+If you need your stylesheets to get injected and loaded in the template you need to disable this option, by setting to `false`.
 
 #### module.generator["css/auto"].localIdentName
 
