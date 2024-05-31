@@ -81,7 +81,9 @@ impl MakeArtifact {
 
 #[derive(Debug, Clone)]
 pub enum MakeParam {
-  Entry(HashSet<DependencyId>),
+  BuildEntry(HashSet<DependencyId>),
+  BuildEntryAndClean(HashSet<DependencyId>),
+  CheckNeedBuild,
   ModifiedFiles(HashSet<PathBuf>),
   RemovedFiles(HashSet<PathBuf>),
   ForceBuildDeps(HashSet<BuildDependency>),
@@ -92,10 +94,10 @@ pub fn make_module_graph(
   compilation: &Compilation,
   mut artifact: MakeArtifact,
 ) -> Result<MakeArtifact> {
-  let mut params = Vec::with_capacity(5);
+  let mut params = Vec::with_capacity(6);
 
   if !compilation.entries.is_empty() {
-    params.push(MakeParam::Entry(
+    params.push(MakeParam::BuildEntry(
       compilation
         .entries
         .values()
@@ -105,9 +107,10 @@ pub fn make_module_graph(
         .collect(),
     ));
   }
-  // no modified files but rebuild means force build
-  // some module which cacheable is false will need to be rebuilt even if modified files is empty
-  params.push(MakeParam::ModifiedFiles(compilation.modified_files.clone()));
+  params.push(MakeParam::CheckNeedBuild);
+  if !compilation.modified_files.is_empty() {
+    params.push(MakeParam::ModifiedFiles(compilation.modified_files.clone()));
+  }
   if !compilation.removed_files.is_empty() {
     params.push(MakeParam::RemovedFiles(compilation.removed_files.clone()));
   }
@@ -120,9 +123,10 @@ pub fn make_module_graph(
     params.push(MakeParam::ForceBuildDeps(make_failed_dependencies));
   }
 
-  // reset diagnostics
+  // reset temporary data
   artifact.diagnostics = Default::default();
   artifact.has_module_graph_change = false;
+
   artifact = update_module_graph(compilation, artifact, params)?;
   Ok(artifact)
 }

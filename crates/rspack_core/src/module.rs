@@ -344,24 +344,29 @@ pub trait Module:
     ConnectionState::Bool(true)
   }
 
-  fn is_available(&self, modified_file: &HashSet<PathBuf>) -> bool {
+  fn need_build(&self) -> bool {
     if let Some(build_info) = self.build_info() {
       if !build_info.cacheable {
-        return false;
+        return true;
       }
+    }
+    false
+  }
 
+  fn depends_on(&self, modified_file: &HashSet<PathBuf>) -> bool {
+    if let Some(build_info) = self.build_info() {
       for item in modified_file {
         if build_info.file_dependencies.contains(item)
           || build_info.build_dependencies.contains(item)
           || build_info.context_dependencies.contains(item)
           || build_info.missing_dependencies.contains(item)
         {
-          return false;
+          return true;
         }
       }
     }
 
-    true
+    false
   }
 }
 
