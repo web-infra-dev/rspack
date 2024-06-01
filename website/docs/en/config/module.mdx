@@ -532,7 +532,9 @@ Customize how CSS export names are exported to javascript modules, such as keepi
 - **Type:** `boolean`
 - **Default:** `true` for node environments, `false` for web environments.
 
-Avoid generating and loading a stylesheet and only embed exports from CSS into output javascript files.
+If `true`, **only exports** the identifier mappings in the output JavaScript files, without embedding any stylesheets in the template. Useful if you are using CSS Modules for pre-rendering (e.g. SSR).
+
+If `false`, generate stylesheets and embed them in the template.
 
 #### module.generator["css/auto"].localIdentName
 
