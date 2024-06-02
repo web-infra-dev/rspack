@@ -30,6 +30,7 @@ module.exports = {
 			REGEXP: "/abc/i",
 			OBJECT:
 				'{UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}',
+			OBJECT2: '{ FN: function() {} }',
 			"P1.P2.P3": "301",
 			"P1.P2.P4": '"302"',
 			P1: "303",
