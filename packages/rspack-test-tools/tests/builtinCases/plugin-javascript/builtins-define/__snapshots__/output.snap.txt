@@ -11,30 +11,30 @@ __webpack_require__.r(__webpack_exports__);
 const lib = __webpack_require__("./lib.js");
 const { DO_NOT_CONVERTED9 } = __webpack_require__("./lib.js");
 
-equal(true, true);
+equal((true), true);
 // require("assert").deepStrictEqual(FALSE, false);
-assert.deepStrictEqual(3 + 2, 5);
-assert.deepStrictEqual(null, null);
-assert.deepStrictEqual(undefined, undefined);
+assert.deepStrictEqual((3 + 2), 5);
+assert.deepStrictEqual((null), null);
+assert.deepStrictEqual((undefined), undefined);
 // assert.equal(FUNCTION(5), 6);
 // assert.equal(typeof FUNCTION, "function");
-assert.deepStrictEqual(100.05, 100.05);
-assert.deepStrictEqual(0, 0);
+assert.deepStrictEqual((100.05), 100.05);
+assert.deepStrictEqual((0), 0);
 let ZERO_OBJ = { ZERO: 0 };
 assert.deepStrictEqual(ZERO_OBJ.ZERO, 0);
-assert.deepStrictEqual(ZERO_OBJ[0], undefined);
+assert.deepStrictEqual(ZERO_OBJ[(0)], undefined);
 assert.deepStrictEqual(ZERO_OBJ[0], undefined);
 assert.deepStrictEqual(ZERO_OBJ["ZERO"], 0);
-assert.deepStrictEqual(BigInt(10000), 10000n);
-assert.deepStrictEqual(100000000000n, 100000000000n);
-assert.deepStrictEqual(+0, 0);
-assert.deepStrictEqual(-0, -0);
-assert.deepStrictEqual(+100.25, 100.25);
-assert.deepStrictEqual(-100.25, -100.25);
-assert.deepStrictEqual("string", "string");
-assert.deepStrictEqual("", "");
-assert.deepStrictEqual(/abc/i, /abc/i);
-assert.deepStrictEqual(0.ABC, undefined);
+assert.deepStrictEqual((BigInt(10000)), 10000n);
+assert.deepStrictEqual((100000000000n), 100000000000n);
+assert.deepStrictEqual((+0), 0);
+assert.deepStrictEqual((-0), -0);
+assert.deepStrictEqual((+100.25), 100.25);
+assert.deepStrictEqual((-100.25), -100.25);
+assert.deepStrictEqual(("string"), "string");
+assert.deepStrictEqual((""), "");
+assert.deepStrictEqual((/abc/i), /abc/i);
+assert.deepStrictEqual((0).ABC, undefined);
 
 let error_count = 0;
 try {
@@ -51,34 +51,34 @@ try {
 } catch (err) {}
 assert.deepStrictEqual(error_count, 2);
 
-assert.deepStrictEqual([300, ["six"]], [300, ["six"]]);
-assert.deepStrictEqual([300, ["six"]][0], 300);
-assert.deepStrictEqual([300, ["six"]][0][1], undefined);
-assert.deepStrictEqual([300, ["six"]][1], ["six"]);
-assert.deepStrictEqual([300, ["six"]][1][0], "six");
-assert.deepStrictEqual([300, ["six"]][1][0][0], "s");
-assert.deepStrictEqual([300, ["six"]][1], ["six"]);
-assert.deepStrictEqual([300, ["six"]][[300, ["six"]]], undefined);
+assert.deepStrictEqual(([300, ["six"]]), [300, ["six"]]);
+assert.deepStrictEqual(([300, ["six"]])[0], 300);
+assert.deepStrictEqual(([300, ["six"]])[0][1], undefined);
+assert.deepStrictEqual(([300, ["six"]])[1], ["six"]);
+assert.deepStrictEqual(([300, ["six"]])[1][0], "six");
+assert.deepStrictEqual(([300, ["six"]])[1][0][0], "s");
+assert.deepStrictEqual(([300, ["six"]])[(1)], ["six"]);
+assert.deepStrictEqual(([300, ["six"]])[([300, ["six"]])], undefined);
 
-assert.deepStrictEqual({UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}, {
+assert.deepStrictEqual(({UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}), {
 	UNDEFINED: undefined,
 	REGEXP: /def/i,
 	STR: "string",
 	OBJ: { NUM: 1 }
 });
-assert.deepStrictEqual({UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}.OBJ, { NUM: 1 });
-assert.deepStrictEqual({UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}.OBJ.NUM, 1);
-assert.deepStrictEqual({UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}.UNDEFINED, undefined);
-assert.deepStrictEqual({UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}.REGEXP, /def/i);
-assert.deepStrictEqual({UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}.STR, "string");
-assert.deepStrictEqual({UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}.AAA, undefined);
+assert.deepStrictEqual(({UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}).OBJ, { NUM: 1 });
+assert.deepStrictEqual(({UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}).OBJ.NUM, 1);
+assert.deepStrictEqual(({UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}).UNDEFINED, undefined);
+assert.deepStrictEqual(({UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}).REGEXP, /def/i);
+assert.deepStrictEqual(({UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}).STR, "string");
+assert.deepStrictEqual(({UNDEFINED: undefined, REGEXP: /def/i, STR: "string", OBJ: { NUM: 1}}).AAA, undefined);
 
-assert.deepStrictEqual(301, 301);
-assert.deepStrictEqual("302", "302");
-assert.deepStrictEqual(303, 303);
-assert.deepStrictEqual(304, 304);
+assert.deepStrictEqual((301), 301);
+assert.deepStrictEqual(("302"), "302");
+assert.deepStrictEqual((303), 303);
+assert.deepStrictEqual((304), 304);
 
-assert.deepStrictEqual(303.P4, undefined); // "303.P4"
+assert.deepStrictEqual((303).P4, undefined); // "303.P4"
 
 try {
 	error_count += 1;
@@ -87,9 +87,9 @@ try {
 } catch (err) {}
 assert.deepStrictEqual(error_count, 3);
 
-assert.deepStrictEqual("302".P1, undefined);
-assert.deepStrictEqual("302".P3, undefined);
-assert.deepStrictEqual("302".P4, undefined);
+assert.deepStrictEqual(("302").P1, undefined);
+assert.deepStrictEqual(("302").P3, undefined);
+assert.deepStrictEqual(("302").P4, undefined);
 
 const DO_NOT_CONVERTED = 201;
 assert.deepStrictEqual(DO_NOT_CONVERTED, 201);
@@ -115,7 +115,7 @@ const USELESS = {
 	const DO_NOT_CONVERTED3 = 205;
 	assert.deepStrictEqual(DO_NOT_CONVERTED3, 205);
 
-	const B = 0;
+	const B = (0);
 	assert.deepStrictEqual(B, 0);
 
 	let IN_BLOCK = 2;
@@ -124,7 +124,7 @@ const USELESS = {
 	{
 		{
 			{
-				assert.deepStrictEqual(205, 205);
+				assert.deepStrictEqual((205), 205);
 			}
 		}
 	}
@@ -132,14 +132,14 @@ const USELESS = {
 
 try {
 	error_count += 1;
-	SHOULD_BE_CONVERTED_IN_UNDEFINED_BLOCK;
+	(SHOULD_BE_CONVERTED_IN_UNDEFINED_BLOCK);
 	error_count += 1;
 } catch (err) {}
 assert.deepStrictEqual(error_count, 5);
 
 assert.deepStrictEqual(USELESS, { ZERO: 0 });
 assert.deepStrictEqual({}.DO_NOT_CONVERTED5, undefined);
-assert.deepStrictEqual({}.DO_NOT_CONVERTED6, undefined);
+assert.deepStrictEqual(({}).DO_NOT_CONVERTED6, undefined);
 assert.deepStrictEqual(_lib__WEBPACK_IMPORTED_MODULE_0__.DO_NOT_CONVERTED7, 402);
 assert.deepStrictEqual(_lib__WEBPACK_IMPORTED_MODULE_0__["default"], 401);
 assert.deepStrictEqual(DO_NOT_CONVERTED9, 403);
@@ -169,17 +169,17 @@ assert.deepStrictEqual(error_count, 6);
 // deepStrictEqual(error_count, 7);
 try {
 	error_count += 1;
-	aa = 205;
+	aa = (205);
 	error_count += 1;
 } catch (err) {}
 assert.deepStrictEqual(error_count, 7);
 
-assert.deepStrictEqual(205 == 205, true);
-assert.deepStrictEqual(207 == 205, false);
+assert.deepStrictEqual((205) == 205, true);
+assert.deepStrictEqual(207 == (205), false);
 
 try {
 	error_count += 1;
-	A1.A2.A3;
+	(A1.A2.A3);
 	error_count += 1;
 } catch (err) {}
 assert.deepStrictEqual(error_count, 8);
