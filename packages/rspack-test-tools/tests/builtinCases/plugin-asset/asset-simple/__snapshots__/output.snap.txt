@@ -44,7 +44,7 @@ module.exports = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QCMRXhpZgA
 
 }),
 "./images/file.png": (function (module, __unused_webpack_exports, __webpack_require__) {
-module.exports = __webpack_require__.p + "1e923da13e3cad12.png";
+module.exports = __webpack_require__.p + "c560fa876f51d750.png";
 
 }),
 "./images/file.svg": (function (module) {

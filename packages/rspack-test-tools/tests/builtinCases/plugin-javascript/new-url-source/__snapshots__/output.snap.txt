@@ -11,12 +11,12 @@ img.src = imgSrc2;
 }),
 "./react.svg": (function (module, __unused_webpack_exports, __webpack_require__) {
 "use strict";
-module.exports = __webpack_require__.p + "ba36690a040e4d47.svg";
+module.exports = __webpack_require__.p + "7f01b434546fa27b.svg";
 
 }),
 "./vue.svg": (function (module, __unused_webpack_exports, __webpack_require__) {
 "use strict";
-module.exports = __webpack_require__.p + "ffdcf2b7ff1d4356.svg";
+module.exports = __webpack_require__.p + "f134eec8578889d0.svg";
 
 }),
 
