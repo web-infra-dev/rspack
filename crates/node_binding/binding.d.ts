@@ -139,7 +139,9 @@ export enum BuiltinPluginName {
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
+  NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
   DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
   RealContentHashPlugin = 'RealContentHashPlugin',
@@ -178,6 +180,15 @@ export enum BuiltinPluginName {
 }
 
 export function cleanupGlobalTrace(): void
+
+export interface JsAdditionalTreeRuntimeRequirementsArg {
+  chunk: JsChunk
+  runtimeRequirements: JsRuntimeGlobals
+}
+
+export interface JsAdditionalTreeRuntimeRequirementsResult {
+  runtimeRequirements: JsRuntimeGlobals
+}
 
 export interface JsAfterResolveData {
   request: string
@@ -439,6 +450,10 @@ export interface JsResourceData {
   query?: string
   /** Resource fragment with `#` prefix */
   fragment?: string
+}
+
+export interface JsRuntimeGlobals {
+  value: Array<string>
 }
 
 export interface JsRuntimeModule {
@@ -1411,17 +1426,18 @@ export enum RegisterJsTapKind {
   CompilationAfterOptimizeModules = 14,
   CompilationOptimizeTree = 15,
   CompilationOptimizeChunkModules = 16,
-  CompilationRuntimeModule = 17,
-  CompilationChunkAsset = 18,
-  CompilationProcessAssets = 19,
-  CompilationAfterProcessAssets = 20,
-  CompilationAfterSeal = 21,
-  NormalModuleFactoryBeforeResolve = 22,
-  NormalModuleFactoryAfterResolve = 23,
-  NormalModuleFactoryCreateModule = 24,
-  NormalModuleFactoryResolveForScheme = 25,
-  ContextModuleFactoryBeforeResolve = 26,
-  ContextModuleFactoryAfterResolve = 27
+  CompilationAdditionalTreeRuntimeRequirements = 17,
+  CompilationRuntimeModule = 18,
+  CompilationChunkAsset = 19,
+  CompilationProcessAssets = 20,
+  CompilationAfterProcessAssets = 21,
+  CompilationAfterSeal = 22,
+  NormalModuleFactoryBeforeResolve = 23,
+  NormalModuleFactoryAfterResolve = 24,
+  NormalModuleFactoryCreateModule = 25,
+  NormalModuleFactoryResolveForScheme = 26,
+  ContextModuleFactoryBeforeResolve = 27,
+  ContextModuleFactoryAfterResolve = 28
 }
 
 export interface RegisterJsTaps {
@@ -1437,6 +1453,7 @@ export interface RegisterJsTaps {
   registerCompilationStillValidModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationSucceedModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>
+  registerCompilationAdditionalTreeRuntimeRequirements: (stages: Array<number>) => Array<{ function: ((arg: JsAdditionalTreeRuntimeRequirementsArg) => JsAdditionalTreeRuntimeRequirementsResult | undefined); stage: number; }>
   registerCompilationRuntimeModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>
   registerCompilationFinishModulesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>

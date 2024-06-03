@@ -3,12 +3,18 @@
 var __webpack_modules__ = ({
 "./a.js": (function (module) {
 module.exports = "a";
+
+
 }),
 "./b.js": (function (module) {
 module.exports = "c";
+
+
 }),
 "fs": (function (module) {
-module.exports = require('fs')}),
+module.exports = require('fs')
+
+}),
 
 });
 /************************************************************************/
@@ -82,11 +88,12 @@ var __webpack_exports__ = {};
 
 
 
-it("should modify resource by after resolve hook", ()=>{
-    expect((_a__WEBPACK_IMPORTED_MODULE_0___default())).toBe("a");
-    expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("c");
-    const ext = ".js";
-    expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).toContain("./b" + ext);
+
+it("should modify resource by after resolve hook", () => {
+	expect((_a__WEBPACK_IMPORTED_MODULE_0___default())).toBe("a");
+	expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("c");
+	const ext = ".js";
+	expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).toContain("./b" + ext);
 });
 
 })();

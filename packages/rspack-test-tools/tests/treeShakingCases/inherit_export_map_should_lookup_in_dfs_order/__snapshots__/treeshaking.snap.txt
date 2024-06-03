@@ -6,10 +6,14 @@ __webpack_require__.d(__webpack_exports__, {
   c: function() { return c; }
 });
 const c = "a";
+
+
 }),
 "./bar.js": (function () {
 const a = "bar";
 const c = "bar";
+
+
 }),
 "./c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
@@ -22,6 +26,8 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 const a = 3;
+
+
 }),
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
@@ -32,14 +38,19 @@ __webpack_require__.d(__webpack_exports__, {
 
 const a = "foo";
 const b = "foo";
+
+
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./c.js");
 // require("./c.js");
 
+
 _c_js__WEBPACK_IMPORTED_MODULE_0__.a;
 _c_js__WEBPACK_IMPORTED_MODULE_0__.b;
 _c_js__WEBPACK_IMPORTED_MODULE_0__.c;
+
+
 }),
 
 },function(__webpack_require__) {

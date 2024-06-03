@@ -20,7 +20,7 @@ use crate::{
   dependency::PureExpressionDependency,
   is_pure_class, is_pure_class_member,
   plugin::side_effects_flag_plugin::is_pure_expression,
-  visitors::{ExtraSpanInfo, ImportMap},
+  visitors::{ExtraSpanInfo, ImportMap, PathIgnoredSpans},
   ClassExt,
 };
 
@@ -86,6 +86,7 @@ pub struct InnerGraphPlugin<'a> {
   in_named: bool,
   top_level_ctxt_set: HashSet<SyntaxContext>,
   pub comments: Option<SwcComments>,
+  path_ignored_spans: &'a PathIgnoredSpans,
 }
 
 impl<'a> Visit for InnerGraphPlugin<'a> {
@@ -95,6 +96,27 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       return;
     }
     program.visit_children_with(self);
+  }
+
+  // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
+  fn visit_if_stmt(&mut self, n: &swc_core::ecma::ast::IfStmt) {
+    n.test.visit_children_with(self);
+    if !self.path_ignored_spans.is_span_ignored(n.cons.span()) {
+      n.cons.visit_children_with(self);
+    }
+    if let Some(alt) = &n.alt
+      && !self.path_ignored_spans.is_span_ignored(alt.span())
+    {
+      alt.visit_children_with(self)
+    }
+  }
+
+  // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
+  fn visit_bin_expr(&mut self, n: &swc_core::ecma::ast::BinExpr) {
+    n.left.visit_children_with(self);
+    if !self.path_ignored_spans.is_span_ignored(n.right.span()) {
+      n.right.visit_children_with(self)
+    }
   }
 
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
@@ -342,10 +364,11 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       && self.is_toplevel()
     {
       let symbol = ident.id.sym.clone();
-      match init {
+      let init_ = init.unwrap_parens();
+      match init_ {
         Expr::Fn(_) | Expr::Arrow(_) | Expr::Lit(_) => {
           self.set_symbol_if_is_top_level(symbol);
-          init.visit_children_with(self);
+          init_.visit_children_with(self);
           self.clear_symbol_if_is_top_level();
         }
         Expr::Class(class) => {
@@ -357,7 +380,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
           self.clear_symbol_if_is_top_level();
         }
         _ => {
-          init.visit_children_with(self);
+          init_.visit_children_with(self);
           if is_pure_expression(init, self.unresolved_ctxt, self.comments.as_ref()) {
             self.set_symbol_if_is_top_level(symbol);
             let start = init.span().real_lo();
@@ -460,6 +483,8 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         self.clear_symbol_if_is_top_level();
       }
       _ => {
+        // keep the parens to support case like `/*#__PURE__*/(foo())`
+        let expr = &node.expr;
         if is_pure_expression(expr, self.unresolved_ctxt, self.comments.as_ref()) {
           self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
           let start = expr.span().real_lo();
@@ -525,6 +550,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
 }
 
 impl<'a> InnerGraphPlugin<'a> {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     dependencies: &'a mut Vec<Box<dyn Dependency>>,
     unresolved_ctxt: SyntaxContext,
@@ -533,6 +559,7 @@ impl<'a> InnerGraphPlugin<'a> {
     import_map: &'a ImportMap,
     module_identifier: ModuleIdentifier,
     comments: Option<SwcComments>,
+    path_ignored_spans: &'a PathIgnoredSpans,
   ) -> Self {
     Self {
       dependencies,
@@ -547,6 +574,7 @@ impl<'a> InnerGraphPlugin<'a> {
       comments,
       in_named: false,
       top_level_ctxt_set: HashSet::from_iter([top_level_ctxt]),
+      path_ignored_spans,
     }
   }
 

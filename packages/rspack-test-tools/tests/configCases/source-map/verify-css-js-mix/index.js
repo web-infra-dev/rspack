@@ -23,7 +23,7 @@ it("verify importing css js source map", async () => {
 			// *${id}* as the search key to aviod conflict with `Object.defineProperty(exports, ${id}, ...)`
 			['"*a0*"']: "webpack:///a.js",
 			['"*a1*"']: "webpack:///a.js"
-		})
+		}, false)
 	).toBe(true);
 });
 

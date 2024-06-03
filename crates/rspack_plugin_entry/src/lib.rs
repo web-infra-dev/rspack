@@ -17,7 +17,11 @@ pub struct EntryPlugin {
 
 impl EntryPlugin {
   pub fn new(context: Context, entry_request: String, options: EntryOptions) -> Self {
-    let dependency: BoxDependency = Box::new(EntryDependency::new(entry_request, context));
+    let dependency: BoxDependency = Box::new(EntryDependency::new(
+      entry_request,
+      context,
+      options.name.is_none(),
+    ));
     Self::new_inner(dependency, options)
   }
 }

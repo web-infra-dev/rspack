@@ -39,10 +39,11 @@ module.exports = {
 		"Error:   × Empty dependency: Expected a non-empty request
 		   ╭─[1:1]
 		 1 │ module.exports = function b() {
-		 2 │     /* eslint-disable node/no-missing-require */ require(\\"\\");
-		   ·                                                  ───────────
-		 3 │     return \\"This is an empty dependency\\";
-		 4 │ };
+		 2 │     /* eslint-disable node/no-missing-require */
+		 3 │     require(\\"\\");
+		   ·     ───────────
+		 4 │     return \\"This is an empty dependency\\";
+		 5 │ };
 		   ╰────
 		"
 	`);

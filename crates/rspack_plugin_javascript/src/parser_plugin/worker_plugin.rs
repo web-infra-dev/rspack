@@ -58,7 +58,7 @@ fn parse_new_worker_options_from_comments(
     })
 }
 
-impl JavascriptParser<'_> {
+impl<'parser> JavascriptParser<'parser> {
   fn add_dependencies(
     &mut self,
     new_expr: &NewExpr,

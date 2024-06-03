@@ -103,6 +103,7 @@ pub fn export_from_import(
   id: &DependencyId,
   is_call: bool,
   call_context: bool,
+  asi_safe: Option<bool>,
 ) -> String {
   let TemplateContext {
     runtime_requirements,
@@ -132,10 +133,20 @@ pub fn export_from_import(
           if is_call {
             return format!("{import_var}_default(){}", property_access(export_name, 1));
           } else {
-            return format!(
-              "({import_var}_default(){})",
-              property_access(export_name, 1)
-            );
+            return if let Some(asi_safe) = asi_safe {
+              match asi_safe {
+                true => format!(
+                  "({import_var}_default(){})",
+                  property_access(export_name, 1)
+                ),
+                false => format!(
+                  ";({import_var}_default(){})",
+                  property_access(export_name, 1)
+                ),
+              }
+            } else {
+              format!("{import_var}_default.a{}", property_access(export_name, 1))
+            };
           }
         }
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
@@ -172,7 +183,23 @@ pub fn export_from_import(
         )
         .boxed(),
       );
-      return format!("/*#__PURE__*/ ({import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{})))", RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT, if matches!(exports_type, ExportsType::DefaultOnly) { "" } else { ", 2" });
+      let prefix = if let Some(asi_safe) = asi_safe {
+        match asi_safe {
+          true => "",
+          false => ";",
+        }
+      } else {
+        "Object"
+      };
+      return format!(
+        "/*#__PURE__*/ {prefix}({import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{})))",
+        RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+        if matches!(exports_type, ExportsType::DefaultOnly) {
+          ""
+        } else {
+          ", 2"
+        }
+      );
     }
   }
 
@@ -206,8 +233,16 @@ pub fn export_from_import(
       "".to_string()
     };
     let property = property_access(&*used_name, 0);
+    let access = format!("{import_var}{comment}{property}");
     if is_call && !call_context {
-      format!("(0, {import_var}{comment}{property})")
+      if let Some(asi_safe) = asi_safe {
+        match asi_safe {
+          true => format!("(0,{access})"),
+          false => format!(";(0,{access})"),
+        }
+      } else {
+        format!("Object({access})")
+      }
     } else {
       format!("{import_var}{comment}{property}")
     }
@@ -305,7 +340,11 @@ pub fn module_id_expr(
         ..Default::default()
       }
     ),
-    serde_json::to_string(module_id).expect("should render module id")
+    match module_id.parse::<i32>() {
+      Ok(id) => serde_json::to_string(&id),
+      Err(_) => serde_json::to_string(module_id),
+    }
+    .expect("should render module id")
   )
 }
 

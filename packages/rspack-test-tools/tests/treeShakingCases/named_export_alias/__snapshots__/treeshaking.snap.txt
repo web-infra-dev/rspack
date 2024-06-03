@@ -6,6 +6,8 @@ __webpack_require__.d(__webpack_exports__, {
   something: function() { return something; }
 });
 function something() {}
+
+
 }),
 "./export.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
@@ -15,14 +17,18 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 var a = function test() {
-    _Something__WEBPACK_IMPORTED_MODULE_0__.something;
+	_Something__WEBPACK_IMPORTED_MODULE_0__.something;
 };
+
+
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./export.js");
 
 _export__WEBPACK_IMPORTED_MODULE_0__["default"];
+
+
 }),
 
 },function(__webpack_require__) {

@@ -1,1 +1,1 @@
-ERROR in ./index.js× Empty dependency: Expected a non-empty request╭─[1:1]1  require("");· ───────────2  import "";╰────ERROR in ./index.js× Empty dependency: Expected a non-empty request╭─[1:1]1  require("");2  import "";·        ──╰────
+ERROR in ./index.js× Empty dependency: Expected a non-empty request╭─[1:1]1  require("")· ───────────2  import ""╰────ERROR in ./index.js× Empty dependency: Expected a non-empty request╭─[1:1]1  require("")2  import ""·        ──╰────

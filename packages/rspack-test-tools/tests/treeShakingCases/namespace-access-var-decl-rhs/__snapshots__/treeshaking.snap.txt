@@ -6,21 +6,28 @@ __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; }
 });
 const a = {
-    a: ""
+	a: ""
 };
+
+
 }),
 "./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   b: function() { return b; }
 });
 const b = {
-    b: ""
+	b: ""
 };
+
+
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 
+
 console.log(_lib__WEBPACK_IMPORTED_MODULE_0__.getDocPermissionTextSendMe);
+
+
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
@@ -29,17 +36,24 @@ __webpack_require__.d(__webpack_exports__, {
 /* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
 /* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./b.js");
 
+
 function Record() {}
+
 const code2CreateChatDocPermission = {
-    1: _enum_js__WEBPACK_IMPORTED_MODULE_0__.a.a
+	1: _enum_js__WEBPACK_IMPORTED_MODULE_0__.a.a
 };
+
 function getDocPermissionTextSendMe() {}
+
 class Doc extends Record({}) {
-    isSheet() {
-        return this.type === _enum_js__WEBPACK_IMPORTED_MODULE_1__.b.b;
-    }
+	isSheet() {
+		return this.type === _enum_js__WEBPACK_IMPORTED_MODULE_1__.b.b;
+	}
 }
-Doc.fromJS = (data)=>new Doc(data);
+
+Doc.fromJS = data => new Doc(data);
+
+
 }),
 
 },function(__webpack_require__) {

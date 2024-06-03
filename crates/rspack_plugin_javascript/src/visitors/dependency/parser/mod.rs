@@ -4,6 +4,7 @@ mod walk_block_pre;
 mod walk_pre;
 
 use std::borrow::Cow;
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use bitflags::bitflags;
@@ -19,7 +20,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::Atom;
 use swc_core::common::comments::Comments;
 use swc_core::common::util::take::Take;
-use swc_core::common::{SourceFile, Span, Spanned};
+use swc_core::common::{BytePos, SourceFile, Span, Spanned};
 use swc_core::ecma::ast::{
   ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, MetaPropExpr, MetaPropKind, ObjectPat,
   ObjectPatProp, Pat, Program, Stmt, ThisExpr,
@@ -151,6 +152,56 @@ pub enum TopLevelScope {
   False,
 }
 
+#[derive(Debug, Clone)]
+pub struct StatementPath {
+  span: Span,
+}
+
+impl Spanned for StatementPath {
+  fn span(&self) -> Span {
+    self.span
+  }
+}
+
+impl StatementPath {
+  fn from_span(span: Span) -> Self {
+    Self { span }
+  }
+}
+
+impl From<Span> for StatementPath {
+  fn from(value: Span) -> Self {
+    Self::from_span(value)
+  }
+}
+
+/// TODO: align `InnerGraphPlugin` with webpack
+/// A struct includes paths that should not be visited in the `InnerGraphPlugin`
+/// to simulate the same behavior of `ConstPlugin`'s selective AST walking strategy.
+#[derive(Default, Debug)]
+pub struct PathIgnoredSpans(Vec<Span>);
+
+impl PathIgnoredSpans {
+  #[inline]
+  pub fn is_span_ignored(&self, span: Span) -> bool {
+    self.0.iter().any(|s| s.lo <= span.lo && s.hi >= span.hi)
+  }
+}
+
+impl Deref for PathIgnoredSpans {
+  type Target = Vec<Span>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl DerefMut for PathIgnoredSpans {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
+  }
+}
+
 pub struct JavascriptParser<'parser> {
   pub(crate) source_file: &'parser SourceFile,
   pub(crate) errors: Vec<Box<dyn Diagnostic + Send + Sync>>,
@@ -189,6 +240,12 @@ pub struct JavascriptParser<'parser> {
   pub(crate) last_stmt_is_expr_stmt: bool,
   // TODO: delete `properties_in_destructuring`
   pub(crate) properties_in_destructuring: FxHashMap<Atom, FxHashSet<Atom>>,
+  pub(crate) semicolons: &'parser mut FxHashSet<BytePos>,
+  pub(crate) statement_path: Vec<StatementPath>,
+  pub(crate) prev_statement: Option<StatementPath>,
+  // TODO: Used as a way to skip AST visits in `InnerGraphPlugin`,
+  // which does not follow ParserPlugin's AST skipping in const plugin.
+  pub(crate) path_ignored_spans: &'parser mut PathIgnoredSpans,
   // ===== scope info =======
   pub(crate) in_try: bool,
   pub(crate) in_short_hand: bool,
@@ -210,6 +267,8 @@ impl<'parser> JavascriptParser<'parser> {
     resource_data: &'parser ResourceData,
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
+    semicolons: &'parser mut FxHashSet<BytePos>,
+    path_ignored_spans: &'parser mut PathIgnoredSpans,
   ) -> Self {
     let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(32);
     let errors = Vec::with_capacity(32);
@@ -265,6 +324,9 @@ impl<'parser> JavascriptParser<'parser> {
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       if !compiler_options.builtins.provide.is_empty() {
         plugins.push(Box::<parser_plugin::ProviderPlugin>::default());
+      }
+      if !compiler_options.builtins.define.is_empty() {
+        plugins.push(Box::<parser_plugin::DefinePlugin>::default());
       }
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
@@ -332,7 +394,29 @@ impl<'parser> JavascriptParser<'parser> {
       enter_new_expr: false,
       enter_callee: false,
       properties_in_destructuring: Default::default(),
+      semicolons,
+      statement_path: Default::default(),
+      prev_statement: None,
+      path_ignored_spans,
     }
+  }
+
+  pub fn is_asi_position(&self, pos: BytePos) -> bool {
+    let curr_path = self.statement_path.last().expect("Should in statement");
+    if curr_path.span_hi() == pos && self.semicolons.contains(&pos) {
+      true
+    } else if curr_path.span_lo() == pos
+      && let Some(prev) = &self.prev_statement
+      && self.semicolons.contains(&prev.span_hi())
+    {
+      true
+    } else {
+      false
+    }
+  }
+
+  pub fn unset_asi_position(&mut self, pos: BytePos) -> bool {
+    self.semicolons.remove(&pos)
   }
 
   pub fn get_mut_variable_info(&mut self, name: &str) -> Option<&mut VariableInfo> {
@@ -638,14 +722,20 @@ impl<'parser> JavascriptParser<'parser> {
       match ast {
         Program::Module(m) => {
           self.set_strict(true);
+          self.prev_statement = None;
           self.pre_walk_module_declarations(&m.body);
+          self.prev_statement = None;
           self.block_pre_walk_module_declarations(&m.body);
+          self.prev_statement = None;
           self.walk_module_declarations(&m.body);
         }
         Program::Script(s) => {
           self.detect_mode(&s.body);
+          self.prev_statement = None;
           self.pre_walk_statements(&s.body);
+          self.prev_statement = None;
           self.block_pre_walk_statements(&s.body);
+          self.prev_statement = None;
           self.walk_statements(&s.body);
         }
       };
@@ -683,7 +773,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 }
 
-impl JavascriptParser<'_> {
+impl<'parser> JavascriptParser<'parser> {
   pub fn evaluate_expression(&mut self, expr: &Expr) -> BasicEvaluatedExpression {
     match self.evaluating(expr) {
       Some(evaluated) => evaluated,
@@ -691,8 +781,13 @@ impl JavascriptParser<'_> {
     }
   }
 
+  pub fn evaluate(&mut self, source: String, title: String) -> Option<BasicEvaluatedExpression> {
+    eval::eval_source(self, source, title)
+  }
+
   // same as `JavascriptParser._initializeEvaluating` in webpack
   // FIXME: should mv it to plugin(for example `parse.hooks.evaluate for`)
+  #[inline]
   fn evaluating(&mut self, expr: &Expr) -> Option<BasicEvaluatedExpression> {
     match expr {
       Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),

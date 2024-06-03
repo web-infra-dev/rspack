@@ -10,9 +10,9 @@
 - Manifest: a.LAST_HASH.hot-update.json, size: 35
 - Manifest: b.LAST_HASH.hot-update.json, size: 35
 - Manifest: main.LAST_HASH.hot-update.json, size: 35
-- Update: a.LAST_HASH.hot-update.js, size: 252
-- Update: b.LAST_HASH.hot-update.js, size: 252
-- Update: main.LAST_HASH.hot-update.js, size: 255
+- Update: a.LAST_HASH.hot-update.js, size: 254
+- Update: b.LAST_HASH.hot-update.js, size: 254
+- Update: main.LAST_HASH.hot-update.js, size: 257
 
 ## Manifest
 
@@ -55,6 +55,8 @@
 self["webpackHotUpdate"]('a', {
 "./file.js": (function (module) {
 module.exports = 3;
+
+
 }),
 
 },function(__webpack_require__) {
@@ -85,6 +87,8 @@ __webpack_require__.h = function () {
 self["webpackHotUpdate"]('b', {
 "./file.js": (function (module) {
 module.exports = 3;
+
+
 }),
 
 },function(__webpack_require__) {
@@ -115,6 +119,8 @@ __webpack_require__.h = function () {
 self["webpackHotUpdate"]('main', {
 "./file.js": (function (module) {
 module.exports = 3;
+
+
 }),
 
 },function(__webpack_require__) {

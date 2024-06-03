@@ -7,9 +7,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _b__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_b__WEBPACK_IMPORTED_MODULE_0__);
 
 console.log("a");
+
+
 }),
 "./b.js": (function () {
 console.log("b");
+
+
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
@@ -17,6 +21,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
 
 console.log("hello, world");
+
+
 }),
 
 },function(__webpack_require__) {

@@ -100,6 +100,7 @@ impl CommonJsImportsParserPlugin {
         Some(mem_expr.span.into()),
         is_call,
         parser.in_try,
+        !parser.is_asi_position(mem_expr.span_lo()),
       )
     })
   }

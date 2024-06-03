@@ -3,8 +3,8 @@ use std::{fmt::Debug, sync::Arc};
 use once_cell::sync::Lazy;
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
-  DependencyType, Module, ModuleFactory, ModuleFactoryCreateData, NormalModuleCreateData,
-  NormalModuleFactoryModule, Plugin, PluginContext,
+  DependencyType, EntryDependency, Module, ModuleFactory, ModuleFactoryCreateData,
+  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -139,9 +139,22 @@ async fn normal_module_factory_module(
     return Ok(());
   }
 
-  if !self.entries && is_entries {
-    return Ok(());
+  if is_entries {
+    if !self.entries {
+      return Ok(());
+    }
+
+    // ignore global entry
+    let entry: Option<&EntryDependency> = module_factory_create_data.dependency.downcast_ref();
+    let Some(entry) = entry else {
+      return Ok(());
+    };
+
+    if entry.is_global() {
+      return Ok(());
+    }
   }
+
   if !self.imports && is_imports {
     return Ok(());
   }

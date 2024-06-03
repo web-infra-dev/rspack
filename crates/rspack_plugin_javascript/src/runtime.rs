@@ -143,7 +143,7 @@ pub fn render_module(
       sources.add(RawSource::from("\"use strict\";\n"));
     }
     sources.add(render_module_result.module_source);
-    sources.add(RawSource::from("})"));
+    sources.add(RawSource::from("\n\n})"));
     if is_diff_mode() {
       sources.add(RawSource::from(format!(
         "\n{}\n",

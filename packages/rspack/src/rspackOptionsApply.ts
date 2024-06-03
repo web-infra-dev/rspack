@@ -52,6 +52,8 @@ import {
 	ModuleConcatenationPlugin,
 	NamedChunkIdsPlugin,
 	NamedModuleIdsPlugin,
+	NaturalChunkIdsPlugin,
+	NaturalModuleIdsPlugin,
 	NodeTargetPlugin,
 	RealContentHashPlugin,
 	RemoveEmptyChunksPlugin,
@@ -309,6 +311,10 @@ export class RspackOptionsApply {
 					new NamedModuleIdsPlugin().apply(compiler);
 					break;
 				}
+				case "natural": {
+					new NaturalModuleIdsPlugin().apply(compiler);
+					break;
+				}
 				case "deterministic": {
 					new DeterministicModuleIdsPlugin().apply(compiler);
 					break;
@@ -320,6 +326,9 @@ export class RspackOptionsApply {
 		const chunkIds = options.optimization.chunkIds;
 		if (chunkIds) {
 			switch (chunkIds) {
+				case "natural": {
+					new NaturalChunkIdsPlugin().apply(compiler);
+				}
 				case "named": {
 					new NamedChunkIdsPlugin().apply(compiler);
 					break;

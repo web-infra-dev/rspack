@@ -893,14 +893,17 @@ const applyOptimizationDefaults = (
 	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
-	F(optimization, "moduleIds", (): "named" | "deterministic" => {
-		if (production) return "deterministic";
-		return "named";
-	});
-	F(optimization, "chunkIds", (): "named" | "deterministic" => {
+	F(optimization, "moduleIds", (): "natural" | "named" | "deterministic" => {
 		if (production) return "deterministic";
 		if (development) return "named";
-		return "named"; // we have not implemented 'natural' so use 'named' now
+		// TODO(rspack@1.0): change to `"natural"`
+		return "named";
+	});
+	F(optimization, "chunkIds", (): "natural" | "named" | "deterministic" => {
+		if (production) return "deterministic";
+		if (development) return "named";
+		// TODO(rspack@1.0): change to `"natural"`
+		return "named";
 	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "mangleExports", production);

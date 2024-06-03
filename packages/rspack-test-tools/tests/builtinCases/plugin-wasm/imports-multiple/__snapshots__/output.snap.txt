@@ -1,11 +1,13 @@
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-(async function() {
-    return __webpack_require__.e(/* import() */ "wasm_wasm").then(__webpack_require__.bind(__webpack_require__, "./module.js")).then(function(mod) {
-        if (mod.result !== 42) throw new Error("panic");
-    });
+(async function () {
+	return __webpack_require__.e(/* import() */ "wasm_wasm").then(__webpack_require__.bind(__webpack_require__, "./module.js")).then(function (mod) {
+		if (mod.result !== 42) throw new Error("panic");
+	});
 })();
+
+
 }),
 
 },function(__webpack_require__) {
@@ -29,13 +31,17 @@ __webpack_require__.d(__webpack_exports__, {
 /* harmony import */var _wasm_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./wasm.wasm");
 var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__]);
 ([_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__);
-var result = (0, _wasm_wasm__WEBPACK_IMPORTED_MODULE_0__.getResult)(1);
+
+var result = (0,_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__.getResult)(1);
+
 function getNumber() {
-    return 20;
+	return 20;
 }
 
 __webpack_async_result__();
-} catch(e) { __webpack_async_result__(e); } });}),
+} catch(e) { __webpack_async_result__(e); } });
+
+}),
 "./module2.js": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
 __webpack_require__.r(__webpack_exports__);
@@ -45,12 +51,15 @@ __webpack_require__.d(__webpack_exports__, {
 /* harmony import */var _wasm_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./wasm.wasm");
 var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__]);
 ([_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__);
+
 function getNumber() {
-    return (0, _wasm_wasm__WEBPACK_IMPORTED_MODULE_0__.getNumber)();
+	return (0,_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__.getNumber)();
 }
 
 __webpack_async_result__();
-} catch(e) { __webpack_async_result__(e); } });}),
+} catch(e) { __webpack_async_result__(e); } });
+
+}),
 "./wasm.wasm": (function (module, exports, __webpack_require__) {
 var __webpack_instantiate__ = function ([WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1]) {
 return __webpack_require__.v(exports, module.id, "99f401a36b8fee81" , {
@@ -82,6 +91,8 @@ var WEBPACK_IMPORTED_MODULE_1 = __webpack_require__("./module2.js");
 
   } catch(e) { __webpack_async_result__(e); }
 }, 1);
+
+
 }),
 
 }]);

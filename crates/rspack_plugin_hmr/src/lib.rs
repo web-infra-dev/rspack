@@ -336,7 +336,7 @@ fn normal_module_loader(&self, context: &mut LoaderContext<CompilerContext>) -> 
 }
 
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for HotModuleReplacementPlugin)]
-fn additional_tree_runtime_requirements(
+async fn additional_tree_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
