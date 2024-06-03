@@ -25,23 +25,18 @@ fn dep(
   definitions: &DefineValue,
   start: u32,
   end: u32,
+  asi_safe: bool,
 ) -> Option<ConstDependency> {
   if let Some(value) = definitions.get(for_name) {
-    if parser.in_short_hand {
-      return Some(ConstDependency::new(
-        start,
-        end,
-        format!("{for_name}: {value}").into(),
-        None,
-      ));
+    let code = if parser.in_short_hand {
+      format!("{for_name}: {value}")
+    } else if asi_safe {
+      format!("({value})")
     } else {
-      return Some(ConstDependency::new(
-        start,
-        end,
-        value.to_string().into(),
-        None,
-      ));
-    }
+      format!(";({value})")
+    };
+
+    return Some(ConstDependency::new(start, end, code.into(), None));
   }
   None
 }
@@ -104,6 +99,7 @@ impl JavascriptParserPlugin for DefinePlugin {
       &parser.compiler_options.builtins.define,
       expr.callee.span().real_lo(),
       expr.callee.span().real_hi(),
+      !parser.is_asi_position(expr.span_lo()),
     )
     .map(|dep| {
       parser.presentational_dependencies.push(Box::new(dep));
@@ -125,6 +121,7 @@ impl JavascriptParserPlugin for DefinePlugin {
       &parser.compiler_options.builtins.define,
       expr.span().real_lo(),
       expr.span().real_hi(),
+      !parser.is_asi_position(expr.span_lo()),
     )
     .map(|dep| {
       parser.presentational_dependencies.push(Box::new(dep));
@@ -144,6 +141,7 @@ impl JavascriptParserPlugin for DefinePlugin {
       &parser.compiler_options.builtins.define,
       ident.span.real_lo(),
       ident.span.real_hi(),
+      !parser.is_asi_position(ident.span_lo()),
     )
     .map(|dep| {
       parser.presentational_dependencies.push(Box::new(dep));

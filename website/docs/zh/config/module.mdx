@@ -532,7 +532,9 @@ module.exports = {
 - **类型：** `boolean`
 - **默认值：** `true` for node environments, `false` for web environments.
 
-避免生成和加载样式表，只将来自 CSS 的导出嵌入到输出的 JavaScript 文件中。
+如果为 `true`，仅从 CSS 中导出标识符映射表到 JavaScript 文件中，而不在 template 中注入任何 stylesheets。适用于使用 CSS Modules 进行预渲染的场景（例如 SSR）。
+
+如果为 `false`，生成 stylesheets 并将其注入到 template 中。
 
 #### module.generator["css/auto"].localIdentName
 
