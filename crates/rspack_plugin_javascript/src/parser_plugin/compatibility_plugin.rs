@@ -65,6 +65,25 @@ impl CompatibilityPlugin {
 }
 
 impl JavascriptParserPlugin for CompatibilityPlugin {
+  fn program(
+    &self,
+    parser: &mut JavascriptParser,
+    ast: &swc_core::ecma::ast::Program,
+  ) -> Option<bool> {
+    if ast
+      .as_module()
+      .and_then(|m| m.shebang.as_ref())
+      .or_else(|| ast.as_script().and_then(|s| s.shebang.as_ref()))
+      .is_some()
+    {
+      parser
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(0, 0, "//".into(), None)));
+    }
+
+    None
+  }
+
   fn pre_statement(
     &self,
     parser: &mut JavascriptParser,
