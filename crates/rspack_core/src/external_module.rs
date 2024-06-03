@@ -335,7 +335,7 @@ impl Module for ExternalModule {
   }
 
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::Js
+    &ModuleType::JsAuto
   }
 
   fn get_diagnostics(&self) -> Vec<Diagnostic> {

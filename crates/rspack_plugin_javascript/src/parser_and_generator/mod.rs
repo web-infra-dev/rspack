@@ -9,9 +9,9 @@ use rspack_core::rspack_sources::{
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
   render_init_fragments, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph,
-  Compilation, DependenciesBlock, DependencyId, GenerateContext, Module, ModuleGraph, ParseContext,
-  ParseResult, ParserAndGenerator, SideEffectsBailoutItem, SourceType, SpanExt, TemplateContext,
-  TemplateReplaceSource,
+  Compilation, DependenciesBlock, DependencyId, GenerateContext, Module, ModuleGraph, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem, SourceType, SpanExt,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -84,7 +84,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
-      mut source,
+      source,
       module_type,
       resource_data,
       compiler_options,
@@ -117,14 +117,13 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       };
 
     let syntax = Syntax::Es(EsConfig {
-      jsx: false,
-      export_default_from: false,
-      decorators: false,
-      fn_bind: true,
-      allow_super_outside_method: true,
+      allow_return_outside_function: matches!(
+        module_type,
+        ModuleType::JsDynamic | ModuleType::JsAuto
+      ),
       ..Default::default()
     });
-    let source_code = if syntax.dts() {
+    let source = if syntax.dts() {
       // dts build result must be empty
       RawSource::from("").boxed()
     } else if source.source().starts_with("#!") {
@@ -141,7 +140,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let fm = cm.new_source_file(
       FileName::Custom(resource_data.resource_path.to_string_lossy().to_string()),
-      source_code.source().to_string(),
+      source.source().to_string(),
     );
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
@@ -160,8 +159,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         return default_with_diagnostics(source, diagnostics);
       }
     };
-    // FIXME: should not update source here
-    source = source_code;
 
     let mut semicolons = Default::default();
     ast.transform(|program, context| {
