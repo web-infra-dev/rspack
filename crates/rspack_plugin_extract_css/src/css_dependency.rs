@@ -25,7 +25,7 @@ pub struct CssDependency {
   pub(crate) order_index: u32,
 
   resource_identifier: String,
-
+  pub(crate) cacheable: bool,
   pub(crate) file_dependencies: FxHashSet<PathBuf>,
   pub(crate) context_dependencies: FxHashSet<PathBuf>,
   pub(crate) missing_dependencies: FxHashSet<PathBuf>,
@@ -43,6 +43,7 @@ impl CssDependency {
     source_map: String,
     identifier_index: u32,
     order_index: u32,
+    cacheable: bool,
     file_dependencies: FxHashSet<PathBuf>,
     context_dependencies: FxHashSet<PathBuf>,
     missing_dependencies: FxHashSet<PathBuf>,
@@ -60,6 +61,7 @@ impl CssDependency {
       identifier_index,
       order_index,
       resource_identifier,
+      cacheable,
       file_dependencies,
       context_dependencies,
       missing_dependencies,
