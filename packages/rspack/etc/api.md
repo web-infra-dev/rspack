@@ -968,6 +968,11 @@ export class Compilation {
     // @internal
     __internal__getChunks(): Chunk[];
     // @internal
+    __internal__getCustomModule(moduleIdentifier: string): {
+        buildInfo: Record<string, unknown>;
+        buildMeta: Record<string, unknown>;
+    };
+    // @internal
     __internal__getModules(): JsModule[];
     // @internal
     __internal__hasAsset(name: string): boolean;
@@ -4668,6 +4673,8 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     mode?: Mode;
     // (undocumented)
+    _module: Module;
+    // (undocumented)
     previousRequest: string;
     // (undocumented)
     query: string | OptionsType;
@@ -4900,23 +4907,29 @@ const mode: z.ZodEnum<["development", "production", "none"]>;
 
 // @public (undocumented)
 export class Module {
-    constructor(module: JsModule);
+    constructor(module: JsModule, compilation?: Compilation);
     // (undocumented)
-    static __from_binding(module: JsModule): Module;
+    static __from_binding(module: JsModule, compilation?: Compilation): Module;
+    buildInfo: Record<string, any>;
+    buildMeta: Record<string, any>;
     // (undocumented)
-    get context(): string | undefined;
+    context?: string;
     // (undocumented)
     identifier(): string;
     // (undocumented)
     nameForCondition(): string | null;
     // (undocumented)
-    get originalSource(): Source | null;
+    originalSource(): Source | null;
     // (undocumented)
     _originalSource?: Source;
     // (undocumented)
     rawRequest?: string;
     // (undocumented)
-    get resource(): string | undefined;
+    request?: string;
+    // (undocumented)
+    resource?: string;
+    // (undocumented)
+    userRequest?: string;
 }
 
 // @public (undocumented)
