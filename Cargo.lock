@@ -4698,7 +4698,7 @@ dependencies = [
  "bitflags 2.5.0",
  "dashmap",
  "indexmap 2.2.6",
- "itertools",
+ "itertools 0.12.1",
  "linked_hash_set",
  "num-bigint",
  "once_cell",
