@@ -375,7 +375,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	__getCustomModule(moduleIdentifier: string) {
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getCustomModule(moduleIdentifier: string) {
 		let module = this.#customModules[moduleIdentifier];
 		if (!module) {
 			module = this.#customModules[moduleIdentifier] = {

@@ -81,7 +81,7 @@ export class Module {
 		this.userRequest = module.userRequest;
 		this.rawRequest = module.rawRequest;
 
-		const customModule = compilation?.__getCustomModule(
+		const customModule = compilation?.__internal__getCustomModule(
 			module.moduleIdentifier
 		);
 		this.buildInfo = customModule?.buildInfo || {};

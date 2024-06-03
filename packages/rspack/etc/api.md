@@ -959,11 +959,6 @@ interface CommonJsConfig extends BaseModuleConfig {
 // @public (undocumented)
 export class Compilation {
     constructor(compiler: Compiler, inner: JsCompilation);
-    // (undocumented)
-    __getCustomModule(moduleIdentifier: string): {
-        buildInfo: Record<string, unknown>;
-        buildMeta: Record<string, unknown>;
-    };
     // @internal
     __internal__deleteAssetSource(filename: string): void;
     // @internal
@@ -972,6 +967,11 @@ export class Compilation {
     __internal__getAssetSource(filename: string): Source | void;
     // @internal
     __internal__getChunks(): Chunk[];
+    // @internal
+    __internal__getCustomModule(moduleIdentifier: string): {
+        buildInfo: Record<string, unknown>;
+        buildMeta: Record<string, unknown>;
+    };
     // @internal
     __internal__getModules(): JsModule[];
     // @internal
