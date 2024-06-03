@@ -3,9 +3,7 @@ use std::sync::Arc;
 use itertools::Itertools;
 use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
 use rspack_core::needs_refactor::WorkerSyntaxList;
-use rspack_core::rspack_sources::{
-  BoxSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt,
-};
+use rspack_core::rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt};
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
   render_init_fragments, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph,
@@ -116,27 +114,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         )
       };
 
-    let syntax = Syntax::Es(EsConfig {
-      allow_return_outside_function: matches!(
-        module_type,
-        ModuleType::JsDynamic | ModuleType::JsAuto
-      ),
-      ..Default::default()
-    });
-    let source = if syntax.dts() {
-      // dts build result must be empty
-      RawSource::from("").boxed()
-    } else if source.source().starts_with("#!") {
-      // this is a hashbang comment
-      ConcatSource::new([RawSource::from("//").boxed(), source.clone()]).boxed()
-    } else if source.source().starts_with('\u{feff}') {
-      // bom
-      let mut s = ReplaceSource::new(source.clone());
-      s.replace(0, 3, "", None);
-      s.boxed()
-    } else {
-      source.clone()
-    };
+    let source = remove_bom(source);
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let fm = cm.new_source_file(
       FileName::Custom(resource_data.resource_path.to_string_lossy().to_string()),
@@ -144,7 +122,18 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     );
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
-    let lexer = Lexer::new(syntax, target, SourceFileInput::from(&*fm), Some(&comments));
+    let lexer = Lexer::new(
+      Syntax::Es(EsConfig {
+        allow_return_outside_function: matches!(
+          module_type,
+          ModuleType::JsDynamic | ModuleType::JsAuto
+        ),
+        ..Default::default()
+      }),
+      target,
+      SourceFileInput::from(&*fm),
+      Some(&comments),
+    );
 
     let mut ast = match crate::ast::parse(
       lexer.clone(),
@@ -381,5 +370,15 @@ fn span_to_location(span: Span, source: &str) -> Option<String> {
       start_line + 1,
       end_line + 1
     ))
+  }
+}
+
+fn remove_bom(s: Arc<dyn Source>) -> Arc<dyn Source> {
+  if s.source().starts_with('\u{feff}') {
+    let mut s = ReplaceSource::new(s);
+    s.replace(0, 3, "", None);
+    s.boxed()
+  } else {
+    s
   }
 }
