@@ -211,7 +211,7 @@ export declare class JsExportsInfo {
   isUsed(runtime: string | string[] | undefined): boolean
   isModuleUsed(runtime: string | string[] | undefined): boolean
   setUsedInUnknownWay(runtime: string | string[] | undefined): boolean
-  getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
+  getUsed(name: string | string[], runtime: string | string[] | undefined): 0 | 1 | 2 | 3 | 4
 }
 
 export declare class JsModule {
@@ -1392,15 +1392,15 @@ export interface RawExperimentCacheOptionsPersistent {
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
-incremental?: false | { [key: string]: boolean }
-rspackFuture?: RawRspackFuture
-cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
+  incremental?: false | { [key: string]: boolean }
+  rspackFuture?: RawRspackFuture
+  cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 }
 
 export interface RawExperimentSnapshotOptions {
-  immutablePaths: Array<string|RegExp>
-  unmanagedPaths: Array<string|RegExp>
-  managedPaths: Array<string|RegExp>
+  immutablePaths: Array<string | RegExp>
+  unmanagedPaths: Array<string | RegExp>
+  managedPaths: Array<string | RegExp>
 }
 
 export interface RawExposeOptions {
@@ -1854,6 +1854,16 @@ export interface RawProvideOptions {
   singleton?: boolean
   requiredVersion?: string | false | undefined
   strictVersion?: boolean
+}
+
+export interface RawReactRoute {
+  name: ChunkName
+  import: RoutePath
+}
+
+export interface RawRegex {
+  source: string
+  flags: string
 }
 
 export interface RawRelated {
