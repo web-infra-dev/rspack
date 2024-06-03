@@ -272,6 +272,9 @@ export async function runLoaders(
 								for (const dep of res.fileDependencies) {
 									this.addDependency(dep);
 								}
+								if (res.cacheable === false) {
+									this.cacheable(false);
+								}
 								assetFilenames.push(...res.assets);
 
 								resolve(compiler.__internal__getModuleExecutionResult(res.id));
@@ -303,6 +306,9 @@ export async function runLoaders(
 						}
 						for (const dep of res.fileDependencies) {
 							this.addDependency(dep);
+						}
+						if (res.cacheable === false) {
+							this.cacheable(false);
 						}
 						assetFilenames.push(...res.assets);
 
