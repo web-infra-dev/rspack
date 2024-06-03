@@ -476,6 +476,7 @@ impl JsCompilation {
       match result {
         Ok(res) => {
           let js_result = JsExecuteModuleResult {
+            cacheable: res.cacheable,
             file_dependencies: res
               .file_dependencies
               .into_iter()
@@ -513,6 +514,7 @@ pub struct JsExecuteModuleResult {
   pub context_dependencies: Vec<String>,
   pub build_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
+  pub cacheable: bool,
   pub assets: Vec<String>,
   pub id: u32,
 }
