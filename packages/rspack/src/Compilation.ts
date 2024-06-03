@@ -138,7 +138,7 @@ export interface KnownNormalizedStatsOptions {
 export type CreateStatsOptionsContext = KnownCreateStatsOptionsContext &
 	Record<string, any>;
 
-type NormalizedStatsOptions = KnownNormalizedStatsOptions &
+export type NormalizedStatsOptions = KnownNormalizedStatsOptions &
 	Omit<StatsOptions, keyof KnownNormalizedStatsOptions> &
 	Record<string, any>;
 

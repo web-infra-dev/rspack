@@ -1,7 +1,6 @@
 import * as binding from "@rspack/binding";
 
-import type { Compilation } from "../Compilation";
-import type { StatsOptions } from "../config";
+import type { Compilation, NormalizedStatsOptions } from "../Compilation";
 import {
 	type Comparator,
 	compareIds,
@@ -158,55 +157,6 @@ export type SimpleExtractors = {
 	// error: ExtractorsByOption<binding.JsStatsError, StatsError>;
 	// warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;
 };
-
-// todo: need implement normalize stats options in DefaultStatsPresetPlugin
-type KnownNormalizedStatsOptions = {
-	context: string;
-	// requestShortener: any;
-	// chunksSort: string;
-	// modulesSort: string;
-	// chunkModulesSort: string;
-	// nestedModulesSort: string;
-	// assetsSort: string;
-	// ids: boolean;
-	// cachedAssets: boolean;
-	// groupAssetsByEmitStatus: boolean;
-	// groupAssetsByPath: boolean;
-	// groupAssetsByExtension: boolean;
-	// assetsSpace: number;
-	// excludeAssets: ((value: string, asset: StatsAsset) => boolean)[];
-	// excludeModules: ((
-	// 	name: string,
-	// 	module: StatsModule,
-	// 	type: "module" | "chunk" | "root-of-chunk" | "nested"
-	// ) => boolean)[];
-	// warningsFilter: ((warning: StatsError, textValue: string) => boolean)[];
-	// cachedModules: boolean;
-	// orphanModules: boolean;
-	// dependentModules: boolean;
-	// runtimeModules: boolean;
-	// groupModulesByCacheStatus: boolean;
-	// groupModulesByLayer: boolean;
-	// groupModulesByAttributes: boolean;
-	// groupModulesByPath: boolean;
-	// groupModulesByExtension: boolean;
-	// groupModulesByType: boolean;
-	// entrypoints: boolean | "auto";
-	// chunkGroups: boolean;
-	// chunkGroupAuxiliary: boolean;
-	// chunkGroupChildren: boolean;
-	// chunkGroupMaxAssets: number;
-	// modulesSpace: number;
-	// chunkModulesSpace: number;
-	// nestedModulesSpace: number;
-	// logging: false | "none" | "error" | "warn" | "info" | "log" | "verbose";
-	// loggingDebug: ((value: string) => boolean)[];
-	// loggingTrace: boolean;
-};
-
-export type NormalizedStatsOptions = KnownNormalizedStatsOptions &
-	Omit<StatsOptions, keyof KnownNormalizedStatsOptions> &
-	Record<string, any>;
 
 export const uniqueArray = <T, I>(
 	items: Iterable<T>,
