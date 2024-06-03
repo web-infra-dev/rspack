@@ -40,7 +40,7 @@ module.exports = 3;
 }),
 "./raw.png": (function (module, __unused_webpack_exports, __webpack_require__) {
 "use strict";
-module.exports = __webpack_require__.p + "a09d8e0f399c215faa79.png";
+module.exports = __webpack_require__.p + "2710c5e36f8babb0a3a4.png";
 
 }),
 

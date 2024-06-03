@@ -2,7 +2,7 @@
 
 exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats for 1`] = `
 "PublicPath: auto
-asset a09d8e0f399c215faa79.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
+asset 2710c5e36f8babb0a3a4.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
 asset bundle.js 2.58 KiB {909} [emitted] (name: main)
 Entrypoint main 2.58 KiB = bundle.js
 chunk {909} bundle.js (main) [entry]
@@ -33,7 +33,7 @@ webpack/runtime/auto_public_path {909}
   [no exports]
   [used exports unknown]
   
-Rspack compiled successfully (a5dc3d7712fbe39d3eed)"
+Rspack compiled successfully (9bcf52011e342a43887f)"
 `;
 
 exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print correct stats for 1`] = `
