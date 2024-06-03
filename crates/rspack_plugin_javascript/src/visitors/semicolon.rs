@@ -78,7 +78,12 @@ impl<'a> InsertedSemicolons<'a> {
 impl<'a> Visit for InsertedSemicolons<'a> {
   fn visit_expr_stmt(&mut self, n: &swc_core::ecma::ast::ExprStmt) {
     self.post_semi(&n.span);
-    n.visit_children_with(self);
+    n.visit_children_with(self)
+  }
+
+  fn visit_var_decl(&mut self, n: &swc_core::ecma::ast::VarDecl) {
+    self.post_semi(&n.span);
+    n.visit_children_with(self)
   }
 
   fn visit_update_expr(&mut self, n: &swc_core::ecma::ast::UpdateExpr) {
