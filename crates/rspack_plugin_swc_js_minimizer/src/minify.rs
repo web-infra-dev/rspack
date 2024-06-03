@@ -188,7 +188,7 @@ pub fn minify(
                   rspack_error::miette::Error::new(ecma_parse_error_deduped_to_rspack_error(
                     err,
                     &fm,
-                    &ModuleType::Js,
+                    &ModuleType::JsAuto,
                   ))
                 })
                 .collect::<Vec<_>>(),

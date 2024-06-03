@@ -17,7 +17,7 @@ use rustc_hash::FxHashSet;
 
 use crate::dependency::LazyCompilationDependency;
 
-static MODULE_TYPE: ModuleType = ModuleType::Js;
+static MODULE_TYPE: ModuleType = ModuleType::JsAuto;
 static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
 
 #[derive(Debug)]

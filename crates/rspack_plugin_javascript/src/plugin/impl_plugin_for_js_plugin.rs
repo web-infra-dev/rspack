@@ -307,7 +307,7 @@ impl Plugin for JsPlugin {
       .tap(render_manifest::new(self));
 
     ctx.context.register_parser_and_generator_builder(
-      ModuleType::Js,
+      ModuleType::JsAuto,
       Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
     );
     ctx.context.register_parser_and_generator_builder(

@@ -292,7 +292,7 @@ mod module {
   use rustc_hash::FxHashSet;
 
   use crate::dependency::{LazyCompilationDependency, ProxyCreateData};
-  static MODULE_TYPE: ModuleType = ModuleType::Js;
+  static MODULE_TYPE: ModuleType = ModuleType::JsAuto;
   static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
   pub(crate) struct LazyCompilationProxyModule {
     build_info: Option<BuildInfo>,
