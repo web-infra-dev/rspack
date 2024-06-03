@@ -1,7 +1,7 @@
-body {
+.cls {
     background-color: red;
 }
 ---
-body {
+.cls {
     background-color: blue;
 }
