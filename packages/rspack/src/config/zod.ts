@@ -1015,12 +1015,13 @@ export type CacheOptions = z.infer<typeof cacheOptions>;
 const statsOptions = z.strictObject({
 	all: z.boolean().optional(),
 	preset: z
-		.enum(["normal", "none", "verbose", "errors-only", "errors-warnings"])
+		.boolean()
+		.or(z.enum(["normal", "none", "verbose", "errors-only", "errors-warnings"]))
 		.optional(),
 	assets: z.boolean().optional(),
 	chunks: z.boolean().optional(),
 	modules: z.boolean().optional(),
-	entrypoints: z.boolean().optional(),
+	entrypoints: z.boolean().or(z.literal("auto")).optional(),
 	chunkGroups: z.boolean().optional(),
 	warnings: z.boolean().optional(),
 	warningsCount: z.boolean().optional(),

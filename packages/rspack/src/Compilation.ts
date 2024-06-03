@@ -42,12 +42,7 @@ import { Logger, LogType } from "./logging/Logger";
 import { CodeGenerationResult, Module } from "./Module";
 import { NormalModule } from "./NormalModule";
 import { NormalModuleFactory } from "./NormalModuleFactory";
-import {
-	normalizeFilter,
-	normalizeStatsPreset,
-	optionsOrFallback,
-	Stats
-} from "./Stats";
+import { Stats, StatsAsset, StatsError, StatsModule } from "./Stats";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
 import { concatErrorMsgAndStack, toJsAssetInfo } from "./util";
@@ -96,7 +91,55 @@ export interface ExecuteModuleContext {
 	__webpack_require__: (id: string) => any;
 }
 
-type CreateStatsOptionsContext = KnownCreateStatsOptionsContext &
+export interface KnownNormalizedStatsOptions {
+	context: string;
+	// requestShortener: RequestShortener;
+	chunksSort: string;
+	modulesSort: string;
+	chunkModulesSort: string;
+	nestedModulesSort: string;
+	assetsSort: string;
+	ids: boolean;
+	cachedAssets: boolean;
+	groupAssetsByEmitStatus: boolean;
+	groupAssetsByPath: boolean;
+	groupAssetsByExtension: boolean;
+	assetsSpace: number;
+	excludeAssets: ((value: string, asset: StatsAsset) => boolean)[];
+	excludeModules: ((
+		name: string,
+		module: StatsModule,
+		type: "module" | "chunk" | "root-of-chunk" | "nested"
+	) => boolean)[];
+	warningsFilter: ((warning: StatsError, textValue: string) => boolean)[];
+	cachedModules: boolean;
+	orphanModules: boolean;
+	dependentModules: boolean;
+	runtimeModules: boolean;
+	groupModulesByCacheStatus: boolean;
+	groupModulesByLayer: boolean;
+	groupModulesByAttributes: boolean;
+	groupModulesByPath: boolean;
+	groupModulesByExtension: boolean;
+	groupModulesByType: boolean;
+	entrypoints: boolean | "auto";
+	chunkGroups: boolean;
+	chunkGroupAuxiliary: boolean;
+	chunkGroupChildren: boolean;
+	chunkGroupMaxAssets: number;
+	modulesSpace: number;
+	chunkModulesSpace: number;
+	nestedModulesSpace: number;
+	logging: false | "none" | "error" | "warn" | "info" | "log" | "verbose";
+	loggingDebug: ((value: string) => boolean)[];
+	loggingTrace: boolean;
+}
+
+export type CreateStatsOptionsContext = KnownCreateStatsOptionsContext &
+	Record<string, any>;
+
+type NormalizedStatsOptions = KnownNormalizedStatsOptions &
+	Omit<StatsOptions, keyof KnownNormalizedStatsOptions> &
 	Record<string, any>;
 
 export class Compilation {
@@ -123,8 +166,17 @@ export class Compilation {
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: liteTapable.SyncHook<[Module], void>;
 		stillValidModule: liteTapable.SyncHook<[Module], void>;
+
+		statsPreset: tapable.HookMap<
+			tapable.SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext], void>
+		>;
+		statsNormalize: tapable.SyncHook<
+			[Partial<StatsOptions>, CreateStatsOptionsContext],
+			void
+		>;
 		statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
 		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
+
 		buildModule: liteTapable.SyncHook<[Module]>;
 		executeModule: liteTapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
@@ -230,8 +282,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new liteTapable.SyncHook(["module"]),
 			stillValidModule: new liteTapable.SyncHook(["module"]),
+
+			statsPreset: new tapable.HookMap(
+				() => new tapable.SyncHook(["options", "context"])
+			),
+			statsNormalize: new tapable.SyncHook(["options", "context"]),
 			statsFactory: new tapable.SyncHook(["statsFactory", "options"]),
 			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
+
 			buildModule: new liteTapable.SyncHook(["module"]),
 			executeModule: new liteTapable.SyncHook(["options", "context"]),
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
@@ -361,103 +419,31 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	createStatsOptions(
 		optionsOrPreset: StatsValue | undefined,
 		context: CreateStatsOptionsContext = {}
-	): StatsOptions {
-		optionsOrPreset = normalizeStatsPreset(optionsOrPreset);
-
-		let options: Partial<StatsOptions> = {};
-		if (typeof optionsOrPreset === "object" && optionsOrPreset !== null) {
-			options = Object.assign({}, optionsOrPreset);
+	): NormalizedStatsOptions {
+		if (
+			typeof optionsOrPreset === "boolean" ||
+			typeof optionsOrPreset === "string"
+		) {
+			optionsOrPreset = { preset: optionsOrPreset };
 		}
-
-		const all = options.all;
-		const optionOrLocalFallback = <V, D>(v: V, def: D) =>
-			v !== undefined ? v : all !== undefined ? all : def;
-
-		options.assets = optionOrLocalFallback(options.assets, true);
-		options.chunks = optionOrLocalFallback(
-			options.chunks,
-			!context.forToString
-		);
-		options.chunkModules = optionOrLocalFallback(
-			options.chunkModules,
-			!context.forToString
-		);
-		options.chunkRelations = optionOrLocalFallback(
-			options.chunkRelations,
-			!context.forToString
-		);
-		options.modules = optionOrLocalFallback(options.modules, true);
-		options.runtimeModules = optionOrLocalFallback(
-			options.runtimeModules,
-			!context.forToString
-		);
-		options.reasons = optionOrLocalFallback(
-			options.reasons,
-			!context.forToString
-		);
-		options.usedExports = optionOrLocalFallback(
-			options.usedExports,
-			!context.forToString
-		);
-		options.optimizationBailout = optionOrLocalFallback(
-			options.optimizationBailout,
-			!context.forToString
-		);
-		options.providedExports = optionOrLocalFallback(
-			options.providedExports,
-			!context.forToString
-		);
-		options.entrypoints = optionOrLocalFallback(options.entrypoints, true);
-		options.chunkGroups = optionOrLocalFallback(
-			options.chunkGroups,
-			!context.forToString
-		);
-		options.errors = optionOrLocalFallback(options.errors, true);
-		options.errorsCount = optionOrLocalFallback(options.errorsCount, true);
-		options.warnings = optionOrLocalFallback(options.warnings, true);
-		options.warningsCount = optionOrLocalFallback(options.warningsCount, true);
-		options.hash = optionOrLocalFallback(options.hash, true);
-		options.version = optionOrLocalFallback(options.version, true);
-		options.publicPath = optionOrLocalFallback(options.publicPath, true);
-		options.outputPath = optionOrLocalFallback(
-			options.outputPath,
-			!context.forToString
-		);
-		options.timings = optionOrLocalFallback(options.timings, true);
-		options.builtAt = optionOrLocalFallback(
-			options.builtAt,
-			!context.forToString
-		);
-		options.moduleAssets = optionOrLocalFallback(options.moduleAssets, true);
-		options.nestedModules = optionOrLocalFallback(
-			options.nestedModules,
-			!context.forToString
-		);
-		options.source = optionOrLocalFallback(options.source, false);
-		options.logging = optionOrLocalFallback(
-			options.logging,
-			context.forToString ? "info" : true
-		);
-		options.loggingTrace = optionOrLocalFallback(
-			options.loggingTrace,
-			!context.forToString
-		);
-		options.loggingDebug = []
-			.concat(optionsOrFallback(options.loggingDebug, []) || [])
-			.map(normalizeFilter);
-		options.modulesSpace =
-			options.modulesSpace || (context.forToString ? 15 : Infinity);
-		options.ids = optionOrLocalFallback(options.ids, !context.forToString);
-		options.children = optionOrLocalFallback(
-			options.children,
-			!context.forToString
-		);
-		options.orphanModules = optionOrLocalFallback(
-			options.orphanModules,
-			context.forToString ? false : true
-		);
-
-		return options;
+		if (typeof optionsOrPreset === "object" && optionsOrPreset !== null) {
+			// We use this method of shallow cloning this object to include
+			// properties in the prototype chain
+			const options: Partial<NormalizedStatsOptions> = {};
+			for (const key in optionsOrPreset) {
+				options[key as keyof NormalizedStatsOptions] =
+					optionsOrPreset[key as keyof StatsValue];
+			}
+			if (options.preset !== undefined) {
+				this.hooks.statsPreset.for(options.preset).call(options, context);
+			}
+			this.hooks.statsNormalize.call(options, context);
+			return options as NormalizedStatsOptions;
+		} else {
+			const options: Partial<NormalizedStatsOptions> = {};
+			this.hooks.statsNormalize.call(options, context);
+			return options as NormalizedStatsOptions;
+		}
 	}
 
 	createStatsFactory(options: StatsOptions) {

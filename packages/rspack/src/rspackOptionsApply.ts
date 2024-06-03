@@ -68,6 +68,7 @@ import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
 import { Module } from "./Module";
 import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
+import { DefaultStatsPresetPlugin } from "./stats/DefaultStatsPresetPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { assertNotNill } from "./util/assertNotNil";
 import { cleverMerge } from "./util/cleverMerge";
@@ -361,6 +362,7 @@ export class RspackOptionsApply {
 		).apply(compiler);
 
 		new DefaultStatsFactoryPlugin().apply(compiler);
+		new DefaultStatsPresetPlugin().apply(compiler);
 		new DefaultStatsPrinterPlugin().apply(compiler);
 
 		if (options.ignoreWarnings && options.ignoreWarnings.length > 0) {
