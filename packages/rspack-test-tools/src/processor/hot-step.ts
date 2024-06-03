@@ -188,6 +188,8 @@ export class HotSnapshotProcessor<
 			for (let [raw, replacement] of Object.entries(hashes)) {
 				str = str.split(raw).join(replacement);
 			}
+			// handle timestamp in css-extract
+			str = str.replace(/\/\/ (\d+)\s+(?=var cssReload)/, "");
 			return str;
 		};
 
