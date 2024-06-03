@@ -3,8 +3,8 @@
 
 /* -- banner.d.ts -- */
 export type JsFilename =
-  | string
-  | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
+	| string
+	| ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
 
@@ -1617,6 +1617,11 @@ export interface RawProvideOptions {
   singleton?: boolean
   requiredVersion?: string | false | undefined
   strictVersion?: boolean
+}
+
+export interface RawReactRoute {
+  name: ChunkName
+  import: RoutePath
 }
 
 export interface RawRegex {
