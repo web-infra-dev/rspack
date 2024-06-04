@@ -1,6 +1,6 @@
 import type { JsAssetInfo as JsAssetInfoBinding } from "@rspack/binding";
 
-export type AssetInfo = Partial<Omit<JsAssetInfo, "extras">> &
+export type AssetInfo = Partial<Omit<JsAssetInfoBinding, "extras">> &
 	Record<string, any>;
 
 class JsAssetInfo {
