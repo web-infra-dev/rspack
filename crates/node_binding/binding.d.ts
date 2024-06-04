@@ -237,6 +237,13 @@ export interface JsAssetInfo {
   javascriptModule?: boolean
   /** related object to other assets, keyed by type of relation (only points from parent to child) */
   related: JsAssetInfoRelated
+  /**
+   * Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
+   * But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
+   * in the rust struct and have the Js side to reshape and align with webpack
+   * Related: packages/rspack/src/Compilation.ts
+   */
+  extras: Record<string, any>
 }
 
 export interface JsAssetInfoRelated {

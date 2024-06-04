@@ -126,7 +126,7 @@ const asRegExp: (test: string | RegExp) => RegExp;
 // @public (undocumented)
 export interface Asset {
     // (undocumented)
-    info: JsAssetInfo;
+    info: AssetInfo;
     // (undocumented)
     name: string;
     // (undocumented)
@@ -253,7 +253,7 @@ const assetGeneratorOptions: z.ZodObject<{
 }>;
 
 // @public (undocumented)
-export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
+export type AssetInfo = Partial<Omit<JsAssetInfo_2, "extras">> & Record<string, any>;
 
 // @public (undocumented)
 export type AssetInlineGeneratorOptions = z.infer<typeof assetInlineGeneratorOptions>;
@@ -4168,6 +4168,14 @@ const javascriptParserOptions: z.ZodObject<{
     reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
     strictExportPresence?: boolean | undefined;
 }>;
+
+// @public (undocumented)
+class JsAssetInfo_2 {
+    // (undocumented)
+    static __from_binding(jsAssetInfo: JsAssetInfo): AssetInfo;
+    // (undocumented)
+    static __to_binding(assetInfo?: AssetInfo): JsAssetInfo;
+}
 
 // @public (undocumented)
 type JscTarget = "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "esnext";
