@@ -9,9 +9,6 @@ use crate::utils::decl::{ServerRef, ServerReferenceManifest};
 use crate::utils::has_client_directive;
 use crate::utils::shared_data::{SHARED_CLIENT_IMPORTS, SHARED_DATA};
 
-#[plugin]
-#[derive(Debug, Default, Clone)]
-pub struct RSCServerReferenceManifestRspackPlugin;
 #[derive(Debug, Default, Clone)]
 pub struct RSCServerReferenceManifest;
 
