@@ -2,6 +2,7 @@ const path = require("path");
 
 const { CssExtractRspackPlugin } = require("@rspack/core");
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
 		// Specific CSS entry point, with output to a nested folder
