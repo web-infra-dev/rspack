@@ -200,7 +200,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
               Some(UsedByExports::Bool(true)) | None => {}
               _ => {
                 let mut dep = PureExpressionDependency::new(start, end, module_identifier);
-                dep.used_by_exports = used_by_exports;
+                dep.set_used_by_exports(used_by_exports);
                 deps.push(Box::new(dep));
               }
             },
@@ -391,7 +391,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
                 Some(UsedByExports::Bool(true)) | None => {}
                 _ => {
                   let mut dep = PureExpressionDependency::new(start, end, module_identifier);
-                  dep.used_by_exports = used_by_exports;
+                  dep.set_used_by_exports(used_by_exports);
                   deps.push(Box::new(dep));
                 }
               },
@@ -495,7 +495,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
               Some(UsedByExports::Bool(true)) | None => {}
               _ => {
                 let mut dep = PureExpressionDependency::new(start, end, module_identifier);
-                dep.used_by_exports = used_by_exports;
+                dep.set_used_by_exports(used_by_exports);
                 deps.push(Box::new(dep));
               }
             },
@@ -667,7 +667,7 @@ impl<'a> InnerGraphPlugin<'a> {
           Some(UsedByExports::Bool(true)) | None => {}
           _ => {
             let mut dep = PureExpressionDependency::new(start, end, module_identifier);
-            dep.used_by_exports = used_by_exports;
+            dep.set_used_by_exports(used_by_exports);
             deps.push(Box::new(dep));
           }
         },
