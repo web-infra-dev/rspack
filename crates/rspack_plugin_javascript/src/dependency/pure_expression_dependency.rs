@@ -72,7 +72,7 @@ impl DependencyTemplate for PureExpressionDependency {
             &ctx.compilation.chunk_graph,
             Some(&runtime_condition),
             runtime,
-            &mut ctx.runtime_requirements,
+            ctx.runtime_requirements,
           )),
         }
       }
