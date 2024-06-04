@@ -65,6 +65,14 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 		const testConfig = context.getTestConfig();
 		if (testConfig.noTest) return;
 
+		if (testConfig.documentType) {
+			context.setValue(
+				this._options.name,
+				"documentType",
+				testConfig.documentType
+			);
+		}
+
 		if (typeof testConfig.beforeExecute === "function") {
 			testConfig.beforeExecute();
 		}

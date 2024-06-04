@@ -1,5 +1,6 @@
 import {
 	ECompilerType,
+	EDocumentType,
 	ITestContext,
 	ITestEnv,
 	ITestRunner,
@@ -63,7 +64,9 @@ export class BasicRunnerFactory<T extends ECompilerType>
 			return new WebRunner<T>({
 				...runnerOptions,
 				runInNewContext: true,
-				dom: "fake"
+				dom:
+					this.context.getValue(this.name, "documentType") ||
+					EDocumentType.JSDOM
 			});
 		} else {
 			return new EsmRunner<T>(runnerOptions);
