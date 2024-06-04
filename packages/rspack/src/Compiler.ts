@@ -735,6 +735,9 @@ class Compiler {
 
 		const options = this.options;
 		const rawOptions = getRawOptions(options, this);
+		rawOptions.__references = Object.fromEntries(
+			this.#ruleSet.builtinReferences.entries()
+		);
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
 

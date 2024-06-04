@@ -4,14 +4,14 @@ use std::{
   hash::{BuildHasherDefault, Hash},
   sync::{
     atomic::{AtomicUsize, Ordering},
-    Mutex,
+    Arc, Mutex,
   },
 };
 
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
-use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, MietteExt, Result, Severity};
+use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_hook::define_hook;
 use rspack_identifier::Identifiable;
@@ -30,11 +30,11 @@ use crate::{
   add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
   impl_module_meta_info, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
-  CompilerContext, ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
+  ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
   DependencyTemplate, FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
   ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -78,8 +78,10 @@ impl ModuleIssuer {
   }
 }
 
-define_hook!(NormalModuleReadResource: AsyncSeriesBail(resource_data: &mut ResourceData) -> Content);
-define_hook!(NormalModuleLoader: SyncSeries(loader_context: &mut LoaderContext<CompilerContext>));
+define_hook!(NormalModuleReadResource: AsyncSeriesBail(resource_data: &ResourceData) -> Content);
+define_hook!(NormalModuleLoader: SyncSeries(loader_context: &mut LoaderContext<RunnerContext>));
+define_hook!(NormalModuleLoaderShouldYield: SyncSeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool);
+define_hook!(NormalModuleLoaderStartYielding: AsyncSeries(loader_context: &mut LoaderContext<RunnerContext>));
 define_hook!(NormalModuleBeforeLoaders: SyncSeries(module: &mut NormalModule));
 define_hook!(NormalModuleAdditionalData: AsyncSeries(additional_data: &mut AdditionalData));
 
@@ -87,6 +89,8 @@ define_hook!(NormalModuleAdditionalData: AsyncSeries(additional_data: &mut Addit
 pub struct NormalModuleHooks {
   pub read_resource: NormalModuleReadResourceHook,
   pub loader: NormalModuleLoaderHook,
+  pub loader_should_yield: NormalModuleLoaderShouldYieldHook,
+  pub loader_yield: NormalModuleLoaderStartYieldingHook,
   pub before_loaders: NormalModuleBeforeLoadersHook,
   pub additional_data: NormalModuleAdditionalDataHook,
 }
@@ -114,7 +118,7 @@ pub struct NormalModule {
   /// Resource matched with inline match resource, (`!=!` syntax)
   match_resource: Option<ResourceData>,
   /// Resource data (path, query, fragment etc.)
-  resource_data: ResourceData,
+  resource_data: Arc<ResourceData>,
   /// Loaders for the module
   #[derivative(Debug = "ignore")]
   loaders: Vec<BoxLoader>,
@@ -188,7 +192,7 @@ impl NormalModule {
     parser_options: Option<ParserOptions>,
     generator_options: Option<GeneratorOptions>,
     match_resource: Option<ResourceData>,
-    resource_data: ResourceData,
+    resource_data: Arc<ResourceData>,
     resolve_options: Option<Box<Resolve>>,
     loaders: Vec<BoxLoader>,
     contains_inline_loader: bool,
@@ -331,9 +335,6 @@ impl DependenciesBlock for NormalModule {
   }
 }
 
-// to tell builtin:swc-loader to give content instead of ast only even if its index is 0
-pub struct LoadersShouldAlwaysGiveContent;
-
 #[async_trait::async_trait]
 impl Module for NormalModule {
   impl_module_meta_info!();
@@ -394,21 +395,17 @@ impl Module for NormalModule {
       .before_loaders
       .call(self)?;
 
-    let plugin = RspackLoaderRunnerPlugin {
+    let plugin = Arc::new(RspackLoaderRunnerPlugin {
       plugin_driver: build_context.plugin_driver.clone(),
       current_loader: Default::default(),
-    };
+    });
 
-    let mut additional_data = AdditionalData::default();
-
-    if no_parse {
-      additional_data.insert(&LoadersShouldAlwaysGiveContent {});
-    }
+    let additional_data = AdditionalData::default();
 
     let loader_result = run_loaders(
-      &self.loaders,
-      &mut self.resource_data,
-      &[&plugin],
+      self.loaders.clone(),
+      self.resource_data.clone(),
+      Some(plugin.clone()),
       build_context.compiler_context,
       additional_data,
     )
@@ -416,16 +413,7 @@ impl Module for NormalModule {
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
       Err(e) => {
-        let mut e = ModuleBuildError(e).boxed();
-        {
-          let mut current = plugin
-            .current_loader
-            .lock()
-            .expect("should be able to lock");
-          if let Some(current) = current.take() {
-            e = e.with_help(format!("File was processed with this loader: '{current}'"));
-          }
-        };
+        let e = ModuleBuildError(e).boxed();
         let d = Diagnostic::from(e);
         self.source = NormalModuleSource::BuiltFailed(d.clone());
         self.add_diagnostic(d);

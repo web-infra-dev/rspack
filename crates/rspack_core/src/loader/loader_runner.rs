@@ -35,7 +35,7 @@ impl CompilerModuleContext {
 }
 
 #[derive(Debug, Clone)]
-pub struct CompilerContext {
+pub struct RunnerContext {
   pub options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub module: CompilerModuleContext,
@@ -43,6 +43,4 @@ pub struct CompilerContext {
   pub plugin_driver: SharedPluginDriver,
 }
 
-pub type LoaderRunnerContext = CompilerContext;
-
-pub type BoxLoader = Arc<dyn Loader<LoaderRunnerContext>>;
+pub type BoxLoader = Arc<dyn Loader<RunnerContext>>;

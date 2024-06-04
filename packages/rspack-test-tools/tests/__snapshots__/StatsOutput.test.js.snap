@@ -50,7 +50,6 @@ exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print cor
   │     │
   │   
   ╰─▶ Syntax Error
-  help: File was processed with this loader: 'builtin:swc-loader??ruleSet[1].rules[0].use[0]'
 
 Rspack compiled with 1 error"
 `;

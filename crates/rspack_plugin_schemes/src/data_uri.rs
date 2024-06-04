@@ -55,7 +55,7 @@ async fn resolve_for_scheme(
 }
 
 #[plugin_hook(NormalModuleReadResource for DataUriPlugin)]
-async fn read_resource(&self, resource_data: &mut ResourceData) -> Result<Option<Content>> {
+async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
   if resource_data.get_scheme().is_data()
     && let Some(captures) = URI_REGEX.captures(&resource_data.resource)
   {
