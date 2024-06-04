@@ -56,13 +56,17 @@ export class RSCClientReferenceManifestRspackPlugin {
 		const entry = Object.assign({}, compiler.options.entry);
 		const resolvedEntry: Record<string, string> = {};
 		const root = compiler.options.context ?? process.cwd();
-		for (let item of Object.keys(entry)) {
-			const imports = entry[item].import;
-			if (imports) {
-				resolvedEntry[item] = imports[0];
+		// TODO: throw error if entry is not object
+		if (typeof entry === "object") {
+			for (let item of Object.keys(entry)) {
+				const imports = entry[item].import;
+				if (imports) {
+					resolvedEntry[item] = imports[0];
+				}
 			}
 		}
 		const resolvedRoutes = this.options.routes ?? [];
+		// TODO: config output
 		const output = path.resolve(root, "./dist/server");
 		return {
 			entry: resolvedEntry,
