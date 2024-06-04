@@ -17,6 +17,8 @@ import { HotProcessor, IHotProcessorOptions } from "./hot";
 
 const escapeLocalName = (str: string) => str.split(/[-<>:"/|?*.]/).join("_");
 
+type TModuleGetHandler = (file: string, options: TCompilerOptions<ECompilerType>) => string[];
+
 declare var global: {
 	self?: {
 		[key: string]: (name: string, modules: Record<string, unknown>) => void;
@@ -25,15 +27,14 @@ declare var global: {
 
 const SELF_HANDLER = (
 	file: string,
-	options: TCompilerOptions<ECompilerType>
+	options: TCompilerOptions<ECompilerType>,
 ): string[] => {
 	let res: string[] = [];
 	const hotUpdateGlobal = (_: string, modules: Record<string, unknown>) => {
 		res = Object.keys(modules);
 	};
 	const hotUpdateGlobalKey = escapeLocalName(
-		`${options.output?.hotUpdateGlobal || "webpackHotUpdate"}${
-			options.output?.uniqueName || ""
+		`${options.output?.hotUpdateGlobal || "webpackHotUpdate"}${options.output?.uniqueName || ""
 		}`
 	);
 	global["self"] ??= {};
@@ -46,18 +47,23 @@ const SELF_HANDLER = (
 	return res;
 };
 
-const GET_MODULE_HANDLER = {
+const NODE_HANDLER = (file: string): string[] => {
+	return Object.keys(require(file).modules) || [];
+};
+
+const GET_MODULE_HANDLER: Record<string, TModuleGetHandler> = {
 	web: SELF_HANDLER,
-	"async-node": (file: string): string[] => {
-		return Object.keys(require(file).modules) || [];
-	},
-	webworker: SELF_HANDLER
+	webworker: SELF_HANDLER,
+	"async-node": NODE_HANDLER,
+	node: NODE_HANDLER,
 };
 
 type TSupportTarget = keyof typeof GET_MODULE_HANDLER;
 
 export interface IHotSnapshotProcessorOptions<T extends ECompilerType>
-	extends IHotProcessorOptions<T> {}
+	extends IHotProcessorOptions<T> {
+	getModuleHandler?: TModuleGetHandler;
+}
 
 export class HotSnapshotProcessor<
 	T extends ECompilerType
@@ -147,7 +153,7 @@ export class HotSnapshotProcessor<
 	) {
 		const compiler = this.getCompiler(context);
 		const compilerOptions = compiler.getOptions();
-		const getModuleHandler =
+		const getModuleHandler = this._hotOptions.getModuleHandler ||
 			GET_MODULE_HANDLER[compilerOptions.target as TSupportTarget];
 		env.expect(typeof getModuleHandler).toBe("function");
 
@@ -177,9 +183,15 @@ export class HotSnapshotProcessor<
 		// replace [runtime] to [runtime of id] to prevent worker hash
 		const runtimes: Record<string, string> = {};
 		for (let [id, runtime] of Object.entries(this.entries)) {
-			for (let r of runtime) {
-				if (r !== id) {
-					runtimes[r] = `[runtime of ${id}]`;
+			if (typeof runtime === 'string') {
+				if (runtime !== id) {
+					runtimes[runtime] = `[runtime of ${id}]`;
+				}
+			} else if (Array.isArray(runtime)) {
+				for (let r of runtime) {
+					if (r !== id) {
+						runtimes[r] = `[runtime of ${id}]`;
+					}
 				}
 			}
 		}
@@ -274,22 +286,22 @@ ${fileList.join("\n")}
 
 ## Manifest
 ${hotUpdateManifest
-	.map(
-		i => `
+				.map(
+					i => `
 ### ${i.name}
 
 \`\`\`json
 ${i.content}
 \`\`\`
 `
-	)
-	.join("\n\n")}
+				)
+				.join("\n\n")}
 		
 ## Update
 
 ${hotUpdateFile
-	.map(
-		i => `
+				.map(
+					i => `
 ### ${i.name}
 
 #### Changed Modules
@@ -303,13 +315,12 @@ ${i.runtime.map(i => `- ${i}`).join("\n")}
 ${i.content}
 \`\`\`
 `
-	)
-	.join("\n\n")}
+				)
+				.join("\n\n")}
 
 
-${
-	runtime
-		? `
+${runtime
+				? `
 ## Runtime
 ### Status
 
@@ -317,9 +328,8 @@ ${
 ${runtime.statusPath.join(" => ")}
 \`\`\`
 
-${
-	runtime.javascript
-		? `
+${runtime.javascript
+					? `
 
 ### JavaScript
 
@@ -351,15 +361,15 @@ ${runtime.javascript.acceptedModules.map(i => `- ${i}`).join("\n")}
 Disposed Callback:
 ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 `
-		: ""
-}
+					: ""
+				}
 
 `
-		: ""
-}
+				: ""
+			}
 
 				`.trim();
 
-		expect(escapeEOL(content)).toMatchFileSnapshot(snapshotPath);
+		env.expect(escapeEOL(content)).toMatchFileSnapshot(snapshotPath);
 	}
 }
