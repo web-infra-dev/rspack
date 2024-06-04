@@ -57,6 +57,9 @@ export default class FakeDocument {
 		}
 		return style;
 	}
+	querySelectorAll(name) {
+		return [];
+	}
 }
 
 export class FakeElement {

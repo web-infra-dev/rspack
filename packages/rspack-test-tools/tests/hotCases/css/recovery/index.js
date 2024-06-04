@@ -1,4 +1,5 @@
-import "./index.css";
+import './change';
+import './no-change';
 
 it("css recovery", done => {
 	NEXT(
