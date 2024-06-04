@@ -1,18 +1,108 @@
 # 迁移 Webpack
 
-虽然 Rspack 尽可能地兼容了 webpack 的常用 API，但是不可避免地存在一些不同，或是相同的功能在 Rspack 中有更高性能的实现方式。
+本章节介绍如何将使用 webpack 的项目迁移到 Rspack。
 
-## 修改配置
+当前文档主要面向使用 webpack v5 的项目。因为 Rspack 的 API 和配置是对齐 webpack v5 实现的，从 webpack v5 迁移到 Rspack 会相对容易。
 
-可以参考[「Webpack 配置兼容性」](/guide/compatibility/config-diff)进行配置迁移。
+对于非 webpack v5 的项目，有一些其他迁移指南可以参考：
+
+- 对于使用 webpack v4 或更低版本 webpack 的项目，可以参考 [webpack - 从 v4 升级到 v5](https://webpack.docschina.org/migrate/5/) 来了解其中的差异。
+- 对于使用 create-react-app 或 CRACO 的项目，可以参考 [迁移 Create React App](/guide/migration/cra)。
+- 对于使用 Vue CLI 的项目，可以参考 [Rsbuild - 从 Vue CLI 迁移](https://rsbuild.dev/zh/guide/migration/vue-cli)。
+
+## 注意事项
+
+- Rspack 支持的 Node.js 版本为 >= 16，如果你还在使用旧版本的 Node.js，请先升级版本。
+- Rspack 尽可能地兼容了 webpack 的常用 API 和配置，但是不可避免地存在一些不同，你可以阅读 Rspack 的文档来了解每个 API 和配置的差异。
+- 一部分功能在 Rspack 中有性能更好的实现方式，如果你采用 Rspack 推荐的方式，会获得更显著的性能提升。
+
+## 安装依赖
+
+首先你需要把 webpack 相关的 npm 依赖替换为 Rspack 的依赖。
+
+import { PackageManagerTabs } from '@theme';
+
+- 移除 webpack 的依赖：
+
+<PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />
+
+- 安装 Rspack 的依赖：
+
+<PackageManagerTabs command="add @rspack/core @rspack/cli -D" />
+
+以下是一些常见 npm 包的映射关系：
+
+- `webpack` -> `@rspack/core`
+- `webpack-cli` -> `@rspack/cli`
+- `webpack-dev-server` -> `@rspack/dev-server`
+- `@pmmmwh/react-refresh-webpack-plugin` -> `@rspack/plugin-react-refresh`
+
+## 更新 npm scripts
+
+下一步，你需要把 package.json 中的 npm scripts 更新为 Rspack 的 CLI 命令。
+
+```diff title="package.json"
+{
+  "scripts": {
+-   "serve": "webpack serve -c webpack.config.js",
+-   "build": "webpack build -c webpack.config.js",
++   "serve": "rspack serve -c rspack.config.js",
++   "build": "rspack build -c rspack.config.js",
+  }
+}
+```
+
+## 配置文件
+
+请将 `webpack.config.js` 文件重命名为 `rspack.config.js`。
+
+Rspack 提供了与 webpack 相似的配置项，你可以参考 [配置 Rspack](/config/index) 了解 Rspack 支持的配置。
+
+## 内置插件
+
+Rspack 实现了大部分 webpack 内置插件，它们尽可能地保持了相同的命名和参数配置，并提供相同的功能。
+
+比如替换 [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin)，原有配置如下：
+
+```js title="webpack.config.js"
+const webpack = require('webpack');
+
+const isDev = process.env.NODE_ENV === 'development';
+
+module.exports = {
+  plugins: [isDev && new webpack.HotModuleReplacementPlugin()].filter(Boolean),
+};
+```
+
+在 Rspack 中可以替换为：
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+const isDev = process.env.NODE_ENV === 'development';
+
+module.exports = {
+  plugins: [isDev && new rspack.HotModuleReplacementPlugin()].filter(Boolean),
+};
+```
+
+你可以参考 [同步自 webpack 的内置插件](/plugins/webpack/index) 来了解 Rspack 支持哪些 webpack 内置插件。
+
+## 社区插件
+
+Rspack 支持大部分的 webpack 社区插件，同时也对一部分暂不支持的插件提供了替代方案。
+
+你可以参考 [Plugin 兼容](/guide/compatibility/plugin) 来了解 Rspack 对一些常见的社区插件的兼容状态。
 
 ## 处理 Loader
 
+Rspack 支持大部分的 webpack loaders。下面列出了几个迁移 loader 的例子，参考这些例子进行替换，你可以获得更显著的性能提升。
+
 ### 使用 builtin:swc-loader 替代 babel-loader
 
-Rspack 使用 builtin:swc-loader 对 TypeScript、JSX 以及最新的 JavaScript 语法进行转换，这意味着如果你的 babel-loader 只是为了支持 TypeScript、JSX 以及更新的 JavaScript 语法，那么完全可以使用 builtin:swc-loader 替代 babel-loader。
+Rspack 使用 [builtin:swc-loader](/guide/features/builtin-swc-loader) 对 TypeScript、JSX 以及最新的 JavaScript 语法进行转换，这意味着，如果你的 babel-loader 只是为了支持 TypeScript、JSX 以及更新的 JavaScript 语法，那么完全可以使用 builtin:swc-loader 替代 babel-loader。
 
-如果你的 babel-loader 是为了支持自定义的转换逻辑，那么这部分的 babel-loader 可以保留，但是我们不鼓励用户对大量的文件使用 babel-loader，因为这会导致严重的性能恶化。
+如果你的 babel-loader 是为了支持自定义的转换逻辑，那么这部分的 babel-loader 可以保留，但是我们不鼓励用户对大量的文件使用 babel-loader，因为这会导致严重的性能劣化。
 
 ```diff
 module.exports = {

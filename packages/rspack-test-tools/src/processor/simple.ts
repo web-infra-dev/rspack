@@ -8,9 +8,7 @@ import {
 	TCompilerStats
 } from "../type";
 
-export interface ISimpleProcessorOptions<
-	T extends ECompilerType = ECompilerType.Rspack
-> {
+export interface ISimpleProcessorOptions<T extends ECompilerType> {
 	options?: (context: ITestContext) => TCompilerOptions<T>;
 	compilerType: T;
 	name: string;
@@ -23,7 +21,7 @@ export interface ISimpleProcessorOptions<
 	) => Promise<void>;
 }
 
-export class SimpleTaskProcessor<T extends ECompilerType = ECompilerType.Rspack>
+export class SimpleTaskProcessor<T extends ECompilerType>
 	implements ITestProcessor
 {
 	constructor(protected _options: ISimpleProcessorOptions<T>) {}

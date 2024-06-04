@@ -2,36 +2,28 @@ import fs from "fs";
 import path from "path";
 
 import { parseResource } from "../helper/legacy/parseResource";
-import {
-	ECompilerType,
-	ITestContext,
-	TCompilerOptions,
-	TTestConfig
-} from "../type";
-import { MultiTaskProcessor } from "./multi";
+import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
+import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
-export interface IRspackConfigProcessorOptions<T extends ECompilerType.Rspack> {
-	name: string;
-	runable: boolean;
-}
+export interface IConfigProcessorOptions<T extends ECompilerType>
+	extends IMultiTaskProcessorOptions<T> {}
 
-export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspack> {
-	constructor(options: IRspackConfigProcessorOptions<ECompilerType.Rspack>) {
+export class ConfigProcessor<
+	T extends ECompilerType
+> extends MultiTaskProcessor<T> {
+	constructor(protected _configOptions: IConfigProcessorOptions<T>) {
 		super({
-			defaultOptions: RspackConfigProcessor.defaultOptions,
-			configFiles: ["rspack.config.js", "webpack.config.js"],
-			overrideOptions: RspackConfigProcessor.overrideOptions,
-			findBundle: RspackConfigProcessor.findBundle,
-			compilerType: ECompilerType.Rspack,
-			name: options.name,
-			runable: options.runable
+			defaultOptions: ConfigProcessor.defaultOptions<T>,
+			overrideOptions: ConfigProcessor.overrideOptions<T>,
+			findBundle: ConfigProcessor.findBundle<T>,
+			..._configOptions
 		});
 	}
 
-	static findBundle(
+	static findBundle<T extends ECompilerType>(
 		index: number,
 		context: ITestContext,
-		options: TCompilerOptions<ECompilerType.Rspack>
+		options: TCompilerOptions<T>
 	) {
 		const testConfig = context.getTestConfig();
 
@@ -48,10 +40,10 @@ export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspa
 		}
 	}
 
-	static defaultOptions(
+	static defaultOptions<T extends ECompilerType>(
 		index: number,
 		context: ITestContext
-	): TCompilerOptions<ECompilerType.Rspack> {
+	): TCompilerOptions<T> {
 		return {
 			context: context.getSource(),
 			mode: "production",
@@ -63,18 +55,13 @@ export class RspackConfigProcessor extends MultiTaskProcessor<ECompilerType.Rspa
 			},
 			optimization: {
 				minimize: false
-			},
-			experiments: {
-				rspackFuture: {
-					newTreeshaking: true
-				}
 			}
-		};
+		} as TCompilerOptions<T>;
 	}
-	static overrideOptions(
+	static overrideOptions<T extends ECompilerType>(
 		index: number,
 		context: ITestContext,
-		options: TCompilerOptions<ECompilerType.Rspack>
+		options: TCompilerOptions<T>
 	): void {
 		if (!options.entry) {
 			options.entry = "./index.js";

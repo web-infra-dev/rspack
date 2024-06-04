@@ -8,15 +8,21 @@ pub struct EntryDependency {
   id: DependencyId,
   request: String,
   context: Context,
+  is_global: bool,
 }
 
 impl EntryDependency {
-  pub fn new(request: String, context: Context) -> Self {
+  pub fn new(request: String, context: Context, is_global: bool) -> Self {
     Self {
       request,
       context,
       id: DependencyId::new(),
+      is_global,
     }
+  }
+
+  pub fn is_global(&self) -> bool {
+    self.is_global
   }
 }
 

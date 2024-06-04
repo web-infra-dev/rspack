@@ -7,16 +7,17 @@ use derivative::Derivative;
 use napi::bindgen_prelude::Either3;
 use napi::Either;
 use napi_derive::napi;
+use rspack_binding_values::RawRegex;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions, BoxLoader,
   CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
-  CssModuleParserOptions, CssParserOptions, DescriptionData, DynamicImportMode, FuncUseCtx,
-  GeneratorOptions, GeneratorOptionsByModuleType, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
-  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions,
-  ParserOptionsByModuleType,
+  CssModuleParserOptions, CssParserOptions, DescriptionData, DynamicImportMode, ExportPresenceMode,
+  FuncUseCtx, GeneratorOptions, GeneratorOptionsByModuleType, JavascriptParserOptions,
+  JavascriptParserOrder, JavascriptParserUrl, ModuleNoParseRule, ModuleNoParseRules,
+  ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
+  ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
 };
 use rspack_error::error;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
@@ -90,19 +91,12 @@ impl Debug for RawModuleRuleUses {
   }
 }
 
-#[derive(Debug)]
-#[napi(object)]
-pub struct RawRegexMatcher {
-  pub source: String,
-  pub flags: String,
-}
-
 #[napi(object, object_to_js = false)]
 pub struct RawRuleSetCondition {
   #[napi(ts_type = r#""string" | "regexp" | "logical" | "array" | "function""#)]
   pub r#type: String,
   pub string_matcher: Option<String>,
-  pub regexp_matcher: Option<RawRegexMatcher>,
+  pub regexp_matcher: Option<RawRegex>,
   pub logical_matcher: Option<Vec<RawRuleSetLogicalConditions>>,
   pub array_matcher: Option<Vec<RawRuleSetCondition>>,
   #[napi(ts_type = r#"(value: string) => boolean"#)]
@@ -324,6 +318,10 @@ pub struct RawJavascriptParserOptions {
   pub url: String,
   pub expr_context_critical: bool,
   pub wrapped_context_critical: bool,
+  pub exports_presence: Option<String>,
+  pub import_exports_presence: Option<String>,
+  pub reexport_exports_presence: Option<String>,
+  pub strict_export_presence: bool,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
@@ -335,6 +333,16 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       url: JavascriptParserUrl::from(value.url.as_str()),
       expr_context_critical: value.expr_context_critical,
       wrapped_context_critical: value.wrapped_context_critical,
+      exports_presence: value
+        .exports_presence
+        .map(|e| ExportPresenceMode::from(e.as_str())),
+      import_exports_presence: value
+        .import_exports_presence
+        .map(|e| ExportPresenceMode::from(e.as_str())),
+      reexport_exports_presence: value
+        .reexport_exports_presence
+        .map(|e| ExportPresenceMode::from(e.as_str())),
+      strict_export_presence: value.strict_export_presence,
     }
   }
 }

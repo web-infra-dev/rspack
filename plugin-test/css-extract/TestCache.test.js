@@ -33,9 +33,6 @@ describe("TestCache", () => {
 			},
 			experiments: {
 				css: false,
-				rspackFuture: {
-					newTreeshaking: true
-				}
 			}
 		});
 
@@ -80,7 +77,7 @@ describe("TestCache", () => {
 			output: {
 				path: outputPath
 			},
-			experiments: { css: false, rspackFuture: { newTreeshaking: true } }
+			experiments: { css: false }
 		});
 
 		await new Promise((resolve, reject) => {
@@ -132,7 +129,7 @@ describe("TestCache", () => {
 			output: {
 				path: outputPath
 			},
-			experiments: { css: false, rspackFuture: { newTreeshaking: true } }
+			experiments: { css: false }
 		});
 
 		await new Promise((resolve, reject) => {
@@ -178,9 +175,6 @@ describe("TestCache", () => {
 			},
 			experiments: {
 				css: false,
-				rspackFuture: {
-					newTreeshaking: true
-				}
 			}
 		});
 
@@ -244,7 +238,6 @@ describe("TestCache", () => {
 			},
 			experiments: {
 				css: false,
-				rspackFuture: { newTreeshaking: true }
 			}
 		});
 

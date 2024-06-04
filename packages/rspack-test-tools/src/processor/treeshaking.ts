@@ -1,31 +1,25 @@
-import { rspack } from "@rspack/core";
-
 import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
-import { RspackBuiltinProcessor } from "./builtin";
-import { SnapshotProcessor } from "./snapshot";
+import { BuiltinProcessor } from "./builtin";
+import { ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
-export interface IRspackTreeShakingProcessorOptions {
-	name: string;
-	snapshot: string;
-}
+export interface ITreeShakingProcessorOptions<T extends ECompilerType>
+	extends Omit<ISnapshotProcessorOptions<T>, "runable"> {}
 
-export class RspackTreeShakingProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
-	constructor(
-		protected _treeShakingOptions: IRspackTreeShakingProcessorOptions
-	) {
+export class TreeShakingProcessor<
+	T extends ECompilerType
+> extends SnapshotProcessor<T> {
+	constructor(protected _treeShakingOptions: ITreeShakingProcessorOptions<T>) {
 		super({
-			snapshot: _treeShakingOptions.snapshot,
-			compilerType: ECompilerType.Rspack,
-			defaultOptions: RspackBuiltinProcessor.defaultOptions,
-			overrideOptions: RspackTreeShakingProcessor.overrideOptions,
-			name: _treeShakingOptions.name,
-			runable: false
+			defaultOptions: BuiltinProcessor.defaultOptions,
+			overrideOptions: TreeShakingProcessor.overrideOptions<T>,
+			runable: false,
+			..._treeShakingOptions
 		});
 	}
 
-	static overrideOptions(
+	static overrideOptions<T extends ECompilerType>(
 		context: ITestContext,
-		options: TCompilerOptions<ECompilerType.Rspack>
+		options: TCompilerOptions<T>
 	) {
 		options.target = options.target || ["web", "es2022"];
 		options.optimization ??= {};

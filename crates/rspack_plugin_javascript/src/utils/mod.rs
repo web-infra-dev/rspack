@@ -10,8 +10,9 @@ use swc_core::common::{SourceFile, Span, Spanned};
 
 pub use self::get_prop_from_obj::*;
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct EcmaError(String, Span);
+#[derive(Debug)]
 pub struct EcmaErrorsDeduped(Vec<EcmaError>);
 
 impl IntoIterator for EcmaErrorsDeduped {
@@ -53,7 +54,7 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
   module_type: &ModuleType,
 ) -> TraceableError {
   let (file_type, diagnostic_kind) = match module_type {
-    ModuleType::Js | ModuleType::JsDynamic | ModuleType::JsEsm => {
+    ModuleType::JsAuto | ModuleType::JsDynamic | ModuleType::JsEsm => {
       ("JavaScript", DiagnosticKind::JavaScript)
     }
     _ => unreachable!("Only JavaScript module type is supported"),

@@ -73,11 +73,11 @@ export class FakeDocumentWebRunner<
 			}
 		};
 		globalContext["importScripts"] = (url: string) => {
-			expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
+			this._options.env.expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 			this.requirers.get("entry")!(this._options.dist, urlToRelativePath(url));
 		};
 		globalContext["document"] = this.document;
-		globalContext["Worker"] = createFakeWorker({
+		globalContext["Worker"] = createFakeWorker(this._options.env, {
 			outputDirectory: this._options.dist
 		});
 		globalContext["EventSource"] = EventSource;
@@ -98,7 +98,7 @@ export class FakeDocumentWebRunner<
 	) {
 		const subModuleScope = super.createModuleScope(requireFn, m, file);
 		subModuleScope["importScripts"] = (url: string) => {
-			expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
+			this._options.env.expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 			this.getRequire()(
 				this._options.dist,
 				`.${url.slice("https://test.cases/path".length)}`
@@ -118,7 +118,7 @@ export class FakeDocumentWebRunner<
 		moduleScope["Worker"] = this.globalContext!["Worker"];
 		moduleScope["EventSource"] = this.globalContext!["EventSource"];
 		moduleScope["URL"] = URL;
-		moduleScope["Worker"] = createFakeWorker({
+		moduleScope["Worker"] = createFakeWorker(this._options.env, {
 			outputDirectory: this._options.dist
 		});
 		moduleScope["__dirname"] = this._options.dist;

@@ -306,8 +306,8 @@ const absolutify = makeCacheableWithContext(_absolutify);
 exports.absolutify = absolutify;
 
 const PATH_QUERY_FRAGMENT_REGEXP =
-	/^((?:\0.|[^?#\0])*)(\?(?:\0.|[^#\0])*)?(#.*)?$/;
-const PATH_QUERY_REGEXP = /^((?:\0.|[^?\0])*)(\?.*)?$/;
+	/^((?:\u200b.|[^?#\u200b])*)(\?(?:\u200b.|[^#\u200b])*)?(#.*)?$/;
+const PATH_QUERY_REGEXP = /^((?:\u200b.|[^?\u200b])*)(\?.*)?$/;
 
 /** @typedef {{ resource: string, path: string, query: string, fragment: string }} ParsedResource */
 /** @typedef {{ resource: string, path: string, query: string }} ParsedResourceWithoutFragment */
@@ -320,8 +320,8 @@ const _parseResource = str => {
 	const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
 	return {
 		resource: str,
-		path: match[1].replace(/\0(.)/g, "$1"),
-		query: match[2] ? match[2].replace(/\0(.)/g, "$1") : "",
+		path: match[1].replace(/\u200b(.)/g, "$1"),
+		query: match[2] ? match[2].replace(/\u200b(.)/g, "$1") : "",
 		fragment: match[3] || ""
 	};
 };
@@ -336,8 +336,8 @@ const _parseResourceWithoutFragment = str => {
 	const match = PATH_QUERY_REGEXP.exec(str);
 	return {
 		resource: str,
-		path: match[1].replace(/\0(.)/g, "$1"),
-		query: match[2] ? match[2].replace(/\0(.)/g, "$1") : ""
+		path: match[1].replace(/\u200b(.)/g, "$1"),
+		query: match[2] ? match[2].replace(/\u200b(.)/g, "$1") : ""
 	};
 };
 exports.parseResourceWithoutFragment = makeCacheable(

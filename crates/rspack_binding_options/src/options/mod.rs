@@ -1,7 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{
   CacheOptions, CompilerOptions, Context, Experiments, IncrementalRebuild,
-  IncrementalRebuildMakeState, ModuleOptions, OutputOptions, Target, TreeShaking,
+  IncrementalRebuildMakeState, ModuleOptions, OutputOptions, Target,
 };
 
 mod raw_builtins;
@@ -58,7 +58,6 @@ pub struct RawOptions {
   pub node: Option<RawNodeOption>,
   pub profile: bool,
   pub bail: bool,
-  pub builtins: RawBuiltins,
 }
 
 impl TryFrom<RawOptions> for CompilerOptions {
@@ -90,11 +89,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let snapshot = value.snapshot.into();
     let node = value.node.map(|n| n.into());
 
-    let mut builtins = value.builtins.apply()?;
-    if experiments.rspack_future.new_treeshaking {
-      builtins.tree_shaking = TreeShaking::False;
-    }
-
     Ok(CompilerOptions {
       context,
       mode,
@@ -112,7 +106,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
       dev_server: Default::default(),
       profile: value.profile,
       bail: value.bail,
-      builtins,
+      builtins: Default::default(),
     })
   }
 }

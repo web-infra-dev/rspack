@@ -375,7 +375,9 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(
 })();
 /************************************************************************/
 var __webpack_exports__ = {};
-/* eslint-env browser */ // eslint-disable-next-line
+/* eslint-env browser */
+
+// eslint-disable-next-line
 __webpack_require__.e(/* import() */ "src_inject_css").then(__webpack_require__.bind(__webpack_require__, "./src/inject.css?901b"));
 
 })()

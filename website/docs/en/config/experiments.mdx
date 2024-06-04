@@ -62,6 +62,84 @@ Enable support for [top level await](https://github.com/tc39/proposal-top-level-
 
 Enabled by default and can be turned off with this configuration.
 
+## experiments.lazyCompilation
+
+<ApiMeta addedVersion="0.7.0" />
+
+- **Type:**
+
+```ts
+type LazyCompilationOptions =
+  | boolean
+  | {
+      /**
+       * Enable lazy compilation for entries.
+       */
+      entries?: boolean;
+      /**
+       * Enable lazy compilation for dynamic imports.
+       */
+      imports?: boolean;
+      /**
+       * Specify which imported modules should be lazily compiled.
+       */
+      test?: RegExp | ((m: Module) => boolean);
+    };
+```
+
+- **Default:** `false`
+
+Enable lazy compilation, which can greatly improve the dev startup performance of multi-page applications (MPA) or large single-page applications (SPA). For example, if you have twenty entry points, only the accessed entry points will be built. Or if there are many `import()` statements in the project, each module pointed to by `import()` will only be built when it is actually accessed.
+
+If set to true, lazy compilation will be applied by default to both entry modules and modules pointed to by `import()`. You can decide whether it applies only to entries or only to `import()` through a configuration object. The `entries` option determines whether it applies to entries, while the `import()` option determines whether it applies to `import()`.
+
+```js title="rspack.config.js"
+const isDev = process.env.NODE_ENV === 'development';
+
+module.exports = {
+  experiments: {
+    // only enabled in dev mode
+    lazyCompilation: isDev,
+  },
+};
+```
+
+In addition, you can also configure a `test` parameter for more fine-grained control over which modules are lazily compiled. The `test` parameter can be a regular expression that matches only those modules that should be lazily compiled. It can also be a function where the input is of type 'Module' and returns a boolean value indicating whether it meets the criteria for lazy compilation logic.
+
+:::tip
+The current lazy compilation aligns with the webpack implementation, **and is still in the experimental stage**. In some scenarios, lazy compilation might not work as expected, or the performance improvement may be insignificant.
+:::
+
+### Exclude HMR client
+
+If you do not use Rspack's own dev server and instead use your own server as the dev server, you generally need to add another client modules in the entry configuration to enable capabilities such as HMR. It is best to exclude these client module from lazy compilation by configuring `test`.
+
+If not excluded and lazy compilation of entry is enabled, this client will not be compiled when accessing the page for the first time, so an additional refresh is needed to make it take effect.
+
+For example:
+
+```ts
+const rspack = require('@rspack/core');
+
+const options = {
+  experiments: {
+    lazyCompilation: {
+      test(module) {
+        const isMyClient = module.nameForCondition().endsWith('dev-client.js');
+        // make sure that dev-client.js won't be lazy compiled
+        return !isMyClient;
+      },
+    },
+  },
+};
+const compiler = rspack(options);
+
+new compiler.webpack.EntryPlugin(compiler.context, 'dev-client.js', {
+  // name: undefined means this is global entry
+  name: undefined,
+}).apply(compiler);
+```
+
 ## experiments.rspackFuture
 
 <ApiMeta addedVersion="0.3.2" />
@@ -293,11 +371,16 @@ module.exports = {
 
 ### experiments.rspackFuture.newTreeshaking
 
-<ApiMeta addedVersion="0.4.2" />
+<ApiMeta addedVersion="0.4.2" removedVersion="0.7.0" />
 
 - **Type:** `boolean`
 - **Introduced in Version:** v0.4.2
 - **Enabled by Default in Version:** v0.6.0
+- **Removed in Version:** v0.7.0
+
+:::warning
+newTreeshaking has been enabled and cannot go back to the deprecated tree shaking algorithm since version 0.7.0.
+:::
 
 This feature enables the new treeshaking implementation the same as webpack, which would generate more efficient and smaller code
 

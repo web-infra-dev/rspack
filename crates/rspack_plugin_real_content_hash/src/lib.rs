@@ -2,7 +2,7 @@
 
 use std::{
   borrow::Cow,
-  hash::{BuildHasherDefault, Hash},
+  hash::{BuildHasherDefault, Hasher},
 };
 
 use derivative::Derivative;
@@ -121,7 +121,7 @@ fn inner_impl(compilation: &mut Compilation) -> Result<()> {
         .collect();
       let mut hasher = RspackHash::from(&compilation.options.output);
       for asset_content in asset_contents {
-        asset_content.hash(&mut hasher);
+        hasher.write(&asset_content.buffer());
       }
       let new_hash = hasher.digest(&compilation.options.output.hash_digest);
       let new_hash = new_hash.rendered(old_hash.len()).to_string();

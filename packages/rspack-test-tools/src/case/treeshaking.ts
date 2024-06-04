@@ -1,5 +1,6 @@
-import { RspackTreeShakingProcessor } from "../processor/treeshaking";
+import { TreeShakingProcessor } from "../processor/treeshaking";
 import { BasicCaseCreator } from "../test/creator";
+import { ECompilerType } from "../type";
 
 const creator = new BasicCaseCreator({
 	clean: true,
@@ -8,9 +9,10 @@ const creator = new BasicCaseCreator({
 		return `${name} with newTreeshaking should match snapshot`;
 	},
 	steps: ({ name }) => [
-		new RspackTreeShakingProcessor({
+		new TreeShakingProcessor({
 			name,
-			snapshot: "treeshaking.snap.txt"
+			snapshot: "treeshaking.snap.txt",
+			compilerType: ECompilerType.Rspack
 		})
 	]
 });

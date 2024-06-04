@@ -235,7 +235,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .call(compilation, &ukey, &mut manifest, &mut diagnostics)
         .await?;
 
-      compilation.push_batch_diagnostic(diagnostics);
+      compilation.extend_diagnostics(diagnostics);
 
       for entry in manifest {
         let filename = if entry.has_filename() {
@@ -336,7 +336,7 @@ fn normal_module_loader(&self, context: &mut LoaderContext<CompilerContext>) -> 
 }
 
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for HotModuleReplacementPlugin)]
-fn additional_tree_runtime_requirements(
+async fn additional_tree_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,

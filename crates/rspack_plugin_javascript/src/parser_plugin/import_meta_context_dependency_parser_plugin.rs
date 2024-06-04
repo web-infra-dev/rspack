@@ -12,7 +12,10 @@ use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop};
 use crate::visitors::{expr_name, JavascriptParser};
 
-fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaContextDependency> {
+fn create_import_meta_context_dependency(
+  node: &CallExpr,
+  optional: bool,
+) -> Option<ImportMetaContextDependency> {
   assert!(node.callee.is_expr());
   let dyn_imported = node.args.first()?;
   if dyn_imported.spread.is_some() {
@@ -90,6 +93,7 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
     node.span.real_hi(),
     context_options,
     Some(node.span.into()),
+    optional,
   ))
 }
 
@@ -127,7 +131,7 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
       || expr.args.len() > 2
     {
       None
-    } else if let Some(dep) = create_import_meta_context_dependency(expr) {
+    } else if let Some(dep) = create_import_meta_context_dependency(expr, parser.in_try) {
       parser.dependencies.push(Box::new(dep));
       Some(true)
     } else {

@@ -17,6 +17,12 @@ module.exports = {
 		-     "node": false,
 		+     "node": true,
 		@@ ... @@
+		-       "document": true,
+		+       "document": false,
+		@@ ... @@
+		-     "target": "web",
+		+     "target": "electron-preload",
+		@@ ... @@
 		-         "exportsOnly": false,
 		+         "exportsOnly": true,
 		@@ ... @@

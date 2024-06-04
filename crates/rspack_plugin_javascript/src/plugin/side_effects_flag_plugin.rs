@@ -17,7 +17,7 @@ use rustc_hash::FxHashSet as HashSet;
 use sugar_path::SugarPath;
 // use rspack_core::Plugin;
 // use rspack_error::Result;
-use swc_core::common::{comments, Spanned, SyntaxContext, GLOBALS};
+use swc_core::common::{comments, Span, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
@@ -284,17 +284,25 @@ fn is_pure_call_expr(
   call_expr: &CallExpr,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&SwcComments>,
+  paren_spans: &mut Vec<Span>,
 ) -> bool {
   let callee = &call_expr.callee;
   let pure_flag = comments
     .and_then(|comments| {
-      // dbg!(&comments.leading);
-      let comment_list = comments.leading.get(&callee.span_lo())?;
-      let last_comment = comment_list.last()?;
-      match last_comment.kind {
-        comments::CommentKind::Line => None,
-        comments::CommentKind::Block => Some(PURE_COMMENTS.is_match(&last_comment.text)),
+      paren_spans.push(callee.span());
+      // dbg!(&comments.leading, &paren_spans);
+      while let Some(span) = paren_spans.pop() {
+        if let Some(comment_list) = comments.leading.get(&span.lo)
+          && let Some(last_comment) = comment_list.last()
+          && last_comment.kind == comments::CommentKind::Block
+        {
+          // iterate through the parens and check if it contains pure comment
+          if PURE_COMMENTS.is_match(&last_comment.text) {
+            return Some(true);
+          }
+        }
       }
+      None
     })
     .unwrap_or(false);
   if !pure_flag {
@@ -319,21 +327,31 @@ pub fn is_pure_expression<'a>(
   unresolved_ctxt: SyntaxContext,
   comments: Option<&'a SwcComments>,
 ) -> bool {
-  match expr {
-    Expr::Call(call) => is_pure_call_expr(call, unresolved_ctxt, comments),
-    Expr::Paren(par) => {
-      let mut cur = par.expr.as_ref();
-      while let Expr::Paren(paren) = cur {
-        cur = paren.expr.as_ref();
-      }
+  pub fn _is_pure_expression<'a>(
+    expr: &'a Expr,
+    unresolved_ctxt: SyntaxContext,
+    comments: Option<&'a SwcComments>,
+    paren_spans: &mut Vec<Span>,
+  ) -> bool {
+    match expr {
+      Expr::Call(call) => is_pure_call_expr(call, unresolved_ctxt, comments, paren_spans),
+      Expr::Paren(par) => {
+        paren_spans.push(par.span());
+        let mut cur = par.expr.as_ref();
+        while let Expr::Paren(paren) = cur {
+          paren_spans.push(paren.span());
+          cur = paren.expr.as_ref();
+        }
 
-      is_pure_expression(cur, unresolved_ctxt, comments)
+        _is_pure_expression(cur, unresolved_ctxt, comments, paren_spans)
+      }
+      _ => !expr.may_have_side_effects(&ExprCtx {
+        unresolved_ctxt,
+        is_unresolved_ref_safe: true,
+      }),
     }
-    _ => !expr.may_have_side_effects(&ExprCtx {
-      unresolved_ctxt,
-      is_unresolved_ref_safe: true,
-    }),
   }
+  _is_pure_expression(expr, unresolved_ctxt, comments, &mut vec![])
 }
 
 pub fn is_pure_class_member<'a>(
@@ -525,7 +543,6 @@ async fn nmf_module(
   if let Some(has_side_effects) = create_data.side_effects {
     module.set_factory_meta(FactoryMeta {
       side_effect_free: Some(!has_side_effects),
-      side_effect_free_old: None,
     });
     return Ok(());
   }
@@ -542,7 +559,6 @@ async fn nmf_module(
   let has_side_effects = get_side_effects_from_package_json(side_effects, relative_path);
   module.set_factory_meta(FactoryMeta {
     side_effect_free: Some(!has_side_effects),
-    side_effect_free_old: None,
   });
   Ok(())
 }

@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 487
+- Update: main.LAST_HASH.hot-update.js, size: 489
 
 ## Manifest
 
@@ -34,9 +34,11 @@
 self["webpackHotUpdate"]('main', {
 "./index.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
 __webpack_require__.r(module.exports = {
-  "btn-info_is-disabled": "__index_module_css__btn-info_is-disabled",
-  "btnInfoIsDisabled": "__index_module_css__btn-info_is-disabled",
+  "btn-info_is-disabled": "./index.module.css__btn-info_is-disabled",
+  "btnInfoIsDisabled": "./index.module.css__btn-info_is-disabled",
 });
+
+
 }),
 
 },function(__webpack_require__) {

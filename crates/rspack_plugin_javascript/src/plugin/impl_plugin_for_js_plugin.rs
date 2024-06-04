@@ -73,17 +73,17 @@ async fn compilation(
     params.context_module_factory.clone(),
   );
   compilation.set_dependency_factory(
-    DependencyType::ContextElement,
+    DependencyType::ContextElement(rspack_core::ContextTypePrefix::Import),
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::ContextElement(rspack_core::ContextTypePrefix::Normal),
     params.normal_module_factory.clone(),
   );
   // ImportMetaContextPlugin
   compilation.set_dependency_factory(
     DependencyType::ImportMetaContext,
     params.context_module_factory.clone(),
-  );
-  compilation.set_dependency_factory(
-    DependencyType::ContextElement,
-    params.normal_module_factory.clone(),
   );
   // ImportPlugin
   compilation.set_dependency_factory(
@@ -120,7 +120,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for JsPlugin)]
-fn additional_tree_runtime_requirements(
+async fn additional_tree_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
@@ -307,7 +307,7 @@ impl Plugin for JsPlugin {
       .tap(render_manifest::new(self));
 
     ctx.context.register_parser_and_generator_builder(
-      ModuleType::Js,
+      ModuleType::JsAuto,
       Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
     );
     ctx.context.register_parser_and_generator_builder(

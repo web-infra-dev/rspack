@@ -1,15 +1,15 @@
 import path from "path";
 
 import {
-	DefaultsConfigTaskProcessor,
+	DefaultsConfigProcessor,
 	IDefaultsConfigProcessorOptions
 } from "../processor";
 import { TestContext } from "../test/context";
-import { ITestEnv, ITestProcessor } from "../type";
+import { ECompilerType, ITestProcessor } from "../type";
 
 export type TDefaultsCaseConfig = Omit<
-	IDefaultsConfigProcessorOptions,
-	"name"
+	IDefaultsConfigProcessorOptions<ECompilerType.Rspack>,
+	"name" | "compilerType"
 > & {
 	description: string;
 };
@@ -29,7 +29,10 @@ async function run(name: string, processor: ITestProcessor) {
 	} catch (e: unknown) {
 		context.emitError(name, e as Error);
 	} finally {
-		await processor.check?.(null as unknown as ITestEnv, context);
+		await processor.check?.(
+			{ expect, it, beforeEach, afterEach, jest },
+			context
+		);
 		await processor.after?.(context);
 	}
 }
@@ -39,8 +42,9 @@ export function createDefaultsCase(name: string, src: string) {
 	it(`should generate the correct defaults from ${caseConfig.description}`, async () => {
 		await run(
 			name,
-			new DefaultsConfigTaskProcessor({
+			new DefaultsConfigProcessor({
 				name,
+				compilerType: ECompilerType.Rspack,
 				...caseConfig
 			})
 		);

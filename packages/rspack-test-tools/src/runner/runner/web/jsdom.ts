@@ -103,7 +103,7 @@ export class JSDOMWebRunner<
 	protected createBaseModuleScope() {
 		const moduleScope = super.createBaseModuleScope();
 		moduleScope["EventSource"] = EventSource;
-		moduleScope["Worker"] = createFakeWorker({
+		moduleScope["Worker"] = createFakeWorker(this._options.env, {
 			outputDirectory: this._options.dist
 		});
 		const urlToPath = (url: string) => {
@@ -134,7 +134,7 @@ export class JSDOMWebRunner<
 		};
 		moduleScope["URL"] = URL;
 		moduleScope["importScripts"] = (url: string) => {
-			expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
+			this._options.env.expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 			this.requirers.get("entry")!(this._options.dist, urlToRelativePath(url));
 		};
 		moduleScope["STATS"] = moduleScope.__STATS__;

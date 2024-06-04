@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::fmt::{Debug, Display};
 
-use crate::ErrorSpan;
+use crate::{ContextTypePrefix, ErrorSpan};
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
@@ -52,11 +52,12 @@ pub enum DependencyType {
   CssImport,
   // css modules compose
   CssCompose,
-  /// css module export
-  /// FIXME: remove after we align css module with webpack
-  CssModuleExport,
+  // css :export
+  CssExport,
+  // css modules local ident
+  CssLocalIdent,
   // context element
-  ContextElement,
+  ContextElement(ContextTypePrefix),
   // import context
   ImportContext,
   // import.meta.webpackContext
@@ -93,6 +94,7 @@ pub enum DependencyType {
   /// Webpack is included
   WebpackIsIncluded,
   LoaderImport,
+  LazyImport,
   Custom(Box<str>), // TODO it will increase large layout size
 }
 
@@ -123,8 +125,12 @@ impl DependencyType {
       DependencyType::CssUrl => Cow::Borrowed("css url"),
       DependencyType::CssImport => Cow::Borrowed("css import"),
       DependencyType::CssCompose => Cow::Borrowed("css compose"),
-      DependencyType::CssModuleExport => Cow::Borrowed("css export"),
-      DependencyType::ContextElement => Cow::Borrowed("context element"),
+      DependencyType::CssExport => Cow::Borrowed("css export"),
+      DependencyType::CssLocalIdent => Cow::Borrowed("css local ident"),
+      DependencyType::ContextElement(type_prefix) => match type_prefix {
+        ContextTypePrefix::Import => Cow::Borrowed("import() context element"),
+        ContextTypePrefix::Normal => Cow::Borrowed("context element"),
+      },
       // TODO: mode
       DependencyType::ImportContext => Cow::Borrowed("import context"),
       DependencyType::DynamicImportEager => Cow::Borrowed("import() eager"),
@@ -149,6 +155,7 @@ impl DependencyType {
       DependencyType::ProvideModuleForShared => Cow::Borrowed("provide module for shared"),
       DependencyType::ConsumeSharedFallback => Cow::Borrowed("consume shared fallback"),
       DependencyType::WebpackIsIncluded => Cow::Borrowed("__webpack_is_included__"),
+      DependencyType::LazyImport => Cow::Borrowed("lazy import()"),
     }
   }
 }

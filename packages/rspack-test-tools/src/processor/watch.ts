@@ -7,11 +7,9 @@ import {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
-	ITestRunner,
-	TCompilerOptions,
-	TTestConfig
+	TCompilerOptions
 } from "../type";
-import { MultiTaskProcessor } from "./multi";
+import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 // This file is used to port step number to rspack.config.js/webpack.config.js
 const currentWatchStepModulePath = path.resolve(
@@ -19,31 +17,28 @@ const currentWatchStepModulePath = path.resolve(
 	"../helper/util/currentWatchStep"
 );
 
-type TRspackExperiments = TCompilerOptions<ECompilerType.Rspack>["experiments"];
-type TRspackOptimization =
-	TCompilerOptions<ECompilerType.Rspack>["optimization"];
+type TRspackExperiments = TCompilerOptions<ECompilerType>["experiments"];
+type TRspackOptimization = TCompilerOptions<ECompilerType>["optimization"];
 
-export interface IRspackWatchProcessorOptions {
-	name: string;
+export interface IWatchProcessorOptions<T extends ECompilerType>
+	extends IMultiTaskProcessorOptions<T> {
 	stepName: string;
 	tempDir: string;
 	experiments?: TRspackExperiments;
 	optimization?: TRspackOptimization;
-	runable: boolean;
 }
 
-export class RspackWatchProcessor extends MultiTaskProcessor<ECompilerType.Rspack> {
+export class WatchProcessor<
+	T extends ECompilerType
+> extends MultiTaskProcessor<T> {
 	protected currentTriggerFilename: string | null = null;
 	protected lastHash: string | null = null;
 
-	constructor(protected _watchOptions: IRspackWatchProcessorOptions) {
+	constructor(protected _watchOptions: IWatchProcessorOptions<T>) {
 		super({
-			overrideOptions: RspackWatchProcessor.overrideOptions(_watchOptions),
-			compilerType: ECompilerType.Rspack,
+			overrideOptions: WatchProcessor.overrideOptions<T>(_watchOptions),
 			findBundle: () => "bundle.js",
-			configFiles: ["rspack.config.js", "webpack.config.js"],
-			name: _watchOptions.name,
-			runable: _watchOptions.runable
+			..._watchOptions
 		});
 	}
 
@@ -97,16 +92,16 @@ export class RspackWatchProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 		);
 	}
 
-	static overrideOptions({
+	static overrideOptions<T extends ECompilerType>({
 		tempDir,
 		name,
 		experiments,
 		optimization
-	}: IRspackWatchProcessorOptions) {
+	}: IWatchProcessorOptions<T>) {
 		return (
 			index: number,
 			context: ITestContext,
-			options: TCompilerOptions<ECompilerType.Rspack>
+			options: TCompilerOptions<ECompilerType>
 		): void => {
 			if (!options.mode) options.mode = "development";
 			if (!options.context) options.context = tempDir;
@@ -144,15 +139,13 @@ export class RspackWatchProcessor extends MultiTaskProcessor<ECompilerType.Rspac
 	}
 }
 
-export interface IRspackWatchStepProcessorOptions {
-	name: string;
-	stepName: string;
-	tempDir: string;
-	runable: boolean;
-}
+export interface IWatchStepProcessorOptions<T extends ECompilerType>
+	extends Omit<IWatchProcessorOptions<T>, "experiments" | "optimization"> {}
 
-export class RspackWatchStepProcessor extends RspackWatchProcessor {
-	constructor(protected _watchOptions: IRspackWatchStepProcessorOptions) {
+export class WatchStepProcessor<
+	T extends ECompilerType
+> extends WatchProcessor<T> {
+	constructor(protected _watchOptions: IWatchStepProcessorOptions<T>) {
 		super(_watchOptions);
 	}
 

@@ -3,12 +3,18 @@
 var __webpack_modules__ = ({
 "./a.js": (function (module) {
 module.exports = "a";
+
+
 }),
 "./c.js": (function (module) {
 module.exports = "c";
+
+
 }),
 "fs": (function (module) {
-module.exports = require('fs')}),
+module.exports = require('fs')
+
+}),
 
 });
 /************************************************************************/
@@ -80,18 +86,20 @@ var __webpack_exports__ = {};
 /* harmony import */var fs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("fs");
 /* harmony import */var fs__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(fs__WEBPACK_IMPORTED_MODULE_2__);
 
+ // b.js will be transform to c.js
 
-// b.js will be transform to c.js
 
 
-it("should remove duplicate request modules generate by after resolve hook", ()=>{
-    expect((_a__WEBPACK_IMPORTED_MODULE_0___default())).toBe("a");
-    expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("c");
-    expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("c");
-    const ext = ".js";
-    expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).not.toContain("./b" + ext);
-    expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).toContain("./c" + ext);
-    expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8").split("./c" + ext).length - 1).toBe(2);
+it("should remove duplicate request modules generate by after resolve hook", () => {
+	expect((_a__WEBPACK_IMPORTED_MODULE_0___default())).toBe("a");
+	expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("c");
+	expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("c");
+	const ext = ".js";
+	expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).not.toContain("./b" + ext);
+	expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).toContain("./c" + ext);
+	expect(
+		fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8").split("./c" + ext).length - 1
+	).toBe(2);
 });
 
 })();

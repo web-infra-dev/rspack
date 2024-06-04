@@ -16,6 +16,7 @@ pub struct ImportContextDependency {
   options: ContextOptions,
   span: Option<ErrorSpan>,
   resource_identifier: String,
+  optional: bool,
 }
 
 impl ImportContextDependency {
@@ -25,6 +26,7 @@ impl ImportContextDependency {
     args_end: u32,
     options: ContextOptions,
     span: Option<ErrorSpan>,
+    optional: bool,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
@@ -35,6 +37,7 @@ impl ImportContextDependency {
       span,
       id: DependencyId::new(),
       resource_identifier,
+      optional,
     }
   }
 }
@@ -80,6 +83,14 @@ impl ContextDependency for ImportContextDependency {
 
   fn set_request(&mut self, request: String) {
     self.options.request = request;
+  }
+
+  fn get_optional(&self) -> bool {
+    self.optional
+  }
+
+  fn type_prefix(&self) -> rspack_core::ContextTypePrefix {
+    rspack_core::ContextTypePrefix::Import
   }
 }
 

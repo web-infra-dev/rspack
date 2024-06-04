@@ -10,10 +10,11 @@ import WebpackLicense from '@components/webpack-license';
 
 ## optimization.moduleIds
 
-<PropertyType.CN type="'named' | 'deterministic'" />
+<PropertyType.CN type="'natural' | 'named' | 'deterministic'" />
 
 | 选项            | 描述                                                                                    |
 | --------------- | --------------------------------------------------------------------------------------- |
+| `natural`       | 根据模块加载的顺序使用自增数字作为模块 id。                                             |
 | `named`         | 使用有意义、方便调试的内容当作模块 id。此选项会在开发环境下默认开启。                   |
 | `deterministic` | 使用对模块标识符哈希后的数字当作模块 id，有益于长期缓存。此选项会在生产环境下默认开启。 |
 

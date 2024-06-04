@@ -9,17 +9,15 @@ use swc_core::ecma::ast::{CallExpr, Callee};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency};
-use crate::visitors::{create_context_dependency, parse_order_string, ContextModuleScanResult};
+use crate::visitors::{
+  create_context_dependency, parse_order_string, ContextModuleScanResult, JavascriptParser,
+};
 use crate::webpack_comment::try_extract_webpack_magic_comment;
 
 pub struct ImportParserPlugin;
 
 impl JavascriptParserPlugin for ImportParserPlugin {
-  fn import_call(
-    &self,
-    parser: &mut crate::visitors::JavascriptParser,
-    node: &CallExpr,
-  ) -> Option<bool> {
+  fn import_call(&self, parser: &mut JavascriptParser, node: &CallExpr) -> Option<bool> {
     let Callee::Import(import_call) = &node.callee else {
       unreachable!()
     };
@@ -141,6 +139,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             end: node.span().real_hi(),
           },
           Some(node.span.into()),
+          parser.in_try,
         )));
       // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
       parser.walk_expression(&dyn_imported.expr);

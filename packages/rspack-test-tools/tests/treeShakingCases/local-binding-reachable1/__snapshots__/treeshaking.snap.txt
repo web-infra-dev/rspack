@@ -6,8 +6,10 @@ __webpack_require__.d(__webpack_exports__, {
   defaults: function() { return defaults; }
 });
 const defaults = {
-    test: 1000
+	test: 1000
 };
+
+
 }),
 "./export.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
@@ -16,15 +18,20 @@ __webpack_require__.d(__webpack_exports__, {
 /* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./Layout.js");
 
 function callit() {
-    _Layout__WEBPACK_IMPORTED_MODULE_0__.defaults.test;
+	_Layout__WEBPACK_IMPORTED_MODULE_0__.defaults.test;
 }
 var Sider = callit();
 var Something = 20000;
+
+
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./export.js");
 
-(0, _export__WEBPACK_IMPORTED_MODULE_0__.Something)();
+
+(0,_export__WEBPACK_IMPORTED_MODULE_0__.Something)();
+
+
 }),
 
 },function(__webpack_require__) {

@@ -19,8 +19,7 @@ it("should enforce esm for empty module without options.esModule", async () => {
 	).toBe(2);
 	expect(source("./simple.css", stats)).toMatchInlineSnapshot(`
 		"// extracted by css-extract-rspack-plugin
-		export { };
-		"
+		export {};"
 	`);
 });
 
@@ -43,8 +42,7 @@ it("should enforce esm for empty module with options.esModule", async () => {
 	).toBe(2);
 	expect(source("./simple.css", stats)).toMatchInlineSnapshot(`
 		"// extracted by css-extract-rspack-plugin
-		export { };
-		"
+		export {};"
 	`);
 });
 
@@ -65,5 +63,7 @@ it('should keep empty module when options.esModule is equal "false"', async () =
 	expect(
 		modules.filter(m => m.moduleType !== "runtime" && !m.orphan).length
 	).toBe(2);
-	expect(source("./simple.css", stats)).toMatchInlineSnapshot(`""`);
+	expect(source("./simple.css", stats)).toMatchInlineSnapshot(
+		`"// extracted by css-extract-rspack-plugin"`
+	);
 });

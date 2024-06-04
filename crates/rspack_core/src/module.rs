@@ -99,7 +99,13 @@ pub enum BuildMetaDefaultObject {
   #[default]
   False,
   Redirect,
-  RedirectWarn,
+  RedirectWarn {
+    // Whether to ignore the warning, should use false for most cases
+    // Only ignore the cases that do not follow the standards but are
+    // widely used by the community, making it difficult to migrate.
+    // For example, JSON named exports.
+    ignore: bool,
+  },
 }
 
 #[derive(Debug, Default, Clone, Copy, Hash)]
@@ -161,8 +167,6 @@ pub struct BuildResult {
 #[derive(Debug, Default, Clone)]
 pub struct FactoryMeta {
   pub side_effect_free: Option<bool>,
-  /// For old tree shaking
-  pub side_effect_free_old: Option<bool>,
 }
 
 pub type ModuleIdentifier = Identifier;
@@ -346,24 +350,29 @@ pub trait Module:
     ConnectionState::Bool(true)
   }
 
-  fn is_available(&self, modified_file: &HashSet<PathBuf>) -> bool {
+  fn need_build(&self) -> bool {
     if let Some(build_info) = self.build_info() {
       if !build_info.cacheable {
-        return false;
+        return true;
       }
+    }
+    false
+  }
 
+  fn depends_on(&self, modified_file: &HashSet<PathBuf>) -> bool {
+    if let Some(build_info) = self.build_info() {
       for item in modified_file {
         if build_info.file_dependencies.contains(item)
           || build_info.build_dependencies.contains(item)
           || build_info.context_dependencies.contains(item)
           || build_info.missing_dependencies.contains(item)
         {
-          return false;
+          return true;
         }
       }
     }
 
-    true
+    false
   }
 }
 
@@ -388,7 +397,7 @@ fn get_exports_type_impl(
       BuildMetaExportsType::Namespace => ExportsType::Namespace,
       BuildMetaExportsType::Default => match default_object {
         BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
-        BuildMetaDefaultObject::RedirectWarn => {
+        BuildMetaDefaultObject::RedirectWarn { .. } => {
           if strict {
             ExportsType::DefaultOnly
           } else {
@@ -404,7 +413,7 @@ fn get_exports_type_impl(
           fn handle_default(default_object: &BuildMetaDefaultObject) -> ExportsType {
             match default_object {
               BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
-              BuildMetaDefaultObject::RedirectWarn => ExportsType::DefaultWithNamed,
+              BuildMetaDefaultObject::RedirectWarn { .. } => ExportsType::DefaultWithNamed,
               _ => ExportsType::DefaultOnly,
             }
           }

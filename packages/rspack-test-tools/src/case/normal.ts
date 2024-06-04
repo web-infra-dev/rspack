@@ -1,18 +1,20 @@
 import path from "path";
 
-import { RspackNormalProcessor } from "../processor/normal";
+import { NormalProcessor } from "../processor/normal";
 import { NormalRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
+import { ECompilerType } from "../type";
 
 const creator = new BasicCaseCreator({
 	clean: true,
 	describe: false,
 	steps: ({ name }) => [
-		new RspackNormalProcessor({
+		new NormalProcessor({
 			name,
 			root: path.resolve(__dirname, "../../tests/normalCases"),
 			compilerOptions: {}, // do not used in rspack
-			runable: true
+			runable: true,
+			compilerType: ECompilerType.Rspack
 		})
 	],
 	runner: NormalRunnerFactory

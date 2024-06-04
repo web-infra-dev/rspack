@@ -3,7 +3,7 @@ import { getSimpleProcessorRunner } from "../test/simple";
 import { ECompilerType } from "../type";
 
 export type TCompilerCaseConfig = Omit<
-	ISimpleProcessorOptions,
+	ISimpleProcessorOptions<ECompilerType.Rspack>,
 	"name" | "compilerType"
 > & {
 	description: string;

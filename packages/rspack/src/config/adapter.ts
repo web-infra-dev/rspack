@@ -125,9 +125,7 @@ export const getRawOptions = (
 		// SAFETY: applied default value in `applyRspackOptionsDefaults`.
 		profile: options.profile!,
 		// SAFETY: applied default value in `applyRspackOptionsDefaults`.
-		bail: options.bail!,
-		// TODO: remove this
-		builtins: options.builtins as any
+		bail: options.bail!
 	};
 };
 
@@ -633,7 +631,18 @@ function getRawJavascriptParserOptions(
 					? parser.url
 					: "true",
 		exprContextCritical: parser.exprContextCritical ?? true,
-		wrappedContextCritical: parser.wrappedContextCritical ?? false
+		wrappedContextCritical: parser.wrappedContextCritical ?? false,
+		exportsPresence:
+			parser.exportsPresence === false ? "false" : parser.exportsPresence,
+		importExportsPresence:
+			parser.importExportsPresence === false
+				? "false"
+				: parser.importExportsPresence,
+		reexportExportsPresence:
+			parser.reexportExportsPresence === false
+				? "false"
+				: parser.reexportExportsPresence,
+		strictExportPresence: parser.strictExportPresence ?? false
 	};
 }
 
@@ -807,28 +816,9 @@ function getRawOptimization(
 }
 
 function getRawSnapshotOptions(
-	snapshot: SnapshotOptions
+	_snapshot: SnapshotOptions
 ): RawOptions["snapshot"] {
-	const { resolve, module } = snapshot;
-	assert(!isNil(resolve) && !isNil(module));
-	const { timestamp: resolveTimestamp, hash: resolveHash } = resolve;
-	const { timestamp: moduleTimestamp, hash: moduleHash } = module;
-	assert(
-		!isNil(resolveTimestamp) &&
-			!isNil(resolveHash) &&
-			!isNil(moduleTimestamp) &&
-			!isNil(moduleHash)
-	);
-	return {
-		resolve: {
-			timestamp: resolveTimestamp,
-			hash: resolveHash
-		},
-		module: {
-			timestamp: moduleTimestamp,
-			hash: moduleHash
-		}
-	};
+	return {};
 }
 
 function getRawExperiments(
@@ -844,12 +834,9 @@ function getRawExperiments(
 }
 
 function getRawRspackFutureOptions(
-	future: RspackFutureOptions
+	_future: RspackFutureOptions
 ): RawRspackFuture {
-	assert(!isNil(future.newTreeshaking));
-	return {
-		newTreeshaking: future.newTreeshaking
-	};
+	return {};
 }
 
 function getRawNode(node: Node): RawOptions["node"] {

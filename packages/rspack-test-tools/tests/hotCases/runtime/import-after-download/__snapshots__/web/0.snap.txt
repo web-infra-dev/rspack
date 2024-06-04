@@ -1,8 +1,7 @@
 # Case import-after-download: Step 0
 
 ## Changed Files
-- file.js
-- inner.js
+
 
 ## Asset Files
 - Bundle: bundle.js

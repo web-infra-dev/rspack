@@ -157,6 +157,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
   }
 }
 
+#[inline]
 fn eval_regexp_to_regexp(expr: &str, flags: &str) -> regex::Regex {
   let mut re = String::new();
   for ch in flags.chars() {

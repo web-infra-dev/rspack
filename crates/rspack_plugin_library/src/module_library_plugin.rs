@@ -55,34 +55,20 @@ impl JavascriptModulesPluginPlugin for ModuleLibraryJavascriptModulesPluginPlugi
     let module_graph = args.compilation.get_module_graph();
     source.add(args.source.clone());
     let mut exports = vec![];
-    if args.compilation.options.is_new_tree_shaking() {
-      let exports_info = module_graph.get_exports_info(&args.module);
-      for id in exports_info.get_ordered_exports() {
-        let info = id.get_export_info(&module_graph);
-        let info_name = info.name.as_ref().expect("name can't be empty").as_str();
-        let name = to_identifier(info_name);
-        let var_name = format!("__webpack_exports__{name}");
-        source.add(RawSource::from(format!(
-          "var {var_name} = __webpack_exports__{};\n",
-          property_access(&vec![info_name], 0)
-        )));
-        exports.push(format!("{var_name} as {}", info_name));
-      }
-    } else if let Some(analyze_results) = args
-      .compilation
-      .optimize_analyze_result_map()
-      .get(&args.module)
-    {
-      use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
-      for info in analyze_results.ordered_exports() {
-        let name = to_identifier(info.name.as_ref());
-        let var_name = format!("__webpack_exports__{}", name);
-        source.add(RawSource::from(format!(
-          "var {var_name} = __webpack_exports__{};\n",
-          property_access(&vec![&info.name], 0)
-        )));
-        exports.push(format!("{var_name} as {}", info.name));
-      }
+    let exports_info = module_graph.get_exports_info(&args.module);
+    for id in exports_info.get_ordered_exports() {
+      let info = id.get_export_info(&module_graph);
+      let chunk = args.compilation.chunk_by_ukey.expect_get(args.chunk);
+      let info_name = info.name.as_ref().expect("should have name");
+      let used_name = info
+        .get_used_name(info.name.as_ref(), Some(&chunk.runtime))
+        .expect("name can't be empty");
+      let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
+      source.add(RawSource::from(format!(
+        "var {var_name} = __webpack_exports__{};\n",
+        property_access(&vec![used_name], 0)
+      )));
+      exports.push(format!("{var_name} as {}", info_name));
     }
     if !exports.is_empty() {
       source.add(RawSource::from(format!(

@@ -171,7 +171,8 @@ impl Task<MakeTaskContext> for FinishModuleTask {
       module_identifier,
     } = *self;
     let mut res: Vec<Box<dyn Task<MakeTaskContext>>> = vec![];
-    let module_graph = MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
+    let module_graph =
+      MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
     let mut queue = VecDeque::new();
     queue.push_back(module_identifier);
 

@@ -148,7 +148,6 @@ impl RawBuiltins {
     Ok(Builtins {
       define: Default::default(),
       provide: Default::default(),
-      tree_shaking: self.tree_shaking.into(),
     })
   }
 }

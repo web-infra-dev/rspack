@@ -17,8 +17,15 @@ import {
 } from "../builtin-loader";
 import { Compilation } from "../Compilation";
 import { parsePathQueryFragment } from "../loader-runner";
+import { Module } from "../Module";
 import { isNil } from "../util";
-import { Mode, Resolve, RuleSetLoaderWithOptions, RuleSetUseItem } from "./zod";
+import {
+	Mode,
+	Resolve,
+	RuleSetLoaderWithOptions,
+	RuleSetUseItem,
+	Target
+} from "./zod";
 
 const BUILTIN_LOADER_PREFIX = "builtin:";
 
@@ -106,6 +113,7 @@ export interface LoaderContext<OptionsType = {}> {
 	 */
 	loaders: LoaderObject[];
 	mode?: Mode;
+	target?: Target;
 	hot?: boolean;
 	/**
 	 * @param schema To provide the best performance, Rspack does not perform the schema validation. If your loader requires schema validation, please call scheme-utils or zod on your own.
@@ -156,6 +164,7 @@ export interface LoaderContext<OptionsType = {}> {
 	data: unknown;
 	_compiler: Compiler;
 	_compilation: Compilation;
+	_module: Module;
 	/**
 	 * Internal field for interoperability.
 	 * Do not use this in anywhere else.

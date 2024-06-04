@@ -89,12 +89,22 @@ export default defineConfig({
         title: 'Rspack',
         description: 'A fast Rust-based web bundler',
         label: 'English',
+        editLink: {
+          docRepoBaseUrl:
+            'https://github.com/web-infra-dev/rspack/tree/main/website/docs',
+          text: '📝 Edit this page on GitHub',
+        },
       },
       {
         lang: 'zh',
         title: 'Rspack',
         description: '基于 Rust 的高性能 Web 构建工具',
         label: '简体中文',
+        editLink: {
+          docRepoBaseUrl:
+            'https://github.com/web-infra-dev/rspack/tree/main/website/docs',
+          text: '📝 在 GitHub 上编辑此页',
+        },
       },
     ],
   },
@@ -105,7 +115,7 @@ export default defineConfig({
         title: 'Rspack',
         type: 'website',
         url: PUBLISH_URL,
-        image: 'https://assets.rspack.dev/rspack/rspack-banner.png',
+        image: 'https://assets.rspack.dev/rspack/rspack-og-image.png',
         description: 'Fast Rust-based Web Bundler',
         twitter: {
           site: '@rspack_dev',

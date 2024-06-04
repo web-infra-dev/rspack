@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use rustc_hash::FxHashSet;
+use swc_core::common::Spanned;
 use swc_core::ecma::ast::FnDecl;
 use swc_core::ecma::ast::{AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
@@ -27,12 +28,14 @@ impl<'parser> JavascriptParser<'parser> {
   fn pre_walk_module_declaration(&mut self, statement: &ModuleItem) {
     match statement {
       ModuleItem::ModuleDecl(decl) => {
+        self.statement_path.push(decl.span().into());
         if self
           .plugin_drive
           .clone()
           .pre_module_declaration(self, decl)
           .unwrap_or_default()
         {
+          self.prev_statement = self.statement_path.pop();
           return;
         }
         match decl {
@@ -42,19 +45,23 @@ impl<'parser> JavascriptParser<'parser> {
           _ => {
             self.is_esm = true;
           }
-        }
+        };
+        self.prev_statement = self.statement_path.pop();
       }
       ModuleItem::Stmt(stmt) => self.pre_walk_statement(stmt),
     }
+    self.prev_statement = self.statement_path.pop();
   }
 
   pub fn pre_walk_statement(&mut self, statement: &Stmt) {
+    self.statement_path.push(statement.span().into());
     if self
       .plugin_drive
       .clone()
       .pre_statement(self, statement)
       .unwrap_or_default()
     {
+      self.prev_statement = self.statement_path.pop();
       return;
     }
 
@@ -79,7 +86,9 @@ impl<'parser> JavascriptParser<'parser> {
       Stmt::While(stmt) => self.pre_walk_while_statement(stmt),
       Stmt::With(stmt) => self.pre_walk_with_statement(stmt),
       _ => (),
-    }
+    };
+
+    self.prev_statement = self.statement_path.pop();
   }
 
   fn pre_walk_with_statement(&mut self, stmt: &WithStmt) {

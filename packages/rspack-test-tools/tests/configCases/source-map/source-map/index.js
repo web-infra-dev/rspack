@@ -13,7 +13,7 @@ it("should map to the original content if `module` enabled", async () => {
 	const appSourceIndex = map.sources.indexOf("webpack:///./App.jsx")
 	expect(appSourceIndex).toBeGreaterThanOrEqual(0);
 	expect(map.sourcesContent[appSourceIndex]).toEqual(app);
-	const STUB = ["Hello", " ", "Rspack!"].join("");
+	const STUB = "Hello Rspack!";
 	const { line, column } = consumer.originalPositionFor(
 		positionFor(generated, STUB)
 	);

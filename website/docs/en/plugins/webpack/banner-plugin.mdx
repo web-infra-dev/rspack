@@ -23,6 +23,7 @@ type BannerPluginOptions = {
   entryOnly?: boolean;
   footer?: boolean;
   raw?: boolean;
+  stage?: number;
   test?: BannerRules;
   include?: BannerRules;
   exclude?: BannerRules;
@@ -76,6 +77,13 @@ type BannerPluginArgument = BannerContent | BannerPluginOptions;
       type: '`boolean|undefined`',
       default: 'undefined',
       description: 'If true, banner will not be wrapped in a comment.',
+    },
+    {
+      name: '`stage`',
+      type: '`number|undefined`',
+      default: '`PROCESS_ASSETS_STAGE_ADDITIONS`(-100)',
+      description:
+        'The stage of the compilation in which the banner should be injected.',
     },
     {
       name: '`test`',

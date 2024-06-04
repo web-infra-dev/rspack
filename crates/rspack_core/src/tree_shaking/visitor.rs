@@ -25,7 +25,7 @@ use super::{
 use crate::needs_refactor::WorkerSyntaxList;
 use crate::{
   extract_member_expression_chain, BoxDependency, CompilerOptions, DependencyId, DependencyType,
-  ErrorSpan, FactoryMeta, ModuleGraph, ModuleIdentifier, ModuleSyntax,
+  ErrorSpan, ModuleGraph, ModuleIdentifier, ModuleSyntax,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -1364,20 +1364,6 @@ impl<'a> ModuleRefAnalyze<'a> {
         None
       }
     }
-  }
-  pub fn get_side_effects_from_config(
-    factory_meta: Option<&FactoryMeta>,
-  ) -> Option<SideEffectType> {
-    // sideEffects in module.rule has higher priority,
-    // we could early return if we match a rule.
-    if let Some(FactoryMeta {
-      side_effect_free_old: Some(side_effect_free),
-      ..
-    }) = factory_meta
-    {
-      return Some(SideEffectType::Configuration(!*side_effect_free));
-    }
-    None
   }
 }
 

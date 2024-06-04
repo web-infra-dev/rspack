@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 263
+- Update: main.LAST_HASH.hot-update.js, size: 266
 
 ## Manifest
 
@@ -32,7 +32,10 @@
 ```js
 self["webpackHotUpdate"]('main', {
 "./file.js": (function (module) {
+
 module.hot.data.callback();
+
+
 }),
 
 },function(__webpack_require__) {

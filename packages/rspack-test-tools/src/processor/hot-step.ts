@@ -1,4 +1,4 @@
-import { StatsCompilation } from "@rspack/core";
+import { Chunk } from "@rspack/core";
 import fs from "fs-extra";
 import path from "path";
 
@@ -9,13 +9,11 @@ import {
 	ITestContext,
 	ITestEnv,
 	TCompilerOptions,
-	TCompilerStats
-} from "../type";
-import {
-	IRspackHotProcessorOptions,
-	RspackHotProcessor,
+	TCompilerStats,
+	TCompilerStatsCompilation,
 	TUpdateOptions
-} from "./hot";
+} from "../type";
+import { HotProcessor, IHotProcessorOptions } from "./hot";
 
 const escapeLocalName = (str: string) => str.split(/[-<>:"/|?*.]/).join("_");
 
@@ -23,12 +21,11 @@ declare var global: {
 	self?: {
 		[key: string]: (name: string, modules: Record<string, unknown>) => void;
 	};
-	updateSnapshot: boolean;
 };
 
 const SELF_HANDLER = (
 	file: string,
-	options: TCompilerOptions<ECompilerType.Rspack>
+	options: TCompilerOptions<ECompilerType>
 ): string[] => {
 	let res: string[] = [];
 	const hotUpdateGlobal = (_: string, modules: Record<string, unknown>) => {
@@ -59,14 +56,16 @@ const GET_MODULE_HANDLER = {
 
 type TSupportTarget = keyof typeof GET_MODULE_HANDLER;
 
-export interface IRspackHotStepProcessorOptions
-	extends IRspackHotProcessorOptions {}
+export interface IHotSnapshotProcessorOptions<T extends ECompilerType>
+	extends IHotProcessorOptions<T> {}
 
-export class RspackHotStepProcessor extends RspackHotProcessor {
+export class HotSnapshotProcessor<
+	T extends ECompilerType
+> extends HotProcessor<T> {
 	private hashes: string[] = [];
 	private entries: Record<string, string[]> = {};
 
-	constructor(protected _hotOptions: IRspackHotProcessorOptions) {
+	constructor(protected _hotOptions: IHotSnapshotProcessorOptions<T>) {
 		super(_hotOptions);
 	}
 
@@ -76,18 +75,22 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 			"hotUpdateStepChecker",
 			(
 				hotUpdateContext: TUpdateOptions,
-				stats: TCompilerStats<ECompilerType.Rspack>,
+				stats: TCompilerStats<T>,
 				runtime: THotStepRuntimeData
 			) => {
-				const statsJson = stats.toJson({ assets: true, chunks: true });
-				for (let entry of (stats?.compilation.chunks || []).filter(i =>
-					i.hasRuntime()
+				const statsJson: TCompilerStatsCompilation<T> = stats.toJson({
+					assets: true,
+					chunks: true
+				});
+				for (let entry of ((stats?.compilation.chunks as Chunk[]) || []).filter(
+					i => i.hasRuntime()
 				)) {
 					if (!this.entries[entry.id!]) {
 						this.entries[entry.id!] = entry.runtime!;
 					}
 				}
 				this.matchStepSnapshot(
+					env,
 					context,
 					hotUpdateContext.updateIndex,
 					statsJson,
@@ -101,7 +104,7 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 			"hotUpdateStepErrorChecker",
 			(
 				_: TUpdateOptions,
-				stats: TCompilerStats<ECompilerType.Rspack>,
+				stats: TCompilerStats<T>,
 				runtime: THotStepRuntimeData
 			) => {
 				this.hashes.push(stats.hash!);
@@ -114,18 +117,18 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 		const compiler = this.getCompiler(context);
 		const stats = compiler.getStats();
 		if (!stats || !stats.hash) {
-			expect(false);
+			env.expect(false);
 			return;
 		}
 		const statsJson = stats.toJson({ assets: true, chunks: true });
-		for (let entry of (stats?.compilation.chunks || []).filter(i =>
+		for (let entry of ((stats?.compilation.chunks as Chunk[]) || []).filter(i =>
 			i.hasRuntime()
 		)) {
 			this.entries[entry.id!] = entry.runtime!;
 		}
 		let matchFailed: Error | null = null;
 		try {
-			this.matchStepSnapshot(context, 0, statsJson);
+			this.matchStepSnapshot(env, context, 0, statsJson);
 		} catch (e) {
 			matchFailed = e as Error;
 		}
@@ -136,22 +139,23 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 	}
 
 	protected matchStepSnapshot(
+		env: ITestEnv,
 		context: ITestContext,
 		step: number,
-		stats: StatsCompilation,
+		stats: TCompilerStatsCompilation<T>,
 		runtime?: THotStepRuntimeData
 	) {
 		const compiler = this.getCompiler(context);
 		const compilerOptions = compiler.getOptions();
 		const getModuleHandler =
 			GET_MODULE_HANDLER[compilerOptions.target as TSupportTarget];
-		expect(typeof getModuleHandler).toBe("function");
+		env.expect(typeof getModuleHandler).toBe("function");
 
 		const lastHash = this.hashes[this.hashes.length - 1];
 		const snapshotPath = context.getSource(
 			`__snapshots__/${compilerOptions.target}/${step}.snap.txt`
 		);
-		const title = `Case ${this._options.name}: Step ${step}`;
+		const title = `Case ${path.basename(this._options.name)}: Step ${step}`;
 		const hotUpdateFile: Array<{
 			name: string;
 			content: string;
@@ -159,9 +163,10 @@ export class RspackHotStepProcessor extends RspackHotProcessor {
 			runtime: string[];
 		}> = [];
 		const hotUpdateManifest: Array<{ name: string; content: string }> = [];
-		const changedFiles: string[] = require(
-			context.getSource("changed-file.js")
-		).map((i: string) => escapeSep(path.relative(context.getSource(), i)));
+		const changedFiles: string[] = this.updateOptions.changedFiles.map(
+			(i: string) => escapeSep(path.relative(context.getSource(), i))
+		);
+		changedFiles.sort();
 
 		const hashes: Record<string, string> = {
 			[lastHash || "LAST_HASH"]: "LAST_HASH",
@@ -353,12 +358,6 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 
 				`.trim();
 
-		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
-			fs.ensureDirSync(path.dirname(snapshotPath));
-			fs.writeFileSync(snapshotPath, content, "utf-8");
-			return;
-		}
-		const snapshotContent = escapeEOL(fs.readFileSync(snapshotPath, "utf-8"));
-		expect(content).toBe(snapshotContent);
+		expect(escapeEOL(content)).toMatchFileSnapshot(snapshotPath);
 	}
 }

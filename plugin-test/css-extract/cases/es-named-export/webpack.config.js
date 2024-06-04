@@ -1,5 +1,6 @@
 const { CssExtractRspackPlugin } = require("@rspack/core");
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.js",
 	module: {
@@ -16,6 +17,7 @@ module.exports = {
 							esModule: true,
 							modules: {
 								namedExport: true,
+                exportLocalsConvention: "asIs",
 								localIdentName: "foo__[name]__[local]"
 							}
 						}

@@ -75,6 +75,7 @@ pub struct ContextModuleFactoryHooks {
 
 #[derive(Debug)]
 pub struct ContextModuleFactory {
+  resolver_factory: Arc<ResolverFactory>,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
 }
@@ -101,10 +102,12 @@ impl ModuleFactory for ContextModuleFactory {
 
 impl ContextModuleFactory {
   pub fn new(
+    resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
     plugin_driver: SharedPluginDriver,
   ) -> Self {
     Self {
+      resolver_factory,
       loader_resolver_factory,
       plugin_driver,
     }
@@ -212,7 +215,7 @@ impl ContextModuleFactory {
 
     let resolve_args = ResolveArgs {
       context: data.context.clone(),
-      importer: None,
+      importer: data.issuer_identifier.as_ref(),
       issuer: data.issuer.as_deref(),
       specifier,
       dependency_type: dependency.dependency_type(),
@@ -220,7 +223,7 @@ impl ContextModuleFactory {
       span: dependency.span(),
       resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
-      optional: false,
+      optional: dependency.get_optional(),
       file_dependencies: &mut file_dependencies,
       missing_dependencies: &mut missing_dependencies,
     };
@@ -236,6 +239,7 @@ impl ContextModuleFactory {
           resource_fragment: resource.fragment,
           resolve_options: data.resolve_options.clone(),
           context_options: dependency.options().clone(),
+          type_prefix: dependency.type_prefix(),
         };
         let module = Box::new(ContextModule::new(
           options.clone(),
@@ -296,7 +300,7 @@ impl ContextModuleFactory {
 
         let module = ContextModule::new(
           context_module_options.clone(),
-          self.loader_resolver_factory.clone(),
+          self.resolver_factory.clone(),
         );
         Ok(Some(ModuleFactoryResult::new_with_module(Box::new(module))))
       }

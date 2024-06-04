@@ -2,27 +2,24 @@ import {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
-	TCompilerOptions,
-	TCompilerStats,
-	TTestConfig
+	TCompilerOptions
 } from "../type";
-import { MultiTaskProcessor } from "./multi";
+import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
-export interface IRspackHashProcessorOptions {
-	name: string;
-}
+export interface IHashProcessorOptions<T extends ECompilerType>
+	extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {}
 
 const REG_ERROR_CASE = /error$/;
 
-export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack> {
-	constructor(options: IRspackHashProcessorOptions) {
+export class HashProcessor<
+	T extends ECompilerType
+> extends MultiTaskProcessor<T> {
+	constructor(_hashOptions: IHashProcessorOptions<T>) {
 		super({
-			defaultOptions: RspackHashProcessor.defaultOptions,
-			overrideOptions: RspackHashProcessor.overrideOptions,
-			compilerType: ECompilerType.Rspack,
-			configFiles: ["rspack.config.js", "webpack.config.js"],
-			name: options.name,
-			runable: false
+			defaultOptions: HashProcessor.defaultOptions<T>,
+			overrideOptions: HashProcessor.overrideOptions<T>,
+			runable: false,
+			..._hashOptions
 		});
 	}
 
@@ -31,14 +28,14 @@ export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack
 		const testConfig = context.getTestConfig();
 		const stats = compiler.getStats();
 		if (!stats) {
-			expect(false);
+			env.expect(false);
 			return;
 		}
 		const statsJson = stats.toJson({ assets: true });
 		if (REG_ERROR_CASE.test(this._options.name)) {
-			expect((statsJson.errors || []).length > 0);
+			env.expect((statsJson.errors || []).length > 0);
 		} else {
-			expect((statsJson.errors || []).length === 0);
+			env.expect((statsJson.errors || []).length === 0);
 		}
 
 		if (typeof testConfig.validate === "function") {
@@ -50,10 +47,10 @@ export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack
 		}
 	}
 
-	static defaultOptions(
+	static defaultOptions<T extends ECompilerType>(
 		index: number,
 		context: ITestContext
-	): TCompilerOptions<ECompilerType.Rspack> {
+	): TCompilerOptions<T> {
 		return {
 			context: context.getSource(),
 			output: {
@@ -61,10 +58,10 @@ export class RspackHashProcessor extends MultiTaskProcessor<ECompilerType.Rspack
 			}
 		};
 	}
-	static overrideOptions(
+	static overrideOptions<T extends ECompilerType>(
 		index: number,
 		context: ITestContext,
-		options: TCompilerOptions<ECompilerType.Rspack>
+		options: TCompilerOptions<T>
 	): void {
 		if (!options.entry) {
 			options.entry = "./index.js";

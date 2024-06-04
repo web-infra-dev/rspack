@@ -118,6 +118,8 @@ module.exports = (globalTimeout = 2000, nameSuffix = "") => {
 					currentDescribeBlock.hooks[currentDescribeBlock.hooks.length - 1]
 				);
 			});
-		}
+		},
+		expect,
+		jest
 	};
 };

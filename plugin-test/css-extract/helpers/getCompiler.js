@@ -48,9 +48,6 @@ module.exports = (fixture, loaderOptions = {}, config = {}) => {
 		],
 		experiments: {
 			css: false,
-			rspackFuture: {
-				newTreeshaking: true
-			}
 		},
 		...cnfg
 	};

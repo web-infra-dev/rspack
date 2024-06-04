@@ -8,13 +8,10 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import assert from "assert";
-
 import type { Compilation } from "../Compilation";
 import type {
 	AssetModuleFilename,
 	Bail,
-	Builtins,
 	CacheOptions,
 	ChunkFilename,
 	ChunkLoading,
@@ -52,7 +49,9 @@ import type {
 	Iife,
 	ImportFunctionName,
 	InfrastructureLogging,
+	LazyCompilationOptions,
 	LibraryOptions,
+	Loader,
 	Mode,
 	Name,
 	Node,
@@ -247,16 +246,8 @@ export const getNormalizedRspackOptions = (
 					...node
 				}
 		),
-		snapshot: nestedConfig(config.snapshot, snapshot => ({
-			resolve: optionalNestedConfig(snapshot.resolve, resolve => ({
-				timestamp: resolve.timestamp,
-				hash: resolve.hash
-			})),
-			module: optionalNestedConfig(snapshot.module, module => ({
-				timestamp: module.timestamp,
-				hash: module.hash
-			}))
-		})),
+		loader: cloneObject(config.loader),
+		snapshot: nestedConfig(config.snapshot, _snapshot => ({})),
 		cache: optionalNestedConfig(config.cache, cache => cache),
 		stats: nestedConfig(config.stats, stats => {
 			if (stats === false) {
@@ -300,16 +291,17 @@ export const getNormalizedRspackOptions = (
 		performance: config.performance,
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
-			...experiments
+			...experiments,
+			lazyCompilation: optionalNestedConfig(
+				experiments.lazyCompilation,
+				options => (options === true ? {} : options)
+			)
 		})),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
 		profile: config.profile,
-		bail: config.bail,
-		builtins: nestedConfig(config.builtins, builtins => ({
-			...builtins
-		}))
+		bail: config.bail
 	};
 };
 
@@ -502,7 +494,7 @@ export interface ModuleOptionsNormalized {
 }
 
 export interface ExperimentsNormalized {
-	lazyCompilation?: boolean;
+	lazyCompilation?: false | LazyCompilationOptions;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	topLevelAwait?: boolean;
@@ -539,6 +531,7 @@ export interface RspackOptionsNormalized {
 	infrastructureLogging: InfrastructureLogging;
 	devtool?: DevTool;
 	node: Node;
+	loader: Loader;
 	snapshot: SnapshotOptions;
 	cache?: CacheOptions;
 	stats: StatsValue;
@@ -552,5 +545,4 @@ export interface RspackOptionsNormalized {
 	performance?: Performance;
 	profile?: Profile;
 	bail?: Bail;
-	builtins: Builtins;
 }

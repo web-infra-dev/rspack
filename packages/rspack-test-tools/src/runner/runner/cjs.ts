@@ -22,7 +22,6 @@ export class CommonJsRunner<
 	protected createGlobalContext(): IBasicGlobalContext {
 		return {
 			console: console,
-			expect: expect,
 			setTimeout: ((
 				cb: (...args: any[]) => void,
 				ms: number | undefined,
@@ -39,19 +38,15 @@ export class CommonJsRunner<
 	protected createBaseModuleScope(): IBasicModuleScope {
 		const baseModuleScope: IBasicModuleScope = {
 			console: this.globalContext!.console,
-			expect: this.globalContext!.expect,
 			setTimeout: this.globalContext!.setTimeout,
 			clearTimeout: this.globalContext!.clearTimeout,
-			it: this._options.env.it,
-			beforeEach: this._options.env.beforeEach,
-			afterEach: this._options.env.afterEach,
-			jest,
 			nsObj: (m: Object) => {
 				Object.defineProperty(m, Symbol.toStringTag, {
 					value: "Module"
 				});
 				return m;
-			}
+			},
+			...this._options.env
 		};
 		if (this._options.stats) {
 			baseModuleScope["__STATS__"] = this._options.stats;
@@ -71,7 +66,9 @@ export class CommonJsRunner<
 			exports: m.exports,
 			__dirname: path.dirname(file.path),
 			__filename: file.path,
-			_globalAssign: { expect },
+			_globalAssign: {
+				expect: this._options.env.expect
+			},
 			define
 		};
 	}

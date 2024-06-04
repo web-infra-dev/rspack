@@ -7,6 +7,8 @@ __webpack_require__.d(__webpack_exports__, {
   value: function() { return value; }
 });
 const value = "dynamic";
+
+
 }),
 "./child/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
@@ -15,6 +17,8 @@ __webpack_require__.d(__webpack_exports__, {
   value: function() { return value; }
 });
 const value = "dynamic";
+
+
 }),
 "./child sync recursive ^\\.\\/.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
 var map = {
@@ -41,10 +45,14 @@ webpackContext.keys = function webpackContextKeys() {
 webpackContext.resolve = webpackContextResolve;
 module.exports = webpackContext;
 webpackContext.id = "./child sync recursive ^\\.\\/.*\\.js$";
+
+
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 let a = "index";
 __webpack_require__("./child sync recursive ^\\.\\/.*\\.js$")(`./${a}.js`);
+
+
 }),
 
 },function(__webpack_require__) {

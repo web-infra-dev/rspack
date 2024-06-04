@@ -1,11 +1,11 @@
-import { ErrorTaskProcessor, IErrorTaskProcessorOptions } from "../processor";
+import { ErrorProcessor, IErrorProcessorOptions } from "../processor";
 import { getSimpleProcessorRunner } from "../test/simple";
 import { ECompilerType } from "../type";
 
 let addedSerializer = false;
 
 export type TErrorCaseConfig = Omit<
-	IErrorTaskProcessorOptions<ECompilerType.Rspack>,
+	IErrorProcessorOptions<ECompilerType.Rspack>,
 	"name" | "compilerType"
 > & {
 	description: string;
@@ -18,7 +18,7 @@ export function createErrorCase(
 	testConfig: string
 ) {
 	if (!addedSerializer) {
-		ErrorTaskProcessor.addSnapshotSerializer();
+		ErrorProcessor.addSnapshotSerializer(expect);
 		addedSerializer = true;
 	}
 	const caseConfig = require(testConfig);
@@ -27,7 +27,7 @@ export function createErrorCase(
 	it(caseConfig.description, async () => {
 		await runner(
 			name,
-			new ErrorTaskProcessor({
+			new ErrorProcessor({
 				name: name,
 				compilerType: ECompilerType.Rspack,
 				...caseConfig

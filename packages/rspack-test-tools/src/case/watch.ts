@@ -1,12 +1,10 @@
 import fs from "fs";
 import path from "path";
 
-import {
-	RspackWatchProcessor,
-	RspackWatchStepProcessor
-} from "../processor/watch";
+import { WatchProcessor, WatchStepProcessor } from "../processor/watch";
 import { WatchRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
+import { ECompilerType } from "../type";
 
 const creator = new BasicCaseCreator({
 	clean: true,
@@ -28,17 +26,21 @@ const creator = new BasicCaseCreator({
 
 		return runs.map((run, index) =>
 			index === 0
-				? new RspackWatchProcessor({
+				? new WatchProcessor({
 						name,
 						stepName: run.name,
 						tempDir: temp!,
-						runable: true
+						runable: true,
+						compilerType: ECompilerType.Rspack,
+						configFiles: ["rspack.config.js", "webpack.config.js"]
 					})
-				: new RspackWatchStepProcessor({
+				: new WatchStepProcessor({
 						name,
 						stepName: run.name,
 						tempDir: temp!,
-						runable: true
+						runable: true,
+						compilerType: ECompilerType.Rspack,
+						configFiles: ["rspack.config.js", "webpack.config.js"]
 					})
 		);
 	}

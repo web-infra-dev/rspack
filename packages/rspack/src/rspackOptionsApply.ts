@@ -45,12 +45,15 @@ import {
 	JavascriptModulesPlugin,
 	JsLoaderRspackPlugin,
 	JsonModulesPlugin,
+	LazyCompilationPlugin,
 	MangleExportsPlugin,
 	MergeDuplicateChunksPlugin,
 	ModuleChunkFormatPlugin,
 	ModuleConcatenationPlugin,
 	NamedChunkIdsPlugin,
 	NamedModuleIdsPlugin,
+	NaturalChunkIdsPlugin,
+	NaturalModuleIdsPlugin,
 	NodeTargetPlugin,
 	RealContentHashPlugin,
 	RemoveEmptyChunksPlugin,
@@ -65,6 +68,7 @@ import {
 } from "./builtin-plugin";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import { Module } from "./Module";
 import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { assertNotNill } from "./util/assertNotNil";
@@ -232,28 +236,53 @@ export class RspackOptionsApply {
 			new MergeDuplicateChunksPlugin().apply(compiler);
 		}
 
-		if (options.experiments.rspackFuture?.newTreeshaking) {
-			if (options.optimization.sideEffects) {
-				new SideEffectsFlagPlugin(/* options.optimization.sideEffects === true */).apply(
-					compiler
-				);
-			}
-			if (options.optimization.providedExports) {
-				new FlagDependencyExportsPlugin().apply(compiler);
-			}
-			if (options.optimization.usedExports) {
-				new FlagDependencyUsagePlugin(
-					options.optimization.usedExports === "global"
-				).apply(compiler);
-			}
-			if (options.optimization.concatenateModules) {
-				new ModuleConcatenationPlugin().apply(compiler);
-			}
-			if (options.optimization.mangleExports) {
-				new MangleExportsPlugin(
-					options.optimization.mangleExports !== "size"
-				).apply(compiler);
-			}
+		if (options.optimization.sideEffects) {
+			new SideEffectsFlagPlugin(/* options.optimization.sideEffects === true */).apply(
+				compiler
+			);
+		}
+		if (options.optimization.providedExports) {
+			new FlagDependencyExportsPlugin().apply(compiler);
+		}
+		if (options.optimization.usedExports) {
+			new FlagDependencyUsagePlugin(
+				options.optimization.usedExports === "global"
+			).apply(compiler);
+		}
+		if (options.optimization.concatenateModules) {
+			new ModuleConcatenationPlugin().apply(compiler);
+		}
+		if (options.optimization.mangleExports) {
+			new MangleExportsPlugin(
+				options.optimization.mangleExports !== "size"
+			).apply(compiler);
+		}
+
+		if (options.experiments.lazyCompilation) {
+			const lazyOptions = options.experiments.lazyCompilation;
+
+			new LazyCompilationPlugin(
+				// this is only for test
+				// @ts-expect-error cacheable is hide
+				lazyOptions.cacheable ?? true,
+				lazyOptions.entries ?? true,
+				lazyOptions.imports ?? true,
+				typeof lazyOptions.test === "function"
+					? function (jsModule) {
+							return (lazyOptions.test as (jsModule: Module) => boolean)!.call(
+								lazyOptions,
+								new Module(jsModule)
+							);
+						}
+					: lazyOptions.test
+						? {
+								source: lazyOptions.test.source,
+								flags: lazyOptions.test.flags
+							}
+						: undefined,
+				// @ts-expect-error backend is hide
+				lazyOptions.backend
+			).apply(compiler);
 		}
 
 		if (
@@ -281,6 +310,10 @@ export class RspackOptionsApply {
 					new NamedModuleIdsPlugin().apply(compiler);
 					break;
 				}
+				case "natural": {
+					new NaturalModuleIdsPlugin().apply(compiler);
+					break;
+				}
 				case "deterministic": {
 					new DeterministicModuleIdsPlugin().apply(compiler);
 					break;
@@ -292,6 +325,9 @@ export class RspackOptionsApply {
 		const chunkIds = options.optimization.chunkIds;
 		if (chunkIds) {
 			switch (chunkIds) {
+				case "natural": {
+					new NaturalChunkIdsPlugin().apply(compiler);
+				}
 				case "named": {
 					new NamedChunkIdsPlugin().apply(compiler);
 					break;

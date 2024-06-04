@@ -10,10 +10,10 @@ use rspack_core::concatenated_module::{
 };
 use rspack_core::{
   filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation,
-  CompilationOptimizeChunkModules, CompilerContext, CompilerOptions, ExportInfoProvided,
-  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, Plugin, PluginContext, ProvidedExports,
-  RuntimeCondition, RuntimeSpec, SourceType,
+  CompilationOptimizeChunkModules, CompilerContext, CompilerModuleContext, CompilerOptions,
+  ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, Plugin, PluginContext,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -910,10 +910,8 @@ impl ModuleConcatenationPlugin {
             compiler_context: CompilerContext {
               options: compilation.options.clone(),
               resolver_factory: compilation.resolver_factory.clone(),
-              module: new_module.id(),
-              module_context: None,
+              module: CompilerModuleContext::from_module(&new_module),
               module_source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
-              cache: compilation.cache.clone(),
               plugin_driver: compilation.plugin_driver.clone(),
             },
             plugin_driver: compilation.plugin_driver.clone(),
@@ -928,8 +926,7 @@ impl ModuleConcatenationPlugin {
         .module_graph_module_by_identifier(&root_module_id)
         .expect("should have mgm")
         .exports;
-      let module_graph_module =
-        ModuleGraphModule::new(new_module.id(), *new_module.module_type(), root_mgm_exports);
+      let module_graph_module = ModuleGraphModule::new(new_module.id(), root_mgm_exports);
       module_graph.add_module_graph_module(module_graph_module);
       module_graph.clone_module_attributes(&root_module_id, &new_module.id());
       // integrate

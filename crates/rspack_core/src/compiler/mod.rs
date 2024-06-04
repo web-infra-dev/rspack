@@ -3,8 +3,6 @@ mod hmr;
 mod make;
 mod module_executor;
 
-use std::collections::hash_map::Entry;
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -12,20 +10,17 @@ use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
 use rspack_hook::define_hook;
-use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
-use swc_core::ecma::atoms::Atom;
 use tracing::instrument;
 
 pub use self::compilation::*;
 pub use self::hmr::{collect_changed_modules, CompilationRecords};
 pub use self::module_executor::{ExecuteModuleId, ModuleExecutor};
-use crate::cache::Cache;
-use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
-use crate::tree_shaking::visitor::SymbolRef;
-use crate::{fast_set, CompilerOptions, Logger, PluginDriver, ResolverFactory, SharedPluginDriver};
-use crate::{BoxPlugin, ExportInfo, UsageState};
+use crate::old_cache::Cache as OldCache;
+use crate::{
+  fast_set, BoxPlugin, CompilerOptions, Logger, PluginDriver, ResolverFactory, SharedPluginDriver,
+};
 use crate::{ContextModuleFactory, NormalModuleFactory};
 
 // should be SyncHook, but rspack need call js hook
@@ -64,7 +59,7 @@ where
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
-  pub cache: Arc<Cache>,
+  pub old_cache: Arc<OldCache>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
@@ -85,8 +80,7 @@ where
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
     let loader_resolver_factory = Arc::new(ResolverFactory::new(options.resolve_loader.clone()));
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
-    let cache = Arc::new(Cache::new(options.clone()));
-    assert!(!(options.is_new_tree_shaking() && options.builtins.tree_shaking.enable()), "Can't enable builtins.tree_shaking and `experiments.rspack_future.new_treeshaking` at the same time");
+    let old_cache = Arc::new(OldCache::new(options.clone()));
     let module_executor = ModuleExecutor::default();
     Self {
       options: options.clone(),
@@ -96,7 +90,7 @@ where
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
         None,
-        cache.clone(),
+        old_cache.clone(),
         Some(module_executor),
         Default::default(),
         Default::default(),
@@ -105,7 +99,7 @@ where
       plugin_driver,
       resolver_factory,
       loader_resolver_factory,
-      cache,
+      old_cache,
       emitted_asset_versions: Default::default(),
     }
   }
@@ -117,7 +111,7 @@ where
 
   #[instrument(name = "build", skip_all)]
   pub async fn build(&mut self) -> Result<()> {
-    self.cache.end_idle();
+    self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.resolver_factory.clear_cache();
@@ -131,7 +125,7 @@ where
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
-        self.cache.clone(),
+        self.old_cache.clone(),
         Some(module_executor),
         Default::default(),
         Default::default(),
@@ -139,7 +133,7 @@ where
     );
 
     self.compile().await?;
-    self.cache.begin_idle();
+    self.old_cache.begin_idle();
     self.compile_done().await?;
     Ok(())
   }
@@ -166,7 +160,6 @@ where
       .await?;
 
     let logger = self.compilation.get_logger("rspack.Compiler");
-    let option = self.options.clone();
     let make_start = logger.time("make");
     let make_hook_start = logger.time("make hook");
     if let Some(e) = self
@@ -177,7 +170,7 @@ where
       .await
       .err()
     {
-      self.compilation.push_batch_diagnostic(vec![e.into()]);
+      self.compilation.extend_diagnostics(vec![e.into()]);
     }
     logger.time_end(make_hook_start);
     self.compilation.make().await?;
@@ -195,97 +188,6 @@ where
     let start = logger.time("finish compilation");
     self.compilation.finish(self.plugin_driver.clone()).await?;
     logger.time_end(start);
-    // by default include all module in final chunk
-    self.compilation.include_module_ids = self
-      .compilation
-      .get_module_graph()
-      .modules()
-      .keys()
-      .cloned()
-      .collect::<IdentifierSet>();
-
-    if option.builtins.tree_shaking.enable()
-      || option
-        .output
-        .enabled_library_types
-        .as_ref()
-        .map(|types| {
-          types
-            .iter()
-            .any(|item| item == "module" || item == "commonjs-static")
-        })
-        .unwrap_or(false)
-    {
-      let (mut analyze_result, diagnostics) = self
-        .compilation
-        .optimize_dependency()
-        .await?
-        .split_into_parts();
-      if !diagnostics.is_empty() {
-        self.compilation.push_batch_diagnostic(diagnostics);
-      }
-      self.compilation.used_symbol_ref = analyze_result.used_symbol_ref;
-      let mut exports_info_map: IdentifierMap<HashMap<Atom, ExportInfo>> = IdentifierMap::default();
-      self.compilation.used_symbol_ref.iter().for_each(|item| {
-        let (importer, name) = match item {
-          SymbolRef::Declaration(d) => (d.src(), d.exported()),
-          SymbolRef::Indirect(i) => match i.ty {
-            IndirectType::Import(_, _) => (i.src(), i.indirect_id()),
-            IndirectType::ImportDefault(_) => (i.src(), DEFAULT_JS_WORD.deref()),
-            IndirectType::ReExport(_, _) => (i.importer(), i.id()),
-            _ => return,
-          },
-          SymbolRef::Star(s) => match s.ty() {
-            StarSymbolKind::ReExportAllAs => (s.module_ident(), s.binding()),
-            _ => return,
-          },
-          SymbolRef::Usage(_, _, _) => return,
-          SymbolRef::Url { .. } => return,
-          SymbolRef::Worker { .. } => return,
-        };
-        match exports_info_map.entry(importer) {
-          Entry::Occupied(mut occ) => {
-            let export_info = ExportInfo::new(Some(name.clone()), UsageState::Used, None);
-            occ.get_mut().insert(name.clone(), export_info);
-          }
-          Entry::Vacant(vac) => {
-            let mut map = HashMap::default();
-            let export_info = ExportInfo::new(Some(name.clone()), UsageState::Used, None);
-            map.insert(name.clone(), export_info);
-            vac.insert(map);
-          }
-        }
-      });
-      {
-        let mut module_graph = self.compilation.get_module_graph_mut();
-        for (module_identifier, exports_map) in exports_info_map.into_iter() {
-          let exports_id = module_graph
-            .module_graph_module_by_identifier(&module_identifier)
-            .map(|mgm| mgm.exports);
-          if let Some(exports_id) = &exports_id {
-            for (name, export_info) in exports_map {
-              let exports = module_graph.get_exports_info_mut_by_id(exports_id);
-              let export_id = export_info.id;
-              exports.exports.insert(name, export_id);
-              module_graph.set_export_info(export_id, export_info);
-            }
-          }
-        }
-      }
-
-      self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
-      self.compilation.side_effects_free_modules = analyze_result.side_effects_free_modules;
-      self.compilation.module_item_map = analyze_result.module_item_map;
-      if self.options.builtins.tree_shaking.enable()
-        && self.options.optimization.side_effects.is_enable()
-      {
-        self.compilation.include_module_ids = analyze_result.include_module_ids;
-      }
-      std::mem::swap(
-        self.compilation.optimize_analyze_result_map_mut(),
-        &mut analyze_result.analyze_results,
-      );
-    }
     let start = logger.time("seal compilation");
     self.compilation.seal(self.plugin_driver.clone()).await?;
     logger.time_end(start);
@@ -294,7 +196,7 @@ where
     let plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
     self
       .compilation
-      .push_batch_diagnostic(plugin_driver_diagnostics);
+      .extend_diagnostics(plugin_driver_diagnostics);
 
     Ok(())
   }
@@ -440,6 +342,7 @@ where
         self.plugin_driver.clone(),
       )),
       context_module_factory: Arc::new(ContextModuleFactory::new(
+        self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         self.plugin_driver.clone(),
       )),

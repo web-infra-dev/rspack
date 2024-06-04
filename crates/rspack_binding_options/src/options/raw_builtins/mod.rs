@@ -4,6 +4,7 @@ mod raw_copy;
 mod raw_css_extract;
 mod raw_html;
 mod raw_ignore;
+mod raw_lazy_compilation;
 mod raw_limit_chunk_count;
 mod raw_mf;
 mod raw_progress;
@@ -14,11 +15,11 @@ mod raw_to_be_deprecated;
 
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
-use rspack_core::{BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin};
+use rspack_core::{BoxPlugin, Define, DefinePlugin, Plugin, PluginExt, Provide, ProvidePlugin};
 use rspack_error::Result;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
-  NamedModuleIdsPlugin,
+  NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin,
 };
 use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
@@ -79,6 +80,7 @@ pub use self::{
 use self::{
   raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
   raw_css_extract::RawCssExtractPluginOption,
+  raw_lazy_compilation::{JsBackend, RawLazyCompilationOption},
   raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
   raw_runtime_chunk::RawRuntimeChunkOptions,
   raw_size_limits::RawSizeLimitsPluginOptions,
@@ -124,7 +126,9 @@ pub enum BuiltinPluginName {
   ConsumeSharedPlugin,
   ModuleFederationRuntimePlugin,
   NamedModuleIdsPlugin,
+  NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
+  NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
   RealContentHashPlugin,
@@ -165,6 +169,7 @@ pub enum BuiltinPluginName {
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
   JsLoaderRspackPlugin,
+  LazyCompilationPlugin,
 }
 
 #[napi(object)]
@@ -320,8 +325,14 @@ impl BuiltinPlugin {
       BuiltinPluginName::NamedModuleIdsPlugin => {
         plugins.push(NamedModuleIdsPlugin::default().boxed())
       }
+      BuiltinPluginName::NaturalModuleIdsPlugin => {
+        plugins.push(NaturalModuleIdsPlugin::default().boxed())
+      }
       BuiltinPluginName::DeterministicModuleIdsPlugin => {
         plugins.push(DeterministicModuleIdsPlugin::default().boxed())
+      }
+      BuiltinPluginName::NaturalChunkIdsPlugin => {
+        plugins.push(NaturalChunkIdsPlugin::default().boxed())
       }
       BuiltinPluginName::NamedChunkIdsPlugin => {
         plugins.push(NamedChunkIdsPlugin::new(None, None).boxed())
@@ -467,6 +478,19 @@ impl BuiltinPlugin {
         plugins.push(
           JsLoaderResolverPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed(),
         );
+      }
+      BuiltinPluginName::LazyCompilationPlugin => {
+        let options = downcast_into::<RawLazyCompilationOption>(self.options)?;
+        let js_backend = JsBackend::from(&options);
+        plugins.push(Box::new(
+          rspack_plugin_lazy_compilation::plugin::LazyCompilationPlugin::new(
+            options.cacheable,
+            js_backend,
+            options.test.map(|test| test.into()),
+            options.entries,
+            options.imports,
+          ),
+        ) as Box<dyn Plugin>)
       }
     }
     Ok(())

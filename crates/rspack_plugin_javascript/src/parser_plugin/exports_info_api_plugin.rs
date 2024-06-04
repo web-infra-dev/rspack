@@ -1,7 +1,7 @@
 use rspack_core::{extract_member_expression_chain, ConstDependency, SpanExt};
 
 use super::JavascriptParserPlugin;
-use crate::dependency::ExportInfoApiDependency;
+use crate::{dependency::ExportInfoApiDependency, visitors::JavascriptParser};
 
 const WEBPACK_EXPORTS_INFO: &str = "__webpack_exports_info__";
 
@@ -10,7 +10,7 @@ pub struct ExportsInfoApiPlugin;
 impl JavascriptParserPlugin for ExportsInfoApiPlugin {
   fn member(
     &self,
-    parser: &mut crate::visitors::JavascriptParser,
+    parser: &mut JavascriptParser,
     member_expr: &swc_core::ecma::ast::MemberExpr,
     _name: &str,
   ) -> Option<bool> {

@@ -35,7 +35,7 @@ export async function version_handler(version) {
 	const lastVersion = await getLastVersion(root);
 	let nextVersion;
 	if (version === "snapshot") {
-		nextVersion = await getSnapshotVersion(lastVersion);
+		nextVersion = await getSnapshotVersion(semver.inc(lastVersion, "patch"));
 	} else {
 		nextVersion = semver.inc(lastVersion, version);
 	}

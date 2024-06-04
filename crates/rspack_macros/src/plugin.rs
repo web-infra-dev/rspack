@@ -7,7 +7,7 @@ use syn::{
 pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
   let ident = &input.ident;
   let inner_ident = plugin_inner_ident(ident);
-
+  let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
   let inner_fields = input.fields.clone();
   let is_named_struct = matches!(&inner_fields, syn::Fields::Named(_));
   let is_unit_struct = matches!(&inner_fields, syn::Fields::Unit);
@@ -19,7 +19,7 @@ pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
 
   input.fields = syn::Fields::Named(
     syn::FieldsNamed::parse
-      .parse2(quote! { { inner: ::std::sync::Arc<#inner_ident> } })
+      .parse2(quote! { { inner: ::std::sync::Arc<#inner_ident #ty_generics> } })
       .expect("Failed to parse"),
   );
 
@@ -51,33 +51,33 @@ pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
 
   let inner_struct = if is_named_struct {
     quote! {
-      pub struct #inner_ident #inner_fields
+      pub struct #inner_ident #impl_generics #where_clause #inner_fields
     }
   } else {
     quote! {
-      pub struct #inner_ident;
+      pub struct #inner_ident #impl_generics #where_clause;
     }
   };
 
   let expanded = quote! {
     #input
 
-    impl #ident {
+    impl #impl_generics #ident #ty_generics #where_clause {
       #new_inner_fn
 
-      fn from_inner(inner: &::std::sync::Arc<#inner_ident>) -> Self {
+      fn from_inner(inner: &::std::sync::Arc<#inner_ident #ty_generics>) -> Self {
         Self {
           inner: ::std::sync::Arc::clone(inner),
         }
       }
 
-      fn inner(&self) -> &::std::sync::Arc<#inner_ident> {
+      fn inner(&self) -> &::std::sync::Arc<#inner_ident #ty_generics> {
         &self.inner
       }
     }
 
-    impl ::std::ops::Deref for #ident {
-      type Target = #inner_ident;
+    impl #impl_generics ::std::ops::Deref for #ident #ty_generics #where_clause {
+      type Target = #inner_ident #ty_generics;
       fn deref(&self) -> &Self::Target {
         &self.inner
       }
@@ -99,6 +99,7 @@ pub struct HookArgs {
   trait_: syn::Path,
   name: syn::Ident,
   stage: Option<syn::Expr>,
+  generics: syn::Generics,
 }
 
 impl Parse for HookArgs {
@@ -118,10 +119,13 @@ impl Parse for HookArgs {
         _ => return Err(input.error("expected \"stage\" or end of attribute")),
       }
     }
+
+    let generics = input.parse::<syn::Generics>()?;
     Ok(Self {
       trait_,
       name,
       stage,
+      generics,
     })
   }
 }
@@ -131,7 +135,9 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
     name,
     trait_,
     stage,
+    generics,
   } = args;
+  let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
   let syn::ItemFn { mut sig, block, .. } = input;
   let real_sig = sig.clone();
   let mut rest_args = Vec::new();
@@ -172,32 +178,32 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
 
   let expanded = quote! {
     #[allow(non_camel_case_types)]
-    struct #fn_ident {
-      inner: ::std::sync::Arc<#inner_ident>,
+    struct #fn_ident #impl_generics #where_clause {
+      inner: ::std::sync::Arc<#inner_ident #ty_generics>,
     }
 
-    impl #fn_ident {
-      pub(crate) fn new(plugin: &#name) -> Self {
+    impl #impl_generics #fn_ident #ty_generics #where_clause {
+      pub(crate) fn new(plugin: &#name #ty_generics) -> Self {
         #fn_ident {
           inner: ::std::sync::Arc::clone(plugin.inner()),
         }
       }
     }
 
-    impl #name {
+    impl #impl_generics #name #ty_generics #where_clause {
       #[allow(clippy::ptr_arg)]
       #real_sig #block
     }
 
-    impl ::std::ops::Deref for #fn_ident {
-      type Target = #inner_ident;
+    impl #impl_generics ::std::ops::Deref for #fn_ident #ty_generics #where_clause {
+      type Target = #inner_ident #ty_generics;
       fn deref(&self) -> &Self::Target {
         &self.inner
       }
     }
 
     #attr
-    impl #trait_ for #fn_ident {
+    impl #impl_generics #trait_ for #fn_ident #ty_generics #where_clause {
       #sig {
         #call_real_fn
       }

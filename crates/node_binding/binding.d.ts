@@ -7,6 +7,8 @@ export type JsFilename =
 	| ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
+
+export type RawLazyCompilationTest = RegExp | ((m: JsModule) => boolean);
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -137,7 +139,9 @@ export enum BuiltinPluginName {
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
+  NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
   DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
   RealContentHashPlugin = 'RealContentHashPlugin',
@@ -171,10 +175,20 @@ export enum BuiltinPluginName {
   SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
-  JsLoaderRspackPlugin = 'JsLoaderRspackPlugin'
+  JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
+  LazyCompilationPlugin = 'LazyCompilationPlugin'
 }
 
 export function cleanupGlobalTrace(): void
+
+export interface JsAdditionalTreeRuntimeRequirementsArg {
+  chunk: JsChunk
+  runtimeRequirements: JsRuntimeGlobals
+}
+
+export interface JsAdditionalTreeRuntimeRequirementsResult {
+  runtimeRequirements: JsRuntimeGlobals
+}
 
 export interface JsAfterResolveData {
   request: string
@@ -298,7 +312,7 @@ export interface JsContextModuleFactoryAfterResolveData {
   resource: string
   context: string
   request: string
-  regExp?: string
+  regExp?: RawRegex
 }
 
 export interface JsContextModuleFactoryBeforeResolveData {
@@ -374,7 +388,9 @@ export interface JsLoaderContext {
    * @internal
    */
   diagnosticsExternal: ExternalObject<'Diagnostic[]'>
+  /** Will be deprecated. Use module.module_identifier instead */
   _moduleIdentifier: string
+  _module: JsModule
   hot: boolean
 }
 
@@ -401,6 +417,8 @@ export interface JsModule {
   resource?: string
   moduleIdentifier: string
   nameForCondition?: string
+  request?: string
+  userRequest?: string
   rawRequest?: string
 }
 
@@ -436,6 +454,10 @@ export interface JsResourceData {
   query?: string
   /** Resource fragment with `#` prefix */
   fragment?: string
+}
+
+export interface JsRuntimeGlobals {
+  value: Array<string>
 }
 
 export interface JsRuntimeModule {
@@ -650,6 +672,7 @@ export interface RawBannerPluginOptions {
   entryOnly?: boolean
   footer?: boolean
   raw?: boolean
+  stage?: number
   test?: string | RegExp | (string | RegExp)[]
   include?: string | RegExp | (string | RegExp)[]
   exclude?: string | RegExp | (string | RegExp)[]
@@ -969,6 +992,18 @@ export interface RawJavascriptParserOptions {
   url: string
   exprContextCritical: boolean
   wrappedContextCritical: boolean
+  exportsPresence?: string
+  importExportsPresence?: string
+  reexportExportsPresence?: string
+  strictExportPresence: boolean
+}
+
+export interface RawLazyCompilationOption {
+  module: (err: Error | null, arg: RawModuleArg) => any
+  test?: RawLazyCompilationTest
+  entries: boolean
+  imports: boolean
+  cacheable: boolean
 }
 
 export interface RawLibraryAuxiliaryComment {
@@ -1006,6 +1041,11 @@ export interface RawLimitChunkCountPluginOptions {
   maxChunks: number
 }
 
+export interface RawModuleArg {
+  module: string
+  path: string
+}
+
 export interface RawModuleFilenameTemplateFnCtx {
   identifier: string
   shortIdentifier: string
@@ -1018,6 +1058,12 @@ export interface RawModuleFilenameTemplateFnCtx {
   moduleId: string
   hash: string
   namespace: string
+}
+
+export interface RawModuleInfo {
+  active: boolean
+  client: string
+  data: string
 }
 
 export interface RawModuleOptions {
@@ -1114,7 +1160,6 @@ export interface RawOptions {
   node?: RawNodeOption
   profile: boolean
   bail: boolean
-  builtins: RawBuiltins
 }
 
 export interface RawOutputOptions {
@@ -1211,7 +1256,7 @@ export interface RawReactOptions {
   refresh?: boolean
 }
 
-export interface RawRegexMatcher {
+export interface RawRegex {
   source: string
   flags: string
 }
@@ -1262,13 +1307,13 @@ export interface RawResolveTsconfigOptions {
 }
 
 export interface RawRspackFuture {
-  newTreeshaking: boolean
+
 }
 
 export interface RawRuleSetCondition {
   type: "string" | "regexp" | "logical" | "array" | "function"
   stringMatcher?: string
-  regexpMatcher?: RawRegexMatcher
+  regexpMatcher?: RawRegex
   logicalMatcher?: Array<RawRuleSetLogicalConditions>
   arrayMatcher?: Array<RawRuleSetCondition>
   funcMatcher?: (value: string) => boolean
@@ -1296,13 +1341,7 @@ export interface RawSizeLimitsPluginOptions {
 }
 
 export interface RawSnapshotOptions {
-  resolve: RawSnapshotStrategy
-  module: RawSnapshotStrategy
-}
 
-export interface RawSnapshotStrategy {
-  hash: boolean
-  timestamp: boolean
 }
 
 export interface RawSourceMapDevToolPluginOptions {
@@ -1393,17 +1432,18 @@ export enum RegisterJsTapKind {
   CompilationAfterOptimizeModules = 14,
   CompilationOptimizeTree = 15,
   CompilationOptimizeChunkModules = 16,
-  CompilationRuntimeModule = 17,
-  CompilationChunkAsset = 18,
-  CompilationProcessAssets = 19,
-  CompilationAfterProcessAssets = 20,
-  CompilationAfterSeal = 21,
-  NormalModuleFactoryBeforeResolve = 22,
-  NormalModuleFactoryAfterResolve = 23,
-  NormalModuleFactoryCreateModule = 24,
-  NormalModuleFactoryResolveForScheme = 25,
-  ContextModuleFactoryBeforeResolve = 26,
-  ContextModuleFactoryAfterResolve = 27
+  CompilationAdditionalTreeRuntimeRequirements = 17,
+  CompilationRuntimeModule = 18,
+  CompilationChunkAsset = 19,
+  CompilationProcessAssets = 20,
+  CompilationAfterProcessAssets = 21,
+  CompilationAfterSeal = 22,
+  NormalModuleFactoryBeforeResolve = 23,
+  NormalModuleFactoryAfterResolve = 24,
+  NormalModuleFactoryCreateModule = 25,
+  NormalModuleFactoryResolveForScheme = 26,
+  ContextModuleFactoryBeforeResolve = 27,
+  ContextModuleFactoryAfterResolve = 28
 }
 
 export interface RegisterJsTaps {
@@ -1419,6 +1459,7 @@ export interface RegisterJsTaps {
   registerCompilationStillValidModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationSucceedModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>
+  registerCompilationAdditionalTreeRuntimeRequirements: (stages: Array<number>) => Array<{ function: ((arg: JsAdditionalTreeRuntimeRequirementsArg) => JsAdditionalTreeRuntimeRequirementsResult | undefined); stage: number; }>
   registerCompilationRuntimeModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>
   registerCompilationFinishModulesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>

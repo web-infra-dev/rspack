@@ -32,6 +32,7 @@ import type {
 	InfrastructureLogging,
 	JavascriptParserOptions,
 	Library,
+	Loader,
 	Mode,
 	ModuleOptions,
 	Node,
@@ -123,6 +124,11 @@ export const applyRspackOptionsDefaults = (
 
 	applyNodeDefaults(options.node, { targetProperties });
 
+	applyLoaderDefaults(options.loader, {
+		targetProperties,
+		environment: options.output.environment
+	});
+
 	F(options, "performance", () =>
 		production &&
 		targetProperties &&
@@ -186,7 +192,6 @@ const applyExperimentsDefaults = (
 
 	D(experiments, "rspackFuture", {});
 	if (typeof experiments.rspackFuture === "object") {
-		D(experiments.rspackFuture, "newTreeshaking", true);
 		D(experiments.rspackFuture, "bundlerInfo", {});
 		if (typeof experiments.rspackFuture.bundlerInfo === "object") {
 			D(
@@ -200,30 +205,9 @@ const applyExperimentsDefaults = (
 };
 
 const applySnapshotDefaults = (
-	snapshot: SnapshotOptions,
-	{ production }: { production: boolean }
-) => {
-	if (typeof snapshot.module === "object") {
-		D(snapshot.module, "timestamp", false);
-		D(snapshot.module, "hash", false);
-	} else {
-		F(snapshot, "module", () =>
-			production
-				? { timestamp: true, hash: true }
-				: { timestamp: true, hash: false }
-		);
-	}
-	if (typeof snapshot.resolve === "object") {
-		D(snapshot.resolve, "timestamp", false);
-		D(snapshot.resolve, "hash", false);
-	} else {
-		F(snapshot, "resolve", () =>
-			production
-				? { timestamp: true, hash: true }
-				: { timestamp: true, hash: false }
-		);
-	}
-};
+	_snapshot: SnapshotOptions,
+	_env: { production: boolean }
+) => {};
 
 const applyJavascriptParserOptionsDefaults = (
 	parserOptions: JavascriptParserOptions,
@@ -250,6 +234,18 @@ const applyJavascriptParserOptionsDefaults = (
 		parserOptions,
 		"wrappedContextCritical",
 		fallback?.wrappedContextCritical ?? false
+	);
+	D(parserOptions, "exportsPresence", fallback?.exportsPresence);
+	D(parserOptions, "importExportsPresence", fallback?.importExportsPresence);
+	D(
+		parserOptions,
+		"reexportExportsPresence",
+		fallback?.reexportExportsPresence
+	);
+	D(
+		parserOptions,
+		"strictExportPresence",
+		fallback?.strictExportPresence ?? false
 	);
 };
 
@@ -836,6 +832,26 @@ const applyExternalsPresetsDefaults = (
 	);
 };
 
+const applyLoaderDefaults = (
+	loader: Loader,
+	{ targetProperties, environment }: { targetProperties: any; environment: any }
+) => {
+	F(loader, "target", () => {
+		if (targetProperties) {
+			if (targetProperties.electron) {
+				if (targetProperties.electronMain) return "electron-main";
+				if (targetProperties.electronPreload) return "electron-preload";
+				if (targetProperties.electronRenderer) return "electron-renderer";
+				return "electron";
+			}
+			if (targetProperties.nwjs) return "nwjs";
+			if (targetProperties.node) return "node";
+			if (targetProperties.web) return "web";
+		}
+	});
+	D(loader, "environment", environment);
+};
+
 const applyNodeDefaults = (
 	node: Node,
 	{ targetProperties }: { targetProperties: any }
@@ -877,14 +893,17 @@ const applyOptimizationDefaults = (
 	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
-	F(optimization, "moduleIds", (): "named" | "deterministic" => {
-		if (production) return "deterministic";
-		return "named";
-	});
-	F(optimization, "chunkIds", (): "named" | "deterministic" => {
+	F(optimization, "moduleIds", (): "natural" | "named" | "deterministic" => {
 		if (production) return "deterministic";
 		if (development) return "named";
-		return "named"; // we have not implemented 'natural' so use 'named' now
+		// TODO(rspack@1.0): change to `"natural"`
+		return "named";
+	});
+	F(optimization, "chunkIds", (): "natural" | "named" | "deterministic" => {
+		if (production) return "deterministic";
+		if (development) return "named";
+		// TODO(rspack@1.0): change to `"natural"`
+		return "named";
 	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "mangleExports", production);
@@ -1007,6 +1026,7 @@ const getResolveDefaults = ({
 		exportsFields: ["exports"],
 		roots: [context],
 		mainFields: ["main"],
+		importsFields: ["imports"],
 		byDependency: {
 			wasm: esmDeps(),
 			esm: esmDeps(),

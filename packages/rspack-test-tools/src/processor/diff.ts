@@ -17,7 +17,7 @@ import {
 	TFileCompareResult,
 	TModuleCompareResult
 } from "../type";
-import { BasicTaskProcessor } from "./basic";
+import { BasicProcessor } from "./basic";
 
 export interface IDiffProcessorOptions extends IFormatCodeOptions {
 	webpackPath: string;
@@ -36,10 +36,10 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
 }
 export class DiffProcessor implements ITestProcessor {
 	private hashes: string[] = [];
-	private webpack: BasicTaskProcessor<ECompilerType.Webpack>;
-	private rspack: BasicTaskProcessor<ECompilerType.Rspack>;
+	private webpack: BasicProcessor<ECompilerType.Webpack>;
+	private rspack: BasicProcessor<ECompilerType.Rspack>;
 	constructor(private options: IDiffProcessorOptions) {
-		this.webpack = new BasicTaskProcessor<ECompilerType.Webpack>({
+		this.webpack = new BasicProcessor<ECompilerType.Webpack>({
 			defaultOptions: context =>
 				this.getDefaultOptions(
 					ECompilerType.Webpack,
@@ -52,7 +52,7 @@ export class DiffProcessor implements ITestProcessor {
 			runable: false
 		});
 
-		this.rspack = new BasicTaskProcessor<ECompilerType.Rspack>({
+		this.rspack = new BasicProcessor<ECompilerType.Rspack>({
 			defaultOptions: context =>
 				this.getDefaultOptions(
 					ECompilerType.Rspack,
@@ -83,11 +83,13 @@ export class DiffProcessor implements ITestProcessor {
 		const webpackStats = webpackCompiler.getStats();
 		//TODO: handle chunk hash and content hash
 		webpackStats?.hash && this.hashes.push(webpackStats?.hash);
+		env.expect(webpackStats?.hasErrors()).toBe(false);
 
 		const rspackCompiler = context.getCompiler(ECompilerType.Rspack);
 		const rspackStats = rspackCompiler.getStats();
 		//TODO: handle chunk hash and content hash
 		rspackStats?.hash && this.hashes.push(rspackStats?.hash);
+		env.expect(rspackStats?.hasErrors()).toBe(false);
 
 		const dist = context.getDist();
 		for (let file of this.options.files!) {

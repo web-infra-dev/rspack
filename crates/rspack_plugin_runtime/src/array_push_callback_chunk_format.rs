@@ -82,12 +82,12 @@ impl JavascriptModulesPluginPlugin for ArrayPushCallbackChunkFormatJavascriptMod
       let chunk_loading_global = &args.compilation.options.output.chunk_loading_global;
 
       source.add(RawSource::from(format!(
-        r#"({}['{}'] = {}['{}'] || []).push([["{}"], "#,
+        r#"({}['{}'] = {}['{}'] || []).push([[{}], "#,
         global_object,
         chunk_loading_global,
         global_object,
         chunk_loading_global,
-        chunk.expect_id(),
+        serde_json::to_string(chunk.expect_id()).expect("json stringify failed"),
       )));
       source.add(args.module_source.clone());
       let has_entry = chunk.has_entry_module(&args.compilation.chunk_graph);

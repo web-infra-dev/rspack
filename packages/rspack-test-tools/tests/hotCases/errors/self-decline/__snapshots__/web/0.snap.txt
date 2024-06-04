@@ -1,7 +1,7 @@
 # Case self-decline: Step 0
 
 ## Changed Files
-- c.js
+
 
 ## Asset Files
 - Bundle: bundle.js

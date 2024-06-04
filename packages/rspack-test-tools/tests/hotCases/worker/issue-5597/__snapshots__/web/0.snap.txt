@@ -1,10 +1,7 @@
 # Case issue-5597: Step 0
 
 ## Changed Files
-- moduleA.js
-- moduleAs.js
-- moduleB.js
-- moduleBs.js
+
 
 ## Asset Files
 - Bundle: main.CURRENT_HASH.js

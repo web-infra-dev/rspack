@@ -175,6 +175,36 @@ Enable warnings for full dynamic dependencies (`import(variable)`).
 
 Enable warnings for partial dynamic dependencies (`import("./path/to/" + variable)`).
 
+#### module.parser.javascript.exportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **Type:** `"error" | "warn" | "auto" | false`
+- **Default:** `"auto"`
+
+Warn or error for using non-existent exports and conflicting re-exports.
+
+- `"error"`: Report errors.
+- `"warn"`: Report warnings.
+- `"auto"`: Depending on whether the module is a strict ESM, give an error if it is, otherwise give a warning.
+- `false`: Disable this feature.
+
+#### module.parser.javascript.importExportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **Type:** `"error" | "warn" | "auto" | false`
+
+Warn or error for using non-existent exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
+
+#### module.parser.javascript.reexportExportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **Type:** `"error" | "warn" | "auto" | false`
+
+Warn or error for conflicting re-exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
+
 ### module.parser["javascript/auto"]
 
 <ApiMeta addedVersion="0.6.3" />
@@ -502,7 +532,9 @@ Customize how CSS export names are exported to javascript modules, such as keepi
 - **Type:** `boolean`
 - **Default:** `true` for node environments, `false` for web environments.
 
-Avoid generating and loading a stylesheet and only embed exports from CSS into output javascript files.
+If `true`, **only exports** the identifier mappings from CSS into the output JavaScript files, without embedding any stylesheets in the template. Useful if you are using CSS Modules for pre-rendering (e.g. SSR).
+
+If `false`, generate stylesheets and embed them in the template.
 
 #### module.generator["css/auto"].localIdentName
 
@@ -515,14 +547,16 @@ Customize the format of the local class names generated for CSS modules, besides
 
 #### module.generator["css/auto"].esModule
 
-<ApiMeta addedVersion="0.6.4" />
+<ApiMeta addedVersion="0.7.0" />
 
 - **Type:** `boolean`
 - **Default:** `true`
 
+This configuration is available for improved ESM-CJS interoperability purposes.
+
 Whether to add `__esModule` to the exports of CSS; if added, it will be treated as an ES Module during esm-cjs interop, otherwise, it will be treated as a CommonJS Module.
 
-For example, when using the cjs output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct esm-cjs interop, to obtain the correct exports (this can be used in conjunction with [Rule.test](#ruletest) and other matching conditions to add it only for that particular component library).
+For example, a common use case, when using the cjs output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct esm-cjs interop, to obtain the correct exports (this can be used in conjunction with [Rule.test](#ruletest) and other matching conditions to add it only for that particular component library).
 
 The original source code of the third-party component library:
 
@@ -576,7 +610,7 @@ Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexpo
 
 #### module.generator.css.esModule
 
-<ApiMeta addedVersion="0.6.4" />
+<ApiMeta addedVersion="0.7.0" />
 
 Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
 
@@ -608,7 +642,7 @@ Same as [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautol
 
 #### module.generator["css/module"].esModule
 
-<ApiMeta addedVersion="0.6.4" />
+<ApiMeta addedVersion="0.7.0" />
 
 Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
 

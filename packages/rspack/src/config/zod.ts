@@ -1,4 +1,4 @@
-import { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
+import { JsAssetInfo, JsModule, RawFuncUseCtx } from "@rspack/binding";
 import type * as webpackDevServer from "webpack-dev-server";
 import { z } from "zod";
 
@@ -7,7 +7,6 @@ import type { Builtins as BuiltinsType } from "../builtin-plugin";
 import { Chunk } from "../Chunk";
 import { PathData } from "../Compilation";
 import { Module } from "../Module";
-import { deprecatedWarn } from "../util";
 
 //#region Name
 const name = z.string();
@@ -565,13 +564,20 @@ const cssModuleParserOptions = z.strictObject({
 });
 export type CssModuleParserOptions = z.infer<typeof cssModuleParserOptions>;
 
-//TODO: "weak", "lazy-once"
-const dynamicImportMode = z.enum(["eager", "lazy"]);
+const dynamicImportMode = z.enum(["eager", "lazy", "weak", "lazy-once"]);
 const dynamicImportPreload = z.union([z.boolean(), z.number()]);
 const dynamicImportPrefetch = z.union([z.boolean(), z.number()]);
 const javascriptParserUrl = z.union([z.literal("relative"), z.boolean()]);
 const exprContextCritical = z.boolean();
 const wrappedContextCritical = z.boolean();
+const exportsPresence = z.enum(["error", "warn", "auto"]).or(z.literal(false));
+const importExportsPresence = z
+	.enum(["error", "warn", "auto"])
+	.or(z.literal(false));
+const reexportExportsPresence = z
+	.enum(["error", "warn", "auto"])
+	.or(z.literal(false));
+const strictExportPresence = z.boolean();
 
 const javascriptParserOptions = z.strictObject({
 	dynamicImportMode: dynamicImportMode.optional(),
@@ -579,7 +585,11 @@ const javascriptParserOptions = z.strictObject({
 	dynamicImportPrefetch: dynamicImportPrefetch.optional(),
 	url: javascriptParserUrl.optional(),
 	exprContextCritical: exprContextCritical.optional(),
-	wrappedContextCritical: wrappedContextCritical.optional()
+	wrappedContextCritical: wrappedContextCritical.optional(),
+	exportsPresence: exportsPresence.optional(),
+	importExportsPresence: importExportsPresence.optional(),
+	reexportExportsPresence: reexportExportsPresence.optional(),
+	strictExportPresence: strictExportPresence.optional()
 });
 export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
 
@@ -986,23 +996,13 @@ export type NodeOptions = z.infer<typeof nodeOptions>;
 
 const node = z.literal(false).or(nodeOptions);
 export type Node = z.infer<typeof node>;
+
+const loader = z.record(z.string(), z.any());
+export type Loader = z.infer<typeof loader>;
 //#endregion
 
 //#region Snapshot
-const snapshotOptions = z.strictObject({
-	module: z
-		.strictObject({
-			hash: z.boolean().optional(),
-			timestamp: z.boolean().optional()
-		})
-		.optional(),
-	resolve: z
-		.strictObject({
-			hash: z.boolean().optional(),
-			timestamp: z.boolean().optional()
-		})
-		.optional()
-});
+const snapshotOptions = z.strictObject({});
 export type SnapshotOptions = z.infer<typeof snapshotOptions>;
 //#endregion
 
@@ -1175,8 +1175,8 @@ export type OptimizationSplitChunksOptions = z.infer<
 >;
 
 const optimization = z.strictObject({
-	moduleIds: z.enum(["named", "deterministic"]).optional(),
-	chunkIds: z.enum(["named", "deterministic"]).optional(),
+	moduleIds: z.enum(["named", "natural", "deterministic"]).optional(),
+	chunkIds: z.enum(["natural", "named", "deterministic"]).optional(),
 	minimize: z.boolean().optional(),
 	minimizer: z.literal("...").or(plugin).array().optional(),
 	mergeDuplicateChunks: z.boolean().optional(),
@@ -1198,7 +1198,6 @@ export type Optimization = z.infer<typeof optimization>;
 
 //#region Experiments
 const rspackFutureOptions = z.strictObject({
-	newTreeshaking: z.boolean().optional(),
 	bundlerInfo: z
 		.strictObject({
 			version: z.string().optional(),
@@ -1211,8 +1210,19 @@ const rspackFutureOptions = z.strictObject({
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
+const lazyCompilationOptions = z.object({
+	imports: z.boolean().optional(),
+	entries: z.boolean().optional(),
+	test: z
+		.instanceof(RegExp)
+		.or(z.function().args(z.custom<Module>()).returns(z.boolean()))
+		.optional()
+});
+
+export type LazyCompilationOptions = z.infer<typeof lazyCompilationOptions>;
+
 const experiments = z.strictObject({
-	lazyCompilation: z.boolean().optional(),
+	lazyCompilation: z.boolean().optional().or(lazyCompilationOptions),
 	asyncWebAssembly: z.boolean().optional(),
 	outputModule: z.boolean().optional(),
 	topLevelAwait: z.boolean().optional(),
@@ -1284,11 +1294,6 @@ const performance = z
 export type Performance = z.infer<typeof performance>;
 //#endregion
 
-//#region Builtins (deprecated)
-const builtins = z.custom<BuiltinsType>();
-export type Builtins = z.infer<typeof builtins>;
-//#endregion
-
 export const rspackOptions = z.strictObject({
 	name: name.optional(),
 	dependencies: dependencies.optional(),
@@ -1305,6 +1310,7 @@ export const rspackOptions = z.strictObject({
 	context: context.optional(),
 	devtool: devTool.optional(),
 	node: node.optional(),
+	loader: loader.optional(),
 	ignoreWarnings: ignoreWarnings.optional(),
 	watchOptions: watchOptions.optional(),
 	watch: watch.optional(),
@@ -1315,7 +1321,6 @@ export const rspackOptions = z.strictObject({
 	resolveLoader: resolve.optional(),
 	plugins: plugins.optional(),
 	devServer: devServer.optional(),
-	builtins: builtins.optional(),
 	module: moduleOptions.optional(),
 	profile: profile.optional(),
 	bail: bail.optional(),

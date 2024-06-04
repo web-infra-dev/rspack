@@ -20,6 +20,7 @@ class AssetsPlugin {
 	}
 }
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.js",
 	mode: "development",

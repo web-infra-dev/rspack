@@ -1,4 +1,4 @@
-use crate::{ContextOptions, Dependency};
+use crate::{ContextOptions, ContextTypePrefix, Dependency};
 
 pub trait ContextDependency: Dependency {
   fn request(&self) -> &str;
@@ -6,6 +6,12 @@ pub trait ContextDependency: Dependency {
   fn get_context(&self) -> Option<&str>;
   fn resource_identifier(&self) -> &str;
   fn set_request(&mut self, request: String);
+
+  fn get_optional(&self) -> bool {
+    false
+  }
+
+  fn type_prefix(&self) -> ContextTypePrefix;
 }
 
 pub trait AsContextDependency {

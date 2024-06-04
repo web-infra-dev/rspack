@@ -1,15 +1,14 @@
 # Case dispose-removed-chunk: Step 2
 
 ## Changed Files
-- module.js
-- a.js
 - b.js
+- module.js
 
 ## Asset Files
 - Bundle: b_js.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 35
-- Update: b_js.LAST_HASH.hot-update.js, size: 269
+- Update: b_js.LAST_HASH.hot-update.js, size: 271
 - Update: main.LAST_HASH.hot-update.js, size: 209
 
 ## Manifest
@@ -39,6 +38,8 @@ self["webpackHotUpdate"]('b_js', {
 "./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = ("version b2");
+
+
 }),
 
 });

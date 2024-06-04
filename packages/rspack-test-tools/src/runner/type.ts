@@ -24,13 +24,11 @@ export enum EEsmMode {
 export interface IBasicModuleScope extends ITestEnv {
 	console: Console;
 	expect: jest.Expect;
-	jest: typeof jest;
 	[key: string]: any;
 }
 
 export interface IBasicGlobalContext {
 	console: Console;
-	expect: jest.Expect;
 	setTimeout: typeof setTimeout;
 	clearTimeout: typeof clearTimeout;
 	[key: string]: any;

@@ -26,7 +26,6 @@ rspack_hook = { path = "../rspack_hook" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_ids = { path = "../rspack_ids/" }
 rspack_regex = { path = "../rspack_regex" }
-rspack_swc_visitors = { path = "../rspack_swc_visitors" }
 rspack_util = { path = "../rspack_util" }
 rustc-hash = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
@@ -44,6 +43,7 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_typescript",
   "base",
   "ecma_quote",
+  "base",
 ] }
 swc_node_comments = { workspace = true }
 url = { workspace = true }

@@ -120,10 +120,12 @@ export class RspackCLI {
 		options: RspackBuildCLIOptions,
 		command: Command
 	): Promise<RspackOptions | MultiRspackOptions> {
-		let commandDefaultEnv: "production" | "development" =
-			command === "build" ? "production" : "development";
-		let isBuild = command === "build";
-		let isServe = command === "serve";
+		const isBuild = command === "build";
+		const isServe = command === "serve";
+		const commandDefaultEnv: "production" | "development" = isBuild
+			? "production"
+			: "development";
+
 		const internalBuildConfig = async (item: RspackOptions) => {
 			if (options.entry) {
 				item.entry = {
@@ -176,7 +178,6 @@ export class RspackCLI {
 			if (typeof item.devtool === "undefined") {
 				item.devtool = isBuild ? "source-map" : "cheap-module-source-map";
 			}
-			item.builtins = item.builtins || {};
 			if (isServe) {
 				let installed = (item.plugins ||= []).find(
 					item => item instanceof rspackCore.ProgressPlugin

@@ -33,10 +33,7 @@ import Cache = require("./lib/Cache");
 import CacheFacade = require("./lib/CacheFacade");
 import { Source } from "webpack-sources";
 
-import {
-	deprecated_resolveBuiltins,
-	JsLoaderRspackPlugin
-} from "./builtin-plugin";
+import { JsLoaderRspackPlugin } from "./builtin-plugin";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import { Chunk } from "./Chunk";
 import { applyRspackOptionsDefaults } from "./config/defaults";
@@ -54,7 +51,11 @@ import {
 	NormalModuleCreateData,
 	NormalModuleFactory
 } from "./NormalModuleFactory";
-import { RuntimeGlobals } from "./RuntimeGlobals";
+import {
+	__from_binding_runtime_globals,
+	__to_binding_runtime_globals,
+	RuntimeGlobals
+} from "./RuntimeGlobals";
 import { unsupported } from "./util";
 import { assertNotNill } from "./util/assertNotNil";
 import { checkVersion } from "./util/bindingVersionCheck";
@@ -522,9 +523,7 @@ class Compiler {
 			output: {
 				...this.options.output,
 				...outputOptions
-			},
-			// TODO: check why we need to have builtins otherwise this.#instance will fail to initialize Rspack
-			builtins: this.options.builtins
+			}
 		};
 		applyRspackOptionsDefaults(options);
 		const childCompiler = new Compiler(this.context, options);
@@ -735,11 +734,6 @@ class Compiler {
 		}
 
 		const options = this.options;
-		// TODO: remove this when drop support for builtins options
-		options.builtins = deprecated_resolveBuiltins(
-			options.builtins,
-			options
-		) as any;
 		const rawOptions = getRawOptions(options, this);
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
@@ -808,6 +802,26 @@ class Compiler {
 						});
 					}
 			),
+			registerCompilationAdditionalTreeRuntimeRequirements:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind
+						.CompilationAdditionalTreeRuntimeRequirements,
+					() => this.#compilation!.hooks.additionalTreeRuntimeRequirements,
+					queried =>
+						({
+							chunk,
+							runtimeRequirements
+						}: binding.JsAdditionalTreeRuntimeRequirementsArg) => {
+							const set = __from_binding_runtime_globals(runtimeRequirements);
+							queried.call(
+								Chunk.__from_binding(chunk, this.#compilation!),
+								set
+							);
+							return {
+								runtimeRequirements: __to_binding_runtime_globals(set)
+							};
+						}
+				),
 			registerCompilationRuntimeModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationRuntimeModule,
 				() => this.#compilation!.hooks.runtimeModule,
@@ -829,19 +843,19 @@ class Compiler {
 				binding.RegisterJsTapKind.CompilationBuildModule,
 				() => this.#compilation!.hooks.buildModule,
 				queired => (m: binding.JsModule) =>
-					queired.call(Module.__from_binding(m))
+					queired.call(Module.__from_binding(m, this.#compilation))
 			),
 			registerCompilationStillValidModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationStillValidModule,
 				() => this.#compilation!.hooks.stillValidModule,
 				queired => (m: binding.JsModule) =>
-					queired.call(Module.__from_binding(m))
+					queired.call(Module.__from_binding(m, this.#compilation))
 			),
 			registerCompilationSucceedModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationSucceedModule,
 				() => this.#compilation!.hooks.succeedModule,
 				queired => (m: binding.JsModule) =>
-					queired.call(Module.__from_binding(m))
+					queired.call(Module.__from_binding(m, this.#compilation))
 			),
 			registerCompilationExecuteModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationExecuteModule,
@@ -1063,7 +1077,10 @@ class Compiler {
 								? ({
 										resource: bindingData.resource,
 										regExp: bindingData.regExp
-											? new RegExp(bindingData.regExp)
+											? new RegExp(
+													bindingData.regExp.source,
+													bindingData.regExp.flags
+												)
 											: undefined,
 										request: bindingData.request,
 										context: bindingData.context,
@@ -1077,7 +1094,12 @@ class Compiler {
 										resource: ret.resource,
 										context: ret.context,
 										request: ret.request,
-										regExp: ret.regExp?.toString()
+										regExp: ret.regExp
+											? {
+													source: ret.regExp.source,
+													flags: ret.regExp.flags
+												}
+											: undefined
 									} satisfies binding.JsContextModuleFactoryAfterResolveData)
 								: false;
 							return result;

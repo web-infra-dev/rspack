@@ -1,14 +1,14 @@
 const path = require("path");
 const {
-	DefaultsConfigTaskProcessor,
+	DefaultsConfigProcessor,
 	createDefaultsCase,
 	describeByWalk
 } = require("..");
 
-DefaultsConfigTaskProcessor.addSnapshotSerializer();
+DefaultsConfigProcessor.addSnapshotSerializer(expect);
 
 describe("Base Defaults Snapshot", () => {
-	const baseConfig = DefaultsConfigTaskProcessor.getDefaultConfig(
+	const baseConfig = DefaultsConfigProcessor.getDefaultConfig(
 		path.resolve(__dirname, ".."),
 		{ mode: "none" }
 	);
