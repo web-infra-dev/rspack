@@ -249,17 +249,17 @@ exports[`config config/css/export-selector exported tests should have correct cs
 "
 `;
 
-exports[`config config/css/rewrite-url exported tests should rewrite the css url() 1`] = `"95988e500e4d2ddfeeb7.png"`;
+exports[`config config/css/rewrite-url exported tests should rewrite the css url() 1`] = `"5d8d67b36a3d70a5cea9.png"`;
 
 exports[`config config/css/rewrite-url exported tests should rewrite the css url() 2`] = `"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAOCAYAAAAbvf3sAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAEWSURBVHgBjZFRSsNAEIb/3fQAOUK9gfpe6YIovjU3UE+gJ2g8gTcw3sC+itUFrW+BeAN7ATFSKAjbHWcSC+mSlszLDrvfzvzzj0LHmNpZBtBQd4Gf7fuYgHPPueoCe1DK1UsHd7Dzw+P0daQj/SC5h09OzdGktw221vZXUBlVMN0ILPd6O9yzBBXX8CBdv6kWOGa4YLivQJNjM0ia73oTLsBwJjCB5gu4i7CgbsIey5ThEcOfKziTGFOGHypJeZ7jZ/Gbst4x2/fN9h2eGTNvgk92VrDEWLNmfJXLpIYrRy5b4Fs+9v2/pL0oUncI7FuHLI6PK5lJZGoe8qXNvrry27DesoRLpLPmNkTw9yEcxPWJMR+S/AFbfpAZqxwUNQAAAABJRU5ErkJggg=="`;
 
-exports[`config config/css/rewrite-url-css-variables exported tests should rewrite the css url() in css variables 1`] = `"95988e500e4d2ddfeeb7.png"`;
+exports[`config config/css/rewrite-url-css-variables exported tests should rewrite the css url() in css variables 1`] = `"5d8d67b36a3d70a5cea9.png"`;
 
-exports[`config config/css/rewrite-url-css-variables exported tests should rewrite the css url() in css variables 2`] = `"95988e500e4d2ddfeeb7.png"`;
+exports[`config config/css/rewrite-url-css-variables exported tests should rewrite the css url() in css variables 2`] = `"5d8d67b36a3d70a5cea9.png"`;
 
-exports[`config config/css/rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath and ~@ prefix 1`] = `"/image/logo.95988e50.png"`;
+exports[`config config/css/rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath and ~@ prefix 1`] = `"/image/logo.5d8d67b3.png"`;
 
-exports[`config config/css/rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath when output.cssFilename is set 1`] = `"/image/logo.95988e50.png"`;
+exports[`config config/css/rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath when output.cssFilename is set 1`] = `"/image/logo.5d8d67b3.png"`;
 
 exports[`config config/css/urls exported tests css urls should works 1`] = `
 "/* @supports (background-image: url(\\"unknown.png\\")) {
@@ -306,7 +306,7 @@ div {
 
 div {
 	a1: url();
-	a114: url(4d3b8fdfbe46b279f223.png);
+	a114: url(09a1a1112c577c279435.png);
 }
 
 div {
@@ -393,10 +393,10 @@ exports[`config config/schemes/data-imports exported tests data imports 1`] = `
 
 
 .class {
-  a: url(3a4d6b1f7ae9358a676b.svg);
-  b: url(3a4d6b1f7ae9358a676b.svg);
-  c: url(3a4d6b1f7ae9358a676b);
-  d: url(3a4d6b1f7ae9358a676b);
+  a: url(c3f864b412159dc8e5d9.svg);
+  b: url(c3f864b412159dc8e5d9.svg);
+  c: url(c3f864b412159dc8e5d9);
+  d: url(c3f864b412159dc8e5d9);
 }
 
 "
