@@ -3,7 +3,13 @@ const rspack = require("@rspack/core");
 /** @type { import('@rspack/core').RspackOptions } */
 module.exports = {
 	context: __dirname,
-	entry: "./src/index.js",
+	entry: {
+		main: [
+			// Will trigger the issue.
+			'data:text/javascript,import "core-js";',
+			"./src/index.js"
+		]
+	},
 	stats: "none",
 	mode: "development",
 	plugins: [new rspack.HtmlRspackPlugin()],
