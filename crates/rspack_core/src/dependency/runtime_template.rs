@@ -23,13 +23,14 @@ pub fn runtime_condition_expression(
     return "true".to_string();
   };
 
-  if let RuntimeCondition::Boolean(v) = runtime_condition {
-    return v.to_string();
-  }
+  let runtime_condition = match runtime_condition {
+    RuntimeCondition::Boolean(v) => return v.to_string(),
+    RuntimeCondition::Spec(spec) => spec,
+  };
 
   let mut positive_runtime_ids = HashSet::default();
   for_each_runtime(
-    runtime,
+    Some(runtime_condition),
     |runtime| {
       if let Some(runtime_id) =
         runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.clone()))
@@ -42,7 +43,7 @@ pub fn runtime_condition_expression(
 
   let mut negative_runtime_ids = HashSet::default();
   for_each_runtime(
-    subtract_runtime(runtime, runtime_condition.as_spec()).as_ref(),
+    subtract_runtime(runtime, Some(runtime_condition)).as_ref(),
     |runtime| {
       if let Some(runtime_id) =
         runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.clone()))
