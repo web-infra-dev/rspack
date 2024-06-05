@@ -2,7 +2,7 @@ import type { Compiler } from "../Compiler";
 import type { RuleSetCondition } from "../config/zod";
 
 interface Options {
-	moduleProxy: string;
+	clientProxy: string;
 	exclude?: RuleSetCondition;
 }
 
