@@ -1227,6 +1227,7 @@ export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
   rspackFuture: RawRspackFuture
+  rsc: boolean
 }
 
 export interface RawExposeOptions {
@@ -1700,7 +1701,6 @@ export interface RawRscClientEntryRspackPluginOptions {
 
 export interface RawRscClientReferenceManifestRspackPluginOptions {
   routes?: Array<RawReactRoute>
-  dev: boolean
 }
 
 export interface RawRspackFuture {
