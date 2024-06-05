@@ -16,7 +16,7 @@ impl LazyCompilationDependency {
       .dependency
       .as_module_dependency()
       .expect("LazyCompilation: should convert to module dependency");
-    let request = format!("{}?lazy-compilation-proxy-dep", dep.request());
+    let request = dep.request().to_string();
 
     Self {
       id: DependencyId::new(),

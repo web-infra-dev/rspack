@@ -1,5 +1,6 @@
 const Self = require("@rspack/core").CssExtractRspackPlugin;
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
   entry: "./index.js",
   module: {

@@ -19,6 +19,7 @@ console.log("ENABLE_HMR:", ENABLE_HMR);
 console.log("ENABLE_ES_MODULE:", ENABLE_ES_MODULE);
 console.log("OLD_API:", OLD_API);
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	devtool: false,
 	mode: "development",

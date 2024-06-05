@@ -122,12 +122,13 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     return;
   }
 
-  let runtime_condition =
-    if let Some(connection) = module_graph.connection_by_dependency(module_dependency.id()) {
-      filter_runtime(*runtime, |r| connection.is_target_active(&module_graph, r))
-    } else {
-      RuntimeCondition::Boolean(true)
-    };
+  let runtime_condition = if module_dependency.weak() {
+    RuntimeCondition::Boolean(false)
+  } else if let Some(connection) = module_graph.connection_by_dependency(module_dependency.id()) {
+    filter_runtime(*runtime, |r| connection.is_target_active(&module_graph, r))
+  } else {
+    RuntimeCondition::Boolean(true)
+  };
 
   let content: (String, String) = import_statement(
     *module,

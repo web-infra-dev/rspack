@@ -1,5 +1,6 @@
 const { CssExtractRspackPlugin } = require("@rspack/core");
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.js",
 	// Required to disable source maps in webpack@4
