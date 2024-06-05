@@ -1434,7 +1434,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         self.chunk_groups_for_merging.insert(target_ukey);
         let mut updated = false;
         for r in runtime.iter() {
-          updated = target_cgi.runtime.insert(r.clone());
+          updated |= target_cgi.runtime.insert(r.clone());
         }
         if updated {
           self.outdated_chunk_group_info.insert(target_ukey);
@@ -1596,7 +1596,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
           let orig = cgi.min_available_modules.clone();
           cgi.min_available_modules &= modules_to_be_merged;
-          changed = orig != cgi.min_available_modules;
+          changed |= orig != cgi.min_available_modules;
         }
       }
 

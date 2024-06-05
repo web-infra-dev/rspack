@@ -1217,10 +1217,6 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
       })
   }
 
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyExportImportedSpecifierDependency"
-  }
-
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }

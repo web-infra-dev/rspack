@@ -269,7 +269,8 @@ impl Module for LazyCompilationProxyModule {
         chunk_graph
           .get_module_id(*module)
           .as_ref()
-          .expect("should have module id"),
+          .expect("should have module id")
+          .replace('"', r#"\""#),
         keep_active,
       ))
     } else {

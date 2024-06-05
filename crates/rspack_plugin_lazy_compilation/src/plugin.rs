@@ -96,22 +96,11 @@ async fn normal_module_factory_module(
   create_data: &mut NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
-  if let Some(query) = &create_data.resource_resolve_data.resource_query
-    && query.contains("lazy-compilation-proxy-dep")
-  {
-    let remaining_query = query.clone().replace("lazy-compilation-proxy-dep", "");
-
-    create_data.resource_resolve_data.resource_query =
-      if remaining_query.is_empty() || remaining_query == "?" {
-        None
-      } else {
-        Some(remaining_query)
-      };
-
-    return Ok(());
-  }
-
   let dep_type = module_factory_create_data.dependency.dependency_type();
+
+  if matches!(dep_type, DependencyType::LazyImport) {
+    return Ok(());
+  };
 
   let is_imports = matches!(
     dep_type,

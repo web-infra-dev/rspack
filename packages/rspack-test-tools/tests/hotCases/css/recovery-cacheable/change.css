@@ -1,0 +1,9 @@
+body {
+  background-color: red;
+}
+---
+body {} {} {@}
+---
+body {
+  background-color: yellow;
+}

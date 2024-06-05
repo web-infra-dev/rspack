@@ -35,10 +35,6 @@ impl ContainerEntryDependency {
 }
 
 impl Dependency for ContainerEntryDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "ContainerEntryDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

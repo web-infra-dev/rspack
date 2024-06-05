@@ -922,7 +922,20 @@ impl Compilation {
   }
 
   pub fn entry_modules(&self) -> IdentifierSet {
-    self.make_artifact.entry_module_identifiers.clone()
+    let module_graph = self.get_module_graph();
+    self
+      .entries
+      .values()
+      .flat_map(|item| item.all_dependencies())
+      .chain(self.global_entry.all_dependencies())
+      .filter_map(|dep_id| {
+        // some entry dependencies may not find module because of resolve failed
+        // so use filter_map to ignore them
+        module_graph
+          .module_identifier_by_dependency_id(dep_id)
+          .cloned()
+      })
+      .collect()
   }
 
   pub fn entrypoint_by_name(&self, name: &str) -> &Entrypoint {

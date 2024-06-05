@@ -521,10 +521,8 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ConditionalInitFragment {
 
 fn wrap_in_condition(condition: &str, source: &str) -> String {
   format!(
-    r#"
-    if ({condition}) {{
-      {source}
-    }}
-    "#
+    r#"if ({condition}) {{
+  {source}
+}}"#
   )
 }

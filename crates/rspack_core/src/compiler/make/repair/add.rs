@@ -13,7 +13,6 @@ pub struct AddTask {
   pub module: Box<dyn Module>,
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<DependencyId>,
-  pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
 }
 
@@ -72,10 +71,6 @@ impl Task<MakeTaskContext> for AddTask {
       self.dependencies,
       module_identifier,
     )?;
-
-    if self.is_entry {
-      artifact.entry_module_identifiers.insert(module_identifier);
-    }
 
     if let Some(current_profile) = &self.current_profile {
       current_profile.mark_integration_end();

@@ -26,10 +26,6 @@ impl WebpackIsIncludedDependency {
 impl AsContextDependency for WebpackIsIncludedDependency {}
 
 impl Dependency for WebpackIsIncludedDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "WebpackIsIncludedDependency"
-  }
-
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::WebpackIsIncluded
   }

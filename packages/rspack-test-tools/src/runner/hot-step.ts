@@ -3,6 +3,7 @@ import { StatsCompilation } from "@rspack/core";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import {
 	ECompilerType,
+	EDocumentType,
 	ITestEnv,
 	ITestRunner,
 	TCompilerOptions,
@@ -111,7 +112,8 @@ export class HotStepRunnerFactory<
 		};
 
 		const runner = new WebRunner({
-			dom: "jsdom",
+			dom:
+				this.context.getValue(this.name, "documentType") || EDocumentType.JSDOM,
 			env,
 			stats,
 			name: this.name,

@@ -49,10 +49,6 @@ impl Dependency for WorkerDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "WorkerDependency"
-  }
 }
 
 impl ModuleDependency for WorkerDependency {

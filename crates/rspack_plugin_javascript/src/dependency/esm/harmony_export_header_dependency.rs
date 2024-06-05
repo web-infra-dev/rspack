@@ -30,9 +30,6 @@ impl Dependency for HarmonyExportHeaderDependency {
   fn id(&self) -> &rspack_core::DependencyId {
     &self.id
   }
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyExportHeaderDependency"
-  }
 }
 
 impl DependencyTemplate for HarmonyExportHeaderDependency {

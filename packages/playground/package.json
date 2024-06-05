@@ -15,6 +15,7 @@
     "@babel/core": "^7.22.20",
     "@babel/preset-react": "^7.22.15",
     "@playwright/test": "1.35.0",
+    "core-js": "^3.37",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "workspace:*",
     "@rspack/plugin-react-refresh": "workspace:*",

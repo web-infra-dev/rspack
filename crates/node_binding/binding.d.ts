@@ -344,6 +344,7 @@ export interface JsExecuteModuleResult {
   contextDependencies: Array<string>
   buildDependencies: Array<string>
   missingDependencies: Array<string>
+  cacheable: boolean
   assets: Array<string>
   id: number
 }

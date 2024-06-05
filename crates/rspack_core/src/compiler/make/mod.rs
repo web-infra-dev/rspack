@@ -5,7 +5,6 @@ pub mod repair;
 use std::path::PathBuf;
 
 use rspack_error::{Diagnostic, Result};
-use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{cutout::Cutout, file_counter::FileCounter, repair::repair};
@@ -25,7 +24,6 @@ pub struct MakeArtifact {
   pub make_failed_module: HashSet<ModuleIdentifier>,
   pub module_graph_partial: ModuleGraphPartial,
   entry_dependencies: HashSet<DependencyId>,
-  pub entry_module_identifiers: IdentifierSet,
   pub file_dependencies: FileCounter,
   pub context_dependencies: FileCounter,
   pub missing_dependencies: FileCounter,

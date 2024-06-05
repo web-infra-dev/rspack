@@ -231,9 +231,11 @@ impl Dependency for HarmonyImportSpecifierDependency {
   fn span_for_on_usage_search(&self) -> Option<rspack_core::ErrorSpan> {
     Some(self.span_for_on_usage_search.into())
   }
+
   fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
     self.used_by_exports = used_by_exports;
   }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -254,10 +256,6 @@ impl Dependency for HarmonyImportSpecifierDependency {
     mg.get_dep_meta_if_existing(&self.id)
       .map(|meta| meta.ids.clone())
       .unwrap_or_else(|| self.ids.clone())
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyImportSpecifierDependency"
   }
 
   fn resource_identifier(&self) -> Option<&str> {
@@ -298,6 +296,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
+    // TODO: this part depend on inner graph parser plugin to call set_used_by_exports to update the used_by_exports
     get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
   }
 
