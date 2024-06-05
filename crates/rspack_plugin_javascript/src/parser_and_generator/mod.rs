@@ -12,6 +12,7 @@ use rspack_core::{
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_plugin_rsc::rsc_visitor::ReactServerComponentsVisitor;
 use rspack_util::itoa;
 use swc_core::common::comments::Comments;
 use swc_core::common::input::SourceFileInput;
@@ -23,8 +24,8 @@ use swc_node_comments::SwcComments;
 use crate::dependency::HarmonyCompatibilityDependency;
 use crate::visitors::{scan_dependencies, swc_visitor::resolver};
 use crate::visitors::{semicolon, ScanDependenciesResult};
-use crate::{BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 use crate::ReactServerComponentsVisitor;
+use crate::{BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 #[derive(Default)]
 pub struct JavaScriptParserAndGenerator {
   parser_plugins: Vec<BoxJavascriptParserPlugin>,
