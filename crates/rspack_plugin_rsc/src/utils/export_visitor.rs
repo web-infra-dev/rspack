@@ -1,3 +1,4 @@
+// Based on https://github.com/fz6m/rs-module-lexer
 use swc_core::ecma::ast::{self};
 use swc_core::ecma::visit::{Visit, VisitWith};
 
