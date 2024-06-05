@@ -14,6 +14,7 @@ use rspack_core::{
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_plugin_rsc::rsc_visitor::ReactServerComponentsVisitor;
 use swc_core::common::comments::Comments;
 use swc_core::common::input::SourceFileInput;
 use swc_core::common::{FileName, SyntaxContext};
