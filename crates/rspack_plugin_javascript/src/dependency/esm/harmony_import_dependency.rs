@@ -391,10 +391,6 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
 }
 
 impl Dependency for HarmonyImportSideEffectDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyImportSideEffectDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

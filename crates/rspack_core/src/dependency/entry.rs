@@ -27,10 +27,6 @@ impl EntryDependency {
 }
 
 impl Dependency for EntryDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "EntryDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

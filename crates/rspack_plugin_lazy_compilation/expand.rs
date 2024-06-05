@@ -169,9 +169,6 @@ mod dependency {
   impl AsDependencyTemplate for LazyCompilationDependency {}
   impl AsContextDependency for LazyCompilationDependency {}
   impl Dependency for LazyCompilationDependency {
-    fn dependency_debug_name(&self) -> &'static str {
-      "lazy compilation dependency"
-    }
     fn id(&self) -> &rspack_core::DependencyId {
       &self.id
     }

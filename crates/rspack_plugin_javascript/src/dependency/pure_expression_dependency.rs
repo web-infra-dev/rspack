@@ -34,9 +34,6 @@ impl Dependency for PureExpressionDependency {
     self.used_by_exports = used_by_exports;
   }
 
-  fn dependency_debug_name(&self) -> &'static str {
-    "PureExpressionDependency"
-  }
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,

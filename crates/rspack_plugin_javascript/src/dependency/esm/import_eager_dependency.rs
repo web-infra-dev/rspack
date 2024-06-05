@@ -51,10 +51,6 @@ impl Dependency for ImportEagerDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "ImportEagerDependency"
-  }
 }
 
 impl ModuleDependency for ImportEagerDependency {
