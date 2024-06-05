@@ -20,6 +20,7 @@ pub type ExecuteModuleId = u32;
 
 #[derive(Debug, Default)]
 pub struct ExecuteModuleResult {
+  pub cacheable: bool,
   pub file_dependencies: HashSet<std::path::PathBuf>,
   pub context_dependencies: HashSet<std::path::PathBuf>,
   pub missing_dependencies: HashSet<std::path::PathBuf>,
@@ -203,9 +204,12 @@ impl Task<MakeTaskContext> for ExecuteTask {
     let module_graph = compilation.get_module_graph();
     let mut execute_result = match exports {
       Ok(_) => {
-        let mut result = modules
-          .iter()
-          .fold(ExecuteModuleResult::default(), |mut res, m| {
+        let mut result = modules.iter().fold(
+          ExecuteModuleResult {
+            cacheable: true,
+            ..Default::default()
+          },
+          |mut res, m| {
             let module = module_graph.module_by_identifier(m).expect("unreachable");
 
             let build_info = &module.build_info();
@@ -222,9 +226,13 @@ impl Task<MakeTaskContext> for ExecuteTask {
               res
                 .build_dependencies
                 .extend(info.build_dependencies.iter().cloned());
+              if !info.cacheable {
+                res.cacheable = false;
+              }
             }
             res
-          });
+          },
+        );
 
         result.id = id;
 
