@@ -581,7 +581,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return assets.map(asset => {
 			return Object.defineProperties(asset, {
 				info: {
-					get: () => JsAssetInfo.__from_binding(asset.info)
+					value: JsAssetInfo.__from_binding(asset.info)
 				},
 				source: {
 					get: () => this.__internal__getAssetSource(asset.name)
@@ -597,7 +597,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		}
 		return Object.defineProperties(asset, {
 			info: {
-				get: () => JsAssetInfo.__from_binding(asset.info)
+				value: JsAssetInfo.__from_binding(asset.info)
 			},
 			source: {
 				get: () => this.__internal__getAssetSource(asset.name)
