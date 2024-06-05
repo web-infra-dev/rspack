@@ -27,6 +27,7 @@ rspack_hash = { path = "../rspack_hash" }
 rspack_hook = { path = "../rspack_hook" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_ids = { path = "../rspack_ids/" }
+rspack_plugin_rsc = { path = "../rspack_plugin_rsc" }
 rspack_regex = { path = "../rspack_regex" }
 rspack_util = { path = "../rspack_util" }
 rustc-hash = { workspace = true }

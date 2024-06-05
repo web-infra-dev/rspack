@@ -11,6 +11,7 @@ use rspack_core::{
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_plugin_rsc::rsc_visitor::ReactServerComponentsVisitor;
 use swc_core::common::input::SourceFileInput;
 use swc_core::common::{FileName, Span, SyntaxContext};
 use swc_core::ecma::ast;
@@ -21,7 +22,6 @@ use crate::dependency::HarmonyCompatibilityDependency;
 use crate::inner_graph_plugin::InnerGraphPlugin;
 use crate::visitors::{scan_dependencies, swc_visitor::resolver};
 use crate::visitors::{semicolon, PathIgnoredSpans, ScanDependenciesResult};
-use crate::ReactServerComponentsVisitor;
 use crate::{SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 
 #[derive(Debug)]
