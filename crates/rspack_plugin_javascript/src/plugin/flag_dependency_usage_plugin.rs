@@ -156,16 +156,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         };
         let active_state = connection.get_active_state(&module_graph, runtime.as_ref());
 
-        // dbg!(
-        //   &connection,
-        //   self
-        //     .compilation
-        //     .get_module_graph()
-        //     .dependency_by_id(&dep_id)
-        //     .expect("should have dependency")
-        //     .dependency_debug_name(),
-        //   active_state
-        // );
         match active_state {
           ConnectionState::Bool(false) => {
             continue;
@@ -193,12 +183,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         } else {
           continue;
         };
-        // dbg!(
-        //   &connection,
-        //   dep.dependency_debug_name(),
-        //   &referenced_exports,
-        //   &old_referenced_exports
-        // );
 
         if old_referenced_exports.is_none()
           || matches!(old_referenced_exports, Some(ProcessModuleReferencedExports::ExtendRef(ref v)) if is_no_exports_referenced(v))

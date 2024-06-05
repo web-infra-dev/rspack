@@ -27,10 +27,6 @@ impl CssLocalIdentDependency {
 }
 
 impl Dependency for CssLocalIdentDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "CssLocalIdentDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

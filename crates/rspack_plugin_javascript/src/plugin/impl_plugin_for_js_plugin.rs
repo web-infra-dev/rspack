@@ -112,10 +112,10 @@ async fn compilation(
       normal_module_factory: params.normal_module_factory.clone(),
     }),
   );
-  compilation.set_dependency_factory(
-    DependencyType::CjsSelfReference,
-    Arc::new(SelfModuleFactory {}),
-  );
+
+  let self_factory = Arc::new(SelfModuleFactory {});
+  compilation.set_dependency_factory(DependencyType::CjsSelfReference, self_factory.clone());
+  compilation.set_dependency_factory(DependencyType::ModuleDecorator, self_factory);
   Ok(())
 }
 

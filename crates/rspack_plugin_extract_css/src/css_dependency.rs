@@ -74,10 +74,6 @@ impl AsDependencyTemplate for CssDependency {}
 impl AsContextDependency for CssDependency {}
 
 impl Dependency for CssDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "mini-extract-css-dependency"
-  }
-
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }

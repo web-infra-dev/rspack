@@ -53,10 +53,6 @@ impl Dependency for RequireContextDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "RequireContextDependency"
-  }
 }
 
 impl ContextDependency for RequireContextDependency {

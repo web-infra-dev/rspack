@@ -258,10 +258,6 @@ impl Dependency for HarmonyImportSpecifierDependency {
       .unwrap_or_else(|| self.ids.clone())
   }
 
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyImportSpecifierDependency"
-  }
-
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }

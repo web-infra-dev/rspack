@@ -45,10 +45,6 @@ impl Dependency for ProvideDependency {
   fn span(&self) -> Option<ErrorSpan> {
     None
   }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "ProvideDependency"
-  }
 }
 
 impl ModuleDependency for ProvideDependency {

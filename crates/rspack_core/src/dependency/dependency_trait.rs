@@ -23,9 +23,6 @@ pub trait Dependency:
   + Sync
   + Debug
 {
-  /// name of the original struct or enum
-  fn dependency_debug_name(&self) -> &'static str;
-
   fn id(&self) -> &DependencyId;
 
   fn category(&self) -> &DependencyCategory {

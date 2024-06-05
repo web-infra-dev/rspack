@@ -139,10 +139,6 @@ mod t {
       &crate::DependencyType::EsmImportSpecifier
     }
 
-    fn dependency_debug_name(&self) -> &'static str {
-      "test dep"
-    }
-
     fn id(&self) -> &DependencyId {
       &self.id
     }

@@ -58,10 +58,6 @@ impl Dependency for CommonJsRequireContextDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "CommonJsRequireContextDependency"
-  }
 }
 
 impl ContextDependency for CommonJsRequireContextDependency {

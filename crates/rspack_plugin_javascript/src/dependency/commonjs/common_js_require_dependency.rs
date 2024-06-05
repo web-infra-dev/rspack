@@ -48,10 +48,6 @@ impl Dependency for CommonJsRequireDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "CommonJsRequireDependency"
-  }
 }
 
 impl ModuleDependency for CommonJsRequireDependency {

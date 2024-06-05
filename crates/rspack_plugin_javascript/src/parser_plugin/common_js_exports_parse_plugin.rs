@@ -273,8 +273,11 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       };
       parser.bailout();
       parser
-        .presentational_dependencies
-        .push(Box::new(ModuleDecoratorDependency::new(decorator)));
+        .dependencies
+        .push(Box::new(ModuleDecoratorDependency::new(
+          decorator,
+          !parser.is_esm,
+        )));
       Some(true)
     } else if !parser.is_esm && parser.is_exports_ident(ident) {
       parser.bailout();
