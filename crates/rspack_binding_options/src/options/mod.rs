@@ -85,6 +85,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
       },
       top_level_await: value.experiments.top_level_await,
       rspack_future: value.experiments.rspack_future.into(),
+      rsc: value.experiments.rsc,
     };
     let optimization = value.optimization.try_into()?;
     let stats = value.stats.into();
