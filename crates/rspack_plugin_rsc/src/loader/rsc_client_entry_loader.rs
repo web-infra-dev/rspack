@@ -17,6 +17,7 @@ use crate::{utils::shared_data::SHARED_CLIENT_IMPORTS, ReactRoute};
 pub struct RSCClientEntryLoaderOptions {
   entry: HashMap<String, String>,
   root: String,
+  dev: bool,
   routes: Option<Vec<ReactRoute>>,
 }
 
@@ -128,15 +129,12 @@ impl Loader<LoaderRunnerContext> for RSCClientEntryLoader {
       let route_chunk_name = self.get_route_chunk_name(resource_path);
       let client_imports_path =
         self.format_client_imports(chunk_name.as_ref(), route_chunk_name.as_ref());
-      if let Some(client_imports_path) = client_imports_path {
-        // HMR
-        if client_imports_path.exists() {
-          loader_context.file_dependencies.insert(client_imports_path)
-        } else {
-          loader_context
-            .missing_dependencies
-            .insert(client_imports_path)
-        };
+      let mut hmr = String::from("");
+      if self.options.dev {
+        if let Some(client_imports_path) = client_imports_path {
+          // HMR
+          hmr = format!(r#"import {:?};"#, client_imports_path.into_os_string())
+        }
       }
 
       // Entrypoint
@@ -146,13 +144,14 @@ impl Loader<LoaderRunnerContext> for RSCClientEntryLoader {
         if let Some(client_imports) = client_imports {
           let code = client_imports
             .iter()
-            .map(|i| format!(r#"import(/* webpackMode: "eager" */ "{}")"#, i))
+            .map(|i| format!(r#"import(/* webpackMode: "eager" */ "{}");"#, i))
             .join("\n");
           source = format!("{}{}", code, source);
         }
         let routes = self.get_routes_code();
-        source = format!("{}{}", routes, source);
+        source = format!("{}{}{}", hmr, routes, source);
       }
+      // Route
       if let Some(chunk_name) = &route_chunk_name {
         let client_imports = self.get_client_imports_by_name(chunk_name);
 
@@ -161,12 +160,12 @@ impl Loader<LoaderRunnerContext> for RSCClientEntryLoader {
             .iter()
             .map(|i| {
               format!(
-                r#"import(/* webpackChunkName: "{}" */ "{}")"#,
+                r#"import(/* webpackChunkName: "{}" */ "{}");"#,
                 chunk_name, i
               )
             })
             .join("\n");
-          source = format!("{}{}", code, source);
+          source = format!("{}{}{}", hmr, code, source);
         }
       }
     }

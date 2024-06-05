@@ -1,4 +1,4 @@
-import type { RawRscClientEntryRspackPluginOptions } from "@rspack/binding";
+import type { RawRscClientReferenceManifestRspackPluginOptions } from "@rspack/binding";
 import { BuiltinPluginName } from "@rspack/binding";
 import path from "path";
 
@@ -14,12 +14,16 @@ const RawRSCClientReferenceManifestRspackPlugin = create(
 );
 
 interface ResolvedOptions {
-	routes: NonNullable<RawRscClientEntryRspackPluginOptions["routes"]>;
+	routes: NonNullable<
+		RawRscClientReferenceManifestRspackPluginOptions["routes"]
+	>;
 	entry: Record<string, string>;
 	root: string;
+	dev: boolean;
 }
 
-interface Options extends Pick<RawRscClientEntryRspackPluginOptions, "routes"> {
+interface Options
+	extends Pick<RawRscClientReferenceManifestRspackPluginOptions, "routes"> {
 	exclude?: RuleSetCondition;
 }
 
@@ -56,7 +60,7 @@ export class RSCClientReferenceManifestRspackPlugin {
 		const entry = Object.assign({}, compiler.options.entry);
 		const resolvedEntry: Record<string, string> = {};
 		const root = compiler.options.context ?? process.cwd();
-		// TODO: throw error if entry is not object
+		// TODO: support dynamic entry
 		if (typeof entry === "object") {
 			for (let item of Object.keys(entry)) {
 				const imports = entry[item].import;
@@ -71,7 +75,8 @@ export class RSCClientReferenceManifestRspackPlugin {
 		return {
 			entry: resolvedEntry,
 			root: output,
-			routes: resolvedRoutes
+			routes: resolvedRoutes,
+			dev: compiler.options.mode === "development"
 		};
 	}
 }

@@ -3,7 +3,6 @@ use std::time::Instant;
 
 use rspack_core::{Compilation, ExportInfoProvided};
 use rspack_error::Result;
-use rspack_hook::plugin;
 
 use crate::utils::decl::{ServerRef, ServerReferenceManifest};
 use crate::utils::has_client_directive;

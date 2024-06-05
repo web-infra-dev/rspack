@@ -3,8 +3,8 @@
 
 /* -- banner.d.ts -- */
 export type JsFilename =
-  | string
-  | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
+	| string
+	| ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
 
@@ -274,8 +274,7 @@ export enum BuiltinPluginName {
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
   RSCClientEntryRspackPlugin = 'RSCClientEntryRspackPlugin',
-  RSCClientReferenceManifestRspackPlugin = 'RSCClientReferenceManifestRspackPlugin',
-  RSCServerReferenceManifestRspackPlugin = 'RSCServerReferenceManifestRspackPlugin'
+  RSCClientReferenceManifestRspackPlugin = 'RSCClientReferenceManifestRspackPlugin'
 }
 
 export function cleanupGlobalTrace(): void
@@ -1697,6 +1696,11 @@ export interface RawResolveTsconfigOptions {
 
 export interface RawRscClientEntryRspackPluginOptions {
   routes?: Array<RawReactRoute>
+}
+
+export interface RawRscClientReferenceManifestRspackPluginOptions {
+  routes?: Array<RawReactRoute>
+  dev: boolean
 }
 
 export interface RawRspackFuture {
