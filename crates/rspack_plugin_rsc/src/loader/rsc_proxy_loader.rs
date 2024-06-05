@@ -8,7 +8,7 @@ use crate::{export_visitor::DEFAULT_EXPORT, has_client_directive, RSCAdditionalD
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RSCProxyLoaderOptions {
-  module_proxy: String,
+  client_proxy: String,
 }
 
 #[derive(Debug)]
@@ -61,7 +61,7 @@ const proxy = createProxy({:?})
 const {{ __esModule, $$typeof }} = proxy;
 const __default__ = proxy.default
         "#,
-          self.options.module_proxy,
+          self.options.client_proxy,
           resource_path.to_str().unwrap()
         );
         let mut cnt = 0;
