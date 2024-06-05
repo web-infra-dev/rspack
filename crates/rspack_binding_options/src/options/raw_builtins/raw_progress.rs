@@ -5,10 +5,15 @@ use rspack_plugin_progress::ProgressPluginOptions;
 #[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawProgressPluginOptions {
+  // the prefix name of progress bar
   pub prefix: String,
+  // tells ProgressPlugin to collect profile data for progress steps.
   pub profile: bool,
+  // the template of progress bar
   pub template: String,
+  // the tick string sequence for spinners, if it's string then it will be split into characters
   pub tick: Option<Either<String, Vec<String>>>,
+  // the progress characters
   pub progress_chars: String,
 }
 

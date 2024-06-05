@@ -24,10 +24,13 @@ use rspack_hook::{plugin, plugin_hook};
 pub struct ProgressPluginOptions {
   // the prefix name of progress bar
   pub prefix: String,
+  // tells ProgressPlugin to collect profile data for progress steps.
   pub profile: bool,
-
+  // the template of progress bar, see [`indicatif::ProgressStyle::with_template`]
   pub template: String,
+  // the tick string sequence for spinners, see [`indicatif::ProgressStyle::tick_strings`]
   pub tick_strings: Option<Vec<String>>,
+  // the progress characters, see [`indicatif::ProgressStyle::progress_chars`]
   pub progress_chars: String,
 }
 
