@@ -1,3 +1,4 @@
+use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_progress::ProgressPluginOptions;
 
@@ -6,9 +7,8 @@ use rspack_plugin_progress::ProgressPluginOptions;
 pub struct RawProgressPluginOptions {
   pub prefix: String,
   pub profile: bool,
-  // indicatif::ProgressBar template
   pub template: String,
-  pub tick_strings: Option<Vec<String>>,
+  pub tick: Option<Either<String, Vec<String>>>,
   pub progress_chars: String,
 }
 
@@ -18,8 +18,11 @@ impl From<RawProgressPluginOptions> for ProgressPluginOptions {
       prefix: value.prefix,
       profile: value.profile,
       template: value.template,
-      tick_strings: value.tick_strings,
       progress_chars: value.progress_chars,
+      tick_strings: value.tick.map(|tick| match tick {
+        Either::A(str) => str.chars().map(|c| c.to_string()).collect(),
+        Either::B(vec) => vec,
+      }),
     }
   }
 }

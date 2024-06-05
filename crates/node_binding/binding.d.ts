@@ -1243,7 +1243,7 @@ export interface RawProgressPluginOptions {
   prefix: string
   profile: boolean
   template: string
-  tickStrings?: Array<string>
+  tick?: string | Array<string>
   progressChars: string
 }
 

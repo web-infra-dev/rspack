@@ -13,7 +13,7 @@ export const ProgressPlugin = create(
 		template:
 			progress.template ??
 			"● {prefix:.bold} {bar:25.green/white.dim} ({percent}%) {wide_msg:.dim}",
-		tickStrings: progress.tickStrings,
+		tick: progress.tick,
 		progressChars: progress.progressChars ?? "━━"
 	})
 );
