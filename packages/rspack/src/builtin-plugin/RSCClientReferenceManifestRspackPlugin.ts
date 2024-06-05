@@ -19,7 +19,6 @@ interface ResolvedOptions {
 	>;
 	entry: Record<string, string>;
 	root: string;
-	dev: boolean;
 }
 
 interface Options
@@ -75,8 +74,7 @@ export class RSCClientReferenceManifestRspackPlugin {
 		return {
 			entry: resolvedEntry,
 			root: output,
-			routes: resolvedRoutes,
-			dev: compiler.options.mode === "development"
+			routes: resolvedRoutes
 		};
 	}
 }

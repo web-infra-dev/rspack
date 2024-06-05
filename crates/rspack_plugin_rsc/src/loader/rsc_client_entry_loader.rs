@@ -5,7 +5,7 @@ use std::{
 
 use indexmap::set::IndexSet;
 use itertools::Itertools;
-use rspack_core::LoaderRunnerContext;
+use rspack_core::{LoaderRunnerContext, Mode};
 use rspack_error::Result;
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use serde::{Deserialize, Serialize};
@@ -17,7 +17,6 @@ use crate::{utils::shared_data::SHARED_CLIENT_IMPORTS, ReactRoute};
 pub struct RSCClientEntryLoaderOptions {
   entry: HashMap<String, String>,
   root: String,
-  dev: bool,
   routes: Option<Vec<ReactRoute>>,
 }
 
@@ -130,7 +129,9 @@ impl Loader<LoaderRunnerContext> for RSCClientEntryLoader {
       let client_imports_path =
         self.format_client_imports(chunk_name.as_ref(), route_chunk_name.as_ref());
       let mut hmr = String::from("");
-      if self.options.dev {
+      let development =
+        Some(Mode::is_development(&loader_context.context.options.mode)).unwrap_or(false);
+      if development {
         if let Some(client_imports_path) = client_imports_path {
           // HMR
           hmr = format!(r#"import {:?};"#, client_imports_path.into_os_string())

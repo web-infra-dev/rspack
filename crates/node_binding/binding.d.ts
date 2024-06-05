@@ -3,8 +3,8 @@
 
 /* -- banner.d.ts -- */
 export type JsFilename =
-	| string
-	| ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
+  | string
+  | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
 
@@ -1406,6 +1406,8 @@ export interface RawExperimentSnapshotOptions {
   immutablePaths: Array<string | RegExp>
   unmanagedPaths: Array<string | RegExp>
   managedPaths: Array<string | RegExp>
+  rspackFuture: RawRspackFuture
+  rsc: boolean
 }
 
 export interface RawExposeOptions {
@@ -1943,7 +1945,6 @@ export interface RawRscClientEntryRspackPluginOptions {
 
 export interface RawRscClientReferenceManifestRspackPluginOptions {
   routes?: Array<RawReactRoute>
-  dev: boolean
 }
 
 export interface RawRspackFuture {

@@ -28,7 +28,6 @@ pub struct RawRSCClientEntryRspackPluginOptions {
 #[napi(object)]
 pub struct RawRSCClientReferenceManifestRspackPluginOptions {
   pub routes: Option<Vec<RawReactRoute>>,
-  pub dev: bool,
 }
 
 impl From<RawRSCClientEntryRspackPluginOptions> for RSCClientEntryRspackPluginOptions {

@@ -133,19 +133,21 @@ impl SwcLoader {
       codegen_options.source_map_config.names = v.names;
     }
     let mut ast = c.into_js_ast(program);
-    // TODO: enable with rspack_experiments
-    ast.transform(|program, _context| {
-      let mut rsc_visitor = ReactServerComponentsVisitor::new();
-      program.visit_with(&mut rsc_visitor);
-      if has_client_directive(&rsc_visitor.directives) {
-        let mut export_visitor: ImportExportVisitor = ImportExportVisitor::new();
-        program.visit_with(&mut export_visitor);
-        loader_context.additional_data.insert(RSCAdditionalData {
-          directives: rsc_visitor.directives,
-          exports: export_visitor.exports,
-        });
-      }
-    });
+    let rsc = loader_context.context.options.experiments.rsc;
+    if rsc {
+      ast.transform(|program, _context| {
+        let mut rsc_visitor = ReactServerComponentsVisitor::new();
+        program.visit_with(&mut rsc_visitor);
+        if has_client_directive(&rsc_visitor.directives) {
+          let mut export_visitor: ImportExportVisitor = ImportExportVisitor::new();
+          program.visit_with(&mut export_visitor);
+          loader_context.additional_data.insert(RSCAdditionalData {
+            directives: rsc_visitor.directives,
+            exports: export_visitor.exports,
+          });
+        }
+      });
+    }
     let TransformOutput { code, map } = ast::stringify(&ast, codegen_options)?;
     loader_context.finish_with((code, map));
 
