@@ -23,6 +23,14 @@ pub struct RawRSCClientEntryRspackPluginOptions {
   pub routes: Option<Vec<RawReactRoute>>,
 }
 
+#[derive(Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawRSCClientReferenceManifestRspackPluginOptions {
+  pub routes: Option<Vec<RawReactRoute>>,
+  pub dev: bool,
+}
+
 impl From<RawRSCClientEntryRspackPluginOptions> for RSCClientEntryRspackPluginOptions {
   fn from(value: RawRSCClientEntryRspackPluginOptions) -> Self {
     let raw_routes = value.routes.unwrap_or_default();
