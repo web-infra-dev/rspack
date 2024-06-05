@@ -89,6 +89,7 @@ export interface ITesterConfig {
 	steps?: ITestProcessor[];
 	testConfig?: TTestConfig<ECompilerType>;
 	compilerFactories?: TCompilerFactories;
+	contextValue?: Record<string, unknown>;
 	runnerFactory?: new (
 		name: string,
 		context: ITestContext
@@ -179,7 +180,13 @@ export interface ITestEnv {
 	[key: string]: unknown;
 }
 
+export const enum EDocumentType {
+	Fake = "fake",
+	JSDOM = "jsdom"
+}
+
 export type TTestConfig<T extends ECompilerType> = {
+	documentType?: EDocumentType;
 	validate?: (stats: TCompilerStats<T>, stderr?: string) => void;
 	noTest?: boolean;
 	beforeExecute?: () => void;

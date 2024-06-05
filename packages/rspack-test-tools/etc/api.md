@@ -324,6 +324,14 @@ export enum ECompilerType {
 }
 
 // @public (undocumented)
+export const enum EDocumentType {
+    // (undocumented)
+    Fake = "fake",
+    // (undocumented)
+    JSDOM = "jsdom"
+}
+
+// @public (undocumented)
 export enum EEsmMode {
     // (undocumented)
     Evaluated = 1,
@@ -720,6 +728,10 @@ export interface IHotProcessorOptions<T extends ECompilerType> extends Omit<IBas
 
 // @public (undocumented)
 export interface IHotSnapshotProcessorOptions<T extends ECompilerType> extends IHotProcessorOptions<T> {
+    // (undocumented)
+    getModuleHandler?: TModuleGetHandler;
+    // (undocumented)
+    snapshot?: string;
 }
 
 // @public (undocumented)
@@ -901,6 +913,8 @@ export interface ITesterConfig {
     // (undocumented)
     compilerFactories?: TCompilerFactories;
     // (undocumented)
+    contextValue?: Record<string, unknown>;
+    // (undocumented)
     dist: string;
     // (undocumented)
     name: string;
@@ -991,7 +1005,7 @@ export interface IWatchStepProcessorOptions<T extends ECompilerType> extends Omi
 // @public (undocumented)
 export interface IWebRunnerOptions<T extends ECompilerType = ECompilerType.Rspack> extends IBasicRunnerOptions<T> {
     // (undocumented)
-    dom: "fake" | "jsdom";
+    dom: EDocumentType;
 }
 
 // @public (undocumented)
@@ -1356,6 +1370,9 @@ export type TModuleCompareResult = TCompareResult & {
 };
 
 // @public (undocumented)
+type TModuleGetHandler = (file: string, options: TCompilerOptions<ECompilerType>) => string[];
+
+// @public (undocumented)
 export type TModuleObject = {
     exports: unknown;
 };
@@ -1394,6 +1411,7 @@ type TStatsDiagnostics = {
 
 // @public (undocumented)
 export type TTestConfig<T extends ECompilerType> = {
+    documentType?: EDocumentType;
     validate?: (stats: TCompilerStats<T>, stderr?: string) => void;
     noTest?: boolean;
     beforeExecute?: () => void;
