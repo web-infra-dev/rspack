@@ -67,6 +67,7 @@ type TSupportTarget = keyof typeof GET_MODULE_HANDLER;
 export interface IHotSnapshotProcessorOptions<T extends ECompilerType>
 	extends IHotProcessorOptions<T> {
 	getModuleHandler?: TModuleGetHandler;
+	snapshot?: string;
 }
 
 export class HotSnapshotProcessor<
@@ -164,7 +165,7 @@ export class HotSnapshotProcessor<
 
 		const lastHash = this.hashes[this.hashes.length - 1];
 		const snapshotPath = context.getSource(
-			`__snapshots__/${compilerOptions.target}/${step}.snap.txt`
+			`${this._hotOptions.snapshot || `__snapshots__/${compilerOptions.target}`}/${step}.snap.txt`
 		);
 		const title = `Case ${path.basename(this._options.name)}: Step ${step}`;
 		const hotUpdateFile: Array<{

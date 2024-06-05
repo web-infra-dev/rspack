@@ -730,6 +730,8 @@ export interface IHotProcessorOptions<T extends ECompilerType> extends Omit<IBas
 export interface IHotSnapshotProcessorOptions<T extends ECompilerType> extends IHotProcessorOptions<T> {
     // (undocumented)
     getModuleHandler?: TModuleGetHandler;
+    // (undocumented)
+    snapshot?: string;
 }
 
 // @public (undocumented)
