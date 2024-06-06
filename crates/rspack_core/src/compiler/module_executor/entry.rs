@@ -4,13 +4,13 @@ use super::ctrl::Event;
 use crate::{
   compiler::make::repair::{factorize::FactorizeTask, MakeTaskContext},
   utils::task_loop::{Task, TaskResult, TaskType},
-  Dependency, DependencyId, EntryDependency, ModuleProfile,
+  Dependency, DependencyId, LoaderImportDependency, ModuleProfile,
 };
 
 #[derive(Debug)]
 pub enum EntryParam {
   DependencyId(DependencyId, UnboundedSender<Event>),
-  EntryDependency(Box<EntryDependency>),
+  Entry(Box<LoaderImportDependency>),
 }
 
 #[derive(Debug)]
@@ -39,14 +39,19 @@ impl Task<MakeTaskContext> for EntryTask {
         }
         Ok(vec![])
       }
-      EntryParam::EntryDependency(dep) => {
+      EntryParam::Entry(dep) => {
         let dep_id = *dep.id();
         module_graph.add_dependency(dep.clone());
         Ok(vec![Box::new(FactorizeTask {
           module_factory: context
             .dependency_factories
             .get(dep.dependency_type())
-            .expect("should have dependency_factories")
+            .unwrap_or_else(|| {
+              panic!(
+                "should have dependency_factories for dependency_type: {}",
+                dep.dependency_type()
+              )
+            })
             .clone(),
           original_module_identifier: None,
           original_module_source: None,

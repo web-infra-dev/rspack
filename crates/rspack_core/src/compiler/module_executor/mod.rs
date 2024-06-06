@@ -21,7 +21,7 @@ use self::{
 use super::make::{repair::MakeTaskContext, update_module_graph, MakeArtifact, MakeParam};
 use crate::{
   task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context, Dependency,
-  DependencyId, EntryDependency,
+  DependencyId, LoaderImportDependency,
 };
 
 #[derive(Debug, Default)]
@@ -123,14 +123,13 @@ impl ModuleExecutor {
       .expect("should have event sender");
     let (param, dep_id) = match self.request_dep_map.entry(request.clone()) {
       Entry::Vacant(v) => {
-        let dep = EntryDependency::new(
+        let dep = LoaderImportDependency::new(
           request.clone(),
           original_module_context.unwrap_or(Context::from("")),
-          false,
         );
         let dep_id = *dep.id();
         v.insert(dep_id);
-        (EntryParam::EntryDependency(Box::new(dep)), dep_id)
+        (EntryParam::Entry(Box::new(dep)), dep_id)
       }
       Entry::Occupied(v) => {
         let dep_id = *v.get();
