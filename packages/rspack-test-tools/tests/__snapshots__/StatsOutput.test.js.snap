@@ -395,115 +395,22 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/side-effects-bailouts should print correct stats for 1`] = `
-"PublicPath: auto
-asset main.js 1.86 KiB {909} [emitted] (name: main)
+"asset main.js 1.86 KiB {909} [emitted] (name: main)
 Entrypoint main 1.86 KiB = main.js
 chunk {909} main.js (main) [entry]
-  ./lib.js [467] {909}
-    [exports: test]
-    [all exports used]
-    Statement with side_effects in source code at ./lib.js:5:0-9
-    esm import ./lib.js [10]
-    esm import specifier ./lib.js [10]
-  ./index.js [10] {909}
-    [no exports]
-    [no exports used]
-    entry ./index.js
+runtime modules 2 modules
+./lib.js [467] {909}
+  [exports: test]
+  [all exports used]
+  Statement with side_effects in source code at ./lib.js:5:0-9
+  esm import ./lib.js [10]
+  esm import specifier ./lib.js [10]
+./index.js [10] {909}
+  [no exports]
+  [no exports used]
+  entry ./index.js
   
-
-LOG from rspack.Compilation
-<t> finish modules: 0 ms
-<t> optimize dependencies: 0 ms
-<t> create chunks: 10 ms
-<t> optimize: 0 ms
-<t> module ids: 0 ms
-<t> chunk ids: 0 ms
-<t> optimize code generation: 0 ms
-<t> code generation: 1 ms
-<t> runtime requirements.modules: 4 ms
-<t> runtime requirements.chunks: 0 ms
-<t> runtime requirements.entries: 0 ms
-<t> runtime requirements: 4 ms
-<t> hashing: hash chunks: 0 ms
-<t> hashing: hash runtime chunks: 1 ms
-<t> hashing: process full hash chunks: 0 ms
-<t> hashing: 1 ms
-<t> create module assets: 0 ms
-<t> create chunk assets: 0 ms
-<t> process assets: 0 ms
-<t> after process assets: 0 ms
-<t> after seal: 0 ms
-<t> finish modules: 0 ms
-<t> optimize dependencies: 0 ms
-<t> create chunks: 10 ms
-<t> optimize: 0 ms
-<t> module ids: 0 ms
-<t> chunk ids: 0 ms
-<t> optimize code generation: 0 ms
-<t> code generation: 1 ms
-<t> runtime requirements.modules: 4 ms
-<t> runtime requirements.chunks: 0 ms
-<t> runtime requirements.entries: 0 ms
-<t> runtime requirements: 4 ms
-<t> hashing: hash chunks: 0 ms
-<t> hashing: hash runtime chunks: 1 ms
-<t> hashing: process full hash chunks: 0 ms
-<t> hashing: 1 ms
-<t> create module assets: 0 ms
-<t> create chunk assets: 0 ms
-<t> process assets: 0 ms
-<t> after process assets: 0 ms
-<t> after seal: 0 ms
-
-LOG from rspack.Compiler
-<t> make hook: 0 ms
-<t> make: 5 ms
-<t> finish make hook: 0 ms
-<t> finish compilation: 1 ms
-<t> seal compilation: 18 ms
-<t> emitAssets: 6 ms
-<t> make hook: 0 ms
-<t> make: 5 ms
-<t> finish make hook: 0 ms
-<t> finish compilation: 1 ms
-<t> seal compilation: 18 ms
-<t> emitAssets: 6 ms
-
-LOG from rspack.EnsureChunkConditionsPlugin
-<t> ensure chunk conditions: 0 ms
-<t> ensure chunk conditions: 0 ms
-
-LOG from rspack.RealContentHashPlugin
-<t> hash to asset names: 0 ms
-<t> hash to asset names: 0 ms
-
-LOG from rspack.RemoveEmptyChunksPlugin
-<t> remove empty chunks: 0 ms
-<t> remove empty chunks: 0 ms
-
-LOG from rspack.SplitChunksPlugin
-<t> prepare module group map: 10 ms
-<t> ensure min size fit: 0 ms
-<t> process module group map: 0 ms
-<t> ensure max size fit: 0 ms
-<t> prepare module group map: 10 ms
-<t> ensure min size fit: 0 ms
-<t> process module group map: 0 ms
-<t> ensure max size fit: 0 ms
-
-LOG from rspack.WarnCaseSensitiveModulesPlugin
-<t> check case sensitive modules: 0 ms
-<t> check case sensitive modules: 0 ms
-
-LOG from rspack.buildChunkGraph
-<t> prepare entrypoints: 0 ms
-<t> process queue: 0 ms
-<t> extend chunkGroup runtime: 0 ms
-<t> prepare entrypoints: 0 ms
-<t> process queue: 0 ms
-<t> extend chunkGroup runtime: 0 ms
-
-1970-04-20 12:42:42: Rspack x.x.x compiled successfully in X s (35c20f1ddae2e2a7dbbe)"
+Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/simple-export should print correct stats for 1`] = `

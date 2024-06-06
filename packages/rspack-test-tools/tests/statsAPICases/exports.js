@@ -26,6 +26,7 @@ module.exports = {
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		"asset main.js 714 bytes [emitted] (name: main)
 		Entrypoint main 714 bytes = main.js
+		runtime modules 3 modules
 		./fixtures/esm/a.js
 		  [exports: a, default]
 		  [only some exports used: a]
@@ -37,15 +38,6 @@ module.exports = {
 		./fixtures/esm/abc.js
 		  [no exports]
 		  [no exports used]
-		webpack/runtime/has_own_property
-		  [no exports]
-		  [used exports unknown]
-		webpack/runtime/make_namespace_object
-		  [no exports]
-		  [used exports unknown]
-		webpack/runtime/define_property_getters
-		  [no exports]
-		  [used exports unknown]
 		Rspack compiled successfully"
 	`);
 	}
