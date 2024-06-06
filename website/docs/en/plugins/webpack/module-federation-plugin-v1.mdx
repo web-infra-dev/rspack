@@ -1,13 +1,31 @@
-import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
+import { ApiMeta, Stability } from '@components/ApiMeta';
 
 # ModuleFederationPluginV1
 
 <ApiMeta addedVersion={'0.4.5'} stability={Stability.Experimental} />
 
-This plugin corresponds to Module Federation 1.0, which is [the ModuleFederationPlugin in Webpack](https://webpack.js.org/plugins/module-federation-plugin/).
+This plugin corresponds to Module Federation v1.0, which is the [ModuleFederationPlugin in webpack](https://webpack.js.org/plugins/module-federation-plugin/).
 
 The configuration is consistent with the ModuleFederationPlugin above, except for the two fields `implementation` and `runtimePlugins`.
 
 ```js
 new rspack.container.ModuleFederationPluginV1();
+```
+
+:::tip
+Module Federation v1.0 is no longer being iterated. We recommend using Module Federation v1.5 or v2.0. See [Module Federation](/guide/features/module-federation)。
+:::
+
+## Example
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    new rspack.container.ModuleFederationPluginV1({
+      // options
+    }),
+  ],
+};
 ```
