@@ -1,6 +1,6 @@
+import path from "path";
 import type { RawRscClientReferenceManifestRspackPluginOptions } from "@rspack/binding";
 import { BuiltinPluginName } from "@rspack/binding";
-import path from "path";
 
 import type { Compiler } from "../Compiler";
 import type { RuleSetCondition } from "../config/zod";
