@@ -5,7 +5,7 @@ use std::{
 
 use indexmap::set::IndexSet;
 use itertools::Itertools;
-use rspack_core::{LoaderRunnerContext, Mode};
+use rspack_core::{Mode, RunnerContext};
 use rspack_error::Result;
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use serde::{Deserialize, Serialize};
@@ -117,8 +117,8 @@ impl RSCClientEntryLoader {
 pub const RSC_CLIENT_ENTRY_LOADER_IDENTIFIER: &str = "builtin:rsc-client-entry-loader";
 
 #[async_trait::async_trait]
-impl Loader<LoaderRunnerContext> for RSCClientEntryLoader {
-  async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
+impl Loader<RunnerContext> for RSCClientEntryLoader {
+  async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     let content = std::mem::take(&mut loader_context.content).expect("Content should be available");
     let resource_path = loader_context.resource_path().to_str();
     let mut source = content.try_into_string()?;
