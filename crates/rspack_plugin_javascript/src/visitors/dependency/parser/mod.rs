@@ -820,38 +820,42 @@ impl<'parser> JavascriptParser<'parser> {
         }
       }
       Expr::Ident(ident) => {
+        let name = &ident.sym;
+        if name.eq("undefined") {
+          let mut eval =
+            BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
+          eval.set_undefined();
+          return Some(eval);
+        }
         let drive = self.plugin_drive.clone();
-        let Some(info) = self.get_variable_info(&ident.sym) else {
-          // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
-          return drive
-            .evaluate_identifier(
-              self,
-              ident.sym.as_str(),
-              ident.span.real_lo(),
-              ident.span.hi.0,
-            )
-            .or_else(|| {
-              let mut eval =
-                BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
-
-              if ident.sym.eq("undefined") {
-                eval.set_undefined();
-              } else {
+        name
+          .call_hooks_name(self, |parser, name| {
+            drive.evaluate_identifier(parser, name, ident.span.real_lo(), ident.span.hi.0)
+          })
+          .or_else(|| {
+            let info = self.get_variable_info(name);
+            if let Some(info) = info {
+              if let Some(FreeName::String(_)) = &info.free_name {
+                let mut eval =
+                  BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
                 eval.set_identifier(
                   ident.sym.to_string(),
-                  ExportedVariableInfo::Name(ident.sym.to_string()),
+                  ExportedVariableInfo::VariableInfo(info.id()),
                 );
+                Some(eval)
+              } else {
+                None
               }
-
+            } else {
+              let mut eval =
+                BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
+              eval.set_identifier(
+                ident.sym.to_string(),
+                ExportedVariableInfo::Name(name.to_string()),
+              );
               Some(eval)
-            });
-        };
-        if let Some(FreeName::String(name)) = info.free_name.as_ref() {
-          // avoid ownership
-          let name = name.to_string();
-          return drive.evaluate_identifier(self, &name, ident.span.real_lo(), ident.span.hi.0);
-        }
-        None
+            }
+          })
       }
       Expr::This(this) => {
         let drive = self.plugin_drive.clone();

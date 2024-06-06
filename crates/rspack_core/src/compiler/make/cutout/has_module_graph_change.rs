@@ -303,7 +303,6 @@ mod t {
     let module_deps_2 = ModuleDeps::from_module(&mg, &module1_id);
 
     assert_eq!(module_deps_1, module_deps_2);
-    dbg!(module_deps_1.clone());
 
     let dep2 = Box::new(TestDep::new(vec!["bar"]));
     let dep2_id = *dep2.id();
@@ -320,6 +319,5 @@ mod t {
 
     let module_deps_3 = ModuleDeps::from_module(&mg, &module_orig_id);
     assert_ne!(module_deps_3, module_deps_1);
-    dbg!(module_deps_3);
   }
 }

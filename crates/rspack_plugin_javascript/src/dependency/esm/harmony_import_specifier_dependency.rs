@@ -187,7 +187,6 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       }
     } else {
       harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
-      // dbg!(&self.shorthand, self.asi_safe);
       export_from_import(
         code_generatable_context,
         true,

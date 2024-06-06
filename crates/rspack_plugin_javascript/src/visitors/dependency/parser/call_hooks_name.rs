@@ -7,15 +7,15 @@ use crate::visitors::scope_info::{FreeName, VariableInfoId};
 /// webpack use HookMap and filter at callHooksForName/callHooksForInfo
 /// we need to pass the name to hook to filter in the hook
 pub trait CallHooksName {
-  fn call_hooks_name<F>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<bool>
+  fn call_hooks_name<F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
-    F: Fn(&mut JavascriptParser, &str) -> Option<bool>;
+    F: Fn(&mut JavascriptParser, &str) -> Option<T>;
 }
 
 impl CallHooksName for &str {
-  fn call_hooks_name<F>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<bool>
+  fn call_hooks_name<F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
-    F: Fn(&mut JavascriptParser, &str) -> Option<bool>,
+    F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
     if let Some(id) = parser
       .get_variable_info(self.as_ref())
@@ -31,31 +31,31 @@ impl CallHooksName for &str {
 }
 
 impl CallHooksName for String {
-  fn call_hooks_name<'parser, F>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<bool>
+  fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
-    F: Fn(&mut JavascriptParser, &str) -> Option<bool>,
+    F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
     self.as_str().call_hooks_name(parser, hook_call)
   }
 }
 
 impl CallHooksName for Atom {
-  fn call_hooks_name<'parser, F>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<bool>
+  fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
-    F: Fn(&mut JavascriptParser, &str) -> Option<bool>,
+    F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
     self.as_str().call_hooks_name(parser, hook_call)
   }
 }
 
 impl CallHooksName for ExportedVariableInfo {
-  fn call_hooks_name<'parser, F>(
+  fn call_hooks_name<'parser, F, T>(
     &self,
     parser: &mut JavascriptParser,
     hooks_call: F,
-  ) -> Option<bool>
+  ) -> Option<T>
   where
-    F: Fn(&mut JavascriptParser, &str) -> Option<bool>,
+    F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
     match self {
       ExportedVariableInfo::Name(n) => n.call_hooks_name(parser, hooks_call),
@@ -64,16 +64,16 @@ impl CallHooksName for ExportedVariableInfo {
   }
 }
 
-fn call_hooks_info<F>(
+fn call_hooks_info<F, T>(
   id: VariableInfoId,
   parser: &mut JavascriptParser,
   hook_call: F,
-) -> Option<bool>
+) -> Option<T>
 where
-  F: Fn(&mut JavascriptParser, &str) -> Option<bool>,
+  F: Fn(&mut JavascriptParser, &str) -> Option<T>,
 {
   // avoid ownership
-  let mut for_name_list = Vec::with_capacity(32);
+  let mut for_name_list = Vec::new();
   let info = parser.definitions_db.expect_get_variable(&id);
   let mut next_tag_info = info.tag_info.as_ref();
 
