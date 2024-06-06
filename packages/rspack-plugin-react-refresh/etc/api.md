@@ -6,10 +6,10 @@
 
 // @public (undocumented)
 export type PluginOptions = {
-    	include?: string | RegExp | (string | RegExp)[] | null
-    	exclude?: string | RegExp | (string | RegExp)[] | null
-    	library?: string
-    	forceEnable?: boolean
+    include?: string | RegExp | (string | RegExp)[] | null
+    exclude?: string | RegExp | (string | RegExp)[] | null
+    library?: string
+    forceEnable?: boolean
 }
 
 // (No @packageDocumentation comment for this package)
