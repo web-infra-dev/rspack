@@ -16,6 +16,10 @@ use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
 use rspack_paths::Utf8Path;
+use rspack_plugin_rsc::{
+  RSCClientEntryLoader, RSCProxyLoader, RSC_CLIENT_ENTRY_LOADER_IDENTIFIER,
+  RSC_PROXY_LOADER_IDENTIFIER,
+};
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
@@ -83,6 +87,26 @@ pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<BoxLoa
   }
   if builtin.starts_with(rspack_loader_testing::PITCHING_LOADER_IDENTIFIER) {
     return Ok(Arc::new(rspack_loader_testing::PitchingLoader));
+  }
+  if builtin.starts_with(RSC_PROXY_LOADER_IDENTIFIER) {
+    return Arc::new(
+      RSCProxyLoader::new(
+        serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
+          panic!("Could not parse builtin:rsc-proxy-loader options:{options:?},error: {e:?}")
+        }),
+      )
+      .with_identifier(builtin.into()),
+    );
+  }
+  if builtin.starts_with(RSC_CLIENT_ENTRY_LOADER_IDENTIFIER) {
+    return Arc::new(
+      RSCClientEntryLoader::new(
+        serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
+          panic!("Could not parse builtin:rsc-client-entry-loader options:{options:?},error: {e:?}")
+        }),
+      )
+      .with_identifier(builtin.into()),
+    );
   }
   unreachable!("Unexpected builtin loader: {builtin}")
 }

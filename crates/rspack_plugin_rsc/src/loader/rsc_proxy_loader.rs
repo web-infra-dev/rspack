@@ -1,4 +1,4 @@
-use rspack_core::LoaderRunnerContext;
+use rspack_core::RunnerContext;
 use rspack_error::Result;
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use serde::{Deserialize, Serialize};
@@ -37,8 +37,8 @@ impl RSCProxyLoader {
 pub const RSC_PROXY_LOADER_IDENTIFIER: &str = "builtin:rsc-proxy-loader";
 
 #[async_trait::async_trait]
-impl Loader<LoaderRunnerContext> for RSCProxyLoader {
-  async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
+impl Loader<RunnerContext> for RSCProxyLoader {
+  async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     let resource_path = loader_context.resource_path().to_path_buf();
     let content = std::mem::take(&mut loader_context.content).expect("content should be available");
 
