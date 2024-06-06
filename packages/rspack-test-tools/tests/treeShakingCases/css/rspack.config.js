@@ -1,14 +1,17 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	optimization: {
-		sideEffects: true
-	},
 	module: {
 		parser: {
 			'css/auto': {
-				namedExports: false
+				namedExports: false,
 			}
-		}
+		},
+		rules: [
+			{
+				test: /\.module\.css/,
+				type: "css/auto"
+			}
+		]
 	},
 	experiments: {
 		css: true
