@@ -39,7 +39,7 @@ Module Federation v1.0 is no longer being iterated. We recommend using Module Fe
 
 ### Module Federation v1.5
 
-This version is natively supported in Rspack, providing features such as module export, module loading, dependency sharing.
+This version is natively supported in Rspack. In addition to supporting module export, module loading, and dependency sharing capabilities of Module Federation v1.0, it also adds runtime plugin functionality, allowing users to extend the behavior and functionality of module federation.
 
 You can use it with Rspack's [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin), no need to install any plugins.
 
@@ -63,7 +63,7 @@ module.exports = {
 
 ### Module Federation v2.0
 
-This is the enhanced version of Module Federation. It provides additional features based on Module Federation v1.5, such as dynamic type hinting, manifest, federation runtime, runtime plugin system, etc. These features make Module Federation more suitable for supporting micro-front-end architecture of large web applications.
+This is the enhanced version of Module Federation. Based on Module Federation v1.5, it provides some additional features out of the box, such as dynamic type hints and manifest, etc. These features make Module Federation more suitable for supporting micro-front-end architecture of large web applications.
 
 You need to install the additional `@module-federation/enhanced` plugin to use Module Federation v2.0.
 

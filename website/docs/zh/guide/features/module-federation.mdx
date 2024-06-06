@@ -39,7 +39,7 @@ Module Federation v1.0 已经不再迭代，我们推荐使用 Module Federation
 
 ### Module Federation v1.5
 
-这是 Rspack 内置支持的版本，提供模块导出、模块加载、依赖共享等能力。
+这是 Rspack 内置支持的版本，除了支持 Module Federation v1.0 的模块导出、模块加载、依赖共享等能力之外，还添加了运行时插件功能，允许用户扩展模块联邦的行为、功能。
 
 你可以通过 Rspack 的 [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin) 来使用它，无须安装任何插件。
 
@@ -63,7 +63,7 @@ module.exports = {
 
 ### Module Federation v2.0
 
-这是 Module Federation 的增强版本。它在 Module Federation v1.5 的基础上，提供了额外的功能，比如动态类型提示、manifest、federation runtime、runtime plugin system 等，这些功能让 Module Federation 更适用于支持大型 Web 应用的微前端架构。
+这是 Module Federation 的增强版本。它基于 Module Federation v1.5，并在其基础上，开箱即用的提供了一些额外的功能，比如动态类型提示、manifest 等，这些功能让 Module Federation 更适用于支持大型 Web 应用的微前端架构。
 
 你需要安装额外的 `@module-federation/enhanced` 插件，才能使用 Module Federation v2.0。
 
