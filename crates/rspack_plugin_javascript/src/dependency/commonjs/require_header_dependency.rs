@@ -19,10 +19,6 @@ impl RequireHeaderDependency {
 }
 
 impl Dependency for RequireHeaderDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "RequireHeaderDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

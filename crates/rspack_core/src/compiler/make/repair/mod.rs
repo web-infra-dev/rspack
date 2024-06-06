@@ -125,7 +125,6 @@ pub fn repair(
         original_module_context: parent_module.and_then(|m| m.get_context()),
         dependency: dependency.clone(),
         dependencies: vec![id],
-        is_entry: parent_module_identifier.is_none(),
         resolve_options: parent_module.and_then(|module| module.get_resolve_options()),
         options: compilation.options.clone(),
         current_profile,

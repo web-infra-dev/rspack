@@ -443,14 +443,14 @@ async fn compilation(
     let (_, parser_and_generator) = compilation
       .plugin_driver
       .registered_parser_and_generator_builder
-      .remove(&ModuleType::Js)
+      .remove(&ModuleType::JsAuto)
       .expect("No JavaScript parser registered");
 
     compilation
       .plugin_driver
       .registered_parser_and_generator_builder
       .insert(
-        ModuleType::Js,
+        ModuleType::JsAuto,
         Box::new(move |parser_opt, generator_opt| {
           let parser = parser_and_generator(parser_opt, generator_opt);
           Box::new(CssExtractParserAndGenerator::new(parser))

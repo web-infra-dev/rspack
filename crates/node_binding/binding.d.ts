@@ -344,6 +344,7 @@ export interface JsExecuteModuleResult {
   contextDependencies: Array<string>
   buildDependencies: Array<string>
   missingDependencies: Array<string>
+  cacheable: boolean
   assets: Array<string>
   id: number
 }
@@ -388,7 +389,9 @@ export interface JsLoaderContext {
    * @internal
    */
   diagnosticsExternal: ExternalObject<'Diagnostic[]'>
+  /** Will be deprecated. Use module.module_identifier instead */
   _moduleIdentifier: string
+  _module: JsModule
   hot: boolean
 }
 
@@ -415,6 +418,8 @@ export interface JsModule {
   resource?: string
   moduleIdentifier: string
   nameForCondition?: string
+  request?: string
+  userRequest?: string
   rawRequest?: string
 }
 

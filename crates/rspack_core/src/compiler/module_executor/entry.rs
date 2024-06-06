@@ -54,7 +54,6 @@ impl Task<MakeTaskContext> for EntryTask {
           original_module_context: None,
           dependency: dep,
           dependencies: vec![dep_id],
-          is_entry: true,
           resolve_options: None,
           options: context.compiler_options.clone(),
           current_profile: context

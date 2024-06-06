@@ -26,10 +26,6 @@ impl ImportMetaHotDeclineDependency {
 }
 
 impl Dependency for ImportMetaHotDeclineDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "ImportMetaHotDeclineDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

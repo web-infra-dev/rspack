@@ -111,7 +111,6 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
           .and_then(|module| module.name_for_condition()),
         dependency,
         dependencies,
-        is_entry: false,
         resolve_options: module.get_resolve_options(),
         options: context.compiler_options.clone(),
         current_profile,

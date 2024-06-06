@@ -1,5 +1,6 @@
 const { CssExtractRspackPlugin } = require("@rspack/core");
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "development",
 	entry: ["./a.css", "./b.css"],

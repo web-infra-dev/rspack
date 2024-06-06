@@ -17,6 +17,7 @@ import {
 } from "../builtin-loader";
 import { Compilation } from "../Compilation";
 import { parsePathQueryFragment } from "../loader-runner";
+import { Module } from "../Module";
 import { isNil } from "../util";
 import {
 	Mode,
@@ -163,6 +164,7 @@ export interface LoaderContext<OptionsType = {}> {
 	data: unknown;
 	_compiler: Compiler;
 	_compilation: Compilation;
+	_module: Module;
 	/**
 	 * Internal field for interoperability.
 	 * Do not use this in anywhere else.

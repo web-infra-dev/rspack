@@ -24,10 +24,6 @@ impl ContainerExposedDependency {
 }
 
 impl Dependency for ContainerExposedDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "ContainerExposedDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

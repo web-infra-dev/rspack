@@ -15,6 +15,7 @@ function recursiveIssuer(m, c) {
 	return false;
 }
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
 		a: "./a.js",

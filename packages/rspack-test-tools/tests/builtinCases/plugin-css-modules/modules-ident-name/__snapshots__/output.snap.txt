@@ -1,5 +1,5 @@
 ```css title=main.css
-.\.\/_style\.module_\.\/_foo--\/__afc435275e612570\<afc {
+.\.\/_style\.module_\.\/_foo--\/__d8ad836b5119c8e8\<d8a {
     color: hotpink;
 }
 
@@ -19,7 +19,7 @@ console.log(_style_module_css__WEBPACK_IMPORTED_MODULE_0__);
 }),
 "./style.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
 __webpack_require__.r(module.exports = {
-  "foo": "./_style.module_./_foo--/__afc435275e612570<afc",
+  "foo": "./_style.module_./_foo--/__d8ad836b5119c8e8<d8a",
 });
 
 

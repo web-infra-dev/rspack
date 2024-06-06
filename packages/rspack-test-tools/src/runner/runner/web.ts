@@ -1,4 +1,4 @@
-import { ECompilerType, ITestRunner } from "../../type";
+import { ECompilerType, EDocumentType, ITestRunner } from "../../type";
 import { BasicRunner, IBasicRunnerOptions } from "./basic";
 import { CommonJsRunner } from "./cjs";
 import { FakeDocumentWebRunner } from "./web/fake";
@@ -7,7 +7,7 @@ import { JSDOMWebRunner } from "./web/jsdom";
 export interface IWebRunnerOptions<
 	T extends ECompilerType = ECompilerType.Rspack
 > extends IBasicRunnerOptions<T> {
-	dom: "fake" | "jsdom";
+	dom: EDocumentType;
 }
 
 export class WebRunner<T extends ECompilerType = ECompilerType.Rspack>
@@ -17,9 +17,9 @@ export class WebRunner<T extends ECompilerType = ECompilerType.Rspack>
 	private implement: BasicRunner<T>;
 	constructor(protected _webOptions: IWebRunnerOptions<T>) {
 		const { dom } = _webOptions;
-		if (dom === "fake") {
+		if (dom === EDocumentType.Fake) {
 			this.implement = new FakeDocumentWebRunner(_webOptions);
-		} else if (dom === "jsdom") {
+		} else if (dom === EDocumentType.JSDOM) {
 			this.implement = new JSDOMWebRunner(_webOptions);
 		} else {
 			throw new Error(`Dom type "${dom}" of web runner is not support yet`);

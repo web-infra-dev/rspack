@@ -23,10 +23,6 @@ impl CssExportDependency {
 }
 
 impl Dependency for CssExportDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "CssExportDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

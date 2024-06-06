@@ -28,6 +28,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::plugin;
+use rspack_util::diff_mode;
 use rspack_util::fx_hash::{BuildFxHasher, FxDashMap};
 pub use side_effects_flag_plugin::*;
 
@@ -310,6 +311,10 @@ impl JsPlugin {
             }
           {
             buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
+            allow_inline_startup = false;
+          }
+          if allow_inline_startup && diff_mode::is_diff_mode() {
+            buf2.push("// This entry module can't be inlined in diff mode".into());
             allow_inline_startup = false;
           }
           let entry_runtime_requirements = compilation

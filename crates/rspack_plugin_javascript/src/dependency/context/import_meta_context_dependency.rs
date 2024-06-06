@@ -53,10 +53,6 @@ impl Dependency for ImportMetaContextDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "ImportMetaContextDependency"
-  }
 }
 
 impl ContextDependency for ImportMetaContextDependency {

@@ -169,7 +169,9 @@ export class JSDOMWebRunner<
 			}
 
 			const scopeKey = escapeSep(file!.path);
-			const args = Object.keys(currentModuleScope);
+			const args = Object.keys(currentModuleScope).filter(
+				arg => !["window", "self", "globalThis", "console"].includes(arg)
+			);
 			const argValues = args
 				.map(arg => `window["${scopeKey}"]["${arg}"]`)
 				.join(", ");

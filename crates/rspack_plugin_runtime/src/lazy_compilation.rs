@@ -46,7 +46,7 @@ impl Module for LazyCompilationProxyModule {
   impl_module_meta_info!();
 
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::Js
+    &ModuleType::JsAuto
   }
 
   fn source_types(&self) -> &[SourceType] {

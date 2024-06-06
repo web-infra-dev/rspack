@@ -37,11 +37,11 @@ use crate::{
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
   ChunkInitFragments, CodeGenerationDataTopLevelDeclarations, CodeGenerationResult, Compilation,
   ConcatenatedModuleIdent, ConcatenationScope, ConnectionId, ConnectionState, Context,
-  DependenciesBlock, DependencyId, DependencyTemplate, ErrorSpan, ExportInfoId, ExportInfoProvided,
-  ExportsArgument, ExportsType, FactoryMeta, IdentCollector, LibIdentOptions, Module,
-  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, Resolve,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState,
-  UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  DependenciesBlock, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId,
+  ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector, LibIdentOptions,
+  Module, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
+  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template,
+  UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 #[derive(Debug)]
@@ -2247,12 +2247,13 @@ impl Hash for ConcatenatedModule {
 }
 
 pub fn is_harmony_dep_like(dep: &BoxDependency) -> bool {
-  [
-    "HarmonyExportImportedSpecifierDependency",
-    "HarmonyImportSideEffectDependency",
-    "HarmonyImportSpecifierDependency",
-  ]
-  .contains(&dep.dependency_debug_name())
+  matches!(
+    dep.dependency_type(),
+    DependencyType::EsmImportSpecifier
+      | DependencyType::EsmExportImportedSpecifier
+      | DependencyType::EsmImport(_)
+      | DependencyType::EsmExport(_)
+  )
 }
 
 /// Mark boxed errors as [crate::diagnostics::ModuleParseError],

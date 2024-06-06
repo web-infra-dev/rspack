@@ -42,6 +42,10 @@ for (const { root, match, comment } of [{
   root: path.resolve(__dirname, "../../packages/rspack-test-tools/tests/statsAPICases"),
   match: "*.js",
   comment: `/** @type {import('../..').TStatsAPICaseConfig} */`
+}, {
+  root: path.resolve(__dirname, "../../plugin-test"),
+  match: "**/webpack.config.js",
+  comment: `/** @type {import("@rspack/core").Configuration} */`
 }]) {
   const files = glob.sync(match, { cwd: root });
   for (let file of files) {

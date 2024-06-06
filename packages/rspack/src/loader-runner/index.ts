@@ -42,6 +42,7 @@ import {
 } from "../util/identifier";
 import { memoize } from "../util/memoize";
 import loadLoader = require("./loadLoader");
+import { Module } from "../Module";
 const querystring = require("node:querystring");
 
 const PATH_QUERY_FRAGMENT_REGEXP =
@@ -255,7 +256,7 @@ export async function runLoaders(
 						request,
 						options.publicPath,
 						options.baseUri,
-						rawContext._moduleIdentifier,
+						rawContext._module.moduleIdentifier,
 						loaderContext.context,
 						(err, res) => {
 							if (err) reject(err);
@@ -272,6 +273,9 @@ export async function runLoaders(
 								for (const dep of res.fileDependencies) {
 									this.addDependency(dep);
 								}
+								if (res.cacheable === false) {
+									this.cacheable(false);
+								}
 								assetFilenames.push(...res.assets);
 
 								resolve(compiler.__internal__getModuleExecutionResult(res.id));
@@ -286,7 +290,7 @@ export async function runLoaders(
 				request,
 				options.publicPath,
 				options.baseUri,
-				rawContext._moduleIdentifier,
+				rawContext._module.moduleIdentifier,
 				loaderContext.context,
 				(err, res) => {
 					if (err) {
@@ -303,6 +307,9 @@ export async function runLoaders(
 						}
 						for (const dep of res.fileDependencies) {
 							this.addDependency(dep);
+						}
+						if (res.cacheable === false) {
+							this.cacheable(false);
 						}
 						assetFilenames.push(...res.assets);
 
@@ -593,6 +600,11 @@ export async function runLoaders(
 	};
 	loaderContext._compiler = compiler;
 	loaderContext._compilation = compiler._lastCompilation!;
+	loaderContext._module = Module.__from_binding(
+		rawContext._module,
+		compiler._lastCompilation
+	);
+
 	loaderContext.getOptions = function () {
 		const loader = getCurrentLoader(loaderContext);
 		let options = loader?.options;
