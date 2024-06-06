@@ -178,7 +178,7 @@ jobs:
 
       - name: Biome Sort Imports Order
         if: steps.changes.outputs.src == 'true'
-        run: pnpm run lint:js-sort-imports-order
+        run: pnpm run lint-ci:js-sort-imports-order
 
       - name: Prettier
         if: steps.changes.outputs.src == 'true'
