@@ -1,0 +1,36 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.8.0/schema.json",
+  "formatter": {
+    "enabled": false
+  },
+  "organizeImports": {
+    "enabled": true,
+    "ignore": [
+      "packages/rspack/src/config/schema.check.js",
+      "packages/**/etc/**/*",
+      "packages/**/compiled/**/*",
+      "packages/**/temp/**/*",
+      "plugin-test/**/*",
+      "benchcases/**/*",
+      "crates/**/*",
+      "webpack-test/**/*",
+      "webpack-cli-test/**/*",
+      "webpack-examples/**/*",
+      "packages/playground/**/*",
+      "packages/rspack-dev-server/client",
+      "packages/rspack-plugin-react-refresh/client",
+      "packages/rspack-test-tools/template/**/*",
+      "packages/rspack-test-tools/tests/**/*",
+      "packages/rspack-plugin-mini-css-extract/test/cases/**/*"
+    ]
+  },
+  "linter": {
+    "enabled": false
+  },
+  "vcs": {
+    "enabled": true,
+    "defaultBranch": "main",
+    "clientKind": "git",
+    "useIgnoreFile": true
+  }
+}
