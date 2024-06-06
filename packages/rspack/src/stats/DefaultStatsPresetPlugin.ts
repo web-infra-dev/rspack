@@ -5,8 +5,8 @@
 
 import type { Compilation, CreateStatsOptionsContext } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import type { StatsOptions } from "../config";
 import type { StatsError } from "../Stats";
+import type { StatsOptions } from "../config";
 
 const applyDefaults = (
 	options: Partial<StatsOptions>,

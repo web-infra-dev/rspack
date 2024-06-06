@@ -21,6 +21,7 @@ import type {
 import * as tapable from "tapable";
 import { Source } from "webpack-sources";
 
+import { ContextModuleFactory } from "./ContextModuleFactory";
 import {
 	Filename,
 	OutputNormalized,
@@ -29,7 +30,6 @@ import {
 	StatsOptions,
 	StatsValue
 } from "./config";
-import { ContextModuleFactory } from "./ContextModuleFactory";
 import * as liteTapable from "./lite-tapable";
 import ResolverFactory = require("./ResolverFactory");
 import { Chunk } from "./Chunk";
@@ -37,18 +37,18 @@ import { ChunkGraph } from "./ChunkGraph";
 import { Compiler } from "./Compiler";
 import { Entrypoint } from "./Entrypoint";
 import ErrorHelpers from "./ErrorHelpers";
-import { Logger, LogType } from "./logging/Logger";
 import { CodeGenerationResult, Module } from "./Module";
 import { NormalModule } from "./NormalModule";
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { Stats, StatsAsset, StatsError, StatsModule } from "./Stats";
+import { LogType, Logger } from "./logging/Logger";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
 import { concatErrorMsgAndStack } from "./util";
 import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
+import MergeCaller from "./util/MergeCaller";
 import { createFakeCompilationDependencies } from "./util/fake";
 import { memoizeValue } from "./util/memoize";
-import MergeCaller from "./util/MergeCaller";
 import { JsSource } from "./util/source";
 export { type AssetInfo } from "./util/AssetInfo";
 
