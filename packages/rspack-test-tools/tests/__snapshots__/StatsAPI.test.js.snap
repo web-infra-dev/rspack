@@ -109,7 +109,6 @@ Object {
   "errorsCount": 0,
   "filteredModules": undefined,
   "hash": "99b766bb1908ecab2ebb",
-  "logging": Object {},
   "modules": Array [
     Object {
       "assets": Array [],
@@ -415,7 +414,6 @@ Object {
   "errorsCount": 0,
   "filteredModules": undefined,
   "hash": "23ccfb7f871f0e79f18a",
-  "logging": Object {},
   "modules": Array [
     Object {
       "assets": Array [],
@@ -999,7 +997,6 @@ exports.c = require(\\"./c?c=3\\");
   "errorsCount": 0,
   "filteredModules": undefined,
   "hash": "9065311db3fa4c6235f4",
-  "logging": Object {},
   "modules": Array [
     Object {
       "assets": Array [],

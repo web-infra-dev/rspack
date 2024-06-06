@@ -10,8 +10,7 @@ module.exports = {
 	async check(stats) {
 		expect(stats?.toString({ timings: false, version: false }))
 			.toMatchInlineSnapshot(`
-		"PublicPath: auto
-		asset main.js 692 bytes [emitted] (name: main)
+		"asset main.js 692 bytes [emitted] (name: main)
 		Entrypoint main 692 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
@@ -31,7 +30,7 @@ module.exports = {
 		  help: 
 		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (9f555e6a76ee5e3780ec)"
+		Rspack compiled with 1 error"
 	`);
 	}
 };
