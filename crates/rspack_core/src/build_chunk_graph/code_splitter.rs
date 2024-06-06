@@ -1014,7 +1014,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let item_chunk_group_info = self.chunk_group_infos.expect_get(&item.chunk_group_info);
 
     let runtime = item_chunk_group_info.runtime.clone();
-    let modules = self.get_block_modules(item.block, Some(&runtime));
+    let modules: Vec<(
+      rspack_identifier::Identifier,
+      ConnectionState,
+      Vec<ConnectionId>,
+    )> = self.get_block_modules(item.block, Some(&runtime));
     for (module, active_state, connections) in modules.into_iter().rev() {
       if self
         .compilation
@@ -1069,37 +1073,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     let item_chunk_group = item_chunk_group_info.chunk_group;
     let cgi: Option<&Ukey<ChunkGroupInfo>> = self.block_chunk_groups.get(&block_id);
-
-    let is_already_split = cgi.is_some();
     let mut entrypoint: Option<ChunkGroupUkey> = None;
     let mut c: Option<ChunkGroupUkey> = None;
 
-    let chunk_ukey = if let Some(chunk_name) = self
-      .compilation
-      .get_module_graph()
-      .block_by_id(&block_id)
-      .expect("should have block")
-      .get_group_options()
-      .and_then(|x| x.name())
-    {
-      Compilation::add_named_chunk(
-        chunk_name.to_string(),
-        &mut self.compilation.chunk_by_ukey,
-        &mut self.compilation.named_chunks,
-      )
-    } else {
-      Compilation::add_chunk(&mut self.compilation.chunk_by_ukey)
-    };
-    self.compilation.chunk_graph.add_chunk(chunk_ukey);
-    self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
-
-    let module_graph = self.compilation.get_module_graph();
-    let block = module_graph
-      .block_by_id(&block_id)
-      .expect("should have block");
-    let entry_options = block.get_group_options().and_then(|o| o.entry_options());
     let cgi = if let Some(cgi) = cgi {
       let cgi = self.chunk_group_infos.expect_get(cgi);
+      let module_graph = self.compilation.get_module_graph();
+      let block = module_graph
+        .block_by_id(&block_id)
+        .expect("should have block");
+      let entry_options = block.get_group_options().and_then(|o| o.entry_options());
       if entry_options.is_some() {
         entrypoint = Some(cgi.chunk_group);
       } else {
@@ -1108,7 +1091,31 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
       cgi.ukey
     } else {
+      let chunk_ukey = if let Some(chunk_name) = self
+        .compilation
+        .get_module_graph()
+        .block_by_id(&block_id)
+        .expect("should have block")
+        .get_group_options()
+        .and_then(|x| x.name())
+      {
+        Compilation::add_named_chunk(
+          chunk_name.to_string(),
+          &mut self.compilation.chunk_by_ukey,
+          &mut self.compilation.named_chunks,
+        )
+      } else {
+        Compilation::add_chunk(&mut self.compilation.chunk_by_ukey)
+      };
+      self.compilation.chunk_graph.add_chunk(chunk_ukey);
+      self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
+      let module_graph = self.compilation.get_module_graph();
+      let block = module_graph
+        .block_by_id(&block_id)
+        .expect("should have block");
       let chunk_name = block.get_group_options().and_then(|o| o.name());
+      let entry_options = block.get_group_options().and_then(|o| o.entry_options());
+
       let cgi = if let Some(entry_options) = entry_options {
         let cgi =
           if let Some(cgi) = chunk_name.and_then(|name| self.named_async_entrypoints.get(name)) {
@@ -1271,11 +1278,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .entry(item_chunk_group_info_ukey)
         .or_default();
       connect_list.insert(cgi);
-
-      // Inconsistent with webpack, webpack use minAvailableModules to avoid cycle, but calculate it is too complex
-      if is_already_split {
-        return;
-      }
 
       let c = self.compilation.chunk_group_by_ukey.expect_get(&c);
       self
