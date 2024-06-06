@@ -105,6 +105,11 @@ async fn compilation(
     DependencyType::Provided,
     params.normal_module_factory.clone(),
   );
+  // ImportModule
+  compilation.set_dependency_factory(
+    DependencyType::LoaderImport,
+    params.normal_module_factory.clone(),
+  );
   // other
   compilation.set_dependency_factory(
     DependencyType::WebpackIsIncluded,

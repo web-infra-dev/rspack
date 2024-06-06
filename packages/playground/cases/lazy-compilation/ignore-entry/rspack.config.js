@@ -7,16 +7,24 @@ module.exports = {
 		main: [
 			// Will trigger the issue.
 			'data:text/javascript,import "core-js";',
+			"./src/index.css",
 			"./src/index.js"
 		]
 	},
 	stats: "none",
 	mode: "development",
-	plugins: [new rspack.HtmlRspackPlugin()],
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				use: [rspack.CssExtractRspackPlugin.loader, "css-loader"]
+			}
+		]
+	},
+	plugins: [new rspack.HtmlRspackPlugin(), new rspack.CssExtractRspackPlugin()],
 	experiments: {
-		lazyCompilation: {
-			entries: true
-		}
+		css: false,
+		lazyCompilation: true
 	},
 	devServer: {
 		hot: true
