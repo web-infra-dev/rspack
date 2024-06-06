@@ -9,10 +9,10 @@
  */
 
 import type { Compiler } from "../Compiler";
-import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
 import { formatSize } from "../util/SizeFormatHelpers";
-import { StatsChunkGroup, StatsCompilation } from "./statsFactoryUtils";
 import { compareIds } from "../util/comparators";
+import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
+import { StatsChunkGroup, StatsCompilation } from "./statsFactoryUtils";
 
 const DATA_URI_CONTENT_LENGTH = 16;
 

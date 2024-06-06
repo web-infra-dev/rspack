@@ -1,10 +1,10 @@
+import path from "path";
 import { Compilation, Compiler } from "@rspack/core";
 import { getSerializers } from "jest-snapshot";
-import path from "path";
-import { format as prettyFormat, PrettyFormatOptions } from "pretty-format";
+import { PrettyFormatOptions, format as prettyFormat } from "pretty-format";
 import { Source } from "webpack-sources";
 
-import { TestContext, TTestContextOptions } from "../test/context";
+import { TTestContextOptions, TestContext } from "../test/context";
 import {
 	ECompilerType,
 	ITestContext,

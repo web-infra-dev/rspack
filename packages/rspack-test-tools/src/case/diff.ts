@@ -1,5 +1,5 @@
-import fs from "fs-extra";
 import path from "path";
+import fs from "fs-extra";
 import rimraf from "rimraf";
 
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";

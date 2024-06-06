@@ -16,6 +16,7 @@ import {
 	RspackOptionsNormalized,
 	RspackPluginFunction
 } from ".";
+import { Module } from "./Module";
 import {
 	APIPlugin,
 	ArrayPushCallbackChunkFormatPlugin,
@@ -68,7 +69,6 @@ import {
 } from "./builtin-plugin";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
-import { Module } from "./Module";
 import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPresetPlugin } from "./stats/DefaultStatsPresetPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";

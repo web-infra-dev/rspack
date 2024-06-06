@@ -1,7 +1,7 @@
 import {
-	__entrypoint_inner_get_runtime_chunk,
 	type JsChunkGroup,
-	type JsCompilation
+	type JsCompilation,
+	__entrypoint_inner_get_runtime_chunk
 } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";

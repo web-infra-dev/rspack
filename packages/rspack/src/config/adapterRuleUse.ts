@@ -9,15 +9,15 @@ import { ResolveRequest } from "enhanced-resolve";
 import { Compiler } from "../Compiler";
 import { Logger } from "../logging/Logger";
 import Hash = require("../util/hash");
+import { Compilation } from "../Compilation";
+import { Module } from "../Module";
 import {
 	resolveEmotion,
 	resolvePluginImport,
 	resolveReact,
 	resolveRelay
 } from "../builtin-loader";
-import { Compilation } from "../Compilation";
 import { parsePathQueryFragment } from "../loader-runner";
-import { Module } from "../Module";
 import { isNil } from "../util";
 import {
 	Mode,

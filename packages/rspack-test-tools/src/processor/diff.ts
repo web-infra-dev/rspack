@@ -2,8 +2,8 @@ import path from "path";
 
 import { readConfigFile } from "..";
 import {
-	compareFile,
 	IFormatCodeOptions,
+	compareFile,
 	replaceRuntimeModuleName
 } from "../compare";
 import { RspackDiffConfigPlugin, WebpackDiffConfigPlugin } from "../plugin";

@@ -5,8 +5,8 @@ import {
 	ECompilerType,
 	ITestCompilerManager,
 	ITestContext,
-	ITesterConfig,
 	ITestRunner,
+	ITesterConfig,
 	TRunnerFactory,
 	TTestConfig
 } from "../type";

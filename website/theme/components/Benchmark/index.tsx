@@ -1,9 +1,9 @@
-import { Tabs, Tab } from 'rspress/theme';
-import { ProgressBar } from './ProgressBar';
-import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 import { useInView } from 'react-intersection-observer';
+import { Tab, Tabs } from 'rspress/theme';
 import { useI18n } from '../../i18n';
+import { ProgressBar } from './ProgressBar';
 import styles from './index.module.scss';
 
 // 场景条件

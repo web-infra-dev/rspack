@@ -7,9 +7,9 @@ import {
 	WasmLoading,
 	WorkerPublicPath
 } from "../config";
-import { createBuiltinPlugin, RspackBuiltinPlugin } from "./base";
 import { EnableChunkLoadingPlugin } from "./EnableChunkLoadingPlugin";
 import { EnableWasmLoadingPlugin } from "./EnableWasmLoadingPlugin";
+import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
 export class WorkerPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.WorkerPlugin;

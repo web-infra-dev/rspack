@@ -1,8 +1,8 @@
-import { type Hero, HomeHero } from '../components/HomeHero';
-import { HomeFeature, type Feature } from '../components/HomeFeatures';
 import { NoSSR, usePageData } from 'rspress/runtime';
 import { Benchmark } from '../components/Benchmark';
+import { type Feature, HomeFeature } from '../components/HomeFeatures';
 import { HomeFooter } from '../components/HomeFooter/index';
+import { type Hero, HomeHero } from '../components/HomeHero';
 
 export function HomeLayout() {
   const { page } = usePageData();

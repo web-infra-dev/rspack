@@ -1,10 +1,10 @@
 import fs from "fs";
-import { JSDOM, ResourceLoader, VirtualConsole } from "jsdom";
 import path from "path";
+import { JSDOM, ResourceLoader, VirtualConsole } from "jsdom";
 
 import { escapeSep } from "../../../helper";
-import createFakeWorker from "../../../helper/legacy/createFakeWorker";
 import EventSource from "../../../helper/legacy/EventSourceForNode";
+import createFakeWorker from "../../../helper/legacy/createFakeWorker";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
 import { ECompilerType } from "../../../type";
 import { TRunnerRequirer } from "../../type";

@@ -3,10 +3,10 @@ import type * as webpackDevServer from "webpack-dev-server";
 import { z } from "zod";
 
 import { Compilation, Compiler } from "..";
-import type { Builtins as BuiltinsType } from "../builtin-plugin";
 import { Chunk } from "../Chunk";
 import { PathData } from "../Compilation";
 import { Module } from "../Module";
+import type { Builtins as BuiltinsType } from "../builtin-plugin";
 
 //#region Name
 const name = z.string();

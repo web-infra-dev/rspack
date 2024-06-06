@@ -1,17 +1,17 @@
+import path from "path";
+import util from "util";
 import type { RspackPluginFunction, RspackPluginInstance } from "@rspack/core";
 import {
 	Compiler,
 	MultiCompiler,
 	MultiRspackOptions,
 	MultiStats,
-	rspack,
 	RspackOptions,
-	Stats
+	Stats,
+	rspack
 } from "@rspack/core";
 import * as rspackCore from "@rspack/core";
-import path from "path";
 import semver from "semver";
-import util from "util";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 

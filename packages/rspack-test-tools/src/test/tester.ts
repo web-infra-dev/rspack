@@ -1,9 +1,9 @@
 import {
 	ITestContext,
 	ITestEnv,
+	ITestProcessor,
 	ITester,
-	ITesterConfig,
-	ITestProcessor
+	ITesterConfig
 } from "../type";
 import { TestContext } from "./context";
 

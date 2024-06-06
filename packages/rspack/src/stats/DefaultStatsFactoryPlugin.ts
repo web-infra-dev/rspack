@@ -13,10 +13,10 @@ import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { StatsOptions } from "../config";
 import {
-	getLogTypeBitFlag,
-	getLogTypesBitFlag,
 	LogType,
-	LogTypeEnum
+	LogTypeEnum,
+	getLogTypeBitFlag,
+	getLogTypesBitFlag
 } from "../logging/Logger";
 import { compareIds as _compareIds, compareSelect } from "../util/comparators";
 import { makePathsRelative } from "../util/identifier";

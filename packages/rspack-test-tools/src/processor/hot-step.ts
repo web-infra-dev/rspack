@@ -1,6 +1,6 @@
+import path from "path";
 import { Chunk } from "@rspack/core";
 import fs from "fs-extra";
-import path from "path";
 
 import { escapeEOL, escapeSep } from "../helper";
 import { THotStepRuntimeData } from "../runner";

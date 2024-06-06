@@ -1,5 +1,5 @@
-import { MultiStats, Stats } from "@rspack/core";
 import * as fs from "fs";
+import { MultiStats, Stats } from "@rspack/core";
 
 import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";

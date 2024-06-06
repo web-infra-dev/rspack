@@ -1,3 +1,4 @@
+import fs from "fs";
 /**
  * The following code is modified based on
  * https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Compiler.js
@@ -8,24 +9,23 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import * as binding from "@rspack/binding";
-import fs from "fs";
 import * as tapable from "tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type Watchpack from "watchpack";
 
 import { Compilation, CompilationParams } from "./Compilation";
-import {
-	EntryNormalized,
-	getRawOptions,
-	OutputNormalized,
-	RspackOptionsNormalized,
-	RspackPluginInstance
-} from "./config";
 import { ContextModuleFactory } from "./ContextModuleFactory";
-import { rspack } from "./index";
-import * as liteTapable from "./lite-tapable";
 import { RuleSetCompiler } from "./RuleSetCompiler";
 import { Stats } from "./Stats";
+import {
+	EntryNormalized,
+	OutputNormalized,
+	RspackOptionsNormalized,
+	RspackPluginInstance,
+	getRawOptions
+} from "./config";
+import { rspack } from "./index";
+import * as liteTapable from "./lite-tapable";
 import ResolverFactory = require("./ResolverFactory");
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { ThreadsafeWritableNodeFS } from "./fileSystem";
@@ -33,14 +33,9 @@ import Cache = require("./lib/Cache");
 import CacheFacade = require("./lib/CacheFacade");
 import { Source } from "webpack-sources";
 
-import { JsLoaderRspackPlugin } from "./builtin-plugin";
-import { canInherentFromParent } from "./builtin-plugin/base";
 import { Chunk } from "./Chunk";
-import { applyRspackOptionsDefaults } from "./config/defaults";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 import { FileSystemInfoEntry } from "./FileSystemInfo";
-import { tryRunOrWebpackError } from "./lib/HookWebpackError";
-import { Logger } from "./logging/Logger";
 import {
 	CodeGenerationResult,
 	ContextModuleFactoryAfterResolveResult,
@@ -52,16 +47,21 @@ import {
 	NormalModuleFactory
 } from "./NormalModuleFactory";
 import {
+	RuntimeGlobals,
 	__from_binding_runtime_globals,
-	__to_binding_runtime_globals,
-	RuntimeGlobals
+	__to_binding_runtime_globals
 } from "./RuntimeGlobals";
+import { Watching } from "./Watching";
+import { JsLoaderRspackPlugin } from "./builtin-plugin";
+import { canInherentFromParent } from "./builtin-plugin/base";
+import { applyRspackOptionsDefaults } from "./config/defaults";
+import { tryRunOrWebpackError } from "./lib/HookWebpackError";
+import { Logger } from "./logging/Logger";
 import { unsupported } from "./util";
 import { assertNotNill } from "./util/assertNotNil";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { OutputFileSystem, WatchFileSystem } from "./util/fs";
 import { makePathsRelative } from "./util/identifier";
-import { Watching } from "./Watching";
 
 export interface AssetEmittedInfo {
 	content: Buffer;
