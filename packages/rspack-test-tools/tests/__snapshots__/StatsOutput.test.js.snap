@@ -2,31 +2,38 @@
 
 exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats for 1`] = `
 "PublicPath: auto
-asset 2710c5e36f8babb0a3a4.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
 asset bundle.js 2.58 KiB {909} [emitted] (name: main)
+asset 2710c5e36f8babb0a3a4.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
 Entrypoint main 2.58 KiB = bundle.js
 chunk {909} bundle.js (main) [entry]
-  ./raw.png [193] {909}
-    [no exports]
-    [no exports used]
-    esm import ./raw.png [10]
   ./index.js [10] {909}
     [no exports]
     [no exports used]
     entry ./index
-runtime modules 2 modules
+  ./raw.png [193] {909}
+    [no exports]
+    [no exports used]
+    esm import ./raw.png [10]
+javascript modules
+  ./index.js [10] {909}
+    [no exports]
+    [no exports used]
+    entry ./index
+  ./stringModule.js [orphan]
+    [no exports]
+    [module unused]
+    esm import ./stringModule [10]
+runtime modules
+  webpack/runtime/global {909}
+    [no exports]
+    [used exports unknown]
+  webpack/runtime/auto_public_path {909}
+    [no exports]
+    [used exports unknown]
 ./raw.png [193] {909}
   [no exports]
   [no exports used]
   esm import ./raw.png [10]
-./index.js [10] {909}
-  [no exports]
-  [no exports used]
-  entry ./index
-./stringModule.js [orphan]
-  [no exports]
-  [module unused]
-  esm import ./stringModule [10]
   
 Rspack compiled successfully (9bcf52011e342a43887f)"
 `;
@@ -58,12 +65,13 @@ Rspack x.x.x compiled with 1 error in X s"
 `;
 
 exports[`statsOutput statsOutput/filename should print correct stats for 1`] = `
-"asset 521.xxxx.js 337 bytes [emitted]
-asset 909.xxxx.js 8.78 KiB [emitted] (name: main)
+"asset 909.xxxx.js 8.78 KiB [emitted] (name: main)
+asset 521.xxxx.js 337 bytes [emitted]
 Entrypoint main 8.78 KiB = 909.xxxx.js
 runtime modules 11 modules
-./index.js
-./dynamic.js
+javascript modules
+  ./index.js
+  ./dynamic.js
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -127,8 +135,8 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   1 chunks (Rspack x.x.x) compiled successfully in X s
 
 2 chunks:
-  asset 76.bundle2.js 497 bytes [emitted] (name: c)
   asset bundle2.js 10.3 KiB [emitted] (name: main)
+  asset 76.bundle2.js 497 bytes [emitted] (name: c)
   Entrypoint main 10.3 KiB = bundle2.js
   chunk 76.bundle2.js (c) <{76}> <{909}> >{76}<
     ./c.js
@@ -140,9 +148,9 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   2 chunks (Rspack x.x.x) compiled successfully in X s
 
 3 chunks:
-  asset 345.bundle3.js 186 bytes [emitted]
-  asset 76.bundle3.js 387 bytes [emitted] (name: c)
   asset bundle3.js 10.3 KiB [emitted] (name: main)
+  asset 76.bundle3.js 387 bytes [emitted] (name: c)
+  asset 345.bundle3.js 186 bytes [emitted]
   Entrypoint main 10.3 KiB = bundle3.js
   chunk 345.bundle3.js <{76}>
     ./d.js
@@ -155,10 +163,10 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   3 chunks (Rspack x.x.x) compiled successfully in X s
 
 4 chunks:
+  asset bundle4.js 10.3 KiB [emitted] (name: main)
+  asset 76.bundle4.js 387 bytes [emitted] (name: c)
   asset 697.bundle4.js 130 bytes [emitted]
   asset 753.bundle4.js 130 bytes [emitted]
-  asset 76.bundle4.js 387 bytes [emitted] (name: c)
-  asset bundle4.js 10.3 KiB [emitted] (name: main)
   Entrypoint main 10.3 KiB = bundle4.js
   chunk 697.bundle4.js <{76}>
     ./e.js
@@ -274,32 +282,34 @@ Rspack compiled with 1 error"
 `;
 
 exports[`statsOutput statsOutput/performance-disabled should print correct stats for 1`] = `
-"asset 697.js 130 bytes [emitted]
+"asset main.js 303 KiB [emitted] (name: main)
+asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
-asset main.js 303 KiB [emitted] (name: main)
 Entrypoint main 303 KiB = main.js
 runtime modules 12 modules
-./a.js
-./b.js
-./c.js
-./d.js
-./e.js
-./index.js
+javascript modules
+  ./a.js
+  ./b.js
+  ./c.js
+  ./d.js
+  ./e.js
+  ./index.js
 Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/performance-error should print correct stats for 1`] = `
-"asset 697.js 130 bytes [emitted]
+"asset main.js 303 KiB [emitted] (name: main)
+asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
-asset main.js 303 KiB [emitted] (name: main)
 Entrypoint main 303 KiB = main.js
 runtime modules 12 modules
-./a.js
-./b.js
-./c.js
-./d.js
-./e.js
-./index.js
+javascript modules
+  ./a.js
+  ./b.js
+  ./c.js
+  ./d.js
+  ./e.js
+  ./index.js
 
 ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
   │   main.js (303.479 KiB)
@@ -314,17 +324,18 @@ Rspack x.x.x compiled with 2 errors in X s"
 `;
 
 exports[`statsOutput statsOutput/performance-no-hints should print correct stats for 1`] = `
-"asset 697.js 130 bytes [emitted]
+"asset main.js 303 KiB [emitted] (name: main)
+asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
-asset main.js 303 KiB [emitted] (name: main)
 Entrypoint main 303 KiB = main.js
 runtime modules 12 modules
-./a.js
-./b.js
-./c.js
-./d.js
-./e.js
-./index.js
+javascript modules
+  ./a.js
+  ./b.js
+  ./c.js
+  ./d.js
+  ./e.js
+  ./index.js
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -406,16 +417,17 @@ exports[`statsOutput statsOutput/side-effects-bailouts should print correct stat
 Entrypoint main 1.86 KiB = main.js
 chunk {909} main.js (main) [entry]
 runtime modules 2 modules
-./lib.js [467] {909}
-  [exports: test]
-  [all exports used]
-  Statement with side_effects in source code at ./lib.js:5:0-9
-  esm import ./lib.js [10]
-  esm import specifier ./lib.js [10]
-./index.js [10] {909}
-  [no exports]
-  [no exports used]
-  entry ./index.js
+javascript modules
+  ./lib.js [467] {909}
+    [exports: test]
+    [all exports used]
+    Statement with side_effects in source code at ./lib.js:5:0-9
+    esm import ./lib.js [10]
+    esm import specifier ./lib.js [10]
+  ./index.js [10] {909}
+    [no exports]
+    [no exports used]
+    entry ./index.js
   
 Rspack x.x.x compiled successfully in X s"
 `;
@@ -433,8 +445,9 @@ exports[`statsOutput statsOutput/simple-module-source should print correct stats
 Entrypoint main 2.1 KiB = bundle.js
 runtime modules 3 modules
 orphan modules [orphan] 1 module
-./raw.png
-./index.js
+javascript modules
+  ./raw.png
+  ./index.js
 Rspack compiled successfully"
 `;
 

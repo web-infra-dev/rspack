@@ -1039,7 +1039,6 @@ const statsOptions = z.strictObject({
 	timings: z.boolean().optional(),
 	builtAt: z.boolean().optional(),
 	moduleAssets: z.boolean().optional(),
-	modulesSpace: z.number().optional(),
 	nestedModules: z.boolean().optional(),
 	source: z.boolean().optional(),
 	logging: z
@@ -1053,7 +1052,65 @@ const statsOptions = z.strictObject({
 	usedExports: z.boolean().optional(),
 	providedExports: z.boolean().optional(),
 	optimizationBailout: z.boolean().optional(),
-	orphanModules: z.boolean().optional()
+	groupModulesByType: z.boolean().optional(),
+	groupModulesByCacheStatus: z.boolean().optional(),
+	groupModulesByLayer: z.boolean().optional(),
+	groupModulesByAttributes: z.boolean().optional(),
+	groupModulesByPath: z.boolean().optional(),
+	groupModulesByExtension: z.boolean().optional(),
+	modulesSpace: z.number().optional(),
+	chunkModulesSpace: z.number().optional(),
+	nestedModulesSpace: z.number().optional(),
+	relatedAssets: z.boolean().optional(),
+	groupAssetsByEmitStatus: z.boolean().optional(),
+	groupAssetsByInfo: z.boolean().optional(),
+	groupAssetsByPath: z.boolean().optional(),
+	groupAssetsByExtension: z.boolean().optional(),
+	groupAssetsByChunk: z.boolean().optional(),
+	assetsSpace: z.number().optional(),
+	orphanModules: z.boolean().optional(),
+	excludeModules: z
+		.array(
+			z
+				.string()
+				.or(z.instanceof(RegExp))
+				.or(z.function(z.tuple([z.string(), z.any(), z.any()]), z.boolean()))
+		)
+		.or(z.string())
+		.or(z.instanceof(RegExp))
+		.or(z.function(z.tuple([z.string(), z.any(), z.any()]), z.boolean()))
+		.or(z.boolean())
+		.optional(),
+	excludeAssets: z
+		.array(
+			z
+				.string()
+				.or(z.instanceof(RegExp))
+				.or(z.function(z.tuple([z.string(), z.any()]), z.boolean()))
+		)
+		.or(z.string())
+		.or(z.instanceof(RegExp))
+		.or(z.function(z.tuple([z.string(), z.any()]), z.boolean()))
+		.optional(),
+	modulesSort: z.string().optional(),
+	chunkModulesSort: z.string().optional(),
+	nestedModulesSort: z.string().optional(),
+	chunksSort: z.string().optional(),
+	assetsSort: z.string().optional(),
+	performance: z.boolean().optional(),
+	env: z.boolean().optional(),
+	chunkGroupAuxiliary: z.boolean().optional(),
+	chunkGroupChildren: z.boolean().optional(),
+	chunkGroupMaxAssets: z.number().optional(),
+	dependentModules: z.boolean().optional(),
+	chunkOrigins: z.boolean().optional(),
+	runtime: z.boolean().optional(),
+	depth: z.boolean().optional(),
+	reasonsSpace: z.number().optional(),
+	groupReasonsByOrigin: z.boolean().optional(),
+	errorDetails: z.boolean().optional(),
+	errorStack: z.boolean().optional(),
+	moduleTrace: z.boolean().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 

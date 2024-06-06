@@ -27,17 +27,18 @@ module.exports = {
 		"asset main.js 714 bytes [emitted] (name: main)
 		Entrypoint main 714 bytes = main.js
 		runtime modules 3 modules
-		./fixtures/esm/a.js
-		  [exports: a, default]
-		  [only some exports used: a]
-		./fixtures/esm/b.js
-		  [exports: b, default]
-		  [only some exports used: default]
-		./fixtures/esm/c.js
-		  [exports: c, default]
-		./fixtures/esm/abc.js
-		  [no exports]
-		  [no exports used]
+		javascript modules
+		  ./fixtures/esm/a.js
+		    [exports: a, default]
+		    [only some exports used: a]
+		  ./fixtures/esm/b.js
+		    [exports: b, default]
+		    [only some exports used: default]
+		  ./fixtures/esm/c.js
+		    [exports: c, default]
+		  ./fixtures/esm/abc.js
+		    [no exports]
+		    [no exports used]
 		Rspack compiled successfully"
 	`);
 	}
