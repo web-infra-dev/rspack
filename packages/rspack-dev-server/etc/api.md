@@ -18,44 +18,44 @@ export { Configuration }
 
 // @public (undocumented)
 interface ResolvedDevServer extends Configuration {
-    	// (undocumented)
-    allowedHosts: 'auto' | string[] | 'all'
-    	// (undocumented)
-    bonjour: false | Record<string, never> | WebpackDevServer.BonjourOptions
-    	// (undocumented)
-    client: WebpackDevServer.ClientConfiguration
-    	// (undocumented)
-    compress: boolean
-    	// (undocumented)
-    devMiddleware: Configuration['devMiddleware']
-    	// (undocumented)
-    historyApiFallback: false | WebpackDevServer.ConnectHistoryApiFallbackOptions
-    	// (undocumented)
-    host?: string
-    	// (undocumented)
-    hot: boolean | 'only'
-    	// (undocumented)
-    ipc: string | undefined
-    	// (undocumented)
-    liveReload: boolean
-    	// (undocumented)
-    magicHtml: boolean
-    	// (undocumented)
-    open: WebpackDevServer.Open[]
-    	// (undocumented)
-    port: number | string
-    	// (undocumented)
-    proxy: WebpackDevServer.ProxyConfigArray
-    	// (undocumented)
-    server: WebpackDevServer.ServerConfiguration
-    	// (undocumented)
-    setupExitSignals: boolean
-    	// (undocumented)
-    static: false | Array<WebpackDevServer.NormalizedStatic>
-    	// (undocumented)
-    watchFiles: WebpackDevServer.WatchFiles[]
-    	// (undocumented)
-    webSocketServer: false | WebpackDevServer.WebSocketServerConfiguration
+    // (undocumented)
+    allowedHosts: "auto" | string[] | "all";
+    // (undocumented)
+    bonjour: false | Record<string, never> | WebpackDevServer.BonjourOptions;
+    // (undocumented)
+    client: WebpackDevServer.ClientConfiguration;
+    // (undocumented)
+    compress: boolean;
+    // (undocumented)
+    devMiddleware: Configuration["devMiddleware"];
+    // (undocumented)
+    historyApiFallback: false | WebpackDevServer.ConnectHistoryApiFallbackOptions;
+    // (undocumented)
+    host?: string;
+    // (undocumented)
+    hot: boolean | "only";
+    // (undocumented)
+    ipc: string | undefined;
+    // (undocumented)
+    liveReload: boolean;
+    // (undocumented)
+    magicHtml: boolean;
+    // (undocumented)
+    open: WebpackDevServer.Open[];
+    // (undocumented)
+    port: number | string;
+    // (undocumented)
+    proxy: WebpackDevServer.ProxyConfigArray;
+    // (undocumented)
+    server: WebpackDevServer.ServerConfiguration;
+    // (undocumented)
+    setupExitSignals: boolean;
+    // (undocumented)
+    static: false | Array<WebpackDevServer.NormalizedStatic>;
+    // (undocumented)
+    watchFiles: WebpackDevServer.WatchFiles[];
+    // (undocumented)
+    webSocketServer: false | WebpackDevServer.WebSocketServerConfiguration;
 }
 
 // @public (undocumented)

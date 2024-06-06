@@ -1014,7 +1014,7 @@ export class Compilation {
     // (undocumented)
     createStatsFactory(options: StatsOptions): StatsFactory;
     // (undocumented)
-    createStatsOptions(optionsOrPreset: StatsValue | undefined, context?: CreateStatsOptionsContext): StatsOptions;
+    createStatsOptions(optionsOrPreset: StatsValue | undefined, context?: CreateStatsOptionsContext): NormalizedStatsOptions;
     // (undocumented)
     createStatsPrinter(options: StatsOptions): StatsPrinter;
     // (undocumented)
@@ -1085,6 +1085,11 @@ export class Compilation {
         processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
         succeedModule: liteTapable.SyncHook<[Module], void>;
         stillValidModule: liteTapable.SyncHook<[Module], void>;
+        statsPreset: tapable.HookMap<tapable.SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext], void>>;
+        statsNormalize: tapable.SyncHook<[
+        Partial<StatsOptions>,
+        CreateStatsOptionsContext
+        ], void>;
         statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
         statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
         buildModule: liteTapable.SyncHook<[Module]>;
@@ -4205,6 +4210,82 @@ interface KnownCreateStatsOptionsContext {
 }
 
 // @public (undocumented)
+interface KnownNormalizedStatsOptions {
+    // (undocumented)
+    assetsSort: string;
+    // (undocumented)
+    assetsSpace: number;
+    // (undocumented)
+    cachedAssets: boolean;
+    // (undocumented)
+    cachedModules: boolean;
+    // (undocumented)
+    chunkGroupAuxiliary: boolean;
+    // (undocumented)
+    chunkGroupChildren: boolean;
+    // (undocumented)
+    chunkGroupMaxAssets: number;
+    // (undocumented)
+    chunkGroups: boolean;
+    // (undocumented)
+    chunkModulesSort: string;
+    // (undocumented)
+    chunkModulesSpace: number;
+    // (undocumented)
+    chunksSort: string;
+    // (undocumented)
+    context: string;
+    // (undocumented)
+    dependentModules: boolean;
+    // (undocumented)
+    entrypoints: boolean | "auto";
+    // (undocumented)
+    excludeAssets: ((value: string, asset: StatsAsset) => boolean)[];
+    // (undocumented)
+    excludeModules: ((name: string, module: StatsModule, type: "module" | "chunk" | "root-of-chunk" | "nested") => boolean)[];
+    // (undocumented)
+    groupAssetsByEmitStatus: boolean;
+    // (undocumented)
+    groupAssetsByExtension: boolean;
+    // (undocumented)
+    groupAssetsByPath: boolean;
+    // (undocumented)
+    groupModulesByAttributes: boolean;
+    // (undocumented)
+    groupModulesByCacheStatus: boolean;
+    // (undocumented)
+    groupModulesByExtension: boolean;
+    // (undocumented)
+    groupModulesByLayer: boolean;
+    // (undocumented)
+    groupModulesByPath: boolean;
+    // (undocumented)
+    groupModulesByType: boolean;
+    // (undocumented)
+    ids: boolean;
+    // (undocumented)
+    logging: false | "none" | "error" | "warn" | "info" | "log" | "verbose";
+    // (undocumented)
+    loggingDebug: ((value: string) => boolean)[];
+    // (undocumented)
+    loggingTrace: boolean;
+    // (undocumented)
+    modulesSort: string;
+    // (undocumented)
+    modulesSpace: number;
+    // (undocumented)
+    nestedModulesSort: string;
+    // (undocumented)
+    nestedModulesSpace: number;
+    // (undocumented)
+    orphanModules: boolean;
+    // (undocumented)
+    runtimeModules: boolean;
+    // (undocumented)
+    warningsFilter: ((warning: StatsError, textValue: string) => boolean)[];
+}
+
+// @public (undocumented)
 type KnownStatsAsset = binding.JsStatsAsset;
 
 // @public (undocumented)
@@ -5965,6 +6046,9 @@ export type NoParseOption = z.infer<typeof noParseOption>;
 
 // @public (undocumented)
 const noParseOption: z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodString], z.ZodUnknown>, z.ZodBoolean>]>, z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodString], z.ZodUnknown>, z.ZodBoolean>]>, "many">]>;
+
+// @public (undocumented)
+type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, keyof KnownNormalizedStatsOptions> & Record<string, any>;
 
 // @public (undocumented)
 export class NormalModule {
@@ -9276,11 +9360,11 @@ export const rspackOptions: z.ZodObject<{
     watch: z.ZodOptional<z.ZodBoolean>;
     stats: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["none", "errors-only", "errors-warnings", "normal", "verbose"]>, z.ZodBoolean]>, z.ZodObject<{
         all: z.ZodOptional<z.ZodBoolean>;
-        preset: z.ZodOptional<z.ZodEnum<["normal", "none", "verbose", "errors-only", "errors-warnings"]>>;
+        preset: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "none", "verbose", "errors-only", "errors-warnings"]>]>>;
         assets: z.ZodOptional<z.ZodBoolean>;
         chunks: z.ZodOptional<z.ZodBoolean>;
         modules: z.ZodOptional<z.ZodBoolean>;
-        entrypoints: z.ZodOptional<z.ZodBoolean>;
+        entrypoints: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"auto">]>>;
         chunkGroups: z.ZodOptional<z.ZodBoolean>;
         warnings: z.ZodOptional<z.ZodBoolean>;
         warningsCount: z.ZodOptional<z.ZodBoolean>;
@@ -9298,7 +9382,6 @@ export const rspackOptions: z.ZodObject<{
         timings: z.ZodOptional<z.ZodBoolean>;
         builtAt: z.ZodOptional<z.ZodBoolean>;
         moduleAssets: z.ZodOptional<z.ZodBoolean>;
-        modulesSpace: z.ZodOptional<z.ZodNumber>;
         nestedModules: z.ZodOptional<z.ZodBoolean>;
         source: z.ZodOptional<z.ZodBoolean>;
         logging: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["none", "error", "warn", "info", "log", "verbose"]>, z.ZodBoolean]>>;
@@ -9309,14 +9392,51 @@ export const rspackOptions: z.ZodObject<{
         usedExports: z.ZodOptional<z.ZodBoolean>;
         providedExports: z.ZodOptional<z.ZodBoolean>;
         optimizationBailout: z.ZodOptional<z.ZodBoolean>;
+        groupModulesByType: z.ZodOptional<z.ZodBoolean>;
+        groupModulesByCacheStatus: z.ZodOptional<z.ZodBoolean>;
+        groupModulesByLayer: z.ZodOptional<z.ZodBoolean>;
+        groupModulesByAttributes: z.ZodOptional<z.ZodBoolean>;
+        groupModulesByPath: z.ZodOptional<z.ZodBoolean>;
+        groupModulesByExtension: z.ZodOptional<z.ZodBoolean>;
+        modulesSpace: z.ZodOptional<z.ZodNumber>;
+        chunkModulesSpace: z.ZodOptional<z.ZodNumber>;
+        nestedModulesSpace: z.ZodOptional<z.ZodNumber>;
+        relatedAssets: z.ZodOptional<z.ZodBoolean>;
+        groupAssetsByEmitStatus: z.ZodOptional<z.ZodBoolean>;
+        groupAssetsByInfo: z.ZodOptional<z.ZodBoolean>;
+        groupAssetsByPath: z.ZodOptional<z.ZodBoolean>;
+        groupAssetsByExtension: z.ZodOptional<z.ZodBoolean>;
+        groupAssetsByChunk: z.ZodOptional<z.ZodBoolean>;
+        assetsSpace: z.ZodOptional<z.ZodNumber>;
         orphanModules: z.ZodOptional<z.ZodBoolean>;
+        excludeModules: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodAny, z.ZodAny], null>, z.ZodBoolean>]>, "many">, z.ZodString]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodAny, z.ZodAny], null>, z.ZodBoolean>]>, z.ZodBoolean]>>;
+        excludeAssets: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodAny], null>, z.ZodBoolean>]>, "many">, z.ZodString]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodAny], null>, z.ZodBoolean>]>>;
+        modulesSort: z.ZodOptional<z.ZodString>;
+        chunkModulesSort: z.ZodOptional<z.ZodString>;
+        nestedModulesSort: z.ZodOptional<z.ZodString>;
+        chunksSort: z.ZodOptional<z.ZodString>;
+        assetsSort: z.ZodOptional<z.ZodString>;
+        performance: z.ZodOptional<z.ZodBoolean>;
+        env: z.ZodOptional<z.ZodBoolean>;
+        chunkGroupAuxiliary: z.ZodOptional<z.ZodBoolean>;
+        chunkGroupChildren: z.ZodOptional<z.ZodBoolean>;
+        chunkGroupMaxAssets: z.ZodOptional<z.ZodNumber>;
+        dependentModules: z.ZodOptional<z.ZodBoolean>;
+        chunkOrigins: z.ZodOptional<z.ZodBoolean>;
+        runtime: z.ZodOptional<z.ZodBoolean>;
+        depth: z.ZodOptional<z.ZodBoolean>;
+        reasonsSpace: z.ZodOptional<z.ZodNumber>;
+        groupReasonsByOrigin: z.ZodOptional<z.ZodBoolean>;
+        errorDetails: z.ZodOptional<z.ZodBoolean>;
+        errorStack: z.ZodOptional<z.ZodBoolean>;
+        moduleTrace: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
         all?: boolean | undefined;
-        preset?: "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+        preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
         modules?: boolean | undefined;
-        entrypoints?: boolean | undefined;
+        entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;
         warningsCount?: boolean | undefined;
@@ -9334,7 +9454,6 @@ export const rspackOptions: z.ZodObject<{
         timings?: boolean | undefined;
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
-        modulesSpace?: number | undefined;
         nestedModules?: boolean | undefined;
         source?: boolean | undefined;
         logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
@@ -9345,14 +9464,51 @@ export const rspackOptions: z.ZodObject<{
         usedExports?: boolean | undefined;
         providedExports?: boolean | undefined;
         optimizationBailout?: boolean | undefined;
+        groupModulesByType?: boolean | undefined;
+        groupModulesByCacheStatus?: boolean | undefined;
+        groupModulesByLayer?: boolean | undefined;
+        groupModulesByAttributes?: boolean | undefined;
+        groupModulesByPath?: boolean | undefined;
+        groupModulesByExtension?: boolean | undefined;
+        modulesSpace?: number | undefined;
+        chunkModulesSpace?: number | undefined;
+        nestedModulesSpace?: number | undefined;
+        relatedAssets?: boolean | undefined;
+        groupAssetsByEmitStatus?: boolean | undefined;
+        groupAssetsByInfo?: boolean | undefined;
+        groupAssetsByPath?: boolean | undefined;
+        groupAssetsByExtension?: boolean | undefined;
+        groupAssetsByChunk?: boolean | undefined;
+        assetsSpace?: number | undefined;
         orphanModules?: boolean | undefined;
+        excludeModules?: string | boolean | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean))[] | undefined;
+        excludeAssets?: string | RegExp | ((args_0: string, args_1: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any) => boolean))[] | undefined;
+        modulesSort?: string | undefined;
+        chunkModulesSort?: string | undefined;
+        nestedModulesSort?: string | undefined;
+        chunksSort?: string | undefined;
+        assetsSort?: string | undefined;
+        performance?: boolean | undefined;
+        env?: boolean | undefined;
+        chunkGroupAuxiliary?: boolean | undefined;
+        chunkGroupChildren?: boolean | undefined;
+        chunkGroupMaxAssets?: number | undefined;
+        dependentModules?: boolean | undefined;
+        chunkOrigins?: boolean | undefined;
+        runtime?: boolean | undefined;
+        depth?: boolean | undefined;
+        reasonsSpace?: number | undefined;
+        groupReasonsByOrigin?: boolean | undefined;
+        errorDetails?: boolean | undefined;
+        errorStack?: boolean | undefined;
+        moduleTrace?: boolean | undefined;
     }, {
         all?: boolean | undefined;
-        preset?: "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+        preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
         modules?: boolean | undefined;
-        entrypoints?: boolean | undefined;
+        entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;
         warningsCount?: boolean | undefined;
@@ -9370,7 +9526,6 @@ export const rspackOptions: z.ZodObject<{
         timings?: boolean | undefined;
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
-        modulesSpace?: number | undefined;
         nestedModules?: boolean | undefined;
         source?: boolean | undefined;
         logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
@@ -9381,7 +9536,44 @@ export const rspackOptions: z.ZodObject<{
         usedExports?: boolean | undefined;
         providedExports?: boolean | undefined;
         optimizationBailout?: boolean | undefined;
+        groupModulesByType?: boolean | undefined;
+        groupModulesByCacheStatus?: boolean | undefined;
+        groupModulesByLayer?: boolean | undefined;
+        groupModulesByAttributes?: boolean | undefined;
+        groupModulesByPath?: boolean | undefined;
+        groupModulesByExtension?: boolean | undefined;
+        modulesSpace?: number | undefined;
+        chunkModulesSpace?: number | undefined;
+        nestedModulesSpace?: number | undefined;
+        relatedAssets?: boolean | undefined;
+        groupAssetsByEmitStatus?: boolean | undefined;
+        groupAssetsByInfo?: boolean | undefined;
+        groupAssetsByPath?: boolean | undefined;
+        groupAssetsByExtension?: boolean | undefined;
+        groupAssetsByChunk?: boolean | undefined;
+        assetsSpace?: number | undefined;
         orphanModules?: boolean | undefined;
+        excludeModules?: string | boolean | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean))[] | undefined;
+        excludeAssets?: string | RegExp | ((args_0: string, args_1: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any) => boolean))[] | undefined;
+        modulesSort?: string | undefined;
+        chunkModulesSort?: string | undefined;
+        nestedModulesSort?: string | undefined;
+        chunksSort?: string | undefined;
+        assetsSort?: string | undefined;
+        performance?: boolean | undefined;
+        env?: boolean | undefined;
+        chunkGroupAuxiliary?: boolean | undefined;
+        chunkGroupChildren?: boolean | undefined;
+        chunkGroupMaxAssets?: number | undefined;
+        dependentModules?: boolean | undefined;
+        chunkOrigins?: boolean | undefined;
+        runtime?: boolean | undefined;
+        depth?: boolean | undefined;
+        reasonsSpace?: number | undefined;
+        groupReasonsByOrigin?: boolean | undefined;
+        errorDetails?: boolean | undefined;
+        errorStack?: boolean | undefined;
+        moduleTrace?: boolean | undefined;
     }>]>>;
     snapshot: z.ZodOptional<z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>>;
     optimization: z.ZodOptional<z.ZodObject<{
@@ -10711,11 +10903,11 @@ export const rspackOptions: z.ZodObject<{
     watch?: boolean | undefined;
     stats?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | {
         all?: boolean | undefined;
-        preset?: "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+        preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
         modules?: boolean | undefined;
-        entrypoints?: boolean | undefined;
+        entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;
         warningsCount?: boolean | undefined;
@@ -10733,7 +10925,6 @@ export const rspackOptions: z.ZodObject<{
         timings?: boolean | undefined;
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
-        modulesSpace?: number | undefined;
         nestedModules?: boolean | undefined;
         source?: boolean | undefined;
         logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
@@ -10744,7 +10935,44 @@ export const rspackOptions: z.ZodObject<{
         usedExports?: boolean | undefined;
         providedExports?: boolean | undefined;
         optimizationBailout?: boolean | undefined;
+        groupModulesByType?: boolean | undefined;
+        groupModulesByCacheStatus?: boolean | undefined;
+        groupModulesByLayer?: boolean | undefined;
+        groupModulesByAttributes?: boolean | undefined;
+        groupModulesByPath?: boolean | undefined;
+        groupModulesByExtension?: boolean | undefined;
+        modulesSpace?: number | undefined;
+        chunkModulesSpace?: number | undefined;
+        nestedModulesSpace?: number | undefined;
+        relatedAssets?: boolean | undefined;
+        groupAssetsByEmitStatus?: boolean | undefined;
+        groupAssetsByInfo?: boolean | undefined;
+        groupAssetsByPath?: boolean | undefined;
+        groupAssetsByExtension?: boolean | undefined;
+        groupAssetsByChunk?: boolean | undefined;
+        assetsSpace?: number | undefined;
         orphanModules?: boolean | undefined;
+        excludeModules?: string | boolean | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean))[] | undefined;
+        excludeAssets?: string | RegExp | ((args_0: string, args_1: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any) => boolean))[] | undefined;
+        modulesSort?: string | undefined;
+        chunkModulesSort?: string | undefined;
+        nestedModulesSort?: string | undefined;
+        chunksSort?: string | undefined;
+        assetsSort?: string | undefined;
+        performance?: boolean | undefined;
+        env?: boolean | undefined;
+        chunkGroupAuxiliary?: boolean | undefined;
+        chunkGroupChildren?: boolean | undefined;
+        chunkGroupMaxAssets?: number | undefined;
+        dependentModules?: boolean | undefined;
+        chunkOrigins?: boolean | undefined;
+        runtime?: boolean | undefined;
+        depth?: boolean | undefined;
+        reasonsSpace?: number | undefined;
+        groupReasonsByOrigin?: boolean | undefined;
+        errorDetails?: boolean | undefined;
+        errorStack?: boolean | undefined;
+        moduleTrace?: boolean | undefined;
     } | undefined;
     snapshot?: {} | undefined;
     optimization?: {
@@ -11160,11 +11388,11 @@ export const rspackOptions: z.ZodObject<{
     watch?: boolean | undefined;
     stats?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | {
         all?: boolean | undefined;
-        preset?: "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+        preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
         modules?: boolean | undefined;
-        entrypoints?: boolean | undefined;
+        entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;
         warningsCount?: boolean | undefined;
@@ -11182,7 +11410,6 @@ export const rspackOptions: z.ZodObject<{
         timings?: boolean | undefined;
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
-        modulesSpace?: number | undefined;
         nestedModules?: boolean | undefined;
         source?: boolean | undefined;
         logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
@@ -11193,7 +11420,44 @@ export const rspackOptions: z.ZodObject<{
         usedExports?: boolean | undefined;
         providedExports?: boolean | undefined;
         optimizationBailout?: boolean | undefined;
+        groupModulesByType?: boolean | undefined;
+        groupModulesByCacheStatus?: boolean | undefined;
+        groupModulesByLayer?: boolean | undefined;
+        groupModulesByAttributes?: boolean | undefined;
+        groupModulesByPath?: boolean | undefined;
+        groupModulesByExtension?: boolean | undefined;
+        modulesSpace?: number | undefined;
+        chunkModulesSpace?: number | undefined;
+        nestedModulesSpace?: number | undefined;
+        relatedAssets?: boolean | undefined;
+        groupAssetsByEmitStatus?: boolean | undefined;
+        groupAssetsByInfo?: boolean | undefined;
+        groupAssetsByPath?: boolean | undefined;
+        groupAssetsByExtension?: boolean | undefined;
+        groupAssetsByChunk?: boolean | undefined;
+        assetsSpace?: number | undefined;
         orphanModules?: boolean | undefined;
+        excludeModules?: string | boolean | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean))[] | undefined;
+        excludeAssets?: string | RegExp | ((args_0: string, args_1: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any) => boolean))[] | undefined;
+        modulesSort?: string | undefined;
+        chunkModulesSort?: string | undefined;
+        nestedModulesSort?: string | undefined;
+        chunksSort?: string | undefined;
+        assetsSort?: string | undefined;
+        performance?: boolean | undefined;
+        env?: boolean | undefined;
+        chunkGroupAuxiliary?: boolean | undefined;
+        chunkGroupChildren?: boolean | undefined;
+        chunkGroupMaxAssets?: number | undefined;
+        dependentModules?: boolean | undefined;
+        chunkOrigins?: boolean | undefined;
+        runtime?: boolean | undefined;
+        depth?: boolean | undefined;
+        reasonsSpace?: number | undefined;
+        groupReasonsByOrigin?: boolean | undefined;
+        errorDetails?: boolean | undefined;
+        errorStack?: boolean | undefined;
+        moduleTrace?: boolean | undefined;
     } | undefined;
     snapshot?: {} | undefined;
     optimization?: {
@@ -11906,11 +12170,11 @@ export type StatsOptions = z.infer<typeof statsOptions>;
 // @public (undocumented)
 const statsOptions: z.ZodObject<{
     all: z.ZodOptional<z.ZodBoolean>;
-    preset: z.ZodOptional<z.ZodEnum<["normal", "none", "verbose", "errors-only", "errors-warnings"]>>;
+    preset: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "none", "verbose", "errors-only", "errors-warnings"]>]>>;
     assets: z.ZodOptional<z.ZodBoolean>;
     chunks: z.ZodOptional<z.ZodBoolean>;
     modules: z.ZodOptional<z.ZodBoolean>;
-    entrypoints: z.ZodOptional<z.ZodBoolean>;
+    entrypoints: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"auto">]>>;
     chunkGroups: z.ZodOptional<z.ZodBoolean>;
     warnings: z.ZodOptional<z.ZodBoolean>;
     warningsCount: z.ZodOptional<z.ZodBoolean>;
@@ -11928,7 +12192,6 @@ const statsOptions: z.ZodObject<{
     timings: z.ZodOptional<z.ZodBoolean>;
     builtAt: z.ZodOptional<z.ZodBoolean>;
     moduleAssets: z.ZodOptional<z.ZodBoolean>;
-    modulesSpace: z.ZodOptional<z.ZodNumber>;
     nestedModules: z.ZodOptional<z.ZodBoolean>;
     source: z.ZodOptional<z.ZodBoolean>;
     logging: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["none", "error", "warn", "info", "log", "verbose"]>, z.ZodBoolean]>>;
@@ -11939,14 +12202,51 @@ const statsOptions: z.ZodObject<{
     usedExports: z.ZodOptional<z.ZodBoolean>;
     providedExports: z.ZodOptional<z.ZodBoolean>;
     optimizationBailout: z.ZodOptional<z.ZodBoolean>;
+    groupModulesByType: z.ZodOptional<z.ZodBoolean>;
+    groupModulesByCacheStatus: z.ZodOptional<z.ZodBoolean>;
+    groupModulesByLayer: z.ZodOptional<z.ZodBoolean>;
+    groupModulesByAttributes: z.ZodOptional<z.ZodBoolean>;
+    groupModulesByPath: z.ZodOptional<z.ZodBoolean>;
+    groupModulesByExtension: z.ZodOptional<z.ZodBoolean>;
+    modulesSpace: z.ZodOptional<z.ZodNumber>;
+    chunkModulesSpace: z.ZodOptional<z.ZodNumber>;
+    nestedModulesSpace: z.ZodOptional<z.ZodNumber>;
+    relatedAssets: z.ZodOptional<z.ZodBoolean>;
+    groupAssetsByEmitStatus: z.ZodOptional<z.ZodBoolean>;
+    groupAssetsByInfo: z.ZodOptional<z.ZodBoolean>;
+    groupAssetsByPath: z.ZodOptional<z.ZodBoolean>;
+    groupAssetsByExtension: z.ZodOptional<z.ZodBoolean>;
+    groupAssetsByChunk: z.ZodOptional<z.ZodBoolean>;
+    assetsSpace: z.ZodOptional<z.ZodNumber>;
     orphanModules: z.ZodOptional<z.ZodBoolean>;
+    excludeModules: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodAny, z.ZodAny], null>, z.ZodBoolean>]>, "many">, z.ZodString]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodAny, z.ZodAny], null>, z.ZodBoolean>]>, z.ZodBoolean]>>;
+    excludeAssets: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodAny], null>, z.ZodBoolean>]>, "many">, z.ZodString]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodAny], null>, z.ZodBoolean>]>>;
+    modulesSort: z.ZodOptional<z.ZodString>;
+    chunkModulesSort: z.ZodOptional<z.ZodString>;
+    nestedModulesSort: z.ZodOptional<z.ZodString>;
+    chunksSort: z.ZodOptional<z.ZodString>;
+    assetsSort: z.ZodOptional<z.ZodString>;
+    performance: z.ZodOptional<z.ZodBoolean>;
+    env: z.ZodOptional<z.ZodBoolean>;
+    chunkGroupAuxiliary: z.ZodOptional<z.ZodBoolean>;
+    chunkGroupChildren: z.ZodOptional<z.ZodBoolean>;
+    chunkGroupMaxAssets: z.ZodOptional<z.ZodNumber>;
+    dependentModules: z.ZodOptional<z.ZodBoolean>;
+    chunkOrigins: z.ZodOptional<z.ZodBoolean>;
+    runtime: z.ZodOptional<z.ZodBoolean>;
+    depth: z.ZodOptional<z.ZodBoolean>;
+    reasonsSpace: z.ZodOptional<z.ZodNumber>;
+    groupReasonsByOrigin: z.ZodOptional<z.ZodBoolean>;
+    errorDetails: z.ZodOptional<z.ZodBoolean>;
+    errorStack: z.ZodOptional<z.ZodBoolean>;
+    moduleTrace: z.ZodOptional<z.ZodBoolean>;
 }, "strict", z.ZodTypeAny, {
     all?: boolean | undefined;
-    preset?: "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+    preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
     assets?: boolean | undefined;
     chunks?: boolean | undefined;
     modules?: boolean | undefined;
-    entrypoints?: boolean | undefined;
+    entrypoints?: boolean | "auto" | undefined;
     chunkGroups?: boolean | undefined;
     warnings?: boolean | undefined;
     warningsCount?: boolean | undefined;
@@ -11964,7 +12264,6 @@ const statsOptions: z.ZodObject<{
     timings?: boolean | undefined;
     builtAt?: boolean | undefined;
     moduleAssets?: boolean | undefined;
-    modulesSpace?: number | undefined;
     nestedModules?: boolean | undefined;
     source?: boolean | undefined;
     logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
@@ -11975,14 +12274,51 @@ const statsOptions: z.ZodObject<{
     usedExports?: boolean | undefined;
     providedExports?: boolean | undefined;
     optimizationBailout?: boolean | undefined;
+    groupModulesByType?: boolean | undefined;
+    groupModulesByCacheStatus?: boolean | undefined;
+    groupModulesByLayer?: boolean | undefined;
+    groupModulesByAttributes?: boolean | undefined;
+    groupModulesByPath?: boolean | undefined;
+    groupModulesByExtension?: boolean | undefined;
+    modulesSpace?: number | undefined;
+    chunkModulesSpace?: number | undefined;
+    nestedModulesSpace?: number | undefined;
+    relatedAssets?: boolean | undefined;
+    groupAssetsByEmitStatus?: boolean | undefined;
+    groupAssetsByInfo?: boolean | undefined;
+    groupAssetsByPath?: boolean | undefined;
+    groupAssetsByExtension?: boolean | undefined;
+    groupAssetsByChunk?: boolean | undefined;
+    assetsSpace?: number | undefined;
     orphanModules?: boolean | undefined;
+    excludeModules?: string | boolean | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean))[] | undefined;
+    excludeAssets?: string | RegExp | ((args_0: string, args_1: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any) => boolean))[] | undefined;
+    modulesSort?: string | undefined;
+    chunkModulesSort?: string | undefined;
+    nestedModulesSort?: string | undefined;
+    chunksSort?: string | undefined;
+    assetsSort?: string | undefined;
+    performance?: boolean | undefined;
+    env?: boolean | undefined;
+    chunkGroupAuxiliary?: boolean | undefined;
+    chunkGroupChildren?: boolean | undefined;
+    chunkGroupMaxAssets?: number | undefined;
+    dependentModules?: boolean | undefined;
+    chunkOrigins?: boolean | undefined;
+    runtime?: boolean | undefined;
+    depth?: boolean | undefined;
+    reasonsSpace?: number | undefined;
+    groupReasonsByOrigin?: boolean | undefined;
+    errorDetails?: boolean | undefined;
+    errorStack?: boolean | undefined;
+    moduleTrace?: boolean | undefined;
 }, {
     all?: boolean | undefined;
-    preset?: "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+    preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
     assets?: boolean | undefined;
     chunks?: boolean | undefined;
     modules?: boolean | undefined;
-    entrypoints?: boolean | undefined;
+    entrypoints?: boolean | "auto" | undefined;
     chunkGroups?: boolean | undefined;
     warnings?: boolean | undefined;
     warningsCount?: boolean | undefined;
@@ -12000,7 +12336,6 @@ const statsOptions: z.ZodObject<{
     timings?: boolean | undefined;
     builtAt?: boolean | undefined;
     moduleAssets?: boolean | undefined;
-    modulesSpace?: number | undefined;
     nestedModules?: boolean | undefined;
     source?: boolean | undefined;
     logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
@@ -12011,7 +12346,44 @@ const statsOptions: z.ZodObject<{
     usedExports?: boolean | undefined;
     providedExports?: boolean | undefined;
     optimizationBailout?: boolean | undefined;
+    groupModulesByType?: boolean | undefined;
+    groupModulesByCacheStatus?: boolean | undefined;
+    groupModulesByLayer?: boolean | undefined;
+    groupModulesByAttributes?: boolean | undefined;
+    groupModulesByPath?: boolean | undefined;
+    groupModulesByExtension?: boolean | undefined;
+    modulesSpace?: number | undefined;
+    chunkModulesSpace?: number | undefined;
+    nestedModulesSpace?: number | undefined;
+    relatedAssets?: boolean | undefined;
+    groupAssetsByEmitStatus?: boolean | undefined;
+    groupAssetsByInfo?: boolean | undefined;
+    groupAssetsByPath?: boolean | undefined;
+    groupAssetsByExtension?: boolean | undefined;
+    groupAssetsByChunk?: boolean | undefined;
+    assetsSpace?: number | undefined;
     orphanModules?: boolean | undefined;
+    excludeModules?: string | boolean | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean))[] | undefined;
+    excludeAssets?: string | RegExp | ((args_0: string, args_1: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any) => boolean))[] | undefined;
+    modulesSort?: string | undefined;
+    chunkModulesSort?: string | undefined;
+    nestedModulesSort?: string | undefined;
+    chunksSort?: string | undefined;
+    assetsSort?: string | undefined;
+    performance?: boolean | undefined;
+    env?: boolean | undefined;
+    chunkGroupAuxiliary?: boolean | undefined;
+    chunkGroupChildren?: boolean | undefined;
+    chunkGroupMaxAssets?: number | undefined;
+    dependentModules?: boolean | undefined;
+    chunkOrigins?: boolean | undefined;
+    runtime?: boolean | undefined;
+    depth?: boolean | undefined;
+    reasonsSpace?: number | undefined;
+    groupReasonsByOrigin?: boolean | undefined;
+    errorDetails?: boolean | undefined;
+    errorStack?: boolean | undefined;
+    moduleTrace?: boolean | undefined;
 }>;
 
 // @public (undocumented)
@@ -12047,11 +12419,11 @@ export type StatsValue = z.infer<typeof statsValue>;
 // @public (undocumented)
 const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["none", "errors-only", "errors-warnings", "normal", "verbose"]>, z.ZodBoolean]>, z.ZodObject<{
     all: z.ZodOptional<z.ZodBoolean>;
-    preset: z.ZodOptional<z.ZodEnum<["normal", "none", "verbose", "errors-only", "errors-warnings"]>>;
+    preset: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "none", "verbose", "errors-only", "errors-warnings"]>]>>;
     assets: z.ZodOptional<z.ZodBoolean>;
     chunks: z.ZodOptional<z.ZodBoolean>;
     modules: z.ZodOptional<z.ZodBoolean>;
-    entrypoints: z.ZodOptional<z.ZodBoolean>;
+    entrypoints: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"auto">]>>;
     chunkGroups: z.ZodOptional<z.ZodBoolean>;
     warnings: z.ZodOptional<z.ZodBoolean>;
     warningsCount: z.ZodOptional<z.ZodBoolean>;
@@ -12069,7 +12441,6 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["none", "errors-only", "err
     timings: z.ZodOptional<z.ZodBoolean>;
     builtAt: z.ZodOptional<z.ZodBoolean>;
     moduleAssets: z.ZodOptional<z.ZodBoolean>;
-    modulesSpace: z.ZodOptional<z.ZodNumber>;
     nestedModules: z.ZodOptional<z.ZodBoolean>;
     source: z.ZodOptional<z.ZodBoolean>;
     logging: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["none", "error", "warn", "info", "log", "verbose"]>, z.ZodBoolean]>>;
@@ -12080,14 +12451,51 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["none", "errors-only", "err
     usedExports: z.ZodOptional<z.ZodBoolean>;
     providedExports: z.ZodOptional<z.ZodBoolean>;
     optimizationBailout: z.ZodOptional<z.ZodBoolean>;
+    groupModulesByType: z.ZodOptional<z.ZodBoolean>;
+    groupModulesByCacheStatus: z.ZodOptional<z.ZodBoolean>;
+    groupModulesByLayer: z.ZodOptional<z.ZodBoolean>;
+    groupModulesByAttributes: z.ZodOptional<z.ZodBoolean>;
+    groupModulesByPath: z.ZodOptional<z.ZodBoolean>;
+    groupModulesByExtension: z.ZodOptional<z.ZodBoolean>;
+    modulesSpace: z.ZodOptional<z.ZodNumber>;
+    chunkModulesSpace: z.ZodOptional<z.ZodNumber>;
+    nestedModulesSpace: z.ZodOptional<z.ZodNumber>;
+    relatedAssets: z.ZodOptional<z.ZodBoolean>;
+    groupAssetsByEmitStatus: z.ZodOptional<z.ZodBoolean>;
+    groupAssetsByInfo: z.ZodOptional<z.ZodBoolean>;
+    groupAssetsByPath: z.ZodOptional<z.ZodBoolean>;
+    groupAssetsByExtension: z.ZodOptional<z.ZodBoolean>;
+    groupAssetsByChunk: z.ZodOptional<z.ZodBoolean>;
+    assetsSpace: z.ZodOptional<z.ZodNumber>;
     orphanModules: z.ZodOptional<z.ZodBoolean>;
+    excludeModules: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodAny, z.ZodAny], null>, z.ZodBoolean>]>, "many">, z.ZodString]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodAny, z.ZodAny], null>, z.ZodBoolean>]>, z.ZodBoolean]>>;
+    excludeAssets: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodAny], null>, z.ZodBoolean>]>, "many">, z.ZodString]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodAny], null>, z.ZodBoolean>]>>;
+    modulesSort: z.ZodOptional<z.ZodString>;
+    chunkModulesSort: z.ZodOptional<z.ZodString>;
+    nestedModulesSort: z.ZodOptional<z.ZodString>;
+    chunksSort: z.ZodOptional<z.ZodString>;
+    assetsSort: z.ZodOptional<z.ZodString>;
+    performance: z.ZodOptional<z.ZodBoolean>;
+    env: z.ZodOptional<z.ZodBoolean>;
+    chunkGroupAuxiliary: z.ZodOptional<z.ZodBoolean>;
+    chunkGroupChildren: z.ZodOptional<z.ZodBoolean>;
+    chunkGroupMaxAssets: z.ZodOptional<z.ZodNumber>;
+    dependentModules: z.ZodOptional<z.ZodBoolean>;
+    chunkOrigins: z.ZodOptional<z.ZodBoolean>;
+    runtime: z.ZodOptional<z.ZodBoolean>;
+    depth: z.ZodOptional<z.ZodBoolean>;
+    reasonsSpace: z.ZodOptional<z.ZodNumber>;
+    groupReasonsByOrigin: z.ZodOptional<z.ZodBoolean>;
+    errorDetails: z.ZodOptional<z.ZodBoolean>;
+    errorStack: z.ZodOptional<z.ZodBoolean>;
+    moduleTrace: z.ZodOptional<z.ZodBoolean>;
 }, "strict", z.ZodTypeAny, {
     all?: boolean | undefined;
-    preset?: "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+    preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
     assets?: boolean | undefined;
     chunks?: boolean | undefined;
     modules?: boolean | undefined;
-    entrypoints?: boolean | undefined;
+    entrypoints?: boolean | "auto" | undefined;
     chunkGroups?: boolean | undefined;
     warnings?: boolean | undefined;
     warningsCount?: boolean | undefined;
@@ -12105,7 +12513,6 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["none", "errors-only", "err
     timings?: boolean | undefined;
     builtAt?: boolean | undefined;
     moduleAssets?: boolean | undefined;
-    modulesSpace?: number | undefined;
     nestedModules?: boolean | undefined;
     source?: boolean | undefined;
     logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
@@ -12116,14 +12523,51 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["none", "errors-only", "err
     usedExports?: boolean | undefined;
     providedExports?: boolean | undefined;
     optimizationBailout?: boolean | undefined;
+    groupModulesByType?: boolean | undefined;
+    groupModulesByCacheStatus?: boolean | undefined;
+    groupModulesByLayer?: boolean | undefined;
+    groupModulesByAttributes?: boolean | undefined;
+    groupModulesByPath?: boolean | undefined;
+    groupModulesByExtension?: boolean | undefined;
+    modulesSpace?: number | undefined;
+    chunkModulesSpace?: number | undefined;
+    nestedModulesSpace?: number | undefined;
+    relatedAssets?: boolean | undefined;
+    groupAssetsByEmitStatus?: boolean | undefined;
+    groupAssetsByInfo?: boolean | undefined;
+    groupAssetsByPath?: boolean | undefined;
+    groupAssetsByExtension?: boolean | undefined;
+    groupAssetsByChunk?: boolean | undefined;
+    assetsSpace?: number | undefined;
     orphanModules?: boolean | undefined;
+    excludeModules?: string | boolean | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean))[] | undefined;
+    excludeAssets?: string | RegExp | ((args_0: string, args_1: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any) => boolean))[] | undefined;
+    modulesSort?: string | undefined;
+    chunkModulesSort?: string | undefined;
+    nestedModulesSort?: string | undefined;
+    chunksSort?: string | undefined;
+    assetsSort?: string | undefined;
+    performance?: boolean | undefined;
+    env?: boolean | undefined;
+    chunkGroupAuxiliary?: boolean | undefined;
+    chunkGroupChildren?: boolean | undefined;
+    chunkGroupMaxAssets?: number | undefined;
+    dependentModules?: boolean | undefined;
+    chunkOrigins?: boolean | undefined;
+    runtime?: boolean | undefined;
+    depth?: boolean | undefined;
+    reasonsSpace?: number | undefined;
+    groupReasonsByOrigin?: boolean | undefined;
+    errorDetails?: boolean | undefined;
+    errorStack?: boolean | undefined;
+    moduleTrace?: boolean | undefined;
 }, {
     all?: boolean | undefined;
-    preset?: "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+    preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
     assets?: boolean | undefined;
     chunks?: boolean | undefined;
     modules?: boolean | undefined;
-    entrypoints?: boolean | undefined;
+    entrypoints?: boolean | "auto" | undefined;
     chunkGroups?: boolean | undefined;
     warnings?: boolean | undefined;
     warningsCount?: boolean | undefined;
@@ -12141,7 +12585,6 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["none", "errors-only", "err
     timings?: boolean | undefined;
     builtAt?: boolean | undefined;
     moduleAssets?: boolean | undefined;
-    modulesSpace?: number | undefined;
     nestedModules?: boolean | undefined;
     source?: boolean | undefined;
     logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
@@ -12152,7 +12595,44 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["none", "errors-only", "err
     usedExports?: boolean | undefined;
     providedExports?: boolean | undefined;
     optimizationBailout?: boolean | undefined;
+    groupModulesByType?: boolean | undefined;
+    groupModulesByCacheStatus?: boolean | undefined;
+    groupModulesByLayer?: boolean | undefined;
+    groupModulesByAttributes?: boolean | undefined;
+    groupModulesByPath?: boolean | undefined;
+    groupModulesByExtension?: boolean | undefined;
+    modulesSpace?: number | undefined;
+    chunkModulesSpace?: number | undefined;
+    nestedModulesSpace?: number | undefined;
+    relatedAssets?: boolean | undefined;
+    groupAssetsByEmitStatus?: boolean | undefined;
+    groupAssetsByInfo?: boolean | undefined;
+    groupAssetsByPath?: boolean | undefined;
+    groupAssetsByExtension?: boolean | undefined;
+    groupAssetsByChunk?: boolean | undefined;
+    assetsSpace?: number | undefined;
     orphanModules?: boolean | undefined;
+    excludeModules?: string | boolean | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any, args_2: any) => boolean))[] | undefined;
+    excludeAssets?: string | RegExp | ((args_0: string, args_1: any) => boolean) | (string | RegExp | ((args_0: string, args_1: any) => boolean))[] | undefined;
+    modulesSort?: string | undefined;
+    chunkModulesSort?: string | undefined;
+    nestedModulesSort?: string | undefined;
+    chunksSort?: string | undefined;
+    assetsSort?: string | undefined;
+    performance?: boolean | undefined;
+    env?: boolean | undefined;
+    chunkGroupAuxiliary?: boolean | undefined;
+    chunkGroupChildren?: boolean | undefined;
+    chunkGroupMaxAssets?: number | undefined;
+    dependentModules?: boolean | undefined;
+    chunkOrigins?: boolean | undefined;
+    runtime?: boolean | undefined;
+    depth?: boolean | undefined;
+    reasonsSpace?: number | undefined;
+    groupReasonsByOrigin?: boolean | undefined;
+    errorDetails?: boolean | undefined;
+    errorStack?: boolean | undefined;
+    moduleTrace?: boolean | undefined;
 }>]>;
 
 // @public (undocumented)

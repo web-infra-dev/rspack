@@ -9,7 +9,6 @@
       "packages/rspack/src/config/schema.check.js",
       "packages/**/etc/**/*",
       "packages/**/compiled/**/*",
-      "packages/**/temp/**/*",
       "plugin-test/**/*",
       "benchcases/**/*",
       "crates/**/*",
