@@ -105,11 +105,11 @@ Object {
       "name": "main",
     },
   },
+  "env": undefined,
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
   "hash": "99b766bb1908ecab2ebb",
-  "logging": Object {},
   "modules": Array [
     Object {
       "assets": Array [],
@@ -267,6 +267,36 @@ Object {
           "chunks": Array [
             "909",
           ],
+          "id": "314",
+          "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": Array [],
+          "moduleType": "javascript/auto",
+          "name": "./fixtures/esm/abc.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+          "optimizationBailout": Array [],
+          "orphan": false,
+          "providedExports": Array [],
+          "reasons": Array [
+            Object {
+              "moduleId": undefined,
+              "moduleIdentifier": undefined,
+              "moduleName": undefined,
+              "type": "entry",
+              "userRequest": "./fixtures/esm/abc",
+            },
+          ],
+          "size": 80,
+          "type": "module",
+          "usedExports": Array [],
+        },
+        Object {
+          "assets": Array [],
+          "chunks": Array [
+            "909",
+          ],
           "id": "178",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -356,36 +386,6 @@ Object {
           "type": "module",
           "usedExports": true,
         },
-        Object {
-          "assets": Array [],
-          "chunks": Array [
-            "909",
-          ],
-          "id": "314",
-          "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
-          "issuer": undefined,
-          "issuerId": undefined,
-          "issuerName": undefined,
-          "issuerPath": Array [],
-          "moduleType": "javascript/auto",
-          "name": "./fixtures/esm/abc.js",
-          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
-          "optimizationBailout": Array [],
-          "orphan": false,
-          "providedExports": Array [],
-          "reasons": Array [
-            Object {
-              "moduleId": undefined,
-              "moduleIdentifier": undefined,
-              "moduleName": undefined,
-              "type": "entry",
-              "userRequest": "./fixtures/esm/abc",
-            },
-          ],
-          "size": 80,
-          "type": "module",
-          "usedExports": Array [],
-        },
       ],
       "names": Array [
         "main",
@@ -415,7 +415,6 @@ Object {
   "errorsCount": 0,
   "filteredModules": undefined,
   "hash": "23ccfb7f871f0e79f18a",
-  "logging": Object {},
   "modules": Array [
     Object {
       "assets": Array [],
@@ -887,6 +886,45 @@ Object {
           "chunks": Array [
             "909",
           ],
+          "id": "919",
+          "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": Array [],
+          "moduleType": "javascript/auto",
+          "name": "./fixtures/abc-query.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+          "optimizationBailout": Array [
+            "Statement with side_effects in source code at ./fixtures/abc-query.js:1:0-31",
+          ],
+          "orphan": false,
+          "providedExports": Array [
+            "a",
+            "c",
+          ],
+          "reasons": Array [
+            Object {
+              "moduleId": undefined,
+              "moduleIdentifier": undefined,
+              "moduleName": undefined,
+              "type": "entry",
+              "userRequest": "./fixtures/abc-query",
+            },
+          ],
+          "size": 99,
+          "source": "exports.a = require(\\"./a?a=1\\");
+// exports.b = require(\\"./b?b=2\\");
+exports.c = require(\\"./c?c=3\\");
+",
+          "type": "module",
+          "usedExports": Array [],
+        },
+        Object {
+          "assets": Array [],
+          "chunks": Array [
+            "909",
+          ],
           "id": "432",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -931,45 +969,6 @@ Object {
           "type": "module",
           "usedExports": null,
         },
-        Object {
-          "assets": Array [],
-          "chunks": Array [
-            "909",
-          ],
-          "id": "919",
-          "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
-          "issuer": undefined,
-          "issuerId": undefined,
-          "issuerName": undefined,
-          "issuerPath": Array [],
-          "moduleType": "javascript/auto",
-          "name": "./fixtures/abc-query.js",
-          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
-          "optimizationBailout": Array [
-            "Statement with side_effects in source code at ./fixtures/abc-query.js:1:0-31",
-          ],
-          "orphan": false,
-          "providedExports": Array [
-            "a",
-            "c",
-          ],
-          "reasons": Array [
-            Object {
-              "moduleId": undefined,
-              "moduleIdentifier": undefined,
-              "moduleName": undefined,
-              "type": "entry",
-              "userRequest": "./fixtures/abc-query",
-            },
-          ],
-          "size": 99,
-          "source": "exports.a = require(\\"./a?a=1\\");
-// exports.b = require(\\"./b?b=2\\");
-exports.c = require(\\"./c?c=3\\");
-",
-          "type": "module",
-          "usedExports": Array [],
-        },
       ],
       "names": Array [
         "main",
@@ -995,11 +994,11 @@ exports.c = require(\\"./c?c=3\\");
       "name": "main",
     },
   },
+  "env": undefined,
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
   "hash": "9065311db3fa4c6235f4",
-  "logging": Object {},
   "modules": Array [
     Object {
       "assets": Array [],

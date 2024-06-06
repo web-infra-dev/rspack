@@ -9,6 +9,7 @@
  */
 import * as util from "node:util";
 
+import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { StatsOptions } from "../config";
 import {
@@ -26,7 +27,6 @@ import type {
 	KnownStatsChunkGroup,
 	KnownStatsLoggingEntry,
 	KnownStatsModule,
-	NormalizedStatsOptions,
 	SimpleExtractors,
 	StatsAsset,
 	StatsChunk,
