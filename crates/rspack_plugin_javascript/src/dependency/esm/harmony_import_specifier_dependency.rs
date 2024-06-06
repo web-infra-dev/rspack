@@ -280,25 +280,6 @@ impl Dependency for HarmonyImportSpecifierDependency {
     }
     None
   }
-}
-
-impl ModuleDependency for HarmonyImportSpecifierDependency {
-  fn request(&self) -> &str {
-    &self.request
-  }
-
-  fn user_request(&self) -> &str {
-    &self.request
-  }
-
-  fn set_request(&mut self, request: String) {
-    self.request = request.into();
-  }
-
-  fn get_condition(&self) -> Option<DependencyCondition> {
-    // TODO: this part depend on inner graph parser plugin to call set_used_by_exports to update the used_by_exports
-    get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
-  }
 
   fn get_referenced_exports(
     &self,
@@ -343,6 +324,25 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     }
 
     self.get_referenced_exports_in_destructuring(Some(&ids))
+  }
+}
+
+impl ModuleDependency for HarmonyImportSpecifierDependency {
+  fn request(&self) -> &str {
+    &self.request
+  }
+
+  fn user_request(&self) -> &str {
+    &self.request
+  }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
+  }
+
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    // TODO: this part depend on inner graph parser plugin to call set_used_by_exports to update the used_by_exports
+    get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
   }
 }
 

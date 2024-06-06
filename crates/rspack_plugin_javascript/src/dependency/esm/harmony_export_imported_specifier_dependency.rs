@@ -1256,52 +1256,6 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
     }
     None
   }
-}
-
-impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
-  fn request(&self) -> &str {
-    &self.request
-  }
-
-  fn user_request(&self) -> &str {
-    &self.request
-  }
-
-  fn set_request(&mut self, request: String) {
-    self.request = request.into();
-  }
-
-  fn is_export_all(&self) -> Option<bool> {
-    if self.export_all {
-      Some(true)
-    } else {
-      None
-    }
-  }
-
-  fn get_condition(&self) -> Option<DependencyCondition> {
-    let id = self.id;
-    Some(DependencyCondition::Fn(Arc::new(
-      move |_mc, runtime, module_graph: &ModuleGraph| {
-        let dep = module_graph
-          .dependency_by_id(&id)
-          .expect("should have dependency");
-        let down_casted_dep = dep
-          .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
-          .expect("should be HarmonyExportImportedSpecifierDependency");
-        let mode = down_casted_dep.get_mode(
-          down_casted_dep.name.clone(),
-          module_graph,
-          &down_casted_dep.id,
-          runtime,
-        );
-        ConnectionState::Bool(!matches!(
-          mode.ty,
-          ExportModeType::Unused | ExportModeType::EmptyStar
-        ))
-      },
-    )))
-  }
 
   fn get_referenced_exports(
     &self,
@@ -1364,6 +1318,52 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
           .collect::<Vec<_>>()
       }
     }
+  }
+}
+
+impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
+  fn request(&self) -> &str {
+    &self.request
+  }
+
+  fn user_request(&self) -> &str {
+    &self.request
+  }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
+  }
+
+  fn is_export_all(&self) -> Option<bool> {
+    if self.export_all {
+      Some(true)
+    } else {
+      None
+    }
+  }
+
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    let id = self.id;
+    Some(DependencyCondition::Fn(Arc::new(
+      move |_mc, runtime, module_graph: &ModuleGraph| {
+        let dep = module_graph
+          .dependency_by_id(&id)
+          .expect("should have dependency");
+        let down_casted_dep = dep
+          .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+          .expect("should be HarmonyExportImportedSpecifierDependency");
+        let mode = down_casted_dep.get_mode(
+          down_casted_dep.name.clone(),
+          module_graph,
+          &down_casted_dep.id,
+          runtime,
+        );
+        ConnectionState::Bool(!matches!(
+          mode.ty,
+          ExportModeType::Unused | ExportModeType::EmptyStar
+        ))
+      },
+    )))
   }
 }
 

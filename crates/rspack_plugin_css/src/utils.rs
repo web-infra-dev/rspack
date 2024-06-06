@@ -3,6 +3,7 @@ use std::fmt::Write;
 use std::hash::Hasher;
 
 use heck::{ToKebabCase, ToLowerCamelCase};
+use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_core::rspack_sources::{ConcatSource, RawSource};
@@ -19,7 +20,7 @@ use rspack_util::infallible::ResultInfallibleExt;
 use rspack_util::json_stringify;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::parser_and_generator::{CssExport, CssExports};
+use crate::parser_and_generator::CssExport;
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
 pub static AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX: Lazy<Regex> =
@@ -131,8 +132,8 @@ pub(crate) fn export_locals_convention(
   res
 }
 
-pub fn css_modules_exports_to_string(
-  exports: &CssExports,
+pub fn css_modules_exports_to_string<'a>(
+  exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
   module: &dyn rspack_core::Module,
   compilation: &Compilation,
   runtime_requirements: &mut RuntimeGlobals,
@@ -189,8 +190,8 @@ pub fn css_modules_exports_to_string(
   Ok(code)
 }
 
-pub fn css_modules_exports_to_concatenate_module_string(
-  exports: &CssExports,
+pub fn css_modules_exports_to_concatenate_module_string<'a>(
+  exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
   module: &dyn rspack_core::Module,
   generate_context: &mut GenerateContext,
   concate_source: &mut ConcatSource,
