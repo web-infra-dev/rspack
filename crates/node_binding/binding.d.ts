@@ -726,6 +726,8 @@ export interface RawCacheOptions {
 
 export interface RawChunkOptionNameCtx {
   module: JsModule
+  chunks: Array<JsChunk>
+  cacheGroupKey: string
 }
 
 export interface RawConsumeOptions {
