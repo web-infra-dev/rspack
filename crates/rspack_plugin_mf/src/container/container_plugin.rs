@@ -6,7 +6,7 @@ use rspack_core::{
   CompilerOptions,
 };
 use rspack_core::{
-  Compilation, CompilationParams, DependencyType, EntryOptions, EntryRuntime, FilenameTemplate,
+  Compilation, CompilationParams, DependencyType, EntryOptions, EntryRuntime, Filename,
   LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
@@ -25,7 +25,7 @@ pub struct ContainerPluginOptions {
   pub share_scope: String,
   pub library: LibraryOptions,
   pub runtime: Option<EntryRuntime>,
-  pub filename: Option<FilenameTemplate>,
+  pub filename: Option<Filename>,
   pub exposes: Vec<(String, ExposeOptions)>,
   pub enhanced: bool,
 }

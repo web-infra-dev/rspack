@@ -2552,7 +2552,7 @@ export type EntryOptions = {
     asyncChunks?: boolean;
     publicPath?: PublicPath;
     baseUri?: string;
-    filename?: FilenameTemplate;
+    filename?: Filename;
     library?: LibraryOptions;
     dependOn?: string[];
 };

@@ -1,14 +1,13 @@
 use std::fmt::{self, Display};
 
+use derivative::Derivative;
 use itertools::Itertools;
 use rspack_database::DatabaseItem;
 use rspack_error::{error, Result};
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{
-  get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, FilenameTemplate,
-};
+use crate::{get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, Filename};
 use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
 
@@ -356,7 +355,8 @@ impl EntryRuntime {
 
 // pub type EntryRuntime = String;
 
-#[derive(Debug, Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Derivative, Debug, Default, Clone)]
+#[derivative(Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
@@ -364,7 +364,13 @@ pub struct EntryOptions {
   pub async_chunks: Option<bool>,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
-  pub filename: Option<FilenameTemplate>,
+  #[derivative(
+    Hash = "ignore",
+    PartialEq = "ignore",
+    PartialOrd = "ignore",
+    Ord = "ignore"
+  )]
+  pub filename: Option<Filename>,
   pub library: Option<LibraryOptions>,
   pub depend_on: Option<Vec<String>>,
 }
@@ -388,9 +394,10 @@ impl EntryOptions {
     merge_field!(async_chunks);
     merge_field!(public_path);
     merge_field!(base_uri);
-    merge_field!(filename);
     merge_field!(library);
     merge_field!(depend_on);
+
+    self.filename = other.filename.clone();
     Ok(())
   }
 
