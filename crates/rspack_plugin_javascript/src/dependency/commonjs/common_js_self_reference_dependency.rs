@@ -29,10 +29,6 @@ impl CommonJsSelfReferenceDependency {
 }
 
 impl Dependency for CommonJsSelfReferenceDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "CommonJsSelfReferenceDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

@@ -54,7 +54,7 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
   module_type: &ModuleType,
 ) -> TraceableError {
   let (file_type, diagnostic_kind) = match module_type {
-    ModuleType::Js | ModuleType::JsDynamic | ModuleType::JsEsm => {
+    ModuleType::JsAuto | ModuleType::JsDynamic | ModuleType::JsEsm => {
       ("JavaScript", DiagnosticKind::JavaScript)
     }
     _ => unreachable!("Only JavaScript module type is supported"),

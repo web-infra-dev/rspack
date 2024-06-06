@@ -668,7 +668,7 @@ impl NormalModuleFactory {
     matched_module_type: Option<ModuleType>,
     module_rules: &[&ModuleRule],
   ) -> ModuleType {
-    let mut resolved_module_type = matched_module_type.unwrap_or(ModuleType::Js);
+    let mut resolved_module_type = matched_module_type.unwrap_or(ModuleType::JsAuto);
 
     module_rules.iter().for_each(|module_rule| {
       if let Some(module_type) = module_rule.r#type {

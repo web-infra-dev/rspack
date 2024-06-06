@@ -169,9 +169,6 @@ mod dependency {
   impl AsDependencyTemplate for LazyCompilationDependency {}
   impl AsContextDependency for LazyCompilationDependency {}
   impl Dependency for LazyCompilationDependency {
-    fn dependency_debug_name(&self) -> &'static str {
-      "lazy compilation dependency"
-    }
     fn id(&self) -> &rspack_core::DependencyId {
       &self.id
     }
@@ -292,7 +289,7 @@ mod module {
   use rustc_hash::FxHashSet;
 
   use crate::dependency::{LazyCompilationDependency, ProxyCreateData};
-  static MODULE_TYPE: ModuleType = ModuleType::Js;
+  static MODULE_TYPE: ModuleType = ModuleType::JsAuto;
   static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
   pub(crate) struct LazyCompilationProxyModule {
     build_info: Option<BuildInfo>,

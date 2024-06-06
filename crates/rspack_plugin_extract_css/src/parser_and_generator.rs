@@ -87,6 +87,7 @@ impl ParserAndGenerator for CssExtractParserAndGenerator {
                 source_map.clone(),
                 *identifier_index,
                 idx,
+                parse_context.build_info.cacheable,
                 parse_context.build_info.file_dependencies.clone(),
                 parse_context.build_info.context_dependencies.clone(),
                 parse_context.build_info.missing_dependencies.clone(),

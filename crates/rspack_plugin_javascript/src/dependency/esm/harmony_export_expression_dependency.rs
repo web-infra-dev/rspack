@@ -50,9 +50,7 @@ impl Dependency for HarmonyExportExpressionDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::EsmExportExpression
   }
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyExportExpressionDependency"
-  }
+
   fn id(&self) -> &rspack_core::DependencyId {
     &self.id
   }

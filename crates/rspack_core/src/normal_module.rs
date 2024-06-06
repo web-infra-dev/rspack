@@ -171,7 +171,7 @@ static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
   fn create_id(module_type: &ModuleType, request: &str) -> String {
-    if *module_type == ModuleType::Js {
+    if *module_type == ModuleType::JsAuto {
       request.to_string()
     } else {
       format!("{module_type}|{request}")

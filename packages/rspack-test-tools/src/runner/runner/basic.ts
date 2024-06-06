@@ -122,6 +122,12 @@ export abstract class BasicRunner<
 				content: fs.readFileSync(p, "utf-8"),
 				subPath: getSubPath(modulePath)
 			};
+		} else if (path.isAbsolute(modulePath)) {
+			return {
+				path: modulePath,
+				content: fs.readFileSync(modulePath, "utf-8"),
+				subPath: "absolute_path"
+			};
 		} else {
 			return null;
 		}

@@ -23,7 +23,6 @@ pub struct FactorizeTask {
   pub issuer: Option<Box<str>>,
   pub dependency: BoxDependency,
   pub dependencies: Vec<DependencyId>,
-  pub is_entry: bool,
   pub resolve_options: Option<Box<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub current_profile: Option<Box<ModuleProfile>>,
@@ -62,7 +61,6 @@ impl Task<MakeTaskContext> for FactorizeTask {
       original_module_identifier: self.original_module_identifier,
       factory_result: None,
       dependencies: self.dependencies,
-      is_entry: self.is_entry,
       current_profile: self.current_profile,
       exports_info_related: ExportsInfoRelated {
         exports_info,
@@ -148,7 +146,6 @@ pub struct FactorizeResultTask {
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
   pub dependencies: Vec<DependencyId>,
-  pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub exports_info_related: ExportsInfoRelated,
 
@@ -194,7 +191,6 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       original_module_identifier,
       factory_result,
       dependencies,
-      is_entry,
       current_profile,
       exports_info_related,
       file_dependencies,
@@ -269,7 +265,6 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       module,
       module_graph_module: Box::new(mgm),
       dependencies,
-      is_entry,
       current_profile,
     })])
   }

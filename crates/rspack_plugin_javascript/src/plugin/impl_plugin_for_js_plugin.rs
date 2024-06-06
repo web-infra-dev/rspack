@@ -112,10 +112,10 @@ async fn compilation(
       normal_module_factory: params.normal_module_factory.clone(),
     }),
   );
-  compilation.set_dependency_factory(
-    DependencyType::CjsSelfReference,
-    Arc::new(SelfModuleFactory {}),
-  );
+
+  let self_factory = Arc::new(SelfModuleFactory {});
+  compilation.set_dependency_factory(DependencyType::CjsSelfReference, self_factory.clone());
+  compilation.set_dependency_factory(DependencyType::ModuleDecorator, self_factory);
   Ok(())
 }
 
@@ -307,7 +307,7 @@ impl Plugin for JsPlugin {
       .tap(render_manifest::new(self));
 
     ctx.context.register_parser_and_generator_builder(
-      ModuleType::Js,
+      ModuleType::JsAuto,
       Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
     );
     ctx.context.register_parser_and_generator_builder(

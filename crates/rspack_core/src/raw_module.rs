@@ -87,7 +87,7 @@ impl Module for RawModule {
   }
 
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::Js
+    &ModuleType::JsAuto
   }
 
   fn source_types(&self) -> &[SourceType] {

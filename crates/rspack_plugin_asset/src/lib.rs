@@ -1,6 +1,6 @@
 #![feature(let_chains)]
 
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, hash::Hasher};
 
 use async_trait::async_trait;
 use rayon::prelude::*;
@@ -110,7 +110,7 @@ impl AssetParserAndGenerator {
     compiler_options: &CompilerOptions,
   ) -> RspackHashDigest {
     let mut hasher = RspackHash::from(&compiler_options.output);
-    source.hash(&mut hasher);
+    hasher.write(&source.buffer());
     hasher.digest(&compiler_options.output.hash_digest)
   }
 

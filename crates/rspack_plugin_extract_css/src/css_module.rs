@@ -40,7 +40,7 @@ pub(crate) struct CssModule {
   dependencies: Vec<DependencyId>,
 
   identifier__: Identifier,
-
+  cacheable: bool,
   file_dependencies: FxHashSet<PathBuf>,
   context_dependencies: FxHashSet<PathBuf>,
   missing_dependencies: FxHashSet<PathBuf>,
@@ -84,6 +84,7 @@ impl CssModule {
       build_meta: None,
       source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
       identifier__,
+      cacheable: dep.cacheable,
       file_dependencies: dep.file_dependencies,
       context_dependencies: dep.context_dependencies,
       missing_dependencies: dep.missing_dependencies,
@@ -160,6 +161,7 @@ impl Module for CssModule {
     Ok(BuildResult {
       build_info: BuildInfo {
         hash: Some(self.compute_hash(build_context.compiler_options)),
+        cacheable: self.cacheable,
         file_dependencies: self.file_dependencies.clone(),
         context_dependencies: self.context_dependencies.clone(),
         missing_dependencies: self.missing_dependencies.clone(),
