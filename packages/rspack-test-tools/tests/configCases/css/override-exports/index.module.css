@@ -1,0 +1,17 @@
+.base {
+  background-color: red;
+}
+
+.first {
+  composes: base;
+}
+
+.second {
+  composes: base;
+}
+
+.container {
+  .first {
+    color: blue;
+  }
+}
