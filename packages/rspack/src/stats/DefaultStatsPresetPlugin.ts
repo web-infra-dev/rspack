@@ -260,7 +260,7 @@ const normalizeFilter: (
 		"test" in item &&
 		typeof item.test === "function"
 	) {
-		const test = item.test;
+		const test = item.test.bind(item);
 		return ident => test(ident);
 	}
 	if (typeof item === "function") {

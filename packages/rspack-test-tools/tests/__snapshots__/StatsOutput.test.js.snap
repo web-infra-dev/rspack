@@ -172,7 +172,14 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   4 chunks (Rspack x.x.x) compiled successfully in X s"
 `;
 
-exports[`statsOutput statsOutput/logging-loader should print correct stats for 1`] = `""`;
+exports[`statsOutput statsOutput/logging-loader should print correct stats for 1`] = `
+"DEBUG LOG from TestLoader|Xdir/logging-loader/index.js
+<-> group
+  <i> info something
+      log something
+    -------
+"
+`;
 
 exports[`statsOutput statsOutput/minify-error should print correct stats for 1`] = `
 "ERROR in × JavaScript parsing error: Expected a semicolon
