@@ -1,13 +1,31 @@
-import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
+import { ApiMeta, Stability } from '@components/ApiMeta';
 
 # ModuleFederationPluginV1
 
 <ApiMeta addedVersion={'0.4.5'} stability={Stability.Experimental} />
 
-该插件对应 Module Federation 1.0，即 [Webpack 中的 ModuleFederationPlugin](https://webpack.js.org/plugins/module-federation-plugin/)。
-
-配置与上面 ModuleFederationPlugin 配置一致，除了没有 `implementation` 和 `runtimePlugins` 两个字段。
+该插件对应 Module Federation v1.0，即 [webpack 中的 ModuleFederationPlugin](https://webpack.js.org/plugins/module-federation-plugin/)。
 
 ```js
 new rspack.container.ModuleFederationPluginV1();
 ```
+
+:::tip
+Module Federation v1.0 已经不再迭代，我们推荐使用 Module Federation v1.5 或 v2.0 版本，详见 [模块联邦](/guide/features/module-federation)。
+:::
+
+## 示例
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    new rspack.container.ModuleFederationPluginV1({
+      // options
+    }),
+  ],
+};
+```
+
+The options for ModuleFederationPluginV1 are basically the same as those for [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin), but it does not support the `implementation` and `runtimePlugins` fields.
