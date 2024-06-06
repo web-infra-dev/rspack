@@ -1716,6 +1716,11 @@ pub struct AssetInfo {
   /// An empty string means no version, it will always emit
   pub version: String,
   pub source_filename: Option<String>,
+  /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
+  /// But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
+  /// in the rust struct and have the Js side to reshape and align with webpack.
+  /// Related: packages/rspack/src/Compilation.ts
+  pub extras: serde_json::Map<String, serde_json::Value>,
 }
 
 impl AssetInfo {

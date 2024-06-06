@@ -1,6 +1,5 @@
 import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
 
-import { AssetInfo } from "../Compilation";
 import { LoaderObject } from "../config/adapterRuleUse";
 
 export function mapValues(
@@ -98,18 +97,6 @@ export function asArray<T>(item: T | T[]): T[] {
 	return Array.isArray(item) ? item : [item];
 }
 
-export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
-	return {
-		immutable: false,
-		minimized: false,
-		development: false,
-		hotModuleReplacement: false,
-		related: {},
-		chunkHash: [],
-		contentHash: [],
-		...info
-	};
-}
 const getDeprecationStatus = () => {
 	const defaultEnableDeprecatedWarning = true;
 	if (
@@ -123,6 +110,7 @@ const getDeprecationStatus = () => {
 		"false"
 	);
 };
+
 const yellow = (content: string) =>
 	`\u001b[1m\u001b[33m${content}\u001b[39m\u001b[22m`;
 

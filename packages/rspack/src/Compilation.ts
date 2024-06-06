@@ -9,7 +9,6 @@
  */
 import type {
 	ExternalObject,
-	JsAssetInfo,
 	JsCompatSource,
 	JsCompilation,
 	JsDiagnostic,
@@ -50,18 +49,19 @@ import {
 } from "./Stats";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
-import { concatErrorMsgAndStack, toJsAssetInfo } from "./util";
+import { concatErrorMsgAndStack } from "./util";
+import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
 import { createFakeCompilationDependencies } from "./util/fake";
 import { memoizeValue } from "./util/memoize";
 import MergeCaller from "./util/MergeCaller";
 import { JsSource } from "./util/source";
+export { type AssetInfo } from "./util/AssetInfo";
 
-export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
 export interface Asset {
 	name: string;
 	source: Source;
-	info: JsAssetInfo;
+	info: AssetInfo;
 }
 
 export type PathData = JsPathData;
@@ -543,8 +543,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			assetInfoUpdateOrFunction === undefined
 				? assetInfoUpdateOrFunction
 				: typeof assetInfoUpdateOrFunction === "function"
-					? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
-					: toJsAssetInfo(assetInfoUpdateOrFunction)
+					? jsAssetInfo =>
+							JsAssetInfo.__to_binding(assetInfoUpdateOrFunction(jsAssetInfo))
+					: JsAssetInfo.__to_binding(assetInfoUpdateOrFunction)
 		);
 	}
 
@@ -559,7 +560,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#inner.emitAsset(
 			filename,
 			JsSource.__to_binding(source),
-			toJsAssetInfo(assetInfo)
+			JsAssetInfo.__to_binding(assetInfo)
 		);
 	}
 
@@ -578,9 +579,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		const assets = this.#inner.getAssets();
 
 		return assets.map(asset => {
-			return Object.defineProperty(asset, "source", {
-				get: () => this.__internal__getAssetSource(asset.name)
-			}) as Asset;
+			return Object.defineProperties(asset, {
+				info: {
+					value: JsAssetInfo.__from_binding(asset.info)
+				},
+				source: {
+					get: () => this.__internal__getAssetSource(asset.name)
+				}
+			}) as unknown as Asset;
 		});
 	}
 
@@ -589,9 +595,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		if (!asset) {
 			return;
 		}
-		return Object.defineProperty(asset, "source", {
-			get: () => this.__internal__getAssetSource(asset.name)
-		}) as Asset;
+		return Object.defineProperties(asset, {
+			info: {
+				value: JsAssetInfo.__from_binding(asset.info)
+			},
+			source: {
+				get: () => this.__internal__getAssetSource(asset.name)
+			}
+		}) as unknown as Asset;
 	}
 
 	/**

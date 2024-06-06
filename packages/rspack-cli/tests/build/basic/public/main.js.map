@@ -1,1 +1,1 @@
-{"version":3,"file":"main.js","sources":["webpack:///./src/entry.js"],"sourcesContent":["console.log(\"CONFIG\");\n"],"names":[],"mappings":";;AAAA,QAAQ,GAAG,CAAC"}
+{"version":3,"file":"main.js","sources":["webpack:///./src/entry.js"],"sourcesContent":["console.log(\"CONFIG\");\n"],"names":[],"mappings":";;AAAA"}

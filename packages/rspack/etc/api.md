@@ -126,7 +126,7 @@ const asRegExp: (test: string | RegExp) => RegExp;
 // @public (undocumented)
 export interface Asset {
     // (undocumented)
-    info: JsAssetInfo;
+    info: AssetInfo;
     // (undocumented)
     name: string;
     // (undocumented)
@@ -253,7 +253,7 @@ const assetGeneratorOptions: z.ZodObject<{
 }>;
 
 // @public (undocumented)
-export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
+export type AssetInfo = Partial<Omit<JsAssetInfo, "extras">> & Record<string, any>;
 
 // @public (undocumented)
 export type AssetInlineGeneratorOptions = z.infer<typeof assetInlineGeneratorOptions>;
