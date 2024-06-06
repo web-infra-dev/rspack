@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rkyv::{from_bytes, to_bytes, AlignedVec};
@@ -37,14 +37,25 @@ pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
 
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-#[archive(check_bytes)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[archive(compare(PartialEq), check_bytes)]
+#[archive_attr(derive(PartialEq, Eq, Hash))]
 pub struct CssExport {
   pub ident: String,
   pub from: Option<String>,
 }
 
-pub type CssExports = IndexMap<String, Vec<CssExport>>;
+pub type CssExports = IndexMap<String, IndexSet<CssExport>>;
+
+fn update_css_exports(exports: &mut CssExports, name: String, css_export: CssExport) -> bool {
+  if let Some(existing) = exports.get_mut(&name) {
+    existing.insert(css_export)
+  } else {
+    exports
+      .insert(name, IndexSet::from_iter([css_export]))
+      .is_none()
+  }
+}
 
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
@@ -199,12 +210,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
           for name in export_locals_convention(name, convention) {
-            exports.insert(
+            update_css_exports(
+              exports,
               name,
-              vec![CssExport {
+              CssExport {
                 ident: local_ident.clone(),
                 from: None,
-              }],
+              },
             );
           }
         }
@@ -231,12 +243,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
           for name in export_locals_convention(name, convention) {
-            exports.insert(
+            update_css_exports(
+              exports,
               name,
-              vec![CssExport {
+              CssExport {
                 ident: local_ident.clone(),
                 from: None,
-              }],
+              },
             );
           }
         }
@@ -268,7 +281,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
                 exports
                   .get_mut(local_class)
                   .expect("composes local class must already added to exports")
-                  .push(CssExport {
+                  .insert(CssExport {
                     ident: name.to_string(),
                     from: from
                       .filter(|f| *f != "global")
@@ -289,12 +302,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
               name.clone(),
               value.to_string(),
             )));
-            exports.insert(
+            update_css_exports(
+              exports,
               name,
-              vec![CssExport {
+              CssExport {
                 ident: value.to_string(),
                 from: None,
-              }],
+              },
             );
           }
         }
