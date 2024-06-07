@@ -141,9 +141,13 @@ Data URI 模块可以被用作虚拟模块（Virtual Modules）的实现方式�
 
 ### require.context
 
-`require.context` 是 webpack 中的一个特殊函数，它允许你动态地 context 一组模块。
+`require.context` 是 webpack 特有的一个函数，它允许你动态地 require 一组模块。
 
-Rspack 会在构建过程中解析代码里的 `require.context()`。
+你可以在代码中使用 `require.context`，Rspack 将在构建时进行解析并引用匹配的模块。
+
+:::tip
+`require.context` 的返回值与 [import.meta.webpackContext](/api/modules/module-variables#importmetawebpackcontext) 相同，我们推荐使用 `import.meta.webpackContext`，它的功能更加强大。
+:::
 
 - **类型：**
 
@@ -191,40 +195,3 @@ const context = require.context('./locales', true, /\.json$/, 'lazy');
 ```
 
 > 传递给 `require.context()` 的参数必须是字面量。
-
-#### context API
-
-`require.context()` 返回的 context 是一个函数，它接收一个 `request` 参数（模块路径）。
-
-这个函数有三个属性：`resolve`，`keys` 与 `id`。
-
-- `resolve` 是一个函数，它返回 request 被解析后得到的模块 id。
-- `keys` 也是一个函数，它返回一个数组，由所有可能被此上下文模块处理的请求组成。
-- `id` 是上下文模块的模块 id. 它可能在使用 `module.hot.accept` 时会用到。
-
-如果你想引入一个文件夹下面的所有文件，或者引入能匹配一个正则表达式的所有文件，这个功能就会很有帮助。
-
-考虑一种情况，你有一个这样的文件夹结构：
-
-```
-src
-├── components
-│   ├── Button.js
-│   ├── Header.js
-│   └── Footer.js
-```
-
-你可以使用 `require.context()` 动态导入文件夹中的所有组件：
-
-```js
-const componentsContext = require.context('./components', false, /\.js$/);
-
-componentsContext.keys().forEach(fileName => {
-  const componentModule = componentsContext(fileName);
-
-  // 在这里你可以使用你的模块，例如使用 console.log 输出
-  console.log(componentModule);
-});
-```
-
-`require.context()` 简化了模块导入过程，尤其是当你有大量模块需要管理时。在使用时，请避免匹配到不需要的文件，否则可能导致构建时间和产物体积明显增加。
