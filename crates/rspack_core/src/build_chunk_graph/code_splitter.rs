@@ -1052,31 +1052,44 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     self.stat_processed_blocks += 1;
 
-    let item_chunk_group_info = self.chunk_group_infos.expect_get(&item.chunk_group_info);
+    let chunk_group_info = self.chunk_group_infos.expect_get(&item.chunk_group_info);
+    let runtime = chunk_group_info.runtime.clone();
+    let min_available_modules = chunk_group_info.min_available_modules.clone();
 
-    let runtime = item_chunk_group_info.runtime.clone();
-    let modules: Vec<(
-      rspack_identifier::Identifier,
-      ConnectionState,
-      Vec<ConnectionId>,
-    )> = self.get_block_modules(item.block, Some(&runtime));
-    for (module, active_state, connections) in modules.into_iter().rev() {
+    let block_modules = self.get_block_modules(item.block, Some(&runtime));
+    for (module, active_state, connections) in block_modules.into_iter().rev() {
       if self
         .compilation
         .chunk_graph
         .is_module_in_chunk(&module, item.chunk)
       {
+        // skip early if already connected
         continue;
       }
 
+      let chunk_group_info = self
+        .chunk_group_infos
+        .expect_get_mut(&item.chunk_group_info);
+
       if !active_state.is_true() {
-        let cgi = self
-          .chunk_group_infos
-          .expect_get_mut(&item.chunk_group_info);
-        cgi.skipped_module_connections.insert((module, connections));
+        chunk_group_info
+          .skipped_module_connections
+          .insert((module, connections));
         if active_state.is_false() {
           continue;
         }
+      }
+
+      let ordinal = self.ordinal_by_module.get(&module).unwrap_or_else(|| {
+        panic!(
+          "expected a module ordinal for identifier '{}', but none was found.",
+          module
+        )
+      });
+      if active_state.is_true() && min_available_modules.bit(*ordinal) {
+        // already in parent chunks, skip it for now
+        chunk_group_info.skipped_items.insert(module);
+        continue;
       }
 
       if active_state.is_true() {
