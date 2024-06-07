@@ -27,34 +27,35 @@ pub async fn module_rule_matcher<'a>(
   dependency: &DependencyCategory,
   matched_rules: &mut Vec<&'a ModuleRule>,
 ) -> Result<bool> {
-  let resource = Value::String(resource_data.resource_path.to_string_lossy().to_string());
-
+  let resource = Value::String(resource_data.resource.to_string());
   if let Some(test_rule) = &module_rule.rspack_resource
     && !test_rule.try_match(&resource).await?
   {
     return Ok(false);
   }
 
+  let resource_path = Value::String(resource_data.resource_path.to_string_lossy().to_string());
+
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
   if let Some(test_rule) = &module_rule.test
-    && !test_rule.try_match(&resource).await?
+    && !test_rule.try_match(&resource_path).await?
   {
     return Ok(false);
   } else if let Some(resource_rule) = &module_rule.resource
-    && !resource_rule.try_match(&resource).await?
+    && !resource_rule.try_match(&resource_path).await?
   {
     return Ok(false);
   }
 
   if let Some(include_rule) = &module_rule.include
-    && !include_rule.try_match(&resource).await?
+    && !include_rule.try_match(&resource_path).await?
   {
     return Ok(false);
   }
 
   if let Some(exclude_rule) = &module_rule.exclude
-    && exclude_rule.try_match(&resource).await?
+    && exclude_rule.try_match(&resource_path).await?
   {
     return Ok(false);
   }
