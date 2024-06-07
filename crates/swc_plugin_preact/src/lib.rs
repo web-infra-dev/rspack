@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+  collections::{HashMap, HashSet},
+  hash::Hasher,
+};
 
 use serde::Deserialize;
 use swc_core::{
@@ -6,7 +9,7 @@ use swc_core::{
   common::DUMMY_SP,
   ecma::{
     ast::{
-      AssignExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Function, Ident, ImportDecl,
+      AssignExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Function, Id, Ident, ImportDecl,
       ImportSpecifier, Lit, MemberExpr, ModuleExportName, ObjectPatProp, Tpl, TplElement,
       VarDeclarator,
     },
@@ -17,15 +20,18 @@ use swc_core::{
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct PluginPreactConfig {
-  pub library: Option<String>,
+  pub library: Option<Vec<String>>,
 }
 
 pub fn plugin_preact(config: PluginPreactConfig, file_hash: String) -> impl Fold {
   as_folder(PreactPlugin::new(config, file_hash))
 }
 
-fn compare_ident(a: &Ident, b: &Ident) -> bool {
-  a.sym == b.sym && a.span.ctxt == b.span.ctxt
+fn calc_hash(s: &str) -> String {
+  let mut hasher = xxhash_rust::xxh64::Xxh64::new(0);
+  hasher.write(s.as_bytes());
+  let digest = hasher.finish().to_be_bytes().to_vec();
+  hex::encode(digest)[0..8].to_string()
 }
 
 #[derive(Debug)]
@@ -35,38 +41,8 @@ pub struct PreactPlugin {
   parent_key: String,
   param_key: String,
   counter: HashMap<String, usize>,
-  local: HashSet<Ident>,
-  lib_local: HashSet<Ident>,
-}
-
-impl PreactPlugin {
-  fn is_from_local(&self, id: &Ident) -> bool {
-    self.local.iter().any(|x| compare_ident(x, id))
-  }
-
-  fn is_from_lib(&self, mem: &MemberExpr) -> bool {
-    let Some(root) = mem.obj.as_ident() else {
-      return false;
-    };
-    if !self.lib_local.iter().any(|x| compare_ident(x, root)) {
-      return false;
-    }
-
-    if mem.prop.is_computed() {
-      let Some(ComputedPropName { expr, .. }) = mem.prop.as_computed() else {
-        return false;
-      };
-      let Expr::Lit(Lit::Str(lit)) = expr.as_ref() else {
-        return false;
-      };
-      lit.value == "createContext"
-    } else {
-      mem
-        .prop
-        .as_ident()
-        .is_some_and(|id| id.sym == "createContext")
-    }
-  }
+  local: HashSet<Id>,
+  lib_local: HashSet<Id>,
 }
 
 impl PreactPlugin {
@@ -83,26 +59,52 @@ impl PreactPlugin {
   }
 }
 
+impl PreactPlugin {
+  fn is_from_lib(&self, mem: &MemberExpr) -> bool {
+    let Some(root) = mem.obj.as_ident() else {
+      return false;
+    };
+    if !self.lib_local.contains(&root.to_id()) {
+      return false;
+    }
+
+    // xxx["createContext"]
+    if mem.prop.is_computed() {
+      let Some(ComputedPropName { expr, .. }) = mem.prop.as_computed() else {
+        return false;
+      };
+      let Expr::Lit(Lit::Str(lit)) = expr.as_ref() else {
+        return false;
+      };
+      lit.value == "createContext"
+    } else {
+      // xxx.createContext
+      mem
+        .prop
+        .as_ident()
+        .is_some_and(|id| id.sym == "createContext")
+    }
+  }
+}
+
 impl VisitMut for PreactPlugin {
   fn visit_mut_import_decl(&mut self, import_decl: &mut ImportDecl) {
     let import_from = import_decl.src.value.to_string();
+    let is_library = self
+      .config
+      .library
+      .as_ref()
+      .unwrap_or(&vec!["preact".into(), "react".into()])
+      .contains(&import_from);
 
-    let is_preact = import_from == "preact"
-      || import_from == "react"
-      || self
-        .config
-        .library
-        .as_ref()
-        .is_some_and(|library| import_from.eq(library));
-
-    if !is_preact {
+    if !is_library {
       return;
     }
 
     for spec in &import_decl.specifiers {
       match spec {
         ImportSpecifier::Default(spec) => {
-          self.lib_local.insert(spec.local.clone());
+          self.lib_local.insert(spec.local.to_id());
         }
         ImportSpecifier::Named(spec) => {
           if let Some(imported) = &spec.imported {
@@ -111,14 +113,14 @@ impl VisitMut for PreactPlugin {
               ModuleExportName::Str(str) => &str.value,
             };
             if name == "createContext" {
-              self.local.insert(spec.local.clone());
+              self.local.insert(spec.local.to_id());
             }
           } else if spec.local.sym == "createContext" {
-            self.local.insert(spec.local.clone());
+            self.local.insert(spec.local.to_id());
           }
         }
         ImportSpecifier::Namespace(spec) => {
-          self.lib_local.insert(spec.local.clone());
+          self.lib_local.insert(spec.local.to_id());
         }
       }
     }
@@ -130,13 +132,9 @@ impl VisitMut for PreactPlugin {
       return;
     };
 
-    println!("callee: {:?}", call_expr.callee);
     let is_create_context = match &call_expr.callee {
       Callee::Expr(expr) => match expr.as_ref() {
-        Expr::Ident(id) => {
-          println!("ctxt callee: {:?}", id.span.ctxt);
-          self.is_from_local(id)
-        }
+        Expr::Ident(id) => self.local.contains(&id.to_id()),
         Expr::Member(mem) => self.is_from_lib(mem),
         _ => false,
       },
@@ -259,7 +257,7 @@ impl VisitMut for PreactPlugin {
       .left
       .as_ident()
       .map(|id| id.sym.to_string())
-      .unwrap_or_else(|| format!("{:?}", assign_expr.left)); // used getSource() in babel
+      .unwrap_or_else(|| calc_hash(&format!("{:?}", assign_expr.left))); // used getSource() in babel
 
     if key.is_empty() {
       assign_expr.visit_mut_children_with(self);

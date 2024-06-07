@@ -720,7 +720,7 @@ importers:
     dependencies:
       '@prefresh/core':
         specifier: ^1.5.0
-        version: 1.5.2(preact@10.19.3)
+        version: 1.5.2(preact@10.22.0)
       '@prefresh/utils':
         specifier: ^1.2.0
         version: 1.2.0
@@ -733,7 +733,7 @@ importers:
         version: 'link:'
       preact:
         specifier: ^10.15.1
-        version: 10.19.3
+        version: 10.22.0
 
   packages/rspack-plugin-react-refresh:
     devDependencies:

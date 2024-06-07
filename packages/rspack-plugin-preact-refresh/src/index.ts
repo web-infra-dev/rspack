@@ -1,5 +1,5 @@
-import type { Compiler, RspackPluginInstance } from "@rspack/core";
 import fs from "fs";
+import type { Compiler, RspackPluginInstance } from "@rspack/core";
 
 export interface IPreactRefreshRspackPluginOptions {
 	overlay?: {
@@ -28,10 +28,13 @@ const PREACT_PATHS = [
 	"preact/hooks/package.json",
 	"preact/test-utils/package.json",
 	"preact/jsx-runtime/package.json"
-].reduce((obj, i) => {
-	obj[i] = require.resolve(i);
-	return obj;
-}, {} as Record<string, string>);
+].reduce(
+	(obj, i) => {
+		obj[i] = require.resolve(i);
+		return obj;
+	},
+	{} as Record<string, string>
+);
 const PREFRESH_CORE_PATH = require.resolve("@prefresh/core");
 const PREFRESH_UTILS_PATH = require.resolve("@prefresh/utils");
 const RUNTIME_UTIL_PATH = require.resolve("../client/prefresh");
@@ -71,7 +74,7 @@ class PreactRefreshRsapckPlugin implements RspackPluginInstance {
 			...(this.options.overlay
 				? {
 						__prefresh_errors__: require.resolve(this.options.overlay.module)
-				  }
+					}
 				: {})
 		}).apply(compiler);
 		new compiler.webpack.EntryPlugin(compiler.context, "@prefresh/core", {

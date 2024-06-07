@@ -111,34 +111,12 @@ impl JsPlugin {
     let module_execution = if runtime_requirements
       .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
     {
-<<<<<<< HEAD
       indoc!{r#"
         var execOptions = { id: moduleId, module: module, factory: __webpack_modules__[moduleId], require: __webpack_require__ };
         __webpack_require__.i.forEach(function(handler) { handler(execOptions); });
         module = execOptions.module;
         if (!execOptions.factory) {
           console.error("undefined factory", moduleId)
-=======
-      true => RawSource::from(
-        r#"var execOptions = { id: moduleId, module: module, factory: __webpack_modules__[moduleId], require: __webpack_require__ };
-            __webpack_require__.i.forEach(function(handler) { handler(execOptions); });
-            module = execOptions.module;
-            if (!execOptions.factory) {
-              console.error("undefined factory", moduleId)
-            }
-            execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
-            "#,
-      ),
-      false => {
-        if runtime_requirements.contains(RuntimeGlobals::THIS_AS_EXPORTS) {
-          RawSource::from(
-            "__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);\n",
-          )
-        } else {
-          RawSource::from(
-            "__webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n",
-          )
->>>>>>> c365dba8b (feat: support preact refresh)
         }
         execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
       "#}.into()

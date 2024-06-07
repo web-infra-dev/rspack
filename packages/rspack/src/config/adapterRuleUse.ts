@@ -14,8 +14,8 @@ import { Module } from "../Module";
 import {
 	resolveEmotion,
 	resolvePluginImport,
-	resolveReact,
 	resolvePreact,
+	resolveReact,
 	resolveRelay
 } from "../builtin-loader";
 import { parsePathQueryFragment } from "../loader-runner";

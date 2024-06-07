@@ -67,15 +67,16 @@ swc_html_minifier   = { version = "=0.136.0" }
 swc_node_comments   = { version = "=0.20.20" }
 
 [profile.dev]
-codegen-units = 16      # debug build will cause runtime panic if codegen-unints is default
-debug         = 2
+codegen-units = 16
+debug         = 2       # debug build will cause runtime panic if codegen-unints is default
 incremental   = true
 panic         = "abort"
 
 [profile.release]
 codegen-units = 1
 debug         = false
-lto           = "thin"  # Performs “thin” LTO. This is similar to “fat”, but takes substantially less time to run while still achieving performance gains similar to “fat”.
-opt-level     = 3
-panic         = "abort"
-strip         = true
+# Performs “thin” LTO. This is similar to “fat”, but takes substantially less time to run while still achieving performance gains similar to “fat”.
+lto       = "thin"
+opt-level = 3
+panic     = "abort"
+strip     = true

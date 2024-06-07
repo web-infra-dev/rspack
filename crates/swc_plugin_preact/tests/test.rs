@@ -21,7 +21,11 @@ fn fixture(input: PathBuf) {
         resolver(Mark::new(), Mark::new(), false),
         plugin_preact(
           PluginPreactConfig {
-            library: Some("@custom/preact".to_string()),
+            library: Some(vec![
+              "@custom/preact".to_string(),
+              "preact".to_string(),
+              "react".to_string()
+            ]),
           },
           "__file_hash__".to_string(),
         )
