@@ -74,15 +74,7 @@ fn handle_esm_export_harmony_import_side_effects_dep(
     });
   }
 
-  handle_harmony_import_side_effects_dep(
-    parser,
-    request,
-    span,
-    source_span,
-    specifiers,
-    dep_type,
-    export_all,
-  )
+  handle_harmony_import_side_effects_dep(parser, request, span, source_span, dep_type, export_all)
 }
 pub struct HarmonyExportDependencyParserPlugin;
 

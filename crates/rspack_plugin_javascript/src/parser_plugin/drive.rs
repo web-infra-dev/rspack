@@ -1,3 +1,4 @@
+use swc_core::atoms::Atom;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{
   BinExpr, CallExpr, Callee, CondExpr, ExportDecl, ExportDefaultDecl, Expr, OptChainExpr,
@@ -110,18 +111,51 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
+  fn member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::MemberExpr,
+    for_name: &str,
+    members: &[Atom],
+    members_optionals: &[bool],
+    member_ranges: &[Span],
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.member_chain(
+        parser,
+        expr,
+        for_name,
+        members,
+        members_optionals,
+        member_ranges,
+      );
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
   fn call_member_chain(
     &self,
     parser: &mut JavascriptParser,
-    root_info: &ExportedVariableInfo,
     expr: &CallExpr,
-    // TODO: members: &Vec<String>,
-    // TODO: members_optionals: Vec<bool>,
-    // TODO: members_ranges: Vec<DependencyLoc>
+    for_name: &str,
+    members: &[Atom],
+    members_optionals: &[bool],
+    member_ranges: &[Span],
   ) -> Option<bool> {
     assert!(matches!(expr.callee, Callee::Expr(_)));
     for plugin in &self.plugins {
-      let res = plugin.call_member_chain(parser, root_info, expr);
+      let res = plugin.call_member_chain(
+        parser,
+        expr,
+        for_name,
+        members,
+        members_optionals,
+        member_ranges,
+      );
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -444,8 +478,8 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     parser: &mut JavascriptParser,
     statement: &swc_core::ecma::ast::ImportDecl,
     source: &swc_core::atoms::Atom,
-    export_name: Option<&str>,
-    identifier_name: &str,
+    export_name: Option<&Atom>,
+    identifier_name: &Atom,
   ) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.import_specifier(parser, statement, source, export_name, identifier_name);

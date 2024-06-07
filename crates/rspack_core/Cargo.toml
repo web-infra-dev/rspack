@@ -6,7 +6,7 @@ repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
 [dependencies]
-anymap = "1.0.0-beta.2"
+anymap = { workspace = true }
 async-recursion = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
