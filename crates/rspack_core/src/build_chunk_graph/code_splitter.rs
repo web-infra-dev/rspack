@@ -914,7 +914,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       return;
     }
 
-    self.compilation.chunk_graph.add_module(item.module);
     self
       .compilation
       .chunk_graph
