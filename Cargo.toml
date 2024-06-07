@@ -17,6 +17,7 @@ futures            = { version = "0.3.30" }
 glob               = { version = "0.3.1" }
 hashlink           = { version = "0.9.0" }
 heck               = { version = "0.5.0" }
+hex                = { version = "0.4.3" }
 indexmap           = { version = "2.2.6" }
 indoc              = { version = "2.0.5" }
 itertools          = { version = "0.12.1" }
