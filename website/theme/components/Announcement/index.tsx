@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useI18n } from '../../i18n';
 import { usePageData } from 'rspress/runtime';
 import { useLang } from 'rspress/runtime';
+import { useI18n } from '../../i18n';
 import IconCloseCircle from './close';
 
 export function Announcement() {

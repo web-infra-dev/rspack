@@ -1,12 +1,12 @@
 /// <reference types="../jest.d.ts" />
 
+import EventEmitter from "events";
 import {
 	Compiler as RspackCompiler,
 	RspackOptions,
 	Stats as RspackStats,
 	StatsCompilation as RspackStatsCompilation
 } from "@rspack/core";
-import EventEmitter from "events";
 import type {
 	Compiler as WebpackCompiler,
 	Configuration as WebpackOptions,

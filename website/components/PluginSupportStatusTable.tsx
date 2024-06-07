@@ -1,5 +1,5 @@
-import React from 'react';
 import { Table } from '@builtIns/Table';
+import React from 'react';
 import { useLang } from 'rspress/runtime';
 import S from './PluginSupportStatusTable.module.scss';
 

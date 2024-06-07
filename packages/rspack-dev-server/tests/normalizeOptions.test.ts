@@ -1,9 +1,9 @@
 import { RspackOptions, rspack } from "@rspack/core";
-import { RspackDevServer, Configuration } from "@rspack/dev-server";
+import { Configuration, RspackDevServer } from "@rspack/dev-server";
 import ReactRefreshPlugin from "@rspack/plugin-react-refresh";
-import customConfig from "./fixtures/provide-plugin-custom/webpack.config";
 // @ts-expect-error
 import serializer from "jest-serializer-path";
+import customConfig from "./fixtures/provide-plugin-custom/webpack.config";
 
 expect.addSnapshotSerializer(serializer);
 

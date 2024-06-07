@@ -18,13 +18,13 @@ import {
 
 import { Compilation } from "../Compilation";
 import { Compiler } from "../Compiler";
-import {
-	isUseSimpleSourceMap,
-	isUseSourceMap,
-	LoaderContext,
-	LoaderObject
-} from "../config/adapterRuleUse";
 import { NormalModule } from "../NormalModule";
+import {
+	LoaderContext,
+	LoaderObject,
+	isUseSimpleSourceMap,
+	isUseSourceMap
+} from "../config/adapterRuleUse";
 import {
 	concatErrorMsgAndStack,
 	isNil,

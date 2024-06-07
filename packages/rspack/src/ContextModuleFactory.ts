@@ -1,8 +1,8 @@
-import * as liteTapable from "./lite-tapable";
 import {
 	ContextModuleFactoryAfterResolveResult,
 	ContextModuleFactoryBeforeResolveResult
 } from "./Module";
+import * as liteTapable from "./lite-tapable";
 
 export class ContextModuleFactory {
 	hooks: {

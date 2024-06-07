@@ -1,8 +1,8 @@
-import React from 'react';
 import { Table } from '@builtIns/Table';
+import Markdown from 'markdown-to-jsx';
+import React from 'react';
 import { useLang } from 'rspress/runtime';
 import S from './PluginSupportStatusTable.module.scss';
-import Markdown from 'markdown-to-jsx';
 import * as i18n from './i18n';
 
 export enum CompatibleStatus {

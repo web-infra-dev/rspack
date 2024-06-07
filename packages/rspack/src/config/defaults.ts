@@ -43,9 +43,9 @@ import type {
 	SnapshotOptions
 } from "./zod";
 import Template = require("../Template");
+import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
 import { SwcCssMinimizerRspackPlugin } from "../builtin-plugin/SwcCssMinimizerPlugin";
 import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";
-import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
 import { assertNotNill } from "../util/assertNotNil";
 
 export const applyRspackOptionsDefaults = (

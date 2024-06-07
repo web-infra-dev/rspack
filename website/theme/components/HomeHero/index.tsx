@@ -1,5 +1,5 @@
-import { Button } from 'rspress/theme';
 import { normalizeHrefInRuntime } from 'rspress/runtime';
+import { Button } from 'rspress/theme';
 import styles from './index.module.scss';
 
 export interface Hero {

@@ -1,5 +1,5 @@
-import deepmerge from "deepmerge";
 import path from "path";
+import deepmerge from "deepmerge";
 
 import { ITestReporter, TCompareModules } from "../type";
 import { compareFile } from "./compare";

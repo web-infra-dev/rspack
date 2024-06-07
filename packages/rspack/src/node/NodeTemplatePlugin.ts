@@ -8,11 +8,11 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { Compiler } from "../Compiler";
 import {
 	CommonJsChunkFormatPlugin,
 	EnableChunkLoadingPlugin
 } from "../builtin-plugin";
-import { Compiler } from "../Compiler";
 
 export type NodeTemplatePluginOptions = { asyncChunkLoading?: boolean };
 

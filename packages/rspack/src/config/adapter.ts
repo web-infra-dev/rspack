@@ -1,3 +1,4 @@
+import assert from "assert";
 import type {
 	RawAssetGeneratorOptions,
 	RawAssetInlineGeneratorOptions,
@@ -24,7 +25,6 @@ import type {
 	RawRuleSetCondition,
 	RawRuleSetLogicalConditions
 } from "@rspack/binding";
-import assert from "assert";
 
 import { Compiler } from "../Compiler";
 import { normalizeStatsPreset } from "../Stats";
@@ -32,10 +32,10 @@ import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
 import {
 	ComposeJsUseOptions,
-	createRawModuleRuleUses,
 	LoaderContext,
 	LoaderDefinition,
-	LoaderDefinitionFunction
+	LoaderDefinitionFunction,
+	createRawModuleRuleUses
 } from "./adapterRuleUse";
 import {
 	ExperimentsNormalized,

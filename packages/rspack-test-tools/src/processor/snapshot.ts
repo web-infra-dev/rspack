@@ -1,5 +1,5 @@
-import { type Compiler as RspackCompiler } from "@rspack/core";
 import path from "path";
+import { type Compiler as RspackCompiler } from "@rspack/core";
 import {
 	type Compilation as WebpackCompilation,
 	type Compiler as WebpackCompiler

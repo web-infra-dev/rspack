@@ -1,10 +1,10 @@
 import { BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
 
-import {
-	createBuiltinPlugin,
-	RspackBuiltinPlugin
-} from "../builtin-plugin/base";
 import { Compiler } from "../Compiler";
+import {
+	RspackBuiltinPlugin,
+	createBuiltinPlugin
+} from "../builtin-plugin/base";
 
 const compilerSet = new WeakSet<Compiler>();
 

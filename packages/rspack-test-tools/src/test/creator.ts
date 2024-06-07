@@ -8,8 +8,8 @@ import {
 	EDocumentType,
 	ITestContext,
 	ITestEnv,
-	ITester,
 	ITestProcessor,
+	ITester,
 	TRunnerFactory,
 	TTestConfig
 } from "../type";

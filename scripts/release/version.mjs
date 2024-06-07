@@ -1,6 +1,6 @@
-import semver from "semver";
 import path from "path";
 import { findWorkspacePackagesNoCheck } from "@pnpm/find-workspace-packages";
+import semver from "semver";
 
 async function getCommitId() {
 	const result = await $`git rev-parse --short HEAD`;

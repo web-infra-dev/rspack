@@ -8,27 +8,27 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import assert from "assert";
-import { Callback } from "tapable";
 import util from "util";
+import { Callback } from "tapable";
 
 import { Compiler } from "./Compiler";
-import {
-	applyRspackOptionsBaseDefaults,
-	applyRspackOptionsDefaults,
-	getNormalizedRspackOptions,
-	RspackOptions,
-	rspackOptions,
-	RspackPluginFunction
-} from "./config";
 import {
 	MultiCompiler,
 	MultiCompilerOptions,
 	MultiRspackOptions
 } from "./MultiCompiler";
 import MultiStats from "./MultiStats";
+import { Stats } from "./Stats";
+import {
+	RspackOptions,
+	RspackPluginFunction,
+	applyRspackOptionsBaseDefaults,
+	applyRspackOptionsDefaults,
+	getNormalizedRspackOptions,
+	rspackOptions
+} from "./config";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 import { RspackOptionsApply } from "./rspackOptionsApply";
-import { Stats } from "./Stats";
 import { asArray, isNil } from "./util";
 import { validate } from "./util/validate";
 

@@ -1,7 +1,7 @@
-import { ApiItemKind,ApiModel } from "@microsoft/api-extractor-model";
-import { readdirSync, readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import { basename, dirname, extname, join,resolve } from "path";
 import { fileURLToPath } from "url";
+import { ApiItemKind,ApiModel } from "@microsoft/api-extractor-model";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 import styles from './index.module.scss';
 
 export function formatTime(time: number, totalTime: number) {

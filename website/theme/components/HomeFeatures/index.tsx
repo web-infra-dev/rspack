@@ -1,5 +1,5 @@
-import styles from './index.module.scss';
 import { motion } from 'framer-motion';
+import styles from './index.module.scss';
 const PRESET_COUNT = [2, 3, 4];
 
 const getGridClass = (count?: number): string => {

@@ -2,10 +2,10 @@ import { Compiler } from "../Compiler";
 import {
 	EntryRuntime,
 	ExternalsType,
-	externalsType,
-	LibraryOptions
+	LibraryOptions,
+	externalsType
 } from "../config";
-import { Shared, SharePlugin } from "../sharing/SharePlugin";
+import { SharePlugin, Shared } from "../sharing/SharePlugin";
 import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
 import { isValidate } from "../util/validate";
 import { ContainerPlugin, Exposes } from "./ContainerPlugin";

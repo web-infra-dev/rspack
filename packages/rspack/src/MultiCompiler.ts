@@ -18,10 +18,10 @@ import {
 } from "tapable";
 
 import { Compiler, RspackOptions, Stats } from ".";
-import { WatchOptions } from "./config";
-import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import MultiStats from "./MultiStats";
 import MultiWatching from "./MultiWatching";
+import { WatchOptions } from "./config";
+import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import ArrayQueue from "./util/ArrayQueue";
 import { WatchFileSystem } from "./util/fs";
 

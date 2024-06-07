@@ -4,11 +4,11 @@ import {
 	RawConsumeSharedPluginOptions
 } from "@rspack/binding";
 
-import {
-	createBuiltinPlugin,
-	RspackBuiltinPlugin
-} from "../builtin-plugin/base";
 import { Compiler } from "../Compiler";
+import {
+	RspackBuiltinPlugin,
+	createBuiltinPlugin
+} from "../builtin-plugin/base";
 import { parseOptions } from "../container/options";
 import { ShareRuntimePlugin } from "./ShareRuntimePlugin";
 import { isRequiredVersion } from "./utils";

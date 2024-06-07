@@ -1,5 +1,5 @@
 import fs from "fs";
-import { createFsFromVolume, Volume } from "memfs";
+import { Volume, createFsFromVolume } from "memfs";
 
 import {
 	ECompilerType,

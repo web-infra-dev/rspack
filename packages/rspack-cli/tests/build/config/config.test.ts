@@ -1,6 +1,6 @@
-import { run } from "../../utils/test-utils";
-import { readFile } from "fs/promises";
 import { resolve } from "path";
+import { readFile } from "fs/promises";
+import { run } from "../../utils/test-utils";
 
 describe("rspack cli", () => {
 	describe("should config not found", () => {
