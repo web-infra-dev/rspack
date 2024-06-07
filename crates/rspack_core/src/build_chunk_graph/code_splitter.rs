@@ -1502,27 +1502,33 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .expect_get(&cgi.chunk_group);
 
       let origin_queue_len = self.queue.len();
-      let mut enter_modules = vec![];
-      // 1. Reconsider skipped items
-      for skipped in &cgi.skipped_items {
-        let skipped_id = self.ordinal_by_module.get(skipped).unwrap_or_else(|| {
-          panic!(
-            "expected a module ordinal for identifier '{}', but none was found.",
-            skipped
-          )
-        });
-        if !cgi.min_available_modules.bit(*skipped_id) {
-          enter_modules.push(*skipped);
-        }
-      }
 
-      for m in &enter_modules {
-        cgi.skipped_items.shift_remove(m);
+      // 1. Reconsider skipped items
+      let add_and_enter_modules = cgi
+        .skipped_items
+        .iter()
+        .filter_map(|module| {
+          let ordinal = self.ordinal_by_module.get(module).unwrap_or_else(|| {
+            panic!(
+              "expected a module ordinal for identifier '{}', but none was found.",
+              module
+            )
+          });
+          if !cgi.min_available_modules.bit(*ordinal) {
+            Some(*module)
+          } else {
+            None
+          }
+        })
+        .collect::<Vec<_>>();
+
+      for m in add_and_enter_modules {
+        cgi.skipped_items.shift_remove(&m);
 
         self
           .queue
           .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
-            module: *m,
+            module: m,
             chunk_group_info: cgi.ukey,
             chunk: chunk_group.chunks[0],
           }))
