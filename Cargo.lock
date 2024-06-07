@@ -678,9 +678,9 @@ dependencies = [
 
 [[package]]
 name = "css-module-lexer"
-version = "0.0.11"
+version = "0.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09c42124be3b8c5d2488b43de4154ce292e6a0dfeeb76e8504b1a80eca15d606"
+checksum = "4d1c26dfe1c30e8ac9cad7da57e3f25ec432206ed787c570b0760332d622c00d"
 dependencies = [
  "smallvec",
 ]
