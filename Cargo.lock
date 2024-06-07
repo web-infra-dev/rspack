@@ -3401,7 +3401,6 @@ dependencies = [
  "rspack_regex",
  "rspack_util",
  "rustc-hash",
- "serde",
  "serde_json",
  "sugar_path",
  "swc_core",

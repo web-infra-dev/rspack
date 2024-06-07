@@ -29,7 +29,6 @@ rspack_ids = { path = "../rspack_ids/" }
 rspack_regex = { path = "../rspack_regex" }
 rspack_util = { path = "../rspack_util" }
 rustc-hash = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
