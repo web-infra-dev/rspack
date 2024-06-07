@@ -94,11 +94,11 @@ pub trait JavascriptParserPlugin {
   fn call_member_chain(
     &self,
     _parser: &mut JavascriptParser,
-    _root_info: &ExportedVariableInfo,
     _expr: &CallExpr,
-    // TODO: members: &Vec<String>,
-    // TODO: members_optionals: Vec<bool>,
-    // TODO: members_ranges: Vec<DependencyLoc>
+    _for_name: &str,
+    _members: &[Atom],
+    _members_optionals: &[bool],
+    _member_ranges: &[Span],
   ) -> Option<bool> {
     None
   }
@@ -108,6 +108,18 @@ pub trait JavascriptParserPlugin {
     _parser: &mut JavascriptParser,
     _expr: &MemberExpr,
     _for_name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn member_chain(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &MemberExpr,
+    _for_name: &str,
+    _members: &[Atom],
+    _members_optionals: &[bool],
+    _member_ranges: &[Span],
   ) -> Option<bool> {
     None
   }
@@ -236,8 +248,8 @@ pub trait JavascriptParserPlugin {
     _parser: &mut JavascriptParser,
     _statement: &ImportDecl,
     _source: &Atom,
-    _export_name: Option<&str>,
-    _identifier_name: &str,
+    _export_name: Option<&Atom>,
+    _identifier_name: &Atom,
   ) -> Option<bool> {
     None
   }

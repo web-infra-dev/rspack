@@ -124,21 +124,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     if name != RuntimeGlobals::REQUIRE.name() {
       return None;
     }
-    let Some(variable_info) = parser.get_mut_variable_info(name) else {
-      return None;
-    };
+    let tag_info = parser
+      .definitions_db
+      .expect_get_mut_tag_info(&parser.current_tag_info?);
 
-    // FIXME: should find the `tag_info` which tag equal `NESTED_WEBPACK_IDENTIFIER_TAG`;
-    let Some(tag_info) = &mut variable_info.tag_info else {
-      unreachable!();
-    };
-    if tag_info.tag != NESTED_WEBPACK_IDENTIFIER_TAG {
-      return None;
-    }
-    let Some(data) = tag_info.data.as_mut().map(std::mem::take) else {
-      unreachable!();
-    };
-    let mut nested_require_data = NestedRequireData::deserialize(data);
+    let mut nested_require_data = NestedRequireData::deserialize(tag_info.data.take()?);
     let mut deps = Vec::with_capacity(2);
     if !nested_require_data.update {
       deps.push(ConstDependency::new(

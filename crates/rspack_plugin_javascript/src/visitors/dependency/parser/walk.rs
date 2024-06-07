@@ -11,7 +11,7 @@ use swc_core::ecma::ast::{DoWhileStmt, ExportDecl, ExportDefaultDecl, ExportDefa
 use swc_core::ecma::ast::{ExprOrSpread, ExprStmt, FnDecl, MemberExpr, MemberProp, VarDeclOrExpr};
 use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValueProp};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
-use swc_core::ecma::ast::{MetaPropExpr, NamedExport, NewExpr, ObjectLit, OptCall, OptChainBase};
+use swc_core::ecma::ast::{MetaPropExpr, NamedExport, NewExpr, ObjectLit, OptCall};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
 use swc_core::ecma::ast::{OptChainExpr, Pat, ThisExpr, UnaryOp};
 use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, TaggedTpl};
@@ -668,10 +668,11 @@ impl<'parser> JavascriptParser<'parser> {
       .optional_chaining(self, expr)
       .is_none()
     {
-      match &*expr.base {
-        OptChainBase::Call(call) => self.walk_opt_call(call),
-        OptChainBase::Member(member) => self.walk_member_expression(member),
-      };
+      self.enter_optional_chain(
+        expr,
+        |parser, call| parser.walk_opt_call(call),
+        |parser, member| parser.walk_member_expression(member),
+      );
     }
   }
 
@@ -688,7 +689,22 @@ impl<'parser> JavascriptParser<'parser> {
           {
             return;
           }
-          // TODO: member_chain
+          if expr_info
+            .root_info
+            .call_hooks_name(self, |this, for_name| {
+              drive.member_chain(
+                this,
+                expr,
+                for_name,
+                &expr_info.members,
+                &expr_info.members_optionals,
+                &expr_info.member_ranges,
+              )
+            })
+            .unwrap_or_default()
+          {
+            return;
+          }
           self.walk_member_expression_with_expression_name(
             expr,
             &expr_info.name,
@@ -716,6 +732,7 @@ impl<'parser> JavascriptParser<'parser> {
         }
       }
     }
+    self.member_expr_in_optional_chain = false;
     self.walk_expression(&expr.obj);
     if let MemberProp::Computed(computed) = &expr.prop {
       self.walk_expression(&computed.expr)
@@ -757,10 +774,13 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn walk_opt_call(&mut self, call: &OptCall) {
-    // TODO: should align to walkCallExpression in webpack.
-    self.walk_expression(&call.callee);
-    self.walk_expr_or_spread(&call.args);
+  fn walk_opt_call(&mut self, expr: &OptCall) {
+    self.walk_call_expression(&CallExpr {
+      span: expr.span,
+      callee: Callee::Expr(expr.callee.clone()),
+      args: expr.args.clone(),
+      type_args: None,
+    })
   }
 
   /// Walk IIFE function
@@ -924,15 +944,31 @@ impl<'parser> JavascriptParser<'parser> {
           }
           let evaluated_callee = self.evaluate_expression(callee);
           if evaluated_callee.is_identifier() {
+            let members = evaluated_callee
+              .members()
+              .map(Cow::Borrowed)
+              .unwrap_or_else(|| Cow::Owned(Vec::new()));
+            let members_optionals = evaluated_callee
+              .members_optionals()
+              .map(Cow::Borrowed)
+              .unwrap_or_else(|| Cow::Owned(members.iter().map(|_| false).collect::<Vec<_>>()));
+            let member_ranges = evaluated_callee
+              .member_ranges()
+              .map(Cow::Borrowed)
+              .unwrap_or_else(|| Cow::Owned(Vec::new()));
             let drive = self.plugin_drive.clone();
-            if drive
-              .call_member_chain(
-                self,
-                evaluated_callee.root_info(),
-                expr,
-                // evaluated_callee.get_members(),
-                // evaluated_callee.identifier(),
-              )
+            if evaluated_callee
+              .root_info()
+              .call_hooks_name(self, |parser, for_name| {
+                drive.call_member_chain(
+                  parser,
+                  expr,
+                  for_name,
+                  &members,
+                  &members_optionals,
+                  &member_ranges,
+                )
+              })
               .unwrap_or_default()
             {
               /* result1 */
@@ -1360,7 +1396,6 @@ impl<'parser> JavascriptParser<'parser> {
                 for param in &method.function.params {
                   this.walk_pattern(&param.pat);
                 }
-
                 // TODO: `hooks.body_value`;
                 if let Some(body) = &method.function.body {
                   this.walk_block_statement(body);
@@ -1370,13 +1405,16 @@ impl<'parser> JavascriptParser<'parser> {
             this.top_level_scope = was_top_level;
           }
           ClassMember::PrivateMethod(method) => {
-            this.walk_identifier(&method.key.id);
+            // method.key is always not computed in private method, so we don't need to walk it
             let was_top_level = this.top_level_scope;
             this.top_level_scope = TopLevelScope::False;
             this.in_function_scope(
               true,
               method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
               |this| {
+                for param in &method.function.params {
+                  this.walk_pattern(&param.pat);
+                }
                 // TODO: `hooks.body_value`;
                 if let Some(body) = &method.function.body {
                   this.walk_block_statement(body);

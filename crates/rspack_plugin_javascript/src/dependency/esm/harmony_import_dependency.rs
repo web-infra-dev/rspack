@@ -66,7 +66,6 @@ pub struct HarmonyImportSideEffectDependency {
   pub id: DependencyId,
   pub span: Option<ErrorSpan>,
   pub source_span: Option<ErrorSpan>,
-  pub specifiers: Vec<Specifier>,
   pub dependency_type: DependencyType,
   pub export_all: bool,
   resource_identifier: String,
@@ -78,7 +77,6 @@ impl HarmonyImportSideEffectDependency {
     source_order: i32,
     span: Option<ErrorSpan>,
     source_span: Option<ErrorSpan>,
-    specifiers: Vec<Specifier>,
     dependency_type: DependencyType,
     export_all: bool,
   ) -> Self {
@@ -89,7 +87,6 @@ impl HarmonyImportSideEffectDependency {
       request,
       span,
       source_span,
-      specifiers,
       dependency_type,
       export_all,
       resource_identifier,

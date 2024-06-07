@@ -72,27 +72,31 @@ fn call_hooks_info<F, T>(
 where
   F: Fn(&mut JavascriptParser, &str) -> Option<T>,
 {
-  // avoid ownership
-  let mut for_name_list = Vec::new();
   let info = parser.definitions_db.expect_get_variable(&id);
-  let mut next_tag_info = info.tag_info.as_ref();
+  let mut next_tag_info = info.tag_info;
 
-  while let Some(tag_info) = next_tag_info {
-    for_name_list.push(tag_info.tag.to_string());
-    next_tag_info = tag_info.next.as_deref();
+  while let Some(tag_info_id) = next_tag_info {
+    parser.current_tag_info = Some(tag_info_id);
+    let tag_info = parser.definitions_db.expect_get_tag_info(&tag_info_id);
+    let tag = tag_info.tag.to_string();
+    let next = tag_info.next;
+    let result = hook_call(parser, &tag);
+    parser.current_tag_info = None;
+    if result.is_some() {
+      return result;
+    }
+    next_tag_info = next;
   }
 
+  let info = parser.definitions_db.expect_get_variable(&id);
   if let Some(FreeName::String(free_name)) = &info.free_name {
-    for_name_list.push(free_name.to_string());
-  }
-  // should run `defined ? defined() : None` if `free_name` matched FreeName::Tree?
-
-  for name in &for_name_list {
-    let result = hook_call(parser, name);
+    let result = hook_call(parser, &free_name.to_string());
     if result.is_some() {
       return result;
     }
   }
+  // should run `defined ? defined() : None` if `free_name` matched FreeName::Tree?
+
   None
   // maybe we can support `fallback` here
 }
