@@ -36,9 +36,9 @@ use crate::visitors::scope_info::{
   FreeName, ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoId,
 };
 
-pub trait TagInfoData: Clone {
-  fn serialize(data: &Self) -> serde_json::Value;
-  fn deserialize(value: serde_json::Value) -> Self;
+pub trait TagInfoData {
+  fn into_any(data: Self) -> Box<dyn anymap::CloneAny>;
+  fn downcast(any: Box<dyn anymap::CloneAny>) -> Self;
 }
 
 #[derive(Debug)]
@@ -502,7 +502,7 @@ impl<'parser> JavascriptParser<'parser> {
     tag: &'static str,
     data: Option<Data>,
   ) {
-    let data = data.as_ref().map(|data| TagInfoData::serialize(data));
+    let data = data.map(|data| TagInfoData::into_any(data));
     let new_info = if let Some(old_info_id) = self.definitions_db.get(&self.definitions, &name) {
       let old_info = self.definitions_db.expect_get_variable(&old_info_id);
       if let Some(old_tag_info) = old_info.tag_info {

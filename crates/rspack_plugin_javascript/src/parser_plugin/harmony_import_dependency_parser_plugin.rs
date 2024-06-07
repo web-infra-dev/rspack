@@ -73,7 +73,7 @@ pub struct HarmonyImportDependencyParserPlugin;
 
 const HARMONY_SPECIFIER_TAG: &str = "_identifier__harmony_specifier_tag__";
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone)]
 struct HarmonySpecifierData {
   name: Atom,
   source: Atom,
@@ -82,12 +82,14 @@ struct HarmonySpecifierData {
 }
 
 impl TagInfoData for HarmonySpecifierData {
-  fn serialize(data: &Self) -> serde_json::Value {
-    serde_json::to_value(data).expect("serialize failed for `HarmonySpecifierData`")
+  fn into_any(data: Self) -> Box<dyn anymap::CloneAny> {
+    Box::new(data)
   }
 
-  fn deserialize(value: serde_json::Value) -> Self {
-    serde_json::from_value(value).expect("deserialize failed for `HarmonySpecifierData`")
+  fn downcast(any: Box<dyn anymap::CloneAny>) -> Self {
+    *(any as Box<dyn std::any::Any>)
+      .downcast()
+      .expect("HarmonySpecifierData should be downcasted from correct tag info")
   }
 }
 
@@ -212,7 +214,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     let tag_info = parser
       .definitions_db
       .expect_get_tag_info(&parser.current_tag_info?);
-    let settings = HarmonySpecifierData::deserialize(tag_info.data.clone()?);
+    let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
 
     parser
       .rewrite_usage_span
@@ -255,7 +257,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     let tag_info = parser
       .definitions_db
       .expect_get_tag_info(&parser.current_tag_info?);
-    let settings = HarmonySpecifierData::deserialize(tag_info.data.clone()?);
+    let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
 
     let non_optional_members = get_non_optional_part(members, members_optionals);
     let (start, end) = if members.len() > non_optional_members.len() {
@@ -309,7 +311,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     let tag_info = parser
       .definitions_db
       .expect_get_tag_info(&parser.current_tag_info?);
-    let settings = HarmonySpecifierData::deserialize(tag_info.data.clone()?);
+    let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
 
     let non_optional_members = get_non_optional_part(members, members_optionals);
     let (start, end) = if members.len() > non_optional_members.len() {

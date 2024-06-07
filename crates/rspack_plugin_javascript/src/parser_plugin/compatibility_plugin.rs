@@ -11,7 +11,7 @@ use crate::{
 
 const NESTED_WEBPACK_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identifier__";
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[derive(Debug, Clone)]
 struct NestedRequireData {
   name: String,
   update: bool,
@@ -19,12 +19,14 @@ struct NestedRequireData {
 }
 
 impl TagInfoData for NestedRequireData {
-  fn serialize(data: &Self) -> serde_json::Value {
-    serde_json::to_value(data).expect("serialize failed for `NestedRequireData`")
+  fn into_any(data: Self) -> Box<dyn anymap::CloneAny + 'static> {
+    Box::new(data)
   }
 
-  fn deserialize(value: serde_json::Value) -> Self {
-    serde_json::from_value(value).expect("deserialize failed for `NestedRequireData`")
+  fn downcast(any: Box<dyn anymap::CloneAny>) -> Self {
+    *(any as Box<dyn std::any::Any>)
+      .downcast()
+      .expect("NestedRequireData should be downcasted from correct tag info")
   }
 }
 
@@ -128,23 +130,24 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       .definitions_db
       .expect_get_mut_tag_info(&parser.current_tag_info?);
 
-    let mut nested_require_data = NestedRequireData::deserialize(tag_info.data.take()?);
+    let mut nested_require_data = NestedRequireData::downcast(tag_info.data.take()?);
     let mut deps = Vec::with_capacity(2);
+    let name = nested_require_data.name.clone();
     if !nested_require_data.update {
       deps.push(ConstDependency::new(
         nested_require_data.loc.start(),
         nested_require_data.loc.end(),
-        nested_require_data.name.clone().into(),
+        name.clone().into(),
         None,
       ));
       nested_require_data.update = true;
     }
-    tag_info.data = Some(NestedRequireData::serialize(&nested_require_data));
+    tag_info.data = Some(NestedRequireData::into_any(nested_require_data));
 
     deps.push(ConstDependency::new(
       ident.span.real_lo(),
       ident.span.real_hi(),
-      nested_require_data.name.into(),
+      name.into(),
       None,
     ));
     for dep in deps {

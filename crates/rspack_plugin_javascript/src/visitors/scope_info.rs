@@ -228,11 +228,11 @@ impl ScopeInfoDB {
   }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug)]
 pub struct TagInfo {
   id: TagInfoId,
   pub tag: &'static str,
-  pub data: Option<serde_json::Value>,
+  pub data: Option<Box<dyn anymap::CloneAny>>,
   pub next: Option<TagInfoId>,
 }
 
@@ -240,7 +240,7 @@ impl TagInfo {
   pub fn create(
     definitions_db: &mut ScopeInfoDB,
     tag: &'static str,
-    data: Option<serde_json::Value>,
+    data: Option<Box<dyn anymap::CloneAny>>,
     next: Option<TagInfoId>,
   ) -> TagInfoId {
     let id = definitions_db.tag_info_db.next();
