@@ -117,6 +117,7 @@ impl Module for RawModule {
       build_info: BuildInfo {
         hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
         cacheable: true,
+        strict: true,
         ..Default::default()
       },
       dependencies: vec![],
