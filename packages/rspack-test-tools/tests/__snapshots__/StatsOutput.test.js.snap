@@ -2,15 +2,9 @@
 
 exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats for 1`] = `
 "PublicPath: auto
-<<<<<<< HEAD
-asset bundle.js 2.61 KiB {909} [emitted] (name: main)
+asset bundle.js 2.49 KiB {909} [emitted] (name: main)
 asset 2710c5e36f8babb0a3a4.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
-Entrypoint main 2.61 KiB = bundle.js
-=======
-asset bundle.js 2.46 KiB {909} [emitted] (name: main)
-asset 2710c5e36f8babb0a3a4.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
-Entrypoint main 2.46 KiB = bundle.js
->>>>>>> 62a9badf9 (feat: root module is less prone to be wrapped in IIFE)
+Entrypoint main 2.49 KiB = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./index.js [10] 75 bytes {909} [depth 0] [built] [code generated]
     [no exports]
@@ -295,10 +289,10 @@ Rspack compiled with 1 error"
 `;
 
 exports[`statsOutput statsOutput/performance-disabled should print correct stats for 1`] = `
-"asset main.js 304 KiB [emitted] (name: main)
+"asset main.js 303 KiB [emitted] (name: main)
 asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
-Entrypoint main 304 KiB = main.js
+Entrypoint main 303 KiB = main.js
 runtime modules 8.38 KiB 12 modules
 cacheable modules 293 KiB
   ./index.js 49 bytes [built] [code generated]
@@ -311,10 +305,10 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/performance-error should print correct stats for 1`] = `
-"asset main.js 304 KiB [emitted] (name: main)
+"asset main.js 303 KiB [emitted] (name: main)
 asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
-Entrypoint main 304 KiB = main.js
+Entrypoint main 303 KiB = main.js
 runtime modules 8.38 KiB 12 modules
 cacheable modules 293 KiB
   ./index.js 48 bytes [built] [code generated]
@@ -325,19 +319,11 @@ cacheable modules 293 KiB
   ./e.js 22 bytes [built] [code generated]
 
 ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
-<<<<<<< HEAD
-  │   main.js (303.513 KiB)
+  │   main.js (303.389 KiB)
 
 
 ERROR in × entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (303.513 KiB)
-=======
-  │   main.js (303.354 KiB)
-
-
-ERROR in × entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (303.354 KiB)
->>>>>>> 62a9badf9 (feat: root module is less prone to be wrapped in IIFE)
+  │   main (303.389 KiB)
   │       main.js
 
 
@@ -345,10 +331,10 @@ Rspack x.x.x compiled with 2 errors in X s"
 `;
 
 exports[`statsOutput statsOutput/performance-no-hints should print correct stats for 1`] = `
-"asset main.js 304 KiB [emitted] (name: main)
+"asset main.js 303 KiB [emitted] (name: main)
 asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
-Entrypoint main 304 KiB = main.js
+Entrypoint main 303 KiB = main.js
 runtime modules 8.38 KiB 12 modules
 cacheable modules 293 KiB
   ./index.js 48 bytes [built] [code generated]
@@ -419,18 +405,9 @@ webpack/runtime/define_property_getters 290 bytes [code generated]
 `;
 
 exports[`statsOutput statsOutput/runtime-specific-exports should print correct stats for 1`] = `
-<<<<<<< HEAD
-"asset main.js 1.8 KiB [emitted] (name: main)
-Entrypoint main 1.8 KiB = main.js
-./example.js 70 bytes [built] [code generated]
-=======
 "asset main.js 1.67 KiB [emitted] (name: main)
 Entrypoint main 1.67 KiB = main.js
-./math.js
-  [exports: add, multiply]
-  [only some exports used: add]
-./example.js
->>>>>>> 62a9badf9 (feat: root module is less prone to be wrapped in IIFE)
+./example.js 70 bytes [built] [code generated]
   [no exports]
   [no exports used]
 ./increment.js 251 bytes [built] [code generated]
