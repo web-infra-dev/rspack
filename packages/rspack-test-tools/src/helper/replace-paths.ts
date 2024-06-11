@@ -8,7 +8,9 @@ const rspackPath = path.resolve(__dirname, "../../../rspack");
 export function replacePaths(input: string) {
 	const rspackRoot: string = normalizePaths(rspackPath);
 	if (os.platform() === "win32") {
-		const winRspackRoot = rspackRoot.split(path.win32.sep).join("//");
+		const winRspackRoot = rspackRoot.split(path.posix.sep).join(path.win32.sep);
+		console.log(input);
+		console.log(winRspackRoot);
 		return normalizePaths(input)
 			.split(rspackRoot)
 			.join("<RSPACK_ROOT>")
