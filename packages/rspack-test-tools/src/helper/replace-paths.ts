@@ -1,13 +1,19 @@
-const path = require("path");
+import os from "os";
+import path from "path";
+
 const serializer = require("jest-serializer-path");
 const normalizePaths = serializer.normalizePaths;
 const rspackPath = path.resolve(__dirname, "../../../rspack");
-const os = require("os");
 
 export function replacePaths(input: string) {
-	const rspackRoot = normalizePaths(rspackPath);
+	const rspackRoot: string = normalizePaths(rspackPath);
 	if (os.platform() === "win32") {
-		input = input.split("\\\\").join(path.win32.sep);
+		const winRspackRoot = rspackRoot.split(path.win32.sep).join("//");
+		return normalizePaths(input)
+			.split(rspackRoot)
+			.join("<RSPACK_ROOT>")
+			.split(winRspackRoot)
+			.join("<RSPACK_ROOT>");
 	}
 	return normalizePaths(input).split(rspackRoot).join("<RSPACK_ROOT>");
 }
