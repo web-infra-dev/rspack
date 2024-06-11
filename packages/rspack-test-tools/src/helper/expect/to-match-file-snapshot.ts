@@ -2,12 +2,12 @@
 
 /* istanbul ignore file */
 
-const fs = require("fs");
-const path = require("path");
-const chalk = require("chalk");
-const { diff } = require("jest-diff");
-const mkdirp = require("mkdirp");
-const filenamify = require("filenamify");
+import fs from "fs";
+import path from "path";
+import chalk from "chalk";
+import filenamify from "filenamify";
+import { diff } from "jest-diff";
+import mkdirp from "mkdirp";
 
 /**
  * Check if 2 strings or buffer are equal
@@ -27,11 +27,7 @@ const isEqual = (a, b) => {
  * @param {{ diff?: import('jest-diff').DiffOptions }} options Additional options for matching
  * @this {{ testPath: string, currentTestName: string, assertionCalls: number, isNot: boolean, snapshotState: { added: number, updated: number, unmatched: number, _updateSnapshot: 'none' | 'new' | 'all' } }}
  */
-exports.toMatchFileSnapshot = function toMatchFileSnapshot(
-	content,
-	filepath,
-	options = {}
-) {
+export function toMatchFileSnapshot(content, filepath, options = {}) {
 	const { isNot, snapshotState } = this;
 
 	const filename =
@@ -151,4 +147,4 @@ exports.toMatchFileSnapshot = function toMatchFileSnapshot(
 			};
 		}
 	}
-};
+}
