@@ -45,7 +45,7 @@ function Child() {
     return /*#__PURE__*/ (0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxDEV)("span", {
         children: "child change"
     }, void 0, false, {
-        fileName: "/Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/tests/hotCases/jsx/child/child.jsx",
+        fileName: "<PROJECT_ROOT>/tests/hotCases/jsx/child/child.jsx",
         lineNumber: 2,
         columnNumber: 11
     }, this);

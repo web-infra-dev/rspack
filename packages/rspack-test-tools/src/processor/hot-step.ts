@@ -2,7 +2,7 @@ import path from "path";
 import { Chunk } from "@rspack/core";
 import fs from "fs-extra";
 
-import { escapeEOL, escapeSep } from "../helper";
+import { escapeEOL, escapeSep, replacePaths } from "../helper";
 import { THotStepRuntimeData } from "../runner";
 import {
 	ECompilerType,
@@ -208,7 +208,7 @@ export class HotSnapshotProcessor<
 			}
 			// handle timestamp in css-extract
 			str = str.replace(/\/\/ (\d+)\s+(?=var cssReload)/, "");
-			return str;
+			return replacePaths(str);
 		};
 
 		const replaceFileName = (str: string) => {

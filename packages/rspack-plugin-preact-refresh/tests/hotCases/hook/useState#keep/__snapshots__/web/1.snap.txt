@@ -57,12 +57,12 @@ function App() {
                 theme
             ]
         }, void 0, true, {
-            fileName: "/Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/tests/hotCases/hook/useState#keep/app.jsx",
+            fileName: "<PROJECT_ROOT>/tests/hotCases/hook/useState#keep/app.jsx",
             lineNumber: 6,
             columnNumber: 16
         }, this)
     }, void 0, false, {
-        fileName: "/Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/tests/hotCases/hook/useState#keep/app.jsx",
+        fileName: "<PROJECT_ROOT>/tests/hotCases/hook/useState#keep/app.jsx",
         lineNumber: 6,
         columnNumber: 11
     }, this);

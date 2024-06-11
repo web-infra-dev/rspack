@@ -41,7 +41,7 @@ __webpack_require__.d(__webpack_exports__, {
 const fn = async function () {
   const name = "a";
   const wrap = v => v;
-  return wrap((await __webpack_require__(/*! ./lib */ "./lib lazy recursive ^\\.\\/.*\\.js$")(`./${name}.js`)));
+  return wrap((await __webpack_require__(/*! ./lib */ "./lib lazy recursive ^//.///.*//.js$")(`./${name}.js`)));
 }
 
 

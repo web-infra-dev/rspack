@@ -57,12 +57,12 @@ function Inner() {
                 theme
             ]
         }, void 0, true, {
-            fileName: "/Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/tests/hotCases/hook/useContext#provide/app.jsx",
+            fileName: "<PROJECT_ROOT>/tests/hotCases/hook/useContext#provide/app.jsx",
             lineNumber: 8,
             columnNumber: 16
         }, this)
     }, void 0, false, {
-        fileName: "/Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/tests/hotCases/hook/useContext#provide/app.jsx",
+        fileName: "<PROJECT_ROOT>/tests/hotCases/hook/useContext#provide/app.jsx",
         lineNumber: 8,
         columnNumber: 11
     }, this);
@@ -73,12 +73,12 @@ function App() {
     return /*#__PURE__*/ (0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxDEV)(Theme.Provider, {
         value: "light",
         children: /*#__PURE__*/ (0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxDEV)(Inner, {}, void 0, false, {
-            fileName: "/Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/tests/hotCases/hook/useContext#provide/app.jsx",
+            fileName: "<PROJECT_ROOT>/tests/hotCases/hook/useContext#provide/app.jsx",
             lineNumber: 14,
             columnNumber: 7
         }, this)
     }, void 0, false, {
-        fileName: "/Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/tests/hotCases/hook/useContext#provide/app.jsx",
+        fileName: "<PROJECT_ROOT>/tests/hotCases/hook/useContext#provide/app.jsx",
         lineNumber: 13,
         columnNumber: 5
     }, this);

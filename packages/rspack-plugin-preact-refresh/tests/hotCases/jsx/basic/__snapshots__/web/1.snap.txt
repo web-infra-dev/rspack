@@ -46,12 +46,12 @@ function App() {
         children: /*#__PURE__*/ (0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxDEV)("span", {
             children: "content 2"
         }, void 0, false, {
-            fileName: "/Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/tests/hotCases/jsx/basic/app.jsx",
+            fileName: "<PROJECT_ROOT>/tests/hotCases/jsx/basic/app.jsx",
             lineNumber: 2,
             columnNumber: 16
         }, this)
     }, void 0, false, {
-        fileName: "/Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/tests/hotCases/jsx/basic/app.jsx",
+        fileName: "<PROJECT_ROOT>/tests/hotCases/jsx/basic/app.jsx",
         lineNumber: 2,
         columnNumber: 11
     }, this);

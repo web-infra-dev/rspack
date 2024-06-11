@@ -100,7 +100,7 @@ if (installedChunkData !== 0) {
 						error.message =
 							'Loading chunk ' +
 							chunkId +
-							' failed.\n(' +
+							' failed./n(' +
 							errorType +
 							': ' +
 							realSrc +
@@ -137,7 +137,7 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
 				error.message =
 					'Loading hot update chunk ' +
 					chunkId +
-					' failed.\n(' +
+					' failed./n(' +
 					errorType +
 					': ' +
 					realSrc +
@@ -284,7 +284,7 @@ function applyHandler(options) {
 			var doDispose = false;
 			var chainInfo = "";
 			if (result.chain) {
-				chainInfo = "\nUpdate propagation: " + result.chain.join(" -> ");
+				chainInfo = "/nUpdate propagation: " + result.chain.join(" -> ");
 			}
 			switch (result.type) {
 				case "self-declined":

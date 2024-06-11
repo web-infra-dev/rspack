@@ -48,12 +48,12 @@ __webpack_require__.d(__webpack_exports__, {
 function App() {
     return /*#__PURE__*/ (0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxDEV)("div", {
         children: /*#__PURE__*/ (0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxDEV)(_child__WEBPACK_IMPORTED_MODULE_1__.Child, {}, void 0, false, {
-            fileName: "/Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/tests/hotCases/jsx/child/app.jsx",
+            fileName: "<PROJECT_ROOT>/tests/hotCases/jsx/child/app.jsx",
             lineNumber: 4,
             columnNumber: 16
         }, this)
     }, void 0, false, {
-        fileName: "/Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/tests/hotCases/jsx/child/app.jsx",
+        fileName: "<PROJECT_ROOT>/tests/hotCases/jsx/child/app.jsx",
         lineNumber: 4,
         columnNumber: 11
     }, this);
@@ -150,7 +150,7 @@ function Child() {
     return /*#__PURE__*/ (0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxDEV)("span", {
         children: "has child"
     }, void 0, false, {
-        fileName: "/Users/bytedance/rspack-dev/rspack/packages/rspack-plugin-preact-refresh/tests/hotCases/jsx/child/child.jsx",
+        fileName: "<PROJECT_ROOT>/tests/hotCases/jsx/child/child.jsx",
         lineNumber: 2,
         columnNumber: 11
     }, this);
