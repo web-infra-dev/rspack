@@ -141,6 +141,10 @@ impl Cutout {
 
     artifact.entry_dependencies = entry_dependencies;
 
+    self
+      .has_module_graph_change
+      .analyze_force_build_deps(&force_build_deps);
+
     force_build_deps
   }
 
