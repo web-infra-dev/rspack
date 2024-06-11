@@ -43,7 +43,11 @@ impl Serialize for ExternalRequestValue {
   where
     S: serde::Serializer,
   {
-    self.iter().collect::<Vec<_>>().serialize(serializer)
+    if self.rest.is_none() {
+      self.primary.serialize(serializer)
+    } else {
+      self.iter().collect::<Vec<_>>().serialize(serializer)
+    }
   }
 }
 
@@ -103,7 +107,10 @@ impl ExternalModule {
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      id: Identifier::from(format!("external {external_type} {request:?}")),
+      id: Identifier::from(format!(
+        "external {external_type} {}",
+        serde_json::to_string(&request).expect("invalid json to_string")
+      )),
       request,
       external_type,
       user_request,
@@ -390,6 +397,7 @@ impl Module for ExternalModule {
     let build_info = BuildInfo {
       hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
       top_level_declarations: Some(FxHashSet::default()),
+      strict: true,
       ..Default::default()
     };
 

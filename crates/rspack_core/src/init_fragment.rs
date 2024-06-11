@@ -391,6 +391,14 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
         start: "".to_string(),
         end: None,
       })
+    } else if self.promises.len() == 1 {
+      let sep = self.promises.front().expect("at least have one");
+      Ok(InitFragmentContents {
+        start: format!(
+          "var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{sep}]);\n{sep} = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];"
+        ),
+        end: None,
+      })
     } else {
       let sep = Vec::from_iter(self.promises).join(", ");
       Ok(InitFragmentContents {
