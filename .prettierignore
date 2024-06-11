@@ -12,6 +12,7 @@ packages/rspack/src/config/schema.check.js
 packages/**/etc/**/*
 packages/rspack-test-tools/template/**/*
 packages/rspack-test-tools/tests/**/*
+packages/rspack-test-preact-refresh/tests/**/*
 packages/rspack-plugin-mini-css-extract/test/cases/**/*
 
 plugin-test/**/*
