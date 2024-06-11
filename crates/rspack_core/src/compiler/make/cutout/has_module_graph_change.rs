@@ -2,7 +2,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::Atom;
 
 use super::super::MakeArtifact;
-use crate::{AsyncDependenciesBlockIdentifier, GroupOptions, ModuleGraph, ModuleIdentifier};
+use crate::{
+  AsyncDependenciesBlockIdentifier, DependencyId, GroupOptions, ModuleGraph, ModuleIdentifier,
+};
 
 #[derive(Debug, Default, Eq, PartialEq, Clone)]
 struct ModuleDeps {
@@ -58,6 +60,7 @@ impl ModuleDeps {
 
 #[derive(Debug, Default)]
 pub struct HasModuleGraphChange {
+  disabled: bool,
   origin_module_deps: HashMap<ModuleIdentifier, ModuleDeps>,
 }
 
@@ -74,8 +77,20 @@ impl HasModuleGraphChange {
     );
   }
 
+  pub fn analyze_force_build_deps(
+    &mut self,
+    deps: &HashSet<(DependencyId, Option<ModuleIdentifier>)>,
+  ) {
+    if deps.is_empty() {
+      self.disabled = true;
+    }
+  }
+
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
     let module_graph = &artifact.get_module_graph();
+    if self.disabled {
+      return;
+    }
     if self.origin_module_deps.is_empty() {
       // origin_module_deps empty means no force_build_module and no file changed
       // this only happens when build from entry
