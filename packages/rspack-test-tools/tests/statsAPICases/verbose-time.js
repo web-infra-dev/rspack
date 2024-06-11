@@ -66,6 +66,10 @@ module.exports = {
 		<t> prepare entrypoints: X ms
 		<t> process queue: X ms
 		<t> extend chunkGroup runtime: X ms
+		    8 queue items processed (4 blocks)
+		    0 chunk groups connected
+		    0 chunk groups processed for merging (0 module sets)
+		    0 chunk group info updated (0 already connected chunk groups reconnected)
 		"
 	`);
 	}
