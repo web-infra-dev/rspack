@@ -14,6 +14,7 @@ import { Module } from "../Module";
 import {
 	resolveEmotion,
 	resolvePluginImport,
+	resolvePreact,
 	resolveReact,
 	resolveRelay
 } from "../builtin-loader";
@@ -260,6 +261,9 @@ const getSwcLoaderOptions: GetLoaderOptions = (o, options) => {
 		}
 		if (expr.react) {
 			expr.react = resolveReact(expr.react);
+		}
+		if (expr.preact) {
+			expr.preact = resolvePreact(expr.preact);
 		}
 	}
 	return o;

@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 7924
+- Update: main.LAST_HASH.hot-update.js, size: 7891
 
 ## Manifest
 
@@ -94,7 +94,7 @@ function getCurrentScriptUrl(moduleId) {
         if (!src) {
             return null;
         }
-        const splitResult = src.split(/([^\\/]+)\.js$/);
+        const splitResult = src.split(/([^//]+)/.js$/);
         const filename = splitResult && splitResult[1];
         if (!filename) {
             return [src.replace(".js", ".css")];
@@ -103,7 +103,7 @@ function getCurrentScriptUrl(moduleId) {
             return [src.replace(".js", ".css")];
         }
         return fileMap.split(",").map(mapRule => {
-            const reg = new RegExp(`${filename}\\.js$`, "g");
+            const reg = new RegExp(`${filename}/.js$`, "g");
             return normalizeUrl(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
         });
     };
@@ -222,7 +222,7 @@ function reloadAll() {
 function isUrlRequest(url) {
     // An URL is not an request if
     // It is not http or https
-    if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(url)) {
+    if (!/^[a-zA-Z][a-zA-Z/d+/-.]*:/.test(url)) {
         return false;
     }
     return true;
@@ -293,7 +293,7 @@ module.exports = function (urlString) {
     }
     var protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
     var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
-    var host = components[0].toLowerCase().replace(/\.$/, "");
+    var host = components[0].toLowerCase().replace(//.$/, "");
     components[0] = "";
     var path = normalizeUrl(components);
     return protocol + host + path;

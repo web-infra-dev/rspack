@@ -8,7 +8,7 @@
 - Bundle: b_js.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 42
-- Update: main.LAST_HASH.hot-update.js, size: 540
+- Update: main.LAST_HASH.hot-update.js, size: 532
 
 ## Manifest
 

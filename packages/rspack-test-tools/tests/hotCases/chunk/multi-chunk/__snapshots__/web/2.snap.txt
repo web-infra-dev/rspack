@@ -10,9 +10,9 @@
 - Manifest: a.LAST_HASH.hot-update.json, size: 35
 - Manifest: b.LAST_HASH.hot-update.json, size: 35
 - Manifest: main.LAST_HASH.hot-update.json, size: 35
-- Update: a.LAST_HASH.hot-update.js, size: 254
-- Update: b.LAST_HASH.hot-update.js, size: 254
-- Update: main.LAST_HASH.hot-update.js, size: 257
+- Update: a.LAST_HASH.hot-update.js, size: 246
+- Update: b.LAST_HASH.hot-update.js, size: 246
+- Update: main.LAST_HASH.hot-update.js, size: 249
 
 ## Manifest
 

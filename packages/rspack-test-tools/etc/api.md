@@ -1097,6 +1097,9 @@ export function readConfigFile<T extends ECompilerType>(files: string[]): TCompi
 export function replaceModuleArgument(raw: string): string;
 
 // @public (undocumented)
+export function replacePaths(input: string): any;
+
+// @public (undocumented)
 export function replaceRuntimeModuleName(raw: string): string;
 
 // @public (undocumented)

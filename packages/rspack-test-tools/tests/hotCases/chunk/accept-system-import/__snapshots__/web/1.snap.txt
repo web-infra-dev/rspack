@@ -10,7 +10,7 @@
 - Manifest: main.LAST_HASH.hot-update.json, size: 51
 - Update: chunk2_js.LAST_HASH.hot-update.js, size: 303
 - Update: chunk_js.LAST_HASH.hot-update.js, size: 302
-- Update: main.LAST_HASH.hot-update.js, size: 209
+- Update: main.LAST_HASH.hot-update.js, size: 201
 
 ## Manifest
 

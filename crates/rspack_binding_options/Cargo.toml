@@ -21,6 +21,7 @@ rspack_error                          = { path = "../rspack_error" }
 rspack_hook                           = { path = "../rspack_hook" }
 rspack_identifier                     = { path = "../rspack_identifier" }
 rspack_ids                            = { path = "../rspack_ids" }
+rspack_loader_preact_refresh          = { path = "../rspack_loader_preact_refresh" }
 rspack_loader_react_refresh           = { path = "../rspack_loader_react_refresh" }
 rspack_loader_runner                  = { path = "../rspack_loader_runner" }
 rspack_loader_swc                     = { path = "../rspack_loader_swc" }

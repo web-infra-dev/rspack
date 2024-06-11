@@ -10,7 +10,7 @@
 - Bundle: unaffected-chunk_js.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 39
 - Update: chunk_js.LAST_HASH.hot-update.js, size: 269
-- Update: main.LAST_HASH.hot-update.js, size: 421
+- Update: main.LAST_HASH.hot-update.js, size: 413
 
 ## Manifest
 
