@@ -247,7 +247,7 @@ export class HotSnapshotProcessor<
 						modules,
 						runtime
 					});
-					return `- Update: ${renderName}, size: ${i.size}`;
+					return `- Update: ${renderName}, size: ${content.length}`;
 				} else if (fileName.endsWith("hot-update.json")) {
 					const manifest = JSON.parse(content);
 					manifest.c?.sort();

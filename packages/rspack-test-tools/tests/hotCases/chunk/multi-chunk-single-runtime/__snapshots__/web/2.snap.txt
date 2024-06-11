@@ -13,7 +13,7 @@
 - Update: a.LAST_HASH.hot-update.js, size: 96
 - Update: b.LAST_HASH.hot-update.js, size: 96
 - Update: main.LAST_HASH.hot-update.js, size: 99
-- Update: runtime.LAST_HASH.hot-update.js, size: 212
+- Update: runtime.LAST_HASH.hot-update.js, size: 204
 
 ## Manifest
 
