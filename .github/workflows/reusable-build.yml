@@ -235,7 +235,7 @@ jobs:
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
-        node: ${{ fromJSON(contains(inputs.target, 'linux') && github.ref_name == 'main' && '[18, 20]' || '[18]' )}}
+        node: ${{ fromJSON(contains(inputs.target, 'linux') && github.ref_name == 'main' && '[16, 18, 20]' || '[16, 18]' )}}
     name: Test Node ${{ matrix.node }}
     env:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
