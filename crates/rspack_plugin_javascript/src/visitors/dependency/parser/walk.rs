@@ -594,8 +594,13 @@ impl<'parser> JavascriptParser<'parser> {
         self.walk_prop_name(&method.key);
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
-        // FIXME: maybe we need in_function_scope here
-        self.walk_function(&method.function);
+        self.in_function_scope(
+          true,
+          method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
+          |parser| {
+            parser.walk_function(&method.function);
+          },
+        );
         self.top_level_scope = was_top_level;
       }
     }
