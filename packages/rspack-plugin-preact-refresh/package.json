@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-preact-refresh",
-  "version": "0.5.1",
+  "version": "0.7.1",
   "license": "MIT",
   "description": "Preact refresh plugin for rspack",
   "main": "dist/index.js",
@@ -9,11 +9,16 @@
     ".": {
       "default": "./dist/index.js"
     },
+    "./intercept": "./client/reactRefresh.js",
+    "./prefresh": "./client/prefresh.js",
     "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
-    "dev": "tsc -b -w"
+    "dev": "tsc -b -w",
+    "test": "RSPACK_HOT_TEST=true jest --runInBand",
+    "api-extractor": "api-extractor run --verbose",
+    "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },
   "files": [
     "client",
@@ -29,23 +34,15 @@
     "url": "https://github.com/web-infra-dev/rspack",
     "directory": "packages/rspack-plugin-preact-refresh"
   },
-  "dependencies": {
-    "@prefresh/core": "^1.5.0",
-    "@prefresh/utils": "^1.2.0"
-  },
   "devDependencies": {
+    "@prefresh/core": "^1.5.0",
+    "@prefresh/utils": "^1.2.0",
     "@rspack/core": "workspace:*",
-    "@rspack/plugin-preact-refresh": "workspace:*",
+    "@rspack/test-tools": "workspace:*",
     "preact": "^10.15.1"
   },
   "peerDependencies": {
-    "preact": "^10.4.0"
-  },
-  "jest": {
-    "watchPathIgnorePatterns": [
-      "<rootDir>/dist",
-      "<rootDir>/tests/dist"
-    ],
-    "testEnvironment": "../../scripts/test/patch-node-env.cjs"
+    "@prefresh/core": "^1.5.0",
+    "@prefresh/utils": "^1.2.0"
   }
 }

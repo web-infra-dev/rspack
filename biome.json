@@ -18,6 +18,7 @@
       "packages/playground/**/*",
       "packages/rspack-dev-server/client",
       "packages/rspack-plugin-react-refresh/client",
+      "packages/rspack-plugin-preact-refresh/client",
       "packages/rspack-test-tools/template/**/*",
       "packages/rspack-test-tools/tests/**/*",
       "packages/rspack-plugin-mini-css-extract/test/cases/**/*"

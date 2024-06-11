@@ -717,20 +717,19 @@ importers:
         version: 3.2.3
 
   packages/rspack-plugin-preact-refresh:
-    dependencies:
+    devDependencies:
       '@prefresh/core':
         specifier: ^1.5.0
         version: 1.5.2(preact@10.22.0)
       '@prefresh/utils':
         specifier: ^1.2.0
         version: 1.2.0
-    devDependencies:
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
-      '@rspack/plugin-preact-refresh':
+      '@rspack/test-tools':
         specifier: workspace:*
-        version: 'link:'
+        version: link:../rspack-test-tools
       preact:
         specifier: ^10.15.1
         version: 10.22.0

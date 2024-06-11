@@ -44,7 +44,6 @@ const INTERNAL_PATHS = [
 	...Object.values(PREACT_PATHS),
 	PREFRESH_UTILS_PATH,
 	PREFRESH_CORE_PATH,
-	PREFRESH_UTILS_PATH,
 	RUNTIME_UTIL_PATH,
 	RUNTIME_INTERCEPT_PATH
 ];
@@ -90,7 +89,7 @@ class PreactRefreshRsapckPlugin implements RspackPluginInstance {
 		compiler.options.module.rules.unshift({
 			include: /\.([jt]sx?)$/,
 			exclude: {
-				or: [/node_modules/, [...INTERNAL_PATHS]].filter(Boolean)
+				or: [/node_modules/, ...INTERNAL_PATHS].filter(Boolean)
 			},
 			use: "builtin:preact-refresh-loader"
 		});
