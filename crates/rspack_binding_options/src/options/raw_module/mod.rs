@@ -100,7 +100,7 @@ pub struct RawRuleSetCondition {
   pub logical_matcher: Option<Vec<RawRuleSetLogicalConditions>>,
   pub array_matcher: Option<Vec<RawRuleSetCondition>>,
   #[napi(ts_type = r#"(value: string) => boolean"#)]
-  pub func_matcher: Option<ThreadsafeFunction<String, bool>>,
+  pub func_matcher: Option<ThreadsafeFunction<serde_json::Value, bool>>,
 }
 
 impl Debug for RawRuleSetCondition {
@@ -200,8 +200,8 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
             "should have a func_matcher when RawRuleSetCondition.type is \"function\""
           )
         })?;
-        Self::Func(Box::new(move|data: &str| {
-          let data = data.to_string();
+        Self::Func(Box::new(move|data: &serde_json::Value| {
+          let data = data.clone();
           let func_matcher = func_matcher.clone();
           Box::pin(async move { func_matcher.call(data).await })
         }))

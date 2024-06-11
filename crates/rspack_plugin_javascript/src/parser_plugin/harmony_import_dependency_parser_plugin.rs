@@ -1,10 +1,9 @@
-use rspack_core::tree_shaking::symbol::DEFAULT_JS_WORD;
-use rspack_core::{extract_member_expression_chain, ConstDependency, DependencyType, SpanExt};
+use rspack_core::{ConstDependency, DependencyType, SpanExt};
 use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{
-  AssignExpr, AssignOp, AssignTarget, AssignTargetPat, Callee, ImportSpecifier, ModuleExportName,
-  OptChainExpr,
+  AssignExpr, AssignOp, AssignTarget, AssignTargetPat, Callee, ImportSpecifier, MemberExpr,
+  ModuleExportName, OptChainBase,
 };
 use swc_core::ecma::ast::{Expr, Ident, ImportDecl};
 
@@ -20,7 +19,6 @@ pub(super) fn handle_harmony_import_side_effects_dep(
   request: Atom,
   span: Span,
   source_span: Span,
-  specifiers: Vec<Specifier>,
   dep_type: DependencyType,
   exports_all: bool,
 ) {
@@ -29,27 +27,69 @@ pub(super) fn handle_harmony_import_side_effects_dep(
     parser.last_harmony_import_order,
     Some(span.into()),
     Some(source_span.into()),
-    specifiers,
     dep_type,
     exports_all,
   );
   parser.dependencies.push(Box::new(dependency));
 }
 
+fn get_non_optional_part<'a>(members: &'a [Atom], members_optionals: &[bool]) -> &'a [Atom] {
+  let mut i = 0;
+  while i < members.len() && matches!(members_optionals.get(i), Some(false)) {
+    i += 1;
+  }
+  if i != members.len() {
+    &members[0..i]
+  } else {
+    members
+  }
+}
+
+fn get_non_optional_member_chain_from_expr(mut expr: &Expr, mut count: i32) -> &Expr {
+  while count != 0 {
+    if let Expr::Member(member) = expr {
+      expr = &member.obj;
+      count -= 1;
+    } else if let Expr::OptChain(opt_chain) = expr {
+      expr = match &*opt_chain.base {
+        OptChainBase::Member(member) => &*member.obj,
+        OptChainBase::Call(call) if let Some(member) = call.callee.as_member() => &*member.obj,
+        _ => unreachable!(),
+      };
+      count -= 1;
+    } else {
+      unreachable!()
+    }
+  }
+  expr
+}
+
+fn get_non_optional_member_chain_from_member(member: &MemberExpr, mut count: i32) -> &Expr {
+  count -= 1;
+  get_non_optional_member_chain_from_expr(&member.obj, count)
+}
+
 pub struct HarmonyImportDependencyParserPlugin;
 
 const HARMONY_SPECIFIER_TAG: &str = "_identifier__harmony_specifier_tag__";
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
-struct MockData;
+#[derive(Debug, Clone)]
+struct HarmonySpecifierData {
+  name: Atom,
+  source: Atom,
+  ids: Vec<Atom>,
+  source_order: i32,
+}
 
-impl TagInfoData for MockData {
-  fn serialize(_: &Self) -> serde_json::Value {
-    serde_json::Value::Null
+impl TagInfoData for HarmonySpecifierData {
+  fn into_any(data: Self) -> Box<dyn anymap::CloneAny> {
+    Box::new(data)
   }
 
-  fn deserialize(_: serde_json::Value) -> Self {
-    MockData
+  fn downcast(any: Box<dyn anymap::CloneAny>) -> Self {
+    *(any as Box<dyn std::any::Any>)
+      .downcast()
+      .expect("HarmonySpecifierData should be downcasted from correct tag info")
   }
 }
 
@@ -95,7 +135,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
           ImporterReferenceInfo::new(
             import_decl.src.value.clone(),
             specifier.clone(),
-            Some(DEFAULT_JS_WORD.clone()),
+            Some("default".into()),
             parser.last_harmony_import_order,
           ),
         );
@@ -121,7 +161,6 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       import_decl.src.value.clone(),
       import_decl.span,
       import_decl.src.span,
-      specifiers,
       DependencyType::EsmImport(import_decl.span.into()),
       false,
     );
@@ -146,12 +185,20 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     _statement: &ImportDecl,
-    _source: &Atom,
-    _export_name: Option<&str>,
-    identifier_name: &str,
+    source: &Atom,
+    id: Option<&Atom>,
+    name: &Atom,
   ) -> Option<bool> {
-    // TODO: fill data with `Some({name, source, ids, source_order, assertions })`
-    parser.tag_variable::<MockData>(identifier_name.to_string(), HARMONY_SPECIFIER_TAG, None);
+    parser.tag_variable::<HarmonySpecifierData>(
+      name.to_string(),
+      HARMONY_SPECIFIER_TAG,
+      Some(HarmonySpecifierData {
+        name: name.clone(),
+        source: source.clone(),
+        ids: id.map(|id| vec![id.clone()]).unwrap_or_default(),
+        source_order: parser.last_harmony_import_order,
+      }),
+    );
     Some(true)
   }
 
@@ -159,170 +206,146 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     ident: &Ident,
-    _for_name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    if parser.in_short_hand {
-      parser
-        .rewrite_usage_span
-        .insert(ident.span, ExtraSpanInfo::ReWriteUsedByExports);
-      if let Some(reference) = parser.import_map.get(&ident.to_id()) {
-        parser
-          .dependencies
-          .push(Box::new(HarmonyImportSpecifierDependency::new(
-            reference.request.clone(),
-            reference.specifier.name(),
-            reference.source_order,
-            true,
-            !parser.is_asi_position(ident.span_lo()),
-            ident.span.real_lo(),
-            ident.span.real_hi(),
-            reference.names.clone().map(|f| vec![f]).unwrap_or_default(),
-            false,
-            false,
-            HarmonyImportSpecifierDependency::create_export_presence_mode(
-              parser.javascript_options,
-            ),
-            None,
-            ident.span,
-          )));
-      }
-      Some(true)
-    } else if let Some(reference) = parser.import_map.get(&ident.to_id()) {
-      parser
-        .rewrite_usage_span
-        .insert(ident.span, ExtraSpanInfo::ReWriteUsedByExports);
-      // dbg!(!parser.is_asi_position(ident.span_lo()));
-      parser
-        .dependencies
-        .push(Box::new(HarmonyImportSpecifierDependency::new(
-          reference.request.clone(),
-          reference.specifier.name(),
-          reference.source_order,
-          false,
-          !parser.is_asi_position(ident.span_lo()),
-          ident.span.real_lo(),
-          ident.span.real_hi(),
-          reference.names.clone().map(|f| vec![f]).unwrap_or_default(),
-          parser.enter_callee && !parser.enter_new_expr,
-          true, // x()
-          HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
-          parser.properties_in_destructuring.remove(&ident.sym),
-          ident.span,
-        )));
-      Some(true)
-    } else {
-      None
+    if for_name != HARMONY_SPECIFIER_TAG {
+      return None;
     }
+    let tag_info = parser
+      .definitions_db
+      .expect_get_tag_info(&parser.current_tag_info?);
+    let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
+
+    parser
+      .rewrite_usage_span
+      .insert(ident.span, ExtraSpanInfo::ReWriteUsedByExports);
+    parser
+      .dependencies
+      .push(Box::new(HarmonyImportSpecifierDependency::new(
+        settings.source,
+        settings.name,
+        settings.source_order,
+        parser.in_short_hand,
+        !parser.is_asi_position(ident.span_lo()),
+        ident.span.real_lo(),
+        ident.span.real_hi(),
+        settings.ids,
+        parser.in_tagged_template_tag,
+        true,
+        HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
+        parser.properties_in_destructuring.remove(&ident.sym),
+        ident.span,
+      )));
+    Some(true)
   }
 
   fn call_member_chain(
     &self,
     parser: &mut JavascriptParser,
-    _root_info: &crate::visitors::ExportedVariableInfo,
-    expr: &swc_core::ecma::ast::CallExpr,
-    // TODO: members: &Vec<String>,
-    // TODO: members_optionals: Vec<bool>,
-    // TODO: members_ranges: Vec<DependencyLoc>
+    call_expr: &swc_core::ecma::ast::CallExpr,
+    for_name: &str,
+    members: &[Atom],
+    members_optionals: &[bool],
+    _member_ranges: &[Span],
   ) -> Option<bool> {
-    let Callee::Expr(callee) = &expr.callee else {
+    let Callee::Expr(callee) = &call_expr.callee else {
       unreachable!()
     };
-    let expression_info = extract_member_expression_chain(&**callee);
-    let member_chain = expression_info.members();
-    assert!(
-      !member_chain.is_empty(),
-      "enter from call expression so the len of member must be not empty"
-    );
-    let direct_import = member_chain.len() == 1;
-    if let Some(reference) = parser.import_map.get(&member_chain[0]) {
-      let mut member_chain = member_chain.clone();
-      member_chain.pop_front();
-      if !member_chain.is_empty() {
-        let mut ids = reference.names.clone().map(|f| vec![f]).unwrap_or_default();
-        // dbg!(&member_chain);
-        ids.extend_from_slice(
-          &member_chain
-            .into_iter()
-            .map(|item| item.0.clone())
-            .collect::<Vec<_>>(),
-        );
-        parser
-          .rewrite_usage_span
-          .insert(callee.span(), ExtraSpanInfo::ReWriteUsedByExports);
-        parser
-          .dependencies
-          .push(Box::new(HarmonyImportSpecifierDependency::new(
-            reference.request.clone(),
-            reference.specifier.name(),
-            reference.source_order,
-            false,
-            !parser.is_asi_position(expr.span_lo()),
-            callee.span().real_lo(),
-            callee.span().real_hi(),
-            ids,
-            true,
-            direct_import,
-            HarmonyImportSpecifierDependency::create_export_presence_mode(
-              parser.javascript_options,
-            ),
-            None,
-            callee.span(),
-          )));
-        parser.walk_expr_or_spread(&expr.args);
-        return Some(true);
-      }
+    if for_name != HARMONY_SPECIFIER_TAG {
+      return None;
     }
-    None
+    let tag_info = parser
+      .definitions_db
+      .expect_get_tag_info(&parser.current_tag_info?);
+    let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
+
+    let non_optional_members = get_non_optional_part(members, members_optionals);
+    let (start, end) = if members.len() > non_optional_members.len() {
+      let expr = get_non_optional_member_chain_from_expr(
+        callee,
+        (members.len() - non_optional_members.len()) as i32,
+      );
+      (expr.span().real_lo(), expr.span().real_hi())
+    } else {
+      (callee.span().real_lo(), callee.span().real_hi())
+    };
+    let mut ids = settings.ids;
+    ids.extend(non_optional_members.iter().cloned());
+    let direct_import = members.is_empty();
+    parser
+      .rewrite_usage_span
+      .insert(callee.span(), ExtraSpanInfo::ReWriteUsedByExports);
+    parser
+      .dependencies
+      .push(Box::new(HarmonyImportSpecifierDependency::new(
+        settings.source,
+        settings.name,
+        settings.source_order,
+        false,
+        !parser.is_asi_position(call_expr.span_lo()),
+        start,
+        end,
+        ids,
+        true,
+        direct_import,
+        HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
+        None,
+        callee.span(),
+      )));
+    parser.walk_expr_or_spread(&call_expr.args);
+    Some(true)
   }
 
-  fn member(
+  fn member_chain(
     &self,
     parser: &mut JavascriptParser,
     member_expr: &swc_core::ecma::ast::MemberExpr,
-    _for_name: &str,
+    for_name: &str,
+    members: &[Atom],
+    members_optionals: &[bool],
+    _member_ranges: &[Span],
   ) -> Option<bool> {
-    let expression_info = extract_member_expression_chain(member_expr);
-    let member_chain = expression_info.members();
-    if member_chain.len() > 1
-      && let Some(reference) = parser.import_map.get(&member_chain[0])
-    {
-      let mut member_chain = member_chain.clone();
-      member_chain.pop_front();
-      if !member_chain.is_empty() {
-        let mut ids = reference.names.clone().map(|f| vec![f]).unwrap_or_default();
-        // dbg!(&member_chain);
-        ids.extend_from_slice(
-          &member_chain
-            .into_iter()
-            .map(|item| item.0.clone())
-            .collect::<Vec<_>>(),
-        );
-        parser
-          .rewrite_usage_span
-          .insert(member_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
-        parser
-          .dependencies
-          .push(Box::new(HarmonyImportSpecifierDependency::new(
-            reference.request.clone(),
-            reference.specifier.name(),
-            reference.source_order,
-            false,
-            !parser.is_asi_position(member_expr.span_lo()),
-            member_expr.span.real_lo(),
-            member_expr.span.real_hi(),
-            ids,
-            parser.enter_callee && !parser.enter_new_expr,
-            !parser.enter_callee, // x.xx()
-            HarmonyImportSpecifierDependency::create_export_presence_mode(
-              parser.javascript_options,
-            ),
-            None,
-            member_expr.span,
-          )));
-        return Some(true);
-      }
+    if for_name != HARMONY_SPECIFIER_TAG {
+      return None;
     }
-    None
+    let tag_info = parser
+      .definitions_db
+      .expect_get_tag_info(&parser.current_tag_info?);
+    let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
+
+    let non_optional_members = get_non_optional_part(members, members_optionals);
+    let (start, end) = if members.len() > non_optional_members.len() {
+      let expr = get_non_optional_member_chain_from_member(
+        member_expr,
+        (members.len() - non_optional_members.len()) as i32,
+      );
+      (expr.span().real_lo(), expr.span().real_hi())
+    } else {
+      (member_expr.span.real_lo(), member_expr.span.real_hi())
+    };
+    let mut ids = settings.ids;
+    ids.extend(non_optional_members.iter().cloned());
+    parser
+      .rewrite_usage_span
+      .insert(member_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
+    parser
+      .dependencies
+      .push(Box::new(HarmonyImportSpecifierDependency::new(
+        settings.source,
+        settings.name,
+        settings.source_order,
+        false,
+        !parser.is_asi_position(member_expr.span_lo()),
+        start,
+        end,
+        ids,
+        false,
+        false, // x.xx()
+        HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
+        None,
+        member_expr.span,
+      )));
+    Some(true)
   }
 
   // collect referenced properties in destructuring
@@ -342,62 +365,6 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
           .and_modify(|v| v.extend(value.clone()))
           .or_insert(value);
       }
-    }
-    None
-  }
-
-  fn optional_chaining(
-    &self,
-    parser: &mut JavascriptParser,
-    opt_chain_expr: &OptChainExpr,
-  ) -> Option<bool> {
-    let expression_info = extract_member_expression_chain(opt_chain_expr);
-    // dbg!(&expression_info);
-    let member_chain = expression_info.members();
-    if member_chain.len() > 1
-      && let Some(reference) = parser.import_map.get(&member_chain[0])
-    {
-      let mut non_optional_members = expression_info.non_optional_part();
-      // dbg!(&non_optional_members);
-      let start = opt_chain_expr.span.real_lo();
-      let end = if !non_optional_members.is_empty()
-        && let Some(span) = expression_info
-          .members_spans()
-          .get(non_optional_members.len() - 1)
-      {
-        span.real_hi()
-      } else {
-        opt_chain_expr.span.real_hi()
-      };
-      non_optional_members.pop_front();
-      let mut ids = reference.names.clone().map(|f| vec![f]).unwrap_or_default();
-      ids.extend_from_slice(
-        &non_optional_members
-          .into_iter()
-          .map(|item| item.0.clone())
-          .collect::<Vec<_>>(),
-      );
-      parser
-        .rewrite_usage_span
-        .insert(opt_chain_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
-      parser
-        .dependencies
-        .push(Box::new(HarmonyImportSpecifierDependency::new(
-          reference.request.clone(),
-          reference.specifier.name(),
-          reference.source_order,
-          false,
-          !parser.is_asi_position(opt_chain_expr.span_lo()),
-          start,
-          end,
-          ids,
-          parser.enter_callee && !parser.enter_new_expr,
-          !parser.enter_callee, // x.xx()
-          HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
-          None,
-          opt_chain_expr.span,
-        )));
-      return Some(true);
     }
     None
   }

@@ -9,6 +9,8 @@
     ".": {
       "default": "./dist/index.js"
     },
+    "./setup-expect": "./dist/helper/setup-expect.js",
+    "./setup-env": "./dist/helper/setup-env.js",
     "./package.json": "./package.json"
   },
   "scripts": {

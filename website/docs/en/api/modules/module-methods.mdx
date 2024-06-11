@@ -141,9 +141,13 @@ Aside from the module syntaxes described above, Rspack also support some webpack
 
 ### require.context
 
-`require.context` is a special function in webpack that allows you to dynamically require a set of modules.
+`require.context` is a function specific to webpack that allows you to dynamically require a set of modules.
 
-Rspack parses for `require.context()` in the code while building.
+You can use `require.context` in your code, and Rspack will parse and reference the matching modules during the build process.
+
+:::tip
+The return value of `require.context` is the same as [import.meta.webpackContext](/api/modules/module-variables#importmetawebpackcontext). We recommend using `import.meta.webpackContext`, which is more powerful.
+:::
 
 - **Type:**
 
@@ -191,40 +195,3 @@ const context = require.context('./locales', true, /\.json$/, 'lazy');
 ```
 
 > The arguments passed to `require.context()` must be literals.
-
-#### context API
-
-The context returned by `require.context()` is a function that takes a `request` argument (module path).
-
-This function has three properties: `resolve`, `keys`, and `id`.
-
-- `resolve` is a function and returns the module id of the parsed request.
-- `keys` is a function that returns an array of all possible requests that the context module can handle.
-- `id` is the module id of the context module. This may be useful for `module.hot.accept`.
-
-This can be useful if you want to require all files in a directory or matching a pattern.
-
-Consider a scenario where you have a folder structure like this:
-
-```
-src
-├── components
-│   ├── Button.js
-│   ├── Header.js
-│   └── Footer.js
-```
-
-You can use `require.context()` to dynamically import all component files in the folder:
-
-```js
-const componentsContext = require.context('./components', false, /\.js$/);
-
-componentsContext.keys().forEach(fileName => {
-  const componentModule = componentsContext(fileName);
-
-  // Here you can use your module, for example console.log
-  console.log(componentModule);
-});
-```
-
-`require.context()` streamlines the process of module importation especially when you have a lot of files to manage. When using it, please avoid matching unnecessary files, as this might lead to significantly increased build time and output size.

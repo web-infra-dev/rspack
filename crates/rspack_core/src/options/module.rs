@@ -458,7 +458,7 @@ impl Default for CssExportsConvention {
 pub type DescriptionData = HashMap<String, RuleSetCondition>;
 
 pub type RuleSetConditionFnMatcher =
-  Box<dyn Fn(&str) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+  Box<dyn Fn(&serde_json::Value) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
 
 pub enum RuleSetCondition {
   String(String),
@@ -482,10 +482,15 @@ impl fmt::Debug for RuleSetCondition {
 
 impl RuleSetCondition {
   #[async_recursion]
-  pub async fn try_match(&self, data: &str) -> Result<bool> {
+  pub async fn try_match(&self, data: &serde_json::Value) -> Result<bool> {
     match self {
-      Self::String(s) => Ok(data.starts_with(s)),
-      Self::Regexp(r) => Ok(r.test(data)),
+      Self::String(s) => Ok(
+        data
+          .as_str()
+          .map(|data| data.starts_with(s))
+          .unwrap_or_default(),
+      ),
+      Self::Regexp(r) => Ok(data.as_str().map(|data| r.test(data)).unwrap_or_default()),
       Self::Logical(g) => g.try_match(data).await,
       Self::Array(l) => try_any(l, |i| async { i.try_match(data).await }).await,
       Self::Func(f) => f(data).await,
@@ -502,7 +507,7 @@ pub struct RuleSetLogicalConditions {
 
 impl RuleSetLogicalConditions {
   #[async_recursion]
-  pub async fn try_match(&self, data: &str) -> Result<bool> {
+  pub async fn try_match(&self, data: &serde_json::Value) -> Result<bool> {
     if let Some(and) = &self.and
       && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await?
     {

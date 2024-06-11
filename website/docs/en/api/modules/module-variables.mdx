@@ -11,6 +11,121 @@ This section covers all **variables** available in code compiled with webpack. M
 
 Indicates whether or not Hot Module Replacement is enabled and provides an interface to the process. See the [HMR API page](/api/hmr) for details.
 
+### import.meta.webpackContext
+
+`import.meta.webpackContext` is a function specific to webpack that allows you to dynamically import a set of modules.
+
+You can use `import.meta.webpackContext` in your code, and Rspack will parse and reference the matching modules during the build process.
+
+:::tip
+The return value of `import.meta.webpackContext` is the same as [import.meta.webpackContext](/api/modules/module-variables#importmetawebpackcontext). We recommend using `import.meta.webpackContext`, which is more powerful.
+:::
+
+- **Type:**
+
+```ts
+function webpackContext(
+  /**
+   * A directory to search.
+   */
+  request: string,
+  options?: {
+    /**
+     * Whether subdirectories should be searched.
+     * @default true
+     */
+    recursive?: boolean;
+    /**
+     * A regular expression to match files.
+     * @default /^\.\/.*$/ (any file)
+     */
+    regExp?: RegExp;
+    /**
+     * Module loading mode.
+     * @default 'sync'
+     */
+    mode?: 'sync' | 'eager' | 'weak' | 'lazy' | 'lazy-once';
+    include?: RegExp;
+    exclude?: RegExp;
+    preload?: boolean | number;
+    prefetch?: boolean | number;
+    chunkName?: string;
+    exports?: string | string[][];
+  },
+): Context;
+```
+
+- **Example:**
+
+```js
+// Create a context, with files from the test directory that
+// can be required with a request ending with `.test.js`.
+const context = import.meta.webpackContext('./test', {
+  recursive: false,
+  regExp: /\.test\.js$/,
+});
+```
+
+```js
+// Create a context with all files in the parent folder and
+// descending folders ending with `.stories.js`.
+const context = import.meta.webpackContext('../', {
+  recursive: true,
+  regExp: /\.stories\.js$/,
+});
+```
+
+```js
+// If mode is set to 'lazy', the underlying modules will be loaded asynchronously
+const context = import.meta.webpackContext('./locales', {
+  recursive: true,
+  regExp: /\.json$/,
+  mode: 'lazy',
+});
+```
+
+> The first arguments passed to `import.meta.webpackContext()` must be literals.
+
+### context API
+
+The context returned by `import.meta.webpackContext()` is a function that takes a `request` argument (module path).
+
+This function has three properties: `resolve`, `keys`, and `id`.
+
+- `resolve` is a function and returns the module id of the parsed request.
+- `keys` is a function that returns an array of all possible requests that the context module can handle.
+- `id` is the module id of the context module. This may be useful for `module.hot.accept`.
+
+This can be useful if you want to require all files in a directory or matching a pattern.
+
+Consider a scenario where you have a folder structure like this:
+
+```
+src
+├── components
+│   ├── Button.js
+│   ├── Header.js
+│   └── Footer.js
+```
+
+You can use `import.meta.webpackContext()` to dynamically import all component files in the folder:
+
+```js
+const componentsContext = import.meta.webpackContext('./components', {
+  recursive: false,
+  regExp: /\.js$/,
+});
+
+componentsContext.keys().forEach(fileName => {
+  const componentModule = componentsContext(fileName);
+
+  // Here you can use your module, for example console.log
+  console.log(componentModule);
+});
+```
+
+`import.meta.webpackContext()` streamlines the process of module importation especially when you have a lot of files to manage. When using it, please avoid matching unnecessary files, as this might lead to significantly increased build time and output size.
+
 ### import.meta.webpackHot (webpack-specific)
 
 An alias for `module.hot`, however `import.meta.webpackHot` can be used in strict ESM while `module.hot` can't.

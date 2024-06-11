@@ -17,7 +17,9 @@ use swc_core::ecma::atoms::Atom;
 
 pub use self::context_dependency_helper::create_context_dependency;
 pub use self::context_helper::{scanner_context_module, ContextModuleScanResult};
-pub use self::parser::{CallExpressionInfo, CallHooksName, ExportedVariableInfo, PathIgnoredSpans};
+pub use self::parser::{
+  AllowedMemberTypes, CallExpressionInfo, CallHooksName, ExportedVariableInfo, PathIgnoredSpans,
+};
 pub use self::parser::{JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope};
 pub use self::util::*;
 use crate::dependency::Specifier;

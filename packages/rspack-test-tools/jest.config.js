@@ -4,7 +4,10 @@ const root = path.resolve(__dirname, "../../");
 /** @type {import('jest').Config} */
 const config = {
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
-	setupFilesAfterEnv: ["./dist/helper/setupTestFramework.js"],
+	setupFilesAfterEnv: [
+		"@rspack/test-tools/setup-expect",
+		"@rspack/test-tools/setup-env"
+	],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
 	testMatch: [

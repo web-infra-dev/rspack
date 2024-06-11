@@ -154,7 +154,7 @@ function checkCompareResults(
 					.map(i => i.name)
 			).toEqual([]);
 		});
-		it("should not have any respack-only module", () => {
+		it("should not have any rspack-only module", () => {
 			expect(
 				getResults()
 					.filter(i => i.type === ECompareResultType.OnlySource)

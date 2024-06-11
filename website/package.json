@@ -14,7 +14,7 @@
     "check:ci": "pnpm run check:format-ci && pnpm run check:spell"
   },
   "license": "MIT",
-  "packageManager": "pnpm@8.14.3",
+  "packageManager": "pnpm@9.3.0",
   "dependencies": {
     "axios": "^1.6.1",
     "date-fns": "^2.29.3",
