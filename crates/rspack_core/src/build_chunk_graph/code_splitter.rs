@@ -613,11 +613,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let input_entrypoints_and_modules = self.prepare_input_entrypoints_and_modules()?;
     logger.time_end(start);
 
-    for (chunk_group, modules) in input_entrypoints_and_modules {
+    for (chunk_group_ukey, modules) in input_entrypoints_and_modules {
       let chunk_group = self
         .compilation
         .chunk_group_by_ukey
-        .expect_get_mut(&chunk_group);
+        .expect_get_mut(&chunk_group_ukey);
 
       let cgi = self
         .chunk_group_info_map
@@ -1447,24 +1447,22 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   }
 
   fn process_connect_queue(&mut self) {
+    // Figure out new parents for chunk groups
+    // to get new available modules for these children
     for (chunk_group_info_ukey, targets) in self.queue_connect.drain(..) {
       let chunk_group_info = self
         .chunk_group_infos
         .expect_get_mut(&chunk_group_info_ukey);
       let chunk_group_ukey = chunk_group_info.chunk_group;
 
-      let runtime = chunk_group_info.runtime.clone();
-
-      let resulting_available_modules = chunk_group_info
-        .calculate_resulting_available_modules(self.compilation, &self.mask_by_chunk);
+      // 1. Add new targets to the list of children
       chunk_group_info.children.extend(targets.iter().cloned());
 
-      for target in &targets {
-        let target_cgi = self.chunk_group_infos.expect_get_mut(target);
-        target_cgi
-          .available_modules_to_be_merged
-          .push(resulting_available_modules.clone());
-      }
+      // 2. Calculate resulting available modules
+      let resulting_available_modules = chunk_group_info
+        .calculate_resulting_available_modules(self.compilation, &self.mask_by_chunk);
+
+      let runtime = chunk_group_info.runtime.clone();
 
       let target_groups = targets.iter().map(|chunk_group_info_ukey| {
         let cgi = self.chunk_group_infos.expect_get(chunk_group_info_ukey);
@@ -1480,6 +1478,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
       self.stat_connected_chunk_groups += targets.len() as u32;
 
+      // 3. Update chunk group info
       for target_ukey in targets {
         let target_cgi = self.chunk_group_infos.expect_get_mut(&target_ukey);
 
@@ -1488,6 +1487,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .chunk_group_by_ukey
           .expect_get_mut(&target_cgi.chunk_group);
         target.add_parent(chunk_group_ukey);
+
+        target_cgi
+          .available_modules_to_be_merged
+          .push(resulting_available_modules.clone());
         self.chunk_groups_for_merging.insert(target_ukey);
         let mut updated = false;
         for r in runtime.iter() {
@@ -1594,10 +1597,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       if !cgi.children.is_empty() {
         self.stat_child_chunk_groups_reconnected += cgi.children.len() as u32;
 
-        for child in cgi.children.iter() {
-          let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
-          connect_list.insert(*child);
-        }
+        let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
+        connect_list.extend(cgi.children.iter());
       }
 
       // 4. Reconsider chunk groups for combining
