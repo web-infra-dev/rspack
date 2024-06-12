@@ -145,6 +145,7 @@ pub struct NormalModule {
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
   parsed: bool,
+  last_successful_build_meta: BuildMeta,
 }
 
 #[derive(Debug, Clone)]
@@ -226,6 +227,7 @@ impl NormalModule {
       parsed: false,
 
       source_map_kind: SourceMapKind::empty(),
+      last_successful_build_meta: BuildMeta::default(),
     }
   }
 
@@ -504,7 +506,7 @@ impl Module for NormalModule {
         analyze_result,
         side_effects_bailout,
       },
-      ds,
+      diagnostics,
     ) = self
       .parser_and_generator
       .parse(ParseContext {
@@ -523,7 +525,12 @@ impl Module for NormalModule {
         build_meta: &mut build_meta,
       })?
       .split_into_parts();
-    self.add_diagnostics(ds);
+    if !diagnostics.is_empty() {
+      self.add_diagnostics(diagnostics);
+      build_meta = self.last_successful_build_meta.clone();
+    } else {
+      self.last_successful_build_meta = build_meta.clone();
+    }
     let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
       let short_id = self.readable_identifier(&build_context.compiler_options.context);
       vec![format!(

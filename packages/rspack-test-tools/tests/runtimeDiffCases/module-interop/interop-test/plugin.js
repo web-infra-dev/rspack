@@ -6,8 +6,6 @@
 const path = require("path")
 const fs = require("fs")
 
-const src = path.resolve(__dirname, "src");
-
 const comparator = (a, b) => {
   a = a.replace(/\.m?jso?n?$/, "");
   b = b.replace(/\.m?jso?n?$/, "");
@@ -120,6 +118,9 @@ module.exports = class GenerateCasesPlugin {
 
   apply(compiler) {
     const ext = this.ext;
+    const src = path.resolve(__dirname, "src");
+    const extEntryFile = path.resolve(src, `index${ext}`);
+    const extDir = path.resolve(src, ext);
     const modules = fs
       .readdirSync(path.resolve(src, "../modules"))
       .filter((name) => !name.startsWith("_"))
@@ -128,8 +129,6 @@ module.exports = class GenerateCasesPlugin {
           item.endsWith(ext) || !array.includes(item.replace(/\.m?js$/g, ext))
       )
       .sort(comparator);
-    const extEntryFile = path.resolve(src, `index${ext}`);
-    const extDir = path.resolve(src, ext);
     compiler.hooks.beforeCompile.tapPromise(GenerateCasesPlugin.name, async () => {
       await fs.promises.mkdir(extDir);
       await Promise.all(modules.map(moduleName => fs.promises.mkdir(path.resolve(extDir, moduleName))));
