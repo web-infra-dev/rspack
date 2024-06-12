@@ -1588,6 +1588,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             })
           })
         }
+
+        active_connections.reverse();
         for i in active_connections {
           cgi.skipped_module_connections.shift_remove_index(i);
         }
