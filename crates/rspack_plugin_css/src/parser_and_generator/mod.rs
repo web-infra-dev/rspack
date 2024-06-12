@@ -9,8 +9,8 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt},
   BuildExtraDataType, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ConstDependency,
   CssExportsConvention, Dependency, DependencyTemplate, ErrorSpan, GenerateContext, LocalIdentName,
-  Module, ModuleDependency, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  SourceType, TemplateContext,
+  Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, RuntimeSpec, SourceType, TemplateContext, UsageState,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{miette::Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -198,7 +198,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             compiler_options,
           )
           .get_local_ident(name);
-          presentational_dependencies.push(Box::new(CssLocalIdentDependency::new(
+          dependencies.push(Box::new(CssLocalIdentDependency::new(
             name.to_string(),
             format!("{prefix}{local_ident}"),
             range.start,
@@ -231,7 +231,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             compiler_options,
           )
           .get_local_ident(name);
-          presentational_dependencies.push(Box::new(CssLocalIdentDependency::new(
+          dependencies.push(Box::new(CssLocalIdentDependency::new(
             name.to_string(),
             local_ident.clone(),
             range.start,
@@ -392,6 +392,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
         let exports = if generate_context.concatenation_scope.is_some() {
           let mut concate_source = ConcatSource::default();
           if let Some(ref exports) = self.exports {
+            let mg = generate_context.compilation.get_module_graph();
+
+            let exports =
+              get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
+
             css_modules_exports_to_concatenate_module_string(
               exports,
               module,
@@ -407,6 +412,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
             ("", "", "")
           };
           if let Some(exports) = &self.exports {
+            let mg = generate_context.compilation.get_module_graph();
+
+            let exports =
+              get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
+
             css_modules_exports_to_string(
               exports,
               module,
@@ -469,4 +479,25 @@ impl ParserAndGenerator for CssParserAndGenerator {
       "Module Concatenation is not implemented for CssParserAndGenerator",
     ))
   }
+}
+
+fn get_used_exports<'a>(
+  exports: &'a CssExports,
+  identifier: ModuleIdentifier,
+  runtime: Option<&RuntimeSpec>,
+  mg: &ModuleGraph,
+) -> IndexMap<&'a str, &'a IndexSet<CssExport>> {
+  exports
+    .iter()
+    .filter(|(name, _)| {
+      let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
+
+      if let Some(export_info) = export_info {
+        !matches!(export_info.get_used(runtime), UsageState::Unused)
+      } else {
+        true
+      }
+    })
+    .map(|(name, exports)| (name.as_str(), exports))
+    .collect()
 }

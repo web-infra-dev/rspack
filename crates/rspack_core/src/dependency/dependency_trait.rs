@@ -10,7 +10,10 @@ use super::dependency_template::AsDependencyTemplate;
 use super::module_dependency::*;
 use super::ExportsSpec;
 use super::{DependencyCategory, DependencyId, DependencyType};
+use crate::create_exports_object_referenced;
 use crate::AsContextDependency;
+use crate::ExtendedReferencedExport;
+use crate::RuntimeSpec;
 use crate::{ConnectionState, Context, ErrorSpan, ModuleGraph, ModuleIdentifier, UsedByExports};
 
 pub trait Dependency:
@@ -85,6 +88,14 @@ pub trait Dependency:
 
   fn get_diagnostics(&self, _module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
     None
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    create_exports_object_referenced()
   }
 }
 

@@ -51,6 +51,18 @@ impl Dependency for ImportEagerDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    if let Some(referenced_exports) = &self.referenced_exports {
+      vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
+    } else {
+      vec![ExtendedReferencedExport::Array(vec![])]
+    }
+  }
 }
 
 impl ModuleDependency for ImportEagerDependency {
@@ -64,18 +76,6 @@ impl ModuleDependency for ImportEagerDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
-  }
-
-  fn get_referenced_exports(
-    &self,
-    _module_graph: &ModuleGraph,
-    _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    if let Some(referenced_exports) = &self.referenced_exports {
-      vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
-    } else {
-      vec![ExtendedReferencedExport::Array(vec![])]
-    }
   }
 }
 

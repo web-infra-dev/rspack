@@ -33,12 +33,6 @@ impl Dependency for WebpackIsIncludedDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
-}
-
-impl ModuleDependency for WebpackIsIncludedDependency {
-  fn weak(&self) -> bool {
-    true
-  }
 
   fn get_referenced_exports(
     &self,
@@ -46,6 +40,12 @@ impl ModuleDependency for WebpackIsIncludedDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
+  }
+}
+
+impl ModuleDependency for WebpackIsIncludedDependency {
+  fn weak(&self) -> bool {
+    true
   }
 
   fn request(&self) -> &str {
