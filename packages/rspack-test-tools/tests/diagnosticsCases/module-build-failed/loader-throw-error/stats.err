@@ -1,1 +1,3 @@
-ERROR in ./lib.js× Module build failed:╰─▶   × Error: Failed to loadat Object.<anonymous>.module.exports (<PROJECT_ROOT>/tests/diagnosticsCases/module-build-failed/loader-throw-error/my-loader.js:2:9)at LOADER_EXECUTION (<RSPACK_ROOT>/dist/loader-runner/index.js:626:23)at runSyncOrAsync (<RSPACK_ROOT>/dist/loader-runner/index.js:627:11)at <RSPACK_ROOT>/dist/loader-runner/index.js:731:9at handleResult (<RSPACK_ROOT>/dist/loader-runner/loadLoader.js:125:5)at loadLoader (<RSPACK_ROOT>/dist/loader-runner/loadLoader.js:106:16)at iterateNormalLoaders (<RSPACK_ROOT>/dist/loader-runner/index.js:720:5)at <RSPACK_ROOT>/dist/loader-runner/index.js:547:13at new Promise (<anonymous>)at runLoaders (<RSPACK_ROOT>/dist/loader-runner/index.js:522:12)help: File was processed with this loader: '<PROJECT_ROOT>/tests/diagnosticsCases/module-build-failed/loader-throw-error/my-loader.js'
+ERROR in ./lib.js
+  × Module build failed:
+  ╰─▶   × Error: Failed to load

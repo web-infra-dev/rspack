@@ -3,3 +3,4 @@
 mod options;
 mod plugins;
 pub use options::*;
+pub(crate) use plugins::*;

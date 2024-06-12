@@ -1,7 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{
   CacheOptions, CompilerOptions, Context, Experiments, IncrementalRebuild,
-  IncrementalRebuildMakeState, ModuleOptions, OutputOptions, Target,
+  IncrementalRebuildMakeState, ModuleOptions, OutputOptions, References, Target,
 };
 
 mod raw_builtins;
@@ -58,6 +58,8 @@ pub struct RawOptions {
   pub node: Option<RawNodeOption>,
   pub profile: bool,
   pub bail: bool,
+  #[napi(js_name = "__references", ts_type = "Record<string, any>")]
+  pub __references: References,
 }
 
 impl TryFrom<RawOptions> for CompilerOptions {
@@ -107,6 +109,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
       profile: value.profile,
       bail: value.bail,
       builtins: Default::default(),
+      __references: value.__references,
     })
   }
 }

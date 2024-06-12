@@ -76,8 +76,12 @@ buildCommand
 	.option("-f", "force")
 	.action(async function ({ a, b = a, j = a, r, f }) {
 		let mode = r ? "release" : "debug";
-		b && (await $`pnpm --filter @rspack/binding build:${mode}`);
-		j && (await $`pnpm --filter "@rspack/*" build ${f ? "--force" : ""}`);
+		try {
+			b && (await $`pnpm --filter @rspack/binding build:${mode}`);
+			j && (await $`pnpm --filter "@rspack/*" build ${f ? "--force" : ""}`);
+		} catch (e) {
+			process.exit(e.exitCode);
+		}
 	});
 
 watchCommand
@@ -87,8 +91,12 @@ watchCommand
 	.option("-r", "release")
 	.action(async function ({ a, b = a, j = a, r }) {
 		let mode = r ? "release" : "debug";
-		b && (await $`pnpm --filter @rspack/binding watch:${mode}`);
-		j && (await $`pnpm --filter "@rspack/*" watch`);
+		try {
+			b && (await $`pnpm --filter @rspack/binding watch:${mode}`);
+			j && (await $`pnpm --filter "@rspack/*" watch`);
+		} catch (e) {
+			process.exit(e.exitCode);
+		}
 	});
 
 // x build binding

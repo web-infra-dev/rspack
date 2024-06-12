@@ -10,10 +10,10 @@ use rspack_core::concatenated_module::{
 };
 use rspack_core::{
   filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation,
-  CompilationOptimizeChunkModules, CompilerContext, CompilerModuleContext, CompilerOptions,
-  ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, Plugin, PluginContext,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  CompilationOptimizeChunkModules, CompilerModuleContext, CompilerOptions, ExportInfoProvided,
+  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, Plugin, PluginContext, ProvidedExports,
+  RunnerContext, RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -907,7 +907,7 @@ impl ModuleConcatenationPlugin {
       new_module
         .build(
           rspack_core::BuildContext {
-            compiler_context: CompilerContext {
+            compiler_context: RunnerContext {
               options: compilation.options.clone(),
               resolver_factory: compilation.resolver_factory.clone(),
               module: CompilerModuleContext::from_module(&new_module),

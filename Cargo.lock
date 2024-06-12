@@ -2878,6 +2878,7 @@ dependencies = [
  "rspack_loader_react_refresh",
  "rspack_loader_runner",
  "rspack_loader_swc",
+ "rspack_loader_testing",
  "rspack_napi",
  "rspack_plugin_asset",
  "rspack_plugin_banner",
@@ -3122,9 +3123,7 @@ name = "rspack_loader_runner"
 version = "0.1.0"
 dependencies = [
  "anymap",
- "async-recursion",
  "async-trait",
- "bitflags 2.5.0",
  "derivative",
  "once_cell",
  "regex",
@@ -3161,6 +3160,17 @@ dependencies = [
  "tokio",
  "url",
  "xxhash-rust",
+]
+
+[[package]]
+name = "rspack_loader_testing"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_error",
+ "rspack_loader_runner",
+ "serde_json",
 ]
 
 [[package]]
