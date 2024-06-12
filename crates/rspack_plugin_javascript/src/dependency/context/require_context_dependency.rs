@@ -1,6 +1,6 @@
-use rspack_core::{module_id_expr, AsModuleDependency, ContextDependency};
+use rspack_core::{module_raw, AsModuleDependency, ContextDependency};
 use rspack_core::{ContextOptions, Dependency, DependencyCategory, DependencyId};
-use rspack_core::{DependencyTemplate, DependencyType, ErrorSpan, RuntimeGlobals};
+use rspack_core::{DependencyTemplate, DependencyType, ErrorSpan};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
 
 use super::create_resource_identifier_for_context_dependency;
@@ -97,21 +97,14 @@ impl DependencyTemplate for RequireContextDependency {
       ..
     } = code_generatable_context;
 
-    let module_id = compilation
-      .get_module_graph()
-      .module_graph_module_by_dependency_id(&self.id)
-      .map(|m| m.id(&compilation.chunk_graph))
-      .expect("should have dependency id");
-
-    let module_id_str = module_id_expr(&compilation.options, &self.options.request, module_id);
-
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    source.replace(
-      self.start,
-      self.end,
-      format!("{}({module_id_str})", RuntimeGlobals::REQUIRE).as_str(),
-      None,
+    let content = module_raw(
+      compilation,
+      runtime_requirements,
+      &self.id,
+      &self.options.request,
+      self.optional,
     );
+    source.replace(self.start, self.end, &content, None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
