@@ -1220,6 +1220,9 @@ export interface RawPluginImportConfig {
 export interface RawProgressPluginOptions {
   prefix: string
   profile: boolean
+  template: string
+  tick?: string | Array<string>
+  progressChars: string
 }
 
 export interface RawProvideOptions {

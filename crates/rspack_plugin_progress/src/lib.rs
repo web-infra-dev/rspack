@@ -24,7 +24,14 @@ use rspack_hook::{plugin, plugin_hook};
 pub struct ProgressPluginOptions {
   // the prefix name of progress bar
   pub prefix: String,
+  // tells ProgressPlugin to collect profile data for progress steps.
   pub profile: bool,
+  // the template of progress bar, see [`indicatif::ProgressStyle::with_template`]
+  pub template: String,
+  // the tick string sequence for spinners, see [`indicatif::ProgressStyle::tick_strings`]
+  pub tick_strings: Option<Vec<String>>,
+  // the progress characters, see [`indicatif::ProgressStyle::progress_chars`]
+  pub progress_chars: String,
 }
 
 #[derive(Debug)]
@@ -52,13 +59,19 @@ impl ProgressPlugin {
     // default interval is 20, means draw every 1000/20 = 50ms, use 100 to draw every 1000/100 = 10ms
     let progress_bar =
       ProgressBar::with_draw_target(Some(100), ProgressDrawTarget::stdout_with_hz(100));
-    progress_bar.set_style(
-      ProgressStyle::with_template(
-        "● {prefix:.bold} {bar:25.green/white.dim} ({percent}%) {wide_msg:.dim}",
-      )
+    let mut progress_bar_style = ProgressStyle::with_template(&options.template)
       .expect("TODO:")
-      .progress_chars("━━"),
-    );
+      .progress_chars(&options.progress_chars);
+    if let Some(tick_strings) = &options.tick_strings {
+      progress_bar_style = progress_bar_style.tick_strings(
+        tick_strings
+          .iter()
+          .map(|s| s.as_str())
+          .collect::<Vec<_>>()
+          .as_slice(),
+      );
+    }
+    progress_bar.set_style(progress_bar_style);
 
     Self::new_inner(
       options,
