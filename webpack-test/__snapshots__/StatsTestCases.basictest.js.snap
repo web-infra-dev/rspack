@@ -145,19 +145,19 @@ exports[`StatsTestCases should print correct stats for split-chunks 1`] = `
     ./e.js
   chunk (runtime: main) default/async-b.js (async-b) 116 bytes <{909}> ={310}= ={418}= ={581}= ={753}=
     ./b.js
-  chunk (runtime: main) default/310.js 20 bytes <{909}> ={250}= ={262}= ={418}= ={581}= ={753}= >{581}< >{912}<
+  chunk (runtime: main) default/310.js 20 bytes <{909}> ={250}= ={262}= ={418}= ={581}= ={753}= >{581}< >{912}< split chunk (cache group: defaultVendors)
     ./node_modules/y.js
-  chunk (runtime: main) default/416.js 20 bytes <{909}> ={172}= ={418}= ={581}= ={753}=
+  chunk (runtime: main) default/416.js 20 bytes <{909}> ={172}= ={418}= ={581}= ={753}= split chunk (cache group: defaultVendors)
     ./node_modules/z.js
-  chunk (runtime: main) default/418.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={310}= ={416}= ={581}= ={753}= >{581}< >{912}<
+  chunk (runtime: main) default/418.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={310}= ={416}= ={581}= ={753}= >{581}< >{912}< split chunk (cache group: defaultVendors)
     ./node_modules/x.js
-  chunk (runtime: a, main) default/581.js 20 bytes <{250}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}=
+  chunk (runtime: a, main) default/581.js 20 bytes <{250}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}= split chunk (cache group: default)
     ./f.js
   chunk (runtime: a) default/a.js (a) 165 bytes >{581}< >{912}< [entry]
     ./a.js
   chunk (runtime: b) default/b.js (b) 116 bytes [entry]
     ./b.js
-  chunk (runtime: main) default/753.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}<
+  chunk (runtime: main) default/753.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}< split chunk (cache group: default)
     ./d.js
   chunk (runtime: c) default/c.js (c) 116 bytes [entry]
     ./c.js
@@ -178,19 +178,19 @@ all-chunks:
     ./e.js
   chunk (runtime: b, main) all-chunks/async-b.js (async-b) 116 bytes <{909}> ={310}= ={418}= ={581}= ={751}= ={753}= [initial]
     ./b.js
-  chunk (runtime: a, main) all-chunks/272.js 165 bytes <{909}> ={250}= ={310}= ={418}= ={74}= ={753}= >{581}< >{912}< [initial]
+  chunk (runtime: a, main) all-chunks/272.js 165 bytes <{909}> ={250}= ={310}= ={418}= ={74}= ={753}= >{581}< >{912}< [initial] split chunk (cache group: default)
     ./a.js
-  chunk (runtime: main) all-chunks/310.js 20 bytes <{909}> ={250}= ={262}= ={272}= ={418}= ={581}= ={753}= >{581}< >{912}<
+  chunk (runtime: main) all-chunks/310.js 20 bytes <{909}> ={250}= ={262}= ={272}= ={418}= ={581}= ={753}= >{581}< >{912}< split chunk (cache group: defaultVendors)
     ./node_modules/y.js
-  chunk (runtime: main) all-chunks/416.js 20 bytes <{909}> ={172}= ={418}= ={581}= ={753}=
+  chunk (runtime: main) all-chunks/416.js 20 bytes <{909}> ={172}= ={418}= ={581}= ={753}= split chunk (cache group: defaultVendors)
     ./node_modules/z.js
-  chunk (runtime: main) all-chunks/418.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={581}= ={753}= >{581}< >{912}<
+  chunk (runtime: main) all-chunks/418.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={581}= ={753}= >{581}< >{912}< split chunk (cache group: defaultVendors)
     ./node_modules/x.js
-  chunk (runtime: a, main) all-chunks/581.js 20 bytes <{250}> <{272}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}=
+  chunk (runtime: a, main) all-chunks/581.js 20 bytes <{250}> <{272}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}= split chunk (cache group: default)
     ./f.js
   chunk (runtime: a) all-chunks/a.js (a) ={272}= >{581}< >{912}< [entry]
   chunk (runtime: b) all-chunks/b.js (b) ={262}= [entry]
-  chunk (runtime: main) all-chunks/753.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}<
+  chunk (runtime: main) all-chunks/753.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}< split chunk (cache group: default)
     ./d.js
   chunk (runtime: c) all-chunks/c.js (c) ={172}= [entry]
   chunk (runtime: main) all-chunks/main.js (main) 147 bytes >{172}< >{250}< >{262}< >{272}< >{310}< >{416}< >{418}< >{581}< >{753}< [entry]
@@ -208,7 +208,7 @@ manual:
     ./c.js
     ./d.js
     ./f.js
-  chunk (runtime: a, b, c, main) manual/vendors.js (vendors) 60 bytes <{909}> ={172}= ={250}= ={262}= ={74}= ={751}= ={76}= >{912}< [initial]
+  chunk (runtime: a, b, c, main) manual/vendors.js (vendors) 60 bytes <{909}> ={172}= ={250}= ={262}= ={74}= ={751}= ={76}= >{912}< [initial] split chunk (cache group: vendors)
     ./node_modules/x.js
     ./node_modules/y.js
     ./node_modules/z.js
@@ -245,18 +245,18 @@ name-too-long:
     ./e.js
   chunk (runtime: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, main) name-too-long/async-b.js (async-b) 116 bytes <{909}> ={225}= ={310}= ={418}= ={581}= ={753}= [initial]
     ./b.js
-  chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, main) name-too-long/272.js 165 bytes <{909}> ={250}= ={310}= ={418}= ={753}= ={959}= >{581}< >{912}< [initial]
+  chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, main) name-too-long/272.js 165 bytes <{909}> ={250}= ={310}= ={418}= ={753}= ={959}= >{581}< >{912}< [initial] split chunk (cache group: default)
     ./a.js
-  chunk (runtime: main) name-too-long/310.js 20 bytes <{909}> ={250}= ={262}= ={272}= ={418}= ={581}= ={753}= >{581}< >{912}<
+  chunk (runtime: main) name-too-long/310.js 20 bytes <{909}> ={250}= ={262}= ={272}= ={418}= ={581}= ={753}= >{581}< >{912}< split chunk (cache group: defaultVendors)
     ./node_modules/y.js
   chunk (runtime: cccccccccccccccccccccccccccccc) name-too-long/cccccccccccccccccccccccccccccc.js (cccccccccccccccccccccccccccccc) ={172}= [entry]
-  chunk (runtime: main) name-too-long/416.js 20 bytes <{909}> ={172}= ={418}= ={581}= ={753}=
+  chunk (runtime: main) name-too-long/416.js 20 bytes <{909}> ={172}= ={418}= ={581}= ={753}= split chunk (cache group: defaultVendors)
     ./node_modules/z.js
-  chunk (runtime: main) name-too-long/418.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={581}= ={753}= >{581}< >{912}<
+  chunk (runtime: main) name-too-long/418.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={581}= ={753}= >{581}< >{912}< split chunk (cache group: defaultVendors)
     ./node_modules/x.js
-  chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, main) name-too-long/581.js 20 bytes <{250}> <{272}> <{310}> <{418}> <{753}> <{909}> <{959}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}=
+  chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, main) name-too-long/581.js 20 bytes <{250}> <{272}> <{310}> <{418}> <{753}> <{909}> <{959}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}= split chunk (cache group: default)
     ./f.js
-  chunk (runtime: main) name-too-long/753.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}<
+  chunk (runtime: main) name-too-long/753.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}< split chunk (cache group: default)
     ./d.js
   chunk (runtime: main) name-too-long/main.js (main) 147 bytes >{172}< >{250}< >{262}< >{272}< >{310}< >{416}< >{418}< >{581}< >{753}< [entry]
     ./index.js
@@ -277,18 +277,18 @@ custom-chunks-filter:
     ./e.js
   chunk (runtime: b, main) custom-chunks-filter/async-b.js (async-b) 116 bytes <{909}> ={310}= ={418}= ={581}= ={751}= ={753}= [initial]
     ./b.js
-  chunk (runtime: main) custom-chunks-filter/310.js 20 bytes <{909}> ={250}= ={262}= ={418}= ={581}= ={753}= >{581}< >{912}<
+  chunk (runtime: main) custom-chunks-filter/310.js 20 bytes <{909}> ={250}= ={262}= ={418}= ={581}= ={753}= >{581}< >{912}< split chunk (cache group: defaultVendors)
     ./node_modules/y.js
-  chunk (runtime: main) custom-chunks-filter/416.js 20 bytes <{909}> ={172}= ={418}= ={581}= ={753}=
+  chunk (runtime: main) custom-chunks-filter/416.js 20 bytes <{909}> ={172}= ={418}= ={581}= ={753}= split chunk (cache group: defaultVendors)
     ./node_modules/z.js
-  chunk (runtime: main) custom-chunks-filter/418.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={310}= ={416}= ={581}= ={753}= >{581}< >{912}<
+  chunk (runtime: main) custom-chunks-filter/418.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={310}= ={416}= ={581}= ={753}= >{581}< >{912}< split chunk (cache group: defaultVendors)
     ./node_modules/x.js
-  chunk (runtime: a, main) custom-chunks-filter/581.js 20 bytes <{250}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}=
+  chunk (runtime: a, main) custom-chunks-filter/581.js 20 bytes <{250}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}= split chunk (cache group: default)
     ./f.js
   chunk (runtime: a) custom-chunks-filter/a.js (a) 165 bytes >{581}< >{912}< [entry]
     ./a.js
   chunk (runtime: b) custom-chunks-filter/b.js (b) ={262}= [entry]
-  chunk (runtime: main) custom-chunks-filter/753.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}<
+  chunk (runtime: main) custom-chunks-filter/753.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}< split chunk (cache group: default)
     ./d.js
   chunk (runtime: c) custom-chunks-filter/c.js (c) ={172}= [entry]
   chunk (runtime: main) custom-chunks-filter/main.js (main) 147 bytes >{172}< >{250}< >{262}< >{310}< >{416}< >{418}< >{581}< >{753}< [entry]
@@ -306,7 +306,7 @@ custom-chunks-filter-in-cache-groups:
     ./c.js
     ./d.js
     ./f.js
-  chunk (runtime: b, c, main) custom-chunks-filter-in-cache-groups/vendors.js (vendors) 60 bytes <{909}> ={172}= ={250}= ={262}= ={751}= ={76}= >{912}< [initial]
+  chunk (runtime: b, c, main) custom-chunks-filter-in-cache-groups/vendors.js (vendors) 60 bytes <{909}> ={172}= ={250}= ={262}= ={751}= ={76}= >{912}< [initial] split chunk (cache group: vendors)
     ./node_modules/x.js
     ./node_modules/y.js
     ./node_modules/z.js

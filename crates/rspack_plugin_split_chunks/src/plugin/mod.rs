@@ -82,6 +82,9 @@ impl SplitChunksPlugin {
       new_chunk_mut
         .chunk_reasons
         .push(["(cache group: ", cache_group.key.as_str(), ")"].join(""));
+      if let Some(chunk_reason) = &mut new_chunk_mut.chunk_reason {
+        chunk_reason.push_str(&format!(" (cache group: {})", cache_group.key.as_str()))
+      }
 
       if let Some(filename) = &cache_group.filename {
         new_chunk_mut.filename_template = Some(filename.clone());

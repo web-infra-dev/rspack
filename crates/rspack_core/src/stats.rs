@@ -254,6 +254,7 @@ impl Stats<'_> {
           children_by_order,
           runtime: c.runtime.clone(),
           sizes: chunk_graph.get_chunk_modules_sizes(&c.ukey, module_graph),
+          reason: c.chunk_reason.clone(),
         })
       })
       .collect::<Result<_>>()?;
@@ -793,6 +794,7 @@ pub struct StatsChunk<'a> {
   pub children_by_order: HashMap<ChunkGroupOrderKey, Vec<String>>,
   pub runtime: RuntimeSpec,
   pub sizes: HashMap<SourceType, f64>,
+  pub reason: Option<String>,
 }
 
 #[derive(Debug)]

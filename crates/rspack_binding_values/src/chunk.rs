@@ -49,6 +49,7 @@ impl JsChunk {
       rendered_hash,
       content_hash,
       chunk_reasons,
+      ..
     } = chunk;
     let mut files = Vec::from_iter(files.iter().cloned());
     files.sort_unstable();

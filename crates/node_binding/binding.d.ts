@@ -500,6 +500,7 @@ export interface JsStatsChunk {
   childrenByOrder: Record<string, Array<string>>
   runtime: Array<string>
   sizes: Record<string, number>
+  reason?: string
 }
 
 export interface JsStatsChunkGroup {

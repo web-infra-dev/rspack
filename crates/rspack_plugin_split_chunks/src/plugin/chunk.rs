@@ -4,6 +4,23 @@ use rustc_hash::FxHashSet;
 use crate::module_group::ModuleGroup;
 use crate::SplitChunksPlugin;
 
+fn put_split_chunk_reason(
+  chunk_reason: &mut Option<String>,
+  is_reuse_existing_chunk_with_all_modules: bool,
+) {
+  let reason = if is_reuse_existing_chunk_with_all_modules {
+    "reused as split chunk".to_string()
+  } else {
+    "split chunk".to_string()
+  };
+  if let Some(chunk_reason) = chunk_reason {
+    chunk_reason.push(',');
+    chunk_reason.push_str(&reason);
+  } else {
+    *chunk_reason = Some(reason);
+  }
+}
+
 impl SplitChunksPlugin {
   /// Affected by `splitChunks.cacheGroups.{cacheGroup}.reuseExistingChunk`
   ///
@@ -102,6 +119,12 @@ impl SplitChunksPlugin {
         new_chunk
           .chunk_reasons
           .push("Create by split chunks".to_string());
+
+        put_split_chunk_reason(
+          &mut new_chunk.chunk_reason,
+          *is_reuse_existing_chunk_with_all_modules,
+        );
+
         compilation.chunk_graph.add_chunk(new_chunk.ukey);
         new_chunk.ukey
       }
@@ -118,6 +141,12 @@ impl SplitChunksPlugin {
       new_chunk
         .chunk_reasons
         .push("Create by split chunks".to_string());
+
+      put_split_chunk_reason(
+        &mut new_chunk.chunk_reason,
+        *is_reuse_existing_chunk_with_all_modules,
+      );
+
       compilation.chunk_graph.add_chunk(new_chunk.ukey);
       new_chunk.ukey
     }
