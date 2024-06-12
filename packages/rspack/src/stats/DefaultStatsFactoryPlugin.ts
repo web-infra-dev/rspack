@@ -9,6 +9,7 @@
  */
 import * as util from "node:util";
 
+import { JsStatsModule } from "@rspack/binding";
 import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { StatsOptions } from "../config";
@@ -356,7 +357,7 @@ const SORTERS: Record<
 	// "compilation.modules": MODULES_SORTER,
 	// "chunk.rootModules": MODULES_SORTER,
 	// "chunk.modules": MODULES_SORTER,
-	// "module.modules": MODULES_SORTER
+	// "module.modules": MODULES_SORTER,
 	// not support module.reasons (missing Module.identifier())
 	// not support chunk.origins (missing compilation.chunkGraph)
 };
@@ -816,6 +817,24 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		optimizationBailout: (object, module) => {
 			object.optimizationBailout = module.optimizationBailout || null;
+		},
+		nestedModules: (object, module, context, options, factory) => {
+			const { type } = context;
+			const innerModules =
+				/** @type {Module & { modules?: Module[] }} */ module.modules;
+			if (Array.isArray(innerModules) && innerModules.length > 0) {
+				const groupedModules = factory.create(
+					`${type.slice(0, -8)}.modules`,
+					innerModules,
+					context
+				);
+				const limited = spaceLimited(
+					groupedModules,
+					options.nestedModulesSpace
+				);
+				object.modules = limited.children;
+				object.filteredModules = limited.filteredChildren;
+			}
 		}
 	},
 	profile: {

@@ -548,6 +548,7 @@ export interface JsStatsModule {
   issuerName?: string
   issuerId?: string
   issuerPath: Array<JsStatsModuleIssuer>
+  modules?: Array<JsStatsModule>
   nameForCondition?: string
   reasons?: Array<JsStatsModuleReason>
   assets?: Array<string>

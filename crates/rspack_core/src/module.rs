@@ -14,6 +14,7 @@ use rspack_util::source_map::ModuleSourceMapConfig;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::Atom;
 
+use crate::concatenated_module::ConcatenatedModule;
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
@@ -585,6 +586,7 @@ impl_module_downcast_helpers!(RawModule, raw_module);
 impl_module_downcast_helpers!(ContextModule, context_module);
 impl_module_downcast_helpers!(ExternalModule, external_module);
 impl_module_downcast_helpers!(SelfModule, self_module);
+impl_module_downcast_helpers!(ConcatenatedModule, concatenated_module);
 
 pub struct LibIdentOptions<'me> {
   pub context: &'me str,
