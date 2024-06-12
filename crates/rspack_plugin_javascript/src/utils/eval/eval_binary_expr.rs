@@ -3,7 +3,7 @@ use swc_core::ecma::ast::{BinExpr, BinaryOp};
 
 use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
 
-#[inline]
+#[inline(always)]
 fn handle_template_string_compare(
   left: &BasicEvaluatedExpression,
   right: &BasicEvaluatedExpression,
@@ -71,7 +71,7 @@ fn is_always_different(a: Option<bool>, b: Option<bool>) -> bool {
 }
 
 /// `eql` is `true` for `===` and `false` for `!==`
-#[inline]
+#[inline(always)]
 fn handle_strict_equality_comparison(
   eql: bool,
   expr: &BinExpr,
@@ -376,7 +376,7 @@ fn handle_add(expr: &BinExpr, scanner: &mut JavascriptParser) -> Option<BasicEva
   Some(res)
 }
 
-#[inline]
+#[inline(always)]
 pub fn eval_binary_expression(
   scanner: &mut JavascriptParser,
   expr: &BinExpr,
