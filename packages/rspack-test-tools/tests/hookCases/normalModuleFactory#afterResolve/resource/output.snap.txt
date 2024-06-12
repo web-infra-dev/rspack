@@ -12,6 +12,7 @@ module.exports = "c";
 
 }),
 "fs": (function (module) {
+"use strict";
 module.exports = require('fs')
 
 }),
