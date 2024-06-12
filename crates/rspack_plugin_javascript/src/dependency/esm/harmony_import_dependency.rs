@@ -487,10 +487,8 @@ impl DependencyTemplate for HarmonyImportSideEffectDependency {
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
     if let Some(scope) = concatenation_scope {
-      let module = module_graph
-        .get_module_by_dependency_id(&self.id)
-        .expect("should have module");
-      if scope.is_module_in_scope(&module.identifier()) {
+      let module = module_graph.get_module_by_dependency_id(&self.id);
+      if module.is_some_and(|m| scope.is_module_in_scope(&m.identifier())) {
         return;
       }
     }

@@ -87,14 +87,20 @@ impl HarmonyExportImportedSpecifierDependency {
   }
 
   // Because it is shared by multiply HarmonyExportImportedSpecifierDependency, so put it to `BuildInfo`
-  pub fn all_star_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a Vec<DependencyId> {
-    let build_info = module_graph
+  pub fn all_star_exports<'a>(
+    &self,
+    module_graph: &'a ModuleGraph,
+  ) -> Option<&'a Vec<DependencyId>> {
+    let module = module_graph
       .parent_module_by_dependency_id(&self.id)
-      .and_then(|ident| module_graph.module_by_identifier(&ident))
-      .expect("should have mgm")
-      .build_info()
-      .expect("should have build info");
-    &build_info.all_star_exports
+      .and_then(|ident| module_graph.module_by_identifier(&ident));
+
+    if let Some(module) = module {
+      let build_info = module.build_info().expect("should have build info");
+      Some(&build_info.all_star_exports)
+    } else {
+      None
+    }
   }
 
   // TODO cache get_mode result
@@ -445,8 +451,9 @@ impl HarmonyExportImportedSpecifierDependency {
     }
     let i = self.other_star_exports.as_ref()?.len();
 
-    let all_star_exports = self.all_star_exports(module_graph);
-    if !all_star_exports.is_empty() {
+    if let Some(all_star_exports) = self.all_star_exports(module_graph)
+      && !all_star_exports.is_empty()
+    {
       let (names, dependency_indices) =
         determine_export_assignments(module_graph, all_star_exports, None);
 
@@ -926,15 +933,21 @@ impl HarmonyExportImportedSpecifierDependency {
         if own_names.contains(&name) {
           continue;
         }
+
+        let dependencies = if let Some(all_star_exports) = self.all_star_exports(module_graph) {
+          all_star_exports
+            .iter()
+            .filter_map(|id| module_graph.dependency_by_id(id))
+            .filter_map(|dep| dep.as_module_dependency())
+            .collect::<Vec<_>>()
+        } else {
+          Vec::new()
+        };
         let Some(conflicting_dependency) = find_dependency_for_name(
           potential_conflicts.names.iter().copied().enumerate(),
           potential_conflicts.dependency_indices.iter(),
           name,
-          self
-            .all_star_exports(module_graph)
-            .iter()
-            .filter_map(|id| module_graph.dependency_by_id(id))
-            .filter_map(|dep| dep.as_module_dependency()),
+          dependencies.iter().copied(),
         ) else {
           continue;
         };
