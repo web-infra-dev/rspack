@@ -13,7 +13,7 @@ use rspack_core::{
 };
 use rspack_core::{CssExportsConvention, LocalIdentName};
 use rspack_error::{error, miette::Diagnostic, Result, TraceableError};
-use rspack_error::{miette::Severity, DiagnosticExt};
+use rspack_error::{DiagnosticExt, RspackSeverity};
 use rspack_hash::RspackHash;
 use rspack_util::identifier::make_paths_relative;
 use rspack_util::infallible::ResultInfallibleExt;
@@ -347,14 +347,19 @@ pub fn css_parsing_traceable_error(
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
   message: impl Into<String>,
+  severity: RspackSeverity,
 ) -> TraceableError {
   TraceableError::from_file(
     source_code.into(),
     start as usize,
     end as usize,
-    "CSS parsing warning".to_string(),
+    match severity {
+      RspackSeverity::Error => "CSS parsing error".to_string(),
+      RspackSeverity::Warn => "CSS parsing warning".to_string(),
+    },
     message.into(),
   )
+  .with_severity(severity)
 }
 
 pub fn replace_module_request_prefix<'s>(
@@ -371,8 +376,8 @@ pub fn replace_module_request_prefix<'s>(
         start,
         end,
         "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
+        RspackSeverity::Warn,
       )
-      .with_severity(Severity::Warning)
       .with_help(Some("Remove '~' from the request."))
       .boxed(),
     );
