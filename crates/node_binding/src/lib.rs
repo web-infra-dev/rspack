@@ -16,9 +16,11 @@ use rspack_error::Diagnostic;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 
 mod compiler;
-mod env;
 mod panic;
 mod plugins;
+
+#[cfg(not(debug_assertions))]
+mod env;
 
 use plugins::*;
 use rspack_binding_options::*;
