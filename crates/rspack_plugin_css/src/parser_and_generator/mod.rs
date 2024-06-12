@@ -14,7 +14,7 @@ use rspack_core::{
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{
-  miette::Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
+  miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
 };
 
 use crate::utils::export_locals_convention;
@@ -319,18 +319,20 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
     for warning in warnings {
       let range = warning.range();
-      let mut error = css_parsing_traceable_error(
+      let error = css_parsing_traceable_error(
         source_code.clone(),
         range.start,
         range.end,
         warning.to_string(),
+        if matches!(
+          warning.kind(),
+          css_module_lexer::WarningKind::NotPrecededAtImport
+        ) {
+          RspackSeverity::Error
+        } else {
+          RspackSeverity::Warn
+        },
       );
-      if !matches!(
-        warning.kind(),
-        css_module_lexer::WarningKind::NotPrecededAtImport
-      ) {
-        error = error.with_severity(Severity::Warn);
-      }
       diagnostics.push(Box::new(error));
     }
 
