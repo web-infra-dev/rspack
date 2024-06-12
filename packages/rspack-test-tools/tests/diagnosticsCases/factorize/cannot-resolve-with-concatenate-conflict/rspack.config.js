@@ -3,10 +3,9 @@ module.exports = {
   mode: "production",
   entry: "./index.ts",
   resolve: {
-    extensions: [".tsx", ".ts", ".js"],
+    extensions: [".ts", ".js"],
   },
   optimization: {
-    minimize: true,
     concatenateModules: true,
   },
   module: {
@@ -16,13 +15,6 @@ module.exports = {
         loader: "builtin:swc-loader",
         options: {
           target: "es5",
-          jsc: {
-            externalHelpers: true,
-          },
-          env: {
-            mode: "usage",
-            coreJs: "3.37.1",
-          },
         },
         type: "javascript/auto",
       },
