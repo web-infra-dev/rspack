@@ -6,7 +6,7 @@ repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
 [dependencies]
-anymap = "1.0.0-beta.2"
+anymap = { workspace = true }
 async-recursion = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
@@ -17,7 +17,7 @@ either = "1"
 futures = { workspace = true }
 glob-match = "0.2.1"
 hashlink = { workspace = true }
-hex = "0.4.3"
+hex = { workspace = true }
 indexmap = { workspace = true }
 indoc = { workspace = true }
 itertools = { workspace = true }
@@ -25,7 +25,7 @@ json = { workspace = true }
 mime_guess = { workspace = true }
 num-bigint = "0.4.4"
 once_cell = { workspace = true }
-oxc_resolver = { version = "1.7.0", features = ["package_json_raw_json_api"] }
+oxc_resolver = { version = "1.8.1", features = ["package_json_raw_json_api"] }
 paste = { workspace = true }
 petgraph = { version = "0.6.4", features = ["serde-1"] }
 rayon = { workspace = true }

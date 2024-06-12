@@ -1,13 +1,13 @@
 import {
+	type JsChunk,
+	type JsCompilation,
 	__chunk_group_inner_get_chunk_group,
 	__chunk_inner_can_be_initial,
 	__chunk_inner_get_all_async_chunks,
 	__chunk_inner_get_all_initial_chunks,
 	__chunk_inner_get_all_referenced_chunks,
 	__chunk_inner_has_runtime,
-	__chunk_inner_is_only_initial,
-	type JsChunk,
-	type JsCompilation
+	__chunk_inner_is_only_initial
 } from "@rspack/binding";
 
 import { Compilation } from ".";

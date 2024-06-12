@@ -50,10 +50,6 @@ impl Dependency for WasmImportDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "WasmImportDependency"
-  }
 }
 
 impl ModuleDependency for WasmImportDependency {

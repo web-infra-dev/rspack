@@ -76,10 +76,6 @@ impl Dependency for CssUrlDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "CssUrlDependency"
-  }
 }
 
 impl ModuleDependency for CssUrlDependency {

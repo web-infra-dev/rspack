@@ -16,11 +16,9 @@ use rspack_error::Diagnostic;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 
 mod compiler;
-mod loader;
 mod panic;
 mod plugins;
 
-pub use loader::run_builtin_loader;
 use plugins::*;
 use rspack_binding_options::*;
 use rspack_binding_values::*;

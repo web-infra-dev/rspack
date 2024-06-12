@@ -1,6 +1,6 @@
-import * as core from "@actions/core";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import * as core from "@actions/core";
 
 import { getLastVersion } from "./version.mjs";
 

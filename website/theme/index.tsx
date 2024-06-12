@@ -1,6 +1,6 @@
+import { RsfamilyNavIcon } from 'rsfamily-nav-icon';
 import Theme from 'rspress/theme';
 import { HomeLayout } from './pages';
-import { RsfamilyNavIcon } from 'rsfamily-nav-icon';
 import 'rsfamily-nav-icon/dist/index.css';
 // enable this when we need a new announcement
 // import { Announcement } from './components/Announcement';

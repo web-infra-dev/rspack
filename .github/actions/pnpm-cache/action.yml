@@ -4,7 +4,7 @@ description: Install Node.js with pnpm global cache
 
 inputs:
   node-version:
-    default: '20'
+    default: "20"
     required: false
     type: string
   frozen-lockfile:
@@ -30,6 +30,8 @@ runs:
       uses: pnpm/action-setup@v2
       with:
         dest: ${{ runner.tool_cache }}/pnpm
+        # Use `@pnpm/exe` for Node 16
+        standalone: ${{ inputs.node-version == '16' }}
 
     - name: Get pnpm store directory
       id: pnpm-cache
@@ -37,7 +39,7 @@ runs:
       run: |
         # set store-dir to $(pnpm config get store-dir)/$(pnpm -v)
         global_store_path=$(pnpm config get store-dir)
-        if [ -z $global_store_path ]; then
+        if [ -z "${global_store_path}" ] || [ "${global_store_path}" = "undefined" ]; then
           global_store_path=~/.cache/pnpm
         fi
         pnpm config set store-dir $global_store_path/$(pnpm -v) --location project

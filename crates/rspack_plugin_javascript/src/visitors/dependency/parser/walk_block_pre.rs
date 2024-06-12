@@ -1,3 +1,4 @@
+use swc_core::common::Spanned;
 use swc_core::ecma::ast::{ClassDecl, ExportDecl, ImportDecl, ImportSpecifier, ModuleExportName};
 use swc_core::ecma::ast::{Decl, DefaultDecl, ExportAll, ExportDefaultDecl, ExprStmt};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, NamedExport, Stmt, VarDecl, VarDeclKind};
@@ -21,6 +22,7 @@ impl<'parser> JavascriptParser<'parser> {
   fn block_pre_walk_module_declaration(&mut self, statement: &ModuleItem) {
     match statement {
       ModuleItem::ModuleDecl(decl) => {
+        self.statement_path.push(decl.span().into());
         // TODO: `hooks.block_pre_statement.call`
         match decl {
           ModuleDecl::Import(decl) => self.block_pre_walk_import_declaration(decl),
@@ -34,13 +36,15 @@ impl<'parser> JavascriptParser<'parser> {
           ModuleDecl::TsImportEquals(_)
           | ModuleDecl::TsExportAssignment(_)
           | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
-        }
+        };
+        self.prev_statement = self.statement_path.pop();
       }
       ModuleItem::Stmt(stmt) => self.block_pre_walk_statement(stmt),
     }
   }
 
   fn block_pre_walk_statement(&mut self, stmt: &Stmt) {
+    self.statement_path.push(stmt.span().into());
     // TODO: `hooks.block_pre_statement.call`
     match stmt {
       Stmt::Decl(stmt) => match stmt {
@@ -54,6 +58,7 @@ impl<'parser> JavascriptParser<'parser> {
       Stmt::Expr(expr) => self.block_pre_walk_expression_statement(expr),
       _ => (),
     }
+    self.prev_statement = self.statement_path.pop();
   }
 
   fn block_pre_walk_expression_statement(&mut self, stmt: &ExprStmt) {
@@ -138,29 +143,33 @@ impl<'parser> JavascriptParser<'parser> {
     for specifier in &decl.specifiers {
       match specifier {
         ImportSpecifier::Named(named) => {
-          let identifier_name = named.local.sym.as_str();
-          let export_name = named.imported.as_ref().map(|imported| match imported {
-            ModuleExportName::Ident(ident) => ident.sym.as_str(),
-            ModuleExportName::Str(s) => s.value.as_str(),
-          });
+          let identifier_name = &named.local.sym;
+          let export_name = named
+            .imported
+            .as_ref()
+            .map(|imported| match imported {
+              ModuleExportName::Ident(ident) => &ident.sym,
+              ModuleExportName::Str(s) => &s.value,
+            })
+            .unwrap_or_else(|| &named.local.sym);
           if drive
-            .import_specifier(self, decl, source, export_name, identifier_name)
+            .import_specifier(self, decl, source, Some(export_name), identifier_name)
             .unwrap_or_default()
           {
             self.define_variable(identifier_name.to_string())
           }
         }
         ImportSpecifier::Default(default) => {
-          let identifier_name = default.local.sym.as_str();
+          let identifier_name = &default.local.sym;
           if drive
-            .import_specifier(self, decl, source, Some("default"), identifier_name)
+            .import_specifier(self, decl, source, Some(&"default".into()), identifier_name)
             .unwrap_or_default()
           {
             self.define_variable(identifier_name.to_string())
           }
         }
         ImportSpecifier::Namespace(namespace) => {
-          let identifier_name = namespace.local.sym.as_str();
+          let identifier_name = &namespace.local.sym;
           if drive
             .import_specifier(self, decl, source, None, identifier_name)
             .unwrap_or_default()

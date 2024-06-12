@@ -8,10 +8,10 @@ import {
 	ChunkLoading,
 	EntryRuntime,
 	FilenameTemplate,
-	getRawChunkLoading,
-	getRawLibrary,
 	LibraryOptions,
-	PublicPath
+	PublicPath,
+	getRawChunkLoading,
+	getRawLibrary
 } from "../config";
 import { isNil } from "../util";
 import { create } from "./base";

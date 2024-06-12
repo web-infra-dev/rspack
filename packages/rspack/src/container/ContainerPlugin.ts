@@ -4,16 +4,16 @@ import {
 	RawContainerPluginOptions
 } from "@rspack/binding";
 
-import {
-	createBuiltinPlugin,
-	RspackBuiltinPlugin
-} from "../builtin-plugin/base";
 import { Compiler } from "../Compiler";
+import {
+	RspackBuiltinPlugin,
+	createBuiltinPlugin
+} from "../builtin-plugin/base";
 import {
 	EntryRuntime,
 	FilenameTemplate,
-	getRawLibrary,
-	LibraryOptions
+	LibraryOptions,
+	getRawLibrary
 } from "../config";
 import { parseOptions } from "../container/options";
 import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";

@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
@@ -21,11 +21,12 @@
     "test:js": "pnpm -r run test",
     "format:rs": "pnpm --filter @rspack/core... build",
     "format:js": "pnpm run format-ci:js --write",
-    "format-ci:js": "node ./node_modules/prettier/bin/prettier.cjs \"packages/**/src/**/*.{ts,js}\" \"crates/rspack_plugin_runtime/**/*.{ts,js}\" \"x.mjs\" --check",
+    "format-ci:js": "node ./node_modules/prettier/bin/prettier.cjs \"packages/**/src/**/*.{ts,tsx,js}\" \"crates/rspack_plugin_runtime/**/*.{ts,js}\" \"x.mjs\" --check",
     "format-ci:toml": "npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "format:toml": "npx @taplo/cli format '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "lint:js": "oxlint --deny-warnings -c .eslintrc.json",
-    "eslint:js": "eslint --report-unused-disable-directives-severity off --cache",
+    "lint:js-sort-imports-order": "pnpm run lint-ci:js-sort-imports-order --write",
+    "lint-ci:js-sort-imports-order": "biome check",
     "lint:rs": "node ./scripts/check_rust_dependency.cjs",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
@@ -48,9 +49,10 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "8.14.3"
+    "pnpm": "9.3.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.8.0",
     "@microsoft/api-extractor": "^7.43.1",
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.7.0",
@@ -58,12 +60,8 @@
     "@types/jest": "29.5.12",
     "@types/node": "20.12.7",
     "@types/rimraf": "3.0.2",
-    "@typescript-eslint/parser": "^7.9.0",
     "commander": "12.0.0",
     "cross-env": "^7.0.3",
-    "eslint": "^9.2.0",
-    "eslint-plugin-oxlint": "^0.2.9",
-    "eslint-plugin-simple-import-sort": "^12.1.0",
     "filenamify": "^4.3.0",
     "husky": "^9.0.0",
     "is-ci": "3.0.1",
@@ -81,5 +79,5 @@
     "webpack-cli": "4.10.0",
     "why-is-node-running": "2.2.2"
   },
-  "packageManager": "pnpm@8.14.3"
+  "packageManager": "pnpm@9.3.0"
 }

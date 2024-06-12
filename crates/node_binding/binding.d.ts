@@ -102,6 +102,20 @@ export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: 
 
 export function __entrypoint_inner_get_runtime_chunk(ukey: number, compilation: JsCompilation): JsChunk
 
+export function __loader_item_debug(item: ExternalObject<'LoaderItem'>): string
+
+export function __loader_item_get_loader_data(item: ExternalObject<'LoaderItem'>): any
+
+export function __loader_item_get_normal_executed(item: ExternalObject<'LoaderItem'>): boolean
+
+export function __loader_item_get_pitch_executed(item: ExternalObject<'LoaderItem'>): boolean
+
+export function __loader_item_set_loader_data(item: ExternalObject<'LoaderItem'>, data: any): void
+
+export function __loader_item_set_normal_executed(item: ExternalObject<'LoaderItem'>): void
+
+export function __loader_item_set_pitch_executed(item: ExternalObject<'LoaderItem'>): void
+
 export interface BuiltinPlugin {
   name: BuiltinPluginName
   options: unknown
@@ -139,7 +153,9 @@ export enum BuiltinPluginName {
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
+  NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
   DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
   RealContentHashPlugin = 'RealContentHashPlugin',
@@ -178,6 +194,15 @@ export enum BuiltinPluginName {
 }
 
 export function cleanupGlobalTrace(): void
+
+export interface JsAdditionalTreeRuntimeRequirementsArg {
+  chunk: JsChunk
+  runtimeRequirements: JsRuntimeGlobals
+}
+
+export interface JsAdditionalTreeRuntimeRequirementsResult {
+  runtimeRequirements: JsRuntimeGlobals
+}
 
 export interface JsAfterResolveData {
   request: string
@@ -226,6 +251,13 @@ export interface JsAssetInfo {
   javascriptModule?: boolean
   /** related object to other assets, keyed by type of relation (only points from parent to child) */
   related: JsAssetInfoRelated
+  /**
+   * Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
+   * But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
+   * in the rust struct and have the Js side to reshape and align with webpack
+   * Related: packages/rspack/src/Compilation.ts
+   */
+  extras: Record<string, any>
 }
 
 export interface JsAssetInfoRelated {
@@ -333,69 +365,41 @@ export interface JsExecuteModuleResult {
   contextDependencies: Array<string>
   buildDependencies: Array<string>
   missingDependencies: Array<string>
+  cacheable: boolean
   assets: Array<string>
   id: number
 }
 
 export interface JsLoaderContext {
+  resourceData: Readonly<JsResourceData>
+  /** Will be deprecated. Use module.module_identifier instead */
+  _moduleIdentifier: Readonly<string>
+  _module: JsModule
+  hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
   content: null | Buffer
   additionalData?: any
   sourceMap?: Buffer
-  resource: string
-  resourcePath: string
-  resourceQuery?: string
-  resourceFragment?: string
   cacheable: boolean
   fileDependencies: Array<string>
   contextDependencies: Array<string>
   missingDependencies: Array<string>
   buildDependencies: Array<string>
   assetFilenames: Array<string>
-  currentLoader: string
-  isPitching: boolean
-  /**
-   * Loader index from JS.
-   * If loaders are dispatched by JS loader runner,
-   * then, this field is correspondence with loader index in JS side.
-   * It is useful when loader dispatched on JS side has an builtin loader, for example: builtin:swc-loader,
-   * Then this field will be used as an hack to test whether it should return an AST or string.
-   */
-  loaderIndexFromJs?: number
-  /**
-   * Internal additional data, contains more than `String`
-   * @internal
-   */
-  additionalDataExternal: ExternalObject<'AdditionalData'>
-  /**
-   * Internal loader context
-   * @internal
-   */
-  contextExternal: ExternalObject<'LoaderRunnerContext'>
-  /**
-   * Internal loader diagnostic
-   * @internal
-   */
-  diagnosticsExternal: ExternalObject<'Diagnostic[]'>
-  _moduleIdentifier: string
-  hot: boolean
+  loaderItems: Array<JsLoaderItem>
+  loaderIndex: number
+  loaderState: Readonly<JsLoaderState>
 }
 
-/** Only for dts generation */
-export interface JsLoaderResult {
-  /** Content in pitching stage can be empty */
-  content?: Buffer
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
-  assetFilenames: Array<string>
-  sourceMap?: Buffer
-  additionalData?: Buffer
-  additionalDataExternal: ExternalObject<'AdditionalData'>
-  cacheable: boolean
-  /** Used to instruct how rust loaders should execute */
-  isPitching: boolean
+export interface JsLoaderItem {
+  request: string
+  type: string
+  inner: ExternalObject<'LoaderItem'>
+}
+
+export enum JsLoaderState {
+  Pitching = 'Pitching',
+  Normal = 'Normal'
 }
 
 export interface JsModule {
@@ -404,6 +408,8 @@ export interface JsModule {
   resource?: string
   moduleIdentifier: string
   nameForCondition?: string
+  request?: string
+  userRequest?: string
   rawRequest?: string
 }
 
@@ -439,6 +445,10 @@ export interface JsResourceData {
   query?: string
   /** Resource fragment with `#` prefix */
   fragment?: string
+}
+
+export interface JsRuntimeGlobals {
+  value: Array<string>
 }
 
 export interface JsRuntimeModule {
@@ -706,6 +716,8 @@ export interface RawCacheOptions {
 
 export interface RawChunkOptionNameCtx {
   module: JsModule
+  chunks: Array<JsChunk>
+  cacheGroupKey: string
 }
 
 export interface RawConsumeOptions {
@@ -1071,7 +1083,7 @@ export interface RawModuleRule {
   resourceFragment?: RawRuleSetCondition
   descriptionData?: Record<string, RawRuleSetCondition>
   sideEffects?: boolean
-  use?: RawModuleRuleUses
+  use?: RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])
   type?: string
   parser?: RawParserOptions
   generator?: RawGeneratorOptions
@@ -1098,12 +1110,6 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
-}
-
-export interface RawModuleRuleUses {
-  type: "array" | "function"
-  arrayUse?: Array<RawModuleRuleUse>
-  funcUse?: (arg: RawFuncUseCtx) => RawModuleRuleUse[]
 }
 
 export interface RawNodeOption {
@@ -1139,6 +1145,7 @@ export interface RawOptions {
   node?: RawNodeOption
   profile: boolean
   bail: boolean
+  __references: Record<string, any>
 }
 
 export interface RawOutputOptions {
@@ -1411,17 +1418,18 @@ export enum RegisterJsTapKind {
   CompilationAfterOptimizeModules = 14,
   CompilationOptimizeTree = 15,
   CompilationOptimizeChunkModules = 16,
-  CompilationRuntimeModule = 17,
-  CompilationChunkAsset = 18,
-  CompilationProcessAssets = 19,
-  CompilationAfterProcessAssets = 20,
-  CompilationAfterSeal = 21,
-  NormalModuleFactoryBeforeResolve = 22,
-  NormalModuleFactoryAfterResolve = 23,
-  NormalModuleFactoryCreateModule = 24,
-  NormalModuleFactoryResolveForScheme = 25,
-  ContextModuleFactoryBeforeResolve = 26,
-  ContextModuleFactoryAfterResolve = 27
+  CompilationAdditionalTreeRuntimeRequirements = 17,
+  CompilationRuntimeModule = 18,
+  CompilationChunkAsset = 19,
+  CompilationProcessAssets = 20,
+  CompilationAfterProcessAssets = 21,
+  CompilationAfterSeal = 22,
+  NormalModuleFactoryBeforeResolve = 23,
+  NormalModuleFactoryAfterResolve = 24,
+  NormalModuleFactoryCreateModule = 25,
+  NormalModuleFactoryResolveForScheme = 26,
+  ContextModuleFactoryBeforeResolve = 27,
+  ContextModuleFactoryAfterResolve = 28
 }
 
 export interface RegisterJsTaps {
@@ -1437,6 +1445,7 @@ export interface RegisterJsTaps {
   registerCompilationStillValidModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationSucceedModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>
+  registerCompilationAdditionalTreeRuntimeRequirements: (stages: Array<number>) => Array<{ function: ((arg: JsAdditionalTreeRuntimeRequirementsArg) => JsAdditionalTreeRuntimeRequirementsResult | undefined); stage: number; }>
   registerCompilationRuntimeModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>
   registerCompilationFinishModulesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>
@@ -1454,9 +1463,6 @@ export interface RegisterJsTaps {
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>
 }
-
-/** Builtin loader runner */
-export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
 
 export interface ThreadsafeNodeFS {
   writeFile: (name: string, content: Buffer) => Promise<void> | void

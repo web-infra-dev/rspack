@@ -1,3 +1,4 @@
+import fs from "fs";
 /**
  * The following code is modified based on
  * https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Compiler.js
@@ -8,24 +9,23 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import * as binding from "@rspack/binding";
-import fs from "fs";
 import * as tapable from "tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type Watchpack from "watchpack";
 
 import { Compilation, CompilationParams } from "./Compilation";
-import {
-	EntryNormalized,
-	getRawOptions,
-	OutputNormalized,
-	RspackOptionsNormalized,
-	RspackPluginInstance
-} from "./config";
 import { ContextModuleFactory } from "./ContextModuleFactory";
-import { rspack } from "./index";
-import * as liteTapable from "./lite-tapable";
 import { RuleSetCompiler } from "./RuleSetCompiler";
 import { Stats } from "./Stats";
+import {
+	EntryNormalized,
+	OutputNormalized,
+	RspackOptionsNormalized,
+	RspackPluginInstance,
+	getRawOptions
+} from "./config";
+import { rspack } from "./index";
+import * as liteTapable from "./lite-tapable";
 import ResolverFactory = require("./ResolverFactory");
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { ThreadsafeWritableNodeFS } from "./fileSystem";
@@ -33,14 +33,9 @@ import Cache = require("./lib/Cache");
 import CacheFacade = require("./lib/CacheFacade");
 import { Source } from "webpack-sources";
 
-import { JsLoaderRspackPlugin } from "./builtin-plugin";
-import { canInherentFromParent } from "./builtin-plugin/base";
 import { Chunk } from "./Chunk";
-import { applyRspackOptionsDefaults } from "./config/defaults";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 import { FileSystemInfoEntry } from "./FileSystemInfo";
-import { tryRunOrWebpackError } from "./lib/HookWebpackError";
-import { Logger } from "./logging/Logger";
 import {
 	CodeGenerationResult,
 	ContextModuleFactoryAfterResolveResult,
@@ -51,13 +46,22 @@ import {
 	NormalModuleCreateData,
 	NormalModuleFactory
 } from "./NormalModuleFactory";
-import { RuntimeGlobals } from "./RuntimeGlobals";
+import {
+	RuntimeGlobals,
+	__from_binding_runtime_globals,
+	__to_binding_runtime_globals
+} from "./RuntimeGlobals";
+import { Watching } from "./Watching";
+import { JsLoaderRspackPlugin } from "./builtin-plugin";
+import { canInherentFromParent } from "./builtin-plugin/base";
+import { applyRspackOptionsDefaults } from "./config/defaults";
+import { tryRunOrWebpackError } from "./lib/HookWebpackError";
+import { Logger } from "./logging/Logger";
 import { unsupported } from "./util";
 import { assertNotNill } from "./util/assertNotNil";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { OutputFileSystem, WatchFileSystem } from "./util/fs";
 import { makePathsRelative } from "./util/identifier";
-import { Watching } from "./Watching";
 
 export interface AssetEmittedInfo {
 	content: Buffer;
@@ -731,6 +735,9 @@ class Compiler {
 
 		const options = this.options;
 		const rawOptions = getRawOptions(options, this);
+		rawOptions.__references = Object.fromEntries(
+			this.#ruleSet.builtinReferences.entries()
+		);
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
 
@@ -798,6 +805,26 @@ class Compiler {
 						});
 					}
 			),
+			registerCompilationAdditionalTreeRuntimeRequirements:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind
+						.CompilationAdditionalTreeRuntimeRequirements,
+					() => this.#compilation!.hooks.additionalTreeRuntimeRequirements,
+					queried =>
+						({
+							chunk,
+							runtimeRequirements
+						}: binding.JsAdditionalTreeRuntimeRequirementsArg) => {
+							const set = __from_binding_runtime_globals(runtimeRequirements);
+							queried.call(
+								Chunk.__from_binding(chunk, this.#compilation!),
+								set
+							);
+							return {
+								runtimeRequirements: __to_binding_runtime_globals(set)
+							};
+						}
+				),
 			registerCompilationRuntimeModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationRuntimeModule,
 				() => this.#compilation!.hooks.runtimeModule,
@@ -819,19 +846,19 @@ class Compiler {
 				binding.RegisterJsTapKind.CompilationBuildModule,
 				() => this.#compilation!.hooks.buildModule,
 				queired => (m: binding.JsModule) =>
-					queired.call(Module.__from_binding(m))
+					queired.call(Module.__from_binding(m, this.#compilation))
 			),
 			registerCompilationStillValidModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationStillValidModule,
 				() => this.#compilation!.hooks.stillValidModule,
 				queired => (m: binding.JsModule) =>
-					queired.call(Module.__from_binding(m))
+					queired.call(Module.__from_binding(m, this.#compilation))
 			),
 			registerCompilationSucceedModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationSucceedModule,
 				() => this.#compilation!.hooks.succeedModule,
 				queired => (m: binding.JsModule) =>
-					queired.call(Module.__from_binding(m))
+					queired.call(Module.__from_binding(m, this.#compilation))
 			),
 			registerCompilationExecuteModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationExecuteModule,

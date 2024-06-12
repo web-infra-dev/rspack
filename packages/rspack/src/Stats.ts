@@ -9,7 +9,7 @@
  */
 import type * as binding from "@rspack/binding";
 
-import { Compilation, FilterItemTypes } from ".";
+import { Compilation } from ".";
 import { StatsOptions, StatsValue } from "./config";
 import type { StatsCompilation } from "./stats/statsFactoryUtils";
 
@@ -160,34 +160,3 @@ function presetToOptions(name?: boolean | string): StatsOptions {
 			return {};
 	}
 }
-
-export const normalizeFilter = (item: FilterItemTypes) => {
-	if (typeof item === "string") {
-		const regExp = new RegExp(
-			`[\\\\/]${item.replace(
-				// eslint-disable-next-line no-useless-escape
-				/[-[\]{}()*+?.\\^$|]/g,
-				"\\$&"
-			)}([\\\\/]|$|!|\\?)`
-		);
-		return (ident: string) => regExp.test(ident);
-	}
-	if (item && typeof item === "object" && typeof item.test === "function") {
-		return (ident: string) => item.test(ident);
-	}
-	if (typeof item === "function") {
-		return item;
-	}
-	if (typeof item === "boolean") {
-		return () => item;
-	}
-	throw new Error(
-		`unreachable: typeof ${item} should be one of string | RegExp | ((value: string) => boolean)`
-	);
-};
-
-export const optionsOrFallback = (...args: any) => {
-	let optionValues = [];
-	optionValues.push(...args);
-	return optionValues.find(optionValue => optionValue !== undefined);
-};

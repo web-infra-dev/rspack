@@ -18,12 +18,10 @@ use self::{
   execute::{ExecuteModuleResult, ExecuteTask},
   overwrite::OverwriteTask,
 };
-use super::make::{
-  repair::MakeTaskContext, update_module_graph_with_artifact, MakeArtifact, MakeParam,
-};
+use super::make::{repair::MakeTaskContext, update_module_graph, MakeArtifact, MakeParam};
 use crate::{
   task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context, Dependency,
-  DependencyId, EntryDependency,
+  DependencyId, LoaderImportDependency,
 };
 
 #[derive(Debug, Default)]
@@ -39,8 +37,11 @@ pub struct ModuleExecutor {
 impl ModuleExecutor {
   pub async fn hook_before_make(&mut self, compilation: &Compilation) {
     let mut make_artifact = std::mem::take(&mut self.make_artifact);
-    let mut params = vec![];
-    params.push(MakeParam::ModifiedFiles(compilation.modified_files.clone()));
+    let mut params = Vec::with_capacity(5);
+    params.push(MakeParam::CheckNeedBuild);
+    if !compilation.modified_files.is_empty() {
+      params.push(MakeParam::ModifiedFiles(compilation.modified_files.clone()));
+    }
     if !compilation.removed_files.is_empty() {
       params.push(MakeParam::RemovedFiles(compilation.removed_files.clone()));
     }
@@ -53,13 +54,13 @@ impl ModuleExecutor {
       params.push(MakeParam::ForceBuildModules(modules));
     }
     make_artifact.diagnostics = Default::default();
+    make_artifact.has_module_graph_change = false;
 
-    make_artifact =
-      if let Ok(artifact) = update_module_graph_with_artifact(compilation, make_artifact, params) {
-        artifact
-      } else {
-        MakeArtifact::default()
-      };
+    make_artifact = if let Ok(artifact) = update_module_graph(compilation, make_artifact, params) {
+      artifact
+    } else {
+      MakeArtifact::default()
+    };
 
     let mut ctx = MakeTaskContext::new(compilation, make_artifact);
     let (event_sender, event_receiver) = unbounded_channel();
@@ -85,7 +86,7 @@ impl ModuleExecutor {
     });
   }
 
-  pub async fn hook_before_process_assets(&mut self, compilation: &mut Compilation) {
+  pub async fn hook_after_finish_modules(&mut self, compilation: &mut Compilation) {
     let sender = std::mem::take(&mut self.event_sender);
     sender
       .expect("should have sender")
@@ -104,7 +105,7 @@ impl ModuleExecutor {
       compilation.emit_asset(filename, asset);
     }
 
-    let diagnostics = std::mem::take(&mut self.make_artifact.diagnostics);
+    let diagnostics = self.make_artifact.take_diagnostics();
     compilation.extend_diagnostics(diagnostics);
   }
 
@@ -122,13 +123,13 @@ impl ModuleExecutor {
       .expect("should have event sender");
     let (param, dep_id) = match self.request_dep_map.entry(request.clone()) {
       Entry::Vacant(v) => {
-        let dep = EntryDependency::new(
+        let dep = LoaderImportDependency::new(
           request.clone(),
           original_module_context.unwrap_or(Context::from("")),
         );
         let dep_id = *dep.id();
         v.insert(dep_id);
-        (EntryParam::EntryDependency(Box::new(dep)), dep_id)
+        (EntryParam::Entry(Box::new(dep)), dep_id)
       }
       Entry::Occupied(v) => {
         let dep_id = *v.get();

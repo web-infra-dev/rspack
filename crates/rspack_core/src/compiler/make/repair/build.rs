@@ -5,8 +5,9 @@ use rspack_error::{Diagnostic, IntoTWithDiagnosticArray};
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
-  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilerContext,
-  CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
+  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilerModuleContext,
+  CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, RunnerContext,
+  SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -44,11 +45,10 @@ impl Task<MakeTaskContext> for BuildTask {
     let result = module
       .build(
         BuildContext {
-          compiler_context: CompilerContext {
+          compiler_context: RunnerContext {
             options: compiler_options.clone(),
             resolver_factory: resolver_factory.clone(),
-            module: module.identifier(),
-            module_context: module.as_normal_module().and_then(|m| m.get_context()),
+            module: CompilerModuleContext::from_module(module.as_ref()),
             module_source_map_kind: *module.get_source_map_kind(),
             plugin_driver: plugin_driver.clone(),
           },
@@ -110,28 +110,29 @@ impl Task<MakeTaskContext> for BuildResultTask {
       current_profile,
     } = *self;
 
+    let artifact = &mut context.artifact;
     let module_graph =
-      &mut MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
+      &mut MakeTaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
 
     if !diagnostics.is_empty() {
-      context.make_failed_module.insert(module.identifier());
+      artifact.make_failed_module.insert(module.identifier());
     }
 
     tracing::trace!("Module built: {}", module.identifier());
-    context.diagnostics.extend(diagnostics);
+    artifact.diagnostics.extend(diagnostics);
     module_graph
       .get_optimization_bailout_mut(&module.identifier())
       .extend(build_result.optimization_bailouts);
-    context
+    artifact
       .file_dependencies
       .add_batch_file(&build_result.build_info.file_dependencies);
-    context
+    artifact
       .context_dependencies
       .add_batch_file(&build_result.build_info.context_dependencies);
-    context
+    artifact
       .missing_dependencies
       .add_batch_file(&build_result.build_info.missing_dependencies);
-    context
+    artifact
       .build_dependencies
       .add_batch_file(&build_result.build_info.build_dependencies);
 

@@ -8,8 +8,6 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import assert from "assert";
-
 import type { Compilation } from "../Compilation";
 import type {
 	AssetModuleFilename,
@@ -56,8 +54,8 @@ import type {
 	Loader,
 	Mode,
 	Name,
-	Node,
 	NoParseOption,
+	Node,
 	Optimization,
 	OptimizationRuntimeChunk,
 	OutputModule,

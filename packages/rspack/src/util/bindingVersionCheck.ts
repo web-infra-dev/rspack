@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import path from "path";
 
 const NodePlatformArchToAbi: Record<

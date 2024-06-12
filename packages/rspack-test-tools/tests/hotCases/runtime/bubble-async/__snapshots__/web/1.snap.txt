@@ -7,8 +7,8 @@
 - Bundle: bundle.js
 - Bundle: file_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 38
-- Update: file_js.LAST_HASH.hot-update.js, size: 100
-- Update: main.LAST_HASH.hot-update.js, size: 209
+- Update: file_js.LAST_HASH.hot-update.js, size: 102
+- Update: main.LAST_HASH.hot-update.js, size: 201
 
 ## Manifest
 
@@ -35,6 +35,8 @@
 self["webpackHotUpdate"]('file_js', {
 "./file.js": (function (module) {
 module.exports = 2;
+
+
 }),
 
 });

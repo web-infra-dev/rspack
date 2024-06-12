@@ -3,6 +3,7 @@ use swc_core::ecma::ast::{BinExpr, BinaryOp};
 
 use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
 
+#[inline]
 fn handle_template_string_compare(
   left: &BasicEvaluatedExpression,
   right: &BasicEvaluatedExpression,
@@ -61,6 +62,7 @@ fn handle_template_string_compare(
   None
 }
 
+#[inline]
 fn is_always_different(a: Option<bool>, b: Option<bool>) -> bool {
   match (a, b) {
     (Some(a), Some(b)) => a != b,
@@ -69,6 +71,7 @@ fn is_always_different(a: Option<bool>, b: Option<bool>) -> bool {
 }
 
 /// `eql` is `true` for `===` and `false` for `!==`
+#[inline]
 fn handle_strict_equality_comparison(
   eql: bool,
   expr: &BinExpr,
@@ -113,6 +116,7 @@ fn handle_strict_equality_comparison(
 }
 
 /// `eql` is `true` for `==` and `false` for `!=`
+#[inline(always)]
 fn handle_abstract_equality_comparison(
   eql: bool,
   expr: &BinExpr,
@@ -141,6 +145,7 @@ fn handle_abstract_equality_comparison(
   }
 }
 
+#[inline(always)]
 fn handle_logical_or(
   expr: &BinExpr,
   scanner: &mut JavascriptParser,
@@ -180,6 +185,7 @@ fn handle_logical_or(
   }
 }
 
+#[inline(always)]
 fn handle_logical_and(
   expr: &BinExpr,
   scanner: &mut JavascriptParser,
@@ -219,6 +225,7 @@ fn handle_logical_and(
   }
 }
 
+#[inline(always)]
 fn handle_add(expr: &BinExpr, scanner: &mut JavascriptParser) -> Option<BasicEvaluatedExpression> {
   assert_eq!(expr.op, BinaryOp::Add);
   let left = scanner.evaluate_expression(&expr.left);
@@ -369,6 +376,7 @@ fn handle_add(expr: &BinExpr, scanner: &mut JavascriptParser) -> Option<BasicEva
   Some(res)
 }
 
+#[inline]
 pub fn eval_binary_expression(
   scanner: &mut JavascriptParser,
   expr: &BinExpr,

@@ -1,17 +1,17 @@
+import path from "path";
+import util from "util";
 import type { RspackPluginFunction, RspackPluginInstance } from "@rspack/core";
 import {
 	Compiler,
 	MultiCompiler,
 	MultiRspackOptions,
 	MultiStats,
-	rspack,
 	RspackOptions,
-	Stats
+	Stats,
+	rspack
 } from "@rspack/core";
 import * as rspackCore from "@rspack/core";
-import path from "path";
 import semver from "semver";
-import util from "util";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
@@ -120,10 +120,12 @@ export class RspackCLI {
 		options: RspackBuildCLIOptions,
 		command: Command
 	): Promise<RspackOptions | MultiRspackOptions> {
-		let commandDefaultEnv: "production" | "development" =
-			command === "build" ? "production" : "development";
-		let isBuild = command === "build";
-		let isServe = command === "serve";
+		const isBuild = command === "build";
+		const isServe = command === "serve";
+		const commandDefaultEnv: "production" | "development" = isBuild
+			? "production"
+			: "development";
+
 		const internalBuildConfig = async (item: RspackOptions) => {
 			if (options.entry) {
 				item.entry = {

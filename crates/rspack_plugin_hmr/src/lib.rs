@@ -9,9 +9,9 @@ use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   ApplyContext, AssetInfo, Chunk, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
-  CompilationProcessAssets, CompilationRecords, CompilerCompilation, CompilerContext,
-  CompilerOptions, DependencyType, LoaderContext, NormalModuleLoader, PathData, Plugin,
-  PluginContext, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
+  CompilationProcessAssets, CompilationRecords, CompilerCompilation, CompilerOptions,
+  DependencyType, LoaderContext, NormalModuleLoader, PathData, Plugin, PluginContext,
+  RunnerContext, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -330,13 +330,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(NormalModuleLoader for HotModuleReplacementPlugin)]
-fn normal_module_loader(&self, context: &mut LoaderContext<CompilerContext>) -> Result<()> {
+fn normal_module_loader(&self, context: &mut LoaderContext<RunnerContext>) -> Result<()> {
   context.hot = true;
   Ok(())
 }
 
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for HotModuleReplacementPlugin)]
-fn additional_tree_runtime_requirements(
+async fn additional_tree_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,

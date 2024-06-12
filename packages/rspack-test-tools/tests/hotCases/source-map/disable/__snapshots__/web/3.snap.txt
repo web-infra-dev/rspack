@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 419
+- Update: main.LAST_HASH.hot-update.js, size: 412
 
 ## Manifest
 
@@ -35,6 +35,7 @@ self["webpackHotUpdate"]('main', {
 "./file.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = (3);
+
 }),
 
 },function(__webpack_require__) {

@@ -3,19 +3,26 @@ mod eval_binary_expr;
 mod eval_call_expr;
 mod eval_cond_expr;
 mod eval_lit_expr;
+mod eval_member_expr;
 mod eval_new_expr;
+mod eval_source;
 mod eval_tpl_expr;
 mod eval_unary_expr;
 
 use bitflags::bitflags;
+use num_bigint::BigInt;
 use rspack_core::DependencyLocation;
+use swc_core::atoms::Atom;
+use swc_core::common::Span;
 
 pub use self::eval_array_expr::eval_array_expression;
 pub use self::eval_binary_expr::eval_binary_expression;
 pub use self::eval_call_expr::eval_call_expression;
 pub use self::eval_cond_expr::eval_cond_expression;
 pub use self::eval_lit_expr::{eval_lit_expr, eval_prop_name};
+pub use self::eval_member_expr::eval_member_expression;
 pub use self::eval_new_expr::eval_new_expression;
+pub use self::eval_source::eval_source;
 pub use self::eval_tpl_expr::{
   eval_tagged_tpl_expression, eval_tpl_expression, TemplateStringKind,
 };
@@ -65,6 +72,9 @@ pub struct BasicEvaluatedExpression {
   regexp: Option<Regexp>,
   identifier: Option<String>,
   root_info: Option<ExportedVariableInfo>,
+  members: Option<Vec<Atom>>,
+  members_optionals: Option<Vec<bool>>,
+  member_ranges: Option<Vec<Span>>,
   items: Option<Vec<BasicEvaluatedExpression>>,
   quasis: Option<Vec<BasicEvaluatedExpression>>,
   parts: Option<Vec<BasicEvaluatedExpression>>,
@@ -99,6 +109,9 @@ impl BasicEvaluatedExpression {
       parts: None,
       identifier: None,
       root_info: None,
+      members: None,
+      members_optionals: None,
+      member_ranges: None,
       template_string_kind: None,
       options: None,
       string: None,
@@ -327,6 +340,12 @@ impl BasicEvaluatedExpression {
     self.side_effects = false;
   }
 
+  pub fn set_bigint(&mut self, bigint: BigInt) {
+    self.ty = Ty::BigInt;
+    self.bigint = Some(bigint);
+    self.side_effects = false;
+  }
+
   pub fn set_truthy(&mut self) {
     self.falsy = false;
     self.truthy = true;
@@ -371,10 +390,20 @@ impl BasicEvaluatedExpression {
     }
   }
 
-  pub fn set_identifier(&mut self, name: String, root_info: ExportedVariableInfo) {
+  pub fn set_identifier(
+    &mut self,
+    name: String,
+    root_info: ExportedVariableInfo,
+    members: Option<Vec<Atom>>,
+    members_optionals: Option<Vec<bool>>,
+    member_ranges: Option<Vec<Span>>,
+  ) {
     self.ty = Ty::Identifier;
     self.identifier = Some(name);
     self.root_info = Some(root_info);
+    self.members = members;
+    self.members_optionals = members_optionals;
+    self.member_ranges = member_ranges;
     self.side_effects = true;
   }
 
@@ -430,7 +459,7 @@ impl BasicEvaluatedExpression {
     self.string.as_ref().expect("make sure string exist")
   }
 
-  pub fn identifier(&self) -> &String {
+  pub fn identifier(&self) -> &str {
     assert!(self.is_identifier());
     self
       .identifier
@@ -441,6 +470,21 @@ impl BasicEvaluatedExpression {
   pub fn root_info(&self) -> &ExportedVariableInfo {
     assert!(self.is_identifier());
     self.root_info.as_ref().expect("make sure identifier exist")
+  }
+
+  pub fn members(&self) -> Option<&Vec<Atom>> {
+    assert!(self.is_identifier());
+    self.members.as_ref()
+  }
+
+  pub fn members_optionals(&self) -> Option<&Vec<bool>> {
+    assert!(self.is_identifier());
+    self.members_optionals.as_ref()
+  }
+
+  pub fn member_ranges(&self) -> Option<&Vec<Span>> {
+    assert!(self.is_identifier());
+    self.member_ranges.as_ref()
   }
 
   pub fn regexp(&self) -> &Regexp {
@@ -522,7 +566,13 @@ pub fn evaluate_to_identifier(
   end: u32,
 ) -> BasicEvaluatedExpression {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
-  eval.set_identifier(identifier, ExportedVariableInfo::Name(root_info));
+  eval.set_identifier(
+    identifier,
+    ExportedVariableInfo::Name(root_info),
+    None,
+    None,
+    None,
+  );
   eval.set_side_effects(false);
   match truthy {
     Some(v) => {

@@ -3,6 +3,7 @@ import { StatsCompilation } from "@rspack/core";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import {
 	ECompilerType,
+	EDocumentType,
 	ITestEnv,
 	ITestRunner,
 	TCompilerOptions,
@@ -89,7 +90,8 @@ export class HotRunnerFactory<
 		};
 
 		return new WebRunner({
-			dom: "fake",
+			dom:
+				this.context.getValue(this.name, "documentType") || EDocumentType.JSDOM,
 			env,
 			stats,
 			name: this.name,

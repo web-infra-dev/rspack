@@ -23,9 +23,6 @@ pub trait Dependency:
   + Sync
   + Debug
 {
-  /// name of the original struct or enum
-  fn dependency_debug_name(&self) -> &'static str;
-
   fn id(&self) -> &DependencyId;
 
   fn category(&self) -> &DependencyCategory {
@@ -86,7 +83,9 @@ pub trait Dependency:
     None
   }
 
-  fn get_diagnostics(&self, _module_graph: &ModuleGraph, _diagnostics: &mut Vec<Diagnostic>) {}
+  fn get_diagnostics(&self, _module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+    None
+  }
 }
 
 impl dyn Dependency + '_ {

@@ -160,7 +160,7 @@ pub enum ModuleType {
   Css,
   CssModule,
   CssAuto,
-  Js,
+  JsAuto,
   JsDynamic,
   JsEsm,
   WasmSync,
@@ -186,7 +186,7 @@ impl ModuleType {
   pub fn is_js_like(&self) -> bool {
     matches!(
       self,
-      ModuleType::Js | ModuleType::JsEsm | ModuleType::JsDynamic
+      ModuleType::JsAuto | ModuleType::JsEsm | ModuleType::JsDynamic
     )
   }
 
@@ -202,7 +202,7 @@ impl ModuleType {
   }
 
   pub fn is_js_auto(&self) -> bool {
-    matches!(self, ModuleType::Js)
+    matches!(self, ModuleType::JsAuto)
   }
 
   pub fn is_js_esm(&self) -> bool {
@@ -220,7 +220,7 @@ impl ModuleType {
 
   pub fn as_str(&self) -> &str {
     match self {
-      ModuleType::Js => "javascript/auto",
+      ModuleType::JsAuto => "javascript/auto",
       ModuleType::JsEsm => "javascript/esm",
       ModuleType::JsDynamic => "javascript/dynamic",
 
@@ -260,7 +260,7 @@ impl From<&str> for ModuleType {
     match value {
       "mjs" => Self::JsEsm,
       "cjs" => Self::JsDynamic,
-      "js" | "javascript" | "js/auto" | "javascript/auto" => Self::Js,
+      "js" | "javascript" | "js/auto" | "javascript/auto" => Self::JsAuto,
       "js/dynamic" | "javascript/dynamic" => Self::JsDynamic,
       "js/esm" | "javascript/esm" => Self::JsEsm,
 

@@ -2,16 +2,16 @@
 The full syntax, remember update this when you change something in this file.
 
 `RSPACK_PROFILE='TRACE=filter=trace&output=./rspack.trace&layer=chrome|JSCPU=output=./rspack.jscpuprofile|LOGGING=output=./rspack.logging' rspack build`
-                       ^----------------------------------------------: querystring syntax trace options
-                                                                      ^: | is a delimiter for different profile options
-                                                                       ^---------------------------------: querystring syntax js cpuprofile options
-                                                                                                         ^: | is a delimiter for different profile options
-                                                                                                          ^------------------------------: querystring syntax stats.logging options
-                       ^-----------: trace filter, default to `trace`, more syntax: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax
-                                    ^--------------------: trace output, `stderr`, `stdout`, or a file path, default to `./.rspack-profile-${timestamp}/trace.json` for layer `chrome` and default to `stdout` for layer `logger`
-                                                          ^-----------: trace layer, `chrome` or `logger`, default to `chrome`
-                                                                             ^---------------------------: js cpuprofile output, `stderr`, `stdout`, or a file path, default to `./.rspack-profile-${timestamp}/jscpuprofile.json`
-                                                                                                                  ^----------------------: stats.logging output, default to `./.rspack-profile-${timestamp}/logging.json`
+											 ^----------------------------------------------: querystring syntax trace options
+																																			^: | is a delimiter for different profile options
+																																			 ^---------------------------------: querystring syntax js cpuprofile options
+																																																				 ^: | is a delimiter for different profile options
+																																																					^------------------------------: querystring syntax stats.logging options
+											 ^-----------: trace filter, default to `trace`, more syntax: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax
+																		^--------------------: trace output, `stderr`, `stdout`, or a file path, default to `./.rspack-profile-${timestamp}/trace.json` for layer `chrome` and default to `stdout` for layer `logger`
+																													^-----------: trace layer, `chrome` or `logger`, default to `chrome`
+																																						 ^---------------------------: js cpuprofile output, `stderr`, `stdout`, or a file path, default to `./.rspack-profile-${timestamp}/jscpuprofile.json`
+																																																									^----------------------: stats.logging output, default to `./.rspack-profile-${timestamp}/logging.json`
 
 `RSPACK_PROFILE='TRACE=filter=trace&output=./rspack.trace&layer=chrome' rspack build`: only enable trace
 
@@ -31,16 +31,16 @@ The full syntax, remember update this when you change something in this file.
 
 */
 
-import {
-	type Compiler,
-	experimental_cleanupGlobalTrace as cleanupGlobalTrace,
-	experimental_registerGlobalTrace as registerGlobalTrace,
-	RspackOptions
-} from "@rspack/core";
 import fs from "fs";
-import inspector from "inspector";
 import path from "path";
 import { URLSearchParams } from "url";
+import {
+	type Compiler,
+	RspackOptions,
+	experimental_cleanupGlobalTrace as cleanupGlobalTrace,
+	experimental_registerGlobalTrace as registerGlobalTrace
+} from "@rspack/core";
+import inspector from "inspector";
 
 type JSCPUProfileOptionsOutput = string;
 type JSCPUProfileOptions = {
@@ -100,13 +100,12 @@ function resolveProfile(value: string): ProfileOptions {
 		};
 	}
 	return value.split("|").reduce<ProfileOptions>((acc, cur) => {
-		if (cur.toUpperCase().startsWith("TRACE")) {
+		const upperCur = cur.toUpperCase();
+		if (upperCur.startsWith("TRACE")) {
 			acc.TRACE = resolveRustTraceOptions(cur.slice(6));
-		}
-		if (cur.toUpperCase().startsWith("JSCPU")) {
+		} else if (upperCur.startsWith("JSCPU")) {
 			acc.JSCPU = resolveJSCPUProfileOptions(cur.slice(6));
-		}
-		if (cur.toUpperCase().startsWith("LOGGING")) {
+		} else if (upperCur.startsWith("LOGGING")) {
 			acc.LOGGING = resolveLoggingOptions(cur.slice(8));
 		}
 		return acc;

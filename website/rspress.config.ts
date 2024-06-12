@@ -3,8 +3,8 @@ import path from 'node:path';
 import { pluginRss } from '@rspress/plugin-rss';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
-import { defineConfig } from 'rspress/config';
 import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
+import { defineConfig } from 'rspress/config';
 
 const PUBLISH_URL = 'https://rspack.dev';
 const COPYRIGHT = '© 2022-present ByteDance Inc. All Rights Reserved.';
@@ -89,12 +89,22 @@ export default defineConfig({
         title: 'Rspack',
         description: 'A fast Rust-based web bundler',
         label: 'English',
+        editLink: {
+          docRepoBaseUrl:
+            'https://github.com/web-infra-dev/rspack/tree/main/website/docs',
+          text: '📝 Edit this page on GitHub',
+        },
       },
       {
         lang: 'zh',
         title: 'Rspack',
         description: '基于 Rust 的高性能 Web 构建工具',
         label: '简体中文',
+        editLink: {
+          docRepoBaseUrl:
+            'https://github.com/web-infra-dev/rspack/tree/main/website/docs',
+          text: '📝 在 GitHub 上编辑此页',
+        },
       },
     ],
   },

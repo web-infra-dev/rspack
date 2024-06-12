@@ -1,10 +1,10 @@
 import fs from "fs";
-import { JSDOM, ResourceLoader, VirtualConsole } from "jsdom";
 import path from "path";
+import { JSDOM, ResourceLoader, VirtualConsole } from "jsdom";
 
 import { escapeSep } from "../../../helper";
-import createFakeWorker from "../../../helper/legacy/createFakeWorker";
 import EventSource from "../../../helper/legacy/EventSourceForNode";
+import createFakeWorker from "../../../helper/legacy/createFakeWorker";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
 import { ECompilerType } from "../../../type";
 import { TRunnerRequirer } from "../../type";
@@ -169,7 +169,9 @@ export class JSDOMWebRunner<
 			}
 
 			const scopeKey = escapeSep(file!.path);
-			const args = Object.keys(currentModuleScope);
+			const args = Object.keys(currentModuleScope).filter(
+				arg => !["window", "self", "globalThis", "console"].includes(arg)
+			);
 			const argValues = args
 				.map(arg => `window["${scopeKey}"]["${arg}"]`)
 				.join(", ");

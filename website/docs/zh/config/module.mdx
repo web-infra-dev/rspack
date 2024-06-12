@@ -175,6 +175,36 @@ module.exports = {
 
 启用部分动态依赖（`import("./path/to/" + variable)`）的警告。
 
+#### module.parser.javascript.exportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **类型：** `"error" | "warn" | "auto" | false`
+- **默认值：** `"auto"`
+
+当使用了不存在的导出或存在冲突的重导出时，是否进行警告或报错。
+
+- `"error"`：进行报错。
+- `"warn"`：进行警告。
+- `"auto"`：根据模块是否为严格 ESM，如果是严格 ESM 则报错，否则警告。
+- `false`：关闭该功能。
+
+#### module.parser.javascript.importExportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **类型：** `"error" | "warn" | "auto" | false`
+
+当使用了不存在的导出时，是否进行警告或报错。默认会遵循 `module.parser.javascript.exportsPresence` 的配置。
+
+#### module.parser.javascript.reexportExportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **类型：** `"error" | "warn" | "auto" | false`
+
+当使用了存在冲突的重导出时，是否进行警告或报错。默认会遵循 `module.parser.javascript.exportsPresence` 的配置。
+
 ### module.parser["javascript/auto"]
 
 <ApiMeta addedVersion="0.6.3" />
@@ -502,7 +532,9 @@ module.exports = {
 - **类型：** `boolean`
 - **默认值：** `true` for node environments, `false` for web environments.
 
-避免生成和加载样式表，只将来自 CSS 的导出嵌入到输出的 JavaScript 文件中。
+如果为 `true`，仅从 CSS 中导出标识符映射表到 JavaScript 文件中，而不在 template 中注入任何 stylesheets。适用于使用 CSS Modules 进行预渲染的场景（例如 SSR）。
+
+如果为 `false`，生成 stylesheets 并将其注入到 template 中。
 
 #### module.generator["css/auto"].localIdentName
 

@@ -19,7 +19,7 @@ use rspack_core::{BoxPlugin, Define, DefinePlugin, Plugin, PluginExt, Provide, P
 use rspack_error::Result;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
-  NamedModuleIdsPlugin,
+  NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin,
 };
 use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
@@ -86,7 +86,7 @@ use self::{
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
 use crate::{
-  plugins::{CssExtractRspackAdditionalDataPlugin, JsLoaderResolverPlugin},
+  plugins::{CssExtractRspackAdditionalDataPlugin, JsLoaderRspackPlugin},
   JsLoaderRunner, RawDynamicEntryPluginOptions, RawEntryPluginOptions,
   RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
   RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
@@ -126,7 +126,9 @@ pub enum BuiltinPluginName {
   ConsumeSharedPlugin,
   ModuleFederationRuntimePlugin,
   NamedModuleIdsPlugin,
+  NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
+  NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
   RealContentHashPlugin,
@@ -323,8 +325,14 @@ impl BuiltinPlugin {
       BuiltinPluginName::NamedModuleIdsPlugin => {
         plugins.push(NamedModuleIdsPlugin::default().boxed())
       }
+      BuiltinPluginName::NaturalModuleIdsPlugin => {
+        plugins.push(NaturalModuleIdsPlugin::default().boxed())
+      }
       BuiltinPluginName::DeterministicModuleIdsPlugin => {
         plugins.push(DeterministicModuleIdsPlugin::default().boxed())
+      }
+      BuiltinPluginName::NaturalChunkIdsPlugin => {
+        plugins.push(NaturalChunkIdsPlugin::default().boxed())
       }
       BuiltinPluginName::NamedChunkIdsPlugin => {
         plugins.push(NamedChunkIdsPlugin::new(None, None).boxed())
@@ -465,11 +473,9 @@ impl BuiltinPlugin {
         .boxed();
         plugins.push(plugin);
       }
-      // rspack js adapter plugins
       BuiltinPluginName::JsLoaderRspackPlugin => {
-        plugins.push(
-          JsLoaderResolverPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed(),
-        );
+        plugins
+          .push(JsLoaderRspackPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed());
       }
       BuiltinPluginName::LazyCompilationPlugin => {
         let options = downcast_into::<RawLazyCompilationOption>(self.options)?;

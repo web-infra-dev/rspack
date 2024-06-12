@@ -1,10 +1,10 @@
-import type { Compiler } from "@rspack/core";
 import crypto from "crypto";
-import type { RequestHandler, Response } from "express";
 import type { IncomingMessage } from "http";
-import mime from "mime-types";
 import { extname } from "path";
 import { parse } from "url";
+import type { Compiler } from "@rspack/core";
+import type { RequestHandler, Response } from "express";
+import mime from "mime-types";
 import wdm from "webpack-dev-middleware";
 
 function etag(buf: any) {

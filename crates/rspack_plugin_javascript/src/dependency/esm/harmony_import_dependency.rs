@@ -66,7 +66,6 @@ pub struct HarmonyImportSideEffectDependency {
   pub id: DependencyId,
   pub span: Option<ErrorSpan>,
   pub source_span: Option<ErrorSpan>,
-  pub specifiers: Vec<Specifier>,
   pub dependency_type: DependencyType,
   pub export_all: bool,
   resource_identifier: String,
@@ -78,7 +77,6 @@ impl HarmonyImportSideEffectDependency {
     source_order: i32,
     span: Option<ErrorSpan>,
     source_span: Option<ErrorSpan>,
-    specifiers: Vec<Specifier>,
     dependency_type: DependencyType,
     export_all: bool,
   ) -> Self {
@@ -89,7 +87,6 @@ impl HarmonyImportSideEffectDependency {
       request,
       span,
       source_span,
-      specifiers,
       dependency_type,
       export_all,
       resource_identifier,
@@ -122,12 +119,13 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     return;
   }
 
-  let runtime_condition =
-    if let Some(connection) = module_graph.connection_by_dependency(module_dependency.id()) {
-      filter_runtime(*runtime, |r| connection.is_target_active(&module_graph, r))
-    } else {
-      RuntimeCondition::Boolean(true)
-    };
+  let runtime_condition = if module_dependency.weak() {
+    RuntimeCondition::Boolean(false)
+  } else if let Some(connection) = module_graph.connection_by_dependency(module_dependency.id()) {
+    filter_runtime(*runtime, |r| connection.is_target_active(&module_graph, r))
+  } else {
+    RuntimeCondition::Boolean(true)
+  };
 
   let content: (String, String) = import_statement(
     *module,
@@ -369,7 +367,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
             .build_meta()
             .expect("should have build_meta")
             .default_object,
-          BuildMetaDefaultObject::RedirectWarn
+          BuildMetaDefaultObject::RedirectWarn { ignore: false }
         )
       {
         let msg = format!(
@@ -390,10 +388,6 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
 }
 
 impl Dependency for HarmonyImportSideEffectDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyImportSideEffectDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

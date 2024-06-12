@@ -1,1 +1,15 @@
-WARNING in ./locale.js⚠ Resolve error: Can't resolve './locale' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/optional-context-dependency'╭─[2:1]2      let locale;3      try {4          locale = require('./locale/' + name);·                  ───────────────────────────5      } catch (e) {}6      return locale;╰────help: Found module './locale.js'. However, it's not possible to request this module without the extensionif its extension was not listed in the `resolve.extensions`. Here're some possible solutions:1. add the extension `".js"` to `resolve.extensions` in your rspack configuration2. use './locale.js' instead of './locale'
+WARNING in ./locale.js
+  ⚠ Resolve error: Can't resolve './locale' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/optional-context-dependency'
+   ╭─[2:1]
+ 2 │   let locale;
+ 3 │   try {
+ 4 │     locale = require('./locale/' + name);
+   ·              ───────────────────────────
+ 5 │   } catch (e) {
+ 6 │   }
+   ╰────
+  help: Found module './locale.js'. However, it's not possible to request this module without the extension
+        if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
+        
+        1. add the extension `".js"` to `resolve.extensions` in your rspack configuration
+        2. use './locale.js' instead of './locale'

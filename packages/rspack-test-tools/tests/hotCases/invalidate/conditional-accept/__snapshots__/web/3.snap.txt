@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 281
+- Update: main.LAST_HASH.hot-update.js, size: 275
 
 ## Manifest
 
@@ -33,7 +33,9 @@
 "use strict";
 self["webpackHotUpdate"]('main', {
 "./data.json": (function (module) {
-module.exports = {"a":3,"b":3}}),
+module.exports = {"a":3,"b":3}
+
+}),
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash

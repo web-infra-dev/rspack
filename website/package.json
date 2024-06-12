@@ -14,7 +14,7 @@
     "check:ci": "pnpm run check:format-ci && pnpm run check:spell"
   },
   "license": "MIT",
-  "packageManager": "pnpm@8.14.3",
+  "packageManager": "pnpm@9.3.0",
   "dependencies": {
     "axios": "^1.6.1",
     "date-fns": "^2.29.3",
@@ -28,8 +28,8 @@
     "tailwindcss": "^3.2.7"
   },
   "devDependencies": {
-    "@rspress/plugin-rss": "^1.21.1",
-    "@rspress/shared": "^1.21.1",
+    "@rspress/plugin-rss": "^1.23.1",
+    "@rspress/shared": "^1.23.1",
     "@types/node": "^18.11.18",
     "@types/react": "^18.0.27",
     "@types/semver": "^7.5.2",
@@ -40,7 +40,7 @@
     "prettier": "3.2.5",
     "rsbuild-plugin-google-analytics": "1.0.0",
     "rsbuild-plugin-open-graph": "1.0.0",
-    "rspress": "^1.21.1",
+    "rspress": "^1.23.1",
     "rspress-plugin-font-open-sans": "1.0.0",
     "typescript": "^5.0.4"
   }

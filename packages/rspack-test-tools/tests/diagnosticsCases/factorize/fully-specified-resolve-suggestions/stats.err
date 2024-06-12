@@ -1,1 +1,14 @@
-ERROR in ./index.js× Resolve error: Can't resolve './foo' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/fully-specified-resolve-suggestions'╭────1  import "./foo";·        ───────╰────help: Did you mean './foo.js'?The request './foo' failed to resolve only because it was resolved as fully specified,probably because the origin is strict EcmaScript Module,e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '"type": "module"'.The extension in the request is mandatory for it to be fully specified.Add the extension to the request.
+ERROR in ./index.js
+  × Resolve error: Can't resolve './foo' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/fully-specified-resolve-suggestions'
+   ╭────
+ 1 │ import "./foo"
+   ·        ───────
+   ╰────
+  help: Did you mean './foo.js'?
+        
+        The request './foo' failed to resolve only because it was resolved as fully specified,
+        probably because the origin is strict EcmaScript Module,
+        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '"type": "module"'.
+        
+        The extension in the request is mandatory for it to be fully specified.
+        Add the extension to the request.

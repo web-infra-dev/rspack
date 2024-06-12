@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import './CompatibleCard.scss';
-import * as i18n from './i18n';
 import axios from 'axios';
+import * as i18n from './i18n';
 
 interface CardMeta {
   name: string;

@@ -17,7 +17,7 @@ use rustc_hash::FxHashSet;
 
 use crate::dependency::LazyCompilationDependency;
 
-static MODULE_TYPE: ModuleType = ModuleType::Js;
+static MODULE_TYPE: ModuleType = ModuleType::JsAuto;
 static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
 
 #[derive(Debug)]
@@ -269,7 +269,8 @@ impl Module for LazyCompilationProxyModule {
         chunk_graph
           .get_module_id(*module)
           .as_ref()
-          .expect("should have module id"),
+          .expect("should have module id")
+          .replace('"', r#"\""#),
         keep_active,
       ))
     } else {

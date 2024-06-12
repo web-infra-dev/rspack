@@ -50,10 +50,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       loaders,
       ..
     } = parse_context;
-    build_info.strict = true;
-    build_meta.exports_type = BuildMetaExportsType::Default;
-    // TODO default_object is not align with webpack
-    build_meta.default_object = BuildMetaDefaultObject::RedirectWarn;
     let source = box_source.source();
     let strip_bom_source = source.strip_prefix('\u{feff}');
     let need_strip_bom = strip_bom_source.is_some();
@@ -108,6 +104,10 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       ),
     };
     build_info.json_data = data.clone();
+    build_info.strict = true;
+    build_meta.exports_type = BuildMetaExportsType::Default;
+    // Ignore the json named exports warning, this violates standards, but other bundlers support it without warning.
+    build_meta.default_object = BuildMetaDefaultObject::RedirectWarn { ignore: true };
 
     Ok(
       rspack_core::ParseResult {

@@ -17,6 +17,7 @@ pub struct CommonJsFullRequireDependency {
   span: Option<ErrorSpan>,
   is_call: bool,
   optional: bool,
+  asi_safe: bool,
 }
 
 impl CommonJsFullRequireDependency {
@@ -27,6 +28,7 @@ impl CommonJsFullRequireDependency {
     span: Option<ErrorSpan>,
     is_call: bool,
     optional: bool,
+    asi_safe: bool,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -36,6 +38,7 @@ impl CommonJsFullRequireDependency {
       span,
       is_call,
       optional,
+      asi_safe,
     }
   }
 }
@@ -55,10 +58,6 @@ impl Dependency for CommonJsFullRequireDependency {
 
   fn span(&self) -> Option<ErrorSpan> {
     self.span
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "CommonJsFullRequireDependency"
   }
 }
 
@@ -144,6 +143,9 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
             0
           )
         );
+        if self.asi_safe {
+          require_expr = format!("({require_expr})");
+        }
       }
     }
 

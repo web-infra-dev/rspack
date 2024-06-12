@@ -1,6 +1,6 @@
-import semver from "semver";
 import path from "path";
 import { findWorkspacePackagesNoCheck } from "@pnpm/find-workspace-packages";
+import semver from "semver";
 
 async function getCommitId() {
 	const result = await $`git rev-parse --short HEAD`;
@@ -35,7 +35,7 @@ export async function version_handler(version) {
 	const lastVersion = await getLastVersion(root);
 	let nextVersion;
 	if (version === "snapshot") {
-		nextVersion = await getSnapshotVersion(lastVersion);
+		nextVersion = await getSnapshotVersion(semver.inc(lastVersion, "patch"));
 	} else {
 		nextVersion = semver.inc(lastVersion, version);
 	}

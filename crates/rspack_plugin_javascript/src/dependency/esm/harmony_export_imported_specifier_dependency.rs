@@ -1217,10 +1217,6 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
       })
   }
 
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyExportImportedSpecifierDependency"
-  }
-
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }
@@ -1229,18 +1225,15 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
     Some(self.source_order)
   }
 
-  fn get_diagnostics(&self, module_graph: &ModuleGraph, diagnostics: &mut Vec<Diagnostic>) {
-    let Some(module) = module_graph.get_parent_module(&self.id) else {
-      return;
-    };
-    let Some(module) = module_graph.module_by_identifier(module) else {
-      return;
-    };
+  fn get_diagnostics(&self, module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+    let module = module_graph.get_parent_module(&self.id)?;
+    let module = module_graph.module_by_identifier(module)?;
     let ids = self.get_ids(module_graph);
     if let Some(should_error) = self
       .export_presence_mode
       .get_effective_export_presence(&**module)
     {
+      let mut diagnostics = Vec::new();
       if let Some(error) = harmony_import_dependency_get_linking_error(
         self,
         &ids,
@@ -1259,7 +1252,9 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
       {
         diagnostics.extend(errors);
       }
+      return Some(diagnostics);
     }
+    None
   }
 }
 

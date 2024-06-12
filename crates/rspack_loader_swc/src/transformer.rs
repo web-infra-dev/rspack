@@ -4,13 +4,17 @@ use std::sync::Arc;
 use either::Either;
 use once_cell::sync::Lazy;
 use rspack_core::CompilerOptions;
-use rspack_swc_visitors::{styled_components, StyledComponentsOptions};
-use swc_core::common::FileName;
+use rspack_swc_visitors::{styled_components, PreactOptions, StyledComponentsOptions};
+use swc_core::atoms::Atom;
+use swc_core::common::collections::AHashMap;
 use swc_core::common::{
   chain,
   comments::{Comments, NoopComments},
   Mark, SourceMap,
 };
+use swc_core::common::{BytePos, FileName};
+use swc_core::ecma::ast::Ident;
+use swc_core::ecma::visit::{noop_visit_type, Visit};
 use swc_core::ecma::{transforms::base::pass::noop, visit::Fold};
 use xxhash_rust::xxh32::xxh32;
 
@@ -80,5 +84,20 @@ pub(crate) fn transform<'a>(
     either!(rspack_experiments.import, |options| {
       rspack_swc_visitors::import(options)
     }),
+    either!(rspack_experiments.preact, |options: &PreactOptions| {
+      rspack_swc_visitors::preact(options.clone(), (*content_hash).to_string())
+    }),
   )
+}
+
+pub struct IdentCollector {
+  pub names: AHashMap<BytePos, Atom>,
+}
+
+impl Visit for IdentCollector {
+  noop_visit_type!();
+
+  fn visit_ident(&mut self, ident: &Ident) {
+    self.names.insert(ident.span.lo, ident.sym.clone());
+  }
 }

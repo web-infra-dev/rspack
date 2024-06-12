@@ -1,7 +1,7 @@
 import {
-	__chunk_group_inner_get_chunk_group,
 	type JsChunkGroup,
-	type JsCompilation
+	type JsCompilation,
+	__chunk_group_inner_get_chunk_group
 } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";

@@ -105,6 +105,11 @@ async fn compilation(
     DependencyType::Provided,
     params.normal_module_factory.clone(),
   );
+  // ImportModule
+  compilation.set_dependency_factory(
+    DependencyType::LoaderImport,
+    params.normal_module_factory.clone(),
+  );
   // other
   compilation.set_dependency_factory(
     DependencyType::WebpackIsIncluded,
@@ -112,15 +117,15 @@ async fn compilation(
       normal_module_factory: params.normal_module_factory.clone(),
     }),
   );
-  compilation.set_dependency_factory(
-    DependencyType::CjsSelfReference,
-    Arc::new(SelfModuleFactory {}),
-  );
+
+  let self_factory = Arc::new(SelfModuleFactory {});
+  compilation.set_dependency_factory(DependencyType::CjsSelfReference, self_factory.clone());
+  compilation.set_dependency_factory(DependencyType::ModuleDecorator, self_factory);
   Ok(())
 }
 
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for JsPlugin)]
-fn additional_tree_runtime_requirements(
+async fn additional_tree_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
@@ -307,7 +312,7 @@ impl Plugin for JsPlugin {
       .tap(render_manifest::new(self));
 
     ctx.context.register_parser_and_generator_builder(
-      ModuleType::Js,
+      ModuleType::JsAuto,
       Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
     );
     ctx.context.register_parser_and_generator_builder(

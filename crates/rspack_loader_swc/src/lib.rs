@@ -9,10 +9,7 @@ use std::default::Default;
 use compiler::{IntoJsAst, SwcCompiler};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
-use rspack_ast::RspackAst;
-use rspack_core::{
-  rspack_sources::SourceMap, LoaderRunnerContext, LoadersShouldAlwaysGiveContent, Mode,
-};
+use rspack_core::{rspack_sources::SourceMap, Mode, RunnerContext};
 use rspack_error::{error, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_plugin_javascript::ast::{self, SourceMapConfig};
@@ -21,6 +18,8 @@ use rspack_util::source_map::SourceMapKind;
 use swc_config::{config_types::MergingOption, merge::Merge};
 use swc_core::base::config::SourceMapsConfig;
 use swc_core::base::config::{InputSourceMap, OutputCharset, TransformConfig};
+use swc_core::ecma::visit::VisitWith;
+use transformer::IdentCollector;
 
 #[derive(Debug)]
 pub struct SwcLoader {
@@ -48,10 +47,12 @@ impl SwcLoader {
 pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 
 #[async_trait::async_trait]
-impl Loader<LoaderRunnerContext> for SwcLoader {
-  async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
+impl Loader<RunnerContext> for SwcLoader {
+  async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     let resource_path = loader_context.resource_path().to_path_buf();
-    let content = std::mem::take(&mut loader_context.content).expect("content should be available");
+    let Some(content) = std::mem::take(&mut loader_context.content) else {
+      return Ok(());
+    };
 
     let swc_options = {
       let mut swc_options = self.options_with_additional.swc_options.clone();
@@ -70,6 +71,8 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
           swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
         }
       }
+      swc_options.filename = resource_path.to_string_lossy().to_string();
+      swc_options.source_file_name = Some(resource_path.to_string_lossy().to_string());
 
       if swc_options.config.jsc.target.is_some() && swc_options.config.env.is_some() {
         loader_context.emit_diagnostic(Diagnostic::warn(
@@ -113,9 +116,13 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       })
       .map_err(AnyhowError::from)?;
 
-    let codegen_options = ast::CodegenOptions {
+    let input_source_map = c
+      .input_source_map(&built.input_source_map)
+      .map_err(|e| error!(e.to_string()))?;
+    let mut codegen_options = ast::CodegenOptions {
       target: Some(built.target),
       minify: Some(built.minify),
+      input_source_map: input_source_map.as_ref(),
       ascii_only: built
         .output
         .charset
@@ -130,34 +137,24 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       inline_script: Some(false),
       keep_comments: Some(true),
     };
-    let program = tokio::task::block_in_place(|| c.transform(built).map_err(AnyhowError::from))?;
-    let ast = c.into_js_ast(program);
 
-    // If swc-loader is the latest loader available,
-    // then loader produces AST, which could be used as an optimization.
-    if loader_context.loader_index() == 0
-      && (loader_context
-        .current_loader()
-        .composed_index_by_identifier(&self.identifier)
-        .map(|idx| idx == 0)
-        .unwrap_or(true))
-      && !loader_context
-        .additional_data
-        .contains::<&LoadersShouldAlwaysGiveContent>()
-    {
-      loader_context
-        .additional_data
-        .insert(RspackAst::JavaScript(ast));
-      loader_context.additional_data.insert(codegen_options);
-      loader_context.content = Some("".to_owned().into())
-    } else {
-      let TransformOutput { code, map } = ast::stringify(&ast, codegen_options)?;
-      loader_context.content = Some(code.into());
-      loader_context.source_map = map
-        .map(|m| SourceMap::from_json(&m))
-        .transpose()
-        .map_err(|e| error!(e.to_string()))?;
+    let program = tokio::task::block_in_place(|| c.transform(built).map_err(AnyhowError::from))?;
+    if source_map_kind.enabled() {
+      let mut v = IdentCollector {
+        names: Default::default(),
+      };
+      program.visit_with(&mut v);
+      codegen_options.source_map_config.names = v.names;
     }
+    let ast = c.into_js_ast(program);
+    let TransformOutput { code, map } = ast::stringify(&ast, codegen_options)?;
+
+    loader_context.content = Some(code.into());
+    let map = map
+      .map(|m| SourceMap::from_json(&m))
+      .transpose()
+      .map_err(|e| error!(e.to_string()))?;
+    loader_context.source_map = map;
 
     Ok(())
   }

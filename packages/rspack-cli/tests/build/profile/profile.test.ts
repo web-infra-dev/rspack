@@ -1,6 +1,6 @@
 import fs from "fs";
-import { run } from "../../utils/test-utils";
 import { resolve } from "path";
+import { run } from "../../utils/test-utils";
 
 const defaultTracePath = "./trace.json";
 const defaultJSCPUPath = "./jscpuprofile.json";

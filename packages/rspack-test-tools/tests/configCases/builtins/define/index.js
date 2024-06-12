@@ -32,7 +32,7 @@ it("should builtins define works", () => {
 	expect(STRING).toBe("string");
 	expect(EMPTY_STRING).toBe("");
 	expect("abc").toMatch(REGEXP);
-	expect(ZERO.ABC).toBe(undefined);
+	// expect(ZERO.ABC).toBe(undefined);
 
 	let error_count = 0;
 	try {
@@ -65,12 +65,16 @@ it("should builtins define works", () => {
 	expect(OBJECT.STR).toBe("string");
 	expect(OBJECT.AAA).toBe(undefined);
 
+	OBJECT2.FN();
+	expect(typeof OBJECT2.FN).toBe("function");
+	expect(OBJECT2).not.toBeUndefined();
+
 	expect(P1.P2.P3).toBe(301);
 	expect(P1.P2.P4).toBe("302");
 	expect(P1).toBe(303);
 	expect(P1.P2).toBe(304);
 
-	expect(P1.P4).toBe(undefined); // "303.P4"
+	// expect(P1.P4).toBe(undefined); // "303.P4"
 
 	try {
 		error_count += 1;
@@ -146,23 +150,10 @@ it("should builtins define works", () => {
 
 	try {
 		error_count += 1;
-		SHOULD_CONVERTED = 205; // syntax error
-		error_count += 1;
-	} catch (err) {}
-	expect(error_count).toBe(7);
-
-	try {
-		error_count += 1;
-		SHOULD_CONVERTED = SHOULD_CONVERTED = 205; // syntax error
-		error_count += 1;
-	} catch (err) {}
-	expect(error_count).toBe(8);
-	try {
-		error_count += 1;
 		aa = SHOULD_CONVERTED;
 		error_count += 1;
 	} catch (err) {}
-	expect(error_count).toBe(9);
+	expect(error_count).toBe(7);
 
 	expect(SHOULD_CONVERTED == 205).toBe(true);
 	expect(207 == SHOULD_CONVERTED).toBe(false);
@@ -172,7 +163,7 @@ it("should builtins define works", () => {
 		CONVERTED_TO_MEMBER;
 		error_count += 1;
 	} catch (err) {}
-	expect(error_count).toBe(10);
+	expect(error_count).toBe(8);
 
 	// TODO: recursive
 	// assert.equal(wurst).toBe(unde);

@@ -61,7 +61,7 @@ define_hook!(CompilationChunkIds: SyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationRuntimeModule: AsyncSeries(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
 define_hook!(CompilationRuntimeRequirementInModule: SyncSeriesBail(compilation: &mut Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalChunkRuntimeRequirements: SyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
-define_hook!(CompilationAdditionalTreeRuntimeRequirements: SyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
+define_hook!(CompilationAdditionalTreeRuntimeRequirements: AsyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInTree: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationOptimizeCodeGeneration: SyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationChunkHash: SyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
@@ -438,13 +438,8 @@ impl Compilation {
     } else {
       self.global_entry.include_dependencies.push(entry_id);
     }
-    update_module_graph(
-      self,
-      vec![MakeParam::ForceBuildDeps(HashSet::from_iter([(
-        entry_id, None,
-      )]))],
-    )
-    .await
+
+    Ok(())
   }
 
   pub fn update_asset(
@@ -671,16 +666,12 @@ impl Compilation {
     module_identifiers: HashSet<ModuleIdentifier>,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    update_module_graph(
+    let artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
       self,
+      artifact,
       vec![MakeParam::ForceBuildModules(module_identifiers.clone())],
-    )
-    .await?;
-
-    let logger = self.get_logger("rspack.Compilation");
-    let start = logger.time("finish module");
-    self.finish(self.plugin_driver.clone()).await?;
-    logger.time_end(start);
+    )?;
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -931,7 +922,20 @@ impl Compilation {
   }
 
   pub fn entry_modules(&self) -> IdentifierSet {
-    self.make_artifact.entry_module_identifiers.clone()
+    let module_graph = self.get_module_graph();
+    self
+      .entries
+      .values()
+      .flat_map(|item| item.all_dependencies())
+      .chain(self.global_entry.all_dependencies())
+      .filter_map(|dep_id| {
+        // some entry dependencies may not find module because of resolve failed
+        // so use filter_map to ignore them
+        module_graph
+          .module_identifier_by_dependency_id(dep_id)
+          .cloned()
+      })
+      .collect()
   }
 
   pub fn entrypoint_by_name(&self, name: &str) -> &Entrypoint {
@@ -952,18 +956,43 @@ impl Compilation {
     // 1. after finish_modules: has provide exports info
     // 2. before optimize dependencies: side effects free module hasn't been skipped (move_target)
     let module_graph = self.get_module_graph();
-    let mut diagnostics = Vec::new();
-    for (_, mgm) in module_graph.module_graph_modules() {
-      for dependency_id in &mgm.all_dependencies {
-        let Some(dependency) = module_graph.dependency_by_id(dependency_id) else {
-          continue;
-        };
-        dependency.get_diagnostics(&module_graph, &mut diagnostics);
-      }
-    }
+    let diagnostics: Vec<_> = module_graph
+      .module_graph_modules()
+      .par_iter()
+      .flat_map(|(_, mgm)| &mgm.all_dependencies)
+      .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
+      .filter_map(|dependency| dependency.get_diagnostics(&module_graph))
+      .flat_map(|ds| ds)
+      .collect();
     self.extend_diagnostics(diagnostics);
     logger.time_end(start);
 
+    // recheck entry and clean useless entry
+    let make_artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
+      self,
+      make_artifact,
+      vec![MakeParam::BuildEntryAndClean(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .cloned()
+          .collect(),
+      )],
+    )?;
+
+    // take make diagnostics
+    let diagnostics = self.make_artifact.take_diagnostics();
+    self.extend_diagnostics(diagnostics);
+
+    // sync assets to compilation from module_executor
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.hook_after_finish_modules(self).await;
+      self.module_executor = Some(module_executor);
+    }
     Ok(())
   }
 
@@ -1086,13 +1115,6 @@ impl Compilation {
     let start = logger.time("create chunk assets");
     self.create_chunk_assets(plugin_driver.clone()).await?;
     logger.time_end(start);
-
-    // sync assets to compilation from module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_before_process_assets(self).await;
-      self.module_executor = Some(module_executor);
-    }
 
     let start = logger.time("process assets");
     plugin_driver
@@ -1288,7 +1310,8 @@ impl Compilation {
       plugin_driver
         .compilation_hooks
         .additional_tree_runtime_requirements
-        .call(self, &entry_ukey, &mut set)?;
+        .call(self, &entry_ukey, &mut set)
+        .await?;
 
       process_runtime_requirement_hook(
         &mut set,
@@ -1693,6 +1716,11 @@ pub struct AssetInfo {
   /// An empty string means no version, it will always emit
   pub version: String,
   pub source_filename: Option<String>,
+  /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
+  /// But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
+  /// in the rust struct and have the Js side to reshape and align with webpack.
+  /// Related: packages/rspack/src/Compilation.ts
+  pub extras: serde_json::Map<String, serde_json::Value>,
 }
 
 impl AssetInfo {

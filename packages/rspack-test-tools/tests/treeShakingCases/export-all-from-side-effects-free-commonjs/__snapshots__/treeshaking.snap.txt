@@ -6,9 +6,13 @@ var _lib__WEBPACK_IMPORTED_MODULE_0___namespace_cache;
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 
 /*#__PURE__*/ (_lib__WEBPACK_IMPORTED_MODULE_0___namespace_cache || (_lib__WEBPACK_IMPORTED_MODULE_0___namespace_cache = __webpack_require__.t(_lib__WEBPACK_IMPORTED_MODULE_0__, 2)));
+
+
 }),
 "./lib.js": (function (__unused_webpack_module, exports) {
 exports.a = 100000;
+
+
 }),
 
 },function(__webpack_require__) {

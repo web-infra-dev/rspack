@@ -1,3 +1,4 @@
+import assert from "assert";
 import type {
 	RawAssetGeneratorOptions,
 	RawAssetInlineGeneratorOptions,
@@ -17,14 +18,12 @@ import type {
 	RawLibraryOptions,
 	RawModuleRule,
 	RawModuleRuleUse,
-	RawModuleRuleUses,
 	RawOptions,
 	RawParserOptions,
 	RawRspackFuture,
 	RawRuleSetCondition,
 	RawRuleSetLogicalConditions
 } from "@rspack/binding";
-import assert from "assert";
 
 import { Compiler } from "../Compiler";
 import { normalizeStatsPreset } from "../Stats";
@@ -32,10 +31,10 @@ import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
 import {
 	ComposeJsUseOptions,
-	createRawModuleRuleUses,
 	LoaderContext,
 	LoaderDefinition,
-	LoaderDefinitionFunction
+	LoaderDefinitionFunction,
+	createRawModuleRuleUses
 } from "./adapterRuleUse";
 import {
 	ExperimentsNormalized,
@@ -125,7 +124,8 @@ export const getRawOptions = (
 		// SAFETY: applied default value in `applyRspackOptionsDefaults`.
 		profile: options.profile!,
 		// SAFETY: applied default value in `applyRspackOptionsDefaults`.
-		bail: options.bail!
+		bail: options.bail!,
+		__references: {}
 	};
 };
 
@@ -386,14 +386,13 @@ const getRawModuleRule = (
 	}
 	let funcUse: undefined | ((rawContext: RawFuncUseCtx) => RawModuleRuleUse[]);
 	if (typeof rule.use === "function") {
+		let use = rule.use;
 		funcUse = (rawContext: RawFuncUseCtx) => {
 			const context = {
 				...rawContext,
 				compiler: options.compiler
 			};
-			const uses = (
-				rule.use as Exclude<RawModuleRuleUses["funcUse"], undefined>
-			)(context);
+			const uses = use(context);
 
 			return createRawModuleRuleUses(uses ?? [], `${path}.use`, options);
 		};
@@ -427,15 +426,8 @@ const getRawModuleRule = (
 		sideEffects: rule.sideEffects,
 		use:
 			typeof rule.use === "function"
-				? { type: "function", funcUse }
-				: {
-						type: "array",
-						arrayUse: createRawModuleRuleUses(
-							rule.use ?? [],
-							`${path}.use`,
-							options
-						)
-					},
+				? funcUse
+				: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
 		type: rule.type,
 		parser: rule.parser
 			? getRawParserOptions(rule.parser, rule.type ?? "javascript/auto")

@@ -1,10 +1,10 @@
+import path from "path";
 import {
 	DevServer,
 	MultiRspackOptions,
-	rspack,
-	RspackOptions
+	RspackOptions,
+	rspack
 } from "@rspack/core";
-import path from "path";
 
 import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand, RspackPreviewCLIOptions } from "../types";

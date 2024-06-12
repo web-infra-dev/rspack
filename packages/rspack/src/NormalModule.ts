@@ -1,5 +1,5 @@
-import { AsyncSeriesBailHook, HookMap, SyncHook } from "tapable";
 import util from "util";
+import { AsyncSeriesBailHook, HookMap, SyncHook } from "tapable";
 
 import { Compilation } from "./Compilation";
 import { LoaderContext } from "./config";

@@ -51,7 +51,7 @@ export default {
 ### 动态 import()
 
 ```ts
-function(path: string): Promise
+function import(path: string): Promise;
 ```
 
 动态加载模块。对 `import()` 的调用被视为分割点，这意味着请求的模块及其子模块被拆分成单独的 chunk。
@@ -135,33 +135,63 @@ const {
 Data URI 模块可以被用作虚拟模块（Virtual Modules）的实现方式，如：配合 loader 完成运行时动态加载自定义模块。
 :::
 
-## Webpack
+## Webpack specific
 
 除了上述的模块方法之外，Rspack 还支持一些 webpack 特有的方法。
 
-#### require.context
+### require.context
+
+`require.context` 是 webpack 特有的一个函数，它允许你动态地 require 一组模块。
+
+你可以在代码中使用 `require.context`，Rspack 将在构建时进行解析并引用匹配的模块。
+
+:::tip
+`require.context` 的返回值与 [import.meta.webpackContext](/api/modules/module-variables#importmetawebpackcontext) 相同，我们推荐使用 `import.meta.webpackContext`，它的功能更加强大。
+:::
+
+- **类型：**
 
 ```ts
-require.context(
-  (directory: String),
-  (includeSubdirs: Boolean) /*可选，默认为true */,
-  (filter: RegExp) /* 可选的，默认为/^\.\/.*$/ */。
-  (mode: String) /* 可选的, 'sync' | 'eager' | 'weak' | 'lazy' | 'lazy-once', 默认 'sync' */
-);
+function requireContext(
+  /**
+   * 要搜索的目录
+   */
+  directory: string,
+  /**
+   * 是否还搜索其子目录
+   * @default true
+   */
+  includeSubdirs?: boolean,
+  /**
+   * 匹配文件的正则表达式
+   * @default /^\.\/.*$/（匹配任意文件）
+   */
+  filter?: RegExp,
+  /**
+   * 模块加载模式
+   * @default 'sync'
+   */
+  mode?: 'sync' | 'eager' | 'weak' | 'lazy' | 'lazy-once',
+): Context;
 ```
 
-通过 `directory`、`includeSubdirs`、`filter` 参数，可以对引入的模块进行更精细控制。
+- **示例：**
 
 ```js
-const context = require.context('components', true, /\.html$/);
-const componentA = context.resolve('componentA');
+// 创建一个上下文，
+// 文件直接来自 test 目录，匹配的文件名以 `.test.js` 结尾。
+const context = require.context('./test', false, /\.test\.js$/);
 ```
-
-如果 `mode` 被设置为 `lazy`，模块将会被异步加载。
 
 ```js
-const context = require.context('locales', true, /\.json$/, 'lazy');
-context('localeA').then(locale => {
-  // 做一些与区域设置有关的事情
-});
+// 创建一个上下文，
+// 文件来自父文件夹及其所有子级文件夹，匹配的文件名以 `.stories.js` 结尾。
+const context = require.context('../', true, /\.stories\.js$/);
 ```
+
+```js
+// 如果 `mode` 被设置为 `lazy`，模块将会被异步加载
+const context = require.context('./locales', true, /\.json$/, 'lazy');
+```
+
+> 传递给 `require.context()` 的参数必须是字面量。

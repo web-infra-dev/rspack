@@ -2,7 +2,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::Atom;
 
 use super::super::MakeArtifact;
-use crate::{AsyncDependenciesBlockIdentifier, GroupOptions, ModuleGraph, ModuleIdentifier};
+use crate::{
+  AsyncDependenciesBlockIdentifier, DependencyId, GroupOptions, ModuleGraph, ModuleIdentifier,
+};
 
 #[derive(Debug, Default, Eq, PartialEq, Clone)]
 struct ModuleDeps {
@@ -58,6 +60,7 @@ impl ModuleDeps {
 
 #[derive(Debug, Default)]
 pub struct HasModuleGraphChange {
+  disabled: bool,
   origin_module_deps: HashMap<ModuleIdentifier, ModuleDeps>,
 }
 
@@ -74,8 +77,20 @@ impl HasModuleGraphChange {
     );
   }
 
+  pub fn analyze_force_build_deps(
+    &mut self,
+    deps: &HashSet<(DependencyId, Option<ModuleIdentifier>)>,
+  ) {
+    if deps.is_empty() {
+      self.disabled = true;
+    }
+  }
+
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
     let module_graph = &artifact.get_module_graph();
+    if self.disabled {
+      return;
+    }
     if self.origin_module_deps.is_empty() {
       // origin_module_deps empty means no force_build_module and no file changed
       // this only happens when build from entry
@@ -137,10 +152,6 @@ mod t {
   impl Dependency for TestDep {
     fn dependency_type(&self) -> &crate::DependencyType {
       &crate::DependencyType::EsmImportSpecifier
-    }
-
-    fn dependency_debug_name(&self) -> &'static str {
-      "test dep"
     }
 
     fn id(&self) -> &DependencyId {
@@ -303,7 +314,6 @@ mod t {
     let module_deps_2 = ModuleDeps::from_module(&mg, &module1_id);
 
     assert_eq!(module_deps_1, module_deps_2);
-    dbg!(module_deps_1.clone());
 
     let dep2 = Box::new(TestDep::new(vec!["bar"]));
     let dep2_id = *dep2.id();
@@ -320,6 +330,5 @@ mod t {
 
     let module_deps_3 = ModuleDeps::from_module(&mg, &module_orig_id);
     assert_ne!(module_deps_3, module_deps_1);
-    dbg!(module_deps_3);
   }
 }

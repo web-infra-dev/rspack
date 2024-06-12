@@ -1,5 +1,5 @@
-import fs from "fs-extra";
 import path from "path";
+import fs from "fs-extra";
 import rimraf from "rimraf";
 
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
@@ -154,7 +154,7 @@ function checkCompareResults(
 					.map(i => i.name)
 			).toEqual([]);
 		});
-		it("should not have any respack-only module", () => {
+		it("should not have any rspack-only module", () => {
 			expect(
 				getResults()
 					.filter(i => i.type === ECompareResultType.OnlySource)

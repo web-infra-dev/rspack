@@ -9,7 +9,6 @@
  */
 import type {
 	ExternalObject,
-	JsAssetInfo,
 	JsCompatSource,
 	JsCompilation,
 	JsDiagnostic,
@@ -22,6 +21,7 @@ import type {
 import * as tapable from "tapable";
 import { Source } from "webpack-sources";
 
+import { ContextModuleFactory } from "./ContextModuleFactory";
 import {
 	Filename,
 	OutputNormalized,
@@ -30,7 +30,6 @@ import {
 	StatsOptions,
 	StatsValue
 } from "./config";
-import { ContextModuleFactory } from "./ContextModuleFactory";
 import * as liteTapable from "./lite-tapable";
 import ResolverFactory = require("./ResolverFactory");
 import { Chunk } from "./Chunk";
@@ -38,30 +37,26 @@ import { ChunkGraph } from "./ChunkGraph";
 import { Compiler } from "./Compiler";
 import { Entrypoint } from "./Entrypoint";
 import ErrorHelpers from "./ErrorHelpers";
-import { Logger, LogType } from "./logging/Logger";
 import { CodeGenerationResult, Module } from "./Module";
 import { NormalModule } from "./NormalModule";
 import { NormalModuleFactory } from "./NormalModuleFactory";
-import {
-	normalizeFilter,
-	normalizeStatsPreset,
-	optionsOrFallback,
-	Stats
-} from "./Stats";
+import { Stats, StatsAsset, StatsError, StatsModule } from "./Stats";
+import { LogType, Logger } from "./logging/Logger";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
-import { concatErrorMsgAndStack, toJsAssetInfo } from "./util";
+import { concatErrorMsgAndStack } from "./util";
+import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
+import MergeCaller from "./util/MergeCaller";
 import { createFakeCompilationDependencies } from "./util/fake";
 import { memoizeValue } from "./util/memoize";
-import MergeCaller from "./util/MergeCaller";
 import { JsSource } from "./util/source";
+export { type AssetInfo } from "./util/AssetInfo";
 
-export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
 export interface Asset {
 	name: string;
 	source: Source;
-	info: JsAssetInfo;
+	info: AssetInfo;
 }
 
 export type PathData = JsPathData;
@@ -96,7 +91,55 @@ export interface ExecuteModuleContext {
 	__webpack_require__: (id: string) => any;
 }
 
-type CreateStatsOptionsContext = KnownCreateStatsOptionsContext &
+export interface KnownNormalizedStatsOptions {
+	context: string;
+	// requestShortener: RequestShortener;
+	chunksSort: string;
+	modulesSort: string;
+	chunkModulesSort: string;
+	nestedModulesSort: string;
+	assetsSort: string;
+	ids: boolean;
+	cachedAssets: boolean;
+	groupAssetsByEmitStatus: boolean;
+	groupAssetsByPath: boolean;
+	groupAssetsByExtension: boolean;
+	assetsSpace: number;
+	excludeAssets: ((value: string, asset: StatsAsset) => boolean)[];
+	excludeModules: ((
+		name: string,
+		module: StatsModule,
+		type: "module" | "chunk" | "root-of-chunk" | "nested"
+	) => boolean)[];
+	warningsFilter: ((warning: StatsError, textValue: string) => boolean)[];
+	cachedModules: boolean;
+	orphanModules: boolean;
+	dependentModules: boolean;
+	runtimeModules: boolean;
+	groupModulesByCacheStatus: boolean;
+	groupModulesByLayer: boolean;
+	groupModulesByAttributes: boolean;
+	groupModulesByPath: boolean;
+	groupModulesByExtension: boolean;
+	groupModulesByType: boolean;
+	entrypoints: boolean | "auto";
+	chunkGroups: boolean;
+	chunkGroupAuxiliary: boolean;
+	chunkGroupChildren: boolean;
+	chunkGroupMaxAssets: number;
+	modulesSpace: number;
+	chunkModulesSpace: number;
+	nestedModulesSpace: number;
+	logging: false | "none" | "error" | "warn" | "info" | "log" | "verbose";
+	loggingDebug: ((value: string) => boolean)[];
+	loggingTrace: boolean;
+}
+
+export type CreateStatsOptionsContext = KnownCreateStatsOptionsContext &
+	Record<string, any>;
+
+export type NormalizedStatsOptions = KnownNormalizedStatsOptions &
+	Omit<StatsOptions, keyof KnownNormalizedStatsOptions> &
 	Record<string, any>;
 
 export class Compilation {
@@ -123,11 +166,24 @@ export class Compilation {
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: liteTapable.SyncHook<[Module], void>;
 		stillValidModule: liteTapable.SyncHook<[Module], void>;
+
+		statsPreset: tapable.HookMap<
+			tapable.SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext], void>
+		>;
+		statsNormalize: tapable.SyncHook<
+			[Partial<StatsOptions>, CreateStatsOptionsContext],
+			void
+		>;
 		statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
 		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
+
 		buildModule: liteTapable.SyncHook<[Module]>;
 		executeModule: liteTapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
+		>;
+		additionalTreeRuntimeRequirements: liteTapable.SyncHook<
+			[Chunk, Set<string>],
+			void
 		>;
 		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
@@ -152,9 +208,22 @@ export class Compilation {
 		}
 	};
 
+	/**
+	 * Records the dynamically added fields for Module on the JavaScript side, using the Module identifier for association.
+	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
+	 */
+	#customModules: Record<
+		string,
+		{
+			buildInfo: Record<string, unknown>;
+			buildMeta: Record<string, unknown>;
+		}
+	>;
+
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.#inner = inner;
 		this.#cachedAssets = this.#createCachedAssets();
+		this.#customModules = {};
 
 		const processAssetsHook = new liteTapable.AsyncSeriesHook<Assets>([
 			"assets"
@@ -230,10 +299,20 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new liteTapable.SyncHook(["module"]),
 			stillValidModule: new liteTapable.SyncHook(["module"]),
+
+			statsPreset: new tapable.HookMap(
+				() => new tapable.SyncHook(["options", "context"])
+			),
+			statsNormalize: new tapable.SyncHook(["options", "context"]),
 			statsFactory: new tapable.SyncHook(["statsFactory", "options"]),
 			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
+
 			buildModule: new liteTapable.SyncHook(["module"]),
 			executeModule: new liteTapable.SyncHook(["options", "context"]),
+			additionalTreeRuntimeRequirements: new liteTapable.SyncHook([
+				"chunk",
+				"runtimeRequirements"
+			]),
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
 			afterSeal: new liteTapable.AsyncSeriesHook([])
 		};
@@ -282,7 +361,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	get modules() {
 		return memoizeValue(() => {
 			return this.__internal__getModules().map(item =>
-				Module.__from_binding(item)
+				Module.__from_binding(item, this)
 			);
 		});
 	}
@@ -354,6 +433,22 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getCustomModule(moduleIdentifier: string) {
+		let module = this.#customModules[moduleIdentifier];
+		if (!module) {
+			module = this.#customModules[moduleIdentifier] = {
+				buildInfo: {},
+				buildMeta: {}
+			};
+		}
+		return module;
+	}
+
 	getCache(name: string) {
 		return this.compiler.getCache(name);
 	}
@@ -361,103 +456,31 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	createStatsOptions(
 		optionsOrPreset: StatsValue | undefined,
 		context: CreateStatsOptionsContext = {}
-	): StatsOptions {
-		optionsOrPreset = normalizeStatsPreset(optionsOrPreset);
-
-		let options: Partial<StatsOptions> = {};
-		if (typeof optionsOrPreset === "object" && optionsOrPreset !== null) {
-			options = Object.assign({}, optionsOrPreset);
+	): NormalizedStatsOptions {
+		if (
+			typeof optionsOrPreset === "boolean" ||
+			typeof optionsOrPreset === "string"
+		) {
+			optionsOrPreset = { preset: optionsOrPreset };
 		}
-
-		const all = options.all;
-		const optionOrLocalFallback = <V, D>(v: V, def: D) =>
-			v !== undefined ? v : all !== undefined ? all : def;
-
-		options.assets = optionOrLocalFallback(options.assets, true);
-		options.chunks = optionOrLocalFallback(
-			options.chunks,
-			!context.forToString
-		);
-		options.chunkModules = optionOrLocalFallback(
-			options.chunkModules,
-			!context.forToString
-		);
-		options.chunkRelations = optionOrLocalFallback(
-			options.chunkRelations,
-			!context.forToString
-		);
-		options.modules = optionOrLocalFallback(options.modules, true);
-		options.runtimeModules = optionOrLocalFallback(
-			options.runtimeModules,
-			!context.forToString
-		);
-		options.reasons = optionOrLocalFallback(
-			options.reasons,
-			!context.forToString
-		);
-		options.usedExports = optionOrLocalFallback(
-			options.usedExports,
-			!context.forToString
-		);
-		options.optimizationBailout = optionOrLocalFallback(
-			options.optimizationBailout,
-			!context.forToString
-		);
-		options.providedExports = optionOrLocalFallback(
-			options.providedExports,
-			!context.forToString
-		);
-		options.entrypoints = optionOrLocalFallback(options.entrypoints, true);
-		options.chunkGroups = optionOrLocalFallback(
-			options.chunkGroups,
-			!context.forToString
-		);
-		options.errors = optionOrLocalFallback(options.errors, true);
-		options.errorsCount = optionOrLocalFallback(options.errorsCount, true);
-		options.warnings = optionOrLocalFallback(options.warnings, true);
-		options.warningsCount = optionOrLocalFallback(options.warningsCount, true);
-		options.hash = optionOrLocalFallback(options.hash, true);
-		options.version = optionOrLocalFallback(options.version, true);
-		options.publicPath = optionOrLocalFallback(options.publicPath, true);
-		options.outputPath = optionOrLocalFallback(
-			options.outputPath,
-			!context.forToString
-		);
-		options.timings = optionOrLocalFallback(options.timings, true);
-		options.builtAt = optionOrLocalFallback(
-			options.builtAt,
-			!context.forToString
-		);
-		options.moduleAssets = optionOrLocalFallback(options.moduleAssets, true);
-		options.nestedModules = optionOrLocalFallback(
-			options.nestedModules,
-			!context.forToString
-		);
-		options.source = optionOrLocalFallback(options.source, false);
-		options.logging = optionOrLocalFallback(
-			options.logging,
-			context.forToString ? "info" : true
-		);
-		options.loggingTrace = optionOrLocalFallback(
-			options.loggingTrace,
-			!context.forToString
-		);
-		options.loggingDebug = []
-			.concat(optionsOrFallback(options.loggingDebug, []) || [])
-			.map(normalizeFilter);
-		options.modulesSpace =
-			options.modulesSpace || (context.forToString ? 15 : Infinity);
-		options.ids = optionOrLocalFallback(options.ids, !context.forToString);
-		options.children = optionOrLocalFallback(
-			options.children,
-			!context.forToString
-		);
-		options.orphanModules = optionOrLocalFallback(
-			options.orphanModules,
-			context.forToString ? false : true
-		);
-
-		return options;
+		if (typeof optionsOrPreset === "object" && optionsOrPreset !== null) {
+			// We use this method of shallow cloning this object to include
+			// properties in the prototype chain
+			const options: Partial<NormalizedStatsOptions> = {};
+			for (const key in optionsOrPreset) {
+				options[key as keyof NormalizedStatsOptions] =
+					optionsOrPreset[key as keyof StatsValue];
+			}
+			if (options.preset !== undefined) {
+				this.hooks.statsPreset.for(options.preset).call(options, context);
+			}
+			this.hooks.statsNormalize.call(options, context);
+			return options as NormalizedStatsOptions;
+		} else {
+			const options: Partial<NormalizedStatsOptions> = {};
+			this.hooks.statsNormalize.call(options, context);
+			return options as NormalizedStatsOptions;
+		}
 	}
 
 	createStatsFactory(options: StatsOptions) {
@@ -506,8 +529,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			assetInfoUpdateOrFunction === undefined
 				? assetInfoUpdateOrFunction
 				: typeof assetInfoUpdateOrFunction === "function"
-					? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
-					: toJsAssetInfo(assetInfoUpdateOrFunction)
+					? jsAssetInfo =>
+							JsAssetInfo.__to_binding(assetInfoUpdateOrFunction(jsAssetInfo))
+					: JsAssetInfo.__to_binding(assetInfoUpdateOrFunction)
 		);
 	}
 
@@ -522,7 +546,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#inner.emitAsset(
 			filename,
 			JsSource.__to_binding(source),
-			toJsAssetInfo(assetInfo)
+			JsAssetInfo.__to_binding(assetInfo)
 		);
 	}
 
@@ -541,9 +565,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		const assets = this.#inner.getAssets();
 
 		return assets.map(asset => {
-			return Object.defineProperty(asset, "source", {
-				get: () => this.__internal__getAssetSource(asset.name)
-			}) as Asset;
+			return Object.defineProperties(asset, {
+				info: {
+					value: JsAssetInfo.__from_binding(asset.info)
+				},
+				source: {
+					get: () => this.__internal__getAssetSource(asset.name)
+				}
+			}) as unknown as Asset;
 		});
 	}
 
@@ -552,9 +581,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		if (!asset) {
 			return;
 		}
-		return Object.defineProperty(asset, "source", {
-			get: () => this.__internal__getAssetSource(asset.name)
-		}) as Asset;
+		return Object.defineProperties(asset, {
+			info: {
+				value: JsAssetInfo.__from_binding(asset.info)
+			},
+			source: {
+				get: () => this.__internal__getAssetSource(asset.name)
+			}
+		}) as unknown as Asset;
 	}
 
 	/**
@@ -930,24 +964,26 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	_rebuildModuleCaller = new MergeCaller(
-		(args: Array<[string, (err: Error, m: Module) => void]>) => {
-			this.#inner.rebuildModule(
-				args.map(item => item[0]),
-				function (err: Error, modules: JsModule[]) {
-					for (const [id, callback] of args) {
-						const m = modules.find(item => item.moduleIdentifier === id);
-						if (m) {
-							callback(err, Module.__from_binding(m));
-						} else {
-							callback(err || new Error("module no found"), null as any);
+	_rebuildModuleCaller = (function (compilation: Compilation) {
+		return new MergeCaller(
+			(args: Array<[string, (err: Error, m: Module) => void]>) => {
+				compilation.#inner.rebuildModule(
+					args.map(item => item[0]),
+					function (err: Error, modules: JsModule[]) {
+						for (const [id, callback] of args) {
+							const m = modules.find(item => item.moduleIdentifier === id);
+							if (m) {
+								callback(err, Module.__from_binding(m, compilation));
+							} else {
+								callback(err || new Error("module no found"), null as any);
+							}
 						}
 					}
-				}
-			);
-		},
-		10
-	);
+				);
+			},
+			10
+		);
+	})(this);
 
 	rebuildModule(m: Module, f: (err: Error, m: Module) => void) {
 		this._rebuildModuleCaller.push([m.identifier(), f]);

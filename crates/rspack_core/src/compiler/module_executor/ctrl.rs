@@ -139,7 +139,7 @@ impl Task<MakeTaskContext> for CtrlTask {
         Event::ExecuteModule(param, execute_task) => {
           let dep_id = match &param {
             EntryParam::DependencyId(id, _) => *id,
-            EntryParam::EntryDependency(dep) => *dep.id(),
+            EntryParam::Entry(dep) => *dep.id(),
           };
           self.execute_task_map.insert(dep_id, execute_task);
           return Ok(vec![Box::new(EntryTask { param }), self]);
@@ -171,7 +171,8 @@ impl Task<MakeTaskContext> for FinishModuleTask {
       module_identifier,
     } = *self;
     let mut res: Vec<Box<dyn Task<MakeTaskContext>>> = vec![];
-    let module_graph = MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
+    let module_graph =
+      MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
     let mut queue = VecDeque::new();
     queue.push_back(module_identifier);
 
@@ -237,7 +238,7 @@ impl Task<MakeTaskContext> for FinishModuleTask {
         Event::ExecuteModule(param, execute_task) => {
           let dep_id = match &param {
             EntryParam::DependencyId(id, _) => *id,
-            EntryParam::EntryDependency(dep) => *dep.id(),
+            EntryParam::Entry(dep) => *dep.id(),
           };
           ctrl_task.execute_task_map.insert(dep_id, execute_task);
           res.push(Box::new(EntryTask { param }));

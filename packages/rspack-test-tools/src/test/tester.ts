@@ -1,9 +1,9 @@
 import {
 	ITestContext,
 	ITestEnv,
+	ITestProcessor,
 	ITester,
-	ITesterConfig,
-	ITestProcessor
+	ITesterConfig
 } from "../type";
 import { TestContext } from "./context";
 
@@ -18,6 +18,13 @@ export class Tester implements ITester {
 		this.steps = config.steps || [];
 		this.step = 0;
 		this.total = config.steps?.length || 0;
+		if (config.contextValue) {
+			for (let [key, value] of Array.from(
+				Object.entries(config.contextValue)
+			)) {
+				this.context.setValue(config.name, key, value);
+			}
+		}
 	}
 	getContext(): ITestContext {
 		return this.context;

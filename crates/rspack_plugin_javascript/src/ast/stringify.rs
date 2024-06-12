@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use rspack_ast::javascript::Ast;
 use rspack_error::{miette::IntoDiagnostic, Result};
-use rspack_util::source_map::SourceMapKind;
 use swc_core::base::config::JsMinifyFormatOptions;
+use swc_core::base::sourcemap;
 use swc_core::{
   common::{
     collections::AHashMap, comments::Comments, source_map::SourceMapGenConfig, BytePos, FileName,
@@ -22,37 +22,22 @@ use swc_core::{
 
 use crate::TransformOutput;
 
-#[derive(Default, Clone)]
-pub struct CodegenOptions {
+#[derive(Default, Clone, Debug)]
+pub struct CodegenOptions<'a> {
   pub target: Option<EsVersion>,
   pub source_map_config: SourceMapConfig,
+  pub input_source_map: Option<&'a sourcemap::SourceMap>,
   pub keep_comments: Option<bool>,
   pub minify: Option<bool>,
   pub ascii_only: Option<bool>,
   pub inline_script: Option<bool>,
 }
 
-impl CodegenOptions {
-  pub fn new(source_map_kind: &SourceMapKind, keep_comments: Option<bool>) -> Self {
-    Self {
-      source_map_config: SourceMapConfig {
-        enable: source_map_kind.enabled(),
-        inline_sources_content: source_map_kind.source_map(),
-        emit_columns: !source_map_kind.cheap(),
-        names: Default::default(),
-      },
-      keep_comments,
-      inline_script: Some(false),
-      ..Default::default()
-    }
-  }
-}
-
 pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> {
   ast.visit(|program, context| {
     let keep_comments = options.keep_comments;
     let target = options.target.unwrap_or(EsVersion::latest());
-    let source_map_kinds = options.source_map_config;
+    let source_map_config = options.source_map_config;
     let minify = options.minify.unwrap_or_default();
     let format_opt = JsMinifyFormatOptions {
       inline_script: options.inline_script.unwrap_or(true),
@@ -63,7 +48,8 @@ pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> 
       program.get_inner_program(),
       context.source_map.clone(),
       target,
-      source_map_kinds,
+      source_map_config,
+      options.input_source_map,
       minify,
       keep_comments
         .unwrap_or_default()
@@ -74,11 +60,13 @@ pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> 
   })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn print(
   node: &SwcProgram,
   source_map: Arc<SourceMap>,
   target: EsVersion,
   source_map_config: SourceMapConfig,
+  input_source_map: Option<&sourcemap::SourceMap>,
   minify: bool,
   comments: Option<&dyn Comments>,
   format: &JsMinifyFormatOptions,
@@ -120,7 +108,7 @@ pub fn print(
     let mut buf = vec![];
 
     source_map
-      .build_source_map_with_config(&src_map_buf, None, source_map_config)
+      .build_source_map_with_config(&src_map_buf, input_source_map, source_map_config)
       .to_writer(&mut buf)
       .unwrap_or_else(|e| panic!("{}", e.to_string()));
     // SAFETY: This buffer is already sanitized
@@ -131,7 +119,7 @@ pub fn print(
   Ok(TransformOutput { code: src, map })
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct SourceMapConfig {
   pub enable: bool,
   pub inline_sources_content: bool,

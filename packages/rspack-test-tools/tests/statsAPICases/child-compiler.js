@@ -56,7 +56,7 @@ module.exports = {
 		        "hotModuleReplacement": false,
 		      },
 		      "name": "TestChild.js",
-		      "size": 700,
+		      "size": 353,
 		      "type": "asset",
 		    },
 		    Object {
@@ -91,7 +91,7 @@ module.exports = {
 		            "hotModuleReplacement": false,
 		          },
 		          "name": "TestChild.js",
-		          "size": 700,
+		          "size": 353,
 		          "type": "asset",
 		        },
 		      ],

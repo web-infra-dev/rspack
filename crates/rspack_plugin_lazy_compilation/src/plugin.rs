@@ -3,8 +3,8 @@ use std::{fmt::Debug, sync::Arc};
 use once_cell::sync::Lazy;
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
-  DependencyType, Module, ModuleFactory, ModuleFactoryCreateData, NormalModuleCreateData,
-  NormalModuleFactoryModule, Plugin, PluginContext,
+  DependencyType, EntryDependency, Module, ModuleFactory, ModuleFactoryCreateData,
+  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -96,22 +96,11 @@ async fn normal_module_factory_module(
   create_data: &mut NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
-  if let Some(query) = &create_data.resource_resolve_data.resource_query
-    && query.contains("lazy-compilation-proxy-dep")
-  {
-    let remaining_query = query.clone().replace("lazy-compilation-proxy-dep", "");
-
-    create_data.resource_resolve_data.resource_query =
-      if remaining_query.is_empty() || remaining_query == "?" {
-        None
-      } else {
-        Some(remaining_query)
-      };
-
-    return Ok(());
-  }
-
   let dep_type = module_factory_create_data.dependency.dependency_type();
+
+  if matches!(dep_type, DependencyType::LazyImport) {
+    return Ok(());
+  };
 
   let is_imports = matches!(
     dep_type,
@@ -139,9 +128,22 @@ async fn normal_module_factory_module(
     return Ok(());
   }
 
-  if !self.entries && is_entries {
-    return Ok(());
+  if is_entries {
+    if !self.entries {
+      return Ok(());
+    }
+
+    // ignore global entry
+    let entry: Option<&EntryDependency> = module_factory_create_data.dependency.downcast_ref();
+    let Some(entry) = entry else {
+      return Ok(());
+    };
+
+    if entry.is_global() {
+      return Ok(());
+    }
   }
+
   if !self.imports && is_imports {
     return Ok(());
   }

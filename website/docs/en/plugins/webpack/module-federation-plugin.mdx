@@ -1,10 +1,28 @@
-import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
+import { ApiMeta, Stability } from '@components/ApiMeta';
 
 # ModuleFederationPlugin
 
 <ApiMeta addedVersion={'0.5.0'} stability={Stability.Experimental} />
 
 This plugin implements [Module Federation 1.5](https://github.com/module-federation/universe/tree/main/packages/enhanced).
+
+## Example
+
+```js
+const rspack = require('@rspack/core');
+
+module.exports = {
+  output: {
+    // set uniqueName explicitly to make HMR works
+    uniqueName: 'app',
+  },
+  plugins: [
+    new rspack.container.ModuleFederationPlugin({
+      // options
+    }),
+  ],
+};
+```
 
 ## Options
 

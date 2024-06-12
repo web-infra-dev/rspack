@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use swc_core::common::Spanned;
 use swc_core::ecma::ast::{
   ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AssignTarget, AssignTargetPat, AwaitExpr,
   Param, SimpleAssignTarget,
@@ -10,7 +11,7 @@ use swc_core::ecma::ast::{DoWhileStmt, ExportDecl, ExportDefaultDecl, ExportDefa
 use swc_core::ecma::ast::{ExprOrSpread, ExprStmt, FnDecl, MemberExpr, MemberProp, VarDeclOrExpr};
 use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValueProp};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
-use swc_core::ecma::ast::{MetaPropExpr, NamedExport, NewExpr, ObjectLit, OptCall, OptChainBase};
+use swc_core::ecma::ast::{MetaPropExpr, NamedExport, NewExpr, ObjectLit, OptCall};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
 use swc_core::ecma::ast::{OptChainExpr, Pat, ThisExpr, UnaryOp};
 use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, TaggedTpl};
@@ -106,18 +107,22 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_module_declaration(&mut self, statement: &ModuleItem) {
     match statement {
-      ModuleItem::ModuleDecl(m) => match m {
-        ModuleDecl::ExportDefaultDecl(decl) => {
-          self.walk_export_default_declaration(decl);
+      ModuleItem::ModuleDecl(m) => {
+        self.statement_path.push(m.span().into());
+        match m {
+          ModuleDecl::ExportDefaultDecl(decl) => {
+            self.walk_export_default_declaration(decl);
+          }
+          ModuleDecl::ExportDecl(decl) => self.walk_export_decl(decl),
+          ModuleDecl::ExportNamed(named) => self.walk_export_named_declaration(named),
+          ModuleDecl::ExportDefaultExpr(expr) => self.walk_export_default_expr(expr),
+          ModuleDecl::ExportAll(_) | ModuleDecl::Import(_) => (),
+          ModuleDecl::TsImportEquals(_)
+          | ModuleDecl::TsExportAssignment(_)
+          | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
         }
-        ModuleDecl::ExportDecl(decl) => self.walk_export_decl(decl),
-        ModuleDecl::ExportNamed(named) => self.walk_export_named_declaration(named),
-        ModuleDecl::ExportDefaultExpr(expr) => self.walk_export_default_expr(expr),
-        ModuleDecl::ExportAll(_) | ModuleDecl::Import(_) => (),
-        ModuleDecl::TsImportEquals(_)
-        | ModuleDecl::TsExportAssignment(_)
-        | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
-      },
+        self.prev_statement = self.statement_path.pop();
+      }
       ModuleItem::Stmt(s) => self.walk_statement(s),
     }
   }
@@ -178,6 +183,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_statement(&mut self, statement: &Stmt) {
+    self.statement_path.push(statement.span().into());
     // TODO: `self.hooks.statement.call`
     let old_last_stmt_is_expr_stmt = self.last_stmt_is_expr_stmt;
     self.stmt_level += 1;
@@ -214,6 +220,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     self.last_stmt_is_expr_stmt = old_last_stmt_is_expr_stmt;
     self.stmt_level -= 1;
+    self.prev_statement = self.statement_path.pop();
   }
 
   fn walk_with_statement(&mut self, stmt: &WithStmt) {
@@ -255,7 +262,9 @@ impl<'parser> JavascriptParser<'parser> {
         });
         this.walk_pattern(param)
       }
+      let prev = this.prev_statement.clone();
       this.block_pre_walk_statements(&catch_clause.body.stmts);
+      this.prev_statement = prev;
       // FIXME: webpack use `this.walk_statement(catch_clause.body)`
       this.walk_block_statement(&catch_clause.body);
     })
@@ -270,7 +279,9 @@ impl<'parser> JavascriptParser<'parser> {
     self.in_block_scope(|this| {
       for case in cases {
         if !case.cons.is_empty() {
+          let prev = this.prev_statement.clone();
           this.block_pre_walk_statements(&case.cons);
+          this.prev_statement = prev;
         }
       }
       for case in cases {
@@ -301,8 +312,12 @@ impl<'parser> JavascriptParser<'parser> {
     if let Some(result) = self.plugin_drive.clone().statement_if(self, stmt) {
       if result {
         self.walk_nested_statement(&stmt.cons);
+        // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
+        self.path_ignored_spans.push(stmt.alt.span());
       } else if let Some(alt) = &stmt.alt {
         self.walk_nested_statement(alt);
+        // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
+        self.path_ignored_spans.push(stmt.cons.span());
       }
     } else {
       self.walk_expression(&stmt.test);
@@ -319,6 +334,7 @@ impl<'parser> JavascriptParser<'parser> {
         match init {
           VarDeclOrExpr::VarDecl(decl) => {
             this.block_pre_walk_variable_declaration(decl);
+            this.prev_statement = None;
             this.walk_variable_declaration(decl);
           }
           VarDeclOrExpr::Expr(expr) => this.walk_expression(expr),
@@ -331,7 +347,9 @@ impl<'parser> JavascriptParser<'parser> {
         this.walk_expression(update)
       }
       if let Some(body) = stmt.body.as_block() {
+        let prev = this.prev_statement.clone();
         this.block_pre_walk_statements(&body.stmts);
+        this.prev_statement = prev;
         this.walk_statements(&body.stmts);
       } else {
         this.walk_nested_statement(&stmt.body);
@@ -344,7 +362,9 @@ impl<'parser> JavascriptParser<'parser> {
       this.walk_for_head(&stmt.left);
       this.walk_expression(&stmt.right);
       if let Some(body) = stmt.body.as_block() {
+        let prev = this.prev_statement.clone();
         this.block_pre_walk_statements(&body.stmts);
+        this.prev_statement = prev;
         this.walk_statements(&body.stmts);
       } else {
         this.walk_nested_statement(&stmt.body);
@@ -357,7 +377,9 @@ impl<'parser> JavascriptParser<'parser> {
       this.walk_for_head(&stmt.left);
       this.walk_expression(&stmt.right);
       if let Some(body) = stmt.body.as_block() {
+        let prev = this.prev_statement.clone();
         this.block_pre_walk_statements(&body.stmts);
+        this.prev_statement = prev;
         this.walk_statements(&body.stmts);
       } else {
         this.walk_nested_statement(&stmt.body);
@@ -572,8 +594,13 @@ impl<'parser> JavascriptParser<'parser> {
         self.walk_prop_name(&method.key);
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
-        // FIXME: maybe we need in_function_scope here
-        self.walk_function(&method.function);
+        self.in_function_scope(
+          true,
+          method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
+          |parser| {
+            parser.walk_function(&method.function);
+          },
+        );
         self.top_level_scope = was_top_level;
       }
     }
@@ -646,10 +673,11 @@ impl<'parser> JavascriptParser<'parser> {
       .optional_chaining(self, expr)
       .is_none()
     {
-      match &*expr.base {
-        OptChainBase::Call(call) => self.walk_opt_call(call),
-        OptChainBase::Member(member) => self.walk_member_expression(member),
-      };
+      self.enter_optional_chain(
+        expr,
+        |parser, call| parser.walk_opt_call(call),
+        |parser, member| parser.walk_member_expression(member),
+      );
     }
   }
 
@@ -666,7 +694,22 @@ impl<'parser> JavascriptParser<'parser> {
           {
             return;
           }
-          // TODO: member_chain
+          if expr_info
+            .root_info
+            .call_hooks_name(self, |this, for_name| {
+              drive.member_chain(
+                this,
+                expr,
+                for_name,
+                &expr_info.members,
+                &expr_info.members_optionals,
+                &expr_info.member_ranges,
+              )
+            })
+            .unwrap_or_default()
+          {
+            return;
+          }
           self.walk_member_expression_with_expression_name(
             expr,
             &expr_info.name,
@@ -694,6 +737,7 @@ impl<'parser> JavascriptParser<'parser> {
         }
       }
     }
+    self.member_expr_in_optional_chain = false;
     self.walk_expression(&expr.obj);
     if let MemberProp::Computed(computed) = &expr.prop {
       self.walk_expression(&computed.expr)
@@ -735,10 +779,13 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn walk_opt_call(&mut self, call: &OptCall) {
-    // TODO: should align to walkCallExpression in webpack.
-    self.walk_expression(&call.callee);
-    self.walk_expr_or_spread(&call.args);
+  fn walk_opt_call(&mut self, expr: &OptCall) {
+    self.walk_call_expression(&CallExpr {
+      span: expr.span,
+      callee: Callee::Expr(expr.callee.clone()),
+      args: expr.args.clone(),
+      type_args: None,
+    })
   }
 
   /// Walk IIFE function
@@ -749,7 +796,7 @@ impl<'parser> JavascriptParser<'parser> {
     &mut self,
     expr: &'a Expr,
     params: impl Iterator<Item = &'a Expr>,
-    current_this: Option<&Expr>,
+    current_this: Option<&'a Expr>,
   ) {
     let mut fn_params = vec![];
     let mut scope_params = vec![];
@@ -804,8 +851,10 @@ impl<'parser> JavascriptParser<'parser> {
       if let Some(expr) = expr.as_fn_expr() {
         if let Some(stmt) = &expr.function.body {
           parser.detect_mode(&stmt.stmts);
+          let prev = parser.prev_statement.clone();
           // FIXME: webpack use `pre_walk_statement` here
           parser.pre_walk_block_statement(stmt);
+          parser.prev_statement = prev;
           // FIXME: webpack use `walk_statement` here
           parser.walk_block_statement(stmt);
         }
@@ -813,8 +862,10 @@ impl<'parser> JavascriptParser<'parser> {
         match &*expr.body {
           BlockStmtOrExpr::BlockStmt(stmt) => {
             parser.detect_mode(&stmt.stmts);
+            let prev = parser.prev_statement.clone();
             // FIXME: webpack use `pre_walk_statement` here
             parser.pre_walk_block_statement(stmt);
+            parser.prev_statement = prev;
             // FIXME: webpack use `walk_statement` here
             parser.walk_block_statement(stmt);
           }
@@ -898,15 +949,31 @@ impl<'parser> JavascriptParser<'parser> {
           }
           let evaluated_callee = self.evaluate_expression(callee);
           if evaluated_callee.is_identifier() {
+            let members = evaluated_callee
+              .members()
+              .map(Cow::Borrowed)
+              .unwrap_or_else(|| Cow::Owned(Vec::new()));
+            let members_optionals = evaluated_callee
+              .members_optionals()
+              .map(Cow::Borrowed)
+              .unwrap_or_else(|| Cow::Owned(members.iter().map(|_| false).collect::<Vec<_>>()));
+            let member_ranges = evaluated_callee
+              .member_ranges()
+              .map(Cow::Borrowed)
+              .unwrap_or_else(|| Cow::Owned(Vec::new()));
             let drive = self.plugin_drive.clone();
-            if drive
-              .call_member_chain(
-                self,
-                evaluated_callee.root_info(),
-                expr,
-                // evaluated_callee.get_members(),
-                // evaluated_callee.identifier(),
-              )
+            if evaluated_callee
+              .root_info()
+              .call_hooks_name(self, |parser, for_name| {
+                drive.call_member_chain(
+                  parser,
+                  expr,
+                  for_name,
+                  &members,
+                  &members_optionals,
+                  &member_ranges,
+                )
+              })
               .unwrap_or_default()
             {
               /* result1 */
@@ -981,6 +1048,9 @@ impl<'parser> JavascriptParser<'parser> {
       {
         if keep_right {
           self.walk_expression(&expr.right);
+        } else {
+          // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
+          self.path_ignored_spans.push(expr.right.span());
         }
       } else {
         self.walk_left_right_expression(expr)
@@ -1093,8 +1163,10 @@ impl<'parser> JavascriptParser<'parser> {
       match &*expr.body {
         BlockStmtOrExpr::BlockStmt(stmt) => {
           this.detect_mode(&stmt.stmts);
+          let prev = this.prev_statement.clone();
           // FIXME: webpack use `pre_walk_statement` here
           this.pre_walk_block_statement(stmt);
+          this.prev_statement = prev;
           // FIXME: webpack use `walk_statement` here
           this.walk_block_statement(stmt);
         }
@@ -1122,7 +1194,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_nested_statement(&mut self, stmt: &Stmt) {
-    // TODO: self.prev_statement = undefined;
+    self.prev_statement = None;
     self.walk_statement(stmt);
   }
 
@@ -1133,7 +1205,9 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_block_statement(&mut self, stmt: &BlockStmt) {
     self.in_block_scope(|this| {
+      let prev = this.prev_statement.clone();
       this.block_pre_walk_statements(&stmt.stmts);
+      this.prev_statement = prev;
       this.walk_statements(&stmt.stmts);
     })
   }
@@ -1161,8 +1235,10 @@ impl<'parser> JavascriptParser<'parser> {
     }
     if let Some(body) = &f.body {
       self.detect_mode(&body.stmts);
+      let prev = self.prev_statement.clone();
       // FIXME: webpack use `pre_walk_statement` here
       self.pre_walk_block_statement(body);
+      self.prev_statement = prev;
       // FIXME: webpack use `walk_statement` here
       self.walk_block_statement(body);
     }
@@ -1325,7 +1401,6 @@ impl<'parser> JavascriptParser<'parser> {
                 for param in &method.function.params {
                   this.walk_pattern(&param.pat);
                 }
-
                 // TODO: `hooks.body_value`;
                 if let Some(body) = &method.function.body {
                   this.walk_block_statement(body);
@@ -1335,13 +1410,16 @@ impl<'parser> JavascriptParser<'parser> {
             this.top_level_scope = was_top_level;
           }
           ClassMember::PrivateMethod(method) => {
-            this.walk_identifier(&method.key.id);
+            // method.key is always not computed in private method, so we don't need to walk it
             let was_top_level = this.top_level_scope;
             this.top_level_scope = TopLevelScope::False;
             this.in_function_scope(
               true,
               method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
               |this| {
+                for param in &method.function.params {
+                  this.walk_pattern(&param.pat);
+                }
                 // TODO: `hooks.body_value`;
                 if let Some(body) = &method.function.body {
                   this.walk_block_statement(body);

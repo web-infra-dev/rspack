@@ -11,12 +11,12 @@ use swc_core::common::Span;
 
 use crate::{
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerContext, CompilerOptions, Context,
+  stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerOptions, Context,
   DependencyCategory, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserOptions, RawModule, Resolve,
   ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
-  ResourceData, ResourceParsedData, SharedPluginDriver,
+  ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
@@ -131,8 +131,6 @@ impl NormalModuleFactory {
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
 
-    let scheme = get_scheme(request_without_match_resource);
-    let context_scheme = get_scheme(data.context.as_ref());
     let plugin_driver = &self.plugin_driver;
     let loader_resolver = self.get_loader_resolver();
 
@@ -143,79 +141,78 @@ impl NormalModuleFactory {
     let mut no_auto_loaders = false;
     let mut no_pre_post_auto_loaders = false;
 
-    // with scheme, windows absolute path is considered scheme by `url`
-    let resource_data = if scheme != Scheme::None
-      && !Path::is_absolute(Path::new(request_without_match_resource))
-    {
-      let mut resource_data =
-        ResourceData::new(request_without_match_resource.to_string(), "".into());
-      // resource with scheme
-      plugin_driver
-        .normal_module_factory_hooks
-        .resolve_for_scheme
-        .call(data, &mut resource_data)
-        .await?;
-      resource_data
-    }
-    // TODO: resource within scheme, call resolveInScheme hook
-    else {
-      {
-        request_without_match_resource = {
-          let match_resource_match = MATCH_RESOURCE_REGEX.captures(request_without_match_resource);
-          if let Some(m) = match_resource_match {
-            let mut match_resource: String = m
-              .get(1)
-              .expect("Should have match resource")
-              .as_str()
-              .to_owned();
-            let mut chars = match_resource.chars();
-            let first_char = chars.next();
-            let second_char = chars.next();
+    request_without_match_resource = {
+      let match_resource_match = MATCH_RESOURCE_REGEX.captures(request_without_match_resource);
+      if let Some(m) = match_resource_match {
+        let mut match_resource: String = m
+          .get(1)
+          .expect("Should have match resource")
+          .as_str()
+          .to_owned();
+        let mut chars = match_resource.chars();
+        let first_char = chars.next();
+        let second_char = chars.next();
 
-            if matches!(first_char, Some('.'))
-              && (matches!(second_char, Some('/'))
-                || (matches!(second_char, Some('.')) && matches!(chars.next(), Some('/'))))
-            {
-              // if matchResources startsWith ../ or ./
-              match_resource = data
-                .context
-                .as_path()
-                .join(match_resource)
-                .absolutize()
-                .to_string_lossy()
-                .to_string();
-            }
+        if matches!(first_char, Some('.'))
+          && (matches!(second_char, Some('/'))
+            || (matches!(second_char, Some('.')) && matches!(chars.next(), Some('/'))))
+        {
+          // if matchResources startsWith ../ or ./
+          match_resource = data
+            .context
+            .as_path()
+            .join(match_resource)
+            .absolutize()
+            .to_string_lossy()
+            .to_string();
+        }
 
-            let ResourceParsedData {
-              path,
-              query,
-              fragment,
-            } = parse_resource(&match_resource).expect("Should parse resource");
-            match_resource_data = Some(
-              ResourceData::new(match_resource, path)
-                .query_optional(query)
-                .fragment_optional(fragment),
-            );
+        let ResourceParsedData {
+          path,
+          query,
+          fragment,
+        } = parse_resource(&match_resource).expect("Should parse resource");
+        match_resource_data = Some(
+          ResourceData::new(match_resource, path)
+            .query_optional(query)
+            .fragment_optional(fragment),
+        );
 
-            // e.g. ./index.js!=!
-            let whole_matched = m.get(0).expect("Whole matched").as_str();
+        // e.g. ./index.js!=!
+        let whole_matched = m.get(0).expect("Whole matched").as_str();
 
-            match request_without_match_resource
-              .char_indices()
-              .nth(whole_matched.chars().count())
-            {
-              Some((pos, _)) => &request_without_match_resource[pos..],
-              None => {
-                unreachable!("Invalid dependency: {:?}", &data.dependency)
-              }
-            }
-          } else {
-            request_without_match_resource
+        match request_without_match_resource
+          .char_indices()
+          .nth(whole_matched.chars().count())
+        {
+          Some((pos, _)) => &request_without_match_resource[pos..],
+          None => {
+            unreachable!("Invalid dependency: {:?}", &data.dependency)
           }
-        };
+        }
+      } else {
+        request_without_match_resource
+      }
+    };
 
-        // dbg!(&match_resource_data);
+    let scheme = get_scheme(request_without_match_resource);
+    let context_scheme = get_scheme(data.context.as_ref());
 
+    // with scheme, windows absolute path is considered scheme by `url`
+    let resource_data =
+      if scheme != Scheme::None && !Path::is_absolute(Path::new(request_without_match_resource)) {
+        let mut resource_data =
+          ResourceData::new(request_without_match_resource.to_string(), "".into());
+        // resource with scheme
+        plugin_driver
+          .normal_module_factory_hooks
+          .resolve_for_scheme
+          .call(data, &mut resource_data)
+          .await?;
+        resource_data
+      }
+      // TODO: resource within scheme, call resolveInScheme hook
+      else {
         let mut request = request_without_match_resource.chars();
         let first_char = request.next();
         let second_char = request.next();
@@ -252,80 +249,93 @@ impl NormalModuleFactory {
           .pop()
           .ok_or_else(|| error!("Invalid request: {request_without_match_resource}"))?;
 
-        inline_loaders.extend(raw_elements.into_iter().map(|r| ModuleRuleUseLoader {
-          loader: r.to_owned(),
-          options: None,
+        inline_loaders.extend(raw_elements.into_iter().map(|r| {
+          let resource = parse_resource(r);
+          let ident = resource.as_ref().and_then(|r| {
+            r.query
+              .as_ref()
+              .and_then(|q| q.starts_with("??").then(|| &q[2..]))
+          });
+          ModuleRuleUseLoader {
+            loader: r.to_owned(),
+            options: ident.and_then(|ident| {
+              data
+                .options
+                .__references
+                .get(ident)
+                .map(|object| object.to_string())
+            }),
+          }
         }));
-      }
 
-      if request_without_match_resource.is_empty()
-        || request_without_match_resource.starts_with('?')
-      {
-        let ResourceParsedData {
-          path,
-          query,
-          fragment,
-        } = parse_resource(request_without_match_resource).expect("Should parse resource");
-        ResourceData::new(request_without_match_resource.to_string(), path)
-          .query_optional(query)
-          .fragment_optional(fragment)
-      } else {
-        let optional = dependency.get_optional();
+        if request_without_match_resource.is_empty()
+          || request_without_match_resource.starts_with('?')
+        {
+          let ResourceParsedData {
+            path,
+            query,
+            fragment,
+          } = parse_resource(request_without_match_resource).expect("Should parse resource");
+          ResourceData::new(request_without_match_resource.to_string(), path)
+            .query_optional(query)
+            .fragment_optional(fragment)
+        } else {
+          let optional = dependency.get_optional();
 
-        let resolve_args = ResolveArgs {
-          importer,
-          issuer: data.issuer.as_deref(),
-          context: if context_scheme != Scheme::None {
-            self.options.context.clone()
-          } else {
-            data.context.clone()
-          },
-          specifier: request_without_match_resource,
-          dependency_type: dependency.dependency_type(),
-          dependency_category: dependency.category(),
-          span: dependency.source_span(),
-          // take the options is safe here, because it
-          // is not used in after_resolve hooks
-          resolve_options: data.resolve_options.take(),
-          resolve_to_context: false,
-          optional,
-          file_dependencies: &mut file_dependencies,
-          missing_dependencies: &mut missing_dependencies,
-        };
+          let resolve_args = ResolveArgs {
+            importer,
+            issuer: data.issuer.as_deref(),
+            context: if context_scheme != Scheme::None {
+              self.options.context.clone()
+            } else {
+              data.context.clone()
+            },
+            specifier: request_without_match_resource,
+            dependency_type: dependency.dependency_type(),
+            dependency_category: dependency.category(),
+            span: dependency.source_span(),
+            // take the options is safe here, because it
+            // is not used in after_resolve hooks
+            resolve_options: data.resolve_options.take(),
+            resolve_to_context: false,
+            optional,
+            file_dependencies: &mut file_dependencies,
+            missing_dependencies: &mut missing_dependencies,
+          };
 
-        // default resolve
-        let resource_data = resolve(resolve_args, plugin_driver).await;
+          // default resolve
+          let resource_data = resolve(resolve_args, plugin_driver).await;
 
-        match resource_data {
-          Ok(ResolveResult::Resource(resource)) => {
-            let uri = resource.full_path().display().to_string();
-            ResourceData::new(uri, resource.path)
-              .query(resource.query)
-              .fragment(resource.fragment)
-              .description_optional(resource.description_data)
-          }
-          Ok(ResolveResult::Ignored) => {
-            let ident = format!("{}/{}", &data.context, request_without_match_resource);
-            let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
+          match resource_data {
+            Ok(ResolveResult::Resource(resource)) => {
+              let uri = resource.full_path().display().to_string();
+              ResourceData::new(uri, resource.path)
+                .query(resource.query)
+                .fragment(resource.fragment)
+                .description_optional(resource.description_data)
+            }
+            Ok(ResolveResult::Ignored) => {
+              let ident = format!("{}/{}", &data.context, request_without_match_resource);
+              let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
-            let raw_module = RawModule::new(
-              "/* (ignored) */".to_owned(),
-              module_identifier,
-              format!("{ident} (ignored)"),
-              Default::default(),
-            )
-            .boxed();
+              let raw_module = RawModule::new(
+                "/* (ignored) */".to_owned(),
+                module_identifier,
+                format!("{ident} (ignored)"),
+                Default::default(),
+              )
+              .boxed();
 
-            return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
-          }
-          Err(err) => {
-            data.add_file_dependencies(file_dependencies);
-            data.add_missing_dependencies(missing_dependencies);
-            return Err(err);
+              return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
+            }
+            Err(err) => {
+              data.add_file_dependencies(file_dependencies);
+              data.add_missing_dependencies(missing_dependencies);
+              return Err(err);
+            }
           }
         }
-      }
-    };
+      };
 
     let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data
       && let Some(captures) = MATCH_WEBPACK_EXT_REGEX.captures(&match_resource_data.resource)
@@ -445,7 +455,7 @@ impl NormalModuleFactory {
         context: &Context,
         loader_resolver: &Resolver,
         l: &ModuleRuleUseLoader,
-      ) -> Result<Arc<dyn Loader<CompilerContext>>> {
+      ) -> Result<Arc<dyn Loader<RunnerContext>>> {
         plugin_driver
           .normal_module_factory_hooks
           .resolve_loader
@@ -541,7 +551,7 @@ impl NormalModuleFactory {
         resolved_parser_options,
         resolved_generator_options,
         match_resource_data,
-        create_data.resource_resolve_data.clone(),
+        Arc::new(create_data.resource_resolve_data.clone()),
         resolved_resolve_options,
         loaders,
         contains_inline,
@@ -672,7 +682,7 @@ impl NormalModuleFactory {
     matched_module_type: Option<ModuleType>,
     module_rules: &[&ModuleRule],
   ) -> ModuleType {
-    let mut resolved_module_type = matched_module_type.unwrap_or(ModuleType::Js);
+    let mut resolved_module_type = matched_module_type.unwrap_or(ModuleType::JsAuto);
 
     module_rules.iter().for_each(|module_rule| {
       if let Some(module_type) = module_rule.r#type {

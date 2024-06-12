@@ -14,8 +14,8 @@ import fs from "graceful-fs";
 import type { Compiler } from "..";
 import type { InfrastructureLogging } from "../config";
 import createConsoleLogger from "../logging/createConsoleLogger";
-import nodeConsole from "./nodeConsole";
 import NodeWatchFileSystem from "./NodeWatchFileSystem";
+import nodeConsole from "./nodeConsole";
 
 export interface NodeEnvironmentPluginOptions {
 	infrastructureLogging: InfrastructureLogging;

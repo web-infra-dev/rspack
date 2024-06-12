@@ -1,7 +1,7 @@
-import { MultiRspackOptions, RspackOptions } from "@rspack/core";
 import fs from "fs";
-import interpret from "interpret";
 import path from "path";
+import { MultiRspackOptions, RspackOptions } from "@rspack/core";
+import interpret from "interpret";
 import rechoir from "rechoir";
 
 import { RspackCLIOptions } from "../types";

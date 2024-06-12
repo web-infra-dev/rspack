@@ -852,7 +852,7 @@ impl Module for ContextModule {
   impl_module_meta_info!();
 
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::Js
+    &ModuleType::JsAuto
   }
 
   fn source_types(&self) -> &[SourceType] {
@@ -911,7 +911,7 @@ impl Module for ContextModule {
       build_info,
       build_meta: BuildMeta {
         exports_type: BuildMetaExportsType::Default,
-        default_object: BuildMetaDefaultObject::RedirectWarn,
+        default_object: BuildMetaDefaultObject::RedirectWarn { ignore: false },
         ..Default::default()
       },
       dependencies,

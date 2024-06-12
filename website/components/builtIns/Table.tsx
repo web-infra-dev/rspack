@@ -1,10 +1,10 @@
-import { ReactNode } from 'react';
 import Markdown from 'markdown-to-jsx';
+import { ReactNode } from 'react';
 import {
   Table as ModernTable,
+  Td as ModernTableData,
   Th as ModernTableHead,
   Tr as ModernTableRow,
-  Td as ModernTableData,
 } from './mdx-components';
 
 interface TableProps {

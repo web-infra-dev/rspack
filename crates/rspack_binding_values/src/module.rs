@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::Module;
+use rspack_core::{CompilerModuleContext, Module};
 use rspack_napi::napi::bindgen_prelude::*;
 
 use super::{JsCompatSource, ToJsCompatSource};
@@ -13,6 +13,8 @@ pub struct JsModule {
   pub resource: Option<String>,
   pub module_identifier: String,
   pub name_for_condition: Option<String>,
+  pub request: Option<String>,
+  pub user_request: Option<String>,
   pub raw_request: Option<String>,
 }
 
@@ -45,6 +47,8 @@ impl ToJsModule for dyn Module {
         ),
         module_identifier: module_identifier(),
         name_for_condition: name_for_condition(),
+        request: Some(normal_module.request().to_string()),
+        user_request: Some(normal_module.user_request().to_string()),
         raw_request: Some(normal_module.raw_request().to_string()),
       })
       .or_else(|_| {
@@ -55,6 +59,8 @@ impl ToJsModule for dyn Module {
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
           raw_request: None,
+          user_request: None,
+          request: None,
         })
       })
       .or_else(|_| {
@@ -65,6 +71,8 @@ impl ToJsModule for dyn Module {
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
           raw_request: None,
+          user_request: None,
+          request: None,
         })
       })
       .or_else(|_| {
@@ -75,6 +83,8 @@ impl ToJsModule for dyn Module {
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
           raw_request: None,
+          user_request: None,
+          request: None,
         })
       })
       .or_else(|_| {
@@ -85,6 +95,25 @@ impl ToJsModule for dyn Module {
           ..Default::default()
         })
       })
+  }
+}
+
+impl ToJsModule for CompilerModuleContext {
+  fn to_js_module(&self) -> Result<JsModule> {
+    let module = JsModule {
+      context: self.context.as_ref().map(|c| c.to_string()),
+      module_identifier: self.module_identifier.to_string(),
+      name_for_condition: self.name_for_condition.clone(),
+      resource: self
+        .resource
+        .as_ref()
+        .map(|r| r.resource_path.to_string_lossy().to_string()),
+      original_source: None,
+      request: self.request.clone(),
+      user_request: self.user_request.clone(),
+      raw_request: self.raw_request.clone(),
+    };
+    Ok(module)
   }
 }
 

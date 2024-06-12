@@ -13,7 +13,6 @@ pub struct AddTask {
   pub module: Box<dyn Module>,
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<DependencyId>,
-  pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
 }
 
@@ -27,8 +26,9 @@ impl Task<MakeTaskContext> for AddTask {
     }
 
     let module_identifier = self.module.identifier();
+    let artifact = &mut context.artifact;
     let module_graph =
-      &mut MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
+      &mut MakeTaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
 
     if self.module.as_self_module().is_some() {
       let issuer = self
@@ -71,10 +71,6 @@ impl Task<MakeTaskContext> for AddTask {
       self.dependencies,
       module_identifier,
     )?;
-
-    if self.is_entry {
-      context.entry_module_identifiers.insert(module_identifier);
-    }
 
     if let Some(current_profile) = &self.current_profile {
       current_profile.mark_integration_end();

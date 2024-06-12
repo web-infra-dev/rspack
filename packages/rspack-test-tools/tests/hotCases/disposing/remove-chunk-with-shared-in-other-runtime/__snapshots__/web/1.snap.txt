@@ -8,7 +8,7 @@
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: [runtime of chunk2_js].LAST_HASH.hot-update.json, size: 65
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: main.LAST_HASH.hot-update.js, size: 18230
+- Update: main.LAST_HASH.hot-update.js, size: 18224
 
 ## Manifest
 
@@ -46,6 +46,8 @@ self["webpackHotUpdate"]('main', {
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* harmony default export */ __webpack_exports__["default"] = (42);
+
+
 }),
 
 },function(__webpack_require__) {
@@ -98,7 +100,7 @@ if (installedChunkData !== 0) {
 						error.message =
 							'Loading chunk ' +
 							chunkId +
-							' failed.\n(' +
+							' failed./n(' +
 							errorType +
 							': ' +
 							realSrc +
@@ -135,7 +137,7 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
 				error.message =
 					'Loading hot update chunk ' +
 					chunkId +
-					' failed.\n(' +
+					' failed./n(' +
 					errorType +
 					': ' +
 					realSrc +
@@ -282,7 +284,7 @@ function applyHandler(options) {
 			var doDispose = false;
 			var chainInfo = "";
 			if (result.chain) {
-				chainInfo = "\nUpdate propagation: " + result.chain.join(" -> ");
+				chainInfo = "/nUpdate propagation: " + result.chain.join(" -> ");
 			}
 			switch (result.type) {
 				case "self-declined":

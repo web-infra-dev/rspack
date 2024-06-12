@@ -41,10 +41,6 @@ impl Dependency for ImportMetaHotAcceptDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "ImportMetaHotAcceptDependency"
-  }
 }
 
 impl ModuleDependency for ImportMetaHotAcceptDependency {

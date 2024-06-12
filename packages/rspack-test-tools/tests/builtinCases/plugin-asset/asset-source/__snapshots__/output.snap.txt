@@ -5,10 +5,15 @@
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _data_txt__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./data.txt");
 
+
 console.log(_data_txt__WEBPACK_IMPORTED_MODULE_0__);
+
+
 }),
 "./data.txt": (function (module) {
-module.exports = "- Isn't Rspack a gamechanging bundler?\n  - Hella yeah!";}),
+module.exports = "- Isn't Rspack a gamechanging bundler?\n  - Hella yeah!";
+
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

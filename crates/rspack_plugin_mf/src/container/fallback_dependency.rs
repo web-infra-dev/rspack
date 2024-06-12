@@ -22,10 +22,6 @@ impl FallbackDependency {
 }
 
 impl Dependency for FallbackDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "FallbackDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

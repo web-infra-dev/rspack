@@ -10,28 +10,13 @@ module.exports = {
 	async check(stats) {
 		expect(stats?.toString({ timings: false, version: false }))
 			.toMatchInlineSnapshot(`
-		"PublicPath: auto
-		asset main.js 700 bytes [emitted] (name: main)
-		Entrypoint main 700 bytes = main.js
+		"asset main.js 353 bytes [emitted] (name: main)
+		Entrypoint main 353 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
 		./fixtures/abc.js
-
-		ERROR in ./fixtures/b.js
-		  × Module parse failed:
-		  ╰─▶   × JavaScript parsing error: Return statement is not allowed here
-		         ╭─[4:1]
-		       4 │
-		       5 │ // Test CJS top-level return
-		       6 │ return;
-		         · ───────
-		         ╰────
-		      
-		  help: 
-		        You may need an appropriate loader to handle this file type.
-
-		Rspack compiled with 1 error (d28076e3fa339b42cdf4)"
+		Rspack compiled successfully"
 	`);
 	}
 };

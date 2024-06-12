@@ -16,6 +16,7 @@ import {
 	RspackOptionsNormalized,
 	RspackPluginFunction
 } from ".";
+import { Module } from "./Module";
 import {
 	APIPlugin,
 	ArrayPushCallbackChunkFormatPlugin,
@@ -52,6 +53,8 @@ import {
 	ModuleConcatenationPlugin,
 	NamedChunkIdsPlugin,
 	NamedModuleIdsPlugin,
+	NaturalChunkIdsPlugin,
+	NaturalModuleIdsPlugin,
 	NodeTargetPlugin,
 	RealContentHashPlugin,
 	RemoveEmptyChunksPlugin,
@@ -66,8 +69,8 @@ import {
 } from "./builtin-plugin";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
-import { Module } from "./Module";
 import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
+import { DefaultStatsPresetPlugin } from "./stats/DefaultStatsPresetPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { assertNotNill } from "./util/assertNotNil";
 import { cleverMerge } from "./util/cleverMerge";
@@ -308,6 +311,10 @@ export class RspackOptionsApply {
 					new NamedModuleIdsPlugin().apply(compiler);
 					break;
 				}
+				case "natural": {
+					new NaturalModuleIdsPlugin().apply(compiler);
+					break;
+				}
 				case "deterministic": {
 					new DeterministicModuleIdsPlugin().apply(compiler);
 					break;
@@ -319,6 +326,9 @@ export class RspackOptionsApply {
 		const chunkIds = options.optimization.chunkIds;
 		if (chunkIds) {
 			switch (chunkIds) {
+				case "natural": {
+					new NaturalChunkIdsPlugin().apply(compiler);
+				}
 				case "named": {
 					new NamedChunkIdsPlugin().apply(compiler);
 					break;
@@ -361,6 +371,7 @@ export class RspackOptionsApply {
 		).apply(compiler);
 
 		new DefaultStatsFactoryPlugin().apply(compiler);
+		new DefaultStatsPresetPlugin().apply(compiler);
 		new DefaultStatsPrinterPlugin().apply(compiler);
 
 		if (options.ignoreWarnings && options.ignoreWarnings.length > 0) {

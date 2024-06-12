@@ -1,8 +1,8 @@
+import path from "path";
 import { Chunk } from "@rspack/core";
 import fs from "fs-extra";
-import path from "path";
 
-import { escapeEOL, escapeSep } from "../helper";
+import { escapeEOL, escapeSep, replacePaths } from "../helper";
 import { THotStepRuntimeData } from "../runner";
 import {
 	ECompilerType,
@@ -16,6 +16,11 @@ import {
 import { HotProcessor, IHotProcessorOptions } from "./hot";
 
 const escapeLocalName = (str: string) => str.split(/[-<>:"/|?*.]/).join("_");
+
+type TModuleGetHandler = (
+	file: string,
+	options: TCompilerOptions<ECompilerType>
+) => string[];
 
 declare var global: {
 	self?: {
@@ -46,18 +51,24 @@ const SELF_HANDLER = (
 	return res;
 };
 
-const GET_MODULE_HANDLER = {
+const NODE_HANDLER = (file: string): string[] => {
+	return Object.keys(require(file).modules) || [];
+};
+
+const GET_MODULE_HANDLER: Record<string, TModuleGetHandler> = {
 	web: SELF_HANDLER,
-	"async-node": (file: string): string[] => {
-		return Object.keys(require(file).modules) || [];
-	},
-	webworker: SELF_HANDLER
+	webworker: SELF_HANDLER,
+	"async-node": NODE_HANDLER,
+	node: NODE_HANDLER
 };
 
 type TSupportTarget = keyof typeof GET_MODULE_HANDLER;
 
 export interface IHotSnapshotProcessorOptions<T extends ECompilerType>
-	extends IHotProcessorOptions<T> {}
+	extends IHotProcessorOptions<T> {
+	getModuleHandler?: TModuleGetHandler;
+	snapshot?: string;
+}
 
 export class HotSnapshotProcessor<
 	T extends ECompilerType
@@ -148,12 +159,13 @@ export class HotSnapshotProcessor<
 		const compiler = this.getCompiler(context);
 		const compilerOptions = compiler.getOptions();
 		const getModuleHandler =
+			this._hotOptions.getModuleHandler ||
 			GET_MODULE_HANDLER[compilerOptions.target as TSupportTarget];
 		env.expect(typeof getModuleHandler).toBe("function");
 
 		const lastHash = this.hashes[this.hashes.length - 1];
 		const snapshotPath = context.getSource(
-			`__snapshots__/${compilerOptions.target}/${step}.snap.txt`
+			`${this._hotOptions.snapshot || `__snapshots__/${compilerOptions.target}`}/${step}.snap.txt`
 		);
 		const title = `Case ${path.basename(this._options.name)}: Step ${step}`;
 		const hotUpdateFile: Array<{
@@ -177,9 +189,15 @@ export class HotSnapshotProcessor<
 		// replace [runtime] to [runtime of id] to prevent worker hash
 		const runtimes: Record<string, string> = {};
 		for (let [id, runtime] of Object.entries(this.entries)) {
-			for (let r of runtime) {
-				if (r !== id) {
-					runtimes[r] = `[runtime of ${id}]`;
+			if (typeof runtime === "string") {
+				if (runtime !== id) {
+					runtimes[runtime] = `[runtime of ${id}]`;
+				}
+			} else if (Array.isArray(runtime)) {
+				for (let r of runtime) {
+					if (r !== id) {
+						runtimes[r] = `[runtime of ${id}]`;
+					}
 				}
 			}
 		}
@@ -188,7 +206,9 @@ export class HotSnapshotProcessor<
 			for (let [raw, replacement] of Object.entries(hashes)) {
 				str = str.split(raw).join(replacement);
 			}
-			return str;
+			// handle timestamp in css-extract
+			str = str.replace(/\/\/ (\d+)\s+(?=var cssReload)/, "");
+			return replacePaths(str);
 		};
 
 		const replaceFileName = (str: string) => {
@@ -227,7 +247,7 @@ export class HotSnapshotProcessor<
 						modules,
 						runtime
 					});
-					return `- Update: ${renderName}, size: ${i.size}`;
+					return `- Update: ${renderName}, size: ${content.length}`;
 				} else if (fileName.endsWith("hot-update.json")) {
 					const manifest = JSON.parse(content);
 					manifest.c?.sort();
@@ -358,6 +378,6 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 
 				`.trim();
 
-		expect(escapeEOL(content)).toMatchFileSnapshot(snapshotPath);
+		env.expect(escapeEOL(content)).toMatchFileSnapshot(snapshotPath);
 	}
 }

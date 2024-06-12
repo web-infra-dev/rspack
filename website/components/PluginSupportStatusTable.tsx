@@ -1,5 +1,5 @@
-import React from 'react';
 import { Table } from '@builtIns/Table';
+import React from 'react';
 import { useLang } from 'rspress/runtime';
 import S from './PluginSupportStatusTable.module.scss';
 
@@ -45,11 +45,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   {
     name: 'BannerPlugin',
     url: '/plugins/webpack/banner-plugin',
-    status: SupportStatus.PartiallySupported,
-    notes: {
-      en: '`stage` option not supported',
-      zh: '不支持 `stage` 选项',
-    },
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'ContextExclusionPlugin',
@@ -403,6 +399,10 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     status: SupportStatus.FullySupported,
   },
   {
+    name: 'NaturalChunkIdsPlugin',
+    status: SupportStatus.FullySupported,
+  },
+  {
     name: 'NamedChunkIdsPlugin',
     status: SupportStatus.PartiallySupported,
     notes: {
@@ -420,7 +420,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'NaturalModuleIdsPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'OccurrenceChunkIdsPlugin',

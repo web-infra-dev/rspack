@@ -1,12 +1,12 @@
 /// <reference types="../jest.d.ts" />
 
+import EventEmitter from "events";
 import {
 	Compiler as RspackCompiler,
 	RspackOptions,
 	Stats as RspackStats,
 	StatsCompilation as RspackStatsCompilation
 } from "@rspack/core";
-import EventEmitter from "events";
 import type {
 	Compiler as WebpackCompiler,
 	Configuration as WebpackOptions,
@@ -89,6 +89,7 @@ export interface ITesterConfig {
 	steps?: ITestProcessor[];
 	testConfig?: TTestConfig<ECompilerType>;
 	compilerFactories?: TCompilerFactories;
+	contextValue?: Record<string, unknown>;
 	runnerFactory?: new (
 		name: string,
 		context: ITestContext
@@ -179,7 +180,13 @@ export interface ITestEnv {
 	[key: string]: unknown;
 }
 
+export const enum EDocumentType {
+	Fake = "fake",
+	JSDOM = "jsdom"
+}
+
 export type TTestConfig<T extends ECompilerType> = {
+	documentType?: EDocumentType;
 	validate?: (stats: TCompilerStats<T>, stderr?: string) => void;
 	noTest?: boolean;
 	beforeExecute?: () => void;

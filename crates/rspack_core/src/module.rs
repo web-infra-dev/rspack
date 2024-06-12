@@ -17,14 +17,13 @@ use swc_core::ecma::atoms::Atom;
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
-  CompilerContext, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule,
-  ImmutableModuleGraph, ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleType,
-  MutableModuleGraph, NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SourceType,
+  CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
+  DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule, ImmutableModuleGraph,
+  ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleType, MutableModuleGraph, NormalModule,
+  RawModule, Resolve, RunnerContext, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 pub struct BuildContext<'a> {
-  pub compiler_context: CompilerContext,
+  pub compiler_context: RunnerContext,
   pub plugin_driver: SharedPluginDriver,
   pub compiler_options: &'a CompilerOptions,
 }
@@ -99,7 +98,13 @@ pub enum BuildMetaDefaultObject {
   #[default]
   False,
   Redirect,
-  RedirectWarn,
+  RedirectWarn {
+    // Whether to ignore the warning, should use false for most cases
+    // Only ignore the cases that do not follow the standards but are
+    // widely used by the community, making it difficult to migrate.
+    // For example, JSON named exports.
+    ignore: bool,
+  },
 }
 
 #[derive(Debug, Default, Clone, Copy, Hash)]
@@ -344,24 +349,29 @@ pub trait Module:
     ConnectionState::Bool(true)
   }
 
-  fn is_available(&self, modified_file: &HashSet<PathBuf>) -> bool {
+  fn need_build(&self) -> bool {
     if let Some(build_info) = self.build_info() {
       if !build_info.cacheable {
-        return false;
+        return true;
       }
+    }
+    false
+  }
 
+  fn depends_on(&self, modified_file: &HashSet<PathBuf>) -> bool {
+    if let Some(build_info) = self.build_info() {
       for item in modified_file {
         if build_info.file_dependencies.contains(item)
           || build_info.build_dependencies.contains(item)
           || build_info.context_dependencies.contains(item)
           || build_info.missing_dependencies.contains(item)
         {
-          return false;
+          return true;
         }
       }
     }
 
-    true
+    false
   }
 }
 
@@ -386,7 +396,7 @@ fn get_exports_type_impl(
       BuildMetaExportsType::Namespace => ExportsType::Namespace,
       BuildMetaExportsType::Default => match default_object {
         BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
-        BuildMetaDefaultObject::RedirectWarn => {
+        BuildMetaDefaultObject::RedirectWarn { .. } => {
           if strict {
             ExportsType::DefaultOnly
           } else {
@@ -402,7 +412,7 @@ fn get_exports_type_impl(
           fn handle_default(default_object: &BuildMetaDefaultObject) -> ExportsType {
             match default_object {
               BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
-              BuildMetaDefaultObject::RedirectWarn => ExportsType::DefaultWithNamed,
+              BuildMetaDefaultObject::RedirectWarn { .. } => ExportsType::DefaultWithNamed,
               _ => ExportsType::DefaultOnly,
             }
           }

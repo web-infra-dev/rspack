@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -9,6 +9,8 @@
     ".": {
       "default": "./dist/index.js"
     },
+    "./setup-expect": "./dist/helper/setup-expect.js",
+    "./setup-env": "./dist/helper/setup-env.js",
     "./package.json": "./package.json"
   },
   "scripts": {

@@ -87,7 +87,7 @@ impl Module for RawModule {
   }
 
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::Js
+    &ModuleType::JsAuto
   }
 
   fn source_types(&self) -> &[SourceType] {
@@ -117,6 +117,7 @@ impl Module for RawModule {
       build_info: BuildInfo {
         hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
         cacheable: true,
+        strict: true,
         ..Default::default()
       },
       dependencies: vec![],

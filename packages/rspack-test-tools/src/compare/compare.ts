@@ -9,7 +9,7 @@ import {
 	TFileCompareResult,
 	TModuleCompareResult
 } from "../type";
-import { formatCode, IFormatCodeOptions } from "./format-code";
+import { IFormatCodeOptions, formatCode } from "./format-code";
 import { replaceRuntimeModuleName } from "./replace-runtime-module-name";
 
 export interface ICompareOptions {
