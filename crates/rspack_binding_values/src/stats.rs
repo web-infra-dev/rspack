@@ -373,6 +373,7 @@ pub struct JsStatsChunk {
   pub children: Option<Vec<String>>,
   pub siblings: Option<Vec<String>>,
   pub children_by_order: HashMap<String, Vec<String>>,
+  pub runtime: Vec<String>,
 }
 
 impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
@@ -399,6 +400,7 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
         .iter()
         .map(|(order, children)| (order.to_string(), children.to_owned()))
         .collect(),
+      runtime: stats.runtime,
     })
   }
 }

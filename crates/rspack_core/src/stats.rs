@@ -251,6 +251,7 @@ impl Stats<'_> {
           children,
           siblings,
           children_by_order,
+          runtime: c.runtime.iter().map(|r| r.to_string()).collect(),
         })
       })
       .collect::<Result<_>>()?;
@@ -788,6 +789,9 @@ pub struct StatsChunk<'a> {
   pub children: Option<Vec<String>>,
   pub siblings: Option<Vec<String>>,
   pub children_by_order: HashMap<ChunkGroupOrderKey, Vec<String>>,
+  // pub rendered: bool,
+  // pub recorded: bool,
+  pub runtime: Vec<String>,
 }
 
 #[derive(Debug)]
