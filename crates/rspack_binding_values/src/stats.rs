@@ -374,11 +374,19 @@ pub struct JsStatsChunk {
   pub siblings: Option<Vec<String>>,
   pub children_by_order: HashMap<String, Vec<String>>,
   pub runtime: Vec<String>,
+  pub sizes: HashMap<String, f64>,
 }
 
 impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
   type Error = napi::Error;
   fn try_from(stats: rspack_core::StatsChunk) -> Result<Self> {
+    let mut runtime = stats
+      .runtime
+      .iter()
+      .map(|r| r.to_string())
+      .collect::<Vec<_>>();
+    runtime.sort();
+
     Ok(Self {
       r#type: stats.r#type,
       files: stats.files,
@@ -400,7 +408,12 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
         .iter()
         .map(|(order, children)| (order.to_string(), children.to_owned()))
         .collect(),
-      runtime: stats.runtime,
+      runtime,
+      sizes: stats
+        .sizes
+        .iter()
+        .map(|(source_type, size)| (source_type.to_string(), *size))
+        .collect(),
     })
   }
 }

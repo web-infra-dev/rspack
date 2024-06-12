@@ -7,7 +7,8 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkGroupOrderKey, ProvidedExports, UsedExports,
+  get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkGroupOrderKey, ProvidedExports, RuntimeSpec,
+  UsedExports,
 };
 use crate::{BoxModule, BoxRuntimeModule, Chunk};
 use crate::{ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType, SourceType};
@@ -234,6 +235,9 @@ impl Stats<'_> {
           }
         }
 
+        let chunk_graph = &self.compilation.chunk_graph;
+        let module_graph = &self.compilation.get_module_graph();
+
         Ok(StatsChunk {
           r#type: "chunk",
           files,
@@ -242,16 +246,14 @@ impl Stats<'_> {
           names: c.name.clone().map(|n| vec![n]).unwrap_or_default(),
           entry: c.has_entry_module(&self.compilation.chunk_graph),
           initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
-          size: self
-            .compilation
-            .chunk_graph
-            .get_chunk_modules_size(&c.ukey, &self.compilation.get_module_graph()),
+          size: chunk_graph.get_chunk_modules_size(&c.ukey, module_graph),
           modules: chunk_modules,
           parents,
           children,
           siblings,
           children_by_order,
-          runtime: c.runtime.iter().map(|r| r.to_string()).collect(),
+          runtime: c.runtime.clone(),
+          sizes: chunk_graph.get_chunk_modules_sizes(&c.ukey, module_graph),
         })
       })
       .collect::<Result<_>>()?;
@@ -789,9 +791,8 @@ pub struct StatsChunk<'a> {
   pub children: Option<Vec<String>>,
   pub siblings: Option<Vec<String>>,
   pub children_by_order: HashMap<ChunkGroupOrderKey, Vec<String>>,
-  // pub rendered: bool,
-  // pub recorded: bool,
-  pub runtime: Vec<String>,
+  pub runtime: RuntimeSpec,
+  pub sizes: HashMap<SourceType, f64>,
 }
 
 #[derive(Debug)]

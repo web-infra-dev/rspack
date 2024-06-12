@@ -499,6 +499,7 @@ export interface JsStatsChunk {
   siblings?: Array<string>
   childrenByOrder: Record<string, Array<string>>
   runtime: Array<string>
+  sizes: Record<string, number>
 }
 
 export interface JsStatsChunkGroup {

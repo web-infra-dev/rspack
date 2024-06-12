@@ -338,6 +338,25 @@ impl ChunkGraph {
       })
   }
 
+  pub fn get_chunk_modules_sizes(
+    &self,
+    chunk: &ChunkUkey,
+    module_graph: &ModuleGraph,
+  ) -> HashMap<SourceType, f64> {
+    let mut sizes = HashMap::<SourceType, f64>::default();
+    let modules = self.get_chunk_modules(chunk, module_graph);
+    for module in modules {
+      for source_type in module.source_types() {
+        let size = module.size(source_type);
+        sizes
+          .entry(source_type.clone())
+          .and_modify(|s| *s += size)
+          .or_insert(size);
+      }
+    }
+    sizes
+  }
+
   pub fn get_number_of_chunk_modules(&self, chunk: &ChunkUkey) -> usize {
     let cgc = self.get_chunk_graph_chunk(chunk);
     cgc.modules.len()
