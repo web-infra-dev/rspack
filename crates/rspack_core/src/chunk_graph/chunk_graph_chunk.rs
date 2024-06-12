@@ -341,17 +341,30 @@ impl ChunkGraph {
   pub fn get_chunk_modules_sizes(
     &self,
     chunk: &ChunkUkey,
-    module_graph: &ModuleGraph,
+    compilation: &Compilation,
   ) -> HashMap<SourceType, f64> {
     let mut sizes = HashMap::<SourceType, f64>::default();
-    let modules = self.get_chunk_modules(chunk, module_graph);
-    for module in modules {
-      for source_type in module.source_types() {
-        let size = module.size(source_type);
-        sizes
-          .entry(source_type.clone())
-          .and_modify(|s| *s += size)
-          .or_insert(size);
+    let cgc = self.get_chunk_graph_chunk(chunk);
+    let module_graph = &compilation.get_module_graph();
+    for identifier in &cgc.modules {
+      let module = module_graph.module_by_identifier(identifier);
+      if let Some(module) = module {
+        for source_type in module.source_types() {
+          let size = module.size(source_type);
+          sizes
+            .entry(*source_type)
+            .and_modify(|s| *s += size)
+            .or_insert(size);
+        }
+      } else {
+        let runtime_module = compilation.runtime_modules.get(identifier);
+        if let Some(runtime_module) = runtime_module {
+          let size = runtime_module.size(&SourceType::Runtime);
+          sizes
+            .entry(SourceType::Runtime)
+            .and_modify(|s| *s += size)
+            .or_insert(size);
+        }
       }
     }
     sizes

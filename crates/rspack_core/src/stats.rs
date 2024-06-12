@@ -244,7 +244,7 @@ impl Stats<'_> {
           auxiliary_files,
           id: c.id.clone(),
           names: c.name.clone().map(|n| vec![n]).unwrap_or_default(),
-          entry: c.has_entry_module(&self.compilation.chunk_graph),
+          entry: c.has_entry_module(chunk_graph),
           initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
           size: chunk_graph.get_chunk_modules_size(&c.ukey, module_graph),
           modules: chunk_modules,
@@ -253,7 +253,7 @@ impl Stats<'_> {
           siblings,
           children_by_order,
           runtime: c.runtime.clone(),
-          sizes: chunk_graph.get_chunk_modules_sizes(&c.ukey, module_graph),
+          sizes: chunk_graph.get_chunk_modules_sizes(&c.ukey, &self.compilation),
           reason: c.chunk_reason.clone(),
         })
       })

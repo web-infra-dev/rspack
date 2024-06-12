@@ -116,6 +116,7 @@ pub enum SourceType {
   #[default]
   Unknown,
   CssImport,
+  Runtime,
 }
 
 impl std::fmt::Display for SourceType {
@@ -132,6 +133,7 @@ impl std::fmt::Display for SourceType {
       SourceType::Unknown => write!(f, "unknown"),
       SourceType::CssImport => write!(f, "css-import"),
       SourceType::Custom(source_type) => f.write_str(source_type),
+      SourceType::Runtime => write!(f, "runtime"),
     }
   }
 }
