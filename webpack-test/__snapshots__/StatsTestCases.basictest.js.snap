@@ -131,3 +131,206 @@ Entrypoint <CLR=BOLD>sec</CLR> 294 KiB = <CLR=32,BOLD>sec.js</CLR>
 
 Rspack x.x.x compiled with <CLR=31,BOLD>3 errors</CLR> in X s"
 `;
+
+exports[`StatsTestCases should print correct stats for split-chunks 1`] = `
+"default:
+  Entrypoint main 9.11 KiB = default/main.js
+  Entrypoint a 8.67 KiB = default/a.js
+  Entrypoint b 226 bytes = default/b.js
+  Entrypoint c 226 bytes = default/c.js
+  chunk default/async-c.js (async-c) <{909}> ={416}= ={418}= ={581}= ={753}=
+    ./c.js
+  chunk default/async-a.js (async-a) <{909}> ={310}= ={418}= ={753}= >{581}< >{912}<
+    ./a.js
+    ./e.js
+  chunk default/async-b.js (async-b) <{909}> ={310}= ={418}= ={581}= ={753}=
+    ./b.js
+  chunk default/310.js <{909}> ={250}= ={262}= ={418}= ={581}= ={753}= >{581}< >{912}<
+    ./node_modules/y.js
+  chunk default/416.js <{909}> ={172}= ={418}= ={581}= ={753}=
+    ./node_modules/z.js
+  chunk default/418.js <{909}> ={172}= ={250}= ={262}= ={310}= ={416}= ={581}= ={753}= >{581}< >{912}<
+    ./node_modules/x.js
+  chunk default/581.js <{250}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}=
+    ./f.js
+  chunk default/a.js (a) >{581}< >{912}< [entry]
+    ./a.js
+  chunk default/b.js (b) [entry]
+    ./b.js
+  chunk default/753.js <{909}> ={172}= ={250}= ={262}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}<
+    ./d.js
+  chunk default/c.js (c) [entry]
+    ./c.js
+  chunk default/main.js (main) >{172}< >{250}< >{262}< >{310}< >{416}< >{418}< >{581}< >{753}< [entry]
+    ./index.js
+  chunk default/async-g.js (async-g) <{250}> <{310}> <{418}> <{74}> <{753}> ={581}=
+    ./g.js
+  default (Rspack x.x.x) compiled successfully
+
+all-chunks:
+  Entrypoint main 9.21 KiB = all-chunks/main.js
+  Entrypoint a 11.1 KiB = all-chunks/272.js 1.22 KiB all-chunks/a.js 9.87 KiB
+  Entrypoint b 5.46 KiB = all-chunks/async-b.js 1.07 KiB all-chunks/b.js 4.39 KiB
+  Entrypoint c 5.46 KiB = all-chunks/async-c.js 1.07 KiB all-chunks/c.js 4.39 KiB
+  chunk all-chunks/async-c.js (async-c) <{909}> ={416}= ={418}= ={581}= ={753}= ={76}= [initial]
+    ./c.js
+  chunk all-chunks/async-a.js (async-a) <{909}> ={272}= ={310}= ={418}= ={753}= >{581}< >{912}<
+    ./e.js
+  chunk all-chunks/async-b.js (async-b) <{909}> ={310}= ={418}= ={581}= ={751}= ={753}= [initial]
+    ./b.js
+  chunk all-chunks/272.js <{909}> ={250}= ={310}= ={418}= ={74}= ={753}= >{581}< >{912}< [initial]
+    ./a.js
+  chunk all-chunks/310.js <{909}> ={250}= ={262}= ={272}= ={418}= ={581}= ={753}= >{581}< >{912}<
+    ./node_modules/y.js
+  chunk all-chunks/416.js <{909}> ={172}= ={418}= ={581}= ={753}=
+    ./node_modules/z.js
+  chunk all-chunks/418.js <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={581}= ={753}= >{581}< >{912}<
+    ./node_modules/x.js
+  chunk all-chunks/581.js <{250}> <{272}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}=
+    ./f.js
+  chunk all-chunks/a.js (a) ={272}= >{581}< >{912}< [entry]
+  chunk all-chunks/b.js (b) ={262}= [entry]
+  chunk all-chunks/753.js <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}<
+    ./d.js
+  chunk all-chunks/c.js (c) ={172}= [entry]
+  chunk all-chunks/main.js (main) >{172}< >{250}< >{262}< >{272}< >{310}< >{416}< >{418}< >{581}< >{753}< [entry]
+    ./index.js
+  chunk all-chunks/async-g.js (async-g) <{250}> <{272}> <{310}> <{418}> <{74}> <{753}> ={581}=
+    ./g.js
+  all-chunks (Rspack x.x.x) compiled successfully
+
+manual:
+  Entrypoint main 8.88 KiB = manual/main.js
+  Entrypoint a 10.9 KiB = manual/vendors.js 484 bytes manual/a.js 10.4 KiB
+  Entrypoint b 4.91 KiB = manual/vendors.js 484 bytes manual/b.js 4.43 KiB
+  Entrypoint c 4.91 KiB = manual/vendors.js 484 bytes manual/c.js 4.43 KiB
+  chunk manual/async-c.js (async-c) <{909}> ={192}=
+    ./c.js
+    ./d.js
+    ./f.js
+  chunk manual/vendors.js (vendors) <{909}> ={172}= ={250}= ={262}= ={74}= ={751}= ={76}= >{912}< [initial]
+    ./node_modules/x.js
+    ./node_modules/y.js
+    ./node_modules/z.js
+  chunk manual/async-a.js (async-a) <{909}> ={192}= >{912}<
+    ./a.js
+    ./d.js
+    ./e.js
+  chunk manual/async-b.js (async-b) <{909}> ={192}=
+    ./b.js
+    ./d.js
+    ./f.js
+  chunk manual/a.js (a) ={192}= >{912}< [entry]
+    ./a.js
+  chunk manual/b.js (b) ={192}= [entry]
+    ./b.js
+  chunk manual/c.js (c) ={192}= [entry]
+    ./c.js
+  chunk manual/main.js (main) >{172}< >{192}< >{250}< >{262}< [entry]
+    ./index.js
+  chunk manual/async-g.js (async-g) <{192}> <{250}> <{74}>
+    ./f.js
+    ./g.js
+  manual (Rspack x.x.x) compiled successfully
+
+name-too-long:
+  Entrypoint main 9.22 KiB = name-too-long/main.js
+  Entrypoint aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 11.1 KiB = name-too-long/272.js 1.22 KiB name-too-long/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.js 9.87 KiB
+  Entrypoint bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb 5.46 KiB = name-too-long/async-b.js 1.07 KiB name-too-long/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.js 4.39 KiB
+  Entrypoint cccccccccccccccccccccccccccccc 5.46 KiB = name-too-long/async-c.js 1.07 KiB name-too-long/cccccccccccccccccccccccccccccc.js 4.39 KiB
+  chunk name-too-long/async-c.js (async-c) <{909}> ={325}= ={416}= ={418}= ={581}= ={753}= [initial]
+    ./c.js
+  chunk name-too-long/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.js (bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) ={262}= [entry]
+  chunk name-too-long/async-a.js (async-a) <{909}> ={272}= ={310}= ={418}= ={753}= >{581}< >{912}<
+    ./e.js
+  chunk name-too-long/async-b.js (async-b) <{909}> ={225}= ={310}= ={418}= ={581}= ={753}= [initial]
+    ./b.js
+  chunk name-too-long/272.js <{909}> ={250}= ={310}= ={418}= ={753}= ={959}= >{581}< >{912}< [initial]
+    ./a.js
+  chunk name-too-long/310.js <{909}> ={250}= ={262}= ={272}= ={418}= ={581}= ={753}= >{581}< >{912}<
+    ./node_modules/y.js
+  chunk name-too-long/cccccccccccccccccccccccccccccc.js (cccccccccccccccccccccccccccccc) ={172}= [entry]
+  chunk name-too-long/416.js <{909}> ={172}= ={418}= ={581}= ={753}=
+    ./node_modules/z.js
+  chunk name-too-long/418.js <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={581}= ={753}= >{581}< >{912}<
+    ./node_modules/x.js
+  chunk name-too-long/581.js <{250}> <{272}> <{310}> <{418}> <{753}> <{909}> <{959}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}=
+    ./f.js
+  chunk name-too-long/753.js <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}<
+    ./d.js
+  chunk name-too-long/main.js (main) >{172}< >{250}< >{262}< >{272}< >{310}< >{416}< >{418}< >{581}< >{753}< [entry]
+    ./index.js
+  chunk name-too-long/async-g.js (async-g) <{250}> <{272}> <{310}> <{418}> <{753}> <{959}> ={581}=
+    ./g.js
+  chunk name-too-long/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.js (aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa) ={272}= >{581}< >{912}< [entry]
+  name-too-long (Rspack x.x.x) compiled successfully
+
+custom-chunks-filter:
+  Entrypoint main 9.19 KiB = custom-chunks-filter/main.js
+  Entrypoint a 8.68 KiB = custom-chunks-filter/a.js
+  Entrypoint b 5.46 KiB = custom-chunks-filter/async-b.js 1.07 KiB custom-chunks-filter/b.js 4.39 KiB
+  Entrypoint c 5.46 KiB = custom-chunks-filter/async-c.js 1.07 KiB custom-chunks-filter/c.js 4.39 KiB
+  chunk custom-chunks-filter/async-c.js (async-c) <{909}> ={416}= ={418}= ={581}= ={753}= ={76}= [initial]
+    ./c.js
+  chunk custom-chunks-filter/async-a.js (async-a) <{909}> ={310}= ={418}= ={753}= >{581}< >{912}<
+    ./a.js
+    ./e.js
+  chunk custom-chunks-filter/async-b.js (async-b) <{909}> ={310}= ={418}= ={581}= ={751}= ={753}= [initial]
+    ./b.js
+  chunk custom-chunks-filter/310.js <{909}> ={250}= ={262}= ={418}= ={581}= ={753}= >{581}< >{912}<
+    ./node_modules/y.js
+  chunk custom-chunks-filter/416.js <{909}> ={172}= ={418}= ={581}= ={753}=
+    ./node_modules/z.js
+  chunk custom-chunks-filter/418.js <{909}> ={172}= ={250}= ={262}= ={310}= ={416}= ={581}= ={753}= >{581}< >{912}<
+    ./node_modules/x.js
+  chunk custom-chunks-filter/581.js <{250}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}=
+    ./f.js
+  chunk custom-chunks-filter/a.js (a) >{581}< >{912}< [entry]
+    ./a.js
+  chunk custom-chunks-filter/b.js (b) ={262}= [entry]
+  chunk custom-chunks-filter/753.js <{909}> ={172}= ={250}= ={262}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}<
+    ./d.js
+  chunk custom-chunks-filter/c.js (c) ={172}= [entry]
+  chunk custom-chunks-filter/main.js (main) >{172}< >{250}< >{262}< >{310}< >{416}< >{418}< >{581}< >{753}< [entry]
+    ./index.js
+  chunk custom-chunks-filter/async-g.js (async-g) <{250}> <{310}> <{418}> <{74}> <{753}> ={581}=
+    ./g.js
+  custom-chunks-filter (Rspack x.x.x) compiled successfully
+
+custom-chunks-filter-in-cache-groups:
+  Entrypoint main 8.91 KiB = custom-chunks-filter-in-cache-groups/main.js
+  Entrypoint a 9.32 KiB = custom-chunks-filter-in-cache-groups/a.js
+  Entrypoint b 4.91 KiB = custom-chunks-filter-in-cache-groups/vendors.js 484 bytes custom-chunks-filter-in-cache-groups/b.js 4.43 KiB
+  Entrypoint c 4.91 KiB = custom-chunks-filter-in-cache-groups/vendors.js 484 bytes custom-chunks-filter-in-cache-groups/c.js 4.43 KiB
+  chunk custom-chunks-filter-in-cache-groups/async-c.js (async-c) <{909}> ={192}=
+    ./c.js
+    ./d.js
+    ./f.js
+  chunk custom-chunks-filter-in-cache-groups/vendors.js (vendors) <{909}> ={172}= ={250}= ={262}= ={751}= ={76}= >{912}< [initial]
+    ./node_modules/x.js
+    ./node_modules/y.js
+    ./node_modules/z.js
+  chunk custom-chunks-filter-in-cache-groups/async-a.js (async-a) <{909}> ={192}= >{912}<
+    ./a.js
+    ./d.js
+    ./e.js
+  chunk custom-chunks-filter-in-cache-groups/async-b.js (async-b) <{909}> ={192}=
+    ./b.js
+    ./d.js
+    ./f.js
+  chunk custom-chunks-filter-in-cache-groups/a.js (a) >{912}< [entry]
+    ./a.js
+    ./node_modules/x.js
+    ./node_modules/y.js
+    ./node_modules/z.js
+  chunk custom-chunks-filter-in-cache-groups/b.js (b) ={192}= [entry]
+    ./b.js
+  chunk custom-chunks-filter-in-cache-groups/c.js (c) ={192}= [entry]
+    ./c.js
+  chunk custom-chunks-filter-in-cache-groups/main.js (main) >{172}< >{192}< >{250}< >{262}< [entry]
+    ./index.js
+  chunk custom-chunks-filter-in-cache-groups/async-g.js (async-g) <{192}> <{250}> <{74}>
+    ./f.js
+    ./g.js
+  custom-chunks-filter-in-cache-groups (Rspack x.x.x) compiled successfully"
+`;
