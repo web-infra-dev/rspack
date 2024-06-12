@@ -12,11 +12,6 @@ export default defineConfig({
 	resolve: {
 		extensions: ["...", ".ts", ".tsx", ".jsx"]
 	},
-	devServer: {
-		devMiddleware: {
-			writeToDisk: true
-		}
-	},
 	module: {
 		rules: [
 			{
@@ -55,18 +50,6 @@ export default defineConfig({
 				]
 			}
 		]
-	},
-	optimization: {
-		sideEffects: "flag",
-		usedExports: true,
-		providedExports: true,
-		mangleExports: true,
-		moduleIds: "named"
-	},
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: true
-		}
 	},
 	plugins: [
 		new rspack.DefinePlugin({
