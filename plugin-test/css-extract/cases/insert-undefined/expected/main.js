@@ -169,7 +169,7 @@ __webpack_require__.r = function(exports) {
           var scripts = document.getElementsByTagName("script");
               if (scripts.length) {
                 var i = scripts.length - 1;
-                while (i > -1 && !scriptUrl) scriptUrl = scripts[i--].src;
+                while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
               }
         }
       }

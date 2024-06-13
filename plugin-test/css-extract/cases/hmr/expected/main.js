@@ -564,12 +564,12 @@ function createModuleHotObject(moduleId, me) {
 }
 
 function setStatus(newStatus) {
-	currentStatus = newStatus;
+	currentStatus = newStatus; 
 	var results = [];
 	for (var i = 0; i < registeredStatusHandlers.length; i++)
 		results[i] = registeredStatusHandlers[i].call(null, newStatus);
 
-	return Promise.all(results);
+	return Promise.all(results).then(function () { });
 }
 
 function unblock() {
@@ -611,7 +611,7 @@ function waitForBlockingPromises(fn) {
 function hotCheck(applyOnUpdate) {
 	if (currentStatus !== "idle") {
 		throw new Error("check() is only allowed in idle status");
-	}
+	} 
 	return setStatus("check")
 		.then(__webpack_require__.hmrM)
 		.then(function (update) {
@@ -834,7 +834,7 @@ __webpack_require__.r = function(exports) {
           var scripts = document.getElementsByTagName("script");
               if (scripts.length) {
                 var i = scripts.length - 1;
-                while (i > -1 && !scriptUrl) scriptUrl = scripts[i--].src;
+                while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
               }
         }
       }
