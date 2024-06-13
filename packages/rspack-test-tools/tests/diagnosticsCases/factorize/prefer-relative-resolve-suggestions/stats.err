@@ -1,1 +1,2 @@
-ERROR in ./index.js× Resolve error: Can't resolve 'foo.js' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/prefer-relative-resolve-suggestions'╭────1  import "foo.js"·        ────────╰────help: Did you mean './foo.js'?Requests thRequests thIf changing the source code is not an option, there is also a resolve options called 'preferRelative'which tries to resolve these kind of requests in the current directory too.
+ERROR in ./index.js
+  × Resolve error: Can't resolve 'foo.js' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/prefer-rel

@@ -98,18 +98,14 @@ impl Diagnostic {
 impl Diagnostic {
   pub fn render_report(&self, colored: bool) -> crate::Result<String> {
     let mut buf = String::new();
-    let mut h = GraphicalReportHandler::new()
+    let h = GraphicalReportHandler::new()
       .with_theme(if colored {
         GraphicalTheme::unicode()
       } else {
         GraphicalTheme::unicode_nocolor()
       })
-      .with_context_lines(2);
-
-    #[cfg(debug_assertions)]
-    {
-      h = h.with_width(usize::MAX);
-    }
+      .with_context_lines(2)
+      .with_width(usize::MAX);
 
     h.render_report(&mut buf, self.as_ref()).into_diagnostic()?;
     Ok(buf)
