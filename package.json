@@ -75,8 +75,8 @@
     "rimraf": "3.0.2",
     "ts-jest": "29.1.2",
     "typescript": "5.0.2",
-    "webpack": "5.90.1",
-    "webpack-cli": "4.10.0",
+    "webpack": "5.92.0",
+    "webpack-cli": "5.1.4",
     "why-is-node-running": "2.2.2"
   },
   "packageManager": "pnpm@9.3.0"
