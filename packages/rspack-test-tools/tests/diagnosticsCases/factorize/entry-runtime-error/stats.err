@@ -1,1 +1,6 @@
-ERROR in × Resolve error: Can't resolve './' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/entry-runtime-error'ERROR in × Entrypoint 'b1' has a 'runtime' option which points to another entrypoint named 'a1'.It's not valid to use other entrypoints as runtime chunk.Did you mean to use 'dependOn: "a1"' instead to allow using entrypoint 'b1' within the runtime of entrypoint 'a1'? For this 'a1' must always be loaded when 'b1' is used.Or do you want to use the entrypoints 'b1' and 'a1' independently on the same page with a shared runtime? In this case give them both the same value for the 'runtime' option. It must be a name not already used by an entrypoint.
+ERROR in × Resolve error: Can't resolve './' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/entry-runtime-error'
+
+ERROR in × Entrypoint 'b1' has a 'runtime' option which points to another entrypoint named 'a1'.
+  │ It's not valid to use other entrypoints as runtime chunk.
+  │ Did you mean to use 'dependOn: "a1"' instead to allow using entrypoint 'b1' within the runtime of entrypoint 'a1'? For this 'a1' must always be loaded when 'b1' is used.
+  │ Or do you want to use the entrypoints 'b1' and 'a1' independently on the same page with a shared runtime? In this case give them both the same value for the 'runtime' option. It must be a name not already used by an entrypoint.
