@@ -1,7 +1,1 @@
-ERROR in ./index.js
-  × Resolve error: Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-with-loader'
-   ╭─[1:1]
- 1 │ // THIS SHOULD BE INCLUDED IN THE DIAGNOSTIC
- 2 │ require("./a")
-   · ──────────────
-   ╰────
+ERROR in ./index.js× Resolve error: Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-with-loader'╭─[1:1]1  // THIS SHOULD BE INCLUDED IN THE DIAGNOSTIC2  require("./a")· ──────────────╰────

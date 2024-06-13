@@ -1,11 +1,1 @@
-ERROR in ./index.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parsing error: The keyword 'let' is reserved in strict mode
-         ╭─[1:1]
-       1 │ "use strict";
-       2 │ var let = let;
-         ·     ───
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
+ERROR in ./index.js× Module parse failed:╰─▶   × JavaScript parsing error: The keyword 'let' is reserved in strict mode╭─[1:1]1  "use strict";2  var let = let;·     ───╰────help:You may need an appropriate loader to handle this file type.
