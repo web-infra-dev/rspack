@@ -30,7 +30,7 @@ features:
     icon: ⚡
     link: /zh/guide/start/introduction
   - title: 兼容 webpack
-    details: 针对 webpack 的架构和生态进行兼容，无需从头搭建生态。
+    details: 兼容 webpack 生态中的 plugin 和 loader，无缝衔接社区中沉淀的优秀库。
     icon: 📦
     link: /zh/guide/compatibility/plugin
   - title: 内置常见构建能力

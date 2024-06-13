@@ -30,7 +30,7 @@ features:
     icon: ⚡
     link: /guide/start/introduction
   - title: Webpack Compatible
-    details: Interoperates with existing webpack plugins and config. No need to reinvent your ecosystem from scratch.
+    details: Compatible with plugins and loaders in the webpack ecosystem, seamlessly integrating excellent libraries built by the community.
     icon: 📦
     link: /guide/compatibility/plugin
   - title: Batteries Included
