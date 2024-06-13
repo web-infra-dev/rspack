@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const {
 	DefaultsConfigProcessor,
 	createDefaultsCase,
@@ -44,6 +45,23 @@ function filterObjectPaths(obj, paths, parentPaths = []) {
 	}
 }
 
+function trimObjectPaths(obj, paths, parentPaths = []) {
+	for (const key of Object.keys(obj)) {
+		const fullPath = [...parentPaths, key];
+		if (paths.some(p => p.length === fullPath.length && p.every((e, i) => e === fullPath[i]))) {
+			delete obj[key];
+			continue;
+		}
+		if (Array.isArray(obj[key])) {
+			for (const item of obj[key]) {
+				trimObjectPaths(item, paths, fullPath);
+			}
+		} else if (typeof obj[key] === "object" && obj[key] !== null) {
+			trimObjectPaths(obj[key], paths, fullPath);
+		}
+	}
+}
+
 DefaultsConfigProcessor.addSnapshotSerializer(expect);
 
 const cwd = path.resolve(__dirname, "..");
@@ -58,6 +76,16 @@ describe("Base Defaults Snapshot", () => {
 	it("should be align to webpack base config", () => {
 		const webpackBaseConfig = getWebpackDefaultConfig(cwd, { mode: "none" });
 		const rspackSupportedConfig = getObjectPaths(baseConfig);
+		const defaultsPath = path.resolve(__dirname, "../../rspack/src/config/defaults.ts");
+		const defaultsContent = fs.readFileSync(defaultsPath, "utf-8");
+		const regex = /\/\/\sIGNORE\((.+?)\):\s/g;
+		const ignoredPaths = [];
+		let matches;
+		while (matches = regex.exec(defaultsContent)) {
+			ignoredPaths.push(matches[1].split('.'));
+		}
+		trimObjectPaths(baseConfig, ignoredPaths);
+		trimObjectPaths(webpackBaseConfig, ignoredPaths);
 		filterObjectPaths(webpackBaseConfig, rspackSupportedConfig);
 		expect(baseConfig).toEqual(webpackBaseConfig);
 	});

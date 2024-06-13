@@ -78,6 +78,7 @@ export const applyRspackOptionsDefaults = (
 	F(options, "devtool", () => false as const);
 	D(options, "watch", false);
 	D(options, "profile", false);
+	// IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
 	D(options, "bail", false);
 
 	const futureDefaults = options.experiments.futureDefaults ?? false;
@@ -185,11 +186,13 @@ const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
 	{ cache }: { cache: boolean }
 ) => {
-	D(experiments, "lazyCompilation", false);
+	D(experiments, "lazyCompilation", undefined);
 	D(experiments, "asyncWebAssembly", false);
-	D(experiments, "css", true); // we not align with webpack about the default value for better DX
+	// IGNORE(experiments.css): Rspack enables this feature by default for better DX
+	D(experiments, "css", true);
 	D(experiments, "topLevelAwait", true);
 
+	// IGNORE(experiments.rspackFuture): Rspack specific configuration
 	D(experiments, "rspackFuture", {});
 	if (typeof experiments.rspackFuture === "object") {
 		D(experiments.rspackFuture, "bundlerInfo", {});
@@ -296,6 +299,8 @@ const applyModuleDefaults = (
 		module.parser.javascript
 	);
 
+	// IGNORE(module.generator): Rspack enables `experiments.css` by default for better DX
+	// IGNORE(module.parser): Rspack enables `experiments.css` by default for better DX
 	if (css) {
 		F(module.parser, "css", () => ({}));
 		assertNotNill(module.parser.css);
@@ -349,6 +354,7 @@ const applyModuleDefaults = (
 		D(module.generator["css/module"], "esModule", true);
 	}
 
+	// IGNORE(module.defaultRules): Rspack does not support `rule.assert`
 	A(module, "defaultRules", () => {
 		const esm = {
 			type: "javascript/esm",
@@ -697,9 +703,7 @@ const applyOutputDefaults = (
 	F(output, "clean", () => !!output.clean);
 	D(output, "crossOriginLoading", false);
 	D(output, "workerPublicPath", "");
-	F(output, "sourceMapFilename", () => {
-		return "[file].map";
-	});
+	D(output, "sourceMapFilename", "[file].map[query]");
 	F(output, "scriptType", () => (output.module ? "module" : false));
 
 	const { trustedTypes } = output;
@@ -780,6 +784,7 @@ const applyOutputDefaults = (
 		"optionalChaining",
 		() => tp && optimistic(tp.optionalChaining)
 	);
+	// IGNORE(loader.environment.nodePrefixForCoreModules): TODO
 	F(
 		environment,
 		"nodePrefixForCoreModules",
@@ -795,6 +800,7 @@ const applyOutputDefaults = (
 	F(environment, "module", () =>
 		conditionallyOptimistic(tp && tp.module, output.module)
 	);
+	// IGNORE(loader.environment.document): TODO
 	F(environment, "document", () => tp && optimistic(tp.document));
 };
 
@@ -858,14 +864,17 @@ const applyNodeDefaults = (
 ) => {
 	if (node === false) return;
 
+	// IGNORE(node.global): TODO
 	F(node, "global", () => {
 		if (targetProperties && targetProperties.global) return false;
 		return "warn";
 	});
+	// IGNORE(node.__dirname): TODO
 	F(node, "__dirname", () => {
 		if (targetProperties && targetProperties.node) return "eval-only";
 		return "warn-mock";
 	});
+	// IGNORE(node.__filename): TODO
 	F(node, "__filename", () => {
 		if (targetProperties && targetProperties.node) return "eval-only";
 		return "warn-mock";
@@ -899,6 +908,7 @@ const applyOptimizationDefaults = (
 		// TODO(rspack@1.0): change to `"natural"`
 		return "named";
 	});
+	// IGNORE(optimization.chunkIds): TODO
 	F(optimization, "chunkIds", (): "natural" | "named" | "deterministic" => {
 		if (production) return "deterministic";
 		if (development) return "named";
@@ -914,6 +924,7 @@ const applyOptimizationDefaults = (
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
 	D(optimization, "concatenateModules", false);
+	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `SwcCssMinimizerRspackPlugin` by default
 	A(optimization, "minimizer", () => [
 		new SwcJsMinimizerRspackPlugin(),
 		new SwcCssMinimizerRspackPlugin()
