@@ -1,5 +1,183 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`statsAPI statsAPI/basic should have stats 1`] = `
+Object {
+  "assets": Array [
+    Object {
+      "chunkNames": Array [
+        "main",
+      ],
+      "chunks": Array [
+        "909",
+      ],
+      "emitted": true,
+      "info": Object {
+        "development": false,
+        "hotModuleReplacement": false,
+      },
+      "name": "main.js",
+      "size": 207,
+      "type": "asset",
+    },
+  ],
+  "assetsByChunkName": Object {
+    "main": Array [
+      "main.js",
+    ],
+  },
+  "children": Array [],
+  "chunks": Array [
+    Object {
+      "auxiliaryFiles": Array [],
+      "children": Array [],
+      "childrenByOrder": Object {},
+      "entry": true,
+      "files": Array [
+        "main.js",
+      ],
+      "id": "909",
+      "initial": true,
+      "modules": Array [
+        Object {
+          "assets": Array [],
+          "chunks": Array [
+            "909",
+          ],
+          "depth": 0,
+          "id": "585",
+          "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": Array [],
+          "moduleType": "javascript/auto",
+          "name": "./fixtures/a.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "optimizationBailout": Array [
+            "Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2",
+          ],
+          "orphan": false,
+          "providedExports": Array [],
+          "reasons": Array [
+            Object {
+              "moduleId": undefined,
+              "moduleIdentifier": undefined,
+              "moduleName": undefined,
+              "type": "entry",
+              "userRequest": "./fixtures/a",
+            },
+            Object {
+              "moduleId": "585",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+              "moduleName": "./fixtures/a.js",
+              "type": "cjs self exports reference",
+              "userRequest": "self",
+            },
+          ],
+          "size": 55,
+          "source": "module.exports = function a() {
+	return \\"This is a\\";
+};",
+          "type": "module",
+          "usedExports": null,
+        },
+      ],
+      "names": Array [
+        "main",
+      ],
+      "parents": Array [],
+      "siblings": Array [],
+      "size": 55,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": Object {
+    "main": Object {
+      "assets": Array [
+        Object {
+          "name": "main.js",
+          "size": 207,
+        },
+      ],
+      "assetsSize": 207,
+      "chunks": Array [
+        "909",
+      ],
+      "name": "main",
+    },
+  },
+  "env": undefined,
+  "errors": Array [],
+  "errorsCount": 0,
+  "filteredModules": undefined,
+  "hash": "99b766bb1908ecab2ebb",
+  "modules": Array [
+    Object {
+      "assets": Array [],
+      "chunks": Array [
+        "909",
+      ],
+      "depth": 0,
+      "id": "585",
+      "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
+      "issuerPath": Array [],
+      "moduleType": "javascript/auto",
+      "name": "./fixtures/a.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "optimizationBailout": Array [
+        "Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2",
+      ],
+      "orphan": false,
+      "providedExports": Array [],
+      "reasons": Array [
+        Object {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
+          "type": "entry",
+          "userRequest": "./fixtures/a",
+        },
+        Object {
+          "moduleId": "585",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "moduleName": "./fixtures/a.js",
+          "type": "cjs self exports reference",
+          "userRequest": "self",
+        },
+      ],
+      "size": 55,
+      "source": "module.exports = function a() {
+	return \\"This is a\\";
+};",
+      "type": "module",
+      "usedExports": null,
+    },
+  ],
+  "namedChunkGroups": Object {
+    "main": Object {
+      "assets": Array [
+        Object {
+          "name": "main.js",
+          "size": 207,
+        },
+      ],
+      "assetsSize": 207,
+      "chunks": Array [
+        "909",
+      ],
+      "name": "main",
+    },
+  },
+  "outputPath": "<PROJECT_ROOT>/dist",
+  "publicPath": "auto",
+  "warnings": Array [],
+  "warningsCount": 0,
+}
+`;
+
 exports[`statsAPI statsAPI/exports should have usedExports and providedExports stats 1`] = `
 Object {
   "assets": Array [
