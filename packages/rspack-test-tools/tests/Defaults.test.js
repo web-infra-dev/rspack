@@ -28,38 +28,29 @@ function getObjectPaths(obj, parentPaths = []) {
 	}, []);
 }
 
-function filterObjectPaths(obj, paths, parentPaths = []) {
+function deleteObjectPaths(obj, predicate, parentPaths = []) {
 	for (const key of Object.keys(obj)) {
 		const fullPath = [...parentPaths, key];
-		if (!paths.some(p => p.length === fullPath.length && p.every((e, i) => e === fullPath[i]))) {
+		if (predicate(fullPath)) {
 			delete obj[key];
 			continue;
 		}
 		if (Array.isArray(obj[key])) {
 			for (const item of obj[key]) {
-				filterObjectPaths(item, paths, fullPath);
+				deleteObjectPaths(item, predicate, fullPath);
 			}
 		} else if (typeof obj[key] === "object" && obj[key] !== null) {
-			filterObjectPaths(obj[key], paths, fullPath);
+			deleteObjectPaths(obj[key], predicate, fullPath);
 		}
 	}
 }
 
-function trimObjectPaths(obj, paths, parentPaths = []) {
-	for (const key of Object.keys(obj)) {
-		const fullPath = [...parentPaths, key];
-		if (paths.some(p => p.length === fullPath.length && p.every((e, i) => e === fullPath[i]))) {
-			delete obj[key];
-			continue;
-		}
-		if (Array.isArray(obj[key])) {
-			for (const item of obj[key]) {
-				trimObjectPaths(item, paths, fullPath);
-			}
-		} else if (typeof obj[key] === "object" && obj[key] !== null) {
-			trimObjectPaths(obj[key], paths, fullPath);
-		}
-	}
+function filterObjectPaths(obj, paths) {
+	return deleteObjectPaths(obj, fullPath => !paths.some(p => p.length === fullPath.length && p.every((e, i) => e === fullPath[i])));
+}
+
+function trimObjectPaths(obj, paths) {
+	return deleteObjectPaths(obj, fullPath => paths.some(p => p.length === fullPath.length && p.every((e, i) => e === fullPath[i])));
 }
 
 DefaultsConfigProcessor.addSnapshotSerializer(expect);
