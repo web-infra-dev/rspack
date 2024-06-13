@@ -544,6 +544,7 @@ export interface JsStatsModule {
   id?: string
   chunks: Array<string | undefined | null>
   size: number
+  depth?: number
   issuer?: string
   issuerName?: string
   issuerId?: string

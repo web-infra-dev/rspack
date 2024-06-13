@@ -139,7 +139,6 @@ impl Stats<'_> {
     provided_exports: bool,
     f: impl Fn(Vec<StatsModule>) -> T,
   ) -> Result<T> {
-    println!("nested_modules: {:?}", nested_modules);
     let module_graph = self.compilation.get_module_graph();
     let mut modules: Vec<StatsModule> = module_graph
       .modules()
@@ -585,6 +584,7 @@ impl Stats<'_> {
       r#type: "module",
       module_type: *module.module_type(),
       identifier,
+      depth: module_graph.get_depth(&identifier),
       name_for_condition: module.name_for_condition().map(|n| n.to_string()),
       name: module
         .readable_identifier(&self.compilation.options.context)
@@ -635,6 +635,7 @@ impl Stats<'_> {
 
     Ok(StatsModule {
       r#type: "module",
+      depth: None,
       module_type: *module.module_type(),
       identifier: module.identifier(),
       name_for_condition: module.name_for_condition().map(|n| n.to_string()),
@@ -786,6 +787,7 @@ pub struct StatsModule<'a> {
   pub provided_exports: Option<Vec<String>>,
   pub used_exports: Option<StatsUsedExports>,
   pub optimization_bailout: Vec<String>,
+  pub depth: Option<usize>,
 }
 
 #[derive(Debug)]

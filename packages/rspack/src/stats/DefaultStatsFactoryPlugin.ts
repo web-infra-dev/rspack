@@ -818,6 +818,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		optimizationBailout: (object, module) => {
 			object.optimizationBailout = module.optimizationBailout || null;
 		},
+		depth: (object, module) => {
+			object.depth = module.depth;
+		},
 		nestedModules: (object, module, context, options, factory) => {
 			const { type } = context;
 			const innerModules =
