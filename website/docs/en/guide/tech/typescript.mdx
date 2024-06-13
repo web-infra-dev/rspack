@@ -39,3 +39,25 @@ Enabling TSX|JSX support can be done through [`builtin:swc-loader`](/guide/featu
 ## Alias
 
 See [resolve.tsConfigPath](/config/resolve#resolvetsconfigpath) for details.
+
+## Client types
+
+It's possible to use webpack or Rspack specific features in your TypeScript code, such as [import.meta.webpackContext](/api/modules/module-variables#importmetawebpackcontext).
+
+Rspack provides client module types via `@rspack/core/module`, you can add a TypeScript reference directive to declare them:
+
+```ts title="src/index.ts"
+/// <reference types="@rspack/core/module" />
+
+console.log(import.meta.webpackContext); // without reference declared above, TypeScript will throw an error
+```
+
+You can also add `@rspack/core/module` to the `types` field of tsconfig.json. This way, you no longer need to add the TypeScript reference directive in each file.
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "types": ["@rspack/core/module"]
+  }
+}
+```
