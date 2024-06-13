@@ -10,7 +10,6 @@ export function replacePaths(input: string) {
 	input = input.split("\\\\").join("\\");
 	if (os.platform() === "win32") {
 		const winRspackRoot = rspackRoot.split("\\\\").join(path.win32.sep);
-		console.log(winRspackRoot);
 		return normalizePaths(input)
 			.split(rspackRoot)
 			.join("<RSPACK_ROOT>")
