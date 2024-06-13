@@ -1,9 +1,1 @@
-WARNING in ./index.module.css
-  ⚠ Module parse warning:
-  ╰─▶   ⚠ CSS parsing warning: Missing leading whitespace
-         ╭─[1:1]
-       1 │ .a:not(.b:not(:global .c):local .d) {
-         ·                          ──────
-       2 │   color: red;
-       3 │ }
-         ╰────
+WARNING in ./index.module.css⚠ Module parse warning:╰─▶   ⚠ CSS parsing warning: Missing leading whitespace╭─[1:1]1  .a:not(.b:not(:global .c):local .d) {·                          ──────2    color: red;3  }╰────

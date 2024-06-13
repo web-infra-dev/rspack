@@ -14,7 +14,13 @@ const creator = new BasicCaseCreator({
 			format: (output: string) => {
 				// TODO: change to stats.errorStack
 				// TODO: add `errorStack: false`
-				return output.replace(/(?:\s|│)*(at .*)(\s|│)*/g, "");
+				return output
+					.replace(/(?:\s|│)*(at .*)(\s|│)*/g, "")
+					.split("│")
+					.join("")
+					.split(/\r?\n/)
+					.map((s: string) => s.trim())
+					.join("");
 			}
 		})
 	]
