@@ -182,9 +182,6 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
       )
       .await?;
   }
-  self.resolved_provide_map.write().await.clear();
-  self.match_provides.write().await.clear();
-  self.prefix_match_provides.write().await.clear();
   Ok(())
 }
 
