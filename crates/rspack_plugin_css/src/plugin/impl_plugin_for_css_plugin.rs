@@ -21,9 +21,9 @@ use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::parser_and_generator::CssParserAndGenerator;
+use crate::parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator};
 use crate::runtime::CssLoadingRuntimeModule;
 use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX;
 use crate::{plugin::CssPluginInner, CssPlugin};
@@ -33,6 +33,27 @@ struct CssModuleDebugInfo<'a> {
 }
 
 impl CssPlugin {
+  fn get_chunk_unused_local_idents(
+    compilation: &Compilation,
+    chunk: &Chunk,
+    ordered_css_modules: &[&dyn Module],
+  ) -> FxHashSet<String> {
+    ordered_css_modules
+      .iter()
+      .filter_map(|module| {
+        let module_id = &module.identifier();
+        let code_gen_result = compilation
+          .code_generation_results
+          .get(module_id, Some(&chunk.runtime));
+        code_gen_result
+          .data
+          .get::<CodeGenerationDataUnusedLocalIdent>()
+          .map(|codegen_data| &codegen_data.data)
+      })
+      .flat_map(|data| data.iter().cloned())
+      .collect()
+  }
+
   fn render_chunk_to_source(
     compilation: &Compilation,
     chunk: &Chunk,
@@ -224,13 +245,14 @@ async fn render_manifest(
   }
 
   let source = Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules)?;
+  let unused_idents = Self::get_chunk_unused_local_idents(compilation, chunk, &ordered_css_modules);
 
   let filename_template = get_css_chunk_filename_template(
     chunk,
     &compilation.options.output,
     &compilation.chunk_group_by_ukey,
   );
-  let (output_path, asset_info) = compilation.get_path_with_info(
+  let (output_path, mut asset_info) = compilation.get_path_with_info(
     filename_template,
     PathData::default()
       .chunk(chunk)
@@ -242,6 +264,7 @@ async fn render_manifest(
       )
       .runtime(&chunk.runtime),
   )?;
+  asset_info.set_css_unused_idents(unused_idents);
 
   let content = source.source();
   let auto_public_path_matches: Vec<_> = AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX

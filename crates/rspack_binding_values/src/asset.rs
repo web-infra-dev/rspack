@@ -39,6 +39,8 @@ pub struct JsAssetInfo {
   pub javascript_module: Option<bool>,
   /// related object to other assets, keyed by type of relation (only points from parent to child)
   pub related: JsAssetInfoRelated,
+  /// unused css local ident for the css chunk
+  pub css_unused_idents: Option<Vec<String>>,
   /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
   /// But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
   /// in the rust struct and have the Js side to reshape and align with webpack
@@ -59,6 +61,7 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
       version: String::from(""),
       source_filename: i.source_filename,
       javascript_module: i.javascript_module,
+      css_unsed_idents: i.css_unused_idents.map(|i| i.into_iter().collect()),
       extras: i.extras,
     }
   }
@@ -90,6 +93,7 @@ impl From<rspack_core::AssetInfo> for JsAssetInfo {
       content_hash: info.content_hash.into_iter().collect(),
       source_filename: info.source_filename,
       javascript_module: info.javascript_module,
+      css_unused_idents: info.css_unsed_idents.map(|i| i.into_iter().collect()),
       extras: info.extras,
     }
   }
