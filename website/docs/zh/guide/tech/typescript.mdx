@@ -40,3 +40,25 @@
 ## Alias
 
 点击 [resolve.tsConfigPath](/config/resolve#resolvetsconfigpath) 查看详情。
+
+## Client 类型
+
+在 TypeScript 代码中，可以使用 webpack 或 Rspack 特有的功能，例如 [import.meta.webpackContext](/api/modules/module-variables#importmetawebpackcontext)。
+
+Rspack 通过 `@rspack/core/module` 提供 Client 模块的类型，你可以添加 TypeScript reference 指令来声明它们：
+
+```ts title="src/index.ts"
+/// <reference types="@rspack/core/module" />
+
+console.log(import.meta.webpackContext); // 如果没有上面的引用声明，TypeScript 将会抛出错误
+```
+
+你也可以将 `@rspack/core/module` 添加到 tsconfig.json 的 `types` 字段中。这样你就不需要在每个文件中添加 TypeScript reference 指令。
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "types": ["@rspack/core/module"]
+  }
+}
+```

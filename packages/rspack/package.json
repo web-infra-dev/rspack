@@ -12,7 +12,8 @@
     },
     "./hot/*": "./hot/*.js",
     "./hot/*.js": "./hot/*.js",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./module": "./module.d.ts"
   },
   "scripts": {
     "build": "prebundle && tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json",
@@ -25,7 +26,8 @@
   "files": [
     "dist",
     "hot",
-    "compiled"
+    "compiled",
+    "module.d.ts"
   ],
   "engines": {
     "node": ">=16.0.0"
