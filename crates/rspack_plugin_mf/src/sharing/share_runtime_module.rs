@@ -99,7 +99,7 @@ impl RuntimeModule for ShareRuntimeModule {
       .collect::<Vec<_>>()
       .join(", ");
     let initialize_sharing_impl = if self.enhanced {
-      "__webpack_require__.I = function() { throw new Error(\"should have __webpack_require__.I\") }"
+      "__webpack_require__.I = __webpack_require__.I || function() { throw new Error(\"should have __webpack_require__.I\") }"
     } else {
       include_str!("./initializeSharing.js")
     };
