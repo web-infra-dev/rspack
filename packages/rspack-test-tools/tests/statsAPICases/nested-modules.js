@@ -13,7 +13,10 @@ module.exports = {
 	async check(stats) {
 		const statsOptions = {
 			modules: true,
-			nestedModules: true
+			nestedModules: true,
+			timings: false,
+			builtAt: false,
+			version: false
 		};
 		expect(typeof stats?.hash).toBe("string");
 		const statsJson = stats?.toJson(statsOptions);
@@ -187,14 +190,15 @@ module.exports = {
 		  },
 		]
 	`);
-		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
+		expect(stats?.toString(statsOptions).replace(/\d+ ms/g, "X ms"))
+			.toMatchInlineSnapshot(`
 		"asset main.js 475 bytes [emitted] (name: main)
 		Entrypoint main 475 bytes = main.js
 		orphan modules [orphan] 4 modules
 		runtime modules 3 modules
 		./fixtures/esm/abc.js + 3 modules
 		  | orphan modules [orphan] 4 modules
-		Rspack 0.7.2 compiled successfully in 97 ms"
+		Rspack compiled successfully"
 	`);
 	}
 };
