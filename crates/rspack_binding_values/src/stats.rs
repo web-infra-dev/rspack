@@ -240,6 +240,13 @@ pub struct JsStatsModule {
   pub provided_exports: Option<Vec<String>>,
   pub used_exports: Option<Either<String, Vec<String>>>,
   pub optimization_bailout: Option<Vec<String>>,
+  pub pre_order_index: Option<u32>,
+  pub post_order_index: Option<u32>,
+  pub built: bool,
+  pub code_generated: bool,
+  pub cached: bool,
+  pub cacheable: bool,
+  pub optional: bool,
 }
 
 impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
@@ -300,6 +307,13 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       }),
       optimization_bailout: Some(stats.optimization_bailout),
       modules,
+      pre_order_index: stats.pre_order_index,
+      post_order_index: stats.post_order_index,
+      built: stats.built,
+      code_generated: stats.code_generated,
+      cached: stats.cached,
+      cacheable: stats.cacheable,
+      optional: stats.optional,
     })
   }
 }

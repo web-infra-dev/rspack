@@ -12,13 +12,13 @@ module.exports = {
 		expect(
 			stats?.toString({ all: false, modules: true }).replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
-		"./fixtures/a.js
+		"./fixtures/abc.js
+		  X ms (resolving: X ms, integration: X ms, building: X ms)
+		./fixtures/a.js
 		  X ms (resolving: X ms, integration: X ms, building: X ms)
 		./fixtures/b.js
 		  X ms (resolving: X ms, integration: X ms, building: X ms)
 		./fixtures/c.js
-		  X ms (resolving: X ms, integration: X ms, building: X ms)
-		./fixtures/abc.js
 		  X ms (resolving: X ms, integration: X ms, building: X ms)"
 	`);
 	}

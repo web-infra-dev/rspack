@@ -93,8 +93,8 @@ Rspack x.x.x compiled successfully in X s"
 exports[`statsOutput statsOutput/ignore-plugin should print correct stats for 1`] = `
 "runtime modules 1 module
 ./index.js
-./locals/en.js
-Xdir/ignore-plugin/locals|sync|/^\\\\.\\\\/.*$/"
+Xdir/ignore-plugin/locals|sync|/^\\\\.\\\\/.*$/
+./locals/en.js"
 `;
 
 exports[`statsOutput statsOutput/ignore-warning should print correct stats for 1`] = `"Rspack compiled successfully"`;
@@ -295,12 +295,12 @@ asset 753.js 130 bytes [emitted]
 Entrypoint main 304 KiB = main.js
 runtime modules 12 modules
 javascript modules
+  ./index.js
   ./a.js
   ./b.js
   ./c.js
   ./d.js
   ./e.js
-  ./index.js
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -311,12 +311,12 @@ asset 753.js 130 bytes [emitted]
 Entrypoint main 304 KiB = main.js
 runtime modules 12 modules
 javascript modules
+  ./index.js
   ./a.js
   ./b.js
   ./c.js
   ./d.js
   ./e.js
-  ./index.js
 
 ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
   │   main.js (303.513 KiB)
@@ -337,12 +337,12 @@ asset 753.js 130 bytes [emitted]
 Entrypoint main 304 KiB = main.js
 runtime modules 12 modules
 javascript modules
+  ./index.js
   ./a.js
   ./b.js
   ./c.js
   ./d.js
   ./e.js
-  ./index.js
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -361,11 +361,11 @@ chunk main.js (main) >{74}< >{751}< >{76}< (prefetch: {74} {751} {76}) [entry]"
 `;
 
 exports[`statsOutput statsOutput/reasons should print correct stats for 1`] = `
-"./a.js
+"./index.js
+  entry ./index
+./a.js
   cjs self exports reference self
-  cjs require ./a
-./index.js
-  entry ./index"
+  cjs require ./a"
 `;
 
 exports[`statsOutput statsOutput/resolve-overflow-error should print correct stats for 1`] = `
@@ -398,24 +398,24 @@ Rspack x.x.x compiled with 1 error in X s"
 `;
 
 exports[`statsOutput statsOutput/runtime-modules should print correct stats for 1`] = `
-"./index.js
-webpack/runtime/has_own_property
+"webpack/runtime/has_own_property
 webpack/runtime/make_namespace_object
-webpack/runtime/define_property_getters"
+webpack/runtime/define_property_getters
+./index.js"
 `;
 
 exports[`statsOutput statsOutput/runtime-specific-exports should print correct stats for 1`] = `
 "asset main.js 1.8 KiB [emitted] (name: main)
 Entrypoint main 1.8 KiB = main.js
-./math.js
-  [exports: add, multiply]
-  [only some exports used: add]
 ./example.js
   [no exports]
   [no exports used]
 ./increment.js
   [exports: decrement, increment, incrementBy2]
   [only some exports used: increment]
+./math.js
+  [exports: add, multiply]
+  [only some exports used: add]
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -425,16 +425,16 @@ Entrypoint main 1.86 KiB = main.js
 chunk {909} main.js (main) [entry]
 runtime modules 2 modules
 javascript modules
+  ./index.js [10] {909}
+    [no exports]
+    [no exports used]
+    entry ./index.js
   ./lib.js [467] {909}
     [exports: test]
     [all exports used]
     Statement with side_effects in source code at ./lib.js:5:0-9
     esm import ./lib.js [10]
     esm import specifier ./lib.js [10]
-  ./index.js [10] {909}
-    [no exports]
-    [no exports used]
-    entry ./index.js
   
 Rspack x.x.x compiled successfully in X s"
 `;
@@ -453,8 +453,8 @@ Entrypoint main 2.1 KiB = bundle.js
 runtime modules 3 modules
 orphan modules [orphan] 1 module
 javascript modules
-  ./raw.png
   ./index.js
+  ./raw.png
 Rspack compiled successfully"
 `;
 

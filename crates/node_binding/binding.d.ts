@@ -559,6 +559,13 @@ export interface JsStatsModule {
   providedExports?: Array<string>
   usedExports?: string | Array<string>
   optimizationBailout?: Array<string>
+  preOrderIndex?: number
+  postOrderIndex?: number
+  built: boolean
+  codeGenerated: boolean
+  cached: boolean
+  cacheable: boolean
+  optional: boolean
 }
 
 export interface JsStatsModuleIssuer {

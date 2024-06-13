@@ -396,9 +396,14 @@ impl Stats<'_> {
   }
 
   fn sort_modules(modules: &mut [StatsModule]) {
-    // TODO: sort by module.depth
     modules.sort_unstable_by(|a, b| {
-      if a.name.len() != b.name.len() {
+      // align with MODULES_SORTER
+      // https://github.com/webpack/webpack/blob/ab3e93b19ead869727592d09d36f94e649eb9d83/lib/stats/DefaultStatsFactoryPlugin.js#L1546
+      if a.depth != b.depth {
+        a.depth.cmp(&b.depth)
+      } else if a.pre_order_index != b.pre_order_index {
+        a.pre_order_index.cmp(&b.pre_order_index)
+      } else if a.name.len() != b.name.len() {
         a.name.len().cmp(&b.name.len())
       } else {
         a.name.cmp(&b.name)
@@ -502,7 +507,6 @@ impl Stats<'_> {
       assets
     });
 
-    // TODO: a placeholder for concatenation modules
     let modules = nested_modules
       .then(|| -> Result<_> {
         let Some(module) = module.as_concatenated_module() else {
@@ -580,6 +584,12 @@ impl Stats<'_> {
       None
     };
 
+    let built = self.compilation.built_modules.contains(&identifier);
+    let code_generated = self
+      .compilation
+      .code_generated_modules
+      .contains(&identifier);
+
     Ok(StatsModule {
       r#type: "module",
       module_type: *module.module_type(),
@@ -613,6 +623,13 @@ impl Stats<'_> {
       provided_exports,
       used_exports,
       optimization_bailout: mgm.optimization_bailout.clone(),
+      pre_order_index: module_graph.get_pre_order_index(&identifier),
+      post_order_index: module_graph.get_post_order_index(&identifier),
+      built,
+      code_generated,
+      cached: !built && !code_generated,
+      cacheable: module.build_info().is_some_and(|i| i.cacheable),
+      optional: module_graph.is_optional(&identifier),
     })
   }
 
@@ -632,6 +649,9 @@ impl Stats<'_> {
       .map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
       .collect();
     chunks.sort_unstable();
+
+    let built = false;
+    let code_generated = self.compilation.code_generated_modules.contains(identifier);
 
     Ok(StatsModule {
       r#type: "module",
@@ -660,6 +680,13 @@ impl Stats<'_> {
       provided_exports: Some(vec![]),
       used_exports: None,
       optimization_bailout: vec![],
+      pre_order_index: None,
+      post_order_index: None,
+      built,
+      code_generated,
+      cached: !built && !code_generated,
+      cacheable: module.cacheable(),
+      optional: false,
     })
   }
   fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
@@ -788,6 +815,13 @@ pub struct StatsModule<'a> {
   pub used_exports: Option<StatsUsedExports>,
   pub optimization_bailout: Vec<String>,
   pub depth: Option<usize>,
+  pub pre_order_index: Option<u32>,
+  pub post_order_index: Option<u32>,
+  pub built: bool,
+  pub code_generated: bool,
+  pub cached: bool,
+  pub cacheable: bool,
+  pub optional: bool,
 }
 
 #[derive(Debug)]

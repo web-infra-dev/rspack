@@ -155,6 +155,7 @@ pub struct Compilation {
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 
   pub code_generation_results: CodeGenerationResults,
+  pub built_modules: IdentifierSet,
   pub code_generated_modules: IdentifierSet,
   pub old_cache: Arc<OldCache>,
   pub code_splitting_cache: CodeSplittingCache,
@@ -235,6 +236,7 @@ impl Compilation {
       named_chunk_groups: Default::default(),
 
       code_generation_results: Default::default(),
+      built_modules: Default::default(),
       code_generated_modules: Default::default(),
       old_cache,
       code_splitting_cache: Default::default(),
@@ -993,6 +995,9 @@ impl Compilation {
       module_executor.hook_after_finish_modules(self).await;
       self.module_executor = Some(module_executor);
     }
+
+    // take built_modules
+    self.built_modules = self.make_artifact.take_built_modules();
     Ok(())
   }
 
