@@ -544,10 +544,12 @@ export interface JsStatsModule {
   id?: string
   chunks: Array<string | undefined | null>
   size: number
+  depth?: number
   issuer?: string
   issuerName?: string
   issuerId?: string
   issuerPath: Array<JsStatsModuleIssuer>
+  modules?: Array<JsStatsModule>
   nameForCondition?: string
   reasons?: Array<JsStatsModuleReason>
   assets?: Array<string>

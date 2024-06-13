@@ -7,7 +7,8 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkGroupOrderKey, ProvidedExports, UsedExports,
+  get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkGroupOrderKey, ModuleGraph, ProvidedExports,
+  UsedExports,
 };
 use crate::{BoxModule, BoxRuntimeModule, Chunk};
 use crate::{ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType, SourceType};
@@ -144,6 +145,7 @@ impl Stats<'_> {
       .values()
       .map(|module| {
         self.get_module(
+          &module_graph,
           module,
           reasons,
           module_assets,
@@ -202,6 +204,7 @@ impl Stats<'_> {
             .into_iter()
             .map(|m| {
               self.get_module(
+                &module_graph,
                 m,
                 reasons,
                 module_assets,
@@ -406,6 +409,7 @@ impl Stats<'_> {
   #[allow(clippy::too_many_arguments)]
   fn get_module<'a>(
     &'a self,
+    module_graph: &'a ModuleGraph,
     module: &'a BoxModule,
     reasons: bool,
     module_assets: bool,
@@ -415,7 +419,6 @@ impl Stats<'_> {
     provided_exports: bool,
   ) -> Result<StatsModule<'a>> {
     let identifier = module.identifier();
-    let module_graph = self.compilation.get_module_graph();
     let mgm = module_graph
       .module_graph_module_by_identifier(&identifier)
       .unwrap_or_else(|| panic!("Could not find ModuleGraphModule by identifier: {identifier:?}"));
@@ -437,7 +440,7 @@ impl Stats<'_> {
     }
     issuer_path.reverse();
 
-    let reasons = reasons
+    let module_reasons = reasons
       .then(|| -> Result<_> {
         let mut reasons: Vec<StatsModuleReason> = mgm
           .get_incoming_connections_unordered()
@@ -500,7 +503,32 @@ impl Stats<'_> {
     });
 
     // TODO: a placeholder for concatenation modules
-    let modules = nested_modules.then(Vec::new);
+    let modules = nested_modules
+      .then(|| -> Result<_> {
+        let Some(module) = module.as_concatenated_module() else {
+          return Ok(Vec::new());
+        };
+        let mut modules: Vec<StatsModule> = module
+          .get_modules()
+          .iter()
+          .filter_map(|m| module_graph.module_by_identifier(&m.id))
+          .map(|module| {
+            self.get_module(
+              module_graph,
+              module,
+              reasons,
+              module_assets,
+              nested_modules,
+              source,
+              used_exports,
+              provided_exports,
+            )
+          })
+          .collect::<Result<_>>()?;
+        Self::sort_modules(&mut modules);
+        Ok(modules)
+      })
+      .transpose()?;
     let profile = if let Some(p) = mgm.get_profile()
       && let Some(factory) = p.factory.duration()
       && let Some(integration) = p.integration.duration()
@@ -556,6 +584,7 @@ impl Stats<'_> {
       r#type: "module",
       module_type: *module.module_type(),
       identifier,
+      depth: module_graph.get_depth(&identifier),
       name_for_condition: module.name_for_condition().map(|n| n.to_string()),
       name: module
         .readable_identifier(&self.compilation.options.context)
@@ -571,7 +600,7 @@ impl Stats<'_> {
       issuer_name,
       issuer_id: issuer_id.and_then(|i| i),
       issuer_path,
-      reasons,
+      reasons: module_reasons,
       assets,
       modules,
       source: source.then(|| module.original_source()).flatten(),
@@ -606,6 +635,7 @@ impl Stats<'_> {
 
     Ok(StatsModule {
       r#type: "module",
+      depth: None,
       module_type: *module.module_type(),
       identifier: module.identifier(),
       name_for_condition: module.name_for_condition().map(|n| n.to_string()),
@@ -757,6 +787,7 @@ pub struct StatsModule<'a> {
   pub provided_exports: Option<Vec<String>>,
   pub used_exports: Option<StatsUsedExports>,
   pub optimization_bailout: Vec<String>,
+  pub depth: Option<usize>,
 }
 
 #[derive(Debug)]

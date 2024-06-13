@@ -225,10 +225,12 @@ pub struct JsStatsModule {
   pub id: Option<String>,
   pub chunks: Vec<Option<String>>,
   pub size: f64,
+  pub depth: Option<u32>,
   pub issuer: Option<String>,
   pub issuer_name: Option<String>,
   pub issuer_id: Option<String>,
   pub issuer_path: Vec<JsStatsModuleIssuer>,
+  pub modules: Option<Vec<JsStatsModule>>,
   pub name_for_condition: Option<String>,
   pub reasons: Option<Vec<JsStatsModuleReason>>,
   pub assets: Option<Vec<String>>,
@@ -257,10 +259,23 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       })
       .transpose()
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+    let modules: Option<Vec<JsStatsModule>> = stats
+      .modules
+      .map(|modules| -> Result<_> {
+        let mut res = vec![];
+        for module in modules {
+          res.push(module.try_into()?);
+        }
+        Ok(res)
+      })
+      .transpose()
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
     Ok(Self {
       r#type: stats.r#type,
       name: stats.name,
       size: stats.size,
+      depth: stats.depth.map(|d| d as u32),
       chunks: stats.chunks,
       module_type: stats.module_type.as_str().to_string(),
       identifier: stats.identifier.to_string(),
@@ -284,6 +299,7 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
         StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
       }),
       optimization_bailout: Some(stats.optimization_bailout),
+      modules,
     })
   }
 }

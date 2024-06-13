@@ -436,7 +436,7 @@ impl ConcatenatedModule {
     self.id
   }
 
-  fn get_modules(&self) -> Vec<ConcatenatedInnerModule> {
+  pub fn get_modules(&self) -> Vec<ConcatenatedInnerModule> {
     self.modules.clone()
   }
 }
