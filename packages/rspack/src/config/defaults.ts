@@ -464,18 +464,28 @@ const applyModuleDefaults = (
 			});
 		}
 
-		rules.push({
-			dependency: "url",
-			oneOf: [
-				{
-					scheme: /^data$/,
-					type: "asset/inline"
-				},
-				{
-					type: "asset/resource"
-				}
-			]
-		});
+		rules.push(
+			{
+				dependency: "url",
+				oneOf: [
+					{
+						scheme: /^data$/,
+						type: "asset/inline"
+					},
+					{
+						type: "asset/resource"
+					}
+				]
+			}
+			// {
+			// 	assert: { type: "json" },
+			// 	type: "json"
+			// },
+			// {
+			// 	with: { type: "json" },
+			// 	type: "json"
+			// }
+		);
 
 		return rules;
 	});
