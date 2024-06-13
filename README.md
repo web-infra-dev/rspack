@@ -3,9 +3,9 @@
   <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/dhozeh7vhpebvog/rspack-banner-1610.png">
 </picture>
 
-<h2 align="center">A fast Rust-based web bundler</h2>
+# Rspack
 
-<p align="center">
+<p>
   <a href="https://discord.gg/79ZZ66GH9E">
     <img src="https://img.shields.io/badge/chat-discord-blue?style=flat-square&logo=discord&colorA=564341&colorB=EDED91" alt="discord channel" />
   </a>
@@ -21,6 +21,8 @@
 </p>
 
 English | [简体中文](./README.zh-CN.md)
+
+Rspack is a fast Rust-based web bundler with webpack-compatible API.
 
 ## ✨ Features
 

@@ -3,9 +3,9 @@
   <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/dhozeh7vhpebvog/rspack-banner-1610.png">
 </picture>
 
-<h2 align="center">基于 Rust 的高性能模块打包工具</h2>
+# Rspack
 
-<p align="center">
+<p>
   <a href="https://discord.gg/79ZZ66GH9E">
     <img src="https://img.shields.io/badge/chat-discord-blue?style=flat-square&logo=discord&colorA=564341&colorB=EDED91" alt="discord channel" />
   </a>
@@ -21,6 +21,8 @@
 </p>
 
 [English](./README.md) | 简体中文
+
+Rspack 是一个基于 Rust 的高性能 web 打包工具，具有与 webpack 兼容的 API。
 
 ## ✨ 特性
 

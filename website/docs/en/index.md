@@ -5,8 +5,10 @@ link-rss: blog-rss
 
 hero:
   name: Rspack
-  text: A fast Rust-based web bundler
-  tagline: Build a high-performance frontend toolchain
+  text: |
+    The fast Rust-based
+    web bundler
+  tagline: Seamlessly replace webpack with compatible API
   image:
     src: https://assets.rspack.dev/rspack/rspack-logo.svg
     alt: logo
