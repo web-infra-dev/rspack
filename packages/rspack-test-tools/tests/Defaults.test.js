@@ -18,9 +18,7 @@ function getWebpackDefaultConfig(cwd, config) {
 function getObjectPaths(obj, parentPaths = []) {
 	return Object.keys(obj).reduce((paths, key) => {
 		const fullPath = [...parentPaths, key];
-		if (Array.isArray(obj[key]) && obj[key].length) {
-			return [...paths, fullPath, ...getObjectPaths(obj[key][0], fullPath)];
-		} else if (typeof obj[key] === "object" && obj[key] !== null) {
+		if (typeof obj[key] === "object" && obj[key] !== null && !Array.isArray(obj[key])) {
 			return [...paths, fullPath, ...getObjectPaths(obj[key], fullPath)];
 		} else {
 			return [...paths, fullPath];
@@ -35,11 +33,7 @@ function deleteObjectPaths(obj, predicate, parentPaths = []) {
 			delete obj[key];
 			continue;
 		}
-		if (Array.isArray(obj[key])) {
-			for (const item of obj[key]) {
-				deleteObjectPaths(item, predicate, fullPath);
-			}
-		} else if (typeof obj[key] === "object" && obj[key] !== null) {
+		if (typeof obj[key] === "object" && obj[key] !== null && !Array.isArray(obj[key])) {
 			deleteObjectPaths(obj[key], predicate, fullPath);
 		}
 	}
