@@ -9,7 +9,6 @@
  */
 import * as util from "node:util";
 
-import { JsStatsModule } from "@rspack/binding";
 import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { StatsOptions } from "../config";

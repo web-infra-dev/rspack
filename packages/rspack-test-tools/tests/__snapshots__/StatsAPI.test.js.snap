@@ -1,181 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`statsAPI statsAPI/basic should have stats 1`] = `
-Object {
-  "assets": Array [
-    Object {
-      "chunkNames": Array [
-        "main",
-      ],
-      "chunks": Array [
-        "909",
-      ],
-      "emitted": true,
-      "info": Object {
-        "development": false,
-        "hotModuleReplacement": false,
-      },
-      "name": "main.js",
-      "size": 207,
-      "type": "asset",
-    },
-  ],
-  "assetsByChunkName": Object {
-    "main": Array [
-      "main.js",
-    ],
-  },
-  "children": Array [],
-  "chunks": Array [
-    Object {
-      "auxiliaryFiles": Array [],
-      "children": Array [],
-      "childrenByOrder": Object {},
-      "entry": true,
-      "files": Array [
-        "main.js",
-      ],
-      "id": "909",
-      "initial": true,
-      "modules": Array [
-        Object {
-          "assets": Array [],
-          "chunks": Array [
-            "909",
-          ],
-          "id": "585",
-          "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
-          "issuer": undefined,
-          "issuerId": undefined,
-          "issuerName": undefined,
-          "issuerPath": Array [],
-          "moduleType": "javascript/auto",
-          "name": "./fixtures/a.js",
-          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-          "optimizationBailout": Array [
-            "Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2",
-          ],
-          "orphan": false,
-          "providedExports": Array [],
-          "reasons": Array [
-            Object {
-              "moduleId": undefined,
-              "moduleIdentifier": undefined,
-              "moduleName": undefined,
-              "type": "entry",
-              "userRequest": "./fixtures/a",
-            },
-            Object {
-              "moduleId": "585",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
-              "moduleName": "./fixtures/a.js",
-              "type": "cjs self exports reference",
-              "userRequest": "self",
-            },
-          ],
-          "size": 55,
-          "source": "module.exports = function a() {
-	return \\"This is a\\";
-};",
-          "type": "module",
-          "usedExports": null,
-        },
-      ],
-      "names": Array [
-        "main",
-      ],
-      "parents": Array [],
-      "siblings": Array [],
-      "size": 55,
-      "type": "chunk",
-    },
-  ],
-  "entrypoints": Object {
-    "main": Object {
-      "assets": Array [
-        Object {
-          "name": "main.js",
-          "size": 207,
-        },
-      ],
-      "assetsSize": 207,
-      "chunks": Array [
-        "909",
-      ],
-      "name": "main",
-    },
-  },
-  "env": undefined,
-  "errors": Array [],
-  "errorsCount": 0,
-  "filteredModules": undefined,
-  "hash": "99b766bb1908ecab2ebb",
-  "modules": Array [
-    Object {
-      "assets": Array [],
-      "chunks": Array [
-        "909",
-      ],
-      "id": "585",
-      "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": Array [],
-      "moduleType": "javascript/auto",
-      "name": "./fixtures/a.js",
-      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-      "optimizationBailout": Array [
-        "Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2",
-      ],
-      "orphan": false,
-      "providedExports": Array [],
-      "reasons": Array [
-        Object {
-          "moduleId": undefined,
-          "moduleIdentifier": undefined,
-          "moduleName": undefined,
-          "type": "entry",
-          "userRequest": "./fixtures/a",
-        },
-        Object {
-          "moduleId": "585",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
-          "moduleName": "./fixtures/a.js",
-          "type": "cjs self exports reference",
-          "userRequest": "self",
-        },
-      ],
-      "size": 55,
-      "source": "module.exports = function a() {
-	return \\"This is a\\";
-};",
-      "type": "module",
-      "usedExports": null,
-    },
-  ],
-  "namedChunkGroups": Object {
-    "main": Object {
-      "assets": Array [
-        Object {
-          "name": "main.js",
-          "size": 207,
-        },
-      ],
-      "assetsSize": 207,
-      "chunks": Array [
-        "909",
-      ],
-      "name": "main",
-    },
-  },
-  "outputPath": "<PROJECT_ROOT>/dist",
-  "publicPath": "auto",
-  "warnings": Array [],
-  "warningsCount": 0,
-}
-`;
-
 exports[`statsAPI statsAPI/exports should have usedExports and providedExports stats 1`] = `
 Object {
   "assets": Array [
@@ -219,6 +43,7 @@ Object {
           "chunks": Array [
             "909",
           ],
+          "depth": 1,
           "id": "83",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -267,6 +92,7 @@ Object {
           "chunks": Array [
             "909",
           ],
+          "depth": 0,
           "id": "314",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "issuer": undefined,
@@ -297,6 +123,7 @@ Object {
           "chunks": Array [
             "909",
           ],
+          "depth": 1,
           "id": "178",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -345,6 +172,7 @@ Object {
           "chunks": Array [
             "909",
           ],
+          "depth": 1,
           "id": "609",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -421,6 +249,38 @@ Object {
       "chunks": Array [
         "909",
       ],
+      "depth": 0,
+      "id": "314",
+      "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
+      "issuerPath": Array [],
+      "moduleType": "javascript/auto",
+      "name": "./fixtures/esm/abc.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+      "optimizationBailout": Array [],
+      "orphan": false,
+      "providedExports": Array [],
+      "reasons": Array [
+        Object {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
+          "type": "entry",
+          "userRequest": "./fixtures/esm/abc",
+        },
+      ],
+      "size": 80,
+      "type": "module",
+      "usedExports": Array [],
+    },
+    Object {
+      "assets": Array [],
+      "chunks": Array [
+        "909",
+      ],
+      "depth": 1,
       "id": "83",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
       "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -469,6 +329,7 @@ Object {
       "chunks": Array [
         "909",
       ],
+      "depth": 1,
       "id": "178",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
       "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -517,6 +378,7 @@ Object {
       "chunks": Array [
         "909",
       ],
+      "depth": 1,
       "id": "609",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
       "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -563,36 +425,7 @@ Object {
       "chunks": Array [
         "909",
       ],
-      "id": "314",
-      "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": Array [],
-      "moduleType": "javascript/auto",
-      "name": "./fixtures/esm/abc.js",
-      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
-      "optimizationBailout": Array [],
-      "orphan": false,
-      "providedExports": Array [],
-      "reasons": Array [
-        Object {
-          "moduleId": undefined,
-          "moduleIdentifier": undefined,
-          "moduleName": undefined,
-          "type": "entry",
-          "userRequest": "./fixtures/esm/abc",
-        },
-      ],
-      "size": 80,
-      "type": "module",
-      "usedExports": Array [],
-    },
-    Object {
-      "assets": Array [],
-      "chunks": Array [
-        "909",
-      ],
+      "depth": undefined,
       "id": "",
       "identifier": "webpack/runtime/has_own_property",
       "issuer": undefined,
@@ -615,6 +448,7 @@ Object {
       "chunks": Array [
         "909",
       ],
+      "depth": undefined,
       "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
       "issuer": undefined,
@@ -637,6 +471,7 @@ Object {
       "chunks": Array [
         "909",
       ],
+      "depth": undefined,
       "id": "",
       "identifier": "webpack/runtime/define_property_getters",
       "issuer": undefined,
@@ -785,6 +620,7 @@ Object {
           "chunks": Array [
             "909",
           ],
+          "depth": 2,
           "id": "585",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
@@ -838,6 +674,7 @@ Object {
           "chunks": Array [
             "909",
           ],
+          "depth": 1,
           "id": "958",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js?a=1",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -886,6 +723,7 @@ Object {
           "chunks": Array [
             "909",
           ],
+          "depth": 0,
           "id": "919",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "issuer": undefined,
@@ -925,6 +763,7 @@ exports.c = require(\\"./c?c=3\\");
           "chunks": Array [
             "909",
           ],
+          "depth": 1,
           "id": "432",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -1005,59 +844,47 @@ exports.c = require(\\"./c?c=3\\");
       "chunks": Array [
         "909",
       ],
-      "id": "585",
-      "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
-      "issuer": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
-      "issuerId": "432",
-      "issuerName": "./fixtures/c.js?c=3",
-      "issuerPath": Array [
-        Object {
-          "id": "919",
-          "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
-          "name": "./fixtures/abc-query.js",
-        },
-        Object {
-          "id": "432",
-          "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
-          "name": "./fixtures/c.js?c=3",
-        },
-      ],
+      "depth": 0,
+      "id": "919",
+      "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
+      "issuerPath": Array [],
       "moduleType": "javascript/auto",
-      "name": "./fixtures/a.js",
-      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "name": "./fixtures/abc-query.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
       "optimizationBailout": Array [
-        "Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2",
+        "Statement with side_effects in source code at ./fixtures/abc-query.js:1:0-31",
       ],
       "orphan": false,
-      "providedExports": Array [],
+      "providedExports": Array [
+        "a",
+        "c",
+      ],
       "reasons": Array [
         Object {
-          "moduleId": "585",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
-          "moduleName": "./fixtures/a.js",
-          "type": "cjs self exports reference",
-          "userRequest": "self",
-        },
-        Object {
-          "moduleId": "432",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
-          "moduleName": "./fixtures/c.js?c=3",
-          "type": "cjs require",
-          "userRequest": "./a",
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
+          "type": "entry",
+          "userRequest": "./fixtures/abc-query",
         },
       ],
-      "size": 55,
-      "source": "module.exports = function a() {
-	return \\"This is a\\";
-};",
+      "size": 99,
+      "source": "exports.a = require(\\"./a?a=1\\");
+// exports.b = require(\\"./b?b=2\\");
+exports.c = require(\\"./c?c=3\\");
+",
       "type": "module",
-      "usedExports": null,
+      "usedExports": Array [],
     },
     Object {
       "assets": Array [],
       "chunks": Array [
         "909",
       ],
+      "depth": 1,
       "id": "958",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js?a=1",
       "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -1106,6 +933,7 @@ exports.c = require(\\"./c?c=3\\");
       "chunks": Array [
         "909",
       ],
+      "depth": 1,
       "id": "432",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
       "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -1155,39 +983,54 @@ exports.c = require(\\"./c?c=3\\");
       "chunks": Array [
         "909",
       ],
-      "id": "919",
-      "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": Array [],
-      "moduleType": "javascript/auto",
-      "name": "./fixtures/abc-query.js",
-      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
-      "optimizationBailout": Array [
-        "Statement with side_effects in source code at ./fixtures/abc-query.js:1:0-31",
-      ],
-      "orphan": false,
-      "providedExports": Array [
-        "a",
-        "c",
-      ],
-      "reasons": Array [
+      "depth": 2,
+      "id": "585",
+      "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "issuer": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+      "issuerId": "432",
+      "issuerName": "./fixtures/c.js?c=3",
+      "issuerPath": Array [
         Object {
-          "moduleId": undefined,
-          "moduleIdentifier": undefined,
-          "moduleName": undefined,
-          "type": "entry",
-          "userRequest": "./fixtures/abc-query",
+          "id": "919",
+          "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+          "name": "./fixtures/abc-query.js",
+        },
+        Object {
+          "id": "432",
+          "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+          "name": "./fixtures/c.js?c=3",
         },
       ],
-      "size": 99,
-      "source": "exports.a = require(\\"./a?a=1\\");
-// exports.b = require(\\"./b?b=2\\");
-exports.c = require(\\"./c?c=3\\");
-",
+      "moduleType": "javascript/auto",
+      "name": "./fixtures/a.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "optimizationBailout": Array [
+        "Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2",
+      ],
+      "orphan": false,
+      "providedExports": Array [],
+      "reasons": Array [
+        Object {
+          "moduleId": "585",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+          "moduleName": "./fixtures/a.js",
+          "type": "cjs self exports reference",
+          "userRequest": "self",
+        },
+        Object {
+          "moduleId": "432",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+          "moduleName": "./fixtures/c.js?c=3",
+          "type": "cjs require",
+          "userRequest": "./a",
+        },
+      ],
+      "size": 55,
+      "source": "module.exports = function a() {
+	return \\"This is a\\";
+};",
       "type": "module",
-      "usedExports": Array [],
+      "usedExports": null,
     },
   ],
   "namedChunkGroups": Object {

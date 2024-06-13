@@ -6,20 +6,20 @@ asset bundle.js 2.58 KiB {909} [emitted] (name: main)
 asset 2710c5e36f8babb0a3a4.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
 Entrypoint main 2.58 KiB = bundle.js
 chunk {909} bundle.js (main) [entry]
-  ./index.js [10] {909}
+  ./index.js [10] {909} [depth 0]
     [no exports]
     [no exports used]
     entry ./index
-  ./raw.png [193] {909}
+  ./raw.png [193] {909} [depth 1]
     [no exports]
     [no exports used]
     esm import ./raw.png [10]
 javascript modules
-  ./index.js [10] {909}
+  ./index.js [10] {909} [depth 0]
     [no exports]
     [no exports used]
     entry ./index
-  ./stringModule.js [orphan]
+  ./stringModule.js [depth 1] [orphan]
     [no exports]
     [module unused]
     esm import ./stringModule [10]
@@ -30,7 +30,7 @@ runtime modules
   webpack/runtime/auto_public_path {909}
     [no exports]
     [used exports unknown]
-./raw.png [193] {909}
+./raw.png [193] {909} [depth 1]
   [no exports]
   [no exports used]
   esm import ./raw.png [10]
@@ -52,6 +52,14 @@ exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print cor
   ╰─▶ Syntax Error
 
 Rspack compiled with 1 error"
+`;
+
+exports[`statsOutput statsOutput/concatenated-modules should print correct stats for 1`] = `
+"asset main.js 264 bytes [emitted] (name: main)
+Entrypoint main 264 bytes = main.js
+orphan modules [orphan] 4 modules
+./index.js + 3 modules
+Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/css-concat-error should print correct stats for 1`] = `
