@@ -75,6 +75,7 @@ export const applyRspackOptionsDefaults = (
 		}
 	}
 
+	// IGNORE(devtool): devtool is default to "eval" in webpack when mode is development
 	F(options, "devtool", () => false as const);
 	D(options, "watch", false);
 	D(options, "profile", false);
@@ -82,6 +83,8 @@ export const applyRspackOptionsDefaults = (
 	D(options, "bail", false);
 
 	const futureDefaults = options.experiments.futureDefaults ?? false;
+	// IGNORE(cache): cache is default to { type: "memory" } in webpack when the mode is development,
+	// but Rspack currently does not support this option
 	F(options, "cache", () => development);
 
 	applyExperimentsDefaults(options.experiments, {
@@ -186,7 +189,9 @@ const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
 	{ cache }: { cache: boolean }
 ) => {
-	D(experiments, "lazyCompilation", undefined);
+	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
+	D(experiments, "lazyCompilation", false);
+	// IGNORE(experiments.asyncWebAssembly): The default value of `asyncWebAssembly` is determined by `futureDefaults` in webpack.
 	D(experiments, "asyncWebAssembly", false);
 	// IGNORE(experiments.css): Rspack enables this feature by default for better DX
 	D(experiments, "css", true);
@@ -700,10 +705,12 @@ const applyOutputDefaults = (
 		return "self";
 	});
 	D(output, "importFunctionName", "import");
+	// IGNORE(output.clean): The default value of `output.clean` in webpack is undefined, but it has the same effect as false.
 	F(output, "clean", () => !!output.clean);
 	D(output, "crossOriginLoading", false);
 	D(output, "workerPublicPath", "");
-	D(output, "sourceMapFilename", "[file].map[query]");
+	// IGNORE(output.sourceMapFilename): In webpack, sourceMapFilename is [file].map[query] by default
+	D(output, "sourceMapFilename", "[file].map");
 	F(output, "scriptType", () => (output.module ? "module" : false));
 
 	const { trustedTypes } = output;
@@ -784,7 +791,6 @@ const applyOutputDefaults = (
 		"optionalChaining",
 		() => tp && optimistic(tp.optionalChaining)
 	);
-	// IGNORE(loader.environment.nodePrefixForCoreModules): TODO
 	F(
 		environment,
 		"nodePrefixForCoreModules",
@@ -800,7 +806,6 @@ const applyOutputDefaults = (
 	F(environment, "module", () =>
 		conditionallyOptimistic(tp && tp.module, output.module)
 	);
-	// IGNORE(loader.environment.document): TODO
 	F(environment, "document", () => tp && optimistic(tp.document));
 };
 
@@ -864,17 +869,17 @@ const applyNodeDefaults = (
 ) => {
 	if (node === false) return;
 
-	// IGNORE(node.global): TODO
+	// IGNORE(node.global): The default value of `global` is determined by `futureDefaults` in webpack.
 	F(node, "global", () => {
 		if (targetProperties && targetProperties.global) return false;
 		return "warn";
 	});
-	// IGNORE(node.__dirname): TODO
+	// IGNORE(node.__dirname): The default value of `__dirname` is determined by `futureDefaults` in webpack.
 	F(node, "__dirname", () => {
 		if (targetProperties && targetProperties.node) return "eval-only";
 		return "warn-mock";
 	});
-	// IGNORE(node.__filename): TODO
+	// IGNORE(node.__filename): The default value of `__filename` is determined by `futureDefaults` in webpack.
 	F(node, "__filename", () => {
 		if (targetProperties && targetProperties.node) return "eval-only";
 		return "warn-mock";
@@ -899,20 +904,20 @@ const applyOptimizationDefaults = (
 		css
 	}: { production: boolean; development: boolean; css: boolean }
 ) => {
+	// IGNORE(optimization.removeAvailableModules): In webpack, removeAvailableModules is false by default
 	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
+	// IGNORE(optimization.moduleIds): set to "natural" by default in rspack 1.0
 	F(optimization, "moduleIds", (): "natural" | "named" | "deterministic" => {
 		if (production) return "deterministic";
 		if (development) return "named";
-		// TODO(rspack@1.0): change to `"natural"`
 		return "named";
 	});
-	// IGNORE(optimization.chunkIds): TODO
+	// IGNORE(optimization.chunkIds): set to "natural" by default in rspack 1.0
 	F(optimization, "chunkIds", (): "natural" | "named" | "deterministic" => {
 		if (production) return "deterministic";
 		if (development) return "named";
-		// TODO(rspack@1.0): change to `"natural"`
 		return "named";
 	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
@@ -923,6 +928,8 @@ const applyOptimizationDefaults = (
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
+	// IGNORE(optimization.concatenateModules): webpack sets this option as true by default when the mode is production,
+	// but rspack is in the experimental stage and sets it to false by default
 	D(optimization, "concatenateModules", false);
 	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `SwcCssMinimizerRspackPlugin` by default
 	A(optimization, "minimizer", () => [
@@ -936,6 +943,7 @@ const applyOptimizationDefaults = (
 	});
 	const { splitChunks } = optimization;
 	if (splitChunks) {
+		// IGNORE(optimization.splitChunks.defaultSizeTypes): Rspack enables `experiments.css` by default for better DX
 		A(splitChunks, "defaultSizeTypes", () =>
 			css ? ["javascript", "css", "unknown"] : ["javascript", "unknown"]
 		);
@@ -1064,6 +1072,7 @@ const getResolveDefaults = ({
 		styleConditions.push(mode === "development" ? "development" : "production");
 		styleConditions.push("style");
 
+		// IGNORE(resolve.byDependency.css-import): Rspack enables `experiments.css` by default for better DX
 		resolveOptions.byDependency!["css-import"] = {
 			// We avoid using any main files because we have to be consistent with CSS `@import`
 			// and CSS `@import` does not handle `main` files in directories,

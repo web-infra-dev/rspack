@@ -66,6 +66,24 @@ DefaultsConfigProcessor.addSnapshotSerializer(expect);
 
 const cwd = path.resolve(__dirname, "..");
 
+function assertWebpackConfig(config) {
+	const rspackBaseConfig = DefaultsConfigProcessor.getDefaultConfig(cwd, config);
+	const webpackBaseConfig = getWebpackDefaultConfig(cwd, config);
+	const rspackSupportedConfig = getObjectPaths(rspackBaseConfig);
+	const defaultsPath = path.resolve(__dirname, "../../rspack/src/config/defaults.ts");
+	const defaultsContent = fs.readFileSync(defaultsPath, "utf-8");
+	const regex = /\/\/\sIGNORE\((.+?)\):\s/g;
+	const ignoredPaths = [];
+	let matches;
+	while (matches = regex.exec(defaultsContent)) {
+		ignoredPaths.push(matches[1].split('.'));
+	}
+	trimObjectPaths(rspackBaseConfig, ignoredPaths);
+	trimObjectPaths(webpackBaseConfig, ignoredPaths);
+	filterObjectPaths(webpackBaseConfig, rspackSupportedConfig);
+	expect(rspackBaseConfig).toEqual(webpackBaseConfig);
+}
+
 describe("Base Defaults Snapshot", () => {
 	const baseConfig = DefaultsConfigProcessor.getDefaultConfig(cwd, { mode: "none" });
 
@@ -73,21 +91,24 @@ describe("Base Defaults Snapshot", () => {
 		expect(baseConfig).toMatchSnapshot();
 	});
 
-	it("should be align to webpack base config", () => {
-		const webpackBaseConfig = getWebpackDefaultConfig(cwd, { mode: "none" });
-		const rspackSupportedConfig = getObjectPaths(baseConfig);
-		const defaultsPath = path.resolve(__dirname, "../../rspack/src/config/defaults.ts");
-		const defaultsContent = fs.readFileSync(defaultsPath, "utf-8");
-		const regex = /\/\/\sIGNORE\((.+?)\):\s/g;
-		const ignoredPaths = [];
-		let matches;
-		while (matches = regex.exec(defaultsContent)) {
-			ignoredPaths.push(matches[1].split('.'));
-		}
-		trimObjectPaths(baseConfig, ignoredPaths);
-		trimObjectPaths(webpackBaseConfig, ignoredPaths);
-		filterObjectPaths(webpackBaseConfig, rspackSupportedConfig);
-		expect(baseConfig).toEqual(webpackBaseConfig);
+	it("should be align to webpack base config for mode: none", () => {
+		assertWebpackConfig({ mode: "none" });
+	});
+
+	it("should be align to webpack base config for mode: development", () => {
+		assertWebpackConfig({ mode: "development" });
+	});
+
+	it("should be align to webpack base config for mode: production", () => {
+		assertWebpackConfig({ mode: "production" });
+	});
+
+	it("should be align to webpack base config for experiments.futureDefaults: true", () => {
+		assertWebpackConfig({
+			mode: "production", experiments: {
+				futureDefaults: true
+			}
+		});
 	});
 });
 
