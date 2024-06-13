@@ -711,7 +711,9 @@ const applyOutputDefaults = (
 	D(output, "crossOriginLoading", false);
 	D(output, "workerPublicPath", "");
 	// IGNORE(output.sourceMapFilename): In webpack, sourceMapFilename is [file].map[query] by default
-	D(output, "sourceMapFilename", "[file].map");
+	F(output, "sourceMapFilename", () => {
+		return "[file].map";
+	});
 	F(output, "scriptType", () => (output.module ? "module" : false));
 
 	const { trustedTypes } = output;
