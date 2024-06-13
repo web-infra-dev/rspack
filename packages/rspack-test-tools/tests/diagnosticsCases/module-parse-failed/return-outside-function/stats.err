@@ -1,1 +1,3 @@
-ERROR in ./b.js× Module parse failed:╰─▶   × JavaScript parsing error: Return statement is not allowed here╭────1  return· ──────╰────help:You may need an appropriate loader to handle this file type.
+ERROR in ./b.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Return st

@@ -25,3 +25,4 @@ swc_core = { workspace = true, features = [
 ] }
 swc_emotion = { workspace = true }
 swc_plugin_import = { path = "../swc_plugin_import" }
+swc_plugin_preact = { path = "../swc_plugin_preact" }

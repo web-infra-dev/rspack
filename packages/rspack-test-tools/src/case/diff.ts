@@ -14,7 +14,8 @@ const DEFAULT_CASE_CONFIG: Partial<IDiffProcessorOptions> = {
 	rspackPath: require.resolve("@rspack/core"),
 	files: ["bundle.js"],
 	bootstrap: true,
-	detail: true
+	detail: true,
+	errors: false
 };
 
 type TFileCompareResult = {
@@ -123,7 +124,9 @@ function createDiffProcessor(config: IDiffProcessorOptions) {
 		onCompareModules: createCompareResultHandler("modules"),
 		onCompareRuntimeModules: createCompareResultHandler("runtimeModules"),
 		bootstrap: config.bootstrap ?? true,
-		detail: config.detail ?? true
+		detail: config.detail ?? true,
+		errors: config.errors ?? false,
+		replacements: config.replacements
 	});
 
 	return [processor, fileCompareMap] as [

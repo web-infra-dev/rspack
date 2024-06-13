@@ -5,9 +5,9 @@ use rspack_error::{Diagnostic, IntoTWithDiagnosticArray};
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
-  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilerContext,
-  CompilerModuleContext, CompilerOptions, DependencyParents, Module, ModuleProfile,
-  ResolverFactory, SharedPluginDriver,
+  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilerModuleContext,
+  CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, RunnerContext,
+  SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -45,7 +45,7 @@ impl Task<MakeTaskContext> for BuildTask {
     let result = module
       .build(
         BuildContext {
-          compiler_context: CompilerContext {
+          compiler_context: RunnerContext {
             options: compiler_options.clone(),
             resolver_factory: resolver_factory.clone(),
             module: CompilerModuleContext::from_module(module.as_ref()),

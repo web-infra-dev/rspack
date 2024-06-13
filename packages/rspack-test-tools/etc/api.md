@@ -641,6 +641,8 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
     // (undocumented)
     detail?: boolean;
     // (undocumented)
+    errors?: boolean;
+    // (undocumented)
     files?: string[];
     // (undocumented)
     modules?: TCompareModules;
@@ -650,6 +652,8 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
     onCompareModules?: (file: string, results: TModuleCompareResult[]) => void;
     // (undocumented)
     onCompareRuntimeModules?: (file: string, results: TModuleCompareResult[]) => void;
+    // (undocumented)
+    replacements?: IFormatCodeReplacement[];
     // (undocumented)
     rspackPath: string;
     // (undocumented)
@@ -703,7 +707,15 @@ export interface IFormatCodeOptions {
     // (undocumented)
     ignoreSwcHelpersPath: boolean;
     // (undocumented)
-    replacements?: Record<string, string>;
+    replacements?: IFormatCodeReplacement[];
+}
+
+// @public (undocumented)
+export interface IFormatCodeReplacement {
+    // (undocumented)
+    from: string | RegExp;
+    // (undocumented)
+    to: string;
 }
 
 // @public (undocumented)
@@ -1095,6 +1107,9 @@ export function readConfigFile<T extends ECompilerType>(files: string[]): TCompi
 
 // @public (undocumented)
 export function replaceModuleArgument(raw: string): string;
+
+// @public (undocumented)
+export function replacePaths(input: string): any;
 
 // @public (undocumented)
 export function replaceRuntimeModuleName(raw: string): string;

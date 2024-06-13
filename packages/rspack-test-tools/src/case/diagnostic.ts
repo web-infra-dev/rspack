@@ -13,12 +13,8 @@ const creator = new BasicCaseCreator({
 			compilerType: ECompilerType.Rspack,
 			format: (output: string) => {
 				// TODO: change to stats.errorStack
-				return output
-					.split("│")
-					.join("")
-					.split(/\r?\n/)
-					.map((s: string) => s.trim())
-					.join("");
+				// TODO: add `errorStack: false`
+				return output.replace(/[│\s]*at([│\s]|.)*/g, "");
 			}
 		})
 	]

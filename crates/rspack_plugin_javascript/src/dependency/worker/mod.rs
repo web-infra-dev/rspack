@@ -49,6 +49,14 @@ impl Dependency for WorkerDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    vec![]
+  }
 }
 
 impl ModuleDependency for WorkerDependency {
@@ -62,14 +70,6 @@ impl ModuleDependency for WorkerDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-
-  fn get_referenced_exports(
-    &self,
-    _module_graph: &ModuleGraph,
-    _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    vec![]
   }
 }
 

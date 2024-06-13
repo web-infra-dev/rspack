@@ -1,5 +1,3 @@
-mod js_loader;
-
 use std::fmt::Formatter;
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
@@ -11,7 +9,7 @@ use rspack_binding_values::RawRegex;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
-  AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions, BoxLoader,
+  AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
   CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserOptions, DescriptionData, DynamicImportMode, ExportPresenceMode,
   FuncUseCtx, GeneratorOptions, GeneratorOptionsByModuleType, JavascriptParserOptions,
@@ -20,35 +18,11 @@ use rspack_core::{
   ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
 };
 use rspack_error::error;
-use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
-use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
 use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use tokio::runtime::Handle;
 
-pub use self::js_loader::JsLoaderAdapter;
-pub use self::js_loader::*;
 use crate::RawResolveOptions;
-
-pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
-  if builtin.starts_with(SWC_LOADER_IDENTIFIER) {
-    return Arc::new(
-      rspack_loader_swc::SwcLoader::new(
-        serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-          panic!("Could not parse builtin:swc-loader options:{options:?},error: {e:?}")
-        }),
-      )
-      .with_identifier(builtin.into()),
-    );
-  }
-  if builtin.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
-    return Arc::new(
-      rspack_loader_react_refresh::ReactRefreshLoader::default().with_identifier(builtin.into()),
-    );
-  }
-
-  unreachable!("Unexpected builtin loader: {builtin}")
-}
 
 /// `loader` is for both JS and Rust loaders.
 /// `options` is
@@ -68,25 +42,6 @@ impl Debug for RawModuleRuleUse {
     f.debug_struct("RawModuleRuleUse")
       .field("loader", &self.loader)
       .field("options", &self.options)
-      .finish()
-  }
-}
-
-#[napi(object, object_to_js = false)]
-pub struct RawModuleRuleUses {
-  #[napi(ts_type = r#""array" | "function""#)]
-  pub r#type: String,
-  pub array_use: Option<Vec<RawModuleRuleUse>>,
-  #[napi(ts_type = "(arg: RawFuncUseCtx) => RawModuleRuleUse[]")]
-  pub func_use: Option<ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>>,
-}
-
-impl Debug for RawModuleRuleUses {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RawModuleRuleUses")
-      .field("r#type", &self.r#type)
-      .field("array_use", &self.array_use)
-      .field("func_use", &"...")
       .finish()
   }
 }
@@ -216,6 +171,8 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
   }
 }
 
+type ThreadsafeUse = ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>;
+
 #[derive(Derivative)]
 #[derivative(Debug, Default)]
 #[napi(object, object_to_js = false)]
@@ -236,7 +193,8 @@ pub struct RawModuleRule {
   pub resource_fragment: Option<RawRuleSetCondition>,
   pub description_data: Option<HashMap<String, RawRuleSetCondition>>,
   pub side_effects: Option<bool>,
-  pub r#use: Option<RawModuleRuleUses>,
+  #[napi(ts_type = "RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])")]
+  pub r#use: Option<Either<Vec<RawModuleRuleUse>, ThreadsafeUse>>,
   pub r#type: Option<String>,
   pub parser: Option<RawParserOptions>,
   pub generator: Option<RawGeneratorOptions>,
@@ -728,45 +686,33 @@ impl TryFrom<RawModuleRule> for ModuleRule {
   type Error = rspack_error::Error;
 
   fn try_from(value: RawModuleRule) -> rspack_error::Result<Self> {
-    // Even this part is using the plural version of loader, it's recommended to use singular version from js side to reduce overhead (This behavior maybe changed later for advanced usage).
-    let uses = value.r#use.map(|raw| match raw.r#type.as_str() {
-      "array" => {
-        let uses = raw
-          .array_use
-          .map(|uses| {
-            uses
-              .into_iter()
-              .map(|rule_use| ModuleRuleUseLoader {
-                loader: rule_use.loader,
-                options: rule_use.options,
-              })
-              .collect::<Vec<_>>()
+    let uses = value.r#use.map(|raw| match raw {
+      Either::A(array) => {
+        let uses = array
+          .into_iter()
+          .map(|rule_use| ModuleRuleUseLoader {
+            loader: rule_use.loader,
+            options: rule_use.options,
           })
-          .unwrap_or_default();
+          .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
       }
-      "function" => {
-        let func_use = raw.func_use.ok_or_else(|| {
-          error!("should have a func_matcher when RawRuleSetCondition.type is \"function\"")
-        })?;
-        Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Func(Box::new(
-          move |ctx: FuncUseCtx| {
-            let func_use = func_use.clone();
-            Box::pin(async move {
-              func_use.call(ctx.into()).await.map(|uses| {
-                uses
-                  .into_iter()
-                  .map(|rule_use| ModuleRuleUseLoader {
-                    loader: rule_use.loader,
-                    options: rule_use.options,
-                  })
-                  .collect::<Vec<_>>()
-              })
+      Either::B(tsfn) => Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Func(Box::new(
+        move |ctx: FuncUseCtx| {
+          let tsfn = tsfn.clone();
+          Box::pin(async move {
+            tsfn.call(ctx.into()).await.map(|uses| {
+              uses
+                .into_iter()
+                .map(|rule_use| ModuleRuleUseLoader {
+                  loader: rule_use.loader,
+                  options: rule_use.options,
+                })
+                .collect::<Vec<_>>()
             })
-          },
-        )))
-      }
-      _ => Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(vec![])),
+          })
+        },
+      ))),
     });
 
     let module_type = value.r#type.map(|t| (&*t).into());

@@ -30,7 +30,7 @@ import { JsChunkGroup } from '@rspack/binding';
 import { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
 import { JsCreateData } from '@rspack/binding';
-import type { JsLoaderContext } from '@rspack/binding';
+import { JsLoaderItem } from '@rspack/binding';
 import { JsModule } from '@rspack/binding';
 import { JsPathData } from '@rspack/binding';
 import type { JsRuntimeModule } from '@rspack/binding';
@@ -1459,7 +1459,7 @@ class ContainerReferencePlugin extends RspackBuiltinPlugin {
     name: BuiltinPluginName;
     // (undocumented)
     _options: {
-        remoteType: "promise" | "global" | "jsonp" | "import" | "amd" | "commonjs" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd" | "umd2" | "system" | "script" | "node-commonjs";
+        remoteType: "commonjs" | "umd" | "amd" | "promise" | "global" | "jsonp" | "import" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "system" | "script" | "node-commonjs";
         remotes: [string, {
             external: string[];
             shareScope: string;
@@ -3085,7 +3085,7 @@ export const ExternalsPlugin: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "promise" | "global" | "jsonp" | "import" | "amd" | "commonjs" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd" | "umd2" | "system" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "commonjs" | "umd" | "amd" | "promise" | "global" | "jsonp" | "import" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "system" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -3093,7 +3093,7 @@ export const ExternalsPlugin: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "promise" | "global" | "jsonp" | "import" | "amd" | "commonjs" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd" | "umd2" | "system" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "commonjs" | "umd" | "amd" | "promise" | "global" | "jsonp" | "import" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "system" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -4058,14 +4058,14 @@ const infrastructureLogging: z.ZodObject<{
     colors?: boolean | undefined;
     console?: Console | undefined;
     debug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
-    level?: "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
+    level?: "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
     stream?: NodeJS.WritableStream | undefined;
 }, {
     appendOnly?: boolean | undefined;
     colors?: boolean | undefined;
     console?: Console | undefined;
     debug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
-    level?: "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
+    level?: "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
     stream?: NodeJS.WritableStream | undefined;
 }>;
 
@@ -4157,9 +4157,9 @@ const javascriptParserOptions: z.ZodObject<{
     url?: boolean | "relative" | undefined;
     exprContextCritical?: boolean | undefined;
     wrappedContextCritical?: boolean | undefined;
-    exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-    importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-    reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+    exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+    importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+    reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
     strictExportPresence?: boolean | undefined;
 }, {
     dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -4168,9 +4168,9 @@ const javascriptParserOptions: z.ZodObject<{
     url?: boolean | "relative" | undefined;
     exprContextCritical?: boolean | undefined;
     wrappedContextCritical?: boolean | undefined;
-    exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-    importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-    reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+    exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+    importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+    reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
     strictExportPresence?: boolean | undefined;
 }>;
 
@@ -4689,10 +4689,6 @@ const loader: z.ZodRecord<z.ZodString, z.ZodAny>;
 
 // @public (undocumented)
 export interface LoaderContext<OptionsType = {}> {
-    // @internal
-    __internal__context: JsLoaderContext;
-    // @internal
-    __internal__pushNativeDiagnostics: (diagnostics: any) => void;
     // (undocumented)
     addBuildDependency(file: string): void;
     // (undocumented)
@@ -4802,31 +4798,43 @@ export interface LoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {
 }
 
 // @public (undocumented)
-interface LoaderObject {
+class LoaderObject {
+    constructor(loaderItem: JsLoaderItem, compiler: Compiler);
     // (undocumented)
-    data: object | undefined;
+    static __from_binding(loaderItem: JsLoaderItem, compiler: Compiler): LoaderObject;
+    // (undocumented)
+    static __to_binding(loader: LoaderObject): JsLoaderItem["inner"];
+    // (undocumented)
+    get data(): any;
+    set data(data: any);
     // (undocumented)
     fragment: string;
     // (undocumented)
     ident: string;
     // (undocumented)
-    normal: Function | undefined;
+    normal?: Function;
     // (undocumented)
-    normalExecuted: boolean;
+    get normalExecuted(): boolean;
+    set normalExecuted(value: boolean);
     // (undocumented)
-    options: object | string | undefined;
+    options?: string | object;
     // (undocumented)
     path: string;
     // (undocumented)
-    pitch: Function | undefined;
+    pitch?: Function;
     // (undocumented)
-    pitchExecuted: boolean;
+    get pitchExecuted(): boolean;
+    set pitchExecuted(value: boolean);
     // (undocumented)
     query: string;
     // (undocumented)
-    raw: boolean | undefined;
+    raw?: boolean;
     // (undocumented)
     request: string;
+    // (undocumented)
+    shouldYield(): boolean;
+    // (undocumented)
+    type?: "module" | "commonjs";
 }
 
 // @public
@@ -5132,9 +5140,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         }, {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5143,9 +5151,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         }>>;
         "javascript/auto": z.ZodOptional<z.ZodObject<{
@@ -5166,9 +5174,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         }, {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5177,9 +5185,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         }>>;
         "javascript/dynamic": z.ZodOptional<z.ZodObject<{
@@ -5200,9 +5208,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         }, {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5211,9 +5219,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         }>>;
         "javascript/esm": z.ZodOptional<z.ZodObject<{
@@ -5234,9 +5242,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         }, {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5245,9 +5253,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         }>>;
     }, "strict", z.ZodTypeAny, {
@@ -5272,9 +5280,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
         "javascript/auto"?: {
@@ -5284,9 +5292,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
         "javascript/dynamic"?: {
@@ -5296,9 +5304,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
         "javascript/esm"?: {
@@ -5308,9 +5316,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
     }, {
@@ -5335,9 +5343,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
         "javascript/auto"?: {
@@ -5347,9 +5355,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
         "javascript/dynamic"?: {
@@ -5359,9 +5367,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
         "javascript/esm"?: {
@@ -5371,9 +5379,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
     }>, z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>>]>>;
@@ -5629,9 +5637,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
         "javascript/auto"?: {
@@ -5641,9 +5649,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
         "javascript/dynamic"?: {
@@ -5653,9 +5661,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
         "javascript/esm"?: {
@@ -5665,9 +5673,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
     } | Record<string, Record<string, any>> | undefined;
@@ -5741,9 +5749,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
         "javascript/auto"?: {
@@ -5753,9 +5761,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
         "javascript/dynamic"?: {
@@ -5765,9 +5773,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
         "javascript/esm"?: {
@@ -5777,9 +5785,9 @@ const moduleOptions: z.ZodObject<{
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
-            exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-            reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+            exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+            reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
             strictExportPresence?: boolean | undefined;
         } | undefined;
     } | Record<string, Record<string, any>> | undefined;
@@ -7292,9 +7300,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7303,9 +7311,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }>>;
     "javascript/auto": z.ZodOptional<z.ZodObject<{
@@ -7326,9 +7334,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7337,9 +7345,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }>>;
     "javascript/dynamic": z.ZodOptional<z.ZodObject<{
@@ -7360,9 +7368,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7371,9 +7379,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }>>;
     "javascript/esm": z.ZodOptional<z.ZodObject<{
@@ -7394,9 +7402,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7405,9 +7413,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }>>;
 }, "strict", z.ZodTypeAny, {
@@ -7432,9 +7440,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
     "javascript/auto"?: {
@@ -7444,9 +7452,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
     "javascript/dynamic"?: {
@@ -7456,9 +7464,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
     "javascript/esm"?: {
@@ -7468,9 +7476,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
 }, {
@@ -7495,9 +7503,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
     "javascript/auto"?: {
@@ -7507,9 +7515,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
     "javascript/dynamic"?: {
@@ -7519,9 +7527,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
     "javascript/esm"?: {
@@ -7531,9 +7539,9 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
 }>, z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>>]>;
@@ -7599,9 +7607,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7610,9 +7618,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }>>;
     "javascript/auto": z.ZodOptional<z.ZodObject<{
@@ -7633,9 +7641,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7644,9 +7652,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }>>;
     "javascript/dynamic": z.ZodOptional<z.ZodObject<{
@@ -7667,9 +7675,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7678,9 +7686,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }>>;
     "javascript/esm": z.ZodOptional<z.ZodObject<{
@@ -7701,9 +7709,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7712,9 +7720,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     }>>;
 }, "strict", z.ZodTypeAny, {
@@ -7739,9 +7747,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
     "javascript/auto"?: {
@@ -7751,9 +7759,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
     "javascript/dynamic"?: {
@@ -7763,9 +7771,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
     "javascript/esm"?: {
@@ -7775,9 +7783,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
 }, {
@@ -7802,9 +7810,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
     "javascript/auto"?: {
@@ -7814,9 +7822,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
     "javascript/dynamic"?: {
@@ -7826,9 +7834,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
     "javascript/esm"?: {
@@ -7838,9 +7846,9 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
-        exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-        reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+        exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+        reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
         strictExportPresence?: boolean | undefined;
     } | undefined;
 }>;
@@ -9310,14 +9318,14 @@ export const rspackOptions: z.ZodObject<{
         colors?: boolean | undefined;
         console?: Console | undefined;
         debug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
-        level?: "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
+        level?: "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
         stream?: NodeJS.WritableStream | undefined;
     }, {
         appendOnly?: boolean | undefined;
         colors?: boolean | undefined;
         console?: Console | undefined;
         debug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
-        level?: "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
+        level?: "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
         stream?: NodeJS.WritableStream | undefined;
     }>>;
     cache: z.ZodOptional<z.ZodBoolean>;
@@ -9432,7 +9440,7 @@ export const rspackOptions: z.ZodObject<{
         moduleTrace: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
         all?: boolean | undefined;
-        preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+        preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
         modules?: boolean | undefined;
@@ -9456,7 +9464,7 @@ export const rspackOptions: z.ZodObject<{
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
         source?: boolean | undefined;
-        logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
+        logging?: boolean | "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
         runtimeModules?: boolean | undefined;
@@ -9504,7 +9512,7 @@ export const rspackOptions: z.ZodObject<{
         moduleTrace?: boolean | undefined;
     }, {
         all?: boolean | undefined;
-        preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+        preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
         modules?: boolean | undefined;
@@ -9528,7 +9536,7 @@ export const rspackOptions: z.ZodObject<{
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
         source?: boolean | undefined;
-        logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
+        logging?: boolean | "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
         runtimeModules?: boolean | undefined;
@@ -9962,9 +9970,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             }, {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -9973,9 +9981,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             }>>;
             "javascript/auto": z.ZodOptional<z.ZodObject<{
@@ -9996,9 +10004,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             }, {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -10007,9 +10015,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             }>>;
             "javascript/dynamic": z.ZodOptional<z.ZodObject<{
@@ -10030,9 +10038,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             }, {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -10041,9 +10049,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             }>>;
             "javascript/esm": z.ZodOptional<z.ZodObject<{
@@ -10064,9 +10072,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             }, {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -10075,9 +10083,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             }>>;
         }, "strict", z.ZodTypeAny, {
@@ -10102,9 +10110,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/auto"?: {
@@ -10114,9 +10122,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
@@ -10126,9 +10134,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
@@ -10138,9 +10146,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
         }, {
@@ -10165,9 +10173,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/auto"?: {
@@ -10177,9 +10185,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
@@ -10189,9 +10197,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
@@ -10201,9 +10209,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
         }>, z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>>]>>;
@@ -10459,9 +10467,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/auto"?: {
@@ -10471,9 +10479,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
@@ -10483,9 +10491,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
@@ -10495,9 +10503,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
@@ -10571,9 +10579,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/auto"?: {
@@ -10583,9 +10591,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
@@ -10595,9 +10603,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
@@ -10607,9 +10615,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
@@ -10828,7 +10836,7 @@ export const rspackOptions: z.ZodObject<{
             templateLiteral?: boolean | undefined;
         } | undefined;
     } | undefined;
-    target?: false | "async-node" | "node" | "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | ("async-node" | "node" | "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload`)[] | undefined;
+    target?: false | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | ("es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload`)[] | undefined;
     mode?: "none" | "development" | "production" | undefined;
     experiments?: {
         lazyCompilation?: boolean | {
@@ -10852,7 +10860,7 @@ export const rspackOptions: z.ZodObject<{
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "promise" | "global" | "jsonp" | "import" | "amd" | "commonjs" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd" | "umd2" | "system" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "commonjs" | "umd" | "amd" | "promise" | "global" | "jsonp" | "import" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "system" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -10860,12 +10868,12 @@ export const rspackOptions: z.ZodObject<{
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "promise" | "global" | "jsonp" | "import" | "amd" | "commonjs" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd" | "umd2" | "system" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "commonjs" | "umd" | "amd" | "promise" | "global" | "jsonp" | "import" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "system" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[] | undefined;
-    externalsType?: "promise" | "global" | "jsonp" | "import" | "amd" | "commonjs" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd" | "umd2" | "system" | "script" | "node-commonjs" | undefined;
+    externalsType?: "commonjs" | "umd" | "amd" | "promise" | "global" | "jsonp" | "import" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "system" | "script" | "node-commonjs" | undefined;
     externalsPresets?: {
         node?: boolean | undefined;
         web?: boolean | undefined;
@@ -10880,7 +10888,7 @@ export const rspackOptions: z.ZodObject<{
         colors?: boolean | undefined;
         console?: Console | undefined;
         debug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
-        level?: "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
+        level?: "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
         stream?: NodeJS.WritableStream | undefined;
     } | undefined;
     cache?: boolean | undefined;
@@ -10901,9 +10909,9 @@ export const rspackOptions: z.ZodObject<{
         stdin?: boolean | undefined;
     } | undefined;
     watch?: boolean | undefined;
-    stats?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | {
+    stats?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | {
         all?: boolean | undefined;
-        preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+        preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
         modules?: boolean | undefined;
@@ -10927,7 +10935,7 @@ export const rspackOptions: z.ZodObject<{
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
         source?: boolean | undefined;
-        logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
+        logging?: boolean | "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
         runtimeModules?: boolean | undefined;
@@ -11066,9 +11074,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/auto"?: {
@@ -11078,9 +11086,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
@@ -11090,9 +11098,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
@@ -11102,9 +11110,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
@@ -11313,7 +11321,7 @@ export const rspackOptions: z.ZodObject<{
             templateLiteral?: boolean | undefined;
         } | undefined;
     } | undefined;
-    target?: false | "async-node" | "node" | "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | ("async-node" | "node" | "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload`)[] | undefined;
+    target?: false | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | ("es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload`)[] | undefined;
     mode?: "none" | "development" | "production" | undefined;
     experiments?: {
         lazyCompilation?: boolean | {
@@ -11337,7 +11345,7 @@ export const rspackOptions: z.ZodObject<{
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "promise" | "global" | "jsonp" | "import" | "amd" | "commonjs" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd" | "umd2" | "system" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "commonjs" | "umd" | "amd" | "promise" | "global" | "jsonp" | "import" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "system" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -11345,12 +11353,12 @@ export const rspackOptions: z.ZodObject<{
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "promise" | "global" | "jsonp" | "import" | "amd" | "commonjs" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd" | "umd2" | "system" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "commonjs" | "umd" | "amd" | "promise" | "global" | "jsonp" | "import" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "system" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[] | undefined;
-    externalsType?: "promise" | "global" | "jsonp" | "import" | "amd" | "commonjs" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd" | "umd2" | "system" | "script" | "node-commonjs" | undefined;
+    externalsType?: "commonjs" | "umd" | "amd" | "promise" | "global" | "jsonp" | "import" | "commonjs2" | "var" | "module" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "system" | "script" | "node-commonjs" | undefined;
     externalsPresets?: {
         node?: boolean | undefined;
         web?: boolean | undefined;
@@ -11365,7 +11373,7 @@ export const rspackOptions: z.ZodObject<{
         colors?: boolean | undefined;
         console?: Console | undefined;
         debug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
-        level?: "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
+        level?: "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
         stream?: NodeJS.WritableStream | undefined;
     } | undefined;
     cache?: boolean | undefined;
@@ -11386,9 +11394,9 @@ export const rspackOptions: z.ZodObject<{
         stdin?: boolean | undefined;
     } | undefined;
     watch?: boolean | undefined;
-    stats?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | {
+    stats?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | {
         all?: boolean | undefined;
-        preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+        preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
         modules?: boolean | undefined;
@@ -11412,7 +11420,7 @@ export const rspackOptions: z.ZodObject<{
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
         source?: boolean | undefined;
-        logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
+        logging?: boolean | "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
         runtimeModules?: boolean | undefined;
@@ -11551,9 +11559,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/auto"?: {
@@ -11563,9 +11571,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
@@ -11575,9 +11583,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
@@ -11587,9 +11595,9 @@ export const rspackOptions: z.ZodObject<{
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
-                exportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                importExportsPresence?: false | "error" | "auto" | "warn" | undefined;
-                reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
+                exportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                importExportsPresence?: false | "error" | "warn" | "auto" | undefined;
+                reexportExportsPresence?: false | "error" | "warn" | "auto" | undefined;
                 strictExportPresence?: boolean | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
@@ -11745,6 +11753,8 @@ type Rules = Rule[] | Rule;
 // @public (undocumented)
 class RuleSetCompiler {
     constructor();
+    // (undocumented)
+    builtinReferences: Map<string, any>;
     // (undocumented)
     references: Map<string, any>;
 }
@@ -12242,7 +12252,7 @@ const statsOptions: z.ZodObject<{
     moduleTrace: z.ZodOptional<z.ZodBoolean>;
 }, "strict", z.ZodTypeAny, {
     all?: boolean | undefined;
-    preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+    preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | undefined;
     assets?: boolean | undefined;
     chunks?: boolean | undefined;
     modules?: boolean | undefined;
@@ -12266,7 +12276,7 @@ const statsOptions: z.ZodObject<{
     moduleAssets?: boolean | undefined;
     nestedModules?: boolean | undefined;
     source?: boolean | undefined;
-    logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
+    logging?: boolean | "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
     runtimeModules?: boolean | undefined;
@@ -12314,7 +12324,7 @@ const statsOptions: z.ZodObject<{
     moduleTrace?: boolean | undefined;
 }, {
     all?: boolean | undefined;
-    preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+    preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | undefined;
     assets?: boolean | undefined;
     chunks?: boolean | undefined;
     modules?: boolean | undefined;
@@ -12338,7 +12348,7 @@ const statsOptions: z.ZodObject<{
     moduleAssets?: boolean | undefined;
     nestedModules?: boolean | undefined;
     source?: boolean | undefined;
-    logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
+    logging?: boolean | "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
     runtimeModules?: boolean | undefined;
@@ -12491,7 +12501,7 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["none", "errors-only", "err
     moduleTrace: z.ZodOptional<z.ZodBoolean>;
 }, "strict", z.ZodTypeAny, {
     all?: boolean | undefined;
-    preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+    preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | undefined;
     assets?: boolean | undefined;
     chunks?: boolean | undefined;
     modules?: boolean | undefined;
@@ -12515,7 +12525,7 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["none", "errors-only", "err
     moduleAssets?: boolean | undefined;
     nestedModules?: boolean | undefined;
     source?: boolean | undefined;
-    logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
+    logging?: boolean | "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
     runtimeModules?: boolean | undefined;
@@ -12563,7 +12573,7 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["none", "errors-only", "err
     moduleTrace?: boolean | undefined;
 }, {
     all?: boolean | undefined;
-    preset?: boolean | "verbose" | "none" | "normal" | "errors-only" | "errors-warnings" | undefined;
+    preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | undefined;
     assets?: boolean | undefined;
     chunks?: boolean | undefined;
     modules?: boolean | undefined;
@@ -12587,7 +12597,7 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["none", "errors-only", "err
     moduleAssets?: boolean | undefined;
     nestedModules?: boolean | undefined;
     source?: boolean | undefined;
-    logging?: boolean | "error" | "info" | "verbose" | "none" | "warn" | "log" | undefined;
+    logging?: boolean | "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
     runtimeModules?: boolean | undefined;

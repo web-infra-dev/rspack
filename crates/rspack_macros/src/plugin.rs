@@ -138,7 +138,12 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
     generics,
   } = args;
   let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-  let syn::ItemFn { mut sig, block, .. } = input;
+  let syn::ItemFn {
+    mut sig,
+    block,
+    vis,
+    ..
+  } = input;
   let real_sig = sig.clone();
   let mut rest_args = Vec::new();
   for arg in real_sig.inputs.iter().skip(1) {
@@ -178,12 +183,12 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
 
   let expanded = quote! {
     #[allow(non_camel_case_types)]
-    struct #fn_ident #impl_generics #where_clause {
-      inner: ::std::sync::Arc<#inner_ident #ty_generics>,
+    #vis struct #fn_ident #impl_generics #where_clause {
+      #vis inner: ::std::sync::Arc<#inner_ident #ty_generics>,
     }
 
     impl #impl_generics #fn_ident #ty_generics #where_clause {
-      pub(crate) fn new(plugin: &#name #ty_generics) -> Self {
+      #vis fn new(plugin: &#name #ty_generics) -> Self {
         #fn_ident {
           inner: ::std::sync::Arc::clone(plugin.inner()),
         }

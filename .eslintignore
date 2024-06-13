@@ -7,6 +7,7 @@ crates/rspack_plugin_extract_css/src/runtime
 packages/rspack/compiled
 packages/rspack-dev-server/client
 packages/rspack-plugin-react-refresh/client
+packages/rspack-plugin-preact-refresh/client
 packages/playground
 packages/rspack/src/stats/DefaultStatsPrinterPlugin.ts
 packages/rspack-test-tools/template

@@ -12,7 +12,8 @@ module.exports = "b";
 
 }),
 "fs": (function (module) {
-module.exports = require('fs')
+"use strict";
+module.exports = require("fs");
 
 }),
 

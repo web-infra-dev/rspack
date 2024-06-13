@@ -86,7 +86,7 @@ use self::{
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
 use crate::{
-  plugins::{CssExtractRspackAdditionalDataPlugin, JsLoaderResolverPlugin},
+  plugins::{CssExtractRspackAdditionalDataPlugin, JsLoaderRspackPlugin},
   JsLoaderRunner, RawDynamicEntryPluginOptions, RawEntryPluginOptions,
   RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
   RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
@@ -473,11 +473,9 @@ impl BuiltinPlugin {
         .boxed();
         plugins.push(plugin);
       }
-      // rspack js adapter plugins
       BuiltinPluginName::JsLoaderRspackPlugin => {
-        plugins.push(
-          JsLoaderResolverPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed(),
-        );
+        plugins
+          .push(JsLoaderRspackPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed());
       }
       BuiltinPluginName::LazyCompilationPlugin => {
         let options = downcast_into::<RawLazyCompilationOption>(self.options)?;

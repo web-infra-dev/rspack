@@ -254,7 +254,7 @@ importers:
         specifier: ^0.2.3
         version: 0.2.6(@swc/core@1.4.0(@swc/helpers@0.5.6))(webpack@5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.6))(webpack-cli@5.1.4(webpack@5.92.0)))
       webpack:
-        specifier: 5.92.0
+        specifier: ^5.92.0
         version: 5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.6))(webpack-cli@5.1.4(webpack@5.92.0))
 
   npm/darwin-arm64: {}
@@ -716,6 +716,24 @@ importers:
         specifier: 3.2.3
         version: 3.2.3
 
+  packages/rspack-plugin-preact-refresh:
+    devDependencies:
+      '@prefresh/core':
+        specifier: ^1.5.0
+        version: 1.5.2(preact@10.22.0)
+      '@prefresh/utils':
+        specifier: ^1.2.0
+        version: 1.2.0
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../rspack
+      '@rspack/test-tools':
+        specifier: workspace:*
+        version: link:../rspack-test-tools
+      preact:
+        specifier: ^10.15.1
+        version: 10.22.0
+
   packages/rspack-plugin-react-refresh:
     devDependencies:
       '@rspack/core':
@@ -791,7 +809,7 @@ importers:
         specifier: 6.0.1
         version: 6.0.1
       webpack:
-        specifier: 5.92.0
+        specifier: ^5.92.0
         version: 5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack-cli@5.1.4(webpack@5.92.0))
       webpack-merge:
         specifier: 5.9.0
@@ -2701,6 +2719,14 @@ packages:
 
   '@polka/url@1.0.0-next.25':
     resolution: {integrity: sha512-j7P6Rgr3mmtdkeDGTe0E/aYyWEWVtc5yFXtHCRHs28/jptDEWfaVOc5T7cblqy1XKPPfCxJc/8DwQ5YgLOZOVQ==}
+
+  '@prefresh/core@1.5.2':
+    resolution: {integrity: sha512-A/08vkaM1FogrCII5PZKCrygxSsc11obExBScm3JF1CryK2uDS3ZXeni7FeKCx1nYdUkj4UcJxzPzc1WliMzZA==}
+    peerDependencies:
+      preact: ^10.0.0
+
+  '@prefresh/utils@1.2.0':
+    resolution: {integrity: sha512-KtC/fZw+oqtwOLUFM9UtiitB0JsVX0zLKNyRTA332sqREqSALIIQQxdUCS1P3xR/jT1e2e8/5rwH6gdcMLEmsQ==}
 
   '@rollup/rollup-android-arm-eabi@4.17.2':
     resolution: {integrity: sha512-NM0jFxY8bB8QLkoKxIQeObCaDlJKewVlIEkuyYKm5An1tdVZ966w2+MPQ2l8LBZLjR+SgyV+nRkTIunzOYBMLQ==}
@@ -7451,6 +7477,9 @@ packages:
     resolution: {integrity: sha512-Wglpdk03BSfXkHoQa3b/oulrotAkwrlLDRSOb9D0bN86FdRyE9lppSp33aHNPgBa0JKCoB+drFLZkQoRRYae5A==}
     engines: {node: ^10 || ^12 || >=14}
 
+  preact@10.22.0:
+    resolution: {integrity: sha512-RRurnSjJPj4rp5K6XoP45Ui33ncb7e4H7WiOHVpjbkvqvA3U+N8Z6Qbo0AE6leGYBV66n8EhEaFixvIu3SkxFw==}
+
   prebundle@1.1.0:
     resolution: {integrity: sha512-yTfRjx0+xiveeb7kO77OcODVB8RSHMKIiVl/qferU7ZHw4Y8pycXkCAtPDViF8YDo0a8ViDpm4C1O9PFKCw1ig==}
     hasBin: true
@@ -11473,6 +11502,12 @@ snapshots:
       write-yaml-file: 5.0.0
 
   '@polka/url@1.0.0-next.25': {}
+
+  '@prefresh/core@1.5.2(preact@10.22.0)':
+    dependencies:
+      preact: 10.22.0
+
+  '@prefresh/utils@1.2.0': {}
 
   '@rollup/rollup-android-arm-eabi@4.17.2':
     optional: true
@@ -17606,6 +17641,8 @@ snapshots:
       nanoid: 3.3.7
       picocolors: 1.0.0
       source-map-js: 1.2.0
+
+  preact@10.22.0: {}
 
   prebundle@1.1.0(typescript@5.4.2):
     dependencies:

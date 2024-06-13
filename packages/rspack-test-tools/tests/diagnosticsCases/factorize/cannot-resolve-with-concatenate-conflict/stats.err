@@ -1,0 +1,2 @@
+ERROR in ./node_modules/some-module/a.ts
+  × Resolve error: Can't resolve './b.js' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-with-conc

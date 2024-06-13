@@ -14,17 +14,17 @@ use rspack_util::source_map::ModuleSourceMapConfig;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::Atom;
 
+use crate::concatenated_module::ConcatenatedModule;
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
-  CompilerContext, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule,
-  ImmutableModuleGraph, ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleType,
-  MutableModuleGraph, NormalModule, RawModule, Resolve, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SourceType,
+  CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
+  DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule, ImmutableModuleGraph,
+  ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleType, MutableModuleGraph, NormalModule,
+  RawModule, Resolve, RunnerContext, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 pub struct BuildContext<'a> {
-  pub compiler_context: CompilerContext,
+  pub compiler_context: RunnerContext,
   pub plugin_driver: SharedPluginDriver,
   pub compiler_options: &'a CompilerOptions,
 }
@@ -586,6 +586,7 @@ impl_module_downcast_helpers!(RawModule, raw_module);
 impl_module_downcast_helpers!(ContextModule, context_module);
 impl_module_downcast_helpers!(ExternalModule, external_module);
 impl_module_downcast_helpers!(SelfModule, self_module);
+impl_module_downcast_helpers!(ConcatenatedModule, concatenated_module);
 
 pub struct LibIdentOptions<'me> {
   pub context: &'me str,

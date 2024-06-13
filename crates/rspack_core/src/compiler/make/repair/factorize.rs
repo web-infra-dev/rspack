@@ -77,6 +77,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
     // Rspack puts results that need to be shared in both error and ok in [ModuleFactoryCreateData].
     let mut create_data = ModuleFactoryCreateData {
       resolve_options: self.resolve_options,
+      options: self.options.clone(),
       context,
       dependency,
       issuer: self.issuer,

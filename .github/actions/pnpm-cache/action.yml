@@ -30,6 +30,8 @@ runs:
       uses: pnpm/action-setup@v2
       with:
         dest: ${{ runner.tool_cache }}/pnpm
+        # Use `@pnpm/exe` for Node 16
+        standalone: ${{ inputs.node-version == '16' }}
 
     - name: Get pnpm store directory
       id: pnpm-cache

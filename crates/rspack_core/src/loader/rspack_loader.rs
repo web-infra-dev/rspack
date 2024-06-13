@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use rspack_error::Result;
 use rspack_loader_runner::{Content, LoaderContext, LoaderRunnerPlugin, ResourceData};
 
-use crate::{CompilerContext, SharedPluginDriver};
+use crate::{RunnerContext, SharedPluginDriver};
 
 pub struct RspackLoaderRunnerPlugin {
   pub plugin_driver: SharedPluginDriver,
@@ -12,23 +12,17 @@ pub struct RspackLoaderRunnerPlugin {
 
 #[async_trait::async_trait]
 impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
-  type Context = CompilerContext;
+  type Context = RunnerContext;
 
   fn name(&self) -> &'static str {
     "rspack-loader-runner"
   }
 
-  fn loader_context(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  fn before_all(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
     self.plugin_driver.normal_module_hooks.loader.call(context)
   }
 
-  fn before_each(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
-    *self.current_loader.lock().expect("failed to lock") =
-      Some(context.current_loader().to_string());
-    Ok(())
-  }
-
-  async fn process_resource(&self, resource_data: &mut ResourceData) -> Result<Option<Content>> {
+  async fn process_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
     let result = self
       .plugin_driver
       .normal_module_hooks
@@ -40,5 +34,28 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     }
 
     Ok(None)
+  }
+
+  fn should_yield(&self, context: &LoaderContext<Self::Context>) -> Result<bool> {
+    let res = self
+      .plugin_driver
+      .normal_module_hooks
+      .loader_should_yield
+      .call(context)?;
+
+    if let Some(res) = res {
+      return Ok(res);
+    }
+
+    Ok(false)
+  }
+
+  async fn start_yielding(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+    self
+      .plugin_driver
+      .normal_module_hooks
+      .loader_yield
+      .call(context)
+      .await
   }
 }

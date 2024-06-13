@@ -11,12 +11,12 @@ use swc_core::common::Span;
 
 use crate::{
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerContext, CompilerOptions, Context,
+  stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerOptions, Context,
   DependencyCategory, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserOptions, RawModule, Resolve,
   ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
-  ResourceData, ResourceParsedData, SharedPluginDriver,
+  ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
@@ -249,9 +249,23 @@ impl NormalModuleFactory {
           .pop()
           .ok_or_else(|| error!("Invalid request: {request_without_match_resource}"))?;
 
-        inline_loaders.extend(raw_elements.into_iter().map(|r| ModuleRuleUseLoader {
-          loader: r.to_owned(),
-          options: None,
+        inline_loaders.extend(raw_elements.into_iter().map(|r| {
+          let resource = parse_resource(r);
+          let ident = resource.as_ref().and_then(|r| {
+            r.query
+              .as_ref()
+              .and_then(|q| q.starts_with("??").then(|| &q[2..]))
+          });
+          ModuleRuleUseLoader {
+            loader: r.to_owned(),
+            options: ident.and_then(|ident| {
+              data
+                .options
+                .__references
+                .get(ident)
+                .map(|object| object.to_string())
+            }),
+          }
         }));
 
         if request_without_match_resource.is_empty()
@@ -441,7 +455,7 @@ impl NormalModuleFactory {
         context: &Context,
         loader_resolver: &Resolver,
         l: &ModuleRuleUseLoader,
-      ) -> Result<Arc<dyn Loader<CompilerContext>>> {
+      ) -> Result<Arc<dyn Loader<RunnerContext>>> {
         plugin_driver
           .normal_module_factory_hooks
           .resolve_loader
@@ -537,7 +551,7 @@ impl NormalModuleFactory {
         resolved_parser_options,
         resolved_generator_options,
         match_resource_data,
-        create_data.resource_resolve_data.clone(),
+        Arc::new(create_data.resource_resolve_data.clone()),
         resolved_resolve_options,
         loaders,
         contains_inline,

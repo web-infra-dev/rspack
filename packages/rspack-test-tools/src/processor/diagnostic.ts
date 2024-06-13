@@ -2,6 +2,7 @@ import assert from "assert";
 import path from "path";
 
 import { escapeEOL } from "../helper";
+import { replacePaths } from "../helper/replace-paths";
 import {
 	ECompilerType,
 	ITestContext,
@@ -9,15 +10,6 @@ import {
 	TCompilerOptions
 } from "../type";
 import { BasicProcessor, IBasicProcessorOptions } from "./basic";
-const serializer = require("jest-serializer-path");
-const normalizePaths = serializer.normalizePaths;
-const rspackPath = path.resolve(__dirname, "../../../rspack");
-
-const replacePaths = (input: string) => {
-	const rspackRoot = normalizePaths(rspackPath);
-	return normalizePaths(input).split(rspackRoot).join("<RSPACK_ROOT>");
-};
-
 export interface IDiagnosticProcessorOptions<T extends ECompilerType>
 	extends Omit<IBasicProcessorOptions<T>, "runable"> {
 	snapshot: string;

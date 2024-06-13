@@ -14,10 +14,10 @@
 - Manifest: [runtime of workerA_js].LAST_HASH.hot-update.json, size: 62
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 62
 - Manifest: main.LAST_HASH.hot-update.json, size: 62
-- Update: main.LAST_HASH.hot-update.js, size: 209
+- Update: main.LAST_HASH.hot-update.js, size: 201
 - Update: shared.LAST_HASH.hot-update.js, size: 483
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 430
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 430
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 422
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 422
 
 ## Manifest
 

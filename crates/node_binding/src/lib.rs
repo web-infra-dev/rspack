@@ -16,11 +16,12 @@ use rspack_error::Diagnostic;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 
 mod compiler;
-mod loader;
 mod panic;
 mod plugins;
 
-pub use loader::run_builtin_loader;
+#[cfg(not(debug_assertions))]
+mod env;
+
 use plugins::*;
 use rspack_binding_options::*;
 use rspack_binding_values::*;
@@ -183,6 +184,13 @@ enum TraceState {
 
 #[ctor]
 fn init() {
+  #[cfg(not(debug_assertions))]
+  {
+    // 4mb stack size if not set
+    // For the case where its code has a lot of recursions, for example:
+    // https://github.com/highlightjs/highlight.js/blob/b9ae5fea90514b864f2c9b2889d7d3302d6156dc/src/languages/isbl.js#L21
+    env::set_env_if_unset("RUST_MIN_STACK", "4194304");
+  }
   panic::install_panic_handler();
 }
 

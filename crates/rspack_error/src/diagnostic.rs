@@ -104,7 +104,9 @@ impl Diagnostic {
       } else {
         GraphicalTheme::unicode_nocolor()
       })
-      .with_context_lines(2);
+      .with_context_lines(2)
+      .with_width(usize::MAX);
+
     h.render_report(&mut buf, self.as_ref()).into_diagnostic()?;
     Ok(buf)
   }

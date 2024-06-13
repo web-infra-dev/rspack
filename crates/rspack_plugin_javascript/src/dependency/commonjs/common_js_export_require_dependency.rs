@@ -266,6 +266,87 @@ impl Dependency for CommonJsExportRequireDependency {
       .map(|meta| meta.ids.clone())
       .unwrap_or_else(|| self.ids.clone())
   }
+
+  fn get_referenced_exports(
+    &self,
+    mg: &ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    let ids = self.get_ids(mg);
+    let get_full_result = || {
+      if ids.is_empty() {
+        vec![ExtendedReferencedExport::Array(vec![])]
+      } else {
+        vec![ExtendedReferencedExport::Export(ReferencedExport {
+          name: ids.clone(),
+          can_mangle: false,
+        })]
+      }
+    };
+    if self.result_used {
+      return get_full_result();
+    }
+    let mut exports_info = mg.get_exports_info(
+      mg.get_parent_module(&self.id)
+        .expect("Can not get parent module"),
+    );
+
+    for name in &self.names {
+      let export_info = exports_info.id.get_read_only_export_info(name, mg);
+      let used = export_info.get_used(runtime);
+      if matches!(used, UsageState::Unused) {
+        return vec![ExtendedReferencedExport::Array(vec![])];
+      }
+      if !matches!(used, UsageState::OnlyPropertiesUsed) {
+        return get_full_result();
+      }
+
+      match export_info.exports_info {
+        Some(v) => exports_info = v.get_exports_info(mg),
+        None => return get_full_result(),
+      };
+    }
+
+    if !matches!(
+      exports_info.other_exports_info.get_used(mg, runtime),
+      UsageState::Unused
+    ) {
+      return get_full_result();
+    }
+
+    let mut referenced_exports = vec![];
+    for export_info_id in exports_info.get_ordered_exports() {
+      let export_info = export_info_id.get_export_info(mg);
+      let prefix = ids
+        .iter()
+        .chain(if let Some(name) = &export_info.name {
+          vec![name]
+        } else {
+          vec![]
+        })
+        .map(|i| i.to_owned())
+        .collect_vec();
+      process_export_info(
+        mg,
+        runtime,
+        &mut referenced_exports,
+        prefix,
+        Some(*export_info_id),
+        false,
+        &mut Default::default(),
+      )
+    }
+
+    referenced_exports
+      .iter()
+      .map(|name| {
+        ExtendedReferencedExport::Export(ReferencedExport {
+          name: name.to_owned(),
+          can_mangle: false,
+        })
+      })
+      .collect_vec()
+  }
 }
 
 impl DependencyTemplate for CommonJsExportRequireDependency {
@@ -381,87 +462,6 @@ impl ModuleDependency for CommonJsExportRequireDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-
-  fn get_referenced_exports(
-    &self,
-    mg: &ModuleGraph,
-    runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    let ids = self.get_ids(mg);
-    let get_full_result = || {
-      if ids.is_empty() {
-        vec![ExtendedReferencedExport::Array(vec![])]
-      } else {
-        vec![ExtendedReferencedExport::Export(ReferencedExport {
-          name: ids.clone(),
-          can_mangle: false,
-        })]
-      }
-    };
-    if self.result_used {
-      return get_full_result();
-    }
-    let mut exports_info = mg.get_exports_info(
-      mg.get_parent_module(&self.id)
-        .expect("Can not get parent module"),
-    );
-
-    for name in &self.names {
-      let export_info = exports_info.id.get_read_only_export_info(name, mg);
-      let used = export_info.get_used(runtime);
-      if matches!(used, UsageState::Unused) {
-        return vec![ExtendedReferencedExport::Array(vec![])];
-      }
-      if !matches!(used, UsageState::OnlyPropertiesUsed) {
-        return get_full_result();
-      }
-
-      match export_info.exports_info {
-        Some(v) => exports_info = v.get_exports_info(mg),
-        None => return get_full_result(),
-      };
-    }
-
-    if !matches!(
-      exports_info.other_exports_info.get_used(mg, runtime),
-      UsageState::Unused
-    ) {
-      return get_full_result();
-    }
-
-    let mut referenced_exports = vec![];
-    for export_info_id in exports_info.get_ordered_exports() {
-      let export_info = export_info_id.get_export_info(mg);
-      let prefix = ids
-        .iter()
-        .chain(if let Some(name) = &export_info.name {
-          vec![name]
-        } else {
-          vec![]
-        })
-        .map(|i| i.to_owned())
-        .collect_vec();
-      process_export_info(
-        mg,
-        runtime,
-        &mut referenced_exports,
-        prefix,
-        Some(*export_info_id),
-        false,
-        &mut Default::default(),
-      )
-    }
-
-    referenced_exports
-      .iter()
-      .map(|name| {
-        ExtendedReferencedExport::Export(ReferencedExport {
-          name: name.to_owned(),
-          can_mangle: false,
-        })
-      })
-      .collect_vec()
   }
 }
 impl AsContextDependency for CommonJsExportRequireDependency {}
