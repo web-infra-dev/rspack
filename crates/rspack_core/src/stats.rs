@@ -514,7 +514,7 @@ impl Stats<'_> {
           .filter_map(|m| module_graph.module_by_identifier(&m.id))
           .map(|module| {
             self.get_module(
-              &module_graph,
+              module_graph,
               module,
               reasons,
               module_assets,
