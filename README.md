@@ -22,7 +22,7 @@
 
 English | [简体中文](./README.zh-CN.md)
 
-Rspack is a fast Rust-based web bundler with webpack-compatible API.
+Rspack is a high performance JavaScript bundler written in Rust. It offers strong compatibility with the webpack ecosystem, allowing for seamless replacement of webpack, and provides lightning fast build speeds.
 
 ## ✨ Features
 
