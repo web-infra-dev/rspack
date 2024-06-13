@@ -40,7 +40,7 @@ impl RSCClientEntryLoader {
         .iter()
         .map(|f| {
           format!(
-            r#"import(/* webpackChunkName: "{}" */ "{}")"#,
+            r#"import(/* webpackChunkName: "{}" */ "{}");"#,
             f.name, f.import
           )
         })
@@ -134,7 +134,14 @@ impl Loader<RunnerContext> for RSCClientEntryLoader {
       if development {
         if let Some(client_imports_path) = client_imports_path {
           // HMR
-          hmr = format!(r#"import {:?};"#, client_imports_path.into_os_string())
+          if !client_imports_path.exists() {
+            loader_context
+              .missing_dependencies
+              .insert(client_imports_path.clone());
+          } else {
+            // If client_imports.json not found, connect resource with client_imports.json will throw resolve error
+            hmr = format!(r#"import {:?};"#, client_imports_path.into_os_string());
+          }
         }
       }
 
@@ -166,8 +173,9 @@ impl Loader<RunnerContext> for RSCClientEntryLoader {
               )
             })
             .join("\n");
-          source = format!("{}{}{}", hmr, code, source);
+          source = format!("{}{}", code, source);
         }
+        source = format!("{}{}", hmr, source);
       }
     }
     loader_context.content = Some(source.into());
