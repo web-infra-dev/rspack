@@ -13,7 +13,7 @@ module.exports = "b";
 }),
 "fs": (function (module) {
 "use strict";
-module.exports = require('fs')
+module.exports = require("fs");
 
 }),
 

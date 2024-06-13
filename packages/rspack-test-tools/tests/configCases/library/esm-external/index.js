@@ -22,5 +22,5 @@ it("should export module library", function () {
 		"utf-8"
 	);
 	const createRequire = "__WEBPACK_EXTERNAL_createRequire";
-	expect(source).toContain(`${createRequire}(import.meta.url)('node:fs')`);
+	expect(source).toContain(`${createRequire}(import.meta.url)("node:fs")`);
 });
