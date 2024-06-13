@@ -72,10 +72,17 @@ impl RSCClientEntryRspackPlugin {
     if let Some(data) = data {
       let resource_path = &data.resource_path;
       let resource_path_str = resource_path.to_str().expect("TODO:");
-      if visited_modules.contains(resource_path_str) {
+      let resource_query = &data.resource_query;
+      let resource_query_str = if let Some(query) = resource_query.as_ref() {
+        query
+      } else {
+        ""
+      };
+      let resource_str = format!("{}{}", resource_path_str, resource_query_str);
+      if visited_modules.contains(&resource_str) {
         return;
       }
-      visited_modules.insert(String::from(resource_path_str));
+      visited_modules.insert(String::from(&resource_str));
       let is_css = match module_type {
         ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto => true,
         _ => false,
@@ -86,7 +93,7 @@ impl RSCClientEntryRspackPlugin {
         Some(build_info) => has_client_directive(&build_info.directives),
         None => false,
       };
-      let route_entry: Option<&ReactRoute> = match self.get_route_entry(resource_path_str) {
+      let route_entry: Option<&ReactRoute> = match self.get_route_entry(&resource_str) {
         Some(route) => Some(route),
         None => from_route,
       };
@@ -95,10 +102,10 @@ impl RSCClientEntryRspackPlugin {
           self.insert_client_imports(
             client_imports,
             Some(route_entry.name.as_str()),
-            resource_path_str,
+            &resource_str,
           )
         } else {
-          entry_client_imports.insert(String::from(resource_path_str));
+          entry_client_imports.insert(String::from(&resource_str));
         }
       } else {
         let mg = compilation.get_module_graph();
