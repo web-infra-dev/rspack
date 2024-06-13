@@ -753,7 +753,7 @@ impl ContextModule {
           {}
         }}
         "#,
-        self.get_return_module_object_source(&fake_map, false, "fakeMap[id]"),
+        self.get_return_module_object_source(&fake_map, false, "fakeMap[id] | 16"),
       }
     } else {
       RuntimeGlobals::REQUIRE.name().to_string()
