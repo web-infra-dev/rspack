@@ -193,7 +193,7 @@ const applyExperimentsDefaults = (
 	D(experiments, "lazyCompilation", false);
 	// IGNORE(experiments.asyncWebAssembly): The default value of `asyncWebAssembly` is determined by `futureDefaults` in webpack.
 	D(experiments, "asyncWebAssembly", false);
-	// IGNORE(experiments.css): Rspack enables this feature by default for better DX
+	// IGNORE(experiments.css): Rspack will switch to `false` when reach 1.0 and `css-extract` is stable enough
 	D(experiments, "css", true);
 	D(experiments, "topLevelAwait", true);
 
@@ -304,8 +304,8 @@ const applyModuleDefaults = (
 		module.parser.javascript
 	);
 
-	// IGNORE(module.generator): Rspack enables `experiments.css` by default for better DX
-	// IGNORE(module.parser): Rspack enables `experiments.css` by default for better DX
+	// IGNORE(module.generator): Rspack enables `experiments.css` by default currently
+	// IGNORE(module.parser): Rspack enables `experiments.css` by default currently
 	if (css) {
 		F(module.parser, "css", () => ({}));
 		assertNotNill(module.parser.css);
@@ -360,6 +360,7 @@ const applyModuleDefaults = (
 	}
 
 	// IGNORE(module.defaultRules): Rspack does not support `rule.assert`
+	// https://github.com/webpack/webpack/blob/main/lib/config/defaults.js#L839
 	A(module, "defaultRules", () => {
 		const esm = {
 			type: "javascript/esm",
@@ -943,7 +944,7 @@ const applyOptimizationDefaults = (
 	});
 	const { splitChunks } = optimization;
 	if (splitChunks) {
-		// IGNORE(optimization.splitChunks.defaultSizeTypes): Rspack enables `experiments.css` by default for better DX
+		// IGNORE(optimization.splitChunks.defaultSizeTypes): Rspack enables `experiments.css` by default currently
 		A(splitChunks, "defaultSizeTypes", () =>
 			css ? ["javascript", "css", "unknown"] : ["javascript", "unknown"]
 		);
@@ -1072,7 +1073,7 @@ const getResolveDefaults = ({
 		styleConditions.push(mode === "development" ? "development" : "production");
 		styleConditions.push("style");
 
-		// IGNORE(resolve.byDependency.css-import): Rspack enables `experiments.css` by default for better DX
+		// IGNORE(resolve.byDependency.css-import): Rspack enables `experiments.css` by default currently
 		resolveOptions.byDependency!["css-import"] = {
 			// We avoid using any main files because we have to be consistent with CSS `@import`
 			// and CSS `@import` does not handle `main` files in directories,
