@@ -271,6 +271,96 @@ module.exports = {
 };
 ```
 
+## output.environment
+
+Tell Rspack what kind of ES-features may be used in the generated runtime-code.
+
+### output.environment.arrowFunction
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+The environment supports async function and await (`async function () { await ... }`).
+
+### output.environment.bigIntLiteral
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+The environment supports `BigInt` as literal (123n).
+
+### output.environment.const
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+The environment supports `const` and `let` for variable declarations.
+
+### output.environment.destructuring
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+The environment supports destructuring (`{ a, b } = obj`).
+
+### output.environment.dynamicImport
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+The environment supports an async `import()` function to import EcmaScript modules.
+
+### output.environment.dynamicImportInWorker
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+The environment supports an async `import()` when creating a worker, only for web targets at the moment.
+
+### output.environment.forOf
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+The environment supports `for of` iteration (`for (const x of array) { ... }`).
+
+### output.environment.globalThis
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+The environment supports `globalThis`.
+
+### output.environment.module
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+The environment supports ECMAScript Module syntax to import ECMAScript modules (`import ... from '...'`).
+
+### output.environment.nodePrefixForCoreModules
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Determines if the `node:` prefix is generated for core module imports in environments that support it.
+
+This is only applicable to Rspack runtime code.
+
+### output.environment.optionalChaining
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+The environment supports optional chaining (`obj?.a` or `obj?.()`).
+
+### output.environment.templateLiteral
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+The environment supports template literals.
+
 ## output.cssFilename
 
 - **Type:** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`

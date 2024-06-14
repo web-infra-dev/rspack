@@ -271,6 +271,96 @@ module.exports = {
 };
 ```
 
+## output.environment
+
+告诉 Rspack 可以在生成的运行时代码中使用哪种 ES 特性。
+
+### output.environment.arrowFunction
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+该环境支持 async 函数和 await（`async function () { await ... }`）。
+
+### output.environment.bigIntLiteral
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+该环境支持将 `BigInt` 作为文字（123n）。
+
+### output.environment.const
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+该环境支持使用 `const` 和 `let` 进行变量声明。
+
+### output.environment.destructuring
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+该环境支持解构（`{ a, b } = obj`）。
+
+### output.environment.dynamicImport
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+该环境支持使用异步 `import()` 函数来导入 EcmaScript 模块。
+
+### output.environment.dynamicImportInWorker
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+该环境支持在创建 worker 时使用异步 `import()`，目前仅适用于 web。
+
+### output.environment.forOf
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+该环境支持 `for of` 迭代（`for (const x of array) { ... }`）。
+
+### output.environment.globalThis
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+该环境支持 `globalThis`。
+
+### output.environment.module
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+该环境支持 ECMAScript 模块语法来导入 ECMAScript 模块（`import ... from '...'`）。
+
+### output.environment.nodePrefixForCoreModules
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+确定是否在支持它的环境中为核心模块导入生成 `node:` 前缀。
+
+这仅适用于 Rspack 运行时代码。
+
+### output.environment.optionalChaining
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+该环境支持可选链（`obj?.a` 或 `obj?.()`）。
+
+### output.environment.templateLiteral
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+该环境支持模板字面量。
+
 ## output.cssFilename
 
 - **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
