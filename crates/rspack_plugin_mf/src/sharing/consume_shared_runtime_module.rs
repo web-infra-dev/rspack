@@ -133,7 +133,7 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
         .runtime_requirements
         .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       {
-        source += "__webpack_require__.f.consumes = function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
+        source += "__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
       }
       return Ok(RawSource::from(source).boxed());
     }
