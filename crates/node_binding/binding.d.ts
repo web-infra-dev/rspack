@@ -1034,6 +1034,7 @@ export interface RawLibraryOptions {
 export interface RawLightningCssMinimizerRspackPluginOptions {
   errorRecovery: boolean
   unusedSymbols: Array<string>
+  removeUnusedLocalIdents: boolean
   browserslist: Array<string>
 }
 

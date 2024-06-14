@@ -31,6 +31,7 @@ static CSS_ASSET_REGEXP: Lazy<Regex> =
 pub struct LightningCssMinimizerOptions {
   pub error_recovery: bool,
   pub unused_symbols: Vec<String>,
+  pub remove_unused_local_idents: bool,
   pub browserlist: Vec<String>,
 }
 
@@ -63,7 +64,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .assets_mut()
     .par_iter_mut()
     .filter(|(filename, _)| CSS_ASSET_REGEXP.is_match(filename))
-    .try_for_each(|(filename, mut original)| -> Result<()> {
+    .try_for_each(|(filename, original)| -> Result<()> {
       if original.get_info().minimized {
         return Ok(());
       }
@@ -108,9 +109,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .map_err(|e| error!(e.to_string()))?,
         );
         let mut unused_symbols = HashSet::from_iter(self.options.unused_symbols.clone());
-        if unused_symbols.remove("...")
+        if self.options.remove_unused_local_idents
           && let Some(css_unsed_idents) = original.info.css_unsed_idents.take()
         {
+          dbg!(&css_unsed_idents);
           unused_symbols.extend(css_unsed_idents);
         }
         stylesheet
@@ -132,7 +134,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         drop(stylesheet);
 
         let minimized_source = if let Some(mut source_map) = source_map {
-          let source = SourceMapSource::new(SourceMapSourceOptions {
+          SourceMapSource::new(SourceMapSourceOptions {
             value: result.code,
             name: filename,
             source_map: SourceMap::from_json(
@@ -145,8 +147,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             inner_source_map: input_source_map,
             remove_original_source: true,
           })
-          .boxed();
-          source
+          .boxed()
         } else {
           RawSource::from(result.code).boxed()
         };

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
@@ -18,8 +18,8 @@ use rspack_error::{
 };
 use rustc_hash::FxHashSet;
 
-use crate::utils::export_locals_convention;
 use crate::utils::{css_modules_exports_to_string, LocalIdentOptions};
+use crate::utils::{export_locals_convention, unescape};
 use crate::{
   dependency::{
     CssComposeDependency, CssExportDependency, CssImportDependency, CssLocalIdentDependency,
@@ -523,17 +523,17 @@ fn get_used_exports<'a>(
 
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataUnusedLocalIdent {
-  pub(crate) data: FxHashSet<String>,
+  pub(crate) idents: FxHashSet<String>,
 }
 
-fn get_unused_local_ident<'a>(
-  exports: &'a CssExports,
+fn get_unused_local_ident(
+  exports: &CssExports,
   identifier: ModuleIdentifier,
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> CodeGenerationDataUnusedLocalIdent {
   CodeGenerationDataUnusedLocalIdent {
-    data: exports
+    idents: exports
       .iter()
       .filter(|(name, _)| {
         let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
@@ -544,7 +544,11 @@ fn get_unused_local_ident<'a>(
           false
         }
       })
-      .flat_map(|(_, exports)| exports.iter().map(|export| export.ident.clone()))
+      .flat_map(|(_, exports)| {
+        exports
+          .iter()
+          .map(|export| unescape(&export.ident).into_owned())
+      })
       .collect(),
   }
 }

@@ -48,7 +48,7 @@ impl CssPlugin {
         code_gen_result
           .data
           .get::<CodeGenerationDataUnusedLocalIdent>()
-          .map(|codegen_data| &codegen_data.data)
+          .map(|data| &data.idents)
       })
       .flat_map(|data| data.iter().cloned())
       .collect()

@@ -3707,7 +3707,6 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
- "rustc-hash",
 ]
 
 [[package]]
