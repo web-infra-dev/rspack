@@ -166,7 +166,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       Ok(())
     })?;
 
-  compilation.extend_diagnostics(all_warnings.into_inner().expect("should not poisoned"));
+  compilation.extend_diagnostics(all_warnings.into_inner().expect("should lock"));
 
   Ok(())
 }
