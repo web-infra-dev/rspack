@@ -57,10 +57,9 @@ document.body.className = styles.a;
 
 此时会通过 Rspack 的 tree shaking 功能获取类名 b 未被使用这一信息，提供给 lightningcss，在 minimize 时会将 CSS 产物中类名 b 的声明一并删除，得到以下最终产物：
 
+{/* prettier-ignore */}
 ```css
-.a {
-  color: red;
-}
+.a{color: red}
 ```
 
 ### browserslist

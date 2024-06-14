@@ -57,10 +57,9 @@ document.body.className = styles.a;
 
 At this point, the information that class name b is unused will be obtained via Rspack's tree shaking feature and provided to lightningcss. During minimization, the declaration for class name b will be removed from the CSS output, resulting in the following final output:
 
+{/* prettier-ignore */}
 ```css
-.a {
-  color: red;
-}
+.a{color: red}
 ```
 
 ### browserslist
