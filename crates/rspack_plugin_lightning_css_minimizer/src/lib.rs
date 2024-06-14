@@ -20,7 +20,7 @@ use rspack_core::{
   },
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
 };
-use rspack_error::{error, Diagnostic, Result, TraceableError};
+use rspack_error::{error, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 
