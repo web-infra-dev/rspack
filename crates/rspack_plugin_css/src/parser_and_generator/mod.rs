@@ -1,15 +1,12 @@
-use std::collections::HashMap;
-
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rkyv::{from_bytes, to_bytes, AlignedVec};
 use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   rspack_sources::{BoxSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt},
-  BuildExtraDataType, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ConstDependency,
-  CssExportsConvention, Dependency, DependencyTemplate, ErrorSpan, GenerateContext, LocalIdentName,
-  Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ConstDependency, CssExportsConvention,
+  Dependency, DependencyTemplate, ErrorSpan, GenerateContext, LocalIdentName, Module,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
   ParserAndGenerator, RuntimeSpec, SourceType, TemplateContext, UsageState,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
@@ -39,9 +36,7 @@ pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-#[archive(compare(PartialEq), check_bytes)]
-#[archive_attr(derive(PartialEq, Eq, Hash))]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CssExport {
   pub ident: String,
   pub from: Option<String>,
@@ -463,21 +458,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
     };
 
     result
-  }
-
-  fn store(&self, extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {
-    let data = self.exports.to_owned();
-    extra_data.insert(
-      BuildExtraDataType::CssParserAndGenerator,
-      to_bytes::<_, 1024>(&data).expect("Failed to store extra data"),
-    );
-  }
-
-  fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {
-    if let Some(data) = extra_data.get(&BuildExtraDataType::CssParserAndGenerator) {
-      let data = from_bytes::<Option<CssExports>>(data).expect("Failed to resume extra data");
-      self.exports = data;
-    }
   }
 
   fn get_concatenation_bailout_reason(
