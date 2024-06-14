@@ -3,7 +3,7 @@
 exports[`StatsTestCases should print correct stats for performance-different-mode-and-target 1`] = `
 "asset warning.pro-web.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = warning.pro-web.js
-./index.js
+./index.js [built] [code generated]
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
   │   warning.pro-web.js (293.960 KiB)
@@ -19,7 +19,7 @@ Rspack x.x.x compiled with 3 warnings in X s
 
 asset warning.pro-webworker.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = warning.pro-webworker.js
-./index.js
+./index.js [built] [code generated]
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
   │   warning.pro-webworker.js (293.960 KiB)
@@ -35,27 +35,27 @@ Rspack x.x.x compiled with 3 warnings in X s
 
 asset no-warning.pro-node.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = no-warning.pro-node.js
-./index.js
+./index.js [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
 asset no-warning.dev-web.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = no-warning.dev-web.js
-./index.js
+./index.js [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
 asset no-warning.dev-node.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = no-warning.dev-node.js
-./index.js
+./index.js [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
 asset no-warning.dev-web-with-limit-set.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = no-warning.dev-web-with-limit-set.js
-./index.js
+./index.js [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
 asset warning.pro-node-with-hints-set.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = warning.pro-node-with-hints-set.js
-./index.js
+./index.js [built] [code generated]
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
   │   warning.pro-node-with-hints-set.js (293.960 KiB)
@@ -75,12 +75,12 @@ exports[`StatsTestCases should print correct stats for performance-no-async-chun
 asset <CLR=32,BOLD>sec.js</CLR> 1.16 KiB <CLR=32,BOLD>[emitted]</CLR> (name: sec)
 Entrypoint <CLR=BOLD>main</CLR> 294 KiB = <CLR=32,BOLD>main.js</CLR>
 Entrypoint <CLR=BOLD>sec</CLR> 1.16 KiB = <CLR=32,BOLD>sec.js</CLR>
-<CLR=BOLD>./a.js</CLR>
-<CLR=BOLD>./b.js</CLR>
-<CLR=BOLD>./c.js</CLR>
-<CLR=BOLD>./d.js</CLR>
-<CLR=BOLD>./index.js</CLR>
-<CLR=BOLD>./index2.js</CLR>
+<CLR=BOLD>./index.js</CLR> <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+<CLR=BOLD>./index2.js</CLR> <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+<CLR=BOLD>./a.js</CLR> <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+<CLR=BOLD>./b.js</CLR> <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+<CLR=BOLD>./c.js</CLR> <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+<CLR=BOLD>./d.js</CLR> <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 
 <CLR=33,BOLD>WARNING</CLR> in <CLR=33>⚠<CLR=0> asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.
   <CLR=33>│<CLR=0> Assets:
@@ -106,9 +106,9 @@ exports[`StatsTestCases should print correct stats for performance-oversize-limi
 asset <CLR=32,BOLD>sec.js</CLR> 294 KiB <CLR=32,BOLD>[emitted]</CLR> (name: sec)
 Entrypoint <CLR=BOLD>main</CLR> 294 KiB = <CLR=32,BOLD>main.js</CLR>
 Entrypoint <CLR=BOLD>sec</CLR> 294 KiB = <CLR=32,BOLD>sec.js</CLR>
-<CLR=BOLD>./a.js</CLR>
-<CLR=BOLD>./index.js</CLR>
-<CLR=BOLD>./index2.js</CLR>
+<CLR=BOLD>./index.js</CLR> <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+<CLR=BOLD>./index2.js</CLR> <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+<CLR=BOLD>./a.js</CLR> <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 
 <CLR=31,BOLD>ERROR</CLR> in <CLR=31>×<CLR=0> asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.
   <CLR=31>│<CLR=0> Assets:
