@@ -1,0 +1,81 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# LightningCssMinimizerRspackPlugin
+
+<ApiMeta addedVersion={'0.7.4'} />
+
+This plugin uses [lightningcss](https://lightningcss.dev/) to minify CSS assets. See [optimization.minimizer](/config/optimization#optimizationminimizer).
+
+```js
+module.exports = {
+  // ...
+  optimization: {
+    minimizer: [new rspack.LightningCssMinimizerRspackPlugin()],
+  },
+};
+```
+
+- options
+
+  - **Type:**
+
+  ```ts
+  export interface LightningCssMinimizerRspackPluginOptions {
+    errorRecovery?: boolean;
+    unusedSymbols?: string[];
+    removeUnusedLocalIdents?: boolean;
+    browserslist?: string[];
+  }
+  ```
+
+  Plugin Configuration
+
+  <Table
+    header={[
+      {
+        name: 'Name',
+        key: 'name',
+      },
+      {
+        name: 'Type',
+        key: 'type',
+      },
+      {
+        name: 'Default Value',
+        key: 'default',
+      },
+      {
+        name: 'Description',
+        key: 'description',
+      },
+    ]}
+    body={[
+      {
+        name: '`errorRecovery`',
+        type: '`boolean`',
+        default: 'false',
+        description:
+          'Whether to ignore invalid rules and declarations rather than erroring.',
+      },
+      {
+        name: '`unusedSymbols`',
+        type: '`string[]`',
+        default: '[]',
+        description:
+          'A list of known unused symbols, including CSS class names, ids, and @keyframe names. The declarations of these will be removed.',
+      },
+      {
+        name: '`removeUnusedLocalIdents`',
+        type: '`boolean`',
+        default: 'true',
+        description:
+          'Whether to automatically remove the unused local idents of CSS Modules, including unused CSS class names, ids, and @keyframe names. The declarations of these will be removed.',
+      },
+      {
+        name: '`browserslist`',
+        type: '`string[]`',
+        default: '["defaults"]',
+        description: 'Browserslist targets to compile the CSS for.',
+      },
+    ]}
+  />

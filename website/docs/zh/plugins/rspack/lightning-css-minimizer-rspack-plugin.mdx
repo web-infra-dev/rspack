@@ -1,0 +1,80 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# LightningCssMinimizerRspackPlugin
+
+<ApiMeta addedVersion={'0.7.4'} />
+
+此插件使用 [lightningcss](https://lightningcss.dev/) 来压缩 CSS 产物。参见 [optimization.minimizer](/config/optimization#optimizationminimizer)。
+
+```js
+module.exports = {
+  // ...
+  optimization: {
+    minimizer: [new rspack.LightningCssMinimizerRspackPlugin()],
+  },
+};
+```
+
+- options
+
+  - **类型：**
+
+  ```ts
+  export interface LightningCssMinimizerRspackPluginOptions {
+    errorRecovery?: boolean;
+    unusedSymbols?: string[];
+    removeUnusedLocalIdents?: boolean;
+    browserslist?: string[];
+  }
+  ```
+
+  plugin 配置
+
+  <Table
+    header={[
+      {
+        name: '名称',
+        key: 'name',
+      },
+      {
+        name: '类型',
+        key: 'type',
+      },
+      {
+        name: '默认值',
+        key: 'default',
+      },
+      {
+        name: '描述',
+        key: 'description',
+      },
+    ]}
+    body={[
+      {
+        name: '`errorRecovery`',
+        type: '`boolean`',
+        default: 'false',
+        description: '是否忽略无效的规则和声明而不进行报错。',
+      },
+      {
+        name: '`unusedSymbols`',
+        type: '`string[]`',
+        default: '[]',
+        description:
+          '已知未使用符号的列表，包括 CSS 类名、id 和 @keyframe 名称。这些声明将被移除。',
+      },
+      {
+        name: '`removeUnusedLocalIdents`',
+        type: '`boolean`',
+        default: 'true',
+        description:
+          '是否自动移除未使用的 CSS Modules 的本地标识符，包括未使用的 CSS 类名、id 和 @keyframe 名称。这些声明将被移除。',
+      },
+      {
+        name: '`browserslist`',
+        type: '`string[]`',
+        default: '["defaults"]',
+        description: '要降级到的 Browserslist 目标',
+      },
+    ]}
+  />
