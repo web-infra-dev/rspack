@@ -1,4 +1,4 @@
-// Jest Snapshot v1, <https://goo.gl/fbAQLP>
+// Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats for 1`] = `
 "PublicPath: auto
@@ -27,11 +27,11 @@ built modules 118 bytes (javascript) 7 bytes (asset) [built]
     [no exports]
     [no exports used]
     esm import ./raw.png [10]
-runtime modules 1.25 KiB
+runtime modules 1.28 KiB
   webpack/runtime/global 223 bytes {909} [code generated]
     [no exports]
     [used exports unknown]
-  webpack/runtime/auto_public_path 1.03 KiB {909} [code generated]
+  webpack/runtime/auto_public_path 1.06 KiB {909} [code generated]
     [no exports]
     [used exports unknown]
   
@@ -48,7 +48,7 @@ exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print cor
   │     │    :        ^^^^^
   │     │    \`----
   │     │
-  │
+  │   
   ╰─▶ Syntax Error
 
 Rspack compiled with 1 error"
@@ -75,10 +75,10 @@ exports[`statsOutput statsOutput/filename should print correct stats for 1`] = `
 "asset 909.xxxx.js 8.81 KiB [emitted] (name: main)
 asset 521.xxxx.js 337 bytes [emitted]
 Entrypoint main 8.81 KiB = 909.xxxx.js
-runtime modules 11 modules
-cacheable modules
-  ./index.js [built] [code generated]
-  ./dynamic.js [built] [code generated]
+runtime modules 7.21 KiB 11 modules
+cacheable modules 70 bytes
+  ./index.js 38 bytes [built] [code generated]
+  ./dynamic.js 32 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -111,8 +111,8 @@ exports[`statsOutput statsOutput/let-keyword-as-variable-name-error should print
        1 │ let let = let;
          ·           ───
          ╰────
-
-  help:
+      
+  help: 
         You may need an appropriate loader to handle this file type.
 
 ERROR in ./index.js
@@ -122,8 +122,8 @@ ERROR in ./index.js
        1 │ let let = let;
          ·     ───
          ╰────
-
-  help:
+      
+  help: 
         You may need an appropriate loader to handle this file type.
 
 Rspack compiled with 2 errors"
@@ -281,8 +281,8 @@ exports[`statsOutput statsOutput/parse-error should print correct stats for 1`] 
        7 │ error
        8 │ in
          ╰────
-
-  help:
+      
+  help: 
         You may need an appropriate loader to handle this file type.
 
 Rspack compiled with 1 error"
@@ -293,14 +293,14 @@ exports[`statsOutput statsOutput/performance-disabled should print correct stats
 asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
 Entrypoint main 304 KiB = main.js
-runtime modules 12 modules
-cacheable modules
-  ./index.js [built] [code generated]
-  ./a.js [built] [code generated]
-  ./b.js [built] [code generated]
-  ./c.js [built] [code generated]
-  ./d.js [built] [code generated]
-  ./e.js [built] [code generated]
+runtime modules 8.38 KiB 12 modules
+cacheable modules 293 KiB
+  ./index.js 49 bytes [built] [code generated]
+  ./a.js 293 KiB [built] [code generated]
+  ./b.js 22 bytes [built] [code generated]
+  ./c.js 28 bytes [built] [code generated]
+  ./d.js 22 bytes [built] [code generated]
+  ./e.js 22 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -309,21 +309,23 @@ exports[`statsOutput statsOutput/performance-error should print correct stats fo
 asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
 Entrypoint main 304 KiB = main.js
-runtime modules 12 modules
-cacheable modules
-  ./index.js [built] [code generated]
-  ./a.js [built] [code generated]
-  ./b.js [built] [code generated]
-  ./c.js [built] [code generated]
-  ./d.js [built] [code generated]
-  ./e.js [built] [code generated]
+runtime modules 8.38 KiB 12 modules
+cacheable modules 293 KiB
+  ./index.js 48 bytes [built] [code generated]
+  ./a.js 293 KiB [built] [code generated]
+  ./b.js 22 bytes [built] [code generated]
+  ./c.js 28 bytes [built] [code generated]
+  ./d.js 22 bytes [built] [code generated]
+  ./e.js 22 bytes [built] [code generated]
 
 ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
   │   main.js (303.513 KiB)
 
+
 ERROR in × entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
   │   main (303.513 KiB)
   │       main.js
+
 
 Rspack x.x.x compiled with 2 errors in X s"
 `;
@@ -333,14 +335,14 @@ exports[`statsOutput statsOutput/performance-no-hints should print correct stats
 asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
 Entrypoint main 304 KiB = main.js
-runtime modules 12 modules
-cacheable modules
-  ./index.js [built] [code generated]
-  ./a.js [built] [code generated]
-  ./b.js [built] [code generated]
-  ./c.js [built] [code generated]
-  ./d.js [built] [code generated]
-  ./e.js [built] [code generated]
+runtime modules 8.38 KiB 12 modules
+cacheable modules 293 KiB
+  ./index.js 48 bytes [built] [code generated]
+  ./a.js 293 KiB [built] [code generated]
+  ./b.js 22 bytes [built] [code generated]
+  ./c.js 28 bytes [built] [code generated]
+  ./d.js 22 bytes [built] [code generated]
+  ./e.js 22 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -471,7 +473,7 @@ exports[`statsOutput statsOutput/try-require-module should print correct stats f
  2 │     require('./missing-module')
    ·     ───────────────────────────
  3 │ } catch (e) {
- 4 │
+ 4 │ 
    ╰────
 
 Rspack compiled with 1 warning"
@@ -485,7 +487,7 @@ exports[`statsOutput statsOutput/try-require-resolve-module should print correct
  2 │     require.resolve('./missing-module')
    ·     ───────────────────────────────────
  3 │ } catch (e) {
- 4 │
+ 4 │ 
    ╰────
 
 Rspack compiled with 1 warning"
@@ -499,7 +501,7 @@ exports[`statsOutput statsOutput/try-require-resolve-weak-module should print co
  2 │     require.resolveWeak('./missing-module')
    ·     ───────────────────────────────────────
  3 │ } catch (e) {
- 4 │
+ 4 │ 
    ╰────
 
 Rspack compiled with 1 warning"
