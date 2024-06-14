@@ -1,44 +1,52 @@
 import { readFileSync, readdirSync } from "fs";
-import { basename, dirname, extname, join,resolve } from "path";
+import { basename, dirname, extname, join, resolve } from "path";
 import { fileURLToPath } from "url";
-import { ApiItemKind,ApiModel } from "@microsoft/api-extractor-model";
+import { ApiItemKind, ApiModel } from "@microsoft/api-extractor-model";
+import { ZodObject, ZodOptional } from "../compiled/zod/index.js";
+import { rspackOptions } from "../dist/config/zod.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const PLUGIN_REGEX = /^[A-Z][a-zA-Z]+Plugin$/;
-const PLUGIN_API_JSON = resolve(__dirname, "../temp/core.api.json");
-const PLUGIN_DOCS_DIR = resolve(__dirname, "../../../website/docs/en/plugins");
-const INTERNAL_PLUGINS_DOC = join(PLUGIN_DOCS_DIR, "webpack/internal-plugins.mdx");
+const CORE_API_JSON = resolve(__dirname, "../temp/core.api.json");
 
-function getImplementedPlugins() {
-	const apiModel = new ApiModel();
-	apiModel.loadPackage(PLUGIN_API_JSON);
-
-	const implementedPlugins = new Set();
-
-	function visitApiItem(apiItem) {
-		if (
-			[ApiItemKind.Class, ApiItemKind.Variable].includes(apiItem.kind) &&
-			PLUGIN_REGEX.test(apiItem.displayName) &&
-			!apiItem.isAbstract
-		) {
-			implementedPlugins.add(apiItem.displayName);
-		}
-		for (const member of apiItem.members) {
-			visitApiItem(member);
-		}
-	}
-	visitApiItem(apiModel);
-
-	return implementedPlugins;
+function toPascalCase(s) {
+	return s
+		.split(/[\s-_]+/)
+		.map(word => word[0].toUpperCase() + word.slice(1).toLowerCase())
+		.join("");
 }
 
 function toCamelCase(s) {
 	return s
 		.split(/[\s-_]+/)
-		.map(word => word[0].toUpperCase() + word.slice(1).toLowerCase())
+		.map(
+			(word, index) =>
+				(index === 0 ? word[0].toLowerCase() : word[0].toUpperCase()) +
+				word.slice(1)
+		)
 		.join("");
+}
+
+function getMarkdownTitles(file) {
+	const data = readFileSync(file, "utf8");
+	const regex = /^#{1,6}\s+([\w\s]+)$/gm;
+	let match = regex.exec(data);
+	const titles = [];
+	while (match !== null) {
+		let level = 0;
+		for (let i = 0; i < match[0].length; i++) {
+			if (match[0][i] === "#") {
+				level += 1;
+			} else {
+				break;
+			}
+		}
+		const text = match[1].trim();
+		titles.push({ level, text });
+		match = regex.exec(data);
+	}
+	return titles;
 }
 
 function extractMarkdownHeadings(markdown) {
@@ -51,66 +59,179 @@ function extractMarkdownHeadings(markdown) {
 	return headings;
 }
 
-function getDocumentedPlugins() {
-	const documentedPlugins = new Set();
+function checkPluginsDocumentationCoverage() {
+	const PLUGIN_REGEX = /^[A-Z][a-zA-Z]+Plugin$/;
+	const PLUGIN_DOCS_DIR = resolve(
+		__dirname,
+		"../../../website/docs/en/plugins"
+	);
+	const INTERNAL_PLUGINS_DOC = join(
+		PLUGIN_DOCS_DIR,
+		"webpack/internal-plugins.mdx"
+	);
 
-	function visitDir(dir) {
-		const items = readdirSync(dir, { withFileTypes: true });
-		for (const item of items) {
-			const resPath = resolve(dir, item.name);
-			if (item.isDirectory()) {
-				visitDir(resPath);
-			} else {
-				const ext = extname(item.name);
-				if (ext === ".mdx") {
-					const name = toCamelCase(basename(item.name, ext));
-					if (PLUGIN_REGEX.test(name)) {
-						documentedPlugins.add(name);
+	function getImplementedPlugins() {
+		const apiModel = new ApiModel();
+		apiModel.loadPackage(CORE_API_JSON);
+
+		const implementedPlugins = new Set();
+
+		function visitApiItem(apiItem) {
+			if (
+				[ApiItemKind.Class, ApiItemKind.Variable].includes(apiItem.kind) &&
+				PLUGIN_REGEX.test(apiItem.displayName) &&
+				!apiItem.isAbstract
+			) {
+				implementedPlugins.add(apiItem.displayName);
+			}
+			for (const member of apiItem.members) {
+				visitApiItem(member);
+			}
+		}
+		visitApiItem(apiModel);
+
+		return implementedPlugins;
+	}
+
+	function getDocumentedPlugins() {
+		const documentedPlugins = new Set();
+
+		function visitDir(dir) {
+			const items = readdirSync(dir, { withFileTypes: true });
+			for (const item of items) {
+				const resPath = resolve(dir, item.name);
+				if (item.isDirectory()) {
+					visitDir(resPath);
+				} else {
+					const ext = extname(item.name);
+					if (ext === ".mdx") {
+						const name = toPascalCase(basename(item.name, ext));
+						if (PLUGIN_REGEX.test(name)) {
+							documentedPlugins.add(name);
+						}
 					}
 				}
 			}
 		}
-	}
-	visitDir(PLUGIN_DOCS_DIR);
+		visitDir(PLUGIN_DOCS_DIR);
 
-	const internalPluginsDoc = readFileSync(INTERNAL_PLUGINS_DOC, 'utf-8');
-	const headings = extractMarkdownHeadings(internalPluginsDoc);
-	for (const heading of headings) {
-		if (PLUGIN_REGEX.test(heading)) {
-			documentedPlugins.add(heading);
+		const internalPluginsDoc = readFileSync(INTERNAL_PLUGINS_DOC, "utf-8");
+		const headings = extractMarkdownHeadings(internalPluginsDoc);
+		for (const heading of headings) {
+			if (PLUGIN_REGEX.test(heading)) {
+				documentedPlugins.add(heading);
+			}
 		}
+
+		return documentedPlugins;
 	}
 
-	return documentedPlugins;
-}
+	const implementedPlugins = getImplementedPlugins();
+	const documentedPlugins = getDocumentedPlugins();
 
-const implementedPlugins = getImplementedPlugins();
-const documentedPlugins = getDocumentedPlugins();
-
-const undocumentedPlugins = Array.from(implementedPlugins).filter(
-	plugin => !documentedPlugins.has(plugin)
-);
-const unimplementedPlugins = Array.from(documentedPlugins).filter(
-	plugin => !implementedPlugins.has(plugin)
-);
-
-if (undocumentedPlugins.length) {
-	console.error(
-		"The following plugins are implemented but not documented:",
-		undocumentedPlugins.join(", ")
+	const undocumentedPlugins = Array.from(implementedPlugins).filter(
+		plugin => !documentedPlugins.has(plugin)
 	);
-}
+	const unimplementedPlugins = Array.from(documentedPlugins).filter(
+		plugin => !implementedPlugins.has(plugin)
+	);
 
-if (unimplementedPlugins.length) {
 	if (undocumentedPlugins.length) {
-		console.log("\n");
+		console.error(
+			"The following plugins are implemented but not documented:",
+			undocumentedPlugins.join(", ")
+		);
 	}
-	console.error(
-		"The following plugins are documented but not implemented or not properly exported:",
-		unimplementedPlugins.join(", ")
-	);
+
+	if (unimplementedPlugins.length) {
+		if (undocumentedPlugins.length) {
+			console.log("\n");
+		}
+		console.error(
+			"The following plugins are documented but not implemented or not properly exported:",
+			unimplementedPlugins.join(", ")
+		);
+	}
+
+	if (undocumentedPlugins.length || unimplementedPlugins.length) {
+		process.exit(1);
+	}
 }
 
-if (undocumentedPlugins.length || unimplementedPlugins.length) {
-	process.exit(1);
+function checkConfigsDocumentationCoverage() {
+	function getImplementedConfigs() {
+		const implementedConfigs = [];
+		function visit(zod, path = "") {
+			if (zod instanceof ZodObject) {
+				for (const [key, schema] of Object.entries(zod.shape)) {
+					implementedConfigs.push(path + key);
+					visit(schema, path + key + ".");
+				}
+			} else if (zod instanceof ZodOptional) {
+				visit(zod.unwrap(), path);
+			}
+		}
+		visit(rspackOptions);
+		return implementedConfigs;
+	}
+
+	function getConfigDocumentTitles() {
+		const CONFIG_DOCS_DIR = resolve(
+			__dirname,
+			"../../../website/docs/en/config"
+		);
+		const OTHER_CONFIGS_DOC = join(CONFIG_DOCS_DIR, "other-options.mdx");
+
+		const configDocumentTitles = [];
+		const otherConfigsContent = readFileSync(OTHER_CONFIGS_DOC, "utf-8");
+		for (const title of extractMarkdownHeadings(otherConfigsContent)) {
+			if (!title.includes(" ")) {
+				configDocumentTitles.push(toCamelCase(title));
+			}
+		}
+		function visitDir(dir) {
+			const items = readdirSync(dir, { withFileTypes: true });
+			for (const item of items) {
+				const resPath = resolve(dir, item.name);
+				if (item.isDirectory()) {
+					visitDir(resPath);
+				} else {
+					if (["other-options.mdx", "index.mdx"].some(f => item.name === f)) {
+						continue;
+					}
+					const ext = extname(item.name);
+					if (ext === ".mdx") {
+						const content = readFileSync(join(item.path, item.name), "utf-8");
+						for (const title of extractMarkdownHeadings(content)) {
+							if (!title.includes(" ")) {
+								configDocumentTitles.push(toCamelCase(title));
+							}
+						}
+					}
+				}
+			}
+		}
+		visitDir(CONFIG_DOCS_DIR);
+		return configDocumentTitles;
+	}
+	const configDocumentTitles = getConfigDocumentTitles();
+	const implementedConfigs = getImplementedConfigs();
+
+	const undocumentedConfigs = Array.from(implementedConfigs).filter(
+		config => !configDocumentTitles.includes(config)
+	);
+
+	if (undocumentedConfigs.length) {
+		console.error(
+			"The following plugins are implemented but not documented:",
+			undocumentedConfigs.join(", ")
+		);
+	}
+
+	if (undocumentedConfigs.length) {
+		process.exit(1);
+	}
 }
+
+checkPluginsDocumentationCoverage();
+checkConfigsDocumentationCoverage();
