@@ -1,7 +1,6 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::fmt::Debug;
 
 use derivative::Derivative;
-use rkyv::AlignedVec;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
@@ -10,9 +9,9 @@ use swc_core::common::Span;
 
 use crate::{
   tree_shaking::visitor::OptimizeAnalyzeResult, AsyncDependenciesBlock, BoxDependency, BoxLoader,
-  BuildExtraDataType, BuildInfo, BuildMeta, CodeGenerationData, Compilation, CompilerOptions,
-  DependencyTemplate, GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType,
-  ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
+  BuildInfo, BuildMeta, CodeGenerationData, Compilation, CompilerOptions, DependencyTemplate,
+  GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType, ParserOptions,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use crate::{ChunkGraph, ConcatenationScope, Context, ModuleGraph};
 
@@ -97,10 +96,6 @@ pub trait ParserAndGenerator: Send + Sync + Debug {
     module: &dyn Module,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource>;
-  /// Store parser&generator data to cache
-  fn store(&self, _extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {}
-  /// Resume parser&generator data from cache
-  fn resume(&mut self, _extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {}
 
   fn get_concatenation_bailout_reason(
     &self,

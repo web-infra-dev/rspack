@@ -1,15 +1,14 @@
 #![feature(let_chains)]
 
-use std::{collections::HashMap, hash::Hasher};
+use std::hash::Hasher;
 
 use async_trait::async_trait;
 use rayon::prelude::*;
-use rkyv::{from_bytes, to_bytes, AlignedVec, Archive, Deserialize, Serialize};
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
   tree_shaking::visitor::OptimizeAnalyzeResult,
-  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetParserDataUrl, BuildExtraDataType,
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey, CodeGenerationDataAssetInfo,
+  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetParserDataUrl, BuildMetaDefaultObject,
+  BuildMetaExportsType, ChunkGraph, ChunkUkey, CodeGenerationDataAssetInfo,
   CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilationRenderManifest,
   CompilerOptions, GenerateContext, Module, ModuleGraph, NormalModule, ParseContext,
   ParserAndGenerator, PathData, Plugin, RenderManifestEntry, ResourceData, RuntimeGlobals,
@@ -43,8 +42,7 @@ type IsInline = bool;
 const ASSET_INLINE: bool = true;
 const ASSET_RESOURCE: bool = false;
 
-#[derive(Debug, Clone, Archive, Serialize, Deserialize)]
-#[archive(compare(PartialEq), check_bytes)]
+#[derive(Debug, Clone)]
 enum CanonicalizedDataUrlOption {
   Source,
   Asset(IsInline),
@@ -455,19 +453,6 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     };
 
     result
-  }
-  fn store(&self, extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {
-    extra_data.insert(
-      BuildExtraDataType::AssetParserAndGenerator,
-      to_bytes::<_, 256>(&self.parsed_asset_config).expect("Failed to store extra data"),
-    );
-  }
-
-  fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {
-    if let Some(data) = extra_data.get(&BuildExtraDataType::AssetParserAndGenerator) {
-      self.parsed_asset_config = from_bytes::<Option<CanonicalizedDataUrlOption>>(data)
-        .expect("Failed to resume extra data");
-    }
   }
 
   fn get_concatenation_bailout_reason(

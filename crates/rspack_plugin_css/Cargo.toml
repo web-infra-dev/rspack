@@ -9,11 +9,10 @@ version    = "0.1.0"
 async-trait           = { workspace = true }
 css-module-lexer      = { workspace = true }
 heck                  = { workspace = true }
-indexmap              = { version = "=1.9.3", features = ["serde-1"] }              # pinned by rkyv
+indexmap              = { version = "=1.9.3", features = ["serde-1"] }
 once_cell             = { workspace = true }
 rayon                 = { workspace = true }
 regex                 = { workspace = true }
-rkyv                  = { workspace = true, features = ["indexmap", "validation"] }
 rspack_core           = { path = "../rspack_core" }
 rspack_error          = { path = "../rspack_error" }
 rspack_hash           = { path = "../rspack_hash" }
