@@ -736,6 +736,21 @@ module.exports = {
 };
 ```
 
+## output.hashDigest
+
+- **Type:** `string`
+- **Default:** `'hex'`
+
+The encoding to use when generating the hash. All encodings from Node.JS' [`hash.digest`](https://nodejs.org/api/buffer.html#buffers-and-character-encodings) are supported.
+Using `'base64'` for filenames might be problematic since it has the character `/` in its alphabet. Likewise `'latin1'` could contain any character.
+
+## output.hashDigestLength
+
+- **Type:** `number`
+- **Default:** `'20'`
+
+The prefix length of the hash digest to use.
+
 ## output.importFunctionName
 
 - **Type:** `string`

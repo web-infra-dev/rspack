@@ -732,6 +732,21 @@ module.exports = {
 };
 ```
 
+## output.hashDigest
+
+- **类型：** `string`
+- **默认值：** `'hex'`
+
+在生成哈希时使用的编码方式。支持 Node.JS [`hash.digest`](https://nodejs.org/api/buffer.html#buffers-and-character-encodings) 中的所有编码。
+使用 `'base64'` 作为文件名可能会有问题，因为其中包含 `/` 字符。同样 `'latin1'` 也可能包含任何字符。
+
+## output.hashDigestLength
+
+- **类型：** `number`
+- **默认值：** `20`
+
+要使用的哈希摘要的长度。
+
 ## output.importFunctionName
 
 - **类型：** `string`
