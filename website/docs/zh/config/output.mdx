@@ -533,6 +533,43 @@ module.exports = {
 
 按照 ES Module 规范处理 module 加载时的错误，会有性能损失。
 
+## output.strictModuleExceptionHandling
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+:::warning
+已弃用，请改用 [output.strictModuleErrorHandling](#outputstrictmoduleerrorhandling)。
+:::
+
+告诉 Rspack 如果在 `require` 时抛出异常，则从模块实例缓存 (`require.cache`) 中删除该模块。
+
+出于性能原因，它默认为 `false`。
+
+当设置为 `false` 时，模块不会从缓存中删除，这导致异常只会在第一个`require`调用时抛出（这与 node.js 不兼容）。
+
+例如，考虑 `module.js`:
+
+```js
+throw new Error('error');
+```
+
+当 `strictModuleExceptionHandling` 设置为 `false` 时，只有第一次 `require` 会抛出异常：
+
+```js
+// with strictModuleExceptionHandling = false
+require('module'); // <- 抛出异常
+require('module'); // <- 不抛出异常
+```
+
+相反，当 `strictModuleExceptionHandling` 设置为 `true` 时，所有的 `require` 行为都会抛出异常：
+
+```js
+// with strictModuleExceptionHandling = true
+require('module'); // <- 抛出异常
+require('module'); // <- 也会抛出异常
+```
+
 ## Template String
 
 可以用下方的模板字符串来替换对应文件名。不同的 context 对应了不同的可替换内容，如 [`output.assetModuleFilename`](/config/output#outputassetmodulefilename) 支持使用 [file context](/config/output#file-context) 和 [module context](/config/output#module-context)。
