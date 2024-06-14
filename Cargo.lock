@@ -3608,6 +3608,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_remove_parent_modules"
+version = "0.1.0"
+dependencies = [
+ "derivative",
+ "indexmap 2.2.6",
+ "num-bigint",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rustc-hash",
+]
+
+[[package]]
 name = "rspack_plugin_runtime"
 version = "0.1.0"
 dependencies = [
