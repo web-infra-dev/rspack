@@ -21,6 +21,35 @@ module.exports = {
 
 这会强制 Rspack 终止编译流程。
 
+## dependencies
+
+- **类型：** `string[]`
+- **默认值：** `undefined`
+
+定义当前配置文件依赖的所有相邻配置文件的 [name](#name)。依赖的配置需要先编译完成。
+
+在 watch 模式下，当以下情况发生时，依赖关系将使编译器无效：
+
+1. 依赖的配置已更改。
+2. 依赖的配置正在编译中或无效。
+
+请记住，当前配置在其依赖项完成之前不会编译。
+
+```js title="rspack.config.js"
+module.exports = [
+  {
+    name: 'client',
+    target: 'web',
+    // …
+  },
+  {
+    name: 'server',
+    target: 'node',
+    dependencies: ['client'],
+  },
+];
+```
+
 ## ignoreWarnings
 
 - **类型：** `(RegExp | ((warning: Error, Compilation: Compilation) => boolean))[]`
@@ -32,5 +61,19 @@ module.exports = {
 module.exports = {
   //...
   ignoreWarnings: [/warning from compiler/, warning => true],
+};
+```
+
+## name
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+配置的名称。当加载多个配置时被使用。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  name: 'admin-app',
 };
 ```
