@@ -789,7 +789,7 @@ module.exports = {
 - **类型:** `{ [key: string]: Condition }`
 - **默认值:** `undefined`
 
-`descriptionData` 选项允许你通过匹配描述文件（通常是 `package.json`）中的属性值来决定某个规则应该应用于哪些模块。这是一个基于 `package.json` 来过滤和应用规则的实用方法。
+`descriptionData` 选项允许你通过匹配描述文件（通常是 `package.json`）中的属性值，来决定某个 rule 应该应用于哪些模块。这是一个基于 `package.json` 来应用 rule 的实用方法。
 
 `descriptionData` 对象中的 key 对应模块的 `package.json` 中的键，例如 `name`、`version` 等。每个 key 与一个用于匹配 `package.json` 数据的 [`Condition`](/config/module#condition) 进行关联。
 
