@@ -570,6 +570,23 @@ require('module'); // <- 抛出异常
 require('module'); // <- 也会抛出异常
 ```
 
+## output.trustedTypes
+
+控制 [Trusted Types](https://web.dev/trusted-types) 兼容性。启用此选项，Rspack 将检测已实现了 Trusted Types，并使用 Trusted Types 来创建它动态加载的脚本 URL。应用在运行带有 [require-trusted-types-for](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/require-trusted-types-for) 内容安全策略指令下的应用程序。
+
+默认情况下是不启用。
+
+策略名称取自 `policyName` 字段。
+
+```ts title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    scriptType: 'module',
+  },
+};
+```
+
 ## Template String
 
 可以用下方的模板字符串来替换对应文件名。不同的 context 对应了不同的可替换内容，如 [`output.assetModuleFilename`](/config/output#outputassetmodulefilename) 支持使用 [file context](/config/output#file-context) 和 [module context](/config/output#module-context)。
