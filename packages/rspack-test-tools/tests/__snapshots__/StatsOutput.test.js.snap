@@ -2,9 +2,9 @@
 
 exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats for 1`] = `
 "PublicPath: auto
-asset bundle.js 2.58 KiB {909} [emitted] (name: main)
+asset bundle.js 2.61 KiB {909} [emitted] (name: main)
 asset 2710c5e36f8babb0a3a4.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
-Entrypoint main 2.58 KiB = bundle.js
+Entrypoint main 2.61 KiB = bundle.js
 chunk {909} bundle.js (main) [entry]
   ./index.js [10] {909} [depth 0]
     [no exports]
@@ -35,7 +35,7 @@ runtime modules
   [no exports used]
   esm import ./raw.png [10]
   
-Rspack compiled successfully (9bcf52011e342a43887f)"
+Rspack compiled successfully (be13a1b38364d3c54ae0)"
 `;
 
 exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print correct stats for 1`] = `
@@ -72,9 +72,9 @@ Rspack x.x.x compiled with 1 error in X s"
 `;
 
 exports[`statsOutput statsOutput/filename should print correct stats for 1`] = `
-"asset 909.xxxx.js 8.78 KiB [emitted] (name: main)
+"asset 909.xxxx.js 8.81 KiB [emitted] (name: main)
 asset 521.xxxx.js 337 bytes [emitted]
-Entrypoint main 8.78 KiB = 909.xxxx.js
+Entrypoint main 8.81 KiB = 909.xxxx.js
 runtime modules 11 modules
 javascript modules
   ./index.js
@@ -209,7 +209,7 @@ Rspack compiled with 1 error"
 `;
 
 exports[`statsOutput statsOutput/named-chunk-group should print correct stats for 1`] = `
-"Entrypoint main 8.77 KiB = main.js
+"Entrypoint main 8.8 KiB = main.js
 Chunk Group cimanyd 337 bytes = cimanyd.js"
 `;
 
@@ -289,10 +289,10 @@ Rspack compiled with 1 error"
 `;
 
 exports[`statsOutput statsOutput/performance-disabled should print correct stats for 1`] = `
-"asset main.js 303 KiB [emitted] (name: main)
+"asset main.js 304 KiB [emitted] (name: main)
 asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
-Entrypoint main 303 KiB = main.js
+Entrypoint main 304 KiB = main.js
 runtime modules 12 modules
 javascript modules
   ./a.js
@@ -305,10 +305,10 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/performance-error should print correct stats for 1`] = `
-"asset main.js 303 KiB [emitted] (name: main)
+"asset main.js 304 KiB [emitted] (name: main)
 asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
-Entrypoint main 303 KiB = main.js
+Entrypoint main 304 KiB = main.js
 runtime modules 12 modules
 javascript modules
   ./a.js
@@ -319,11 +319,11 @@ javascript modules
   ./index.js
 
 ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
-  │   main.js (303.479 KiB)
+  │   main.js (303.513 KiB)
 
 
 ERROR in × entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (303.479 KiB)
+  │   main (303.513 KiB)
   │       main.js
 
 
@@ -331,10 +331,10 @@ Rspack x.x.x compiled with 2 errors in X s"
 `;
 
 exports[`statsOutput statsOutput/performance-no-hints should print correct stats for 1`] = `
-"asset main.js 303 KiB [emitted] (name: main)
+"asset main.js 304 KiB [emitted] (name: main)
 asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
-Entrypoint main 303 KiB = main.js
+Entrypoint main 304 KiB = main.js
 runtime modules 12 modules
 javascript modules
   ./a.js

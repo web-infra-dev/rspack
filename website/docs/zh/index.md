@@ -5,9 +5,10 @@ link-rss: blog-rss-zh
 
 hero:
   name: Rspack
-  text: 基于 Rust 的高性能 Web 构建工具
-  tagline: 打造高性能的前端工具链
-  # TODO logo
+  text: |
+    基于 Rust 的高性能
+    Web 打包工具
+  tagline: 使用兼容 API 无缝替换 webpack
   image:
     src: /logo.png
     alt: logo
@@ -29,7 +30,7 @@ features:
     icon: ⚡
     link: /zh/guide/start/introduction
   - title: 兼容 webpack
-    details: 针对 webpack 的架构和生态进行兼容，无需从头搭建生态。
+    details: 兼容 webpack 生态中的 plugin 和 loader，无缝衔接社区中沉淀的优秀库。
     icon: 📦
     link: /zh/guide/compatibility/plugin
   - title: 内置常见构建能力
