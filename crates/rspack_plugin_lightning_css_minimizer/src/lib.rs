@@ -132,8 +132,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               pseudo_classes: None,
             })
             .map_err(|e| error!(e.to_string()))?;
-          let warnings = warnings.read().expect("should not posioned");
-          all_warnings.write().expect("should not posioned").extend(
+          let warnings = warnings.read().expect("should lock");
+          all_warnings.write().expect("should lock").extend(
             warnings
               .iter()
               .map(|e| Diagnostic::error("Css minimize error".to_string(), e.to_string())),
