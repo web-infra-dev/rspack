@@ -311,6 +311,26 @@ module.exports = {
 };
 ```
 
+## output.pathinfo
+
+- **类型：** `boolean | 'verbose'`
+- **默认值：** `true`
+
+让 Rspack 在 bundle 中通过注释输出模块的信息。此选项在 [mode](/config/mode) 为 `'production'` 下默认为 `true`，为 `'development'` 下默认为 `false`。`'verbose'` 会打印更多信息，例如模块导出、运行时信息和 `bailout` 原因。
+
+:::warning
+在开发过程中分析生成的代码时，这些注释提供的信息很有用，但不应在生产环境中使用。
+:::
+
+```ts title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    pathinfo: true,
+  },
+};
+```
+
 ## output.publicPath
 
 - **类型：** `string`
