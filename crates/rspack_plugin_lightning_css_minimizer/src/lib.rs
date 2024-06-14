@@ -20,7 +20,7 @@ use rspack_core::{
   },
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
 };
-use rspack_error::{error, Result};
+use rspack_error::{error, Diagnostic, Result, TraceableError};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 
@@ -60,6 +60,7 @@ fn chunk_hash(
 
 #[plugin_hook(CompilationProcessAssets for LightningCssMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let all_warnings: RwLock<Vec<_>> = Default::default();
   compilation
     .assets_mut()
     .par_iter_mut()
@@ -91,46 +92,54 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             Ok(map)
           })
           .transpose()?;
-        let warnings = Some(Arc::new(RwLock::new(Vec::new())));
-        let mut stylesheet = StyleSheet::parse(
-          &input,
-          ParserOptions {
-            filename: filename.to_string(),
-            css_modules: None,
-            source_index: 0,
-            error_recovery: self.options.error_recovery,
-            warnings,
-            flags: ParserFlags::all(),
-          },
-        )
-        .map_err(|e| error!(e.to_string()))?;
-        let targets = Targets::from(
-          Browsers::from_browserslist(&self.options.browserlist)
-            .map_err(|e| error!(e.to_string()))?,
-        );
-        let mut unused_symbols = HashSet::from_iter(self.options.unused_symbols.clone());
-        if self.options.remove_unused_local_idents
-          && let Some(css_unused_idents) = original.info.css_unused_idents.take()
-        {
-          unused_symbols.extend(css_unused_idents);
-        }
-        stylesheet
-          .minify(MinifyOptions {
-            targets,
-            unused_symbols,
-          })
+        let result = {
+          let warnings: Arc<RwLock<Vec<_>>> = Default::default();
+          let mut stylesheet = StyleSheet::parse(
+            &input,
+            ParserOptions {
+              filename: filename.to_string(),
+              css_modules: None,
+              source_index: 0,
+              error_recovery: self.options.error_recovery,
+              warnings: Some(warnings.clone()),
+              flags: ParserFlags::all(),
+            },
+          )
           .map_err(|e| error!(e.to_string()))?;
-        let result = stylesheet
-          .to_css(PrinterOptions {
-            minify: true,
-            source_map: source_map.as_mut(),
-            project_root: None,
-            targets,
-            analyze_dependencies: None,
-            pseudo_classes: None,
-          })
-          .map_err(|e| error!(e.to_string()))?;
-        drop(stylesheet);
+          let targets = Targets::from(
+            Browsers::from_browserslist(&self.options.browserlist)
+              .map_err(|e| error!(e.to_string()))?,
+          );
+          let mut unused_symbols = HashSet::from_iter(self.options.unused_symbols.clone());
+          if self.options.remove_unused_local_idents
+            && let Some(css_unused_idents) = original.info.css_unused_idents.take()
+          {
+            unused_symbols.extend(css_unused_idents);
+          }
+          stylesheet
+            .minify(MinifyOptions {
+              targets,
+              unused_symbols,
+            })
+            .map_err(|e| error!(e.to_string()))?;
+          let result = stylesheet
+            .to_css(PrinterOptions {
+              minify: true,
+              source_map: source_map.as_mut(),
+              project_root: None,
+              targets,
+              analyze_dependencies: None,
+              pseudo_classes: None,
+            })
+            .map_err(|e| error!(e.to_string()))?;
+          let warnings = warnings.read().expect("should not posioned");
+          all_warnings.write().expect("should not posioned").extend(
+            warnings
+              .iter()
+              .map(|e| Diagnostic::error("Css minimize error".to_string(), e.to_string())),
+          );
+          result
+        };
 
         let minimized_source = if let Some(mut source_map) = source_map {
           SourceMapSource::new(SourceMapSourceOptions {
@@ -156,6 +165,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       original.get_info_mut().minimized = true;
       Ok(())
     })?;
+
+  compilation.extend_diagnostics(all_warnings.into_inner().expect("should not poisoned"));
 
   Ok(())
 }

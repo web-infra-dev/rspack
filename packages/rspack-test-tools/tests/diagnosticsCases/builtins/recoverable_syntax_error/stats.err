@@ -1,5 +1,1 @@
-ERROR in × Resolve error: Can't resolve './' in '<PROJECT_ROOT>/tests/diagnosticsCases/builtins/recoverable_syntax_error'
-  help: Found module './index.tsx'. However, it's not possible to request this module without the extension
-        if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
-        
-        1. add the extension `".tsx"` to `resolve.extensions` in your rspack configur
+ERROR in ./index.tsx× Module build failed:├─▶   ×x Expected a semicolon,-[<PROJECT_ROOT>/tests/diagnosticsCases/builtins/recoverable_syntax_error/index.tsx:1:1]1 | let c = <test>() => {}</test>;:                       ^`----x Expression expected,-[<PROJECT_ROOT>/tests/diagnosticsCases/builtins/recoverable_syntax_error/index.tsx:1:1]1 | let c = <test>() => {}</test>;:                        ^`----╰─▶ Syntax Error
