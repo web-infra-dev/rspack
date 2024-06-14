@@ -9,6 +9,38 @@ Used to indicate how and where Rspack outputs the contents of the generated file
 
 - **Type:** `Object`
 
+## output.amdContainer
+
+- **Type:** `string`
+
+:::warning
+Please use [`output.library.amdContainer`](#outputlibraryamdcontainer) instead as we might drop support for `output.amdContainer` in the future.
+:::
+
+Use a container(defined in global space) for calling `define`/`require` functions in an AMD module.
+
+:::warning
+Note that the value of `amdContainer` **must be** set as a global variable.
+:::
+
+```ts title="rspack.config.js"
+module.exports = {
+  // …
+  output: {
+    library: {
+      amdContainer: 'window["clientContainer"]',
+      type: 'amd', // or 'amd-require'
+    },
+  },
+};
+```
+
+Which will result in the following bundle:
+
+```js
+window['clientContainer'].define(/*define args*/); // or 'amd-require' window['clientContainer'].require(/*require args*/);
+```
+
 ## output.assetModuleFilename
 
 - **Type:** `string`
@@ -634,6 +666,34 @@ In the above example, we're passing a single entry file to `entry`, however, Rsp
    </script>
    ```
 
+### output.library.amdContainer
+
+- **Type:** `string`
+
+Use a container(defined in global space) for calling `define`/`require` functions in an AMD module.
+
+:::warning
+Note that the value of `amdContainer` **must be** set as a global variable.
+:::
+
+```ts title="rspack.config.js"
+module.exports = {
+  // …
+  output: {
+    library: {
+      amdContainer: 'window["clientContainer"]',
+      type: 'amd', // or 'amd-require'
+    },
+  },
+};
+```
+
+Which will result in the following bundle:
+
+```js
+window['clientContainer'].define(/*define args*/); // or 'amd-require' window['clientContainer'].require(/*require args*/);
+```
+
 ### output.library.name
 
 ```js
@@ -1197,7 +1257,9 @@ define('MyLibrary', [], factory);
 
 ## output.libraryExport \{#outputlibraryexport-1}
 
+:::warning
 We might drop support for this, so prefer to use [output.library.export](#outputlibraryexport) which works the same as `libraryExport`.
+:::
 
 - **Type:** `string` | `string[]`
 
@@ -1237,11 +1299,15 @@ MySubModule.doSomething();
 - **Type:** `string`
 - **Default:** `var`
 
+:::warning
 Please use [`output.library.type`](#outputlibrarytype) instead as we might drop support for `output.libraryTarget` in the future.
+:::
 
 ## output.umdNamedDefine
 
+:::warning
 Prefer to use [`output.library.umdNamedDefine`](#outputlibraryumdnameddefine) instead.
+:::
 
 - **Type:** `boolean`
 

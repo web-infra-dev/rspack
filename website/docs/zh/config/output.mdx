@@ -9,6 +9,38 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 - **类型：** `Object`
 
+## output.amdContainer
+
+- **类型：** `string`
+
+:::warning
+请使用 [`output.library.amdContainer`](#outputlibraryamdcontainer)，因为我们将来可能会停止支持 `output.amdContainer`。
+:::
+
+在全局为 AMD 模块添加 `define`/`require` 函数的容器。
+
+:::warning
+请注意，`amdContainer` 的值必须设置为全局变量。
+:::
+
+```ts title="rspack.config.js"
+module.exports = {
+  // …
+  output: {
+    library: {
+      amdContainer: 'window["clientContainer"]',
+      type: 'amd', // or 'amd-require'
+    },
+  },
+};
+```
+
+这将产生以下 bundle：
+
+```js
+window['clientContainer'].define(/*define args*/); // or 'amd-require' window['clientContainer'].require(/*require args*/);
+```
+
 ## output.assetModuleFilename
 
 - **类型：** `string`
@@ -634,6 +666,38 @@ export function hello(name) {
 
    查看 [示例](https://github.com/webpack/webpack/tree/main/examples/multi-part-library) 获取更多内容。
 
+### output.library.amdContainer
+
+- **类型：** `string`
+
+:::warning
+请使用 [`output.library.amdContainer`](#outputlibraryamdcontainer)，因为我们将来可能会停止支持 `output.amdContainer`。
+:::
+
+在全局为 AMD 模块添加 `define`/`require` 函数的容器。
+
+:::warning
+请注意，`amdContainer` 的值必须设置为全局变量。
+:::
+
+```ts title="rspack.config.js"
+module.exports = {
+  // …
+  output: {
+    library: {
+      amdContainer: 'window["clientContainer"]',
+      type: 'amd', // or 'amd-require'
+    },
+  },
+};
+```
+
+这将产生以下 bundle：
+
+```js
+window['clientContainer'].define(/*define args*/); // or 'amd-require' window['clientContainer'].require(/*require args*/);
+```
+
 ### output.library.name
 
 ```js
@@ -1197,7 +1261,9 @@ define('MyLibrary', [], factory);
 
 ## output.libraryExport \{#outputlibraryexport-1}
 
+:::warning
 我们可能会停止对此的支持，所以最好使用 [output.library.export](#outputlibraryexport)，其作用与 `libraryExport` 一致。
+:::
 
 - **类型：** `string` | `string[]`
 
@@ -1237,11 +1303,15 @@ MySubModule.doSomething();
 - **类型：** `string`
 - **默认值：** `var`
 
+:::warning
 请使用 [`output.library.type`](#outputlibrarytype) 代理，因为我们可能在未来放弃对 `output.libraryTarget` 的支持。
+:::
 
 ## output.umdNamedDefine
 
+:::warning
 最好使用 [`output.library.umdNamedDefine`](#outputlibraryumdnameddefine)。
+:::
 
 - **类型：** `boolean`
 
