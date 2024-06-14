@@ -544,6 +544,7 @@ export interface JsStatsModule {
   id?: string
   chunks: Array<string | undefined | null>
   size: number
+  sizes: Array<JsStatsSourceTypeSize>
   depth?: number
   issuer?: string
   issuerName?: string
@@ -559,6 +560,16 @@ export interface JsStatsModule {
   providedExports?: Array<string>
   usedExports?: string | Array<string>
   optimizationBailout?: Array<string>
+  preOrderIndex?: number
+  postOrderIndex?: number
+  built: boolean
+  codeGenerated: boolean
+  cached: boolean
+  cacheable: boolean
+  optional: boolean
+  failed: boolean
+  errors: number
+  warnings: number
 }
 
 export interface JsStatsModuleIssuer {
@@ -583,6 +594,11 @@ export interface JsStatsModuleReason {
 
 export interface JsStatsOptimizationBailout {
   inner: string
+}
+
+export interface JsStatsSourceTypeSize {
+  sourceType: string
+  size: number
 }
 
 export interface JsStatsWarning {

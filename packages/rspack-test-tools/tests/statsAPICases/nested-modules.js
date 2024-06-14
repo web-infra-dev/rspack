@@ -28,8 +28,50 @@ module.exports = {
 		Array [
 		  Object {
 		    "assets": Array [],
+		    "built": true,
+		    "cacheable": true,
+		    "cached": false,
 		    "chunks": Array [],
+		    "codeGenerated": false,
+		    "depth": 0,
+		    "errors": 0,
+		    "failed": false,
+		    "id": undefined,
+		    "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+		    "issuer": undefined,
+		    "issuerId": undefined,
+		    "issuerName": undefined,
+		    "issuerPath": Array [],
+		    "moduleType": "javascript/auto",
+		    "name": "./fixtures/esm/abc.js",
+		    "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
+		    "optimizationBailout": Array [
+		      "ModuleConcatenation bailout: Module is an entry point",
+		    ],
+		    "optional": false,
+		    "orphan": true,
+		    "postOrderIndex": 3,
+		    "preOrderIndex": 0,
+		    "providedExports": Array [],
+		    "reasons": Array [],
+		    "size": 80,
+		    "sizes": Object {
+		      "javascript": 80,
+		    },
+		    "type": "module",
+		    "usedExports": Array [],
+		    "warnings": 0,
+		  },
+		  Object {
+		    "assets": Array [],
+		    "built": true,
+		    "cacheable": true,
+		    "cached": false,
+		    "chunks": Array [],
+		    "codeGenerated": false,
 		    "depth": 1,
+		    "errors": 0,
+		    "failed": false,
 		    "id": undefined,
 		    "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
 		    "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -46,7 +88,10 @@ module.exports = {
 		    "name": "./fixtures/esm/a.js",
 		    "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
 		    "optimizationBailout": Array [],
+		    "optional": false,
 		    "orphan": true,
+		    "postOrderIndex": 0,
+		    "preOrderIndex": 1,
 		    "providedExports": Array [
 		      "a",
 		      "default",
@@ -68,15 +113,25 @@ module.exports = {
 		      },
 		    ],
 		    "size": 37,
+		    "sizes": Object {
+		      "javascript": 37,
+		    },
 		    "type": "module",
 		    "usedExports": Array [
 		      "a",
 		    ],
+		    "warnings": 0,
 		  },
 		  Object {
 		    "assets": Array [],
+		    "built": true,
+		    "cacheable": true,
+		    "cached": false,
 		    "chunks": Array [],
+		    "codeGenerated": false,
 		    "depth": 1,
+		    "errors": 0,
+		    "failed": false,
 		    "id": undefined,
 		    "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
 		    "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -93,7 +148,10 @@ module.exports = {
 		    "name": "./fixtures/esm/b.js",
 		    "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
 		    "optimizationBailout": Array [],
+		    "optional": false,
 		    "orphan": true,
+		    "postOrderIndex": 1,
+		    "preOrderIndex": 2,
 		    "providedExports": Array [
 		      "b",
 		      "default",
@@ -115,15 +173,25 @@ module.exports = {
 		      },
 		    ],
 		    "size": 38,
+		    "sizes": Object {
+		      "javascript": 38,
+		    },
 		    "type": "module",
 		    "usedExports": Array [
 		      "default",
 		    ],
+		    "warnings": 0,
 		  },
 		  Object {
 		    "assets": Array [],
+		    "built": true,
+		    "cacheable": true,
+		    "cached": false,
 		    "chunks": Array [],
+		    "codeGenerated": false,
 		    "depth": 1,
+		    "errors": 0,
+		    "failed": false,
 		    "id": undefined,
 		    "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
 		    "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -140,7 +208,10 @@ module.exports = {
 		    "name": "./fixtures/esm/c.js",
 		    "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
 		    "optimizationBailout": Array [],
+		    "optional": false,
 		    "orphan": true,
+		    "postOrderIndex": 2,
+		    "preOrderIndex": 3,
 		    "providedExports": Array [
 		      "c",
 		      "default",
@@ -162,31 +233,12 @@ module.exports = {
 		      },
 		    ],
 		    "size": 37,
+		    "sizes": Object {
+		      "javascript": 37,
+		    },
 		    "type": "module",
 		    "usedExports": true,
-		  },
-		  Object {
-		    "assets": Array [],
-		    "chunks": Array [],
-		    "depth": 0,
-		    "id": undefined,
-		    "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
-		    "issuer": undefined,
-		    "issuerId": undefined,
-		    "issuerName": undefined,
-		    "issuerPath": Array [],
-		    "moduleType": "javascript/auto",
-		    "name": "./fixtures/esm/abc.js",
-		    "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
-		    "optimizationBailout": Array [
-		      "ModuleConcatenation bailout: Module is an entry point",
-		    ],
-		    "orphan": true,
-		    "providedExports": Array [],
-		    "reasons": Array [],
-		    "size": 80,
-		    "type": "module",
-		    "usedExports": Array [],
+		    "warnings": 0,
 		  },
 		]
 	`);
@@ -194,10 +246,10 @@ module.exports = {
 			.toMatchInlineSnapshot(`
 		"asset main.js 475 bytes [emitted] (name: main)
 		Entrypoint main 475 bytes = main.js
-		orphan modules [orphan] 4 modules
-		runtime modules 3 modules
-		./fixtures/esm/abc.js + 3 modules
-		  | orphan modules [orphan] 4 modules
+		orphan modules 192 bytes [orphan] 4 modules
+		runtime modules 677 bytes 3 modules
+		./fixtures/esm/abc.js + 3 modules 192 bytes [code generated]
+		  | orphan modules 192 bytes [orphan] 4 modules
 		Rspack compiled successfully"
 	`);
 	}

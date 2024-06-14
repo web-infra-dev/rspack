@@ -963,10 +963,33 @@ impl<'a> ModuleGraph<'a> {
       .and_then(|mgm| mgm.pre_order_index)
   }
 
+  pub fn get_post_order_index(&self, module_id: &ModuleIdentifier) -> Option<u32> {
+    self
+      .module_graph_module_by_identifier(module_id)
+      .and_then(|mgm| mgm.post_order_index)
+  }
+
   pub fn get_issuer(&self, module_id: &ModuleIdentifier) -> Option<&BoxModule> {
     self
       .module_graph_module_by_identifier(module_id)
       .and_then(|mgm| mgm.get_issuer().get_module(self))
+  }
+
+  pub fn is_optional(&self, module_id: &ModuleIdentifier) -> bool {
+    let mut has_connections = false;
+    for connection in self.get_incoming_connections(module_id).iter() {
+      let Some(dependency) = self
+        .dependency_by_id(&connection.dependency_id)
+        .and_then(|dep| dep.as_module_dependency())
+      else {
+        return false;
+      };
+      if !dependency.get_optional() || !connection.is_target_active(self, None) {
+        return false;
+      }
+      has_connections = true;
+    }
+    has_connections
   }
 
   pub fn is_async(&self, module_id: &ModuleIdentifier) -> Option<bool> {

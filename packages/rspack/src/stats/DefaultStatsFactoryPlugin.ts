@@ -352,7 +352,6 @@ const SORTERS: Record<
 			comparators.push(compareSelect((c: StatsChunk) => c.id, compareIds));
 		}
 	}
-	// not support compilation.modules / chunk.rootModules / chunk.modules / module.modules  (missing Module.moduleGraph)
 	// "compilation.modules": MODULES_SORTER,
 	// "chunk.rootModules": MODULES_SORTER,
 	// "chunk.modules": MODULES_SORTER,
@@ -753,6 +752,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.type = module.type;
 			object.moduleType = module.moduleType;
 			object.size = module.size;
+			object.sizes = Object.fromEntries(
+				module.sizes.map(({ sourceType, size }) => [sourceType, size])
+			);
 			Object.assign(object, factory.create(`${type}$visible`, module, context));
 		}
 	},
@@ -770,6 +772,16 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				context
 			);
 			object.orphan = module.orphan;
+			object.preOrderIndex = module.preOrderIndex;
+			object.postOrderIndex = module.postOrderIndex;
+			object.cacheable = module.cacheable;
+			object.built = module.built;
+			object.codeGenerated = module.codeGenerated;
+			object.cached = module.cached;
+			object.optional = module.optional;
+			object.failed = module.failed;
+			object.errors = module.errors;
+			object.warnings = module.warnings;
 			const profile = module.profile;
 			if (profile) {
 				object.profile = factory.create(`${type}.profile`, profile, context);

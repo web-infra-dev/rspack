@@ -396,9 +396,14 @@ impl Stats<'_> {
   }
 
   fn sort_modules(modules: &mut [StatsModule]) {
-    // TODO: sort by module.depth
     modules.sort_unstable_by(|a, b| {
-      if a.name.len() != b.name.len() {
+      // align with MODULES_SORTER
+      // https://github.com/webpack/webpack/blob/ab3e93b19ead869727592d09d36f94e649eb9d83/lib/stats/DefaultStatsFactoryPlugin.js#L1546
+      if a.depth != b.depth {
+        a.depth.cmp(&b.depth)
+      } else if a.pre_order_index != b.pre_order_index {
+        a.pre_order_index.cmp(&b.pre_order_index)
+      } else if a.name.len() != b.name.len() {
         a.name.len().cmp(&b.name.len())
       } else {
         a.name.cmp(&b.name)
@@ -502,7 +507,6 @@ impl Stats<'_> {
       assets
     });
 
-    // TODO: a placeholder for concatenation modules
     let modules = nested_modules
       .then(|| -> Result<_> {
         let Some(module) = module.as_concatenated_module() else {
@@ -580,6 +584,33 @@ impl Stats<'_> {
       None
     };
 
+    let built = self.compilation.built_modules.contains(&identifier);
+    let code_generated = self
+      .compilation
+      .code_generated_modules
+      .contains(&identifier);
+
+    let errors = self
+      .compilation
+      .get_errors()
+      .filter(|d| d.module_identifier().is_some_and(|id| id == identifier))
+      .count() as u32;
+
+    let warnings = self
+      .compilation
+      .get_warnings()
+      .filter(|d| d.module_identifier().is_some_and(|id| id == identifier))
+      .count() as u32;
+
+    let sizes = module
+      .source_types()
+      .iter()
+      .map(|t| StatsSourceTypeSize {
+        source_type: *t,
+        size: module.size(Some(t)),
+      })
+      .collect_vec();
+
     Ok(StatsModule {
       r#type: "module",
       module_type: *module.module_type(),
@@ -595,7 +626,8 @@ impl Stats<'_> {
         .get_module_id(identifier)
         .clone(),
       chunks,
-      size: module.size(&SourceType::JavaScript),
+      size: module.size(None),
+      sizes,
       issuer: issuer.map(|i| i.identifier().to_string()),
       issuer_name,
       issuer_id: issuer_id.and_then(|i| i),
@@ -613,6 +645,16 @@ impl Stats<'_> {
       provided_exports,
       used_exports,
       optimization_bailout: mgm.optimization_bailout.clone(),
+      pre_order_index: module_graph.get_pre_order_index(&identifier),
+      post_order_index: module_graph.get_post_order_index(&identifier),
+      built,
+      code_generated,
+      cached: !built && !code_generated,
+      cacheable: module.build_info().is_some_and(|i| i.cacheable),
+      optional: module_graph.is_optional(&identifier),
+      failed: errors > 0,
+      errors,
+      warnings,
     })
   }
 
@@ -633,6 +675,15 @@ impl Stats<'_> {
       .collect();
     chunks.sort_unstable();
 
+    let built = false;
+    let code_generated = self.compilation.code_generated_modules.contains(identifier);
+    let size = self
+      .compilation
+      .runtime_module_code_generation_results
+      .get(identifier)
+      .map(|(_, source)| source.size() as f64)
+      .unwrap_or(0 as f64);
+
     Ok(StatsModule {
       r#type: "module",
       depth: None,
@@ -642,7 +693,11 @@ impl Stats<'_> {
       name: module.name().to_string(),
       id: Some(String::new()),
       chunks,
-      size: module.size(&SourceType::JavaScript),
+      size,
+      sizes: vec![StatsSourceTypeSize {
+        source_type: SourceType::Custom("runtime".into()),
+        size,
+      }],
       issuer: None,
       issuer_name: None,
       issuer_id: None,
@@ -660,6 +715,16 @@ impl Stats<'_> {
       provided_exports: Some(vec![]),
       used_exports: None,
       optimization_bailout: vec![],
+      pre_order_index: None,
+      post_order_index: None,
+      built,
+      code_generated,
+      cached: !built && !code_generated,
+      cacheable: module.cacheable(),
+      optional: false,
+      failed: false,
+      warnings: 0,
+      errors: 0,
     })
   }
   fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
@@ -774,6 +839,7 @@ pub struct StatsModule<'a> {
   pub id: Option<String>,
   pub chunks: Vec<Option<String>>, // has id after the call of chunkIds hook
   pub size: f64,
+  pub sizes: Vec<StatsSourceTypeSize>,
   pub issuer: Option<String>,
   pub issuer_name: Option<String>,
   pub issuer_id: Option<String>,
@@ -788,6 +854,16 @@ pub struct StatsModule<'a> {
   pub used_exports: Option<StatsUsedExports>,
   pub optimization_bailout: Vec<String>,
   pub depth: Option<usize>,
+  pub pre_order_index: Option<u32>,
+  pub post_order_index: Option<u32>,
+  pub built: bool,
+  pub code_generated: bool,
+  pub cached: bool,
+  pub cacheable: bool,
+  pub optional: bool,
+  pub failed: bool,
+  pub errors: u32,
+  pub warnings: u32,
 }
 
 #[derive(Debug)]
@@ -864,4 +940,10 @@ impl StatsMillisecond {
       subsec_millis,
     }
   }
+}
+
+#[derive(Debug)]
+pub struct StatsSourceTypeSize {
+  pub source_type: SourceType,
+  pub size: f64,
 }
