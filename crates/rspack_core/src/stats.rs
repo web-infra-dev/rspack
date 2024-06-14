@@ -677,6 +677,12 @@ impl Stats<'_> {
 
     let built = false;
     let code_generated = self.compilation.code_generated_modules.contains(identifier);
+    let size = self
+      .compilation
+      .runtime_module_code_generation_results
+      .get(identifier)
+      .map(|(_, source)| source.size() as f64)
+      .unwrap_or(0 as f64);
 
     Ok(StatsModule {
       r#type: "module",
@@ -687,10 +693,10 @@ impl Stats<'_> {
       name: module.name().to_string(),
       id: Some(String::new()),
       chunks,
-      size: module.size(None),
+      size,
       sizes: vec![StatsSourceTypeSize {
         source_type: SourceType::Custom("runtime".into()),
-        size: module.size(None),
+        size,
       }],
       issuer: None,
       issuer_name: None,

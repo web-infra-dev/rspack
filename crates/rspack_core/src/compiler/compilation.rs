@@ -1526,7 +1526,6 @@ impl Compilation {
       .map(
         |(identifier, module)| -> Result<(Identifier, (RspackHashDigest, BoxSource))> {
           let source = module.generate_with_custom(self)?;
-          // TODO: add to code_generated_modules in render
           let mut hasher = RspackHash::from(&self.options.output);
           module.identifier().hash(&mut hasher);
           source.source().hash(&mut hasher);

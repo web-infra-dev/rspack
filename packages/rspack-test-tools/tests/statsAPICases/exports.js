@@ -26,7 +26,7 @@ module.exports = {
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		"asset main.js 714 bytes [emitted] (name: main)
 		Entrypoint main 714 bytes = main.js
-		runtime modules 480 bytes 3 modules
+		runtime modules 677 bytes 3 modules
 		cacheable modules 192 bytes
 		  ./fixtures/esm/abc.js 80 bytes [built] [code generated]
 		    [no exports]

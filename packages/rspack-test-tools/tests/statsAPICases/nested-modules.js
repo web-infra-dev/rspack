@@ -247,7 +247,7 @@ module.exports = {
 		"asset main.js 475 bytes [emitted] (name: main)
 		Entrypoint main 475 bytes = main.js
 		orphan modules 192 bytes [orphan] 4 modules
-		runtime modules 480 bytes 3 modules
+		runtime modules 677 bytes 3 modules
 		./fixtures/esm/abc.js + 3 modules 192 bytes [code generated]
 		  | orphan modules 192 bytes [orphan] 4 modules
 		Rspack compiled successfully"

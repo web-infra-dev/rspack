@@ -27,11 +27,11 @@ built modules 118 bytes (javascript) 7 bytes (asset) [built]
     [no exports]
     [no exports used]
     esm import ./raw.png [10]
-runtime modules 320 bytes
-  webpack/runtime/global 160 bytes {909} [code generated]
+runtime modules 1.25 KiB
+  webpack/runtime/global 223 bytes {909} [code generated]
     [no exports]
     [used exports unknown]
-  webpack/runtime/auto_public_path 160 bytes {909} [code generated]
+  webpack/runtime/auto_public_path 1.03 KiB {909} [code generated]
     [no exports]
     [used exports unknown]
   
@@ -85,13 +85,13 @@ Rspack x.x.x compiled successfully in X s"
 exports[`statsOutput statsOutput/hot+production should print correct stats for 1`] = `
 "asset main.js 32.3 KiB [emitted] (name: main)
 Entrypoint main 32.3 KiB = main.js
-runtime modules 1.72 KiB 11 modules
+runtime modules 30 KiB 11 modules
 ./index.js 25 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/ignore-plugin should print correct stats for 1`] = `
-"runtime modules 160 bytes 1 module
+"runtime modules 107 bytes 1 module
 ./index.js 103 bytes [built] [code generated]
 Xdir/ignore-plugin/locals|sync|/^\\\\.\\\\/.*$/ 160 bytes [built] [code generated]
 ./locals/en.js 30 bytes [built] [code generated]"
@@ -386,7 +386,7 @@ Rspack x.x.x compiled with 1 error in X s"
 exports[`statsOutput statsOutput/resolve-unexpected-exports-in-pkg-error should print correct stats for 1`] = `
 "asset bundle.js 945 bytes [emitted] (name: main)
 Entrypoint main 945 bytes = bundle.js
-runtime modules 160 bytes 1 module
+runtime modules 280 bytes 1 module
 ./index.js 39 bytes [built] [code generated] [1 error]
 
 ERROR in ./index.js
@@ -396,9 +396,9 @@ Rspack x.x.x compiled with 1 error in X s"
 `;
 
 exports[`statsOutput statsOutput/runtime-modules should print correct stats for 1`] = `
-"webpack/runtime/has_own_property 160 bytes [code generated]
-webpack/runtime/make_namespace_object 160 bytes [code generated]
-webpack/runtime/define_property_getters 160 bytes [code generated]
+"webpack/runtime/has_own_property 107 bytes [code generated]
+webpack/runtime/make_namespace_object 280 bytes [code generated]
+webpack/runtime/define_property_getters 290 bytes [code generated]
 ./index.js 19 bytes [built] [code generated]"
 `;
 
@@ -421,7 +421,7 @@ exports[`statsOutput statsOutput/side-effects-bailouts should print correct stat
 "asset main.js 1.86 KiB {909} [emitted] (name: main)
 Entrypoint main 1.86 KiB = main.js
 chunk {909} main.js (main) [entry]
-runtime modules 320 bytes 2 modules
+runtime modules 397 bytes 2 modules
 cacheable modules 91 bytes
   ./index.js [10] 35 bytes {909} [built] [code generated]
     [no exports]
@@ -440,7 +440,7 @@ Rspack x.x.x compiled successfully in X s"
 exports[`statsOutput statsOutput/simple-export should print correct stats for 1`] = `
 "asset bundle.js 1.25 KiB [emitted] (name: main)
 Entrypoint main 1.25 KiB = bundle.js
-runtime modules 480 bytes 3 modules
+runtime modules 677 bytes 3 modules
 ./index.js 26 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
@@ -448,7 +448,7 @@ Rspack x.x.x compiled successfully in X s"
 exports[`statsOutput statsOutput/simple-module-source should print correct stats for 1`] = `
 "asset bundle.js 2.1 KiB [emitted] (name: main)
 Entrypoint main 2.1 KiB = bundle.js
-runtime modules 480 bytes 3 modules
+runtime modules 706 bytes 3 modules
 orphan modules 1 bytes [orphan] 1 module
 cacheable modules 82 bytes
   ./index.js 75 bytes [built] [code generated]
