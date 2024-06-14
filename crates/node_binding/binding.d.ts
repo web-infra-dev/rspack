@@ -190,7 +190,8 @@ export enum BuiltinPluginName {
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
-  LazyCompilationPlugin = 'LazyCompilationPlugin'
+  LazyCompilationPlugin = 'LazyCompilationPlugin',
+  RemoveParentModulesPlugin = 'RemoveParentModulesPlugin'
 }
 
 export function cleanupGlobalTrace(): void
@@ -1121,7 +1122,6 @@ export interface RawNodeOption {
 }
 
 export interface RawOptimizationOptions {
-  removeAvailableModules: boolean
   sideEffects: string
   usedExports: string
   providedExports: boolean

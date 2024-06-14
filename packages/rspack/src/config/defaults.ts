@@ -890,7 +890,7 @@ const applyOptimizationDefaults = (
 		css
 	}: { production: boolean; development: boolean; css: boolean }
 ) => {
-	D(optimization, "removeAvailableModules", true);
+	D(optimization, "removeAvailableModules", false);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
 	F(optimization, "moduleIds", (): "natural" | "named" | "deterministic" => {

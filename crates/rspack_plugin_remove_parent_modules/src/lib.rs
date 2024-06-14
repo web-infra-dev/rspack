@@ -3,7 +3,10 @@ use std::collections::hash_map;
 use derivative::Derivative;
 use indexmap::IndexSet;
 use num_bigint::BigUint;
-use rspack_core::{Compilation, CompilationOptimizeChunks, ModuleIdentifier};
+use rspack_core::{
+  ApplyContext, Compilation, CompilationOptimizeChunks, CompilerOptions, ModuleIdentifier, Plugin,
+  PluginContext,
+};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap as HashMap;
@@ -34,9 +37,9 @@ fn get_modules_from_mask(
 }
 
 #[plugin]
-#[derive(Derivative)]
+#[derive(Derivative, Default)]
 #[derivative(Debug)]
-pub struct RemoveParentModulesPlugin {}
+pub struct RemoveParentModulesPlugin;
 
 #[plugin_hook(CompilationOptimizeChunks for RemoveParentModulesPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_BASIC)]
 fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
@@ -165,4 +168,23 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
   }
 
   Ok(None)
+}
+
+impl Plugin for RemoveParentModulesPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.RemoveParentModulesPlugin"
+  }
+
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_chunks
+      .tap(optimize_chunks::new(self));
+    Ok(())
+  }
 }

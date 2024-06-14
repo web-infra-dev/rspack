@@ -797,7 +797,6 @@ function getRawOptimization(
 			"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash, optimization.providedExports, optimization.usedExports, optimization.innerGraph, optimization.concatenateModules should not be nil after defaults"
 	);
 	return {
-		removeAvailableModules: optimization.removeAvailableModules,
 		sideEffects: String(optimization.sideEffects),
 		usedExports: String(optimization.usedExports),
 		providedExports: optimization.providedExports,

@@ -50,6 +50,7 @@ rspack_plugin_mf                      = { path = "../rspack_plugin_mf" }
 rspack_plugin_progress                = { path = "../rspack_plugin_progress" }
 rspack_plugin_real_content_hash       = { path = "../rspack_plugin_real_content_hash" }
 rspack_plugin_remove_empty_chunks     = { path = "../rspack_plugin_remove_empty_chunks" }
+rspack_plugin_remove_parent_modules   = { path = "../rspack_plugin_remove_parent_modules" }
 rspack_plugin_runtime                 = { path = "../rspack_plugin_runtime" }
 rspack_plugin_runtime_chunk           = { path = "../rspack_plugin_runtime_chunk" }
 rspack_plugin_schemes                 = { path = "../rspack_plugin_schemes" }

@@ -121,7 +121,6 @@ impl From<&str> for MangleExportsOption {
 
 #[derive(Debug)]
 pub struct Optimization {
-  pub remove_available_modules: bool,
   pub side_effects: SideEffectOption,
   pub provided_exports: bool,
   pub used_exports: UsedExportsOption,
