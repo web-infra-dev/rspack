@@ -889,8 +889,8 @@ impl Compilation {
     }
 
     // TODO: add code_generated_modules in render_runtime_modules
-    for (identfier, _) in self.runtime_modules.iter() {
-      self.code_generated_modules.insert(*identfier);
+    for (identifier, _) in self.runtime_modules.iter() {
+      self.code_generated_modules.insert(*identifier);
     }
     Ok(())
   }
