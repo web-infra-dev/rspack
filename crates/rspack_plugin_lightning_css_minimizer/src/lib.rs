@@ -110,10 +110,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         );
         let mut unused_symbols = HashSet::from_iter(self.options.unused_symbols.clone());
         if self.options.remove_unused_local_idents
-          && let Some(css_unsed_idents) = original.info.css_unsed_idents.take()
+          && let Some(css_unused_idents) = original.info.css_unused_idents.take()
         {
-          dbg!(&css_unsed_idents);
-          unused_symbols.extend(css_unsed_idents);
+          unused_symbols.extend(css_unused_idents);
         }
         stylesheet
           .minify(MinifyOptions {

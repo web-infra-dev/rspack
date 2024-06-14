@@ -61,7 +61,7 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
       version: String::from(""),
       source_filename: i.source_filename,
       javascript_module: i.javascript_module,
-      css_unsed_idents: i.css_unused_idents.map(|i| i.into_iter().collect()),
+      css_unused_idents: i.css_unused_idents.map(|i| i.into_iter().collect()),
       extras: i.extras,
     }
   }
@@ -93,7 +93,7 @@ impl From<rspack_core::AssetInfo> for JsAssetInfo {
       content_hash: info.content_hash.into_iter().collect(),
       source_filename: info.source_filename,
       javascript_module: info.javascript_module,
-      css_unused_idents: info.css_unsed_idents.map(|i| i.into_iter().collect()),
+      css_unused_idents: info.css_unused_idents.map(|i| i.into_iter().collect()),
       extras: info.extras,
     }
   }
