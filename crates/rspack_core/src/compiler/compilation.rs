@@ -887,6 +887,11 @@ impl Compilation {
           .await;
       }
     }
+
+    // TODO: add code_generated_modules in render_runtime_modules
+    for (identfier, _) in self.runtime_modules.iter() {
+      self.code_generated_modules.insert(*identfier);
+    }
     Ok(())
   }
 
@@ -1521,6 +1526,7 @@ impl Compilation {
       .map(
         |(identifier, module)| -> Result<(Identifier, (RspackHashDigest, BoxSource))> {
           let source = module.generate_with_custom(self)?;
+          // TODO: add to code_generated_modules in render
           let mut hasher = RspackHash::from(&self.options.output);
           module.identifier().hash(&mut hasher);
           source.source().hash(&mut hasher);

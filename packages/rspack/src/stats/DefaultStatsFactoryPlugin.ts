@@ -776,6 +776,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.codeGenerated = module.codeGenerated;
 			object.cached = module.cached;
 			object.optional = module.optional;
+			object.failed = module.failed;
+			object.errors = module.errors;
+			object.warnings = module.warnings;
 			const profile = module.profile;
 			if (profile) {
 				object.profile = factory.create(`${type}.profile`, profile, context);

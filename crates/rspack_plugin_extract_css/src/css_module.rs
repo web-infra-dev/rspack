@@ -137,7 +137,7 @@ impl Module for CssModule {
       .map(|resource| resource.split('?').next().unwrap_or(resource).into())
   }
 
-  fn size(&self, _source_type: &SourceType) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     self.content.len() as f64
   }
 

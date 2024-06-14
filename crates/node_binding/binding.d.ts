@@ -566,6 +566,9 @@ export interface JsStatsModule {
   cached: boolean
   cacheable: boolean
   optional: boolean
+  failed: boolean
+  errors: number
+  warnings: number
 }
 
 export interface JsStatsModuleIssuer {

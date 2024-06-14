@@ -247,6 +247,9 @@ pub struct JsStatsModule {
   pub cached: bool,
   pub cacheable: bool,
   pub optional: bool,
+  pub failed: bool,
+  pub errors: u32,
+  pub warnings: u32,
 }
 
 impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
@@ -314,6 +317,9 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       cached: stats.cached,
       cacheable: stats.cacheable,
       optional: stats.optional,
+      failed: stats.failed,
+      errors: stats.errors,
+      warnings: stats.warnings,
     })
   }
 }

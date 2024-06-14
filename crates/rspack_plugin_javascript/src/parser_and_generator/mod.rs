@@ -76,7 +76,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     SOURCE_TYPES
   }
 
-  fn size(&self, module: &dyn Module, _source_type: &SourceType) -> f64 {
+  fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
     module.original_source().map_or(0, |source| source.size()) as f64
   }
 

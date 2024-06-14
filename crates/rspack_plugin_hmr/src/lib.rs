@@ -221,6 +221,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       for runtime_module in new_runtime_modules {
+        compilation.code_generated_modules.insert(runtime_module);
         compilation
           .chunk_graph
           .connect_chunk_and_runtime_module(ukey, runtime_module);

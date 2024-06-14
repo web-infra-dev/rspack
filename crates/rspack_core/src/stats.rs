@@ -590,6 +590,27 @@ impl Stats<'_> {
       .code_generated_modules
       .contains(&identifier);
 
+    let errors = self
+      .compilation
+      .get_errors()
+      .filter(|d| d.module_identifier().is_some_and(|id| id == identifier))
+      .count() as u32;
+
+    let warnings = self
+      .compilation
+      .get_warnings()
+      .filter(|d| d.module_identifier().is_some_and(|id| id == identifier))
+      .count() as u32;
+
+    let sizes = module
+      .source_types()
+      .iter()
+      .map(|t| StatsSourceTypeSize {
+        source_type: t.to_string(),
+        size: module.size(Some(t)),
+      })
+      .collect_vec();
+
     Ok(StatsModule {
       r#type: "module",
       module_type: *module.module_type(),
@@ -605,7 +626,8 @@ impl Stats<'_> {
         .get_module_id(identifier)
         .clone(),
       chunks,
-      size: module.size(&SourceType::JavaScript),
+      size: module.size(None),
+      sizes,
       issuer: issuer.map(|i| i.identifier().to_string()),
       issuer_name,
       issuer_id: issuer_id.and_then(|i| i),
@@ -630,6 +652,9 @@ impl Stats<'_> {
       cached: !built && !code_generated,
       cacheable: module.build_info().is_some_and(|i| i.cacheable),
       optional: module_graph.is_optional(&identifier),
+      failed: errors > 0,
+      errors,
+      warnings,
     })
   }
 
@@ -662,7 +687,11 @@ impl Stats<'_> {
       name: module.name().to_string(),
       id: Some(String::new()),
       chunks,
-      size: module.size(&SourceType::JavaScript),
+      size: module.size(None),
+      sizes: vec![StatsSourceTypeSize {
+        source_type: SourceType::JavaScript.to_string(),
+        size: module.size(None),
+      }],
       issuer: None,
       issuer_name: None,
       issuer_id: None,
@@ -687,6 +716,9 @@ impl Stats<'_> {
       cached: !built && !code_generated,
       cacheable: module.cacheable(),
       optional: false,
+      failed: false,
+      warnings: 0,
+      errors: 0,
     })
   }
   fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
@@ -801,6 +833,7 @@ pub struct StatsModule<'a> {
   pub id: Option<String>,
   pub chunks: Vec<Option<String>>, // has id after the call of chunkIds hook
   pub size: f64,
+  pub sizes: Vec<StatsSourceTypeSize>,
   pub issuer: Option<String>,
   pub issuer_name: Option<String>,
   pub issuer_id: Option<String>,
@@ -822,6 +855,9 @@ pub struct StatsModule<'a> {
   pub cached: bool,
   pub cacheable: bool,
   pub optional: bool,
+  pub failed: bool,
+  pub errors: u32,
+  pub warnings: u32,
 }
 
 #[derive(Debug)]
@@ -885,6 +921,11 @@ pub struct StatsModuleReason {
   pub user_request: Option<String>,
 }
 
+#[derive(Debug)]
+pub struct StatsSourceTypeSize {
+  pub source_type: String,
+  pub size: f64,
+}
 #[derive(Debug)]
 pub struct StatsMillisecond {
   pub secs: u64,

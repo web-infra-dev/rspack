@@ -83,7 +83,7 @@ pub fn impl_runtime_module(
         &[::rspack_core::SourceType::JavaScript]
       }
 
-      fn size(&self, _source_type: &::rspack_core::SourceType) -> f64 {
+      fn size(&self, _source_type: Option<&::rspack_core::SourceType>) -> f64 {
         // TODO
         160.0
       }

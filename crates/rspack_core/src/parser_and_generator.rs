@@ -89,7 +89,7 @@ pub trait ParserAndGenerator: Send + Sync + Debug {
   /// Parse the source and return the dependencies and the ast or source
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>>;
   /// Size of the original source
-  fn size(&self, module: &dyn Module, source_type: &SourceType) -> f64;
+  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64;
   /// Generate source or AST based on the built source or AST
   fn generate(
     &self,
