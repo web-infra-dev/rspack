@@ -7,6 +7,24 @@ import { ApiMeta } from '../../../components/ApiMeta';
 - **类型：** `Object`
 - **默认值：** `{}`
 
+## module.defaultRules
+
+- **类型：** `Rule[]`
+
+应用于模块的默认规则数组。
+
+详见[源代码](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L364)。
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    defaultRules: [
+      '...', // 使用 "..." 来引用 Rspack 默认规则
+    ],
+  },
+};
+```
+
 ## module.noParse
 
 - **类型：** `string | string[] | RegExp | RegExp[] | ((request: string) => boolean)`

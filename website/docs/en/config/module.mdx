@@ -7,6 +7,24 @@ Used to decide how to handle different types of modules in a project.
 - **Type:** `Object`
 - **Default:** `{}`
 
+## module.defaultRules
+
+- **Type:** `Rule[]`
+
+An array of rules applied by default for modules.
+
+See [source code](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L364) for details.
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    defaultRules: [
+      '...', // you can use "..." to reference those rules applied by webpack by default
+    ],
+  },
+};
+```
+
 ## module.noParse
 
 - **Type:** `string | string[] | RegExp | RegExp[] | ((request: string) => boolean)`
