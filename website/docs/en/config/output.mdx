@@ -506,6 +506,26 @@ import './publicPath.js';
 import './others.js';
 ```
 
+## output.scriptType
+
+- **Type:** `'module' | 'text/javascript' | boolean`
+- **Default:** `false`
+
+This option allows loading asynchronous chunks with a custom script type, such as `<script type="module" ...>`.
+
+:::tip
+If `output.module` is set to `true`, `output.scriptType` will default to `'module'` instead of `false`.
+:::
+
+```ts title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    scriptType: 'module',
+  },
+};
+```
+
 ## output.strictModuleErrorHandling
 
 - **Type:** `boolean`

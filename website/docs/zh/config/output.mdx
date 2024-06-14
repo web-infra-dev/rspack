@@ -506,6 +506,26 @@ import './publicPath.js';
 import './others.js';
 ```
 
+## output.scriptType
+
+- **Type:** `'module' | 'text/javascript' | boolean`
+- **Default:** `false`
+
+该选项允许使用自定义脚本类型（例如 `<script type="module" ...>`）来加载异步块。
+
+:::tip
+如果 `output.module` 设置为 `true`，则 `output.scriptType` 将默认为 `'module'` 而不是 `false`。
+:::
+
+```ts title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    scriptType: 'module',
+  },
+};
+```
+
 ## output.strictModuleErrorHandling
 
 - **类型：** `boolean`
