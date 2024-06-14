@@ -61,6 +61,7 @@ export * from "./SwcJsMinimizerPlugin";
 export * from "./WarnCaseSensitiveModulesPlugin";
 export * from "./WebWorkerTemplatePlugin";
 export * from "./WorkerPlugin";
+export * from "./RemoveParentModulesPlugin";
 
 ///// DEPRECATED /////
 import { RawBuiltins } from "@rspack/binding";

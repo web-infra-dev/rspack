@@ -44,7 +44,6 @@ import {
 	HttpExternalsRspackPlugin,
 	InferAsyncModulesPlugin,
 	JavascriptModulesPlugin,
-	JsLoaderRspackPlugin,
 	JsonModulesPlugin,
 	LazyCompilationPlugin,
 	MangleExportsPlugin,
@@ -58,6 +57,7 @@ import {
 	NodeTargetPlugin,
 	RealContentHashPlugin,
 	RemoveEmptyChunksPlugin,
+	RemoveParentModulesPlugin,
 	RuntimeChunkPlugin,
 	RuntimePlugin,
 	SideEffectsFlagPlugin,
@@ -235,6 +235,9 @@ export class RspackOptionsApply {
 		new EnsureChunkConditionsPlugin().apply(compiler);
 		if (options.optimization.mergeDuplicateChunks) {
 			new MergeDuplicateChunksPlugin().apply(compiler);
+		}
+		if (options.optimization.removeAvailableModules) {
+			new RemoveParentModulesPlugin().apply(compiler);
 		}
 
 		if (options.optimization.sideEffects) {
