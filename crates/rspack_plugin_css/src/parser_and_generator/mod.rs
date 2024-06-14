@@ -268,7 +268,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let exports = self.exports.get_or_insert_default();
           for name in names {
             for &local_class in local_classes.iter() {
-              if let Some(existing) = exports.get(name) {
+              if let Some(existing) = exports.get(name)
+                && from.is_none()
+              {
                 let existing = existing.clone();
                 exports
                   .get_mut(local_class)
