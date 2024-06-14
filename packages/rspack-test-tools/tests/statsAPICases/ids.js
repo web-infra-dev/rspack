@@ -19,7 +19,7 @@ module.exports = {
 		expect(stats?.toString(options)).toMatchInlineSnapshot(`
 		"asset main.js 207 bytes {909} [emitted] (name: main)
 		chunk {909} main.js (main) [entry]
-		./fixtures/a.js [585] {909} [built] [code generated]"
+		./fixtures/a.js [585] 55 bytes {909} [built] [code generated]"
 	`);
 	}
 };

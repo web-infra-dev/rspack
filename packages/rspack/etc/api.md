@@ -4344,11 +4344,12 @@ type KnownStatsLoggingEntry = {
 };
 
 // @public (undocumented)
-type KnownStatsModule = Omit<binding.JsStatsModule, "usedExports" | "providedExports" | "optimizationBailout"> & {
+type KnownStatsModule = Omit<binding.JsStatsModule, "usedExports" | "providedExports" | "optimizationBailout" | "sizes"> & {
     profile?: StatsProfile;
     usedExports?: null | string[] | boolean;
     providedExports?: null | string[];
     optimizationBailout?: null | string[];
+    sizes: Record<string, number>;
 };
 
 // @public (undocumented)

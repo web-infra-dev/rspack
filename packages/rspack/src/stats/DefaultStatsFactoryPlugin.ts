@@ -752,6 +752,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.type = module.type;
 			object.moduleType = module.moduleType;
 			object.size = module.size;
+			object.sizes = Object.fromEntries(
+				module.sizes.map(({ sourceType, size }) => [sourceType, size])
+			);
 			Object.assign(object, factory.create(`${type}$visible`, module, context));
 		}
 	},

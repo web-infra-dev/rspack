@@ -225,6 +225,7 @@ pub struct JsStatsModule {
   pub id: Option<String>,
   pub chunks: Vec<Option<String>>,
   pub size: f64,
+  pub sizes: Vec<JsStatsSourceTypeSize>,
   pub depth: Option<u32>,
   pub issuer: Option<String>,
   pub issuer_name: Option<String>,
@@ -285,6 +286,7 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       r#type: stats.r#type,
       name: stats.name,
       size: stats.size,
+      sizes: stats.sizes.into_iter().map(Into::into).collect(),
       depth: stats.depth.map(|d| d as u32),
       chunks: stats.chunks,
       module_type: stats.module_type.as_str().to_string(),
@@ -352,6 +354,21 @@ impl From<rspack_core::StatsMillisecond> for JsStatsMillisecond {
     Self {
       secs: value.secs as u32,
       subsec_millis: value.subsec_millis,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsStatsSourceTypeSize {
+  pub source_type: String,
+  pub size: f64,
+}
+
+impl From<rspack_core::StatsSourceTypeSize> for JsStatsSourceTypeSize {
+  fn from(value: rspack_core::StatsSourceTypeSize) -> Self {
+    Self {
+      source_type: value.source_type.to_string(),
+      size: value.size,
     }
   }
 }

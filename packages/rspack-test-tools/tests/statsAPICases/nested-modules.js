@@ -55,6 +55,9 @@ module.exports = {
 		    "providedExports": Array [],
 		    "reasons": Array [],
 		    "size": 80,
+		    "sizes": Object {
+		      "javascript": 80,
+		    },
 		    "type": "module",
 		    "usedExports": Array [],
 		    "warnings": 0,
@@ -110,6 +113,9 @@ module.exports = {
 		      },
 		    ],
 		    "size": 37,
+		    "sizes": Object {
+		      "javascript": 37,
+		    },
 		    "type": "module",
 		    "usedExports": Array [
 		      "a",
@@ -167,6 +173,9 @@ module.exports = {
 		      },
 		    ],
 		    "size": 38,
+		    "sizes": Object {
+		      "javascript": 38,
+		    },
 		    "type": "module",
 		    "usedExports": Array [
 		      "default",
@@ -224,6 +233,9 @@ module.exports = {
 		      },
 		    ],
 		    "size": 37,
+		    "sizes": Object {
+		      "javascript": 37,
+		    },
 		    "type": "module",
 		    "usedExports": true,
 		    "warnings": 0,
@@ -234,10 +246,10 @@ module.exports = {
 			.toMatchInlineSnapshot(`
 		"asset main.js 475 bytes [emitted] (name: main)
 		Entrypoint main 475 bytes = main.js
-		orphan modules [orphan] 4 modules
-		runtime modules 3 modules
-		./fixtures/esm/abc.js + 3 modules [code generated]
-		  | orphan modules [orphan] 4 modules
+		orphan modules 192 bytes [orphan] 4 modules
+		runtime modules 480 bytes 3 modules
+		./fixtures/esm/abc.js + 3 modules 192 bytes [code generated]
+		  | orphan modules 192 bytes [orphan] 4 modules
 		Rspack compiled successfully"
 	`);
 	}

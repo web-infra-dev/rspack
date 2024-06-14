@@ -606,7 +606,7 @@ impl Stats<'_> {
       .source_types()
       .iter()
       .map(|t| StatsSourceTypeSize {
-        source_type: t.to_string(),
+        source_type: *t,
         size: module.size(Some(t)),
       })
       .collect_vec();
@@ -689,7 +689,7 @@ impl Stats<'_> {
       chunks,
       size: module.size(None),
       sizes: vec![StatsSourceTypeSize {
-        source_type: SourceType::JavaScript.to_string(),
+        source_type: SourceType::Custom("runtime".into()),
         size: module.size(None),
       }],
       issuer: None,
@@ -922,11 +922,6 @@ pub struct StatsModuleReason {
 }
 
 #[derive(Debug)]
-pub struct StatsSourceTypeSize {
-  pub source_type: String,
-  pub size: f64,
-}
-#[derive(Debug)]
 pub struct StatsMillisecond {
   pub secs: u64,
   pub subsec_millis: u32,
@@ -939,4 +934,10 @@ impl StatsMillisecond {
       subsec_millis,
     }
   }
+}
+
+#[derive(Debug)]
+pub struct StatsSourceTypeSize {
+  pub source_type: SourceType,
+  pub size: f64,
 }

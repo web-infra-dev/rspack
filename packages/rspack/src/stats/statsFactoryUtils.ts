@@ -22,12 +22,13 @@ export type StatsChunk = KnownStatsChunk & Record<string, any>;
 
 export type KnownStatsModule = Omit<
 	binding.JsStatsModule,
-	"usedExports" | "providedExports" | "optimizationBailout"
+	"usedExports" | "providedExports" | "optimizationBailout" | "sizes"
 > & {
 	profile?: StatsProfile;
 	usedExports?: null | string[] | boolean;
 	providedExports?: null | string[];
 	optimizationBailout?: null | string[];
+	sizes: Record<string, number>;
 };
 
 export type StatsProfile = KnownStatsProfile & Record<string, any>;
@@ -454,12 +455,12 @@ export const assetGroup = (children: StatsAsset[]) => {
 
 export const moduleGroup = (children: KnownStatsModule[]) => {
 	let size = 0;
-	const sizes = {};
+	const sizes: Record<string, number> = {};
 	for (const module of children) {
 		size += module.size;
-		// for (const key of Object.keys(module.sizes)) {
-		// 	sizes[key] = (sizes[key] || 0) + module.sizes[key];
-		// }
+		for (const key of Object.keys(module.sizes)) {
+			sizes[key] = (sizes[key] || 0) + module.sizes[key];
+		}
 	}
 	return {
 		size,

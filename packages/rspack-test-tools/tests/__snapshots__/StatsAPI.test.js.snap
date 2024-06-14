@@ -84,6 +84,9 @@ Object {
             },
           ],
           "size": 55,
+          "sizes": Object {
+            "javascript": 55,
+          },
           "source": "module.exports = function a() {
 	return \\"This is a\\";
 };",
@@ -168,6 +171,9 @@ Object {
         },
       ],
       "size": 55,
+      "sizes": Object {
+        "javascript": 55,
+      },
       "source": "module.exports = function a() {
 	return \\"This is a\\";
 };",
@@ -289,6 +295,9 @@ Object {
             },
           ],
           "size": 37,
+          "sizes": Object {
+            "javascript": 37,
+          },
           "type": "module",
           "usedExports": Array [
             "a",
@@ -332,6 +341,9 @@ Object {
             },
           ],
           "size": 80,
+          "sizes": Object {
+            "javascript": 80,
+          },
           "type": "module",
           "usedExports": Array [],
           "warnings": 0,
@@ -389,6 +401,9 @@ Object {
             },
           ],
           "size": 38,
+          "sizes": Object {
+            "javascript": 38,
+          },
           "type": "module",
           "usedExports": Array [
             "default",
@@ -448,6 +463,9 @@ Object {
             },
           ],
           "size": 37,
+          "sizes": Object {
+            "javascript": 37,
+          },
           "type": "module",
           "usedExports": true,
           "warnings": 0,
@@ -519,6 +537,9 @@ Object {
         },
       ],
       "size": 80,
+      "sizes": Object {
+        "javascript": 80,
+      },
       "type": "module",
       "usedExports": Array [],
       "warnings": 0,
@@ -576,6 +597,9 @@ Object {
         },
       ],
       "size": 37,
+      "sizes": Object {
+        "javascript": 37,
+      },
       "type": "module",
       "usedExports": Array [
         "a",
@@ -635,6 +659,9 @@ Object {
         },
       ],
       "size": 38,
+      "sizes": Object {
+        "javascript": 38,
+      },
       "type": "module",
       "usedExports": Array [
         "default",
@@ -694,6 +721,9 @@ Object {
         },
       ],
       "size": 37,
+      "sizes": Object {
+        "javascript": 37,
+      },
       "type": "module",
       "usedExports": true,
       "warnings": 0,
@@ -727,6 +757,9 @@ Object {
       "providedExports": Array [],
       "reasons": Array [],
       "size": 160,
+      "sizes": Object {
+        "runtime": 160,
+      },
       "type": "module",
       "usedExports": null,
       "warnings": 0,
@@ -760,6 +793,9 @@ Object {
       "providedExports": Array [],
       "reasons": Array [],
       "size": 160,
+      "sizes": Object {
+        "runtime": 160,
+      },
       "type": "module",
       "usedExports": null,
       "warnings": 0,
@@ -793,6 +829,9 @@ Object {
       "providedExports": Array [],
       "reasons": Array [],
       "size": 160,
+      "sizes": Object {
+        "runtime": 160,
+      },
       "type": "module",
       "usedExports": null,
       "warnings": 0,
@@ -888,6 +927,9 @@ Object {
       "postOrderIndex": 0,
       "preOrderIndex": 0,
       "size": 55,
+      "sizes": Object {
+        "javascript": 55,
+      },
       "type": "module",
       "warnings": 0,
     },
@@ -990,6 +1032,9 @@ Object {
             },
           ],
           "size": 55,
+          "sizes": Object {
+            "javascript": 55,
+          },
           "source": "module.exports = function a() {
 	return \\"This is a\\";
 };",
@@ -1049,6 +1094,9 @@ Object {
             },
           ],
           "size": 55,
+          "sizes": Object {
+            "javascript": 55,
+          },
           "source": "module.exports = function a() {
 	return \\"This is a\\";
 };",
@@ -1098,6 +1146,9 @@ Object {
             },
           ],
           "size": 99,
+          "sizes": Object {
+            "javascript": 99,
+          },
           "source": "exports.a = require(\\"./a?a=1\\");
 // exports.b = require(\\"./b?b=2\\");
 exports.c = require(\\"./c?c=3\\");
@@ -1158,6 +1209,9 @@ exports.c = require(\\"./c?c=3\\");
             },
           ],
           "size": 72,
+          "sizes": Object {
+            "javascript": 72,
+          },
           "source": "module.exports = function b() {
 	require(\\"./a\\");
 	return \\"This is c\\";
@@ -1239,6 +1293,9 @@ exports.c = require(\\"./c?c=3\\");
         },
       ],
       "size": 99,
+      "sizes": Object {
+        "javascript": 99,
+      },
       "source": "exports.a = require(\\"./a?a=1\\");
 // exports.b = require(\\"./b?b=2\\");
 exports.c = require(\\"./c?c=3\\");
@@ -1299,6 +1356,9 @@ exports.c = require(\\"./c?c=3\\");
         },
       ],
       "size": 55,
+      "sizes": Object {
+        "javascript": 55,
+      },
       "source": "module.exports = function a() {
 	return \\"This is a\\";
 };",
@@ -1358,6 +1418,9 @@ exports.c = require(\\"./c?c=3\\");
         },
       ],
       "size": 72,
+      "sizes": Object {
+        "javascript": 72,
+      },
       "source": "module.exports = function b() {
 	require(\\"./a\\");
 	return \\"This is c\\";
@@ -1423,6 +1486,9 @@ exports.c = require(\\"./c?c=3\\");
         },
       ],
       "size": 55,
+      "sizes": Object {
+        "javascript": 55,
+      },
       "source": "module.exports = function a() {
 	return \\"This is a\\";
 };",

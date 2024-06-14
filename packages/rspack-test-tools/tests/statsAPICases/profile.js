@@ -12,13 +12,13 @@ module.exports = {
 		expect(
 			stats?.toString({ all: false, modules: true }).replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
-		"./fixtures/abc.js [built] [code generated]
+		"./fixtures/abc.js 83 bytes [built] [code generated]
 		  X ms (resolving: X ms, integration: X ms, building: X ms)
-		./fixtures/a.js [built] [code generated]
+		./fixtures/a.js 55 bytes [built] [code generated]
 		  X ms (resolving: X ms, integration: X ms, building: X ms)
-		./fixtures/b.js [built] [code generated]
+		./fixtures/b.js 94 bytes [built] [code generated]
 		  X ms (resolving: X ms, integration: X ms, building: X ms)
-		./fixtures/c.js [built] [code generated]
+		./fixtures/c.js 72 bytes [built] [code generated]
 		  X ms (resolving: X ms, integration: X ms, building: X ms)"
 	`);
 	}
