@@ -13,9 +13,10 @@ use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{
   miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
 };
+use rustc_hash::FxHashSet;
 
-use crate::utils::export_locals_convention;
 use crate::utils::{css_modules_exports_to_string, LocalIdentOptions};
+use crate::utils::{export_locals_convention, unescape};
 use crate::{
   dependency::{
     CssComposeDependency, CssExportDependency, CssImportDependency, CssLocalIdentDependency,
@@ -374,6 +375,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
           data: generate_context.data,
         };
 
+        if let Some(exports) = &self.exports {
+          let mg = compilation.get_module_graph();
+          let unused =
+            get_unused_local_ident(exports, module.identifier(), generate_context.runtime, &mg);
+          context.data.insert(unused);
+        }
+
         module.get_dependencies().iter().for_each(|id| {
           if let Some(dependency) = compilation
             .get_module_graph()
@@ -491,4 +499,36 @@ fn get_used_exports<'a>(
     })
     .map(|(name, exports)| (name.as_str(), exports))
     .collect()
+}
+
+#[derive(Debug, Clone)]
+pub struct CodeGenerationDataUnusedLocalIdent {
+  pub(crate) idents: FxHashSet<String>,
+}
+
+fn get_unused_local_ident(
+  exports: &CssExports,
+  identifier: ModuleIdentifier,
+  runtime: Option<&RuntimeSpec>,
+  mg: &ModuleGraph,
+) -> CodeGenerationDataUnusedLocalIdent {
+  CodeGenerationDataUnusedLocalIdent {
+    idents: exports
+      .iter()
+      .filter(|(name, _)| {
+        let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
+
+        if let Some(export_info) = export_info {
+          matches!(export_info.get_used(runtime), UsageState::Unused)
+        } else {
+          false
+        }
+      })
+      .flat_map(|(_, exports)| {
+        exports
+          .iter()
+          .map(|export| unescape(&export.ident).into_owned())
+      })
+      .collect(),
+  }
 }

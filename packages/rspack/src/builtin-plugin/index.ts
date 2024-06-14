@@ -57,6 +57,7 @@ export * from "./SizeLimitsPlugin";
 export * from "./SourceMapDevToolPlugin";
 export * from "./SplitChunksPlugin";
 export * from "./SwcCssMinimizerPlugin";
+export * from "./LightningCssMiminizerRspackPlugin";
 export * from "./SwcJsMinimizerPlugin";
 export * from "./WarnCaseSensitiveModulesPlugin";
 export * from "./WebWorkerTemplatePlugin";

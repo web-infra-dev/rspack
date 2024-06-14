@@ -220,6 +220,7 @@ export const sharing = {
 ///// Rspack Postfixed Internal Plugins /////
 export type { HtmlRspackPluginOptions } from "./builtin-plugin";
 export type { SwcJsMinimizerRspackPluginOptions } from "./builtin-plugin";
+export type { LightningCssMinimizerRspackPluginOptions } from "./builtin-plugin";
 export type { CopyRspackPluginOptions } from "./builtin-plugin";
 export type { SourceMapDevToolPluginOptions } from "./builtin-plugin";
 export type { EvalDevToolModulePluginOptions } from "./builtin-plugin";
@@ -230,6 +231,7 @@ export type {
 export { HtmlRspackPlugin } from "./builtin-plugin";
 export { SwcJsMinimizerRspackPlugin } from "./builtin-plugin";
 export { SwcCssMinimizerRspackPlugin } from "./builtin-plugin";
+export { LightningCssMinimizerRspackPlugin } from "./builtin-plugin";
 export { CopyRspackPlugin } from "./builtin-plugin";
 export { SourceMapDevToolPlugin } from "./builtin-plugin";
 export { EvalSourceMapDevToolPlugin } from "./builtin-plugin";

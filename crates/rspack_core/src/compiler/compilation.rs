@@ -1711,7 +1711,7 @@ pub struct AssetInfo {
   /// the value(s) of the content hash used for this asset
   pub content_hash: HashSet<String>,
   /// when asset was created from a source file (potentially transformed), the original filename relative to compilation context
-  // pub source_filename:
+  pub source_filename: Option<String>,
   /// size in bytes, only set after asset has been emitted
   // pub size: f64,
   /// when asset is only used for development and doesn't count towards user-facing assets
@@ -1725,7 +1725,8 @@ pub struct AssetInfo {
   /// the asset version, emit can be skipped when both filename and version are the same
   /// An empty string means no version, it will always emit
   pub version: String,
-  pub source_filename: Option<String>,
+  /// unused local idents of the chunk
+  pub css_unused_idents: Option<HashSet<String>>,
   /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
   /// But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
   /// in the rust struct and have the Js side to reshape and align with webpack.
@@ -1782,6 +1783,10 @@ impl AssetInfo {
 
   pub fn set_javascript_module(&mut self, v: bool) {
     self.javascript_module = Some(v);
+  }
+
+  pub fn set_css_unused_idents(&mut self, v: HashSet<String>) {
+    self.css_unused_idents = Some(v);
   }
 }
 
