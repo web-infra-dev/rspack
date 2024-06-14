@@ -1,0 +1,126 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/configuration/infrastructureLogging/" />
+
+# InfrastructureLogging
+
+Options for infrastructure level logging.
+
+## infrastructureLogging.appendOnly
+
+- **Type:** `boolean`
+
+Append lines to the output instead of updating existing output, useful for status messages. This option is used only when no custom (console)[#infrastructureloggingconsole] is provided.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  infrastructureLogging: {
+    appendOnly: true,
+    level: 'verbose',
+  },
+  plugins: [
+    compiler => {
+      const logger = compiler.getInfrastructureLogger('MyPlugin');
+      logger.status('first output'); // this line won't be overridden with `appendOnly` enabled
+      logger.status('second output');
+    },
+  ],
+};
+```
+
+## infrastructureLogging.colors
+
+- **Type:** `boolean`
+
+Enable colorful output for infrastructure level logging. This option is used only when no custom (console)[#infrastructureloggingconsole] is provided.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  infrastructureLogging: {
+    colors: true,
+    level: 'verbose',
+  },
+  plugins: [
+    compiler => {
+      const logger = compiler.getInfrastructureLogger('MyPlugin');
+      logger.log('this output will be colorful');
+    },
+  ],
+};
+```
+
+## infrastructureLogging.console
+
+- **Type:** `Console`
+- **Default:** `Console`
+
+Customize the console used for infrastructure level logging.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  infrastructureLogging: {
+    console: yourCustomConsole(),
+  },
+};
+```
+
+## infrastructureLogging.debug
+
+- **Type:** `boolean | RegExp | function(name) => boolean | [string, RegExp, function(name) => boolean]`
+- **Default:** `'false'`
+
+Enable debug information of specified loggers such as plugins or loaders. Similar to [stats.loggingDebug](/config/stats#statsloggingdebug) option but for infrastructure. Defaults to `false`.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  infrastructureLogging: {
+    level: 'info',
+    debug: ['MyPlugin', /MyPlugin/, name => name.contains('MyPlugin')],
+  },
+};
+```
+
+## infrastructureLogging.level
+
+- **Type:** `'none' | 'error' | 'warn' | 'info' | 'log' | 'verbose'`
+- **Default:** `'info'`
+
+Enable infrastructure logging output. Similar to (stats.logging)[/config/stats#statslogging] option but for infrastructure. Defaults to `'info'`.
+
+Possible values:
+
+- `'none'` - disable logging
+- `'error'` - errors only
+- `'warn'` - errors and warnings only
+- `'info'` - errors, warnings, and info messages
+- `'log'` - errors, warnings, info messages, log messages, groups, clears. Collapsed groups are displayed in a collapsed state.
+- `'verbose'` - log everything except debug and trace. Collapsed groups are displayed in expanded state.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  infrastructureLogging: {
+    level: 'info',
+  },
+};
+```
+
+## infrastructureLogging.stream
+
+- **Type:** `NodeJS.WritableStream`
+- **Default:** `process.stderr`
+
+Stream used for logging output. Defaults to `process.stderr`. This option is used only when no custom [console](#infrastructureloggingconsole) is provided.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  infrastructureLogging: {
+    stream: process.stderr,
+  },
+};
+```

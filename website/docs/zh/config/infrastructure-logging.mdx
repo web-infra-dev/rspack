@@ -1,0 +1,126 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/configuration/infrastructureLogging/" />
+
+# InfrastructureLogging
+
+控制基础架构级别的日志记录。
+
+## infrastructureLogging.appendOnly
+
+- **类型：** `boolean`
+
+将内容逐行追加到输出中，而不更新现有的输出。这对状态消息非常有用。只有在未提供自定义 (console)[#infrastructureloggingconsole] 时才会使用此选项。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  infrastructureLogging: {
+    appendOnly: true,
+    level: 'verbose',
+  },
+  plugins: [
+    compiler => {
+      const logger = compiler.getInfrastructureLogger('MyPlugin');
+      logger.status('first output'); // 当启用 `appendOnly` 时，此行不会被覆盖
+      logger.status('second output');
+    },
+  ],
+};
+```
+
+## infrastructureLogging.colors
+
+- **类型：** `boolean`
+
+基础架构级别的输出颜色。只有在未提供自定义 (console)[#infrastructureloggingconsole] 时才会使用此选项。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  infrastructureLogging: {
+    colors: true,
+    level: 'verbose',
+  },
+  plugins: [
+    compiler => {
+      const logger = compiler.getInfrastructureLogger('MyPlugin');
+      logger.log('this output will be colorful');
+    },
+  ],
+};
+```
+
+## infrastructureLogging.console
+
+- **类型：** `Console`
+- **默认值：** `Console`
+
+自定义用于基础架构级别日志记录的控制台。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  infrastructureLogging: {
+    console: yourCustomConsole(),
+  },
+};
+```
+
+## infrastructureLogging.debug
+
+- **类型：** `boolean | RegExp | function(name) => boolean | [string, RegExp, function(name) => boolean]`
+- **默认值：** `'false'`
+
+指定输出（如特定的插件或 loader）的调试信息。类似 [stats.loggingDebug](/config/stats#statsloggingdebug) 选项，但适用于基础架构。默认为 `false`。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  infrastructureLogging: {
+    level: 'info',
+    debug: ['MyPlugin', /MyPlugin/, name => name.contains('MyPlugin')],
+  },
+};
+```
+
+## infrastructureLogging.level
+
+- **类型：** `'none' | 'error' | 'warn' | 'info' | 'log' | 'verbose'`
+- **默认值：** `'info'`
+
+启用基础架构日志输出。类似于 [stats.logging](/config/stats#statslogging) 选项，但适用于基础架构。默认为 `'info'`。
+
+可能的值：
+
+- `'none'` - 禁用日志记录
+- `'error'` - 仅记录错误
+- `'warn'` - 仅记录错误和警告
+- `'info'` - 记录错误、警告和信息消息
+- `'log'` - 记录错误、警告、信息消息、日志消息、组和清除。折叠的组以折叠状态显示。
+- `'verbose'` - 记录除调试和跟踪以外的所有内容。折叠的组以扩展状态显示。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  infrastructureLogging: {
+    level: 'info',
+  },
+};
+```
+
+## infrastructureLogging.stream
+
+- **类型：** `NodeJS.WritableStream`
+- **默认值：** `process.stderr`
+
+用于日志记录输出的流。默认为 `process.stderr`。只有在未提供自定义 [console](#infrastructureloggingconsole) 时才会使用此选项。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  infrastructureLogging: {
+    stream: process.stderr,
+  },
+};
+```
