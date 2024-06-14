@@ -6,34 +6,34 @@ asset bundle.js 2.61 KiB {909} [emitted] (name: main)
 asset 2710c5e36f8babb0a3a4.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
 Entrypoint main 2.61 KiB = bundle.js
 chunk {909} bundle.js (main) [entry]
-  ./index.js [10] {909} [depth 0]
+  ./index.js [10] {909} [depth 0] [built] [code generated]
     [no exports]
     [no exports used]
     entry ./index
-  ./raw.png [193] {909} [depth 1]
+  ./raw.png [193] {909} [depth 1] [built] [code generated]
     [no exports]
     [no exports used]
     esm import ./raw.png [10]
-javascript modules
-  ./index.js [10] {909} [depth 0]
+built modules [built]
+  ./index.js [10] {909} [depth 0] [built] [code generated]
     [no exports]
     [no exports used]
     entry ./index
-  ./stringModule.js [depth 1] [orphan]
+  ./stringModule.js [depth 1] [orphan] [built]
     [no exports]
     [module unused]
     esm import ./stringModule [10]
+  ./raw.png [193] {909} [depth 1] [built] [code generated]
+    [no exports]
+    [no exports used]
+    esm import ./raw.png [10]
 runtime modules
-  webpack/runtime/global {909}
+  webpack/runtime/global {909} [code generated]
     [no exports]
     [used exports unknown]
-  webpack/runtime/auto_public_path {909}
+  webpack/runtime/auto_public_path {909} [code generated]
     [no exports]
     [used exports unknown]
-./raw.png [193] {909} [depth 1]
-  [no exports]
-  [no exports used]
-  esm import ./raw.png [10]
   
 Rspack compiled successfully (be13a1b38364d3c54ae0)"
 `;
@@ -58,7 +58,7 @@ exports[`statsOutput statsOutput/concatenated-modules should print correct stats
 "asset main.js 264 bytes [emitted] (name: main)
 Entrypoint main 264 bytes = main.js
 orphan modules [orphan] 4 modules
-./index.js + 3 modules
+./index.js + 3 modules [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -76,9 +76,9 @@ exports[`statsOutput statsOutput/filename should print correct stats for 1`] = `
 asset 521.xxxx.js 337 bytes [emitted]
 Entrypoint main 8.81 KiB = 909.xxxx.js
 runtime modules 11 modules
-javascript modules
-  ./index.js
-  ./dynamic.js
+cacheable modules
+  ./index.js [built] [code generated]
+  ./dynamic.js [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -86,15 +86,15 @@ exports[`statsOutput statsOutput/hot+production should print correct stats for 1
 "asset main.js 32.3 KiB [emitted] (name: main)
 Entrypoint main 32.3 KiB = main.js
 runtime modules 11 modules
-./index.js
+./index.js [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/ignore-plugin should print correct stats for 1`] = `
 "runtime modules 1 module
-./index.js
-Xdir/ignore-plugin/locals|sync|/^\\\\.\\\\/.*$/
-./locals/en.js"
+./index.js [built] [code generated]
+Xdir/ignore-plugin/locals|sync|/^\\\\.\\\\/.*$/ [built] [code generated]
+./locals/en.js [built] [code generated]"
 `;
 
 exports[`statsOutput statsOutput/ignore-warning should print correct stats for 1`] = `"Rspack compiled successfully"`;
@@ -134,11 +134,11 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   asset bundle1.js 3.69 KiB [emitted] (name: main)
   Entrypoint main 3.69 KiB = bundle1.js
   chunk bundle1.js (main) <{909}> >{909}< [entry]
-    ./b.js
-    ./c.js
-    ./d.js
-    ./e.js
-    ./index.js
+    ./b.js [built] [code generated]
+    ./c.js [built] [code generated]
+    ./d.js [built] [code generated]
+    ./e.js [built] [code generated]
+    ./index.js [built] [code generated]
   1 chunks (Rspack x.x.x) compiled successfully in X s
 
 2 chunks:
@@ -146,12 +146,12 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   asset 76.bundle2.js 497 bytes [emitted] (name: c)
   Entrypoint main 10.3 KiB = bundle2.js
   chunk 76.bundle2.js (c) <{76}> <{909}> >{76}<
-    ./c.js
-    ./d.js
-    ./e.js
+    ./c.js [built] [code generated]
+    ./d.js [built] [code generated]
+    ./e.js [built] [code generated]
   chunk bundle2.js (main) >{76}< [entry]
-    ./b.js
-    ./index.js
+    ./b.js [built] [code generated]
+    ./index.js [built] [code generated]
   2 chunks (Rspack x.x.x) compiled successfully in X s
 
 3 chunks:
@@ -160,13 +160,13 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   asset 345.bundle3.js 186 bytes [emitted]
   Entrypoint main 10.3 KiB = bundle3.js
   chunk 345.bundle3.js <{76}>
-    ./d.js
-    ./e.js
+    ./d.js [built] [code generated]
+    ./e.js [built] [code generated]
   chunk 76.bundle3.js (c) <{909}> >{345}<
-    ./c.js
+    ./c.js [built] [code generated]
   chunk bundle3.js (main) >{76}< [entry]
-    ./b.js
-    ./index.js
+    ./b.js [built] [code generated]
+    ./index.js [built] [code generated]
   3 chunks (Rspack x.x.x) compiled successfully in X s
 
 4 chunks:
@@ -176,14 +176,14 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   asset 753.bundle4.js 130 bytes [emitted]
   Entrypoint main 10.3 KiB = bundle4.js
   chunk 697.bundle4.js <{76}>
-    ./e.js
+    ./e.js [built] [code generated]
   chunk 753.bundle4.js <{76}>
-    ./d.js
+    ./d.js [built] [code generated]
   chunk 76.bundle4.js (c) <{909}> >{697}< >{753}<
-    ./c.js
+    ./c.js [built] [code generated]
   chunk bundle4.js (main) >{76}< [entry]
-    ./b.js
-    ./index.js
+    ./b.js [built] [code generated]
+    ./index.js [built] [code generated]
   4 chunks (Rspack x.x.x) compiled successfully in X s"
 `;
 
@@ -294,13 +294,13 @@ asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
 Entrypoint main 304 KiB = main.js
 runtime modules 12 modules
-javascript modules
-  ./index.js
-  ./a.js
-  ./b.js
-  ./c.js
-  ./d.js
-  ./e.js
+cacheable modules
+  ./index.js [built] [code generated]
+  ./a.js [built] [code generated]
+  ./b.js [built] [code generated]
+  ./c.js [built] [code generated]
+  ./d.js [built] [code generated]
+  ./e.js [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -310,13 +310,13 @@ asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
 Entrypoint main 304 KiB = main.js
 runtime modules 12 modules
-javascript modules
-  ./index.js
-  ./a.js
-  ./b.js
-  ./c.js
-  ./d.js
-  ./e.js
+cacheable modules
+  ./index.js [built] [code generated]
+  ./a.js [built] [code generated]
+  ./b.js [built] [code generated]
+  ./c.js [built] [code generated]
+  ./d.js [built] [code generated]
+  ./e.js [built] [code generated]
 
 ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
   │   main.js (303.513 KiB)
@@ -336,13 +336,13 @@ asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
 Entrypoint main 304 KiB = main.js
 runtime modules 12 modules
-javascript modules
-  ./index.js
-  ./a.js
-  ./b.js
-  ./c.js
-  ./d.js
-  ./e.js
+cacheable modules
+  ./index.js [built] [code generated]
+  ./a.js [built] [code generated]
+  ./b.js [built] [code generated]
+  ./c.js [built] [code generated]
+  ./d.js [built] [code generated]
+  ./e.js [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -361,9 +361,9 @@ chunk main.js (main) >{74}< >{751}< >{76}< (prefetch: {74} {751} {76}) [entry]"
 `;
 
 exports[`statsOutput statsOutput/reasons should print correct stats for 1`] = `
-"./index.js
+"./index.js [built] [code generated]
   entry ./index
-./a.js
+./a.js [built] [code generated]
   cjs self exports reference self
   cjs require ./a"
 `;
@@ -371,7 +371,7 @@ exports[`statsOutput statsOutput/reasons should print correct stats for 1`] = `
 exports[`statsOutput statsOutput/resolve-overflow-error should print correct stats for 1`] = `
 "asset main.js 378 bytes [emitted] (name: main)
 Entrypoint main 378 bytes = main.js
-./index.js
+./index.js [built] [code generated] [1 error]
 
 ERROR in ./index.js
   × Resolve error: Can't resolve 'cycle-alias/a' in 'Xdir/resolve-overflow-error'
@@ -389,7 +389,7 @@ exports[`statsOutput statsOutput/resolve-unexpected-exports-in-pkg-error should 
 "asset bundle.js 945 bytes [emitted] (name: main)
 Entrypoint main 945 bytes = bundle.js
 runtime modules 1 module
-./index.js
+./index.js [built] [code generated] [1 error]
 
 ERROR in ./index.js
   × Invalid \\"exports\\" target \\"../../index.js\\" defined for '.' in the package config Xdir/resolve-unexpected-exports-in-pkg-error/node_modules/pkg-a/package.json
@@ -398,22 +398,22 @@ Rspack x.x.x compiled with 1 error in X s"
 `;
 
 exports[`statsOutput statsOutput/runtime-modules should print correct stats for 1`] = `
-"webpack/runtime/has_own_property
-webpack/runtime/make_namespace_object
-webpack/runtime/define_property_getters
-./index.js"
+"webpack/runtime/has_own_property [code generated]
+webpack/runtime/make_namespace_object [code generated]
+webpack/runtime/define_property_getters [code generated]
+./index.js [built] [code generated]"
 `;
 
 exports[`statsOutput statsOutput/runtime-specific-exports should print correct stats for 1`] = `
 "asset main.js 1.8 KiB [emitted] (name: main)
 Entrypoint main 1.8 KiB = main.js
-./example.js
+./example.js [built] [code generated]
   [no exports]
   [no exports used]
-./increment.js
+./increment.js [built] [code generated]
   [exports: decrement, increment, incrementBy2]
   [only some exports used: increment]
-./math.js
+./math.js [built] [code generated]
   [exports: add, multiply]
   [only some exports used: add]
 Rspack x.x.x compiled successfully in X s"
@@ -424,12 +424,12 @@ exports[`statsOutput statsOutput/side-effects-bailouts should print correct stat
 Entrypoint main 1.86 KiB = main.js
 chunk {909} main.js (main) [entry]
 runtime modules 2 modules
-javascript modules
-  ./index.js [10] {909}
+cacheable modules
+  ./index.js [10] {909} [built] [code generated]
     [no exports]
     [no exports used]
     entry ./index.js
-  ./lib.js [467] {909}
+  ./lib.js [467] {909} [built] [code generated]
     [exports: test]
     [all exports used]
     Statement with side_effects in source code at ./lib.js:5:0-9
@@ -443,7 +443,7 @@ exports[`statsOutput statsOutput/simple-export should print correct stats for 1`
 "asset bundle.js 1.25 KiB [emitted] (name: main)
 Entrypoint main 1.25 KiB = bundle.js
 runtime modules 3 modules
-./index.js
+./index.js [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -452,16 +452,16 @@ exports[`statsOutput statsOutput/simple-module-source should print correct stats
 Entrypoint main 2.1 KiB = bundle.js
 runtime modules 3 modules
 orphan modules [orphan] 1 module
-javascript modules
-  ./index.js
-  ./raw.png
+cacheable modules
+  ./index.js [built] [code generated]
+  ./raw.png [built] [code generated]
 Rspack compiled successfully"
 `;
 
 exports[`statsOutput statsOutput/stats-hooks should print correct stats for 1`] = `
 "asset main.js 99 bytes [emitted111] (name: main) [testA: aaaaaa]
 Entrypoint main 99 bytes = main.js
-./index.js
+./index.js [built] [code generated]
 Rspack compiled successfully"
 `;
 
