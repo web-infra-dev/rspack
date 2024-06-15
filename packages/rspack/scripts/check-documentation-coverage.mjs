@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "fs";
 import { basename, dirname, extname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 import { ApiItemKind, ApiModel } from "@microsoft/api-extractor-model";
-import { ZodObject, ZodOptional } from "../compiled/zod/index.js";
+import { ZodObject, ZodOptional, ZodUnion } from "../compiled/zod/index.js";
 import { rspackOptions } from "../dist/config/zod.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,27 +26,6 @@ function toCamelCase(s) {
 				word.slice(1)
 		)
 		.join("");
-}
-
-function getMarkdownTitles(file) {
-	const data = readFileSync(file, "utf8");
-	const regex = /^#{1,6}\s+([\w\s]+)$/gm;
-	let match = regex.exec(data);
-	const titles = [];
-	while (match !== null) {
-		let level = 0;
-		for (let i = 0; i < match[0].length; i++) {
-			if (match[0][i] === "#") {
-				level += 1;
-			} else {
-				break;
-			}
-		}
-		const text = match[1].trim();
-		titles.push({ level, text });
-		match = regex.exec(data);
-	}
-	return titles;
 }
 
 function extractMarkdownHeadings(markdown) {
@@ -169,6 +148,10 @@ function checkConfigsDocumentationCoverage() {
 				}
 			} else if (zod instanceof ZodOptional) {
 				visit(zod.unwrap(), path);
+			} else if (zod instanceof ZodUnion) {
+				for (let schema of zod.options) {
+					visit(schema, path);
+				}
 			}
 		}
 		visit(rspackOptions);
@@ -223,7 +206,7 @@ function checkConfigsDocumentationCoverage() {
 
 	if (undocumentedConfigs.length) {
 		console.error(
-			"The following plugins are implemented but not documented:",
+			"The following configs are implemented but not documented:",
 			undocumentedConfigs.join(", ")
 		);
 	}
