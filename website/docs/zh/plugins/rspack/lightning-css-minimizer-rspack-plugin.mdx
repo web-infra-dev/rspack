@@ -1,0 +1,70 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# LightningCssMinimizerRspackPlugin
+
+<ApiMeta addedVersion={'0.7.4'} />
+
+此插件使用 [lightningcss](https://lightningcss.dev/) 来压缩 CSS 产物。参见 [optimization.minimizer](/config/optimization#optimizationminimizer)。
+
+```js
+module.exports = {
+  // ...
+  optimization: {
+    minimizer: [new rspack.LightningCssMinimizerRspackPlugin()],
+  },
+};
+```
+
+## Options
+
+### errorRecovery
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+是否忽略无效的规则和声明而不进行报错。
+
+### unusedSymbols
+
+- **类型：** `string[]`
+- **默认值：** `[]`
+
+已知未使用符号的列表，包括 CSS 类名、id 和 @keyframe 名称。这些声明将被移除。
+
+### removeUnusedLocalIdents
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+是否自动移除未使用的 CSS Modules 的本地标识符，包括未使用的 CSS 类名、id 和 @keyframe 名称。这些声明将被移除。
+
+比如以下 CSS Modules，导出了类名 a 和类名 b，但只在 js 文件中使用了类名 a：
+
+```css title=index.module.css
+.a {
+  color: red;
+}
+
+.b {
+  color: blue;
+}
+```
+
+```js title=index.js
+import * as styles from './index.module.css';
+document.body.className = styles.a;
+```
+
+此时会通过 Rspack 的 tree shaking 功能获取类名 b 未被使用这一信息，提供给 lightningcss，在 minimize 时会将 CSS 产物中类名 b 的声明一并删除，得到以下最终产物：
+
+{/* prettier-ignore */}
+```css
+.a{color: red}
+```
+
+### browserslist
+
+- **类型：** `string[]`
+- **默认值：** `["defaults"]`
+
+要降级到的 Browserslist 目标

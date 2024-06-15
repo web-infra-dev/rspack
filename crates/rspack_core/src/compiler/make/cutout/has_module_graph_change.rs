@@ -251,7 +251,7 @@ mod t {
       todo!()
     }
 
-    fn size(&self, _source_type: &SourceType) -> f64 {
+    fn size(&self, _source_type: Option<&SourceType>) -> f64 {
       todo!()
     }
 

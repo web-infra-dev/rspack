@@ -77,7 +77,7 @@ __webpack_require__.e = function (chunkId) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = function () {
-	return "99f9d38567e0acaeaebb";
+	return "d39cfd64637173d8e8b0";
 };
 
 })();
@@ -185,7 +185,7 @@ __webpack_require__.r = function(exports) {
           var scripts = document.getElementsByTagName("script");
               if (scripts.length) {
                 var i = scripts.length - 1;
-                while (i > -1 && !scriptUrl) scriptUrl = scripts[i--].src;
+                while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
               }
         }
       }

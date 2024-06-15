@@ -7,5 +7,10 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 This plugin can be used to compress CSS assets. See [optimization.minimizer](/config/optimization#optimizationminimizer).
 
 ```js
-new rspack.SwcCssMinimizerRspackPlugin();
+module.exports = {
+  // ...
+  optimization: {
+    minimizer: [new rspack.SwcCssMinimizerRspackPlugin()],
+  },
+};
 ```

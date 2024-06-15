@@ -83,9 +83,9 @@ pub fn impl_runtime_module(
         &[::rspack_core::SourceType::JavaScript]
       }
 
-      fn size(&self, _source_type: &::rspack_core::SourceType) -> f64 {
-        // TODO
-        160.0
+      fn size(&self, _source_type: Option<&::rspack_core::SourceType>) -> f64 {
+        // should get size from code generation result
+        unreachable!();
       }
 
       fn readable_identifier(&self, _context: &::rspack_core::Context) -> std::borrow::Cow<str> {

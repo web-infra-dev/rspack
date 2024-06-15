@@ -187,6 +187,7 @@ export enum BuiltinPluginName {
   HtmlRspackPlugin = 'HtmlRspackPlugin',
   SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
   SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
+  LightningCssMinimizerRspackPlugin = 'LightningCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
@@ -251,6 +252,8 @@ export interface JsAssetInfo {
   javascriptModule?: boolean
   /** related object to other assets, keyed by type of relation (only points from parent to child) */
   related: JsAssetInfoRelated
+  /** unused css local ident for the css chunk */
+  cssUnusedIdents?: Array<string>
   /**
    * Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
    * But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
@@ -544,6 +547,7 @@ export interface JsStatsModule {
   id?: string
   chunks: Array<string | undefined | null>
   size: number
+  sizes: Array<JsStatsSourceTypeSize>
   depth?: number
   issuer?: string
   issuerName?: string
@@ -559,6 +563,16 @@ export interface JsStatsModule {
   providedExports?: Array<string>
   usedExports?: string | Array<string>
   optimizationBailout?: Array<string>
+  preOrderIndex?: number
+  postOrderIndex?: number
+  built: boolean
+  codeGenerated: boolean
+  cached: boolean
+  cacheable: boolean
+  optional: boolean
+  failed: boolean
+  errors: number
+  warnings: number
 }
 
 export interface JsStatsModuleIssuer {
@@ -583,6 +597,11 @@ export interface JsStatsModuleReason {
 
 export interface JsStatsOptimizationBailout {
   inner: string
+}
+
+export interface JsStatsSourceTypeSize {
+  sourceType: string
+  size: number
 }
 
 export interface JsStatsWarning {
@@ -1026,6 +1045,13 @@ export interface RawLibraryOptions {
   umdNamedDefine?: boolean
   auxiliaryComment?: RawLibraryAuxiliaryComment
   amdContainer?: string
+}
+
+export interface RawLightningCssMinimizerRspackPluginOptions {
+  errorRecovery: boolean
+  unusedSymbols: Array<string>
+  removeUnusedLocalIdents: boolean
+  browserslist: Array<string>
 }
 
 export interface RawLimitChunkCountPluginOptions {

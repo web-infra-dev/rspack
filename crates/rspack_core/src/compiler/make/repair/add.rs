@@ -78,6 +78,7 @@ impl Task<MakeTaskContext> for AddTask {
 
     tracing::trace!("Module added: {}", self.module.identifier());
 
+    artifact.built_modules.insert(module_identifier);
     Ok(vec![Box::new(BuildTask {
       module: self.module,
       current_profile: self.current_profile,

@@ -753,7 +753,7 @@ impl ContextModule {
           {}
         }}
         "#,
-        self.get_return_module_object_source(&fake_map, false, "fakeMap[id]"),
+        self.get_return_module_object_source(&fake_map, true, "fakeMap[id]"),
       }
     } else {
       RuntimeGlobals::REQUIRE.name().to_string()
@@ -870,7 +870,7 @@ impl Module for ContextModule {
     self.identifier.as_str().into()
   }
 
-  fn size(&self, _source_type: &crate::SourceType) -> f64 {
+  fn size(&self, _source_type: Option<&crate::SourceType>) -> f64 {
     160.0
   }
 
