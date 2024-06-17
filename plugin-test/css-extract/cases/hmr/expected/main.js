@@ -1,7 +1,8 @@
 (() => { // webpackBootstrap
+"use strict";
 var __webpack_modules__ = ({
 "../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js": (function (module, __unused_webpack_exports, __webpack_require__) {
-"use strict";
+
 /* eslint-env browser */
 /*
   eslint-disable
@@ -227,7 +228,7 @@ module.exports = function (moduleId, options) {
 
 }),
 "../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/normalize-url.js": (function (module) {
-"use strict";
+
 /* eslint-disable */
 /**
  * @param {string[]} pathComponents
@@ -269,7 +270,6 @@ module.exports = function (urlString) {
 
 }),
 "./index.css?6fbf": (function (module, __webpack_exports__, __webpack_require__) {
-"use strict";
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
