@@ -64,6 +64,7 @@ import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
 import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
 import ResolverFactory = require('./ResolverFactory');
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
+import { RspackPluginFunction as RspackPluginFunction_2 } from './config';
 import { Source } from 'webpack-sources';
 import { SyncBailHook as SyncBailHook_2 } from 'tapable';
 import { SyncHook as SyncHook_2 } from 'tapable';
@@ -3163,6 +3164,17 @@ export type Falsy = z.infer<typeof falsy>;
 
 // @public (undocumented)
 const falsy: z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>;
+
+// @public (undocumented)
+const FetchCompileAsyncWasnPlugin: {
+    new (): {
+        name: BuiltinPluginName;
+        _options: void;
+        affectedHooks: "make" | "compile" | "emit" | "afterEmit" | "invalid" | "done" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
 
 // @public (undocumented)
 export type Filename = z.infer<typeof filename>;
@@ -8255,6 +8267,7 @@ declare namespace rspackExports {
         LoaderOptionsPlugin,
         LoaderTargetPlugin,
         NormalModuleReplacementPlugin,
+        web,
         node,
         electron,
         library,
@@ -13352,6 +13365,17 @@ namespace Watchpack {
         aggregateTimeout?: number | undefined;
     }
 }
+
+// @public (undocumented)
+interface Web {
+    // (undocumented)
+    FetchCompileAsyncWasnPlugin: typeof FetchCompileAsyncWasnPlugin;
+    // (undocumented)
+    FetchCompileWasnPlugin: RspackPluginFunction_2;
+}
+
+// @public (undocumented)
+export const web: Web;
 
 // @public (undocumented)
 export type WebassemblyModuleFilename = z.infer<typeof webassemblyModuleFilename>;

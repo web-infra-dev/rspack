@@ -100,6 +100,14 @@ export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
 export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlugin";
 
+import { FetchCompileAsyncWasnPlugin } from "./builtin-plugin";
+interface Web {
+	FetchCompileAsyncWasnPlugin: typeof FetchCompileAsyncWasnPlugin;
+}
+export const web: Web = {
+	FetchCompileAsyncWasnPlugin
+};
+
 import { NodeTargetPlugin } from "./builtin-plugin";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 import NodeTemplatePlugin from "./node/NodeTemplatePlugin";

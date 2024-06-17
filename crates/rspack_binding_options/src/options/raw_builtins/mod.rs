@@ -69,7 +69,9 @@ use rspack_plugin_size_limits::SizeLimitsPlugin;
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
-use rspack_plugin_wasm::{enable_wasm_loading_plugin, AsyncWasmPlugin};
+use rspack_plugin_wasm::{
+  enable_wasm_loading_plugin, AsyncWasmPlugin, FetchCompileAsyncWasmPlugin,
+};
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
 
@@ -112,6 +114,7 @@ pub enum BuiltinPluginName {
   EnableChunkLoadingPlugin,
   EnableLibraryPlugin,
   EnableWasmLoadingPlugin,
+  FetchCompileAsyncWasnPlugin,
   ChunkPrefetchPreloadPlugin,
   CommonJsChunkFormatPlugin,
   ArrayPushCallbackChunkFormatPlugin,
@@ -255,6 +258,9 @@ impl BuiltinPlugin {
         plugins.push(enable_wasm_loading_plugin(
           wasm_loading_type.as_str().into(),
         ));
+      }
+      BuiltinPluginName::FetchCompileAsyncWasnPlugin => {
+        plugins.push(FetchCompileAsyncWasmPlugin::default().boxed())
       }
       BuiltinPluginName::ChunkPrefetchPreloadPlugin => {
         plugins.push(ChunkPrefetchPreloadPlugin::default().boxed());
