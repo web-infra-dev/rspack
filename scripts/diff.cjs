@@ -21,7 +21,10 @@ const OUTPUT_DIR = path.join(__dirname, '../diff_output');
     report: true,
   });
   const htmlReporter = new DiffHtmlReporter({
-    dist: OUTPUT_DIR
+    dist: OUTPUT_DIR,
+    ignore: {
+      test: () => false,
+    },
   });
 
   while (cases.length) {
@@ -47,7 +50,6 @@ const OUTPUT_DIR = path.join(__dirname, '../diff_output');
           statsReporter.increment(name, results);
         },
         onCompareRuntimeModules: function (file, results) {
-          console.log(results);
           htmlReporter.increment(name, results);
           statsReporter.increment(name, results);
         },
@@ -64,7 +66,7 @@ const OUTPUT_DIR = path.join(__dirname, '../diff_output');
       await tester.prepare();
       do {
         await tester.compile();
-        await tester.check();
+        await tester.check({ expect: () => ({ toBe: (() => {}) }) });
       } while (tester.next());
       await tester.resume();
     } catch (e) {
