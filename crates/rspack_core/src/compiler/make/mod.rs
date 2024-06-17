@@ -33,10 +33,10 @@ pub struct MakeArtifact {
 }
 
 impl MakeArtifact {
-  fn get_module_graph(&self) -> ModuleGraph {
+  pub fn get_module_graph(&self) -> ModuleGraph {
     ModuleGraph::new(vec![&self.module_graph_partial], None)
   }
-  fn get_module_graph_mut(&mut self) -> ModuleGraph {
+  pub fn get_module_graph_mut(&mut self) -> ModuleGraph {
     ModuleGraph::new(vec![], Some(&mut self.module_graph_partial))
   }
   // TODO remove it

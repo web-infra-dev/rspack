@@ -751,11 +751,21 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			const { type } = context;
 			object.type = module.type;
 			object.moduleType = module.moduleType;
+			// TODO: object.layer = module.layer;
 			object.size = module.size;
 			object.sizes = Object.fromEntries(
 				module.sizes.map(({ sourceType, size }) => [sourceType, size])
 			);
-			Object.assign(object, factory.create(`${type}$visible`, module, context));
+			object.built = module.built;
+			object.codeGenerated = module.codeGenerated;
+			object.buildTimeExecuted = module.buildTimeExecuted;
+			object.cached = module.cached;
+			if (module.built || module.codeGenerated || options.cachedModules) {
+				Object.assign(
+					object,
+					factory.create(`${type}$visible`, module, context)
+				);
+			}
 		}
 	},
 	module$visible: {
@@ -764,6 +774,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.identifier = module.identifier;
 			object.name = module.name;
 			object.nameForCondition = module.nameForCondition;
+			object.preOrderIndex = module.preOrderIndex;
+			object.postOrderIndex = module.postOrderIndex;
+			object.cacheable = module.cacheable;
+			object.optional = module.optional;
+			object.orphan = module.orphan;
+			// TODO: object.dependent = module.dependent;
 			object.issuer = module.issuer;
 			object.issuerName = module.issuerName;
 			object.issuerPath = factory.create(
@@ -771,14 +787,6 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				module.issuerPath,
 				context
 			);
-			object.orphan = module.orphan;
-			object.preOrderIndex = module.preOrderIndex;
-			object.postOrderIndex = module.postOrderIndex;
-			object.cacheable = module.cacheable;
-			object.built = module.built;
-			object.codeGenerated = module.codeGenerated;
-			object.cached = module.cached;
-			object.optional = module.optional;
 			object.failed = module.failed;
 			object.errors = module.errors;
 			object.warnings = module.warnings;

@@ -3,10 +3,11 @@ mod entry;
 mod execute;
 mod overwrite;
 
-use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
+use dashmap::{mapref::entry::Entry, DashSet};
 pub use execute::ExecuteModuleId;
 use rspack_error::Result;
+use rspack_identifier::Identifier;
 use tokio::sync::{
   mpsc::{unbounded_channel, UnboundedSender},
   oneshot,
@@ -32,6 +33,7 @@ pub struct ModuleExecutor {
   event_sender: Option<UnboundedSender<Event>>,
   stop_receiver: Option<oneshot::Receiver<MakeArtifact>>,
   assets: DashMap<String, CompilationAsset>,
+  code_generated_modules: DashSet<Identifier>,
 }
 
 impl ModuleExecutor {
@@ -107,6 +109,16 @@ impl ModuleExecutor {
 
     let diagnostics = self.make_artifact.take_diagnostics();
     compilation.extend_diagnostics(diagnostics);
+
+    let built_modules = self.make_artifact.take_built_modules();
+    for id in built_modules {
+      compilation.built_modules.insert(id);
+    }
+
+    let code_generated_modules = std::mem::take(&mut self.code_generated_modules);
+    for id in code_generated_modules {
+      compilation.code_generated_modules.insert(id);
+    }
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -149,10 +161,15 @@ impl ModuleExecutor {
         },
       ))
       .expect("should success");
-    let (execute_result, assets) = rx.await.expect("should receiver success");
+    let (execute_result, assets, code_generated_modules) =
+      rx.await.expect("should receiver success");
 
     for (key, value) in assets {
       self.assets.insert(key, value);
+    }
+
+    for id in code_generated_modules.iter() {
+      self.code_generated_modules.insert(*id);
     }
 
     execute_result

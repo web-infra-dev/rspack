@@ -25,6 +25,7 @@ pub struct ExecuteModuleResult {
   pub context_dependencies: HashSet<std::path::PathBuf>,
   pub missing_dependencies: HashSet<std::path::PathBuf>,
   pub build_dependencies: HashSet<std::path::PathBuf>,
+  pub code_generated_modules: IdentifierSet,
   pub assets: HashSet<String>,
   pub id: ExecuteModuleId,
 }
@@ -34,7 +35,11 @@ pub struct ExecuteTask {
   pub entry_dep_id: DependencyId,
   pub public_path: Option<String>,
   pub base_uri: Option<String>,
-  pub result_sender: Sender<(Result<ExecuteModuleResult>, CompilationAssets)>,
+  pub result_sender: Sender<(
+    Result<ExecuteModuleResult>,
+    CompilationAssets,
+    IdentifierSet,
+  )>,
 }
 
 impl Task<MakeTaskContext> for ExecuteTask {
@@ -143,7 +148,16 @@ impl Task<MakeTaskContext> for ExecuteTask {
     // replace code_generation_results is the same reason
     compilation.chunk_graph = chunk_graph;
 
-    compilation.code_generation_modules(&mut None, false, modules.par_iter().copied())?;
+    let code_generation_results =
+      compilation.code_generation_modules(&mut None, false, modules.par_iter().copied())?;
+
+    code_generation_results
+      .iter()
+      .for_each(|module_identifier| {
+        compilation
+          .code_generated_modules
+          .insert(*module_identifier);
+      });
 
     Handle::current().block_on(async {
       compilation
@@ -257,12 +271,13 @@ impl Task<MakeTaskContext> for ExecuteTask {
     };
 
     let assets = std::mem::take(compilation.assets_mut());
+    let code_generated_modules = std::mem::take(&mut compilation.code_generated_modules);
     if let Ok(ref mut result) = execute_result {
       result.assets = assets.keys().cloned().collect::<HashSet<_>>();
     }
     context.recovery_from_temp_compilation(compilation);
     result_sender
-      .send((execute_result, assets))
+      .send((execute_result, assets, code_generated_modules))
       .expect("should send result success");
     Ok(vec![])
   }

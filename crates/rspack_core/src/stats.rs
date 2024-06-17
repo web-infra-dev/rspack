@@ -140,6 +140,12 @@ impl Stats<'_> {
     f: impl Fn(Vec<StatsModule>) -> T,
   ) -> Result<T> {
     let module_graph = self.compilation.get_module_graph();
+    let executor_module_graph = &self
+      .compilation
+      .module_executor
+      .as_ref()
+      .map(|executor| executor.make_artifact.get_module_graph());
+
     let mut modules: Vec<StatsModule> = module_graph
       .modules()
       .values()
@@ -153,6 +159,7 @@ impl Stats<'_> {
           source,
           used_exports,
           provided_exports,
+          false,
         )
       })
       .chain(
@@ -165,6 +172,33 @@ impl Stats<'_> {
           }),
       )
       .collect::<Result<_>>()?;
+
+    if let Some(executor_module_graph) = &executor_module_graph {
+      let executed_modules: Vec<StatsModule> = executor_module_graph
+        .modules()
+        .values()
+        .map(|module| {
+          self.get_module(
+            executor_module_graph,
+            module,
+            reasons,
+            module_assets,
+            nested_modules,
+            source,
+            used_exports,
+            provided_exports,
+            true,
+          )
+        })
+        .collect::<Result<_>>()?;
+
+      // TODO: get executed runtime modules
+      let executed_runtime_modules: Vec<StatsModule> = vec![];
+
+      modules.extend(executed_modules);
+      modules.extend(executed_runtime_modules);
+    }
+
     Self::sort_modules(&mut modules);
 
     Ok(f(modules))
@@ -212,6 +246,7 @@ impl Stats<'_> {
                 source,
                 used_exports,
                 provided_exports,
+                false,
               )
             })
             .collect::<Result<Vec<_>>>()?;
@@ -422,6 +457,7 @@ impl Stats<'_> {
     source: bool,
     used_exports: bool,
     provided_exports: bool,
+    executed: bool,
   ) -> Result<StatsModule<'a>> {
     let identifier = module.identifier();
     let mgm = module_graph
@@ -430,12 +466,30 @@ impl Stats<'_> {
 
     let issuer = module_graph.get_issuer(&module.identifier());
     let (issuer_name, issuer_id) = issuer
-      .map(|i| get_stats_module_name_and_id(i, self.compilation))
+      .map(|i| {
+        if executed {
+          (
+            i.readable_identifier(&self.compilation.options.context)
+              .to_string(),
+            None,
+          )
+        } else {
+          get_stats_module_name_and_id(i, self.compilation)
+        }
+      })
       .unzip();
     let mut issuer_path = Vec::new();
     let mut current_issuer = issuer;
     while let Some(i) = current_issuer {
-      let (name, id) = get_stats_module_name_and_id(i, self.compilation);
+      let (name, id) = if executed {
+        (
+          i.readable_identifier(&self.compilation.options.context)
+            .to_string(),
+          None,
+        )
+      } else {
+        get_stats_module_name_and_id(i, self.compilation)
+      };
       issuer_path.push(StatsModuleIssuer {
         identifier: i.identifier().to_string(),
         name,
@@ -456,7 +510,17 @@ impl Stats<'_> {
             let (module_name, module_id) = connection
               .original_module_identifier
               .and_then(|i| module_graph.module_by_identifier(&i))
-              .map(|m| get_stats_module_name_and_id(m, self.compilation))
+              .map(|m| {
+                if executed {
+                  (
+                    m.readable_identifier(&self.compilation.options.context)
+                      .to_string(),
+                    None,
+                  )
+                } else {
+                  get_stats_module_name_and_id(m, self.compilation)
+                }
+              })
               .unzip();
             let dependency = module_graph.dependency_by_id(&connection.dependency_id);
             let (r#type, user_request) =
@@ -487,25 +551,33 @@ impl Stats<'_> {
       })
       .transpose()?;
 
-    let mut chunks: Vec<Option<String>> = self
-      .compilation
-      .chunk_graph
-      .get_chunk_graph_module(mgm.module_identifier)
-      .chunks
-      .iter()
-      .map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
-      .collect();
+    let mut chunks: Vec<Option<String>> = if executed {
+      vec![]
+    } else {
+      self
+        .compilation
+        .chunk_graph
+        .get_chunk_graph_module(mgm.module_identifier)
+        .chunks
+        .iter()
+        .map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
+        .collect()
+    };
     chunks.sort_unstable();
 
-    let assets = module_assets.then(|| {
-      let mut assets: Vec<_> = module
-        .build_info()
-        .as_ref()
-        .map(|info| info.asset_filenames.iter().map(|i| i.to_string()).collect())
-        .unwrap_or_default();
-      assets.sort();
-      assets
-    });
+    let assets = if executed {
+      None
+    } else {
+      module_assets.then(|| {
+        let mut assets: Vec<_> = module
+          .build_info()
+          .as_ref()
+          .map(|info| info.asset_filenames.iter().map(|i| i.to_string()).collect())
+          .unwrap_or_default();
+        assets.sort();
+        assets
+      })
+    };
 
     let modules = nested_modules
       .then(|| -> Result<_> {
@@ -526,6 +598,7 @@ impl Stats<'_> {
               source,
               used_exports,
               provided_exports,
+              executed,
             )
           })
           .collect::<Result<_>>()?;
@@ -548,7 +621,7 @@ impl Stats<'_> {
     };
 
     let provided_exports =
-      if provided_exports && self.compilation.options.optimization.provided_exports {
+      if !executed && provided_exports && self.compilation.options.optimization.provided_exports {
         match self
           .compilation
           .get_module_graph()
@@ -561,7 +634,8 @@ impl Stats<'_> {
         None
       };
 
-    let used_exports = if used_exports
+    let used_exports = if !executed
+      && used_exports
       && self
         .compilation
         .options
@@ -620,11 +694,15 @@ impl Stats<'_> {
       name: module
         .readable_identifier(&self.compilation.options.context)
         .into(),
-      id: self
-        .compilation
-        .chunk_graph
-        .get_module_id(identifier)
-        .clone(),
+      id: if executed {
+        None
+      } else {
+        self
+          .compilation
+          .chunk_graph
+          .get_module_id(identifier)
+          .clone()
+      },
       chunks,
       size: module.size(None),
       sizes,
@@ -637,11 +715,15 @@ impl Stats<'_> {
       modules,
       source: source.then(|| module.original_source()).flatten(),
       profile,
-      orphan: self
-        .compilation
-        .chunk_graph
-        .get_number_of_module_chunks(identifier)
-        == 0,
+      orphan: if executed {
+        true
+      } else {
+        self
+          .compilation
+          .chunk_graph
+          .get_number_of_module_chunks(identifier)
+          == 0
+      },
       provided_exports,
       used_exports,
       optimization_bailout: mgm.optimization_bailout.clone(),
@@ -649,6 +731,7 @@ impl Stats<'_> {
       post_order_index: module_graph.get_post_order_index(&identifier),
       built,
       code_generated,
+      build_time_executed: executed,
       cached: !built && !code_generated,
       cacheable: module.build_info().is_some_and(|i| i.cacheable),
       optional: module_graph.is_optional(&identifier),
@@ -683,6 +766,10 @@ impl Stats<'_> {
       .get(identifier)
       .map(|(_, source)| source.size() as f64)
       .unwrap_or(0 as f64);
+    let build_time_executed = self
+      .compilation
+      .build_time_executed_modules
+      .contains(identifier);
 
     Ok(StatsModule {
       r#type: "module",
@@ -719,6 +806,7 @@ impl Stats<'_> {
       post_order_index: None,
       built,
       code_generated,
+      build_time_executed,
       cached: !built && !code_generated,
       cacheable: module.cacheable(),
       optional: false,
@@ -858,6 +946,7 @@ pub struct StatsModule<'a> {
   pub post_order_index: Option<u32>,
   pub built: bool,
   pub code_generated: bool,
+  pub build_time_executed: bool,
   pub cached: bool,
   pub cacheable: bool,
   pub optional: bool,

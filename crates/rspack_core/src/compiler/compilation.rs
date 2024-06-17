@@ -157,6 +157,7 @@ pub struct Compilation {
   pub code_generation_results: CodeGenerationResults,
   pub built_modules: IdentifierSet,
   pub code_generated_modules: IdentifierSet,
+  pub build_time_executed_modules: IdentifierSet,
   pub old_cache: Arc<OldCache>,
   pub code_splitting_cache: CodeSplittingCache,
   pub hash: Option<RspackHashDigest>,
@@ -238,6 +239,7 @@ impl Compilation {
       code_generation_results: Default::default(),
       built_modules: Default::default(),
       code_generated_modules: Default::default(),
+      build_time_executed_modules: Default::default(),
       old_cache,
       code_splitting_cache: Default::default(),
       hash: None,
@@ -1002,7 +1004,9 @@ impl Compilation {
     }
 
     // take built_modules
-    self.built_modules = self.make_artifact.take_built_modules();
+    self
+      .built_modules
+      .extend(self.make_artifact.take_built_modules());
     Ok(())
   }
 

@@ -567,6 +567,7 @@ export interface JsStatsModule {
   postOrderIndex?: number
   built: boolean
   codeGenerated: boolean
+  buildTimeExecuted: boolean
   cached: boolean
   cacheable: boolean
   optional: boolean
