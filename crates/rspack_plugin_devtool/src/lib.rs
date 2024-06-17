@@ -3,7 +3,9 @@
 mod mapped_assets_cache;
 
 use std::borrow::Cow;
+use std::fs::File;
 use std::hash::Hasher;
+use std::io::Write;
 use std::sync::Arc;
 use std::{hash::Hash, path::Path};
 
@@ -218,6 +220,7 @@ impl SourceMapDevToolPlugin {
     raw_assets: Vec<(String, &CompilationAsset)>,
   ) -> Result<Vec<MappedAsset>> {
     let output_options = &compilation.options.output;
+    let map_options = MapOptions::new(self.columns);
 
     let mapped_sources = raw_assets
       .par_iter()
@@ -228,7 +231,10 @@ impl SourceMapDevToolPlugin {
         }?;
         let source = if is_match {
           asset.get_source().map(|source| {
-            let map_options = MapOptions::new(self.columns);
+            let mut f =
+              File::create("/Users/bytedance/Documents/github/swc_swc/rspack/output.txt").unwrap();
+            f.write_all(format!("{:#?}", &source).as_bytes()).unwrap();
+
             let source_map = source.map(&map_options);
             (file, source, source_map)
           })
