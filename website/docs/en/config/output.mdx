@@ -525,9 +525,7 @@ Prefer to use [`output.library.auxiliaryComment`](#outputlibraryauxiliarycomment
 
 When used in tandem with [`output.library`](#outputlibrary) and [`output.libraryTarget`](#outputlibrarytarget), this option allows users to insert comments within the export wrapper. To insert the same comment for each `libraryTarget` type, set `auxiliaryComment` to a string:
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   //...
   output: {
@@ -563,9 +561,7 @@ which will yield the following:
 
 For fine-grained control over each `libraryTarget` comment, pass an object:
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   //...
   output: {
@@ -606,9 +602,7 @@ The return value of your entry point will be assigned to the global object using
 
 For example:
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   output: {
@@ -642,9 +636,7 @@ The prefix length of the hash digest to use.
 
 The name of the native `import()` function. Can be used for polyfilling, e.g. with [`dynamic-import-polyfill`](https://github.com/GoogleChromeLabs/dynamic-import-polyfill).
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   //...
   output: {
@@ -661,9 +653,7 @@ Output a library exposing the exports of your entry point.
 
 Let's take a look at an example.
 
-**rspack.config.js**
-
-```js
+```js title=rspack.config.js
 module.exports = {
   // …
   entry: './src/index.js',

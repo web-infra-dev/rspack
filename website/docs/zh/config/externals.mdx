@@ -25,9 +25,7 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 ></script>
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   //...
   externals: {
@@ -146,9 +144,7 @@ module.exports = {
 import fs from 'fs-extra';
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'commonjs',
@@ -175,9 +171,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'global',
@@ -206,9 +200,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```js
+```js title=rspack.config.js
 module.export = {
   externalsType: 'node-commonjs',
   externals: {
@@ -237,9 +229,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'self',
@@ -267,9 +257,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'this',
@@ -297,9 +285,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'var',
@@ -327,9 +313,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'window',

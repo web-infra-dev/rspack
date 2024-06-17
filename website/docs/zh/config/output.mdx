@@ -523,9 +523,7 @@ module.exports = {
 
 在和 [`output.library`](#outputlibrary) 和 [`output.libraryTarget`](#outputlibrarytarget) 一起使用时，此选项允许用户向导出容器(export wrapper)中插入注释。要为 `libraryTarget` 每种类型都插入相同的注释，将 `auxiliaryComment` 设置为一个字符串：
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   //...
   output: {
@@ -561,9 +559,7 @@ module.exports = {
 
 对于 `libraryTarget` 每种类型的注释进行更细粒度地控制，请传入一个对象：
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   //...
   output: {
@@ -638,9 +634,7 @@ module.exports = {
 
 内部 `import()` 函数的名称. 可用于 polyfilling, 例如 通过 [`dynamic-import-polyfill`](https://github.com/GoogleChromeLabs/dynamic-import-polyfill).
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   //...
   output: {
@@ -657,9 +651,7 @@ module.exports = {
 
 一起来看一个简单的示例。
 
-**rspack.config.js**
-
-```js
+```js title=rspack.config.js
 module.exports = {
   // …
   entry: './src/index.js',
