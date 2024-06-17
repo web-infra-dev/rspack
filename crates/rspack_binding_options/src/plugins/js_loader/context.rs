@@ -2,85 +2,32 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_binding_values::{JsModule, JsResourceData, ToJsModule as _};
 use rspack_core::{LoaderContext, RunnerContext};
-use rspack_error::{error, Result};
+use rspack_error::error;
 use rspack_loader_runner::{LoaderItem, State as LoaderState};
-use rspack_napi::{threadsafe_js_value_ref::ThreadsafeJsValueRef, ExternalTakable};
-
-#[napi(
-  js_name = "__loader_item_debug",
-  ts_args_type = "item: ExternalObject<'LoaderItem'>"
-)]
-pub fn __loader_item_debug(item: ExternalTakable<LoaderItem<RunnerContext>>) -> String {
-  format!("{:#?}", item.as_ref())
-}
-
-#[napi(
-  js_name = "__loader_item_get_normal_executed",
-  ts_args_type = "item: ExternalObject<'LoaderItem'>"
-)]
-pub fn __loader_item_get_normal_executed(item: ExternalTakable<LoaderItem<RunnerContext>>) -> bool {
-  item.normal_executed()
-}
-
-#[napi(
-  js_name = "__loader_item_get_pitch_executed",
-  ts_args_type = "item: ExternalObject<'LoaderItem'>"
-)]
-pub fn __loader_item_get_pitch_executed(item: ExternalTakable<LoaderItem<RunnerContext>>) -> bool {
-  item.pitch_executed()
-}
-
-#[napi(
-  js_name = "__loader_item_set_normal_executed",
-  ts_args_type = "item: ExternalObject<'LoaderItem'>"
-)]
-pub fn __loader_item_set_normal_executed(item: ExternalTakable<LoaderItem<RunnerContext>>) {
-  item.set_normal_executed();
-}
-
-#[napi(
-  js_name = "__loader_item_set_pitch_executed",
-  ts_args_type = "item: ExternalObject<'LoaderItem'>"
-)]
-pub fn __loader_item_set_pitch_executed(item: ExternalTakable<LoaderItem<RunnerContext>>) {
-  item.set_pitch_executed();
-}
-
-#[napi(
-  js_name = "__loader_item_get_loader_data",
-  ts_args_type = "item: ExternalObject<'LoaderItem'>"
-)]
-pub fn __loader_item_get_loader_data(
-  item: ExternalTakable<LoaderItem<RunnerContext>>,
-) -> serde_json::Value {
-  item.data().clone()
-}
-
-#[napi(
-  js_name = "__loader_item_set_loader_data",
-  ts_args_type = "item: ExternalObject<'LoaderItem'>, data: any"
-)]
-pub fn __loader_item_set_loader_data(
-  mut item: ExternalTakable<LoaderItem<RunnerContext>>,
-  data: serde_json::Value,
-) {
-  item.set_data(data);
-}
+use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 
 #[napi(object)]
 pub struct JsLoaderItem {
   pub request: String,
   pub r#type: String,
-  #[napi(ts_type = "ExternalObject<'LoaderItem'>")]
-  pub inner: ExternalTakable<LoaderItem<RunnerContext>>,
+
+  // data
+  pub data: serde_json::Value,
+
+  // status
+  pub normal_executed: bool,
+  pub pitch_executed: bool,
 }
 
-impl From<LoaderItem<RunnerContext>> for JsLoaderItem {
-  fn from(value: LoaderItem<RunnerContext>) -> Self {
+impl From<&LoaderItem<RunnerContext>> for JsLoaderItem {
+  fn from(value: &LoaderItem<RunnerContext>) -> Self {
     JsLoaderItem {
       request: value.request().to_string(),
       r#type: value.r#type().to_string(),
-      inner: ExternalTakable::new(value),
+
+      data: value.data().clone(),
+      normal_executed: value.normal_executed(),
+      pitch_executed: value.pitch_executed(),
     }
   }
 }
@@ -186,60 +133,9 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .collect(),
       asset_filenames: cx.asset_filenames.iter().map(|i| i.to_owned()).collect(),
 
-      loader_items: cx.loader_items.drain(..).map(Into::into).collect(),
+      loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,
       loader_state: cx.state().into(),
     })
   }
-}
-
-pub(crate) fn merge_loader_context(
-  to: &mut LoaderContext<RunnerContext>,
-  mut from: JsLoaderContext,
-) -> Result<()> {
-  if let Some(data) = &from.additional_data {
-    to.additional_data.insert(data.clone());
-  }
-  to.cacheable = from.cacheable;
-  to.file_dependencies = from
-    .file_dependencies
-    .into_iter()
-    .map(std::path::PathBuf::from)
-    .collect();
-  to.context_dependencies = from
-    .context_dependencies
-    .into_iter()
-    .map(std::path::PathBuf::from)
-    .collect();
-  to.missing_dependencies = from
-    .missing_dependencies
-    .into_iter()
-    .map(std::path::PathBuf::from)
-    .collect();
-  to.build_dependencies = from
-    .build_dependencies
-    .into_iter()
-    .map(std::path::PathBuf::from)
-    .collect();
-  to.content = match from.content {
-    Either::A(_) => None,
-    Either::B(c) => Some(rspack_core::Content::from(Into::<Vec<u8>>::into(c))),
-  };
-  to.source_map = from
-    .source_map
-    .as_ref()
-    .map(|s| rspack_core::rspack_sources::SourceMap::from_slice(s))
-    .transpose()
-    .map_err(|e| error!(e.to_string()))?;
-  to.asset_filenames = from.asset_filenames.into_iter().collect();
-
-  // update loader status
-  to.loader_items = from
-    .loader_items
-    .drain(..)
-    .map(|item| item.inner.unwrap())
-    .collect();
-  to.loader_index = from.loader_index;
-
-  Ok(())
 }
