@@ -25,9 +25,7 @@ For example, to include [jQuery](https://jquery.com/) from a CDN instead of bund
 ></script>
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   //...
   externals: {
@@ -145,9 +143,7 @@ Specify the default type of externals as `'commonjs'`. Webpack will generate cod
 import fs from 'fs-extra';
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'commonjs',
@@ -174,9 +170,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'global',
@@ -211,9 +205,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```js
+```js title=rspack.config.js
 module.export = {
   externalsType: 'node-commonjs',
   externals: {
@@ -242,9 +234,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'self',
@@ -270,9 +260,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'this',
@@ -298,9 +286,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'var',
@@ -326,9 +312,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'window',
