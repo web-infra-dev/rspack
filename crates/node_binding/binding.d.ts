@@ -102,20 +102,6 @@ export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: 
 
 export function __entrypoint_inner_get_runtime_chunk(ukey: number, compilation: JsCompilation): JsChunk
 
-export function __loader_item_debug(item: ExternalObject<'LoaderItem'>): string
-
-export function __loader_item_get_loader_data(item: ExternalObject<'LoaderItem'>): any
-
-export function __loader_item_get_normal_executed(item: ExternalObject<'LoaderItem'>): boolean
-
-export function __loader_item_get_pitch_executed(item: ExternalObject<'LoaderItem'>): boolean
-
-export function __loader_item_set_loader_data(item: ExternalObject<'LoaderItem'>, data: any): void
-
-export function __loader_item_set_normal_executed(item: ExternalObject<'LoaderItem'>): void
-
-export function __loader_item_set_pitch_executed(item: ExternalObject<'LoaderItem'>): void
-
 export interface BuiltinPlugin {
   name: BuiltinPluginName
   options: unknown
@@ -397,7 +383,9 @@ export interface JsLoaderContext {
 export interface JsLoaderItem {
   request: string
   type: string
-  inner: ExternalObject<'LoaderItem'>
+  data: any
+  normalExecuted: boolean
+  pitchExecuted: boolean
 }
 
 export enum JsLoaderState {
