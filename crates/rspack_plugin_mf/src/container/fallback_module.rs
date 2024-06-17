@@ -85,7 +85,7 @@ impl DependenciesBlock for FallbackModule {
 impl Module for FallbackModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: &SourceType) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     self.requests.len() as f64 * 5.0 + 42.0
   }
 

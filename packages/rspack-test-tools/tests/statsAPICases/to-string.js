@@ -12,10 +12,10 @@ module.exports = {
 			.toMatchInlineSnapshot(`
 		"asset main.js 353 bytes [emitted] (name: main)
 		Entrypoint main 353 bytes = main.js
-		./fixtures/a.js
-		./fixtures/b.js
-		./fixtures/c.js
-		./fixtures/abc.js
+		./fixtures/abc.js 83 bytes [built] [code generated]
+		./fixtures/a.js 55 bytes [built] [code generated]
+		./fixtures/b.js 94 bytes [built] [code generated]
+		./fixtures/c.js 72 bytes [built] [code generated]
 		Rspack compiled successfully"
 	`);
 	}

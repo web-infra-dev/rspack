@@ -80,8 +80,8 @@ __webpack_require__.initializeExposesData = {{
       module_map,
       json_stringify(&data.share_scope)
     );
-    source += "__webpack_require__.getContainer = function() { throw new Error(\"should have __webpack_require__.getContainer\") };";
-    source += "__webpack_require__.initContainer = function() { throw new Error(\"should have __webpack_require__.initContainer\") };";
+    source += "__webpack_require__.getContainer = __webpack_require__.getContainer || function() { throw new Error(\"should have __webpack_require__.getContainer\") };";
+    source += "__webpack_require__.initContainer = __webpack_require__.initContainer || function() { throw new Error(\"should have __webpack_require__.initContainer\") };";
     Ok(RawSource::from(source).boxed())
   }
 

@@ -120,7 +120,11 @@ impl ParserAndGenerator for CssExtractParserAndGenerator {
     }
   }
 
-  fn size(&self, module: &dyn rspack_core::Module, source_type: &rspack_core::SourceType) -> f64 {
+  fn size(
+    &self,
+    module: &dyn rspack_core::Module,
+    source_type: Option<&rspack_core::SourceType>,
+  ) -> f64 {
     self.orig_parser_generator.size(module, source_type)
   }
 

@@ -76,7 +76,7 @@ impl Module for SelfModule {
     vec![]
   }
 
-  fn size(&self, _source_type: &SourceType) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     self.identifier.len() as f64
   }
 

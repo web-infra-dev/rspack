@@ -5,11 +5,11 @@
 
 # @rspack/core
 
-A Fast Rust-based Web Bundler.
+The fast Rust-based web bundler with webpack-compatible API.
 
 ## Documentation
 
-See [https://rspack.dev](https://rspack.dev) for details.
+See <https://rspack.dev> for details.
 
 ## License
 

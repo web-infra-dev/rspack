@@ -1,9 +1,9 @@
 {
   "name": "@rspack/core",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "webpackVersion": "5.75.0",
   "license": "MIT",
-  "description": "A Fast Rust-based Web Bundler",
+  "description": "The fast Rust-based web bundler with webpack-compatible API",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

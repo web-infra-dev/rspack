@@ -7,9 +7,7 @@ The `plugins` option is used to customize the Rspack build process in a variety 
 
 An array of webpack plugins. For example, [`DefinePlugin`](/plugins/webpack/define-plugin) allows you to create global constants which can be configured at compile time. This can be useful for allowing different behavior between development builds and release builds.
 
-**rspack.config.js**
-
-```js
+```js title=rspack.config.js
 module.exports = {
   //...
   plugins: [
@@ -22,9 +20,7 @@ module.exports = {
 
 Rspack strives to maintain compatibility with the webpack plugin ecosystem to leverage the excellent features that have been accumulated and validated by the community. Please refer to the [Plugin Compatibility List](/guide/compatibility/plugin) to access a list of webpack plugins that have passed our compatibility tests:
 
-**rspack.config.js**
-
-```js
+```js title=rspack.config.js
 const rspack = require('@rspack/core');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 

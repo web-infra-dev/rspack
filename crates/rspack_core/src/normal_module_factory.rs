@@ -719,21 +719,7 @@ impl NormalModuleFactory {
 /// `u32` is 4 bytes on 64bit machine, comparing to `usize` which is 8 bytes.
 /// ## Warning
 /// [ErrorSpan] start from zero, and `Span` of `swc` start from one. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg
-#[derive(
-  Debug,
-  Hash,
-  PartialEq,
-  Eq,
-  Clone,
-  Copy,
-  Default,
-  PartialOrd,
-  Ord,
-  rkyv::Archive,
-  rkyv::Serialize,
-  rkyv::Deserialize,
-)]
-#[archive(check_bytes)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Default, PartialOrd, Ord)]
 pub struct ErrorSpan {
   pub start: u32,
   pub end: u32,

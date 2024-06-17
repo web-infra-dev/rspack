@@ -367,7 +367,7 @@ dependencies = [
  "chrono",
  "either",
  "indexmap 2.2.6",
- "itertools",
+ "itertools 0.12.1",
  "nom",
  "once_cell",
  "quote",
@@ -510,6 +510,26 @@ dependencies = [
  "libc",
  "unicode-width",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "const-str"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21077772762a1002bb421c3af42ac1725fa56066bfc53d9a55bb79905df2aaf3"
+dependencies = [
+ "const-str-proc-macro",
+]
+
+[[package]]
+name = "const-str-proc-macro"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e1e0fdd2e5d3041e530e1b21158aeeef8b5d0e306bc5c1e3d6cf0930d10e25a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -719,11 +739,43 @@ dependencies = [
 
 [[package]]
 name = "css-module-lexer"
-version = "0.0.13"
+version = "0.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56aab41e6e7074a2cc5b5606ebee14164eb107ed8aa931bf1487e898fe2df5f0"
+checksum = "7c3cb070d213f1295804b62e861ba5d05435497591212a55826af6d54b2447c8"
 dependencies = [
  "smallvec",
+]
+
+[[package]]
+name = "cssparser"
+version = "0.33.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9be934d936a0fbed5bcdc01042b770de1398bf79d0e192f49fa7faea0e99281e"
+dependencies = [
+ "cssparser-macros",
+ "dtoa-short",
+ "itoa",
+ "phf 0.11.2",
+ "smallvec",
+]
+
+[[package]]
+name = "cssparser-color"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "556c099a61d85989d7af52b692e35a8d68a57e7df8c6d07563dc0778b3960c9f"
+dependencies = [
+ "cssparser",
+]
+
+[[package]]
+name = "cssparser-macros"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13b588ba4ac1a99f7f2964d24b3d896ddc6bf847ee3855dbd4366f058cfcd331"
+dependencies = [
+ "quote",
+ "syn 2.0.63",
 ]
 
 [[package]]
@@ -831,6 +883,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8566979429cf69b49a5c740c60791108e86440e8be149bbea4fe54d2c32d6e2"
 
 [[package]]
+name = "data-url"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a30bfce702bcfa94e906ef82421f2c0e61c076ad76030c16ee5d2e9a32fe193"
+dependencies = [
+ "matches",
+]
+
+[[package]]
 name = "debugid"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -927,6 +988,21 @@ checksum = "f07994caf710e9d5fc534432b40c4a9c16ed320aa673bb768eec6c7d5cbfbc32"
 dependencies = [
  "html-escape",
  "serde_json",
+]
+
+[[package]]
+name = "dtoa"
+version = "1.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcbb2bf8e87535c23f7a8a321e364ce21462d0ff10cb6407820e8e96dfff6653"
+
+[[package]]
+name = "dtoa-short"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd1511a7b6a56299bd043a9c167a6d2bfb37bf84a6dfceaba651168adfb43c87"
+dependencies = [
+ "dtoa",
 ]
 
 [[package]]
@@ -1424,7 +1500,7 @@ dependencies = [
  "hashbrown 0.14.3",
  "new_debug_unreachable",
  "once_cell",
- "phf",
+ "phf 0.11.2",
  "rustc-hash",
  "triomphe",
 ]
@@ -1579,6 +1655,15 @@ name = "is_ci"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "616cde7c720bb2bb5824a224687d8f77bfd38922027f01d825cd7453be5099fb"
+
+[[package]]
+name = "itertools"
+version = "0.10.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+dependencies = [
+ "either",
+]
 
 [[package]]
 name = "itertools"
@@ -1745,6 +1830,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "lightningcss"
+version = "1.0.0-alpha.57"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10bc10261f46b8df263b80e7779d1748b1880488cd951fbb9e096430cead10e6"
+dependencies = [
+ "ahash 0.8.11",
+ "bitflags 2.5.0",
+ "browserslist-rs",
+ "const-str",
+ "cssparser",
+ "cssparser-color",
+ "dashmap",
+ "data-encoding",
+ "getrandom",
+ "itertools 0.10.5",
+ "lazy_static",
+ "parcel_selectors",
+ "parcel_sourcemap",
+ "paste",
+ "pathdiff",
+ "rayon",
+ "serde",
+ "smallvec",
+]
+
+[[package]]
 name = "linked-hash-map"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1830,6 +1941,12 @@ checksum = "8263075bb86c5a1b1427b5ae862e8889656f126e9f77c484496e8b47cf5c5558"
 dependencies = [
  "regex-automata 0.1.10",
 ]
+
+[[package]]
+name = "matches"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2532096657941c2fea9c289d370a250971c689d4f143798ff67113ec042024a5"
 
 [[package]]
 name = "md4"
@@ -2240,6 +2357,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "parcel_selectors"
+version = "0.26.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce9c47a67c66fee4a5a42756f9784d92941bd0ab2b653539a9e90521a44b66f0"
+dependencies = [
+ "bitflags 2.5.0",
+ "cssparser",
+ "fxhash",
+ "log",
+ "phf 0.10.1",
+ "phf_codegen",
+ "precomputed-hash",
+ "smallvec",
+]
+
+[[package]]
+name = "parcel_sourcemap"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "485b74d7218068b2b7c0e3ff12fbc61ae11d57cb5d8224f525bd304c6be05bbb"
+dependencies = [
+ "base64-simd 0.7.0",
+ "data-url",
+ "rkyv",
+ "serde",
+ "serde_json",
+ "vlq",
+]
+
+[[package]]
 name = "parking"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2356,12 +2503,31 @@ dependencies = [
 
 [[package]]
 name = "phf"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fabbf1ead8a5bcbc20f5f8b939ee3f5b0f6f281b6ad3468b84656b658b455259"
+dependencies = [
+ "phf_shared 0.10.0",
+]
+
+[[package]]
+name = "phf"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ade2d8b8f33c7333b51bcf0428d37e217e9f32192ae4772156f65063b8ce03dc"
 dependencies = [
  "phf_macros",
  "phf_shared 0.11.2",
+]
+
+[[package]]
+name = "phf_codegen"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fb1c3a8bc4dd4e5cfce29b44ffc14bedd2ee294559a294e2a4d4c9e9a6a13cd"
+dependencies = [
+ "phf_generator 0.10.0",
+ "phf_shared 0.10.0",
 ]
 
 [[package]]
@@ -2897,6 +3063,7 @@ dependencies = [
  "rspack_plugin_json",
  "rspack_plugin_lazy_compilation",
  "rspack_plugin_library",
+ "rspack_plugin_lightning_css_minimizer",
  "rspack_plugin_limit_chunk_count",
  "rspack_plugin_merge_duplicate_chunks",
  "rspack_plugin_mf",
@@ -2960,7 +3127,7 @@ dependencies = [
  "hex",
  "indexmap 2.2.6",
  "indoc",
- "itertools",
+ "itertools 0.12.1",
  "json",
  "mime_guess",
  "num-bigint",
@@ -2971,7 +3138,6 @@ dependencies = [
  "pretty_assertions",
  "rayon",
  "regex",
- "rkyv",
  "rspack_ast",
  "rspack_database",
  "rspack_error",
@@ -3088,7 +3254,7 @@ dependencies = [
 name = "rspack_ids"
 version = "0.1.0"
 dependencies = [
- "itertools",
+ "itertools 0.12.1",
  "once_cell",
  "rayon",
  "regex",
@@ -3238,7 +3404,6 @@ dependencies = [
  "async-trait",
  "mime_guess",
  "rayon",
- "rkyv",
  "rspack_base64",
  "rspack_core",
  "rspack_error",
@@ -3297,7 +3462,6 @@ dependencies = [
  "once_cell",
  "rayon",
  "regex",
- "rkyv",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
@@ -3419,7 +3583,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "dojang",
- "itertools",
+ "itertools 0.12.1",
  "path-clean 1.0.1",
  "rayon",
  "regex",
@@ -3460,7 +3624,7 @@ dependencies = [
  "dashmap",
  "indexmap 2.2.6",
  "indoc",
- "itertools",
+ "itertools 0.12.1",
  "linked_hash_set",
  "num-bigint",
  "once_cell",
@@ -3528,6 +3692,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_lightning_css_minimizer"
+version = "0.1.0"
+dependencies = [
+ "lightningcss",
+ "once_cell",
+ "parcel_sourcemap",
+ "rayon",
+ "regex",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hash",
+ "rspack_hook",
+]
+
+[[package]]
 name = "rspack_plugin_limit_chunk_count"
 version = "0.1.0"
 dependencies = [
@@ -3553,7 +3732,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "hashlink",
- "itertools",
+ "itertools 0.12.1",
  "once_cell",
  "regex",
  "rspack_core",
@@ -3613,7 +3792,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "indexmap 2.2.6",
- "itertools",
+ "itertools 0.12.1",
  "once_cell",
  "rspack_core",
  "rspack_error",
@@ -4744,7 +4923,7 @@ dependencies = [
  "bytecheck",
  "is-macro",
  "num-bigint",
- "phf",
+ "phf 0.11.2",
  "rkyv",
  "scoped-tls",
  "serde",
@@ -4985,7 +5164,7 @@ version = "0.114.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "259b7b69630aafde63c6304eeacb93fd54619cbdb199c978549acc76cd512d76"
 dependencies = [
- "phf",
+ "phf 0.11.2",
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
@@ -5079,7 +5258,7 @@ dependencies = [
  "new_debug_unreachable",
  "num-bigint",
  "num-traits",
- "phf",
+ "phf 0.11.2",
  "serde",
  "smallvec",
  "smartstring",
@@ -5176,7 +5355,7 @@ dependencies = [
  "bitflags 2.5.0",
  "indexmap 2.2.6",
  "once_cell",
- "phf",
+ "phf 0.11.2",
  "rayon",
  "rustc-hash",
  "serde",
@@ -6428,6 +6607,12 @@ dependencies = [
  "tracing",
  "virtual-mio",
 ]
+
+[[package]]
+name = "vlq"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65dd7eed29412da847b0f78bcec0ac98588165988a8cfe41d4ea1d429f8ccfff"
 
 [[package]]
 name = "vsimd"

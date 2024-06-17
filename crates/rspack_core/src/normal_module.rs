@@ -362,12 +362,12 @@ impl Module for NormalModule {
     Cow::Owned(context.shorten(&self.user_request))
   }
 
-  fn size(&self, source_type: &SourceType) -> f64 {
-    if let Some(size_ref) = self.cached_source_sizes.get(source_type) {
+  fn size(&self, source_type: Option<&SourceType>) -> f64 {
+    if let Some(size_ref) = source_type.and_then(|st| self.cached_source_sizes.get(st)) {
       *size_ref
     } else {
       let size = f64::max(1.0, self.parser_and_generator.size(self, source_type));
-      self.cached_source_sizes.insert(*source_type, size);
+      source_type.and_then(|st| self.cached_source_sizes.insert(*st, size));
       size
     }
   }

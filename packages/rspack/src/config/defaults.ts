@@ -75,12 +75,16 @@ export const applyRspackOptionsDefaults = (
 		}
 	}
 
+	// IGNORE(devtool): devtool is default to "eval" in webpack when mode is development
 	F(options, "devtool", () => false as const);
 	D(options, "watch", false);
 	D(options, "profile", false);
+	// IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
 	D(options, "bail", false);
 
 	const futureDefaults = options.experiments.futureDefaults ?? false;
+	// IGNORE(cache): cache is default to { type: "memory" } in webpack when the mode is development,
+	// but Rspack currently does not support this option
 	F(options, "cache", () => development);
 
 	applyExperimentsDefaults(options.experiments, {
@@ -185,11 +189,15 @@ const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
 	{ cache }: { cache: boolean }
 ) => {
+	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
 	D(experiments, "lazyCompilation", false);
+	// IGNORE(experiments.asyncWebAssembly): The default value of `asyncWebAssembly` is determined by `futureDefaults` in webpack.
 	D(experiments, "asyncWebAssembly", false);
-	D(experiments, "css", true); // we not align with webpack about the default value for better DX
+	// IGNORE(experiments.css): Rspack will switch to `false` when reach 1.0 and `css-extract` is stable enough
+	D(experiments, "css", true);
 	D(experiments, "topLevelAwait", true);
 
+	// IGNORE(experiments.rspackFuture): Rspack specific configuration
 	D(experiments, "rspackFuture", {});
 	if (typeof experiments.rspackFuture === "object") {
 		D(experiments.rspackFuture, "bundlerInfo", {});
@@ -296,6 +304,8 @@ const applyModuleDefaults = (
 		module.parser.javascript
 	);
 
+	// IGNORE(module.generator): Rspack enables `experiments.css` by default currently
+	// IGNORE(module.parser): Rspack enables `experiments.css` by default currently
 	if (css) {
 		F(module.parser, "css", () => ({}));
 		assertNotNill(module.parser.css);
@@ -349,6 +359,8 @@ const applyModuleDefaults = (
 		D(module.generator["css/module"], "esModule", true);
 	}
 
+	// IGNORE(module.defaultRules): Rspack does not support `rule.assert`
+	// https://github.com/webpack/webpack/blob/main/lib/config/defaults.js#L839
 	A(module, "defaultRules", () => {
 		const esm = {
 			type: "javascript/esm",
@@ -452,18 +464,28 @@ const applyModuleDefaults = (
 			});
 		}
 
-		rules.push({
-			dependency: "url",
-			oneOf: [
-				{
-					scheme: /^data$/,
-					type: "asset/inline"
-				},
-				{
-					type: "asset/resource"
-				}
-			]
-		});
+		rules.push(
+			{
+				dependency: "url",
+				oneOf: [
+					{
+						scheme: /^data$/,
+						type: "asset/inline"
+					},
+					{
+						type: "asset/resource"
+					}
+				]
+			}
+			// {
+			// 	assert: { type: "json" },
+			// 	type: "json"
+			// },
+			// {
+			// 	with: { type: "json" },
+			// 	type: "json"
+			// }
+		);
 
 		return rules;
 	});
@@ -694,9 +716,11 @@ const applyOutputDefaults = (
 		return "self";
 	});
 	D(output, "importFunctionName", "import");
+	// IGNORE(output.clean): The default value of `output.clean` in webpack is undefined, but it has the same effect as false.
 	F(output, "clean", () => !!output.clean);
 	D(output, "crossOriginLoading", false);
 	D(output, "workerPublicPath", "");
+	// IGNORE(output.sourceMapFilename): In webpack, sourceMapFilename is [file].map[query] by default
 	F(output, "sourceMapFilename", () => {
 		return "[file].map";
 	});
@@ -858,14 +882,17 @@ const applyNodeDefaults = (
 ) => {
 	if (node === false) return;
 
+	// IGNORE(node.global): The default value of `global` is determined by `futureDefaults` in webpack.
 	F(node, "global", () => {
 		if (targetProperties && targetProperties.global) return false;
 		return "warn";
 	});
+	// IGNORE(node.__dirname): The default value of `__dirname` is determined by `futureDefaults` in webpack.
 	F(node, "__dirname", () => {
 		if (targetProperties && targetProperties.node) return "eval-only";
 		return "warn-mock";
 	});
+	// IGNORE(node.__filename): The default value of `__filename` is determined by `futureDefaults` in webpack.
 	F(node, "__filename", () => {
 		if (targetProperties && targetProperties.node) return "eval-only";
 		return "warn-mock";
@@ -890,19 +917,20 @@ const applyOptimizationDefaults = (
 		css
 	}: { production: boolean; development: boolean; css: boolean }
 ) => {
+	// IGNORE(optimization.removeAvailableModules): In webpack, removeAvailableModules is false by default
 	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
+	// IGNORE(optimization.moduleIds): set to "natural" by default in rspack 1.0
 	F(optimization, "moduleIds", (): "natural" | "named" | "deterministic" => {
 		if (production) return "deterministic";
 		if (development) return "named";
-		// TODO(rspack@1.0): change to `"natural"`
 		return "named";
 	});
+	// IGNORE(optimization.chunkIds): set to "natural" by default in rspack 1.0
 	F(optimization, "chunkIds", (): "natural" | "named" | "deterministic" => {
 		if (production) return "deterministic";
 		if (development) return "named";
-		// TODO(rspack@1.0): change to `"natural"`
 		return "named";
 	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
@@ -913,7 +941,10 @@ const applyOptimizationDefaults = (
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
+	// IGNORE(optimization.concatenateModules): webpack sets this option as true by default when the mode is production,
+	// but rspack is in the experimental stage and sets it to false by default
 	D(optimization, "concatenateModules", false);
+	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `SwcCssMinimizerRspackPlugin` by default
 	A(optimization, "minimizer", () => [
 		new SwcJsMinimizerRspackPlugin(),
 		new SwcCssMinimizerRspackPlugin()
@@ -925,6 +956,7 @@ const applyOptimizationDefaults = (
 	});
 	const { splitChunks } = optimization;
 	if (splitChunks) {
+		// IGNORE(optimization.splitChunks.defaultSizeTypes): Rspack enables `experiments.css` by default currently
 		A(splitChunks, "defaultSizeTypes", () =>
 			css ? ["javascript", "css", "unknown"] : ["javascript", "unknown"]
 		);
@@ -1053,6 +1085,7 @@ const getResolveDefaults = ({
 		styleConditions.push(mode === "development" ? "development" : "production");
 		styleConditions.push("style");
 
+		// IGNORE(resolve.byDependency.css-import): Rspack enables `experiments.css` by default currently
 		resolveOptions.byDependency!["css-import"] = {
 			// We avoid using any main files because we have to be consistent with CSS `@import`
 			// and CSS `@import` does not handle `main` files in directories,
