@@ -1376,6 +1376,48 @@ MyModule.doSomething();
 MySubModule.doSomething();
 ```
 
+## output.libraryExport
+
+:::warning
+我们可能会停止支持此功能，请使用 [output.library.export](#outputlibraryexport) 代替 `libraryExport`。
+:::
+
+- **类型：** `string | string[]`
+- **默认值：** `undefined`
+
+指定将通过 `libraryTarget` 暴露出来模块。默认情况下它为 `undefined`，如果你将 `libraryTarget` 设置为空字符串，例如 `''`，它会导出整个（命名空间）对象。
+
+以下示例演示了在使用 `libraryTarget: 'var'` 时，此配置的效果。
+
+支持以下配置:
+
+`libraryExport: 'default'` - **你入口点的默认导出**将赋值给 `libraryTarget`:
+
+```js
+// 如果你的入口点具有默认导出为 `MyDefaultModule`
+var MyDefaultModule = _entry_return_.default;
+```
+
+`libraryExport: 'MyModule'` - **指定的模块**将被分配给 `libraryTarget`:
+
+```js
+var MyModule = _entry_return_.MyModule;
+```
+
+`libraryExport: ['MyModule', 'MySubModule']` - 数组被解释为要分配给 `libraryTarget` 的模块**路径**
+
+```js
+var MySubModule = _entry_return_.MyModule.MySubModule;
+```
+
+用上述 `libraryExport` 配置，生成的库可以按如下方式使用：
+
+```js
+MyDefaultModule.doSomething();
+MyModule.doSomething();
+MySubModule.doSomething();
+```
+
 ## output.libraryTarget
 
 - **类型：** `string`

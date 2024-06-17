@@ -1363,6 +1363,47 @@ MyModule.doSomething();
 MySubModule.doSomething();
 ```
 
+## output.libraryExport
+
+:::warning
+We might drop support for this, so prefer to use [output.library.export](#outputlibraryexport) which works the same as `libraryExport`.
+:::
+
+- **Type:** `string | string[]`
+
+Configure which module or modules will be exposed via the `libraryTarget`.
+It is `undefined` by default, same behaviour will be applied if you set `libraryTarget` to an empty string e.g. `''` it will export the whole (namespace) object.
+The examples below demonstrate the effect of this configuration when using `libraryTarget: 'var'`.
+
+The following configurations are supported:
+
+`libraryExport: 'default'` - The **default export of your entry point** will be assigned to the library target:
+
+```js
+// if your entry has a default export of `MyDefaultModule`
+var MyDefaultModule = _entry_return_.default;
+```
+
+libraryExport: 'MyModule' - The **specified module** will be assigned to the library target:
+
+```js
+var MyModule = _entry_return_.MyModule;
+```
+
+`libraryExport: ['MyModule', 'MySubModule']` - The array is interpreted as a **path to a module** to be assigned to the library target:
+
+```js
+var MySubModule = _entry_return_.MyModule.MySubModule;
+```
+
+With the `libraryExport` configurations specified above, the resulting libraries could be utilized as such:
+
+```js
+MyDefaultModule.doSomething();
+MyModule.doSomething();
+MySubModule.doSomething();
+```
+
 ## output.libraryTarget
 
 - **Type:** `string`
