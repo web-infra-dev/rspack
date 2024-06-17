@@ -52,10 +52,55 @@ use crate::runtime::{
 static COMPILATION_HOOKS_MAP: Lazy<FxDashMap<CompilationId, Box<JavascriptModulesPluginHooks>>> =
   Lazy::new(Default::default);
 
+#[derive(Debug, Clone)]
+struct WithCode<T> {
+  code: String,
+  value: T,
+}
+
+#[derive(Debug, Default)]
+struct RenameModuleCache {
+  inlined_modules_to_info: FxDashMap<String, WithCode<InlinedModuleInfo>>,
+  non_inlined_modules_through_idents: FxDashMap<String, WithCode<Vec<ConcatenatedModuleIdent>>>,
+}
+
+impl RenameModuleCache {
+  pub fn get_inlined_info(
+    &self,
+    ident: &String,
+  ) -> Option<
+    dashmap::mapref::one::Ref<
+      '_,
+      String,
+      WithCode<InlinedModuleInfo>,
+      std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
+    >,
+  > {
+    self.inlined_modules_to_info.get(ident)
+  }
+
+  pub fn get_non_inlined_idents(
+    &self,
+    ident: &String,
+  ) -> Option<
+    dashmap::mapref::one::Ref<
+      '_,
+      String,
+      WithCode<Vec<ConcatenatedModuleIdent>>,
+      std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
+    >,
+  > {
+    self.non_inlined_modules_through_idents.get(ident)
+  }
+}
+
 #[plugin]
 #[derive(Debug, Default)]
-pub struct JsPlugin;
+pub struct JsPlugin {
+  rename_module_cache: RenameModuleCache,
+}
 
+#[derive(Debug, Clone)]
 struct InlinedModuleInfo {
   source: Arc<dyn Source>,
   module_scope_idents: Vec<Arc<ConcatenatedModuleIdent>>,
@@ -768,76 +813,125 @@ impl JsPlugin {
       };
 
       let code = rendered_module;
-      let cm: Arc<swc_core::common::SourceMap> = Default::default();
-      let fm = cm.new_source_file(
-        FileName::Custom(m.identifier().to_string()),
-        code.source().to_string(),
-      );
-      let comments = swc_node_comments::SwcComments::default();
-      let mut errors = vec![];
-
-      let Ok(program) = swc_core::ecma::parser::parse_file_as_program(
-        &fm,
-        swc_core::ecma::parser::Syntax::default(),
-        swc_core::ecma::ast::EsVersion::EsNext,
-        Some(&comments),
-        &mut errors,
-      ) else {
-        continue;
-      };
-
-      let mut ast: Ast = Ast::new(program, cm, Some(comments));
-
-      let mut global_ctxt = SyntaxContext::empty();
-      let mut module_ctxt = SyntaxContext::empty();
-
-      ast.transform(|program, context| {
-        global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
-        module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
-        program.visit_mut_with(&mut resolver(
-          context.unresolved_mark,
-          context.top_level_mark,
-          false,
-        ));
-      });
-
-      let mut collector = IdentCollector::default();
-      ast.visit(|program, _ctxt| {
-        program.visit_with(&mut collector);
-      });
+      let mut use_cache = false;
 
       if is_inlined_module {
-        let mut module_scope_idents = Vec::new();
-
-        for ident in collector.ids {
-          if ident.id.span.ctxt == global_ctxt
-            || ident.id.span.ctxt != module_ctxt
-            || ident.is_class_expr_with_ident
-          {
-            all_used_names.insert(ident.id.sym.to_string());
-          }
-
-          if ident.id.span.ctxt == module_ctxt {
-            all_used_names.insert(ident.id.sym.to_string());
-            module_scope_idents.push(Arc::new(ident));
+        if let Some(ident_info_with_code) = self
+          .rename_module_cache
+          .get_inlined_info(&m.identifier().to_string())
+        {
+          if code.source() == ident_info_with_code.code {
+            let WithCode { value, .. } = (*ident_info_with_code).clone();
+            inlined_modules_to_info.insert(m.identifier().to_string(), value);
+            use_cache = true;
           }
         }
+      } else if let Some(idents_with_code) = self
+        .rename_module_cache
+        .get_non_inlined_idents(&m.identifier().to_string())
+      {
+        if code.source() == idents_with_code.code {
+          all_used_names.extend(idents_with_code.value.iter().map(|v| v.id.sym.to_string()));
+          non_inlined_module_through_idents.extend(idents_with_code.value.clone());
+          use_cache = true;
+        }
+      }
 
-        let ident: String = m.identifier().to_string();
-        inlined_modules_to_info.insert(
-          ident,
-          InlinedModuleInfo {
-            source: code,
+      if !use_cache {
+        let cm: Arc<swc_core::common::SourceMap> = Default::default();
+        let fm = cm.new_source_file(
+          FileName::Custom(m.identifier().to_string()),
+          code.source().to_string(),
+        );
+        let comments = swc_node_comments::SwcComments::default();
+        let mut errors = vec![];
+
+        let Ok(program) = swc_core::ecma::parser::parse_file_as_program(
+          &fm,
+          swc_core::ecma::parser::Syntax::default(),
+          swc_core::ecma::ast::EsVersion::EsNext,
+          Some(&comments),
+          &mut errors,
+        ) else {
+          continue;
+        };
+
+        let mut ast: Ast = Ast::new(program, cm, Some(comments));
+
+        let mut global_ctxt = SyntaxContext::empty();
+        let mut module_ctxt = SyntaxContext::empty();
+
+        ast.transform(|program, context| {
+          global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
+          module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
+          program.visit_mut_with(&mut resolver(
+            context.unresolved_mark,
+            context.top_level_mark,
+            false,
+          ));
+        });
+
+        let mut collector = IdentCollector::default();
+        ast.visit(|program, _ctxt| {
+          program.visit_with(&mut collector);
+        });
+
+        if is_inlined_module {
+          let mut module_scope_idents = Vec::new();
+
+          for ident in collector.ids {
+            if ident.id.span.ctxt == global_ctxt
+              || ident.id.span.ctxt != module_ctxt
+              || ident.is_class_expr_with_ident
+            {
+              all_used_names.insert(ident.id.sym.to_string());
+            }
+
+            if ident.id.span.ctxt == module_ctxt {
+              all_used_names.insert(ident.id.sym.to_string());
+              module_scope_idents.push(Arc::new(ident));
+            }
+          }
+
+          let ident: String = m.identifier().to_string();
+
+          let info = InlinedModuleInfo {
+            source: code.clone(),
             module_scope_idents,
             used_in_non_inlined: Vec::new(),
-          },
-        );
-      } else {
-        for ident in collector.ids {
-          if ident.id.span.ctxt == global_ctxt {
-            all_used_names.insert(ident.id.sym.to_string());
-            non_inlined_module_through_idents.push(ident);
+          };
+
+          self.rename_module_cache.inlined_modules_to_info.insert(
+            ident.clone(),
+            WithCode {
+              code: code.source().to_string(),
+              value: info.clone(),
+            },
+          );
+
+          inlined_modules_to_info.insert(ident, info);
+        } else {
+          let mut idents_vec = vec![];
+          let module_ident: String = m.identifier().to_string();
+
+          for ident in collector.ids {
+            if ident.id.span.ctxt == global_ctxt {
+              all_used_names.insert(ident.clone().id.sym.to_string());
+              idents_vec.push(ident.clone());
+              non_inlined_module_through_idents.push(ident);
+            }
           }
+
+          self
+            .rename_module_cache
+            .non_inlined_modules_through_idents
+            .insert(
+              module_ident.clone(),
+              WithCode {
+                code: code.source().to_string(),
+                value: idents_vec.clone(),
+              },
+            );
         }
       }
     }
@@ -864,7 +958,7 @@ impl JsPlugin {
       let module = all_modules
         .iter()
         .find(|m| m.identifier().to_string() == *module_id)
-        .expect("should find the inlined module in all_modules");
+        .unwrap_or_else(|| panic!("should find inlined module id \"{module_id}\" in all_modules"));
 
       let mut source: Arc<dyn Source> = Arc::clone(_source);
 
