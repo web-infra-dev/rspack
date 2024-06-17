@@ -290,12 +290,12 @@ module.exports = {
 - **类型：** `boolean | string`
 - **默认值：** `false`
 
-Rspack 将 `process.env.NODE_ENV` 设置为给定的字符串值。除非设置为 `false`，否则 `optimization.nodeEnv` 将使用 [DefinePlugin](/plugins/webpack/define-plugin)。
+Rspack 将 `process.env.NODE_ENV` 设置为给定的字符串。除非该值被明确设置为 `false`，否则 `optimization.nodeEnv` 将使用 [DefinePlugin](/plugins/webpack/define-plugin)。
 `optimization.nodeEnv` 的**默认值**为 [mode](/config/mode)，否则将设置为 `'production'`。
 
-可能的值:
+可能的值：
 
-- 任何字符串：设置 `process.env.NODE_ENV` 的值。
+- 任意字符串：设置 `process.env.NODE_ENV` 的值。
 - false：不设置 `process.env.NODE_ENV` 的值。
 
 ```js title=rspack.config.js
@@ -308,5 +308,5 @@ module.exports = {
 ```
 
 :::tip
-当 [mode](/config/mode) 设置为 `'none'` 时，`optimization.nodeEnv` 默认为 `false`。
+当 [mode](/config/mode) 被设置为 `'none'` 时，`optimization.nodeEnv` 默认为 `false`。
 :::
