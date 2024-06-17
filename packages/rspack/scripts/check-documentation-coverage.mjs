@@ -137,14 +137,36 @@ function checkPluginsDocumentationCoverage() {
 	}
 }
 
+/**
+ * The process of checking the documentation coverage of Rspack configuration
+ *
+ * 1. Retrieve and traverse all implemented Rspack configurations through zod declaration.
+ * 2. Traverse the configurations and determine whether they match the any level titles of the Markdown files under the config directory of the document site:
+ *     1. If so, pass.
+ *     2. If not, judge whether the introduction of the configuration exists in the body of the parent configuration:
+ *       1. If so, pass.
+ *       2. If not, fail.
+ */
 function checkConfigsDocumentationCoverage() {
+	const CONFIG_DOCS_DIR = resolve(__dirname, "../../../website/docs/en/config");
+
 	function getImplementedConfigs() {
 		const implementedConfigs = [];
 		function visit(zod, path = "") {
 			if (zod instanceof ZodObject) {
 				for (const [key, schema] of Object.entries(zod.shape)) {
-					implementedConfigs.push(path + key);
-					visit(schema, path + key + ".");
+					const next = (() => {
+						if (key.includes("/")) {
+							return path + `["${key}"]`;
+						} else {
+							if (path) {
+								return path + "." + key;
+							}
+							return key;
+						}
+					})();
+					implementedConfigs.push(next);
+					visit(schema, next);
 				}
 			} else if (zod instanceof ZodOptional) {
 				visit(zod.unwrap(), path);
@@ -158,20 +180,39 @@ function checkConfigsDocumentationCoverage() {
 		return implementedConfigs;
 	}
 
-	function getConfigDocumentTitles() {
-		const CONFIG_DOCS_DIR = resolve(
-			__dirname,
-			"../../../website/docs/en/config"
-		);
-		const OTHER_CONFIGS_DOC = join(CONFIG_DOCS_DIR, "other-options.mdx");
-
-		const configDocumentTitles = [];
-		const otherConfigsContent = readFileSync(OTHER_CONFIGS_DOC, "utf-8");
-		for (const title of extractMarkdownHeadings(otherConfigsContent)) {
-			if (!title.includes(" ")) {
-				configDocumentTitles.push(toCamelCase(title));
+	function parseConfigDocuments() {
+		function parseMarkdownContent(content) {
+			const sections = [];
+			let section;
+			const lines = content.split("\n");
+			for (let i = 0; i < lines.length; i++) {
+				const line = lines[i];
+				if (line.startsWith("#")) {
+					let level;
+					for (let j = 0; j < line.length; j++) {
+						if (level === undefined) {
+							if (line[j] != "#") {
+								level = j;
+							}
+						} else {
+							break;
+						}
+					}
+					const title = line.substring(level).trim();
+					section = {
+						title: toCamelCase(title),
+						level,
+						text: ""
+					};
+					sections.push(section);
+				} else if (section) {
+					section.text += line;
+				}
 			}
+			return sections;
 		}
+
+		const sections = [];
 		function visitDir(dir) {
 			const items = readdirSync(dir, { withFileTypes: true });
 			for (const item of items) {
@@ -179,30 +220,65 @@ function checkConfigsDocumentationCoverage() {
 				if (item.isDirectory()) {
 					visitDir(resPath);
 				} else {
-					if (["other-options.mdx", "index.mdx"].some(f => item.name === f)) {
-						continue;
-					}
 					const ext = extname(item.name);
 					if (ext === ".mdx") {
 						const content = readFileSync(join(item.path, item.name), "utf-8");
-						for (const title of extractMarkdownHeadings(content)) {
-							if (!title.includes(" ")) {
-								configDocumentTitles.push(toCamelCase(title));
-							}
-						}
+						const markdownBlocks = parseMarkdownContent(content);
+						sections.push(...markdownBlocks);
 					}
 				}
 			}
 		}
 		visitDir(CONFIG_DOCS_DIR);
-		return configDocumentTitles;
+		return sections;
 	}
-	const configDocumentTitles = getConfigDocumentTitles();
-	const implementedConfigs = getImplementedConfigs();
 
-	const undocumentedConfigs = Array.from(implementedConfigs).filter(
-		config => !configDocumentTitles.includes(config)
-	);
+	const implementedConfigs = getImplementedConfigs().filter(config => {
+		return ![
+			"resolveLoader",
+			"module",
+			"experiments",
+			"output",
+			"externalsPresets",
+			"node",
+			"stats",
+			"optimization",
+			"loader",
+			"snapshot",
+			"profile"
+		].some(c => config.startsWith(c));
+	});
+	const markdownSections = parseConfigDocuments();
+
+	const undocumentedConfigs = [];
+	const map = new Map();
+	for (const config of implementedConfigs) {
+		let documented = false;
+		for (const section of markdownSections) {
+			if (section.title === config) {
+				documented = true;
+				map.set(config, section);
+			}
+		}
+		if (!documented) {
+			const parts = config.split(".");
+			const subs = [];
+			let part;
+			while ((part = parts.pop())) {
+				subs.push(part);
+				const section = map.get(parts.join("."));
+				if (section) {
+					if (subs.every(sub => section.text.includes(sub))) {
+						documented = true;
+						break;
+					}
+				}
+			}
+		}
+		if (!documented) {
+			undocumentedConfigs.push(config);
+		}
+	}
 
 	if (undocumentedConfigs.length) {
 		console.error(
