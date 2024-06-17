@@ -165,7 +165,9 @@ for (const binding of bindings) {
 
 # ${pkgJson.name}
 
-Node binding for rspack.
+Private node binding crate for rspack.
+
+This package does *NOT* follow [semantic versioning](https://semver.org/).
 
 ## Documentation
 
