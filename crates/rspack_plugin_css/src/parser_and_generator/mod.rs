@@ -422,14 +422,19 @@ impl ParserAndGenerator for CssParserAndGenerator {
           }
           return Ok(concate_source.boxed());
         } else {
-          let (ns_obj, left, right) = if self.es_module {
+          let mg = generate_context.compilation.get_module_graph();
+          let (ns_obj, left, right) = if self.es_module
+            && mg
+              .get_exports_info(&module.identifier())
+              .other_exports_info
+              .get_used(&mg, generate_context.runtime)
+              != UsageState::Unused
+          {
             (RuntimeGlobals::MAKE_NAMESPACE_OBJECT.name(), "(", ")")
           } else {
             ("", "", "")
           };
           if let Some(exports) = &self.exports {
-            let mg = generate_context.compilation.get_module_graph();
-
             let exports =
               get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
 
