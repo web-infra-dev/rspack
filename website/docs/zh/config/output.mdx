@@ -13,14 +13,13 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 - **类型：** `string`
 
-:::warning
-请使用 [`output.library.amdContainer`](#outputlibraryamdcontainer)，因为我们未来可能会停止支持 `output.amdContainer`。
-:::
-
 在全局为 AMD 模块添加 `define`/`require` 函数的容器。
 
 :::warning
-请注意，`amdContainer` 的值必须设置为全局变量。
+
+- 请使用 [`output.library.amdContainer`](#outputlibraryamdcontainer)，因为我们未来可能会停止支持 `output.amdContainer`。
+- 请注意，`amdContainer` 的值必须设置为全局变量。
+
 :::
 
 ```js title="rspack.config.js"
@@ -466,7 +465,9 @@ module.exports = {
 module.exports = {
   //...
   output: {
-    scriptType: 'module',
+    trustedTypes: {
+      policyName: 'my-application#webpack',
+    },
   },
 };
 ```
@@ -1456,7 +1457,7 @@ module.exports = {
 - **类型：** `string`
 - **默认值：** `'[hash].module.wasm'`
 
-指定 WebAssembly 模块的文件名。应该作为 `output.path` 目录下的相对路径提供。
+指定 WebAssembly 模块的文件名。作为 `output.path` 目录下的相对路径。
 
 ```js title="rspack.config.js"
 module.exports = {

@@ -13,14 +13,13 @@ Used to indicate how and where Rspack outputs the contents of the generated file
 
 - **Type:** `string`
 
-:::warning
-Please use [`output.library.amdContainer`](#outputlibraryamdcontainer) instead as we might drop support for `output.amdContainer` in the future.
-:::
-
 Use a container(defined in global space) for calling `define`/`require` functions in an AMD module.
 
 :::warning
-Note that the value of `amdContainer` **must be** set as a global variable.
+
+- Please use [`output.library.amdContainer`](#outputlibraryamdcontainer) instead as we might drop support for `output.amdContainer` in the future.
+- Note that the value of `amdContainer` **must be** set as a global variable.
+
 :::
 
 ```js title="rspack.config.js"
@@ -468,7 +467,9 @@ The policy name is taken from the object's `policyName` property.
 module.exports = {
   //...
   output: {
-    scriptType: 'module',
+    trustedTypes: {
+      policyName: 'my-application#webpack',
+    },
   },
 };
 ```
@@ -1443,7 +1444,7 @@ The default value can be affected by different target:
 - **Type:** `string`
 - **Default:** `'[hash].module.wasm'`
 
-Specifies the filename of WebAssembly modules. It should be provided as a relative path within the `output.path` directory
+Specifies the filename of WebAssembly modules. It should be provided as a relative path within the `output.path` directory.
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -1501,7 +1502,7 @@ Only used when [chunkLoading](/config/output#outputchunkloading) is `"jsonp"` or
 - **Type:** `boolean`
 - **Default:** `true`
 
-Tells webpack to add IIFE wrapper around emitted code.
+Tells Rspack to add IIFE wrapper around emitted code.
 
 ```js title="rspack.config.js"
 module.exports = {
