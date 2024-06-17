@@ -239,7 +239,6 @@ function checkConfigsDocumentationCoverage() {
 			"module",
 			"experiments",
 			"output",
-			"externalsPresets",
 			"node",
 			"stats",
 			"optimization",
