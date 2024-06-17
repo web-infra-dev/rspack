@@ -15,7 +15,7 @@ export const BundlerInfoRspackPlugin = create(
 	(options: BundleInfoOptions): RawBundlerInfoPluginOptions => {
 		return {
 			version: options.version || "unknown",
-			force: options.force ?? false
+			force: options.force ?? true
 		};
 	}
 );
