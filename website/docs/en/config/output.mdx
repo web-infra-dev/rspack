@@ -359,13 +359,13 @@ module.exports = {
 - **Type:** `boolean | 'verbose'`
 - **Default:** `true`
 
-Tells Rspack to include comments in bundles with information about the contained modules. This option defaults to `true` in `development` and `false` in `production` [mode](/config/mode) respectively. 'verbose' shows more information like exports, runtime requirements and bailouts.
+Tells Rspack to include comments in bundles with information about the contained modules. This option defaults to `true` in `development` and `false` in `production` [mode](/config/mode) respectively. `'verbose'` shows more information like exports, runtime requirements and bailouts.
 
 :::warning
-While the data these comments can provide is useful during development when reading the generated code, it should not be used in production.
+While the data these comments can provide is useful during development when reading the generated code, it **should not** be used in production.
 :::
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   //...
   output: {

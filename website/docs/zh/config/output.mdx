@@ -365,7 +365,7 @@ module.exports = {
 在开发过程中分析生成的代码时，这些注释提供的信息很有用，但不应在生产环境中使用。
 :::
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   //...
   output: {
@@ -1424,7 +1424,7 @@ MySubModule.doSomething();
 - **默认值：** `var`
 
 :::warning
-请使用 [`output.library.type`](#outputlibrarytype) 代理，因为我们可能在未来放弃对 `output.libraryTarget` 的支持。
+请使用 [`output.library.type`](#outputlibrarytype) 代替，因为我们可能在未来放弃对 `output.libraryTarget` 的支持。
 :::
 
 ## output.umdNamedDefine
