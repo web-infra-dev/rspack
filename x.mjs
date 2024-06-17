@@ -159,6 +159,36 @@ testCommand
 		await $`pnpm --filter "plugin-test" test`;
 	});
 
+// x api-extractor
+const extractorCommand = program
+	.command("api-extractor")
+	.alias("ae")
+	.description("api extractor");
+
+extractorCommand
+	.command("update")
+	.description("update api extractor snapshots")
+	.action(async function () {
+		await $`pnpm build:js`;
+		await $`pnpm --filter '@rspack/*' api-extractor --local`;
+	});
+
+extractorCommand
+	.command("ci")
+	.description("test api extractor snapshots")
+	.action(async function () {
+		try {
+			await $`pnpm --filter '@rspack/*' api-extractor:ci`;
+		} catch (e) {
+			console.error(
+				`Api-extractor testing failed. Did you forget to update the snapshots locally?
+Run the command below locally to fix this error (in the *ROOT* of rspack workspace).
+$ ./x api-extractor update`
+			);
+			process.exit(e.exitCode);
+		}
+	});
+
 // x rspack / x rs
 const rspackCommand = program.command("rspack").alias("rs").description(`
   $ x rspack -- [your-rspack-cli-args...]

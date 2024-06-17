@@ -5,6 +5,6 @@ export default {
 	"*.{ts,tsx,js,cts,cjs,mts,mjs}": () => [
 		"pnpm run lint:js",
 		"pnpm run lint:js-sort-imports-order",
-		"pnpm run api-extractor:ci"
+		"node ./x ae ci"
 	]
 };
