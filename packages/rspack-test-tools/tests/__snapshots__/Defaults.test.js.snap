@@ -374,7 +374,7 @@ Object {
     "pathinfo": false,
     "publicPath": "auto",
     "scriptType": false,
-    "sourceMapFilename": "[file].map",
+    "sourceMapFilename": "[file].map[query]",
     "strictModuleErrorHandling": false,
     "trustedTypes": undefined,
     "uniqueName": "@rspack/test-tools",
