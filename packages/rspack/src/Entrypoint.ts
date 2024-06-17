@@ -18,10 +18,10 @@ export class Entrypoint extends ChunkGroup {
 
 	getRuntimeChunk(): Chunk | null {
 		const c = __entrypoint_inner_get_runtime_chunk(
-			this.__internal_inner_ukey(),
-			this.__internal_inner_compilation()
+			this.__internal_innerUkey(),
+			this.__internal_innerCompilation()
 		);
-		if (c) return Chunk.__from_binding(c, this.__internal_inner_compilation());
+		if (c) return Chunk.__from_binding(c, this.__internal_innerCompilation());
 		return null;
 	}
 }

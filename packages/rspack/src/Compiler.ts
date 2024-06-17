@@ -27,8 +27,8 @@ import {
 import { rspack } from "./index";
 import * as liteTapable from "./lite-tapable";
 import ResolverFactory = require("./ResolverFactory");
+import { ThreadsafeWritableNodeFS } from "./FileSystem";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
-import { ThreadsafeWritableNodeFS } from "./fileSystem";
 import Cache = require("./lib/Cache");
 import CacheFacade = require("./lib/CacheFacade");
 import { Source } from "webpack-sources";
@@ -1114,7 +1114,7 @@ class Compiler {
 			rawOptions,
 			this.#builtinPlugins,
 			this.#registers,
-			ThreadsafeWritableNodeFS.__into_binding(this.outputFileSystem!)
+			ThreadsafeWritableNodeFS.__to_binding(this.outputFileSystem!)
 		);
 
 		callback(null, this.#instance);

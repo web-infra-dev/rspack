@@ -829,7 +829,7 @@ export class Chunk {
     // (undocumented)
     static __from_binding(chunk: JsChunk, compilation: JsCompilation): Chunk;
     // (undocumented)
-    __internal_inner_ukey(): number;
+    __internal_innerUkey(): number;
     // (undocumented)
     auxiliaryFiles: Array<string>;
     // (undocumented)
@@ -905,9 +905,9 @@ export class ChunkGroup {
     // (undocumented)
     static __from_binding(chunk: JsChunkGroup, compilation: JsCompilation): ChunkGroup;
     // (undocumented)
-    __internal_inner_compilation(): JsCompilation;
+    __internal_innerCompilation(): JsCompilation;
     // (undocumented)
-    __internal_inner_ukey(): number;
+    __internal_innerUkey(): number;
     // (undocumented)
     get chunks(): Chunk[];
     // (undocumented)
@@ -983,7 +983,7 @@ export class Compilation {
     __internal__pushNativeDiagnostics(diagnostics: ExternalObject<"Diagnostic[]">): void;
     // @internal
     __internal__setAssetSource(filename: string, source: Source): void;
-    // (undocumented)
+    // @internal
     __internal_getInner(): JsCompilation;
     get assets(): Record<string, Source>;
     // (undocumented)
@@ -5025,8 +5025,6 @@ export class Module {
     nameForCondition(): string | null;
     // (undocumented)
     originalSource(): Source | null;
-    // (undocumented)
-    _originalSource?: Source;
     // (undocumented)
     rawRequest?: string;
     // (undocumented)
@@ -11771,7 +11769,6 @@ type Rules = Rule[] | Rule;
 // @public (undocumented)
 class RuleSetCompiler {
     constructor();
-    // (undocumented)
     builtinReferences: Map<string, any>;
     // (undocumented)
     references: Map<string, any>;

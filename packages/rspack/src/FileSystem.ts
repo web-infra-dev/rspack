@@ -32,7 +32,7 @@ class ThreadsafeWritableNodeFS implements ThreadsafeNodeFS {
 		this.removeDirAll = memoizeFn(() => util.promisify(rmrf.bind(null, fs)));
 	}
 
-	static __into_binding(fs?: OutputFileSystem) {
+	static __to_binding(fs?: OutputFileSystem) {
 		return new this(fs);
 	}
 }
