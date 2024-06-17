@@ -23,7 +23,7 @@ Use a container(defined in global space) for calling `define`/`require` function
 Note that the value of `amdContainer` **must be** set as a global variable.
 :::
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   // …
   output: {
@@ -67,7 +67,7 @@ This option determines the name of the JavaScript bundle file to be output. Thes
 
 For a single [Entry](/config/entry.html), you can use a static name such as:
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: 'bundle.js',
@@ -90,7 +90,7 @@ These splitting actions can result in multiple bundles being generated, so the f
 
 Use [Entry](/config/entry.html) name.
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: '[name].bundle.js',
@@ -100,7 +100,7 @@ module.exports = {
 
 Using the internally generated chunk id.
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: '[id].bundle.js',
@@ -110,7 +110,7 @@ module.exports = {
 
 Using hash generated from file content.
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: '[contenthash].bundle.js',
@@ -120,7 +120,7 @@ module.exports = {
 
 Of course you can also use a combination of each.
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: '[name].[contenthash].bundle.js',
@@ -130,7 +130,7 @@ module.exports = {
 
 Using the function to return the filename.
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: pathData => {
@@ -158,7 +158,7 @@ This option determines the name of the non-initial JavaScript chunk file.
 
 The format of chunks, The default value of this option depends on the [`target`](/config/target) and [`output.module`](#outputmodule) setting. In general, the `'array-push'` format is used when the target is web or webworker, the `'module'` format is used when it is ESM, and the `'commonjs'` format is used when it is node.js.
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     chunkFormat: 'commonjs',
@@ -172,7 +172,7 @@ module.exports = {
 
 The method to load chunks, The default value of this option depends on the [`target`](/config/target) and [`chunkFormat`](#outputchunkformat) setting. In general, `'jsonp'` is used to load chunks when target is web; `'import'` is used to load chunks when ESM; `'import-scripts'` is used to load chunks when webworker; `'require'` is used to load chunks when node.js; `'async-node'` (`fs.readFile` + `vm.runInThisContext`) is used to load chunks when async node.js.
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     chunkLoading: 'async-node',
@@ -188,7 +188,7 @@ module.exports = {
 
 This option determines the global variable is used by Rspack for loading chunks.
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     chunkLoadingGlobal: 'myCustomFunc',
@@ -320,7 +320,7 @@ If `target` is `'web'`, Rspack will dynamically create `<script>` and `<link>` t
 
 For example, set `output.publicPath` to `https://example.com/` and `output.crossOriginLoading` to `'anonymous'`:
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 const path = require('path');
 
 module.exports = {
@@ -344,7 +344,7 @@ When Rspack dynamically loads JavaScript resources, it will generate the followi
 
 Output the absolute path to the file directory.
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 const path = require('path');
 
 module.exports = {
@@ -383,7 +383,7 @@ This option determines the URL prefix of the referenced resource, such as: image
 
 For example, given a configuration file.
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     publicPath: '/assets/',
@@ -399,7 +399,7 @@ For a reference to an image, the request URL looks like this: `/assets/logo.png`
 
 Also, it is useful when you deploy the product using a CDN
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     publicPath: 'https://cdn.example.com/assets/',
@@ -438,7 +438,7 @@ This option allows loading asynchronous chunks with a custom script type, such a
 If `output.module` is set to `true`, `output.scriptType` will default to `'module'` instead of `false`.
 :::
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   //...
   output: {
@@ -464,7 +464,7 @@ It is disabled by default (no compatibility, script URLs are strings).
 
 The policy name is taken from the object's `policyName` property.
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   //...
   output: {
@@ -745,7 +745,7 @@ Use a container(defined in global space) for calling `define`/`require` function
 Note that the value of `amdContainer` **must be** set as a global variable.
 :::
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   // …
   output: {
@@ -780,7 +780,7 @@ Specify a name for the library.
 
 - **Type:**
 
-  ```ts
+  ```js
   string | string[] | {amd?: string, commonjs?: string, root?: string | string[]}
   ```
 
@@ -1363,47 +1363,6 @@ MyModule.doSomething();
 MySubModule.doSomething();
 ```
 
-## output.libraryExport
-
-:::warning
-We might drop support for this, so prefer to use [output.library.export](#outputlibraryexport) which works the same as `libraryExport`.
-:::
-
-- **Type:** `string | string[]`
-
-Configure which module or modules will be exposed via the `libraryTarget`.
-It is `undefined` by default, same behaviour will be applied if you set `libraryTarget` to an empty string e.g. `''` it will export the whole (namespace) object.
-The examples below demonstrate the effect of this configuration when using `libraryTarget: 'var'`.
-
-The following configurations are supported:
-
-`libraryExport: 'default'` - The **default export of your entry point** will be assigned to the library target:
-
-```js
-// if your entry has a default export of `MyDefaultModule`
-var MyDefaultModule = _entry_return_.default;
-```
-
-libraryExport: 'MyModule' - The **specified module** will be assigned to the library target:
-
-```js
-var MyModule = _entry_return_.MyModule;
-```
-
-`libraryExport: ['MyModule', 'MySubModule']` - The array is interpreted as a **path to a module** to be assigned to the library target:
-
-```js
-var MySubModule = _entry_return_.MyModule.MySubModule;
-```
-
-With the `libraryExport` configurations specified above, the resulting libraries could be utilized as such:
-
-```js
-MyDefaultModule.doSomething();
-MyModule.doSomething();
-MySubModule.doSomething();
-```
-
 ## output.libraryTarget
 
 - **Type:** `string`
@@ -1443,7 +1402,7 @@ This option determines the unique name of the Rspack build to avoid multiple Rsp
 
 - [`output.chunkLoadingGlobal`](/config/output#outputchunkloadingglobal)
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     uniqueName: 'my-package-xyz',

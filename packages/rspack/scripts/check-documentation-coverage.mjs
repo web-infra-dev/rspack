@@ -200,7 +200,7 @@ function checkConfigsDocumentationCoverage() {
 					}
 					const title = line.substring(level).trim();
 					section = {
-						title: toCamelCase(title),
+						title: toCamelCase(title.split(' ')[0]),
 						level,
 						text: ""
 					};

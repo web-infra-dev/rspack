@@ -14,7 +14,7 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 - **类型：** `string`
 
 :::warning
-请使用 [`output.library.amdContainer`](#outputlibraryamdcontainer)，因为我们将来可能会停止支持 `output.amdContainer`。
+请使用 [`output.library.amdContainer`](#outputlibraryamdcontainer)，因为我们未来可能会停止支持 `output.amdContainer`。
 :::
 
 在全局为 AMD 模块添加 `define`/`require` 函数的容器。
@@ -23,7 +23,7 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 请注意，`amdContainer` 的值必须设置为全局变量。
 :::
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   // …
   output: {
@@ -67,7 +67,7 @@ Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename
 
 对于单个 [Entry](/config/entry.html) 来说，你可以使用一个静态名称，如：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: 'bundle.js',
@@ -90,7 +90,7 @@ Rspack 会对用户输入的代码进行代码拆分优化，这些优化可能�
 
 使用 [Entry](/config/entry.html) 名称：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: '[name].bundle.js',
@@ -100,7 +100,7 @@ module.exports = {
 
 使用内部生成的 chunk id：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: '[id].bundle.js',
@@ -110,7 +110,7 @@ module.exports = {
 
 使用根据文件内容生成的 hash：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: '[contenthash].bundle.js',
@@ -120,7 +120,7 @@ module.exports = {
 
 当然你也可以组合使用：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: '[name].[contenthash].bundle.js',
@@ -130,7 +130,7 @@ module.exports = {
 
 使用函数来返回文件名：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: pathData => {
@@ -158,7 +158,7 @@ module.exports = {
 
 chunk 产物的格式，默认值会根据 [`target`](/config/target) 和 [`output.module`](#outputmodule) 的配置而决定，一般来说，target 为 web 或 webworker 时会使用 `'array-push'` 格式；为 ESM 时会使用 `'module'` 格式；为 node.js 时会使用 `'commonjs'` 格式
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     chunkFormat: 'commonjs',
@@ -172,7 +172,7 @@ module.exports = {
 
 加载 chunk 的方式，默认值会根据 [`target`](/config/target) 和 [`chunkFormat`](#outputchunkformat) 的配置而决定，一般来说，target 为 web 时会使用 `'jsonp'` 来加载 chunk；为 ESM 时会使用 `'import'` 来加载 chunk；为 webworker 时会使用 `'import-scripts'` 来加载 chunk；为 node.js 时会使用 `'require'` 来加载 chunk；为 async node.js 时会使用 `'async-node'`（`fs.readFile` + `vm.runInThisContext`）来加载 chunk
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     chunkLoading: 'async-node',
@@ -188,7 +188,7 @@ module.exports = {
 
 此选项决定了 Rspack 用于加载 chunk 的全局变量。
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     chunkLoadingGlobal: 'myCustomFunc',
@@ -320,7 +320,7 @@ module.exports = {
 
 比如将 `output.publicPath` 设置为 `https://example.com/`，并将 `output.crossOriginLoading` 设置为 `'anonymous'`：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 const path = require('path');
 
 module.exports = {
@@ -344,7 +344,7 @@ module.exports = {
 
 输出文件目录的绝对路径。
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 const path = require('path');
 
 module.exports = {
@@ -383,7 +383,7 @@ module.exports = {
 
 例如，给定一个配置文件：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     publicPath: '/assets/',
@@ -399,7 +399,7 @@ module.exports = {
 
 同时，当你使用 CDN 对产物进行部署时则非常有用：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     publicPath: 'https://cdn.example.com/assets/',
@@ -438,7 +438,7 @@ import './others.js';
 如果 `output.module` 设置为 `true`，则 `output.scriptType` 将默认为 `'module'` 而不是 `false`。
 :::
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   //...
   output: {
@@ -462,7 +462,7 @@ module.exports = {
 
 策略名称取自 `policyName` 字段。
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   //...
   output: {
@@ -749,7 +749,7 @@ export function hello(name) {
 - **类型：** `string`
 
 :::warning
-请使用 [`output.library.amdContainer`](#outputlibraryamdcontainer)，因为我们将来可能会停止支持 `output.amdContainer`。
+请使用 [`output.library.amdContainer`](#outputlibraryamdcontainer)，因为我们未来可能会停止支持 `output.amdContainer`。
 :::
 
 在全局为 AMD 模块添加 `define`/`require` 函数的容器。
@@ -758,7 +758,7 @@ export function hello(name) {
 请注意，`amdContainer` 的值必须设置为全局变量。
 :::
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   // …
   output: {
@@ -793,7 +793,7 @@ module.exports = {
 
 - **类型：**
 
-  ```ts
+  ```js
   string | string[] | {amd?: string, commonjs?: string, root?: string | string[]}
   ```
 
@@ -1376,48 +1376,6 @@ MyModule.doSomething();
 MySubModule.doSomething();
 ```
 
-## output.libraryExport
-
-:::warning
-我们可能会停止支持此功能，请使用 [output.library.export](#outputlibraryexport) 代替 `libraryExport`。
-:::
-
-- **类型：** `string | string[]`
-- **默认值：** `undefined`
-
-指定将通过 `libraryTarget` 暴露出来模块。默认情况下它为 `undefined`，如果你将 `libraryTarget` 设置为空字符串，例如 `''`，它会导出整个（命名空间）对象。
-
-以下示例演示了在使用 `libraryTarget: 'var'` 时，此配置的效果。
-
-支持以下配置:
-
-`libraryExport: 'default'` - **你入口点的默认导出**将赋值给 `libraryTarget`:
-
-```js
-// 如果你的入口点具有默认导出为 `MyDefaultModule`
-var MyDefaultModule = _entry_return_.default;
-```
-
-`libraryExport: 'MyModule'` - **指定的模块**将被分配给 `libraryTarget`:
-
-```js
-var MyModule = _entry_return_.MyModule;
-```
-
-`libraryExport: ['MyModule', 'MySubModule']` - 数组被解释为要分配给 `libraryTarget` 的模块**路径**
-
-```js
-var MySubModule = _entry_return_.MyModule.MySubModule;
-```
-
-用上述 `libraryExport` 配置，生成的库可以按如下方式使用：
-
-```js
-MyDefaultModule.doSomething();
-MyModule.doSomething();
-MySubModule.doSomething();
-```
-
 ## output.libraryTarget
 
 - **类型：** `string`
@@ -1457,7 +1415,7 @@ module.exports = {
 
 - [`output.chunkLoadingGlobal`](/config/output#outputchunkloadingglobal)
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     uniqueName: 'my-package-xyz',
