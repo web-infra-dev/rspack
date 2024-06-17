@@ -261,7 +261,6 @@ function checkConfigsDocumentationCoverage() {
 			"output.strictModuleExceptionHandling",
 			"output.sourceMapFilename",
 
-			"externalsPresets",
 			"node",
 			"stats",
 
