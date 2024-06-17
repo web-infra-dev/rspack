@@ -19,6 +19,13 @@ export interface Hero {
 
 export function HomeHero({ hero }: { hero: Hero }) {
   const hasImage = hero.image !== undefined;
+  const multiHeroText = hero.text
+    ? hero.text
+        .toString()
+        .split(/\n/g)
+        .filter(text => text !== '')
+    : [];
+
   return (
     <div
       className="m-auto px-6 pb-12 sm:pt-0 sm:px-8  md:px-16 md:pb-16"
@@ -31,15 +38,16 @@ export function HomeHero({ hero }: { hero: Hero }) {
           <h1 className="text-3xl sm:text-6xl md:text-7xl font-bold pb-3 lg:pb-5 z-10">
             <span className={styles.clip}>{hero.name}</span>
           </h1>
-          {hero.text?.length && (
-            <p
-              className={`pb-2 mx-auto md:m-0 text-3xl sm:text-5xl md:text-6xl font-bold z-10  max-w-xs sm:max-w-xl`}
-              style={{ lineHeight: '1.15' }}
-            >
-              {hero.text}
-            </p>
-          )}
-
+          {multiHeroText.length !== 0 &&
+            multiHeroText.map(heroText => (
+              <p
+                key={heroText}
+                className={`rspress-home-hero-text mx-auto md:m-0 text-3xl sm:text-5xl md:text-6xl sm:pb-2 font-bold z-10`}
+                style={{ lineHeight: '1.2' }}
+              >
+                {heroText}
+              </p>
+            ))}
           <p className="pt-2 m-auto md:m-0 text-sm sm:text-xl md:text-2xl text-text-2 font-medium z-10 whitespace-pre-wrap">
             {hero.tagline}
           </p>

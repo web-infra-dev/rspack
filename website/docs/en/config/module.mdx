@@ -791,7 +791,25 @@ Matches all modules that match this resource, and will match against the Resourc
 - **Type:** `{ [k: string]: Condition }`
 - **Default:** `undefined`
 
-Matches all modules that match this resource, and will match against the data in the Resource's package.json.
+Specify to which modules this rule gets applied to. This is essentially a way to filter out, specific modules for the rule.
+The object keys provided to `descriptionData`, match the resource's `package.json` keys e.g. `name`, `version`, etc. Provide a [`Condition`](/config/module#condition) based on which `package.json` data are matched.
+
+For example, below we are applying the rule only to `.js` resources with `'rspack'` string included in their `package.json` `name`.
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        include: 'node_modules',
+        descriptionData: { name: (packageJsonName) => packageJsonName.includes('rspack') },
+        ...
+      }
+    ],
+  },
+};
+```
 
 ### Rule.loaders
 

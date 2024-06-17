@@ -155,6 +155,7 @@ pub struct Compilation {
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 
   pub code_generation_results: CodeGenerationResults,
+  pub built_modules: IdentifierSet,
   pub code_generated_modules: IdentifierSet,
   pub old_cache: Arc<OldCache>,
   pub code_splitting_cache: CodeSplittingCache,
@@ -235,6 +236,7 @@ impl Compilation {
       named_chunk_groups: Default::default(),
 
       code_generation_results: Default::default(),
+      built_modules: Default::default(),
       code_generated_modules: Default::default(),
       old_cache,
       code_splitting_cache: Default::default(),
@@ -885,6 +887,11 @@ impl Compilation {
           .await;
       }
     }
+
+    // TODO: add code_generated_modules in render_runtime_modules
+    for (identifier, _) in self.runtime_modules.iter() {
+      self.code_generated_modules.insert(*identifier);
+    }
     Ok(())
   }
 
@@ -993,6 +1000,9 @@ impl Compilation {
       module_executor.hook_after_finish_modules(self).await;
       self.module_executor = Some(module_executor);
     }
+
+    // take built_modules
+    self.built_modules = self.make_artifact.take_built_modules();
     Ok(())
   }
 
@@ -1701,7 +1711,7 @@ pub struct AssetInfo {
   /// the value(s) of the content hash used for this asset
   pub content_hash: HashSet<String>,
   /// when asset was created from a source file (potentially transformed), the original filename relative to compilation context
-  // pub source_filename:
+  pub source_filename: Option<String>,
   /// size in bytes, only set after asset has been emitted
   // pub size: f64,
   /// when asset is only used for development and doesn't count towards user-facing assets
@@ -1715,7 +1725,8 @@ pub struct AssetInfo {
   /// the asset version, emit can be skipped when both filename and version are the same
   /// An empty string means no version, it will always emit
   pub version: String,
-  pub source_filename: Option<String>,
+  /// unused local idents of the chunk
+  pub css_unused_idents: Option<HashSet<String>>,
   /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
   /// But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
   /// in the rust struct and have the Js side to reshape and align with webpack.
@@ -1772,6 +1783,10 @@ impl AssetInfo {
 
   pub fn set_javascript_module(&mut self, v: bool) {
     self.javascript_module = Some(v);
+  }
+
+  pub fn set_css_unused_idents(&mut self, v: HashSet<String>) {
+    self.css_unused_idents = Some(v);
   }
 }
 

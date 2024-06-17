@@ -56,7 +56,7 @@ napi-derive       = { version = "2" }
 tikv-jemallocator = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 
 # Must be pinned with the same swc versions
-rkyv                = { version = "=0.7.44" }                           # synced with swc wasm plugin
+#rkyv                = { version = "=0.7.44" }                           # synced with swc wasm plugin
 styled_components   = { version = "=0.96.16" }
 swc_config          = { version = "=0.1.14" }
 swc_core            = { version = "0.93.0", default-features = false }

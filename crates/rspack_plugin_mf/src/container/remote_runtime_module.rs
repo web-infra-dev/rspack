@@ -97,7 +97,7 @@ impl RuntimeModule for RemoteRuntimeModule {
       );
     }
     let remotes_loading_impl = if self.enhanced {
-      "__webpack_require__.f.remotes = function() { throw new Error(\"should have __webpack_require__.f.remotes\"); }"
+      "__webpack_require__.f.remotes = __webpack_require__.f.remotes || function() { throw new Error(\"should have __webpack_require__.f.remotes\"); }"
     } else {
       include_str!("./remotesLoading.js")
     };

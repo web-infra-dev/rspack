@@ -40,10 +40,16 @@ Object {
       "modules": Array [
         Object {
           "assets": Array [],
+          "built": true,
+          "cacheable": true,
+          "cached": false,
           "chunks": Array [
             "909",
           ],
+          "codeGenerated": true,
           "depth": 0,
+          "errors": 0,
+          "failed": false,
           "id": "585",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
           "issuer": undefined,
@@ -56,7 +62,10 @@ Object {
           "optimizationBailout": Array [
             "Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2",
           ],
+          "optional": false,
           "orphan": false,
+          "postOrderIndex": 0,
+          "preOrderIndex": 0,
           "providedExports": Array [],
           "reasons": Array [
             Object {
@@ -75,11 +84,15 @@ Object {
             },
           ],
           "size": 55,
+          "sizes": Object {
+            "javascript": 55,
+          },
           "source": "module.exports = function a() {
 	return \\"This is a\\";
 };",
           "type": "module",
           "usedExports": null,
+          "warnings": 0,
         },
       ],
       "names": Array [
@@ -114,10 +127,16 @@ Object {
   "modules": Array [
     Object {
       "assets": Array [],
+      "built": true,
+      "cacheable": true,
+      "cached": false,
       "chunks": Array [
         "909",
       ],
+      "codeGenerated": true,
       "depth": 0,
+      "errors": 0,
+      "failed": false,
       "id": "585",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
       "issuer": undefined,
@@ -130,7 +149,10 @@ Object {
       "optimizationBailout": Array [
         "Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2",
       ],
+      "optional": false,
       "orphan": false,
+      "postOrderIndex": 0,
+      "preOrderIndex": 0,
       "providedExports": Array [],
       "reasons": Array [
         Object {
@@ -149,11 +171,15 @@ Object {
         },
       ],
       "size": 55,
+      "sizes": Object {
+        "javascript": 55,
+      },
       "source": "module.exports = function a() {
 	return \\"This is a\\";
 };",
       "type": "module",
       "usedExports": null,
+      "warnings": 0,
     },
   ],
   "namedChunkGroups": Object {
@@ -218,10 +244,16 @@ Object {
       "modules": Array [
         Object {
           "assets": Array [],
+          "built": true,
+          "cacheable": true,
+          "cached": false,
           "chunks": Array [
             "909",
           ],
+          "codeGenerated": true,
           "depth": 1,
+          "errors": 0,
+          "failed": false,
           "id": "83",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -238,7 +270,10 @@ Object {
           "name": "./fixtures/esm/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
           "optimizationBailout": Array [],
+          "optional": false,
           "orphan": false,
+          "postOrderIndex": 0,
+          "preOrderIndex": 1,
           "providedExports": Array [
             "a",
             "default",
@@ -260,17 +295,27 @@ Object {
             },
           ],
           "size": 37,
+          "sizes": Object {
+            "javascript": 37,
+          },
           "type": "module",
           "usedExports": Array [
             "a",
           ],
+          "warnings": 0,
         },
         Object {
           "assets": Array [],
+          "built": true,
+          "cacheable": true,
+          "cached": false,
           "chunks": Array [
             "909",
           ],
+          "codeGenerated": true,
           "depth": 0,
+          "errors": 0,
+          "failed": false,
           "id": "314",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "issuer": undefined,
@@ -281,7 +326,10 @@ Object {
           "name": "./fixtures/esm/abc.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
           "optimizationBailout": Array [],
+          "optional": false,
           "orphan": false,
+          "postOrderIndex": 3,
+          "preOrderIndex": 0,
           "providedExports": Array [],
           "reasons": Array [
             Object {
@@ -293,15 +341,25 @@ Object {
             },
           ],
           "size": 80,
+          "sizes": Object {
+            "javascript": 80,
+          },
           "type": "module",
           "usedExports": Array [],
+          "warnings": 0,
         },
         Object {
           "assets": Array [],
+          "built": true,
+          "cacheable": true,
+          "cached": false,
           "chunks": Array [
             "909",
           ],
+          "codeGenerated": true,
           "depth": 1,
+          "errors": 0,
+          "failed": false,
           "id": "178",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -318,7 +376,10 @@ Object {
           "name": "./fixtures/esm/b.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
           "optimizationBailout": Array [],
+          "optional": false,
           "orphan": false,
+          "postOrderIndex": 1,
+          "preOrderIndex": 2,
           "providedExports": Array [
             "b",
             "default",
@@ -340,17 +401,27 @@ Object {
             },
           ],
           "size": 38,
+          "sizes": Object {
+            "javascript": 38,
+          },
           "type": "module",
           "usedExports": Array [
             "default",
           ],
+          "warnings": 0,
         },
         Object {
           "assets": Array [],
+          "built": true,
+          "cacheable": true,
+          "cached": false,
           "chunks": Array [
             "909",
           ],
+          "codeGenerated": true,
           "depth": 1,
+          "errors": 0,
+          "failed": false,
           "id": "609",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -367,7 +438,10 @@ Object {
           "name": "./fixtures/esm/c.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
           "optimizationBailout": Array [],
+          "optional": false,
           "orphan": false,
+          "postOrderIndex": 2,
+          "preOrderIndex": 3,
           "providedExports": Array [
             "c",
             "default",
@@ -389,8 +463,12 @@ Object {
             },
           ],
           "size": 37,
+          "sizes": Object {
+            "javascript": 37,
+          },
           "type": "module",
           "usedExports": true,
+          "warnings": 0,
         },
       ],
       "names": Array [
@@ -424,10 +502,16 @@ Object {
   "modules": Array [
     Object {
       "assets": Array [],
+      "built": true,
+      "cacheable": true,
+      "cached": false,
       "chunks": Array [
         "909",
       ],
+      "codeGenerated": true,
       "depth": 0,
+      "errors": 0,
+      "failed": false,
       "id": "314",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
       "issuer": undefined,
@@ -438,7 +522,10 @@ Object {
       "name": "./fixtures/esm/abc.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
       "optimizationBailout": Array [],
+      "optional": false,
       "orphan": false,
+      "postOrderIndex": 3,
+      "preOrderIndex": 0,
       "providedExports": Array [],
       "reasons": Array [
         Object {
@@ -450,15 +537,25 @@ Object {
         },
       ],
       "size": 80,
+      "sizes": Object {
+        "javascript": 80,
+      },
       "type": "module",
       "usedExports": Array [],
+      "warnings": 0,
     },
     Object {
       "assets": Array [],
+      "built": true,
+      "cacheable": true,
+      "cached": false,
       "chunks": Array [
         "909",
       ],
+      "codeGenerated": true,
       "depth": 1,
+      "errors": 0,
+      "failed": false,
       "id": "83",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
       "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -475,7 +572,10 @@ Object {
       "name": "./fixtures/esm/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/a.js",
       "optimizationBailout": Array [],
+      "optional": false,
       "orphan": false,
+      "postOrderIndex": 0,
+      "preOrderIndex": 1,
       "providedExports": Array [
         "a",
         "default",
@@ -497,17 +597,27 @@ Object {
         },
       ],
       "size": 37,
+      "sizes": Object {
+        "javascript": 37,
+      },
       "type": "module",
       "usedExports": Array [
         "a",
       ],
+      "warnings": 0,
     },
     Object {
       "assets": Array [],
+      "built": true,
+      "cacheable": true,
+      "cached": false,
       "chunks": Array [
         "909",
       ],
+      "codeGenerated": true,
       "depth": 1,
+      "errors": 0,
+      "failed": false,
       "id": "178",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
       "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -524,7 +634,10 @@ Object {
       "name": "./fixtures/esm/b.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/b.js",
       "optimizationBailout": Array [],
+      "optional": false,
       "orphan": false,
+      "postOrderIndex": 1,
+      "preOrderIndex": 2,
       "providedExports": Array [
         "b",
         "default",
@@ -546,17 +659,27 @@ Object {
         },
       ],
       "size": 38,
+      "sizes": Object {
+        "javascript": 38,
+      },
       "type": "module",
       "usedExports": Array [
         "default",
       ],
+      "warnings": 0,
     },
     Object {
       "assets": Array [],
+      "built": true,
+      "cacheable": true,
+      "cached": false,
       "chunks": Array [
         "909",
       ],
+      "codeGenerated": true,
       "depth": 1,
+      "errors": 0,
+      "failed": false,
       "id": "609",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
       "issuer": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -573,7 +696,10 @@ Object {
       "name": "./fixtures/esm/c.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/c.js",
       "optimizationBailout": Array [],
+      "optional": false,
       "orphan": false,
+      "postOrderIndex": 2,
+      "preOrderIndex": 3,
       "providedExports": Array [
         "c",
         "default",
@@ -595,15 +721,25 @@ Object {
         },
       ],
       "size": 37,
+      "sizes": Object {
+        "javascript": 37,
+      },
       "type": "module",
       "usedExports": true,
+      "warnings": 0,
     },
     Object {
       "assets": Array [],
+      "built": false,
+      "cacheable": true,
+      "cached": false,
       "chunks": Array [
         "909",
       ],
+      "codeGenerated": true,
       "depth": undefined,
+      "errors": 0,
+      "failed": false,
       "id": "",
       "identifier": "webpack/runtime/has_own_property",
       "issuer": undefined,
@@ -614,19 +750,32 @@ Object {
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
       "optimizationBailout": Array [],
+      "optional": false,
       "orphan": false,
+      "postOrderIndex": undefined,
+      "preOrderIndex": undefined,
       "providedExports": Array [],
       "reasons": Array [],
-      "size": 160,
+      "size": 107,
+      "sizes": Object {
+        "runtime": 107,
+      },
       "type": "module",
       "usedExports": null,
+      "warnings": 0,
     },
     Object {
       "assets": Array [],
+      "built": false,
+      "cacheable": true,
+      "cached": false,
       "chunks": Array [
         "909",
       ],
+      "codeGenerated": true,
       "depth": undefined,
+      "errors": 0,
+      "failed": false,
       "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
       "issuer": undefined,
@@ -637,19 +786,32 @@ Object {
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
       "optimizationBailout": Array [],
+      "optional": false,
       "orphan": false,
+      "postOrderIndex": undefined,
+      "preOrderIndex": undefined,
       "providedExports": Array [],
       "reasons": Array [],
-      "size": 160,
+      "size": 280,
+      "sizes": Object {
+        "runtime": 280,
+      },
       "type": "module",
       "usedExports": null,
+      "warnings": 0,
     },
     Object {
       "assets": Array [],
+      "built": false,
+      "cacheable": true,
+      "cached": false,
       "chunks": Array [
         "909",
       ],
+      "codeGenerated": true,
       "depth": undefined,
+      "errors": 0,
+      "failed": false,
       "id": "",
       "identifier": "webpack/runtime/define_property_getters",
       "issuer": undefined,
@@ -660,12 +822,19 @@ Object {
       "name": "webpack/runtime/define_property_getters",
       "nameForCondition": undefined,
       "optimizationBailout": Array [],
+      "optional": false,
       "orphan": false,
+      "postOrderIndex": undefined,
+      "preOrderIndex": undefined,
       "providedExports": Array [],
       "reasons": Array [],
-      "size": 160,
+      "size": 290,
+      "sizes": Object {
+        "runtime": 290,
+      },
       "type": "module",
       "usedExports": null,
+      "warnings": 0,
     },
   ],
   "namedChunkGroups": Object {
@@ -735,9 +904,15 @@ Object {
   "filteredModules": undefined,
   "modules": Array [
     Object {
+      "built": true,
+      "cacheable": true,
+      "cached": false,
       "chunks": Array [
         "909",
       ],
+      "codeGenerated": true,
+      "errors": 0,
+      "failed": false,
       "id": "585",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
       "issuer": undefined,
@@ -747,9 +922,16 @@ Object {
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+      "optional": false,
       "orphan": false,
+      "postOrderIndex": 0,
+      "preOrderIndex": 0,
       "size": 55,
+      "sizes": Object {
+        "javascript": 55,
+      },
       "type": "module",
+      "warnings": 0,
     },
   ],
 }
@@ -795,10 +977,16 @@ Object {
       "modules": Array [
         Object {
           "assets": Array [],
+          "built": true,
+          "cacheable": true,
+          "cached": false,
           "chunks": Array [
             "909",
           ],
+          "codeGenerated": true,
           "depth": 2,
+          "errors": 0,
+          "failed": false,
           "id": "585",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
@@ -822,7 +1010,10 @@ Object {
           "optimizationBailout": Array [
             "Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2",
           ],
+          "optional": false,
           "orphan": false,
+          "postOrderIndex": 1,
+          "preOrderIndex": 3,
           "providedExports": Array [],
           "reasons": Array [
             Object {
@@ -841,18 +1032,28 @@ Object {
             },
           ],
           "size": 55,
+          "sizes": Object {
+            "javascript": 55,
+          },
           "source": "module.exports = function a() {
 	return \\"This is a\\";
 };",
           "type": "module",
           "usedExports": null,
+          "warnings": 0,
         },
         Object {
           "assets": Array [],
+          "built": true,
+          "cacheable": true,
+          "cached": false,
           "chunks": Array [
             "909",
           ],
+          "codeGenerated": true,
           "depth": 1,
+          "errors": 0,
+          "failed": false,
           "id": "958",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js?a=1",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -871,7 +1072,10 @@ Object {
           "optimizationBailout": Array [
             "Statement with side_effects in source code at ./fixtures/a.js?a=1:1:0-3:2",
           ],
+          "optional": false,
           "orphan": false,
+          "postOrderIndex": 0,
+          "preOrderIndex": 1,
           "providedExports": Array [],
           "reasons": Array [
             Object {
@@ -890,18 +1094,28 @@ Object {
             },
           ],
           "size": 55,
+          "sizes": Object {
+            "javascript": 55,
+          },
           "source": "module.exports = function a() {
 	return \\"This is a\\";
 };",
           "type": "module",
           "usedExports": null,
+          "warnings": 0,
         },
         Object {
           "assets": Array [],
+          "built": true,
+          "cacheable": true,
+          "cached": false,
           "chunks": Array [
             "909",
           ],
+          "codeGenerated": true,
           "depth": 0,
+          "errors": 0,
+          "failed": false,
           "id": "919",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
           "issuer": undefined,
@@ -914,7 +1128,10 @@ Object {
           "optimizationBailout": Array [
             "Statement with side_effects in source code at ./fixtures/abc-query.js:1:0-31",
           ],
+          "optional": false,
           "orphan": false,
+          "postOrderIndex": 3,
+          "preOrderIndex": 0,
           "providedExports": Array [
             "a",
             "c",
@@ -929,19 +1146,29 @@ Object {
             },
           ],
           "size": 99,
+          "sizes": Object {
+            "javascript": 99,
+          },
           "source": "exports.a = require(\\"./a?a=1\\");
 // exports.b = require(\\"./b?b=2\\");
 exports.c = require(\\"./c?c=3\\");
 ",
           "type": "module",
           "usedExports": Array [],
+          "warnings": 0,
         },
         Object {
           "assets": Array [],
+          "built": true,
+          "cacheable": true,
+          "cached": false,
           "chunks": Array [
             "909",
           ],
+          "codeGenerated": true,
           "depth": 1,
+          "errors": 0,
+          "failed": false,
           "id": "432",
           "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
           "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -960,7 +1187,10 @@ exports.c = require(\\"./c?c=3\\");
           "optimizationBailout": Array [
             "Statement with side_effects in source code at ./fixtures/c.js?c=3:1:0-4:2",
           ],
+          "optional": false,
           "orphan": false,
+          "postOrderIndex": 2,
+          "preOrderIndex": 2,
           "providedExports": Array [],
           "reasons": Array [
             Object {
@@ -979,12 +1209,16 @@ exports.c = require(\\"./c?c=3\\");
             },
           ],
           "size": 72,
+          "sizes": Object {
+            "javascript": 72,
+          },
           "source": "module.exports = function b() {
 	require(\\"./a\\");
 	return \\"This is c\\";
 };",
           "type": "module",
           "usedExports": null,
+          "warnings": 0,
         },
       ],
       "names": Array [
@@ -1019,10 +1253,16 @@ exports.c = require(\\"./c?c=3\\");
   "modules": Array [
     Object {
       "assets": Array [],
+      "built": true,
+      "cacheable": true,
+      "cached": false,
       "chunks": Array [
         "909",
       ],
+      "codeGenerated": true,
       "depth": 0,
+      "errors": 0,
+      "failed": false,
       "id": "919",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
       "issuer": undefined,
@@ -1035,7 +1275,10 @@ exports.c = require(\\"./c?c=3\\");
       "optimizationBailout": Array [
         "Statement with side_effects in source code at ./fixtures/abc-query.js:1:0-31",
       ],
+      "optional": false,
       "orphan": false,
+      "postOrderIndex": 3,
+      "preOrderIndex": 0,
       "providedExports": Array [
         "a",
         "c",
@@ -1050,19 +1293,29 @@ exports.c = require(\\"./c?c=3\\");
         },
       ],
       "size": 99,
+      "sizes": Object {
+        "javascript": 99,
+      },
       "source": "exports.a = require(\\"./a?a=1\\");
 // exports.b = require(\\"./b?b=2\\");
 exports.c = require(\\"./c?c=3\\");
 ",
       "type": "module",
       "usedExports": Array [],
+      "warnings": 0,
     },
     Object {
       "assets": Array [],
+      "built": true,
+      "cacheable": true,
+      "cached": false,
       "chunks": Array [
         "909",
       ],
+      "codeGenerated": true,
       "depth": 1,
+      "errors": 0,
+      "failed": false,
       "id": "958",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js?a=1",
       "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -1081,7 +1334,10 @@ exports.c = require(\\"./c?c=3\\");
       "optimizationBailout": Array [
         "Statement with side_effects in source code at ./fixtures/a.js?a=1:1:0-3:2",
       ],
+      "optional": false,
       "orphan": false,
+      "postOrderIndex": 0,
+      "preOrderIndex": 1,
       "providedExports": Array [],
       "reasons": Array [
         Object {
@@ -1100,18 +1356,28 @@ exports.c = require(\\"./c?c=3\\");
         },
       ],
       "size": 55,
+      "sizes": Object {
+        "javascript": 55,
+      },
       "source": "module.exports = function a() {
 	return \\"This is a\\";
 };",
       "type": "module",
       "usedExports": null,
+      "warnings": 0,
     },
     Object {
       "assets": Array [],
+      "built": true,
+      "cacheable": true,
+      "cached": false,
       "chunks": Array [
         "909",
       ],
+      "codeGenerated": true,
       "depth": 1,
+      "errors": 0,
+      "failed": false,
       "id": "432",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
       "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -1130,7 +1396,10 @@ exports.c = require(\\"./c?c=3\\");
       "optimizationBailout": Array [
         "Statement with side_effects in source code at ./fixtures/c.js?c=3:1:0-4:2",
       ],
+      "optional": false,
       "orphan": false,
+      "postOrderIndex": 2,
+      "preOrderIndex": 2,
       "providedExports": Array [],
       "reasons": Array [
         Object {
@@ -1149,19 +1418,29 @@ exports.c = require(\\"./c?c=3\\");
         },
       ],
       "size": 72,
+      "sizes": Object {
+        "javascript": 72,
+      },
       "source": "module.exports = function b() {
 	require(\\"./a\\");
 	return \\"This is c\\";
 };",
       "type": "module",
       "usedExports": null,
+      "warnings": 0,
     },
     Object {
       "assets": Array [],
+      "built": true,
+      "cacheable": true,
+      "cached": false,
       "chunks": Array [
         "909",
       ],
+      "codeGenerated": true,
       "depth": 2,
+      "errors": 0,
+      "failed": false,
       "id": "585",
       "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
       "issuer": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
@@ -1185,7 +1464,10 @@ exports.c = require(\\"./c?c=3\\");
       "optimizationBailout": Array [
         "Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2",
       ],
+      "optional": false,
       "orphan": false,
+      "postOrderIndex": 1,
+      "preOrderIndex": 3,
       "providedExports": Array [],
       "reasons": Array [
         Object {
@@ -1204,11 +1486,15 @@ exports.c = require(\\"./c?c=3\\");
         },
       ],
       "size": 55,
+      "sizes": Object {
+        "javascript": 55,
+      },
       "source": "module.exports = function a() {
 	return \\"This is a\\";
 };",
       "type": "module",
       "usedExports": null,
+      "warnings": 0,
     },
   ],
   "namedChunkGroups": Object {

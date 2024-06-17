@@ -30,7 +30,6 @@ paste = { workspace = true }
 petgraph = { version = "0.6.4", features = ["serde-1"] }
 rayon = { workspace = true }
 regex = { workspace = true }
-rkyv = { workspace = true, features = ["indexmap", "validation"] }
 rspack_ast = { path = "../rspack_ast" }
 rspack_database = { path = "../rspack_database", features = ["rayon"] }
 rspack_error = { path = "../rspack_error" }
