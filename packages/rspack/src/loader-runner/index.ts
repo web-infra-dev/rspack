@@ -130,7 +130,6 @@ export class LoaderObject {
 	pitch?: Function;
 	raw?: boolean;
 	type?: "module" | "commonjs";
-	#cachedData: any;
 	#loaderItem: JsLoaderItem;
 
 	constructor(loaderItem: JsLoaderItem, compiler: Compiler) {
@@ -157,7 +156,6 @@ export class LoaderObject {
 		this.raw = raw;
 		this.type = type;
 		this.#loaderItem = loaderItem;
-		this.#cachedData = null;
 	}
 
 	get pitchExecuted() {
@@ -180,18 +178,16 @@ export class LoaderObject {
 
 	// A data object shared between the pitch and the normal phase
 	get data() {
-		this.#cachedData = this.#cachedData ?? this.#loaderItem.data ?? {};
-		return new Proxy(this.#cachedData, {
+		return new Proxy((this.#loaderItem.data = this.#loaderItem.data ?? {}), {
 			set: (_, property, value) => {
 				if (typeof property === "string") {
-					this.#cachedData[property] = value;
-					this.#loaderItem.data = this.#cachedData;
+					this.#loaderItem.data[property] = value;
 				}
 				return true;
 			},
 			get: (_, property) => {
 				if (typeof property === "string") {
-					return this.#cachedData[property];
+					return this.#loaderItem.data[property];
 				}
 			}
 		});
@@ -199,7 +195,7 @@ export class LoaderObject {
 
 	// A data object shared between the pitch and the normal phase
 	set data(data: any) {
-		this.#loaderItem.data = this.#cachedData = data;
+		this.#loaderItem.data = data;
 	}
 
 	shouldYield() {
@@ -560,24 +556,23 @@ export async function runLoaders(
 	Object.assign(loaderContext, compiler.options.loader);
 
 	const getResolveContext = () => {
-		// FIXME: resolve's fileDependencies will includes lots of dir, '/', etc
 		return {
 			fileDependencies: {
-				// @ts-expect-error
+				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
-					// loaderContext.addDependency(d)
+					loaderContext.addDependency(d);
 				}
 			},
 			contextDependencies: {
-				// @ts-expect-error
+				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
-					// loaderContext.addContextDependency(d)
+					loaderContext.addContextDependency(d);
 				}
 			},
 			missingDependencies: {
-				// @ts-expect-error
+				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
-					// loaderContext.addMissingDependency(d)
+					loaderContext.addMissingDependency(d);
 				}
 			}
 		};
