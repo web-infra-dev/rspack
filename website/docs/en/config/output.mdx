@@ -446,6 +446,15 @@ module.exports = {
 };
 ```
 
+## output.sourceMapFilename
+
+- **Type:** `string`
+- **Default:** `'[file].map[query]'`
+
+Configure how source maps are named. Only takes effect when [`devtool`](/config/devtool) is set to `'source-map'`, which writes an output file.
+
+The `[name]`, `[id]`, `[fullhash]` and `[chunkhash]` substitutions from [`output.filename`](#outputfilename) can be used. In addition to those, you can use substitutions listed under Filename-level in [Template strings](#template-string).
+
 ## output.strictModuleErrorHandling
 
 - **Type:** `boolean`
