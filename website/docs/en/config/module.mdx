@@ -788,13 +788,14 @@ Matches all modules that match this resource, and will match against the Resourc
 
 ### Rule.descriptionData
 
-- **Type:** `{ [k: string]: Condition }`
+- **Type:** `{ [key: string]: Condition }`
 - **Default:** `undefined`
 
-Specify to which modules this rule gets applied to. This is essentially a way to filter out, specific modules for the rule.
-The object keys provided to `descriptionData`, match the resource's `package.json` keys e.g. `name`, `version`, etc. Provide a [`Condition`](/config/module#condition) based on which `package.json` data are matched.
+`descriptionData` option allows you to match values of properties in the description file, typically `package.json`, to determine which modules a rule should apply to. This is a useful way to apply rules to specific modules based on metadata found in their `package.json`.
 
-For example, below we are applying the rule only to `.js` resources with `'rspack'` string included in their `package.json` `name`.
+The object keys in `descriptionData` correspond to keys in the module's `package.json`, such as `name`, `version`, etc. Each key should be associated with a [`Condition`](/config/module#condition) for matching the `package.json` data.
+
+For example, below we are applying the rule only to JavaScript resources with `'rspack'` string included in their `package.json` `name`.
 
 ```ts title=rspack.config.js
 module.exports = {
@@ -802,10 +803,12 @@ module.exports = {
     rules: [
       {
         test: /\.js$/,
-        include: 'node_modules',
-        descriptionData: { name: (packageJsonName) => packageJsonName.includes('rspack') },
-        ...
-      }
+        include: /node_modules/,
+        descriptionData: {
+          name: packageJsonName => packageJsonName.includes('rspack'),
+        },
+        // additional rule options...
+      },
     ],
   },
 };
