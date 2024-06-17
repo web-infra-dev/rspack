@@ -188,13 +188,13 @@ module.exports = {
 
 ## optimization.splitChunks
 
-<PropertyType type="false | object" />
+- **类型：** `false | object`
 
 Rspack 支持通过 `optimization.splitChunks` 配置项来对 Chunk 进行拆分。
 
 该优化选项默认情况下是开启的，你可以将其设为 `false` 来关闭它。
 
-点击 [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) 查看可用配置项
+有关配置此行为的可用选项，请参见 [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) 页面。
 
 ## optimization.usedExports
 
@@ -284,3 +284,29 @@ module.exports = {
 | 'deterministic' | 使用哈希模块标识符作为标识符，以便从长期缓存中受益。在生产模式下，默认启用此选项。 |
 | true            | 与 'deterministic' 相同。                                                          |
 | false           | 保留原始名称。适用于可读性和调试。                                                 |
+
+## optimization.nodeEnv
+
+- **类型：** `boolean | string`
+- **默认值：** `false`
+
+Rspack 将 `process.env.NODE_ENV` 设置为给定的字符串值。除非设置为 `false`，否则 `optimization.nodeEnv` 将使用 [DefinePlugin](/plugins/webpack/define-plugin)。
+`optimization.nodeEnv` 的**默认值**为 [mode](/config/mode)，否则将设置为 `'production'`。
+
+可能的值:
+
+- 任何字符串：设置 `process.env.NODE_ENV` 的值。
+- false：不设置 `process.env.NODE_ENV` 的值。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    nodeEnv: 'production',
+  },
+};
+```
+
+:::tip
+当 [mode](/config/mode) 设置为 `'none'` 时，`optimization.nodeEnv` 默认为 `false`。
+:::

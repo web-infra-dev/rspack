@@ -191,7 +191,7 @@ module.exports = {
 
 ## optimization.splitChunks
 
-<PropertyType type="false | object" />
+- **Type:** `false | object`
 
 Rspack supports splitting chunks with the `optimization.splitChunks` configuration item.
 
@@ -199,7 +199,7 @@ It is enabled by default for dynamically imported modules.
 
 To turn it off, set it to `false`.
 
-See details at [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin).
+See available options for configuring this behavior in the [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) page.
 
 ## optimization.usedExports
 
@@ -290,3 +290,29 @@ The following values are supported:
 | 'deterministic' | Use the hashed module identifier as the id to benefit from long-term caching. This option is enabled by default in production mode |
 | true            | Same as 'deterministic'                                                                                                            |
 | false           | Keep original name. Good for readability and debugging.                                                                            |
+
+## optimization.nodeEnv
+
+- **Type:** `boolean | string`
+- **Default:** `false`
+
+Tells Rspack to set `process.env.NODE_ENV` to a given string value. `optimization.nodeEnv` uses [DefinePlugin](/plugins/webpack/define-plugin) unless set to false.
+`optimization.nodeEnv` **defaults** to [mode](/config/mode) if set, else falls back to `'production'`.
+
+Possible values:
+
+- any string: the value to set `process.env.NODE_ENV` to.
+- false: do not modify/set the value of `process.env.NODE_ENV`.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    nodeEnv: 'production',
+  },
+};
+```
+
+:::tip
+When [mode](/config/mode) is set to `'none'`, `optimization.nodeEnv` defaults to `false`.
+:::

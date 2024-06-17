@@ -241,7 +241,11 @@ function checkConfigsDocumentationCoverage() {
 			"output",
 			"node",
 			"stats",
-			"optimization",
+
+			"optimization.splitChunks",
+			"optimization.removeAvailableModules",
+			"optimization.concatenateModules",
+
 			"loader",
 			"snapshot",
 			"profile"
