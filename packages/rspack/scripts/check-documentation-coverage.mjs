@@ -200,7 +200,7 @@ function checkConfigsDocumentationCoverage() {
 					}
 					const title = line.substring(level).trim();
 					section = {
-						title: toCamelCase(title),
+						title: toCamelCase(title.split(' ')[0]),
 						level,
 						text: ""
 					};
@@ -239,6 +239,30 @@ function checkConfigsDocumentationCoverage() {
 			"module",
 			"experiments.rspackFuture",
 			"output",
+
+			"output.library.amd",
+			"output.library.commonjs",
+			"output.library.root",
+			"output.environment.asyncFunction",
+			"output.environment.bigIntLiteral",
+			"output.environment.const",
+			"output.environment.destructuring",
+			"output.environment.document",
+			"output.environment.dynamicImport",
+			"output.environment.dynamicImportInWorker",
+			"output.environment.forOf",
+			"output.environment.globalThis",
+			"output.environment.module",
+			"output.environment.nodePrefixForCoreModules",
+			"output.environment.optionalChaining",
+			"output.environment.templateLiteral",
+			"output.workerChunkLoading",
+			"output.workerWasmLoading",
+			"output.workerPublicPath",
+			"output.strictModuleExceptionHandling",
+			"output.sourceMapFilename",
+
+			"externalsPresets",
 			"node",
 			"stats",
 
