@@ -1451,6 +1451,22 @@ module.exports = {
 - 如果目标设置为 `'web'`、`'webworker'`、`'electron-renderer'` 或 `'node-webkit'`，默认值为 `'fetch'`。
 - 如果目标设置为 `'node'`、`'async-node'`、`'electron-main'` 或 `'electron-preload'`，则默认为 `'async-node'`。
 
+## output.webassemblyModuleFilename
+
+- **类型：** `string`
+- **默认值：** `'[hash].module.wasm'`
+
+指定 WebAssembly 模块的文件名。应该作为 `output.path` 目录下的相对路径提供。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    webassemblyModuleFilename: '[id].[hash].wasm',
+  },
+};
+```
+
 ## output.enabledWasmLoadingTypes
 
 开启可用的 wasmLoading 类型的运行时模块打包。
@@ -1492,3 +1508,19 @@ module.exports = {
 - **默认值：** `"webpackHotUpdate" + output.uniqueName`
 
 只在 [chunkLoading](/config/output#outputchunkloading) 为 `"jsonp"` 或 `"import-scripts"` 时会被使用。该全局变量会用来请求并加载热更新文件。
+
+## output.iife
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+让 Rspack 为生成的代码添加 IIFE 包装器。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    iife: true,
+  },
+};
+```

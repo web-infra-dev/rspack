@@ -1438,6 +1438,22 @@ The default value can be affected by different target:
 - Defaults to `'fetch'` if target is set to `'web'`, `'webworker'`, `'electron-renderer'` or `'node-webkit'`.
 - Defaults to `'async-node'` if target is set to `'node'`, `'async-node'`, `'electron-main'` or `'electron-preload'`.
 
+## output.webassemblyModuleFilename
+
+- **Type:** `string`
+- **Default:** `'[hash].module.wasm'`
+
+Specifies the filename of WebAssembly modules. It should be provided as a relative path within the `output.path` directory
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    webassemblyModuleFilename: '[id].[hash].wasm',
+  },
+};
+```
+
 ## output.enabledWasmLoadingTypes
 
 Enables available runtime module bundling of wasmLoadingType.
@@ -1479,3 +1495,19 @@ Customize the main hot update filename. `[fullhash]` and `[runtime]` are availab
 - **Default:** `"webpackHotUpdate" + output.uniqueName`
 
 Only used when [chunkLoading](/config/output#outputchunkloading) is `"jsonp"` or `"import-scripts"`. This global variable is used for loading hot update chunks.
+
+## output.iife
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Tells webpack to add IIFE wrapper around emitted code.
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    iife: true,
+  },
+};
+```
