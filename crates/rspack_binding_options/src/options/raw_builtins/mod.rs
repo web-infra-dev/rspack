@@ -114,7 +114,7 @@ pub enum BuiltinPluginName {
   EnableChunkLoadingPlugin,
   EnableLibraryPlugin,
   EnableWasmLoadingPlugin,
-  FetchCompileAsyncWasnPlugin,
+  FetchCompileAsyncWasmPlugin,
   ChunkPrefetchPreloadPlugin,
   CommonJsChunkFormatPlugin,
   ArrayPushCallbackChunkFormatPlugin,
@@ -259,7 +259,7 @@ impl BuiltinPlugin {
           wasm_loading_type.as_str().into(),
         ));
       }
-      BuiltinPluginName::FetchCompileAsyncWasnPlugin => {
+      BuiltinPluginName::FetchCompileAsyncWasmPlugin => {
         plugins.push(FetchCompileAsyncWasmPlugin::default().boxed())
       }
       BuiltinPluginName::ChunkPrefetchPreloadPlugin => {

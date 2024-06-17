@@ -64,7 +64,6 @@ import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
 import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
 import ResolverFactory = require('./ResolverFactory');
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
-import { RspackPluginFunction as RspackPluginFunction_2 } from './config';
 import { Source } from 'webpack-sources';
 import { SyncBailHook as SyncBailHook_2 } from 'tapable';
 import { SyncHook as SyncHook_2 } from 'tapable';
@@ -3166,7 +3165,7 @@ export type Falsy = z.infer<typeof falsy>;
 const falsy: z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>;
 
 // @public (undocumented)
-const FetchCompileAsyncWasnPlugin: {
+const FetchCompileAsyncWasmPlugin: {
     new (): {
         name: BuiltinPluginName;
         _options: void;
@@ -13369,9 +13368,7 @@ namespace Watchpack {
 // @public (undocumented)
 interface Web {
     // (undocumented)
-    FetchCompileAsyncWasnPlugin: typeof FetchCompileAsyncWasnPlugin;
-    // (undocumented)
-    FetchCompileWasnPlugin: RspackPluginFunction_2;
+    FetchCompileAsyncWasmPlugin: typeof FetchCompileAsyncWasmPlugin;
 }
 
 // @public (undocumented)
