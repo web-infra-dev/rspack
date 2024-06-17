@@ -237,7 +237,7 @@ function checkConfigsDocumentationCoverage() {
 		return ![
 			"resolveLoader",
 			"module",
-			"experiments",
+			"experiments.rspackFuture",
 			"output",
 			"node",
 			"stats",
