@@ -238,7 +238,6 @@ function checkConfigsDocumentationCoverage() {
 			"resolveLoader",
 			"module",
 			"experiments.rspackFuture",
-			"output",
 
 			"output.library.amd",
 			"output.library.commonjs",
