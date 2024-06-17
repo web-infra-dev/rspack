@@ -619,8 +619,7 @@ module.exports = {
 - **Type:** `string`
 - **Default:** `'hex'`
 
-The encoding to use when generating the hash. All encodings from Node.JS' [`hash.digest`](https://nodejs.org/api/buffer.html#buffers-and-character-encodings) are supported.
-Using `'base64'` for filenames might be problematic since it has the character `/` in its alphabet. Likewise `'latin1'` could contain any character.
+The encoding to use when generating the hash. Using `'base64'` for filenames might be problematic since it has the character `/` in its alphabet. Likewise `'latin1'` could contain any character.
 
 ## output.hashDigestLength
 
@@ -628,6 +627,21 @@ Using `'base64'` for filenames might be problematic since it has the character `
 - **Default:** `'20'`
 
 The prefix length of the hash digest to use.
+
+## output.hashFunction
+
+- **Type:** `'md4' | 'xxhash64'`
+- **Default:** `'md4'`
+
+The hashing algorithm to use.
+
+:::tip
+`hashFunction` supports `xxhash64` as a faster algorithm, which will be used as default when `experiments.futureDefaults` is enabled.
+:::
+
+## output.hashSalt
+
+An optional salt to update the hash.
 
 ## output.importFunctionName
 

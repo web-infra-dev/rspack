@@ -617,8 +617,7 @@ module.exports = {
 - **类型：** `string`
 - **默认值：** `'hex'`
 
-在生成哈希时使用的编码方式。支持 Node.JS [`hash.digest`](https://nodejs.org/api/buffer.html#buffers-and-character-encodings) 中的所有编码。
-使用 `'base64'` 作为文件名可能会有问题，因为其中包含 `/` 字符。同样 `'latin1'` 也可能包含任何字符。
+在生成哈希时使用的编码方式。使用 `'base64'` 作为文件名可能会有问题，因为其中包含 `/` 字符。同样 `'latin1'` 也可能包含任何字符。
 
 ## output.hashDigestLength
 
@@ -642,6 +641,30 @@ module.exports = {
   },
 };
 ```
+
+## output.hashFunction
+
+- **类型：** `'md4' | 'xxhash64'`
+- **默认值：** `'md4'`
+
+要使用的哈希算法。
+
+```javascript title=rspack.config.js
+module.exports = {
+  //...
+  output: {
+    hashFunction: 'xxhash64',
+  },
+};
+```
+
+:::tip
+`hashFunction` 支持更快的 `xxhash64` 算法，当启用 `experiments.futureDefaults` 时将使用它作为默认值。
+:::
+
+## output.hashSalt
+
+可选的 salt，用于更新哈希值。
 
 ## output.library
 
