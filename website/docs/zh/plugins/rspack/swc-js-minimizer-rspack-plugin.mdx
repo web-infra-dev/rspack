@@ -7,7 +7,12 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 此插件可以用来压缩 JS 产物。参见 [optimization.minimizer](/config/optimization#optimizationminimizer)。
 
 ```js
-new rspack.SwcJsMinimizerRspackPlugin(options);
+module.exports = {
+  // ...
+  optimization: {
+    minimizer: [new rspack.SwcJsMinimizerRspackPlugin(options)],
+  },
+};
 ```
 
 - options
