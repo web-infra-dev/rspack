@@ -970,7 +970,8 @@ impl JsPlugin {
         .find(|m| m.identifier().to_string() == *module_id)
         .unwrap_or_else(|| panic!("should find inlined module id \"{module_id}\" in all_modules"));
 
-      let mut source: Arc<dyn Source> = Arc::clone(_source);
+      let source: Arc<dyn Source> = _source.clone();
+      let mut replace_source = ReplaceSource::new(_source.clone());
 
       if used_in_non_inlined.is_empty() {
         renamed_inline_modules.insert(module_id.to_string(), source);
@@ -1007,7 +1008,6 @@ impl JsPlugin {
           let readable_identifier = module.readable_identifier(&context).to_string();
           let new_name = find_new_name(name, &all_used_names, None, &readable_identifier);
 
-          let mut replace_source = ReplaceSource::new(Arc::clone(&source));
           for identifier in refs.iter() {
             let span = identifier.id.span();
             let low = span.real_lo();
@@ -1021,11 +1021,11 @@ impl JsPlugin {
             replace_source.replace(low, high, &new_name, None);
           }
 
-          source = Arc::new(replace_source);
           all_used_names.insert(new_name);
         }
       }
 
+      let source: Arc<dyn Source> = Arc::new(replace_source);
       renamed_inline_modules.insert(module_id.to_string(), Arc::clone(&source));
     }
 
