@@ -1,8 +1,10 @@
 use std::{iter::once, sync::atomic::AtomicU32};
 
+use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_error::Result;
-use rspack_identifier::IdentifierSet;
+use rspack_identifier::{Identifier, IdentifierSet};
+use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::{runtime::Handle, sync::oneshot::Sender};
 
@@ -12,8 +14,18 @@ use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationResult, CompilationAsset, CompilationAssets, DependencyId, EntryOptions,
-  Entrypoint, RuntimeSpec, SourceType,
+  Entrypoint, ModuleType, RuntimeSpec, SourceType,
 };
+
+#[derive(Debug, Clone)]
+pub struct ExecutedRuntimeModule {
+  pub identifier: Identifier,
+  pub name: String,
+  pub name_for_condition: Option<String>,
+  pub module_type: ModuleType,
+  pub size: f64,
+  pub cacheable: bool,
+}
 
 static EXECUTE_MODULE_ID: AtomicU32 = AtomicU32::new(0);
 pub type ExecuteModuleId = u32;
@@ -39,6 +51,7 @@ pub struct ExecuteTask {
     Result<ExecuteModuleResult>,
     CompilationAssets,
     IdentifierSet,
+    Vec<ExecutedRuntimeModule>,
   )>,
 }
 
@@ -184,14 +197,19 @@ impl Task<MakeTaskContext> for ExecuteTask {
         .collect::<Vec<_>>()
     );
 
+    let mut runtime_module_size = HashMap::default();
     for runtime_id in &runtime_modules {
       let runtime_module = compilation
         .runtime_modules
         .get(runtime_id)
         .expect("runtime module exist");
 
-      let result =
-        CodeGenerationResult::default().with_javascript(runtime_module.generate(&compilation)?);
+      let runtime_module_source = runtime_module.generate(&compilation)?;
+      runtime_module_size.insert(
+        runtime_module.identifier(),
+        runtime_module_source.size() as f64,
+      );
+      let result = CodeGenerationResult::default().with_javascript(runtime_module_source);
       let result_id = result.id;
 
       compilation
@@ -201,6 +219,9 @@ impl Task<MakeTaskContext> for ExecuteTask {
       compilation
         .code_generation_results
         .add(*runtime_id, runtime.clone(), result_id);
+      compilation
+        .code_generated_modules
+        .insert(runtime_module.identifier());
     }
 
     let codegen_results = compilation.code_generation_results.clone();
@@ -275,9 +296,35 @@ impl Task<MakeTaskContext> for ExecuteTask {
     if let Ok(ref mut result) = execute_result {
       result.assets = assets.keys().cloned().collect::<HashSet<_>>();
     }
+    let executed_runtime_modules = runtime_modules
+      .iter()
+      .map(|runtime_id| {
+        let runtime_module = compilation
+          .runtime_modules
+          .get(runtime_id)
+          .expect("runtime module exist");
+        let identifier = runtime_module.identifier();
+        ExecutedRuntimeModule {
+          identifier,
+          name: runtime_module.name().to_string(),
+          name_for_condition: runtime_module.name_for_condition().map(|n| n.to_string()),
+          module_type: *runtime_module.module_type(),
+          cacheable: runtime_module.cacheable(),
+          size: runtime_module_size
+            .get(&identifier)
+            .map(|s| s.to_owned())
+            .unwrap_or(0 as f64),
+        }
+      })
+      .collect_vec();
     context.recovery_from_temp_compilation(compilation);
     result_sender
-      .send((execute_result, assets, code_generated_modules))
+      .send((
+        execute_result,
+        assets,
+        code_generated_modules,
+        executed_runtime_modules,
+      ))
       .expect("should send result success");
     Ok(vec![])
   }

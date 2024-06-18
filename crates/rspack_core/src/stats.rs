@@ -7,8 +7,8 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkGroupOrderKey, ModuleGraph, ProvidedExports,
-  UsedExports,
+  get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkGroupOrderKey, ExecutedRuntimeModule,
+  ModuleGraph, ProvidedExports, UsedExports,
 };
 use crate::{BoxModule, BoxRuntimeModule, Chunk};
 use crate::{ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType, SourceType};
@@ -192,11 +192,23 @@ impl Stats<'_> {
         })
         .collect::<Result<_>>()?;
 
-      // TODO: get executed runtime modules
-      let executed_runtime_modules: Vec<StatsModule> = vec![];
-
       modules.extend(executed_modules);
-      modules.extend(executed_runtime_modules);
+    }
+
+    if let Some(executed_runtime_modules) = self
+      .compilation
+      .module_executor
+      .as_ref()
+      .map(|me| &me.executed_runtime_modules)
+    {
+      let runtime_modules: Vec<StatsModule> = executed_runtime_modules
+        .iter()
+        .map(|item| {
+          let (id, module) = item.pair();
+          self.get_executed_runtime_module(id, module, reasons, module_assets)
+        })
+        .collect::<Result<_>>()?;
+      modules.extend(runtime_modules);
     }
 
     Self::sort_modules(&mut modules);
@@ -741,6 +753,57 @@ impl Stats<'_> {
     })
   }
 
+  fn get_executed_runtime_module(
+    &self,
+    identifier: &ModuleIdentifier,
+    module: &ExecutedRuntimeModule,
+    reasons: bool,
+    module_assets: bool,
+  ) -> Result<StatsModule> {
+    let built = false;
+    let code_generated = self.compilation.code_generated_modules.contains(identifier);
+
+    Ok(StatsModule {
+      r#type: "module",
+      depth: None,
+      module_type: module.module_type,
+      identifier: module.identifier,
+      name_for_condition: module.name_for_condition.clone(),
+      name: module.name.clone(),
+      id: Some(String::new()),
+      chunks: vec![],
+      size: module.size,
+      sizes: vec![StatsSourceTypeSize {
+        source_type: SourceType::Custom("runtime".into()),
+        size: module.size,
+      }],
+      issuer: None,
+      issuer_name: None,
+      issuer_id: None,
+      issuer_path: Vec::new(),
+      reasons: reasons.then_some(vec![]),
+      assets: module_assets.then_some(vec![]),
+      modules: None,
+      source: None,
+      profile: None,
+      orphan: true,
+      provided_exports: Some(vec![]),
+      used_exports: None,
+      optimization_bailout: vec![],
+      pre_order_index: None,
+      post_order_index: None,
+      built,
+      code_generated,
+      build_time_executed: true,
+      cached: !built && !code_generated,
+      cacheable: module.cacheable,
+      optional: false,
+      failed: false,
+      warnings: 0,
+      errors: 0,
+    })
+  }
+
   fn get_runtime_module<'a>(
     &'a self,
     identifier: &ModuleIdentifier,
@@ -766,10 +829,6 @@ impl Stats<'_> {
       .get(identifier)
       .map(|(_, source)| source.size() as f64)
       .unwrap_or(0 as f64);
-    let build_time_executed = self
-      .compilation
-      .build_time_executed_modules
-      .contains(identifier);
 
     Ok(StatsModule {
       r#type: "module",
@@ -806,7 +865,7 @@ impl Stats<'_> {
       post_order_index: None,
       built,
       code_generated,
-      build_time_executed,
+      build_time_executed: false,
       cached: !built && !code_generated,
       cacheable: module.cacheable(),
       optional: false,
