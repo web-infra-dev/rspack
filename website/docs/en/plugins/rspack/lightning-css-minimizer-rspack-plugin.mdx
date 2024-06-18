@@ -1,0 +1,70 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# LightningCssMinimizerRspackPlugin
+
+<ApiMeta addedVersion={'0.7.4'} />
+
+This plugin uses [lightningcss](https://lightningcss.dev/) to minify CSS assets. See [optimization.minimizer](/config/optimization#optimizationminimizer).
+
+```js
+module.exports = {
+  // ...
+  optimization: {
+    minimizer: [new rspack.LightningCssMinimizerRspackPlugin()],
+  },
+};
+```
+
+## Options
+
+### errorRecovery
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Whether to ignore invalid rules and declarations rather than erroring.
+
+### unusedSymbols
+
+- **Type:** `string[]`
+- **Default:** `[]`
+
+A list of known unused symbols, including CSS class names, ids, and @keyframe names. The declarations of these will be removed.
+
+### removeUnusedLocalIdents
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to automatically remove the unused local idents of CSS Modules, including unused CSS class names, ids, and @keyframe names. The declarations of these will be removed.
+
+For example, in the following CSS Modules, class names a and b are exported, but only class name a is used in the js file:
+
+```css title=index.module.css
+.a {
+  color: red;
+}
+
+.b {
+  color: blue;
+}
+```
+
+```js title=index.js
+import * as styles from './index.module.css';
+document.body.className = styles.a;
+```
+
+At this point, the information that class name b is unused will be obtained via Rspack's tree shaking feature and provided to lightningcss. During minimization, the declaration for class name b will be removed from the CSS output, resulting in the following final output:
+
+{/* prettier-ignore */}
+```css
+.a{color: red}
+```
+
+### browserslist
+
+- **Type:** `string[]`
+- **Default:** `["defaults"]`
+
+Browserslist targets to compile the CSS for.

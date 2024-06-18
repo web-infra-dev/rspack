@@ -7,6 +7,24 @@ Used to decide how to handle different types of modules in a project.
 - **Type:** `Object`
 - **Default:** `{}`
 
+## module.defaultRules
+
+- **Type:** `Rule[]`
+
+An array of rules applied by default for modules.
+
+See [source code](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L364) for details.
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    defaultRules: [
+      '...', // you can use "..." to reference those rules applied by webpack by default
+    ],
+  },
+};
+```
+
 ## module.noParse
 
 - **Type:** `string | string[] | RegExp | RegExp[] | ((request: string) => boolean)`
@@ -788,10 +806,31 @@ Matches all modules that match this resource, and will match against the Resourc
 
 ### Rule.descriptionData
 
-- **Type:** `{ [k: string]: Condition }`
+- **Type:** `{ [key: string]: Condition }`
 - **Default:** `undefined`
 
-Matches all modules that match this resource, and will match against the data in the Resource's package.json.
+`descriptionData` option allows you to match values of properties in the description file, typically `package.json`, to determine which modules a rule should apply to. This is a useful way to apply rules to specific modules based on metadata found in their `package.json`.
+
+The object keys in `descriptionData` correspond to keys in the module's `package.json`, such as `name`, `version`, etc. Each key should be associated with a [`Condition`](/config/module#condition) for matching the `package.json` data.
+
+For example, below we are applying the rule only to JavaScript resources with `'rspack'` string included in their `package.json` `name`.
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        include: /node_modules/,
+        descriptionData: {
+          name: packageJsonName => packageJsonName.includes('rspack'),
+        },
+        // additional rule options...
+      },
+    ],
+  },
+};
+```
 
 ### Rule.loaders
 

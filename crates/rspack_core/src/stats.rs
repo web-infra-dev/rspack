@@ -10,8 +10,10 @@ use crate::{
   get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkGroupOrderKey, ProvidedExports, RuntimeSpec,
   UsedExports,
 };
-use crate::{BoxModule, BoxRuntimeModule, Chunk};
-use crate::{ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType, SourceType};
+use crate::{
+  BoxModule, BoxRuntimeModule, Chunk, ChunkGroupUkey, Compilation, ExecutedRuntimeModule, LogType,
+  ModuleGraph, ModuleIdentifier, ModuleType, SourceType,
+};
 
 #[derive(Debug, Clone)]
 pub struct Stats<'compilation> {
@@ -140,11 +142,18 @@ impl Stats<'_> {
     f: impl Fn(Vec<StatsModule>) -> T,
   ) -> Result<T> {
     let module_graph = self.compilation.get_module_graph();
+    let executor_module_graph = &self
+      .compilation
+      .module_executor
+      .as_ref()
+      .map(|executor| executor.make_artifact.get_module_graph());
+
     let mut modules: Vec<StatsModule> = module_graph
       .modules()
       .values()
       .map(|module| {
         self.get_module(
+          &module_graph,
           module,
           reasons,
           module_assets,
@@ -152,6 +161,7 @@ impl Stats<'_> {
           source,
           used_exports,
           provided_exports,
+          false,
         )
       })
       .chain(
@@ -164,6 +174,45 @@ impl Stats<'_> {
           }),
       )
       .collect::<Result<_>>()?;
+
+    if let Some(executor_module_graph) = &executor_module_graph {
+      let executed_modules: Vec<StatsModule> = executor_module_graph
+        .modules()
+        .values()
+        .map(|module| {
+          self.get_module(
+            executor_module_graph,
+            module,
+            reasons,
+            module_assets,
+            nested_modules,
+            source,
+            used_exports,
+            provided_exports,
+            true,
+          )
+        })
+        .collect::<Result<_>>()?;
+
+      modules.extend(executed_modules);
+    }
+
+    if let Some(executed_runtime_modules) = self
+      .compilation
+      .module_executor
+      .as_ref()
+      .map(|me| &me.executed_runtime_modules)
+    {
+      let runtime_modules: Vec<StatsModule> = executed_runtime_modules
+        .iter()
+        .map(|item| {
+          let (id, module) = item.pair();
+          self.get_executed_runtime_module(id, module, reasons, module_assets)
+        })
+        .collect::<Result<_>>()?;
+      modules.extend(runtime_modules);
+    }
+
     Self::sort_modules(&mut modules);
 
     Ok(f(modules))
@@ -203,6 +252,7 @@ impl Stats<'_> {
             .into_iter()
             .map(|m| {
               self.get_module(
+                &module_graph,
                 m,
                 reasons,
                 module_assets,
@@ -210,6 +260,7 @@ impl Stats<'_> {
                 source,
                 used_exports,
                 provided_exports,
+                false,
               )
             })
             .collect::<Result<Vec<_>>>()?;
@@ -253,7 +304,7 @@ impl Stats<'_> {
           siblings,
           children_by_order,
           runtime: c.runtime.clone(),
-          sizes: chunk_graph.get_chunk_modules_sizes(&c.ukey, &self.compilation),
+          sizes: chunk_graph.get_chunk_modules_sizes(&c.ukey, self.compilation),
           reason: c.chunk_reason.clone(),
         })
       })
@@ -397,9 +448,14 @@ impl Stats<'_> {
   }
 
   fn sort_modules(modules: &mut [StatsModule]) {
-    // TODO: sort by module.depth
     modules.sort_unstable_by(|a, b| {
-      if a.name.len() != b.name.len() {
+      // align with MODULES_SORTER
+      // https://github.com/webpack/webpack/blob/ab3e93b19ead869727592d09d36f94e649eb9d83/lib/stats/DefaultStatsFactoryPlugin.js#L1546
+      if a.depth != b.depth {
+        a.depth.cmp(&b.depth)
+      } else if a.pre_order_index != b.pre_order_index {
+        a.pre_order_index.cmp(&b.pre_order_index)
+      } else if a.name.len() != b.name.len() {
         a.name.len().cmp(&b.name.len())
       } else {
         a.name.cmp(&b.name)
@@ -410,6 +466,7 @@ impl Stats<'_> {
   #[allow(clippy::too_many_arguments)]
   fn get_module<'a>(
     &'a self,
+    module_graph: &'a ModuleGraph,
     module: &'a BoxModule,
     reasons: bool,
     module_assets: bool,
@@ -417,21 +474,39 @@ impl Stats<'_> {
     source: bool,
     used_exports: bool,
     provided_exports: bool,
+    executed: bool,
   ) -> Result<StatsModule<'a>> {
     let identifier = module.identifier();
-    let module_graph = self.compilation.get_module_graph();
     let mgm = module_graph
       .module_graph_module_by_identifier(&identifier)
       .unwrap_or_else(|| panic!("Could not find ModuleGraphModule by identifier: {identifier:?}"));
 
     let issuer = module_graph.get_issuer(&module.identifier());
     let (issuer_name, issuer_id) = issuer
-      .map(|i| get_stats_module_name_and_id(i, self.compilation))
+      .map(|i| {
+        if executed {
+          (
+            i.readable_identifier(&self.compilation.options.context)
+              .to_string(),
+            None,
+          )
+        } else {
+          get_stats_module_name_and_id(i, self.compilation)
+        }
+      })
       .unzip();
     let mut issuer_path = Vec::new();
     let mut current_issuer = issuer;
     while let Some(i) = current_issuer {
-      let (name, id) = get_stats_module_name_and_id(i, self.compilation);
+      let (name, id) = if executed {
+        (
+          i.readable_identifier(&self.compilation.options.context)
+            .to_string(),
+          None,
+        )
+      } else {
+        get_stats_module_name_and_id(i, self.compilation)
+      };
       issuer_path.push(StatsModuleIssuer {
         identifier: i.identifier().to_string(),
         name,
@@ -441,7 +516,7 @@ impl Stats<'_> {
     }
     issuer_path.reverse();
 
-    let reasons = reasons
+    let module_reasons = reasons
       .then(|| -> Result<_> {
         let mut reasons: Vec<StatsModuleReason> = mgm
           .get_incoming_connections_unordered()
@@ -452,7 +527,17 @@ impl Stats<'_> {
             let (module_name, module_id) = connection
               .original_module_identifier
               .and_then(|i| module_graph.module_by_identifier(&i))
-              .map(|m| get_stats_module_name_and_id(m, self.compilation))
+              .map(|m| {
+                if executed {
+                  (
+                    m.readable_identifier(&self.compilation.options.context)
+                      .to_string(),
+                    None,
+                  )
+                } else {
+                  get_stats_module_name_and_id(m, self.compilation)
+                }
+              })
               .unzip();
             let dependency = module_graph.dependency_by_id(&connection.dependency_id);
             let (r#type, user_request) =
@@ -483,28 +568,61 @@ impl Stats<'_> {
       })
       .transpose()?;
 
-    let mut chunks: Vec<Option<String>> = self
-      .compilation
-      .chunk_graph
-      .get_chunk_graph_module(mgm.module_identifier)
-      .chunks
-      .iter()
-      .map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
-      .collect();
+    let mut chunks: Vec<Option<String>> = if executed {
+      vec![]
+    } else {
+      self
+        .compilation
+        .chunk_graph
+        .get_chunk_graph_module(mgm.module_identifier)
+        .chunks
+        .iter()
+        .map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
+        .collect()
+    };
     chunks.sort_unstable();
 
-    let assets = module_assets.then(|| {
-      let mut assets: Vec<_> = module
-        .build_info()
-        .as_ref()
-        .map(|info| info.asset_filenames.iter().map(|i| i.to_string()).collect())
-        .unwrap_or_default();
-      assets.sort();
-      assets
-    });
+    let assets = if executed {
+      None
+    } else {
+      module_assets.then(|| {
+        let mut assets: Vec<_> = module
+          .build_info()
+          .as_ref()
+          .map(|info| info.asset_filenames.iter().map(|i| i.to_string()).collect())
+          .unwrap_or_default();
+        assets.sort();
+        assets
+      })
+    };
 
-    // TODO: a placeholder for concatenation modules
-    let modules = nested_modules.then(Vec::new);
+    let modules = nested_modules
+      .then(|| -> Result<_> {
+        let Some(module) = module.as_concatenated_module() else {
+          return Ok(Vec::new());
+        };
+        let mut modules: Vec<StatsModule> = module
+          .get_modules()
+          .iter()
+          .filter_map(|m| module_graph.module_by_identifier(&m.id))
+          .map(|module| {
+            self.get_module(
+              module_graph,
+              module,
+              reasons,
+              module_assets,
+              nested_modules,
+              source,
+              used_exports,
+              provided_exports,
+              executed,
+            )
+          })
+          .collect::<Result<_>>()?;
+        Self::sort_modules(&mut modules);
+        Ok(modules)
+      })
+      .transpose()?;
     let profile = if let Some(p) = mgm.get_profile()
       && let Some(factory) = p.factory.duration()
       && let Some(integration) = p.integration.duration()
@@ -520,7 +638,7 @@ impl Stats<'_> {
     };
 
     let provided_exports =
-      if provided_exports && self.compilation.options.optimization.provided_exports {
+      if !executed && provided_exports && self.compilation.options.optimization.provided_exports {
         match self
           .compilation
           .get_module_graph()
@@ -533,7 +651,8 @@ impl Stats<'_> {
         None
       };
 
-    let used_exports = if used_exports
+    let used_exports = if !executed
+      && used_exports
       && self
         .compilation
         .options
@@ -556,38 +675,137 @@ impl Stats<'_> {
       None
     };
 
+    let built = self.compilation.built_modules.contains(&identifier);
+    let code_generated = self
+      .compilation
+      .code_generated_modules
+      .contains(&identifier);
+
+    let errors = self
+      .compilation
+      .get_errors()
+      .filter(|d| d.module_identifier().is_some_and(|id| id == identifier))
+      .count() as u32;
+
+    let warnings = self
+      .compilation
+      .get_warnings()
+      .filter(|d| d.module_identifier().is_some_and(|id| id == identifier))
+      .count() as u32;
+
+    let sizes = module
+      .source_types()
+      .iter()
+      .map(|t| StatsSourceTypeSize {
+        source_type: *t,
+        size: module.size(Some(t)),
+      })
+      .collect_vec();
+
     Ok(StatsModule {
       r#type: "module",
       module_type: *module.module_type(),
       identifier,
+      depth: module_graph.get_depth(&identifier),
       name_for_condition: module.name_for_condition().map(|n| n.to_string()),
       name: module
         .readable_identifier(&self.compilation.options.context)
         .into(),
-      id: self
-        .compilation
-        .chunk_graph
-        .get_module_id(identifier)
-        .clone(),
+      id: if executed {
+        None
+      } else {
+        self
+          .compilation
+          .chunk_graph
+          .get_module_id(identifier)
+          .clone()
+      },
       chunks,
-      size: module.size(&SourceType::JavaScript),
+      size: module.size(None),
+      sizes,
       issuer: issuer.map(|i| i.identifier().to_string()),
       issuer_name,
       issuer_id: issuer_id.and_then(|i| i),
       issuer_path,
-      reasons,
+      reasons: module_reasons,
       assets,
       modules,
       source: source.then(|| module.original_source()).flatten(),
       profile,
-      orphan: self
-        .compilation
-        .chunk_graph
-        .get_number_of_module_chunks(identifier)
-        == 0,
+      orphan: if executed {
+        true
+      } else {
+        self
+          .compilation
+          .chunk_graph
+          .get_number_of_module_chunks(identifier)
+          == 0
+      },
       provided_exports,
       used_exports,
       optimization_bailout: mgm.optimization_bailout.clone(),
+      pre_order_index: module_graph.get_pre_order_index(&identifier),
+      post_order_index: module_graph.get_post_order_index(&identifier),
+      built,
+      code_generated,
+      build_time_executed: executed,
+      cached: !built && !code_generated,
+      cacheable: module.build_info().is_some_and(|i| i.cacheable),
+      optional: module_graph.is_optional(&identifier),
+      failed: errors > 0,
+      errors,
+      warnings,
+    })
+  }
+
+  fn get_executed_runtime_module(
+    &self,
+    identifier: &ModuleIdentifier,
+    module: &ExecutedRuntimeModule,
+    reasons: bool,
+    module_assets: bool,
+  ) -> Result<StatsModule> {
+    let built = false;
+    let code_generated = self.compilation.code_generated_modules.contains(identifier);
+
+    Ok(StatsModule {
+      r#type: "module",
+      depth: None,
+      module_type: module.module_type,
+      identifier: module.identifier,
+      name_for_condition: module.name_for_condition.clone(),
+      name: module.name.clone(),
+      id: Some(String::new()),
+      chunks: vec![],
+      size: module.size,
+      sizes: vec![StatsSourceTypeSize {
+        source_type: SourceType::Custom("runtime".into()),
+        size: module.size,
+      }],
+      issuer: None,
+      issuer_name: None,
+      issuer_id: None,
+      issuer_path: Vec::new(),
+      reasons: reasons.then_some(vec![]),
+      assets: module_assets.then_some(vec![]),
+      modules: None,
+      source: None,
+      profile: None,
+      orphan: true,
+      provided_exports: Some(vec![]),
+      used_exports: None,
+      optimization_bailout: vec![],
+      pre_order_index: None,
+      post_order_index: None,
+      built,
+      code_generated,
+      build_time_executed: true,
+      cached: !built && !code_generated,
+      cacheable: module.cacheable,
+      optional: false,
+      failed: false,
+      warnings: 0,
+      errors: 0,
     })
   }
 
@@ -608,15 +826,29 @@ impl Stats<'_> {
       .collect();
     chunks.sort_unstable();
 
+    let built = false;
+    let code_generated = self.compilation.code_generated_modules.contains(identifier);
+    let size = self
+      .compilation
+      .runtime_module_code_generation_results
+      .get(identifier)
+      .map(|(_, source)| source.size() as f64)
+      .unwrap_or(0 as f64);
+
     Ok(StatsModule {
       r#type: "module",
+      depth: None,
       module_type: *module.module_type(),
       identifier: module.identifier(),
       name_for_condition: module.name_for_condition().map(|n| n.to_string()),
       name: module.name().to_string(),
       id: Some(String::new()),
       chunks,
-      size: module.size(&SourceType::JavaScript),
+      size,
+      sizes: vec![StatsSourceTypeSize {
+        source_type: SourceType::Custom("runtime".into()),
+        size,
+      }],
       issuer: None,
       issuer_name: None,
       issuer_id: None,
@@ -634,6 +866,17 @@ impl Stats<'_> {
       provided_exports: Some(vec![]),
       used_exports: None,
       optimization_bailout: vec![],
+      pre_order_index: None,
+      post_order_index: None,
+      built,
+      code_generated,
+      build_time_executed: false,
+      cached: !built && !code_generated,
+      cacheable: module.cacheable(),
+      optional: false,
+      failed: false,
+      warnings: 0,
+      errors: 0,
     })
   }
   fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
@@ -748,6 +991,7 @@ pub struct StatsModule<'a> {
   pub id: Option<String>,
   pub chunks: Vec<Option<String>>, // has id after the call of chunkIds hook
   pub size: f64,
+  pub sizes: Vec<StatsSourceTypeSize>,
   pub issuer: Option<String>,
   pub issuer_name: Option<String>,
   pub issuer_id: Option<String>,
@@ -761,6 +1005,18 @@ pub struct StatsModule<'a> {
   pub provided_exports: Option<Vec<String>>,
   pub used_exports: Option<StatsUsedExports>,
   pub optimization_bailout: Vec<String>,
+  pub depth: Option<usize>,
+  pub pre_order_index: Option<u32>,
+  pub post_order_index: Option<u32>,
+  pub built: bool,
+  pub code_generated: bool,
+  pub build_time_executed: bool,
+  pub cached: bool,
+  pub cacheable: bool,
+  pub optional: bool,
+  pub failed: bool,
+  pub errors: u32,
+  pub warnings: u32,
 }
 
 #[derive(Debug)]
@@ -840,4 +1096,10 @@ impl StatsMillisecond {
       subsec_millis,
     }
   }
+}
+
+#[derive(Debug)]
+pub struct StatsSourceTypeSize {
+  pub source_type: SourceType,
+  pub size: f64,
 }

@@ -9,18 +9,4 @@ ERROR in ./index.js
          ╰────
       
   help: 
-        You may need an appropriate loader to handle this file type.
-
-ERROR in ./index.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
-       1 │ const CONST = 9000 % 2;
-       2 │ const D {
-         ·         ─
-       3 │     d = 10
-       4 │     g = CONST
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
+        You may need an appropri

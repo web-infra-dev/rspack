@@ -5,6 +5,7 @@ mod raw_css_extract;
 mod raw_html;
 mod raw_ignore;
 mod raw_lazy_compilation;
+mod raw_lightning_css_minimizer;
 mod raw_limit_chunk_count;
 mod raw_mf;
 mod raw_progress;
@@ -15,6 +16,7 @@ mod raw_to_be_deprecated;
 
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
+use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use rspack_core::{BoxPlugin, Define, DefinePlugin, Plugin, PluginExt, Provide, ProvidePlugin};
 use rspack_error::Result;
 use rspack_ids::{
@@ -47,6 +49,7 @@ use rspack_plugin_javascript::{
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
+use rspack_plugin_lightning_css_minimizer::LightningCssMinimizerRspackPlugin;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
 use rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin;
 use rspack_plugin_mf::{
@@ -66,7 +69,9 @@ use rspack_plugin_size_limits::SizeLimitsPlugin;
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
-use rspack_plugin_wasm::{enable_wasm_loading_plugin, AsyncWasmPlugin};
+use rspack_plugin_wasm::{
+  enable_wasm_loading_plugin, AsyncWasmPlugin, FetchCompileAsyncWasmPlugin,
+};
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
 
@@ -109,6 +114,7 @@ pub enum BuiltinPluginName {
   EnableChunkLoadingPlugin,
   EnableLibraryPlugin,
   EnableWasmLoadingPlugin,
+  FetchCompileAsyncWasmPlugin,
   ChunkPrefetchPreloadPlugin,
   CommonJsChunkFormatPlugin,
   ArrayPushCallbackChunkFormatPlugin,
@@ -163,6 +169,7 @@ pub enum BuiltinPluginName {
   HtmlRspackPlugin,
   SwcJsMinimizerRspackPlugin,
   SwcCssMinimizerRspackPlugin,
+  LightningCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
   CssExtractRspackPlugin,
 
@@ -251,6 +258,9 @@ impl BuiltinPlugin {
         plugins.push(enable_wasm_loading_plugin(
           wasm_loading_type.as_str().into(),
         ));
+      }
+      BuiltinPluginName::FetchCompileAsyncWasmPlugin => {
+        plugins.push(FetchCompileAsyncWasmPlugin::default().boxed())
       }
       BuiltinPluginName::ChunkPrefetchPreloadPlugin => {
         plugins.push(ChunkPrefetchPreloadPlugin::default().boxed());
@@ -440,6 +450,12 @@ impl BuiltinPlugin {
       BuiltinPluginName::SwcCssMinimizerRspackPlugin => {
         plugins.push(SwcCssMinimizerRspackPlugin::default().boxed())
       }
+      BuiltinPluginName::LightningCssMinimizerRspackPlugin => plugins.push(
+        LightningCssMinimizerRspackPlugin::new(
+          downcast_into::<RawLightningCssMinimizerRspackPluginOptions>(self.options)?.try_into()?,
+        )
+        .boxed(),
+      ),
       BuiltinPluginName::CopyRspackPlugin => {
         let plugin = CopyRspackPlugin::new(
           CopyRspackPluginOptions::from(downcast_into::<RawCopyRspackPluginOptions>(self.options)?)

@@ -149,6 +149,7 @@ pub struct NormalModule {
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
   parsed: bool,
+  last_successful_build_meta: BuildMeta,
 }
 
 #[derive(Debug, Clone)]
@@ -230,6 +231,7 @@ impl NormalModule {
       parsed: false,
 
       source_map_kind: SourceMapKind::empty(),
+      last_successful_build_meta: BuildMeta::default(),
     }
   }
 
@@ -360,12 +362,12 @@ impl Module for NormalModule {
     Cow::Owned(context.shorten(&self.user_request))
   }
 
-  fn size(&self, source_type: &SourceType) -> f64 {
-    if let Some(size_ref) = self.cached_source_sizes.get(source_type) {
+  fn size(&self, source_type: Option<&SourceType>) -> f64 {
+    if let Some(size_ref) = source_type.and_then(|st| self.cached_source_sizes.get(st)) {
       *size_ref
     } else {
       let size = f64::max(1.0, self.parser_and_generator.size(self, source_type));
-      self.cached_source_sizes.insert(*source_type, size);
+      source_type.and_then(|st| self.cached_source_sizes.insert(*st, size));
       size
     }
   }
@@ -492,7 +494,7 @@ impl Module for NormalModule {
         analyze_result,
         side_effects_bailout,
       },
-      ds,
+      diagnostics,
     ) = self
       .parser_and_generator
       .parse(ParseContext {
@@ -511,7 +513,12 @@ impl Module for NormalModule {
         build_meta: &mut build_meta,
       })?
       .split_into_parts();
-    self.add_diagnostics(ds);
+    if !diagnostics.is_empty() {
+      self.add_diagnostics(diagnostics);
+      build_meta = self.last_successful_build_meta.clone();
+    } else {
+      self.last_successful_build_meta = build_meta.clone();
+    }
     let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
       let short_id = self.readable_identifier(&build_context.compiler_options.context);
       vec![format!(

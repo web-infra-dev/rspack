@@ -5,6 +5,4 @@ ERROR in ./index.js
  3 │     try {
  4 │         await import("./non-exist")
    ·               ─────────────────────
- 5 │     } catch (err) {
- 6 │     errored = true
-   ╰────
+ 5 │     } c

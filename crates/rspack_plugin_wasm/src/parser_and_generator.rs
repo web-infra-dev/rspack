@@ -103,8 +103,8 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     )
   }
 
-  fn size(&self, module: &dyn Module, source_type: &SourceType) -> f64 {
-    match source_type {
+  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64 {
+    match source_type.unwrap_or(&SourceType::Wasm) {
       SourceType::JavaScript => {
         40.0
           + module

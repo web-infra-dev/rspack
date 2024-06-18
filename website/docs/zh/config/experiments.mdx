@@ -2,9 +2,17 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 # Experiments
 
-实验性功能：该选项通过此配置项可以开启并试用一些实验的功能。
+该选项赋予用户激活和尝试实验功能的能力。
 
 - **类型：** `object`
+
+## experiments.asyncWebAssembly
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+支持基于[新规范](https://github.com/WebAssembly/esm-integration)的 WebAssembly，这使 WebAssembly 模块成为异步模块
+当设置 [`experiments.futureDefaults`](#experimentsfuturedefaults) 为 `true` 时，默认启用此功能。
 
 ## experiments.incrementalRebuild
 
@@ -50,6 +58,18 @@ module.exports = {
 :::warning
 如果你在使用 `style-loader` 和 `css-loader` 请关闭该配置，因为 `style-loader` 和 `css-loader` 和原生 CSS 功能冲突。
 :::
+
+## experiments.futureDefaults
+
+使用下一个主版本 Rspack 的默认值，并在任何有问题的地方显示警告。
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    futureDefaults: true,
+  },
+};
+```
 
 ## experiments.topLevelAwait
 

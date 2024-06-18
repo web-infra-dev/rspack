@@ -25,9 +25,7 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 ></script>
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   //...
   externals: {
@@ -146,9 +144,7 @@ module.exports = {
 import fs from 'fs-extra';
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'commonjs',
@@ -175,9 +171,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'global',
@@ -206,9 +200,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```js
+```js title=rspack.config.js
 module.export = {
   externalsType: 'node-commonjs',
   externals: {
@@ -237,9 +229,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'self',
@@ -267,9 +257,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'this',
@@ -297,9 +285,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'var',
@@ -327,9 +313,7 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   // ...
   externalsType: 'window',
@@ -350,32 +334,32 @@ jq('.my-element').animate(/* ... */);
 
 为特定的目标环境启用外部模块的预设值。
 
-### node
+### externalsPresets.node
 
 将 node.js 的内置模块（如 `fs`、`path` 或 `vm`）视为外部模块，并在使用时通过 `require()` 加载它们。
 
-### web
+### externalsPresets.web
 
 将对 `http(s)://...` 和 `std:...` 引入的模块视为外部模块，并在使用时通过 `import` (`externalType: "module"`) 来加载它们（请注意，这会改变执行顺序，因为外部模块的代码会在 Chunk 中的任何其他模块的代码之前执行）。
 
-### webAsync
+### externalsPresets.webAsync
 
 <ApiMeta addedVersion="0.3.5" />
 
 将对 `http(s)://...` 和 `std:...` 引入的模块视为外部模块，并在使用时通过 `import()` (`externalType: "import"`) 来加载它们（请注意，此 external 类型为 async 模块，它对执行会产生各种副作用）。
 
-### electron
+### externalsPresets.electron
 
 将 Electron 主进程和预加载脚本中常见的 Electron 内置模块如 `electron`、`ipc` 或 `shell` 视为外部模块，并在使用时通过 `require()` 加载它们。
 
-### electronMain
+### externalsPresets.electronMain
 
 将 Electron 主进程中常见的 Electron 内置模块如 `app`、`ipc-main` 或 `shell` 视为外部模块，并在使用时通过 `require()` 加载它们。
 
-### electronRenderer
+### externalsPresets.electronRenderer
 
 将 Electron 渲染进程中常见的 Electron 内置模块如 `web-frame`、`ipc-renderer` 或 `shell` 视为外部模块，并在使用时通过 `require()` 加载它们。
 
-### electronPreload
+### externalsPresets.electronPreload
 
 将 Electron 预加载脚本中常见的 Electron 内置模块如 `web-frame`、`ipc-renderer` 或 `shell` 视为外部模块，并在使用时通过 `require()` 加载它们。

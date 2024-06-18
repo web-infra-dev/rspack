@@ -47,7 +47,7 @@ export type ContextModuleFactoryAfterResolveResult =
 
 export class Module {
 	#inner: JsModule;
-	_originalSource?: Source;
+	#originalSource?: Source;
 
 	context?: string;
 	resource?: string;
@@ -89,12 +89,12 @@ export class Module {
 	}
 
 	originalSource(): Source | null {
-		if (this._originalSource) return this._originalSource;
+		if (this.#originalSource) return this.#originalSource;
 		if (this.#inner.originalSource) {
-			this._originalSource = JsSource.__from_binding(
+			this.#originalSource = JsSource.__from_binding(
 				this.#inner.originalSource
 			);
-			return this._originalSource;
+			return this.#originalSource;
 		} else {
 			return null;
 		}

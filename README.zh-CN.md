@@ -3,11 +3,11 @@
   <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/dhozeh7vhpebvog/rspack-banner-1610.png">
 </picture>
 
-<h2 align="center">基于 Rust 的高性能模块打包工具</h2>
+# Rspack
 
-<p align="center">
+<p>
   <a href="https://discord.gg/79ZZ66GH9E">
-    <img src="https://img.shields.io/discord/977448667919286283?logo=discord&label=discord&colorB=EDED91" alt="discord channel" />
+    <img src="https://img.shields.io/badge/chat-discord-blue?style=flat-square&logo=discord&colorA=564341&colorB=EDED91" alt="discord channel" />
   </a>
   <a href="https://www.npmjs.com/package/@rspack/core?activeTab=versions">
    <img src="https://img.shields.io/npm/v/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" />
@@ -22,11 +22,13 @@
 
 [English](./README.md) | 简体中文
 
+Rspack 是一个基于 Rust 编写的高性能 JavaScript 打包工具，它提供对 webpack 生态良好的兼容性，能够无缝替换 webpack，并提供闪电般的构建速度。
+
 ## ✨ 特性
 
 - 🚀 **启动速度极快**: 基于 Rust 实现，构建速度极快，带给你极致的开发体验。
 - ⚡ **闪电般的 HMR**: 内置增量编译机制，HMR 速度极快，完全胜任大型项目的开发。
-- 📦 **兼容 webpack 生态**: 针对 webpack 的架构和生态进行兼容，无需从头搭建生态。
+- 📦 **兼容 webpack 生态**: 兼容 webpack 生态中的 plugin 和 loader，无缝衔接社区中沉淀的优秀库。
 - 🎨 **内置常见构建能力**: 对 TypeScript、JSX、CSS、CSS Modules、Sass 等提供开箱即用的支持。
 - 🛠️ **默认生产优化**: 默认内置多种优化策略，如 Tree Shaking、代码压缩等等。
 - 🎯 **框架无关**: 不和任何前端框架绑定，保证足够的灵活性。
@@ -54,7 +56,7 @@
 | [rspack-examples](https://github.com/rspack-contrib/rspack-examples)                     | Rspack 配置示例                                                              |
 | [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                        | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
 | [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase)  | 迁移到 Rspack 的示例项目                                                     |
-| [rspack-compat](https://github.com/web-infra-dev/rspack-compat)                          | 兼容 Rspack 的 Webpack 插件 和 Loader 示例                                   |
+| [rspack-compat](https://github.com/web-infra-dev/rspack-compat)                          | 兼容 Rspack 的 webpack 插件 和 Loader 示例                                   |
 | [rsfamily-design-resources](https://github.com/rspack-contrib/rsfamily-design-resources) | Rspack、Rsbuild、Rspress 和 Rsdoctor 的设计资源                              |
 
 ## 致谢
@@ -68,7 +70,7 @@
 - [esbuild](https://github.com/evanw/esbuild) 项目（由 [@evanw](https://github.com/evanw) 创建），它启发了 Rspack 的并发架构。
 - [NAPI-RS](https://github.com/napi-rs/napi-rs) 项目（由 [@Brooooooklyn](https://github.com/Brooooooklyn) 创建），为 Rspack 的 node-binding 实现提供了支持。
 - [Parcel](https://github.com/parcel-bundler/parcel) 项目（由 [@devongovett](https://github.com/devongovett)创建），它是 Rust Bundler 的先行探索者并启发了 Rspack 的增量构建架构。
-- [Vite](https://github.com/vitejs/vite) 由[尤雨溪](https://github.com/yyx990803)创建，它和 rollup 社区的兼容性设计启发了 Rspack 和 Webpack 社区的兼容设计。
+- [Vite](https://github.com/vitejs/vite) 由[尤雨溪](https://github.com/yyx990803)创建，它和 Rollup 社区的兼容性设计启发了 Rspack 和 webpack 社区的兼容设计。
 - [rolldown-legacy](https://github.com/rolldown-rs/rolldown-legacy) 项目，它是 [rolldown](https://github.com/rolldown) 项目的前身，它探索了使用 Rust 构建高性能 Bundler + 兼容 Rollup API 的可能性，启发了 Rspack 的设计方向。
 - [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 项目（由 [@jantimon](https://github.com/jantimon) 创建），Rspack 的 `@rspack/html-plugin` 是 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 的一个 fork 来避免使用在 Rspack 中尚未支持的 webpack API。
 - [Turbopack](https://github.com/vercel/turbo) 项目，它启发了 Rspack 里基于 AST 的路径重写逻辑。

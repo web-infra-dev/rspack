@@ -352,11 +352,10 @@ const SORTERS: Record<
 			comparators.push(compareSelect((c: StatsChunk) => c.id, compareIds));
 		}
 	}
-	// not support compilation.modules / chunk.rootModules / chunk.modules / module.modules  (missing Module.moduleGraph)
 	// "compilation.modules": MODULES_SORTER,
 	// "chunk.rootModules": MODULES_SORTER,
 	// "chunk.modules": MODULES_SORTER,
-	// "module.modules": MODULES_SORTER
+	// "module.modules": MODULES_SORTER,
 	// not support module.reasons (missing Module.identifier())
 	// not support chunk.origins (missing compilation.chunkGraph)
 };
@@ -752,8 +751,21 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			const { type } = context;
 			object.type = module.type;
 			object.moduleType = module.moduleType;
+			// TODO: object.layer = module.layer;
 			object.size = module.size;
-			Object.assign(object, factory.create(`${type}$visible`, module, context));
+			object.sizes = Object.fromEntries(
+				module.sizes.map(({ sourceType, size }) => [sourceType, size])
+			);
+			object.built = module.built;
+			object.codeGenerated = module.codeGenerated;
+			object.buildTimeExecuted = module.buildTimeExecuted;
+			object.cached = module.cached;
+			if (module.built || module.codeGenerated || options.cachedModules) {
+				Object.assign(
+					object,
+					factory.create(`${type}$visible`, module, context)
+				);
+			}
 		}
 	},
 	module$visible: {
@@ -762,6 +774,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.identifier = module.identifier;
 			object.name = module.name;
 			object.nameForCondition = module.nameForCondition;
+			object.preOrderIndex = module.preOrderIndex;
+			object.postOrderIndex = module.postOrderIndex;
+			object.cacheable = module.cacheable;
+			object.optional = module.optional;
+			object.orphan = module.orphan;
+			// TODO: object.dependent = module.dependent;
 			object.issuer = module.issuer;
 			object.issuerName = module.issuerName;
 			object.issuerPath = factory.create(
@@ -769,7 +787,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				module.issuerPath,
 				context
 			);
-			object.orphan = module.orphan;
+			object.failed = module.failed;
+			object.errors = module.errors;
+			object.warnings = module.warnings;
 			const profile = module.profile;
 			if (profile) {
 				object.profile = factory.create(`${type}.profile`, profile, context);
@@ -816,6 +836,27 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		optimizationBailout: (object, module) => {
 			object.optimizationBailout = module.optimizationBailout || null;
+		},
+		depth: (object, module) => {
+			object.depth = module.depth;
+		},
+		nestedModules: (object, module, context, options, factory) => {
+			const { type } = context;
+			const innerModules =
+				/** @type {Module & { modules?: Module[] }} */ module.modules;
+			if (Array.isArray(innerModules) && innerModules.length > 0) {
+				const groupedModules = factory.create(
+					`${type.slice(0, -8)}.modules`,
+					innerModules,
+					context
+				);
+				const limited = spaceLimited(
+					groupedModules,
+					options.nestedModulesSpace
+				);
+				object.modules = limited.children;
+				object.filteredModules = limited.filteredChildren;
+			}
 		}
 	},
 	profile: {

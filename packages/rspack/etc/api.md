@@ -53,6 +53,7 @@ import { RawFuncUseCtx } from '@rspack/binding';
 import { RawHtmlRspackPluginOptions } from '@rspack/binding';
 import { RawIgnorePluginOptions } from '@rspack/binding';
 import type { RawLibraryOptions } from '@rspack/binding';
+import { RawLightningCssMinimizerRspackPluginOptions } from '@rspack/binding';
 import { RawLimitChunkCountPluginOptions } from '@rspack/binding';
 import type { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
@@ -828,7 +829,7 @@ export class Chunk {
     // (undocumented)
     static __from_binding(chunk: JsChunk, compilation: JsCompilation): Chunk;
     // (undocumented)
-    __internal_inner_ukey(): number;
+    __internal_innerUkey(): number;
     // (undocumented)
     auxiliaryFiles: Array<string>;
     // (undocumented)
@@ -904,9 +905,9 @@ export class ChunkGroup {
     // (undocumented)
     static __from_binding(chunk: JsChunkGroup, compilation: JsCompilation): ChunkGroup;
     // (undocumented)
-    __internal_inner_compilation(): JsCompilation;
+    __internal_innerCompilation(): JsCompilation;
     // (undocumented)
-    __internal_inner_ukey(): number;
+    __internal_innerUkey(): number;
     // (undocumented)
     get chunks(): Chunk[];
     // (undocumented)
@@ -982,7 +983,7 @@ export class Compilation {
     __internal__pushNativeDiagnostics(diagnostics: ExternalObject<"Diagnostic[]">): void;
     // @internal
     __internal__setAssetSource(filename: string, source: Source): void;
-    // (undocumented)
+    // @internal
     __internal_getInner(): JsCompilation;
     get assets(): Record<string, Source>;
     // (undocumented)
@@ -3164,6 +3165,17 @@ export type Falsy = z.infer<typeof falsy>;
 const falsy: z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>;
 
 // @public (undocumented)
+const FetchCompileAsyncWasmPlugin: {
+    new (): {
+        name: BuiltinPluginName;
+        _options: void;
+        affectedHooks: "make" | "compile" | "emit" | "afterEmit" | "invalid" | "done" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
 export type Filename = z.infer<typeof filename>;
 
 // @public (undocumented)
@@ -4344,11 +4356,12 @@ type KnownStatsLoggingEntry = {
 };
 
 // @public (undocumented)
-type KnownStatsModule = Omit<binding.JsStatsModule, "usedExports" | "providedExports" | "optimizationBailout"> & {
+type KnownStatsModule = Omit<binding.JsStatsModule, "usedExports" | "providedExports" | "optimizationBailout" | "sizes"> & {
     profile?: StatsProfile;
     usedExports?: null | string[] | boolean;
     providedExports?: null | string[];
     optimizationBailout?: null | string[];
+    sizes: Record<string, number>;
 };
 
 // @public (undocumented)
@@ -4637,6 +4650,20 @@ export type LibraryType = z.infer<typeof libraryType>;
 const libraryType: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
 
 // @public (undocumented)
+export const LightningCssMinimizerRspackPlugin: {
+    new (options?: Partial<RawLightningCssMinimizerRspackPluginOptions> | undefined): {
+        name: BuiltinPluginName;
+        _options: RawLightningCssMinimizerRspackPluginOptions;
+        affectedHooks: "make" | "compile" | "emit" | "afterEmit" | "invalid" | "done" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
+export type LightningCssMinimizerRspackPluginOptions = Partial<RawLightningCssMinimizerRspackPluginOptions>;
+
+// @public (undocumented)
 type LimitChunkCountOptions = {
     chunkOverhead?: number;
     entryChunkMultiplicator?: number;
@@ -4803,7 +4830,7 @@ class LoaderObject {
     // (undocumented)
     static __from_binding(loaderItem: JsLoaderItem, compiler: Compiler): LoaderObject;
     // (undocumented)
-    static __to_binding(loader: LoaderObject): JsLoaderItem["inner"];
+    static __to_binding(loader: LoaderObject): JsLoaderItem;
     // (undocumented)
     get data(): any;
     set data(data: any);
@@ -5009,8 +5036,6 @@ export class Module {
     nameForCondition(): string | null;
     // (undocumented)
     originalSource(): Source | null;
-    // (undocumented)
-    _originalSource?: Source;
     // (undocumented)
     rawRequest?: string;
     // (undocumented)
@@ -8239,6 +8264,7 @@ declare namespace rspackExports {
         LoaderOptionsPlugin,
         LoaderTargetPlugin,
         NormalModuleReplacementPlugin,
+        web,
         node,
         electron,
         library,
@@ -8279,6 +8305,7 @@ declare namespace rspackExports {
         sharing,
         HtmlRspackPluginOptions,
         SwcJsMinimizerRspackPluginOptions,
+        LightningCssMinimizerRspackPluginOptions,
         CopyRspackPluginOptions,
         SourceMapDevToolPluginOptions,
         EvalDevToolModulePluginOptions,
@@ -8287,6 +8314,7 @@ declare namespace rspackExports {
         HtmlRspackPlugin,
         SwcJsMinimizerRspackPlugin,
         SwcCssMinimizerRspackPlugin,
+        LightningCssMinimizerRspackPlugin,
         CopyRspackPlugin,
         SourceMapDevToolPlugin,
         EvalSourceMapDevToolPlugin,
@@ -10836,7 +10864,7 @@ export const rspackOptions: z.ZodObject<{
             templateLiteral?: boolean | undefined;
         } | undefined;
     } | undefined;
-    target?: false | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | ("es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload`)[] | undefined;
+    target?: false | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "browserslist" | "webworker" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | ("es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "browserslist" | "webworker" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload`)[] | undefined;
     mode?: "none" | "development" | "production" | undefined;
     experiments?: {
         lazyCompilation?: boolean | {
@@ -11321,7 +11349,7 @@ export const rspackOptions: z.ZodObject<{
             templateLiteral?: boolean | undefined;
         } | undefined;
     } | undefined;
-    target?: false | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | ("es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | "browserslist" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload`)[] | undefined;
+    target?: false | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "browserslist" | "webworker" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | ("es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "browserslist" | "webworker" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload`)[] | undefined;
     mode?: "none" | "development" | "production" | undefined;
     experiments?: {
         lazyCompilation?: boolean | {
@@ -11753,7 +11781,6 @@ type Rules = Rule[] | Rule;
 // @public (undocumented)
 class RuleSetCompiler {
     constructor();
-    // (undocumented)
     builtinReferences: Map<string, any>;
     // (undocumented)
     references: Map<string, any>;
@@ -13334,6 +13361,15 @@ namespace Watchpack {
         aggregateTimeout?: number | undefined;
     }
 }
+
+// @public (undocumented)
+interface Web {
+    // (undocumented)
+    FetchCompileAsyncWasmPlugin: typeof FetchCompileAsyncWasmPlugin;
+}
+
+// @public (undocumented)
+export const web: Web;
 
 // @public (undocumented)
 export type WebassemblyModuleFilename = z.infer<typeof webassemblyModuleFilename>;

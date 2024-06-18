@@ -3,6 +3,7 @@ import path from "path";
 import { readConfigFile } from "..";
 import {
 	IFormatCodeOptions,
+	IFormatCodeReplacement,
 	compareFile,
 	replaceRuntimeModuleName
 } from "../compare";
@@ -27,6 +28,8 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
 	runtimeModules?: TCompareModules;
 	bootstrap?: boolean;
 	detail?: boolean;
+	errors?: boolean;
+	replacements?: IFormatCodeReplacement[];
 	onCompareFile?: (file: string, result: TFileCompareResult) => void;
 	onCompareModules?: (file: string, results: TModuleCompareResult[]) => void;
 	onCompareRuntimeModules?: (
@@ -83,13 +86,17 @@ export class DiffProcessor implements ITestProcessor {
 		const webpackStats = webpackCompiler.getStats();
 		//TODO: handle chunk hash and content hash
 		webpackStats?.hash && this.hashes.push(webpackStats?.hash);
-		env.expect(webpackStats?.hasErrors()).toBe(false);
+		if (!this.options.errors) {
+			env.expect(webpackStats?.hasErrors()).toBe(false);
+		}
 
 		const rspackCompiler = context.getCompiler(ECompilerType.Rspack);
 		const rspackStats = rspackCompiler.getStats();
 		//TODO: handle chunk hash and content hash
 		rspackStats?.hash && this.hashes.push(rspackStats?.hash);
-		env.expect(rspackStats?.hasErrors()).toBe(false);
+		if (!this.options.errors) {
+			env.expect(rspackStats?.hasErrors()).toBe(false);
+		}
 
 		const dist = context.getDist();
 		for (let file of this.options.files!) {
@@ -154,10 +161,10 @@ export class DiffProcessor implements ITestProcessor {
 			ignoreSwcHelpersPath: this.options.ignoreSwcHelpersPath,
 			ignoreObjectPropertySequence: this.options.ignoreObjectPropertySequence,
 			ignoreCssFilePath: this.options.ignoreCssFilePath,
-			replacements: this.options.replacements || {}
+			replacements: this.options.replacements || []
 		};
 		for (let hash of this.hashes) {
-			formatOptions.replacements![hash] = "fullhash";
+			formatOptions.replacements!.push({ from: hash, to: "fullhash" });
 		}
 		return formatOptions;
 	}

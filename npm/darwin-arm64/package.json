@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-darwin-arm64",
-  "version": "0.7.1",
+  "version": "0.7.3",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.darwin-arm64.node",

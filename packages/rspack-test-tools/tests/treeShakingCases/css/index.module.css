@@ -1,0 +1,11 @@
+.foo {
+  background-color: red;
+}
+
+.bar {
+  background-color: blue;
+}
+
+.compose {
+  composes: bar;
+}

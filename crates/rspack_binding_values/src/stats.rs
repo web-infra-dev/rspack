@@ -225,10 +225,13 @@ pub struct JsStatsModule {
   pub id: Option<String>,
   pub chunks: Vec<Option<String>>,
   pub size: f64,
+  pub sizes: Vec<JsStatsSourceTypeSize>,
+  pub depth: Option<u32>,
   pub issuer: Option<String>,
   pub issuer_name: Option<String>,
   pub issuer_id: Option<String>,
   pub issuer_path: Vec<JsStatsModuleIssuer>,
+  pub modules: Option<Vec<JsStatsModule>>,
   pub name_for_condition: Option<String>,
   pub reasons: Option<Vec<JsStatsModuleReason>>,
   pub assets: Option<Vec<String>>,
@@ -238,6 +241,17 @@ pub struct JsStatsModule {
   pub provided_exports: Option<Vec<String>>,
   pub used_exports: Option<Either<String, Vec<String>>>,
   pub optimization_bailout: Option<Vec<String>>,
+  pub pre_order_index: Option<u32>,
+  pub post_order_index: Option<u32>,
+  pub built: bool,
+  pub code_generated: bool,
+  pub build_time_executed: bool,
+  pub cached: bool,
+  pub cacheable: bool,
+  pub optional: bool,
+  pub failed: bool,
+  pub errors: u32,
+  pub warnings: u32,
 }
 
 impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
@@ -257,10 +271,24 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       })
       .transpose()
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+    let modules: Option<Vec<JsStatsModule>> = stats
+      .modules
+      .map(|modules| -> Result<_> {
+        let mut res = vec![];
+        for module in modules {
+          res.push(module.try_into()?);
+        }
+        Ok(res)
+      })
+      .transpose()
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
     Ok(Self {
       r#type: stats.r#type,
       name: stats.name,
       size: stats.size,
+      sizes: stats.sizes.into_iter().map(Into::into).collect(),
+      depth: stats.depth.map(|d| d as u32),
       chunks: stats.chunks,
       module_type: stats.module_type.as_str().to_string(),
       identifier: stats.identifier.to_string(),
@@ -284,6 +312,18 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
         StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
       }),
       optimization_bailout: Some(stats.optimization_bailout),
+      modules,
+      pre_order_index: stats.pre_order_index,
+      post_order_index: stats.post_order_index,
+      built: stats.built,
+      code_generated: stats.code_generated,
+      build_time_executed: stats.build_time_executed,
+      cached: stats.cached,
+      cacheable: stats.cacheable,
+      optional: stats.optional,
+      failed: stats.failed,
+      errors: stats.errors,
+      warnings: stats.warnings,
     })
   }
 }
@@ -316,6 +356,21 @@ impl From<rspack_core::StatsMillisecond> for JsStatsMillisecond {
     Self {
       secs: value.secs as u32,
       subsec_millis: value.subsec_millis,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsStatsSourceTypeSize {
+  pub source_type: String,
+  pub size: f64,
+}
+
+impl From<rspack_core::StatsSourceTypeSize> for JsStatsSourceTypeSize {
+  fn from(value: rspack_core::StatsSourceTypeSize) -> Self {
+    Self {
+      source_type: value.source_type.to_string(),
+      size: value.size,
     }
   }
 }

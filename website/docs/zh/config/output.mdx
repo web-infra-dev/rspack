@@ -9,6 +9,37 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 - **类型：** `Object`
 
+## output.amdContainer
+
+- **类型：** `string`
+
+在全局为 AMD 模块添加 `define`/`require` 函数的容器。
+
+:::warning
+
+- 请使用 [`output.library.amdContainer`](#outputlibraryamdcontainer)，因为我们未来可能会停止支持 `output.amdContainer`。
+- 请注意，`amdContainer` 的值必须设置为全局变量。
+
+:::
+
+```js title="rspack.config.js"
+module.exports = {
+  // …
+  output: {
+    library: {
+      amdContainer: 'window["clientContainer"]',
+      type: 'amd', // or 'amd-require'
+    },
+  },
+};
+```
+
+这将产生以下 bundle：
+
+```js
+window['clientContainer'].define(/*define args*/); // or 'amd-require' window['clientContainer'].require(/*require args*/);
+```
+
 ## output.assetModuleFilename
 
 - **类型：** `string`
@@ -35,7 +66,7 @@ Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename
 
 对于单个 [Entry](/config/entry.html) 来说，你可以使用一个静态名称，如：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: 'bundle.js',
@@ -58,7 +89,7 @@ Rspack 会对用户输入的代码进行代码拆分优化，这些优化可能�
 
 使用 [Entry](/config/entry.html) 名称：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: '[name].bundle.js',
@@ -68,7 +99,7 @@ module.exports = {
 
 使用内部生成的 chunk id：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: '[id].bundle.js',
@@ -78,7 +109,7 @@ module.exports = {
 
 使用根据文件内容生成的 hash：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: '[contenthash].bundle.js',
@@ -88,7 +119,7 @@ module.exports = {
 
 当然你也可以组合使用：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: '[name].[contenthash].bundle.js',
@@ -98,7 +129,7 @@ module.exports = {
 
 使用函数来返回文件名：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     filename: pathData => {
@@ -126,7 +157,7 @@ module.exports = {
 
 chunk 产物的格式，默认值会根据 [`target`](/config/target) 和 [`output.module`](#outputmodule) 的配置而决定，一般来说，target 为 web 或 webworker 时会使用 `'array-push'` 格式；为 ESM 时会使用 `'module'` 格式；为 node.js 时会使用 `'commonjs'` 格式
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     chunkFormat: 'commonjs',
@@ -140,7 +171,7 @@ module.exports = {
 
 加载 chunk 的方式，默认值会根据 [`target`](/config/target) 和 [`chunkFormat`](#outputchunkformat) 的配置而决定，一般来说，target 为 web 时会使用 `'jsonp'` 来加载 chunk；为 ESM 时会使用 `'import'` 来加载 chunk；为 webworker 时会使用 `'import-scripts'` 来加载 chunk；为 node.js 时会使用 `'require'` 来加载 chunk；为 async node.js 时会使用 `'async-node'`（`fs.readFile` + `vm.runInThisContext`）来加载 chunk
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     chunkLoading: 'async-node',
@@ -156,7 +187,7 @@ module.exports = {
 
 此选项决定了 Rspack 用于加载 chunk 的全局变量。
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     chunkLoadingGlobal: 'myCustomFunc',
@@ -166,7 +197,7 @@ module.exports = {
 
 ## output.devtoolFallbackModuleFilenameTemplate
 
-- **Type:** `string` | `function (info)`
+- **类型：** `string` | `function (info)`
 
 当模板字符串或函数产生重复时使用的备用内容。
 
@@ -174,7 +205,7 @@ module.exports = {
 
 ## output.devtoolModuleFilenameTemplate
 
-- **Type:** `string = 'webpack://[namespace]/[resource-path]?[loaders]'` | `function (info) => string`
+- **类型：** `string = 'webpack://[namespace]/[resource-path]?[loaders]'` | `function (info) => string`
 
 此选项仅在 [`devtool`](/config/devtool.html) 使用了需要模块名称的选项时使用。
 
@@ -239,6 +270,17 @@ module.exports = {
 };
 ```
 
+## output.environment
+
+告诉 Rspack 可以在生成的运行时代码中使用哪种 ES 特性。
+
+### output.environment.arrowFunction
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+该环境支持 async 函数和 await（`async function () { await ... }`）。
+
 ## output.cssFilename
 
 - **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
@@ -277,7 +319,7 @@ module.exports = {
 
 比如将 `output.publicPath` 设置为 `https://example.com/`，并将 `output.crossOriginLoading` 设置为 `'anonymous'`：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 const path = require('path');
 
 module.exports = {
@@ -301,12 +343,32 @@ module.exports = {
 
 输出文件目录的绝对路径。
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 const path = require('path');
 
 module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist/assets'),
+  },
+};
+```
+
+## output.pathinfo
+
+- **类型：** `boolean | 'verbose'`
+- **默认值：** `true`
+
+让 Rspack 在 bundle 中通过注释输出模块的信息。此选项在 [mode](/config/mode) 为 `'production'` 下默认为 `true`，为 `'development'` 下默认为 `false`。`'verbose'` 会打印更多信息，例如模块导出、运行时信息和 `bailout` 原因。
+
+:::warning
+在开发过程中分析生成的代码时，这些注释提供的信息很有用，但不应在生产环境中使用。
+:::
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    pathinfo: true,
   },
 };
 ```
@@ -320,7 +382,7 @@ module.exports = {
 
 例如，给定一个配置文件：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     publicPath: '/assets/',
@@ -336,7 +398,7 @@ module.exports = {
 
 同时，当你使用 CDN 对产物进行部署时则非常有用：
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     publicPath: 'https://cdn.example.com/assets/',
@@ -364,12 +426,60 @@ import './publicPath.js';
 import './others.js';
 ```
 
+## output.scriptType
+
+- **类型：** `'module' | 'text/javascript' | boolean`
+- **默认值：** `false`
+
+该选项允许使用自定义脚本类型（例如 `<script type="module" ...>`）来加载异步块。
+
+:::tip
+如果 `output.module` 设置为 `true`，则 `output.scriptType` 将默认为 `'module'` 而不是 `false`。
+:::
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    scriptType: 'module',
+  },
+};
+```
+
+## output.sourceMapFilename
+
+- **类型：** `string`
+- **默认值：** `'[file].map[query]'`
+
+配置 source map 文件的命名方式。仅当 [`devtool`](/config/devtool) 设置为 `'source-map'` 时生效，此时会输出文件。
+
+可以使用 [`output.filename`](#outputfilename) 中的 `[name]`、`[id]`、`[fullhash]` 和 `[chunkhash]` 替换符。此外，还可以使用 [Template strings](#template-string) 中在文件级别列出的替换符。
+
 ## output.strictModuleErrorHandling
 
 - **类型：** `boolean`
 - **默认值：** `false`
 
 按照 ES Module 规范处理 module 加载时的错误，会有性能损失。
+
+## output.trustedTypes
+
+控制 [Trusted Types](https://web.dev/trusted-types) 兼容性。启用此选项，Rspack 将检测已实现了 Trusted Types，并使用 Trusted Types 来创建它动态加载的脚本 URL。应用在运行带有 [require-trusted-types-for](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/require-trusted-types-for) 内容安全策略指令下的应用程序。
+
+默认情况下是不启用。
+
+策略名称取自 `policyName` 字段。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    trustedTypes: {
+      policyName: 'my-application#webpack',
+    },
+  },
+};
+```
 
 ## Template String
 
@@ -423,9 +533,7 @@ import './others.js';
 
 在和 [`output.library`](#outputlibrary) 和 [`output.libraryTarget`](#outputlibrarytarget) 一起使用时，此选项允许用户向导出容器(export wrapper)中插入注释。要为 `libraryTarget` 每种类型都插入相同的注释，将 `auxiliaryComment` 设置为一个字符串：
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   //...
   output: {
@@ -461,9 +569,7 @@ module.exports = {
 
 对于 `libraryTarget` 每种类型的注释进行更细粒度地控制，请传入一个对象：
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   //...
   output: {
@@ -516,6 +622,20 @@ module.exports = {
 };
 ```
 
+## output.hashDigest
+
+- **类型：** `string`
+- **默认值：** `'hex'`
+
+在生成哈希时使用的编码方式。使用 `'base64'` 作为文件名可能会有问题，因为其中包含 `/` 字符。同样 `'latin1'` 也可能包含任何字符。
+
+## output.hashDigestLength
+
+- **类型：** `number`
+- **默认值：** `20`
+
+要使用的哈希摘要的长度。
+
 ## output.importFunctionName
 
 - **类型：** `string`
@@ -523,9 +643,7 @@ module.exports = {
 
 内部 `import()` 函数的名称. 可用于 polyfilling, 例如 通过 [`dynamic-import-polyfill`](https://github.com/GoogleChromeLabs/dynamic-import-polyfill).
 
-**rspack.config.js**
-
-```javascript
+```javascript title=rspack.config.js
 module.exports = {
   //...
   output: {
@@ -533,6 +651,30 @@ module.exports = {
   },
 };
 ```
+
+## output.hashFunction
+
+- **类型：** `'md4' | 'xxhash64'`
+- **默认值：** `'md4'`
+
+要使用的哈希算法。
+
+```javascript title=rspack.config.js
+module.exports = {
+  //...
+  output: {
+    hashFunction: 'xxhash64',
+  },
+};
+```
+
+:::tip
+`hashFunction` 支持更快的 `xxhash64` 算法，当启用 [`experiments.futureDefaults`](/config/experiments#experimentsfuturedefaults) 时将使用它作为默认值。
+:::
+
+## output.hashSalt
+
+可选的 salt，用于更新哈希值。
 
 ## output.library
 
@@ -542,9 +684,7 @@ module.exports = {
 
 一起来看一个简单的示例。
 
-**rspack.config.js**
-
-```js
+```js title=rspack.config.js
 module.exports = {
   // …
   entry: './src/index.js',
@@ -614,6 +754,38 @@ export function hello(name) {
 
    查看 [示例](https://github.com/webpack/webpack/tree/main/examples/multi-part-library) 获取更多内容。
 
+### output.library.amdContainer
+
+- **类型：** `string`
+
+:::warning
+请使用 [`output.library.amdContainer`](#outputlibraryamdcontainer)，因为我们未来可能会停止支持 `output.amdContainer`。
+:::
+
+在全局为 AMD 模块添加 `define`/`require` 函数的容器。
+
+:::warning
+请注意，`amdContainer` 的值必须设置为全局变量。
+:::
+
+```js title="rspack.config.js"
+module.exports = {
+  // …
+  output: {
+    library: {
+      amdContainer: 'window["clientContainer"]',
+      type: 'amd', // or 'amd-require'
+    },
+  },
+};
+```
+
+这将产生以下 bundle：
+
+```js
+window['clientContainer'].define(/*define args*/); // or 'amd-require' window['clientContainer'].require(/*require args*/);
+```
+
 ### output.library.name
 
 ```js
@@ -631,7 +803,7 @@ module.exports = {
 
 - **类型：**
 
-  ```ts
+  ```js
   string | string[] | {amd?: string, commonjs?: string, root?: string | string[]}
   ```
 
@@ -1177,7 +1349,9 @@ define('MyLibrary', [], factory);
 
 ## output.libraryExport \{#outputlibraryexport-1}
 
+:::warning
 我们可能会停止对此的支持，所以最好使用 [output.library.export](#outputlibraryexport)，其作用与 `libraryExport` 一致。
+:::
 
 - **类型：** `string` | `string[]`
 
@@ -1217,11 +1391,15 @@ MySubModule.doSomething();
 - **类型：** `string`
 - **默认值：** `var`
 
-请使用 [`output.library.type`](#outputlibrarytype) 代理，因为我们可能在未来放弃对 `output.libraryTarget` 的支持。
+:::warning
+请使用 [`output.library.type`](#outputlibrarytype) 代替，因为我们可能在未来放弃对 `output.libraryTarget` 的支持。
+:::
 
 ## output.umdNamedDefine
 
+:::warning
 最好使用 [`output.library.umdNamedDefine`](#outputlibraryumdnameddefine)。
+:::
 
 - **类型：** `boolean`
 
@@ -1247,7 +1425,7 @@ module.exports = {
 
 - [`output.chunkLoadingGlobal`](/config/output#outputchunkloadingglobal)
 
-```ts title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   output: {
     uniqueName: 'my-package-xyz',
@@ -1282,6 +1460,22 @@ module.exports = {
 
 - 如果目标设置为 `'web'`、`'webworker'`、`'electron-renderer'` 或 `'node-webkit'`，默认值为 `'fetch'`。
 - 如果目标设置为 `'node'`、`'async-node'`、`'electron-main'` 或 `'electron-preload'`，则默认为 `'async-node'`。
+
+## output.webassemblyModuleFilename
+
+- **类型：** `string`
+- **默认值：** `'[hash].module.wasm'`
+
+指定 WebAssembly 模块的文件名。作为 `output.path` 目录下的相对路径。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    webassemblyModuleFilename: '[id].[hash].wasm',
+  },
+};
+```
 
 ## output.enabledWasmLoadingTypes
 
@@ -1324,3 +1518,19 @@ module.exports = {
 - **默认值：** `"webpackHotUpdate" + output.uniqueName`
 
 只在 [chunkLoading](/config/output#outputchunkloading) 为 `"jsonp"` 或 `"import-scripts"` 时会被使用。该全局变量会用来请求并加载热更新文件。
+
+## output.iife
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+让 Rspack 为生成的代码添加 IIFE 包装器。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    iife: true,
+  },
+};
+```

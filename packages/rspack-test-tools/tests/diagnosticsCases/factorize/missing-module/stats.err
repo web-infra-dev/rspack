@@ -5,6 +5,4 @@ WARNING in ./index.js
  3 │     try {
  4 │         require("./missing-module");
    ·         ───────────────────────────
- 5 │     } catch (err) {
- 6 │         errored = true;
-   ╰────
+ 5 │     } c

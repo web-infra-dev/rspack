@@ -12,17 +12,7 @@ import querystring from "node:querystring";
 
 import assert from "assert";
 import { promisify } from "util";
-import {
-	JsLoaderContext,
-	JsLoaderItem,
-	JsLoaderState,
-	__loader_item_get_loader_data,
-	__loader_item_get_normal_executed,
-	__loader_item_get_pitch_executed,
-	__loader_item_set_loader_data,
-	__loader_item_set_normal_executed,
-	__loader_item_set_pitch_executed
-} from "@rspack/binding";
+import { JsLoaderContext, JsLoaderItem, JsLoaderState } from "@rspack/binding";
 import {
 	OriginalSource,
 	RawSource,
@@ -140,7 +130,6 @@ export class LoaderObject {
 	pitch?: Function;
 	raw?: boolean;
 	type?: "module" | "commonjs";
-	#cachedData: any;
 	#loaderItem: JsLoaderItem;
 
 	constructor(loaderItem: JsLoaderItem, compiler: Compiler) {
@@ -167,49 +156,38 @@ export class LoaderObject {
 		this.raw = raw;
 		this.type = type;
 		this.#loaderItem = loaderItem;
-		this.#cachedData = null;
 	}
 
 	get pitchExecuted() {
-		return __loader_item_get_pitch_executed(this.#loaderItem.inner);
+		return this.#loaderItem.pitchExecuted;
 	}
 
 	set pitchExecuted(value: boolean) {
 		assert(value);
-		__loader_item_set_pitch_executed(this.#loaderItem.inner);
+		this.#loaderItem.pitchExecuted = true;
 	}
 
 	get normalExecuted() {
-		return __loader_item_get_normal_executed(this.#loaderItem.inner);
+		return this.#loaderItem.normalExecuted;
 	}
 
 	set normalExecuted(value: boolean) {
 		assert(value);
-		__loader_item_set_normal_executed(this.#loaderItem.inner);
+		this.#loaderItem.normalExecuted = true;
 	}
 
 	// A data object shared between the pitch and the normal phase
 	get data() {
-		this.#cachedData =
-			this.#cachedData ??
-			__loader_item_get_loader_data(this.#loaderItem.inner) ??
-			{};
-		return new Proxy(this.#cachedData, {
+		return new Proxy((this.#loaderItem.data = this.#loaderItem.data ?? {}), {
 			set: (_, property, value) => {
 				if (typeof property === "string") {
-					console.log(property, value);
-
-					this.#cachedData[property] = value;
-					__loader_item_set_loader_data(
-						this.#loaderItem.inner,
-						this.#cachedData
-					);
+					this.#loaderItem.data[property] = value;
 				}
 				return true;
 			},
 			get: (_, property) => {
 				if (typeof property === "string") {
-					return this.#cachedData[property];
+					return this.#loaderItem.data[property];
 				}
 			}
 		});
@@ -217,8 +195,7 @@ export class LoaderObject {
 
 	// A data object shared between the pitch and the normal phase
 	set data(data: any) {
-		this.#cachedData = data;
-		__loader_item_set_loader_data(this.#loaderItem.inner, data);
+		this.#loaderItem.data = data;
 	}
 
 	shouldYield() {
@@ -232,8 +209,8 @@ export class LoaderObject {
 		return new this(loaderItem, compiler);
 	}
 
-	static __to_binding(loader: LoaderObject): JsLoaderItem["inner"] {
-		return loader.#loaderItem.inner;
+	static __to_binding(loader: LoaderObject): JsLoaderItem {
+		return loader.#loaderItem;
 	}
 }
 
@@ -579,24 +556,23 @@ export async function runLoaders(
 	Object.assign(loaderContext, compiler.options.loader);
 
 	const getResolveContext = () => {
-		// FIXME: resolve's fileDependencies will includes lots of dir, '/', etc
 		return {
 			fileDependencies: {
-				// @ts-expect-error
+				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
-					// loaderContext.addDependency(d)
+					loaderContext.addDependency(d);
 				}
 			},
 			contextDependencies: {
-				// @ts-expect-error
+				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
-					// loaderContext.addContextDependency(d)
+					loaderContext.addContextDependency(d);
 				}
 			},
 			missingDependencies: {
-				// @ts-expect-error
+				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
-					// loaderContext.addMissingDependency(d)
+					loaderContext.addMissingDependency(d);
 				}
 			}
 		};
@@ -862,6 +838,11 @@ export async function runLoaders(
 		default:
 			throw new Error(`Unexpected loader runner state: ${loaderState}`);
 	}
+
+	// update loader state
+	context.loaderItems = loaderContext.loaders.map(item =>
+		LoaderObject.__to_binding(item)
+	);
 
 	return context;
 }

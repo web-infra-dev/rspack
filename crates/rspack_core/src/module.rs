@@ -14,6 +14,7 @@ use rspack_util::source_map::ModuleSourceMapConfig;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::Atom;
 
+use crate::concatenated_module::ConcatenatedModule;
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
@@ -197,7 +198,7 @@ pub trait Module:
   fn readable_identifier(&self, _context: &Context) -> Cow<str>;
 
   /// The size of the original source, which will used as a parameter for code-splitting.
-  fn size(&self, _source_type: &SourceType) -> f64;
+  fn size(&self, _source_type: Option<&SourceType>) -> f64;
 
   /// The actual build of the module, which will be called by the `Compilation`.
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
@@ -585,6 +586,7 @@ impl_module_downcast_helpers!(RawModule, raw_module);
 impl_module_downcast_helpers!(ContextModule, context_module);
 impl_module_downcast_helpers!(ExternalModule, external_module);
 impl_module_downcast_helpers!(SelfModule, self_module);
+impl_module_downcast_helpers!(ConcatenatedModule, concatenated_module);
 
 pub struct LibIdentOptions<'me> {
   pub context: &'me str,
@@ -679,7 +681,7 @@ mod test {
           unreachable!()
         }
 
-        fn size(&self, _source_type: &SourceType) -> f64 {
+        fn size(&self, _source_type: Option<&SourceType>) -> f64 {
           unreachable!()
         }
 

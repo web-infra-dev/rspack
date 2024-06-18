@@ -102,20 +102,6 @@ export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: 
 
 export function __entrypoint_inner_get_runtime_chunk(ukey: number, compilation: JsCompilation): JsChunk
 
-export function __loader_item_debug(item: ExternalObject<'LoaderItem'>): string
-
-export function __loader_item_get_loader_data(item: ExternalObject<'LoaderItem'>): any
-
-export function __loader_item_get_normal_executed(item: ExternalObject<'LoaderItem'>): boolean
-
-export function __loader_item_get_pitch_executed(item: ExternalObject<'LoaderItem'>): boolean
-
-export function __loader_item_set_loader_data(item: ExternalObject<'LoaderItem'>, data: any): void
-
-export function __loader_item_set_normal_executed(item: ExternalObject<'LoaderItem'>): void
-
-export function __loader_item_set_pitch_executed(item: ExternalObject<'LoaderItem'>): void
-
 export interface BuiltinPlugin {
   name: BuiltinPluginName
   options: unknown
@@ -136,6 +122,7 @@ export enum BuiltinPluginName {
   EnableChunkLoadingPlugin = 'EnableChunkLoadingPlugin',
   EnableLibraryPlugin = 'EnableLibraryPlugin',
   EnableWasmLoadingPlugin = 'EnableWasmLoadingPlugin',
+  FetchCompileAsyncWasmPlugin = 'FetchCompileAsyncWasmPlugin',
   ChunkPrefetchPreloadPlugin = 'ChunkPrefetchPreloadPlugin',
   CommonJsChunkFormatPlugin = 'CommonJsChunkFormatPlugin',
   ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
@@ -187,6 +174,7 @@ export enum BuiltinPluginName {
   HtmlRspackPlugin = 'HtmlRspackPlugin',
   SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
   SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
+  LightningCssMinimizerRspackPlugin = 'LightningCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
@@ -251,6 +239,8 @@ export interface JsAssetInfo {
   javascriptModule?: boolean
   /** related object to other assets, keyed by type of relation (only points from parent to child) */
   related: JsAssetInfoRelated
+  /** unused css local ident for the css chunk */
+  cssUnusedIdents?: Array<string>
   /**
    * Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
    * But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
@@ -394,7 +384,9 @@ export interface JsLoaderContext {
 export interface JsLoaderItem {
   request: string
   type: string
-  inner: ExternalObject<'LoaderItem'>
+  data: any
+  normalExecuted: boolean
+  pitchExecuted: boolean
 }
 
 export enum JsLoaderState {
@@ -547,10 +539,13 @@ export interface JsStatsModule {
   id?: string
   chunks: Array<string | undefined | null>
   size: number
+  sizes: Array<JsStatsSourceTypeSize>
+  depth?: number
   issuer?: string
   issuerName?: string
   issuerId?: string
   issuerPath: Array<JsStatsModuleIssuer>
+  modules?: Array<JsStatsModule>
   nameForCondition?: string
   reasons?: Array<JsStatsModuleReason>
   assets?: Array<string>
@@ -560,6 +555,17 @@ export interface JsStatsModule {
   providedExports?: Array<string>
   usedExports?: string | Array<string>
   optimizationBailout?: Array<string>
+  preOrderIndex?: number
+  postOrderIndex?: number
+  built: boolean
+  codeGenerated: boolean
+  buildTimeExecuted: boolean
+  cached: boolean
+  cacheable: boolean
+  optional: boolean
+  failed: boolean
+  errors: number
+  warnings: number
 }
 
 export interface JsStatsModuleIssuer {
@@ -584,6 +590,11 @@ export interface JsStatsModuleReason {
 
 export interface JsStatsOptimizationBailout {
   inner: string
+}
+
+export interface JsStatsSourceTypeSize {
+  sourceType: string
+  size: number
 }
 
 export interface JsStatsWarning {
@@ -1029,6 +1040,13 @@ export interface RawLibraryOptions {
   amdContainer?: string
 }
 
+export interface RawLightningCssMinimizerRspackPluginOptions {
+  errorRecovery: boolean
+  unusedSymbols: Array<string>
+  removeUnusedLocalIdents: boolean
+  browserslist: Array<string>
+}
+
 export interface RawLimitChunkCountPluginOptions {
   chunkOverhead?: number
   entryChunkMultiplicator?: number
@@ -1223,6 +1241,9 @@ export interface RawPluginImportConfig {
 export interface RawProgressPluginOptions {
   prefix: string
   profile: boolean
+  template: string
+  tick?: string | Array<string>
+  progressChars: string
 }
 
 export interface RawProvideOptions {

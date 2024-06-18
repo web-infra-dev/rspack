@@ -57,10 +57,12 @@ export * from "./SizeLimitsPlugin";
 export * from "./SourceMapDevToolPlugin";
 export * from "./SplitChunksPlugin";
 export * from "./SwcCssMinimizerPlugin";
+export * from "./LightningCssMiminizerRspackPlugin";
 export * from "./SwcJsMinimizerPlugin";
 export * from "./WarnCaseSensitiveModulesPlugin";
 export * from "./WebWorkerTemplatePlugin";
 export * from "./WorkerPlugin";
+export * from "./FetchCompileAsyncWasmPlugin";
 
 ///// DEPRECATED /////
 import { RawBuiltins } from "@rspack/binding";

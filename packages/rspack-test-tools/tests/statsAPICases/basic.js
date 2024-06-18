@@ -23,13 +23,13 @@ module.exports = {
 		asset main.js 207 bytes {909} [emitted] (name: main)
 		Entrypoint main 207 bytes = main.js
 		chunk {909} main.js (main) [entry]
-		  ./fixtures/a.js [585] {909}
+		  ./fixtures/a.js [585] 55 bytes {909} [depth 0] [built] [code generated]
 		    [no exports]
 		    [used exports unknown]
 		    Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2
 		    entry ./fixtures/a
 		    cjs self exports reference self [585]
-		./fixtures/a.js [585] {909}
+		./fixtures/a.js [585] 55 bytes {909} [depth 0] [built] [code generated]
 		  [no exports]
 		  [used exports unknown]
 		  Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2

@@ -44,6 +44,7 @@ rspack_plugin_javascript              = { path = "../rspack_plugin_javascript" }
 rspack_plugin_json                    = { path = "../rspack_plugin_json" }
 rspack_plugin_lazy_compilation        = { path = "../rspack_plugin_lazy_compilation" }
 rspack_plugin_library                 = { path = "../rspack_plugin_library" }
+rspack_plugin_lightning_css_minimizer = { path = "../rspack_plugin_lightning_css_minimizer" }
 rspack_plugin_limit_chunk_count       = { path = "../rspack_plugin_limit_chunk_count" }
 rspack_plugin_merge_duplicate_chunks  = { path = "../rspack_plugin_merge_duplicate_chunks" }
 rspack_plugin_mf                      = { path = "../rspack_plugin_mf" }

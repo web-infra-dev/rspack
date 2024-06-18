@@ -7,6 +7,24 @@ import { ApiMeta } from '../../../components/ApiMeta';
 - **类型：** `Object`
 - **默认值：** `{}`
 
+## module.defaultRules
+
+- **类型：** `Rule[]`
+
+应用于模块的默认规则。
+
+详见[源代码](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L364)。
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    defaultRules: [
+      '...', // 使用 "..." 来引用 Rspack 默认规则
+    ],
+  },
+};
+```
+
 ## module.noParse
 
 - **类型：** `string | string[] | RegExp | RegExp[] | ((request: string) => boolean)`
@@ -786,10 +804,31 @@ module.exports = {
 
 ### Rule.descriptionData
 
-- **类型：** `{ [k: string]: Condition }`
+- **类型：** `{ [key: string]: Condition }`
 - **默认值：** `undefined`
 
-匹配所有符合这个资源的模块，会和 Resource 的 package.json 中的字段进行匹配。
+`descriptionData` 选项允许你通过匹配描述文件（通常是 `package.json`）中的属性值，来决定某个 rule 应该应用于哪些模块。这是一个基于 `package.json` 来应用 rule 的实用方法。
+
+`descriptionData` 对象中的 key 对应模块的 `package.json` 中的键，例如 `name`、`version` 等。每个 key 与一个用于匹配 `package.json` 数据的 [`Condition`](/config/module#condition) 进行关联。
+
+例如，下面的配置会将 rule 应用于 `package.json` 的 `name` 中包含 `'rspack'` 字符串的 JavaScript 资源。
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        include: /node_modules/,
+        descriptionData: {
+          name: packageJsonName => packageJsonName.includes('rspack'),
+        },
+        // 其他 rule options...
+      },
+    ],
+  },
+};
+```
 
 ### Rule.loaders
 

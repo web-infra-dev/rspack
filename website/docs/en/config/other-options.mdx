@@ -22,6 +22,35 @@ module.exports = {
 
 This will force Rspack to exit its bundling process.
 
+## dependencies
+
+- **Type:** `string[]`
+- **Default:** `undefined`
+
+A list of [name](#name) defining all sibling configurations it depends on. Dependent configurations need to be compiled first.
+
+In watch mode dependencies will invalidate the compiler when:
+
+1. the dependency has changed
+2. a dependency is currently compiling or invalid
+
+Remember that current configuration will not compile until its dependencies are done.
+
+```js title="rspack.config.js"
+module.exports = [
+  {
+    name: 'client',
+    target: 'web',
+    // …
+  },
+  {
+    name: 'server',
+    target: 'node',
+    dependencies: ['client'],
+  },
+];
+```
+
 ## ignoreWarnings
 
 - **Type:** `(RegExp | ((warning: Error, Compilation: Compilation) => boolean))[]`
@@ -33,5 +62,19 @@ Tells Rspack to ignore specific warnings.
 module.exports = {
   //...
   ignoreWarnings: [/warning from compiler/, warning => true],
+};
+```
+
+## name
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Name of the configuration. Used when loading multiple configurations.
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  name: 'admin-app',
 };
 ```

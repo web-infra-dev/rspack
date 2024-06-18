@@ -1,22 +1,22 @@
-use std::collections::HashMap;
-
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rkyv::{from_bytes, to_bytes, AlignedVec};
 use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   rspack_sources::{BoxSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt},
-  BuildExtraDataType, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ConstDependency,
-  CssExportsConvention, Dependency, DependencyTemplate, ErrorSpan, GenerateContext, LocalIdentName,
-  Module, ModuleDependency, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  SourceType, TemplateContext,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ConstDependency, CssExportsConvention,
+  Dependency, DependencyTemplate, ErrorSpan, GenerateContext, LocalIdentName, Module,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, RuntimeSpec, SourceType, TemplateContext, UsageState,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
-use rspack_error::{miette::Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
+};
+use rustc_hash::FxHashSet;
 
-use crate::utils::export_locals_convention;
 use crate::utils::{css_modules_exports_to_string, LocalIdentOptions};
+use crate::utils::{export_locals_convention, unescape};
 use crate::{
   dependency::{
     CssComposeDependency, CssExportDependency, CssImportDependency, CssLocalIdentDependency,
@@ -37,9 +37,7 @@ pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-#[archive(compare(PartialEq), check_bytes)]
-#[archive_attr(derive(PartialEq, Eq, Hash))]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CssExport {
   pub ident: String,
   pub from: Option<String>,
@@ -76,8 +74,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
   }
 
-  fn size(&self, module: &dyn Module, source_type: &SourceType) -> f64 {
-    match source_type {
+  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64 {
+    match source_type.unwrap_or(&SourceType::Css) {
       SourceType::JavaScript => 42.0,
       SourceType::Css => module.original_source().map_or(0, |source| source.size()) as f64,
       _ => unreachable!(),
@@ -198,7 +196,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             compiler_options,
           )
           .get_local_ident(name);
-          presentational_dependencies.push(Box::new(CssLocalIdentDependency::new(
+          dependencies.push(Box::new(CssLocalIdentDependency::new(
             name.to_string(),
             format!("{prefix}{local_ident}"),
             range.start,
@@ -231,7 +229,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             compiler_options,
           )
           .get_local_ident(name);
-          presentational_dependencies.push(Box::new(CssLocalIdentDependency::new(
+          dependencies.push(Box::new(CssLocalIdentDependency::new(
             name.to_string(),
             local_ident.clone(),
             range.start,
@@ -271,7 +269,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let exports = self.exports.get_or_insert_default();
           for name in names {
             for &local_class in local_classes.iter() {
-              if let Some(existing) = exports.get(name) {
+              if let Some(existing) = exports.get(name)
+                && from.is_none()
+              {
                 let existing = existing.clone();
                 exports
                   .get_mut(local_class)
@@ -317,12 +317,21 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
     for warning in warnings {
       let range = warning.range();
-      diagnostics.push(Box::new(css_parsing_traceable_error(
+      let error = css_parsing_traceable_error(
         source_code.clone(),
         range.start,
         range.end,
         warning.to_string(),
-      )));
+        if matches!(
+          warning.kind(),
+          css_module_lexer::WarningKind::NotPrecededAtImport
+        ) {
+          RspackSeverity::Error
+        } else {
+          RspackSeverity::Warn
+        },
+      );
+      diagnostics.push(Box::new(error));
     }
 
     Ok(
@@ -368,6 +377,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
           data: generate_context.data,
         };
 
+        if let Some(exports) = &self.exports {
+          let mg = compilation.get_module_graph();
+          let unused =
+            get_unused_local_ident(exports, module.identifier(), generate_context.runtime, &mg);
+          context.data.insert(unused);
+        }
+
         module.get_dependencies().iter().for_each(|id| {
           if let Some(dependency) = compilation
             .get_module_graph()
@@ -392,6 +408,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
         let exports = if generate_context.concatenation_scope.is_some() {
           let mut concate_source = ConcatSource::default();
           if let Some(ref exports) = self.exports {
+            let mg = generate_context.compilation.get_module_graph();
+
+            let exports =
+              get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
+
             css_modules_exports_to_concatenate_module_string(
               exports,
               module,
@@ -401,12 +422,22 @@ impl ParserAndGenerator for CssParserAndGenerator {
           }
           return Ok(concate_source.boxed());
         } else {
-          let (ns_obj, left, right) = if self.es_module {
+          let mg = generate_context.compilation.get_module_graph();
+          let (ns_obj, left, right) = if self.es_module
+            && mg
+              .get_exports_info(&module.identifier())
+              .other_exports_info
+              .get_used(&mg, generate_context.runtime)
+              != UsageState::Unused
+          {
             (RuntimeGlobals::MAKE_NAMESPACE_OBJECT.name(), "(", ")")
           } else {
             ("", "", "")
           };
           if let Some(exports) = &self.exports {
+            let exports =
+              get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
+
             css_modules_exports_to_string(
               exports,
               module,
@@ -444,21 +475,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
     result
   }
 
-  fn store(&self, extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {
-    let data = self.exports.to_owned();
-    extra_data.insert(
-      BuildExtraDataType::CssParserAndGenerator,
-      to_bytes::<_, 1024>(&data).expect("Failed to store extra data"),
-    );
-  }
-
-  fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {
-    if let Some(data) = extra_data.get(&BuildExtraDataType::CssParserAndGenerator) {
-      let data = from_bytes::<Option<CssExports>>(data).expect("Failed to resume extra data");
-      self.exports = data;
-    }
-  }
-
   fn get_concatenation_bailout_reason(
     &self,
     _module: &dyn rspack_core::Module,
@@ -468,5 +484,58 @@ impl ParserAndGenerator for CssParserAndGenerator {
     Some(String::from(
       "Module Concatenation is not implemented for CssParserAndGenerator",
     ))
+  }
+}
+
+fn get_used_exports<'a>(
+  exports: &'a CssExports,
+  identifier: ModuleIdentifier,
+  runtime: Option<&RuntimeSpec>,
+  mg: &ModuleGraph,
+) -> IndexMap<&'a str, &'a IndexSet<CssExport>> {
+  exports
+    .iter()
+    .filter(|(name, _)| {
+      let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
+
+      if let Some(export_info) = export_info {
+        !matches!(export_info.get_used(runtime), UsageState::Unused)
+      } else {
+        true
+      }
+    })
+    .map(|(name, exports)| (name.as_str(), exports))
+    .collect()
+}
+
+#[derive(Debug, Clone)]
+pub struct CodeGenerationDataUnusedLocalIdent {
+  pub(crate) idents: FxHashSet<String>,
+}
+
+fn get_unused_local_ident(
+  exports: &CssExports,
+  identifier: ModuleIdentifier,
+  runtime: Option<&RuntimeSpec>,
+  mg: &ModuleGraph,
+) -> CodeGenerationDataUnusedLocalIdent {
+  CodeGenerationDataUnusedLocalIdent {
+    idents: exports
+      .iter()
+      .filter(|(name, _)| {
+        let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
+
+        if let Some(export_info) = export_info {
+          matches!(export_info.get_used(runtime), UsageState::Unused)
+        } else {
+          false
+        }
+      })
+      .flat_map(|(_, exports)| {
+        exports
+          .iter()
+          .map(|export| unescape(&export.ident).into_owned())
+      })
+      .collect(),
   }
 }

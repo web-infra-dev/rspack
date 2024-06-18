@@ -13,19 +13,24 @@ const config = {
 			{
 				test: /\.less$/,
 				use: "less-loader",
-				type: "css",
+				parser: {
+					namedExports: false
+				},
 				generator: {
 					exportsOnly: true
-				}
+				},
+				type: "css"
 			},
 			{
 				test: /\.module\.less$/,
 				use: "less-loader",
-				type: "css/module",
+				parser: {
+					namedExports: false
+				},
 				generator: {
-					exportsOnly: true,
-					localIdentName: "[uniqueName]---[path][name][ext]-[local]"
-				}
+					exportsOnly: true
+				},
+				type: "css/module"
 			},
 			{
 				test: /\.svg$/,
@@ -34,44 +39,52 @@ const config = {
 			{
 				test: /\.(j|t)s$/,
 				exclude: [/[\\/]node_modules[\\/]/],
-				loader: "builtin:swc-loader",
-				options: {
-					sourceMaps: false,
-					jsc: {
-						parser: {
-							syntax: "typescript"
-						},
-						externalHelpers: true
-					},
-					env: {
-						targets: "Chrome >= 48"
+				use: [
+					{
+						loader: "swc-loader",
+						options: {
+							sourceMaps: false,
+							jsc: {
+								parser: {
+									syntax: "typescript"
+								},
+								externalHelpers: true
+							},
+							env: {
+								targets: "Chrome >= 48"
+							}
+						}
 					}
-				}
+				]
 			},
 			{
 				test: /\.(j|t)sx$/,
-				loader: "builtin:swc-loader",
 				exclude: [/[\\/]node_modules[\\/]/],
-				options: {
-					sourceMaps: false,
-					jsc: {
-						parser: {
-							syntax: "typescript",
-							tsx: true
-						},
-						transform: {
-							react: {
-								runtime: "automatic",
-								development: false,
-								refresh: false
+				use: [
+					{
+						loader: "swc-loader",
+						options: {
+							sourceMaps: false,
+							jsc: {
+								parser: {
+									syntax: "typescript",
+									tsx: true
+								},
+								transform: {
+									react: {
+										runtime: "automatic",
+										development: false,
+										refresh: false
+									}
+								},
+								externalHelpers: true
+							},
+							env: {
+								targets: "Chrome >= 48"
 							}
-						},
-						externalHelpers: true
-					},
-					env: {
-						targets: "Chrome >= 48"
+						}
 					}
-				}
+				]
 			},
 			{
 				test: /\.png$/,

@@ -294,6 +294,7 @@ impl<'parser> JavascriptParser<'parser> {
     plugins.push(Box::new(parser_plugin::JavascriptMetaInfoPlugin));
     plugins.push(Box::new(parser_plugin::CheckVarDeclaratorIdent));
     plugins.push(Box::new(parser_plugin::ConstPlugin));
+    plugins.push(Box::new(parser_plugin::UseStrictPlugin));
     plugins.push(Box::new(
       parser_plugin::RequireContextDependencyParserPlugin,
     ));

@@ -5,6 +5,7 @@ pub mod repair;
 use std::path::PathBuf;
 
 use rspack_error::{Diagnostic, Result};
+use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{cutout::Cutout, file_counter::FileCounter, repair::repair};
@@ -20,6 +21,7 @@ pub struct MakeArtifact {
   pub has_module_graph_change: bool,
 
   // data
+  pub built_modules: IdentifierSet,
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: HashSet<ModuleIdentifier>,
   pub module_graph_partial: ModuleGraphPartial,
@@ -31,10 +33,10 @@ pub struct MakeArtifact {
 }
 
 impl MakeArtifact {
-  fn get_module_graph(&self) -> ModuleGraph {
+  pub fn get_module_graph(&self) -> ModuleGraph {
     ModuleGraph::new(vec![&self.module_graph_partial], None)
   }
-  fn get_module_graph_mut(&mut self) -> ModuleGraph {
+  pub fn get_module_graph_mut(&mut self) -> ModuleGraph {
     ModuleGraph::new(vec![], Some(&mut self.module_graph_partial))
   }
   // TODO remove it
@@ -48,6 +50,10 @@ impl MakeArtifact {
 
   pub fn take_diagnostics(&mut self) -> Vec<Diagnostic> {
     std::mem::take(&mut self.diagnostics)
+  }
+
+  pub fn take_built_modules(&mut self) -> IdentifierSet {
+    std::mem::take(&mut self.built_modules)
   }
 
   fn revoke_modules(&mut self, ids: HashSet<ModuleIdentifier>) -> Vec<BuildDependency> {
@@ -122,6 +128,7 @@ pub fn make_module_graph(
   }
 
   // reset temporary data
+  artifact.built_modules = Default::default();
   artifact.diagnostics = Default::default();
   artifact.has_module_graph_change = false;
 

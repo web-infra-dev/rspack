@@ -368,10 +368,10 @@ Object {
         "resource": "<COMPILER_CONTEXT>/index.js",
       },
       Object {
-        "identifier": "external node-commonjs Single(ExternalRequestValue { primary: \\"fs\\", rest: None })",
+        "identifier": "external node-commonjs \\"fs\\"",
       },
       Object {
-        "identifier": "external node-commonjs Single(ExternalRequestValue { primary: \\"path\\", rest: None })",
+        "identifier": "external node-commonjs \\"path\\"",
       },
     ],
   },

@@ -1,9 +1,9 @@
 {
   "name": "@rspack/core",
-  "version": "0.7.1",
+  "version": "0.7.3",
   "webpackVersion": "5.75.0",
   "license": "MIT",
-  "description": "A Fast Rust-based Web Bundler",
+  "description": "The fast Rust-based web bundler with webpack-compatible API",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -12,7 +12,8 @@
     },
     "./hot/*": "./hot/*.js",
     "./hot/*.js": "./hot/*.js",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./module": "./module.d.ts"
   },
   "scripts": {
     "build": "prebundle && tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json",
@@ -25,7 +26,8 @@
   "files": [
     "dist",
     "hot",
-    "compiled"
+    "compiled",
+    "module.d.ts"
   ],
   "engines": {
     "node": ">=16.0.0"

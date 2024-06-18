@@ -426,6 +426,14 @@ impl Dependency for HarmonyImportSideEffectDependency {
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    vec![]
+  }
 }
 
 impl ModuleDependency for HarmonyImportSideEffectDependency {
@@ -447,14 +455,6 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
-  }
-
-  fn get_referenced_exports(
-    &self,
-    _module_graph: &ModuleGraph,
-    _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    vec![]
   }
 
   // TODO: It's from HarmonyImportSideEffectDependency.
@@ -487,10 +487,8 @@ impl DependencyTemplate for HarmonyImportSideEffectDependency {
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
     if let Some(scope) = concatenation_scope {
-      let module = module_graph
-        .get_module_by_dependency_id(&self.id)
-        .expect("should have module");
-      if scope.is_module_in_scope(&module.identifier()) {
+      let module = module_graph.get_module_by_dependency_id(&self.id);
+      if module.is_some_and(|m| scope.is_module_in_scope(&m.identifier())) {
         return;
       }
     }

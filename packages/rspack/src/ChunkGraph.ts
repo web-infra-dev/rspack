@@ -14,7 +14,7 @@ export class ChunkGraph {
 
 	getChunkModules(chunk: Chunk): Module[] {
 		return __chunk_graph_inner_get_chunk_modules(
-			chunk.__internal_inner_ukey(),
+			chunk.__internal_innerUkey(),
 			this.compilation.__internal_getInner()
 		).map(m => Module.__from_binding(m, this.compilation));
 	}
@@ -22,7 +22,7 @@ export class ChunkGraph {
 	getChunkModulesIterable(chunk: Chunk): Iterable<Module> {
 		return new Set(
 			__chunk_graph_inner_get_chunk_modules(
-				chunk.__internal_inner_ukey(),
+				chunk.__internal_innerUkey(),
 				this.compilation.__internal_getInner()
 			).map(m => Module.__from_binding(m, this.compilation))
 		);
@@ -31,7 +31,7 @@ export class ChunkGraph {
 	getChunkEntryModulesIterable(chunk: Chunk): Iterable<Module> {
 		return new Set(
 			__chunk_graph_inner_get_chunk_entry_modules(
-				chunk.__internal_inner_ukey(),
+				chunk.__internal_innerUkey(),
 				this.compilation.__internal_getInner()
 			).map(m => Module.__from_binding(m, this.compilation))
 		);
@@ -40,7 +40,7 @@ export class ChunkGraph {
 	getChunkEntryDependentChunksIterable(chunk: Chunk): Iterable<Chunk> {
 		return new Set(
 			__chunk_graph_inner_get_chunk_entry_dependent_chunks_iterable(
-				chunk.__internal_inner_ukey(),
+				chunk.__internal_innerUkey(),
 				this.compilation.__internal_getInner()
 			).map(c =>
 				Chunk.__from_binding(c, this.compilation.__internal_getInner())
@@ -54,7 +54,7 @@ export class ChunkGraph {
 	): Iterable<Module> {
 		return new Set(
 			__chunk_graph_inner_get_chunk_modules_iterable_by_source_type(
-				chunk.__internal_inner_ukey(),
+				chunk.__internal_innerUkey(),
 				sourceType,
 				this.compilation.__internal_getInner()
 			).map(m => Module.__from_binding(m, this.compilation))

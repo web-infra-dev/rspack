@@ -12,7 +12,7 @@ const COPYRIGHT = '© 2022-present ByteDance Inc. All Rights Reserved.';
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'Rspack',
-  description: 'A fast Rust-based web bundler',
+  description: 'The fast Rust-based web bundler',
   logo: {
     light:
       'https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/navbar-logo-2027.png',
@@ -87,7 +87,7 @@ export default defineConfig({
       {
         lang: 'en',
         title: 'Rspack',
-        description: 'A fast Rust-based web bundler',
+        description: 'The fast Rust-based web bundler',
         label: 'English',
         editLink: {
           docRepoBaseUrl:
@@ -98,7 +98,7 @@ export default defineConfig({
       {
         lang: 'zh',
         title: 'Rspack',
-        description: '基于 Rust 的高性能 Web 构建工具',
+        description: '基于 Rust 的高性能 web 打包工具',
         label: '简体中文',
         editLink: {
           docRepoBaseUrl:

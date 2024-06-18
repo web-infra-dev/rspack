@@ -5,8 +5,10 @@ link-rss: blog-rss
 
 hero:
   name: Rspack
-  text: A fast Rust-based web bundler
-  tagline: Build a high-performance frontend toolchain
+  text: |
+    The fast Rust-based
+    web bundler
+  tagline: Seamlessly replace webpack with compatible API
   image:
     src: https://assets.rspack.dev/rspack/rspack-logo.svg
     alt: logo
@@ -28,7 +30,7 @@ features:
     icon: ⚡
     link: /guide/start/introduction
   - title: Webpack Compatible
-    details: Interoperates with existing webpack plugins and config. No need to reinvent your ecosystem from scratch.
+    details: Compatible with plugins and loaders in the webpack ecosystem, seamlessly integrating excellent libraries built by the community.
     icon: 📦
     link: /guide/compatibility/plugin
   - title: Batteries Included

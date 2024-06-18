@@ -8,7 +8,7 @@ import { Chunk } from "./Chunk";
 
 export class ChunkGroup {
 	#inner: JsChunkGroup;
-	#inner_compilation: JsCompilation;
+	#innerCompilation: JsCompilation;
 
 	static __from_binding(chunk: JsChunkGroup, compilation: JsCompilation) {
 		return new ChunkGroup(chunk, compilation);
@@ -16,7 +16,7 @@ export class ChunkGroup {
 
 	protected constructor(inner: JsChunkGroup, compilation: JsCompilation) {
 		this.#inner = inner;
-		this.#inner_compilation = compilation;
+		this.#innerCompilation = compilation;
 	}
 
 	getFiles(): string[] {
@@ -35,15 +35,15 @@ export class ChunkGroup {
 		return this.#inner.__inner_parents.map(parent => {
 			const cg = __chunk_group_inner_get_chunk_group(
 				parent,
-				this.#inner_compilation
+				this.#innerCompilation
 			);
-			return ChunkGroup.__from_binding(cg, this.#inner_compilation);
+			return ChunkGroup.__from_binding(cg, this.#innerCompilation);
 		});
 	}
 
 	get chunks(): Chunk[] {
 		return this.#inner.chunks.map(c =>
-			Chunk.__from_binding(c, this.#inner_compilation)
+			Chunk.__from_binding(c, this.#innerCompilation)
 		);
 	}
 
@@ -55,11 +55,11 @@ export class ChunkGroup {
 		return this.#inner.name;
 	}
 
-	__internal_inner_ukey() {
+	__internal_innerUkey() {
 		return this.#inner.__inner_ukey;
 	}
 
-	__internal_inner_compilation() {
-		return this.#inner_compilation;
+	__internal_innerCompilation() {
+		return this.#innerCompilation;
 	}
 }

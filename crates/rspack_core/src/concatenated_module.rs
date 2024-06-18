@@ -436,7 +436,7 @@ impl ConcatenatedModule {
     self.id
   }
 
-  fn get_modules(&self) -> Vec<ConcatenatedInnerModule> {
+  pub fn get_modules(&self) -> Vec<ConcatenatedInnerModule> {
     self.modules.clone()
   }
 }
@@ -518,12 +518,12 @@ impl Module for ConcatenatedModule {
     ))
   }
 
-  fn size(&self, source_type: &SourceType) -> f64 {
-    if let Some(size_ref) = self.cached_source_sizes.get(source_type) {
+  fn size(&self, source_type: Option<&SourceType>) -> f64 {
+    if let Some(size_ref) = source_type.and_then(|st| self.cached_source_sizes.get(st)) {
       *size_ref
     } else {
       let size = self.modules.iter().fold(0.0, |acc, cur| acc + cur.size);
-      self.cached_source_sizes.insert(*source_type, size);
+      source_type.and_then(|st| self.cached_source_sizes.insert(*st, size));
       size
     }
   }
