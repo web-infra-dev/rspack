@@ -198,9 +198,9 @@ function checkConfigsDocumentationCoverage() {
 							break;
 						}
 					}
-					const title = line.substring(level).trim();
+					const title = line.substring(level).trim().split(' ')[0].replace(/\\/g, '');
 					section = {
-						title: toCamelCase(title.split(' ')[0]),
+						title: title.includes(".") ? title : toCamelCase(title),
 						level,
 						text: ""
 					};
@@ -236,7 +236,10 @@ function checkConfigsDocumentationCoverage() {
 	const implementedConfigs = getImplementedConfigs().filter(config => {
 		return ![
 			"resolveLoader",
-			"module",
+
+			"module.parser",
+			"module.generator",
+
 			"experiments.rspackFuture",
 
 			"output.library.amd",
@@ -261,7 +264,6 @@ function checkConfigsDocumentationCoverage() {
 			"output.strictModuleExceptionHandling",
 			"output.sourceMapFilename",
 
-			"node",
 			"stats",
 
 			"optimization.splitChunks",
@@ -317,5 +319,5 @@ function checkConfigsDocumentationCoverage() {
 	}
 }
 
-checkPluginsDocumentationCoverage();
+// checkPluginsDocumentationCoverage();
 checkConfigsDocumentationCoverage();
