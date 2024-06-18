@@ -12,7 +12,6 @@
   "split-chunks-plugin",
   "node-target-plugin",
   "node-template-plugin",
-  "fetch-compile-async-wasm-plugin",
   "enable-chunk-loading-plugin",
   "enable-library-plugin",
   "enable-wasm-loading-plugin",
