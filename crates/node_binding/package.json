@@ -13,7 +13,7 @@
     "binding.d.ts"
   ],
   "scripts": {
-    "build:debug": "node scripts/build.js",
+    "build:debug": "DEBUG=* node scripts/build.js",
     "watch:debug": "node scripts/build.js --watch",
     "build:debug:x64": "cross-env RUST_TARGET=x86_64-apple-darwin node scripts/build.js",
     "build:debug:linux": "cross-env RUST_TARGET=x86_64-unknown-linux-gnu node scripts/build.js",
