@@ -105,12 +105,26 @@ export class BuildCommand implements RspackCommand {
 					errorHandler
 				);
 
-				if (!compiler) return;
-				if (cli.isWatch(compiler)) {
+				if (!compiler || cli.isWatch(compiler)) {
 					return;
-				} else {
-					compiler.run(errorHandler);
 				}
+
+				compiler.run(
+					(error: Error | null, stats: Stats | MultiStats | undefined) => {
+						// If there is a compilation error, the close method should not be called,
+						// Otherwise Rspack may generate invalid caches.
+						if (error || stats?.hasErrors()) {
+							errorHandler(error, stats);
+						} else {
+							compiler.close(closeErr => {
+								if (closeErr) {
+									logger.error(closeErr);
+								}
+								errorHandler(error, stats);
+							});
+						}
+					}
+				);
 			}
 		);
 	}

@@ -4819,7 +4819,7 @@ class LoaderObject {
     // (undocumented)
     static __from_binding(loaderItem: JsLoaderItem, compiler: Compiler): LoaderObject;
     // (undocumented)
-    static __to_binding(loader: LoaderObject): JsLoaderItem["inner"];
+    static __to_binding(loader: LoaderObject): JsLoaderItem;
     // (undocumented)
     get data(): any;
     set data(data: any);

@@ -237,7 +237,7 @@ function checkConfigsDocumentationCoverage() {
 		return ![
 			"resolveLoader",
 			"module",
-			"experiments",
+			"experiments.rspackFuture",
 
 			"output.library.amd",
 			"output.library.commonjs",
@@ -261,10 +261,13 @@ function checkConfigsDocumentationCoverage() {
 			"output.strictModuleExceptionHandling",
 			"output.sourceMapFilename",
 
-			"externalsPresets",
 			"node",
 			"stats",
-			"optimization",
+
+			"optimization.splitChunks",
+			"optimization.removeAvailableModules",
+			"optimization.concatenateModules",
+
 			"loader",
 			"snapshot",
 			"profile"
