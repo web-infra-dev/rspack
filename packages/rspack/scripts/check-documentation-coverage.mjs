@@ -222,9 +222,14 @@ function checkConfigsDocumentationCoverage() {
 				} else {
 					const ext = extname(item.name);
 					if (ext === ".mdx") {
-						const content = readFileSync(join(item.path, item.name), "utf-8");
-						const markdownBlocks = parseMarkdownContent(content);
-						sections.push(...markdownBlocks);
+						try {
+							const content = readFileSync(join(item.path, item.name), "utf-8");
+							const markdownBlocks = parseMarkdownContent(content);
+							sections.push(...markdownBlocks);
+						} catch (error) {
+							console.log('error', error);
+							console.log('item', item);
+						}
 					}
 				}
 			}
