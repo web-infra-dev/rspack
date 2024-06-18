@@ -169,7 +169,7 @@ extractorCommand
 	.command("update")
 	.description("update api extractor snapshots")
 	.action(async function () {
-		await $`pnpm build:js`;
+		await $`pnpm -w build:js`;
 		await $`pnpm --filter '@rspack/*' api-extractor --local`;
 	});
 
