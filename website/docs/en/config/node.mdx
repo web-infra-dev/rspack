@@ -29,7 +29,7 @@ Options:
 - `'mock'`: The fixed value `'/index.js'`.
 - `'warn-mock'`: Use the fixed value of `'/index.js'` but show a warning.
 - `'node-module'`: Replace `\_\_filename` in CommonJS modules to `fileURLToPath(import.meta.url)` when `output.module` is enabled.
-- `'eval-only'`
+- `'eval-only'`: Equivalent to `false`.
 
 ## node.\_\_dirname
 
@@ -41,4 +41,4 @@ Options:
 - `false`: Rspack won't touch your `__dirname` code, which means you have the regular Node.js `__dirname` behavior. The dirname of the **output** file when run in a Node.js environment.
 - `'mock'`: The fixed value `'/'`.
 - `'warn-mock'`: Use the fixed value of `'/'` but show a warning.
-- `'eval-only'`
+- `'eval-only'`: Equivalent to `false`.
