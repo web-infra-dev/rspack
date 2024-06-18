@@ -3165,6 +3165,17 @@ export type Falsy = z.infer<typeof falsy>;
 const falsy: z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>;
 
 // @public (undocumented)
+const FetchCompileAsyncWasmPlugin: {
+    new (): {
+        name: BuiltinPluginName;
+        _options: void;
+        affectedHooks: "make" | "compile" | "emit" | "afterEmit" | "invalid" | "done" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
 export type Filename = z.infer<typeof filename>;
 
 // @public (undocumented)
@@ -8253,6 +8264,7 @@ declare namespace rspackExports {
         LoaderOptionsPlugin,
         LoaderTargetPlugin,
         NormalModuleReplacementPlugin,
+        web,
         node,
         electron,
         library,
@@ -13349,6 +13361,15 @@ namespace Watchpack {
         aggregateTimeout?: number | undefined;
     }
 }
+
+// @public (undocumented)
+interface Web {
+    // (undocumented)
+    FetchCompileAsyncWasmPlugin: typeof FetchCompileAsyncWasmPlugin;
+}
+
+// @public (undocumented)
+export const web: Web;
 
 // @public (undocumented)
 export type WebassemblyModuleFilename = z.infer<typeof webassemblyModuleFilename>;

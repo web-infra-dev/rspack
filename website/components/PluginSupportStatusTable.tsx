@@ -372,11 +372,8 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'FetchCompileAsyncWasmPlugin',
-    status: SupportStatus.PartiallySupported,
-    notes: {
-      en: 'Temporarily not exported from the JavaScript side',
-      zh: '暂时未从 JavaScript 侧导出',
-    },
+    url: '/plugins/webpack/fetch-compile-async-wasm-plugin',
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'FetchCompileWasmPlugin',
