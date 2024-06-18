@@ -11,10 +11,10 @@ _index_module_css__WEBPACK_IMPORTED_MODULE_0__.compose;
 
 }),
 "./index.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
-__webpack_require__.r(module.exports = {
+module.exports = {
   "foo": "__rspack_test__-ec1c834ac8cc99e-foo",
   "compose": "__rspack_test__-ec1c834ac8cc99e-compose" + " " + "__rspack_test__-ec1c834ac8cc99e-bar",
-});
+};
 
 
 }),

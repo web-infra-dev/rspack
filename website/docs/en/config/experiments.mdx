@@ -6,6 +6,14 @@ Enable and try out some experimental features.
 
 - **Type:** `object`
 
+## experiments.asyncWebAssembly
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Support the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), it makes a WebAssembly module an async module.
+And it is enabled by default when [`experiments.futureDefaults`](#experimentsfuturedefaults) is set to `true`.
+
 ## experiments.incrementalRebuild
 
 <ApiMeta
@@ -53,6 +61,18 @@ Once enabled, Rspack will enable native CSS support, and CSS related parser and 
 :::warning
 Note that if you're using `style-loader` and `css-loader`, you should disable this option because `style-loader` and `css-loader` will conflict with native CSS.
 :::
+
+## experiments.futureDefaults
+
+Use defaults of the next major Rspack and show warnings in any problematic places.
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    futureDefaults: true,
+  },
+};
+```
 
 ## experiments.topLevelAwait
 
