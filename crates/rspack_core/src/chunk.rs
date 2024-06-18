@@ -47,6 +47,7 @@ pub struct Chunk {
   // TODO: remove
   pub chunk_reasons: Vec<String>,
   pub chunk_reason: Option<String>,
+  pub rendered: bool,
 }
 
 impl DatabaseItem for Chunk {
@@ -76,6 +77,7 @@ impl Chunk {
       content_hash: HashMap::default(),
       chunk_reasons: Default::default(),
       chunk_reason: Default::default(),
+      rendered: false,
     }
   }
 

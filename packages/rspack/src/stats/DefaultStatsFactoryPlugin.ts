@@ -906,6 +906,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.runtime = chunk.runtime;
 			object.sizes = chunk.sizes;
 			object.reason = chunk.reason;
+			object.rendered = chunk.rendered;
 		},
 		ids: (object, chunk) => {
 			object.id = chunk.id;

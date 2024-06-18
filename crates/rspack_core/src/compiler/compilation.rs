@@ -867,9 +867,9 @@ impl Compilation {
 
       for file_manifest in manifest {
         let filename = file_manifest.filename().to_string();
-
         let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
 
+        current_chunk.rendered = true;
         if file_manifest.auxiliary {
           current_chunk.auxiliary_files.insert(filename.clone());
         } else {

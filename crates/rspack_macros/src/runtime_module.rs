@@ -85,7 +85,7 @@ pub fn impl_runtime_module(
 
       fn size(&self, _source_type: Option<&::rspack_core::SourceType>) -> f64 {
         // should get size from code generation result
-        unreachable!();
+        0f64
       }
 
       fn readable_identifier(&self, _context: &::rspack_core::Context) -> std::borrow::Cow<str> {

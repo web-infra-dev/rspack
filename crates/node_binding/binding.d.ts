@@ -493,6 +493,7 @@ export interface JsStatsChunk {
   runtime: Array<string>
   sizes: Record<string, number>
   reason?: string
+  rendered: boolean
 }
 
 export interface JsStatsChunkGroup {

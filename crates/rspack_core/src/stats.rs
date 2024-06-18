@@ -306,6 +306,7 @@ impl Stats<'_> {
           runtime: c.runtime.clone(),
           sizes: chunk_graph.get_chunk_modules_sizes(&c.ukey, self.compilation),
           reason: c.chunk_reason.clone(),
+          rendered: c.rendered,
         })
       })
       .collect::<Result<_>>()?;
@@ -1051,6 +1052,7 @@ pub struct StatsChunk<'a> {
   pub runtime: RuntimeSpec,
   pub sizes: HashMap<SourceType, f64>,
   pub reason: Option<String>,
+  pub rendered: bool,
 }
 
 #[derive(Debug)]

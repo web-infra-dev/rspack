@@ -431,6 +431,7 @@ pub struct JsStatsChunk {
   pub runtime: Vec<String>,
   pub sizes: HashMap<String, f64>,
   pub reason: Option<String>,
+  pub rendered: bool,
 }
 
 impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
@@ -471,6 +472,7 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
         .map(|(source_type, size)| (source_type.to_string(), *size))
         .collect(),
       reason: stats.reason,
+      rendered: stats.rendered,
     })
   }
 }
