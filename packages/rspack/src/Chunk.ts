@@ -123,7 +123,7 @@ export class Chunk {
 		);
 	}
 
-	__internal_inner_ukey() {
+	__internal_innerUkey() {
 		return this.#inner.__inner_ukey;
 	}
 }
