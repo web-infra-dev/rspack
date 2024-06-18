@@ -35,7 +35,7 @@ use rspack_core::{
 };
 use rspack_core::{BoxModule, IdentCollector};
 use rspack_error::Result;
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
 use rspack_identifier::IdentifierLinkedMap;
 use rspack_util::diff_mode;
@@ -53,15 +53,15 @@ static COMPILATION_HOOKS_MAP: Lazy<FxDashMap<CompilationId, Box<JavascriptModule
   Lazy::new(Default::default);
 
 #[derive(Debug, Clone)]
-struct WithCode<T> {
-  code: String,
+struct WithHash<T> {
+  hash: Option<RspackHashDigest>,
   value: T,
 }
 
 #[derive(Debug, Default)]
 struct RenameModuleCache {
-  inlined_modules_to_info: FxDashMap<String, WithCode<InlinedModuleInfo>>,
-  non_inlined_modules_through_idents: FxDashMap<String, WithCode<Vec<ConcatenatedModuleIdent>>>,
+  inlined_modules_to_info: FxDashMap<String, WithHash<InlinedModuleInfo>>,
+  non_inlined_modules_through_idents: FxDashMap<String, WithHash<Vec<ConcatenatedModuleIdent>>>,
 }
 
 impl RenameModuleCache {
@@ -72,7 +72,7 @@ impl RenameModuleCache {
     dashmap::mapref::one::Ref<
       '_,
       String,
-      WithCode<InlinedModuleInfo>,
+      WithHash<InlinedModuleInfo>,
       std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
     >,
   > {
@@ -86,7 +86,7 @@ impl RenameModuleCache {
     dashmap::mapref::one::Ref<
       '_,
       String,
-      WithCode<Vec<ConcatenatedModuleIdent>>,
+      WithHash<Vec<ConcatenatedModuleIdent>>,
       std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
     >,
   > {
@@ -816,24 +816,34 @@ impl JsPlugin {
       let mut use_cache = false;
 
       if is_inlined_module {
-        if let Some(ident_info_with_code) = self
+        if let Some(ident_info_with_hash) = self
           .rename_module_cache
           .get_inlined_info(&m.identifier().to_string())
         {
-          if code.source() == ident_info_with_code.code {
-            let WithCode { value, .. } = (*ident_info_with_code).clone();
-            inlined_modules_to_info.insert(m.identifier().to_string(), value);
-            use_cache = true;
+          if let (Some(hash_current), Some(hash_cache)) = (
+            m.build_info().and_then(|i| i.hash.as_ref()),
+            ident_info_with_hash.hash.as_ref(),
+          ) {
+            if *hash_current == *hash_cache {
+              let WithHash { value, .. } = (*ident_info_with_hash).clone();
+              inlined_modules_to_info.insert(m.identifier().to_string(), value);
+              use_cache = true;
+            }
           }
         }
-      } else if let Some(idents_with_code) = self
+      } else if let Some(idents_with_hash) = self
         .rename_module_cache
         .get_non_inlined_idents(&m.identifier().to_string())
       {
-        if code.source() == idents_with_code.code {
-          all_used_names.extend(idents_with_code.value.iter().map(|v| v.id.sym.to_string()));
-          non_inlined_module_through_idents.extend(idents_with_code.value.clone());
-          use_cache = true;
+        if let (Some(hash_current), Some(hash_cache)) = (
+          m.build_info().and_then(|i| i.hash.as_ref()),
+          idents_with_hash.hash.as_ref(),
+        ) {
+          if *hash_current == *hash_cache {
+            all_used_names.extend(idents_with_hash.value.iter().map(|v| v.id.sym.to_string()));
+            non_inlined_module_through_idents.extend(idents_with_hash.value.clone());
+            use_cache = true;
+          }
         }
       }
 
@@ -903,8 +913,8 @@ impl JsPlugin {
 
           self.rename_module_cache.inlined_modules_to_info.insert(
             ident.clone(),
-            WithCode {
-              code: code.source().to_string(),
+            WithHash {
+              hash: m.build_info().and_then(|i| i.hash.clone()),
               value: info.clone(),
             },
           );
@@ -927,8 +937,8 @@ impl JsPlugin {
             .non_inlined_modules_through_idents
             .insert(
               module_ident.clone(),
-              WithCode {
-                code: code.source().to_string(),
+              WithHash {
+                hash: m.build_info().and_then(|i| i.hash.clone()),
                 value: idents_vec.clone(),
               },
             );
