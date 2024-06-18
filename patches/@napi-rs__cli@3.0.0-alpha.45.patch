@@ -1,0 +1,12 @@
+diff --git a/dist/api/build.js b/dist/api/build.js
+index a9c86f2fa91ec42ff6869651eb39ec7da8a155ac..0361415e350100cd035d342c13dd9503c45fc3b5 100644
+--- a/dist/api/build.js
++++ b/dist/api/build.js
+@@ -489,6 +489,7 @@ class Builder {
+             return dest;
+         }
+         catch (e) {
++            console.log('Failed to copy artifact:', e);
+             throw new Error('Failed to copy artifact', {
+                 cause: e,
+             });

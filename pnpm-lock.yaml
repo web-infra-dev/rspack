@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@napi-rs/cli@3.0.0-alpha.45':
+    hash: coxn2uhcafeqfhph5u6z6xisju
+    path: patches/@napi-rs__cli@3.0.0-alpha.45.patch
+
 importers:
 
   .:
@@ -119,7 +124,7 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: 3.0.0-alpha.45
-        version: 3.0.0-alpha.45
+        version: 3.0.0-alpha.45(patch_hash=coxn2uhcafeqfhph5u6z6xisju)
 
   crates/rspack_fs_node:
     devDependencies:
@@ -11011,7 +11016,7 @@ snapshots:
 
   '@napi-rs/cli@2.18.0': {}
 
-  '@napi-rs/cli@3.0.0-alpha.45':
+  '@napi-rs/cli@3.0.0-alpha.45(patch_hash=coxn2uhcafeqfhph5u6z6xisju)':
     dependencies:
       '@napi-rs/cross-toolchain': 0.0.14
       '@octokit/rest': 20.1.0
