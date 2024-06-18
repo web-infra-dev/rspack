@@ -319,5 +319,5 @@ function checkConfigsDocumentationCoverage() {
 	}
 }
 
-// checkPluginsDocumentationCoverage();
+checkPluginsDocumentationCoverage();
 checkConfigsDocumentationCoverage();
