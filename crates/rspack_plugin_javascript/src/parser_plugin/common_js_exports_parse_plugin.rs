@@ -11,6 +11,7 @@ use swc_core::ecma::ast::{Expr, Lit, Prop, PropName, ThisExpr, UnaryOp};
 use super::JavascriptParserPlugin;
 use crate::dependency::{CommonJsExportRequireDependency, CommonJsExportsDependency};
 use crate::dependency::{CommonJsSelfReferenceDependency, ExportsBase, ModuleDecoratorDependency};
+use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::expr_like::ExprLike;
 use crate::visitors::{expr_matcher, JavascriptParser, TopLevelScope};
 
@@ -545,6 +546,20 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       } else {
         None
       }
+    } else {
+      None
+    }
+  }
+
+  fn evaluate_typeof(
+    &self,
+    parser: &mut JavascriptParser,
+    expression: &Ident,
+    start: u32,
+    end: u32,
+  ) -> Option<BasicEvaluatedExpression> {
+    if parser.is_exports_ident(expression) || parser.is_module_ident(expression) {
+      Some(eval::evaluate_to_string("object".to_string(), start, end))
     } else {
       None
     }

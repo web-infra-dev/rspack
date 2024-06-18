@@ -198,9 +198,9 @@ function checkConfigsDocumentationCoverage() {
 							break;
 						}
 					}
-					const title = line.substring(level).trim();
+					const title = line.substring(level).trim().split(' ')[0].replace(/\\/g, '');
 					section = {
-						title: toCamelCase(title.split(' ')[0]),
+						title: title.includes(".") ? title : toCamelCase(title),
 						level,
 						text: ""
 					};
@@ -222,7 +222,7 @@ function checkConfigsDocumentationCoverage() {
 				} else {
 					const ext = extname(item.name);
 					if (ext === ".mdx") {
-						const content = readFileSync(join(item.path, item.name), "utf-8");
+						const content = readFileSync(join(dir, item.name), "utf-8");
 						const markdownBlocks = parseMarkdownContent(content);
 						sections.push(...markdownBlocks);
 					}
@@ -236,8 +236,11 @@ function checkConfigsDocumentationCoverage() {
 	const implementedConfigs = getImplementedConfigs().filter(config => {
 		return ![
 			"resolveLoader",
-			"module",
-			"experiments",
+
+			"module.parser",
+			"module.generator",
+
+			"experiments.rspackFuture",
 
 			"output.library.amd",
 			"output.library.commonjs",
@@ -259,12 +262,13 @@ function checkConfigsDocumentationCoverage() {
 			"output.workerWasmLoading",
 			"output.workerPublicPath",
 			"output.strictModuleExceptionHandling",
-			"output.sourceMapFilename",
 
-			"externalsPresets",
-			"node",
 			"stats",
-			"optimization",
+
+			"optimization.splitChunks",
+			"optimization.removeAvailableModules",
+			"optimization.concatenateModules",
+
 			"loader",
 			"snapshot",
 			"profile"

@@ -829,7 +829,7 @@ export class Chunk {
     // (undocumented)
     static __from_binding(chunk: JsChunk, compilation: JsCompilation): Chunk;
     // (undocumented)
-    __internal_inner_ukey(): number;
+    __internal_innerUkey(): number;
     // (undocumented)
     auxiliaryFiles: Array<string>;
     // (undocumented)
@@ -905,9 +905,9 @@ export class ChunkGroup {
     // (undocumented)
     static __from_binding(chunk: JsChunkGroup, compilation: JsCompilation): ChunkGroup;
     // (undocumented)
-    __internal_inner_compilation(): JsCompilation;
+    __internal_innerCompilation(): JsCompilation;
     // (undocumented)
-    __internal_inner_ukey(): number;
+    __internal_innerUkey(): number;
     // (undocumented)
     get chunks(): Chunk[];
     // (undocumented)
@@ -983,7 +983,7 @@ export class Compilation {
     __internal__pushNativeDiagnostics(diagnostics: ExternalObject<"Diagnostic[]">): void;
     // @internal
     __internal__setAssetSource(filename: string, source: Source): void;
-    // (undocumented)
+    // @internal
     __internal_getInner(): JsCompilation;
     get assets(): Record<string, Source>;
     // (undocumented)
@@ -3165,6 +3165,17 @@ export type Falsy = z.infer<typeof falsy>;
 const falsy: z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>;
 
 // @public (undocumented)
+const FetchCompileAsyncWasmPlugin: {
+    new (): {
+        name: BuiltinPluginName;
+        _options: void;
+        affectedHooks: "make" | "compile" | "emit" | "afterEmit" | "invalid" | "done" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
 export type Filename = z.infer<typeof filename>;
 
 // @public (undocumented)
@@ -4819,7 +4830,7 @@ class LoaderObject {
     // (undocumented)
     static __from_binding(loaderItem: JsLoaderItem, compiler: Compiler): LoaderObject;
     // (undocumented)
-    static __to_binding(loader: LoaderObject): JsLoaderItem["inner"];
+    static __to_binding(loader: LoaderObject): JsLoaderItem;
     // (undocumented)
     get data(): any;
     set data(data: any);
@@ -5025,8 +5036,6 @@ export class Module {
     nameForCondition(): string | null;
     // (undocumented)
     originalSource(): Source | null;
-    // (undocumented)
-    _originalSource?: Source;
     // (undocumented)
     rawRequest?: string;
     // (undocumented)
@@ -8255,6 +8264,7 @@ declare namespace rspackExports {
         LoaderOptionsPlugin,
         LoaderTargetPlugin,
         NormalModuleReplacementPlugin,
+        web,
         node,
         electron,
         library,
@@ -11771,7 +11781,6 @@ type Rules = Rule[] | Rule;
 // @public (undocumented)
 class RuleSetCompiler {
     constructor();
-    // (undocumented)
     builtinReferences: Map<string, any>;
     // (undocumented)
     references: Map<string, any>;
@@ -13352,6 +13361,15 @@ namespace Watchpack {
         aggregateTimeout?: number | undefined;
     }
 }
+
+// @public (undocumented)
+interface Web {
+    // (undocumented)
+    FetchCompileAsyncWasmPlugin: typeof FetchCompileAsyncWasmPlugin;
+}
+
+// @public (undocumented)
+export const web: Web;
 
 // @public (undocumented)
 export type WebassemblyModuleFilename = z.infer<typeof webassemblyModuleFilename>;

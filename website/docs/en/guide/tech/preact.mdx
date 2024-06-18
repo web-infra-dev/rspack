@@ -1,0 +1,121 @@
+import { PackageManagerTabs } from '@theme';
+import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
+
+# Preact
+
+## How to Use
+
+You can refer to the current document to manually add configurations for Preact.
+
+## Configure JSX/TSX
+
+Rspack leverages SWC transformer for JSX/TSX.
+
+Add `builtin:swc-loader` loader to support `jsx` and `tsx`:
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: 'ecmascript',
+                jsx: true,
+              },
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+      {
+        test: /\.tsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: 'typescript',
+                tsx: true,
+              },
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+Refer to [Builtin swc-loader](guide/features/builtin-swc-loader) for detailed configurations.
+
+Refer to [examples/preact](https://github.com/rspack-contrib/rspack-examples/blob/main/rspack/preact/rspack.config.js) for the full example.
+
+## Preact Refresh
+
+<ApiMeta addedVersion={'0.7.3'} />
+
+To enable Preact Refresh, the following steps are required:
+
+- Add the `@rspack/plugin-preact-refresh` plugin to inject runtime code
+- Add the loader for code transformation
+
+### @rspack/plugin-preact-refresh
+
+First you need to install the dependencies:
+
+<PackageManagerTabs command="add @rspack/plugin-preact-refresh @prefresh/core @prefresh/utils -D" />
+
+The enabling of the [Preact Refresh](https://github.com/preactjs/prefresh) is divided into two parts: code injection and code transformation
+
+- Code injection: injects code that interacts with `@prefresh/core` and `@prefresh/utils`, which has been integrated in the [@rspack/plugin-preact-refresh](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-plugin-preact-refresh) plugin
+- Code transformation requires a loader
+  - Use `builtin:swc-loader`
+    - Enable `jsc.transform.react.refresh` to support common react transformation
+    - Enable `rspackExperiments.preact` to support the specific transformation of preact
+  - Use `babel-loader` and add official [babel plugin](https://github.com/preactjs/prefresh/tree/main/packages/babel) of prefresh.
+
+```js title=rspack.config.js
+const PreactRefreshPlugin = require('@rspack/plugin-preact-refresh');
+const isDev = process.env.NODE_ENV === 'development';
+
+module.exports = {
+  // ...
+  mode: isDev ? 'development' : 'production',
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            rspackExperiments: {
+              preact: {}, // enable preact specific transformation
+            },
+            jsc: {
+              parser: {
+                syntax: 'ecmascript',
+                jsx: true,
+              },
+              transform: {
+                react: {
+                  development: isDev,
+                  refresh: isDev, // enable common react transformation
+                },
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+  plugins: [isDev && new PreactRefreshPlugin()].filter(Boolean),
+};
+```
+
+Refer to [examples/preact-refresh](https://github.com/rspack-contrib/rspack-examples/blob/main/rspack/preact-refresh/rspack.config.js) for the full example.

@@ -1,33 +1,34 @@
 /** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
-	description: "should have stats",
-	options(context) {
-		return {
-			context: context.getSource(),
-			entry: "./fixtures/esm/abc",
-			optimization: {
-				concatenateModules: true
-			}
-		};
-	},
-	async check(stats) {
-		const statsOptions = {
-			modules: true,
-			nestedModules: true,
-			timings: false,
-			builtAt: false,
-			version: false
-		};
-		expect(typeof stats?.hash).toBe("string");
-		const statsJson = stats?.toJson(statsOptions);
-		const concatedModule = statsJson.modules.find(
-			m => m.name === "./fixtures/esm/abc.js + 3 modules"
-		);
-		expect(concatedModule).toBeTruthy();
-		expect(concatedModule.modules).toMatchInlineSnapshot(`
+  description: "should have nested modules",
+  options(context) {
+    return {
+      context: context.getSource(),
+      entry: "./fixtures/esm/abc",
+      optimization: {
+        concatenateModules: true
+      }
+    };
+  },
+  async check(stats) {
+    const statsOptions = {
+      modules: true,
+      nestedModules: true,
+      timings: false,
+      builtAt: false,
+      version: false
+    };
+    expect(typeof stats?.hash).toBe("string");
+    const statsJson = stats?.toJson(statsOptions);
+    const concatedModule = statsJson.modules.find(
+      m => m.name === "./fixtures/esm/abc.js + 3 modules"
+    );
+    expect(concatedModule).toBeTruthy();
+    expect(concatedModule.modules).toMatchInlineSnapshot(`
 		Array [
 		  Object {
 		    "assets": Array [],
+		    "buildTimeExecuted": false,
 		    "built": true,
 		    "cacheable": true,
 		    "cached": false,
@@ -64,6 +65,7 @@ module.exports = {
 		  },
 		  Object {
 		    "assets": Array [],
+		    "buildTimeExecuted": false,
 		    "built": true,
 		    "cacheable": true,
 		    "cached": false,
@@ -124,6 +126,7 @@ module.exports = {
 		  },
 		  Object {
 		    "assets": Array [],
+		    "buildTimeExecuted": false,
 		    "built": true,
 		    "cacheable": true,
 		    "cached": false,
@@ -184,6 +187,7 @@ module.exports = {
 		  },
 		  Object {
 		    "assets": Array [],
+		    "buildTimeExecuted": false,
 		    "built": true,
 		    "cacheable": true,
 		    "cached": false,
@@ -242,8 +246,8 @@ module.exports = {
 		  },
 		]
 	`);
-		expect(stats?.toString(statsOptions).replace(/\d+ ms/g, "X ms"))
-			.toMatchInlineSnapshot(`
+    expect(stats?.toString(statsOptions).replace(/\d+ ms/g, "X ms"))
+      .toMatchInlineSnapshot(`
 		"asset main.js 475 bytes [emitted] (name: main)
 		Entrypoint main 475 bytes = main.js
 		orphan modules 192 bytes [orphan] 4 modules
@@ -252,5 +256,5 @@ module.exports = {
 		  | orphan modules 192 bytes [orphan] 4 modules
 		Rspack compiled successfully"
 	`);
-	}
+  }
 };

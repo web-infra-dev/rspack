@@ -1068,6 +1068,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			.map(c => Chunk.__from_binding(c, this.#inner));
 	}
 
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
 	__internal_getInner() {
 		return this.#inner;
 	}

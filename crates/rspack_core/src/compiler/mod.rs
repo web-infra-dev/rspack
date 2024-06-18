@@ -16,7 +16,7 @@ use tracing::instrument;
 
 pub use self::compilation::*;
 pub use self::hmr::{collect_changed_modules, CompilationRecords};
-pub use self::module_executor::{ExecuteModuleId, ModuleExecutor};
+pub use self::module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor};
 use crate::old_cache::Cache as OldCache;
 use crate::{
   fast_set, BoxPlugin, CompilerOptions, Logger, PluginDriver, ResolverFactory, SharedPluginDriver,

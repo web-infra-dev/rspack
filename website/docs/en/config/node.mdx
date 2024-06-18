@@ -18,6 +18,19 @@ Options:
 - `false`: Provide nothing. Code that expects this object may crash with a `ReferenceError`.
 - `'warn'`: Show a warning when using `global`.
 
+## node.\_\_filename
+
+- **Type:** `boolean` `'mock' | 'warn-mock' | 'eval-only'`
+
+Options:
+
+- `true`: The filename of the input file relative to the [`context`](/config/context) option.
+- `false`: Rspack won't touch your `\_\_filename` code, which means you have the regular Node.js `\_\_filename` behavior. The filename of the **output** file when run in a Node.js environment.
+- `'mock'`: The fixed value `'/index.js'`.
+- `'warn-mock'`: Use the fixed value of `'/index.js'` but show a warning.
+- `'node-module'`: Replace `\_\_filename` in CommonJS modules to `fileURLToPath(import.meta.url)` when `output.module` is enabled.
+- `'eval-only'`: Equivalent to `false`.
+
 ## node.\_\_dirname
 
 - **Type:** `boolean` `'mock' | 'warn-mock' | 'eval-only'`
@@ -25,7 +38,7 @@ Options:
 Options:
 
 - `true`: The dirname of the **input** file relative to the [`context`](/config/context) option.
-- `false`: Webpack won't touch your `__dirname` code, which means you have the regular Node.js `__dirname` behavior. The dirname of the **output** file when run in a Node.js environment.
+- `false`: Rspack won't touch your `__dirname` code, which means you have the regular Node.js `__dirname` behavior. The dirname of the **output** file when run in a Node.js environment.
 - `'mock'`: The fixed value `'/'`.
 - `'warn-mock'`: Use the fixed value of `'/'` but show a warning.
-- `'eval-only'`
+- `'eval-only'`: Equivalent to `false`.

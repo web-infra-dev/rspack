@@ -446,6 +446,15 @@ module.exports = {
 };
 ```
 
+## output.sourceMapFilename
+
+- **Type:** `string`
+- **Default:** `'[file].map[query]'`
+
+Configure how source maps are named. Only takes effect when [`devtool`](/config/devtool) is set to `'source-map'`, which writes an output file.
+
+The `[name]`, `[id]`, `[fullhash]` and `[chunkhash]` substitutions from [`output.filename`](#outputfilename) can be used. In addition to those, you can use substitutions listed under Filename-level in [Template strings](#template-string).
+
 ## output.strictModuleErrorHandling
 
 - **Type:** `boolean`
@@ -637,7 +646,7 @@ The prefix length of the hash digest to use.
 The hashing algorithm to use.
 
 :::tip
-`hashFunction` supports `xxhash64` as a faster algorithm, which will be used as default when `experiments.futureDefaults` is enabled.
+`hashFunction` supports `xxhash64` as a faster algorithm, which will be used as default when [`experiments.futureDefaults`](/config/experiments#experimentsfuturedefaults) is enabled.
 :::
 
 ## output.hashSalt

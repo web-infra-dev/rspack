@@ -197,7 +197,7 @@ module.exports = {
 
 ## output.devtoolFallbackModuleFilenameTemplate
 
-- **Type:** `string` | `function (info)`
+- **类型：** `string` | `function (info)`
 
 当模板字符串或函数产生重复时使用的备用内容。
 
@@ -205,7 +205,7 @@ module.exports = {
 
 ## output.devtoolModuleFilenameTemplate
 
-- **Type:** `string = 'webpack://[namespace]/[resource-path]?[loaders]'` | `function (info) => string`
+- **类型：** `string = 'webpack://[namespace]/[resource-path]?[loaders]'` | `function (info) => string`
 
 此选项仅在 [`devtool`](/config/devtool.html) 使用了需要模块名称的选项时使用。
 
@@ -428,8 +428,8 @@ import './others.js';
 
 ## output.scriptType
 
-- **Type:** `'module' | 'text/javascript' | boolean`
-- **Default:** `false`
+- **类型：** `'module' | 'text/javascript' | boolean`
+- **默认值：** `false`
 
 该选项允许使用自定义脚本类型（例如 `<script type="module" ...>`）来加载异步块。
 
@@ -445,6 +445,15 @@ module.exports = {
   },
 };
 ```
+
+## output.sourceMapFilename
+
+- **类型：** `string`
+- **默认值：** `'[file].map[query]'`
+
+配置 source map 文件的命名方式。仅当 [`devtool`](/config/devtool) 设置为 `'source-map'` 时生效，此时会输出文件。
+
+可以使用 [`output.filename`](#outputfilename) 中的 `[name]`、`[id]`、`[fullhash]` 和 `[chunkhash]` 替换符。此外，还可以使用 [Template strings](#template-string) 中在文件级别列出的替换符。
 
 ## output.strictModuleErrorHandling
 
@@ -660,7 +669,7 @@ module.exports = {
 ```
 
 :::tip
-`hashFunction` 支持更快的 `xxhash64` 算法，当启用 `experiments.futureDefaults` 时将使用它作为默认值。
+`hashFunction` 支持更快的 `xxhash64` 算法，当启用 [`experiments.futureDefaults`](/config/experiments#experimentsfuturedefaults) 时将使用它作为默认值。
 :::
 
 ## output.hashSalt

@@ -218,6 +218,7 @@ impl SourceMapDevToolPlugin {
     raw_assets: Vec<(String, &CompilationAsset)>,
   ) -> Result<Vec<MappedAsset>> {
     let output_options = &compilation.options.output;
+    let map_options = MapOptions::new(self.columns);
 
     let mapped_sources = raw_assets
       .par_iter()
@@ -228,7 +229,6 @@ impl SourceMapDevToolPlugin {
         }?;
         let source = if is_match {
           asset.get_source().map(|source| {
-            let map_options = MapOptions::new(self.columns);
             let source_map = source.map(&map_options);
             (file, source, source_map)
           })
