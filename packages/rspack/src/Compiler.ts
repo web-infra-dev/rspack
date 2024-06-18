@@ -51,7 +51,10 @@ import {
 	__to_binding_runtime_globals
 } from "./RuntimeGlobals";
 import { Watching } from "./Watching";
-import { JsLoaderRspackPlugin } from "./builtin-plugin";
+import {
+	JavascriptModulesPlugin,
+	JsLoaderRspackPlugin
+} from "./builtin-plugin";
 import { canInherentFromParent } from "./builtin-plugin/base";
 import { applyRspackOptionsDefaults } from "./config/defaults";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
@@ -59,6 +62,7 @@ import { Logger } from "./logging/Logger";
 import { unsupported } from "./util";
 import { assertNotNill } from "./util/assertNotNil";
 import { checkVersion } from "./util/bindingVersionCheck";
+import { createHash } from "./util/createHash";
 import { OutputFileSystem, WatchFileSystem } from "./util/fs";
 import { makePathsRelative } from "./util/identifier";
 
@@ -1106,7 +1110,19 @@ class Compiler {
 								: false;
 							return result;
 						}
-				)
+				),
+			registerJavascriptModulesChunkHashTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.JavascriptModulesChunkHash,
+				() =>
+					JavascriptModulesPlugin.getCompilationHooks(this.#compilation!)
+						.chunkHash,
+				queried => (chunk: binding.JsChunk) => {
+					const hash = createHash(this.options.output.hashFunction);
+					queried.call(Chunk.__from_binding(chunk, this.#compilation!), hash);
+					const digestResult = hash.digest(this.options.output.hashDigest);
+					return Buffer.from(digestResult);
+				}
+			)
 		};
 
 		this.#instance = new instanceBinding.Rspack(

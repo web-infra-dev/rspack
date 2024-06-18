@@ -1,23 +1,24 @@
 use std::hash::Hash;
-use std::sync::Arc;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
+use rspack_core::rspack_sources::SourceExt;
 use rspack_core::{
   get_entry_runtime, property_access, ApplyContext, BoxModule, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, CompilationFinishModules, CompilationParams,
   CompilerCompilation, CompilerOptions, EntryData, FilenameTemplate, LibraryExport, LibraryName,
-  LibraryNonUmdObject, UsageState,
+  LibraryNonUmdObject, ModuleIdentifier, UsageState,
 };
 use rspack_core::{
-  rspack_sources::{ConcatSource, RawSource, SourceExt},
+  rspack_sources::{ConcatSource, RawSource},
   to_identifier, Chunk, Compilation, LibraryOptions, PathData, Plugin, PluginContext, SourceType,
 };
 use rspack_error::{error, error_bail, Result};
+use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
-  PluginRenderJsHookOutput, PluginRenderJsStartupHookOutput, RenderJsArgs, RenderJsStartupArgs,
+  JavascriptModulesChunkHash, JavascriptModulesEmbedInRuntimeBailout, JavascriptModulesRender,
+  JavascriptModulesRenderStartup, JavascriptModulesStrictRuntimeBailout, JsPlugin, RenderSource,
 };
 use rspack_util::infallible::ResultInfallibleExt as _;
 
@@ -80,12 +81,17 @@ struct AssignLibraryPluginParsed<'a> {
   export: Option<&'a LibraryExport>,
 }
 
+#[plugin]
 #[derive(Debug)]
-struct AssignLibraryJavascriptModulesPluginPlugin {
+pub struct AssignLibraryPlugin {
   options: AssignLibraryPluginOptions,
 }
 
-impl AssignLibraryJavascriptModulesPluginPlugin {
+impl AssignLibraryPlugin {
+  pub fn new(options: AssignLibraryPluginOptions) -> Self {
+    Self::new_inner(options)
+  }
+
   fn parse_options<'a>(
     &self,
     library: &'a LibraryOptions,
@@ -170,171 +176,188 @@ impl AssignLibraryJavascriptModulesPluginPlugin {
   }
 }
 
-impl JavascriptModulesPluginPlugin for AssignLibraryJavascriptModulesPluginPlugin {
-  fn render(&self, args: &RenderJsArgs) -> PluginRenderJsHookOutput {
-    let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk)? else {
-      return Ok(None);
-    };
-    if self.options.declare {
-      let base = &self.get_resolved_full_name(&options, args.compilation, args.chunk())[0];
-      if !is_name_valid(base) {
-        let base_identifier = to_identifier(base);
-        return Err(
-          error!("Library name base ({base}) must be a valid identifier when using a var declaring library type. Either use a valid identifier (e. g. {base_identifier}) or use a different library type (e. g. `type: 'global'`, which assign a property on the global scope instead of declaring a variable). {COMMON_LIBRARY_NAME_MESSAGE}"),
-        );
-      }
-      let mut source = ConcatSource::default();
-      source.add(RawSource::from(format!("var {base};\n")));
-      source.add(args.source.clone());
-      return Ok(Some(source.boxed()));
-    }
-    Ok(Some(args.source.clone()))
-  }
-
-  fn render_startup(&self, args: &RenderJsStartupArgs) -> PluginRenderJsStartupHookOutput {
-    let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk)? else {
-      return Ok(None);
-    };
-    let mut source = ConcatSource::default();
-    source.add(args.source.clone());
-    let full_name_resolved = self.get_resolved_full_name(&options, args.compilation, args.chunk());
-    let export_access = options
-      .export
-      .map(|e| property_access(e, 0))
-      .unwrap_or_default();
-    if matches!(self.options.unnamed, Unnamed::Static) {
-      let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
-      source.add(RawSource::from(format!(
-        "Object.defineProperty({export_target}, '__esModule', {{ value: true }});\n",
-      )));
-    } else if self.is_copy(&options) {
-      source.add(RawSource::from(format!(
-        "var __webpack_export_target__ = {};\n",
-        access_with_init(&full_name_resolved, self.options.prefix.len(), true)
-      )));
-      let mut exports = "__webpack_exports__";
-      if !export_access.is_empty() {
-        source.add(RawSource::from(format!(
-          "var __webpack_exports_export__ = __webpack_exports__{export_access};\n"
-        )));
-        exports = "__webpack_exports_export__";
-      }
-      source.add(RawSource::from(format!(
-        "for(var i in {exports}) __webpack_export_target__[i] = {exports}[i];\n"
-      )));
-      source.add(RawSource::from(format!(
-        "if({exports}.__esModule) Object.defineProperty(__webpack_export_target__, '__esModule', {{ value: true }});\n"
-      )));
-    } else {
-      source.add(RawSource::from(format!(
-        "{} = __webpack_exports__{export_access};\n",
-        access_with_init(&full_name_resolved, self.options.prefix.len(), false)
-      )));
-    }
-
-    Ok(Some(source.boxed()))
-  }
-
-  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
-    let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk_ukey)? else {
-      return Ok(());
-    };
-    PLUGIN_NAME.hash(&mut args.hasher);
-    let full_resolved_name = self.get_resolved_full_name(&options, args.compilation, args.chunk());
-    if self.is_copy(&options) {
-      "copy".hash(&mut args.hasher);
-    }
-    if self.options.declare {
-      self.options.declare.hash(&mut args.hasher);
-    }
-    full_resolved_name.join(".").hash(&mut args.hasher);
-    if let Some(export) = options.export {
-      export.hash(&mut args.hasher);
-    }
-    Ok(())
-  }
-
-  fn embed_in_runtime_bailout(
-    &self,
-    compilation: &Compilation,
-    module: &BoxModule,
-    chunk: &Chunk,
-  ) -> Result<Option<String>> {
-    let Some(options) = self.get_options_for_chunk(compilation, &chunk.ukey)? else {
-      return Ok(None);
-    };
-    let codegen = compilation
-      .code_generation_results
-      .get(&module.identifier(), Some(&chunk.runtime));
-    let top_level_decls = codegen
-      .data
-      .get::<CodeGenerationDataTopLevelDeclarations>()
-      .map(|d| d.inner())
-      .or_else(|| {
-        module
-          .build_info()
-          .and_then(|build_info| build_info.top_level_declarations.as_ref())
-      });
-    if let Some(top_level_decls) = top_level_decls {
-      let full_name = self.get_resolved_full_name(&options, compilation, chunk);
-      if let Some(base) = full_name.first()
-        && top_level_decls.contains(base)
-      {
-        return Ok(Some(format!(
-          "it declares '{base}' on top-level, which conflicts with the current library output."
-        )));
-      }
-      return Ok(None);
-    }
-    Ok(Some(
-      "it doesn't tell about top level declarations.".to_string(),
-    ))
-  }
-
-  fn strict_runtime_bailout(
-    &self,
-    compilation: &Compilation,
-    chunk_ukey: &ChunkUkey,
-  ) -> Result<Option<String>> {
-    let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
-      return Ok(None);
-    };
-    if self.options.declare
-      || matches!(self.options.prefix, Prefix::Global)
-      || !self.options.prefix.is_empty()
-      || options.name.is_none()
-    {
-      return Ok(None);
-    }
-    Ok(Some(
-      "a global variable is assign and maybe created".to_string(),
-    ))
-  }
-}
-
-#[plugin]
-#[derive(Debug)]
-pub struct AssignLibraryPlugin {
-  js_plugin: Arc<AssignLibraryJavascriptModulesPluginPlugin>,
-}
-
-impl AssignLibraryPlugin {
-  pub fn new(options: AssignLibraryPluginOptions) -> Self {
-    Self::new_inner(Arc::new(AssignLibraryJavascriptModulesPluginPlugin {
-      options,
-    }))
-  }
-}
-
 #[plugin_hook(CompilerCompilation for AssignLibraryPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
-  drive.add_plugin(self.js_plugin.clone());
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  hooks.render.tap(render::new(self));
+  hooks.render_startup.tap(render_startup::new(self));
+  hooks.chunk_hash.tap(js_chunk_hash::new(self));
+  hooks
+    .embed_in_runtime_bailout
+    .tap(embed_in_runtime_bailout::new(self));
+  hooks
+    .strict_runtime_bailout
+    .tap(strict_runtime_bailout::new(self));
   Ok(())
+}
+
+#[plugin_hook(JavascriptModulesRender for AssignLibraryPlugin)]
+fn render(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  render_source: &mut RenderSource,
+) -> Result<()> {
+  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+    return Ok(());
+  };
+  if self.options.declare {
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let base = &self.get_resolved_full_name(&options, compilation, chunk)[0];
+    if !is_name_valid(base) {
+      let base_identifier = to_identifier(base);
+      return Err(
+        error!("Library name base ({base}) must be a valid identifier when using a var declaring library type. Either use a valid identifier (e. g. {base_identifier}) or use a different library type (e. g. `type: 'global'`, which assign a property on the global scope instead of declaring a variable). {COMMON_LIBRARY_NAME_MESSAGE}"),
+      );
+    }
+    let mut source = ConcatSource::default();
+    source.add(RawSource::from(format!("var {base};\n")));
+    source.add(render_source.source.clone());
+    render_source.source = source.boxed();
+    return Ok(());
+  }
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesRenderStartup for AssignLibraryPlugin)]
+fn render_startup(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  _module: &ModuleIdentifier,
+  render_source: &mut RenderSource,
+) -> Result<()> {
+  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+    return Ok(());
+  };
+  let mut source = ConcatSource::default();
+  source.add(render_source.source.clone());
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let full_name_resolved = self.get_resolved_full_name(&options, compilation, chunk);
+  let export_access = options
+    .export
+    .map(|e| property_access(e, 0))
+    .unwrap_or_default();
+  if matches!(self.options.unnamed, Unnamed::Static) {
+    let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
+    source.add(RawSource::from(format!(
+      "Object.defineProperty({export_target}, '__esModule', {{ value: true }});\n",
+    )));
+  } else if self.is_copy(&options) {
+    source.add(RawSource::from(format!(
+      "var __webpack_export_target__ = {};\n",
+      access_with_init(&full_name_resolved, self.options.prefix.len(), true)
+    )));
+    let mut exports = "__webpack_exports__";
+    if !export_access.is_empty() {
+      source.add(RawSource::from(format!(
+        "var __webpack_exports_export__ = __webpack_exports__{export_access};\n"
+      )));
+      exports = "__webpack_exports_export__";
+    }
+    source.add(RawSource::from(format!(
+      "for(var i in {exports}) __webpack_export_target__[i] = {exports}[i];\n"
+    )));
+    source.add(RawSource::from(format!(
+      "if({exports}.__esModule) Object.defineProperty(__webpack_export_target__, '__esModule', {{ value: true }});\n"
+    )));
+  } else {
+    source.add(RawSource::from(format!(
+      "{} = __webpack_exports__{export_access};\n",
+      access_with_init(&full_name_resolved, self.options.prefix.len(), false)
+    )));
+  }
+  render_source.source = source.boxed();
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesChunkHash for AssignLibraryPlugin)]
+async fn js_chunk_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  hasher: &mut RspackHash,
+) -> Result<()> {
+  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+    return Ok(());
+  };
+  PLUGIN_NAME.hash(hasher);
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let full_resolved_name = self.get_resolved_full_name(&options, compilation, chunk);
+  if self.is_copy(&options) {
+    "copy".hash(hasher);
+  }
+  if self.options.declare {
+    self.options.declare.hash(hasher);
+  }
+  full_resolved_name.join(".").hash(hasher);
+  if let Some(export) = options.export {
+    export.hash(hasher);
+  }
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesEmbedInRuntimeBailout for AssignLibraryPlugin)]
+fn embed_in_runtime_bailout(
+  &self,
+  compilation: &Compilation,
+  module: &BoxModule,
+  chunk: &Chunk,
+) -> Result<Option<String>> {
+  let Some(options) = self.get_options_for_chunk(compilation, &chunk.ukey)? else {
+    return Ok(None);
+  };
+  let codegen = compilation
+    .code_generation_results
+    .get(&module.identifier(), Some(&chunk.runtime));
+  let top_level_decls = codegen
+    .data
+    .get::<CodeGenerationDataTopLevelDeclarations>()
+    .map(|d| d.inner())
+    .or_else(|| {
+      module
+        .build_info()
+        .and_then(|build_info| build_info.top_level_declarations.as_ref())
+    });
+  if let Some(top_level_decls) = top_level_decls {
+    let full_name = self.get_resolved_full_name(&options, compilation, chunk);
+    if let Some(base) = full_name.first()
+      && top_level_decls.contains(base)
+    {
+      return Ok(Some(format!(
+        "it declares '{base}' on top-level, which conflicts with the current library output."
+      )));
+    }
+    return Ok(None);
+  }
+  Ok(Some(
+    "it doesn't tell about top level declarations.".to_string(),
+  ))
+}
+
+#[plugin_hook(JavascriptModulesStrictRuntimeBailout for AssignLibraryPlugin)]
+fn strict_runtime_bailout(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+) -> Result<Option<String>> {
+  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+    return Ok(None);
+  };
+  if self.options.declare
+    || matches!(self.options.prefix, Prefix::Global)
+    || !self.options.prefix.is_empty()
+    || options.name.is_none()
+  {
+    return Ok(None);
+  }
+  Ok(Some(
+    "a global variable is assign and maybe created".to_string(),
+  ))
 }
 
 #[plugin_hook(CompilationFinishModules for AssignLibraryPlugin)]

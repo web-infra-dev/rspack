@@ -537,7 +537,7 @@ fn runtime_requirements_in_tree(
 }
 
 #[plugin_hook(CompilationContentHash for PluginCssExtract)]
-fn content_hash(
+async fn content_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
