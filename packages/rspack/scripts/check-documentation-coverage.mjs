@@ -222,7 +222,7 @@ function checkConfigsDocumentationCoverage() {
 				} else {
 					const ext = extname(item.name);
 					if (ext === ".mdx") {
-						const content = readFileSync(join(item.path, item.name), "utf-8");
+						const content = readFileSync(join(dir, item.name), "utf-8");
 						const markdownBlocks = parseMarkdownContent(content);
 						sections.push(...markdownBlocks);
 					}
