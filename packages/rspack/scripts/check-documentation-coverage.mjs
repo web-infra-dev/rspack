@@ -259,7 +259,6 @@ function checkConfigsDocumentationCoverage() {
 			"output.workerWasmLoading",
 			"output.workerPublicPath",
 			"output.strictModuleExceptionHandling",
-			"output.sourceMapFilename",
 
 			"node",
 			"stats",
