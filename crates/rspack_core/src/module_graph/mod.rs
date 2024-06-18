@@ -558,10 +558,9 @@ impl<'a> ModuleGraph<'a> {
   }
 
   pub fn get_depth(&self, module_id: &ModuleIdentifier) -> Option<usize> {
-    let mgm = self
+    self
       .module_graph_module_by_identifier(module_id)
-      .expect("should have module graph module");
-    mgm.depth
+      .and_then(|mgm| mgm.depth)
   }
 
   pub fn set_depth(&mut self, module_id: ModuleIdentifier, depth: usize) {
