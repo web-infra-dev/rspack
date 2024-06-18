@@ -1,4 +1,4 @@
-import { ApiMeta } from '../../../components/ApiMeta';
+import { ApiMeta } from "../../../components/ApiMeta";
 
 # Module
 
@@ -6,6 +6,24 @@ Used to decide how to handle different types of modules in a project.
 
 - **Type:** `Object`
 - **Default:** `{}`
+
+## module.defaultRules
+
+- **Type:** `Rule[]`
+
+An array of rules applied by default for modules.
+
+See [source code](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L364) for details.
+
+```js title=rspack.config.js
+module.exports = {
+	module: {
+		defaultRules: [
+			"..." // you can use "..." to reference those rules applied by webpack by default
+		]
+	}
+};
+```
 
 ## module.noParse
 
@@ -20,25 +38,25 @@ Note: these modules will still be processed by configured loaders.
 
 ```js title=rspack.config.js
 module.exports = {
-  module: {
-    noParse: /typescript|watermark-dom/,
-  },
+	module: {
+		noParse: /typescript|watermark-dom/
+	}
 };
 ```
 
 ```js title=rspack.config.js
 module.exports = {
-  module: {
-    noParse: [require.resolve('typescript'), /watermark-dom/],
-  },
+	module: {
+		noParse: [require.resolve("typescript"), /watermark-dom/]
+	}
 };
 ```
 
 ```js title=rspack.config.js
 module.exports = {
-  module: {
-    noParse: request => /typescript|watermark-dom/.test(request),
-  },
+	module: {
+		noParse: request => /typescript|watermark-dom/.test(request)
+	}
 };
 ```
 
@@ -51,35 +69,35 @@ Configure all parsers' options in one place with `module.parser`.
 
 ```js title=rspack.config.js
 module.exports = {
-  module: {
-    parser: {
-      // Parser options for asset modules
-      asset: {
-        dataUrlCondition: {
-          maxSize: 16192,
-        },
-      },
-      // Parser options for javascript modules
-      javascript: {
-        dynamicImportMode: 'lazy',
-        dynamicImportPrefetch: false,
-        dynamicImportPreload: false,
-        url: true,
-      },
-      // Parser options for CSS modules
-      css: {
-        namedExports: true,
-      },
-      // Parser options for css/auto modules
-      'css/auto': {
-        namedExports: true,
-      },
-      // Parser options for css/module modules
-      'css/module': {
-        namedExports: true,
-      },
-    },
-  },
+	module: {
+		parser: {
+			// Parser options for asset modules
+			asset: {
+				dataUrlCondition: {
+					maxSize: 16192
+				}
+			},
+			// Parser options for javascript modules
+			javascript: {
+				dynamicImportMode: "lazy",
+				dynamicImportPrefetch: false,
+				dynamicImportPreload: false,
+				url: true
+			},
+			// Parser options for CSS modules
+			css: {
+				namedExports: true
+			},
+			// Parser options for css/auto modules
+			"css/auto": {
+				namedExports: true
+			},
+			// Parser options for css/module modules
+			"css/module": {
+				namedExports: true
+			}
+		}
+	}
 };
 ```
 
@@ -96,16 +114,16 @@ If the module size is less than or equal to `maxSize`, then the module will be B
 
 ```js title=rspack.config.js
 module.exports = {
-  module: {
-    parser: {
-      asset: {
-        dataUrlCondition: {
-          // Modules' size smaller than or equal to 4KB and ending with `.png` will be Base64 encoded.
-          maxSize: 4 * 1024,
-        },
-      },
-    },
-  },
+	module: {
+		parser: {
+			asset: {
+				dataUrlCondition: {
+					// Modules' size smaller than or equal to 4KB and ending with `.png` will be Base64 encoded.
+					maxSize: 4 * 1024
+				}
+			}
+		}
+	}
 };
 ```
 
@@ -244,22 +262,22 @@ When using `namedExports: true`, you can use namespace export or named export:
 
 ```js
 // namespace export
-import * as classes from './index.module.css';
+import * as classes from "./index.module.css";
 // named export
-import { class1, class2 } from './index.module.css';
+import { class1, class2 } from "./index.module.css";
 ```
 
 When using `namedExports: false`, in addition to namespace export and named export, default export can also be used:
 
 ```js
 // namespace export
-import * as classes from './index.module.css';
+import * as classes from "./index.module.css";
 // named export
-import { class1, class2 } from './index.module.css';
+import { class1, class2 } from "./index.module.css";
 // default export
-import classes from './index.module.css';
+import classes from "./index.module.css";
 // default export and named export
-import classes, { class1, class2 } from './index.module.css';
+import classes, { class1, class2 } from "./index.module.css";
 ```
 
 ### module.parser.css
@@ -299,50 +317,50 @@ Configure all generators' options in one place with `module.generator`.
 
 ```js title=rspack.config.js
 module.exports = {
-  module: {
-    generator: {
-      // Generator options for asset modules
-      asset: {
-        dataUrl: {
-          encoding: false,
-          mimetype: 'base64',
-        },
-        filename: '[name]-[contenthash][ext]',
-        publicPath: 'https://cdn.example.com/',
-      },
-      // Generator options for asset/inline modules
-      'asset/inline': {
-        dataUrl: {
-          encoding: false,
-          mimetype: 'base64',
-        },
-      },
-      // Generator options for asset/resource modules
-      'asset/resource': {
-        filename: '[name]-[contenthash][ext]',
-        publicPath: 'https://cdn.example.com/',
-      },
-      // Generator options for css/auto modules
-      'css/auto': {
-        exportsConvention: 'as-is',
-        exportsOnly: false,
-        localIdentName: '[uniqueName]-[id]-[local]',
-        esModule: true,
-      },
-      // Generator options for `css` modules
-      css: {
-        exportsOnly: false,
-        esModule: true,
-      },
-      // Generator options for css/module modules
-      'css/module': {
-        exportsConvention: 'as-is',
-        exportsOnly: false,
-        localIdentName: '[uniqueName]-[id]-[local]',
-        esModule: true,
-      },
-    },
-  },
+	module: {
+		generator: {
+			// Generator options for asset modules
+			asset: {
+				dataUrl: {
+					encoding: false,
+					mimetype: "base64"
+				},
+				filename: "[name]-[contenthash][ext]",
+				publicPath: "https://cdn.example.com/"
+			},
+			// Generator options for asset/inline modules
+			"asset/inline": {
+				dataUrl: {
+					encoding: false,
+					mimetype: "base64"
+				}
+			},
+			// Generator options for asset/resource modules
+			"asset/resource": {
+				filename: "[name]-[contenthash][ext]",
+				publicPath: "https://cdn.example.com/"
+			},
+			// Generator options for css/auto modules
+			"css/auto": {
+				exportsConvention: "as-is",
+				exportsOnly: false,
+				localIdentName: "[uniqueName]-[id]-[local]",
+				esModule: true
+			},
+			// Generator options for `css` modules
+			css: {
+				exportsOnly: false,
+				esModule: true
+			},
+			// Generator options for css/module modules
+			"css/module": {
+				exportsConvention: "as-is",
+				exportsOnly: false,
+				localIdentName: "[uniqueName]-[id]-[local]",
+				esModule: true
+			}
+		}
+	}
 };
 ```
 
@@ -359,16 +377,16 @@ Only for modules with module type `'asset'` or `'asset/inline'`.
 
 ```js title=rspack.config.js
 module.exports = {
-  module: {
-    generator: {
-      asset: {
-        dataUrl: {
-          encoding: 'base64',
-          mimetype: 'mimetype/png',
-        },
-      },
-    },
-  },
+	module: {
+		generator: {
+			asset: {
+				dataUrl: {
+					encoding: "base64",
+					mimetype: "mimetype/png"
+				}
+			}
+		}
+	}
 };
 ```
 
@@ -376,17 +394,17 @@ When used a a function, it executes for every module and must return a data URI 
 
 ```js title=rspack.config.js
 module.exports = {
-  //...
-  module: {
-    generator: {
-      asset: {
-        dataUrl: ({ content }) => {
-          const svgToMiniDataURI = require('mini-svg-data-uri');
-          return svgToMiniDataURI(content);
-        },
-      },
-    },
-  },
+	//...
+	module: {
+		generator: {
+			asset: {
+				dataUrl: ({ content }) => {
+					const svgToMiniDataURI = require("mini-svg-data-uri");
+					return svgToMiniDataURI(content);
+				}
+			}
+		}
+	}
 };
 ```
 
@@ -414,13 +432,13 @@ Same as `output.assetModuleFilename`. Overrides `output.assetModuleFilename` and
 
 ```ts title=rspack.config.js
 module.exports = {
-  module: {
-    generator: {
-      asset: {
-        filename: 'static/[hash][ext]',
-      },
-    },
-  },
+	module: {
+		generator: {
+			asset: {
+				filename: "static/[hash][ext]"
+			}
+		}
+	}
 };
 ```
 
@@ -433,13 +451,13 @@ Override [`output.publicPath`](/config/output#outputpublicpath), only for module
 
 ```ts title=rspack.config.js
 module.exports = {
-  module: {
-    generator: {
-      asset: {
-        publicPath: 'https://cdn.example.com/',
-      },
-    },
-  },
+	module: {
+		generator: {
+			asset: {
+				publicPath: "https://cdn.example.com/"
+			}
+		}
+	}
 };
 ```
 
@@ -456,13 +474,13 @@ Only for modules with module type `'asset'` or `'asset/resource'`.
 
 ```js title=rspack.config.js
 module.exports = {
-  module: {
-    generator: {
-      asset: {
-        emit: false,
-      },
-    },
-  },
+	module: {
+		generator: {
+			asset: {
+				emit: false
+			}
+		}
+	}
 };
 ```
 
@@ -470,13 +488,13 @@ module.exports = {
 
 ```js title=rspack.config.js
 module.exports = {
-  module: {
-    generator: {
-      'asset/resource': {
-        emit: false,
-      },
-    },
-  },
+	module: {
+		generator: {
+			"asset/resource": {
+				emit: false
+			}
+		}
+	}
 };
 ```
 
@@ -561,30 +579,30 @@ For example, a common use case, when using the cjs output from a third-party com
 The original source code of the third-party component library:
 
 ```js
-import style from './style.css';
+import style from "./style.css";
 export function Button() {
-  return <button className={style.btn}></button>;
+	return <button className={style.btn}></button>;
 }
 ```
 
 The cjs format output published by the third-party component library:
 
 ```js
-'use strict';
+"use strict";
 
-Object.defineProperty(exports, '__esModule', {
-  value: true,
+Object.defineProperty(exports, "__esModule", {
+	value: true
 });
 exports.Button = Button;
-var _style = _interopRequireDefault(require('./style.css'));
-var _jsxRuntime = require('react/jsx-runtime');
+var _style = _interopRequireDefault(require("./style.css"));
+var _jsxRuntime = require("react/jsx-runtime");
 function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj };
+	return obj && obj.__esModule ? obj : { default: obj };
 }
 function Button() {
-  return /*#__PURE__*/ (0, _jsxRuntime.jsx)('button', {
-    className: _style['default'].btn, // <-- Note: After passing through _interopRequireDefault, this need to access default here.
-  });
+	return /*#__PURE__*/ (0, _jsxRuntime.jsx)("button", {
+		className: _style["default"].btn // <-- Note: After passing through _interopRequireDefault, this need to access default here.
+	});
 }
 ```
 
@@ -768,14 +786,14 @@ For example, you can treat the inline data uri resource as a separate resource w
 
 ```js title=rspack.config.js
 module.exports = {
-  module: {
-    rules: [
-      {
-        scheme: 'data',
-        type: 'asset/resource',
-      },
-    ],
-  },
+	module: {
+		rules: [
+			{
+				scheme: "data",
+				type: "asset/resource"
+			}
+		]
+	}
 };
 ```
 
@@ -799,18 +817,18 @@ For example, below we are applying the rule only to JavaScript resources with `'
 
 ```ts title=rspack.config.js
 module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.js$/,
-        include: /node_modules/,
-        descriptionData: {
-          name: packageJsonName => packageJsonName.includes('rspack'),
-        },
-        // additional rule options...
-      },
-    ],
-  },
+	module: {
+		rules: [
+			{
+				test: /\.js$/,
+				include: /node_modules/,
+				descriptionData: {
+					name: packageJsonName => packageJsonName.includes("rspack")
+				}
+				// additional rule options...
+			}
+		]
+	}
 };
 ```
 
@@ -839,17 +857,17 @@ Parser options for the specific modules that matched by the rule conditions, thi
 
 ```js title=rspack.config.js
 module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.css/,
-        parser: {
-          namedExports: false,
-        },
-        type: 'css/module',
-      },
-    ],
-  },
+	module: {
+		rules: [
+			{
+				test: /\.css/,
+				parser: {
+					namedExports: false
+				},
+				type: "css/module"
+			}
+		]
+	}
 };
 ```
 
@@ -864,17 +882,17 @@ Generator options for the specific modules that matched by the rule conditions, 
 
 ```js title=rspack.config.js
 module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.png/,
-        generator: {
-          filename: '[contenthash][ext]',
-        },
-        type: 'asset',
-      },
-    ],
-  },
+	module: {
+		rules: [
+			{
+				test: /\.png/,
+				generator: {
+					filename: "[contenthash][ext]"
+				},
+				type: "asset"
+			}
+		]
+	}
 };
 ```
 
@@ -908,17 +926,17 @@ Used to mark the type of the matching module, which affects how the module is ha
 
 ```ts
 export type RuleSetUse =
-  | RuleSetUseItem[]
-  | RuleSetUseItem
-  | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
+	| RuleSetUseItem[]
+	| RuleSetUseItem
+	| ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
 export type RuleSetUseItem =
-  | { loader: string; options: Record<string, any> }
-  | string;
+	| { loader: string; options: Record<string, any> }
+	| string;
 export interface RawFuncUseCtx {
-  resource?: string;
-  realResource?: string;
-  resourceQuery?: string;
-  issuer?: string;
+	resource?: string;
+	realResource?: string;
+	resourceQuery?: string;
+	issuer?: string;
 }
 ```
 
@@ -927,23 +945,23 @@ Loaders will be executed in right-to-left order.
 
 ```ts title=rspack.config.js
 module.exports = {
-  //...
-  module: {
-    rules: [
-      {
-        //...
-        use: [
-          'svgr-loader',
-          {
-            loader: 'svgo-loader',
-            options: {
-              configFile: false,
-            },
-          },
-        ],
-      },
-    ],
-  },
+	//...
+	module: {
+		rules: [
+			{
+				//...
+				use: [
+					"svgr-loader",
+					{
+						loader: "svgo-loader",
+						options: {
+							configFile: false
+						}
+					}
+				]
+			}
+		]
+	}
 };
 ```
 
@@ -951,25 +969,25 @@ A function can also be used:
 
 ```ts title=rspack.config.js
 module.exports = {
-  //...
-  module: {
-    rules: [
-      {
-        test: /\.svg$/,
-        type: 'asset',
-        use: info => ({
-          loader: 'svgo-loader',
-          options: {
-            plugins: [
-              {
-                cleanupIDs: { prefix: basename(info.resource) },
-              },
-            ],
-          },
-        }),
-      },
-    ],
-  },
+	//...
+	module: {
+		rules: [
+			{
+				test: /\.svg$/,
+				type: "asset",
+				use: info => ({
+					loader: "svgo-loader",
+					options: {
+						plugins: [
+							{
+								cleanupIDs: { prefix: basename(info.resource) }
+							}
+						]
+					}
+				})
+			}
+		]
+	}
 };
 ```
 
@@ -982,16 +1000,16 @@ Set specific module resolve options based on the matching modules
 
 ```ts title=rspack.config.js
 module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.css$/,
-        resolve: {
-          preferRelative: true,
-        },
-      },
-    ],
-  },
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				resolve: {
+					preferRelative: true
+				}
+			}
+		]
+	}
 };
 ```
 
