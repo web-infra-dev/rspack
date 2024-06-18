@@ -26,6 +26,9 @@ jobs:
         shell: bash
         run: |
           # set default value for vars.XXX_RUNNER_LABELS
+          echo 'LINUX_RUNNER_LABELS=${{ vars.LINUX_RUNNER_LABELS || '"ubuntu-latest"' }}'
+          echo 'MACOS_RUNNER_LABELS=${{ vars.MACOS_RUNNER_LABELS || '"macos-latest"' }}'
+          echo 'WINDOWS_RUNNER_LABELS=${{ vars.WINDOWS_RUNNER_LABELS || '"windows-latest"' }}'
           echo 'LINUX_RUNNER_LABELS=${{ vars.LINUX_RUNNER_LABELS || '"ubuntu-latest"' }}' >> "$GITHUB_OUTPUT"
           echo 'MACOS_RUNNER_LABELS=${{ vars.MACOS_RUNNER_LABELS || '"macos-latest"' }}' >> "$GITHUB_OUTPUT"
           echo 'WINDOWS_RUNNER_LABELS=${{ vars.WINDOWS_RUNNER_LABELS || '"windows-latest"' }}' >> "$GITHUB_OUTPUT"
