@@ -227,8 +227,8 @@ function checkConfigsDocumentationCoverage() {
 							const markdownBlocks = parseMarkdownContent(content);
 							sections.push(...markdownBlocks);
 						} catch (error) {
-							console.log('error', error);
-							console.log('item', item);
+							console.log(error);
+							console.log('Current dir item is', item);
 						}
 					}
 				}
