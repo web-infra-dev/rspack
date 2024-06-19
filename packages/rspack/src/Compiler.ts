@@ -945,12 +945,14 @@ class Compiler {
 			registerCompilationOptimizeModulesTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationOptimizeModules,
 				() => this.#compilation!.hooks.optimizeModules,
-				queried => () => queried.call(this.#compilation!.modules)
+				queried => () => queried.call(this.#compilation!.modules.values())
 			),
 			registerCompilationAfterOptimizeModulesTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationAfterOptimizeModules,
 				() => this.#compilation!.hooks.afterOptimizeModules,
-				queried => () => queried.call(this.#compilation!.modules)
+				queried => () => {
+					queried.call(this.#compilation!.modules.values());
+				}
 			),
 			registerCompilationOptimizeTreeTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationOptimizeTree,

@@ -5,6 +5,7 @@ class Plugin {
 		let initial = true;
 		compiler.hooks.compilation.tap(pluginName, compilation => {
 			compilation.hooks.finishModules.tapPromise(pluginName, async modules => {
+				modules = [...modules]
 				const oldModule = modules.find(item => item.resource.endsWith("a.js"));
 				if (!oldModule) {
 					throw new Error("module not found");

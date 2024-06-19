@@ -19,7 +19,7 @@ export class ChunkGroup {
 		this.#innerCompilation = compilation;
 	}
 
-	getFiles(): string[] {
+	getFiles(): ReadonlyArray<string> {
 		const files = new Set<string>();
 
 		for (const chunk of this.#inner.chunks) {
@@ -31,7 +31,7 @@ export class ChunkGroup {
 		return Array.from(files);
 	}
 
-	getParents(): ChunkGroup[] {
+	getParents(): ReadonlyArray<ChunkGroup> {
 		return this.#inner.__inner_parents.map(parent => {
 			const cg = __chunk_group_inner_get_chunk_group(
 				parent,
@@ -41,25 +41,35 @@ export class ChunkGroup {
 		});
 	}
 
-	get chunks(): Chunk[] {
+	get chunks(): ReadonlyArray<Chunk> {
 		return this.#inner.chunks.map(c =>
 			Chunk.__from_binding(c, this.#innerCompilation)
 		);
 	}
 
-	get index(): number | undefined {
+	get index(): Readonly<number | undefined> {
 		return this.#inner.index;
 	}
 
-	get name(): string | undefined {
+	get name(): Readonly<string | undefined> {
 		return this.#inner.name;
 	}
 
-	__internal_innerUkey() {
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__innerUkey() {
 		return this.#inner.__inner_ukey;
 	}
 
-	__internal_innerCompilation() {
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__innerCompilation() {
 		return this.#innerCompilation;
 	}
 }

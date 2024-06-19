@@ -1,9 +1,9 @@
 class RuleSetCompiler {
-	public references: Map<string, any>;
+	references: Map<string, any>;
 	/**
 	 * builtin references that should be serializable and passed to Rust.
 	 */
-	public builtinReferences: Map<string, any>;
+	builtinReferences: Map<string, any>;
 	constructor() {
 		this.references = new Map();
 		this.builtinReferences = new Map();

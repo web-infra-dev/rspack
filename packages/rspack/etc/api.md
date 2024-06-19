@@ -39,7 +39,6 @@ import { JsStats } from '@rspack/binding';
 import { JsStatsError } from '@rspack/binding';
 import { JsStatsWarning } from '@rspack/binding';
 import { libCacheFacade } from './lib/CacheFacade';
-import { LoaderContext as LoaderContext_2 } from './config';
 import { Logger as Logger_2 } from './logging/Logger';
 import { MultiHook } from 'tapable';
 import { PathWithInfo } from '@rspack/binding';
@@ -820,31 +819,28 @@ type Callback<E, T> = (error: E | null, result?: T) => void;
 type CallFn = (...args: any[]) => any;
 
 // @public (undocumented)
-type CallFn_2<D> = (args: D[]) => void;
-
-// @public (undocumented)
 export class Chunk {
     constructor(chunk: JsChunk, compilation: JsCompilation);
     // (undocumented)
     static __from_binding(chunk: JsChunk, compilation: Compilation): Chunk;
     // (undocumented)
     static __from_binding(chunk: JsChunk, compilation: JsCompilation): Chunk;
+    // @internal
+    __internal__innerUkey(): number;
     // (undocumented)
-    __internal_innerUkey(): number;
-    // (undocumented)
-    auxiliaryFiles: Array<string>;
+    auxiliaryFiles: ReadonlySet<string>;
     // (undocumented)
     canBeInitial(): boolean;
     // (undocumented)
-    chunkReasons: Array<string>;
+    chunkReason: ReadonlyArray<string>;
     // (undocumented)
-    contentHash: Record<string, string>;
+    contentHash: Readonly<Record<string, string>>;
     // (undocumented)
-    cssFilenameTemplate?: string;
+    cssFilenameTemplate?: Readonly<string>;
     // (undocumented)
-    filenameTemplate?: string;
+    filenameTemplate?: Readonly<string>;
     // (undocumented)
-    files: Array<string>;
+    files: ReadonlySet<string>;
     // (undocumented)
     getAllAsyncChunks(): Iterable<Chunk>;
     // (undocumented)
@@ -854,23 +850,23 @@ export class Chunk {
     // (undocumented)
     get groupsIterable(): Iterable<ChunkGroup>;
     // (undocumented)
-    hash?: string;
+    hash?: Readonly<string>;
     // (undocumented)
     hasRuntime(): boolean;
     // (undocumented)
-    id?: string;
+    id?: Readonly<string>;
     // (undocumented)
-    idNameHints: Array<string>;
+    idNameHints: ReadonlyArray<string>;
     // (undocumented)
-    ids: Array<string>;
+    ids: ReadonlyArray<string>;
     // (undocumented)
     isOnlyInitial(): boolean;
     // (undocumented)
-    name?: string;
+    name?: Readonly<string>;
     // (undocumented)
-    renderedHash?: string;
+    renderedHash?: Readonly<string>;
     // (undocumented)
-    runtime: Array<string>;
+    runtime: ReadonlySet<string>;
 }
 
 // @public (undocumented)
@@ -893,7 +889,7 @@ class ChunkGraph {
     // (undocumented)
     getChunkEntryModulesIterable(chunk: Chunk): Iterable<Module>;
     // (undocumented)
-    getChunkModules(chunk: Chunk): Module[];
+    getChunkModules(chunk: Chunk): Readonly<Module[]>;
     // (undocumented)
     getChunkModulesIterable(chunk: Chunk): Iterable<Module>;
     // (undocumented)
@@ -905,20 +901,20 @@ export class ChunkGroup {
     protected constructor(inner: JsChunkGroup, compilation: JsCompilation);
     // (undocumented)
     static __from_binding(chunk: JsChunkGroup, compilation: JsCompilation): ChunkGroup;
+    // @internal
+    __internal__innerCompilation(): JsCompilation;
+    // @internal
+    __internal__innerUkey(): number;
     // (undocumented)
-    __internal_innerCompilation(): JsCompilation;
+    get chunks(): ReadonlyArray<Chunk>;
     // (undocumented)
-    __internal_innerUkey(): number;
+    getFiles(): ReadonlyArray<string>;
     // (undocumented)
-    get chunks(): Chunk[];
+    getParents(): ReadonlyArray<ChunkGroup>;
     // (undocumented)
-    getFiles(): string[];
+    get index(): Readonly<number | undefined>;
     // (undocumented)
-    getParents(): ChunkGroup[];
-    // (undocumented)
-    get index(): number | undefined;
-    // (undocumented)
-    get name(): string | undefined;
+    get name(): Readonly<string | undefined>;
 }
 
 // @public (undocumented)
@@ -1001,7 +997,7 @@ export class Compilation {
     // (undocumented)
     chunkGraph: ChunkGraph;
     // (undocumented)
-    get chunks(): Chunk[];
+    get chunks(): ReadonlySet<Chunk>;
     // (undocumented)
     compiler: Compiler;
     // (undocumented)
@@ -1019,12 +1015,6 @@ export class Compilation {
     createStatsOptions(optionsOrPreset: StatsValue | undefined, context?: CreateStatsOptionsContext): NormalizedStatsOptions;
     // (undocumented)
     createStatsPrinter(options: StatsOptions): StatsPrinter;
-    // (undocumented)
-    get currentNormalModuleHooks(): {
-        loader: tapable.SyncHook<[LoaderContext_2<    {}>], void, tapable.UnsetAdditionalOptions>;
-        readResourceForScheme: any;
-        readResource: tapable.HookMap<tapable.AsyncSeriesBailHook<[LoaderContext_2<    {}>], string | Buffer, tapable.UnsetAdditionalOptions>>;
-    };
     // (undocumented)
     deleteAsset(filename: string): void;
     emitAsset(filename: string, source: Source, assetInfo?: AssetInfo): void;
@@ -1045,7 +1035,7 @@ export class Compilation {
         createSnapshot(): null;
     };
     // (undocumented)
-    get fullHash(): string | null;
+    get fullHash(): Readonly<string | null>;
     // (undocumented)
     getAsset(name: string): Readonly<Asset> | void;
     // (undocumented)
@@ -1064,9 +1054,9 @@ export class Compilation {
     // (undocumented)
     getStats(): Stats;
     // (undocumented)
-    get hash(): string | null;
+    get hash(): Readonly<string | null>;
     // (undocumented)
-    hooks: {
+    hooks: Readonly<{
         processAssets: liteTapable.AsyncSeriesHook<Assets>;
         afterProcessAssets: liteTapable.SyncHook<Assets>;
         childCompiler: tapable.SyncHook<[Compiler, string, number]>;
@@ -1106,7 +1096,7 @@ export class Compilation {
         ], void>;
         runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
-    };
+    }>;
     // (undocumented)
     inputFileSystem: any;
     // (undocumented)
@@ -1119,10 +1109,10 @@ export class Compilation {
         addAll: (deps: Iterable<string>) => void;
     };
     // (undocumented)
-    get modules(): Module[];
+    get modules(): ReadonlySet<Module>;
     // (undocumented)
     name?: string;
-    get namedChunks(): Map<string, Readonly<Chunk>>;
+    get namedChunks(): ReadonlyMap<string, Readonly<Chunk>>;
     // (undocumented)
     options: RspackOptionsNormalized;
     // (undocumented)
@@ -1161,8 +1151,6 @@ export class Compilation {
     static PROCESS_ASSETS_STAGE_SUMMARIZE: number;
     // (undocumented)
     rebuildModule(m: Module, f: (err: Error, m: Module) => void): void;
-    // (undocumented)
-    _rebuildModuleCaller: MergeCaller<[string, (err: Error, m: Module) => void]>;
     // (undocumented)
     renameAsset(filename: string, newFilename: string): void;
     // (undocumented)
@@ -2582,7 +2570,7 @@ class Entrypoint extends ChunkGroup {
     // (undocumented)
     static __from_binding(chunk: JsChunkGroup, compilation: JsCompilation): Entrypoint;
     // (undocumented)
-    getRuntimeChunk(): Chunk | null;
+    getRuntimeChunk(): Readonly<Chunk | null>;
 }
 
 // @public (undocumented)
@@ -5022,13 +5010,6 @@ const maxStage: number;
 type Measure<T extends number> = T extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 ? T : never;
 
 // @public (undocumented)
-class MergeCaller<D> {
-    constructor(fn: CallFn_2<D>, debounceTime: number);
-    // (undocumented)
-    push(...data: D[]): void;
-}
-
-// @public (undocumented)
 type MinifyCondition = string | RegExp;
 
 // @public (undocumented)
@@ -5051,7 +5032,7 @@ export class Module {
     buildInfo: Record<string, any>;
     buildMeta: Record<string, any>;
     // (undocumented)
-    context?: string;
+    context?: Readonly<string>;
     // (undocumented)
     identifier(): string;
     // (undocumented)
@@ -5059,13 +5040,13 @@ export class Module {
     // (undocumented)
     originalSource(): Source | null;
     // (undocumented)
-    rawRequest?: string;
+    rawRequest?: Readonly<string>;
     // (undocumented)
-    request?: string;
+    request?: Readonly<string>;
     // (undocumented)
-    resource?: string;
+    resource?: Readonly<string>;
     // (undocumented)
-    userRequest?: string;
+    userRequest?: Readonly<string>;
 }
 
 // @public (undocumented)
@@ -6107,7 +6088,6 @@ type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, k
 
 // @public (undocumented)
 export class NormalModule {
-    constructor();
     // (undocumented)
     static getCompilationHooks(compilation: Compilation): {
         loader: SyncHook_2<[LoaderContext<{}>], void, UnsetAdditionalOptions_2>;
@@ -12167,7 +12147,7 @@ export class Stats {
     // (undocumented)
     hasErrors(): boolean;
     // (undocumented)
-    get hash(): string | null;
+    get hash(): Readonly<string | null>;
     // (undocumented)
     hasWarnings(): boolean;
     // (undocumented)

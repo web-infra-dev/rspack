@@ -16,12 +16,12 @@ export class Entrypoint extends ChunkGroup {
 		super(inner, compilation);
 	}
 
-	getRuntimeChunk(): Chunk | null {
+	getRuntimeChunk(): Readonly<Chunk | null> {
 		const c = __entrypoint_inner_get_runtime_chunk(
-			this.__internal_innerUkey(),
-			this.__internal_innerCompilation()
+			this.__internal__innerUkey(),
+			this.__internal__innerCompilation()
 		);
-		if (c) return Chunk.__from_binding(c, this.__internal_innerCompilation());
+		if (c) return Chunk.__from_binding(c, this.__internal__innerCompilation());
 		return null;
 	}
 }
