@@ -1,3 +1,5 @@
 ERROR in ./app.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Untermin
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭─[2:1]
+       2 │     cre
