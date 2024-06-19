@@ -18,11 +18,13 @@ use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 mod compiler;
 mod panic;
 mod plugins;
+mod trace;
 
 use plugins::*;
 use rspack_binding_options::*;
 use rspack_binding_values::*;
 use rspack_tracing::chrome::FlushGuard;
+pub use trace::*;
 
 #[napi]
 pub struct Rspack {
