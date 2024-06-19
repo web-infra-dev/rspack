@@ -50,6 +50,7 @@ import MergeCaller from "./util/MergeCaller";
 import { createFakeCompilationDependencies } from "./util/fake";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
+import Hash = require("./util/hash");
 export { type AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
@@ -162,6 +163,7 @@ export class Compilation {
 			void
 		>;
 		finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
+		chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
 		chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: liteTapable.SyncHook<[Module], void>;
@@ -295,6 +297,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"modules"
 			]),
 			finishModules: new liteTapable.AsyncSeriesHook(["modules"]),
+			chunkHash: new liteTapable.SyncHook(["chunk", "hash"]),
 			chunkAsset: new liteTapable.SyncHook(["chunk", "filename"]),
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new liteTapable.SyncHook(["module"]),

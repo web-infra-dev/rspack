@@ -28,8 +28,9 @@ use rspack_core::{
   CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
   CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
   CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
-  CompilationChunkAssetHook, CompilationExecuteModule, CompilationExecuteModuleHook,
-  CompilationFinishModules, CompilationFinishModulesHook, CompilationOptimizeChunkModules,
+  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
+  CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
+  CompilationFinishModulesHook, CompilationOptimizeChunkModules,
   CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
   CompilationOptimizeTree, CompilationOptimizeTreeHook, CompilationParams,
   CompilationProcessAssets, CompilationProcessAssetsHook, CompilationRuntimeModule,
@@ -308,6 +309,7 @@ pub enum RegisterJsTapKind {
   CompilationOptimizeChunkModules,
   CompilationAdditionalTreeRuntimeRequirements,
   CompilationRuntimeModule,
+  CompilationChunkHash,
   CompilationChunkAsset,
   CompilationProcessAssets,
   CompilationAfterProcessAssets,
@@ -416,6 +418,10 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<boolean | undefined>); stage: number; }>"
   )]
   pub register_compilation_optimize_chunk_modules_taps: RegisterFunction<(), Promise<Option<bool>>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>"
+  )]
+  pub register_compilation_chunk_hash_taps: RegisterFunction<JsChunk, Buffer>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>"
   )]
@@ -627,7 +633,14 @@ define_register!(
   kind = RegisterJsTapKind::CompilationRuntimeModule,
   skip = true,
 );
-
+define_register!(
+  RegisterCompilationChunkHashTaps,
+  tap = CompilationChunkHashTap<JsChunk, Buffer> @ CompilationChunkHashHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::CompilationChunkHash,
+  skip = true,
+);
 define_register!(
   RegisterCompilationChunkAssetTaps,
   tap = CompilationChunkAssetTap<JsChunkAssetArgs, ()> @ CompilationChunkAssetHook,
@@ -1046,6 +1059,25 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
         .expect("should have module");
       module.set_custom_source(CompatSource::from(source).boxed())
     }
+    Ok(())
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl CompilationChunkHash for CompilationChunkHashTap {
+  async fn run(
+    &self,
+    compilation: &Compilation,
+    chunk_ukey: &ChunkUkey,
+    hasher: &mut RspackHash,
+  ) -> rspack_error::Result<()> {
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let result = self.function.call_with_sync(JsChunk::from(chunk)).await?;
+    result.hash(hasher);
     Ok(())
   }
 

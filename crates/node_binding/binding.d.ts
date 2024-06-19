@@ -1441,17 +1441,18 @@ export enum RegisterJsTapKind {
   CompilationOptimizeChunkModules = 16,
   CompilationAdditionalTreeRuntimeRequirements = 17,
   CompilationRuntimeModule = 18,
-  CompilationChunkAsset = 19,
-  CompilationProcessAssets = 20,
-  CompilationAfterProcessAssets = 21,
-  CompilationAfterSeal = 22,
-  NormalModuleFactoryBeforeResolve = 23,
-  NormalModuleFactoryAfterResolve = 24,
-  NormalModuleFactoryCreateModule = 25,
-  NormalModuleFactoryResolveForScheme = 26,
-  ContextModuleFactoryBeforeResolve = 27,
-  ContextModuleFactoryAfterResolve = 28,
-  JavascriptModulesChunkHash = 29
+  CompilationChunkHash = 19,
+  CompilationChunkAsset = 20,
+  CompilationProcessAssets = 21,
+  CompilationAfterProcessAssets = 22,
+  CompilationAfterSeal = 23,
+  NormalModuleFactoryBeforeResolve = 24,
+  NormalModuleFactoryAfterResolve = 25,
+  NormalModuleFactoryCreateModule = 26,
+  NormalModuleFactoryResolveForScheme = 27,
+  ContextModuleFactoryBeforeResolve = 28,
+  ContextModuleFactoryAfterResolve = 29,
+  JavascriptModulesChunkHash = 30
 }
 
 export interface RegisterJsTaps {
@@ -1474,6 +1475,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationOptimizeTreeTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerCompilationOptimizeChunkModulesTaps: (stages: Array<number>) => Array<{ function: (() => Promise<boolean | undefined>); stage: number; }>
+  registerCompilationChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>
   registerCompilationChunkAssetTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>

@@ -36,10 +36,14 @@
 
 当所有模块都没有错误地构建完成时调用。
 
+## `chunkHash`
+
+`SyncHook<[JsChunk, Hash]>`
+
+当计算 Chunk 的 chunk hash 时触发。
+
 ## `chunkAsset`
 
 `SyncHook<[JsChunk[], string /** filename*/ ]>`
 
-Triggered when an asset from a chunk was added to the compilation.
-
-当`chunk`的产物被添加到编译时触发。
+当 Chunk 的产物被添加到编译时触发。

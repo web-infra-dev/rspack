@@ -22,7 +22,8 @@ import { registerGlobalTrace as experimental_registerGlobalTrace } from '@rspack
 import type { ExternalObject } from '@rspack/binding';
 import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
-import Hash = require('../util/hash');
+import Hash = require('./util/hash');
+import Hash_2 = require('../util/hash');
 import { HookMap as HookMap_2 } from 'tapable';
 import { JsAssetInfo } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
@@ -1082,6 +1083,7 @@ export class Compilation {
         Iterable<Module>
         ], void>;
         finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
+        chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
         chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
         processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
         succeedModule: liteTapable.SyncHook<[Module], void>;
@@ -1178,7 +1180,7 @@ export class Compilation {
 
 // @public (undocumented)
 type CompilationHooks = {
-    chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
+    chunkHash: liteTapable.SyncHook<[Chunk, Hash_2]>;
 };
 
 // @public (undocumented)
@@ -4826,7 +4828,7 @@ export interface LoaderContext<OptionsType = {}> {
     utils: {
         absolutify: (context: string, request: string) => string;
         contextify: (context: string, request: string) => string;
-        createHash: (algorithm?: string) => Hash;
+        createHash: (algorithm?: string) => Hash_2;
     };
     // (undocumented)
     version: 2;

@@ -970,6 +970,16 @@ class Compiler {
 						this.#compilation!.modules
 					)
 			),
+			registerCompilationChunkHashTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.CompilationChunkHash,
+				() => this.#compilation!.hooks.chunkHash,
+				queried => (chunk: binding.JsChunk) => {
+					const hash = createHash(this.options.output.hashFunction);
+					queried.call(Chunk.__from_binding(chunk, this.#compilation!), hash);
+					const digestResult = hash.digest(this.options.output.hashDigest);
+					return Buffer.from(digestResult);
+				}
+			),
 			registerCompilationChunkAssetTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationChunkAsset,
 				() => this.#compilation!.hooks.chunkAsset,
