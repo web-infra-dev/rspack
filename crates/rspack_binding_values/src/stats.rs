@@ -415,6 +415,9 @@ impl From<rspack_core::StatsModuleReason> for JsStatsModuleReason {
 
 #[napi(object)]
 pub struct JsOriginRecord {
+  pub module: String,
+  pub module_identifier: String,
+  pub module_name: String,
   pub loc: String,
   pub request: String,
 }
@@ -483,12 +486,26 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
       origins: stats
         .origins
         .into_iter()
-        .map(|origin| JsOriginRecord {
-          loc: match origin.loc {
-            OriginLocation::Real(_) => "".to_string(),
-            OriginLocation::Synthetic(l) => l.name,
-          },
-          request: origin.request.clone().unwrap_or_default(),
+        .map(|origin| {
+          let id = origin
+            .module_id
+            .map(|id| id.to_string())
+            .unwrap_or_default();
+          JsOriginRecord {
+            module: id.clone(),
+            module_identifier: id.clone(),
+            module_name: id,
+            loc: origin
+              .loc
+              .map(|loc| match loc {
+                OriginLocation::Real(l) => {
+                  format!("{}-{}", l.start(), l.end())
+                }
+                OriginLocation::Synthetic(l) => l.name,
+              })
+              .unwrap_or_default(),
+            request: origin.request.clone().unwrap_or_default(),
+          }
         })
         .collect::<Vec<_>>(),
     })

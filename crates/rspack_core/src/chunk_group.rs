@@ -26,8 +26,8 @@ pub enum OriginLocation {
 
 #[derive(Debug, Clone)]
 pub struct OriginRecord {
-  // module: Module,
-  pub loc: OriginLocation,
+  pub module_id: Option<ModuleIdentifier>,
+  pub loc: Option<OriginLocation>,
   pub request: Option<String>,
 }
 
@@ -304,8 +304,17 @@ impl ChunkGroup {
     }
   }
 
-  pub fn add_origin(&mut self, loc: OriginLocation, request: Option<String>) {
-    self.origins.push(OriginRecord { loc, request });
+  pub fn add_origin(
+    &mut self,
+    module_id: Option<ModuleIdentifier>,
+    loc: Option<OriginLocation>,
+    request: Option<String>,
+  ) {
+    self.origins.push(OriginRecord {
+      module_id,
+      loc,
+      request,
+    });
   }
 
   pub fn origins(&self) -> &Vec<OriginRecord> {

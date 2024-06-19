@@ -340,16 +340,18 @@ impl<'me> CodeSplitter<'me> {
         entry_data.dependencies.clone(),
       ]
       .concat();
-      let origins = dependencies
+      let requests = dependencies
         .iter()
-        .filter_map(|dep_id| {
+        .map(|dep_id| {
           let module_graph = self.compilation.get_module_graph();
           let dep = module_graph.dependency_by_id(dep_id);
-          dep.map(|d| {
-            d.as_any()
-              .downcast_ref::<EntryDependency>()
-              .map(|d| d.request().to_string())
-          })
+          let mut request = None;
+          if let Some(dep) = dep {
+            if let Some(d) = dep.as_any().downcast_ref::<EntryDependency>() {
+              request = Some(d.request().to_string());
+            }
+          }
+          request
         })
         .collect::<Vec<_>>();
       let module_identifiers = dependencies
@@ -383,11 +385,11 @@ impl<'me> CodeSplitter<'me> {
         Box::new(options.clone()),
       ));
 
-      for origin in origins {
-        entrypoint.add_origin(
-          OriginLocation::Synthetic(SyntheticDependencyLocation { name: name.clone() }),
-          origin,
-        );
+      for request in requests {
+        let loc = Some(OriginLocation::Synthetic(SyntheticDependencyLocation {
+          name: name.clone(),
+        }));
+        entrypoint.add_origin(None, loc, request);
       }
 
       let chunk_group_info = {
@@ -1191,12 +1193,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let chunk_name = block.get_group_options().and_then(|o| o.name());
       let entry_options = block.get_group_options().and_then(|o| o.entry_options());
       let request = block.request().clone();
+      let loc = block.loc().cloned();
 
       let cgi = if let Some(entry_options) = entry_options {
         let cgi =
           if let Some(cgi) = chunk_name.and_then(|name| self.named_async_entrypoints.get(name)) {
             let cgi = self.chunk_group_infos.expect_get(cgi);
-            add_origin = Some((cgi.chunk_group, request));
+            add_origin = Some((cgi.chunk_group, loc, request));
             self
               .compilation
               .chunk_graph
@@ -1286,6 +1289,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .block_by_id(&block_id)
             .expect("should have block");
           let request = block.request().clone();
+          let loc = block.loc().cloned();
 
           if self
             .compilation
@@ -1293,15 +1297,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .expect_get(&cgi.chunk_group)
             .is_initial()
           {
-            let error = AsyncDependenciesToInitialChunkError(
-              chunk_name.to_string(),
-              block.loc().map(ToOwned::to_owned),
-            );
+            let error = AsyncDependenciesToInitialChunkError(chunk_name.to_string(), loc);
             self.compilation.push_diagnostic(Error::from(error).into());
             cgi = item_chunk_group_info;
           }
 
-          add_origin = Some((cgi.chunk_group, request));
+          add_origin = Some((cgi.chunk_group, loc, request));
 
           self
             .compilation
@@ -1380,13 +1381,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       item_chunk_group.add_async_entrypoint(entrypoint);
     }
 
-    // if let Some((chunk_group_ukey, request)) = add_origin {
-    //   let chunk_group = self
-    //     .compilation
-    //     .chunk_group_by_ukey
-    //     .expect_get_mut(&chunk_group_ukey);
-    //   chunk_group.add_origin(request);
-    // }
+    if let Some((chunk_group_ukey, loc, request)) = add_origin {
+      let chunk_group = self
+        .compilation
+        .chunk_group_by_ukey
+        .expect_get_mut(&chunk_group_ukey);
+      chunk_group.add_origin(None, loc.map(OriginLocation::Real), request);
+    }
   }
 
   fn get_block_modules(
