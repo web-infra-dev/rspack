@@ -218,7 +218,12 @@ pub(super) struct CodeSplitter<'me> {
   stat_child_chunk_groups_reconnected: u32,
 }
 
-fn add_chunk_in_group(group_options: Option<&GroupOptions>) -> ChunkGroup {
+fn add_chunk_in_group(
+  group_options: Option<&GroupOptions>,
+  module_id: ModuleIdentifier,
+  loc: Option<OriginLocation>,
+  request: Option<String>,
+) -> ChunkGroup {
   let options = ChunkGroupOptions::new(
     group_options
       .and_then(|x| x.name())
@@ -231,7 +236,9 @@ fn add_chunk_in_group(group_options: Option<&GroupOptions>) -> ChunkGroup {
       .and_then(|x| x.prefetch_order),
   );
   let kind = ChunkGroupKind::Normal { options };
-  ChunkGroup::new(kind)
+  let mut chunk_group = ChunkGroup::new(kind);
+  chunk_group.add_origin(Some(module_id), loc, request);
+  chunk_group
 }
 
 fn get_active_state_of_connections(
@@ -991,9 +998,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       chunk_group_info: item.chunk_group_info,
     }));
     self.process_block(&ProcessBlock {
-      block: item.module.into(),
+      module: item.module,
       chunk_group_info: item.chunk_group_info,
       chunk: item.chunk,
+      block: item.module.into(),
     })
   }
 
@@ -1053,6 +1061,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           chunk: item.chunk,
           chunk_group_info: item.chunk_group_info,
           block: module.into(),
+          module: item.module,
         }));
       }
     }
@@ -1064,7 +1073,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .get_blocks()
       .to_vec();
     for block in blocks {
-      self.iterator_block(block, item.chunk_group_info, item.chunk);
+      self.iterator_block(block, item.module, item.chunk_group_info, item.chunk);
     }
   }
 
@@ -1127,18 +1136,20 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           chunk: item.chunk,
           chunk_group_info: item.chunk_group_info,
           block: module.into(),
+          module: item.module,
         }));
       }
     }
     let blocks = item.block.get_blocks(self.compilation);
     for block in blocks {
-      self.iterator_block(block, item.chunk_group_info, item.chunk);
+      self.iterator_block(block, item.module, item.chunk_group_info, item.chunk);
     }
   }
 
   fn iterator_block(
     &mut self,
     block_id: AsyncDependenciesBlockIdentifier,
+    module_id: ModuleIdentifier,
     item_chunk_group_info_ukey: CgiUkey,
     item_chunk_ukey: ChunkUkey,
   ) {
@@ -1269,6 +1280,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .queue_delayed
           .push(QueueAction::ProcessEntryBlock(ProcessEntryBlock {
             block: block_id,
+            module: module_id,
             chunk_group_info: cgi.ukey,
             chunk: chunk_ukey,
           }));
@@ -1276,6 +1288,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       } else if !item_chunk_group_info.async_chunks || !item_chunk_group_info.chunk_loading {
         self.queue.push(QueueAction::ProcessBlock(ProcessBlock {
           block: block_id.into(),
+          module: module_id,
           chunk_group_info: item_chunk_group_info.ukey,
           chunk: item_chunk_ukey,
         }));
@@ -1310,7 +1323,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .connect_block_and_chunk_group(block_id, cgi.chunk_group);
           cgi
         } else {
-          let mut chunk_group = add_chunk_in_group(block.get_group_options());
+          let mut chunk_group = add_chunk_in_group(
+            block.get_group_options(),
+            module_id,
+            block.loc().map(|l| OriginLocation::Real(l.clone())),
+            block.request().clone(),
+          );
+          // chunk_group.add_origin(block.identifier(), loc, request);
           let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
           chunk
             .chunk_reasons
@@ -1370,6 +1389,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .queue_delayed
         .push(QueueAction::ProcessBlock(ProcessBlock {
           block: block_id.into(),
+          module: module_id,
           chunk_group_info: cgi,
           chunk: c.chunks[0],
         }));
@@ -1624,6 +1644,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           } else {
             QueueAction::ProcessBlock(ProcessBlock {
               block: (*module).into(),
+              module: *module,
               chunk_group_info: chunk_group_info_ukey,
               chunk: chunk_group.chunks[0],
             })
@@ -1756,6 +1777,7 @@ struct EnterModule {
 
 #[derive(Debug, Clone)]
 struct ProcessBlock {
+  module: ModuleIdentifier,
   block: DependenciesBlockIdentifier,
   chunk_group_info: CgiUkey,
   chunk: ChunkUkey,
@@ -1763,6 +1785,7 @@ struct ProcessBlock {
 
 #[derive(Debug, Clone)]
 struct ProcessEntryBlock {
+  module: ModuleIdentifier,
   block: AsyncDependenciesBlockIdentifier,
   chunk_group_info: CgiUkey,
   chunk: ChunkUkey,
