@@ -144,12 +144,14 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
 #[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawEnvironment {
+  pub r#const: Option<bool>,
   pub arrow_function: Option<bool>,
 }
 
 impl From<RawEnvironment> for Environment {
   fn from(value: RawEnvironment) -> Self {
     Self {
+      r#const: value.r#const,
       arrow_function: value.arrow_function,
     }
   }

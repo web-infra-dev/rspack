@@ -32,17 +32,17 @@ export class RspackDiffConfigPlugin implements RspackPluginInstance {
 		options.output ??= {};
 
 		options.output.environment ??= {};
-		options.output.environment.arrowFunction = false;
-		options.output.environment.bigIntLiteral = false;
-		options.output.environment.const = false;
-		options.output.environment.destructuring = false;
-		options.output.environment.dynamicImport = false;
-		options.output.environment.dynamicImportInWorker = false;
-		options.output.environment.forOf = false;
-		options.output.environment.globalThis = false;
-		options.output.environment.module = false;
-		options.output.environment.optionalChaining = false;
-		options.output.environment.templateLiteral = false;
+		options.output.environment.arrowFunction ??= false;
+		options.output.environment.bigIntLiteral ??= false;
+		options.output.environment.const ??= false;
+		options.output.environment.destructuring ??= false;
+		options.output.environment.dynamicImport ??= false;
+		options.output.environment.dynamicImportInWorker ??= false;
+		options.output.environment.forOf ??= false;
+		options.output.environment.globalThis ??= false;
+		options.output.environment.module ??= false;
+		options.output.environment.optionalChaining ??= false;
+		options.output.environment.templateLiteral ??= false;
 
 		options.experiments ??= {};
 		options.experiments.rspackFuture ??= {};

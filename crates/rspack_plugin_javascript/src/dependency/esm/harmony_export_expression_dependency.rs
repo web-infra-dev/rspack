@@ -121,17 +121,54 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
         }
       };
 
-      // skip this lint, will make it easy to align with webpack in the future
-      #[allow(clippy::collapsible_else_if)]
       if let Some(scope) = concatenation_scope {
         scope.register_export(DEFAULT_JS_WORD.clone(), name.to_string());
-      } else {
-        if let Some(used) = get_used_name(
-          DEFAULT_JS_WORD.as_str(),
-          compilation,
-          runtime,
-          &module.identifier(),
-        ) {
+      } else if let Some(used) = get_used_name(
+        DEFAULT_JS_WORD.as_str(),
+        compilation,
+        runtime,
+        &module.identifier(),
+      ) {
+        init_fragments.push(Box::new(HarmonyExportInitFragment::new(
+          module.get_exports_argument(),
+          vec![(
+            match used {
+              UsedName::Str(s) => s,
+              UsedName::Vec(v) => v
+                .iter()
+                .map(|i| i.to_string())
+                .collect_vec()
+                .join("")
+                .into(),
+            },
+            Atom::from(format!("/* export default binding */ {name}")),
+          )],
+        )));
+      }
+
+      source.replace(
+        self.range_stmt.start(),
+        self.range.start(),
+        "/* harmony default export */ ",
+        None,
+      );
+    } else {
+      // 'var' is a little bit incorrect as TDZ is not correct, but we can't use 'const'
+      let supports_const = compilation.options.output.environment.supports_const();
+      let content = if let Some(ref mut scope) = concatenation_scope {
+        scope.register_export(DEFAULT_JS_WORD.clone(), DEFAULT_EXPORT.to_string());
+        format!(
+          "/* harmony default export */ {} {DEFAULT_EXPORT} = ",
+          if supports_const { "const" } else { "var" }
+        )
+      } else if let Some(used) = get_used_name(
+        DEFAULT_JS_WORD.as_str(),
+        compilation,
+        runtime,
+        &module.identifier(),
+      ) {
+        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+        if supports_const {
           init_fragments.push(Box::new(HarmonyExportInitFragment::new(
             module.get_exports_argument(),
             vec![(
@@ -144,41 +181,23 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
                   .join("")
                   .into(),
               },
-              Atom::from(format!("/* export default binding */ {name}")),
+              DEFAULT_EXPORT.into(),
             )],
           )));
-        }
-      }
-
-      source.replace(
-        self.range_stmt.start(),
-        self.range.start(),
-        "/* harmony default export */ ",
-        None,
-      );
-    } else {
-      let content = if let Some(ref mut scope) = concatenation_scope {
-        scope.register_export(DEFAULT_JS_WORD.clone(), DEFAULT_EXPORT.to_string());
-        // TODO: support const inspect
-        format!("/* harmony default export */ var {DEFAULT_EXPORT} = ")
-      } else if let Some(used) = get_used_name(
-        DEFAULT_JS_WORD.as_str(),
-        compilation,
-        runtime,
-        &module.identifier(),
-      ) {
-        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-        format!(
-          r#"/* harmony default export */ {}{} = "#,
-          module.get_exports_argument(),
-          property_access(
-            match used {
-              UsedName::Str(name) => vec![name].into_iter(),
-              UsedName::Vec(names) => names.into_iter(),
-            },
-            0
+          format!("/* harmony default export */ const {DEFAULT_EXPORT} = ")
+        } else {
+          format!(
+            r#"/* harmony default export */ {}{} = "#,
+            module.get_exports_argument(),
+            property_access(
+              match used {
+                UsedName::Str(name) => vec![name].into_iter(),
+                UsedName::Vec(names) => names.into_iter(),
+              },
+              0
+            )
           )
-        )
+        }
       } else {
         format!("/* unused harmony default export */ var {DEFAULT_EXPORT} = ")
       };
