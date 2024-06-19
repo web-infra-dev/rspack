@@ -25,10 +25,13 @@ function test() {}
 
 }),
 "./locale_zh.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 /* harmony import */var _zh_locale__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./zh_locale.js");
 
 
-/* harmony default export */ __webpack_exports__["default"] = (_zh_locale__WEBPACK_IMPORTED_MODULE_0__["default"]);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_zh_locale__WEBPACK_IMPORTED_MODULE_0__["default"]);
 
 
 }),
