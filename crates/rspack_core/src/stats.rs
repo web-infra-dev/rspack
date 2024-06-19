@@ -9,7 +9,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use crate::{
   get_chunk_from_ukey, get_chunk_group_from_ukey, BoxModule, BoxRuntimeModule, Chunk,
   ChunkGroupOrderKey, ChunkGroupUkey, Compilation, ExecutedRuntimeModule, LogType, ModuleGraph,
-  ModuleIdentifier, ModuleType, OriginRecord, ProvidedExports, RuntimeSpec, SourceType,
+  ModuleIdentifier, ModuleType, OriginLocation, ProvidedExports, RuntimeSpec, SourceType,
   UsedExports,
 };
 
@@ -286,6 +286,7 @@ impl Stats<'_> {
 
         let chunk_graph = &self.compilation.chunk_graph;
         let module_graph = &self.compilation.get_module_graph();
+        let context = &self.compilation.options.context;
         let chunk_group_by_ukey = &self.compilation.chunk_group_by_ukey;
 
         let origins = c
@@ -293,7 +294,37 @@ impl Stats<'_> {
           .iter()
           .flat_map(|ukey| {
             let chunk_group = chunk_group_by_ukey.expect_get(ukey);
-            chunk_group.origins().clone()
+            chunk_group.origins().iter().map(|origin| {
+              let id = origin
+                .module_id
+                .map(|id| id.to_string())
+                .unwrap_or_default();
+              let module_name = origin
+                .module_id
+                .map(|module_id| {
+                  module_graph
+                    .module_by_identifier(&module_id)
+                    .map(|module| module.readable_identifier(context).to_string())
+                    .unwrap_or_default()
+                })
+                .unwrap_or_default();
+              StatsOriginRecord {
+                module: id.clone(),
+                module_identifier: id,
+                module_name,
+                loc: origin
+                  .loc
+                  .as_ref()
+                  .map(|loc| match loc {
+                    OriginLocation::Real(l) => {
+                      format!("{}-{}", l.start(), l.end())
+                    }
+                    OriginLocation::Synthetic(l) => l.name.to_string(),
+                  })
+                  .unwrap_or_default(),
+                request: origin.request.clone().unwrap_or_default(),
+              }
+            })
           })
           .collect::<Vec<_>>();
 
@@ -1044,6 +1075,15 @@ pub struct StatsModuleProfile {
 }
 
 #[derive(Debug)]
+pub struct StatsOriginRecord {
+  pub module: String,
+  pub module_identifier: String,
+  pub module_name: String,
+  pub loc: String,
+  pub request: String,
+}
+
+#[derive(Debug)]
 pub struct StatsChunk<'a> {
   pub r#type: &'static str,
   pub files: Vec<String>,
@@ -1062,7 +1102,7 @@ pub struct StatsChunk<'a> {
   pub sizes: HashMap<SourceType, f64>,
   pub reason: Option<String>,
   pub rendered: bool,
-  pub origins: Vec<OriginRecord>,
+  pub origins: Vec<StatsOriginRecord>,
 }
 
 #[derive(Debug)]
