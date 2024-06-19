@@ -17,9 +17,20 @@ module.exports = {
 				test: /\.js$/,
 				loader: "builtin:swc-loader",
 				options: {
-					rspackExperiments: {
-						relay: true
-					}
+					jsc: {
+						experimental: {
+							plugins: [
+								[
+									"@swc/plugin-relay",
+									{
+										rootDir: __dirname,
+										language: "typescript",
+										artifactDirectory: "custom"
+									}
+								]
+							]
+						}
+					},
 				}
 			}
 		]
