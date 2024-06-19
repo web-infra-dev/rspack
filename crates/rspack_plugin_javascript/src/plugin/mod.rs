@@ -29,7 +29,7 @@ use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::plugin;
 use rspack_util::diff_mode;
-use rspack_util::fx_hash::{BuildFxHasher, FxDashMap};
+use rspack_util::fx_hash::FxDashMap;
 pub use side_effects_flag_plugin::*;
 
 use crate::runtime::{
@@ -46,8 +46,7 @@ pub struct JsPlugin;
 impl JsPlugin {
   pub fn get_compilation_drives(
     compilation: &Compilation,
-  ) -> dashmap::mapref::one::Ref<'_, CompilationId, JavascriptModulesPluginPluginDrive, BuildFxHasher>
-  {
+  ) -> dashmap::mapref::one::Ref<'_, CompilationId, JavascriptModulesPluginPluginDrive> {
     let id = compilation.id();
     if !COMPILATION_DRIVES_MAP.contains_key(&id) {
       COMPILATION_DRIVES_MAP.insert(id, Default::default());
@@ -59,12 +58,7 @@ impl JsPlugin {
 
   pub fn get_compilation_drives_mut(
     compilation: &Compilation,
-  ) -> dashmap::mapref::one::RefMut<
-    '_,
-    CompilationId,
-    JavascriptModulesPluginPluginDrive,
-    BuildFxHasher,
-  > {
+  ) -> dashmap::mapref::one::RefMut<'_, CompilationId, JavascriptModulesPluginPluginDrive> {
     COMPILATION_DRIVES_MAP.entry(compilation.id()).or_default()
   }
 
