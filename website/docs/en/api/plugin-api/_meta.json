@@ -3,5 +3,6 @@
   "compiler-hooks",
   "compilation-hooks",
   "normal-module-factory-hooks",
-  "context-module-factory-hooks"
+  "context-module-factory-hooks",
+  "javascript-modules-plugin-hooks"
 ]

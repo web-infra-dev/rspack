@@ -17,21 +17,21 @@ use rayon::prelude::*;
 use regex::{Captures, Regex};
 use rspack_core::{
   contextify,
-  rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
+  rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt},
   AssetInfo, Compilation, CompilationAsset, PathData, Plugin, PluginContext, SourceType,
 };
 use rspack_core::{
-  ApplyContext, BoxModule, Chunk, ChunkUkey, CompilationBuildModule, CompilationParams,
-  CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, CompilerOptions,
-  FilenameTemplate, Logger, ModuleIdentifier, OutputOptions,
+  ApplyContext, BoxModule, Chunk, ChunkInitFragments, ChunkUkey, CompilationBuildModule,
+  CompilationParams, CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation,
+  CompilerOptions, FilenameTemplate, Logger, ModuleIdentifier, OutputOptions,
 };
 use rspack_error::error;
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
-  PluginRenderJsModuleContentOutput, RenderJsModuleContentArgs,
+  JavascriptModulesChunkHash, JavascriptModulesInlineInRuntimeBailout,
+  JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
 };
 use rspack_util::identifier::make_paths_absolute;
 use rspack_util::infallible::ResultInfallibleExt as _;
@@ -831,69 +831,6 @@ impl ModuleFilenameHelpers {
 
 static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 
-#[derive(Debug)]
-struct EvalSourceMapDevToolJavascriptModulesPluginPlugin {
-  columns: bool,
-  no_sources: bool,
-}
-
-impl EvalSourceMapDevToolJavascriptModulesPluginPlugin {
-  pub fn wrap_eval_source_map(
-    &self,
-    source: &str,
-    mut map: SourceMap,
-    compilation: &Compilation,
-  ) -> Result<BoxSource> {
-    for source in map.sources_mut() {
-      let resource_path = normalize_custom_filename(source);
-      let resource_path = contextify(&compilation.options.context, resource_path);
-      *source = Cow::from(resource_path);
-    }
-    if self.no_sources {
-      for content in map.sources_content_mut() {
-        *content = Cow::from(String::default());
-      }
-    }
-    let mut map_buffer = Vec::new();
-    map
-      .to_writer(&mut map_buffer)
-      .unwrap_or_else(|e| panic!("{}", e.to_string()));
-    let base64 = rspack_base64::encode_to_string(&map_buffer);
-    let footer =
-      format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
-    let result = RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed();
-    Ok(result)
-  }
-}
-
-impl JavascriptModulesPluginPlugin for EvalSourceMapDevToolJavascriptModulesPluginPlugin {
-  fn render_module_content<'a>(
-    &'a self,
-    mut args: RenderJsModuleContentArgs<'a>,
-  ) -> PluginRenderJsModuleContentOutput<'a> {
-    let origin_source = args.module_source.clone();
-    if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
-      args.module_source = cached.value().clone();
-      return Ok(args);
-    } else if let Some(map) = origin_source.map(&MapOptions::new(self.columns)) {
-      let source = self.wrap_eval_source_map(&origin_source.source(), map, args.compilation)?;
-      MODULE_RENDER_CACHE.insert(origin_source, source.clone());
-      args.module_source = source;
-      return Ok(args);
-    }
-    Ok(args)
-  }
-
-  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
-    EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME.hash(&mut args.hasher);
-    Ok(())
-  }
-
-  fn inline_in_runtime_bailout(&self) -> Option<String> {
-    Some("the eval-source-map devtool is used.".to_string())
-  }
-}
-
 const EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME: &str = "rspack.EvalSourceMapDevToolPlugin";
 
 #[plugin]
@@ -915,12 +852,79 @@ async fn eval_source_map_devtool_plugin_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
-  drive.add_plugin(EvalSourceMapDevToolJavascriptModulesPluginPlugin {
-    columns: self.columns,
-    no_sources: self.no_sources,
-  });
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  hooks
+    .render_module_content
+    .tap(eval_source_map_devtool_plugin_render_module_content::new(
+      self,
+    ));
+  hooks
+    .chunk_hash
+    .tap(eval_source_map_devtool_plugin_js_chunk_hash::new(self));
+  hooks
+    .inline_in_runtime_bailout
+    .tap(eval_source_map_devtool_plugin_inline_in_runtime_bailout::new(self));
   Ok(())
+}
+
+#[plugin_hook(JavascriptModulesRenderModuleContent for EvalSourceMapDevToolPlugin)]
+fn eval_source_map_devtool_plugin_render_module_content(
+  &self,
+  compilation: &Compilation,
+  _module: &BoxModule,
+  render_source: &mut RenderSource,
+  _init_fragments: &mut ChunkInitFragments,
+) -> Result<()> {
+  let origin_source = render_source.source.clone();
+  if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
+    render_source.source = cached.value().clone();
+    return Ok(());
+  } else if let Some(mut map) = origin_source.map(&MapOptions::new(self.columns)) {
+    let source = {
+      let source = &origin_source.source();
+      for source in map.sources_mut() {
+        let resource_path = normalize_custom_filename(source);
+        let resource_path = contextify(&compilation.options.context, resource_path);
+        *source = Cow::from(resource_path);
+      }
+      if self.no_sources {
+        for content in map.sources_content_mut() {
+          *content = Cow::from(String::default());
+        }
+      }
+      let mut map_buffer = Vec::new();
+      map
+        .to_writer(&mut map_buffer)
+        .unwrap_or_else(|e| panic!("{}", e.to_string()));
+      let base64 = rspack_base64::encode_to_string(&map_buffer);
+      let footer =
+        format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
+      RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed()
+    };
+    MODULE_RENDER_CACHE.insert(origin_source, source.clone());
+    render_source.source = source;
+    return Ok(());
+  }
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesChunkHash for EvalSourceMapDevToolPlugin)]
+async fn eval_source_map_devtool_plugin_js_chunk_hash(
+  &self,
+  _compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
+  hasher: &mut RspackHash,
+) -> Result<()> {
+  EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME.hash(hasher);
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesInlineInRuntimeBailout for EvalSourceMapDevToolPlugin)]
+fn eval_source_map_devtool_plugin_inline_in_runtime_bailout(
+  &self,
+  _compilation: &Compilation,
+) -> Result<Option<String>> {
+  Ok(Some("the eval-source-map devtool is used.".to_string()))
 }
 
 #[async_trait::async_trait]
@@ -1030,92 +1034,6 @@ pub struct EvalDevToolModulePluginOptions {
 
 static EVAL_MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 
-struct EvalDevToolModuleJavascriptModulesPluginPlugin {
-  namespace: String,
-  module_filename_template: ModuleFilenameTemplate,
-  source_url_comment: String,
-}
-
-impl EvalDevToolModuleJavascriptModulesPluginPlugin {
-  pub fn new(options: EvalDevToolModulePluginOptions) -> Self {
-    let source_url_comment = options
-      .source_url_comment
-      .unwrap_or("\n//# sourceURL=[url]".to_string());
-
-    let module_filename_template =
-      options
-        .module_filename_template
-        .unwrap_or(ModuleFilenameTemplate::String(
-          "webpack://[namespace]/[resourcePath]?[loaders]".to_string(),
-        ));
-
-    Self {
-      namespace: options.namespace.unwrap_or("".to_string()),
-      module_filename_template,
-      source_url_comment,
-    }
-  }
-
-  pub fn wrap_eval(&self, source: &str, source_name: &str) -> Result<BoxSource> {
-    let footer = self.source_url_comment.replace("[url]", source_name);
-    let result = RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed();
-    Ok(result)
-  }
-}
-
-#[async_trait::async_trait]
-impl JavascriptModulesPluginPlugin for EvalDevToolModuleJavascriptModulesPluginPlugin {
-  fn render_module_content<'a>(
-    &'a self,
-    mut args: RenderJsModuleContentArgs<'a>,
-  ) -> PluginRenderJsModuleContentOutput<'a> {
-    let origin_source = args.module_source.clone();
-    if let Some(cached) = EVAL_MODULE_RENDER_CACHE.get(&origin_source) {
-      args.module_source = cached.value().clone();
-      return Ok(args);
-    } else if args.module.as_external_module().is_some() {
-      return Ok(args);
-    }
-    let output_options = &args.compilation.options.output;
-    let compilation = args.compilation;
-    let source_name = match &self.module_filename_template {
-      ModuleFilenameTemplate::String(s) => {
-        ModuleFilenameHelpers::create_filename_of_string_template(
-          &ModuleOrSource::Module(args.module.identifier()),
-          args.compilation,
-          s,
-          output_options,
-          self.namespace.as_str(),
-        )
-      }
-      ModuleFilenameTemplate::Fn(f) => {
-        futures::executor::block_on(ModuleFilenameHelpers::create_filename_of_fn_template(
-          &ModuleOrSource::Module(args.module.identifier()),
-          compilation,
-          f,
-          output_options,
-          self.namespace.as_str(),
-        ))
-        .expect("todo!")
-      }
-    };
-    let source = self.wrap_eval(&origin_source.source(), source_name.as_str())?;
-
-    EVAL_MODULE_RENDER_CACHE.insert(origin_source, source.clone());
-    args.module_source = source;
-    Ok(args)
-  }
-
-  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
-    EVAL_DEV_TOOL_MODULE_PLUGIN_NAME.hash(&mut args.hasher);
-    Ok(())
-  }
-
-  fn inline_in_runtime_bailout(&self) -> Option<String> {
-    Some("the eval devtool is used.".to_string())
-  }
-}
-
 const EVAL_DEV_TOOL_MODULE_PLUGIN_NAME: &str = "rspack.EvalDevToolModulePlugin";
 
 #[plugin]
@@ -1136,11 +1054,96 @@ async fn eval_devtool_plugin_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
-  drive.add_plugin(EvalDevToolModuleJavascriptModulesPluginPlugin::new(
-    self.options.clone(),
-  ));
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  hooks
+    .render_module_content
+    .tap(eval_devtool_plugin_render_module_content::new(self));
+  hooks
+    .chunk_hash
+    .tap(eval_devtool_plugin_js_chunk_hash::new(self));
+  hooks
+    .inline_in_runtime_bailout
+    .tap(eval_devtool_plugin_inline_in_runtime_bailout::new(self));
   Ok(())
+}
+
+#[plugin_hook(JavascriptModulesRenderModuleContent for EvalDevToolModulePlugin)]
+fn eval_devtool_plugin_render_module_content(
+  &self,
+  compilation: &Compilation,
+  module: &BoxModule,
+  render_source: &mut RenderSource,
+  _init_fragments: &mut ChunkInitFragments,
+) -> Result<()> {
+  let origin_source = render_source.source.clone();
+  if let Some(cached) = EVAL_MODULE_RENDER_CACHE.get(&origin_source) {
+    render_source.source = cached.value().clone();
+    return Ok(());
+  } else if module.as_external_module().is_some() {
+    return Ok(());
+  }
+  let output_options = &compilation.options.output;
+  let source_url_comment = self
+    .options
+    .source_url_comment
+    .clone()
+    .unwrap_or("\n//# sourceURL=[url]".to_string());
+  let namespace = self.options.namespace.clone().unwrap_or_default();
+  let module_filename_template =
+    self
+      .options
+      .module_filename_template
+      .clone()
+      .unwrap_or(ModuleFilenameTemplate::String(
+        "webpack://[namespace]/[resourcePath]?[loaders]".to_string(),
+      ));
+  let source_name = match &module_filename_template {
+    ModuleFilenameTemplate::String(s) => ModuleFilenameHelpers::create_filename_of_string_template(
+      &ModuleOrSource::Module(module.identifier()),
+      compilation,
+      s,
+      output_options,
+      namespace.as_str(),
+    ),
+    ModuleFilenameTemplate::Fn(f) => {
+      futures::executor::block_on(ModuleFilenameHelpers::create_filename_of_fn_template(
+        &ModuleOrSource::Module(module.identifier()),
+        compilation,
+        f,
+        output_options,
+        namespace.as_str(),
+      ))
+      .expect("todo!")
+    }
+  };
+  let source = {
+    let source = &origin_source.source();
+    let footer = source_url_comment.replace("[url]", &source_name);
+    RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed()
+  };
+
+  EVAL_MODULE_RENDER_CACHE.insert(origin_source, source.clone());
+  render_source.source = source;
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesChunkHash for EvalDevToolModulePlugin)]
+async fn eval_devtool_plugin_js_chunk_hash(
+  &self,
+  _compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
+  hasher: &mut RspackHash,
+) -> Result<()> {
+  EVAL_DEV_TOOL_MODULE_PLUGIN_NAME.hash(hasher);
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesInlineInRuntimeBailout for EvalDevToolModulePlugin)]
+fn eval_devtool_plugin_inline_in_runtime_bailout(
+  &self,
+  _compilation: &Compilation,
+) -> Result<Option<String>> {
+  Ok(Some("the eval devtool is used.".to_string()))
 }
 
 impl Plugin for EvalDevToolModulePlugin {

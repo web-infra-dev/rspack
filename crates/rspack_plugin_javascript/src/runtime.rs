@@ -8,7 +8,7 @@ use rspack_error::{error, Result};
 use rspack_util::diff_mode::is_diff_mode;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{JsPlugin, RenderJsModuleContentArgs};
+use crate::{JsPlugin, RenderSource};
 
 pub fn render_chunk_modules(
   compilation: &Compilation,
@@ -74,16 +74,18 @@ pub fn render_module(
   let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) else {
     return Ok(None);
   };
-  let drive = JsPlugin::get_compilation_drives(compilation);
+  let hooks = JsPlugin::get_compilation_hooks(compilation);
+  let mut module_chunk_init_fragments = ChunkInitFragments::default();
+  let mut render_source = RenderSource {
+    source: origin_source.clone(),
+  };
+  hooks.render_module_content.call(
+    compilation,
+    module,
+    &mut render_source,
+    &mut module_chunk_init_fragments,
+  )?;
   let mut sources = ConcatSource::default();
-  let render_module_result = drive
-    .render_module_content(RenderJsModuleContentArgs {
-      compilation,
-      module,
-      module_source: origin_source.clone(),
-      chunk_init_fragments: ChunkInitFragments::default(),
-    })
-    .expect("render_module_content failed");
 
   if factory {
     let runtime_requirements = compilation
@@ -142,7 +144,7 @@ pub fn render_module(
     {
       sources.add(RawSource::from("\"use strict\";\n"));
     }
-    sources.add(render_module_result.module_source);
+    sources.add(render_source.source);
     sources.add(RawSource::from("\n\n})"));
     if is_diff_mode() {
       sources.add(RawSource::from(format!(
@@ -152,13 +154,13 @@ pub fn render_module(
     }
     sources.add(RawSource::from(",\n"));
   } else {
-    sources.add(render_module_result.module_source);
+    sources.add(render_source.source);
   }
 
   Ok(Some((
     sources.boxed(),
     code_gen_result.chunk_init_fragments.clone(),
-    render_module_result.chunk_init_fragments,
+    module_chunk_init_fragments,
   )))
 }
 

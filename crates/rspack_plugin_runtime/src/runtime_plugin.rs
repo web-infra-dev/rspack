@@ -1,4 +1,4 @@
-use std::{hash::Hash, sync::Arc};
+use std::hash::Hash;
 
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
@@ -10,10 +10,9 @@ use rspack_core::{
   RuntimeModuleExt, SourceType,
 };
 use rspack_error::Result;
+use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_javascript::{
-  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
-};
+use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
 
 use crate::runtime_module::{
   chunk_has_css, is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule,
@@ -139,33 +138,9 @@ fn handle_dependency_globals(
   }
 }
 
-#[derive(Debug, Default)]
-struct RuntimeJavascriptModulesPluginPlugin;
-
-impl JavascriptModulesPluginPlugin for RuntimeJavascriptModulesPluginPlugin {
-  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
-    for identifier in args
-      .compilation
-      .chunk_graph
-      .get_chunk_runtime_modules_iterable(args.chunk_ukey)
-    {
-      if let Some((hash, _)) = args
-        .compilation
-        .runtime_module_code_generation_results
-        .get(identifier)
-      {
-        hash.hash(&mut args.hasher);
-      }
-    }
-    Ok(())
-  }
-}
-
 #[plugin]
 #[derive(Debug, Default)]
-pub struct RuntimePlugin {
-  js_plugin: Arc<RuntimeJavascriptModulesPluginPlugin>,
-}
+pub struct RuntimePlugin;
 
 #[plugin_hook(CompilerCompilation for RuntimePlugin)]
 async fn compilation(
@@ -173,8 +148,29 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
-  drive.add_plugin(self.js_plugin.clone());
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  hooks.chunk_hash.tap(js_chunk_hash::new(self));
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesChunkHash for RuntimePlugin)]
+async fn js_chunk_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  hasher: &mut RspackHash,
+) -> Result<()> {
+  for identifier in compilation
+    .chunk_graph
+    .get_chunk_runtime_modules_iterable(chunk_ukey)
+  {
+    if let Some((hash, _)) = compilation
+      .runtime_module_code_generation_results
+      .get(identifier)
+    {
+      hash.hash(hasher);
+    }
+  }
   Ok(())
 }
 

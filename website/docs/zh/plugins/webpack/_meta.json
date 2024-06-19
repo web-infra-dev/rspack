@@ -20,5 +20,6 @@
   "environment-plugin",
   "limit-chunk-count-plugin",
   "normal-module-replacement-plugin",
+  "javascript-modules-plugin",
   "internal-plugins"
 ]

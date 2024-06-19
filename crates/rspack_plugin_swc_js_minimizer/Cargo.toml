@@ -13,6 +13,7 @@ rayon = { workspace = true }
 regex = { workspace = true }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
+rspack_hash = { path = "../rspack_hash" }
 rspack_hook = { path = "../rspack_hook" }
 rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
 rspack_regex = { path = "../rspack_regex" }

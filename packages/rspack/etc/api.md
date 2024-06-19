@@ -1177,6 +1177,11 @@ export class Compilation {
 }
 
 // @public (undocumented)
+type CompilationHooks = {
+    chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
+};
+
+// @public (undocumented)
 export interface CompilationParams {
     // (undocumented)
     contextModuleFactory: ContextModuleFactory;
@@ -4142,10 +4147,25 @@ interface IStats {
 interface JavaScript {
     // (undocumented)
     EnableChunkLoadingPlugin: typeof EnableChunkLoadingPlugin;
+    // (undocumented)
+    JavascriptModulesPlugin: typeof JavascriptModulesPlugin;
 }
 
 // @public (undocumented)
 export const javascript: JavaScript;
+
+// @public (undocumented)
+class JavascriptModulesPlugin extends RspackBuiltinPlugin {
+    constructor();
+    // (undocumented)
+    affectedHooks: "compilation";
+    // (undocumented)
+    static getCompilationHooks(compilation: Compilation): CompilationHooks;
+    // (undocumented)
+    name: BuiltinPluginName;
+    // (undocumented)
+    raw(): BuiltinPlugin;
+}
 
 // @public (undocumented)
 export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;

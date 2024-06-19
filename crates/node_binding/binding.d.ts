@@ -1450,7 +1450,8 @@ export enum RegisterJsTapKind {
   NormalModuleFactoryCreateModule = 25,
   NormalModuleFactoryResolveForScheme = 26,
   ContextModuleFactoryBeforeResolve = 27,
-  ContextModuleFactoryAfterResolve = 28
+  ContextModuleFactoryAfterResolve = 28,
+  JavascriptModulesChunkHash = 29
 }
 
 export interface RegisterJsTaps {
@@ -1483,6 +1484,7 @@ export interface RegisterJsTaps {
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>
+  registerJavascriptModulesChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>
 }
 
 export interface ThreadsafeNodeFS {
