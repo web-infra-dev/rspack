@@ -2888,15 +2888,28 @@ const experiments: z.ZodObject<{
             version?: string | undefined;
             force?: boolean | "version"[] | undefined;
         }>>;
+        exposeGlobal: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodObject<{
+            global: z.ZodOptional<z.ZodString>;
+        }, "strict", z.ZodTypeAny, {
+            global?: string | undefined;
+        }, {
+            global?: string | undefined;
+        }>]>>;
     }, "strict", z.ZodTypeAny, {
         bundlerInfo?: {
             version?: string | undefined;
             force?: boolean | "version"[] | undefined;
         } | undefined;
+        exposeGlobal?: boolean | {
+            global?: string | undefined;
+        } | undefined;
     }, {
         bundlerInfo?: {
             version?: string | undefined;
             force?: boolean | "version"[] | undefined;
+        } | undefined;
+        exposeGlobal?: boolean | {
+            global?: string | undefined;
         } | undefined;
     }>>;
 }, "strict", z.ZodTypeAny, {
@@ -2915,6 +2928,9 @@ const experiments: z.ZodObject<{
             version?: string | undefined;
             force?: boolean | "version"[] | undefined;
         } | undefined;
+        exposeGlobal?: boolean | {
+            global?: string | undefined;
+        } | undefined;
     } | undefined;
 }, {
     lazyCompilation?: boolean | {
@@ -2931,6 +2947,9 @@ const experiments: z.ZodObject<{
         bundlerInfo?: {
             version?: string | undefined;
             force?: boolean | "version"[] | undefined;
+        } | undefined;
+        exposeGlobal?: boolean | {
+            global?: string | undefined;
         } | undefined;
     } | undefined;
 }>;
@@ -8542,15 +8561,28 @@ const rspackFutureOptions: z.ZodObject<{
         version?: string | undefined;
         force?: boolean | "version"[] | undefined;
     }>>;
+    exposeGlobal: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodObject<{
+        global: z.ZodOptional<z.ZodString>;
+    }, "strict", z.ZodTypeAny, {
+        global?: string | undefined;
+    }, {
+        global?: string | undefined;
+    }>]>>;
 }, "strict", z.ZodTypeAny, {
     bundlerInfo?: {
         version?: string | undefined;
         force?: boolean | "version"[] | undefined;
     } | undefined;
+    exposeGlobal?: boolean | {
+        global?: string | undefined;
+    } | undefined;
 }, {
     bundlerInfo?: {
         version?: string | undefined;
         force?: boolean | "version"[] | undefined;
+    } | undefined;
+    exposeGlobal?: boolean | {
+        global?: string | undefined;
     } | undefined;
 }>;
 
@@ -9235,15 +9267,28 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
             }>>;
+            exposeGlobal: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodObject<{
+                global: z.ZodOptional<z.ZodString>;
+            }, "strict", z.ZodTypeAny, {
+                global?: string | undefined;
+            }, {
+                global?: string | undefined;
+            }>]>>;
         }, "strict", z.ZodTypeAny, {
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
             } | undefined;
+            exposeGlobal?: boolean | {
+                global?: string | undefined;
+            } | undefined;
         }, {
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
+            } | undefined;
+            exposeGlobal?: boolean | {
+                global?: string | undefined;
             } | undefined;
         }>>;
     }, "strict", z.ZodTypeAny, {
@@ -9262,6 +9307,9 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
             } | undefined;
+            exposeGlobal?: boolean | {
+                global?: string | undefined;
+            } | undefined;
         } | undefined;
     }, {
         lazyCompilation?: boolean | {
@@ -9278,6 +9326,9 @@ export const rspackOptions: z.ZodObject<{
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
+            } | undefined;
+            exposeGlobal?: boolean | {
+                global?: string | undefined;
             } | undefined;
         } | undefined;
     }>>;
@@ -10904,6 +10955,9 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
             } | undefined;
+            exposeGlobal?: boolean | {
+                global?: string | undefined;
+            } | undefined;
         } | undefined;
     } | undefined;
     externals?: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
@@ -11388,6 +11442,9 @@ export const rspackOptions: z.ZodObject<{
             bundlerInfo?: {
                 version?: string | undefined;
                 force?: boolean | "version"[] | undefined;
+            } | undefined;
+            exposeGlobal?: boolean | {
+                global?: string | undefined;
             } | undefined;
         } | undefined;
     } | undefined;

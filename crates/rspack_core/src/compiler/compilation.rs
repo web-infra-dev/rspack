@@ -1217,13 +1217,16 @@ impl Compilation {
     ) -> Result<()> {
       let mut runtime_requirements_mut = *requirements;
       let mut runtime_requirements;
-      while !runtime_requirements_mut.is_empty() {
+      loop {
         requirements.insert(runtime_requirements_mut);
         runtime_requirements = runtime_requirements_mut;
         runtime_requirements_mut = RuntimeGlobals::default();
         call_hook(&runtime_requirements, &mut runtime_requirements_mut)?;
         runtime_requirements_mut =
           runtime_requirements_mut.difference(requirements.intersection(runtime_requirements_mut));
+        if runtime_requirements_mut.is_empty() {
+          break;
+        }
       }
       Ok(())
     }

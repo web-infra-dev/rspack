@@ -2,6 +2,7 @@ mod raw_banner;
 mod raw_bundle_info;
 mod raw_copy;
 mod raw_css_extract;
+mod raw_expose_global;
 mod raw_html;
 mod raw_ignore;
 mod raw_lazy_compilation;
@@ -61,7 +62,8 @@ use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
 use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin,
-  ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
+  ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ExposeGlobalPlugin,
+  ModuleChunkFormatPlugin, RuntimePlugin,
 };
 use rspack_plugin_runtime_chunk::RuntimeChunkPlugin;
 use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
@@ -85,6 +87,7 @@ pub use self::{
 use self::{
   raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
   raw_css_extract::RawCssExtractPluginOption,
+  raw_expose_global::RawExposeGlobalPluginOptions,
   raw_lazy_compilation::{JsBackend, RawLazyCompilationOption},
   raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
   raw_runtime_chunk::RawRuntimeChunkOptions,
@@ -172,6 +175,7 @@ pub enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
   CssExtractRspackPlugin,
+  ExposeGlobalRspackPlugin,
 
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
@@ -479,6 +483,11 @@ impl BuiltinPlugin {
           )
           .boxed(),
         )
+      }
+      BuiltinPluginName::ExposeGlobalRspackPlugin => {
+        let options = downcast_into::<RawExposeGlobalPluginOptions>(self.options)?;
+        let plugin = ExposeGlobalPlugin::new(options.global).boxed();
+        plugins.push(plugin)
       }
       BuiltinPluginName::CssExtractRspackPlugin => {
         let additional_data_plugin = CssExtractRspackAdditionalDataPlugin::new(env)?.boxed();

@@ -177,6 +177,7 @@ export enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin = 'LightningCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
+  ExposeGlobalRspackPlugin = 'ExposeGlobalRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin'
 }
@@ -878,6 +879,10 @@ export interface RawEvalDevToolModulePluginOptions {
 export interface RawExperiments {
   topLevelAwait: boolean
   rspackFuture: RawRspackFuture
+}
+
+export interface RawExposeGlobalPluginOptions {
+  global: string
 }
 
 export interface RawExposeOptions {

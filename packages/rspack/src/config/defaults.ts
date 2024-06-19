@@ -209,6 +209,7 @@ const applyExperimentsDefaults = (
 			);
 			D(experiments.rspackFuture.bundlerInfo, "force", false);
 		}
+		D(experiments.rspackFuture, "exposeGlobal", true);
 	}
 };
 

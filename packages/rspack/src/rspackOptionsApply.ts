@@ -37,6 +37,7 @@ import {
 	EnsureChunkConditionsPlugin,
 	EvalDevToolModulePlugin,
 	EvalSourceMapDevToolPlugin,
+	ExposeGlobalRspackPlugin,
 	ExternalsPlugin,
 	FileUriPlugin,
 	FlagDependencyExportsPlugin,
@@ -85,6 +86,15 @@ export class RspackOptionsApply {
 		compiler.outputPath = options.output.path;
 		compiler.name = options.name;
 		compiler.outputFileSystem = fs;
+
+		if (options.experiments.rspackFuture!.exposeGlobal) {
+			new ExposeGlobalRspackPlugin({
+				global: "__RSPACK__",
+				...(options.experiments.rspackFuture!.exposeGlobal === true
+					? {}
+					: options.experiments.rspackFuture!.exposeGlobal)
+			}).apply(compiler);
+		}
 
 		if (options.externals) {
 			assert(

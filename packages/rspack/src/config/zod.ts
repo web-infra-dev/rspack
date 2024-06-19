@@ -1264,6 +1264,14 @@ const rspackFutureOptions = z.strictObject({
 				.or(z.array(z.enum(["version"])))
 				.optional()
 		})
+		.optional(),
+	exposeGlobal: z
+		.boolean()
+		.or(
+			z.strictObject({
+				global: z.string().optional()
+			})
+		)
 		.optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;

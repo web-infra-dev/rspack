@@ -63,6 +63,7 @@ export * from "./WarnCaseSensitiveModulesPlugin";
 export * from "./WebWorkerTemplatePlugin";
 export * from "./WorkerPlugin";
 export * from "./FetchCompileAsyncWasmPlugin";
+export * from "./ExposeGlobalRspackPlugin";
 
 ///// DEPRECATED /////
 import { RawBuiltins } from "@rspack/binding";
