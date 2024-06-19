@@ -207,7 +207,7 @@ const applyExperimentsDefaults = (
 				"version",
 				require("../../package.json").version
 			);
-			D(experiments.rspackFuture.bundlerInfo, "force", false);
+			D(experiments.rspackFuture.bundlerInfo, "force", true);
 		}
 		D(experiments.rspackFuture, "exposeGlobal", true);
 	}

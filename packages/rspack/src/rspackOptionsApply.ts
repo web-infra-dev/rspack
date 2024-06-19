@@ -231,9 +231,11 @@ export class RspackOptionsApply {
 		new RuntimePlugin().apply(compiler);
 
 		if (options.experiments.rspackFuture!.bundlerInfo) {
-			new BundlerInfoRspackPlugin(
-				options.experiments.rspackFuture!.bundlerInfo
-			).apply(compiler);
+			new BundlerInfoRspackPlugin({
+				version: "unknown",
+				force: true,
+				...options.experiments.rspackFuture!.bundlerInfo
+			}).apply(compiler);
 		}
 
 		new InferAsyncModulesPlugin().apply(compiler);

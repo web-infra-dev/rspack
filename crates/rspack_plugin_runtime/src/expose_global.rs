@@ -64,13 +64,13 @@ impl Plugin for ExposeGlobalPlugin {
     ctx
       .context
       .compilation_hooks
-      .runtime_requirement_in_tree
-      .tap(runtime_requirements_in_tree::new(self));
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
     ctx
       .context
       .compilation_hooks
-      .additional_tree_runtime_requirements
-      .tap(additional_tree_runtime_requirements::new(self));
+      .runtime_requirement_in_tree
+      .tap(runtime_requirements_in_tree::new(self));
     Ok(())
   }
 }

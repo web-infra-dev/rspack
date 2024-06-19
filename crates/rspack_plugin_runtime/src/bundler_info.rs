@@ -34,13 +34,14 @@ fn runtime_requirements_in_tree(
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &RuntimeGlobals,
-  _runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
   if match &self.force {
     BundlerInfoForceMode::All => true,
     BundlerInfoForceMode::Partial(s) => s.get("version").is_some(),
     BundlerInfoForceMode::Auto => runtime_requirements.contains(RuntimeGlobals::RSPACK_VERSION),
   } {
+    runtime_requirements_mut.insert(RuntimeGlobals::REQUIRE);
     compilation.add_runtime_module(
       chunk_ukey,
       Box::new(RspackVersionRuntimeModule::new(self.version.clone())),
