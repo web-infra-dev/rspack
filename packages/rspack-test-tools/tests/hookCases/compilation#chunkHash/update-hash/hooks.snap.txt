@@ -5,14 +5,14 @@
 ```javascript
 Array [
   Chunk {
-    "auxiliaryFiles": Array [],
-    "chunkReasons": Array [
+    "auxiliaryFiles": Set {},
+    "chunkReason": Array [
       "Entrypoint(main)",
     ],
     "contentHash": Object {},
     "cssFilenameTemplate": undefined,
     "filenameTemplate": undefined,
-    "files": Array [],
+    "files": Set {},
     "hash": undefined,
     "id": "909",
     "idNameHints": Array [],
@@ -21,9 +21,9 @@ Array [
     ],
     "name": "main",
     "renderedHash": undefined,
-    "runtime": Array [
+    "runtime": Set {
       "main",
-    ],
+    },
   },
   BatchedHash {
     "encoding": undefined,

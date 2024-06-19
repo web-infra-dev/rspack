@@ -49,11 +49,11 @@ export class Module {
 	#inner: JsModule;
 	#originalSource?: Source;
 
-	context?: string;
-	resource?: string;
-	request?: string;
-	userRequest?: string;
-	rawRequest?: string;
+	context?: Readonly<string>;
+	resource?: Readonly<string>;
+	request?: Readonly<string>;
+	userRequest?: Readonly<string>;
+	rawRequest?: Readonly<string>;
 
 	/**
 	 * Records the dynamically added fields for Module on the JavaScript side.

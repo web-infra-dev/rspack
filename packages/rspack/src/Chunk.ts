@@ -16,21 +16,21 @@ import { compareChunkGroupsByIndex } from "./util/comparators";
 
 export class Chunk {
 	#inner: JsChunk;
-	#inner_compilation: JsCompilation;
+	#innerCompilation: JsCompilation;
 
-	name?: string;
-	id?: string;
-	ids: Array<string>;
-	idNameHints: Array<string>;
-	filenameTemplate?: string;
-	cssFilenameTemplate?: string;
-	files: Array<string>;
-	runtime: Array<string>;
-	hash?: string;
-	contentHash: Record<string, string>;
-	renderedHash?: string;
-	chunkReasons: Array<string>;
-	auxiliaryFiles: Array<string>;
+	name?: Readonly<string>;
+	id?: Readonly<string>;
+	ids: ReadonlyArray<string>;
+	idNameHints: ReadonlyArray<string>;
+	filenameTemplate?: Readonly<string>;
+	cssFilenameTemplate?: Readonly<string>;
+	files: ReadonlySet<string>;
+	runtime: ReadonlySet<string>;
+	hash?: Readonly<string>;
+	contentHash: Readonly<Record<string, string>>;
+	renderedHash?: Readonly<string>;
+	chunkReason: ReadonlyArray<string>;
+	auxiliaryFiles: ReadonlySet<string>;
 
 	static __from_binding(chunk: JsChunk, compilation: Compilation): Chunk;
 	static __from_binding(chunk: JsChunk, compilation: JsCompilation): Chunk;
@@ -46,7 +46,7 @@ export class Chunk {
 
 	constructor(chunk: JsChunk, compilation: JsCompilation) {
 		this.#inner = chunk;
-		this.#inner_compilation = compilation;
+		this.#innerCompilation = compilation;
 
 		this.name = chunk.name;
 		this.id = chunk.id;
@@ -54,33 +54,33 @@ export class Chunk {
 		this.idNameHints = chunk.idNameHints;
 		this.filenameTemplate = chunk.filenameTemplate;
 		this.cssFilenameTemplate = chunk.cssFilenameTemplate;
-		this.files = chunk.files;
-		this.runtime = chunk.runtime;
+		this.files = new Set(chunk.files);
+		this.runtime = new Set(chunk.runtime);
 		this.hash = chunk.hash;
 		this.contentHash = chunk.contentHash;
 		this.renderedHash = chunk.renderedHash;
-		this.chunkReasons = chunk.chunkReasons;
-		this.auxiliaryFiles = chunk.auxiliaryFiles;
+		this.chunkReason = chunk.chunkReason;
+		this.auxiliaryFiles = new Set(chunk.auxiliaryFiles);
 	}
 
 	isOnlyInitial() {
 		return __chunk_inner_is_only_initial(
 			this.#inner.__inner_ukey,
-			this.#inner_compilation
+			this.#innerCompilation
 		);
 	}
 
 	canBeInitial() {
 		return __chunk_inner_can_be_initial(
 			this.#inner.__inner_ukey,
-			this.#inner_compilation
+			this.#innerCompilation
 		);
 	}
 
 	hasRuntime() {
 		return __chunk_inner_has_runtime(
 			this.#inner.__inner_ukey,
-			this.#inner_compilation
+			this.#innerCompilation
 		);
 	}
 
@@ -88,9 +88,9 @@ export class Chunk {
 		const chunk_groups = this.#inner.__inner_groups.map(ukey => {
 			const cg = __chunk_group_inner_get_chunk_group(
 				ukey as number,
-				this.#inner_compilation
+				this.#innerCompilation
 			);
-			return ChunkGroup.__from_binding(cg, this.#inner_compilation);
+			return ChunkGroup.__from_binding(cg, this.#innerCompilation);
 		});
 		chunk_groups.sort(compareChunkGroupsByIndex);
 		return new Set(chunk_groups);
@@ -100,8 +100,8 @@ export class Chunk {
 		return new Set(
 			__chunk_inner_get_all_async_chunks(
 				this.#inner.__inner_ukey,
-				this.#inner_compilation
-			).map(c => Chunk.__from_binding(c, this.#inner_compilation))
+				this.#innerCompilation
+			).map(c => Chunk.__from_binding(c, this.#innerCompilation))
 		);
 	}
 
@@ -109,8 +109,8 @@ export class Chunk {
 		return new Set(
 			__chunk_inner_get_all_initial_chunks(
 				this.#inner.__inner_ukey,
-				this.#inner_compilation
-			).map(c => Chunk.__from_binding(c, this.#inner_compilation))
+				this.#innerCompilation
+			).map(c => Chunk.__from_binding(c, this.#innerCompilation))
 		);
 	}
 
@@ -118,12 +118,17 @@ export class Chunk {
 		return new Set(
 			__chunk_inner_get_all_referenced_chunks(
 				this.#inner.__inner_ukey,
-				this.#inner_compilation
-			).map(c => Chunk.__from_binding(c, this.#inner_compilation))
+				this.#innerCompilation
+			).map(c => Chunk.__from_binding(c, this.#innerCompilation))
 		);
 	}
 
-	__internal_innerUkey() {
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__innerUkey() {
 		return this.#inner.__inner_ukey;
 	}
 }

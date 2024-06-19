@@ -35,7 +35,11 @@ export function memoizeValue<T>(fn: () => T): T {
 	const getValue: () => any = memoize(fn);
 	return new Proxy({} as any, {
 		get(_, property) {
-			return getValue()[property];
+			let res = getValue()[property];
+			if (typeof res === "function") {
+				res = res.bind(getValue());
+			}
+			return res;
 		},
 		set(_, property, newValue) {
 			getValue()[property] = newValue;
