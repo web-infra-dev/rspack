@@ -13,7 +13,7 @@ use crate::{JsPlugin, RenderSource};
 pub fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  ordered_modules: Vec<&BoxModule>,
+  ordered_modules: &Vec<&BoxModule>,
   all_strict: bool,
 ) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
   let mut module_code_array = ordered_modules

@@ -222,7 +222,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 714,
+      "size": 704,
       "type": "asset",
     },
   ],
@@ -491,10 +491,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 714,
+          "size": 704,
         },
       ],
-      "assetsSize": 714,
+      "assetsSize": 704,
       "chunks": Array [
         "909",
       ],
@@ -855,10 +855,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 714,
+          "size": 704,
         },
       ],
-      "assetsSize": 714,
+      "assetsSize": 704,
       "chunks": Array [
         "909",
       ],

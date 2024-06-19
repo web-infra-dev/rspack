@@ -736,7 +736,7 @@ impl Module for ConcatenatedModule {
             // Check if the name is already used
             if all_used_names.contains(name.as_str()) {
               // Find a new name and update references
-              let new_name = Self::find_new_name(name, &all_used_names, None, &readable_identifier);
+              let new_name = find_new_name(name, &all_used_names, None, &readable_identifier);
               // dbg!(&name, &new_name);
               all_used_names.insert(new_name.clone());
               info.internal_names.insert(name.clone(), new_name.clone());
@@ -769,7 +769,7 @@ impl Module for ConcatenatedModule {
             if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
               info.internal_names.get(namespace_export_symbol).cloned()
             } else {
-              Some(Self::find_new_name(
+              Some(find_new_name(
                 "namespaceObject",
                 &all_used_names,
                 None,
@@ -787,7 +787,7 @@ impl Module for ConcatenatedModule {
 
         // Handle external type
         ModuleInfo::External(info) => {
-          let external_name = Self::find_new_name("", &all_used_names, None, &readable_identifier);
+          let external_name = find_new_name("", &all_used_names, None, &readable_identifier);
           all_used_names.insert(external_name.clone());
           info.name = Some(external_name.as_str().into());
           top_level_declarations.insert(external_name.as_str().into());
@@ -795,7 +795,7 @@ impl Module for ConcatenatedModule {
       }
       // Handle additional logic based on module build meta
       if exports_type != Some(BuildMetaExportsType::Namespace) {
-        let external_name_interop = Self::find_new_name(
+        let external_name_interop = find_new_name(
           "namespaceObject",
           &all_used_names,
           None,
@@ -809,7 +809,7 @@ impl Module for ConcatenatedModule {
       if exports_type == Some(BuildMetaExportsType::Default)
         && !matches!(default_object, Some(BuildMetaDefaultObject::Redirect))
       {
-        let external_name_interop = Self::find_new_name(
+        let external_name_interop = find_new_name(
           "namespaceObject2",
           &all_used_names,
           None,
@@ -825,7 +825,7 @@ impl Module for ConcatenatedModule {
         Some(BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset)
       ) {
         let external_name_interop =
-          Self::find_new_name("default", &all_used_names, None, &readable_identifier);
+          find_new_name("default", &all_used_names, None, &readable_identifier);
         all_used_names.insert(external_name_interop.clone());
         info.set_interop_default_access_name(Some(external_name_interop.as_str().into()));
         top_level_declarations.insert(external_name_interop.as_str().into());
@@ -2174,51 +2174,6 @@ impl ConcatenatedModule {
       }
     }
   }
-
-  fn find_new_name(
-    old_name: &str,
-    used_names1: &HashSet<String>,
-    used_names2: Option<&HashSet<String>>,
-    extra_info: &str,
-  ) -> String {
-    let mut name = old_name.to_string();
-
-    if name == DEFAULT_EXPORT {
-      name = String::new();
-    }
-    if name == NAMESPACE_OBJECT_EXPORT {
-      name = "namespaceObject".to_string();
-    }
-    // Remove uncool stuff
-    let extra_info = REGEX.replace_all(extra_info, "").to_string();
-
-    let mut splitted_info: Vec<&str> = extra_info.split('/').collect();
-    while let Some(info_part) = splitted_info.pop() {
-      name = format!("{}_{}", info_part, name);
-      let name_ident = Template::to_identifier(&name);
-      if !used_names1.contains(&name_ident)
-        && (used_names2.is_none()
-          || !used_names2
-            .expect("should not be none")
-            .contains(&name_ident))
-      {
-        return name_ident;
-      }
-    }
-
-    let mut i = 0;
-    let mut name_with_number = Template::to_identifier(&format!("{}_{}", name, i));
-    while used_names1.contains(&name_with_number)
-      || used_names2
-        .map(|map| map.contains(&name_with_number))
-        .unwrap_or_default()
-    {
-      i += 1;
-      name_with_number = Template::to_identifier(&format!("{}_{}", name, i));
-    }
-
-    name_with_number
-  }
 }
 
 impl Hash for ConcatenatedModule {
@@ -2265,4 +2220,49 @@ pub fn map_box_diagnostics_to_module_parse_diagnostics(
     .into_iter()
     .map(|e| rspack_error::miette::Error::new(e).into())
     .collect()
+}
+
+pub fn find_new_name(
+  old_name: &str,
+  used_names1: &HashSet<String>,
+  used_names2: Option<&HashSet<String>>,
+  extra_info: &str,
+) -> String {
+  let mut name = old_name.to_string();
+
+  if name == DEFAULT_EXPORT {
+    name = String::new();
+  }
+  if name == NAMESPACE_OBJECT_EXPORT {
+    name = "namespaceObject".to_string();
+  }
+  // Remove uncool stuff
+  let extra_info = REGEX.replace_all(extra_info, "").to_string();
+
+  let mut splitted_info: Vec<&str> = extra_info.split('/').collect();
+  while let Some(info_part) = splitted_info.pop() {
+    name = format!("{}_{}", info_part, name);
+    let name_ident = Template::to_identifier(&name);
+    if !used_names1.contains(&name_ident)
+      && (used_names2.is_none()
+        || !used_names2
+          .expect("should not be none")
+          .contains(&name_ident))
+    {
+      return name_ident;
+    }
+  }
+
+  let mut i = 0;
+  let mut name_with_number = Template::to_identifier(&format!("{}_{}", name, i));
+  while used_names1.contains(&name_with_number)
+    || used_names2
+      .map(|map| map.contains(&name_with_number))
+      .unwrap_or_default()
+  {
+    i += 1;
+    name_with_number = Template::to_identifier(&format!("{}_{}", name, i));
+  }
+
+  name_with_number
 }

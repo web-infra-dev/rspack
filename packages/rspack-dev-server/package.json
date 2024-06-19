@@ -16,7 +16,7 @@
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -w -b ./tsconfig.build.json",
-    "test": "rimraf .test-temp && jest --runInBand",
+    "test": "rimraf .test-temp && jest --runInBand --colors",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },
