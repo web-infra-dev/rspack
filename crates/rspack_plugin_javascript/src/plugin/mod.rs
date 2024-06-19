@@ -68,28 +68,14 @@ impl RenameModuleCache {
   pub fn get_inlined_info(
     &self,
     ident: &String,
-  ) -> Option<
-    dashmap::mapref::one::Ref<
-      '_,
-      String,
-      WithHash<InlinedModuleInfo>,
-      std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
-    >,
-  > {
+  ) -> Option<dashmap::mapref::one::Ref<'_, String, WithHash<InlinedModuleInfo>>> {
     self.inlined_modules_to_info.get(ident)
   }
 
   pub fn get_non_inlined_idents(
     &self,
     ident: &String,
-  ) -> Option<
-    dashmap::mapref::one::Ref<
-      '_,
-      String,
-      WithHash<Vec<ConcatenatedModuleIdent>>,
-      std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
-    >,
-  > {
+  ) -> Option<dashmap::mapref::one::Ref<'_, String, WithHash<Vec<ConcatenatedModuleIdent>>>> {
     self.non_inlined_modules_through_idents.get(ident)
   }
 }
