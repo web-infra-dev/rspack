@@ -908,7 +908,6 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.reason = chunk.reason;
 			object.rendered = chunk.rendered;
 			object.origins = chunk.origins;
-			console.log("chunk.origins", chunk.origins);
 		},
 		ids: (object, chunk) => {
 			object.id = chunk.id;

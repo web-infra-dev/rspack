@@ -414,6 +414,7 @@ export interface JsNormalModuleFactoryCreateModuleArgs {
 }
 
 export interface JsOriginRecord {
+  loc: string
   request: string
 }
 

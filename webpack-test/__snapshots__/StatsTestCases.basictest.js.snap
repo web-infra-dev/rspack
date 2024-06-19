@@ -153,19 +153,19 @@ exports[`StatsTestCases should print correct stats for split-chunks 1`] = `
     ./node_modules/x.js 20 bytes [built] [code generated]
   chunk (runtime: a, main) default/581.js 20 bytes <{250}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}= [rendered] split chunk (cache group: default)
     ./f.js 20 bytes [built] [code generated]
-  chunk (runtime: a) default/a.js (a) 165 bytes (javascript) 0 bytes (runtime) >{581}< >{912}< [entry] [rendered]
-    > ./a
+  chunk (runtime: a) default/a.js (a) 0 bytes (runtime) 165 bytes (javascript) >{581}< >{912}< [entry] [rendered]
+    > ./a a
     ./a.js 165 bytes [built] [code generated]
   chunk (runtime: b) default/b.js (b) 116 bytes [entry] [rendered]
-    > ./b
+    > ./b b
     ./b.js 116 bytes [built] [code generated]
   chunk (runtime: main) default/753.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}< [rendered] split chunk (cache group: default)
     ./d.js 20 bytes [built] [code generated]
   chunk (runtime: c) default/c.js (c) 116 bytes [entry] [rendered]
-    > ./c
+    > ./c c
     ./c.js 116 bytes [built] [code generated]
-  chunk (runtime: main) default/main.js (main) 147 bytes (javascript) 0 bytes (runtime) >{172}< >{250}< >{262}< >{310}< >{416}< >{418}< >{581}< >{753}< [entry] [rendered]
-    > ./
+  chunk (runtime: main) default/main.js (main) 0 bytes (runtime) 147 bytes (javascript) >{172}< >{250}< >{262}< >{310}< >{416}< >{418}< >{581}< >{753}< [entry] [rendered]
+    > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) default/async-g.js (async-g) 45 bytes <{250}> <{310}> <{418}> <{74}> <{753}> ={581}= [rendered]
     ./g.js 45 bytes [built] [code generated]
@@ -177,15 +177,15 @@ all-chunks:
   Entrypoint b 5.46 KiB = all-chunks/async-b.js 1.07 KiB all-chunks/b.js 4.39 KiB
   Entrypoint c 5.46 KiB = all-chunks/async-c.js 1.07 KiB all-chunks/c.js 4.39 KiB
   chunk (runtime: c, main) all-chunks/async-c.js (async-c) 116 bytes <{909}> ={416}= ={418}= ={581}= ={753}= ={76}= [initial] [rendered]
-    > ./c
+    > ./c c
     ./c.js 116 bytes [built] [code generated]
   chunk (runtime: main) all-chunks/async-a.js (async-a) 20 bytes <{909}> ={272}= ={310}= ={418}= ={753}= >{581}< >{912}< [rendered]
     ./e.js 20 bytes [built] [code generated]
   chunk (runtime: b, main) all-chunks/async-b.js (async-b) 116 bytes <{909}> ={310}= ={418}= ={581}= ={751}= ={753}= [initial] [rendered]
-    > ./b
+    > ./b b
     ./b.js 116 bytes [built] [code generated]
   chunk (runtime: a, main) all-chunks/272.js 165 bytes <{909}> ={250}= ={310}= ={418}= ={74}= ={753}= >{581}< >{912}< [initial] [rendered] split chunk (cache group: default)
-    > ./a
+    > ./a a
     ./a.js 165 bytes [built] [code generated]
   chunk (runtime: main) all-chunks/310.js 20 bytes <{909}> ={250}= ={262}= ={272}= ={418}= ={581}= ={753}= >{581}< >{912}< [rendered] split chunk (cache group: defaultVendors)
     ./node_modules/y.js 20 bytes [built] [code generated]
@@ -196,15 +196,15 @@ all-chunks:
   chunk (runtime: a, main) all-chunks/581.js 20 bytes <{250}> <{272}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}= [rendered] split chunk (cache group: default)
     ./f.js 20 bytes [built] [code generated]
   chunk (runtime: a) all-chunks/a.js (a) 0 bytes ={272}= >{581}< >{912}< [entry] [rendered]
-    > ./a
+    > ./a a
   chunk (runtime: b) all-chunks/b.js (b) 0 bytes ={262}= [entry] [rendered]
-    > ./b
+    > ./b b
   chunk (runtime: main) all-chunks/753.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}< [rendered] split chunk (cache group: default)
     ./d.js 20 bytes [built] [code generated]
   chunk (runtime: c) all-chunks/c.js (c) 0 bytes ={172}= [entry] [rendered]
-    > ./c
+    > ./c c
   chunk (runtime: main) all-chunks/main.js (main) 0 bytes (runtime) 147 bytes (javascript) >{172}< >{250}< >{262}< >{272}< >{310}< >{416}< >{418}< >{581}< >{753}< [entry] [rendered]
-    > ./
+    > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) all-chunks/async-g.js (async-g) 45 bytes <{250}> <{272}> <{310}> <{418}> <{74}> <{753}> ={581}= [rendered]
     ./g.js 45 bytes [built] [code generated]
@@ -220,18 +220,18 @@ manual:
     ./d.js 20 bytes [built] [code generated]
     ./f.js 20 bytes [built] [code generated]
   chunk (runtime: a, b, c, main) manual/vendors.js (vendors) 60 bytes <{909}> ={172}= ={250}= ={262}= ={74}= ={751}= ={76}= >{912}< [initial] [rendered] split chunk (cache group: vendors)
-    > x
-    > y
-    > z
-    > ./b
-    > x
-    > y
-    > z
-    > ./a
-    > x
-    > y
-    > z
-    > ./c
+    > x b
+    > y b
+    > z b
+    > ./b b
+    > x c
+    > y c
+    > z c
+    > ./c c
+    > x a
+    > y a
+    > z a
+    > ./a a
     ./node_modules/x.js 20 bytes [built] [code generated]
     ./node_modules/y.js 20 bytes [built] [code generated]
     ./node_modules/z.js 20 bytes [built] [code generated]
@@ -244,25 +244,25 @@ manual:
     ./d.js 20 bytes [built] [code generated]
     ./f.js 20 bytes [built] [code generated]
   chunk (runtime: a) manual/a.js (a) 0 bytes (runtime) 165 bytes (javascript) ={192}= >{912}< [entry] [rendered]
-    > x
-    > y
-    > z
-    > ./a
+    > x a
+    > y a
+    > z a
+    > ./a a
     ./a.js 165 bytes [built] [code generated]
   chunk (runtime: b) manual/b.js (b) 0 bytes (runtime) 116 bytes (javascript) ={192}= [entry] [rendered]
-    > x
-    > y
-    > z
-    > ./b
+    > x b
+    > y b
+    > z b
+    > ./b b
     ./b.js 116 bytes [built] [code generated]
   chunk (runtime: c) manual/c.js (c) 116 bytes (javascript) 0 bytes (runtime) ={192}= [entry] [rendered]
-    > x
-    > y
-    > z
-    > ./c
+    > x c
+    > y c
+    > z c
+    > ./c c
     ./c.js 116 bytes [built] [code generated]
   chunk (runtime: main) manual/main.js (main) 0 bytes (runtime) 147 bytes (javascript) >{172}< >{192}< >{250}< >{262}< [entry] [rendered]
-    > ./
+    > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) manual/async-g.js (async-g) 65 bytes <{192}> <{250}> <{74}> [rendered]
     ./f.js 20 bytes [built] [code generated]
@@ -275,22 +275,22 @@ name-too-long:
   Entrypoint bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb 5.46 KiB = name-too-long/async-b.js 1.07 KiB name-too-long/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.js 4.39 KiB
   Entrypoint cccccccccccccccccccccccccccccc 5.46 KiB = name-too-long/async-c.js 1.07 KiB name-too-long/cccccccccccccccccccccccccccccc.js 4.39 KiB
   chunk (runtime: cccccccccccccccccccccccccccccc, main) name-too-long/async-c.js (async-c) 116 bytes <{909}> ={325}= ={416}= ={418}= ={581}= ={753}= [initial] [rendered]
-    > ./c
+    > ./c cccccccccccccccccccccccccccccc
     ./c.js 116 bytes [built] [code generated]
   chunk (runtime: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) name-too-long/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.js (bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) 0 bytes ={262}= [entry] [rendered]
-    > ./b
+    > ./b bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
   chunk (runtime: main) name-too-long/async-a.js (async-a) 20 bytes <{909}> ={272}= ={310}= ={418}= ={753}= >{581}< >{912}< [rendered]
     ./e.js 20 bytes [built] [code generated]
   chunk (runtime: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, main) name-too-long/async-b.js (async-b) 116 bytes <{909}> ={225}= ={310}= ={418}= ={581}= ={753}= [initial] [rendered]
-    > ./b
+    > ./b bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
     ./b.js 116 bytes [built] [code generated]
   chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, main) name-too-long/272.js 165 bytes <{909}> ={250}= ={310}= ={418}= ={753}= ={959}= >{581}< >{912}< [initial] [rendered] split chunk (cache group: default)
-    > ./a
+    > ./a aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     ./a.js 165 bytes [built] [code generated]
   chunk (runtime: main) name-too-long/310.js 20 bytes <{909}> ={250}= ={262}= ={272}= ={418}= ={581}= ={753}= >{581}< >{912}< [rendered] split chunk (cache group: defaultVendors)
     ./node_modules/y.js 20 bytes [built] [code generated]
   chunk (runtime: cccccccccccccccccccccccccccccc) name-too-long/cccccccccccccccccccccccccccccc.js (cccccccccccccccccccccccccccccc) 0 bytes ={172}= [entry] [rendered]
-    > ./c
+    > ./c cccccccccccccccccccccccccccccc
   chunk (runtime: main) name-too-long/416.js 20 bytes <{909}> ={172}= ={418}= ={581}= ={753}= [rendered] split chunk (cache group: defaultVendors)
     ./node_modules/z.js 20 bytes [built] [code generated]
   chunk (runtime: main) name-too-long/418.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={581}= ={753}= >{581}< >{912}< [rendered] split chunk (cache group: defaultVendors)
@@ -300,12 +300,12 @@ name-too-long:
   chunk (runtime: main) name-too-long/753.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={272}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}< [rendered] split chunk (cache group: default)
     ./d.js 20 bytes [built] [code generated]
   chunk (runtime: main) name-too-long/main.js (main) 147 bytes (javascript) 0 bytes (runtime) >{172}< >{250}< >{262}< >{272}< >{310}< >{416}< >{418}< >{581}< >{753}< [entry] [rendered]
-    > ./
+    > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, main) name-too-long/async-g.js (async-g) 45 bytes <{250}> <{272}> <{310}> <{418}> <{753}> <{959}> ={581}= [rendered]
     ./g.js 45 bytes [built] [code generated]
   chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa) name-too-long/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.js (aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa) 0 bytes ={272}= >{581}< >{912}< [entry] [rendered]
-    > ./a
+    > ./a aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   name-too-long (Rspack x.x.x) compiled successfully
 
 custom-chunks-filter:
@@ -314,13 +314,13 @@ custom-chunks-filter:
   Entrypoint b 5.46 KiB = custom-chunks-filter/async-b.js 1.07 KiB custom-chunks-filter/b.js 4.39 KiB
   Entrypoint c 5.46 KiB = custom-chunks-filter/async-c.js 1.07 KiB custom-chunks-filter/c.js 4.39 KiB
   chunk (runtime: c, main) custom-chunks-filter/async-c.js (async-c) 116 bytes <{909}> ={416}= ={418}= ={581}= ={753}= ={76}= [initial] [rendered]
-    > ./c
+    > ./c c
     ./c.js 116 bytes [built] [code generated]
   chunk (runtime: main) custom-chunks-filter/async-a.js (async-a) 185 bytes <{909}> ={310}= ={418}= ={753}= >{581}< >{912}< [rendered]
     ./a.js 165 bytes [built] [code generated]
     ./e.js 20 bytes [built] [code generated]
   chunk (runtime: b, main) custom-chunks-filter/async-b.js (async-b) 116 bytes <{909}> ={310}= ={418}= ={581}= ={751}= ={753}= [initial] [rendered]
-    > ./b
+    > ./b b
     ./b.js 116 bytes [built] [code generated]
   chunk (runtime: main) custom-chunks-filter/310.js 20 bytes <{909}> ={250}= ={262}= ={418}= ={581}= ={753}= >{581}< >{912}< [rendered] split chunk (cache group: defaultVendors)
     ./node_modules/y.js 20 bytes [built] [code generated]
@@ -330,17 +330,17 @@ custom-chunks-filter:
     ./node_modules/x.js 20 bytes [built] [code generated]
   chunk (runtime: a, main) custom-chunks-filter/581.js 20 bytes <{250}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}= [rendered] split chunk (cache group: default)
     ./f.js 20 bytes [built] [code generated]
-  chunk (runtime: a) custom-chunks-filter/a.js (a) 0 bytes (runtime) 165 bytes (javascript) >{581}< >{912}< [entry] [rendered]
-    > ./a
+  chunk (runtime: a) custom-chunks-filter/a.js (a) 165 bytes (javascript) 0 bytes (runtime) >{581}< >{912}< [entry] [rendered]
+    > ./a a
     ./a.js 165 bytes [built] [code generated]
   chunk (runtime: b) custom-chunks-filter/b.js (b) 0 bytes ={262}= [entry] [rendered]
-    > ./b
+    > ./b b
   chunk (runtime: main) custom-chunks-filter/753.js 20 bytes <{909}> ={172}= ={250}= ={262}= ={310}= ={416}= ={418}= ={581}= >{581}< >{912}< [rendered] split chunk (cache group: default)
     ./d.js 20 bytes [built] [code generated]
   chunk (runtime: c) custom-chunks-filter/c.js (c) 0 bytes ={172}= [entry] [rendered]
-    > ./c
+    > ./c c
   chunk (runtime: main) custom-chunks-filter/main.js (main) 0 bytes (runtime) 147 bytes (javascript) >{172}< >{250}< >{262}< >{310}< >{416}< >{418}< >{581}< >{753}< [entry] [rendered]
-    > ./
+    > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) custom-chunks-filter/async-g.js (async-g) 45 bytes <{250}> <{310}> <{418}> <{74}> <{753}> ={581}= [rendered]
     ./g.js 45 bytes [built] [code generated]
@@ -356,14 +356,14 @@ custom-chunks-filter-in-cache-groups:
     ./d.js 20 bytes [built] [code generated]
     ./f.js 20 bytes [built] [code generated]
   chunk (runtime: b, c, main) custom-chunks-filter-in-cache-groups/vendors.js (vendors) 60 bytes <{909}> ={172}= ={250}= ={262}= ={751}= ={76}= >{912}< [initial] [rendered] split chunk (cache group: vendors)
-    > x
-    > y
-    > z
-    > ./c
-    > x
-    > y
-    > z
-    > ./b
+    > x b
+    > y b
+    > z b
+    > ./b b
+    > x c
+    > y c
+    > z c
+    > ./c c
     ./node_modules/x.js 20 bytes [built] [code generated]
     ./node_modules/y.js 20 bytes [built] [code generated]
     ./node_modules/z.js 20 bytes [built] [code generated]
@@ -375,29 +375,29 @@ custom-chunks-filter-in-cache-groups:
     ./b.js 116 bytes [built] [code generated]
     ./d.js 20 bytes [built] [code generated]
     ./f.js 20 bytes [built] [code generated]
-  chunk (runtime: a) custom-chunks-filter-in-cache-groups/a.js (a) 225 bytes (javascript) 0 bytes (runtime) >{912}< [entry] [rendered]
-    > x
-    > y
-    > z
-    > ./a
+  chunk (runtime: a) custom-chunks-filter-in-cache-groups/a.js (a) 0 bytes (runtime) 225 bytes (javascript) >{912}< [entry] [rendered]
+    > x a
+    > y a
+    > z a
+    > ./a a
     ./a.js 165 bytes [built] [code generated]
     ./node_modules/x.js 20 bytes [built] [code generated]
     ./node_modules/y.js 20 bytes [built] [code generated]
     ./node_modules/z.js 20 bytes [built] [code generated]
-  chunk (runtime: b) custom-chunks-filter-in-cache-groups/b.js (b) 116 bytes (javascript) 0 bytes (runtime) ={192}= [entry] [rendered]
-    > x
-    > y
-    > z
-    > ./b
+  chunk (runtime: b) custom-chunks-filter-in-cache-groups/b.js (b) 0 bytes (runtime) 116 bytes (javascript) ={192}= [entry] [rendered]
+    > x b
+    > y b
+    > z b
+    > ./b b
     ./b.js 116 bytes [built] [code generated]
-  chunk (runtime: c) custom-chunks-filter-in-cache-groups/c.js (c) 0 bytes (runtime) 116 bytes (javascript) ={192}= [entry] [rendered]
-    > x
-    > y
-    > z
-    > ./c
+  chunk (runtime: c) custom-chunks-filter-in-cache-groups/c.js (c) 116 bytes (javascript) 0 bytes (runtime) ={192}= [entry] [rendered]
+    > x c
+    > y c
+    > z c
+    > ./c c
     ./c.js 116 bytes [built] [code generated]
   chunk (runtime: main) custom-chunks-filter-in-cache-groups/main.js (main) 0 bytes (runtime) 147 bytes (javascript) >{172}< >{192}< >{250}< >{262}< [entry] [rendered]
-    > ./
+    > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) custom-chunks-filter-in-cache-groups/async-g.js (async-g) 65 bytes <{192}> <{250}> <{74}> [rendered]
     ./f.js 20 bytes [built] [code generated]

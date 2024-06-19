@@ -15,7 +15,7 @@ use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey,
   ChunkLoading, ChunkUkey, Compilation, ConnectionId, ConnectionState, DependenciesBlock,
   EntryDependency, EntryRuntime, GroupOptions, Logger, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, RuntimeSpec,
+  ModuleIdentifier, OriginLocation, RuntimeSpec, SyntheticDependencyLocation,
 };
 
 #[derive(Debug, Clone)]
@@ -345,9 +345,10 @@ impl<'me> CodeSplitter<'me> {
         .filter_map(|dep_id| {
           let module_graph = self.compilation.get_module_graph();
           let dep = module_graph.dependency_by_id(dep_id);
-          dep.map(|d| match d.as_any().downcast_ref::<EntryDependency>() {
-            Some(d) => Some(d.request().to_string()),
-            None => None,
+          dep.map(|d| {
+            d.as_any()
+              .downcast_ref::<EntryDependency>()
+              .map(|d| d.request().to_string())
           })
         })
         .collect::<Vec<_>>();
@@ -383,7 +384,10 @@ impl<'me> CodeSplitter<'me> {
       ));
 
       for origin in origins {
-        entrypoint.add_origin(origin);
+        entrypoint.add_origin(
+          OriginLocation::Synthetic(SyntheticDependencyLocation { name: name.clone() }),
+          origin,
+        );
       }
 
       let chunk_group_info = {
@@ -1376,13 +1380,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       item_chunk_group.add_async_entrypoint(entrypoint);
     }
 
-    if let Some((chunk_group_ukey, request)) = add_origin {
-      let chunk_group = self
-        .compilation
-        .chunk_group_by_ukey
-        .expect_get_mut(&chunk_group_ukey);
-      chunk_group.add_origin(request);
-    }
+    // if let Some((chunk_group_ukey, request)) = add_origin {
+    //   let chunk_group = self
+    //     .compilation
+    //     .chunk_group_by_ukey
+    //     .expect_get_mut(&chunk_group_ukey);
+    //   chunk_group.add_origin(request);
+    // }
   }
 
   fn get_block_modules(

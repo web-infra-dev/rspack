@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use napi_derive::napi;
-use rspack_core::{Stats, StatsUsedExports};
+use rspack_core::{OriginLocation, Stats, StatsUsedExports};
 use rspack_napi::napi::bindgen_prelude::Buffer;
 use rspack_napi::napi::{
   bindgen_prelude::{Result, SharedReference},
@@ -415,6 +415,7 @@ impl From<rspack_core::StatsModuleReason> for JsStatsModuleReason {
 
 #[napi(object)]
 pub struct JsOriginRecord {
+  pub loc: String,
   pub request: String,
 }
 
@@ -481,8 +482,12 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
       rendered: stats.rendered,
       origins: stats
         .origins
-        .iter()
+        .into_iter()
         .map(|origin| JsOriginRecord {
+          loc: match origin.loc {
+            OriginLocation::Real(_) => "".to_string(),
+            OriginLocation::Synthetic(l) => l.name,
+          },
           request: origin.request.clone().unwrap_or_default(),
         })
         .collect::<Vec<_>>(),

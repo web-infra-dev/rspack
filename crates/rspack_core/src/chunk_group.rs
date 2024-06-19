@@ -7,15 +7,27 @@ use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, FilenameTemplate,
+  get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation,
+  FilenameTemplate,
 };
 use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
 
 #[derive(Debug, Clone)]
+pub struct SyntheticDependencyLocation {
+  pub name: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum OriginLocation {
+  Real(DependencyLocation),
+  Synthetic(SyntheticDependencyLocation),
+}
+
+#[derive(Debug, Clone)]
 pub struct OriginRecord {
   // module: Module,
-  // loc: DependencyLocation,
+  pub loc: OriginLocation,
   pub request: Option<String>,
 }
 
@@ -292,8 +304,8 @@ impl ChunkGroup {
     }
   }
 
-  pub fn add_origin(&mut self, request: Option<String>) {
-    self.origins.push(OriginRecord { request });
+  pub fn add_origin(&mut self, loc: OriginLocation, request: Option<String>) {
+    self.origins.push(OriginRecord { loc, request });
   }
 
   pub fn origins(&self) -> &Vec<OriginRecord> {
