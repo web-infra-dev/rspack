@@ -110,6 +110,7 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
+      # Fix: Resolve disk space error "ENOSPC: no space left on device" on GitHub Actions runners
       - name: Free disk cache
         if: ${{ startsWith(runner.name, 'GitHub Actions') && inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
         uses: jlumbroso/free-disk-space@main

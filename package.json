@@ -79,10 +79,5 @@
     "webpack-cli": "5.1.4",
     "why-is-node-running": "2.2.2"
   },
-  "packageManager": "pnpm@9.3.0",
-  "pnpm": {
-    "patchedDependencies": {
-      "@napi-rs/cli@3.0.0-alpha.45": "patches/@napi-rs__cli@3.0.0-alpha.45.patch"
-    }
-  }
+  "packageManager": "pnpm@9.3.0"
 }
