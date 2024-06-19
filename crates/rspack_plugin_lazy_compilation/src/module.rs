@@ -166,6 +166,7 @@ impl Module for LazyCompilationProxyModule {
         None,
         None,
         vec![Box::new(dep)],
+        None,
       ));
     }
 

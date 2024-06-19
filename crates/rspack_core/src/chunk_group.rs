@@ -12,6 +12,13 @@ use crate::{
 use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
 
+#[derive(Debug, Clone)]
+pub struct OriginRecord {
+  // module: Module,
+  // loc: DependencyLocation,
+  pub request: Option<String>,
+}
+
 impl DatabaseItem for ChunkGroup {
   fn ukey(&self) -> rspack_database::Ukey<Self> {
     self.ukey
@@ -35,6 +42,7 @@ pub struct ChunkGroup {
   // Entrypoint
   pub(crate) runtime_chunk: Option<ChunkUkey>,
   pub(crate) entry_point_chunk: Option<ChunkUkey>,
+  origins: Vec<OriginRecord>,
 }
 
 impl ChunkGroup {
@@ -53,6 +61,7 @@ impl ChunkGroup {
       runtime_chunk: None,
       entry_point_chunk: None,
       index: None,
+      origins: vec![],
     }
   }
 
@@ -281,6 +290,15 @@ impl ChunkGroup {
       self.parents.insert(parent_group);
       true
     }
+  }
+
+  pub fn add_origin(&mut self, request: Option<String>) {
+    println!("------- add_origin --------");
+    self.origins.push(OriginRecord { request });
+  }
+
+  pub fn origins(&self) -> &Vec<OriginRecord> {
+    &self.origins
   }
 }
 

@@ -7,12 +7,10 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkGroupOrderKey, ProvidedExports, RuntimeSpec,
+  get_chunk_from_ukey, get_chunk_group_from_ukey, BoxModule, BoxRuntimeModule, Chunk,
+  ChunkGroupOrderKey, ChunkGroupUkey, Compilation, ExecutedRuntimeModule, LogType, ModuleGraph,
+  ModuleIdentifier, ModuleType, OriginRecord, ProvidedExports, RuntimeSpec, SourceType,
   UsedExports,
-};
-use crate::{
-  BoxModule, BoxRuntimeModule, Chunk, ChunkGroupUkey, Compilation, ExecutedRuntimeModule, LogType,
-  ModuleGraph, ModuleIdentifier, ModuleType, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -288,6 +286,16 @@ impl Stats<'_> {
 
         let chunk_graph = &self.compilation.chunk_graph;
         let module_graph = &self.compilation.get_module_graph();
+        let chunk_group_by_ukey = &self.compilation.chunk_group_by_ukey;
+
+        let origins = c
+          .groups
+          .iter()
+          .flat_map(|ukey| {
+            let chunk_group = chunk_group_by_ukey.expect_get(ukey);
+            chunk_group.origins().clone()
+          })
+          .collect::<Vec<_>>();
 
         Ok(StatsChunk {
           r#type: "chunk",
@@ -307,6 +315,7 @@ impl Stats<'_> {
           sizes: chunk_graph.get_chunk_modules_sizes(&c.ukey, self.compilation),
           reason: c.chunk_reason.clone(),
           rendered: c.rendered,
+          origins,
         })
       })
       .collect::<Result<_>>()?;
@@ -1053,6 +1062,7 @@ pub struct StatsChunk<'a> {
   pub sizes: HashMap<SourceType, f64>,
   pub reason: Option<String>,
   pub rendered: bool,
+  pub origins: Vec<OriginRecord>,
 }
 
 #[derive(Debug)]

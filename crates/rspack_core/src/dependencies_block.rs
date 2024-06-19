@@ -75,6 +75,7 @@ pub struct AsyncDependenciesBlock {
   dependencies: Vec<BoxDependency>,
   loc: Option<DependencyLocation>,
   parent: ModuleIdentifier,
+  request: Option<String>,
 }
 
 impl AsyncDependenciesBlock {
@@ -84,6 +85,7 @@ impl AsyncDependenciesBlock {
     loc: Option<DependencyLocation>,
     modifier: Option<&str>,
     dependencies: Vec<BoxDependency>,
+    request: Option<String>,
   ) -> Self {
     let loc_str = loc.map_or_else(
       || "".to_string(),
@@ -113,11 +115,10 @@ impl AsyncDependenciesBlock {
       dependencies,
       loc,
       parent,
+      request,
     }
   }
-}
 
-impl AsyncDependenciesBlock {
   pub fn identifier(&self) -> AsyncDependenciesBlockIdentifier {
     self.id
   }
@@ -150,6 +151,10 @@ impl AsyncDependenciesBlock {
 
   pub fn parent(&self) -> &ModuleIdentifier {
     &self.parent
+  }
+
+  pub fn request(&self) -> &Option<String> {
+    &self.request
   }
 }
 

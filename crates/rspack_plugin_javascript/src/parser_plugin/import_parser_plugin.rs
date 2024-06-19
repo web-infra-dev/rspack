@@ -93,6 +93,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         Some(DependencyLocation::new(span.start, span.end)),
         None,
         vec![dep],
+        Some(param.string().clone()),
       );
       block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
         chunk_name,

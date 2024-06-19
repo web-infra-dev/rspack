@@ -90,6 +90,7 @@ impl<'parser> JavascriptParser<'parser> {
       Some(DependencyLocation::new(span.start, span.end)),
       None,
       vec![dep],
+      None,
     );
     block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
       name,

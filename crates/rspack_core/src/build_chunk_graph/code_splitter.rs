@@ -1129,6 +1129,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let mut entrypoint: Option<ChunkGroupUkey> = None;
     let mut c: Option<ChunkGroupUkey> = None;
 
+    let mut add_origin = None;
+
     let cgi = if let Some(cgi) = cgi {
       let cgi = self.chunk_group_infos.expect_get(cgi);
       let module_graph = self.compilation.get_module_graph();
@@ -1168,6 +1170,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .expect("should have block");
       let chunk_name = block.get_group_options().and_then(|o| o.name());
       let entry_options = block.get_group_options().and_then(|o| o.entry_options());
+      let request = block.request().clone();
 
       let cgi = if let Some(entry_options) = entry_options {
         let cgi =
@@ -1237,6 +1240,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
         let cgi = self.chunk_group_infos.expect_get(&cgi);
         entrypoint = Some(cgi.chunk_group);
+
+        add_origin = Some((cgi.chunk_group, request));
+
         self
           .queue_delayed
           .push(QueueAction::ProcessEntryBlock(ProcessEntryBlock {
@@ -1268,6 +1274,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               block.loc().map(ToOwned::to_owned),
             );
             self.compilation.push_diagnostic(Error::from(error).into());
+
+            let module_graph = self.compilation.get_module_graph();
+            let block = module_graph
+              .block_by_id(&block_id)
+              .expect("should have block");
+            add_origin = Some((cgi.chunk_group, block.request().clone()));
+
             cgi = item_chunk_group_info;
           }
 
@@ -1346,6 +1359,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .chunk_group_by_ukey
         .expect_get_mut(&item_chunk_group);
       item_chunk_group.add_async_entrypoint(entrypoint);
+    }
+
+    if let Some((chunk_group_ukey, request)) = add_origin {
+      let chunk_group = self
+        .compilation
+        .chunk_group_by_ukey
+        .expect_get_mut(&chunk_group_ukey);
+      chunk_group.add_origin(request);
     }
   }
 

@@ -413,6 +413,10 @@ export interface JsNormalModuleFactoryCreateModuleArgs {
   matchResource?: string
 }
 
+export interface JsOriginRecord {
+  request: string
+}
+
 export interface JsPathData {
   filename?: string
   hash?: string
@@ -494,6 +498,7 @@ export interface JsStatsChunk {
   sizes: Record<string, number>
   reason?: string
   rendered: boolean
+  origins: Array<JsOriginRecord>
 }
 
 export interface JsStatsChunkGroup {

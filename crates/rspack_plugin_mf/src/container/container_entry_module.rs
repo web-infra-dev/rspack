@@ -146,6 +146,7 @@ impl Module for ContainerEntryModule {
             )) as Box<dyn Dependency>
           })
           .collect(),
+        None,
       );
       block.set_group_options(GroupOptions::ChunkGroup(
         ChunkGroupOptions::default().name_optional(options.name.clone()),

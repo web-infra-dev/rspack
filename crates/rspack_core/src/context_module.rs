@@ -1124,6 +1124,7 @@ impl ContextModule {
           .into_iter()
           .map(|dep| Box::new(dep) as Box<dyn Dependency>)
           .collect(),
+        None,
       );
       if let Some(group_options) = &self.options.context_options.group_options {
         block.set_group_options(group_options.clone());
@@ -1167,6 +1168,7 @@ impl ContextModule {
           ),
           Some(&context_element_dependency.user_request.clone()),
           vec![Box::new(context_element_dependency)],
+          Some(self.options.context_options.request.clone()),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           name,

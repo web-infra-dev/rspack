@@ -414,6 +414,11 @@ impl From<rspack_core::StatsModuleReason> for JsStatsModuleReason {
 }
 
 #[napi(object)]
+pub struct JsOriginRecord {
+  pub request: String,
+}
+
+#[napi(object)]
 pub struct JsStatsChunk {
   pub r#type: &'static str,
   pub files: Vec<String>,
@@ -432,6 +437,7 @@ pub struct JsStatsChunk {
   pub sizes: HashMap<String, f64>,
   pub reason: Option<String>,
   pub rendered: bool,
+  pub origins: Vec<JsOriginRecord>,
 }
 
 impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
@@ -473,6 +479,13 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
         .collect(),
       reason: stats.reason,
       rendered: stats.rendered,
+      origins: stats
+        .origins
+        .iter()
+        .map(|origin| JsOriginRecord {
+          request: origin.request.clone().unwrap_or_default(),
+        })
+        .collect::<Vec<_>>(),
     })
   }
 }
