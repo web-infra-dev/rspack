@@ -293,7 +293,6 @@ impl ChunkGroup {
   }
 
   pub fn add_origin(&mut self, request: Option<String>) {
-    println!("------- add_origin --------");
     self.origins.push(OriginRecord { request });
   }
 

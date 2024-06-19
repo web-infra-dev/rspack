@@ -14,7 +14,8 @@ use crate::{
   add_connection_states, assign_depth, assign_depths, get_entry_runtime,
   AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey,
   ChunkLoading, ChunkUkey, Compilation, ConnectionId, ConnectionState, DependenciesBlock,
-  EntryRuntime, GroupOptions, Logger, ModuleGraph, ModuleIdentifier, RuntimeSpec,
+  EntryDependency, EntryRuntime, GroupOptions, Logger, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, RuntimeSpec,
 };
 
 #[derive(Debug, Clone)]
@@ -339,6 +340,17 @@ impl<'me> CodeSplitter<'me> {
         entry_data.dependencies.clone(),
       ]
       .concat();
+      let origins = dependencies
+        .iter()
+        .filter_map(|dep_id| {
+          let module_graph = self.compilation.get_module_graph();
+          let dep = module_graph.dependency_by_id(dep_id);
+          dep.map(|d| match d.as_any().downcast_ref::<EntryDependency>() {
+            Some(d) => Some(d.request().to_string()),
+            None => None,
+          })
+        })
+        .collect::<Vec<_>>();
       let module_identifiers = dependencies
         .iter()
         .filter_map(|dep| {
@@ -369,6 +381,10 @@ impl<'me> CodeSplitter<'me> {
         true,
         Box::new(options.clone()),
       ));
+
+      for origin in origins {
+        entrypoint.add_origin(origin);
+      }
 
       let chunk_group_info = {
         let mut cgi = ChunkGroupInfo::new(
@@ -1125,7 +1141,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .expect_get(&item_chunk_group_info_ukey);
 
     let item_chunk_group = item_chunk_group_info.chunk_group;
-    let cgi: Option<&Ukey<ChunkGroupInfo>> = self.block_chunk_groups.get(&block_id);
+    let cgi = self.block_chunk_groups.get(&block_id);
     let mut entrypoint: Option<ChunkGroupUkey> = None;
     let mut c: Option<ChunkGroupUkey> = None;
 
@@ -1176,6 +1192,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         let cgi =
           if let Some(cgi) = chunk_name.and_then(|name| self.named_async_entrypoints.get(name)) {
             let cgi = self.chunk_group_infos.expect_get(cgi);
+            add_origin = Some((cgi.chunk_group, request));
             self
               .compilation
               .chunk_graph
@@ -1241,8 +1258,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         let cgi = self.chunk_group_infos.expect_get(&cgi);
         entrypoint = Some(cgi.chunk_group);
 
-        add_origin = Some((cgi.chunk_group, request));
-
         self
           .queue_delayed
           .push(QueueAction::ProcessEntryBlock(ProcessEntryBlock {
@@ -1263,6 +1278,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           && let Some(cgi) = self.named_chunk_groups.get(chunk_name)
         {
           let mut cgi = self.chunk_group_infos.expect_get(cgi);
+          let block = module_graph
+            .block_by_id(&block_id)
+            .expect("should have block");
+          let request = block.request().clone();
+
           if self
             .compilation
             .chunk_group_by_ukey
@@ -1274,15 +1294,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               block.loc().map(ToOwned::to_owned),
             );
             self.compilation.push_diagnostic(Error::from(error).into());
-
-            let module_graph = self.compilation.get_module_graph();
-            let block = module_graph
-              .block_by_id(&block_id)
-              .expect("should have block");
-            add_origin = Some((cgi.chunk_group, block.request().clone()));
-
             cgi = item_chunk_group_info;
           }
+
+          add_origin = Some((cgi.chunk_group, request));
 
           self
             .compilation
