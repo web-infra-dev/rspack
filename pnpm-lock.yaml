@@ -839,15 +839,6 @@ importers:
       '@swc/jest':
         specifier: ^0.2.29
         version: 0.2.36(@swc/core@1.4.0(@swc/helpers@0.5.8))
-      '@swc/plugin-emotion':
-        specifier: 3.0.6
-        version: 3.0.6
-      '@swc/plugin-relay':
-        specifier: 2.0.7
-        version: 2.0.7
-      '@swc/plugin-styled-components':
-        specifier: 2.0.7
-        version: 2.0.7
       '@types/prettier':
         specifier: ^2.7.2
         version: 2.7.3
@@ -3017,17 +3008,8 @@ packages:
     peerDependencies:
       '@swc/core': '*'
 
-  '@swc/plugin-emotion@3.0.6':
-    resolution: {integrity: sha512-S1POmCXh3xUKjKEpMsgT+fsnqmz9s8eHH1XJ3x9I26nU41aD355TBgSHSwIfrciTmb1bMI0eSLogLO7zXd4yvw==}
-
-  '@swc/plugin-relay@2.0.7':
-    resolution: {integrity: sha512-A1DCqmlGmvETBe7xKmabxLanqlvylT9EKpTUUAMOLTzUQ8asd/2mMbhEo2XQSy074q4FziHLx827JeI+iwDjzw==}
-
   '@swc/plugin-remove-console@1.5.121':
     resolution: {integrity: sha512-oPmTosjPEPTkLQamFjeg/B/uT3VEbwo0dor4iUZUEjgu5Bv6JL8vafv1ma1GLdJ3lkOtN9t1xKirtFcM6aP0ug==}
-
-  '@swc/plugin-styled-components@2.0.7':
-    resolution: {integrity: sha512-yU4Ox4wgxHuABiusrH7jUap5pm0r01ohkrOBWgHZYJALigfTBDY01z3/rjqZAtsLK6H4a6ajyxKqE79c7sVIjg==}
 
   '@swc/types@0.1.6':
     resolution: {integrity: sha512-/JLo/l2JsT/LRd80C3HfbmVpxOAJ11FO2RCEslFrgzLltoP9j8XIbsyDcfCt2WWyX+CM96rBoNM+IToAkFOugg==}
@@ -11832,19 +11814,7 @@ snapshots:
       '@swc/counter': 0.1.3
       jsonc-parser: 3.2.1
 
-  '@swc/plugin-emotion@3.0.6':
-    dependencies:
-      '@swc/counter': 0.1.3
-
-  '@swc/plugin-relay@2.0.7':
-    dependencies:
-      '@swc/counter': 0.1.3
-
   '@swc/plugin-remove-console@1.5.121':
-    dependencies:
-      '@swc/counter': 0.1.3
-
-  '@swc/plugin-styled-components@2.0.7':
     dependencies:
       '@swc/counter': 0.1.3
 
