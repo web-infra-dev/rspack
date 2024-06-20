@@ -5,7 +5,7 @@ use swc_core::ecma::atoms::Atom;
 
 bitflags! {
   #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
-  pub struct RuntimeGlobals: u64 {
+  pub struct RuntimeGlobals: u128 {
     const REQUIRE_SCOPE = 1 << 0;
 
     /**
@@ -243,6 +243,8 @@ bitflags! {
     const RSPACK_VERSION = 1 << 62;
 
     const HAS_CSS_MODULES = 1 << 63;
+
+    const RSPACK_UNIQUE_ID = 1 << 64;
   }
 }
 
@@ -325,6 +327,7 @@ impl RuntimeGlobals {
       R::PRELOAD_CHUNK_HANDLERS => "__webpack_require__.H",
       // rspack only
       R::RSPACK_VERSION => "__webpack_require__.rv",
+      R::RSPACK_UNIQUE_ID => "__webpack_require__.ruid",
       R::HAS_CSS_MODULES => "has css modules",
       _ => unreachable!(),
     }

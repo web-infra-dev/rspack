@@ -704,6 +704,7 @@ export interface RawBuiltins {
 
 export interface RawBundlerInfoPluginOptions {
   version: string
+  bundler: string
   force: boolean | string[]
 }
 

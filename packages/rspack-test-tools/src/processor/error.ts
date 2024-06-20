@@ -88,6 +88,13 @@ export class ErrorProcessor<
 					devtool: false,
 					optimization: {
 						minimize: false
+					},
+					experiments: {
+						rspackFuture: {
+							bundlerInfo: {
+								force: false
+							}
+						}
 					}
 				} as TCompilerOptions<T>;
 				if (typeof _errorOptions.options === "function") {
