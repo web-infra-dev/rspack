@@ -5,7 +5,6 @@ use rspack_core::{
   RuntimeModuleStage, SourceType,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap;
 
 use super::consume_shared_plugin::ConsumeVersion;
@@ -21,13 +20,11 @@ pub struct ConsumeSharedRuntimeModule {
 
 impl ConsumeSharedRuntimeModule {
   pub fn new(enhanced: bool) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/consumes_loading"),
-      chunk: None,
+    Self::with_default(
+      Identifier::from("webpack/runtime/consumes_loading"),
+      None,
       enhanced,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    )
   }
 }
 

@@ -4,7 +4,6 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 #[impl_runtime_module]
 #[derive(Debug, Eq)]
@@ -15,12 +14,7 @@ pub struct PublicPathRuntimeModule {
 
 impl PublicPathRuntimeModule {
   pub fn new(public_path: Box<str>) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/public_path"),
-      public_path,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(Identifier::from("webpack/runtime/public_path"), public_path)
   }
 }
 

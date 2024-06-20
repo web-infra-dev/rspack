@@ -4,7 +4,6 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 #[impl_runtime_module]
 #[derive(Debug, Default, Eq)]
@@ -14,11 +13,7 @@ pub struct ExportWebpackRequireRuntimeModule {
 
 impl ExportWebpackRequireRuntimeModule {
   pub fn new() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/export_webpack_runtime"),
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(Identifier::from("webpack/runtime/export_webpack_runtime"))
   }
 }
 

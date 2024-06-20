@@ -4,7 +4,6 @@ use rspack_core::{
   Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 #[impl_runtime_module]
 #[derive(Debug, Eq)]
@@ -16,13 +15,11 @@ pub struct LoadScriptRuntimeModule {
 
 impl LoadScriptRuntimeModule {
   pub fn new(unique_name: String, with_create_script_url: bool) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/load_script"),
+    Self::with_default(
+      Identifier::from("webpack/runtime/load_script"),
       unique_name,
       with_create_script_url,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    )
   }
 }
 

@@ -4,7 +4,6 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 use crate::get_chunk_runtime_requirements;
 
@@ -17,12 +16,10 @@ pub struct GetTrustedTypesPolicyRuntimeModule {
 
 impl Default for GetTrustedTypesPolicyRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/get_trusted_types_policy"),
-      chunk: None,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(
+      Identifier::from("webpack/runtime/get_trusted_types_policy"),
+      None,
+    )
   }
 }
 

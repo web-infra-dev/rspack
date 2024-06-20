@@ -9,7 +9,7 @@ use rspack_core::{
   RuntimeModule, SourceType,
 };
 use rspack_identifier::Identifier;
-use rspack_util::{infallible::ResultInfallibleExt, source_map::SourceMapKind};
+use rspack_util::infallible::ResultInfallibleExt;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::create_fake_chunk;
@@ -60,17 +60,15 @@ impl GetChunkFilenameRuntimeModule {
     all_chunks: F,
     filename_for_chunk: T,
   ) -> Self {
-    Self {
-      id: Identifier::from(format!("webpack/runtime/get {name} chunk filename")),
-      chunk: None,
+    Self::with_default(
+      Identifier::from(format!("webpack/runtime/get {name} chunk filename")),
+      None,
       content_type,
       source_type,
       global,
-      all_chunks: Box::new(all_chunks),
-      filename_for_chunk: Box::new(filename_for_chunk),
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+      Box::new(all_chunks),
+      Box::new(filename_for_chunk),
+    )
   }
 }
 

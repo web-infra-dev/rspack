@@ -5,7 +5,6 @@ use rspack_core::{
   RuntimeModuleStage, SourceType,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 use super::utils::get_undo_path;
 
@@ -18,12 +17,7 @@ pub struct AutoPublicPathRuntimeModule {
 
 impl Default for AutoPublicPathRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/auto_public_path"),
-      chunk: None,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(Identifier::from("webpack/runtime/auto_public_path"), None)
   }
 }
 

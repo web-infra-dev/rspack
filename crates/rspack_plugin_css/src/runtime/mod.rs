@@ -6,7 +6,6 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, stringify_chunks};
-use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet as HashSet;
 
 #[impl_runtime_module]
@@ -18,12 +17,7 @@ pub struct CssLoadingRuntimeModule {
 
 impl Default for CssLoadingRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/css_loading"),
-      chunk: None,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(Identifier::from("webpack/runtime/css_loading"), None)
   }
 }
 

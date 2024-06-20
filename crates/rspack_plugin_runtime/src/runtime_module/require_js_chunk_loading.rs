@@ -4,7 +4,6 @@ use rspack_core::{
   BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 use super::{
   generate_javascript_hmr_runtime,
@@ -24,12 +23,10 @@ pub struct RequireChunkLoadingRuntimeModule {
 
 impl Default for RequireChunkLoadingRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/require_chunk_loading"),
-      chunk: None,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(
+      Identifier::from("webpack/runtime/require_chunk_loading"),
+      None,
+    )
   }
 }
 

@@ -4,7 +4,6 @@ use rspack_core::{
   ChunkUkey, Compilation, DependenciesBlock, RuntimeModule, RuntimeModuleStage, SourceType,
 };
 use rspack_identifier::{Identifiable, Identifier};
-use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 
@@ -21,13 +20,11 @@ pub struct RemoteRuntimeModule {
 
 impl RemoteRuntimeModule {
   pub fn new(enhanced: bool) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/remotes_loading"),
-      chunk: None,
+    Self::with_default(
+      Identifier::from("webpack/runtime/remotes_loading"),
+      None,
       enhanced,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    )
   }
 }
 

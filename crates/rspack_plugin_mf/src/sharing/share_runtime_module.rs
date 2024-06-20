@@ -6,7 +6,6 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap;
 
 use super::provide_shared_plugin::ProvideVersion;
@@ -22,13 +21,7 @@ pub struct ShareRuntimeModule {
 
 impl ShareRuntimeModule {
   pub fn new(enhanced: bool) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/sharing"),
-      chunk: None,
-      enhanced,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(Identifier::from("webpack/runtime/sharing"), None, enhanced)
   }
 }
 

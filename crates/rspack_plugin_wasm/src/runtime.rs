@@ -5,13 +5,12 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 use rspack_util::infallible::ResultInfallibleExt as _;
-use rspack_util::source_map::SourceMapKind;
 
 #[impl_runtime_module]
 #[derive(Debug, Eq)]
 pub struct AsyncWasmLoadingRuntimeModule {
-  generate_load_binary_code: String,
   id: Identifier,
+  generate_load_binary_code: String,
   supports_streaming: bool,
   chunk: ChunkUkey,
 }
@@ -22,14 +21,12 @@ impl AsyncWasmLoadingRuntimeModule {
     supports_streaming: bool,
     chunk: ChunkUkey,
   ) -> Self {
-    Self {
+    Self::with_default(
+      Identifier::from("webpack/runtime/async_wasm_loading"),
       generate_load_binary_code,
-      id: Identifier::from("webpack/runtime/async_wasm_loading"),
       supports_streaming,
       chunk,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    )
   }
 }
 

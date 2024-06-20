@@ -5,7 +5,6 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 #[impl_runtime_module]
 #[derive(Debug, Eq)]
@@ -17,13 +16,11 @@ pub struct ChunkPrefetchStartupRuntimeModule {
 
 impl ChunkPrefetchStartupRuntimeModule {
   pub fn new(startup_chunks: Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/chunk_prefetch_startup"),
+    Self::with_default(
+      Identifier::from("webpack/runtime/chunk_prefetch_startup"),
       startup_chunks,
-      chunk: None,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+      None,
+    )
   }
 }
 

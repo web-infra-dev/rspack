@@ -9,6 +9,7 @@ pub fn impl_runtime_module(
   let name = &input.ident;
   let generics = &input.generics;
   let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+  let origin_fields = input.fields.clone();
 
   if let syn::Fields::Named(ref mut fields) = input.fields {
     fields.named.push(
@@ -23,8 +24,28 @@ pub fn impl_runtime_module(
     );
   }
 
+  let field_names = origin_fields
+    .iter()
+    .map(|field| field.ident.as_ref().expect("Expected named struct"))
+    .collect::<Vec<_>>();
+  let field_tys: Vec<&syn::Type> = origin_fields.iter().map(|field| &field.ty).collect();
+  let with_default = quote! {
+    #[allow(clippy::too_many_arguments)]
+    fn with_default(#(#field_names: #field_tys,)*) -> Self {
+      Self {
+        source_map_kind: ::rspack_util::source_map::SourceMapKind::empty(),
+        custom_source: None,
+        #(#field_names,)*
+      }
+    }
+  };
+
   quote! {
     #input
+
+    impl #impl_generics #name #ty_generics #where_clause {
+      #with_default
+    }
 
     impl #impl_generics ::rspack_core::CustomSourceRuntimeModule for #name #ty_generics #where_clause {
       fn set_custom_source(&mut self, source: ::rspack_core::rspack_sources::BoxSource) -> () {
@@ -84,7 +105,6 @@ pub fn impl_runtime_module(
       }
 
       fn size(&self, _source_type: Option<&::rspack_core::SourceType>) -> f64 {
-        // should get size from code generation result
         0f64
       }
 
