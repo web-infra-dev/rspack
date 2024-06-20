@@ -4301,7 +4301,9 @@ interface KnownNormalizedStatsOptions {
 type KnownStatsAsset = binding.JsStatsAsset;
 
 // @public (undocumented)
-type KnownStatsChunk = binding.JsStatsChunk;
+type KnownStatsChunk = Omit<binding.JsStatsChunk, "sizes"> & {
+    sizes: Record<string, number>;
+};
 
 // @public (undocumented)
 type KnownStatsCompilation = {

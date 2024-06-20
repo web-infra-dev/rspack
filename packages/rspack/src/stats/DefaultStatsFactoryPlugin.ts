@@ -917,7 +917,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.auxiliaryFiles = chunk.auxiliaryFiles;
 			object.childrenByOrder = chunk.childrenByOrder;
 			object.runtime = chunk.runtime;
-			object.sizes = chunk.sizes;
+			object.sizes = Object.fromEntries(
+				chunk.sizes.map(({ sourceType, size }) => [sourceType, size])
+			);
 			object.reason = chunk.reason;
 			object.rendered = chunk.rendered;
 		},

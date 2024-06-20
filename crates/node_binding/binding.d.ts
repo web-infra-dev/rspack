@@ -499,7 +499,7 @@ export interface JsStatsChunk {
   siblings?: Array<string>
   childrenByOrder: Record<string, Array<string>>
   runtime: Array<string>
-  sizes: Record<string, number>
+  sizes: Array<JsStatsSize>
   reason?: string
   rendered: boolean
   origins: Array<JsOriginRecord>
@@ -600,6 +600,11 @@ export interface JsStatsModuleReason {
 
 export interface JsStatsOptimizationBailout {
   inner: string
+}
+
+export interface JsStatsSize {
+  sourceType: string
+  size: number
 }
 
 export interface JsStatsSourceTypeSize {
