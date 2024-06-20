@@ -24,7 +24,12 @@ new rspack.CopyRspackPlugin(options);
       | string // 如果传入字符串，会被视作 { from: `你传入的字符串` }
       | {
           from: string;
-          to?: string; // 默认根据 from 推断
+          to?:
+            | string
+            | ((pathData: {
+                context: string;
+                absoluteFilename?: string;
+              }) => string); // 默认根据 from 推断
           context?: string; // 默认 Rspack 配置中的 context
           toType?: 'dir' | 'file' | 'template'; // 默认根据 from 推断
           noErrorOnMissing?: boolean; // 默认 false
@@ -75,10 +80,10 @@ new rspack.CopyRspackPlugin(options);
       },
       {
         name: '`to`',
-        type: '`string`',
+        type: '`string | ((pathData: { context: string; absoluteFilename?: string }) => string)`',
         default: 'undefined',
         description:
-          "复制的目的地，可以是绝对路径、相对路径或者是 Rspack 的模版字符串，例如 `'[name].[hash][ext]'`。当不指定 `to` 时，则相当于是产物目录。",
+          "复制的输出路径，可以是绝对路径、相对路径或者是 Rspack 的模版字符串，例如 `'[name].[hash][ext]'`。当不指定 `to` 时，则相当于是产物目录。",
       },
       {
         name: '`context`',

@@ -774,7 +774,7 @@ export interface RawCopyGlobOptions {
 
 export interface RawCopyPattern {
   from: string
-  to?: string
+  to?: string | ((pathData: { context: string; absoluteFilename?: string }) => string)
   context?: string
   toType?: string
   noErrorOnMissing: boolean
@@ -1407,6 +1407,11 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
   test?: string | RegExp | (string | RegExp)[]
   include?: string | RegExp | (string | RegExp)[]
   exclude?: string | RegExp | (string | RegExp)[]
+}
+
+export interface RawToOptions {
+  context: string
+  absoluteFilename?: string
 }
 
 export interface RawTrustedTypes {
