@@ -3,9 +3,10 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use rspack_core::rspack_sources::{RawSource, SourceExt};
+use rspack_core::EntryOptions;
 use rspack_core::{
-  AssetInfo, Compilation, CompilationAsset, CompilationProcessAssets, ExportInfoProvided, Plugin,
-  PluginContext,
+  AssetInfo, Compilation, CompilationAsset, CompilationProcessAssets, CompilerFinishMake,
+  EntryDependency, ExportInfoProvided, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -13,13 +14,66 @@ use rspack_util::path::relative;
 use serde_json::to_string;
 use sugar_path::SugarPath;
 
-use crate::utils::decl::{ClientRef, ClientReferenceManifest, ServerRef, ServerReferenceManifest};
+use crate::utils::decl::{
+  ClientRef, ClientReferenceManifest, ReactRoute, ServerRef, ServerReferenceManifest,
+};
 use crate::utils::has_client_directive;
 use crate::utils::shared_data::{SHARED_CLIENT_IMPORTS, SHARED_DATA};
 
+#[derive(Debug, Default, Clone)]
+pub struct RSCClientReferenceManifestRspackPluginOptions {
+  pub routes: Vec<ReactRoute>,
+}
+
 #[plugin]
 #[derive(Debug, Default, Clone)]
-pub struct RSCClientReferenceManifestRspackPlugin;
+pub struct RSCClientReferenceManifestRspackPlugin {
+  pub options: RSCClientReferenceManifestRspackPluginOptions,
+}
+
+impl RSCClientReferenceManifestRspackPlugin {
+  pub fn new(options: RSCClientReferenceManifestRspackPluginOptions) -> Self {
+    Self::new_inner(options)
+  }
+  async fn add_entry(&self, compilation: &mut Compilation) -> Result<()> {
+    // TODO: server-entry is Server compiler entry chunk name
+    // we should read it from SHARED_CLIENT_IMPORTS, in this way we do not need options.routes config
+    // however, access SHARED_CLIENT_IMPORTS will throw thread error
+    let context = compilation.options.context.clone();
+    let request = format!(
+      "rsc-client-entry-loader.js?from={}&name={}",
+      "client-entry", "server-entry"
+    );
+    let entry = Box::new(EntryDependency::new(request, context.clone(), false));
+    compilation
+      .add_include(
+        entry,
+        EntryOptions {
+          name: Some(String::from("client-entry")),
+          ..Default::default()
+        },
+      )
+      .await?;
+    for ReactRoute { name, .. } in self.options.routes.clone() {
+      let request = format!(
+        "rsc-client-entry-loader.js?from={}&name={}",
+        "route-entry", name
+      );
+      let entry = Box::new(EntryDependency::new(request, context.clone(), false));
+      compilation
+        .add_include(
+          entry,
+          EntryOptions {
+            name: Some(String::from("client-entry")),
+            ..Default::default()
+          },
+        )
+        .await?;
+    }
+    Ok(())
+  }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct RSCClientReferenceManifest;
 
@@ -27,6 +81,12 @@ pub struct RSCClientReferenceManifest;
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let plugin = RSCClientReferenceManifest {};
   plugin.process_assets_stage_optimize_hash(compilation)
+}
+
+#[plugin_hook(CompilerFinishMake for RSCClientReferenceManifestRspackPlugin)]
+async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+  self.add_entry(compilation).await?;
+  Ok(())
 }
 
 impl RSCClientReferenceManifest {
@@ -235,6 +295,11 @@ impl Plugin for RSCClientReferenceManifestRspackPlugin {
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
     _options: &mut rspack_core::CompilerOptions,
   ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .finish_make
+      .tap(finish_make::new(self));
     ctx
       .context
       .compilation_hooks

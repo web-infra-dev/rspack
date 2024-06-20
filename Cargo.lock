@@ -4699,6 +4699,7 @@ dependencies = [
  "async-trait",
  "bitflags 2.5.0",
  "dashmap",
+ "futures",
  "indexmap 2.2.6",
  "itertools 0.12.1",
  "linked_hash_set",

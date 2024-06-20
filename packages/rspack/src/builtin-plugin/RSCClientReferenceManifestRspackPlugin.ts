@@ -3,35 +3,29 @@ import type { RawRscClientReferenceManifestRspackPluginOptions } from "@rspack/b
 import { BuiltinPluginName } from "@rspack/binding";
 
 import type { Compiler } from "../Compiler";
-import type { RuleSetCondition } from "../config/zod";
 import type { RspackBuiltinPlugin } from "./base";
 import { create } from "./base";
 
 const RawRSCClientReferenceManifestRspackPlugin = create(
 	BuiltinPluginName.RSCClientReferenceManifestRspackPlugin,
-	() => {},
+	options => options,
 	"compilation"
 );
 
 interface ResolvedOptions {
-	routes: NonNullable<
-		RawRscClientReferenceManifestRspackPluginOptions["routes"]
-	>;
-	entry: Record<string, string>;
 	root: string;
 }
 
-interface Options
-	extends Pick<RawRscClientReferenceManifestRspackPluginOptions, "routes"> {
-	exclude?: RuleSetCondition;
-}
+interface Options extends RawRscClientReferenceManifestRspackPluginOptions {}
 
 export class RSCClientReferenceManifestRspackPlugin {
 	plugin: RspackBuiltinPlugin;
 	options: Options;
 	resolvedOptions: ResolvedOptions;
-	constructor(options: Options = {}) {
-		this.plugin = new RawRSCClientReferenceManifestRspackPlugin();
+	constructor(options: Options) {
+		this.plugin = new RawRSCClientReferenceManifestRspackPlugin({
+			routes: options.routes
+		});
 		this.options = options;
 		this.resolvedOptions = {} as any;
 	}
@@ -42,11 +36,7 @@ export class RSCClientReferenceManifestRspackPlugin {
 			compiler.options.module.rules = [];
 		}
 		compiler.options.module.rules.push({
-			test: [/\.(j|t|mj|cj)sx?$/i],
-			exclude: this.options.exclude ?? {
-				// Exclude libraries in node_modules ...
-				and: [/node_modules/]
-			},
+			test: /rsc-client-entry-loader\.(j|t|mj|cj)sx?/,
 			use: [
 				{
 					loader: "builtin:rsc-client-entry-loader",
@@ -56,25 +46,11 @@ export class RSCClientReferenceManifestRspackPlugin {
 		});
 	}
 	resolveOptions(compiler: Compiler): ResolvedOptions {
-		const entry = Object.assign({}, compiler.options.entry);
-		const resolvedEntry: Record<string, string> = {};
 		const root = compiler.options.context ?? process.cwd();
-		// TODO: support dynamic entry
-		if (typeof entry === "object") {
-			for (let item of Object.keys(entry)) {
-				const imports = entry[item].import;
-				if (imports) {
-					resolvedEntry[item] = imports[0];
-				}
-			}
-		}
-		const resolvedRoutes = this.options.routes ?? [];
 		// TODO: config output
 		const output = path.resolve(root, "./dist/server");
 		return {
-			entry: resolvedEntry,
-			root: output,
-			routes: resolvedRoutes
+			root: output
 		};
 	}
 }

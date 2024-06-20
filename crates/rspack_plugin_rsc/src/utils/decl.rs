@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use indexmap::set::IndexSet;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::export_visitor::ExportSpecifier;
 
@@ -40,4 +40,10 @@ pub struct ClientRef {
 pub struct RSCAdditionalData {
   pub directives: Vec<String>,
   pub exports: Vec<ExportSpecifier>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ReactRoute {
+  pub name: String,
+  pub import: String,
 }

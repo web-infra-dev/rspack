@@ -94,7 +94,9 @@ pub use self::{
   raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
   raw_mf::RawContainerPluginOptions,
   raw_progress::RawProgressPluginOptions,
-  raw_rsc::RawRSCClientEntryRspackPluginOptions,
+  raw_rsc::{
+    RawRSCClientEntryRspackPluginOptions, RawRSCClientReferenceManifestRspackPluginOptions,
+  },
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
 use self::{
@@ -566,7 +568,9 @@ impl BuiltinPlugin {
         plugins.push(RSCClientEntryRspackPlugin::new(plugin_options.into()).boxed())
       }
       BuiltinPluginName::RSCClientReferenceManifestRspackPlugin => {
-        plugins.push(RSCClientReferenceManifestRspackPlugin::default().boxed())
+        let plugin_options: RawRSCClientReferenceManifestRspackPluginOptions =
+          downcast_into::<RawRSCClientReferenceManifestRspackPluginOptions>(self.options)?;
+        plugins.push(RSCClientReferenceManifestRspackPlugin::new(plugin_options.into()).boxed())
       }
     }
     Ok(())
