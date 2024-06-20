@@ -53,55 +53,65 @@ class def {
 }),
 "./dep.js?a": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
   x: function() { return x; }
 });
 const x = "x";
 
-/* harmony default export */ __webpack_exports__["default"] = (true);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (true);
 
 
 }),
-"./dep.js?b": (function (__unused_webpack_module, __webpack_exports__) {
+"./dep.js?b": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 const x = "x";
 
-/* harmony default export */ __webpack_exports__["default"] = (false);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (false);
 
 
 }),
 "./dep.js?c": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
   x: function() { return x; }
 });
 const x = "x";
 
-/* harmony default export */ __webpack_exports__["default"] = (true);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (true);
 
 
 }),
 "./dep.js?d": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
   x: function() { return x; }
 });
 const x = "x";
 
-/* harmony default export */ __webpack_exports__["default"] = (true);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (true);
 
 
 }),
-"./dep.js?e": (function (__unused_webpack_module, __webpack_exports__) {
+"./dep.js?e": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 const x = "x";
 
-/* harmony default export */ __webpack_exports__["default"] = (false);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (false);
 
 
 }),
 "./dep.js?f": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
   x: function() { return x; }
 });
 const x = "x";
 
-/* harmony default export */ __webpack_exports__["default"] = (true);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (true);
 
 
 }),

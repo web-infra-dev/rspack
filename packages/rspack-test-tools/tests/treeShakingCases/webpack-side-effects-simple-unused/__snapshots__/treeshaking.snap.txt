@@ -32,6 +32,9 @@ var z = "z";
 
 }),
 "../node_modules/pmodule/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/tracker.js");
 
 
@@ -39,7 +42,7 @@ var z = "z";
 
 (0,_tracker__WEBPACK_IMPORTED_MODULE_0__.track)("index.js");
 
-/* harmony default export */ __webpack_exports__["default"] = ("def");
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ("def");
 
 
 }),

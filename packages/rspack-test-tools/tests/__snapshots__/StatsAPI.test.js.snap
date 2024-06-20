@@ -222,7 +222,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 704,
+      "size": 761,
       "type": "asset",
     },
   ],
@@ -491,10 +491,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 704,
+          "size": 761,
         },
       ],
-      "assetsSize": 704,
+      "assetsSize": 761,
       "chunks": Array [
         "909",
       ],
@@ -504,7 +504,7 @@ Object {
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "23ccfb7f871f0e79f18a",
+  "hash": "ab30e6de8b30ef4cc8fb",
   "modules": Array [
     Object {
       "assets": Array [],
@@ -855,10 +855,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 704,
+          "size": 761,
         },
       ],
-      "assetsSize": 704,
+      "assetsSize": 761,
       "chunks": Array [
         "909",
       ],

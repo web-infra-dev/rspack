@@ -866,6 +866,7 @@ export interface RawEntryPluginOptions {
 }
 
 export interface RawEnvironment {
+  const?: boolean
   arrowFunction?: boolean
 }
 

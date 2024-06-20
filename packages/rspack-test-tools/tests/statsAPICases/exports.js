@@ -24,8 +24,8 @@ module.exports = {
 		expect(typeof stats?.hash).toBe("string");
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
-		"asset main.js 704 bytes [emitted] (name: main)
-		Entrypoint main 704 bytes = main.js
+		"asset main.js 761 bytes [emitted] (name: main)
+		Entrypoint main 761 bytes = main.js
 		runtime modules 677 bytes 3 modules
 		cacheable modules 192 bytes
 		  ./fixtures/esm/abc.js 80 bytes [built] [code generated]

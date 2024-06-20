@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 748
+- Update: main.LAST_HASH.hot-update.js, size: 814
 
 ## Manifest
 
@@ -35,12 +35,13 @@ self["webpackHotUpdate"]('main', {
 "./a.js": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
   getError: function() { return getError; },
   id: function() { return id; }
 });
 module.hot.data.store.error = false;
 module.hot.data.store.value = 2;
-/* harmony default export */ __webpack_exports__["default"] = (() => { throw new Error("should not happen") });
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (() => { throw new Error("should not happen") });
 const getError = () => { throw new Error("should not happen") };
 const id = module.id;
 throw new Error("Failed");
