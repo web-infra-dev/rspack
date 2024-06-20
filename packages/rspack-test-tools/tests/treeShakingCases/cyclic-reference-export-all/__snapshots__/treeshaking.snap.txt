@@ -2,6 +2,9 @@
 "use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./src/App.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 /* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/containers.js");
 
 const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0__;
@@ -11,7 +14,7 @@ const Index = () => {
 	return "something";
 };
 
-/* harmony default export */ __webpack_exports__["default"] = (Index);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (Index);
 
 
 }),

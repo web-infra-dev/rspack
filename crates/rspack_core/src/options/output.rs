@@ -394,10 +394,15 @@ pub struct LibraryCustomUmdObject {
 
 #[derive(Debug)]
 pub struct Environment {
+  pub r#const: Option<bool>,
   pub arrow_function: Option<bool>,
 }
 
 impl Environment {
+  pub fn supports_const(&self) -> bool {
+    self.r#const.unwrap_or_default()
+  }
+
   pub fn supports_arrow_function(&self) -> bool {
     self.arrow_function.unwrap_or_default()
   }

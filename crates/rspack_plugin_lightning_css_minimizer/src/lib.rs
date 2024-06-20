@@ -48,7 +48,7 @@ impl LightningCssMinimizerRspackPlugin {
 }
 
 #[plugin_hook(CompilationChunkHash for LightningCssMinimizerRspackPlugin)]
-fn chunk_hash(
+async fn chunk_hash(
   &self,
   _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,

@@ -281,15 +281,11 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(
 })();
 /************************************************************************/
 var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
-(() => {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?b16f");
 
 
 __webpack_require__.e(/* import() | async */ "async").then(__webpack_require__.bind(__webpack_require__, "./async.css?833a"));
-
-})();
 
 })()
 ;

@@ -1,9 +1,12 @@
 ```js title=main.js
 "use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./app.js": (function (__unused_webpack_module, __webpack_exports__) {
+"./app.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 var a = 1;
-/* harmony default export */ __webpack_exports__["default"] = (a);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (a);
 
 
 }),

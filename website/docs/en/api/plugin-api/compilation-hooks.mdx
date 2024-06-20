@@ -36,6 +36,12 @@ Executed when a module has been built successfully.
 
 Called when all modules have been built without errors.
 
+## `chunkHash`
+
+`SyncHook<[JsChunk, Hash]>`
+
+Triggered when calculating the chunk hash for a chunk.
+
 ## `chunkAsset`
 
 `SyncHook<[JsChunk[], string /** filename*/ ]>`

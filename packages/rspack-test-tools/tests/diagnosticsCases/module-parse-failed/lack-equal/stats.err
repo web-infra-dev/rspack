@@ -1,11 +1,12 @@
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[3:1]
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
+         ╭─[1:1]
+       1 │ const CONST = 9000 % 2;
+       2 │ const D {
+         ·         ─
        3 │     d = 10
        4 │     g = CONST
-       5 │ }
-         · ─
          ╰────
       
   help: 

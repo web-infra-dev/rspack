@@ -278,7 +278,7 @@ export interface JsChunk {
   hash?: string
   contentHash: Record<string, string>
   renderedHash?: string
-  chunkReasons: Array<string>
+  chunkReason: Array<string>
   auxiliaryFiles: Array<string>
 }
 
@@ -792,7 +792,7 @@ export interface RawCopyGlobOptions {
 
 export interface RawCopyPattern {
   from: string
-  to?: string
+  to?: string | ((pathData: { context: string; absoluteFilename?: string }) => string)
   context?: string
   toType?: string
   noErrorOnMissing: boolean
@@ -884,6 +884,7 @@ export interface RawEntryPluginOptions {
 }
 
 export interface RawEnvironment {
+  const?: boolean
   arrowFunction?: boolean
 }
 
@@ -1426,6 +1427,11 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
   exclude?: string | RegExp | (string | RegExp)[]
 }
 
+export interface RawToOptions {
+  context: string
+  absoluteFilename?: string
+}
+
 export interface RawTrustedTypes {
   policyName?: string
 }
@@ -1459,16 +1465,18 @@ export enum RegisterJsTapKind {
   CompilationOptimizeChunkModules = 16,
   CompilationAdditionalTreeRuntimeRequirements = 17,
   CompilationRuntimeModule = 18,
-  CompilationChunkAsset = 19,
-  CompilationProcessAssets = 20,
-  CompilationAfterProcessAssets = 21,
-  CompilationAfterSeal = 22,
-  NormalModuleFactoryBeforeResolve = 23,
-  NormalModuleFactoryAfterResolve = 24,
-  NormalModuleFactoryCreateModule = 25,
-  NormalModuleFactoryResolveForScheme = 26,
-  ContextModuleFactoryBeforeResolve = 27,
-  ContextModuleFactoryAfterResolve = 28
+  CompilationChunkHash = 19,
+  CompilationChunkAsset = 20,
+  CompilationProcessAssets = 21,
+  CompilationAfterProcessAssets = 22,
+  CompilationAfterSeal = 23,
+  NormalModuleFactoryBeforeResolve = 24,
+  NormalModuleFactoryAfterResolve = 25,
+  NormalModuleFactoryCreateModule = 26,
+  NormalModuleFactoryResolveForScheme = 27,
+  ContextModuleFactoryBeforeResolve = 28,
+  ContextModuleFactoryAfterResolve = 29,
+  JavascriptModulesChunkHash = 30
 }
 
 export interface RegisterJsTaps {
@@ -1491,6 +1499,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationOptimizeTreeTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerCompilationOptimizeChunkModulesTaps: (stages: Array<number>) => Array<{ function: (() => Promise<boolean | undefined>); stage: number; }>
+  registerCompilationChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>
   registerCompilationChunkAssetTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
@@ -1501,6 +1510,7 @@ export interface RegisterJsTaps {
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>
+  registerJavascriptModulesChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>
 }
 
 export interface ThreadsafeNodeFS {

@@ -76,19 +76,23 @@ const exportDefaultUsed = false;
 }),
 "./package2/script.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
   exportDefaultUsed: function() { return exportDefaultUsed; }
 });
 /* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./package2/script1.js");
 
-/* harmony default export */ __webpack_exports__["default"] = (_script1__WEBPACK_IMPORTED_MODULE_0__["default"]);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_script1__WEBPACK_IMPORTED_MODULE_0__["default"]);
 
 
 const exportDefaultUsed = true;
 
 
 }),
-"./package2/script1.js": (function (__unused_webpack_module, __webpack_exports__) {
-/* harmony default export */ __webpack_exports__["default"] = (1);
+"./package2/script1.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (1);
 
 
 }),

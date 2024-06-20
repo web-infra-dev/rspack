@@ -3,20 +3,26 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["lib_js"], {
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 /* harmony import */var _test__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./test.js");
 
 function myanswer() {
 	_test__WEBPACK_IMPORTED_MODULE_0__["default"];
 }
 
-/* harmony default export */ __webpack_exports__["default"] = (myanswer);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (myanswer);
 
 
 }),
-"./test.js": (function (__unused_webpack_module, __webpack_exports__) {
+"./test.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 function test() {}
 
-/* harmony default export */ __webpack_exports__["default"] = (test);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (test);
 
 
 }),

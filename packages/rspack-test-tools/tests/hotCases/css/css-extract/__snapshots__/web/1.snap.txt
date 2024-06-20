@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 916
+- Update: main.LAST_HASH.hot-update.js, size: 1144
 
 ## Manifest
 
@@ -16,7 +16,7 @@
 {"c":["main"],"r":[],"m":[]}
 ```
 
-		
+
 ## Update
 
 
@@ -35,18 +35,24 @@
 self["webpackHotUpdate"]('main', {
 "./entry.js": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 /* harmony import */var _index_module_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./index.module.css */ "./index.module.css");
 
 module.hot.accept();
 // modify
-/* harmony default export */ __webpack_exports__["default"] = (_index_module_css__WEBPACK_IMPORTED_MODULE_0__["default"]);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_index_module_css__WEBPACK_IMPORTED_MODULE_0__["default"]);
 
 
 }),
 "./index.module.css": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 // extracted by css-extract-rspack-plugin
-/* harmony default export */ __webpack_exports__["default"] = ({"bar":"Te04splqSHRbkdUMfiwa"});
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({"bar":"Te04splqSHRbkdUMfiwa"});
 
 }),
 

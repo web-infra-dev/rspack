@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "license": "MIT",
   "description": "CLI for rspack",
   "bin": {
@@ -11,7 +11,7 @@
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -b -w",
-    "test": "cross-env jest --runInBand"
+    "test": "cross-env jest --runInBand --colors"
   },
   "files": [
     "bin",

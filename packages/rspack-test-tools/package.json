@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -19,10 +19,10 @@
     "dev:viewer": "rspack serve",
     "dev": "tsc -b -w",
     "test": "sh -c 'run-s \"test:* -- $*\"' sh",
-    "testu": "sh -c 'run-s \"test:* -- $*\"' sh -u",
-    "test:base": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --config ./jest.config.js --passWithNoTests",
-    "test:hot": "cross-env RSPACK_HOT_TEST=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --config ./jest.config.hot.js --passWithNoTests",
-    "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --config ./jest.config.diff.js --passWithNoTests",
+    "testu": "sh -c 'run-s \"test:* -u -- $*\"' sh",
+    "test:base": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.js --passWithNoTests",
+    "test:hot": "cross-env RSPACK_HOT_TEST=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.hot.js --passWithNoTests",
+    "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.diff.js --passWithNoTests",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },

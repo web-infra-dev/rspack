@@ -44,8 +44,8 @@ pub struct Chunk {
   pub hash: Option<RspackHashDigest>,
   pub rendered_hash: Option<Arc<str>>,
   pub content_hash: ChunkContentHash,
-  // TODO: remove
   pub chunk_reasons: Vec<String>,
+  // TODO: remove it
   pub chunk_reason: Option<String>,
   pub rendered: bool,
 }

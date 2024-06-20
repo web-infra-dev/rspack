@@ -1,3 +1,6 @@
+use std::collections::{HashMap, HashSet};
+use std::ops::Deref;
+use std::sync::Arc;
 pub mod api_plugin;
 mod drive;
 mod flag_dependency_exports_plugin;
@@ -8,8 +11,8 @@ pub mod inner_graph_plugin;
 mod mangle_exports_plugin;
 pub mod module_concatenation_plugin;
 mod side_effects_flag_plugin;
-
 use std::borrow::Cow;
+use std::collections::hash_map::Entry;
 use std::hash::Hash;
 
 pub use drive::*;
@@ -19,53 +22,94 @@ use indoc::indoc;
 pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
 use once_cell::sync::Lazy;
-use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
-use rspack_core::{
-  basic_function, render_init_fragments, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ExportsArgument,
-  RuntimeGlobals, SourceType,
+use rspack_ast::javascript::Ast;
+use rspack_core::concatenated_module::find_new_name;
+use rspack_core::reserved_names::RESERVED_NAMES;
+use rspack_core::rspack_sources::{
+  BoxSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt,
 };
+use rspack_core::{
+  basic_function, render_init_fragments, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext,
+  ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId,
+  ConcatenatedModuleIdent, ExportsArgument, Module, RuntimeGlobals, SourceType, SpanExt,
+};
+use rspack_core::{BoxModule, IdentCollector};
 use rspack_error::Result;
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
+use rspack_identifier::IdentifierLinkedMap;
 use rspack_util::diff_mode;
-use rspack_util::fx_hash::{BuildFxHasher, FxDashMap};
+use rspack_util::fx_hash::FxDashMap;
 pub use side_effects_flag_plugin::*;
+use swc_core::atoms::Atom;
+use swc_core::common::{FileName, Spanned, SyntaxContext};
+use swc_core::ecma::transforms::base::resolver;
 
 use crate::runtime::{
   render_chunk_modules, render_module, render_runtime_modules, stringify_array,
 };
 
-static COMPILATION_DRIVES_MAP: Lazy<FxDashMap<CompilationId, JavascriptModulesPluginPluginDrive>> =
+static COMPILATION_HOOKS_MAP: Lazy<FxDashMap<CompilationId, Box<JavascriptModulesPluginHooks>>> =
   Lazy::new(Default::default);
+
+#[derive(Debug, Clone)]
+struct WithHash<T> {
+  hash: Option<RspackHashDigest>,
+  value: T,
+}
+
+#[derive(Debug, Default)]
+struct RenameModuleCache {
+  inlined_modules_to_info: FxDashMap<String, WithHash<InlinedModuleInfo>>,
+  non_inlined_modules_through_idents: FxDashMap<String, WithHash<Vec<ConcatenatedModuleIdent>>>,
+}
+
+impl RenameModuleCache {
+  pub fn get_inlined_info(
+    &self,
+    ident: &String,
+  ) -> Option<dashmap::mapref::one::Ref<'_, String, WithHash<InlinedModuleInfo>>> {
+    self.inlined_modules_to_info.get(ident)
+  }
+
+  pub fn get_non_inlined_idents(
+    &self,
+    ident: &String,
+  ) -> Option<dashmap::mapref::one::Ref<'_, String, WithHash<Vec<ConcatenatedModuleIdent>>>> {
+    self.non_inlined_modules_through_idents.get(ident)
+  }
+}
 
 #[plugin]
 #[derive(Debug, Default)]
-pub struct JsPlugin;
+pub struct JsPlugin {
+  rename_module_cache: RenameModuleCache,
+}
+
+#[derive(Debug, Clone)]
+struct InlinedModuleInfo {
+  source: Arc<dyn Source>,
+  module_scope_idents: Vec<Arc<ConcatenatedModuleIdent>>,
+  used_in_non_inlined: Vec<Arc<ConcatenatedModuleIdent>>,
+}
 
 impl JsPlugin {
-  pub fn get_compilation_drives(
+  pub fn get_compilation_hooks(
     compilation: &Compilation,
-  ) -> dashmap::mapref::one::Ref<'_, CompilationId, JavascriptModulesPluginPluginDrive, BuildFxHasher>
-  {
+  ) -> dashmap::mapref::one::Ref<'_, CompilationId, Box<JavascriptModulesPluginHooks>> {
     let id = compilation.id();
-    if !COMPILATION_DRIVES_MAP.contains_key(&id) {
-      COMPILATION_DRIVES_MAP.insert(id, Default::default());
+    if !COMPILATION_HOOKS_MAP.contains_key(&id) {
+      COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
-    COMPILATION_DRIVES_MAP
+    COMPILATION_HOOKS_MAP
       .get(&id)
       .expect("should have js plugin drive")
   }
 
-  pub fn get_compilation_drives_mut(
+  pub fn get_compilation_hooks_mut(
     compilation: &Compilation,
-  ) -> dashmap::mapref::one::RefMut<
-    '_,
-    CompilationId,
-    JavascriptModulesPluginPluginDrive,
-    BuildFxHasher,
-  > {
-    COMPILATION_DRIVES_MAP.entry(compilation.id()).or_default()
+  ) -> dashmap::mapref::one::RefMut<'_, CompilationId, Box<JavascriptModulesPluginHooks>> {
+    COMPILATION_HOOKS_MAP.entry(compilation.id()).or_default()
   }
 
   pub fn render_require(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> Vec<Cow<str>> {
@@ -149,7 +193,7 @@ impl JsPlugin {
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
-  ) -> RenderBootstrapResult {
+  ) -> Result<RenderBootstrapResult> {
     let runtime_requirements = compilation
       .chunk_graph
       .get_chunk_runtime_requirements(chunk_ukey);
@@ -304,12 +348,9 @@ impl JsPlugin {
             buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
             allow_inline_startup = false;
           }
-          if allow_inline_startup
-            && let Some(bailout) = {
-              let drive = JsPlugin::get_compilation_drives(compilation);
-              drive.inline_in_runtime_bailout()
-            }
-          {
+          let hooks = JsPlugin::get_compilation_hooks(compilation);
+          let bailout = hooks.inline_in_runtime_bailout.call(compilation)?;
+          if allow_inline_startup && let Some(bailout) = bailout {
             buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
             allow_inline_startup = false;
           }
@@ -459,11 +500,11 @@ impl JsPlugin {
       startup.push(format!("var __webpack_exports__ = {}();", RuntimeGlobals::STARTUP).into());
     }
 
-    RenderBootstrapResult {
+    Ok(RenderBootstrapResult {
       header,
       startup,
       allow_inline_startup,
-    }
+    })
   }
 
   pub async fn render_main(
@@ -471,7 +512,7 @@ impl JsPlugin {
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
   ) -> Result<BoxSource> {
-    let drive = Self::get_compilation_drives(compilation);
+    let hooks = Self::get_compilation_hooks(compilation);
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let supports_arrow_function = compilation
       .options
@@ -488,7 +529,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
-    } = self.render_bootstrap(chunk_ukey, compilation);
+    } = self.render_bootstrap(chunk_ukey, compilation)?;
     let module_graph = &compilation.get_module_graph();
     let all_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
       chunk_ukey,
@@ -521,7 +562,7 @@ impl JsPlugin {
         build_info.strict
       })
     {
-      if let Some(strict_bailout) = drive.strict_runtime_bailout(compilation, chunk_ukey)? {
+      if let Some(strict_bailout) = hooks.strict_runtime_bailout.call(compilation, chunk_ukey)? {
         sources.add(RawSource::from(format!(
           "// runtime can't be in strict mode because {strict_bailout}.\n"
         )));
@@ -530,16 +571,19 @@ impl JsPlugin {
         sources.add(RawSource::from("\"use strict\";\n"));
       }
     }
-    let chunk_modules = if let Some(inlined_modules) = inlined_modules {
+
+    let chunk_modules: Vec<&Box<dyn Module>> = if let Some(inlined_modules) = inlined_modules {
       all_modules
+        .clone()
         .into_iter()
         .filter(|m| !inlined_modules.contains_key(&m.identifier()))
-        .collect()
+        .collect::<Vec<_>>()
     } else {
-      all_modules
+      all_modules.clone()
     };
+
     let chunk_modules_result =
-      render_chunk_modules(compilation, chunk_ukey, chunk_modules, all_strict)?;
+      render_chunk_modules(compilation, chunk_ukey, &chunk_modules, all_strict)?;
     let has_chunk_modules_result = chunk_modules_result.is_some();
     if has_chunk_modules_result
       || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES)
@@ -588,15 +632,34 @@ impl JsPlugin {
         "var {} = {{}};\n",
         RuntimeGlobals::EXPORTS
       )));
+
+      let renamed_inline_modules = self.rename_inline_modules(
+        &all_modules,
+        inlined_modules,
+        compilation,
+        chunk_ukey,
+        all_strict,
+      )?;
+
       for (m_identifier, _) in inlined_modules {
         let m = module_graph
           .module_by_identifier(m_identifier)
           .expect("should have module");
-        let Some((rendered_module, fragments, additional_fragments)) =
+        let Some((mut rendered_module, fragments, additional_fragments)) =
           render_module(compilation, chunk_ukey, m, all_strict, false)?
         else {
           continue;
         };
+
+        if renamed_inline_modules
+          .get(&m_identifier.to_string())
+          .is_some()
+        {
+          if let Some(source) = renamed_inline_modules.get(&m_identifier.to_string()) {
+            rendered_module = source.clone();
+          };
+        }
+
         chunk_init_fragments.extend(fragments);
         chunk_init_fragments.extend(additional_fragments);
         let inner_strict = !all_strict && m.build_info().expect("should have build_info").strict;
@@ -613,13 +676,12 @@ impl JsPlugin {
           Some("it need to be in strict mode.".into())
         } else if inlined_modules.len() > 1 {
           Some("it need to be isolated against other entry modules.".into())
-        } else if has_chunk_modules_result {
-          Some("it need to be isolated against other modules in the chunk.".into())
         } else if exports && !webpack_exports {
           Some(format!("it uses a non-standard name for the exports ({exports_argument}).").into())
         } else {
-          drive
-            .embed_in_runtime_bailout(compilation, m, chunk)?
+          hooks
+            .embed_in_runtime_bailout
+            .call(compilation, m, chunk)?
             .map(|s| s.into())
         };
         let footer;
@@ -661,28 +723,32 @@ impl JsPlugin {
           RuntimeGlobals::EXPORTS,
         )));
       }
-      if let Some(source) = drive.render_startup(RenderJsStartupArgs {
-        compilation,
-        chunk: chunk_ukey,
-        module: *last_entry_module,
+      let mut render_source = RenderSource {
         source: startup_sources.boxed(),
-      })? {
-        sources.add(source);
-      }
+      };
+      hooks.render_startup.call(
+        compilation,
+        chunk_ukey,
+        last_entry_module,
+        &mut render_source,
+      )?;
+      sources.add(render_source.source);
     } else if let Some(last_entry_module) = compilation
       .chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
       .keys()
       .last()
     {
-      if let Some(source) = drive.render_startup(RenderJsStartupArgs {
-        compilation,
-        chunk: chunk_ukey,
-        module: *last_entry_module,
+      let mut render_source = RenderSource {
         source: RawSource::from(startup.join("\n") + "\n").boxed(),
-      })? {
-        sources.add(source);
-      }
+      };
+      hooks.render_startup.call(
+        compilation,
+        chunk_ukey,
+        last_entry_module,
+        &mut render_source,
+      )?;
+      sources.add(render_source.source);
     }
     if has_entry_modules
       && runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME)
@@ -692,23 +758,264 @@ impl JsPlugin {
     if iife {
       sources.add(RawSource::from("})()\n"));
     }
-    let mut final_source = render_init_fragments(
+    let final_source = render_init_fragments(
       sources.boxed(),
       chunk_init_fragments,
       &mut ChunkRenderContext {},
     )?;
-    if let Some(source) = drive.render(RenderJsArgs {
-      compilation,
-      chunk: chunk_ukey,
-      source: &final_source,
-    })? {
-      final_source = source;
+    let mut render_source = RenderSource {
+      source: final_source,
     };
+    hooks
+      .render
+      .call(compilation, chunk_ukey, &mut render_source)?;
     Ok(if iife {
-      ConcatSource::new([final_source, RawSource::from(";").boxed()]).boxed()
+      ConcatSource::new([render_source.source, RawSource::from(";").boxed()]).boxed()
     } else {
-      final_source
+      render_source.source
     })
+  }
+
+  pub fn rename_inline_modules(
+    &self,
+    all_modules: &[&BoxModule],
+    inlined_modules: &IdentifierLinkedMap<ChunkGroupUkey>,
+    compilation: &Compilation,
+    chunk_ukey: &ChunkUkey,
+    all_strict: bool,
+  ) -> Result<HashMap<String, Arc<dyn Source>>> {
+    let mut inlined_modules_to_info: HashMap<String, InlinedModuleInfo> = HashMap::new();
+    let mut non_inlined_module_through_idents: Vec<ConcatenatedModuleIdent> = Vec::new();
+    let mut renamed_inline_modules: HashMap<String, Arc<dyn Source>> = HashMap::new();
+    let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string()));
+
+    for m in all_modules.iter() {
+      let is_inlined_module = inlined_modules.contains_key(&m.identifier());
+
+      let Some((rendered_module, ..)) =
+        render_module(compilation, chunk_ukey, m, all_strict, false)?
+      else {
+        continue;
+      };
+
+      let code = rendered_module;
+      let mut use_cache = false;
+
+      if is_inlined_module {
+        if let Some(ident_info_with_hash) = self
+          .rename_module_cache
+          .get_inlined_info(&m.identifier().to_string())
+        {
+          if let (Some(hash_current), Some(hash_cache)) = (
+            m.build_info().and_then(|i| i.hash.as_ref()),
+            ident_info_with_hash.hash.as_ref(),
+          ) {
+            if *hash_current == *hash_cache {
+              let WithHash { value, .. } = (*ident_info_with_hash).clone();
+              inlined_modules_to_info.insert(m.identifier().to_string(), value);
+              use_cache = true;
+            }
+          }
+        }
+      } else if let Some(idents_with_hash) = self
+        .rename_module_cache
+        .get_non_inlined_idents(&m.identifier().to_string())
+      {
+        if let (Some(hash_current), Some(hash_cache)) = (
+          m.build_info().and_then(|i| i.hash.as_ref()),
+          idents_with_hash.hash.as_ref(),
+        ) {
+          if *hash_current == *hash_cache {
+            all_used_names.extend(idents_with_hash.value.iter().map(|v| v.id.sym.to_string()));
+            non_inlined_module_through_idents.extend(idents_with_hash.value.clone());
+            use_cache = true;
+          }
+        }
+      }
+
+      if !use_cache {
+        let cm: Arc<swc_core::common::SourceMap> = Default::default();
+        let fm = cm.new_source_file(
+          FileName::Custom(m.identifier().to_string()),
+          code.source().to_string(),
+        );
+        let comments = swc_node_comments::SwcComments::default();
+        let mut errors = vec![];
+
+        let Ok(program) = swc_core::ecma::parser::parse_file_as_program(
+          &fm,
+          swc_core::ecma::parser::Syntax::default(),
+          swc_core::ecma::ast::EsVersion::EsNext,
+          Some(&comments),
+          &mut errors,
+        ) else {
+          continue;
+        };
+
+        let mut ast: Ast = Ast::new(program, cm, Some(comments));
+
+        let mut global_ctxt = SyntaxContext::empty();
+        let mut module_ctxt = SyntaxContext::empty();
+
+        ast.transform(|program, context| {
+          global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
+          module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
+          program.visit_mut_with(&mut resolver(
+            context.unresolved_mark,
+            context.top_level_mark,
+            false,
+          ));
+        });
+
+        let mut collector = IdentCollector::default();
+        ast.visit(|program, _ctxt| {
+          program.visit_with(&mut collector);
+        });
+
+        if is_inlined_module {
+          let mut module_scope_idents = Vec::new();
+
+          for ident in collector.ids {
+            if ident.id.span.ctxt == global_ctxt
+              || ident.id.span.ctxt != module_ctxt
+              || ident.is_class_expr_with_ident
+            {
+              all_used_names.insert(ident.id.sym.to_string());
+            }
+
+            if ident.id.span.ctxt == module_ctxt {
+              all_used_names.insert(ident.id.sym.to_string());
+              module_scope_idents.push(Arc::new(ident));
+            }
+          }
+
+          let ident: String = m.identifier().to_string();
+
+          let info = InlinedModuleInfo {
+            source: code.clone(),
+            module_scope_idents,
+            used_in_non_inlined: Vec::new(),
+          };
+
+          self.rename_module_cache.inlined_modules_to_info.insert(
+            ident.clone(),
+            WithHash {
+              hash: m.build_info().and_then(|i| i.hash.clone()),
+              value: info.clone(),
+            },
+          );
+
+          inlined_modules_to_info.insert(ident, info);
+        } else {
+          let mut idents_vec = vec![];
+          let module_ident: String = m.identifier().to_string();
+
+          for ident in collector.ids {
+            if ident.id.span.ctxt == global_ctxt {
+              all_used_names.insert(ident.clone().id.sym.to_string());
+              idents_vec.push(ident.clone());
+              non_inlined_module_through_idents.push(ident);
+            }
+          }
+
+          self
+            .rename_module_cache
+            .non_inlined_modules_through_idents
+            .insert(
+              module_ident.clone(),
+              WithHash {
+                hash: m.build_info().and_then(|i| i.hash.clone()),
+                value: idents_vec.clone(),
+              },
+            );
+        }
+      }
+    }
+
+    for (_ident, info) in inlined_modules_to_info.iter_mut() {
+      for module_scope_ident in info.module_scope_idents.iter() {
+        for non_inlined_module_through_ident in non_inlined_module_through_idents.iter() {
+          if module_scope_ident.id.sym == non_inlined_module_through_ident.id.sym {
+            info
+              .used_in_non_inlined
+              .push(Arc::clone(module_scope_ident));
+          }
+        }
+      }
+    }
+
+    for (module_id, inlined_module_info) in inlined_modules_to_info.iter() {
+      let InlinedModuleInfo {
+        source: _source,
+        module_scope_idents,
+        used_in_non_inlined,
+      } = inlined_module_info;
+
+      let module = all_modules
+        .iter()
+        .find(|m| m.identifier().to_string() == *module_id)
+        .unwrap_or_else(|| panic!("should find inlined module id \"{module_id}\" in all_modules"));
+
+      let source: Arc<dyn Source> = _source.clone();
+      let mut replace_source = ReplaceSource::new(_source.clone());
+
+      if used_in_non_inlined.is_empty() {
+        renamed_inline_modules.insert(module_id.to_string(), source);
+        continue;
+      }
+
+      let mut binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
+        HashMap::default();
+
+      for module_scope_ident in module_scope_idents.iter() {
+        match binding_to_ref.entry((
+          module_scope_ident.id.sym.clone(),
+          module_scope_ident.id.span.ctxt,
+        )) {
+          Entry::Occupied(mut occ) => {
+            occ.get_mut().push(module_scope_ident.deref().clone());
+          }
+          Entry::Vacant(vac) => {
+            vac.insert(vec![module_scope_ident.deref().clone()]);
+          }
+        };
+      }
+
+      for (id, refs) in binding_to_ref.iter() {
+        let name = &id.0;
+        let ident_used = !used_in_non_inlined
+          .iter()
+          .filter(|v| v.id.sym == *name)
+          .collect::<Vec<_>>()
+          .is_empty();
+
+        if ident_used {
+          let context = compilation.options.context.clone();
+          let readable_identifier = module.readable_identifier(&context).to_string();
+          let new_name = find_new_name(name, &all_used_names, None, &readable_identifier);
+
+          for identifier in refs.iter() {
+            let span = identifier.id.span();
+            let low = span.real_lo();
+            let high = span.real_hi();
+
+            if identifier.shorthand {
+              replace_source.insert(high, &format!(": {}", new_name), None);
+              continue;
+            }
+
+            replace_source.replace(low, high, &new_name, None);
+          }
+
+          all_used_names.insert(new_name);
+        }
+      }
+
+      let source: Arc<dyn Source> = Arc::new(replace_source);
+      renamed_inline_modules.insert(module_id.to_string(), Arc::clone(&source));
+    }
+
+    Ok(renamed_inline_modules)
   }
 
   pub async fn render_chunk(
@@ -716,7 +1023,7 @@ impl JsPlugin {
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
   ) -> Result<BoxSource> {
-    let drive = Self::get_compilation_drives(compilation);
+    let hooks = Self::get_compilation_hooks(compilation);
     let module_graph = &compilation.get_module_graph();
     let is_module = compilation.options.output.module;
     let mut all_strict = compilation.options.output.module;
@@ -734,7 +1041,7 @@ impl JsPlugin {
         build_info.strict
       })
     {
-      if let Some(strict_bailout) = drive.strict_runtime_bailout(compilation, chunk_ukey)? {
+      if let Some(strict_bailout) = hooks.strict_runtime_bailout.call(compilation, chunk_ukey)? {
         sources.add(RawSource::from(format!(
           "// runtime can't be in strict mode because {strict_bailout}.\n"
         )));
@@ -744,31 +1051,26 @@ impl JsPlugin {
       }
     }
     let (chunk_modules_source, chunk_init_fragments) =
-      render_chunk_modules(compilation, chunk_ukey, chunk_modules, all_strict)?
+      render_chunk_modules(compilation, chunk_ukey, &chunk_modules, all_strict)?
         .unwrap_or_else(|| (RawSource::from("{}").boxed(), Vec::new()));
-    let chunk_modules_source = drive
-      .render_chunk(RenderJsChunkArgs {
-        compilation,
-        chunk_ukey,
-        module_source: chunk_modules_source,
-      })
-      .await?
-      .expect("should run render_chunk hook");
+    let mut render_source = RenderSource {
+      source: chunk_modules_source,
+    };
+    hooks
+      .render_chunk
+      .call(compilation, chunk_ukey, &mut render_source)?;
     let source_with_fragments = render_init_fragments(
-      chunk_modules_source,
+      render_source.source,
       chunk_init_fragments,
       &mut ChunkRenderContext {},
     )?;
-    let chunk_modules_source = if let Some(source) = drive.render(RenderJsArgs {
-      compilation,
-      chunk: chunk_ukey,
-      source: &source_with_fragments,
-    })? {
-      source
-    } else {
-      source_with_fragments
+    let mut render_source = RenderSource {
+      source: source_with_fragments,
     };
-    sources.add(chunk_modules_source);
+    hooks
+      .render
+      .call(compilation, chunk_ukey, &mut render_source)?;
+    sources.add(render_source.source);
     if !is_module {
       sources.add(RawSource::from(";"));
     }
@@ -776,18 +1078,14 @@ impl JsPlugin {
   }
 
   #[inline]
-  pub fn get_chunk_hash(
+  pub async fn get_chunk_hash(
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
     hasher: &mut RspackHash,
-  ) -> PluginJsChunkHashHookOutput {
-    let drive = Self::get_compilation_drives(compilation);
-    drive.js_chunk_hash(JsChunkHashArgs {
-      compilation,
-      chunk_ukey,
-      hasher,
-    })
+  ) -> Result<()> {
+    let hooks = Self::get_compilation_hooks(compilation);
+    hooks.chunk_hash.call(compilation, chunk_ukey, hasher).await
   }
 
   #[inline]
@@ -796,16 +1094,17 @@ impl JsPlugin {
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
     hasher: &mut RspackHash,
-  ) {
+  ) -> Result<()> {
     // sample hash use content
     let RenderBootstrapResult {
       header,
       startup,
       allow_inline_startup,
-    } = self.render_bootstrap(chunk_ukey, compilation);
+    } = self.render_bootstrap(chunk_ukey, compilation)?;
     header.hash(hasher);
     startup.hash(hasher);
     allow_inline_startup.hash(hasher);
+    Ok(())
   }
 }
 

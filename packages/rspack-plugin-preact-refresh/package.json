@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-preact-refresh",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "license": "MIT",
   "description": "Preact refresh plugin for rspack",
   "main": "dist/index.js",

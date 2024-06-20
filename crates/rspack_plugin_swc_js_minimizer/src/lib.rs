@@ -5,7 +5,7 @@ mod minify;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::path::Path;
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{mpsc, Mutex};
 
 use once_cell::sync::{Lazy, OnceCell};
 use rayon::prelude::*;
@@ -13,15 +13,14 @@ use regex::Regex;
 use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt, SourceMap};
 use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{
-  AssetInfo, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
+  AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
   CompilerCompilation, Plugin, PluginContext,
 };
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Diagnostic, Result};
+use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_javascript::{
-  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
-};
+use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
 use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
 use swc_config::config_types::BoolOrDataConfig;
@@ -145,33 +144,15 @@ struct NormalizedExtractComments<'a> {
   banner: Option<String>,
 }
 
-#[derive(Debug)]
-struct SwcJsMinimizerJavascriptModulesPluginPlugin {
-  options: Arc<SwcJsMinimizerRspackPluginOptions>,
-}
-
-impl JavascriptModulesPluginPlugin for SwcJsMinimizerJavascriptModulesPluginPlugin {
-  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
-    PLUGIN_NAME.hash(&mut args.hasher);
-    self.options.hash(&mut args.hasher);
-    Ok(())
-  }
-}
-
 #[plugin]
 #[derive(Debug)]
 pub struct SwcJsMinimizerRspackPlugin {
-  options: Arc<SwcJsMinimizerRspackPluginOptions>,
-  js_plugin: Arc<SwcJsMinimizerJavascriptModulesPluginPlugin>,
+  options: SwcJsMinimizerRspackPluginOptions,
 }
 
 impl SwcJsMinimizerRspackPlugin {
   pub fn new(options: SwcJsMinimizerRspackPluginOptions) -> Self {
-    let options = Arc::new(options);
-    Self::new_inner(
-      options.clone(),
-      Arc::new(SwcJsMinimizerJavascriptModulesPluginPlugin { options }),
-    )
+    Self::new_inner(options)
   }
 }
 
@@ -181,8 +162,20 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
-  drive.add_plugin(self.js_plugin.clone());
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  hooks.chunk_hash.tap(js_chunk_hash::new(self));
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesChunkHash for SwcJsMinimizerRspackPlugin)]
+async fn js_chunk_hash(
+  &self,
+  _compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
+  hasher: &mut RspackHash,
+) -> Result<()> {
+  PLUGIN_NAME.hash(hasher);
+  self.options.hash(hasher);
   Ok(())
 }
 

@@ -22,7 +22,7 @@ pub struct JsChunk {
   pub hash: Option<String>,
   pub content_hash: HashMap<String, String>,
   pub rendered_hash: Option<String>,
-  pub chunk_reasons: Vec<String>,
+  pub chunk_reason: Vec<String>,
   pub auxiliary_files: Vec<String>,
 }
 
@@ -49,6 +49,7 @@ impl JsChunk {
       rendered_hash,
       content_hash,
       chunk_reasons,
+      chunk_reason,
       ..
     } = chunk;
     let mut files = Vec::from_iter(files.iter().cloned());
@@ -83,7 +84,7 @@ impl JsChunk {
         .map(|(key, v)| (key.to_string(), v.encoded().to_string()))
         .collect::<std::collections::HashMap<String, String>>(),
       rendered_hash: rendered_hash.as_ref().map(|hash| hash.to_string()),
-      chunk_reasons: chunk_reasons.clone(),
+      chunk_reason: chunk_reason.clone(),
       auxiliary_files,
     }
   }

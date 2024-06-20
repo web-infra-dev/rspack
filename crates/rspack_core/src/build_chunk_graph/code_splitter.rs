@@ -333,11 +333,7 @@ impl<'me> CodeSplitter<'me> {
   ) -> Result<IndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
     let mut input_entrypoints_and_modules: IndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
       IndexMap::default();
-    let mut assign_depths_map: std::collections::HashMap<
-      rspack_identifier::Identifier,
-      usize,
-      BuildHasherDefault<FxHasher>,
-    > = HashMap::default();
+    let mut assign_depths_map = HashMap::default();
 
     let entries = self.compilation.entries.clone();
     for (name, entry_data) in entries {
@@ -383,7 +379,7 @@ impl<'me> CodeSplitter<'me> {
       if let Some(filename) = &entry_data.options.filename {
         chunk.filename_template = Some(filename.clone().into());
       }
-      chunk.chunk_reasons.push(format!("Entrypoint({name})",));
+      chunk.chunk_reason.push(format!("Entrypoint({name})",));
 
       self.compilation.chunk_graph.add_chunk(chunk.ukey);
 
@@ -615,7 +611,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
             let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
             chunk.prevent_integration = true;
-            chunk.chunk_reasons.push(format!("RuntimeChunk({name})",));
+            chunk.chunk_reason.push(format!("RuntimeChunk({name})",));
             self.compilation.chunk_graph.add_chunk(chunk.ukey);
             runtime_chunks.insert(chunk.ukey);
             chunk
@@ -1223,7 +1219,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               chunk.filename_template = Some(filename.clone().into());
             }
             chunk
-              .chunk_reasons
+              .chunk_reason
               .push(format!("AsyncEntrypoint({:?})", block_id));
             let mut entrypoint = ChunkGroup::new(ChunkGroupKind::new_entrypoint(
               false,
@@ -1331,7 +1327,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           );
           let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
           chunk
-            .chunk_reasons
+            .chunk_reason
             .push(format!("DynamicImport({:?})", block_id));
 
           let info = ChunkGroupInfo::new(

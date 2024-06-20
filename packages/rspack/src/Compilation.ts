@@ -50,6 +50,7 @@ import MergeCaller from "./util/MergeCaller";
 import { createFakeCompilationDependencies } from "./util/fake";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
+import Hash = require("./util/hash");
 export { type AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
@@ -146,7 +147,7 @@ export class Compilation {
 	#inner: JsCompilation;
 	#cachedAssets: Record<string, Source>;
 
-	hooks: {
+	hooks: Readonly<{
 		processAssets: liteTapable.AsyncSeriesHook<Assets>;
 		afterProcessAssets: liteTapable.SyncHook<Assets>;
 		childCompiler: tapable.SyncHook<[Compiler, string, number]>;
@@ -162,6 +163,7 @@ export class Compilation {
 			void
 		>;
 		finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
+		chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
 		chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: liteTapable.SyncHook<[Module], void>;
@@ -187,7 +189,7 @@ export class Compilation {
 		>;
 		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
-	};
+	}>;
 	name?: string;
 	startTime?: number;
 	endTime?: number;
@@ -295,6 +297,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"modules"
 			]),
 			finishModules: new liteTapable.AsyncSeriesHook(["modules"]),
+			chunkHash: new liteTapable.SyncHook(["chunk", "hash"]),
 			chunkAsset: new liteTapable.SyncHook(["chunk", "filename"]),
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new liteTapable.SyncHook(["module"]),
@@ -327,15 +330,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.chunkGraph = new ChunkGraph(this);
 	}
 
-	get currentNormalModuleHooks() {
-		return NormalModule.getCompilationHooks(this);
-	}
-
-	get hash() {
+	get hash(): Readonly<string | null> {
 		return this.#inner.hash;
 	}
 
-	get fullHash() {
+	get fullHash(): Readonly<string | null> {
 		return this.#inner.hash;
 	}
 
@@ -358,19 +357,19 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	get modules() {
-		return memoizeValue(() => {
-			return this.__internal__getModules().map(item =>
-				Module.__from_binding(item, this)
-			);
-		});
+	get modules(): ReadonlySet<Module> {
+		return memoizeValue(
+			() =>
+				new Set(
+					this.__internal__getModules().map(item =>
+						Module.__from_binding(item, this)
+					)
+				)
+		);
 	}
 
-	// FIXME: Webpack returns a `Set`
-	get chunks() {
-		return memoizeValue(() => {
-			return this.__internal__getChunks();
-		});
+	get chunks(): ReadonlySet<Chunk> {
+		return memoizeValue(() => new Set(this.__internal__getChunks()));
 	}
 
 	/**
@@ -378,7 +377,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 *
 	 * Note: This is a proxy for webpack internal API, only method `get` is supported now.
 	 */
-	get namedChunks(): Map<string, Readonly<Chunk>> {
+	get namedChunks(): ReadonlyMap<string, Readonly<Chunk>> {
 		return {
 			get: (property: unknown) => {
 				if (typeof property === "string") {
@@ -964,7 +963,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	_rebuildModuleCaller = (function (compilation: Compilation) {
+	#rebuildModuleCaller = (function (compilation: Compilation) {
 		return new MergeCaller(
 			(args: Array<[string, (err: Error, m: Module) => void]>) => {
 				compilation.#inner.rebuildModule(
@@ -986,7 +985,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	})(this);
 
 	rebuildModule(m: Module, f: (err: Error, m: Module) => void) {
-		this._rebuildModuleCaller.push([m.identifier(), f]);
+		this.#rebuildModuleCaller.push([m.identifier(), f]);
 	}
 
 	/**

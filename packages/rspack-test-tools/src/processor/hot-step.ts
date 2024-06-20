@@ -15,6 +15,8 @@ import {
 } from "../type";
 import { HotProcessor, IHotProcessorOptions } from "./hot";
 
+const NOOP_SET = new Set();
+
 const escapeLocalName = (str: string) => str.split(/[-<>:"/|?*.]/).join("_");
 
 type TModuleGetHandler = (
@@ -93,11 +95,11 @@ export class HotSnapshotProcessor<
 					assets: true,
 					chunks: true
 				});
-				for (let entry of ((stats?.compilation.chunks as Chunk[]) || []).filter(
-					i => i.hasRuntime()
-				)) {
+				// @ts-expect-error: Some chunk fields are missing from rspack
+				let chunks = Array.from(stats?.compilation.chunks || NOOP_SET);
+				for (let entry of chunks.filter(i => i.hasRuntime())) {
 					if (!this.entries[entry.id!]) {
-						this.entries[entry.id!] = entry.runtime!;
+						this.entries[entry.id!] = Array.from(entry.runtime);
 					}
 				}
 				this.matchStepSnapshot(
@@ -132,10 +134,10 @@ export class HotSnapshotProcessor<
 			return;
 		}
 		const statsJson = stats.toJson({ assets: true, chunks: true });
-		for (let entry of ((stats?.compilation.chunks as Chunk[]) || []).filter(i =>
-			i.hasRuntime()
-		)) {
-			this.entries[entry.id!] = entry.runtime!;
+		// @ts-expect-error: Some chunk fields are missing from rspack
+		let chunks = Array.from(stats?.compilation.chunks || NOOP_SET);
+		for (let entry of chunks.filter(i => i.hasRuntime())) {
+			this.entries[entry.id!] = Array.from(entry.runtime);
 		}
 		let matchFailed: Error | null = null;
 		try {
@@ -302,7 +304,7 @@ ${i.content}
 `
 	)
 	.join("\n\n")}
-		
+
 ## Update
 
 ${hotUpdateFile

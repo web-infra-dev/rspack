@@ -24,7 +24,12 @@ new rspack.CopyRspackPlugin(options);
       | string // If input is string, it's the same as { from: `your input string` }
       | {
           from: string;
-          to?: string; // Determine based on `from`
+          to?:
+            | string
+            | ((pathData: {
+                context: string;
+                absoluteFilename?: string;
+              }) => string); // Determine based on `from`
           context?: string; // Default to `context` in Rspack config
           toType?: 'dir' | 'file' | 'template'; // Determine based on `from`
           noErrorOnMissing?: boolean; // Default to false
@@ -75,7 +80,7 @@ new rspack.CopyRspackPlugin(options);
       },
       {
         name: '`to`',
-        type: '`string`',
+        type: '`string | ((pathData: { context: string; absoluteFilename?: string }) => string)`',
         default: 'undefined',
         description:
           "The destination of the copy operation, which can be an absolute path, a relative path, or a template string, such as `'[name].[hash][ext]'`. If not specified, it is equal to output path.",

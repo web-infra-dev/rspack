@@ -117,7 +117,7 @@ impl SplitChunksPlugin {
         );
         let new_chunk = compilation.chunk_by_ukey.expect_get_mut(&new_chunk_ukey);
         new_chunk
-          .chunk_reasons
+          .chunk_reason
           .push("Create by split chunks".to_string());
 
         put_split_chunk_reason(
@@ -139,7 +139,7 @@ impl SplitChunksPlugin {
       let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
       let new_chunk = compilation.chunk_by_ukey.expect_get_mut(&new_chunk_ukey);
       new_chunk
-        .chunk_reasons
+        .chunk_reason
         .push("Create by split chunks".to_string());
 
       put_split_chunk_reason(

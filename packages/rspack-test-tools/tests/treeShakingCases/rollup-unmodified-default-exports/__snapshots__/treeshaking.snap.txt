@@ -1,13 +1,16 @@
 ```js title=main.js
 "use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./foo.js": (function (__unused_webpack_module, __webpack_exports__) {
+"./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 var Foo = function () {
 	console.log("side effect");
 	this.isFoo = true;
 };
 
-/* harmony default export */ __webpack_exports__["default"] = (Foo);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (Foo);
 
 Foo.prototype = {
 	answer: function () {

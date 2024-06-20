@@ -76,11 +76,24 @@ pub enum Transformer {
   Fn(TransformerFn),
 }
 
+pub struct ToFnCtx<'a> {
+  pub context: &'a str,
+  pub absolute_filename: Option<&'a str>,
+}
+
+pub type ToFn = Box<dyn for<'a> Fn(ToFnCtx<'a>) -> BoxFuture<'a, Result<String>> + Sync + Send>;
+
+pub enum ToOption {
+  String(String),
+  Fn(ToFn),
+}
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct CopyPattern {
   pub from: String,
-  pub to: Option<String>,
+  #[derivative(Debug = "ignore")]
+  pub to: Option<ToOption>,
   pub context: Option<PathBuf>,
   pub to_type: Option<ToType>,
   pub no_error_on_missing: bool,
@@ -179,6 +192,35 @@ impl CopyRspackPlugin {
     };
 
     let to = if let Some(to) = pattern.to.as_ref() {
+      let to = match to {
+        ToOption::String(s) => s.to_owned(),
+        ToOption::Fn(r) => {
+          if let Some(context) = context.to_str() {
+            let to_result = r(ToFnCtx {
+              context,
+              absolute_filename: absolute_filename.to_str(),
+            })
+            .await;
+            let to = match to_result {
+              Ok(to) => to,
+              Err(e) => {
+                diagnostics
+                  .lock()
+                  .expect("failed to obtain lock of `diagnostics`")
+                  .push(Diagnostic::error(
+                    "Run copy to fn error".into(),
+                    e.to_string(),
+                  ));
+                "".to_string()
+              }
+            };
+            to
+          } else {
+            "".to_string()
+          }
+        }
+      };
+
       to.clone()
         .as_path()
         .normalize()
@@ -533,11 +575,20 @@ impl CopyRspackPlugin {
       }
       Err(e) => {
         if pattern.no_error_on_missing {
+          let to = if let Some(to) = &pattern.to {
+            match to {
+              ToOption::String(s) => s,
+              ToOption::Fn(_) => "",
+            }
+          } else {
+            ""
+          };
+
           logger.log(format!(
             "finished to process a pattern from '{}' using '{}' context to '{:?}'",
             PathBuf::from(orig_from).display(),
             context.display(),
-            pattern.to
+            to,
           ));
 
           return None;

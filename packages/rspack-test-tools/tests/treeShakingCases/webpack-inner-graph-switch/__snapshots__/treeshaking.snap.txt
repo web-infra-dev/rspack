@@ -39,6 +39,9 @@ it("should generate correct code when pure expressions are in dead branches", ()
 }),
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 /* harmony import */var _some_module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./some-module.js");
 
 
@@ -80,7 +83,7 @@ function useDocument(obj) {
 }
 
 
-/* harmony default export */ __webpack_exports__["default"] = (doSomething);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (doSomething);
 
 
 }),

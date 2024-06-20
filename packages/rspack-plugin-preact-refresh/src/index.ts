@@ -50,9 +50,9 @@ const INTERNAL_PATHS = [
 
 const runtimeSource = fs.readFileSync(RUNTIME_INTERCEPT_PATH, "utf-8");
 
-const NAME = "PreactRefreshRsapckPlugin";
+const NAME = "PreactRefreshRspackPlugin";
 
-class PreactRefreshRsapckPlugin implements RspackPluginInstance {
+class PreactRefreshRspackPlugin implements RspackPluginInstance {
 	name = NAME;
 
 	constructor(private options: IPreactRefreshRspackPluginOptions) {
@@ -117,4 +117,5 @@ class PreactRefreshRsapckPlugin implements RspackPluginInstance {
 	}
 }
 
-module.exports = PreactRefreshRsapckPlugin;
+// @ts-expect-error output module.exports
+export = PreactRefreshRspackPlugin;

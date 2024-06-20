@@ -64,8 +64,8 @@ define_hook!(CompilationAdditionalChunkRuntimeRequirements: SyncSeries(compilati
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: AsyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInTree: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationOptimizeCodeGeneration: SyncSeries(compilation: &mut Compilation));
-define_hook!(CompilationChunkHash: SyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
-define_hook!(CompilationContentHash: SyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
+define_hook!(CompilationChunkHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
+define_hook!(CompilationContentHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
 define_hook!(CompilationRenderManifest: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationChunkAsset: AsyncSeries(chunk: &mut Chunk, filename: &str));
 define_hook!(CompilationProcessAssets: AsyncSeries(compilation: &mut Compilation));
@@ -1480,14 +1480,16 @@ impl Compilation {
     plugin_driver
       .compilation_hooks
       .chunk_hash
-      .call(self, &chunk_ukey, &mut hasher)?;
+      .call(self, &chunk_ukey, &mut hasher)
+      .await?;
     let chunk_hash = hasher.digest(&self.options.output.hash_digest);
 
     let mut content_hashes = HashMap::default();
     plugin_driver
       .compilation_hooks
       .content_hash
-      .call(self, &chunk_ukey, &mut content_hashes)?;
+      .call(self, &chunk_ukey, &mut content_hashes)
+      .await?;
     let content_hashes = content_hashes
       .into_iter()
       .map(|(t, hasher)| (t, hasher.digest(&self.options.output.hash_digest)))
