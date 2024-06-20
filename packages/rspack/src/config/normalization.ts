@@ -213,10 +213,20 @@ export const getNormalizedRspackOptions = (
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
-			...resolve
+			...resolve,
+			tsConfig: optionalNestedConfig(resolve.tsConfig, tsConfig => {
+				return typeof tsConfig === "string"
+					? { configFile: tsConfig }
+					: tsConfig;
+			})
 		})),
 		resolveLoader: nestedConfig(config.resolveLoader, resolve => ({
-			...resolve
+			...resolve,
+			tsConfig: optionalNestedConfig(resolve.tsConfig, tsConfig => {
+				return typeof tsConfig === "string"
+					? { configFile: tsConfig }
+					: tsConfig;
+			})
 		})),
 		module: nestedConfig(config.module, module => ({
 			noParse: module.noParse,

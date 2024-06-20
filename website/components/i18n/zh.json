@@ -10,7 +10,7 @@
   "mini-css-extract-plugin-desc": "使用 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) 替代",
   "terser-webpack-plugin-desc": "Rspack 提供 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 以带来更好的性能",
   "css-minimizer-webpack-plugin-desc": "Rspack 提供 [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 和 [SwcCssMinimizerRspackPlugin](/plugins/rspack/swc-css-minimizer-rspack-plugin) 以带来更好的性能",
-  "tsconfig-paths-webpack-plugin-desc": "使用 [resolve.tsconfigPath](/config/resolve#resolvetsconfigpath) 替代",
+  "tsconfig-paths-webpack-plugin-desc": "使用 [resolve.tsConfig](/config/resolve#resolvetsconfig) 替代",
   "case-sensitive-paths-webpack-plugin-desc": "不支持 `useBeforeEmitHook` 选项",
   "moment-locales-webpack-plugin-desc": "在 v0.7.0 已实现对该插件的支持，请升级 Rspack 版本来使用",
   "image-minimizer-webpack-plugin-desc": "仅支持 [loader](https://www.npmjs.com/package/image-minimizer-webpack-plugin#standalone-loader) 用法",
