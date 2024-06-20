@@ -440,9 +440,10 @@ const getRawModuleRule = (
 		parser: rule.parser
 			? getRawParserOptions(rule.parser, rule.type ?? "javascript/auto")
 			: undefined,
-		generator: rule.generator
-			? getRawGeneratorOptions(rule.generator, rule.type ?? "javascript/auto")
-			: undefined,
+		generator:
+			rule.generator && !isEmptyObject(rule.generator)
+				? getRawGeneratorOptions(rule.generator, rule.type ?? "javascript/auto")
+				: undefined,
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
 			? rule.oneOf.map((rule, index) =>
@@ -862,4 +863,11 @@ function getRawStats(stats: StatsValue): RawOptions["stats"] {
 
 export function getRawChunkLoading(chunkLoading: ChunkLoading) {
 	return chunkLoading === false ? "false" : chunkLoading;
+}
+
+function isEmptyObject(o: Record<PropertyKey, any>) {
+	for (const _ in o) {
+		return false;
+	}
+	return true;
 }
