@@ -5,7 +5,7 @@
   "license": "MIT",
   "main": "./dist/index.d.ts",
   "scripts": {
-    "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest -u",
+    "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest",
     "test:metric": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest --json --colors | node scripts/test-metric.js",
     "test:metric:json": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest --logHeapUsage --json"
   },

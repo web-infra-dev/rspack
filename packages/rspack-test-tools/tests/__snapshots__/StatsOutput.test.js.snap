@@ -5,7 +5,8 @@ exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats
 asset bundle.js 2.49 KiB {909} [emitted] (name: main)
 asset 2710c5e36f8babb0a3a4.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
 Entrypoint main 2.49 KiB = bundle.js
-chunk {909} bundle.js (main) [entry]
+chunk {909} (runtime: main) bundle.js (main) 1.28 KiB (runtime) 117 bytes (javascript) 7 bytes (asset) [entry] [rendered]
+  > ./index main
   ./index.js [10] 75 bytes {909} [depth 0] [built] [code generated]
     [no exports]
     [no exports used]
@@ -133,7 +134,7 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
 "1 chunks:
   asset bundle1.js 3.57 KiB [emitted] (name: main)
   Entrypoint main 3.57 KiB = bundle1.js
-  chunk bundle1.js (main) <{909}> >{909}< [entry]
+  chunk (runtime: main) bundle1.js (main) 219 bytes (javascript) 1.84 KiB (runtime) <{909}> >{909}< [entry] [rendered]
     ./b.js 22 bytes [built] [code generated]
     ./c.js 30 bytes [built] [code generated]
     ./d.js 22 bytes [built] [code generated]
@@ -145,11 +146,11 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   asset bundle2.js 10.2 KiB [emitted] (name: main)
   asset 76.bundle2.js 497 bytes [emitted] (name: c)
   Entrypoint main 10.2 KiB = bundle2.js
-  chunk 76.bundle2.js (c) <{76}> <{909}> >{76}<
+  chunk (runtime: main) 76.bundle2.js (c) 74 bytes <{76}> <{909}> >{76}< [rendered]
     ./c.js 30 bytes [built] [code generated]
     ./d.js 22 bytes [built] [code generated]
     ./e.js 22 bytes [built] [code generated]
-  chunk bundle2.js (main) >{76}< [entry]
+  chunk (runtime: main) bundle2.js (main) 145 bytes (javascript) 8.39 KiB (runtime) >{76}< [entry] [rendered]
     ./b.js 22 bytes [built] [code generated]
     ./index.js 123 bytes [built] [code generated]
   2 chunks (Rspack x.x.x) compiled successfully in X s
@@ -159,12 +160,12 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   asset 76.bundle3.js 387 bytes [emitted] (name: c)
   asset 345.bundle3.js 186 bytes [emitted]
   Entrypoint main 10.2 KiB = bundle3.js
-  chunk 345.bundle3.js <{76}>
+  chunk (runtime: main) 345.bundle3.js 44 bytes <{76}> [rendered]
     ./d.js 22 bytes [built] [code generated]
     ./e.js 22 bytes [built] [code generated]
-  chunk 76.bundle3.js (c) <{909}> >{345}<
+  chunk (runtime: main) 76.bundle3.js (c) 30 bytes <{909}> >{345}< [rendered]
     ./c.js 30 bytes [built] [code generated]
-  chunk bundle3.js (main) >{76}< [entry]
+  chunk (runtime: main) bundle3.js (main) 145 bytes (javascript) 8.39 KiB (runtime) >{76}< [entry] [rendered]
     ./b.js 22 bytes [built] [code generated]
     ./index.js 123 bytes [built] [code generated]
   3 chunks (Rspack x.x.x) compiled successfully in X s
@@ -175,13 +176,13 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   asset 697.bundle4.js 130 bytes [emitted]
   asset 753.bundle4.js 130 bytes [emitted]
   Entrypoint main 10.2 KiB = bundle4.js
-  chunk 697.bundle4.js <{76}>
+  chunk (runtime: main) 697.bundle4.js 22 bytes <{76}> [rendered]
     ./e.js 22 bytes [built] [code generated]
-  chunk 753.bundle4.js <{76}>
+  chunk (runtime: main) 753.bundle4.js 22 bytes <{76}> [rendered]
     ./d.js 22 bytes [built] [code generated]
-  chunk 76.bundle4.js (c) <{909}> >{697}< >{753}<
+  chunk (runtime: main) 76.bundle4.js (c) 30 bytes <{909}> >{697}< >{753}< [rendered]
     ./c.js 30 bytes [built] [code generated]
-  chunk bundle4.js (main) >{76}< [entry]
+  chunk (runtime: main) bundle4.js (main) 145 bytes (javascript) 8.39 KiB (runtime) >{76}< [entry] [rendered]
     ./b.js 22 bytes [built] [code generated]
     ./index.js 123 bytes [built] [code generated]
   4 chunks (Rspack x.x.x) compiled successfully in X s"
@@ -227,46 +228,46 @@ Rspack compiled with 1 error"
 exports[`statsOutput statsOutput/optimization-chunk-ids-natural should print correct stats for 1`] = `
 "Entrypoint e1 10.4 KiB = e1.js
 Entrypoint e2 10.3 KiB = e2.js
-chunk 0.js
-chunk 1.js
-chunk 2.js
-chunk e1.js (e1) [entry]
-chunk e2.js (e2) [entry]"
+chunk (runtime: e1) 0.js 24 bytes [rendered]
+chunk (runtime: e1) 1.js 52 bytes [rendered]
+chunk (runtime: e1, e2) 2.js 22 bytes [rendered]
+chunk (runtime: e1) e1.js (e1) 8.38 KiB (runtime) 74 bytes (javascript) [entry] [rendered]
+chunk (runtime: e2) e2.js (e2) 8.38 KiB (runtime) 51 bytes (javascript) [entry] [rendered]"
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk should print correct stats for 1`] = `
 "Entrypoint e1 4.01 KiB = e1~runtime.js 3.68 KiB e1.js 338 bytes
 Entrypoint e2 4.01 KiB = e2~runtime.js 3.68 KiB e2.js 338 bytes
-chunk e1.js (e1) [entry]
-chunk e1~runtime.js (e1~runtime) [initial]
-chunk e2.js (e2) [entry]
-chunk e2~runtime.js (e2~runtime) [initial]"
+chunk (runtime: e1~runtime) e1.js (e1) 27 bytes [entry] [rendered]
+chunk (runtime: e1~runtime) e1~runtime.js (e1~runtime) 2.58 KiB [initial] [rendered]
+chunk (runtime: e2~runtime) e2.js (e2) 27 bytes [entry] [rendered]
+chunk (runtime: e2~runtime) e2~runtime.js (e2~runtime) 2.58 KiB [initial] [rendered]"
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk-multiple should print correct stats for 1`] = `
 "Entrypoint e1 4.01 KiB = runtime~e1.js 3.68 KiB e1.js 338 bytes
 Entrypoint e2 4.01 KiB = runtime~e2.js 3.68 KiB e2.js 338 bytes
-chunk e1.js (e1) [entry]
-chunk e2.js (e2) [entry]
-chunk runtime~e1.js (runtime~e1) [initial]
-chunk runtime~e2.js (runtime~e2) [initial]"
+chunk (runtime: runtime~e1) e1.js (e1) 27 bytes [entry] [rendered]
+chunk (runtime: runtime~e2) e2.js (e2) 27 bytes [entry] [rendered]
+chunk (runtime: runtime~e1) runtime~e1.js (runtime~e1) 2.58 KiB [initial] [rendered]
+chunk (runtime: runtime~e2) runtime~e2.js (runtime~e2) 2.58 KiB [initial] [rendered]"
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk-single should print correct stats for 1`] = `
 "Entrypoint e1 4.01 KiB = runtime.js 3.68 KiB e1.js 338 bytes
 Entrypoint e2 4.01 KiB = runtime.js 3.68 KiB e2.js 338 bytes
-chunk e1.js (e1) [entry]
-chunk e2.js (e2) [entry]
-chunk runtime.js (runtime) [initial]"
+chunk (runtime: runtime) e1.js (e1) 27 bytes [entry] [rendered]
+chunk (runtime: runtime) e2.js (e2) 27 bytes [entry] [rendered]
+chunk (runtime: runtime) runtime.js (runtime) 2.58 KiB [initial] [rendered]"
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk-true should print correct stats for 1`] = `
 "Entrypoint e1 4.01 KiB = runtime~e1.js 3.68 KiB e1.js 338 bytes
 Entrypoint e2 4.01 KiB = runtime~e2.js 3.68 KiB e2.js 338 bytes
-chunk e1.js (e1) [entry]
-chunk e2.js (e2) [entry]
-chunk runtime~e1.js (runtime~e1) [initial]
-chunk runtime~e2.js (runtime~e2) [initial]"
+chunk (runtime: runtime~e1) e1.js (e1) 27 bytes [entry] [rendered]
+chunk (runtime: runtime~e2) e2.js (e2) 27 bytes [entry] [rendered]
+chunk (runtime: runtime~e1) runtime~e1.js (runtime~e1) 2.58 KiB [initial] [rendered]
+chunk (runtime: runtime~e2) runtime~e2.js (runtime~e2) 2.58 KiB [initial] [rendered]"
 `;
 
 exports[`statsOutput statsOutput/parse-error should print correct stats for 1`] = `
@@ -347,17 +348,17 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/prefetch-preload-mixed should print correct stats for 1`] = `
-"chunk a1.js (a1) <{74}>
-chunk c2.js (c2) <{76}>
-chunk c1.js (c1) <{76}>
-chunk b3.js (b3) <{751}>
-chunk b2.js (b2) <{751}>
-chunk a.js (a) <{909}> >{330}< >{740}< (prefetch: {330} {740})
-chunk a2.js (a2) <{74}>
-chunk b.js (b) <{909}> >{438}< >{439}< >{826}< (prefetch: {826} {438}) (preload: {439})
-chunk c.js (c) <{909}> >{380}< >{433}< (preload: {433} {380})
-chunk b1.js (b1) <{751}>
-chunk main.js (main) >{74}< >{751}< >{76}< (prefetch: {74} {751} {76}) [entry]"
+"chunk (runtime: main) a1.js (a1) 1 bytes <{74}> [rendered]
+chunk (runtime: main) c2.js (c2) 1 bytes <{76}> [rendered]
+chunk (runtime: main) c1.js (c1) 1 bytes <{76}> [rendered]
+chunk (runtime: main) b3.js (b3) 1 bytes <{751}> [rendered]
+chunk (runtime: main) b2.js (b2) 1 bytes <{751}> [rendered]
+chunk (runtime: main) a.js (a) 136 bytes <{909}> >{330}< >{740}< (prefetch: {330} {740}) [rendered]
+chunk (runtime: main) a2.js (a2) 1 bytes <{74}> [rendered]
+chunk (runtime: main) b.js (b) 203 bytes <{909}> >{438}< >{439}< >{826}< (prefetch: {826} {438}) (preload: {439}) [rendered]
+chunk (runtime: main) c.js (c) 134 bytes <{909}> >{380}< >{433}< (preload: {433} {380}) [rendered]
+chunk (runtime: main) b1.js (b1) 1 bytes <{751}> [rendered]
+chunk (runtime: main) main.js (main) 11.6 KiB (runtime) 195 bytes (javascript) >{74}< >{751}< >{76}< (prefetch: {74} {751} {76}) [entry] [rendered]"
 `;
 
 exports[`statsOutput statsOutput/reasons should print correct stats for 1`] = `
@@ -422,7 +423,7 @@ Rspack x.x.x compiled successfully in X s"
 exports[`statsOutput statsOutput/side-effects-bailouts should print correct stats for 1`] = `
 "asset main.js 1.73 KiB {909} [emitted] (name: main)
 Entrypoint main 1.73 KiB = main.js
-chunk {909} main.js (main) [entry]
+chunk {909} (runtime: main) main.js (main) 397 bytes (runtime) 91 bytes (javascript) [entry] [rendered]
 runtime modules 397 bytes 2 modules
 cacheable modules 91 bytes
   ./index.js [10] 35 bytes {909} [built] [code generated]

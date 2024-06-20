@@ -644,12 +644,11 @@ impl ChunkGraph {
     &self,
     chunk_ukey: &ChunkUkey,
     options: &ChunkSizeOptions,
+    chunk_by_ukey: &Database<Chunk>,
+    chunk_group_by_ukey: &Database<ChunkGroup>,
+    module_graph: &ModuleGraph,
     compilation: &Compilation,
   ) -> f64 {
-    let chunk_by_ukey = &compilation.chunk_by_ukey;
-    let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
-    let module_graph = &compilation.get_module_graph();
-
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
     let modules: Vec<&BoxModule> = cgc
       .modules
@@ -674,12 +673,11 @@ impl ChunkGraph {
     chunk_a_ukey: &ChunkUkey,
     chunk_b_ukey: &ChunkUkey,
     options: &ChunkSizeOptions,
+    chunk_by_ukey: &Database<Chunk>,
+    chunk_group_by_ukey: &Database<ChunkGroup>,
+    module_graph: &ModuleGraph,
     compilation: &Compilation,
   ) -> f64 {
-    let chunk_by_ukey = &compilation.chunk_by_ukey;
-    let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
-    let module_graph = &compilation.get_module_graph();
-
     let cgc_a = self.get_chunk_graph_chunk(chunk_a_ukey);
     let cgc_b = self.get_chunk_graph_chunk(chunk_b_ukey);
     let mut all_modules: Vec<&BoxModule> = cgc_a
