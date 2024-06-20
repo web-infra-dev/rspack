@@ -9,8 +9,8 @@
 - Bundle: chunk_js.CURRENT_HASH.js
 - Bundle: unaffected-chunk_js.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 39
-- Update: chunk_js.LAST_HASH.hot-update.js, size: 269
-- Update: main.LAST_HASH.hot-update.js, size: 413
+- Update: chunk_js.LAST_HASH.hot-update.js, size: 383
+- Update: main.LAST_HASH.hot-update.js, size: 527
 
 ## Manifest
 
@@ -38,7 +38,10 @@
 self["webpackHotUpdate"]('chunk_js', {
 "./inner.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* harmony default export */ __webpack_exports__["default"] = (20);
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (20);
 
 
 }),
@@ -62,7 +65,10 @@ __webpack_require__.r(__webpack_exports__);
 self["webpackHotUpdate"]('main', {
 "./file.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* harmony default export */ __webpack_exports__["default"] = (2);
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
 
 
 }),
