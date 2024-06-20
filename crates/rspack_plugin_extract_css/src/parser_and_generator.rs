@@ -44,11 +44,13 @@ impl ParserAndGenerator for CssExtractParserAndGenerator {
 
   fn get_concatenation_bailout_reason(
     &self,
-    _module: &dyn Module,
-    _mg: &ModuleGraph,
-    _cg: &ChunkGraph,
+    module: &dyn Module,
+    mg: &ModuleGraph,
+    cg: &ChunkGraph,
   ) -> Option<String> {
-    None
+    self
+      .orig_parser_generator
+      .get_concatenation_bailout_reason(module, mg, cg)
   }
 
   #[allow(clippy::unwrap_used)]
