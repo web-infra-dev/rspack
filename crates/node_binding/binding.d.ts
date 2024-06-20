@@ -549,7 +549,7 @@ export interface JsStatsModule {
   id?: string
   chunks: Array<string | undefined | null>
   size: number
-  sizes: Array<JsStatsSourceTypeSize>
+  sizes: Array<JsStatsSize>
   depth?: number
   issuer?: string
   issuerName?: string
@@ -603,11 +603,6 @@ export interface JsStatsOptimizationBailout {
 }
 
 export interface JsStatsSize {
-  sourceType: string
-  size: number
-}
-
-export interface JsStatsSourceTypeSize {
   sourceType: string
   size: number
 }

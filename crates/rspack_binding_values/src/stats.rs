@@ -225,7 +225,7 @@ pub struct JsStatsModule {
   pub id: Option<String>,
   pub chunks: Vec<Option<String>>,
   pub size: f64,
-  pub sizes: Vec<JsStatsSourceTypeSize>,
+  pub sizes: Vec<JsStatsSize>,
   pub depth: Option<u32>,
   pub issuer: Option<String>,
   pub issuer_name: Option<String>,
@@ -283,11 +283,20 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       })
       .transpose()
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    let mut sizes = stats
+      .sizes
+      .into_iter()
+      .map(|s| JsStatsSize {
+        source_type: s.source_type.to_string(),
+        size: s.size,
+      })
+      .collect::<Vec<_>>();
+    sizes.sort_by(|a, b| a.source_type.cmp(&b.source_type));
     Ok(Self {
       r#type: stats.r#type,
       name: stats.name,
       size: stats.size,
-      sizes: stats.sizes.into_iter().map(Into::into).collect(),
+      sizes,
       depth: stats.depth.map(|d| d as u32),
       chunks: stats.chunks,
       module_type: stats.module_type.as_str().to_string(),
@@ -356,21 +365,6 @@ impl From<rspack_core::StatsMillisecond> for JsStatsMillisecond {
     Self {
       secs: value.secs as u32,
       subsec_millis: value.subsec_millis,
-    }
-  }
-}
-
-#[napi(object)]
-pub struct JsStatsSourceTypeSize {
-  pub source_type: String,
-  pub size: f64,
-}
-
-impl From<rspack_core::StatsSourceTypeSize> for JsStatsSourceTypeSize {
-  fn from(value: rspack_core::StatsSourceTypeSize) -> Self {
-    Self {
-      source_type: value.source_type.to_string(),
-      size: value.size,
     }
   }
 }

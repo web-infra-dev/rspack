@@ -668,6 +668,7 @@ impl ChunkGraph {
         })
   }
 
+  #[allow(clippy::too_many_arguments)]
   pub fn get_integrated_chunks_size(
     &self,
     chunk_a_ukey: &ChunkUkey,
