@@ -5,19 +5,20 @@ use std::{
 
 use indexmap::set::IndexSet;
 use itertools::Itertools;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_core::{Mode, RunnerContext};
 use rspack_error::Result;
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use serde::{Deserialize, Serialize};
+use url::form_urlencoded;
 
-use crate::{utils::shared_data::SHARED_CLIENT_IMPORTS, ReactRoute};
+use crate::utils::shared_data::SHARED_CLIENT_IMPORTS;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RSCClientEntryLoaderOptions {
-  entry: HashMap<String, String>,
   root: String,
-  routes: Option<Vec<ReactRoute>>,
 }
 
 #[derive(Debug)]
@@ -25,6 +26,15 @@ pub struct RSCClientEntryLoader {
   identifier: Identifier,
   options: RSCClientEntryLoaderOptions,
 }
+#[derive(Debug, Clone, Default)]
+struct QueryParsedRequest {
+  pub is_client_entry: bool,
+  pub is_route_entry: bool,
+  pub chunk_name: String,
+}
+
+static RSC_CLIENT_ENTRY_RE: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"rsc-client-entry-loader").expect("regexp init failed"));
 
 impl RSCClientEntryLoader {
   pub fn new(options: RSCClientEntryLoaderOptions) -> Self {
@@ -34,74 +44,44 @@ impl RSCClientEntryLoader {
     }
   }
 
-  pub fn get_routes_code(&self) -> String {
-    if let Some(routes) = self.options.routes.as_ref() {
-      let code = routes
-        .iter()
-        .map(|f| {
-          format!(
-            r#"import(/* webpackChunkName: "{}" */ "{}");"#,
-            f.name, f.import
-          )
-        })
-        .join("\n");
-      code
-    } else {
-      String::from("")
-    }
-  }
-
-  pub fn get_entry_chunk_name(&self, resource_path: &str) -> Option<String> {
-    let result = self
-      .options
-      .entry
-      .clone()
-      .into_iter()
-      .find(|(_, path)| path == resource_path);
-    let chunk_name = if let Some(result) = result {
-      let resolved_name = if result.0 == "client-entry" {
-        String::from("server-entry")
-      } else {
-        result.0
-      };
-      Some(resolved_name)
-    } else {
-      None
-    };
-    chunk_name
-  }
-
-  pub fn get_route_chunk_name(&self, resource_path: &str) -> Option<String> {
-    if let Some(routes) = self.options.routes.as_ref() {
-      let route = routes.into_iter().find(|f| f.import == resource_path);
-      let chunk_name = if let Some(route) = route {
-        Some(route.name.clone())
-      } else {
-        None
-      };
-      chunk_name
-    } else {
-      None
-    }
-  }
-
   pub fn get_client_imports_by_name(&self, chunk_name: &str) -> Option<IndexSet<String>> {
     let all_client_imports = &SHARED_CLIENT_IMPORTS.lock().unwrap();
     let client_imports = all_client_imports.get(&String::from(chunk_name)).cloned();
     client_imports
   }
 
-  pub fn format_client_imports(
-    &self,
-    entry_chunk_name: Option<&String>,
-    route_chunk_name: Option<&String>,
-  ) -> Option<PathBuf> {
-    let chunk_name = entry_chunk_name.or(route_chunk_name);
-    if let Some(chunk_name) = chunk_name {
-      let file_name = format!("[{}]_client_imports.json", chunk_name);
-      Some(Path::new(&self.options.root).join(file_name))
+  pub fn format_client_imports(&self, chunk_name: &str) -> Option<PathBuf> {
+    let file_name = format!("[{}]_client_imports.json", chunk_name);
+    Some(Path::new(&self.options.root).join(file_name))
+  }
+
+  fn parse_query(&self, query: Option<&str>) -> QueryParsedRequest {
+    if let Some(query) = query {
+      let hash_query: HashMap<_, _> =
+        form_urlencoded::parse(query.trim_start_matches('?').as_bytes())
+          .into_owned()
+          .collect();
+      QueryParsedRequest {
+        chunk_name: String::from(hash_query.get("name").unwrap_or(&String::from(""))),
+        is_client_entry: hash_query
+          .get("from")
+          .unwrap_or(&String::from(""))
+          .eq("client-entry"),
+        is_route_entry: hash_query
+          .get("from")
+          .unwrap_or(&String::from(""))
+          .eq("route-entry"),
+      }
     } else {
-      None
+      QueryParsedRequest::default()
+    }
+  }
+
+  pub fn is_match(&self, resource_path: Option<&str>) -> bool {
+    if let Some(resource_path) = resource_path {
+      RSC_CLIENT_ENTRY_RE.is_match(resource_path)
+    } else {
+      false
     }
   }
 
@@ -122,15 +102,19 @@ impl Loader<RunnerContext> for RSCClientEntryLoader {
     let content = std::mem::take(&mut loader_context.content).expect("Content should be available");
     let resource_path = loader_context.resource_path().to_str();
     let mut source = content.try_into_string()?;
+    let query = loader_context.resource_query();
 
-    if let Some(resource_path) = resource_path {
-      let chunk_name = self.get_entry_chunk_name(resource_path);
-      let route_chunk_name = self.get_route_chunk_name(resource_path);
-      let client_imports_path =
-        self.format_client_imports(chunk_name.as_ref(), route_chunk_name.as_ref());
+    if self.is_match(resource_path) {
+      let parsed = self.parse_query(query);
+      let chunk_name = parsed.chunk_name;
+      let is_client_entry = parsed.is_client_entry;
+      let is_route_entry = parsed.is_route_entry;
+      // let route_chunk_name = self.get_route_chunk_name(resource_path);
       let mut hmr = String::from("");
       let development =
         Some(Mode::is_development(&loader_context.context.options.mode)).unwrap_or(false);
+      let client_imports_path = self.format_client_imports(&chunk_name);
+
       if development {
         if let Some(client_imports_path) = client_imports_path {
           // HMR
@@ -144,10 +128,9 @@ impl Loader<RunnerContext> for RSCClientEntryLoader {
           }
         }
       }
-
       // Entrypoint
-      if let Some(chunk_name) = &chunk_name {
-        let client_imports = self.get_client_imports_by_name(chunk_name);
+      if is_client_entry {
+        let client_imports = self.get_client_imports_by_name(&chunk_name);
 
         if let Some(client_imports) = client_imports {
           let code = client_imports
@@ -156,12 +139,12 @@ impl Loader<RunnerContext> for RSCClientEntryLoader {
             .join("\n");
           source = format!("{}{}", code, source);
         }
-        let routes = self.get_routes_code();
-        source = format!("{}{}{}", hmr, routes, source);
+        source = format!("{}{}", hmr, source);
       }
+
       // Route
-      if let Some(chunk_name) = &route_chunk_name {
-        let client_imports = self.get_client_imports_by_name(chunk_name);
+      if is_route_entry {
+        let client_imports = self.get_client_imports_by_name(&chunk_name);
 
         if let Some(client_imports) = client_imports {
           let code = client_imports
