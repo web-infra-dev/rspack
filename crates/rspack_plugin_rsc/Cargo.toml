@@ -9,6 +9,7 @@ version    = "0.1.0"
 async-trait = { workspace = true }
 bitflags = { workspace = true }
 dashmap = { workspace = true }
+futures = { workspace = true }
 indexmap = { workspace = true }
 itertools = { workspace = true }
 linked_hash_set = { workspace = true }
