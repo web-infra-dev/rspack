@@ -363,7 +363,6 @@ impl ChunkGraph {
         }
       } else {
         let runtime_module = compilation.runtime_modules.get(identifier);
-        dbg!(runtime_module);
         if let Some(runtime_module) = runtime_module {
           let size = runtime_module.size(Some(&SourceType::Runtime), compilation);
           sizes
