@@ -207,19 +207,8 @@ type GetLoaderOptions = (
 const getSwcLoaderOptions: GetLoaderOptions = (o, options) => {
 	if (o && typeof o === "object" && o.rspackExperiments) {
 		let expr = o.rspackExperiments;
-		const contextPath = options.context!;
-		const production = options.mode === "production" || !options.mode;
-		if (expr.emotion) {
-			expr.emotion = resolveEmotion(expr.emotion, production);
-		}
-		if (expr.relay) {
-			expr.relay = resolveRelay(expr.relay, contextPath);
-		}
 		if (expr.import || expr.pluginImport) {
 			expr.import = resolvePluginImport(expr.import || expr.pluginImport);
-		}
-		if (expr.react) {
-			expr.react = resolveReact(expr.react);
 		}
 		if (expr.preact) {
 			expr.preact = resolvePreact(expr.preact);

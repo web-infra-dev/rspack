@@ -159,3 +159,4 @@ lightningcss
 Idents
 idents
 xxhash
+jscexperimentalplugins

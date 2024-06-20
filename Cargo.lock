@@ -3325,7 +3325,6 @@ dependencies = [
  "dashmap 5.5.3",
  "either",
  "jsonc-parser 0.23.0",
- "once_cell",
  "rspack_ast",
  "rspack_core",
  "rspack_error",

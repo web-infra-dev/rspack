@@ -22,7 +22,6 @@ base64                   = { version = "0.22" }
 dashmap                  = { version = "5.5.3" }
 either                   = "1"
 jsonc-parser             = { version = "0.23.0", features = ["serde"] }
-once_cell                = { workspace = true }
 rspack_ast               = { path = "../rspack_ast" }
 rspack_core              = { path = "../rspack_core" }
 rspack_error             = { path = "../rspack_error" }
