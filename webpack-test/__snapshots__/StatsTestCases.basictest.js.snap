@@ -165,7 +165,7 @@ exports[`StatsTestCases should print correct stats for split-chunks 1`] = `
     > ./c ./index.js 3:0-47
     > ./g ./a.js 6:0-47
     ./f.js 20 bytes [built] [code generated]
-  chunk (runtime: a) default/a.js (a) 7.25 KiB (runtime) 165 bytes (javascript) >{581}< >{912}< [entry] [rendered]
+  chunk (runtime: a) default/a.js (a) 165 bytes (javascript) 7.25 KiB (runtime) >{581}< >{912}< [entry] [rendered]
     > ./a a
     ./a.js 165 bytes [built] [code generated]
   chunk (runtime: b) default/b.js (b) 116 bytes [entry] [rendered]
@@ -179,7 +179,7 @@ exports[`StatsTestCases should print correct stats for split-chunks 1`] = `
   chunk (runtime: c) default/c.js (c) 116 bytes [entry] [rendered]
     > ./c c
     ./c.js 116 bytes [built] [code generated]
-  chunk (runtime: main) default/main.js (main) 7.3 KiB (runtime) 147 bytes (javascript) >{172}< >{250}< >{262}< >{310}< >{416}< >{418}< >{581}< >{753}< [entry] [rendered]
+  chunk (runtime: main) default/main.js (main) 147 bytes (javascript) 7.3 KiB (runtime) >{172}< >{250}< >{262}< >{310}< >{416}< >{418}< >{581}< >{753}< [entry] [rendered]
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) default/async-g.js (async-g) 45 bytes <{250}> <{310}> <{418}> <{74}> <{753}> ={581}= [rendered]
@@ -282,7 +282,7 @@ manual:
     ./b.js 116 bytes [built] [code generated]
     ./d.js 20 bytes [built] [code generated]
     ./f.js 20 bytes [built] [code generated]
-  chunk (runtime: a) manual/a.js (a) 8.3 KiB (runtime) 165 bytes (javascript) ={192}= >{912}< [entry] [rendered]
+  chunk (runtime: a) manual/a.js (a) 165 bytes (javascript) 8.3 KiB (runtime) ={192}= >{912}< [entry] [rendered]
     > x a
     > y a
     > z a
@@ -294,13 +294,13 @@ manual:
     > z b
     > ./b b
     ./b.js 116 bytes [built] [code generated]
-  chunk (runtime: c) manual/c.js (c) 2.86 KiB (runtime) 116 bytes (javascript) ={192}= [entry] [rendered]
+  chunk (runtime: c) manual/c.js (c) 116 bytes (javascript) 2.86 KiB (runtime) ={192}= [entry] [rendered]
     > x c
     > y c
     > z c
     > ./c c
     ./c.js 116 bytes [built] [code generated]
-  chunk (runtime: main) manual/main.js (main) 7.31 KiB (runtime) 147 bytes (javascript) >{172}< >{192}< >{250}< >{262}< [entry] [rendered]
+  chunk (runtime: main) manual/main.js (main) 147 bytes (javascript) 7.31 KiB (runtime) >{172}< >{192}< >{250}< >{262}< [entry] [rendered]
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) manual/async-g.js (async-g) 65 bytes <{192}> <{250}> <{74}> [rendered]
@@ -399,7 +399,7 @@ custom-chunks-filter:
     > ./c ./index.js 3:0-47
     > ./g ./a.js 6:0-47
     ./f.js 20 bytes [built] [code generated]
-  chunk (runtime: a) custom-chunks-filter/a.js (a) 7.27 KiB (runtime) 165 bytes (javascript) >{581}< >{912}< [entry] [rendered]
+  chunk (runtime: a) custom-chunks-filter/a.js (a) 165 bytes (javascript) 7.27 KiB (runtime) >{581}< >{912}< [entry] [rendered]
     > ./a a
     ./a.js 165 bytes [built] [code generated]
   chunk (runtime: b) custom-chunks-filter/b.js (b) 3.16 KiB ={262}= [entry] [rendered]
@@ -454,7 +454,7 @@ custom-chunks-filter-in-cache-groups:
     ./b.js 116 bytes [built] [code generated]
     ./d.js 20 bytes [built] [code generated]
     ./f.js 20 bytes [built] [code generated]
-  chunk (runtime: a) custom-chunks-filter-in-cache-groups/a.js (a) 7.25 KiB (runtime) 225 bytes (javascript) >{912}< [entry] [rendered]
+  chunk (runtime: a) custom-chunks-filter-in-cache-groups/a.js (a) 225 bytes (javascript) 7.25 KiB (runtime) >{912}< [entry] [rendered]
     > x a
     > y a
     > z a
@@ -469,13 +469,13 @@ custom-chunks-filter-in-cache-groups:
     > z b
     > ./b b
     ./b.js 116 bytes [built] [code generated]
-  chunk (runtime: c) custom-chunks-filter-in-cache-groups/c.js (c) 2.86 KiB (runtime) 116 bytes (javascript) ={192}= [entry] [rendered]
+  chunk (runtime: c) custom-chunks-filter-in-cache-groups/c.js (c) 116 bytes (javascript) 2.86 KiB (runtime) ={192}= [entry] [rendered]
     > x c
     > y c
     > z c
     > ./c c
     ./c.js 116 bytes [built] [code generated]
-  chunk (runtime: main) custom-chunks-filter-in-cache-groups/main.js (main) 7.34 KiB (runtime) 147 bytes (javascript) >{172}< >{192}< >{250}< >{262}< [entry] [rendered]
+  chunk (runtime: main) custom-chunks-filter-in-cache-groups/main.js (main) 147 bytes (javascript) 7.34 KiB (runtime) >{172}< >{192}< >{250}< >{262}< [entry] [rendered]
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) custom-chunks-filter-in-cache-groups/async-g.js (async-g) 65 bytes <{192}> <{250}> <{74}> [rendered]

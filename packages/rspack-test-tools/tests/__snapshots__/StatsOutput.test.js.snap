@@ -5,7 +5,7 @@ exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats
 asset bundle.js 2.49 KiB {909} [emitted] (name: main)
 asset 2710c5e36f8babb0a3a4.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
 Entrypoint main 2.49 KiB = bundle.js
-chunk {909} (runtime: main) bundle.js (main) 1.28 KiB (runtime) 117 bytes (javascript) 7 bytes (asset) [entry] [rendered]
+chunk {909} (runtime: main) bundle.js (main) 7 bytes (asset) 117 bytes (javascript) 1.28 KiB (runtime) [entry] [rendered]
   > ./index main
   ./index.js [10] 75 bytes {909} [depth 0] [built] [code generated]
     [no exports]
@@ -231,8 +231,8 @@ Entrypoint e2 10.3 KiB = e2.js
 chunk (runtime: e1) 0.js 24 bytes [rendered]
 chunk (runtime: e1) 1.js 52 bytes [rendered]
 chunk (runtime: e1, e2) 2.js 22 bytes [rendered]
-chunk (runtime: e1) e1.js (e1) 8.38 KiB (runtime) 74 bytes (javascript) [entry] [rendered]
-chunk (runtime: e2) e2.js (e2) 8.38 KiB (runtime) 51 bytes (javascript) [entry] [rendered]"
+chunk (runtime: e1) e1.js (e1) 74 bytes (javascript) 8.38 KiB (runtime) [entry] [rendered]
+chunk (runtime: e2) e2.js (e2) 51 bytes (javascript) 8.38 KiB (runtime) [entry] [rendered]"
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk should print correct stats for 1`] = `
@@ -358,7 +358,7 @@ chunk (runtime: main) a2.js (a2) 1 bytes <{74}> [rendered]
 chunk (runtime: main) b.js (b) 203 bytes <{909}> >{438}< >{439}< >{826}< (prefetch: {826} {438}) (preload: {439}) [rendered]
 chunk (runtime: main) c.js (c) 134 bytes <{909}> >{380}< >{433}< (preload: {433} {380}) [rendered]
 chunk (runtime: main) b1.js (b1) 1 bytes <{751}> [rendered]
-chunk (runtime: main) main.js (main) 11.6 KiB (runtime) 195 bytes (javascript) >{74}< >{751}< >{76}< (prefetch: {74} {751} {76}) [entry] [rendered]"
+chunk (runtime: main) main.js (main) 195 bytes (javascript) 11.6 KiB (runtime) >{74}< >{751}< >{76}< (prefetch: {74} {751} {76}) [entry] [rendered]"
 `;
 
 exports[`statsOutput statsOutput/reasons should print correct stats for 1`] = `
@@ -423,7 +423,7 @@ Rspack x.x.x compiled successfully in X s"
 exports[`statsOutput statsOutput/side-effects-bailouts should print correct stats for 1`] = `
 "asset main.js 1.73 KiB {909} [emitted] (name: main)
 Entrypoint main 1.73 KiB = main.js
-chunk {909} (runtime: main) main.js (main) 397 bytes (runtime) 91 bytes (javascript) [entry] [rendered]
+chunk {909} (runtime: main) main.js (main) 91 bytes (javascript) 397 bytes (runtime) [entry] [rendered]
 runtime modules 397 bytes 2 modules
 cacheable modules 91 bytes
   ./index.js [10] 35 bytes {909} [built] [code generated]

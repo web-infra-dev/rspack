@@ -454,6 +454,16 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
       .collect::<Vec<_>>();
     runtime.sort();
 
+    let mut sizes = stats
+      .sizes
+      .iter()
+      .map(|(source_type, size)| JsStatsSize {
+        source_type: source_type.to_string(),
+        size: *size,
+      })
+      .collect::<Vec<_>>();
+    sizes.sort_by(|a, b| a.source_type.cmp(&b.source_type));
+
     Ok(Self {
       r#type: stats.r#type,
       files: stats.files,
@@ -476,14 +486,7 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
         .map(|(order, children)| (order.to_string(), children.to_owned()))
         .collect(),
       runtime,
-      sizes: stats
-        .sizes
-        .iter()
-        .map(|(source_type, size)| JsStatsSize {
-          source_type: source_type.to_string(),
-          size: *size,
-        })
-        .collect(),
+      sizes,
       reason: stats.reason,
       rendered: stats.rendered,
       origins: stats
