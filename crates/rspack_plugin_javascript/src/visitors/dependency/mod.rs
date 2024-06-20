@@ -3,6 +3,8 @@ mod context_helper;
 mod parser;
 mod util;
 
+use std::sync::Arc;
+
 use rspack_ast::javascript::Program;
 use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::{
@@ -11,8 +13,7 @@ use rspack_core::{
 use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_core::common::comments::Comments;
-use swc_core::common::{BytePos, SourceFile, Span};
+use swc_core::common::{comments::Comments, BytePos, SourceFile, SourceMap, Span};
 use swc_core::ecma::atoms::Atom;
 
 pub use self::context_dependency_helper::create_context_dependency;
@@ -65,6 +66,7 @@ pub enum ExtraSpanInfo {
 
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
+  source_map: Arc<SourceMap>,
   source_file: &SourceFile,
   program: &Program,
   worker_syntax_list: &mut WorkerSyntaxList,
@@ -79,6 +81,7 @@ pub fn scan_dependencies(
   path_ignored_spans: &mut PathIgnoredSpans,
 ) -> Result<ScanDependenciesResult, Vec<Box<dyn Diagnostic + Send + Sync>>> {
   let mut parser = JavascriptParser::new(
+    source_map,
     source_file,
     compiler_options,
     module_parser_options

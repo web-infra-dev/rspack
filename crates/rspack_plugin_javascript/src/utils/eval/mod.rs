@@ -414,7 +414,7 @@ impl BasicEvaluatedExpression {
   }
 
   pub fn set_range(&mut self, start: u32, end: u32) {
-    self.range = Some(DependencyLocation::new(start, end))
+    self.range = Some(DependencyLocation::new(start, end, None))
   }
 
   pub fn set_template_string(
@@ -496,7 +496,7 @@ impl BasicEvaluatedExpression {
   }
 
   pub fn range(&self) -> (u32, u32) {
-    let range = self.range.expect("range should not empty");
+    let range = self.range.clone().expect("range should not empty");
     (range.start(), range.end())
   }
 

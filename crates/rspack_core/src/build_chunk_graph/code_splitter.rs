@@ -1310,12 +1310,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .expect_get(&cgi.chunk_group)
             .is_initial()
           {
-            let error = AsyncDependenciesToInitialChunkError(chunk_name.to_string(), loc);
+            let error = AsyncDependenciesToInitialChunkError(chunk_name.to_string(), loc.clone());
             self.compilation.push_diagnostic(Error::from(error).into());
             cgi = item_chunk_group_info;
           }
 
-          add_origin = Some((cgi.chunk_group, loc, request));
+          add_origin = Some((cgi.chunk_group, loc.clone(), request));
 
           self
             .compilation

@@ -87,7 +87,7 @@ impl<'parser> JavascriptParser<'parser> {
     ));
     let mut block = AsyncDependenciesBlock::new(
       *self.module_identifier,
-      Some(DependencyLocation::new(span.start, span.end)),
+      Some(DependencyLocation::new(span.start, span.end, None)),
       None,
       vec![dep],
       None,

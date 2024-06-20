@@ -6,6 +6,7 @@ mod walk_pre;
 use std::borrow::Cow;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
+use std::sync::Arc;
 
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
@@ -20,7 +21,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::Atom;
 use swc_core::common::comments::Comments;
 use swc_core::common::util::take::Take;
-use swc_core::common::{BytePos, SourceFile, Span, Spanned};
+use swc_core::common::{BytePos, SourceFile, SourceMap, Span, Spanned};
 use swc_core::ecma::ast::{
   ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, MetaPropExpr, MetaPropKind, ObjectPat,
   ObjectPatProp, OptCall, OptChainBase, OptChainExpr, Pat, Program, Stmt, ThisExpr,
@@ -211,6 +212,7 @@ impl DerefMut for PathIgnoredSpans {
 }
 
 pub struct JavascriptParser<'parser> {
+  pub(crate) source_map: Arc<SourceMap>,
   pub(crate) source_file: &'parser SourceFile,
   pub(crate) errors: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
@@ -267,6 +269,7 @@ pub struct JavascriptParser<'parser> {
 impl<'parser> JavascriptParser<'parser> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
+    source_map: Arc<SourceMap>,
     source_file: &'parser SourceFile,
     compiler_options: &'parser CompilerOptions,
     javascript_options: &'parser JavascriptParserOptions,
@@ -374,6 +377,7 @@ impl<'parser> JavascriptParser<'parser> {
       last_harmony_import_order: 0,
       comments,
       javascript_options,
+      source_map,
       source_file,
       errors,
       warning_diagnostics,

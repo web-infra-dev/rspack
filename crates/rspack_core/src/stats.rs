@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use either::Either;
 use itertools::Itertools;
 use rspack_error::emitter::{DiagnosticDisplay, DiagnosticDisplayer};
@@ -316,9 +318,7 @@ impl Stats<'_> {
                   .loc
                   .as_ref()
                   .map(|loc| match loc {
-                    OriginLocation::Real(l) => {
-                      format!("{}-{}", l.start(), l.end())
-                    }
+                    OriginLocation::Real(l) => format!("{l}"),
                     OriginLocation::Synthetic(l) => l.name.to_string(),
                   })
                   .unwrap_or_default(),

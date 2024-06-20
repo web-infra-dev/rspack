@@ -1159,13 +1159,7 @@ impl ContextModule {
         let prefetch_order = group_options.and_then(|o| o.prefetch_order);
         let mut block = AsyncDependenciesBlock::new(
           self.identifier,
-          Some(
-            (
-              self.options.context_options.start,
-              self.options.context_options.end,
-            )
-              .into(),
-          ),
+          None,
           Some(&context_element_dependency.user_request.clone()),
           vec![Box::new(context_element_dependency)],
           Some(self.options.context_options.request.clone()),

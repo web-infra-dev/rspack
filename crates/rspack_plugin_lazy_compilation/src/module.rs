@@ -152,7 +152,7 @@ impl Module for LazyCompilationProxyModule {
     _build_context: BuildContext<'_>,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let client_dep = CommonJsRequireDependency::new(self.client.clone(), None, 0, 0, false);
+    let client_dep = CommonJsRequireDependency::new(self.client.clone(), None, 0, 0, None, false);
     let mut dependencies = vec![];
     let mut blocks = vec![];
 

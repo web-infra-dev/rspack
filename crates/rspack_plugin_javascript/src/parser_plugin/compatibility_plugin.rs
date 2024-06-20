@@ -106,6 +106,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         loc: DependencyLocation::new(
           fn_decl.ident.span().real_lo(),
           fn_decl.ident.span().real_hi(),
+          Some(parser.source_map.clone()),
         ),
       };
       parser.tag_variable(name.to_string(), NESTED_WEBPACK_IDENTIFIER_TAG, Some(data));
