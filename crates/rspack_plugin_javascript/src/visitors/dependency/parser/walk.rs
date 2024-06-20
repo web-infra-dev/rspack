@@ -1381,6 +1381,10 @@ impl<'parser> JavascriptParser<'parser> {
 
               // TODO: `hooks.body_value`;
               if let Some(body) = &ctor.body {
+                this.detect_mode(&body.stmts);
+                let prev = this.prev_statement.clone();
+                this.pre_walk_block_statement(body);
+                this.prev_statement = prev;
                 this.walk_block_statement(body);
               }
             });
@@ -1397,15 +1401,7 @@ impl<'parser> JavascriptParser<'parser> {
             this.in_function_scope(
               true,
               method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
-              |this| {
-                for param in &method.function.params {
-                  this.walk_pattern(&param.pat);
-                }
-                // TODO: `hooks.body_value`;
-                if let Some(body) = &method.function.body {
-                  this.walk_block_statement(body);
-                }
-              },
+              |this| this.walk_function(&method.function),
             );
             this.top_level_scope = was_top_level;
           }
@@ -1416,15 +1412,7 @@ impl<'parser> JavascriptParser<'parser> {
             this.in_function_scope(
               true,
               method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
-              |this| {
-                for param in &method.function.params {
-                  this.walk_pattern(&param.pat);
-                }
-                // TODO: `hooks.body_value`;
-                if let Some(body) = &method.function.body {
-                  this.walk_block_statement(body);
-                }
-              },
+              |this| this.walk_function(&method.function),
             );
             this.top_level_scope = was_top_level;
           }
@@ -1441,7 +1429,7 @@ impl<'parser> JavascriptParser<'parser> {
             }
           }
           ClassMember::PrivateProp(prop) => {
-            this.walk_identifier(&prop.key.id);
+            // prop.key is always not computed in private prop, so we don't need to walk it
             if let Some(value) = &prop.value {
               let was_top_level = this.top_level_scope;
               this.top_level_scope = TopLevelScope::False;
