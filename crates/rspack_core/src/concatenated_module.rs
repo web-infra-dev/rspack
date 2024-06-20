@@ -518,7 +518,7 @@ impl Module for ConcatenatedModule {
     ))
   }
 
-  fn size(&self, source_type: Option<&SourceType>) -> f64 {
+  fn size(&self, source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     if let Some(size_ref) = source_type.and_then(|st| self.cached_source_sizes.get(st)) {
       *size_ref
     } else {

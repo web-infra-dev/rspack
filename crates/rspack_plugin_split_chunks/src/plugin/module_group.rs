@@ -230,13 +230,15 @@ impl SplitChunksPlugin {
               selected_chunks_key,
             },
             &module_group_map,
-            &mut chunk_key_to_string
+            &mut chunk_key_to_string,
+            compilation
           )?;
 
           fn merge_matched_item_into_module_group_map(
             matched_item: MatchedItem<'_>,
             module_group_map: &DashMap<String, ModuleGroup>,
-            chunk_key_to_string: &mut HashMap::<ChunksKey, String, ChunksKeyHashBuilder>
+            chunk_key_to_string: &mut HashMap::<ChunksKey, String, ChunksKeyHashBuilder>,
+            compilation: &Compilation,
           ) -> Result<()> {
             let MatchedItem {
               idx,
@@ -287,7 +289,7 @@ impl SplitChunksPlugin {
               })
             };
 
-            module_group.add_module(module);
+            module_group.add_module(module, compilation);
             module_group
               .chunks
               .extend(selected_chunks.iter().map(|c| c.ukey));
@@ -328,7 +330,7 @@ impl SplitChunksPlugin {
             let module = module_graph
               .module_by_identifier(module)
               .unwrap_or_else(|| panic!("Module({module}) not found"));
-            other_module_group.remove_module(&**module);
+            other_module_group.remove_module(&**module, compilation);
           }
         });
 

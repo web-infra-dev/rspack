@@ -111,7 +111,7 @@ impl DependenciesBlock for ConsumeSharedModule {
 impl Module for ConsumeSharedModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     42.0
   }
 

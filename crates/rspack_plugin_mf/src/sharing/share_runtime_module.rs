@@ -12,7 +12,7 @@ use super::provide_shared_plugin::ProvideVersion;
 use crate::utils::json_stringify;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct ShareRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,

@@ -15,7 +15,7 @@ use crate::{
 };
 
 #[impl_runtime_module]
-#[derive(Debug, Default, Eq)]
+#[derive(Debug, Default)]
 pub struct ImportScriptsChunkLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,

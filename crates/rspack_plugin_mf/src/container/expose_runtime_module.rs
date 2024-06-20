@@ -9,7 +9,7 @@ use super::container_entry_module::CodeGenerationDataExpose;
 use crate::utils::json_stringify;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct ExposeRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,

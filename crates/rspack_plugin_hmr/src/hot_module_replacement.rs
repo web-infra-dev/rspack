@@ -7,7 +7,7 @@ use rspack_identifier::Identifier;
 use rspack_util::test::{HOT_TEST_DEFINE_GLOBAL, HOT_TEST_STATUS_CHANGE};
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct HotModuleReplacementRuntimeModule {
   id: Identifier,
 }

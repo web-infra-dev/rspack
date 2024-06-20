@@ -8,7 +8,7 @@ use rspack_identifier::Identifier;
 use crate::get_chunk_runtime_requirements;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct GetTrustedTypesPolicyRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,

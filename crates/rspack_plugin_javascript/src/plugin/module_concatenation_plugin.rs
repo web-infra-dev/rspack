@@ -885,7 +885,7 @@ impl ModuleConcatenationPlugin {
             .unwrap_or_else(|| panic!("should have module {}", id));
           let inner_module = ConcatenatedInnerModule {
             id: *id,
-            size: module.size(Some(&rspack_core::SourceType::JavaScript)),
+            size: module.size(Some(&rspack_core::SourceType::JavaScript), compilation),
             original_source_hash: module.original_source().map(|source| {
               let mut hasher = DefaultHasher::default();
               source.dyn_hash(&mut hasher);

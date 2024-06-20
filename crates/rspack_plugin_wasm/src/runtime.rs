@@ -7,7 +7,7 @@ use rspack_identifier::Identifier;
 use rspack_util::infallible::ResultInfallibleExt as _;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct AsyncWasmLoadingRuntimeModule {
   id: Identifier,
   generate_load_binary_code: String,

@@ -9,7 +9,7 @@ use rspack_identifier::Identifier;
 use super::utils::get_undo_path;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct AutoPublicPathRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,

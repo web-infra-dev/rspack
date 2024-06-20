@@ -47,11 +47,11 @@ impl ChunkGraphChunk {
   }
 }
 
-fn get_modules_size(modules: &[&BoxModule]) -> f64 {
+fn get_modules_size(modules: &[&BoxModule], compilation: &Compilation) -> f64 {
   let mut size = 0f64;
   for module in modules {
     for source_type in module.source_types() {
-      size += module.size(Some(source_type));
+      size += module.size(Some(source_type), compilation);
     }
   }
   size
@@ -329,7 +329,8 @@ impl ChunkGraph {
       .map(|m| m.as_ref())
   }
 
-  pub fn get_chunk_modules_size(&self, chunk: &ChunkUkey, module_graph: &ModuleGraph) -> f64 {
+  pub fn get_chunk_modules_size(&self, chunk: &ChunkUkey, compilation: &Compilation) -> f64 {
+    let module_graph = &compilation.get_module_graph();
     self
       .get_chunk_modules(chunk, module_graph)
       .iter()
@@ -338,7 +339,7 @@ impl ChunkGraph {
           + m
             .source_types()
             .iter()
-            .fold(0.0, |acc, t| acc + m.size(Some(t)))
+            .fold(0.0, |acc, t| acc + m.size(Some(t), compilation))
       })
   }
 
@@ -354,7 +355,7 @@ impl ChunkGraph {
       let module = module_graph.module_by_identifier(identifier);
       if let Some(module) = module {
         for source_type in module.source_types() {
-          let size = module.size(Some(source_type));
+          let size = module.size(Some(source_type), compilation);
           sizes
             .entry(*source_type)
             .and_modify(|s| *s += size)
@@ -362,8 +363,9 @@ impl ChunkGraph {
         }
       } else {
         let runtime_module = compilation.runtime_modules.get(identifier);
+        dbg!(runtime_module);
         if let Some(runtime_module) = runtime_module {
-          let size = runtime_module.size(Some(&SourceType::Runtime));
+          let size = runtime_module.size(Some(&SourceType::Runtime), compilation);
           sizes
             .entry(SourceType::Runtime)
             .and_modify(|s| *s += size)
@@ -643,17 +645,19 @@ impl ChunkGraph {
     &self,
     chunk_ukey: &ChunkUkey,
     options: &ChunkSizeOptions,
-    chunk_by_ukey: &Database<Chunk>,
-    chunk_group_by_ukey: &Database<ChunkGroup>,
-    module_graph: &ModuleGraph,
+    compilation: &Compilation,
   ) -> f64 {
+    let chunk_by_ukey = &compilation.chunk_by_ukey;
+    let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
+    let module_graph = &compilation.get_module_graph();
+
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
     let modules: Vec<&BoxModule> = cgc
       .modules
       .iter()
       .filter_map(|id| module_graph.module_by_identifier(id))
       .collect::<Vec<_>>();
-    let modules_size = get_modules_size(&modules);
+    let modules_size = get_modules_size(&modules, compilation);
     let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
     let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
     let chunk = chunk_by_ukey.expect_get(chunk_ukey);
@@ -671,10 +675,12 @@ impl ChunkGraph {
     chunk_a_ukey: &ChunkUkey,
     chunk_b_ukey: &ChunkUkey,
     options: &ChunkSizeOptions,
-    chunk_by_ukey: &Database<Chunk>,
-    chunk_group_by_ukey: &Database<ChunkGroup>,
-    module_graph: &ModuleGraph,
+    compilation: &Compilation,
   ) -> f64 {
+    let chunk_by_ukey = &compilation.chunk_by_ukey;
+    let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
+    let module_graph = &compilation.get_module_graph();
+
     let cgc_a = self.get_chunk_graph_chunk(chunk_a_ukey);
     let cgc_b = self.get_chunk_graph_chunk(chunk_b_ukey);
     let mut all_modules: Vec<&BoxModule> = cgc_a
@@ -688,7 +694,7 @@ impl ChunkGraph {
         all_modules.push(module);
       }
     }
-    let modules_size = get_modules_size(&all_modules);
+    let modules_size = get_modules_size(&all_modules, compilation);
     let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
     let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
 

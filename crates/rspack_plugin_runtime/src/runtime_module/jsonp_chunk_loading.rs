@@ -13,7 +13,7 @@ use crate::{
 };
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct JsonpChunkLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,

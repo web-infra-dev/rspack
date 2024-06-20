@@ -8,7 +8,7 @@ use rspack_util::infallible::ResultInfallibleExt;
 
 // TODO workaround for get_chunk_update_filename
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct GetChunkUpdateFilenameRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,

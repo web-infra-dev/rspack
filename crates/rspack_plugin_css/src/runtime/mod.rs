@@ -9,7 +9,7 @@ use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, strin
 use rustc_hash::FxHashSet as HashSet;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct CssLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,

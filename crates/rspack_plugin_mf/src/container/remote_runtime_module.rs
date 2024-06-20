@@ -11,7 +11,7 @@ use super::remote_module::RemoteModule;
 use crate::utils::json_stringify;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct RemoteRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,

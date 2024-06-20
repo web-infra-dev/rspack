@@ -6,7 +6,7 @@ use rspack_core::{
 use rspack_identifier::Identifier;
 
 #[impl_runtime_module]
-#[derive(Debug, Default, Eq)]
+#[derive(Debug, Default)]
 pub struct ExportWebpackRequireRuntimeModule {
   id: Identifier,
 }

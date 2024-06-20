@@ -41,12 +41,12 @@ impl Group {
   }
 }
 
-fn get_size(module: &dyn Module) -> SplitChunkSizes {
+fn get_size(module: &dyn Module, compilation: &Compilation) -> SplitChunkSizes {
   SplitChunkSizes(
     module
       .source_types()
       .iter()
-      .map(|ty| (*ty, module.size(Some(ty))))
+      .map(|ty| (*ty, module.size(Some(ty), compilation)))
       .collect(),
   )
 }
@@ -105,7 +105,7 @@ fn deterministic_grouping_for_modules(
     );
     GroupItem {
       module: module.identifier(),
-      size: get_size(module),
+      size: get_size(module, compilation),
       key: request_to_id(&key),
     }
   });

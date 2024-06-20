@@ -6,7 +6,7 @@ use rspack_core::{
 use rspack_identifier::Identifier;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct PublicPathRuntimeModule {
   id: Identifier,
   public_path: Box<str>,

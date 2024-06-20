@@ -1,5 +1,5 @@
 use derivative::Derivative;
-use rspack_core::{ChunkUkey, Module};
+use rspack_core::{ChunkUkey, Compilation, Module};
 use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet;
 
@@ -51,26 +51,26 @@ impl ModuleGroup {
     }
   }
 
-  pub fn add_module(&mut self, module: &dyn Module) {
+  pub fn add_module(&mut self, module: &dyn Module, compilation: &Compilation) {
     let old_len = self.modules.len();
     self.modules.insert(module.identifier());
 
     if self.modules.len() != old_len {
       module.source_types().iter().for_each(|ty| {
         let size = self.sizes.entry(*ty).or_default();
-        *size += module.size(Some(ty));
+        *size += module.size(Some(ty), compilation);
       });
     }
   }
 
-  pub fn remove_module(&mut self, module: &dyn Module) {
+  pub fn remove_module(&mut self, module: &dyn Module, compilation: &Compilation) {
     let old_len = self.modules.len();
     self.modules.remove(&module.identifier());
 
     if self.modules.len() != old_len {
       module.source_types().iter().for_each(|ty| {
         let size = self.sizes.entry(*ty).or_default();
-        *size -= module.size(Some(ty));
+        *size -= module.size(Some(ty), compilation);
         *size = size.max(0.0)
       });
     }

@@ -337,7 +337,7 @@ impl Stats<'_> {
           names: c.name.clone().map(|n| vec![n]).unwrap_or_default(),
           entry: c.has_entry_module(chunk_graph),
           initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
-          size: chunk_graph.get_chunk_modules_size(&c.ukey, module_graph),
+          size: chunk_graph.get_chunk_modules_size(&c.ukey, self.compilation),
           modules: chunk_modules,
           parents,
           children,
@@ -740,7 +740,7 @@ impl Stats<'_> {
       .iter()
       .map(|t| StatsSourceTypeSize {
         source_type: *t,
-        size: module.size(Some(t)),
+        size: module.size(Some(t), self.compilation),
       })
       .collect_vec();
 
@@ -763,7 +763,7 @@ impl Stats<'_> {
           .clone()
       },
       chunks,
-      size: module.size(None),
+      size: module.size(None, self.compilation),
       sizes,
       issuer: issuer.map(|i| i.identifier().to_string()),
       issuer_name,

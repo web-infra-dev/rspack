@@ -14,8 +14,6 @@ pub struct GetMainFilenameRuntimeModule {
   filename: Filename,
 }
 
-impl Eq for GetMainFilenameRuntimeModule {}
-
 impl GetMainFilenameRuntimeModule {
   pub fn new(content_type: &'static str, global: RuntimeGlobals, filename: Filename) -> Self {
     Self::with_default(

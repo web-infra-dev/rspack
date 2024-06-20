@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct ModuleChunkLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,

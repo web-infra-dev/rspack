@@ -15,7 +15,7 @@ use crate::{
 };
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct ReadFileChunkLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,

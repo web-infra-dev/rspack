@@ -12,7 +12,7 @@ use rspack_identifier::Identifier;
 use rspack_plugin_runtime::chunk_has_js;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct FederationRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,

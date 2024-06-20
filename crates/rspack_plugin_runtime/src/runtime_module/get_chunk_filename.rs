@@ -44,8 +44,6 @@ impl fmt::Debug for GetChunkFilenameRuntimeModule {
   }
 }
 
-impl Eq for GetChunkFilenameRuntimeModule {}
-
 // It's render is different with webpack, rspack will only render chunk map<chunkId, chunkName>
 // and search it.
 impl GetChunkFilenameRuntimeModule {

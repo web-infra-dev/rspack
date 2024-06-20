@@ -22,6 +22,11 @@ pub fn impl_runtime_module(
         .parse2(quote! { pub custom_source: Option<::rspack_core::rspack_sources::BoxSource> })
         .expect("Failed to parse new field for custom_source"),
     );
+    fields.named.push(
+      syn::Field::parse_named
+        .parse2(quote! { pub cached_generated_code: std::sync::RwLock<Option<::rspack_core::rspack_sources::BoxSource>> })
+        .expect("Failed to parse new field for cached_generated_code"),
+    );
   }
 
   let field_names = origin_fields
@@ -35,6 +40,7 @@ pub fn impl_runtime_module(
       Self {
         source_map_kind: ::rspack_util::source_map::SourceMapKind::empty(),
         custom_source: None,
+        cached_generated_code: Default::default(),
         #(#field_names,)*
       }
     }
@@ -45,6 +51,20 @@ pub fn impl_runtime_module(
 
     impl #impl_generics #name #ty_generics #where_clause {
       #with_default
+
+      fn get_generated_code(
+        &self,
+        compilation: &::rspack_core::Compilation,
+      ) -> ::rspack_error::Result<std::sync::Arc<dyn ::rspack_core::rspack_sources::Source>> {
+        let mut cached_generated_code = self.cached_generated_code.write().expect("Failed to acquire write lock on cached_generated_code");
+        if let Some(cached_generated_code) = (*cached_generated_code).as_ref() {
+          Ok(cached_generated_code.clone())
+        } else {
+          let source = self.generate_with_custom(compilation)?;
+          *cached_generated_code = Some(source.clone());
+          Ok(source)
+        }
+      }
     }
 
     impl #impl_generics ::rspack_core::CustomSourceRuntimeModule for #name #ty_generics #where_clause {
@@ -70,6 +90,8 @@ pub fn impl_runtime_module(
         self.name() == other.name()
       }
     }
+
+    impl #impl_generics Eq for #name #ty_generics #where_clause {}
 
     impl #impl_generics std::hash::Hash for #name #ty_generics #where_clause {
       fn hash<H: std::hash::Hasher>(&self, _state: &mut H) {
@@ -104,8 +126,8 @@ pub fn impl_runtime_module(
         &[::rspack_core::SourceType::JavaScript]
       }
 
-      fn size(&self, _source_type: Option<&::rspack_core::SourceType>) -> f64 {
-        0f64
+      fn size(&self, _source_type: Option<&::rspack_core::SourceType>, compilation: &::rspack_core::Compilation) -> f64 {
+        self.get_generated_code(compilation).ok().map(|source| source.size() as f64).unwrap_or(0f64)
       }
 
       fn readable_identifier(&self, _context: &::rspack_core::Context) -> std::borrow::Cow<str> {
@@ -145,7 +167,7 @@ pub fn impl_runtime_module(
         _: Option<::rspack_core::ConcatenationScope>,
       ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
         let mut result = ::rspack_core::CodeGenerationResult::default();
-        result.add(::rspack_core::SourceType::JavaScript, self.generate_with_custom(compilation)?);
+        result.add(::rspack_core::SourceType::JavaScript, self.get_generated_code(compilation)?);
         result.set_hash(
           &compilation.options.output.hash_function,
           &compilation.options.output.hash_digest,

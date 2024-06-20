@@ -7,7 +7,7 @@ use rspack_core::{
 use rspack_identifier::Identifier;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct ChunkPrefetchStartupRuntimeModule {
   id: Identifier,
   startup_chunks: Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>,

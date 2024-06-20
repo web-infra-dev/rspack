@@ -10,7 +10,7 @@ use rspack_identifier::Identifier;
 use rustc_hash::FxHasher;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct ChunkPrefetchTriggerRuntimeModule {
   id: Identifier,
   chunk_map: IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>,
