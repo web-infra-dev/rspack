@@ -396,12 +396,14 @@ const resolveAlias = z.record(
 );
 export type ResolveAlias = z.infer<typeof resolveAlias>;
 
-const resolveTsconfig = z.strictObject({
-	configFile: z.string(),
-	references: z.array(z.string()).or(z.literal("auto")).optional()
-});
-
-export type ResolveTsconfig = z.infer<typeof resolveTsconfig>;
+const resolveTsConfigFile = z.string();
+const resolveTsConfig = resolveTsConfigFile.or(
+	z.strictObject({
+		configFile: resolveTsConfigFile,
+		references: z.array(z.string()).or(z.literal("auto")).optional()
+	})
+);
+export type ResolveTsConfig = z.infer<typeof resolveTsConfig>;
 
 const baseResolveOptions = z.strictObject({
 	alias: resolveAlias.optional(),
@@ -417,8 +419,7 @@ const baseResolveOptions = z.strictObject({
 	enforceExtension: z.boolean().optional(),
 	importsFields: z.array(z.string()).optional(),
 	descriptionFiles: z.array(z.string()).optional(),
-	tsConfigPath: z.string().optional(),
-	tsConfig: resolveTsconfig.optional(),
+	tsConfig: resolveTsConfig.optional(),
 	fullySpecified: z.boolean().optional(),
 	exportsFields: z.array(z.string()).optional(),
 	extensionAlias: z.record(z.string().or(z.array(z.string()))).optional(),
