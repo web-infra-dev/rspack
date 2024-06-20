@@ -22,7 +22,7 @@ pub struct JsChunk {
   pub hash: Option<String>,
   pub content_hash: HashMap<String, String>,
   pub rendered_hash: Option<String>,
-  pub chunk_reason: Vec<String>,
+  pub chunk_reason: Option<String>,
   pub auxiliary_files: Vec<String>,
 }
 
@@ -48,7 +48,6 @@ impl JsChunk {
       hash,
       rendered_hash,
       content_hash,
-      chunk_reasons,
       chunk_reason,
       ..
     } = chunk;

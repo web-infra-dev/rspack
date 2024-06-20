@@ -224,7 +224,7 @@ impl SplitChunksPlugin {
       if max_size_setting.is_none()
         && !(fallback_cache_group.chunks_filter)(chunk, chunk_group_db)?
       {
-        tracing::debug!("Chunk({}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason.join("~"));
+        tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason);
         return Ok(None);
       }
 
@@ -253,8 +253,8 @@ impl SplitChunksPlugin {
       // Fast path
       if allow_max_size.is_empty() {
         tracing::debug!(
-          "Chunk({}) skips the `maxSize` checking. Reason: allow_max_size is empty",
-          chunk.chunk_reason.join("~")
+          "Chunk({:?}) skips the `maxSize` checking. Reason: allow_max_size is empty",
+          chunk.chunk_reason
         );
         return Ok(None);
       }

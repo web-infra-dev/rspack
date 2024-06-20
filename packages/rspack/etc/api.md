@@ -832,7 +832,7 @@ export class Chunk {
     // (undocumented)
     canBeInitial(): boolean;
     // (undocumented)
-    chunkReason: ReadonlyArray<string>;
+    chunkReason?: Readonly<string>;
     // (undocumented)
     contentHash: Readonly<Record<string, string>>;
     // (undocumented)

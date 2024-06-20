@@ -278,7 +278,7 @@ export interface JsChunk {
   hash?: string
   contentHash: Record<string, string>
   renderedHash?: string
-  chunkReason: Array<string>
+  chunkReason?: string
   auxiliaryFiles: Array<string>
 }
 

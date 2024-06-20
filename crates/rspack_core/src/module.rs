@@ -681,7 +681,7 @@ mod test {
           unreachable!()
         }
 
-        fn size(&self, _source_type: Option<&SourceType>) -> f64 {
+        fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
           unreachable!()
         }
 

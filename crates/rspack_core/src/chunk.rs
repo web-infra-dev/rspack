@@ -44,8 +44,6 @@ pub struct Chunk {
   pub hash: Option<RspackHashDigest>,
   pub rendered_hash: Option<Arc<str>>,
   pub content_hash: ChunkContentHash,
-  pub chunk_reasons: Vec<String>,
-  // TODO: remove it
   pub chunk_reason: Option<String>,
   pub rendered: bool,
 }
@@ -75,7 +73,6 @@ impl Chunk {
       hash: None,
       rendered_hash: None,
       content_hash: HashMap::default(),
-      chunk_reasons: Default::default(),
       chunk_reason: Default::default(),
       rendered: false,
     }
