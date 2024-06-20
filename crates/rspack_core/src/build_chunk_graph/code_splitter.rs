@@ -1329,7 +1329,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             block.loc().map(|l| OriginLocation::Real(l.clone())),
             block.request().clone(),
           );
-          // chunk_group.add_origin(block.identifier(), loc, request);
           let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
           chunk
             .chunk_reasons

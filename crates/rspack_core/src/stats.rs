@@ -294,6 +294,7 @@ impl Stats<'_> {
         let origins = c
           .groups
           .iter()
+          .sorted()
           .flat_map(|ukey| {
             let chunk_group = chunk_group_by_ukey.expect_get(ukey);
             chunk_group.origins().iter().map(|origin| {

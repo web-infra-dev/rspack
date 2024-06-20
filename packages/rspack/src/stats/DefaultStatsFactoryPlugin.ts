@@ -9,6 +9,7 @@
  */
 import * as util from "node:util";
 
+import { JsOriginRecord } from "@rspack/binding";
 import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { StatsOptions } from "../config";
@@ -351,13 +352,25 @@ const SORTERS: Record<
 		_: comparators => {
 			comparators.push(compareSelect((c: StatsChunk) => c.id, compareIds));
 		}
-	}
+	},
 	// "compilation.modules": MODULES_SORTER,
 	// "chunk.rootModules": MODULES_SORTER,
 	// "chunk.modules": MODULES_SORTER,
 	// "module.modules": MODULES_SORTER,
 	// not support module.reasons (missing Module.identifier())
-	// not support chunk.origins (missing compilation.chunkGraph)
+	"chunk.origins": {
+		_: comparators => {
+			comparators.push(
+				// compareSelect(
+				// 	origin =>
+				// 		origin.module ? chunkGraph.getModuleId(origin.module) : undefined,
+				// 	compareIds
+				// ),
+				compareSelect((origin: JsOriginRecord) => origin.loc, compareIds),
+				compareSelect((origin: JsOriginRecord) => origin.request, compareIds)
+			);
+		}
+	}
 };
 
 const SIMPLE_EXTRACTORS: SimpleExtractors = {
@@ -907,7 +920,6 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.sizes = chunk.sizes;
 			object.reason = chunk.reason;
 			object.rendered = chunk.rendered;
-			object.origins = chunk.origins;
 		},
 		ids: (object, chunk) => {
 			object.id = chunk.id;
@@ -924,6 +936,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				chunk.modules,
 				context
 			);
+		},
+		chunkOrigins: (object, chunk, context, options, factory) => {
+			object.origins = chunk.origins;
 		}
 	}
 };
