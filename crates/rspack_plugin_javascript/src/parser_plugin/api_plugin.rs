@@ -1,6 +1,6 @@
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt};
 use swc_core::common::Spanned;
-use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident};
+use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, UnaryExpr};
 
 use crate::dependency::ModuleArgumentDependency;
 use crate::parser_plugin::JavascriptParserPlugin;
@@ -64,16 +64,12 @@ impl JavascriptParserPlugin for APIPlugin {
   fn evaluate_typeof(
     &self,
     parser: &mut JavascriptParser,
-    expression: &Ident,
-    start: u32,
-    end: u32,
+    expr: &UnaryExpr,
+    for_name: &str,
   ) -> Option<BasicEvaluatedExpression> {
-    if parser.is_unresolved_ident(expression.sym.as_str()) {
-      get_typeof_evaluate_of_api(expression.sym.as_str())
-        .map(|res| eval::evaluate_to_string(res.to_string(), start, end))
-    } else {
-      None
-    }
+    get_typeof_evaluate_of_api(for_name).map(|res| {
+      eval::evaluate_to_string(res.to_string(), expr.span.real_lo(), expr.span.real_hi())
+    })
   }
 
   fn identifier(

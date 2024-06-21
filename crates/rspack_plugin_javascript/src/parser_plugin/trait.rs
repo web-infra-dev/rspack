@@ -55,9 +55,8 @@ pub trait JavascriptParserPlugin {
   fn evaluate_typeof(
     &self,
     _parser: &mut JavascriptParser,
-    _ident: &Ident,
-    _start: u32,
-    _end: u32,
+    _expr: &UnaryExpr,
+    _for_name: &str,
   ) -> Option<BasicEvaluatedExpression> {
     None
   }

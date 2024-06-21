@@ -4,7 +4,9 @@ use rspack_core::{
 };
 use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
-use swc_core::ecma::ast::{AssignExpr, AssignTarget, CallExpr, PropOrSpread, SimpleAssignTarget};
+use swc_core::ecma::ast::{
+  AssignExpr, AssignTarget, CallExpr, PropOrSpread, SimpleAssignTarget, UnaryExpr,
+};
 use swc_core::ecma::ast::{Callee, ExprOrSpread, Ident, MemberExpr, ObjectLit};
 use swc_core::ecma::ast::{Expr, Lit, Prop, PropName, ThisExpr, UnaryOp};
 
@@ -554,14 +556,15 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
   fn evaluate_typeof(
     &self,
     parser: &mut JavascriptParser,
-    expression: &Ident,
-    start: u32,
-    end: u32,
+    expr: &UnaryExpr,
+    for_name: &str,
   ) -> Option<BasicEvaluatedExpression> {
-    if parser.is_exports_ident(expression) || parser.is_module_ident(expression) {
-      Some(eval::evaluate_to_string("object".to_string(), start, end))
-    } else {
-      None
-    }
+    (for_name == "module" || for_name == "exports").then(|| {
+      eval::evaluate_to_string(
+        "object".to_string(),
+        expr.span.real_lo(),
+        expr.span.real_hi(),
+      )
+    })
   }
 }
