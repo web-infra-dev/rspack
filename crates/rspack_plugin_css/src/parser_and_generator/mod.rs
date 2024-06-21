@@ -341,7 +341,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
         presentational_dependencies,
         code_generation_dependencies,
         source,
-        analyze_result: Default::default(),
         side_effects_bailout: None,
       }
       .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(

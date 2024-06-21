@@ -123,7 +123,6 @@ impl Module for SelfModule {
       build_meta: Default::default(),
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      analyze_result: Default::default(),
       optimization_bailouts: vec![],
     })
   }

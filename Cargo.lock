@@ -2511,8 +2511,6 @@ checksum = "b4c5cc86750666a3ed20bdaf5ca2a0344f9c67674cae0515bec2da16fbaa47db"
 dependencies = [
  "fixedbitset",
  "indexmap 2.2.6",
- "serde",
- "serde_derive",
 ]
 
 [[package]]
@@ -3136,7 +3134,6 @@ dependencies = [
  "dyn-clone",
  "either",
  "futures",
- "glob-match",
  "hashlink",
  "hex",
  "indexmap 2.2.6",
@@ -3148,7 +3145,6 @@ dependencies = [
  "once_cell",
  "oxc_resolver",
  "paste",
- "petgraph",
  "pretty_assertions",
  "rayon",
  "regex",
@@ -3637,6 +3633,7 @@ dependencies = [
  "async-trait",
  "bitflags 2.5.0",
  "dashmap 6.0.0",
+ "glob-match",
  "indexmap 2.2.6",
  "indoc",
  "itertools 0.12.1",

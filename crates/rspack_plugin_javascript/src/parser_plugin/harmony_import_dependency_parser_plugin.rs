@@ -161,7 +161,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       import_decl.src.value.clone(),
       import_decl.span,
       import_decl.src.span,
-      DependencyType::EsmImport(import_decl.span.into()),
+      DependencyType::EsmImport,
       false,
     );
 
