@@ -31,10 +31,10 @@ use crate::{
   prepare_get_exports_type, to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions,
   Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind,
   ChunkUkey, CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions,
-  DependencyId, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, ErrorSpan,
-  ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory,
-  ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
+  DependencyId, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, ExecuteModuleId,
+  Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory, ModuleGraph,
+  ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule,
+  RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -1637,11 +1637,7 @@ impl Compilation {
     let dependency_type = dependency.dependency_type();
     self
       .dependency_factories
-      .get(&match dependency_type {
-        DependencyType::EsmImport(_) => DependencyType::EsmImport(ErrorSpan::default()),
-        DependencyType::EsmExport(_) => DependencyType::EsmExport(ErrorSpan::default()),
-        _ => dependency_type.clone(),
-      })
+      .get(dependency_type)
       .unwrap_or_else(|| {
         panic!(
           "No module factory available for dependency type: {}, resourceIdentifier: {:?}",

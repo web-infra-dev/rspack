@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
-use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt};
-use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
   render_init_fragments, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph,
   Compilation, DependenciesBlock, DependencyId, GenerateContext, Module, ModuleGraph, ModuleType,
@@ -104,7 +102,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             blocks: vec![],
             presentational_dependencies: vec![],
             code_generation_dependencies: vec![],
-            analyze_result: Default::default(),
             side_effects_bailout: None,
           }
           .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
@@ -166,7 +163,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     });
 
     let mut path_ignored_spans = PathIgnoredSpans::default();
-    let mut worker_syntax_list = WorkerSyntaxList::default();
 
     let ScanDependenciesResult {
       mut dependencies,
@@ -179,7 +175,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       scan_dependencies(
         &fm,
         program,
-        &mut worker_syntax_list,
         resource_data,
         compiler_options,
         module_type,
@@ -199,7 +194,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     };
     diagnostics.append(&mut warning_diagnostics);
     let mut side_effects_bailout = None;
-    let analyze_result = OptimizeAnalyzeResult::default();
 
     if compiler_options.optimization.side_effects.is_true() {
       ast.transform(|program, context| {
@@ -255,7 +249,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         blocks,
         presentational_dependencies,
         code_generation_dependencies: vec![],
-        analyze_result,
         side_effects_bailout,
       }
       .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(

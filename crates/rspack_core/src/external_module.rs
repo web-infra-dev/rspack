@@ -430,7 +430,6 @@ impl Module for ExternalModule {
       build_meta: Default::default(),
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      analyze_result: Default::default(),
       optimization_bailouts: vec![],
     };
     // TODO add exports_type for request

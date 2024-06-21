@@ -3,8 +3,7 @@ use rustc_hash::FxHashMap as HashMap;
 use super::{factorize::FactorizeTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
-  ContextDependency, DependencyId, DependencyType, ErrorSpan, Module, ModuleIdentifier,
-  ModuleProfile, NormalModuleSource,
+  ContextDependency, DependencyId, Module, ModuleIdentifier, ModuleProfile, NormalModuleSource,
 };
 
 #[derive(Debug)]
@@ -88,11 +87,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
       // TODO move module_factory calculate to dependency factories
       let module_factory = context
         .dependency_factories
-        .get(&match dependency_type {
-          DependencyType::EsmImport(_) => DependencyType::EsmImport(ErrorSpan::default()),
-          DependencyType::EsmExport(_) => DependencyType::EsmExport(ErrorSpan::default()),
-          _ => dependency_type.clone(),
-        })
+        .get(dependency_type)
         .unwrap_or_else(|| {
           panic!(
             "No module factory available for dependency type: {}, resourceIdentifier: {:?}",
