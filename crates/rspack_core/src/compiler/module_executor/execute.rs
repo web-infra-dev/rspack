@@ -204,24 +204,26 @@ impl Task<MakeTaskContext> for ExecuteTask {
         .get(runtime_id)
         .expect("runtime module exist");
 
-      let runtime_module_source = runtime_module.generate(&compilation)?;
-      runtime_module_size.insert(
-        runtime_module.identifier(),
-        runtime_module_source.size() as f64,
-      );
-      let result = CodeGenerationResult::default().with_javascript(runtime_module_source);
-      let result_id = result.id;
+      let result = runtime_module.code_generation(&compilation, None, None)?;
+      if let Some(runtime_module_source) = result.get(&SourceType::Runtime) {
+        runtime_module_size.insert(
+          runtime_module.identifier(),
+          runtime_module_source.size() as f64,
+        );
+        let result = CodeGenerationResult::default().with_javascript(runtime_module_source.clone());
+        let result_id = result.id;
 
-      compilation
-        .code_generation_results
-        .module_generation_result_map
-        .insert(result.id, result);
-      compilation
-        .code_generation_results
-        .add(*runtime_id, runtime.clone(), result_id);
-      compilation
-        .code_generated_modules
-        .insert(runtime_module.identifier());
+        compilation
+          .code_generation_results
+          .module_generation_result_map
+          .insert(result.id, result);
+        compilation
+          .code_generation_results
+          .add(*runtime_id, runtime.clone(), result_id);
+        compilation
+          .code_generated_modules
+          .insert(runtime_module.identifier());
+      }
     }
 
     let codegen_results = compilation.code_generation_results.clone();
