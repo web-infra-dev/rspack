@@ -521,17 +521,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_tagged_template_expression(&mut self, expr: &TaggedTpl) {
-    // every time into new tagged tpl expr, reset enter callee
-    let old = self.enter_new_expr;
-    self.enter_new_expr = false;
-    self.enter_callee = true;
-
     self.in_tagged_template_tag = true;
     self.walk_expression(&expr.tag);
     self.in_tagged_template_tag = false;
-
-    self.enter_new_expr = old;
-    self.enter_callee = false;
 
     let exprs = expr.tpl.exprs.iter().map(|expr| &**expr);
     self.walk_expressions(exprs);
@@ -613,21 +605,29 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_new_expression(&mut self, expr: &NewExpr) {
-    let old = self.enter_new_expr;
-    self.enter_new_expr = true;
-
-    // TODO: `callHooksForExpression`
-    if self
-      .plugin_drive
-      .clone()
-      .new_expression(self, expr)
-      .unwrap_or_default()
+    if let Some(MemberExpressionInfo::Expression(info)) =
+      self.get_member_expression_info_from_expr(&expr.callee, AllowedMemberTypes::Expression)
     {
-      self.enter_new_expr = old;
-      return;
+      let result = if info.members.is_empty() {
+        info.root_info.call_hooks_name(self, |parser, for_name| {
+          parser
+            .plugin_drive
+            .clone()
+            .new_expression(parser, expr, for_name)
+        })
+      } else {
+        info.name.call_hooks_name(self, |parser, for_name| {
+          parser
+            .plugin_drive
+            .clone()
+            .new_expression(parser, expr, for_name)
+        })
+      };
+      if result.unwrap_or_default() {
+        return;
+      }
     }
     self.walk_expression(&expr.callee);
-    self.enter_new_expr = old;
     if let Some(args) = &expr.args {
       self.walk_expr_or_spread(args);
     }
@@ -877,10 +877,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_call_expression(&mut self, expr: &CallExpr) {
-    // every time into new call_expr, reset enter callee
-    let old = self.enter_new_expr;
-    self.enter_new_expr = false;
-    self.enter_callee = true;
     self.enter_call += 1;
 
     fn is_simple_function(params: &[Param]) -> bool {
@@ -943,8 +939,6 @@ impl<'parser> JavascriptParser<'parser> {
               .unwrap_or_default()
           {
             self.enter_call -= 1;
-            self.enter_new_expr = old;
-            self.enter_callee = false;
             return;
           }
           let evaluated_callee = self.evaluate_expression(callee);
@@ -978,8 +972,6 @@ impl<'parser> JavascriptParser<'parser> {
             {
               /* result1 */
               self.enter_call -= 1;
-              self.enter_new_expr = old;
-              self.enter_callee = false;
               return;
             }
 
@@ -989,8 +981,6 @@ impl<'parser> JavascriptParser<'parser> {
             {
               /* result2 */
               self.enter_call -= 1;
-              self.enter_new_expr = old;
-              self.enter_callee = false;
               return;
             }
           }
@@ -1014,15 +1004,11 @@ impl<'parser> JavascriptParser<'parser> {
           .unwrap_or_default()
         {
           self.enter_call -= 1;
-          self.enter_new_expr = old;
-          self.enter_callee = false;
           return;
         }
       }
       Callee::Super(_) => {} // Do nothing about super, same as webpack
     }
-    self.enter_new_expr = old;
-    self.enter_callee = false;
 
     self.walk_expr_or_spread(&expr.args);
     self.enter_call -= 1;

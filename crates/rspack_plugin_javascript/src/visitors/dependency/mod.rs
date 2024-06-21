@@ -4,7 +4,6 @@ mod parser;
 mod util;
 
 use rspack_ast::javascript::Program;
-use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, ParserOptions,
 };
@@ -67,7 +66,6 @@ pub enum ExtraSpanInfo {
 pub fn scan_dependencies(
   source_file: &SourceFile,
   program: &Program,
-  worker_syntax_list: &mut WorkerSyntaxList,
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
   module_type: &ModuleType,
@@ -87,7 +85,6 @@ pub fn scan_dependencies(
     program.comments.as_ref().map(|c| c as &dyn Comments),
     &module_identifier,
     module_type,
-    worker_syntax_list,
     resource_data,
     build_meta,
     build_info,

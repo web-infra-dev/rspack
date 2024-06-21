@@ -71,14 +71,14 @@ fn get_non_optional_member_chain_from_member(member: &MemberExpr, mut count: i32
 
 pub struct HarmonyImportDependencyParserPlugin;
 
-const HARMONY_SPECIFIER_TAG: &str = "_identifier__harmony_specifier_tag__";
+pub const HARMONY_SPECIFIER_TAG: &str = "_identifier__harmony_specifier_tag__";
 
 #[derive(Debug, Clone)]
-struct HarmonySpecifierData {
-  name: Atom,
-  source: Atom,
-  ids: Vec<Atom>,
-  source_order: i32,
+pub struct HarmonySpecifierData {
+  pub name: Atom,
+  pub source: Atom,
+  pub ids: Vec<Atom>,
+  pub source_order: i32,
 }
 
 impl TagInfoData for HarmonySpecifierData {

@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
-use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt};
 use rspack_core::{
   render_init_fragments, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph,
@@ -164,7 +163,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     });
 
     let mut path_ignored_spans = PathIgnoredSpans::default();
-    let mut worker_syntax_list = WorkerSyntaxList::default();
 
     let ScanDependenciesResult {
       mut dependencies,
@@ -177,7 +175,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       scan_dependencies(
         &fm,
         program,
-        &mut worker_syntax_list,
         resource_data,
         compiler_options,
         module_type,
