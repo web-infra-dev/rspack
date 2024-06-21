@@ -45,6 +45,13 @@ mod test_side_effects {
       "./src/x/y/z.js"
     ));
 
+    // 				"./src/esm/input/style.js"
+    // 				"./src/**/*/style.js"
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./src/**/*/style.js"],
+      "./src/esm/input/style.js"
+    ));
+
     // 				"./src/x/y/z.js",
     // 				"./src/**/z.js",
     assert!(get_side_effects_from_package_json_helper(
@@ -54,7 +61,6 @@ mod test_side_effects {
 
     // 				"./src/x/y/z.js",
     // 				"./**/x/**/z.js",
-
     assert!(get_side_effects_from_package_json_helper(
       vec!["./**/x/**/z.js"],
       "./src/x/y/z.js"
@@ -62,7 +68,6 @@ mod test_side_effects {
 
     // 				"./src/x/y/z.js",
     // 				"./**/src/**",
-
     assert!(get_side_effects_from_package_json_helper(
       vec!["./**/src/**"],
       "./src/x/y/z.js"
@@ -70,7 +75,6 @@ mod test_side_effects {
 
     // 				"./src/x/y/z.js",
     // 				"./**/src/*",
-
     assert!(!get_side_effects_from_package_json_helper(
       vec!["./src/x/y/z.js"],
       "./**/src/*"
@@ -85,7 +89,6 @@ mod test_side_effects {
 
     // 				"./src/x/y/z.js",
     // 				"x/**/z.js",
-
     assert!(!get_side_effects_from_package_json_helper(
       vec!["./src/x/y/z.js"],
       "x/**/z.js"
@@ -93,23 +96,25 @@ mod test_side_effects {
 
     // 				"./src/x/y/z.js",
     // 				"src/**/z.js",
-
     assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/z.js"],
       "./src/x/y/z.js"
     ));
+
     // 				"./src/x/y/z.js",
     // 				"src/**/{x,y,z}.js",
     assert!(get_side_effects_from_package_json_helper(
       vec!["src/**/{x,y,z}.js"],
       "./src/x/y/z.js"
     ));
+
     // 				"./src/x/y/z.js",
     // 				"src/**/[x-z].js",
     assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/[x-z].js"],
       "./src/x/y/z.js"
     ));
+
     // 		const array = ["./src/**/*.js", "./dirty.js"];
     assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/*.js", "./dirty.js"],
