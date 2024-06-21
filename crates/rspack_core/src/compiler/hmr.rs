@@ -10,6 +10,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   fast_set, get_chunk_from_ukey, ChunkKind, Compilation, Compiler, ModuleExecutor, RuntimeSpec,
+  SourceType,
 };
 
 impl<T> Compiler<T>
@@ -152,15 +153,17 @@ pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModul
   let old_runtime_modules = compilation
     .runtime_modules
     .iter()
-    .map(|(identifier, module)| -> Result<(Identifier, String)> {
-      Ok((
-        *identifier,
-        module
-          .generate_with_custom(compilation)?
-          .source()
-          .to_string(),
-      ))
-    })
+    .filter_map(
+      |(identifier, module)| -> Option<Result<(Identifier, String)>> {
+        match module.code_generation(compilation, None, None) {
+          Ok(result) => {
+            let source = result.get(&SourceType::Runtime);
+            source.map(|s| Ok((*identifier, s.source().to_string())))
+          }
+          Err(r) => Some(Err(r)),
+        }
+      },
+    )
     .collect::<Result<IdentifierMap<String>>>()?;
 
   Ok((modules_map, old_runtime_modules))
