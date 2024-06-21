@@ -32,7 +32,7 @@ Setting the environment variable `RSPACK_PROFILE=TRACE=layer=chrome` before runn
 RSPACK_PROFILE=TRACE=layer=chrome rspack build
 ```
 
-produces a trace file (`.rspack-profile-${timestamp}/trace.json`) in the current working directory.
+produces a trace file (`.rspack-profile-${timestamp}-${pid}/trace.json`) in the current working directory.
 
 The JSON trace file can be viewed in either `chrome://tracing` or [ui.perfetto.dev](https://ui.perfetto.dev).
 

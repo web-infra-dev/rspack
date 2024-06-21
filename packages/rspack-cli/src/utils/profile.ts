@@ -215,6 +215,7 @@ export async function applyProfile(profileValue: string, item: RspackOptions) {
 	const { default: exitHook } = await import("exit-hook");
 	const entries = Object.entries(resolveProfile(profileValue));
 	if (entries.length <= 0) return;
+	await fs.promises.mkdir(defaultOutputDirname);
 	for (const [kind, value] of entries) {
 		await ensureFileDir(value.output);
 		if (kind === "TRACE" && "filter" in value) {
