@@ -4,7 +4,7 @@ use swc_core::ecma::ast::{UnaryExpr, UnaryOp};
 
 use super::BasicEvaluatedExpression;
 use crate::parser_plugin::JavascriptParserPlugin;
-use crate::visitors::JavascriptParser;
+use crate::visitors::{CallHooksName, JavascriptParser};
 
 #[inline]
 fn eval_typeof(
@@ -13,15 +13,14 @@ fn eval_typeof(
 ) -> Option<BasicEvaluatedExpression> {
   assert!(expr.op == UnaryOp::TypeOf);
   if let Some(ident) = expr.arg.as_ident()
-    && /* FIXME: should use call hooks for name */ let res = parser.plugin_drive.clone().evaluate_typeof(
-      parser,
-      ident,
-      expr.span.real_lo(),
-      expr.span.hi().0,
-    )
-    && res.is_some()
+    && let Some(res) = ident.sym.call_hooks_name(parser, |parser, for_name| {
+      parser
+        .plugin_drive
+        .clone()
+        .evaluate_typeof(parser, expr, for_name)
+    })
   {
-    return res;
+    return Some(res);
   }
 
   // TODO: if let `MetaProperty`, `MemberExpression` ...

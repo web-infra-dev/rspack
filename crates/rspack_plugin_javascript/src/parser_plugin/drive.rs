@@ -1,7 +1,7 @@
 use swc_core::atoms::Atom;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{
-  BinExpr, CallExpr, Callee, CondExpr, ExportDecl, ExportDefaultDecl, Expr, OptChainExpr,
+  BinExpr, CallExpr, Callee, CondExpr, ExportDecl, ExportDefaultDecl, Expr, OptChainExpr, UnaryExpr,
 };
 use swc_core::ecma::ast::{IfStmt, MemberExpr, Stmt, UnaryOp, VarDecl, VarDeclarator};
 
@@ -332,12 +332,11 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   fn evaluate_typeof(
     &self,
     parser: &mut JavascriptParser,
-    ident: &swc_core::ecma::ast::Ident,
-    start: u32,
-    end: u32,
+    expr: &UnaryExpr,
+    for_name: &str,
   ) -> Option<BasicEvaluatedExpression> {
     for plugin in &self.plugins {
-      let res = plugin.evaluate_typeof(parser, ident, start, end);
+      let res = plugin.evaluate_typeof(parser, expr, for_name);
       // `SyncBailHook`
       if res.is_some() {
         return res;

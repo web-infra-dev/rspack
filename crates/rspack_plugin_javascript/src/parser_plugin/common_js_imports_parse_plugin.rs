@@ -5,7 +5,7 @@ use rspack_core::{
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::Severity;
 use swc_core::common::{Span, Spanned};
-use swc_core::ecma::ast::{CallExpr, Expr, Ident, Lit, MemberExpr};
+use swc_core::ecma::ast::{CallExpr, Expr, Ident, Lit, MemberExpr, UnaryExpr};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::RequireHeaderDependency;
@@ -272,18 +272,20 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn evaluate_typeof(
     &self,
-    parser: &mut JavascriptParser,
-    expression: &Ident,
-    start: u32,
-    end: u32,
+    _parser: &mut JavascriptParser,
+    expr: &UnaryExpr,
+    for_name: &str,
   ) -> Option<BasicEvaluatedExpression> {
-    if expression.sym.as_str() == expr_name::REQUIRE
-      && parser.is_unresolved_ident(expr_name::REQUIRE)
-    {
-      Some(eval::evaluate_to_string("function".to_string(), start, end))
-    } else {
-      None
-    }
+    (for_name == expr_name::REQUIRE
+      || for_name == expr_name::REQUIRE_RESOLVE
+      || for_name == expr_name::REQUIRE_RESOLVE_WEAK)
+      .then(|| {
+        eval::evaluate_to_string(
+          "function".to_string(),
+          expr.span.real_lo(),
+          expr.span.real_hi(),
+        )
+      })
   }
 
   fn evaluate_identifier(
