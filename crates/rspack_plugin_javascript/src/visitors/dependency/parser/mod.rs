@@ -240,10 +240,6 @@ pub struct JavascriptParser<'parser> {
   pub(crate) parser_exports_state: Option<bool>,
   // TODO: delete `enter_call`
   pub(crate) enter_call: u32,
-  // TODO: delete `enter_new_expr`
-  pub(crate) enter_new_expr: bool,
-  // TODO: delete `enter_callee`
-  pub(crate) enter_callee: bool,
   pub(crate) member_expr_in_optional_chain: bool,
   pub(crate) stmt_level: u32,
   pub(crate) last_stmt_is_expr_stmt: bool,
@@ -364,7 +360,7 @@ impl<'parser> JavascriptParser<'parser> {
           relative: matches!(parse_url, JavascriptParserUrl::Relative),
         }));
       }
-      plugins.push(Box::new(parser_plugin::WorkerPlugin));
+      plugins.push(Box::new(parser_plugin::WorkerPlugin2));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -402,8 +398,6 @@ impl<'parser> JavascriptParser<'parser> {
       module_identifier,
       import_map,
       rewrite_usage_span,
-      enter_new_expr: false,
-      enter_callee: false,
       member_expr_in_optional_chain: false,
       properties_in_destructuring: Default::default(),
       semicolons,

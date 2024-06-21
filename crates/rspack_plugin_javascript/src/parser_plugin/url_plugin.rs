@@ -12,6 +12,7 @@ impl JavascriptParserPlugin for URLPlugin {
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::NewExpr,
+    for_name: &str,
   ) -> Option<bool> {
     if parser.worker_syntax_list.match_new_worker(expr) {
       // skip `new Worker(new Url,)`

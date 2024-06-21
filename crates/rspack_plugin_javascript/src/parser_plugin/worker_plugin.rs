@@ -182,6 +182,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
     &self,
     parser: &mut JavascriptParser,
     new_expr: &swc_core::ecma::ast::NewExpr,
+    for_name: &str,
   ) -> Option<bool> {
     parser
       .parse_new_worker(new_expr)
