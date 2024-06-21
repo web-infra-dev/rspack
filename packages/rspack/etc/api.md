@@ -581,8 +581,7 @@ const baseResolveOptions: z.ZodObject<{
     enforceExtension: z.ZodOptional<z.ZodBoolean>;
     importsFields: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     descriptionFiles: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    tsConfigPath: z.ZodOptional<z.ZodString>;
-    tsConfig: z.ZodOptional<z.ZodObject<{
+    tsConfig: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
         configFile: z.ZodString;
         references: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodLiteral<"auto">]>>;
     }, "strict", z.ZodTypeAny, {
@@ -591,7 +590,7 @@ const baseResolveOptions: z.ZodObject<{
     }, {
         configFile: string;
         references?: string[] | "auto" | undefined;
-    }>>;
+    }>]>>;
     fullySpecified: z.ZodOptional<z.ZodBoolean>;
     exportsFields: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     extensionAlias: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>>;
@@ -612,8 +611,7 @@ const baseResolveOptions: z.ZodObject<{
     enforceExtension?: boolean | undefined;
     importsFields?: string[] | undefined;
     descriptionFiles?: string[] | undefined;
-    tsConfigPath?: string | undefined;
-    tsConfig?: {
+    tsConfig?: string | {
         configFile: string;
         references?: string[] | "auto" | undefined;
     } | undefined;
@@ -637,8 +635,7 @@ const baseResolveOptions: z.ZodObject<{
     enforceExtension?: boolean | undefined;
     importsFields?: string[] | undefined;
     descriptionFiles?: string[] | undefined;
-    tsConfigPath?: string | undefined;
-    tsConfig?: {
+    tsConfig?: string | {
         configFile: string;
         references?: string[] | "auto" | undefined;
     } | undefined;
@@ -8142,10 +8139,10 @@ export type ResolveOptions = z.infer<typeof baseResolveOptions> & {
 type ResolveRequest = BaseResolveRequest & Partial<ParsedIdentifier>;
 
 // @public (undocumented)
-export type ResolveTsconfig = z.infer<typeof resolveTsconfig>;
+export type ResolveTsConfig = z.infer<typeof resolveTsConfig>;
 
 // @public (undocumented)
-const resolveTsconfig: z.ZodObject<{
+const resolveTsConfig: z.ZodUnion<[z.ZodString, z.ZodObject<{
     configFile: z.ZodString;
     references: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodLiteral<"auto">]>>;
 }, "strict", z.ZodTypeAny, {
@@ -8154,7 +8151,7 @@ const resolveTsconfig: z.ZodObject<{
 }, {
     configFile: string;
     references?: string[] | "auto" | undefined;
-}>;
+}>]>;
 
 // @public (undocumented)
 type ResourceData = {
@@ -8423,7 +8420,7 @@ declare namespace rspackExports {
         Environment,
         Output,
         ResolveAlias,
-        ResolveTsconfig,
+        ResolveTsConfig,
         ResolveOptions,
         Resolve,
         RuleSetCondition,

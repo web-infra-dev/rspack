@@ -1,18 +1,13 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use either::Either;
-use once_cell::sync::Lazy;
 use rspack_core::CompilerOptions;
-use rspack_swc_visitors::{styled_components, PreactOptions, StyledComponentsOptions};
+use rspack_swc_visitors::PreactOptions;
 use swc_core::atoms::Atom;
 use swc_core::common::collections::AHashMap;
-use swc_core::common::{
-  chain,
-  comments::{Comments, NoopComments},
-  Mark, SourceMap,
-};
-use swc_core::common::{BytePos, FileName};
+use swc_core::common::BytePos;
+use swc_core::common::{chain, comments::Comments, Mark, SourceMap};
 use swc_core::ecma::ast::Ident;
 use swc_core::ecma::visit::{noop_visit_type, Visit};
 use swc_core::ecma::{transforms::base::pass::noop, visit::Fold};
@@ -40,52 +35,21 @@ macro_rules! either {
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn transform<'a>(
-  resource_path: &'a Path,
-  rspack_options: &'a CompilerOptions,
-  comments: Option<&'a dyn Comments>,
+  _resource_path: &'a Path,
+  _rspack_options: &'a CompilerOptions,
+  _comments: Option<&'a dyn Comments>,
   _top_level_mark: Mark,
-  unresolved_mark: Mark,
-  cm: Arc<SourceMap>,
+  _unresolved_mark: Mark,
+  _cm: Arc<SourceMap>,
   content: &'a String,
   rspack_experiments: &'a RspackExperiments,
 ) -> impl Fold + 'a {
-  use rspack_swc_visitors::EmotionOptions;
-  let content_hash = Lazy::new(|| xxh32(content.as_bytes(), 0));
-
   chain!(
-    either!(rspack_experiments.emotion, |options: &EmotionOptions| {
-      rspack_swc_visitors::emotion(
-        options.clone(),
-        resource_path,
-        *content_hash,
-        cm.clone(),
-        comments,
-      )
-    }),
-    either!(
-      rspack_experiments.styled_components,
-      |options: &StyledComponentsOptions| {
-        styled_components(
-          FileName::Real(resource_path.into()),
-          (*content_hash).into(),
-          options.clone(),
-          NoopComments,
-        )
-      }
-    ),
-    either!(rspack_experiments.relay, |options| {
-      rspack_swc_visitors::relay(
-        options,
-        resource_path,
-        PathBuf::from(AsRef::<Path>::as_ref(&rspack_options.context)),
-        unresolved_mark,
-      )
-    }),
     either!(rspack_experiments.import, |options| {
       rspack_swc_visitors::import(options)
     }),
     either!(rspack_experiments.preact, |options: &PreactOptions| {
-      rspack_swc_visitors::preact(options.clone(), (*content_hash).to_string())
+      rspack_swc_visitors::preact(options.clone(), xxh32(content.as_bytes(), 0).to_string())
     }),
   )
 }

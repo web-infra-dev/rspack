@@ -10,7 +10,7 @@ module.exports = {
 	},
 	resolve: {
 		extensions: ["*", ".js", ".jsx", ".tsx", ".ts"],
-		tsConfigPath: path.resolve(__dirname, "tsconfig.assets.json")
+		tsConfig: path.resolve(__dirname, "tsconfig.assets.json")
 	},
 	devtool: false,
 	output: {

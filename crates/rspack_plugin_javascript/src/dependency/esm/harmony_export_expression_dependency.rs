@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use rspack_core::tree_shaking::symbol::DEFAULT_JS_WORD;
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
   DependencyLocation, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
@@ -9,6 +8,8 @@ use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
 use rspack_identifier::Identifier;
 use swc_core::atoms::Atom;
+
+use crate::parser_plugin::JS_DEFAULT_KEYWORD;
 
 #[derive(Debug, Clone)]
 pub enum DeclarationId {
@@ -57,7 +58,9 @@ impl Dependency for HarmonyExportExpressionDependency {
 
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(DEFAULT_JS_WORD.clone())]),
+      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(
+        JS_DEFAULT_KEYWORD.clone(),
+      )]),
       priority: Some(1),
       can_mangle: None,
       terminal_binding: Some(true),
@@ -122,9 +125,9 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       };
 
       if let Some(scope) = concatenation_scope {
-        scope.register_export(DEFAULT_JS_WORD.clone(), name.to_string());
+        scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string());
       } else if let Some(used) = get_used_name(
-        DEFAULT_JS_WORD.as_str(),
+        JS_DEFAULT_KEYWORD.as_str(),
         compilation,
         runtime,
         &module.identifier(),
@@ -156,13 +159,13 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       // 'var' is a little bit incorrect as TDZ is not correct, but we can't use 'const'
       let supports_const = compilation.options.output.environment.supports_const();
       let content = if let Some(ref mut scope) = concatenation_scope {
-        scope.register_export(DEFAULT_JS_WORD.clone(), DEFAULT_EXPORT.to_string());
+        scope.register_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT.to_string());
         format!(
           "/* harmony default export */ {} {DEFAULT_EXPORT} = ",
           if supports_const { "const" } else { "var" }
         )
       } else if let Some(used) = get_used_name(
-        DEFAULT_JS_WORD.as_str(),
+        JS_DEFAULT_KEYWORD.as_str(),
         compilation,
         runtime,
         &module.identifier(),

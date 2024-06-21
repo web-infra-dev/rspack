@@ -222,6 +222,8 @@ Opt for absolute paths when resolving, in relation to `resolve.roots`.
 
 ## resolve.tsConfigPath
 
+<ApiMeta removedVersion="1.0.0-alpha.0" />
+
 - **Type:** `string | undefined`
 - **Default:** `undefined`
 
@@ -241,25 +243,22 @@ const config = {
 module.exports = config;
 ```
 
-[Click to see the example](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/basic-ts).
-
-:::warning
-
-`tsconfig.json#extends` is not supported.
-
-:::
-
 ## resolve.tsConfig
 
 <ApiMeta addedVersion="0.3.7" />
 
-- **Type:** `object`
+- **Type:** `string | object | undefined`
 - **Default:** `undefined`
+
+The replacement of [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin) in Rspack.
 
 ```js title="rspack.config.js"
 module.exports = {
   resolve: {
-    tsconfig: {
+    // string
+    tsConfig: path.resolve(__dirname, './tsconfig.json'),
+    // or object
+    tsConfig: {
       configFile: path.resolve(__dirname, './tsconfig.json'),
       references: 'auto',
     },
@@ -267,11 +266,11 @@ module.exports = {
 };
 ```
 
+[Click to see the example](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/basic-ts).
+
 ### resolve.tsConfig.configFile
 
 - **Type:** `string`
-
-Same as [resolve.tsConfigPath](#resolvetsconfigpath).
 
 If you pass the path of `tsconfig.json` via the option, Rspack will try to resolve modules based on the `paths` and `baseUrl` of `tsconfig.json`, functionally equivalent to [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin).
 

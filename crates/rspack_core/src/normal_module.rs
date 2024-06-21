@@ -428,7 +428,6 @@ impl Module for NormalModule {
           build_meta: Default::default(),
           dependencies: Vec::new(),
           blocks: Vec::new(),
-          analyze_result: Default::default(),
           optimization_bailouts: vec![],
         });
       }
@@ -472,7 +471,6 @@ impl Module for NormalModule {
         build_meta,
         dependencies: Vec::new(),
         blocks: Vec::new(),
-        analyze_result: Default::default(),
         optimization_bailouts: Vec::new(),
       });
     }
@@ -491,7 +489,6 @@ impl Module for NormalModule {
         blocks,
         presentational_dependencies,
         code_generation_dependencies,
-        analyze_result,
         side_effects_bailout,
       },
       diagnostics,
@@ -546,7 +543,6 @@ impl Module for NormalModule {
       build_meta,
       dependencies,
       blocks,
-      analyze_result,
       optimization_bailouts,
     })
   }

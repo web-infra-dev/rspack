@@ -162,7 +162,6 @@ impl Module for RemoteModule {
       build_meta: Default::default(),
       dependencies,
       blocks: Vec::new(),
-      analyze_result: Default::default(),
       optimization_bailouts: vec![],
     })
   }

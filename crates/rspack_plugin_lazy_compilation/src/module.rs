@@ -181,7 +181,6 @@ impl Module for LazyCompilationProxyModule {
         ..Default::default()
       },
       build_meta: BuildMeta::default(),
-      analyze_result: Default::default(),
       dependencies,
       blocks,
       optimization_bailouts: vec![],

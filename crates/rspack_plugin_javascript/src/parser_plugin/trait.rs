@@ -55,9 +55,8 @@ pub trait JavascriptParserPlugin {
   fn evaluate_typeof(
     &self,
     _parser: &mut JavascriptParser,
-    _ident: &Ident,
-    _start: u32,
-    _end: u32,
+    _expr: &UnaryExpr,
+    _for_name: &str,
   ) -> Option<BasicEvaluatedExpression> {
     None
   }
@@ -199,7 +198,12 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn new_expression(&self, _parser: &mut JavascriptParser, _expr: &NewExpr) -> Option<bool> {
+  fn new_expression(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &NewExpr,
+    _for_name: &str,
+  ) -> Option<bool> {
     None
   }
 

@@ -93,7 +93,6 @@ pub mod resolver;
 pub use resolver::*;
 pub mod concatenated_module;
 pub mod reserved_names;
-pub mod tree_shaking;
 
 pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme, BUILTIN_LOADER_PREFIX};
 pub use rspack_macros::{impl_runtime_module, impl_source_map_config};

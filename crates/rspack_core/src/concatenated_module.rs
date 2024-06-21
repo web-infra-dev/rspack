@@ -2206,8 +2206,8 @@ pub fn is_harmony_dep_like(dep: &BoxDependency) -> bool {
     dep.dependency_type(),
     DependencyType::EsmImportSpecifier
       | DependencyType::EsmExportImportedSpecifier
-      | DependencyType::EsmImport(_)
-      | DependencyType::EsmExport(_)
+      | DependencyType::EsmImport
+      | DependencyType::EsmExport
   )
 }
 

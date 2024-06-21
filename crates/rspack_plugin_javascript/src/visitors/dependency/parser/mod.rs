@@ -10,7 +10,6 @@ use std::sync::Arc;
 
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
-use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
   JavascriptParserOptions, ModuleIdentifier, ResourceData,
@@ -44,10 +43,10 @@ pub trait TagInfoData {
 
 #[derive(Debug)]
 pub struct ExtractedMemberExpressionChainData {
-  object: Expr,
-  members: Vec<Atom>,
-  members_optionals: Vec<bool>,
-  member_ranges: Vec<Span>,
+  pub object: Expr,
+  pub members: Vec<Atom>,
+  pub members_optionals: Vec<bool>,
+  pub member_ranges: Vec<Span>,
 }
 
 bitflags! {
@@ -224,8 +223,6 @@ pub struct JavascriptParser<'parser> {
   // TODO: remove `rewrite_usage_span`
   pub(crate) rewrite_usage_span: FxHashMap<Span, ExtraSpanInfo>,
   pub(crate) comments: Option<&'parser dyn Comments>,
-  // TODO: remove `worker_syntax_list`
-  pub(crate) worker_syntax_list: &'parser mut WorkerSyntaxList,
   pub(crate) worker_index: u32,
   pub(crate) build_meta: &'parser mut BuildMeta,
   pub(crate) build_info: &'parser mut BuildInfo,
@@ -242,10 +239,6 @@ pub struct JavascriptParser<'parser> {
   pub(crate) parser_exports_state: Option<bool>,
   // TODO: delete `enter_call`
   pub(crate) enter_call: u32,
-  // TODO: delete `enter_new_expr`
-  pub(crate) enter_new_expr: bool,
-  // TODO: delete `enter_callee`
-  pub(crate) enter_callee: bool,
   pub(crate) member_expr_in_optional_chain: bool,
   pub(crate) stmt_level: u32,
   pub(crate) last_stmt_is_expr_stmt: bool,
@@ -276,7 +269,6 @@ impl<'parser> JavascriptParser<'parser> {
     comments: Option<&'parser dyn Comments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
-    worker_syntax_list: &'parser mut WorkerSyntaxList,
     resource_data: &'parser ResourceData,
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
@@ -301,11 +293,20 @@ impl<'parser> JavascriptParser<'parser> {
     plugins.push(Box::new(
       parser_plugin::RequireContextDependencyParserPlugin,
     ));
-    plugins.push(Box::new(parser_plugin::WorkerSyntaxScanner::new(
-      rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
-      worker_syntax_list,
-    )));
     plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
+
+    if module_type.is_js_auto() || module_type.is_js_esm() {
+      plugins.push(Box::new(parser_plugin::HarmonyTopLevelThisParserPlugin));
+      plugins.push(Box::new(parser_plugin::HarmonyDetectionParserPlugin::new(
+        compiler_options.experiments.top_level_await,
+      )));
+      plugins.push(Box::new(
+        parser_plugin::ImportMetaContextDependencyParserPlugin,
+      ));
+      plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
+      plugins.push(Box::new(parser_plugin::HarmonyImportDependencyParserPlugin));
+      plugins.push(Box::new(parser_plugin::HarmonyExportDependencyParserPlugin));
+    }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
       plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
@@ -348,26 +349,13 @@ impl<'parser> JavascriptParser<'parser> {
         compiler_options.output.module,
       )));
       plugins.push(Box::new(parser_plugin::ImportParserPlugin));
-    }
-
-    if module_type.is_js_auto() || module_type.is_js_esm() {
       let parse_url = javascript_options.url;
       if !matches!(parse_url, JavascriptParserUrl::Disable) {
         plugins.push(Box::new(parser_plugin::URLPlugin {
           relative: matches!(parse_url, JavascriptParserUrl::Relative),
         }));
       }
-      plugins.push(Box::new(parser_plugin::HarmonyTopLevelThisParserPlugin));
-      plugins.push(Box::new(parser_plugin::HarmonyDetectionParserPlugin::new(
-        compiler_options.experiments.top_level_await,
-      )));
-      plugins.push(Box::new(parser_plugin::WorkerPlugin));
-      plugins.push(Box::new(
-        parser_plugin::ImportMetaContextDependencyParserPlugin,
-      ));
-      plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
-      plugins.push(Box::new(parser_plugin::HarmonyImportDependencyParserPlugin));
-      plugins.push(Box::new(parser_plugin::HarmonyExportDependencyParserPlugin));
+      plugins.push(Box::new(parser_plugin::WorkerPlugin::new()));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -392,7 +380,6 @@ impl<'parser> JavascriptParser<'parser> {
       definitions: db.create(),
       definitions_db: db,
       plugin_drive,
-      worker_syntax_list,
       resource_data,
       build_meta,
       build_info,
@@ -406,8 +393,6 @@ impl<'parser> JavascriptParser<'parser> {
       module_identifier,
       import_map,
       rewrite_usage_span,
-      enter_new_expr: false,
-      enter_callee: false,
       member_expr_in_optional_chain: false,
       properties_in_destructuring: Default::default(),
       semicolons,
@@ -653,7 +638,7 @@ impl<'parser> JavascriptParser<'parser> {
     )
   }
 
-  fn extract_member_expression_chain(
+  pub fn extract_member_expression_chain(
     &self,
     expr: &MemberExpr,
   ) -> ExtractedMemberExpressionChainData {

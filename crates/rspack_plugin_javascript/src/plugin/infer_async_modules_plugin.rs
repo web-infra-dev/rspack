@@ -46,7 +46,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         if let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) {
           matches!(
             dep.dependency_type(),
-            DependencyType::EsmImport(_) | DependencyType::EsmExport(_)
+            DependencyType::EsmImport | DependencyType::EsmExport
           )
         } else {
           false
