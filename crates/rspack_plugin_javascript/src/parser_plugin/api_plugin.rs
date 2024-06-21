@@ -63,7 +63,7 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
 impl JavascriptParserPlugin for APIPlugin {
   fn evaluate_typeof(
     &self,
-    parser: &mut JavascriptParser,
+    _parser: &mut JavascriptParser,
     expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression> {

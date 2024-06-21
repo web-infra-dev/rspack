@@ -555,7 +555,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
   fn evaluate_typeof(
     &self,
-    parser: &mut JavascriptParser,
+    _parser: &mut JavascriptParser,
     expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression> {

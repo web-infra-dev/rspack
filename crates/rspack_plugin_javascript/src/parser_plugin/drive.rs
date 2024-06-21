@@ -1,8 +1,7 @@
 use swc_core::atoms::Atom;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{
-  BinExpr, CallExpr, Callee, CondExpr, ExportDecl, ExportDefaultDecl, Expr, Ident, OptChainExpr,
-  UnaryExpr,
+  BinExpr, CallExpr, Callee, CondExpr, ExportDecl, ExportDefaultDecl, Expr, OptChainExpr, UnaryExpr,
 };
 use swc_core::ecma::ast::{IfStmt, MemberExpr, Stmt, UnaryOp, VarDecl, VarDeclarator};
 
