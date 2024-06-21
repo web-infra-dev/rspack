@@ -14,10 +14,9 @@ impl JavascriptParserPlugin for URLPlugin {
     expr: &swc_core::ecma::ast::NewExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if parser.worker_syntax_list.match_new_worker(expr) {
-      // skip `new Worker(new Url,)`
-      None
-    } else if let Some((start, end, request)) = rspack_core::needs_refactor::match_new_url(expr) {
+    if for_name == "URL"
+      && let Some((start, end, request)) = rspack_core::needs_refactor::match_new_url(expr)
+    {
       parser.dependencies.push(Box::new(URLDependency::new(
         start,
         end,

@@ -222,8 +222,6 @@ pub struct JavascriptParser<'parser> {
   // TODO: remove `rewrite_usage_span`
   pub(crate) rewrite_usage_span: FxHashMap<Span, ExtraSpanInfo>,
   pub(crate) comments: Option<&'parser dyn Comments>,
-  // TODO: remove `worker_syntax_list`
-  pub(crate) worker_syntax_list: &'parser mut WorkerSyntaxList,
   pub(crate) worker_index: u32,
   pub(crate) build_meta: &'parser mut BuildMeta,
   pub(crate) build_info: &'parser mut BuildInfo,
@@ -269,7 +267,6 @@ impl<'parser> JavascriptParser<'parser> {
     comments: Option<&'parser dyn Comments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
-    worker_syntax_list: &'parser mut WorkerSyntaxList,
     resource_data: &'parser ResourceData,
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
@@ -294,10 +291,6 @@ impl<'parser> JavascriptParser<'parser> {
     plugins.push(Box::new(
       parser_plugin::RequireContextDependencyParserPlugin,
     ));
-    plugins.push(Box::new(parser_plugin::WorkerSyntaxScanner::new(
-      rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
-      worker_syntax_list,
-    )));
     plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
@@ -360,7 +353,7 @@ impl<'parser> JavascriptParser<'parser> {
           relative: matches!(parse_url, JavascriptParserUrl::Relative),
         }));
       }
-      plugins.push(Box::new(parser_plugin::WorkerPlugin2));
+      plugins.push(Box::new(parser_plugin::WorkerPlugin::new()));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -384,7 +377,6 @@ impl<'parser> JavascriptParser<'parser> {
       definitions: db.create(),
       definitions_db: db,
       plugin_drive,
-      worker_syntax_list,
       resource_data,
       build_meta,
       build_info,

@@ -26,9 +26,6 @@ mod url_plugin;
 mod use_strict_plugin;
 mod webpack_included_plugin;
 mod worker_plugin;
-mod worker_plugin2;
-/// TODO: should move to rspack_plugin_javascript once we drop old treeshaking
-mod worker_syntax_plugin;
 
 pub(crate) use self::api_plugin::APIPlugin;
 pub(crate) use self::check_var_decl::CheckVarDeclaratorIdent;
@@ -58,8 +55,6 @@ pub(crate) use self::url_plugin::URLPlugin;
 pub(crate) use self::use_strict_plugin::UseStrictPlugin;
 pub(crate) use self::webpack_included_plugin::WebpackIsIncludedPlugin;
 pub(crate) use self::worker_plugin::WorkerPlugin;
-pub(crate) use self::worker_plugin2::WorkerPlugin2;
-pub(crate) use self::worker_syntax_plugin::WorkerSyntaxScanner;
 
 pub static JS_DEFAULT_KEYWORD: once_cell::sync::Lazy<swc_core::atoms::Atom> =
   once_cell::sync::Lazy::new(|| swc_core::atoms::atom!("default"));
