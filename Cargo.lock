@@ -3637,6 +3637,7 @@ dependencies = [
  "async-trait",
  "bitflags 2.5.0",
  "dashmap 6.0.0",
+ "glob-match",
  "indexmap 2.2.6",
  "indoc",
  "itertools 0.12.1",

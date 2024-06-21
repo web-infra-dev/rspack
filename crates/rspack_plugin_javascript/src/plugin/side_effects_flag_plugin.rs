@@ -1,9 +1,9 @@
 use std::collections::VecDeque;
 use std::fmt::Debug;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use once_cell::sync::Lazy;
-use rspack_core::tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects};
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, FactoryMeta,
   ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, MutableModuleGraph,
@@ -26,6 +26,59 @@ use swc_node_comments::SwcComments;
 use crate::dependency::{
   HarmonyExportImportedSpecifierDependency, HarmonyImportSpecifierDependency,
 };
+
+#[derive(Clone, Debug)]
+enum SideEffects {
+  Bool(bool),
+  String(String),
+  Array(Vec<String>),
+}
+
+impl SideEffects {
+  pub fn from_description(description: &serde_json::Value) -> Option<Self> {
+    description.get("sideEffects").and_then(|value| {
+      if let Some(b) = value.as_bool() {
+        Some(SideEffects::Bool(b))
+      } else if let Some(s) = value.as_str() {
+        Some(SideEffects::String(s.to_owned()))
+      } else if let Some(vec) = value.as_array() {
+        let mut side_effects = vec![];
+        for value in vec {
+          if let Some(str) = value.as_str() {
+            side_effects.push(str.to_string());
+          } else {
+            return None;
+          }
+        }
+        Some(SideEffects::Array(side_effects))
+      } else {
+        None
+      }
+    })
+  }
+}
+
+fn get_side_effects_from_package_json(side_effects: SideEffects, relative_path: PathBuf) -> bool {
+  match side_effects {
+    SideEffects::Bool(s) => s,
+    SideEffects::String(s) => {
+      glob_match_with_normalized_pattern(&s, &relative_path.to_string_lossy())
+    }
+    SideEffects::Array(patterns) => patterns
+      .iter()
+      .any(|pattern| glob_match_with_normalized_pattern(pattern, &relative_path.to_string_lossy())),
+  }
+}
+
+fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
+  let trim_start = pattern.trim_start_matches("./");
+  let normalized_glob = if trim_start.contains('/') {
+    trim_start.to_string()
+  } else {
+    String::from("**/") + trim_start
+  };
+  glob_match::glob_match(&normalized_glob, string.trim_start_matches("./"))
+}
 
 pub struct SideEffectsFlagPluginVisitor<'a> {
   unresolved_ctxt: SyntaxContext,

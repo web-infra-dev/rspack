@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::fmt::{Debug, Display};
 
-use crate::{ContextTypePrefix, ErrorSpan};
+use crate::ContextTypePrefix;
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
@@ -12,10 +12,10 @@ pub enum DependencyType {
   ExportInfoApi,
   Entry,
   // Harmony import
-  EsmImport(/* HarmonyImportSideEffectDependency.span */ ErrorSpan), /* TODO: remove span after old tree shaking is removed */
+  EsmImport,
   EsmImportSpecifier,
   // Harmony export
-  EsmExport(ErrorSpan),
+  EsmExport,
   EsmExportImportedSpecifier,
   EsmExportSpecifier,
   EsmExportExpression,
@@ -104,8 +104,8 @@ impl DependencyType {
     match self {
       DependencyType::Unknown => Cow::Borrowed("unknown"),
       DependencyType::Entry => Cow::Borrowed("entry"),
-      DependencyType::EsmImport(_) => Cow::Borrowed("esm import"),
-      DependencyType::EsmExport(_) => Cow::Borrowed("esm export"),
+      DependencyType::EsmImport => Cow::Borrowed("esm import"),
+      DependencyType::EsmExport => Cow::Borrowed("esm export"),
       DependencyType::EsmExportSpecifier => Cow::Borrowed("esm export specifier"),
       DependencyType::EsmExportImportedSpecifier => Cow::Borrowed("esm export import specifier"),
       DependencyType::EsmImportSpecifier => Cow::Borrowed("esm import specifier"),

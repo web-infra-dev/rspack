@@ -8,10 +8,9 @@ use rspack_util::source_map::SourceMapKind;
 use swc_core::common::Span;
 
 use crate::{
-  tree_shaking::visitor::OptimizeAnalyzeResult, AsyncDependenciesBlock, BoxDependency, BoxLoader,
-  BuildInfo, BuildMeta, CodeGenerationData, Compilation, CompilerOptions, DependencyTemplate,
-  GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType, ParserOptions,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, CodeGenerationData,
+  Compilation, CompilerOptions, DependencyTemplate, GeneratorOptions, Module, ModuleDependency,
+  ModuleIdentifier, ModuleType, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use crate::{ChunkGraph, ConcatenationScope, Context, ModuleGraph};
 
@@ -67,7 +66,6 @@ pub struct ParseResult {
   pub presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
   pub code_generation_dependencies: Vec<Box<dyn ModuleDependency>>,
   pub source: BoxSource,
-  pub analyze_result: OptimizeAnalyzeResult,
   pub side_effects_bailout: Option<SideEffectsBailoutItem>,
 }
 

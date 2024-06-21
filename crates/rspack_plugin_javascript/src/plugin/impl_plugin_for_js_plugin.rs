@@ -7,9 +7,8 @@ use rspack_core::{
   get_js_chunk_filename_template, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationParams, CompilationRenderManifest, CompilerCompilation, CompilerOptions,
-  DependencyType, ErrorSpan, IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator,
-  PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SelfModuleFactory,
-  SourceType,
+  DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator, PathData,
+  Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -27,7 +26,7 @@ async fn compilation(
 ) -> Result<()> {
   // HarmonyModulesPlugin
   compilation.set_dependency_factory(
-    DependencyType::EsmImport(ErrorSpan::default()),
+    DependencyType::EsmImport,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
@@ -35,7 +34,7 @@ async fn compilation(
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
-    DependencyType::EsmExport(ErrorSpan::default()),
+    DependencyType::EsmExport,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(

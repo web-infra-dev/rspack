@@ -58,3 +58,6 @@ pub(crate) use self::use_strict_plugin::UseStrictPlugin;
 pub(crate) use self::webpack_included_plugin::WebpackIsIncludedPlugin;
 pub(crate) use self::worker_plugin::WorkerPlugin;
 pub(crate) use self::worker_syntax_plugin::WorkerSyntaxScanner;
+
+pub static JS_DEFAULT_KEYWORD: once_cell::sync::Lazy<swc_core::atoms::Atom> =
+  once_cell::sync::Lazy::new(|| swc_core::atoms::atom!("default"));

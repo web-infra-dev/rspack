@@ -15,7 +15,6 @@ use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::Atom;
 
 use crate::concatenated_module::ConcatenatedModule;
-use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
@@ -158,7 +157,6 @@ pub struct BuildResult {
   /// Whether the result is cacheable, i.e shared between builds.
   pub build_meta: BuildMeta,
   pub build_info: BuildInfo,
-  pub analyze_result: OptimizeAnalyzeResult,
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<AsyncDependenciesBlock>,
   pub optimization_bailouts: Vec<String>,
@@ -220,7 +218,6 @@ pub trait Module:
       build_meta: Default::default(),
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      analyze_result: Default::default(),
       optimization_bailouts: vec![],
     })
   }
