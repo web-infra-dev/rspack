@@ -14,6 +14,7 @@ use swc_core::{
 
 use super::{
   harmony_import_dependency_parser_plugin::{HarmonySpecifierData, HARMONY_SPECIFIER_TAG},
+  url_plugin::get_url_request,
   JavascriptParserPlugin,
 };
 use crate::{
@@ -150,7 +151,7 @@ fn parse_new_worker(
       spread: None,
       expr: box Expr::New(new_url_expr),
     } = expr_or_spread
-    && let Some((start, end, request)) = rspack_core::needs_refactor::match_new_url(new_url_expr)
+    && let Some((request, start, end)) = get_url_request(parser, new_url_expr)
   {
     let path = ParsedNewWorkerPath {
       range: (start, end),

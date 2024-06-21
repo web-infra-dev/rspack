@@ -4,7 +4,6 @@ mod parser;
 mod util;
 
 use rspack_ast::javascript::Program;
-use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, ParserOptions,
 };

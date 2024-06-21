@@ -9,7 +9,6 @@ use std::rc::Rc;
 
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
-use rspack_core::needs_refactor::WorkerSyntaxList;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
   JavascriptParserOptions, ModuleIdentifier, ResourceData,
@@ -43,10 +42,10 @@ pub trait TagInfoData {
 
 #[derive(Debug)]
 pub struct ExtractedMemberExpressionChainData {
-  object: Expr,
-  members: Vec<Atom>,
-  members_optionals: Vec<bool>,
-  member_ranges: Vec<Span>,
+  pub object: Expr,
+  pub members: Vec<Atom>,
+  pub members_optionals: Vec<bool>,
+  pub member_ranges: Vec<Span>,
 }
 
 bitflags! {
@@ -635,7 +634,7 @@ impl<'parser> JavascriptParser<'parser> {
     )
   }
 
-  fn extract_member_expression_chain(
+  pub fn extract_member_expression_chain(
     &self,
     expr: &MemberExpr,
   ) -> ExtractedMemberExpressionChainData {
