@@ -15,7 +15,6 @@ derivative = { workspace = true }
 dyn-clone = "1.0.17"
 either = "1"
 futures = { workspace = true }
-glob-match = "0.2.1"
 hashlink = { workspace = true }
 hex = { workspace = true }
 indexmap = { workspace = true }
@@ -27,7 +26,6 @@ num-bigint = "0.4.4"
 once_cell = { workspace = true }
 oxc_resolver = { version = "1.8.1", features = ["package_json_raw_json_api"] }
 paste = { workspace = true }
-petgraph = { version = "0.6.4", features = ["serde-1"] }
 rayon = { workspace = true }
 regex = { workspace = true }
 rspack_ast = { path = "../rspack_ast" }
