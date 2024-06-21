@@ -304,6 +304,19 @@ impl<'parser> JavascriptParser<'parser> {
     )));
     plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
 
+    if module_type.is_js_auto() || module_type.is_js_esm() {
+      plugins.push(Box::new(parser_plugin::HarmonyTopLevelThisParserPlugin));
+      plugins.push(Box::new(parser_plugin::HarmonyDetectionParserPlugin::new(
+        compiler_options.experiments.top_level_await,
+      )));
+      plugins.push(Box::new(
+        parser_plugin::ImportMetaContextDependencyParserPlugin,
+      ));
+      plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
+      plugins.push(Box::new(parser_plugin::HarmonyImportDependencyParserPlugin));
+      plugins.push(Box::new(parser_plugin::HarmonyExportDependencyParserPlugin));
+    }
+
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
       plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));
@@ -345,26 +358,13 @@ impl<'parser> JavascriptParser<'parser> {
         compiler_options.output.module,
       )));
       plugins.push(Box::new(parser_plugin::ImportParserPlugin));
-    }
-
-    if module_type.is_js_auto() || module_type.is_js_esm() {
       let parse_url = javascript_options.url;
       if !matches!(parse_url, JavascriptParserUrl::Disable) {
         plugins.push(Box::new(parser_plugin::URLPlugin {
           relative: matches!(parse_url, JavascriptParserUrl::Relative),
         }));
       }
-      plugins.push(Box::new(parser_plugin::HarmonyTopLevelThisParserPlugin));
-      plugins.push(Box::new(parser_plugin::HarmonyDetectionParserPlugin::new(
-        compiler_options.experiments.top_level_await,
-      )));
       plugins.push(Box::new(parser_plugin::WorkerPlugin));
-      plugins.push(Box::new(
-        parser_plugin::ImportMetaContextDependencyParserPlugin,
-      ));
-      plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
-      plugins.push(Box::new(parser_plugin::HarmonyImportDependencyParserPlugin));
-      plugins.push(Box::new(parser_plugin::HarmonyExportDependencyParserPlugin));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
