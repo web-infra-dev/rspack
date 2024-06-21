@@ -829,7 +829,30 @@ const allowTarget = z
 			value =>
 				typeof value === "string" && /^electron\d+\.\d+-preload$/.test(value)
 		)
+	)
+	.or(z.literal("nwjs"))
+	.or(
+		z.custom<`nwjs${number}`>(
+			value => typeof value === "string" && /^nwjs\d+$/.test(value)
+		)
+	)
+	.or(
+		z.custom<`nwjs${number}.${number}`>(
+			value => typeof value === "string" && /^nwjs\d+\.\d+$/.test(value)
+		)
+	)
+	.or(z.literal("node-webkit"))
+	.or(
+		z.custom<`node-webkit${number}`>(
+			value => typeof value === "string" && /^node-webkit\d+$/.test(value)
+		)
+	)
+	.or(
+		z.custom<`node-webkit${number}.${number}`>(
+			value => typeof value === "string" && /^node-webkit\d+\.\d+$/.test(value)
+		)
 	);
+
 const target = z.literal(false).or(allowTarget).or(allowTarget.array());
 export type Target = z.infer<typeof target>;
 //#endregion
