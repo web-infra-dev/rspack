@@ -11,8 +11,8 @@ const LOADER_PATH = require.resolve("./loader");
 export type { CssExtractRspackLoaderOptions } from "./loader";
 
 export interface CssExtractRspackPluginOptions {
-	filename?: string;
-	chunkFilename?: string;
+	filename?: RawCssExtractPluginOption["filename"];
+	chunkFilename?: RawCssExtractPluginOption["chunkFilename"];
 	ignoreOrder?: boolean;
 	insert?: string | ((linkTag: HTMLLinkElement) => void);
 	attributes?: Record<string, string>;
