@@ -14,7 +14,7 @@ use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnos
 use swc_core::common::input::SourceFileInput;
 use swc_core::common::{FileName, Span, SyntaxContext};
 use swc_core::ecma::ast;
-use swc_core::ecma::parser::{lexer::Lexer, EsConfig, Syntax};
+use swc_core::ecma::parser::{lexer::Lexer, EsSyntax, Syntax};
 use swc_node_comments::SwcComments;
 
 use crate::dependency::HarmonyCompatibilityDependency;
@@ -120,7 +120,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
     let lexer = Lexer::new(
-      Syntax::Es(EsConfig {
+      Syntax::Es(EsSyntax {
         allow_return_outside_function: matches!(
           module_type,
           ModuleType::JsDynamic | ModuleType::JsAuto

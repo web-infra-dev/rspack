@@ -28,7 +28,7 @@ use swc_core::{
   ecma::{
     ast::Ident,
     atoms::Atom,
-    parser::{EsConfig, Syntax},
+    parser::{EsSyntax, Syntax},
     transforms::base::{
       fixer::{fixer, paren_remover},
       helpers::{self, Helpers},
@@ -168,7 +168,7 @@ pub fn minify(
           let program = parse_js(
             fm.clone(),
             target,
-            Syntax::Es(EsConfig {
+            Syntax::Es(EsSyntax {
               jsx: true,
               decorators: true,
               decorators_before_export: true,

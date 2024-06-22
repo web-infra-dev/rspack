@@ -4,7 +4,7 @@ use rspack_core::EsVersion;
 use rspack_error::{miette::Severity, TraceableError};
 use swc_core::{
   common::{FileName, Spanned},
-  ecma::parser::{parse_file_as_expr, EsConfig, Syntax},
+  ecma::parser::{parse_file_as_expr, EsSyntax, Syntax},
 };
 
 use super::BasicEvaluatedExpression;
@@ -20,7 +20,7 @@ pub fn eval_source(
   let fm = cm.new_source_file(FileName::Anon, source.clone());
   let result = parse_file_as_expr(
     &fm,
-    Syntax::Es(EsConfig::default()),
+    Syntax::Es(EsSyntax::default()),
     EsVersion::EsNext,
     None,
     &mut vec![],

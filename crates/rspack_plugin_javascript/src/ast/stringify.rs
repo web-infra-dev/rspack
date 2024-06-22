@@ -108,7 +108,7 @@ pub fn print(
     let mut buf = vec![];
 
     source_map
-      .build_source_map_with_config(&src_map_buf, input_source_map, source_map_config)
+      .build_source_map_with_config(&src_map_buf, input_source_map.cloned(), source_map_config)
       .to_writer(&mut buf)
       .unwrap_or_else(|e| panic!("{}", e.to_string()));
     // SAFETY: This buffer is already sanitized
