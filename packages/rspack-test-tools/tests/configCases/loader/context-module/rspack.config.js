@@ -10,6 +10,7 @@ module.exports = {
 		rules: [
 			{
 				test: path.join(__dirname, "a.js"),
+				sideEffects: false,
 				use: [
 					{
 						loader: "./my-loader.js"
@@ -31,6 +32,7 @@ module.exports = {
 									hasModule = true;
 									assert(module.buildInfo.LOADER_ACCESS === true);
 									assert(module.buildMeta.LOADER_ACCESS === true);
+									assert(module.factoryMeta.sideEffectFree === true);
 								}
 							}
 						}
