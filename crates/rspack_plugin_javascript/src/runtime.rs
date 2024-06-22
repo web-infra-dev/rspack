@@ -227,10 +227,7 @@ pub fn render_runtime_modules(
       if module.cacheable() {
         sources.add(source.clone());
       } else {
-        let result = module.code_generation(compilation, None, None)?;
-        if let Some(source) = result.get(&SourceType::Runtime) {
-          sources.add(source.clone());
-        }
+        sources.add(module.generate_with_custom(compilation)?);
       }
       if module.should_isolate() {
         sources.add(RawSource::from(if supports_arrow_function {

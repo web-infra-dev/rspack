@@ -56,14 +56,16 @@ pub fn impl_runtime_module(
         &self,
         compilation: &::rspack_core::Compilation,
       ) -> ::rspack_error::Result<std::sync::Arc<dyn ::rspack_core::rspack_sources::Source>> {
-        let mut cached_generated_code = self.cached_generated_code.write().expect("Failed to acquire write lock on cached_generated_code");
-        if let Some(cached_generated_code) = (*cached_generated_code).as_ref() {
-          Ok(cached_generated_code.clone())
-        } else {
-          let source = self.generate_with_custom(compilation)?;
-          *cached_generated_code = Some(source.clone());
-          Ok(source)
+        {
+          let mut cached_generated_code = self.cached_generated_code.read().expect("Failed to acquire read lock on cached_generated_code");
+          if let Some(cached_generated_code) = (*cached_generated_code).as_ref() {
+            return Ok(cached_generated_code.clone());
+          }
         }
+        let mut cached_generated_code = self.cached_generated_code.write().expect("Failed to acquire write lock on cached_generated_code");
+        let source = self.generate_with_custom(compilation)?;
+        *cached_generated_code = Some(source.clone());
+        Ok(source)
       }
     }
 
