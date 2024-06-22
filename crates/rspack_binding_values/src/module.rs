@@ -7,6 +7,12 @@ use crate::{JsChunk, JsCodegenerationResults};
 
 #[derive(Default)]
 #[napi(object)]
+pub struct JsFactoryMeta {
+  pub side_effect_free: Option<bool>,
+}
+
+#[derive(Default)]
+#[napi(object)]
 pub struct JsModule {
   pub context: Option<String>,
   pub original_source: Option<JsCompatSource>,
@@ -16,6 +22,7 @@ pub struct JsModule {
   pub request: Option<String>,
   pub user_request: Option<String>,
   pub raw_request: Option<String>,
+  pub factory_meta: Option<JsFactoryMeta>,
 }
 
 pub trait ToJsModule {
@@ -50,6 +57,11 @@ impl ToJsModule for dyn Module {
         request: Some(normal_module.request().to_string()),
         user_request: Some(normal_module.user_request().to_string()),
         raw_request: Some(normal_module.raw_request().to_string()),
+        factory_meta: normal_module
+          .factory_meta()
+          .map(|factory_meta| JsFactoryMeta {
+            side_effect_free: factory_meta.side_effect_free,
+          }),
       })
       .or_else(|_| {
         self.try_as_raw_module().map(|_| JsModule {
@@ -61,6 +73,7 @@ impl ToJsModule for dyn Module {
           raw_request: None,
           user_request: None,
           request: None,
+          factory_meta: None,
         })
       })
       .or_else(|_| {
@@ -73,6 +86,7 @@ impl ToJsModule for dyn Module {
           raw_request: None,
           user_request: None,
           request: None,
+          factory_meta: None,
         })
       })
       .or_else(|_| {
@@ -85,6 +99,7 @@ impl ToJsModule for dyn Module {
           raw_request: None,
           user_request: None,
           request: None,
+          factory_meta: None,
         })
       })
       .or_else(|_| {
@@ -112,6 +127,9 @@ impl ToJsModule for CompilerModuleContext {
       request: self.request.clone(),
       user_request: self.user_request.clone(),
       raw_request: self.raw_request.clone(),
+      factory_meta: self.factory_meta.as_ref().map(|fm| JsFactoryMeta {
+        side_effect_free: fm.side_effect_free,
+      }),
     };
     Ok(module)
   }

@@ -360,6 +360,10 @@ export interface JsExecuteModuleResult {
   id: number
 }
 
+export interface JsFactoryMeta {
+  sideEffectFree?: boolean
+}
+
 export interface JsLoaderContext {
   resourceData: Readonly<JsResourceData>
   /** Will be deprecated. Use module.module_identifier instead */
@@ -403,6 +407,7 @@ export interface JsModule {
   request?: string
   userRequest?: string
   rawRequest?: string
+  factoryMeta?: JsFactoryMeta
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {

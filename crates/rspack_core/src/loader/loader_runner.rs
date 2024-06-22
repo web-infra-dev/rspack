@@ -5,7 +5,8 @@ pub use rspack_loader_runner::{run_loaders, Content, Loader, LoaderContext};
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  CompilerOptions, Context, Module, ModuleIdentifier, ResolverFactory, SharedPluginDriver,
+  CompilerOptions, Context, FactoryMeta, Module, ModuleIdentifier, ResolverFactory,
+  SharedPluginDriver,
 };
 
 #[derive(Debug, Clone)]
@@ -17,6 +18,7 @@ pub struct CompilerModuleContext {
   pub request: Option<String>,
   pub user_request: Option<String>,
   pub raw_request: Option<String>,
+  pub factory_meta: Option<FactoryMeta>,
 }
 
 impl CompilerModuleContext {
@@ -30,6 +32,8 @@ impl CompilerModuleContext {
       request: normal_module.map(|normal_module| normal_module.request().to_owned()),
       user_request: normal_module.map(|normal_module| normal_module.user_request().to_owned()),
       raw_request: normal_module.map(|normal_module| normal_module.raw_request().to_owned()),
+      factory_meta: normal_module
+        .and_then(|normal_module| normal_module.factory_meta().map(|fm| fm.clone())),
     }
   }
 }
