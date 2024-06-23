@@ -1,13 +1,28 @@
 ```js title=main.js
 "use strict";
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": (function () {
+"./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  A: function() { return A; }
+});
+const A = 1;
+const B = 1;
+
+
+
+
+}),
+"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./b.js");
 
 
 let obj = /*#__PURE__*/ (/* unused pure expression or super */ null && ((() => {
 	return B;
 })()));
 
+let obj2 = (() => {
+	console.log(_b__WEBPACK_IMPORTED_MODULE_0__.A);
+})();
 
 }),
 
