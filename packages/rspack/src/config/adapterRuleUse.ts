@@ -10,13 +10,7 @@ import { Logger } from "../logging/Logger";
 import Hash = require("../util/hash");
 import { Compilation } from "../Compilation";
 import { Module } from "../Module";
-import {
-	resolveEmotion,
-	resolvePluginImport,
-	resolvePreact,
-	resolveReact,
-	resolveRelay
-} from "../builtin-loader";
+import { resolvePluginImport, resolvePreact } from "../builtin-loader";
 import { LoaderObject, parsePathQueryFragment } from "../loader-runner";
 import { isNil } from "../util";
 import {
