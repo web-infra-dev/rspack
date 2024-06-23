@@ -33,7 +33,8 @@ impl CompilerModuleContext {
       user_request: normal_module.map(|normal_module| normal_module.user_request().to_owned()),
       raw_request: normal_module.map(|normal_module| normal_module.raw_request().to_owned()),
       factory_meta: normal_module
-        .and_then(|normal_module| normal_module.factory_meta().map(|fm| fm.clone())),
+        .and_then(|normal_module| normal_module.factory_meta())
+        .map(|factory_meta| factory_meta.to_owned()),
     }
   }
 }
