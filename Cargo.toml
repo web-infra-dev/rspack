@@ -11,7 +11,7 @@ async-trait        = { version = "0.1.79" }
 bitflags           = { version = "2.5.0" }
 concat-string      = "1.0.1"
 css-module-lexer   = "0.0.14"
-dashmap            = { version = "6.0.0" }
+dashmap            = { version = "6.0.0-rc.1" }
 derivative         = { version = "2.2.0" }
 futures            = { version = "0.3.30" }
 glob               = { version = "0.3.1" }
