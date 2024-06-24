@@ -375,7 +375,6 @@ impl NormalModuleFactory {
         suffix.into_owned()
       }
     };
-    let contains_inline = !inline_loaders.is_empty();
 
     let loaders: Vec<BoxLoader> = {
       let mut pre_loaders: Vec<ModuleRuleUseLoader> = vec![];
@@ -554,7 +553,6 @@ impl NormalModuleFactory {
         Arc::new(create_data.resource_resolve_data.clone()),
         resolved_resolve_options,
         loaders,
-        contains_inline,
       )
       .boxed()
     };

@@ -907,12 +907,11 @@ impl ModuleConcatenationPlugin {
       new_module
         .build(
           rspack_core::BuildContext {
-            compiler_context: RunnerContext {
+            runner_context: RunnerContext {
               options: compilation.options.clone(),
               resolver_factory: compilation.resolver_factory.clone(),
               module: CompilerModuleContext::from_module(&new_module),
               module_source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
-              plugin_driver: compilation.plugin_driver.clone(),
             },
             plugin_driver: compilation.plugin_driver.clone(),
             compiler_options: &compilation.options,

@@ -19,7 +19,7 @@ import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } f
 import { EventEmitter } from 'events';
 import { cleanupGlobalTrace as experimental_cleanupGlobalTrace } from '@rspack/binding';
 import { registerGlobalTrace as experimental_registerGlobalTrace } from '@rspack/binding';
-import type { ExternalObject } from '@rspack/binding';
+import { ExternalObject } from '@rspack/binding';
 import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
 import Hash = require('./util/hash');
@@ -35,14 +35,13 @@ import { JsFactoryMeta } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import { JsModule } from '@rspack/binding';
 import { JsPathData } from '@rspack/binding';
-import type { JsRuntimeModule } from '@rspack/binding';
+import { JsRuntimeModule } from '@rspack/binding';
 import { JsStats } from '@rspack/binding';
 import { JsStatsError } from '@rspack/binding';
 import { JsStatsWarning } from '@rspack/binding';
 import { libCacheFacade } from './lib/CacheFacade';
 import { Logger as Logger_2 } from './logging/Logger';
 import { MultiHook } from 'tapable';
-import { PathWithInfo } from '@rspack/binding';
 import { RawBannerPluginOptions } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCopyRspackPluginOptions } from '@rspack/binding';
@@ -972,13 +971,13 @@ export class Compilation {
     // @internal
     __internal__hasAsset(name: string): boolean;
     // @internal
-    __internal__pushDiagnostic(severity: "error" | "warning", title: string, message: string): void;
+    __internal__pushDiagnostic(diagnostic: binding.JsDiagnostic): void;
     // @internal
     __internal__pushNativeDiagnostics(diagnostics: ExternalObject<"Diagnostic[]">): void;
     // @internal
     __internal__setAssetSource(filename: string, source: Source): void;
     // @internal
-    __internal_getInner(): JsCompilation;
+    __internal_getInner(): binding.JsCompilation;
     get assets(): Record<string, Source>;
     // (undocumented)
     buildDependencies: {
@@ -1019,7 +1018,7 @@ export class Compilation {
     endTime?: number;
     get entrypoints(): ReadonlyMap<string, Entrypoint>;
     // (undocumented)
-    get errors(): JsStatsError[];
+    get errors(): RspackError[];
     // (undocumented)
     fileDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
@@ -1038,7 +1037,7 @@ export class Compilation {
     // (undocumented)
     getAssetPath(filename: Filename, data?: PathData): string;
     // (undocumented)
-    getAssetPathWithInfo(filename: Filename, data?: PathData): PathWithInfo;
+    getAssetPathWithInfo(filename: Filename, data?: PathData): binding.PathWithInfo;
     getAssets(): ReadonlyArray<Asset>;
     // (undocumented)
     getCache(name: string): libCacheFacade;
@@ -1047,7 +1046,7 @@ export class Compilation {
     // (undocumented)
     getPath(filename: Filename, data?: PathData): string;
     // (undocumented)
-    getPathWithInfo(filename: Filename, data?: PathData): PathWithInfo;
+    getPathWithInfo(filename: Filename, data?: PathData): binding.PathWithInfo;
     // (undocumented)
     getStats(): Stats;
     // (undocumented)
@@ -1160,7 +1159,7 @@ export class Compilation {
     unseal(): void;
     updateAsset(filename: string, newSourceOrFunction: Source | ((source: Source) => Source), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)): void;
     // (undocumented)
-    get warnings(): JsStatsWarning[];
+    get warnings(): RspackError[];
 }
 
 // @public (undocumented)
@@ -8262,6 +8261,9 @@ abstract class RspackBuiltinPlugin implements RspackPluginInstance {
     // (undocumented)
     abstract raw(compiler: Compiler): binding.BuiltinPlugin | undefined;
 }
+
+// @public (undocumented)
+type RspackError = binding.JsRspackError;
 
 declare namespace rspackExports {
     export {

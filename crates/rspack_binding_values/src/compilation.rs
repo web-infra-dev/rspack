@@ -22,6 +22,7 @@ use crate::{
   chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup,
   JsCompatSource, JsPathData, JsStats, ToJsCompatSource,
 };
+use crate::{JsDiagnostic, JsRspackError};
 
 #[napi(object_from_js = false)]
 pub struct JsCompilation(pub(crate) &'static mut rspack_core::Compilation);
@@ -59,14 +60,6 @@ impl DerefMut for JsCompilation {
   fn deref_mut(&mut self) -> &mut Self::Target {
     self.0
   }
-}
-
-#[napi(object)]
-pub struct JsDiagnostic {
-  #[napi(ts_type = "'error' | 'warning'")]
-  pub severity: String,
-  pub title: String,
-  pub message: String,
 }
 
 #[napi]
@@ -212,38 +205,30 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_asset_filenames(&self) -> Result<Vec<String>> {
-    let filenames = self
+  pub fn get_asset_filenames(&self) -> Vec<String> {
+    self
       .0
       .assets()
       .iter()
       .filter(|(_, asset)| asset.get_source().is_some())
       .map(|(filename, _)| filename)
       .cloned()
-      .collect();
-    Ok(filenames)
+      .collect()
   }
 
   #[napi]
-  pub fn has_asset(&self, name: String) -> Result<bool> {
-    Ok(self.0.assets().contains_key(&name))
+  pub fn has_asset(&self, name: String) -> bool {
+    self.0.assets().contains_key(&name)
   }
 
   #[napi]
-  pub fn emit_asset(
-    &mut self,
-    filename: String,
-    source: JsCompatSource,
-    asset_info: JsAssetInfo,
-  ) -> Result<()> {
+  pub fn emit_asset(&mut self, filename: String, source: JsCompatSource, asset_info: JsAssetInfo) {
     let compat_source: CompatSource = source.into();
 
     self.0.emit_asset(
       filename,
       rspack_core::CompilationAsset::new(Some(compat_source.boxed()), asset_info.into()),
     );
-
-    Ok(())
   }
 
   #[napi]
@@ -311,24 +296,19 @@ impl JsCompilation {
       .collect()
   }
 
-  #[napi(ts_args_type = r#"severity: "error" | "warning", title: string, message: string"#)]
-  pub fn push_diagnostic(&mut self, severity: String, title: String, message: String) {
-    let diagnostic = match severity.as_str() {
-      "warning" => rspack_error::Diagnostic::warn(title, message),
-      _ => rspack_error::Diagnostic::error(title, message),
-    };
-    self.0.push_diagnostic(diagnostic);
+  #[napi]
+  pub fn push_diagnostic(&mut self, diagnostic: JsDiagnostic) {
+    self.0.push_diagnostic(diagnostic.into());
   }
 
   #[napi]
-  pub fn splice_diagnostic(&mut self, start: u32, end: u32, replace_with: Vec<JsDiagnostic>) {
-    let diagnostics = replace_with
-      .iter()
-      .map(|item| match item.severity.as_str() {
-        "warning" => rspack_error::Diagnostic::warn(item.title.clone(), item.message.clone()),
-        _ => rspack_error::Diagnostic::error(item.title.clone(), item.message.clone()),
-      })
-      .collect();
+  pub fn splice_diagnostic(
+    &mut self,
+    start: u32,
+    end: u32,
+    replace_with: Vec<crate::JsDiagnostic>,
+  ) {
+    let diagnostics = replace_with.into_iter().map(Into::into).collect();
     self
       .0
       .splice_diagnostic(start as usize, end as usize, diagnostics);
@@ -339,6 +319,32 @@ impl JsCompilation {
     while let Some(diagnostic) = diagnostics.pop() {
       self.0.push_diagnostic(diagnostic);
     }
+  }
+
+  #[napi]
+  pub fn get_errors(&self) -> Vec<JsRspackError> {
+    let colored = self.0.options.stats.colors;
+    self
+      .0
+      .get_errors_sorted()
+      .map(|d| {
+        JsRspackError::try_from_diagnostic(d, colored)
+          .expect("should convert diagnostic to `JsRspackError`")
+      })
+      .collect()
+  }
+
+  #[napi]
+  pub fn get_warnings(&self) -> Vec<JsRspackError> {
+    let colored = self.0.options.stats.colors;
+    self
+      .0
+      .get_warnings_sorted()
+      .map(|d| {
+        JsRspackError::try_from_diagnostic(d, colored)
+          .expect("should convert diagnostic to `JsRspackError`")
+      })
+      .collect()
   }
 
   #[napi]

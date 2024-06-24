@@ -41,9 +41,11 @@ export class JsCompilation {
   getContextDependencies(): Array<string>
   getMissingDependencies(): Array<string>
   getBuildDependencies(): Array<string>
-  pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
+  pushDiagnostic(diagnostic: JsDiagnostic): void
   spliceDiagnostic(start: number, end: number, replaceWith: Array<JsDiagnostic>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
+  getErrors(): Array<JsRspackError>
+  getWarnings(): Array<JsRspackError>
   getStats(): JsStats
   getAssetPath(filename: LocalJsFilename, data: JsPathData): string
   getAssetPathWithInfo(filename: LocalJsFilename, data: JsPathData): PathWithInfo
@@ -338,9 +340,8 @@ export interface JsCreateData {
 }
 
 export interface JsDiagnostic {
-  severity: 'error' | 'warning'
-  title: string
-  message: string
+  severity: JsRspackSeverity
+  error: JsRspackError
 }
 
 export interface JsExecuteModuleArg {
@@ -452,6 +453,18 @@ export interface JsResourceData {
   fragment?: string
 }
 
+export interface JsRspackError {
+  name: string
+  message: string
+  moduleIdentifier?: string
+  file?: string
+}
+
+export enum JsRspackSeverity {
+  Error = 'Error',
+  Warn = 'Warn'
+}
+
 export interface JsRuntimeGlobals {
   value: Array<string>
 }
@@ -527,6 +540,7 @@ export interface JsStatsError {
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
+  file?: string
 }
 
 export interface JsStatsGetAssets {
@@ -617,6 +631,7 @@ export interface JsStatsWarning {
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
+  file?: string
 }
 
 export interface JsTap {

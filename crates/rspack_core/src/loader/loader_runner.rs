@@ -4,10 +4,7 @@ use rspack_loader_runner::ResourceData;
 pub use rspack_loader_runner::{run_loaders, Content, Loader, LoaderContext};
 use rspack_util::source_map::SourceMapKind;
 
-use crate::{
-  CompilerOptions, Context, FactoryMeta, Module, ModuleIdentifier, ResolverFactory,
-  SharedPluginDriver,
-};
+use crate::{CompilerOptions, Context, FactoryMeta, Module, ModuleIdentifier, ResolverFactory};
 
 #[derive(Debug, Clone)]
 pub struct CompilerModuleContext {
@@ -45,7 +42,6 @@ pub struct RunnerContext {
   pub resolver_factory: Arc<ResolverFactory>,
   pub module: CompilerModuleContext,
   pub module_source_map_kind: SourceMapKind,
-  pub plugin_driver: SharedPluginDriver,
 }
 
 pub type BoxLoader = Arc<dyn Loader<RunnerContext>>;
