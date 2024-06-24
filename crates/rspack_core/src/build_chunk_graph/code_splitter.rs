@@ -333,7 +333,11 @@ impl<'me> CodeSplitter<'me> {
   ) -> Result<IndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
     let mut input_entrypoints_and_modules: IndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
       IndexMap::default();
-    let mut assign_depths_map = HashMap::default();
+    let mut assign_depths_map: std::collections::HashMap<
+      rspack_identifier::Identifier,
+      usize,
+      BuildHasherDefault<FxHasher>,
+    > = HashMap::default();
 
     let entries = self.compilation.entries.clone();
     for (name, entry_data) in entries {

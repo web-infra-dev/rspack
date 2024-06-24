@@ -140,7 +140,14 @@ impl ModuleConcatenationPlugin {
   fn get_inner_bailout_reason(
     &self,
     module_id: &ModuleIdentifier,
-  ) -> Option<dashmap::mapref::one::Ref<'_, rspack_identifier::Identifier, String>> {
+  ) -> Option<
+    dashmap::mapref::one::Ref<
+      '_,
+      rspack_identifier::Identifier,
+      String,
+      std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
+    >,
+  > {
     self.bailout_reason_map.get(module_id)
   }
 
