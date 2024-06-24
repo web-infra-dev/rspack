@@ -3983,8 +3983,6 @@ dependencies = [
 name = "rspack_swc_visitors"
 version = "0.1.0"
 dependencies = [
- "once_cell",
- "regex",
  "rspack_error",
  "serde",
  "swc_core",
