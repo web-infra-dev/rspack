@@ -58,7 +58,6 @@ import { RawLimitChunkCountPluginOptions } from '@rspack/binding';
 import type { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import type { RawReactOptions } from '@rspack/binding';
-import type { RawRelayConfig } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
 import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
@@ -1859,26 +1858,6 @@ const ElectronTargetPlugin: {
         apply(compiler: Compiler_2): void;
     };
 };
-
-// @public (undocumented)
-type EmotionConfig = {
-    sourceMap?: boolean;
-    autoLabel?: "never" | "dev-only" | "always";
-    labelFormat?: string;
-    importMap?: EmotionConfigImportMap;
-};
-
-// @public (undocumented)
-type EmotionConfigImportMap = {
-    [packageName: string]: {
-        [exportName: string]: {
-            canonicalImport?: [string, string];
-        };
-    };
-};
-
-// @public (undocumented)
-type EmotionOptions = boolean | EmotionConfig | undefined;
 
 // @public (undocumented)
 const EnableChunkLoadingPlugin: {
@@ -7950,6 +7929,9 @@ export type Plugins = z.infer<typeof plugins>;
 const plugins: z.ZodArray<z.ZodUnion<[z.ZodType<RspackPluginInstance, z.ZodTypeDef, RspackPluginInstance>, z.ZodType<RspackPluginFunction, z.ZodTypeDef, RspackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">;
 
 // @public (undocumented)
+type PreactOptions = RawPreactOptions | boolean | undefined;
+
+// @public (undocumented)
 type PrintedElement = {
     element: string;
     content: string;
@@ -8075,6 +8057,11 @@ class QueriedHookMap<H extends Hook<any, any, any>> {
 }
 
 // @public (undocumented)
+type RawPreactOptions = {
+    library?: string;
+};
+
+// @public (undocumented)
 export type RawPublicPath = z.infer<typeof rawPublicPath>;
 
 // @public (undocumented)
@@ -8082,9 +8069,6 @@ const rawPublicPath: z.ZodString;
 
 // @public (undocumented)
 type ReactOptions = RawReactOptions | undefined;
-
-// @public (undocumented)
-type RelayOptions = boolean | RawRelayConfig | undefined;
 
 // @public (undocumented)
 export type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
@@ -12687,20 +12671,6 @@ export type StrictModuleExceptionHandling = z.infer<typeof strictModuleException
 const strictModuleExceptionHandling: z.ZodBoolean;
 
 // @public (undocumented)
-type StyledComponentsOptions = {
-    displayName?: boolean;
-    ssr?: boolean;
-    fileName?: boolean;
-    meaninglessFileNames?: string[];
-    namespace?: string;
-    topLevelImportPaths?: string[];
-    transpileTemplateLiterals?: boolean;
-    minify?: boolean;
-    pure?: boolean;
-    cssProps?: boolean;
-};
-
-// @public (undocumented)
 export const SwcCssMinimizerRspackPlugin: {
     new (options?: any): {
         name: BuiltinPluginName;
@@ -12822,10 +12792,8 @@ export type SwcLoaderOptions = {
     inlineSourcesContent?: boolean;
     isModule?: boolean | "unknown";
     rspackExperiments?: {
-        relay?: RelayOptions;
-        emotion?: EmotionOptions;
         import?: PluginImportOptions;
-        styledComponents?: StyledComponentsOptions;
+        preact?: PreactOptions;
     };
 };
 
