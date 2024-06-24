@@ -8,6 +8,10 @@ on:
         type: string
         description: "Commit SHA"
 
+permissions:
+  # To publish packages with provenance
+  id-token: write
+
 jobs:
   get-runner-labels:
     name: Get Runner Labels
