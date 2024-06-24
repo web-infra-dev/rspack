@@ -22,7 +22,7 @@ pub struct JsChunk {
   pub hash: Option<String>,
   pub content_hash: HashMap<String, String>,
   pub rendered_hash: Option<String>,
-  pub chunk_reason: Vec<String>,
+  pub chunk_reason: Option<String>,
   pub auxiliary_files: Vec<String>,
 }
 
@@ -49,6 +49,7 @@ impl JsChunk {
       rendered_hash,
       content_hash,
       chunk_reason,
+      ..
     } = chunk;
     let mut files = Vec::from_iter(files.iter().cloned());
     files.sort_unstable();

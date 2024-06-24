@@ -7,10 +7,9 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct StartupChunkDependenciesRuntimeModule {
   id: Identifier,
   async_chunk_loading: bool,
@@ -19,13 +18,11 @@ pub struct StartupChunkDependenciesRuntimeModule {
 
 impl StartupChunkDependenciesRuntimeModule {
   pub fn new(async_chunk_loading: bool) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/startup_chunk_dependencies"),
+    Self::with_default(
+      Identifier::from("webpack/runtime/startup_chunk_dependencies"),
       async_chunk_loading,
-      chunk: None,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+      None,
+    )
   }
 }
 

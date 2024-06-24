@@ -4,21 +4,16 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct HarmonyModuleDecoratorRuntimeModule {
   id: Identifier,
 }
 
 impl Default for HarmonyModuleDecoratorRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/harmony_module_decorator"),
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(Identifier::from("webpack/runtime/harmony_module_decorator"))
   }
 }
 

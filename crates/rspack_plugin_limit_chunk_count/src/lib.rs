@@ -112,6 +112,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
         chunk_by_ukey,
         chunk_group_by_ukey,
         &module_graph,
+        compilation,
       );
       let a_size = chunk_graph.get_chunk_size(
         a,
@@ -119,6 +120,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
         chunk_by_ukey,
         chunk_group_by_ukey,
         &module_graph,
+        compilation,
       );
       let b_size = chunk_graph.get_chunk_size(
         b,
@@ -126,6 +128,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
         chunk_by_ukey,
         chunk_group_by_ukey,
         &module_graph,
+        compilation,
       );
 
       let c = ChunkCombination {
@@ -248,6 +251,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
               chunk_by_ukey,
               chunk_group_by_ukey,
               &module_graph,
+              compilation,
             );
             combination.a = a;
             combination.integrated_size = new_integrated_size;
@@ -268,6 +272,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
               chunk_by_ukey,
               chunk_group_by_ukey,
               &module_graph,
+              compilation,
             );
             combination.b = a;
             combination.integrated_size = new_integrated_size;

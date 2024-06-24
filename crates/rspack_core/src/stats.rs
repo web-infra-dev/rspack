@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use either::Either;
 use itertools::Itertools;
 use rspack_error::emitter::{DiagnosticDisplay, DiagnosticDisplayer};
@@ -7,11 +9,11 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkGroupOrderKey, ExecutedRuntimeModule,
-  ModuleGraph, ProvidedExports, UsedExports,
+  get_chunk_from_ukey, get_chunk_group_from_ukey, BoxModule, BoxRuntimeModule, Chunk,
+  ChunkGroupOrderKey, ChunkGroupUkey, Compilation, ExecutedRuntimeModule, LogType, ModuleGraph,
+  ModuleIdentifier, ModuleType, OriginLocation, ProvidedExports, RuntimeSpec, SourceType,
+  UsedExports,
 };
-use crate::{BoxModule, BoxRuntimeModule, Chunk};
-use crate::{ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType, SourceType};
 
 #[derive(Debug, Clone)]
 pub struct Stats<'compilation> {
@@ -284,23 +286,68 @@ impl Stats<'_> {
           }
         }
 
+        let chunk_graph = &self.compilation.chunk_graph;
+        let module_graph = &self.compilation.get_module_graph();
+        let context = &self.compilation.options.context;
+        let chunk_group_by_ukey = &self.compilation.chunk_group_by_ukey;
+
+        let origins = c
+          .groups
+          .iter()
+          .sorted()
+          .flat_map(|ukey| {
+            let chunk_group = chunk_group_by_ukey.expect_get(ukey);
+            chunk_group.origins().iter().map(|origin| {
+              let id = origin
+                .module_id
+                .map(|id| id.to_string())
+                .unwrap_or_default();
+              let module_name = origin
+                .module_id
+                .map(|module_id| {
+                  module_graph
+                    .module_by_identifier(&module_id)
+                    .map(|module| module.readable_identifier(context).to_string())
+                    .unwrap_or_default()
+                })
+                .unwrap_or_default();
+              StatsOriginRecord {
+                module: id.clone(),
+                module_identifier: id,
+                module_name,
+                loc: origin
+                  .loc
+                  .as_ref()
+                  .map(|loc| match loc {
+                    OriginLocation::Real(l) => format!("{l}"),
+                    OriginLocation::Synthetic(l) => l.name.to_string(),
+                  })
+                  .unwrap_or_default(),
+                request: origin.request.clone().unwrap_or_default(),
+              }
+            })
+          })
+          .collect::<Vec<_>>();
+
         Ok(StatsChunk {
           r#type: "chunk",
           files,
           auxiliary_files,
           id: c.id.clone(),
           names: c.name.clone().map(|n| vec![n]).unwrap_or_default(),
-          entry: c.has_entry_module(&self.compilation.chunk_graph),
+          entry: c.has_entry_module(chunk_graph),
           initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
-          size: self
-            .compilation
-            .chunk_graph
-            .get_chunk_modules_size(&c.ukey, &self.compilation.get_module_graph()),
+          size: chunk_graph.get_chunk_modules_size(&c.ukey, self.compilation),
           modules: chunk_modules,
           parents,
           children,
           siblings,
           children_by_order,
+          runtime: c.runtime.clone(),
+          sizes: chunk_graph.get_chunk_modules_sizes(&c.ukey, self.compilation),
+          reason: c.chunk_reason.clone(),
+          rendered: c.rendered,
+          origins,
         })
       })
       .collect::<Result<_>>()?;
@@ -693,7 +740,7 @@ impl Stats<'_> {
       .iter()
       .map(|t| StatsSourceTypeSize {
         source_type: *t,
-        size: module.size(Some(t)),
+        size: module.size(Some(t), self.compilation),
       })
       .collect_vec();
 
@@ -716,7 +763,7 @@ impl Stats<'_> {
           .clone()
       },
       chunks,
-      size: module.size(None),
+      size: module.size(None, self.compilation),
       sizes,
       issuer: issuer.map(|i| i.identifier().to_string()),
       issuer_name,
@@ -1029,6 +1076,15 @@ pub struct StatsModuleProfile {
 }
 
 #[derive(Debug)]
+pub struct StatsOriginRecord {
+  pub module: String,
+  pub module_identifier: String,
+  pub module_name: String,
+  pub loc: String,
+  pub request: String,
+}
+
+#[derive(Debug)]
 pub struct StatsChunk<'a> {
   pub r#type: &'static str,
   pub files: Vec<String>,
@@ -1043,6 +1099,11 @@ pub struct StatsChunk<'a> {
   pub children: Option<Vec<String>>,
   pub siblings: Option<Vec<String>>,
   pub children_by_order: HashMap<ChunkGroupOrderKey, Vec<String>>,
+  pub runtime: RuntimeSpec,
+  pub sizes: HashMap<SourceType, f64>,
+  pub reason: Option<String>,
+  pub rendered: bool,
+  pub origins: Vec<StatsOriginRecord>,
 }
 
 #[derive(Debug)]

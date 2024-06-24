@@ -278,7 +278,7 @@ export interface JsChunk {
   hash?: string
   contentHash: Record<string, string>
   renderedHash?: string
-  chunkReason: Array<string>
+  chunkReason?: string
   auxiliaryFiles: Array<string>
 }
 
@@ -413,6 +413,14 @@ export interface JsNormalModuleFactoryCreateModuleArgs {
   matchResource?: string
 }
 
+export interface JsOriginRecord {
+  module: string
+  moduleIdentifier: string
+  moduleName: string
+  loc: string
+  request: string
+}
+
 export interface JsPathData {
   filename?: string
   hash?: string
@@ -490,6 +498,11 @@ export interface JsStatsChunk {
   children?: Array<string>
   siblings?: Array<string>
   childrenByOrder: Record<string, Array<string>>
+  runtime: Array<string>
+  sizes: Array<JsStatsSize>
+  reason?: string
+  rendered: boolean
+  origins: Array<JsOriginRecord>
 }
 
 export interface JsStatsChunkGroup {
@@ -536,7 +549,7 @@ export interface JsStatsModule {
   id?: string
   chunks: Array<string | undefined | null>
   size: number
-  sizes: Array<JsStatsSourceTypeSize>
+  sizes: Array<JsStatsSize>
   depth?: number
   issuer?: string
   issuerName?: string
@@ -589,7 +602,7 @@ export interface JsStatsOptimizationBailout {
   inner: string
 }
 
-export interface JsStatsSourceTypeSize {
+export interface JsStatsSize {
   sourceType: string
   size: number
 }

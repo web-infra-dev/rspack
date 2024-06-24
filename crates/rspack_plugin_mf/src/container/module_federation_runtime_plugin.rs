@@ -10,9 +10,9 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_identifier::Identifier;
 use rspack_plugin_runtime::chunk_has_js;
-use rspack_util::source_map::SourceMapKind;
+
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct FederationRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -20,12 +20,7 @@ pub struct FederationRuntimeModule {
 
 impl Default for FederationRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("module_federation/runtime"),
-      chunk: None,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(Identifier::from("module_federation/runtime"), None)
   }
 }
 

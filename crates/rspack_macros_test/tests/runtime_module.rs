@@ -8,7 +8,7 @@ use rspack_macros::impl_runtime_module;
 #[test]
 fn with_generic() {
   #[impl_runtime_module]
-  #[derive(Debug, Eq)]
+  #[derive(Debug)]
   struct Foo<T: std::fmt::Debug + Send + Sync + Eq + 'static> {
     marker: PhantomData<T>,
   }

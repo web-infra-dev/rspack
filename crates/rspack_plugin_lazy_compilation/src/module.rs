@@ -131,7 +131,7 @@ impl Module for LazyCompilationProxyModule {
     &MODULE_TYPE
   }
 
-  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     200f64
   }
 
@@ -152,7 +152,7 @@ impl Module for LazyCompilationProxyModule {
     _build_context: BuildContext<'_>,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let client_dep = CommonJsRequireDependency::new(self.client.clone(), None, 0, 0, false);
+    let client_dep = CommonJsRequireDependency::new(self.client.clone(), None, 0, 0, None, false);
     let mut dependencies = vec![];
     let mut blocks = vec![];
 
@@ -166,6 +166,7 @@ impl Module for LazyCompilationProxyModule {
         None,
         None,
         vec![Box::new(dep)],
+        None,
       ));
     }
 

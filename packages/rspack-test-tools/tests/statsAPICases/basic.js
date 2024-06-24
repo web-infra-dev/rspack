@@ -22,7 +22,8 @@ module.exports = {
 		"PublicPath: auto
 		asset main.js 207 bytes {909} [emitted] (name: main)
 		Entrypoint main 207 bytes = main.js
-		chunk {909} main.js (main) [entry]
+		chunk {909} (runtime: main) main.js (main) 55 bytes [entry] [rendered]
+		  > ./fixtures/a main
 		  ./fixtures/a.js [585] 55 bytes {909} [depth 0] [built] [code generated]
 		    [no exports]
 		    [used exports unknown]

@@ -267,7 +267,7 @@ pub fn extract_require_call_info(
     return None;
   };
 
-  let loc = DependencyLocation::new(expr.span().real_lo(), expr.span().real_hi());
+  let loc = DependencyLocation::new(expr.span().real_lo(), expr.span().real_hi(), None);
 
   if (root_members.len() == 1 && root_members.first().is_some_and(|f| f == "require"))
     || (root_members.len() == 2

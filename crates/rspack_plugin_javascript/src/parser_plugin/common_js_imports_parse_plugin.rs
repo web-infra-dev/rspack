@@ -117,6 +117,7 @@ impl CommonJsImportsParserPlugin {
         Some(span.into()),
         param.range().0,
         param.range().1,
+        Some(parser.source_map.clone()),
         parser.in_try,
       );
       parser.dependencies.push(Box::new(dep));
@@ -181,6 +182,7 @@ impl CommonJsImportsParserPlugin {
           .push(Box::new(RequireHeaderDependency::new(
             call_expr.callee.span().real_lo(),
             call_expr.callee.span().hi().0,
+            Some(parser.source_map.clone()),
           )));
         return Some(true);
       }
@@ -198,6 +200,7 @@ impl CommonJsImportsParserPlugin {
         .push(Box::new(RequireHeaderDependency::new(
           call_expr.callee.span().real_lo(),
           call_expr.callee.span_hi().0,
+          Some(parser.source_map.clone()),
         )));
     }
     Some(true)

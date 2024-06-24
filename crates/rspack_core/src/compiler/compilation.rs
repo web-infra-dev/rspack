@@ -867,9 +867,9 @@ impl Compilation {
 
       for file_manifest in manifest {
         let filename = file_manifest.filename().to_string();
-
         let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
 
+        current_chunk.rendered = true;
         if file_manifest.auxiliary {
           current_chunk.auxiliary_files.insert(filename.clone());
         } else {
@@ -1529,16 +1529,26 @@ impl Compilation {
     self.runtime_module_code_generation_results = self
       .runtime_modules
       .par_iter()
-      .map(
-        |(identifier, module)| -> Result<(Identifier, (RspackHashDigest, BoxSource))> {
-          let source = module.generate_with_custom(self)?;
-          let mut hasher = RspackHash::from(&self.options.output);
-          module.identifier().hash(&mut hasher);
-          source.source().hash(&mut hasher);
-          Ok((
-            *identifier,
-            (hasher.digest(&self.options.output.hash_digest), source),
-          ))
+      .filter_map(
+        |(identifier, module)| -> Option<Result<(Identifier, (RspackHashDigest, BoxSource))>> {
+          match module.code_generation(self, None, None) {
+            Ok(result) => {
+              let source = result.get(&SourceType::Runtime);
+              source.map(|source| {
+                let mut hasher = RspackHash::from(&self.options.output);
+                module.identifier().hash(&mut hasher);
+                source.source().hash(&mut hasher);
+                Ok((
+                  *identifier,
+                  (
+                    hasher.digest(&self.options.output.hash_digest),
+                    source.clone(),
+                  ),
+                ))
+              })
+            }
+            Err(r) => Some(Err(r)),
+          }
         },
       )
       .collect::<Result<IdentifierMap<(RspackHashDigest, BoxSource)>>>()?;

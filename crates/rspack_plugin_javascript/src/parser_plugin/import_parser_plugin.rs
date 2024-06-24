@@ -90,9 +90,14 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       ));
       let mut block = AsyncDependenciesBlock::new(
         *parser.module_identifier,
-        Some(DependencyLocation::new(span.start, span.end)),
+        Some(DependencyLocation::new(
+          span.start,
+          span.end,
+          Some(parser.source_map.clone()),
+        )),
         None,
         vec![dep],
+        Some(param.string().clone()),
       );
       block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
         chunk_name,

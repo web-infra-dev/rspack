@@ -44,7 +44,8 @@ pub struct Chunk {
   pub hash: Option<RspackHashDigest>,
   pub rendered_hash: Option<Arc<str>>,
   pub content_hash: ChunkContentHash,
-  pub chunk_reason: Vec<String>,
+  pub chunk_reason: Option<String>,
+  pub rendered: bool,
 }
 
 impl DatabaseItem for Chunk {
@@ -73,6 +74,7 @@ impl Chunk {
       rendered_hash: None,
       content_hash: HashMap::default(),
       chunk_reason: Default::default(),
+      rendered: false,
     }
   }
 

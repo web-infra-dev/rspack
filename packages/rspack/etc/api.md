@@ -828,7 +828,7 @@ export class Chunk {
     // (undocumented)
     canBeInitial(): boolean;
     // (undocumented)
-    chunkReason: ReadonlyArray<string>;
+    chunkReason?: Readonly<string>;
     // (undocumented)
     contentHash: Readonly<Record<string, string>>;
     // (undocumented)
@@ -4287,7 +4287,9 @@ interface KnownNormalizedStatsOptions {
 type KnownStatsAsset = binding.JsStatsAsset;
 
 // @public (undocumented)
-type KnownStatsChunk = binding.JsStatsChunk;
+type KnownStatsChunk = Omit<binding.JsStatsChunk, "sizes"> & {
+    sizes: Record<string, number>;
+};
 
 // @public (undocumented)
 type KnownStatsCompilation = {

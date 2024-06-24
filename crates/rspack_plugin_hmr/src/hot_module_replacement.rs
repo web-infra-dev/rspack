@@ -4,24 +4,17 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-use rspack_util::{
-  source_map::SourceMapKind,
-  test::{HOT_TEST_DEFINE_GLOBAL, HOT_TEST_STATUS_CHANGE},
-};
+use rspack_util::test::{HOT_TEST_DEFINE_GLOBAL, HOT_TEST_STATUS_CHANGE};
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct HotModuleReplacementRuntimeModule {
   id: Identifier,
 }
 
 impl Default for HotModuleReplacementRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/hot_module_replacement"),
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(Identifier::from("webpack/runtime/hot_module_replacement"))
   }
 }
 
