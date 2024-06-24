@@ -66,7 +66,14 @@ describe("StatsTestCases", () => {
 				entry: "./index",
 				output: {
 					filename: "bundle.js"
-				}
+				},
+				experiments: {
+					rspackFuture: {
+						bundlerInfo: {
+							force: false
+						}
+					}
+				},
 			};
 			if (fs.existsSync(path.join(base, testName, "webpack.config.js"))) {
 				options = require(path.join(base, testName, "webpack.config.js"));

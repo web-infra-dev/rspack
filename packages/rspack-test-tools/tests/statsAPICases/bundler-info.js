@@ -1,28 +1,28 @@
 /** @type {import('../../dist').TStatsAPICaseConfig} */
 module.exports = {
-  description: "should inject bundler info runtime modules",
-  options(context) {
-    return {
-      context: context.getSource(),
-      entry: "./fixtures/index",
-      experiments: {
-        rspackFuture: {
-          bundlerInfo: {
-            force: true
-          }
-        }
-      }
-    };
-  },
-  async check(stats) {
-    const statsOptions = {
-      runtimeModules: true
-    };
-    expect(typeof stats?.hash).toBe("string");
-    const statsJson = stats?.toJson(statsOptions);
-    expect(
-      statsJson.modules.filter(m => m.identifier.startsWith("webpack/runtime/"))
-    ).toMatchInlineSnapshot(`
+	description: "should inject bundler info runtime modules",
+	options(context) {
+		return {
+			context: context.getSource(),
+			entry: "./fixtures/index",
+			experiments: {
+				rspackFuture: {
+					bundlerInfo: {
+						force: true
+					}
+				}
+			}
+		};
+	},
+	async check(stats) {
+		const statsOptions = {
+			runtimeModules: true
+		};
+		expect(typeof stats?.hash).toBe("string");
+		const statsJson = stats?.toJson(statsOptions);
+		expect(
+			statsJson.modules.filter(m => m.identifier.startsWith("webpack/runtime/"))
+		).toMatchInlineSnapshot(`
 		Array [
 		  Object {
 		    "assets": Array [],
@@ -90,9 +90,9 @@ module.exports = {
 		    "preOrderIndex": undefined,
 		    "providedExports": Array [],
 		    "reasons": Array [],
-		    "size": 206,
+		    "size": 51,
 		    "sizes": Object {
-		      "runtime": 206,
+		      "runtime": 51,
 		    },
 		    "type": "module",
 		    "usedExports": null,
@@ -100,5 +100,5 @@ module.exports = {
 		  },
 		]
 	`);
-  }
+	}
 };

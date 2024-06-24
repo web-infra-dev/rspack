@@ -74,7 +74,10 @@ fn runtime_requirements_in_tree(
   if runtime_requirements.contains(RuntimeGlobals::RSPACK_UNIQUE_ID) {
     compilation.add_runtime_module(
       chunk_ukey,
-      Box::new(RspackUniqueIdRuntimeModule::new(self.bundler_name.clone())),
+      Box::new(RspackUniqueIdRuntimeModule::new(
+        self.bundler_name.clone(),
+        self.version.clone(),
+      )),
     )?;
   }
   Ok(None)
