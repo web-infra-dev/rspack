@@ -132,6 +132,8 @@ fn eval_devtool_plugin_render_module_content(
           .trim_start_matches('/')
       )
     );
+    // TODO: Implement support for the trustedTypes option.
+    // This will depend on the additionalModuleRuntimeRequirements hook.
     RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed()
   };
 
