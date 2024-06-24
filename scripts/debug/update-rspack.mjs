@@ -10,15 +10,17 @@ const depFields = [
 ];
 
 export async function update_rspack_handler(version, options) {
-	console.log(options);
 	const root = process.cwd();
 	const { path: pathOpts } = options;
 
 	let pkgPath;
-
 	if (typeof pathOpts === "string") {
 		if (pathOpts.endsWith("package.json")) {
-			pkgPath = pathOpts;
+			if (path.isAbsolute(pathOpts)) {
+				pkgPath = pathOpts;
+			} else {
+				pkgPath = path.resolve(process.cwd(), pathOpts);
+			}
 		} else {
 			pkgPath = path.resolve(pathOpts, "package.json");
 		}
@@ -44,7 +46,6 @@ export async function update_rspack_handler(version, options) {
 					delete pkgJson[field][depName];
 					pkgJson[field][getNextName(depName)] = version;
 				} else {
-					console.log(version, field, depName);
 					pkgJson[field][depName] = version;
 				}
 			}
@@ -53,5 +54,7 @@ export async function update_rspack_handler(version, options) {
 
 	fs.writeFileSync(pkgPath, JSON.stringify(pkgJson, null, 2), "utf8");
 
-	console.log(`Updated version to ${version}`);
+	console.log(
+		`Updated ${pkgPath} rspack related package version to ${version}`
+	);
 }

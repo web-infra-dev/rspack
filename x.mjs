@@ -248,7 +248,9 @@ program
 	.command("update-rspack")
 	.argument("<version>", "version field")
 	.option("--path <char>", "path to package.json")
-	.description("update the package.json to (snapshot|stable) version")
+	.description(
+		"update the package.json to (snapshot|stable) version e.g: ./x update-rspack 0.7.5-canary-910259c-20240624004455 --path ./package.json"
+	)
 	.action(update_rspack_handler);
 
 program
