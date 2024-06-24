@@ -250,10 +250,9 @@ impl JavascriptParserPlugin for WorkerPlugin {
         return handle_worker(parser, &call_expr.args, call_expr.span).map(
           |(parsed_path, parsed_options)| {
             add_dependencies(parser, call_expr.span, parsed_path, parsed_options);
-            call_expr
-              .callee
-              .as_expr()
-              .map(|callee| parser.walk_expression(callee));
+            if let Some(callee) = call_expr.callee.as_expr() {
+              parser.walk_expression(callee);
+            }
             true
           },
         );
@@ -265,10 +264,9 @@ impl JavascriptParserPlugin for WorkerPlugin {
     }
     handle_worker(parser, &call_expr.args, call_expr.span).map(|(parsed_path, parsed_options)| {
       add_dependencies(parser, call_expr.span, parsed_path, parsed_options);
-      call_expr
-        .callee
-        .as_expr()
-        .map(|callee| parser.walk_expression(callee));
+      if let Some(callee) = call_expr.callee.as_expr() {
+        parser.walk_expression(callee);
+      }
       true
     })
   }
