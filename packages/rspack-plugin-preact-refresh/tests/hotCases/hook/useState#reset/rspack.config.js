@@ -17,7 +17,7 @@ module.exports = {
 		rules: [
 			{
 				test: /\.jsx?$/,
-				exclude: [/node_modules/, /rspack-plugin-preact-refresh[\\\/]client/],
+				exclude: [/node_modules/],
 				use: {
 					loader: "builtin:swc-loader",
 					options: {

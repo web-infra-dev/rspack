@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 4495
+- Update: main.LAST_HASH.hot-update.js, size: 4497
 
 ## Manifest
 
@@ -41,7 +41,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* harmony import */var react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react/jsx-dev-runtime */ "../../../../../../node_modules/preact/compat/jsx-dev-runtime.js");
 /* harmony import */var preact_hooks__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! preact/hooks */ "../../../../../../node_modules/preact/hooks/dist/hooks.js");
 /* module decorator */ module = __webpack_require__.hmd(module);
-/* provided dependency */ var __prefresh_utils__ = __webpack_require__(/*! ../../../../client/prefresh.js */ "../../../../client/prefresh.js");
+/* provided dependency */ var __prefresh_utils__ = __webpack_require__(/*! ../../../../client/prefresh.cjs */ "../../../../client/prefresh.cjs");
 
 
 var _s = $RefreshSig$();
