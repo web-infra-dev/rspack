@@ -8,6 +8,7 @@ import {
 	launchJestWithArgs,
 	launchRspackCli
 } from "./scripts/debug/launch.mjs";
+import { update_rspack_handler } from "./scripts/debug/update-rspack.mjs";
 import { publish_handler } from "./scripts/release/publish.mjs";
 import { version_handler } from "./scripts/release/version.mjs";
 
@@ -242,6 +243,13 @@ program
 	.action(async function () {
 		await launchJestWithArgs(getVariadicArgs());
 	});
+
+program
+	.command("update-rspack")
+	.argument("<version>", "version field")
+	.option("--path <char>", "path to package.json")
+	.description("update the package.json to (snapshot|stable) version")
+	.action(update_rspack_handler);
 
 program
 	.command("version")
