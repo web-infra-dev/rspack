@@ -7,11 +7,21 @@ use crate::export_visitor::ExportSpecifier;
 
 pub type ClientImports = HashMap<String, IndexSet<String>>;
 type SSRModuleMapping = HashMap<String, HashMap<String, ServerRef>>;
+pub type ServerImports = HashMap<String, ServerActionRef>;
+// action_id -> chunk_group -> platform
+pub type ServerActions = HashMap<String, HashMap<String, HashMap<String, String>>>;
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ServerActionRef {
+  pub names: Vec<String>,
+}
 
 #[derive(Debug, Default, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ServerReferenceManifest {
   pub ssr_module_mapping: SSRModuleMapping,
+  pub server_imports: ServerImports,
+  pub server_actions: ServerActions,
 }
 
 #[derive(Debug, Serialize, Clone)]

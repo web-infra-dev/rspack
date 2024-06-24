@@ -1,8 +1,9 @@
-import path from "path";
-import type { RawRscClientReferenceManifestRspackPluginOptions } from "@rspack/binding";
+import path from "node:path";
 import { BuiltinPluginName } from "@rspack/binding";
+import type { RawRscClientReferenceManifestRspackPluginOptions } from "@rspack/binding";
 
 import type { Compiler } from "../Compiler";
+import type { RuleSetCondition } from "../config/zod";
 import type { RspackBuiltinPlugin } from "./base";
 import { create } from "./base";
 
@@ -16,7 +17,10 @@ interface ResolvedOptions {
 	root: string;
 }
 
-interface Options extends RawRscClientReferenceManifestRspackPluginOptions {}
+interface Options extends RawRscClientReferenceManifestRspackPluginOptions {
+	exclude?: RuleSetCondition;
+	serverProxy?: string;
+}
 
 export class RSCClientReferenceManifestRspackPlugin {
 	plugin: RspackBuiltinPlugin;
@@ -41,6 +45,20 @@ export class RSCClientReferenceManifestRspackPlugin {
 				{
 					loader: "builtin:rsc-client-entry-loader",
 					options: this.resolvedOptions
+				}
+			]
+		});
+		compiler.options.module.rules.push({
+			enforce: "post",
+			test: [/\.(j|t|mj|cj)sx?$/i],
+			exclude: this.options.exclude ?? {
+				// Exclude libraries in node_modules ...
+				and: [/node_modules/]
+			},
+			use: [
+				{
+					loader: "builtin:rsc-server-action-client-loader",
+					options: { serverProxy: this.options.serverProxy }
 				}
 			]
 		});
