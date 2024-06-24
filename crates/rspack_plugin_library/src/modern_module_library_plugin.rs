@@ -3,12 +3,13 @@ use std::hash::Hash;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
   ApplyContext, ChunkUkey, CodeGenerationExportsFinalNames, Compilation, CompilationParams,
-  CompilerCompilation, CompilerOptions, ConcatenatedModuleExportsDefinitions, LibraryOptions,
-  ModuleIdentifier, Plugin, PluginContext,
+  CompilerCompilation, CompilerOptions, ConcatenatedModuleExportsDefinitions, DependencyType,
+  LibraryOptions, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_javascript::dependency::HarmonyExportSpecifierDependency;
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin, RenderSource,
 };
@@ -46,42 +47,65 @@ fn render_startup(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  module: &ModuleIdentifier,
+  module_id: &ModuleIdentifier,
   render_source: &mut RenderSource,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let codegen = compilation
     .code_generation_results
-    .get(module, Some(&chunk.runtime));
+    .get(module_id, Some(&chunk.runtime));
+
+  let module_graph = compilation.get_module_graph();
+  let module = module_graph
+    .module_by_identifier(module_id)
+    .expect("should have module");
+  let mut exports = vec![];
 
   let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
   };
 
   let mut source = ConcatSource::default();
-  let exports_final_names = codegen
-    .data
-    .get::<CodeGenerationExportsFinalNames>()
-    .map(|d| d.inner())
-    .expect("should have exports final names");
   let module_graph = compilation.get_module_graph();
   source.add(render_source.source.clone());
-  let mut exports = vec![];
 
-  let exports_info = module_graph.get_exports_info(module);
-  for id in exports_info.get_ordered_exports() {
-    let info = id.get_export_info(&module_graph);
-    let info_name = info.name.as_ref().expect("should have name");
-    let used_name = info
-      .get_used_name(info.name.as_ref(), Some(&chunk.runtime))
-      .expect("name can't be empty");
+  if let Some(exports_final_names) = codegen
+    .data
+    .get::<CodeGenerationExportsFinalNames>()
+    .map(|d: &CodeGenerationExportsFinalNames| d.inner())
+  {
+    let exports_info = module_graph.get_exports_info(module_id);
+    for id in exports_info.get_ordered_exports() {
+      let info = id.get_export_info(&module_graph);
+      let info_name = info.name.as_ref().expect("should have name");
+      let used_name = info
+        .get_used_name(info.name.as_ref(), Some(&chunk.runtime))
+        .expect("name can't be empty");
 
-    let final_name = exports_final_names.get(used_name.as_str());
-    if let Some(final_name) = final_name {
-      if info_name == final_name {
-        exports.push(info_name.to_string());
-      } else {
-        exports.push(format!("{} as {}", final_name, info_name));
+      let final_name = exports_final_names.get(used_name.as_str());
+      if let Some(final_name) = final_name {
+        if info_name == final_name {
+          exports.push(info_name.to_string());
+        } else {
+          exports.push(format!("{} as {}", final_name, info_name));
+        }
+      }
+    }
+  } else {
+    let module_deps = module.get_dependencies();
+    for dep in module_deps {
+      let dep = module_graph
+        .dependency_by_id(dep)
+        .expect("should have dependency");
+
+      if *dep.dependency_type() == DependencyType::EsmExportSpecifier {
+        if let Some(dep) = dep.downcast_ref::<HarmonyExportSpecifierDependency>() {
+          if dep.value == dep.name {
+            exports.push(dep.value.to_string());
+          } else {
+            exports.push(format!("{} as {}", dep.value, dep.name));
+          }
+        }
       }
     }
   }
