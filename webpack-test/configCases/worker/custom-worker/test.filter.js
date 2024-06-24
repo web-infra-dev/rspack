@@ -1,8 +1,5 @@
+var supportsWorker = require("../../../helpers/supportsWorker");
 
-// var supportsWorker = require("../../../helpers/supportsWorker");
-
-// module.exports = function (config) {
-// 	return supportsWorker();
-// };
-
-module.exports = () => {return 'https://github.com/web-infra-dev/rspack/issues/3656'}
+module.exports = function (config) {
+	return supportsWorker();
+};

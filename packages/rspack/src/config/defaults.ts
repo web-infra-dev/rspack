@@ -255,6 +255,7 @@ const applyJavascriptParserOptionsDefaults = (
 		"strictExportPresence",
 		fallback?.strictExportPresence ?? false
 	);
+	D(parserOptions, "worker", fallback?.worker ?? ["..."]);
 };
 
 const applyModuleDefaults = (

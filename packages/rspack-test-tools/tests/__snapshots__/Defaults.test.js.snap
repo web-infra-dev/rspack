@@ -206,6 +206,9 @@ Object {
         "reexportExportsPresence": undefined,
         "strictExportPresence": false,
         "url": true,
+        "worker": Array [
+          "...",
+        ],
         "wrappedContextCritical": false,
       },
       "javascript/auto": Object {
@@ -218,6 +221,9 @@ Object {
         "reexportExportsPresence": undefined,
         "strictExportPresence": false,
         "url": true,
+        "worker": Array [
+          "...",
+        ],
         "wrappedContextCritical": false,
       },
       "javascript/dynamic": Object {
@@ -230,6 +236,9 @@ Object {
         "reexportExportsPresence": undefined,
         "strictExportPresence": false,
         "url": true,
+        "worker": Array [
+          "...",
+        ],
         "wrappedContextCritical": false,
       },
       "javascript/esm": Object {
@@ -242,6 +251,9 @@ Object {
         "reexportExportsPresence": undefined,
         "strictExportPresence": false,
         "url": true,
+        "worker": Array [
+          "...",
+        ],
         "wrappedContextCritical": false,
       },
     },

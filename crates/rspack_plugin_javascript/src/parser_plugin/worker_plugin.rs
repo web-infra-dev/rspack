@@ -1,6 +1,8 @@
 use std::hash::Hash;
 
 use itertools::Itertools;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyLocation, EntryOptions, ErrorSpan,
   GroupOptions, SpanExt,
@@ -9,7 +11,7 @@ use rspack_hash::RspackHash;
 use rustc_hash::FxHashSet;
 use swc_core::{
   common::{Span, Spanned},
-  ecma::ast::{Expr, ExprOrSpread, NewExpr},
+  ecma::ast::{CallExpr, Expr, ExprOrSpread, NewExpr},
 };
 
 use super::{
@@ -70,7 +72,7 @@ fn parse_new_worker_options_from_comments(
 
 fn add_dependencies(
   parser: &mut JavascriptParser,
-  new_expr: &NewExpr,
+  span: Span,
   parsed_path: ParsedNewWorkerPath,
   parsed_options: Option<ParsedNewWorkerOptions>,
 ) {
@@ -86,7 +88,7 @@ fn add_dependencies(
   let range = parsed_options.as_ref().and_then(|options| options.range);
   let name = parsed_options.and_then(|options| options.name);
   let output_module = output_options.module;
-  let span = ErrorSpan::from(new_expr.span);
+  let span = ErrorSpan::from(span);
   let dep = Box::new(WorkerDependency::new(
     parsed_path.range.0,
     parsed_path.range.1,
@@ -146,12 +148,12 @@ fn add_dependencies(
   }
 }
 
-fn parse_new_worker(
+fn handle_worker(
   parser: &mut JavascriptParser,
-  new_expr: &NewExpr,
+  args: &[ExprOrSpread],
+  span: Span,
 ) -> Option<(ParsedNewWorkerPath, Option<ParsedNewWorkerOptions>)> {
-  if let Some(args) = &new_expr.args
-    && let Some(expr_or_spread) = args.first()
+  if let Some(expr_or_spread) = args.first()
     && let ExprOrSpread {
       spread: None,
       expr: box Expr::New(new_url_expr),
@@ -178,7 +180,7 @@ fn parse_new_worker(
       })
       .or_else(|| {
         // new Worker(/* options */ new URL("worker.js"))
-        parse_new_worker_options_from_comments(parser, expr_or_spread.span(), new_expr.span())
+        parse_new_worker_options_from_comments(parser, expr_or_spread.span(), span)
       });
     Some((path, options))
   } else {
@@ -188,27 +190,93 @@ fn parse_new_worker(
 
 pub struct WorkerPlugin {
   new_syntax: FxHashSet<String>,
-  // call_syntax: FxHashSet<String>,
+  call_syntax: FxHashSet<String>,
   from_new_syntax: FxHashSet<(String, String)>,
-  // from_call_syntax: FxHashSet<(String, String)>,
+  from_call_syntax: FxHashSet<(String, String)>,
 }
 
+static WORKER_FROM_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^(.+?)(\(\))?\s+from\s+(.+)$").expect("invalid regex"));
+
 impl WorkerPlugin {
-  pub fn new(/* syntax_list: &[&str] */) -> Self {
-    Self {
-      new_syntax: FxHashSet::from_iter(["Worker".into(), "SharedWorker".into()]),
-      // call_syntax: FxHashSet::default(),
-      from_new_syntax: FxHashSet::from_iter([("Worker".into(), "worker_threads".into())]),
-      // from_call_syntax: FxHashSet::default(),
+  pub fn new(syntax_list: &[String]) -> Self {
+    let mut this = Self {
+      new_syntax: FxHashSet::default(),
+      call_syntax: FxHashSet::default(),
+      from_new_syntax: FxHashSet::default(),
+      from_call_syntax: FxHashSet::default(),
+    };
+    for syntax in syntax_list {
+      if let Some(syntax) = syntax.strip_suffix("()") {
+        this.call_syntax.insert(syntax.to_string());
+      } else if let Some(captures) = WORKER_FROM_REGEX.captures(syntax) {
+        let ids = &captures[1];
+        let is_call = &captures.get(2).is_some();
+        let source = &captures[3];
+        if *is_call {
+          this
+            .from_call_syntax
+            .insert((ids.to_string(), source.to_string()));
+        } else {
+          this
+            .from_new_syntax
+            .insert((ids.to_string(), source.to_string()));
+        }
+      } else {
+        this.new_syntax.insert(syntax.to_string());
+      }
     }
+    this
   }
 }
 
 impl JavascriptParserPlugin for WorkerPlugin {
+  fn call(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name == HARMONY_SPECIFIER_TAG {
+      let tag_info = parser
+        .definitions_db
+        .expect_get_tag_info(&parser.current_tag_info?);
+      let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
+      let ids = settings.ids.iter().map(|id| id.as_str()).join(".");
+      if self
+        .from_call_syntax
+        .contains(&(ids, settings.source.to_string()))
+      {
+        return handle_worker(parser, &call_expr.args, call_expr.span).map(
+          |(parsed_path, parsed_options)| {
+            add_dependencies(parser, call_expr.span, parsed_path, parsed_options);
+            call_expr
+              .callee
+              .as_expr()
+              .map(|callee| parser.walk_expression(callee));
+            true
+          },
+        );
+      }
+      return None;
+    }
+    if !self.call_syntax.contains(for_name) {
+      return None;
+    }
+    handle_worker(parser, &call_expr.args, call_expr.span).map(|(parsed_path, parsed_options)| {
+      add_dependencies(parser, call_expr.span, parsed_path, parsed_options);
+      call_expr
+        .callee
+        .as_expr()
+        .map(|callee| parser.walk_expression(callee));
+      true
+    })
+  }
+
   fn new_expression(
     &self,
     parser: &mut JavascriptParser,
-    new_expr: &swc_core::ecma::ast::NewExpr,
+    new_expr: &NewExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == HARMONY_SPECIFIER_TAG {
@@ -221,21 +289,29 @@ impl JavascriptParserPlugin for WorkerPlugin {
         .from_new_syntax
         .contains(&(ids, settings.source.to_string()))
       {
-        return parse_new_worker(parser, new_expr).map(|(parsed_path, parsed_options)| {
-          add_dependencies(parser, new_expr, parsed_path, parsed_options);
-          parser.walk_expression(&new_expr.callee);
-          true
-        });
+        return new_expr
+          .args
+          .as_ref()
+          .and_then(|args| handle_worker(parser, args, new_expr.span))
+          .map(|(parsed_path, parsed_options)| {
+            add_dependencies(parser, new_expr.span, parsed_path, parsed_options);
+            parser.walk_expression(&new_expr.callee);
+            true
+          });
       }
       return None;
     }
     if !self.new_syntax.contains(for_name) {
       return None;
     }
-    parse_new_worker(parser, new_expr).map(|(parsed_path, parsed_options)| {
-      add_dependencies(parser, new_expr, parsed_path, parsed_options);
-      parser.walk_expression(&new_expr.callee);
-      true
-    })
+    new_expr
+      .args
+      .as_ref()
+      .and_then(|args| handle_worker(parser, args, new_expr.span))
+      .map(|(parsed_path, parsed_options)| {
+        add_dependencies(parser, new_expr.span, parsed_path, parsed_options);
+        parser.walk_expression(&new_expr.callee);
+        true
+      })
   }
 }

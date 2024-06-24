@@ -21,6 +21,13 @@ impl<T: MergeFrom> MergeFrom for Option<T> {
   }
 }
 
+impl<T: MergeFrom> MergeFrom for Vec<T> {
+  fn merge_from(mut self, other: &Self) -> Self {
+    self.extend(other.iter().cloned());
+    self
+  }
+}
+
 impl_merge_from!(i8, i16, i32, i64, i128);
 impl_merge_from!(u8, u16, u32, u64, u128);
 impl_merge_from!(bool);

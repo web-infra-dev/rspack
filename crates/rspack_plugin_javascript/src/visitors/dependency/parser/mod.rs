@@ -355,7 +355,9 @@ impl<'parser> JavascriptParser<'parser> {
           relative: matches!(parse_url, JavascriptParserUrl::Relative),
         }));
       }
-      plugins.push(Box::new(parser_plugin::WorkerPlugin::new()));
+      plugins.push(Box::new(parser_plugin::WorkerPlugin::new(
+        &javascript_options.worker,
+      )));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
