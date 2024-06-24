@@ -3,7 +3,7 @@ use futures::Future;
 use rspack_core::{CompilationAsset, CompilationAssets};
 use rspack_error::{Error, Result};
 
-use super::MappedAsset;
+use crate::MappedAsset;
 
 #[derive(Debug, Clone)]
 pub struct MappedAssetsCache(DashMap<String, MappedAsset>);
