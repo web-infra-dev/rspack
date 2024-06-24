@@ -31,6 +31,7 @@ import { JsChunkGroup } from '@rspack/binding';
 import { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
 import { JsCreateData } from '@rspack/binding';
+import { JsFactoryMeta } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import { JsModule } from '@rspack/binding';
 import { JsPathData } from '@rspack/binding';
@@ -5011,6 +5012,8 @@ export class Module {
     buildMeta: Record<string, any>;
     // (undocumented)
     context?: Readonly<string>;
+    // (undocumented)
+    factoryMeta?: Readonly<JsFactoryMeta>;
     // (undocumented)
     identifier(): string;
     // (undocumented)
