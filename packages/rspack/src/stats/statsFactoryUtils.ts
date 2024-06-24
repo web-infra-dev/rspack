@@ -10,7 +10,9 @@ import type { StatsFactory, StatsFactoryContext } from "./StatsFactory";
 
 export type KnownStatsChunkGroup = binding.JsStatsChunkGroup;
 
-export type KnownStatsChunk = binding.JsStatsChunk;
+export type KnownStatsChunk = Omit<binding.JsStatsChunk, "sizes"> & {
+	sizes: Record<string, number>;
+};
 
 export type StatsChunkGroup = binding.JsStatsChunkGroup & Record<string, any>;
 
@@ -153,7 +155,7 @@ export type SimpleExtractors = {
 		binding.JsStatsModuleReason,
 		StatsModuleReason
 	>;
-	chunk: ExtractorsByOption<StatsChunk, KnownStatsChunk>;
+	chunk: ExtractorsByOption<binding.JsStatsChunk, KnownStatsChunk>;
 	// chunkOrigin: ExtractorsByOption<OriginRecord, StatsChunkOrigin>;
 	// error: ExtractorsByOption<binding.JsStatsError, StatsError>;
 	// warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;

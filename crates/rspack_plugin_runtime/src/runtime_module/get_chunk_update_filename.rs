@@ -4,11 +4,11 @@ use rspack_core::{
   ChunkUkey, Compilation, FilenameTemplate, PathData, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-use rspack_util::{infallible::ResultInfallibleExt as _, source_map::SourceMapKind};
+use rspack_util::infallible::ResultInfallibleExt;
 
 // TODO workaround for get_chunk_update_filename
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct GetChunkUpdateFilenameRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -16,12 +16,10 @@ pub struct GetChunkUpdateFilenameRuntimeModule {
 
 impl Default for GetChunkUpdateFilenameRuntimeModule {
   fn default() -> Self {
-    Self {
-      chunk: None,
-      id: Identifier::from("webpack/runtime/get_chunk_update_filename"),
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(
+      Identifier::from("webpack/runtime/get_chunk_update_filename"),
+      None,
+    )
   }
 }
 

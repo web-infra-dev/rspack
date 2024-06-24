@@ -39,7 +39,7 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
 use rspack_identifier::IdentifierLinkedMap;
 use rspack_util::diff_mode;
-use rspack_util::fx_hash::FxDashMap;
+use rspack_util::fx_hash::{BuildFxHasher, FxDashMap};
 pub use side_effects_flag_plugin::*;
 use swc_core::atoms::Atom;
 use swc_core::common::{FileName, Spanned, SyntaxContext};
@@ -68,14 +68,16 @@ impl RenameModuleCache {
   pub fn get_inlined_info(
     &self,
     ident: &String,
-  ) -> Option<dashmap::mapref::one::Ref<'_, String, WithHash<InlinedModuleInfo>>> {
+  ) -> Option<dashmap::mapref::one::Ref<'_, String, WithHash<InlinedModuleInfo>, BuildFxHasher>> {
     self.inlined_modules_to_info.get(ident)
   }
 
   pub fn get_non_inlined_idents(
     &self,
     ident: &String,
-  ) -> Option<dashmap::mapref::one::Ref<'_, String, WithHash<Vec<ConcatenatedModuleIdent>>>> {
+  ) -> Option<
+    dashmap::mapref::one::Ref<'_, String, WithHash<Vec<ConcatenatedModuleIdent>>, BuildFxHasher>,
+  > {
     self.non_inlined_modules_through_idents.get(ident)
   }
 }
@@ -96,7 +98,8 @@ struct InlinedModuleInfo {
 impl JsPlugin {
   pub fn get_compilation_hooks(
     compilation: &Compilation,
-  ) -> dashmap::mapref::one::Ref<'_, CompilationId, Box<JavascriptModulesPluginHooks>> {
+  ) -> dashmap::mapref::one::Ref<'_, CompilationId, Box<JavascriptModulesPluginHooks>, BuildFxHasher>
+  {
     let id = compilation.id();
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
@@ -108,7 +111,12 @@ impl JsPlugin {
 
   pub fn get_compilation_hooks_mut(
     compilation: &Compilation,
-  ) -> dashmap::mapref::one::RefMut<'_, CompilationId, Box<JavascriptModulesPluginHooks>> {
+  ) -> dashmap::mapref::one::RefMut<
+    '_,
+    CompilationId,
+    Box<JavascriptModulesPluginHooks>,
+    BuildFxHasher,
+  > {
     COMPILATION_HOOKS_MAP.entry(compilation.id()).or_default()
   }
 

@@ -870,7 +870,7 @@ impl Module for ContextModule {
     self.identifier.as_str().into()
   }
 
-  fn size(&self, _source_type: Option<&crate::SourceType>) -> f64 {
+  fn size(&self, _source_type: Option<&crate::SourceType>, _compilation: &Compilation) -> f64 {
     160.0
   }
 
@@ -1123,6 +1123,7 @@ impl ContextModule {
           .into_iter()
           .map(|dep| Box::new(dep) as Box<dyn Dependency>)
           .collect(),
+        None,
       );
       if let Some(group_options) = &self.options.context_options.group_options {
         block.set_group_options(group_options.clone());
@@ -1157,15 +1158,10 @@ impl ContextModule {
         let prefetch_order = group_options.and_then(|o| o.prefetch_order);
         let mut block = AsyncDependenciesBlock::new(
           self.identifier,
-          Some(
-            (
-              self.options.context_options.start,
-              self.options.context_options.end,
-            )
-              .into(),
-          ),
+          None,
           Some(&context_element_dependency.user_request.clone()),
           vec![Box::new(context_element_dependency)],
+          Some(self.options.context_options.request.clone()),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           name,

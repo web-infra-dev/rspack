@@ -5,14 +5,13 @@ use rspack_core::{
   RuntimeModuleStage, SourceType,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap;
 
 use super::consume_shared_plugin::ConsumeVersion;
 use crate::utils::json_stringify;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct ConsumeSharedRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -21,13 +20,11 @@ pub struct ConsumeSharedRuntimeModule {
 
 impl ConsumeSharedRuntimeModule {
   pub fn new(enhanced: bool) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/consumes_loading"),
-      chunk: None,
+    Self::with_default(
+      Identifier::from("webpack/runtime/consumes_loading"),
+      None,
       enhanced,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    )
   }
 }
 

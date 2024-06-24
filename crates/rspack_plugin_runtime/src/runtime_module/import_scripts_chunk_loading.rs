@@ -4,7 +4,6 @@ use rspack_core::{
   BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 use super::{
   generate_javascript_hmr_runtime,
@@ -16,7 +15,7 @@ use crate::{
 };
 
 #[impl_runtime_module]
-#[derive(Debug, Default, Eq)]
+#[derive(Debug, Default)]
 pub struct ImportScriptsChunkLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -25,13 +24,11 @@ pub struct ImportScriptsChunkLoadingRuntimeModule {
 
 impl ImportScriptsChunkLoadingRuntimeModule {
   pub fn new(with_create_script_url: bool) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/import_scripts_chunk_loading"),
-      chunk: None,
+    Self::with_default(
+      Identifier::from("webpack/runtime/import_scripts_chunk_loading"),
+      None,
       with_create_script_url,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    )
   }
 
   fn generate_base_uri(

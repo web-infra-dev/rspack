@@ -14,7 +14,7 @@ static WITH_LOADING: &str = include_str!("./runtime/with_loading.js");
 static WITH_HMR: &str = include_str!("./runtime/with_hmr.js");
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub(crate) struct CssLoadingRuntimeModule {
   chunk: ChunkUkey,
   attributes: FxHashMap<String, String>,
@@ -34,16 +34,7 @@ impl CssLoadingRuntimeModule {
     loading: bool,
     hmr: bool,
   ) -> Self {
-    Self {
-      chunk,
-      attributes,
-      link_type,
-      insert,
-      loading,
-      hmr,
-      source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(chunk, attributes, link_type, insert, loading, hmr)
   }
 
   fn get_css_chunks(&self, compilation: &Compilation) -> FxHashSet<ChunkUkey> {

@@ -99,9 +99,26 @@ Object {
       "names": Array [
         "main",
       ],
+      "origins": Array [
+        Object {
+          "loc": "main",
+          "module": "",
+          "moduleIdentifier": "",
+          "moduleName": "",
+          "request": "./fixtures/a",
+        },
+      ],
       "parents": Array [],
+      "reason": undefined,
+      "rendered": true,
+      "runtime": Array [
+        "main",
+      ],
       "siblings": Array [],
       "size": 55,
+      "sizes": Object {
+        "javascript": 55,
+      },
       "type": "chunk",
     },
   ],
@@ -480,9 +497,27 @@ Object {
       "names": Array [
         "main",
       ],
+      "origins": Array [
+        Object {
+          "loc": "main",
+          "module": "",
+          "moduleIdentifier": "",
+          "moduleName": "",
+          "request": "./fixtures/esm/abc",
+        },
+      ],
       "parents": Array [],
+      "reason": undefined,
+      "rendered": true,
+      "runtime": Array [
+        "main",
+      ],
       "siblings": Array [],
       "size": 192,
+      "sizes": Object {
+        "javascript": 192,
+        "runtime": 677,
+      },
       "type": "chunk",
     },
   ],
@@ -910,7 +945,15 @@ Object {
       "names": Array [
         "main",
       ],
+      "reason": undefined,
+      "rendered": true,
+      "runtime": Array [
+        "main",
+      ],
       "size": 55,
+      "sizes": Object {
+        "javascript": 55,
+      },
       "type": "chunk",
     },
   ],
@@ -1242,9 +1285,26 @@ exports.c = require(\\"./c?c=3\\");
       "names": Array [
         "main",
       ],
+      "origins": Array [
+        Object {
+          "loc": "main",
+          "module": "",
+          "moduleIdentifier": "",
+          "moduleName": "",
+          "request": "./fixtures/abc-query",
+        },
+      ],
       "parents": Array [],
+      "reason": undefined,
+      "rendered": true,
+      "runtime": Array [
+        "main",
+      ],
       "siblings": Array [],
       "size": 281,
+      "sizes": Object {
+        "javascript": 281,
+      },
       "type": "chunk",
     },
   ],

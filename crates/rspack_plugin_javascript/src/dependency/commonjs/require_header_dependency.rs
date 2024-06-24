@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
 use rspack_core::{AsContextDependency, AsModuleDependency, Dependency};
 use rspack_core::{DependencyId, DependencyLocation};
 use rspack_core::{DependencyTemplate, RuntimeGlobals, TemplateContext};
+use swc_core::common::SourceMap;
 
 #[derive(Debug, Clone)]
 pub struct RequireHeaderDependency {
@@ -9,8 +12,8 @@ pub struct RequireHeaderDependency {
 }
 
 impl RequireHeaderDependency {
-  pub fn new(start: u32, end: u32) -> Self {
-    let loc = DependencyLocation::new(start, end);
+  pub fn new(start: u32, end: u32, source: Option<Arc<SourceMap>>) -> Self {
+    let loc = DependencyLocation::new(start, end, source);
     Self {
       id: DependencyId::new(),
       loc,

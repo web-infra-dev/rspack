@@ -111,7 +111,7 @@ impl DependenciesBlock for ConsumeSharedModule {
 impl Module for ConsumeSharedModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     42.0
   }
 
@@ -159,7 +159,7 @@ impl Module for ConsumeSharedModule {
       if self.options.eager {
         dependencies.push(dep as BoxDependency);
       } else {
-        let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep]);
+        let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
         blocks.push(block);
       }
     }

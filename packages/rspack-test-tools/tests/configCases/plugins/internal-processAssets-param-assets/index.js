@@ -8,6 +8,6 @@ it("delete assets[filename] should works", () => {
 		"utf-8"
 	);
 	expect(keys).toBe(
-		"bundle0.js,bundle0.js.map,dup.txt\nbundle0.js,bundle0.js.map"
+		"bundle0.js.map,bundle0.js,dup.txt\nbundle0.js.map,bundle0.js"
 	);
 });

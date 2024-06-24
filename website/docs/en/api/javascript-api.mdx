@@ -1,5 +1,6 @@
 import WebpackLicense from '@components/webpack-license';
-import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
+import { ApiMeta, Stability } from '@components/ApiMeta';
+import { PackageManagerTabs } from '@theme';
 
 <WebpackLicense from="https://webpack.js.org/api/node/" />
 
@@ -17,14 +18,12 @@ The JavaScript API is useful in scenarios in which you need to customize the bui
 
 To start using the Rspack JavaScript API, first install `@rspack/core` if you haven’t yet:
 
-```bash
-npm install --save-dev @rspack/core
-```
+<PackageManagerTabs command="add @rspack/core -D" />
 
 Then require the `@rspack/core` module in your JavaScript file:
 
 ```js title="build.js"
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 ```
 
 ## rspack()
@@ -32,7 +31,7 @@ import rspack from '@rspack/core';
 The imported rspack function is fed a Rspack Configuration Object and runs the Rspack compiler if a callback function is provided:
 
 ```js
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 
 rspack({}, (err, stats) => {
   if (err || stats.hasErrors()) {
@@ -72,7 +71,7 @@ The API only supports a single concurrent compilation at a time. When using `run
 Calling the `run` method on the `Compiler` instance is much like the quick run method mentioned above:
 
 ```js
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 
 const compiler = rspack({
   // ...
@@ -100,7 +99,7 @@ watch(watchOptions, callback);
 ```
 
 ```js
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 
 const compiler = rspack({
   // ...
@@ -204,7 +203,7 @@ stats.toString({
 Here’s an example of `stats.toString()` usage:
 
 ```js
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 
 rspack(
   {
@@ -231,7 +230,7 @@ rspack(
 The `MultiCompiler` module allows Rspack to run multiple configurations in separate compilers. If the `options` parameter in the Rspack's JavaScript API is an array of options, Rspack applies separate compilers and calls the callback after all compilers have been executed.
 
 ```js
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 
 rspack(
   [
@@ -259,7 +258,7 @@ For good error handling, you need to account for these three types of errors:
 Here’s an example that does all that:
 
 ```js
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 
 rspack(
   {
@@ -303,7 +302,7 @@ By default, Rspack reads files and writes files to disk using a normal file syst
 
 ```js
 import { createFsFromVolume, Volume } from 'memfs';
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 
 const fs = createFsFromVolume(new Volume());
 const compiler = rspack({

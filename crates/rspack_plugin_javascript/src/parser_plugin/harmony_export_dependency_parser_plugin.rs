@@ -214,10 +214,12 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
           Some(DependencyLocation::new(
             export_default_decl.decl.span().real_lo(),
             export_default_decl.decl.span().real_hi(),
+            Some(parser.source_map.clone()),
           )),
           DependencyLocation::new(
             export_default_decl.span().real_lo(),
             export_default_decl.span().real_hi(),
+            Some(parser.source_map.clone()),
           ),
         )));
       return Some(true);
@@ -242,10 +244,12 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
         DependencyLocation::new(
           export_default_decl.decl.span().real_lo(),
           export_default_decl.decl.span().real_hi(),
+          Some(parser.source_map.clone()),
         ),
         DependencyLocation::new(
           export_default_decl.span().real_lo(),
           export_default_decl.span().real_hi(),
+          Some(parser.source_map.clone()),
         ),
         match &export_default_decl.decl {
           DefaultDecl::Class(class_expr) => class_expr
@@ -260,7 +264,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
               f.function.body.span().real_lo()
             };
             Some(DeclarationId::Func(DeclarationInfo {
-              range: DependencyLocation::new(start, end),
+              range: DependencyLocation::new(start, end, Some(parser.source_map.clone())),
               prefix: format!(
                 "{}function{} ",
                 if f.function.is_async { "async " } else { "" },
@@ -298,10 +302,12 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
         DependencyLocation::new(
           export_default_expr.expr.span().real_lo(),
           export_default_expr.expr.span().real_hi(),
+          Some(parser.source_map.clone()),
         ),
         DependencyLocation::new(
           export_default_expr.span().real_lo(),
           export_default_expr.span().real_hi(),
+          Some(parser.source_map.clone()),
         ),
         None,
       )));
@@ -359,8 +365,13 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
         Some(DependencyLocation::new(
           export_decl.decl.span().real_lo(),
           export_decl.decl.span().real_hi(),
+          Some(parser.source_map.clone()),
         )),
-        DependencyLocation::new(export_decl.span().real_lo(), export_decl.span().real_hi()),
+        DependencyLocation::new(
+          export_decl.span().real_lo(),
+          export_decl.span().real_hi(),
+          Some(parser.source_map.clone()),
+        ),
       )));
     Some(true)
   }

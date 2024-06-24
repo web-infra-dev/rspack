@@ -4,13 +4,12 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeModule, RuntimeModuleStage, SourceType,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 use super::container_entry_module::CodeGenerationDataExpose;
 use crate::utils::json_stringify;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct ExposeRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -18,12 +17,7 @@ pub struct ExposeRuntimeModule {
 
 impl ExposeRuntimeModule {
   pub fn new() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/initialize_exposes"),
-      chunk: None,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(Identifier::from("webpack/runtime/initialize_exposes"), None)
   }
 }
 

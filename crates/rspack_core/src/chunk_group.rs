@@ -7,10 +7,29 @@ use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, FilenameTemplate,
+  get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation,
+  FilenameTemplate,
 };
 use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
+
+#[derive(Debug, Clone)]
+pub struct SyntheticDependencyLocation {
+  pub name: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum OriginLocation {
+  Real(DependencyLocation),
+  Synthetic(SyntheticDependencyLocation),
+}
+
+#[derive(Debug, Clone)]
+pub struct OriginRecord {
+  pub module_id: Option<ModuleIdentifier>,
+  pub loc: Option<OriginLocation>,
+  pub request: Option<String>,
+}
 
 impl DatabaseItem for ChunkGroup {
   fn ukey(&self) -> rspack_database::Ukey<Self> {
@@ -35,6 +54,7 @@ pub struct ChunkGroup {
   // Entrypoint
   pub(crate) runtime_chunk: Option<ChunkUkey>,
   pub(crate) entry_point_chunk: Option<ChunkUkey>,
+  origins: Vec<OriginRecord>,
 }
 
 impl ChunkGroup {
@@ -53,6 +73,7 @@ impl ChunkGroup {
       runtime_chunk: None,
       entry_point_chunk: None,
       index: None,
+      origins: vec![],
     }
   }
 
@@ -281,6 +302,23 @@ impl ChunkGroup {
       self.parents.insert(parent_group);
       true
     }
+  }
+
+  pub fn add_origin(
+    &mut self,
+    module_id: Option<ModuleIdentifier>,
+    loc: Option<OriginLocation>,
+    request: Option<String>,
+  ) {
+    self.origins.push(OriginRecord {
+      module_id,
+      loc,
+      request,
+    });
+  }
+
+  pub fn origins(&self) -> &Vec<OriginRecord> {
+    &self.origins
   }
 }
 

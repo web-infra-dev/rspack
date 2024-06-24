@@ -6,9 +6,7 @@
 Array [
   Chunk {
     "auxiliaryFiles": Set {},
-    "chunkReason": Array [
-      "Entrypoint(main)",
-    ],
+    "chunkReason": undefined,
     "contentHash": Object {},
     "cssFilenameTemplate": undefined,
     "filenameTemplate": undefined,
@@ -65599,9 +65597,7 @@ undefined
 Array [
   Chunk {
     "auxiliaryFiles": Set {},
-    "chunkReason": Array [
-      "Entrypoint(main)",
-    ],
+    "chunkReason": undefined,
     "contentHash": Object {},
     "cssFilenameTemplate": undefined,
     "filenameTemplate": undefined,

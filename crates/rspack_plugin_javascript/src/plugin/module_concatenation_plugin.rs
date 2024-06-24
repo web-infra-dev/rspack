@@ -140,7 +140,14 @@ impl ModuleConcatenationPlugin {
   fn get_inner_bailout_reason(
     &self,
     module_id: &ModuleIdentifier,
-  ) -> Option<dashmap::mapref::one::Ref<'_, rspack_identifier::Identifier, String>> {
+  ) -> Option<
+    dashmap::mapref::one::Ref<
+      '_,
+      rspack_identifier::Identifier,
+      String,
+      std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
+    >,
+  > {
     self.bailout_reason_map.get(module_id)
   }
 
@@ -878,7 +885,7 @@ impl ModuleConcatenationPlugin {
             .unwrap_or_else(|| panic!("should have module {}", id));
           let inner_module = ConcatenatedInnerModule {
             id: *id,
-            size: module.size(Some(&rspack_core::SourceType::JavaScript)),
+            size: module.size(Some(&rspack_core::SourceType::JavaScript), compilation),
             original_source_hash: module.original_source().map(|source| {
               let mut hasher = DefaultHasher::default();
               source.dyn_hash(&mut hasher);

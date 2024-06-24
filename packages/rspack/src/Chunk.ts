@@ -29,7 +29,7 @@ export class Chunk {
 	hash?: Readonly<string>;
 	contentHash: Readonly<Record<string, string>>;
 	renderedHash?: Readonly<string>;
-	chunkReason: ReadonlyArray<string>;
+	chunkReason?: Readonly<string>;
 	auxiliaryFiles: ReadonlySet<string>;
 
 	static __from_binding(chunk: JsChunk, compilation: Compilation): Chunk;
