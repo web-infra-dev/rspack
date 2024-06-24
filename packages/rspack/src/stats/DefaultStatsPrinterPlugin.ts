@@ -603,13 +603,13 @@ const SIMPLE_PRINTERS: Record<
 	// 	chunkEntry ? formatFlag("entry") : undefined,
 	// "error.chunkInitial": (chunkInitial, { formatFlag }) =>
 	// 	chunkInitial ? formatFlag("initial") : undefined,
-	// "error.file": (file, { bold }) => bold(file),
+	"error.file": (file, { bold }) => bold(file),
 	"error.moduleName": (moduleName, { bold }) => {
 		return moduleName.includes("!")
 			? `${bold(moduleName.replace(/^(\s|\S)*!/, ""))} (${moduleName})`
 			: `${bold(moduleName)}`;
 	},
-	// "error.loc": (loc, { green }) => green(loc),
+	"error.loc": (loc, { green }) => green(loc),
 	"error.message": (message, { bold, formatError }) =>
 		message.includes("\u001b[") ? message : bold(formatError(message)),
 	// "error.details": (details, { formatError }) => formatError(details),

@@ -13,10 +13,10 @@ use crate::{
 
 impl<Context> LoaderContext<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
-    if let Some(plugin) = self.plugin.clone()
+    if let Some(plugin) = &self.plugin
       && plugin.should_yield(self)?
     {
-      plugin.start_yielding(self).await?;
+      plugin.clone().start_yielding(self).await?;
       return Ok(true);
     }
     Ok(false)
@@ -26,7 +26,7 @@ impl<Context> LoaderContext<Context> {
 async fn process_resource<Context: Send>(
   loader_context: &mut LoaderContext<Context>,
 ) -> Result<()> {
-  if let Some(plugin) = loader_context.plugin.clone()
+  if let Some(plugin) = &loader_context.plugin
     && let Some(processed_resource) = plugin
       .process_resource(&loader_context.resource_data)
       .await?

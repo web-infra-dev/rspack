@@ -16,6 +16,7 @@ mod runtime;
 mod source;
 mod stats;
 mod utils;
+mod rspack_error;
 
 pub use asset::*;
 pub use chunk::*;
@@ -34,3 +35,4 @@ pub use runtime::*;
 pub use source::*;
 pub use stats::*;
 pub use utils::*;
+pub use rspack_error::*;

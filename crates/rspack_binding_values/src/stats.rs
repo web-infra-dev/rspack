@@ -17,6 +17,7 @@ pub struct JsStatsError {
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
+  pub file: Option<String>,
 }
 
 impl From<rspack_core::StatsError> for JsStatsError {
@@ -26,6 +27,7 @@ impl From<rspack_core::StatsError> for JsStatsError {
       module_identifier: stats.module_identifier,
       module_name: stats.module_name,
       module_id: stats.module_id,
+      file: stats.file.map(|f| f.to_string_lossy().to_string()),
     }
   }
 }
@@ -36,6 +38,7 @@ pub struct JsStatsWarning {
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
+  pub file: Option<String>,
 }
 
 impl From<rspack_core::StatsWarning> for JsStatsWarning {
@@ -45,6 +48,7 @@ impl From<rspack_core::StatsWarning> for JsStatsWarning {
       module_identifier: stats.module_identifier,
       module_name: stats.module_name,
       module_id: stats.module_id,
+      file: stats.file.map(|f| f.to_string_lossy().to_string()),
     }
   }
 }
