@@ -642,8 +642,23 @@ function getRawJavascriptParserOptions(
 			parser.reexportExportsPresence === false
 				? "false"
 				: parser.reexportExportsPresence,
-		strictExportPresence: parser.strictExportPresence ?? false
+		strictExportPresence: parser.strictExportPresence ?? false,
+		worker: getRawJavascriptParserOptionsWorker(parser.worker!)
 	};
+}
+
+function getRawJavascriptParserOptionsWorker(
+	worker: boolean | string[]
+): RawJavascriptParserOptions["worker"] {
+	const DEFAULT_SYNTAX = [
+		"Worker",
+		"SharedWorker",
+		// "navigator.serviceWorker.register()",
+		"Worker from worker_threads"
+	];
+	return (
+		worker === false ? [] : Array.isArray(worker) ? worker : ["..."]
+	).flatMap(item => (item === "..." ? DEFAULT_SYNTAX : item));
 }
 
 function getRawAssetParserOptions(

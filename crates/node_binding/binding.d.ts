@@ -1017,6 +1017,7 @@ export interface RawJavascriptParserOptions {
   importExportsPresence?: string
   reexportExportsPresence?: string
   strictExportPresence: boolean
+  worker: Array<string>
 }
 
 export interface RawLazyCompilationOption {
