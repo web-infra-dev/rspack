@@ -8,6 +8,10 @@ on:
         type: string
         description: "Commit SHA"
 
+permissions:
+  # To publish packages with provenance
+  id-token: write
+
 jobs:
   get-runner-labels:
     name: Get Runner Labels
@@ -83,3 +87,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # To publish packages with provenance
+          NPM_CONFIG_PROVENANCE: true

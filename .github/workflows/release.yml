@@ -23,6 +23,11 @@ on:
         description: "push tags to github"
         required: true
         default: true
+
+permissions:
+  # To publish packages with provenance
+  id-token: write
+
 jobs:
   get-runner-labels:
     name: Get Runner Labels
@@ -100,6 +105,9 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
           ONLY_RELEASE_TAG: true
+          # To publish packages with provenance
+          NPM_CONFIG_PROVENANCE: true
+
       - name: Release Nightly(After Full)
         run: |
           ./x version snapshot
@@ -110,3 +118,5 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
           ONLY_RELEASE_TAG: true
+          # To publish packages with provenance
+          NPM_CONFIG_PROVENANCE: true
