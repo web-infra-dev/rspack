@@ -99,7 +99,11 @@ export class HotSnapshotProcessor<
 				let chunks = Array.from(stats?.compilation.chunks || NOOP_SET);
 				for (let entry of chunks.filter(i => i.hasRuntime())) {
 					if (!this.entries[entry.id!]) {
-						this.entries[entry.id!] = Array.from(entry.runtime);
+						this.entries[entry.id!] =
+							// Webpack uses `string | SortableSet<string>` for `entry.runtime`
+							typeof entry.runtime === "string"
+								? [entry.runtime]
+								: Array.from(entry.runtime);
 					}
 				}
 				this.matchStepSnapshot(
@@ -137,7 +141,11 @@ export class HotSnapshotProcessor<
 		// @ts-expect-error: Some chunk fields are missing from rspack
 		let chunks = Array.from(stats?.compilation.chunks || NOOP_SET);
 		for (let entry of chunks.filter(i => i.hasRuntime())) {
-			this.entries[entry.id!] = Array.from(entry.runtime);
+			this.entries[entry.id!] =
+				// Webpack uses `string | SortableSet<string>` for `entry.runtime`
+				typeof entry.runtime === "string"
+					? [entry.runtime]
+					: Array.from(entry.runtime);
 		}
 		let matchFailed: Error | null = null;
 		try {
