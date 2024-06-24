@@ -6,6 +6,10 @@
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "exports": {
     ".": {
       "default": "./dist/index.js"
