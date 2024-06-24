@@ -4,10 +4,9 @@ use rspack_core::{
   Compilation, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct RspackUniqueIdRuntimeModule {
   id: Identifier,
   bundler_name: String,
@@ -16,13 +15,11 @@ pub struct RspackUniqueIdRuntimeModule {
 
 impl RspackUniqueIdRuntimeModule {
   pub fn new(bundler_name: String, bundler_version: String) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/rspack_unique_id"),
+    Self::with_default(
+      Identifier::from("webpack/runtime/rspack_unique_id"),
       bundler_name,
       bundler_version,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    )
   }
 }
 
