@@ -6,7 +6,7 @@ use rspack_error::TraceableError;
 use swc_core::common::collections::AHashMap;
 use swc_core::common::{FileName, Spanned};
 use swc_core::ecma::ast::EsVersion;
-use swc_core::ecma::parser::{parse_file_as_expr, EsConfig, Syntax};
+use swc_core::ecma::parser::{parse_file_as_expr, EsSyntax, Syntax};
 use swc_core::ecma::transforms::optimization::inline_globals2;
 use swc_core::ecma::utils::NodeIgnoringSpan;
 use swc_core::ecma::visit::Fold;
@@ -26,7 +26,7 @@ pub fn define(
         let fm = cm.new_source_file(FileName::Anon, text.clone());
         let result = parse_file_as_expr(
           &fm,
-          Syntax::Es(EsConfig::default()),
+          Syntax::Es(EsSyntax::default()),
           EsVersion::EsNext,
           None,
           &mut vec![],
