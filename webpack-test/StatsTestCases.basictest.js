@@ -67,13 +67,6 @@ describe("StatsTestCases", () => {
 				output: {
 					filename: "bundle.js"
 				},
-				experiments: {
-					rspackFuture: {
-						bundlerInfo: {
-							force: false
-						}
-					}
-				},
 			};
 			if (fs.existsSync(path.join(base, testName, "webpack.config.js"))) {
 				options = require(path.join(base, testName, "webpack.config.js"));
@@ -97,6 +90,10 @@ describe("StatsTestCases", () => {
 				if (!options.optimization) options.optimization = {};
 				if (options.optimization.minimize === undefined)
 					options.optimization.minimize = false;
+				if (!options.experiments) options.experiments = {};
+				if (!options.experiments.rspackFuture) options.experiments.rspackFuture = {};
+				if (!options.experiments.rspackFuture.bundlerInfo) options.experiments.rspackFuture.bundlerInfo = {};
+				if (options.experiments.rspackFuture.bundlerInfo.force === undefined) options.experiments.rspackFuture.bundlerInfo.force = false;
 			});
 			const c = webpack(options);
 			const compilers = c.compilers ? c.compilers : [c];
