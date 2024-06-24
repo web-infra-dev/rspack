@@ -624,11 +624,12 @@ export async function runLoaders(
 		if (!(error instanceof Error)) {
 			error = new NonErrorEmittedError(error);
 		}
+		let hasStack = !!error.stack;
 		error.name = "ModuleError";
 		error.message = `${error.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
-		Error.captureStackTrace(error);
+		hasStack && Error.captureStackTrace(error);
 		error = concatErrorMsgAndStack(error);
 		(error as RspackError).moduleIdentifier = this._module.identifier();
 		compiler._lastCompilation!.__internal__pushDiagnostic({
@@ -640,11 +641,12 @@ export async function runLoaders(
 		if (!(warning instanceof Error)) {
 			warning = new NonErrorEmittedError(warning);
 		}
+		let hasStack = !!warning.stack;
 		warning.name = "ModuleWarning";
 		warning.message = `${warning.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
-		Error.captureStackTrace(warning);
+		hasStack && Error.captureStackTrace(warning);
 		warning = concatErrorMsgAndStack(warning);
 		(warning as RspackError).moduleIdentifier = this._module.identifier();
 		compiler._lastCompilation!.__internal__pushDiagnostic({

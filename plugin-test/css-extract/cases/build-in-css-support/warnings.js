@@ -3,4 +3,5 @@
 // css-loader uses loaderContext._module.type to
 // decide bailout on builtin css module
 
-module.exports = `WARNING in ⚠ You can't use \`experiments.css\` and \`css-extract-rspack-plugin\` together, please set \`experiments.css\` to \`false\``;
+module.exports = `WARNING in ./style.css
+  ⚠ You can't use \`experiments.css\` and \`css-extract-rspack-plugin\` together, please set \`experiments.css\` to \`false\``
