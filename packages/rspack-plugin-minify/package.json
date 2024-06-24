@@ -22,7 +22,8 @@
     "directory": "packages/rspack-plugin-minify"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
     "esbuild": "0.16.3",

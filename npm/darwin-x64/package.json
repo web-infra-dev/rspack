@@ -11,7 +11,8 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "files": [
     "rspack.darwin-x64.node"
