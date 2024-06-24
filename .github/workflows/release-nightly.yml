@@ -87,8 +87,6 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
           ONLY_RELEASE_TAG: true
-          # To publish packages with provenance
-          NPM_CONFIG_PROVENANCE: true
     outputs:
       version: ${{ steps.publish.outputs.version }}
 

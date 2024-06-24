@@ -87,5 +87,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          # To publish packages with provenance
-          NPM_CONFIG_PROVENANCE: true
