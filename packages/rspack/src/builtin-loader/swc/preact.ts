@@ -2,9 +2,11 @@ type RawPreactOptions = {
 	library?: string;
 };
 
-type PreactOptions = RawPreactOptions | boolean | undefined;
+export type PreactOptions = RawPreactOptions | boolean | undefined;
 
-function resolvePreact(preact: PreactOptions): RawPreactOptions | undefined {
+export function resolvePreact(
+	preact: PreactOptions
+): RawPreactOptions | undefined {
 	if (typeof preact === "object") {
 		return preact;
 	} else if (preact === true) {
@@ -13,6 +15,3 @@ function resolvePreact(preact: PreactOptions): RawPreactOptions | undefined {
 		return undefined;
 	}
 }
-
-export { resolvePreact };
-export type { PreactOptions };

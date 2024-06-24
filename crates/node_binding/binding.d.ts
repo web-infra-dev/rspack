@@ -1273,11 +1273,6 @@ export interface RawRelated {
   sourceMap?: string
 }
 
-export interface RawRelayConfig {
-  artifactDirectory?: string
-  language: 'javascript' | 'typescript' | 'flow'
-}
-
 export interface RawRemoteOptions {
   key: string
   external: Array<string>
