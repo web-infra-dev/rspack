@@ -23,6 +23,7 @@ const WEBPACK_CHUNK_NAME: &str = "__webpack_chunkname__";
 const WEBPACK_RUNTIME_ID: &str = "__webpack_runtime_id__";
 const WEBPACK_REQUIRE: &str = RuntimeGlobals::REQUIRE.name();
 const RSPACK_VERSION: &str = "__rspack_version__";
+const RSPACK_UNIQUE_ID: &str = "__rspack_unique_id__";
 
 pub struct APIPluginOptions {
   module: bool,
@@ -226,6 +227,18 @@ impl JavascriptParserPlugin for APIPlugin {
           )));
         Some(true)
       }
+      WEBPACK_RUNTIME_ID => {
+        parser
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            RuntimeGlobals::RUNTIME_ID.name().into(),
+            Some(RuntimeGlobals::RUNTIME_ID),
+          )));
+        Some(true)
+      }
+      // rspack specific
       RSPACK_VERSION => {
         parser
           .presentational_dependencies
@@ -237,14 +250,14 @@ impl JavascriptParserPlugin for APIPlugin {
           )));
         Some(true)
       }
-      WEBPACK_RUNTIME_ID => {
+      RSPACK_UNIQUE_ID => {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
             ident.span.real_hi(),
-            RuntimeGlobals::RUNTIME_ID.name().into(),
-            Some(RuntimeGlobals::RUNTIME_ID),
+            format!("{}", RuntimeGlobals::RSPACK_UNIQUE_ID).into(),
+            Some(RuntimeGlobals::RSPACK_UNIQUE_ID),
           )));
         Some(true)
       }

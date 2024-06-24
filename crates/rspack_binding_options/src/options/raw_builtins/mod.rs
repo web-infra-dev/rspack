@@ -474,8 +474,9 @@ impl BuiltinPlugin {
         let plugin_options = downcast_into::<RawBundlerInfoPluginOptions>(self.options)?;
         plugins.push(
           BundlerInfoPlugin::new(
-            RawBundlerInfoModeWrapper(plugin_options.force).into(),
             plugin_options.version,
+            plugin_options.bundler,
+            RawBundlerInfoModeWrapper(plugin_options.force).into(),
           )
           .boxed(),
         )

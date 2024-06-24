@@ -191,7 +191,15 @@ export class StatsProcessor<
 		context: ITestContext
 	): TCompilerOptions<T> {
 		if (fs.existsSync(path.join(context.getSource(), "rspack.config.js"))) {
-			return {};
+			return {
+				experiments: {
+					rspackFuture: {
+						bundlerInfo: {
+							force: false
+						}
+					}
+				}
+			} as TCompilerOptions<T>;
 		}
 		return {
 			context: context.getSource(),
@@ -203,8 +211,15 @@ export class StatsProcessor<
 			},
 			optimization: {
 				minimize: false
+			},
+			experiments: {
+				rspackFuture: {
+					bundlerInfo: {
+						force: false
+					}
+				}
 			}
-		};
+		} as TCompilerOptions<T>;
 	}
 	static overrideOptions<T extends ECompilerType>(
 		index: number,

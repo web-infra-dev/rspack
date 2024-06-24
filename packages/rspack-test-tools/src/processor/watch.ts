@@ -135,6 +135,17 @@ export class WatchProcessor<
 						options.optimization[key] = optimization[key];
 				}
 			}
+
+			(options as TCompilerOptions<ECompilerType.Rspack>).experiments ??= {};
+			(
+				options as TCompilerOptions<ECompilerType.Rspack>
+			).experiments!.rspackFuture ??= {};
+			(
+				options as TCompilerOptions<ECompilerType.Rspack>
+			).experiments!.rspackFuture!.bundlerInfo ??= {};
+			(
+				options as TCompilerOptions<ECompilerType.Rspack>
+			).experiments!.rspackFuture!.bundlerInfo!.force ??= false;
 		};
 	}
 }

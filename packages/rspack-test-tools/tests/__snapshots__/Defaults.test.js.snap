@@ -21,7 +21,8 @@ Object {
     "lazyCompilation": false,
     "rspackFuture": Object {
       "bundlerInfo": Object {
-        "force": false,
+        "bundler": "rspack",
+        "force": true,
         "version": "$version$",
       },
     },

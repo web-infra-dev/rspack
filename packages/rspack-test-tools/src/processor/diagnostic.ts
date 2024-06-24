@@ -70,7 +70,14 @@ export class DiagnosticProcessor<
 			},
 			output: {
 				path: context.getDist()
+			},
+			experiments: {
+				rspackFuture: {
+					bundlerInfo: {
+						force: false
+					}
+				}
 			}
-		};
+		} as TCompilerOptions<T>;
 	}
 }

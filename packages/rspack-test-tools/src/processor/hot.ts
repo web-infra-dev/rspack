@@ -107,7 +107,14 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			optimization: {
 				moduleIds: "named"
 			},
-			target: this._hotOptions.target
+			target: this._hotOptions.target,
+			experiments: {
+				rspackFuture: {
+					bundlerInfo: {
+						force: false
+					}
+				}
+			}
 		} as TCompilerOptions<T>;
 
 		if (this._hotOptions.compilerType === ECompilerType.Rspack) {

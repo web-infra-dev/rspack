@@ -55,8 +55,15 @@ export class HashProcessor<
 			context: context.getSource(),
 			output: {
 				path: context.getDist()
+			},
+			experiments: {
+				rspackFuture: {
+					bundlerInfo: {
+						force: false
+					}
+				}
 			}
-		};
+		} as TCompilerOptions<T>;
 	}
 	static overrideOptions<T extends ECompilerType>(
 		index: number,
