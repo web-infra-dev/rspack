@@ -146,10 +146,10 @@ fn eval_source_map_devtool_plugin_render_module_content(
         let mut module_filenames =
           ModuleFilenameHelpers::replace_duplicates(module_filenames, |mut filename, _, n| {
             filename.extend(std::iter::repeat('*').take(n));
-            return filename;
+            filename
           })
           .into_iter()
-          .map(|s| Some(s))
+          .map(Some)
           .collect::<Vec<Option<_>>>();
         for (i, source) in sources.iter_mut().enumerate() {
           if let Some(filename) = module_filenames[i].take() {

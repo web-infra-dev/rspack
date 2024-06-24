@@ -246,10 +246,7 @@ impl ModuleFilenameHelpers {
     let mut pos_map: HashMap<String, usize> = HashMap::default();
 
     for (idx, item) in filenames.iter().enumerate() {
-      count_map
-        .entry(item.clone())
-        .or_insert_with(Vec::new)
-        .push(idx);
+      count_map.entry(item.clone()).or_default().push(idx);
       pos_map.entry(item.clone()).or_insert(0);
     }
 
