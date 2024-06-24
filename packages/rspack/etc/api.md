@@ -1608,9 +1608,9 @@ export interface CssExtractRspackPluginOptions {
     // (undocumented)
     attributes?: Record<string, string>;
     // (undocumented)
-    chunkFilename?: string;
+    chunkFilename?: RawCssExtractPluginOption["chunkFilename"];
     // (undocumented)
-    filename?: string;
+    filename?: RawCssExtractPluginOption["filename"];
     // (undocumented)
     ignoreOrder?: boolean;
     // (undocumented)

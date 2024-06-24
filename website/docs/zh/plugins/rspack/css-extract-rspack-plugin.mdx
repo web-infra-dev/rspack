@@ -15,8 +15,10 @@ Rspack 目前不兼容 mini-css-extract-plugin，但可以使用该插件替代�
 
   ```ts
   export interface PluginOptions {
-    filename?: string;
-    chunkFilename?: string;
+    filename?: string | ((pathData: PathData, assetInfo?: AssetInfo) => string);
+    chunkFilename?:
+      | string
+      | ((pathData: PathData, assetInfo?: AssetInfo) => string);
     ignoreOrder?: boolean;
     insert?: string | ((linkTag: HTMLLinkElement) => void);
     attributes?: Record<string, string>;
