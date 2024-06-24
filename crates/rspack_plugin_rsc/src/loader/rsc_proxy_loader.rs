@@ -26,7 +26,7 @@ impl RSCProxyLoader {
   }
 
   /// Panics:
-  /// Panics if `identifier` passed in is not starting with `builtin:swc-loader`.
+  /// Panics if `identifier` passed in is not starting with `builtin:rsc-proxy-loader`.
   pub fn with_identifier(mut self, identifier: Identifier) -> Self {
     assert!(identifier.starts_with(RSC_PROXY_LOADER_IDENTIFIER));
     self.identifier = identifier;

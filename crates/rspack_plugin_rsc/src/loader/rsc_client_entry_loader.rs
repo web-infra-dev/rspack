@@ -105,11 +105,10 @@ impl Loader<RunnerContext> for RSCClientEntryLoader {
     let query = loader_context.resource_query();
 
     if self.is_match(resource_path) {
-      let parsed = self.parse_query(query);
+      let parsed: QueryParsedRequest = self.parse_query(query);
       let chunk_name = parsed.chunk_name;
       let is_client_entry = parsed.is_client_entry;
       let is_route_entry = parsed.is_route_entry;
-      // let route_chunk_name = self.get_route_chunk_name(resource_path);
       let mut hmr = String::from("");
       let development =
         Some(Mode::is_development(&loader_context.context.options.mode)).unwrap_or(false);
@@ -131,7 +130,6 @@ impl Loader<RunnerContext> for RSCClientEntryLoader {
       // Entrypoint
       if is_client_entry {
         let client_imports = self.get_client_imports_by_name(&chunk_name);
-
         if let Some(client_imports) = client_imports {
           let code = client_imports
             .iter()
@@ -145,7 +143,6 @@ impl Loader<RunnerContext> for RSCClientEntryLoader {
       // Route
       if is_route_entry {
         let client_imports = self.get_client_imports_by_name(&chunk_name);
-
         if let Some(client_imports) = client_imports {
           let code = client_imports
             .iter()
