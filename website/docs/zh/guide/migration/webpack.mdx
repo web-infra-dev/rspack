@@ -35,7 +35,7 @@ Rspack 的配置是基于 webpack 的设计实现的，以此你能够非常轻�
 }
 ```
 
-:::tip
+:::tip 提示
 Rspack 命令与 webpack 命令相同，均可通过 `-c` 或 `--config` 指定配置文件。但与 webpack 不同的是，如果你未显式指定配置文件，Rspack 默认使用 `rspack.config.js`。
 :::
 
@@ -64,7 +64,7 @@ Rspack 正在积极推动 webpack 的下一个版本的功能，因此在某些�
 Rspack 实现了大部分 webpack 内置插件，其命名和参数配置与 webpack 保持一致，你可以非常轻松地替换它们。
 
 :::tip 提示
-查看[同步自 webpack 的内置插件](/plugins/webpack/index)以了解 Rspack 对 webpack 所有内置插件的实现情况。
+查看[同步自 webpack 的内置插件](/plugins/webpack/index)以了解 Rspack 对 webpack 所有内置插件的支持情况。
 :::
 
 例如替换 [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin)：
@@ -155,7 +155,7 @@ Rspack 已实现了与 Webpack 功能完全对齐的 loader 执行器，支持�
 
 ### [babel-loader](https://github.com/babel/babel-loader) / [swc-loader](https://swc.rs/docs/usage/swc-loader) → builtin:swc-loader
 
-通过 `builtin:swc-loader` 使用 Rspack 内置的 `swc-loader`，相比于外置的 `swc-loader`，它不需要在 JavaScript 和 Rust 之间进行频繁的通信，从而具有最佳的性能。
+通过 `builtin:swc-loader` 使用 Rspack 内置的 `swc-loader`，相比于 `babel-loader` 和外置的 `swc-loader`，它不需要在 JavaScript 和 Rust 之间进行频繁的通信，从而具有最佳的性能。
 
 如果你需要通过 babel 插件进行自定义转换逻辑，可以保留 `babel-loader`，但不建议对大量文件使用 `babel-loader`，因为这会导致显著的性能下降。
 

@@ -37,7 +37,7 @@ Update your build scripts to use Rspack instead of webpack:
 ```
 
 :::tip
-Rspack commands are similar to webpack commands and can specify the configuration file with `-c` or `--config`.
+Rspack commands can specify the configuration file with `-c` or `--config` like webpack commands.
 Unlike webpack, if you do not explicitly specify a configuration file, Rspack defaults to using `rspack.config.js`.
 :::
 
@@ -159,7 +159,7 @@ You can use your existing loaders without any changes. However, to achieve the b
 
 ### [babel-loader](https://github.com/babel/babel-loader) / [swc-loader](https://swc.rs/docs/usage/swc-loader) → builtin:swc-loader
 
-Using `builtin:swc-loader` offers better performance compared to the external `swc-loader`, as it avoids frequent communication between JavaScript and Rust.
+Using `builtin:swc-loader` offers better performance compared to the `babel-loader` and the external `swc-loader`, as it avoids frequent communication between JavaScript and Rust.
 
 If you need custom transformation logic using Babel plugins, you can retain `babel-loader`, but it is recommended to limit its use to fewer files to prevent significant performance degradation.
 
@@ -239,7 +239,7 @@ module.exports = {
  };
 ```
 
-### [file-loader](https://github.com/webpack-contrib/raw-loader) / [url-loader](https://github.com/webpack-contrib/url-loader) / [raw-loader](https://github.com/webpack-contrib/raw-loader) → [资源模块](/guide/features/asset-module)
+### [file-loader](https://github.com/webpack-contrib/raw-loader) / [url-loader](https://github.com/webpack-contrib/url-loader) / [raw-loader](https://github.com/webpack-contrib/raw-loader) → [Asset Modules](/guide/features/asset-module)
 
 Rspack implements Webpack 5's [Asset Modules](https://webpack.js.org/guides/asset-modules), using asset modules to replace `file-loader`, `url-loader`, and `raw-loader` for better performance.
 
