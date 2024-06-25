@@ -134,7 +134,7 @@ module.exports = {
 };
 ```
 
-Rspack 默认不会为 Node.js 核心模块提供 polyfills，这意味着如果你在浏览器或类似环境中运行的代码中使用它们，你将不得不从 NPM 安装兼容的模块并自行包含它们。
+Rspack 默认不会为 Node.js 核心模块提供 polyfills，这意味着如果你在浏览器或类似环境中运行的代码中使用它们，你将需要从 NPM 安装兼容的模块并自行包含它们。
 
 你可以使用 [node-polyfill-webpack-plugin](https://www.npmjs.com/package/node-polyfill-webpack-plugin) 来自动 polyfill Node.js 核心模块。
 
