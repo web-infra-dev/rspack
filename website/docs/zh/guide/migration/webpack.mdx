@@ -39,7 +39,7 @@ Rspack 的配置是基于 webpack 的设计实现的，以此你能够非常轻�
 Rspack 命令与 webpack 命令相同，均可通过 `-c` 或 `--config` 指定配置文件。但与 webpack 不同的是，如果你未显式指定配置文件，Rspack 默认使用 `rspack.config.js`。
 :::
 
-## 迁移配置
+## 修改配置
 
 Rspack 目前并不支持所有 webpack 配置，有些配置会影响构建产物，为保证构建产物的正确性，Rspack 默认开启了对配置的严格校验。
 不过，Rspack 也提供了宽松模式，方便进行渐进式迁移。你可以通过设置 `RSPACK_CONFIG_VALIDATE` 环境变量来开启宽松模式：

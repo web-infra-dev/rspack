@@ -1,110 +1,169 @@
+import { PackageManagerTabs } from '@theme';
+
 # Migrate webpack
 
-This chapter introduces how to migrate projects using webpack to Rspack.
+Rspack's configuration is designed based on webpack, enabling you to migrate your project from webpack to Rspack with ease.
 
-This document is primarily aimed at projects using webpack v5. Since Rspack's API and configuration align with webpack v5, migrating from webpack v5 to Rspack will be relatively easy.
-
-For projects not using webpack v5, there are other migration guides that can be referenced:
+This document is primarily aimed at projects using webpack 5. Since Rspack's API and configuration align with webpack 5.
+For projects not using webpack 5, there are other migration guides that can be referenced:
 
 - For projects using webpack v4 or earlier versions, you can refer to [webpack - To v5 from v4](https://webpack.js.org/migrate/5/) to understand the differences.
 - For projects using create-react-app or CRACO, you can refer to [Migrating Create React App](/guide/migration/cra).
 - For projects using Vue CLI, you can refer to [Rsbuild - Migrating from Vue CLI](https://rsbuild.dev/guide/migration/vue-cli).
 
-## Notes
+## Installing Rspack
 
-- The supported Node.js version for Rspack is >= 16. If you are still using an older version of Node.js, please upgrade first.
-- Rspack is designed to be as compatible as possible with common webpack APIs and configurations, but some differences are inevitable. You can read Rspack's documentation to understand the differences in each API and configuration.
-- Some functionalities in Rspack have more efficient implementations. If you adopt the recommended practices of Rspack, you will achieve more significant performance improvements.
-
-## Install Dependencies
-
-First, you need to replace the webpack-related npm dependencies with those of Rspack.
-
-import { PackageManagerTabs } from '@theme';
-
-- Remove the webpack dependencies:
-
-<PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />
-
-- Install the Rspack dependencies:
+In your project directory, install Rspack as a `devDependencies`:
 
 <PackageManagerTabs command="add @rspack/core @rspack/cli -D" />
 
-Here are the mapping relationships for some common npm packages:
+Now you can remove the webpack-related dependencies from your project:
 
-- `webpack` -> `@rspack/core`
-- `webpack-cli` -> `@rspack/cli`
-- `webpack-dev-server` -> `@rspack/dev-server`
-- `@pmmmwh/react-refresh-webpack-plugin` -> `@rspack/plugin-react-refresh`
+<PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />
 
-## Update npm scripts
+## Updating package.json
 
-Next, you need to update the npm scripts in the package.json file to Rspack's CLI commands.
+Update your build scripts to use Rspack instead of webpack:
 
 ```diff title="package.json"
 {
   "scripts": {
--   "serve": "webpack serve -c webpack.config.js",
--   "build": "webpack build -c webpack.config.js",
-+   "serve": "rspack serve -c rspack.config.js",
-+   "build": "rspack build -c rspack.config.js",
+-   "serve": "webpack serve",
+-   "build": "webpack build",
++   "serve": "rspack serve -c webpack.config.js",
++   "build": "rspack build -c webpack.config.js",
   }
 }
 ```
 
-## Configuration File
+:::tip
+Rspack commands are similar to webpack commands and can specify the configuration file with `-c` or `--config`.
+Unlike webpack, if you do not explicitly specify a configuration file, Rspack defaults to using `rspack.config.js`.
+:::
 
-Please rename the `webpack.config.js` file to `rspack.config.js`.
+## Updating configuration
 
-Rspack offers configurations similar to webpack. You can refer to [Configure Rspack](/config/index) to see the configurations supported by Rspack.
+Rspack does not currently support all webpack configurations, and some configurations might affect the build output.
+To ensure the correctness of the build output, Rspack enables strict configuration validation by default.
+However, Rspack also offers lenient modes to facilitate gradual migration. You can enable these modes by setting the `RSPACK_CONFIG_VALIDATE` environment variable:
 
-## Built-in Plugins
-
-Rspack has implemented most of webpack's built-in plugins. They maintain the same naming and configuration parameters as closely as possible and provide the same features.
-
-For example, replacing [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin) with the original configuration would look like this:
-
-```js title="webpack.config.js"
-const webpack = require('webpack');
-
-const isDev = process.env.NODE_ENV === 'development';
-
-module.exports = {
-  plugins: [isDev && new webpack.HotModuleReplacementPlugin()].filter(Boolean),
-};
+```bash
+# Enable loose validation mode will print out erroneous configurations but will not throw error.
+RSPACK_CONFIG_VALIDATE=loose rspack build
+# Enable loose validation mode, without printing errors or throwing error.
+RSPACK_CONFIG_VALIDATE=loose-silent rspack build
 ```
 
-In Rspack, it can be replaced with:
+Rspack is actively working on implementing webpack's upcoming features, so some configuration defaults differ from webpack 5, as shown below:
 
-```js title="rspack.config.js"
-const rspack = require('@rspack/core');
+| Configuration     | webpack Default | Rspack Default |
+| ----------------- | --------------- | -------------- |
+| node.global       | true            | 'warn'         |
+| node.\_\_filename | 'mock'          | 'warn-mock'    |
+| node.\_\_dirname  | 'mock'          | 'warn-mock'    |
 
-const isDev = process.env.NODE_ENV === 'development';
+## Migrating webpack built-in plugins
+
+Rspack has implemented most of webpack's built-in plugins, with the same names and configuration parameters, allowing for easy replacement.
+
+:::tip
+See [Webpack-aligned built-in plugins](/plugins/webpack/index) for more information about supported webpack plugins in Rspack.
+:::
+
+For example, replacing the [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin):
+
+```diff title="webpack.config.js"
+- const webpack = require('webpack');
++ const rspack = require('@rspack/core');
 
 module.exports = {
-  plugins: [isDev && new rspack.HotModuleReplacementPlugin()].filter(Boolean),
-};
+  //...
+  plugins: [
+-   new webpack.HotModuleReplacementPlugin({
++   new rspack.HotModuleReplacementPlugin({
+      // ...
+    }),
+  ],
+}
 ```
 
-You can refer to [webpack aligned built-in plugins](/plugins/webpack/index) to understand which webpack built-in plugins are supported by Rspack.
-
-## Community Plugins
+## Migrating community plugins
 
 Rspack supports most of the webpack community plugins and also offers alternative solutions for some currently unsupported plugins.
 
-You can refer to [Plugin compat](/guide/compatibility/plugin) to understand the compatibility status of some commonly community plugins in Rspack.
+:::tip
+Check [Plugin compat](/guide/compatibility/plugin) for more information on Rspack's compatibility with popular webpack community plugins.
+:::
 
-## Handle Loaders
+### [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) → [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)
 
-Rspack supports most of the webpack loaders. Below are some examples of migrating loaders. By referring to these examples for replacement, you can achieve more significant performance improvements.
+```diff title="webpack.config.js"
+- const CopyWebpackPlugin = require('copy-webpack-plugin');
++ const rspack = require('@rspack/core');
 
-### Removing babel-loader
+module.exports = {
+  plugins: [
+-   new CopyWebpackPlugin({
++   new rspack.CopyRspackPlugin({
+      // ...
+    }),
+  ]
+}
+```
 
-Rspack already has built-in support for TypeScript and JSX as well as the latest ECMAScript syntaxes. If your configuration only uses `babel-loader` to support TypeScript, JSX, and modern ECMAScript, then you can remove `babel-loader` entirely.
+### [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) → [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)
 
-Alternatively, if your configuration relies on `babel-loader` for custom conversion logic, it should be kept. However, we recommend to avoid `babel-loader` if possible because it can cause significant performance degradation for large projects.
+```diff title="webpack.config.js"
+- const CssExtractWebpackPlugin = require('mini-css-extract-plugin');
++ const rspack = require('@rspack/core');
 
-```diff
+module.exports = {
+  plugins: [
+-   new CssExtractWebpackPlugin({
++   new rspack.CssExtractRspackPlugin({
+      // ...
+    }),
+  ]
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: [
+-          CssExtractWebpackPlugin.loader,
++          rspack.CssExtractRspackPlugin.loader,
+          "css-loader"
+        ]
+      }
+    ]
+  }
+}
+```
+
+### [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin) → [resolve.tsConfig](/config/resolve#resolvetsconfig)
+
+```diff title="webpack.config.js"
+- const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+
+module.exports = {
+  resolve: {
+-   plugins: [new TsconfigPathsPlugin({})]
++   tsConfig: {}
+  }
+}
+```
+
+## Migrating loaders
+
+Rspack's loader runner is fully compatible with webpack's loader functionality, supporting the vast majority of webpack loaders.
+You can use your existing loaders without any changes. However, to achieve the best performance, consider migrating the following loaders:
+
+### [babel-loader](https://github.com/babel/babel-loader) / [swc-loader](https://swc.rs/docs/usage/swc-loader) → builtin:swc-loader
+
+Using `builtin:swc-loader` offers better performance compared to the external `swc-loader`, as it avoids frequent communication between JavaScript and Rust.
+
+If you need custom transformation logic using Babel plugins, you can retain `babel-loader`, but it is recommended to limit its use to fewer files to prevent significant performance degradation.
+
+```diff title="webpack.config.js"
 module.exports = {
    module: {
      rules: [
@@ -180,102 +239,62 @@ module.exports = {
  };
 ```
 
-### Removing css-loader style-loader and mini-css-extract-plugin
+### [file-loader](https://github.com/webpack-contrib/raw-loader) / [url-loader](https://github.com/webpack-contrib/url-loader) / [raw-loader](https://github.com/webpack-contrib/raw-loader) → [资源模块](/guide/features/asset-module)
 
-Rspack's native CSS Module type has built-in support for CSS, CSS HMR, CSS Modules, and CSS extraction. This eliminates the need for `css-loader`, `style-loader`, and `mini-css-extract-plugin` for handling CSS files:
+Rspack implements Webpack 5's [Asset Modules](https://webpack.js.org/guides/asset-modules), using asset modules to replace `file-loader`, `url-loader`, and `raw-loader` for better performance.
 
-```diff
--const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+#### file-loader → asset/resource
 
+```diff title="webpack.config.js"
  module.exports = {
    module: {
      rules: [
--      {
--        test: /\.css$/i,
--        use: [
--          isDev ? "style-loader" : MiniCssExtractPlugin.loader,
--          "css-loader",
--        ],
--      },
-+      {
-+        test: /\.css$/i,
-+        type: "css", // this is enabled by default for .css, so you don't need to specify it
-+      },
-     ],
-   },
-   plugins: [],
- };
-```
-
-Rspack's [css-modules](https://github.com/css-modules/css-modules) functionality is enabled by specifying `css/module`` as the module type:
-
-```diff
- module.exports = {
-   module: {
-     rules: [
-+      {
-+        test: /\.module\.css$/i,
-+        type: "css/module", // this is enabled by default for module.css,   so you don't need to specify it
-+      },
-     ],
-   },
- };
-```
-
-### CssExtractPlugin
-
-If you need some specific configurations from css-loader, you can still use style-loader + css-loader, if you want to extract CSS files for production, you can use Rspack builtin plugin: CssExtractRspackPlugin.
-
-CssExtractRspackPlugin is similar to mini-css-extract-plugin, be sure that you've already enabled `experiments.rspackFuture.newTreeshaking`, it's enabled by default after v0.6.
-
-```diff
-+ const { CssExtractRspackPlugin } = require("@rspack/core");
-- const CssExtractPlugin = require("mini-css-extract-plugin");
-
-module.exports = {
-  plugins: [
-+    new CssExtractRspackPlugin(),
--    new CssExtractPlugin(),
-  ]
-  module: {
-    rules: [
-      {
-        test: /\.css$/i,
-        use: [
-+          CssExtractRspackPlugin.loader,
--          CssExtractPlugin.loader,
-          "css-loader"
-        ]
-      }
-    ]
-  }
-}
-```
-
-### Using asset modules instead of file-loader and url-loader
-
-Rspack is aligned with Webpack 5's "asset modules," which should be used instead of `file-loader` and `url-loader`.
-
-```diff
- module.exports = {
-   module: {
-     rules: [
-+      {
-+        test: /\.(png|jpe?g|gif)$/i,
-+        type: "asset/resource",
-+      },
-+      {
-+        test: /^BUILD_ID$/,
-+        type: "asset/source",
-+      },
 -      {
 -        test: /\.(png|jpe?g|gif)$/i,
 -        use: ["file-loader"],
 -      },
++      {
++        test: /\.(png|jpe?g|gif)$/i,
++        type: "asset/resource",
++      },
+     ],
+   },
+ };
+```
+
+#### url-loader → asset/inline
+
+```diff title="webpack.config.js"
+ module.exports = {
+   module: {
+     rules: [
+-      {
+-        test: /\.(png|jpe?g|gif)$/i,
+-        use: ["url-loader"],
+-      },
++      {
++        test: /\.(png|jpe?g|gif)$/i,
++        type: "asset/inline",
++      },
+     ],
+   },
+ };
+```
+
+#### raw-loader → asset/source
+
+```diff title="webpack.config.js"
+ module.exports = {
+   module: {
+     rules: [
 -      {
 -        test: /^BUILD_ID$/,
--        use: ["raw-loader"],
+-        use: ["raw-loader",],
 -      },
++      {
++        test: /^BUILD_ID$/,
++        type: "asset/source",
++      },
      ],
    },
  };
