@@ -266,11 +266,68 @@ pub enum FreeName {
   True,
 }
 
+/// Similar to `VariableInfo` in webpack but more general.
+/// For example, webpack will only store a string when both
+/// `free_name` and `tag_info` are `None`, but we use `VariableInfo` instead.
 #[derive(Debug, PartialEq, Eq)]
 pub struct VariableInfo {
   id: VariableInfoId,
   pub declared_scope: ScopeInfoId,
+
+  /// `free_name` is used for special identifiers such as `require` in
+  /// CommonJS:
+  ///
+  /// ```ignore
+  /// let alias = require;
+  /// ```
+  ///
+  /// The info about `alias` becomes:
+  ///
+  /// ```ignore
+  /// VariableInfo {
+  ///   id: self_id,
+  ///   declared_scope: function_f_scope,
+  ///   free_name: Some("require"),
+  /// }
+  /// ```
+  /// This can help us redirect the invocation, such as `alias(something)`,
+  /// into `require(something)`.
+  ///
+  /// Furthermore, if the value of this field is `Some(FreeName::True)`, it means
+  /// we can skip further handling.
   pub free_name: Option<FreeName>,
+
+  /// For example, if we want to bundle a case that has the same name as one
+  /// already used in the webpack output, we must rename the argument
+  /// `__webpack_require__` to something else.
+  ///
+  /// ```ignore
+  /// function f(__webpack_require__) {
+  ///  __webpack_require__(something)
+  /// }
+  /// ```
+  ///
+  /// Firstly, it tries to define the argument `__webpack_require__` as a
+  /// normal variable (`free_name` and `tag_info` both `None`). However, it should
+  /// invoke `Javascript::tag_variable` because it has the same name as the
+  /// webpack runtime require.
+  ///
+  /// so the info about the argument `__webpack_require__` becomes:
+  ///
+  /// ```ignore
+  /// VariableInfo {
+  ///   id: self_id,
+  ///   declared_scope: function_f_scope,
+  ///   free_name: Some("__webpack_require__"),
+  ///   tag: Some(Tag {
+  ///     tag: COMPACT_WEBPACK_RUNTIME_REQUIRE_IDENTIFIER,
+  ///     data: SOME_DATA_TO_RENAME_THIS_IDENTIFIER
+  ///   })
+  /// }
+  /// ```
+  ///
+  /// Then, when we encounter the callee `__webpack_require__`,
+  /// the `tag_info` will help us known how to handle it correctly.
   pub tag_info: Option<TagInfoId>,
 }
 
