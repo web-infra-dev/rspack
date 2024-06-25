@@ -9,7 +9,7 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 - **类型：** `string | string[] | Record<string, string | string[] | EntryDescription> | Function`
 
-- **默认值：** `./src/index.js`
+- **默认值：** `'./src/index.js'`
 
 ## 单个入口
 
@@ -86,7 +86,11 @@ module.exports = {
 
 #### EntryDescription.import
 
-- **类型：** `string | string[]`
+- **类型：**
+
+  ```ts
+  type EntryItem = string[] | string;
+  ```
 
 - **默认值：** `'./src/index.js'`
 
@@ -94,7 +98,11 @@ module.exports = {
 
 #### EntryDescription.runtime
 
-- **类型：** `string | false`
+- **类型：**
+
+  ```ts
+  type EntryRuntime = false | string;
+  ```
 
 - **默认值：** `undefined`
 
@@ -117,20 +125,27 @@ module.exports = {
 
 <ApiMeta addedVersion={'0.2.6'} />
 
-- **类型：** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
+- **类型：**
+
+  ```ts
+  type ChunkLoading = false | ChunkLoadingType;
+  type ChunkLoadingType =
+    | ('jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import')
+    | string;
+  ```
 
 - **默认值：** `undefined`
 
 决定该入口在加载 chunk 时的加载方式。
 
-#### EntryDescription.wasmLoading
+{/\* #### EntryDescription.wasmLoading
 
 <ApiMeta addedVersion={'0.2.6'} />
 
 - **类型：** `false | 'fetch' | 'async-node' | string`
 - **默认值：** `undefined`
 
-决定该入口在加载 WebAssembly 模块时的方式。
+决定该入口在加载 WebAssembly 模块时的方式。 \*/}
 
 #### EntryDescription.asyncChunks
 
@@ -145,7 +160,11 @@ module.exports = {
 
 <ApiMeta addedVersion={'0.2.6'} />
 
-- **类型：** `'auto' | string`
+- **类型：**
+
+  ```ts
+  type PublicPath = 'auto' | string;
+  ```
 
 - **默认值：** `undefined`
 
@@ -177,7 +196,12 @@ module.exports = {
 
 #### EntryDescription.dependOn
 
-- **类型：** `string | string[]`
+- **类型：**
+
+  ```ts
+  type EntryDependOn = string[] | string;
+  ```
+
 - **默认值：** `undefined`
 
 设置当前入口所依赖的入口。使用 `dependOn` 选项你可以与另一个入口 chunk 共享模块。
