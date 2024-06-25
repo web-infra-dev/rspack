@@ -6,11 +6,7 @@ import WebpackLicense from '@components/webpack-license';
 
 The `mode` configuration is used to set the build mode of Rspack to enable the default optimization strategy.
 
-- **Type:**
-
-```ts
-type Mode = 'production' | 'development' | 'none';
-```
+- **Type:** `'production' | 'development' | 'none'`
 
 - **Default:** `'production'`
 
@@ -41,7 +37,7 @@ rspack --mode=production
 ```
 
 :::info
-`--mode` option on the CLI takes precedence over `mode` in `rspack.config.js`.
+`--mode` option on the CLI has a higher priority than `mode` in `rspack.config.js`.
 :::
 
 ## Optional Values

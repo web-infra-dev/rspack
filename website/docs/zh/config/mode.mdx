@@ -2,11 +2,7 @@
 
 模式：该选项用于设置 Rspack 的构建模式，以启用对应模式下的默认优化策略。
 
-- **类型：**
-
-```ts
-type Mode = 'production' | 'development' | 'none';
-```
+- **类型：** `'production' | 'development' | 'none'`
 
 - **默认值：** `'production'`
 
@@ -49,7 +45,7 @@ rspack --mode=production
 在 production 模式下，Rspack 会自动启用以下优化策略：
 
 - 将代码中的 `process.env.NODE_ENV` 替换为 `'production'`。
-- 将 `optimization.minimize` 的默认值设置为 `true`，使用 SWC 对代码进行压缩优化。
+- 将 `optimization.minimize` 的默认值设置为 `true`，并使用 SWC 对代码进行压缩优化。
 
 ### development
 

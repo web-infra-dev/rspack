@@ -7,12 +7,15 @@ const PropertyType: FC<{ type: string; defaultValueList?: DefaultValue[] }> & {
   CN: FC<{ type: string; defaultValueList?: DefaultValue[] }>;
 } = ({ type, defaultValueList }) => {
   return (
-    <ul>
-      <li style={{ marginBottom: '10px' }}>
+    <ul className="list-disc pl-5 my-4 leading-7">
+      <li
+        className="[&:not(:first-child)]:mt-2"
+        style={{ marginBottom: '10px' }}
+      >
         <strong>Type:</strong> <code>{type}</code>
       </li>
       {defaultValueList?.length && defaultValueList.length > 0 && (
-        <li>
+        <li className="[&:not(:first-child)]:mt-2">
           <strong>Default: </strong>
           {defaultValueList.map(({ defaultValue, mode }, index) => {
             return (
@@ -40,12 +43,15 @@ const PropertyType: FC<{ type: string; defaultValueList?: DefaultValue[] }> & {
 };
 PropertyType.CN = ({ type, defaultValueList }) => {
   return (
-    <ul>
-      <li style={{ marginBottom: '10px' }}>
+    <ul className="list-disc pl-5 my-4 leading-7">
+      <li
+        className="[&:not(:first-child)]:mt-2"
+        style={{ marginBottom: '10px' }}
+      >
         <strong>类型：</strong> <code>{type}</code>
       </li>
       {defaultValueList?.length && defaultValueList.length > 0 && (
-        <li>
+        <li className="[&:not(:first-child)]:mt-2">
           <strong>默认值: </strong>
           {defaultValueList.map(({ defaultValue, mode }, index) => {
             return (
