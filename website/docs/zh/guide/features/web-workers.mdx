@@ -25,7 +25,8 @@ new Worker(new URL('./worker.js', import.meta.url), {
 
 - `new SharedWorker()`
 - `import { Worker } from "worker_thread"`：常用于 node 环境
-- `navigator.serviceWorker.register()`：用于注册 Service Worker
+- <ApiMeta addedVersion={'1.0.0-alpha.0'} inline /> `navigator.serviceWorker.register()`：用于注册
+  Service Worker
 
 可通过 [`module.parser.javascript.worker`](/config/module#moduleparserjavascriptworker) 提供自定义语法。
 
