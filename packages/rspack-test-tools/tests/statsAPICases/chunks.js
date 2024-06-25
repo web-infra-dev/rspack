@@ -64,6 +64,7 @@ module.exports = {
 		        "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/b.js",
 		        "optimizationBailout": Array [
 		          "Statement with side_effects in source code at ./fixtures/b.js:1:0-3:2",
+		          "ModuleConcatenation bailout: Module is not an ECMAScript module",
 		        ],
 		        "optional": false,
 		        "orphan": false,
@@ -165,6 +166,7 @@ module.exports = {
 		        "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/chunk-b.js",
 		        "optimizationBailout": Array [
 		          "Statement with side_effects in source code at ./fixtures/chunk-b.js:1:0-3:2",
+		          "ModuleConcatenation bailout: Module is not an ECMAScript module",
 		        ],
 		        "optional": false,
 		        "orphan": false,

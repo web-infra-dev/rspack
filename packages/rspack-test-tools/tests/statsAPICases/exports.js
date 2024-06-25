@@ -24,21 +24,13 @@ module.exports = {
 		expect(typeof stats?.hash).toBe("string");
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
-		"asset main.js 761 bytes [emitted] (name: main)
-		Entrypoint main 761 bytes = main.js
+		"asset main.js 471 bytes [emitted] (name: main)
+		Entrypoint main 471 bytes = main.js
+		orphan modules 192 bytes [orphan] 4 modules
 		runtime modules 677 bytes 3 modules
-		cacheable modules 192 bytes
-		  ./fixtures/esm/abc.js 80 bytes [built] [code generated]
-		    [no exports]
-		    [no exports used]
-		  ./fixtures/esm/a.js 37 bytes [built] [code generated]
-		    [exports: a, default]
-		    [only some exports used: a]
-		  ./fixtures/esm/b.js 38 bytes [built] [code generated]
-		    [exports: b, default]
-		    [only some exports used: default]
-		  ./fixtures/esm/c.js 37 bytes [built] [code generated]
-		    [exports: c, default]
+		./fixtures/esm/abc.js + 3 modules 192 bytes [code generated]
+		  [no exports]
+		  [no exports used]
 		Rspack compiled successfully"
 	`);
 	}

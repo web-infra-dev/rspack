@@ -2,41 +2,63 @@
 
 exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats for 1`] = `
 "PublicPath: auto
-asset bundle.js 2.49 KiB {909} [emitted] (name: main)
+asset bundle.js 2.3 KiB {909} [emitted] (name: main)
 asset 2710c5e36f8babb0a3a4.png 7 bytes {909} [emitted] [immutable] [from: raw.png] (name: main)
-Entrypoint main 2.49 KiB (7 bytes) = bundle.js 2.49 KiB (2710c5e36f8babb0a3a4.png 7 bytes)
-chunk {909} (runtime: main) bundle.js (main) 7 bytes (asset) 117 bytes (javascript) 1.28 KiB (runtime) [entry] [rendered]
+Entrypoint main 2.3 KiB (7 bytes) = bundle.js 2.3 KiB (2710c5e36f8babb0a3a4.png 7 bytes)
+chunk {909} (runtime: main) bundle.js (main) 7 bytes (asset) 159 bytes (javascript) 1.28 KiB (runtime) [entry] [rendered]
   > ./index main
-  ./index.js [10] 75 bytes {909} [depth 0] [built] [code generated]
+  ./index.js + 1 modules [686] 117 bytes {909} [depth 0] [code generated]
     [no exports]
     [no exports used]
     entry ./index
-  ./raw.png [193] 7 bytes (asset) 42 bytes (javascript) {909} [depth 1] [dependent] [built] [code generated]
-    [no exports]
-    [no exports used]
-    esm import ./raw.png [10]
-built modules 118 bytes (javascript) 7 bytes (asset) [built]
-  ./index.js [10] 75 bytes {909} [depth 0] [built] [code generated]
-    [no exports]
-    [no exports used]
-    entry ./index
-  ./stringModule.js 1 bytes [depth 1] [orphan] [built]
-    [no exports]
-    [module unused]
-    esm import ./stringModule [10]
+    | ./index.js 75 bytes [depth 0] [orphan] [dependent] [built]
+    |   [no exports]
+    |   [no exports used]
+    |   ModuleConcatenation bailout: Module is an entry point
+    | ./raw.png [193] 7 bytes (asset) 42 bytes (javascript) {909} [depth 1] [built] [code generated]
+    |   [no exports]
+    |   [no exports used]
+    |   esm import ./raw.png
   ./raw.png [193] 7 bytes (asset) 42 bytes (javascript) {909} [depth 1] [built] [code generated]
     [no exports]
     [no exports used]
-    esm import ./raw.png [10]
-runtime modules 1.28 KiB
-  webpack/runtime/global 223 bytes {909} [code generated]
+    esm import ./raw.png
+code generated modules 1.28 KiB (runtime) 159 bytes (javascript) 7 bytes (asset) [code generated]
+  runtime modules 1.28 KiB
+    webpack/runtime/global 223 bytes {909} [code generated]
+      [no exports]
+      [used exports unknown]
+    webpack/runtime/auto_public_path 1.06 KiB {909} [code generated]
+      [no exports]
+      [used exports unknown]
+  ./index.js + 1 modules [686] 117 bytes {909} [depth 0] [code generated]
     [no exports]
-    [used exports unknown]
-  webpack/runtime/auto_public_path 1.06 KiB {909} [code generated]
+    [no exports used]
+    entry ./index
+    | ./index.js 75 bytes [depth 0] [orphan] [built]
+    |   [no exports]
+    |   [no exports used]
+    |   ModuleConcatenation bailout: Module is an entry point
+    | ./raw.png [193] 7 bytes (asset) 42 bytes (javascript) {909} [depth 1] [built] [code generated]
+    |   [no exports]
+    |   [no exports used]
+    |   esm import ./raw.png
+  ./raw.png [193] 7 bytes (asset) 42 bytes (javascript) {909} [depth 1] [built] [code generated]
     [no exports]
-    [used exports unknown]
+    [no exports used]
+    esm import ./raw.png
+orphan modules 76 bytes [orphan]
+  ./index.js 75 bytes [depth 0] [orphan] [built]
+    [no exports]
+    [no exports used]
+    ModuleConcatenation bailout: Module is an entry point
+  ./stringModule.js 1 bytes [depth 1] [orphan] [built]
+    [no exports]
+    [module unused]
+    ModuleConcatenation bailout: Module is not an ECMAScript module
+    esm import ./stringModule [686]
   
-Rspack compiled successfully (be13a1b38364d3c54ae0)"
+Rspack compiled successfully (c12084bf03e12a353092)"
 `;
 
 exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print correct stats for 1`] = `
@@ -417,21 +439,14 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/side-effects-bailouts should print correct stats for 1`] = `
-"asset main.js 1.73 KiB {909} [emitted] (name: main)
-Entrypoint main 1.73 KiB = main.js
-chunk {909} (runtime: main) main.js (main) 91 bytes (javascript) 397 bytes (runtime) [entry] [rendered]
-runtime modules 397 bytes 2 modules
-cacheable modules 91 bytes
-  ./index.js [10] 35 bytes {909} [built] [code generated]
-    [no exports]
-    [no exports used]
-    entry ./index.js
-  ./lib.js [467] 56 bytes {909} [built] [code generated]
-    [exports: test]
-    [all exports used]
-    Statement with side_effects in source code at ./lib.js:5:0-9
-    esm import ./lib.js [10]
-    esm import specifier ./lib.js [10]
+"asset main.js 207 bytes {909} [emitted] (name: main)
+Entrypoint main 207 bytes = main.js
+chunk {909} (runtime: main) main.js (main) 91 bytes [entry] [rendered]
+orphan modules 91 bytes [orphan] 2 modules
+./index.js + 1 modules [911] 91 bytes {909} [code generated]
+  [no exports]
+  [no exports used]
+  entry ./index.js
   
 Rspack x.x.x compiled successfully in X s"
 `;

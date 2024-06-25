@@ -12,9 +12,9 @@ it("verify es6 (esmodule) bundle source map", async () => {
 	const map = JSON.parse(source);
 	expect(map.sources).toEqual([
 		"webpack:///../../../../dist/helper/util/checkSourceMap.js",
-		"webpack:///./a.js",
-		"webpack:///./b-dir/b.js",
 		"webpack:///./b-dir/c-dir/c.js",
+		"webpack:///./b-dir/b.js",
+		"webpack:///./a.js",
 		"webpack:///./index.js",
 	]);
 	expect(map.file).toEqual("bundle0.js");

@@ -4,7 +4,8 @@ const { ModuleFederationPlugin } = require("@rspack/core").container;
 module.exports = {
 	optimization: {
 		chunkIds: "named",
-		moduleIds: "named"
+		moduleIds: "named",
+		concatenateModules: false
 	},
 	output: {
 		uniqueName: "1-transitive-overriding"
