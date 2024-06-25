@@ -62,7 +62,7 @@ Rspack is actively working on implementing webpack's upcoming features, so some 
 | node.\_\_filename | 'mock'          | 'warn-mock'    |
 | node.\_\_dirname  | 'mock'          | 'warn-mock'    |
 
-## Migrating webpack built-in plugins
+## Webpack built-in plugins
 
 Rspack has implemented most of webpack's built-in plugins, with the same names and configuration parameters, allowing for easy replacement.
 
@@ -79,15 +79,15 @@ For example, replacing the [HotModuleReplacementPlugin](/plugins/webpack/hot-mod
 module.exports = {
   //...
   plugins: [
--   new webpack.HotModuleReplacementPlugin({
-+   new rspack.HotModuleReplacementPlugin({
+-   new webpack.DefinePlugin({
++   new rspack.DefinePlugin({
       // ...
     }),
   ],
 }
 ```
 
-## Migrating community plugins
+## Community plugins
 
 Rspack supports most of the webpack community plugins and also offers alternative solutions for some currently unsupported plugins.
 
@@ -152,7 +152,7 @@ module.exports = {
 }
 ```
 
-## Migrating loaders
+## Loaders
 
 Rspack's loader runner is fully compatible with webpack's loader functionality, supporting the vast majority of webpack loaders.
 You can use your existing loaders without any changes. However, to achieve the best performance, consider migrating the following loaders:

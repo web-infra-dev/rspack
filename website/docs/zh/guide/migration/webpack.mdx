@@ -59,7 +59,7 @@ Rspack 正在积极推动 webpack 的下一个版本的功能，因此在某些�
 | node.\_\_filename | 'mock'         | 'warn-mock'   |
 | node.\_\_dirname  | 'mock'         | 'warn-mock'   |
 
-## 迁移 webpack 内置插件
+## Webpack 内置插件
 
 Rspack 实现了大部分 webpack 内置插件，其命名和参数配置与 webpack 保持一致，你可以非常轻松地替换它们。
 
@@ -76,15 +76,15 @@ Rspack 实现了大部分 webpack 内置插件，其命名和参数配置与 web
 module.exports = {
   //...
   plugins: [
--   new webpack.HotModuleReplacementPlugin({
-+   new rspack.HotModuleReplacementPlugin({
+-   new webpack.DefinePlugin({
++   new rspack.DefinePlugin({
       // ...
     }),
   ],
 }
 ```
 
-## 迁移社区插件
+## 社区插件
 
 Rspack 支持大部分 webpack 社区插件，并为暂不支持的插件提供了替代方案。
 
@@ -149,7 +149,7 @@ module.exports = {
 }
 ```
 
-## 迁移 loader
+## Loader
 
 Rspack 已实现了与 Webpack 功能完全对齐的 loader 执行器，支持绝大多数 webpack loader，因此你可以直接使用现有的 loader 而无需修改。不过，为了获得最佳性能，我们仍建议进行以下迁移：
 
