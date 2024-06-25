@@ -507,6 +507,8 @@ export interface JsStatsChunk {
   files: Array<string>
   auxiliaryFiles: Array<string>
   id?: string
+  idHints: Array<string>
+  hash?: string
   entry: boolean
   initial: boolean
   names: Array<string>

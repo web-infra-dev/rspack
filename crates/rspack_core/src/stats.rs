@@ -342,11 +342,15 @@ impl Stats<'_> {
           })
           .collect::<Vec<_>>();
 
+        let mut id_hints = c.id_name_hints.iter().cloned().collect_vec();
+        id_hints.sort_unstable();
+
         Ok(StatsChunk {
           r#type: "chunk",
           files,
           auxiliary_files,
           id: c.id.clone(),
+          id_hints,
           names: c.name.clone().map(|n| vec![n]).unwrap_or_default(),
           entry: c.has_entry_module(chunk_graph),
           initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
@@ -361,6 +365,7 @@ impl Stats<'_> {
           reason: c.chunk_reason.clone(),
           rendered: c.rendered,
           origins,
+          hash: c.rendered_hash.as_ref().map(|i| i.to_string()),
         })
       })
       .collect::<Result<_>>()?;
@@ -1135,6 +1140,8 @@ pub struct StatsChunk<'a> {
   pub reason: Option<String>,
   pub rendered: bool,
   pub origins: Vec<StatsOriginRecord>,
+  pub id_hints: Vec<String>,
+  pub hash: Option<String>,
 }
 
 #[derive(Debug)]

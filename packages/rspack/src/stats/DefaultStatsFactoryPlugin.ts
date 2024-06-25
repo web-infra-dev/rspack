@@ -911,19 +911,21 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	chunk: {
 		_: (object, chunk) => {
 			object.type = chunk.type;
+			object.rendered = chunk.rendered;
 			object.initial = chunk.initial;
 			object.entry = chunk.entry;
+			object.reason = chunk.reason;
 			object.size = chunk.size;
-			object.names = chunk.names;
-			object.files = chunk.files;
-			object.auxiliaryFiles = chunk.auxiliaryFiles;
-			object.childrenByOrder = chunk.childrenByOrder;
-			object.runtime = chunk.runtime;
 			object.sizes = Object.fromEntries(
 				chunk.sizes.map(({ sourceType, size }) => [sourceType, size])
 			);
-			object.reason = chunk.reason;
-			object.rendered = chunk.rendered;
+			object.names = chunk.names;
+			object.idHints = chunk.idHints;
+			object.runtime = chunk.runtime;
+			object.files = chunk.files;
+			object.auxiliaryFiles = chunk.auxiliaryFiles;
+			object.hash = chunk.hash;
+			object.childrenByOrder = chunk.childrenByOrder;
 		},
 		ids: (object, chunk) => {
 			object.id = chunk.id;

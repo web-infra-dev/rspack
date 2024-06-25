@@ -434,6 +434,8 @@ pub struct JsStatsChunk {
   pub files: Vec<String>,
   pub auxiliary_files: Vec<String>,
   pub id: Option<String>,
+  pub id_hints: Vec<String>,
+  pub hash: Option<String>,
   pub entry: bool,
   pub initial: bool,
   pub names: Vec<String>,
@@ -506,6 +508,8 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
           request: origin.request,
         })
         .collect::<Vec<_>>(),
+      id_hints: stats.id_hints,
+      hash: stats.hash,
     })
   }
 }
