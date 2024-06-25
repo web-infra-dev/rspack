@@ -35,7 +35,9 @@ Object {
       "files": Array [
         "main.js",
       ],
+      "hash": "93a9c2315c37cadce79d",
       "id": "909",
+      "idHints": Array [],
       "initial": true,
       "modules": Array [
         Object {
@@ -264,7 +266,9 @@ Object {
       "files": Array [
         "main.js",
       ],
+      "hash": "4936042f572297f50e12",
       "id": "909",
+      "idHints": Array [],
       "initial": true,
       "modules": Array [
         Object {
@@ -979,7 +983,9 @@ Object {
       "files": Array [
         "main.js",
       ],
+      "hash": "93a9c2315c37cadce79d",
       "id": "909",
+      "idHints": Array [],
       "initial": true,
       "names": Array [
         "main",
@@ -1071,7 +1077,9 @@ Object {
       "files": Array [
         "main.js",
       ],
+      "hash": "39e2485ff95dc65d08d1",
       "id": "909",
+      "idHints": Array [],
       "initial": true,
       "modules": Array [
         Object {
