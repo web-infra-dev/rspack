@@ -217,7 +217,7 @@ impl WorkerPlugin {
       pattern_syntax: FxHashMap::default(),
     };
     for syntax in syntax_list {
-      if let Some(syntax) = syntax.strip_prefix("*")
+      if let Some(syntax) = syntax.strip_prefix('*')
         && let Some(first_dot) = syntax.find('.')
         && let Some(syntax) = syntax.strip_suffix("()")
       {
