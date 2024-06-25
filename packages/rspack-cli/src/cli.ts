@@ -15,18 +15,18 @@ import semver from "semver";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { BuildCommand } from "./commands/build.js";
-import { PreviewCommand } from "./commands/preview.js";
-import { ServeCommand } from "./commands/serve.js";
+import { BuildCommand } from "./commands/build";
+import { PreviewCommand } from "./commands/preview";
+import { ServeCommand } from "./commands/serve";
 import {
 	RspackBuildCLIOptions,
 	RspackCLIColors,
 	RspackCLILogger,
 	RspackCLIOptions
-} from "./types.js";
-import findConfig from "./utils/findConfig.js";
-import { LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig.js";
-import { normalizeEnv } from "./utils/options.js";
+} from "./types";
+import findConfig from "./utils/findConfig";
+import { LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig";
+import { normalizeEnv } from "./utils/options";
 
 type Command = "serve" | "build";
 
@@ -93,7 +93,7 @@ export class RspackCLI {
 	async run(argv: string[]) {
 		if (semver.lt(semver.clean(process.version)!, "14.0.0")) {
 			this.getLogger().warn(
-				`Minimum recommended Node.js version is 14.0.0, current version is ${process.version}`
+				`Minimum recommended Node version is 14.0.0, current version is ${process.version}`
 			);
 		}
 
@@ -134,7 +134,7 @@ export class RspackCLI {
 			} else if (!item.entry) {
 				const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
 				const defaultEntryPath =
-					findConfig(defaultEntryBase) || defaultEntryBase + ".js"; // default entry is js
+					findConfig(defaultEntryBase) || defaultEntryBase + ""; // default entry is js
 				item.entry = {
 					main: defaultEntryPath
 				};
@@ -158,7 +158,7 @@ export class RspackCLI {
 				});
 			}
 			if (process.env.RSPACK_PROFILE) {
-				const { applyProfile } = await import("./utils/profile.js");
+				const { applyProfile } = await import("./utils/profile");
 				await applyProfile(process.env.RSPACK_PROFILE, item);
 			}
 			// cli --watch overrides the watch config
