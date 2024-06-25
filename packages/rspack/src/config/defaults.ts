@@ -12,7 +12,11 @@ import assert from "assert";
 import fs from "fs";
 import path from "path";
 
+import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
+import { SwcCssMinimizerRspackPlugin } from "../builtin-plugin/SwcCssMinimizerPlugin";
+import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";
 import { isNil } from "../util";
+import { assertNotNill } from "../util/assertNotNil";
 import { cleverMerge } from "../util/cleverMerge";
 import {
 	EntryDescriptionNormalized,
@@ -43,10 +47,6 @@ import type {
 	SnapshotOptions
 } from "./zod";
 import Template = require("../Template");
-import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
-import { SwcCssMinimizerRspackPlugin } from "../builtin-plugin/SwcCssMinimizerPlugin";
-import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";
-import { assertNotNill } from "../util/assertNotNil";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
@@ -852,6 +852,7 @@ const applyExternalsPresetsDefaults = (
 			targetProperties.electron &&
 			targetProperties.electronRenderer
 	);
+	D(externalsPresets, "nwjs", targetProperties && targetProperties.nwjs);
 };
 
 const applyLoaderDefaults = (
