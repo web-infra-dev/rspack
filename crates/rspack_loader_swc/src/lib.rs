@@ -160,7 +160,8 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    let inner = || self.loader_impl(loader_context);
+    #[allow(unused_mut)]
+    let mut inner = || self.loader_impl(loader_context);
     #[cfg(debug_assertions)]
     {
       // Adjust stack to avoid stack overflow.
