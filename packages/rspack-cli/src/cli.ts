@@ -93,7 +93,7 @@ export class RspackCLI {
 	async run(argv: string[]) {
 		if (semver.lt(semver.clean(process.version)!, "14.0.0")) {
 			this.getLogger().warn(
-				`Minimum recommended Node version is 14.0.0, current version is ${process.version}`
+				`Minimum recommended Node.js version is 14.0.0, current version is ${process.version}`
 			);
 		}
 
@@ -134,7 +134,7 @@ export class RspackCLI {
 			} else if (!item.entry) {
 				const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
 				const defaultEntryPath =
-					findConfig(defaultEntryBase) || defaultEntryBase + ""; // default entry is js
+					findConfig(defaultEntryBase) || defaultEntryBase + ".js"; // default entry is js
 				item.entry = {
 					main: defaultEntryPath
 				};
