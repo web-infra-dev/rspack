@@ -31,10 +31,10 @@ use crate::{
   prepare_get_exports_type, to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions,
   Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind,
   ChunkUkey, CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions,
-  DependencyId, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, ExecuteModuleId,
-  Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory, ModuleGraph,
-  ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule,
-  RuntimeSpec, SharedPluginDriver, SourceType, Stats,
+  DependencyId, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
+  ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory,
+  ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals,
+  RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -1160,7 +1160,10 @@ impl Compilation {
       let runtime = entrypoint
         .kind
         .get_entry_options()
-        .and_then(|o| o.name.clone())
+        .and_then(|o| match &o.runtime {
+          Some(EntryRuntime::String(s)) => Some(s.to_owned()),
+          _ => None,
+        })
         .or(entrypoint.name().map(|n| n.to_string()));
       if let (Some(runtime), Some(chunk)) = (
         runtime,
