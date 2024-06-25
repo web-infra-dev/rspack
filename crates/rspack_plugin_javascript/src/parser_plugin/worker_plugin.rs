@@ -8,10 +8,11 @@ use rspack_core::{
   GroupOptions, SpanExt,
 };
 use rspack_hash::RspackHash;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
+  atoms::Atom,
   common::{Span, Spanned},
-  ecma::ast::{CallExpr, Expr, ExprOrSpread, NewExpr},
+  ecma::ast::{CallExpr, Expr, ExprOrSpread, Ident, NewExpr, VarDecl, VarDeclarator},
 };
 
 use super::{
@@ -193,10 +194,18 @@ pub struct WorkerPlugin {
   call_syntax: FxHashSet<String>,
   from_new_syntax: FxHashSet<(String, String)>,
   from_call_syntax: FxHashSet<(String, String)>,
+  pattern_syntax: FxHashMap<String, FxHashSet<String>>,
 }
 
 static WORKER_FROM_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(.+?)(\(\))?\s+from\s+(.+)$").expect("invalid regex"));
+
+const WORKER_SPECIFIER_TAG: &str = "_identifier__worker_specifier_tag__";
+
+#[derive(Debug, Clone)]
+struct WorkerSpecifierData {
+  key: Atom,
+}
 
 impl WorkerPlugin {
   pub fn new(syntax_list: &[String]) -> Self {
@@ -205,9 +214,24 @@ impl WorkerPlugin {
       call_syntax: FxHashSet::default(),
       from_new_syntax: FxHashSet::default(),
       from_call_syntax: FxHashSet::default(),
+      pattern_syntax: FxHashMap::default(),
     };
     for syntax in syntax_list {
-      if let Some(syntax) = syntax.strip_suffix("()") {
+      if let Some(syntax) = syntax.strip_prefix("*")
+        && let Some(first_dot) = syntax.find('.')
+        && let Some(syntax) = syntax.strip_suffix("()")
+      {
+        let pattern = &syntax[0..first_dot];
+        let members = &syntax[first_dot + 1..];
+        if let Some(value) = this.pattern_syntax.get_mut(pattern) {
+          value.insert(members.to_string());
+        } else {
+          this.pattern_syntax.insert(
+            pattern.to_string(),
+            FxHashSet::from_iter([members.to_string()]),
+          );
+        }
+      } else if let Some(syntax) = syntax.strip_suffix("()") {
         this.call_syntax.insert(syntax.to_string());
       } else if let Some(captures) = WORKER_FROM_REGEX.captures(syntax) {
         let ids = &captures[1];
@@ -231,6 +255,73 @@ impl WorkerPlugin {
 }
 
 impl JavascriptParserPlugin for WorkerPlugin {
+  fn pre_declarator(
+    &self,
+    parser: &mut JavascriptParser,
+    decl: &VarDeclarator,
+    _statement: &VarDecl,
+  ) -> Option<bool> {
+    if let Some(ident) = decl.name.as_ident()
+      && self.pattern_syntax.contains_key(ident.sym.as_str())
+    {
+      parser.tag_variable(
+        ident.sym.to_string(),
+        WORKER_SPECIFIER_TAG,
+        Some(WorkerSpecifierData {
+          key: ident.sym.clone(),
+        }),
+      );
+      return Some(true);
+    }
+    None
+  }
+
+  fn pattern(&self, parser: &mut JavascriptParser, ident: &Ident, for_name: &str) -> Option<bool> {
+    if self.pattern_syntax.contains_key(for_name) {
+      parser.tag_variable(
+        ident.sym.to_string(),
+        WORKER_SPECIFIER_TAG,
+        Some(WorkerSpecifierData {
+          key: ident.sym.clone(),
+        }),
+      );
+      return Some(true);
+    }
+    None
+  }
+
+  fn call_member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+    for_name: &str,
+    members: &[Atom],
+    _members_optionals: &[bool],
+    _member_ranges: &[Span],
+  ) -> Option<bool> {
+    if for_name != WORKER_SPECIFIER_TAG {
+      return None;
+    }
+    let tag_info = parser
+      .definitions_db
+      .expect_get_tag_info(&parser.current_tag_info?);
+    let data = WorkerSpecifierData::downcast(tag_info.data.clone()?);
+    if let Some(value) = self.pattern_syntax.get(data.key.as_str())
+      && value.contains(&members.iter().map(|id| id.as_str()).join("."))
+    {
+      return handle_worker(parser, &call_expr.args, call_expr.span).map(
+        |(parsed_path, parsed_options)| {
+          add_dependencies(parser, call_expr.span, parsed_path, parsed_options);
+          if let Some(callee) = call_expr.callee.as_expr() {
+            parser.walk_expression(callee);
+          }
+          true
+        },
+      );
+    }
+    None
+  }
+
   fn call(
     &self,
     parser: &mut JavascriptParser,

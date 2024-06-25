@@ -186,10 +186,16 @@ impl<'parser> JavascriptParser<'parser> {
   pub(super) fn _pre_walk_variable_declaration(&mut self, decl: &VarDecl) {
     for declarator in &decl.decls {
       self.pre_walk_variable_declarator(declarator);
-      // TODO: hooks.pre_declarator
-      self.enter_pattern(Cow::Borrowed(&declarator.name), |this, ident| {
-        this.define_variable(ident.sym.to_string());
-      });
+      if !self
+        .plugin_drive
+        .clone()
+        .pre_declarator(self, declarator, decl)
+        .unwrap_or_default()
+      {
+        self.enter_pattern(Cow::Borrowed(&declarator.name), |this, ident| {
+          this.define_variable(ident.sym.to_string());
+        });
+      }
     }
   }
 

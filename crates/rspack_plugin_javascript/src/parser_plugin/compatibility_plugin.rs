@@ -18,18 +18,6 @@ struct NestedRequireData {
   loc: DependencyLocation,
 }
 
-impl TagInfoData for NestedRequireData {
-  fn into_any(data: Self) -> Box<dyn anymap::CloneAny + 'static> {
-    Box::new(data)
-  }
-
-  fn downcast(any: Box<dyn anymap::CloneAny>) -> Self {
-    *(any as Box<dyn std::any::Any>)
-      .downcast()
-      .expect("NestedRequireData should be downcasted from correct tag info")
-  }
-}
-
 pub struct CompatibilityPlugin;
 
 impl CompatibilityPlugin {

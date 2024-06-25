@@ -223,6 +223,35 @@ module.exports = {
 
 当使用了存在冲突的重导出时，是否进行警告或报错。默认会遵循 `module.parser.javascript.exportsPresence` 的配置。
 
+#### module.parser.javascript.worker
+
+<ApiMeta addedVersion="1.0.0-alpha.0" />
+
+- **类型：** `string[] | boolean`
+
+为 Worker 解析提供自定义的语法，常用于支持 Worklet：
+
+```js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        worker: [
+          // 支持 CSS paintWorklet
+          'CSS.paintWorklet.addModule()',
+          // 支持 AudioWorklet，最前面的 '*' 表示识别名为 'context' 的变量，比如：
+          // let context = new AudioContext();
+          // await context.audioWorklet.addModule(new URL("noise-processor.js", import.meta.url));
+          '*context.audioWorklet.addModule()',
+          // 继承默认语法：["Worker", "SharedWorker", "navigator.serviceWorker.register()", "Worker from worker_threads"]
+          '...',
+        ],
+      },
+    },
+  },
+};
+```
+
 ### module.parser["javascript/auto"]
 
 <ApiMeta addedVersion="0.6.3" />

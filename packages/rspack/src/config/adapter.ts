@@ -653,7 +653,7 @@ function getRawJavascriptParserOptionsWorker(
 	const DEFAULT_SYNTAX = [
 		"Worker",
 		"SharedWorker",
-		// "navigator.serviceWorker.register()",
+		"navigator.serviceWorker.register()",
 		"Worker from worker_threads"
 	];
 	return (
