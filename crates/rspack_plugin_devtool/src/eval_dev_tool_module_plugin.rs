@@ -215,3 +215,25 @@ fn encode(string: &str, extra_unescaped: &str) -> String {
   }
   r
 }
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  // https://github.com/tc39/test262/blob/c47b716e8d6bea0c4510d449fd22b7ed5f8b0151/test/built-ins/encodeURI/S15.1.3.3_A4_T2.js#L6
+  #[test]
+  fn check_russian_alphabet() {
+    assert_eq!(
+      encode_uri("http://ru.wikipedia.org/wiki/Юникод"),
+      "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4"
+    );
+    assert_eq!(
+      encode_uri("http://ru.wikipedia.org/wiki/Юникод#Ссылки"),
+      "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4#%D0%A1%D1%81%D1%8B%D0%BB%D0%BA%D0%B8"
+    );
+    assert_eq!(
+      encode_uri("http://ru.wikipedia.org/wiki/Юникод#Версии Юникода"),
+      "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4#%D0%92%D0%B5%D1%80%D1%81%D0%B8%D0%B8%20%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4%D0%B0"
+    );
+  }
+}
