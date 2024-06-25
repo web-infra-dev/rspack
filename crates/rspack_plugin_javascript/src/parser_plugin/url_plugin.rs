@@ -1,11 +1,14 @@
-use rspack_core::SpanExt;
+use rspack_core::{Dependency, SpanExt};
 use swc_core::{
   common::Spanned,
   ecma::ast::{Expr, ExprOrSpread, MetaPropKind, NewExpr},
 };
 
 use super::JavascriptParserPlugin;
-use crate::{dependency::URLDependency, visitors::JavascriptParser};
+use crate::{
+  dependency::URLDependency, parser_plugin::inner_graph::plugin::InnerGraphPlugin,
+  visitors::JavascriptParser,
+};
 
 pub fn get_url_request(
   parser: &mut JavascriptParser,
@@ -54,7 +57,7 @@ impl JavascriptParserPlugin for URLPlugin {
     if for_name == "URL"
       && let Some((request, start, end)) = get_url_request(parser, expr)
     {
-      parser.dependencies.push(Box::new(URLDependency::new(
+      let dep = URLDependency::new(
         start,
         end,
         expr.span.real_lo(),
@@ -62,7 +65,21 @@ impl JavascriptParserPlugin for URLPlugin {
         request.into(),
         Some(expr.span.into()),
         self.relative,
-      )));
+      );
+      let dep_id = *dep.id();
+      parser.dependencies.push(Box::new(dep));
+      InnerGraphPlugin::on_usage(
+        parser,
+        Box::new(move |parser, used_by_exports| {
+          if let Some(dep) = parser
+            .dependencies
+            .iter_mut()
+            .find(|dep| dep.id() == &dep_id)
+          {
+            dep.set_used_by_exports(used_by_exports);
+          }
+        }),
+      );
       Some(true)
     } else {
       None
