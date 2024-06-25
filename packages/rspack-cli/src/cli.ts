@@ -158,7 +158,7 @@ export class RspackCLI {
 				});
 			}
 			if (process.env.RSPACK_PROFILE) {
-				const { applyProfile } = await import("./utils/profile");
+				const { applyProfile } = await import("./utils/profile.js");
 				await applyProfile(process.env.RSPACK_PROFILE, item);
 			}
 			// cli --watch overrides the watch config
