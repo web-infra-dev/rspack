@@ -70,7 +70,7 @@ impl Display for ToType {
 }
 
 pub type TransformerFn =
-  Box<dyn for<'a> Fn(RawSource, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
+  Box<dyn for<'a> Fn(Vec<u8>, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
 
 pub enum Transformer {
   Fn(TransformerFn),
@@ -282,11 +282,11 @@ impl CopyRspackPlugin {
     logger.debug(format!("reading '{}'...", absolute_filename.display()));
     // TODO inputFileSystem
 
-    let mut source = match tokio::fs::read(absolute_filename.clone()).await {
+    let source_vec = match tokio::fs::read(absolute_filename.clone()).await {
       Ok(data) => {
         logger.debug(format!("read '{}'...", absolute_filename.display()));
 
-        RawSource::Buffer(data)
+        data
       }
       Err(e) => {
         let e: Error = DiagnosticError::from(e.boxed()).into();
@@ -299,11 +299,13 @@ impl CopyRspackPlugin {
       }
     };
 
+    let mut source = RawSource::Buffer(source_vec.clone());
+
     if let Some(transform) = &pattern.transform {
       if let Some(absolute_filename) = absolute_filename.to_str() {
         match transform {
           Transformer::Fn(transformer) => {
-            let transformed = transformer(source.clone(), absolute_filename).await;
+            let transformed = transformer(source_vec, absolute_filename).await;
             match transformed {
               Ok(code) => {
                 source = code;

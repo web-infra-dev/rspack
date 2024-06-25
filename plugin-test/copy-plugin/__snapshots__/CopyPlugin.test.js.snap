@@ -38,6 +38,16 @@ Object {
 }
 `;
 
+exports[`CopyPlugin basic should work with transform async fn: assets 1`] = `
+Object {
+  ".dottedfile": "dottedfile contents
+transform aaaa",
+  "directoryfile.txt": "newtransform aaaa",
+  "nested/deep-nested/deepnested.txt": "transform aaaa",
+  "nested/nestedfile.txt": "transform aaaa",
+}
+`;
+
 exports[`CopyPlugin basic should work with transform fn: assets 1`] = `
 Object {
   ".dottedfile": "dottedfile contents
