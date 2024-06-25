@@ -75,8 +75,7 @@ export const applyRspackOptionsDefaults = (
 		}
 	}
 
-	// IGNORE(devtool): devtool is default to "eval" in webpack when mode is development
-	F(options, "devtool", () => false as const);
+	F(options, "devtool", () => (development ? "eval" : false));
 	D(options, "watch", false);
 	D(options, "profile", false);
 	// IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
