@@ -90,7 +90,7 @@ describe("build command", () => {
 				"./entry.config.js"
 			]);
 			const mainJs = await readFile(
-				resolve(__dirname, "public/main.js"),
+				resolve(__dirname, "dist/public/main.js"),
 				"utf-8"
 			);
 
@@ -110,7 +110,7 @@ describe("build command", () => {
 				"./entry.config.js"
 			]);
 			const mainJs = await readFile(
-				resolve(__dirname, "public/main.js"),
+				resolve(__dirname, "dist/public/main.js"),
 				"utf-8"
 			);
 
