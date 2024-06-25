@@ -4360,6 +4360,8 @@ type KnownStatsModule = Omit<binding.JsStatsModule, "usedExports" | "providedExp
     providedExports?: null | string[];
     optimizationBailout?: null | string[];
     sizes: Record<string, number>;
+    index?: number;
+    index2?: number;
 };
 
 // @public (undocumented)

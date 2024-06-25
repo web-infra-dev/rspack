@@ -570,6 +570,7 @@ export interface JsStatsModule {
   size: number
   sizes: Array<JsStatsSize>
   depth?: number
+  dependent?: boolean
   issuer?: string
   issuerName?: string
   issuerId?: string

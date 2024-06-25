@@ -11,7 +11,7 @@ chunk {909} (runtime: main) bundle.js (main) 7 bytes (asset) 117 bytes (javascri
     [no exports]
     [no exports used]
     entry ./index
-  ./raw.png [193] 7 bytes (asset) 42 bytes (javascript) {909} [depth 1] [built] [code generated]
+  ./raw.png [193] 7 bytes (asset) 42 bytes (javascript) {909} [depth 1] [dependent] [built] [code generated]
     [no exports]
     [no exports used]
     esm import ./raw.png [10]
@@ -135,10 +135,7 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   asset bundle1.js 3.57 KiB [emitted] (name: main)
   Entrypoint main 3.57 KiB = bundle1.js
   chunk (runtime: main) bundle1.js (main) 219 bytes (javascript) 1.84 KiB (runtime) <{909}> >{909}< [entry] [rendered]
-    ./b.js 22 bytes [built] [code generated]
-    ./c.js 30 bytes [built] [code generated]
-    ./d.js 22 bytes [built] [code generated]
-    ./e.js 22 bytes [built] [code generated]
+    dependent modules 96 bytes [dependent] 4 modules
     ./index.js 123 bytes [built] [code generated]
   1 chunks (Rspack x.x.x) compiled successfully in X s
 
@@ -147,11 +144,10 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   asset 76.bundle2.js 497 bytes [emitted] (name: c)
   Entrypoint main 10.2 KiB = bundle2.js
   chunk (runtime: main) 76.bundle2.js (c) 74 bytes <{76}> <{909}> >{76}< [rendered]
+    dependent modules 44 bytes [dependent] 2 modules
     ./c.js 30 bytes [built] [code generated]
-    ./d.js 22 bytes [built] [code generated]
-    ./e.js 22 bytes [built] [code generated]
   chunk (runtime: main) bundle2.js (main) 145 bytes (javascript) 8.39 KiB (runtime) >{76}< [entry] [rendered]
-    ./b.js 22 bytes [built] [code generated]
+    dependent modules 22 bytes [dependent] 1 module
     ./index.js 123 bytes [built] [code generated]
   2 chunks (Rspack x.x.x) compiled successfully in X s
 
@@ -166,7 +162,7 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   chunk (runtime: main) 76.bundle3.js (c) 30 bytes <{909}> >{345}< [rendered]
     ./c.js 30 bytes [built] [code generated]
   chunk (runtime: main) bundle3.js (main) 145 bytes (javascript) 8.39 KiB (runtime) >{76}< [entry] [rendered]
-    ./b.js 22 bytes [built] [code generated]
+    dependent modules 22 bytes [dependent] 1 module
     ./index.js 123 bytes [built] [code generated]
   3 chunks (Rspack x.x.x) compiled successfully in X s
 
@@ -183,7 +179,7 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   chunk (runtime: main) 76.bundle4.js (c) 30 bytes <{909}> >{697}< >{753}< [rendered]
     ./c.js 30 bytes [built] [code generated]
   chunk (runtime: main) bundle4.js (main) 145 bytes (javascript) 8.39 KiB (runtime) >{76}< [entry] [rendered]
-    ./b.js 22 bytes [built] [code generated]
+    dependent modules 22 bytes [dependent] 1 module
     ./index.js 123 bytes [built] [code generated]
   4 chunks (Rspack x.x.x) compiled successfully in X s"
 `;
