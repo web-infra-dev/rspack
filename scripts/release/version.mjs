@@ -1,7 +1,6 @@
 import path from "path";
 import { findWorkspacePackagesNoCheck } from "@pnpm/find-workspace-packages";
 import semver from "semver";
-import { getNextPkgJson } from "../debug/update-rspack.mjs";
 
 async function getCommitId() {
 	const result = await $`git rev-parse --short HEAD`;
@@ -63,13 +62,8 @@ export async function version_handler(version) {
 
 		if (version === "snapshot") {
 			const nextName = getNextName(workspace.manifest.name);
-			const nextPkgJson = getNextPkgJson(
-				workspace.manifest,
-				"workspace:*",
-				true
-			);
 			newManifest = {
-				...nextPkgJson,
+				...workspace.manifest,
 				name: nextName,
 				version: nextVersion
 			};

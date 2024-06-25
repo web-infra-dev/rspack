@@ -41,8 +41,9 @@ export async function overrides_rspack_handler(version, options) {
 
 	for (const name of workspaceNames) {
 		if (name.startsWith("@rspack/")) {
-			pkgJson["pnpm"]["overrides"][isSnapshot ? getNextName(name) : name] =
-				version;
+			pkgJson["pnpm"]["overrides"][name] = isSnapshot
+				? `npm:${getNextName(name)}@${version}`
+				: version;
 		}
 	}
 
