@@ -57,5 +57,8 @@ module.exports = {
 				type: "css"
 			}
 		]
+	},
+	experiments: {
+		css: true
 	}
 };

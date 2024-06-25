@@ -30,6 +30,7 @@ export class StatsAPIProcessor<
 				const res = (_statsAPIOptions.options?.(context) ||
 					{}) as TCompilerOptions<ECompilerType.Rspack>;
 				res.experiments ??= {};
+				res.experiments!.css ??= true;
 				res.experiments!.rspackFuture ??= {};
 				res.experiments!.rspackFuture!.bundlerInfo ??= {};
 				res.experiments!.rspackFuture!.bundlerInfo!.force ??= false;

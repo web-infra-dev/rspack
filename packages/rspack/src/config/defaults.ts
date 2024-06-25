@@ -94,7 +94,7 @@ export const applyRspackOptionsDefaults = (
 
 	applyModuleDefaults(options.module, {
 		asyncWebAssembly: options.experiments.asyncWebAssembly!,
-		css: options.experiments.css!,
+		css: options.experiments.css,
 		targetProperties
 	});
 
@@ -192,8 +192,7 @@ const applyExperimentsDefaults = (
 	D(experiments, "lazyCompilation", false);
 	// IGNORE(experiments.asyncWebAssembly): The default value of `asyncWebAssembly` is determined by `futureDefaults` in webpack.
 	D(experiments, "asyncWebAssembly", false);
-	// IGNORE(experiments.css): Rspack will switch to `false` when reach 1.0 and `css-extract` is stable enough
-	D(experiments, "css", true);
+	D(experiments, "css", experiments.futureDefaults ? true : undefined);
 	D(experiments, "topLevelAwait", true);
 
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration
@@ -266,7 +265,7 @@ const applyModuleDefaults = (
 		targetProperties
 	}: {
 		asyncWebAssembly: boolean;
-		css: boolean;
+		css?: boolean;
 		targetProperties: any;
 	}
 ) => {
@@ -305,8 +304,6 @@ const applyModuleDefaults = (
 		module.parser.javascript
 	);
 
-	// IGNORE(module.generator): Rspack enables `experiments.css` by default currently
-	// IGNORE(module.parser): Rspack enables `experiments.css` by default currently
 	if (css) {
 		F(module.parser, "css", () => ({}));
 		assertNotNill(module.parser.css);

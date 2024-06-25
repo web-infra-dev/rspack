@@ -151,6 +151,7 @@ export class DiffProcessor implements ITestProcessor {
 			experiments:
 				type === ECompilerType.Rspack
 					? {
+							css: true,
 							rspackFuture: {
 								bundlerInfo: {
 									force: false

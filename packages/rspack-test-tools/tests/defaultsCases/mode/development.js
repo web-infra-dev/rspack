@@ -23,9 +23,6 @@ module.exports = {
 		-     "pathinfo": false,
 		+     "pathinfo": true,
 		@@ ... @@
-		-           "production",
-		+           "development",
-		@@ ... @@
 		-       "production",
 		+       "development",
 	`)

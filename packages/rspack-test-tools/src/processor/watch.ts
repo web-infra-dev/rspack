@@ -137,6 +137,8 @@ export class WatchProcessor<
 			}
 
 			(options as TCompilerOptions<ECompilerType.Rspack>).experiments ??= {};
+			(options as TCompilerOptions<ECompilerType.Rspack>).experiments!.css ??=
+				true;
 			(
 				options as TCompilerOptions<ECompilerType.Rspack>
 			).experiments!.rspackFuture ??= {};

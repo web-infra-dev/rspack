@@ -72,6 +72,7 @@ export class DiagnosticProcessor<
 				path: context.getDist()
 			},
 			experiments: {
+				css: true,
 				rspackFuture: {
 					bundlerInfo: {
 						force: false

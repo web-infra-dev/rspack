@@ -193,6 +193,7 @@ export class StatsProcessor<
 		if (fs.existsSync(path.join(context.getSource(), "rspack.config.js"))) {
 			return {
 				experiments: {
+					css: true,
 					rspackFuture: {
 						bundlerInfo: {
 							force: false
@@ -213,6 +214,7 @@ export class StatsProcessor<
 				minimize: false
 			},
 			experiments: {
+				css: true,
 				rspackFuture: {
 					bundlerInfo: {
 						force: false

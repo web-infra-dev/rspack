@@ -57,6 +57,7 @@ export class ConfigProcessor<
 				minimize: false
 			},
 			experiments: {
+				css: true,
 				rspackFuture: {
 					bundlerInfo: {
 						force: false
