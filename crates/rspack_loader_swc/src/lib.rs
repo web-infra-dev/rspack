@@ -133,20 +133,7 @@ impl SwcLoader {
       keep_comments: Some(true),
     };
 
-    let program = tokio::task::block_in_place(|| {
-      let inner = || c.transform(built).map_err(AnyhowError::from);
-      #[cfg(debug_assertions)]
-      {
-        // Adjust stack to avoid stack overflow.
-        stacker::maybe_grow(
-          2 * 1024 * 1024, /* 2mb */
-          4 * 1024 * 1024, /* 4mb */
-          inner,
-        )
-      }
-      #[cfg(not(debug_assertions))]
-      inner()
-    })?;
+    let program = tokio::task::block_in_place(|| c.transform(built).map_err(AnyhowError::from))?;
     if source_map_kind.enabled() {
       let mut v = IdentCollector {
         names: Default::default(),
@@ -173,7 +160,18 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    self.loader_impl(loader_context)
+    let inner = || self.loader_impl(loader_context);
+    #[cfg(debug_assertions)]
+    {
+      // Adjust stack to avoid stack overflow.
+      stacker::maybe_grow(
+        2 * 1024 * 1024, /* 2mb */
+        4 * 1024 * 1024, /* 4mb */
+        inner,
+      )
+    }
+    #[cfg(not(debug_assertions))]
+    inner()
   }
 }
 
