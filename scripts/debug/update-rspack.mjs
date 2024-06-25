@@ -13,19 +13,17 @@ export async function update_rspack_handler(version, options) {
 	const root = process.cwd();
 	const { path: pathOpts } = options;
 
-	let pkgPath;
-	if (typeof pathOpts === "string") {
-		if (pathOpts.endsWith("package.json")) {
-			if (path.isAbsolute(pathOpts)) {
-				pkgPath = pathOpts;
-			} else {
-				pkgPath = path.resolve(process.cwd(), pathOpts);
-			}
-		} else {
-			pkgPath = path.resolve(pathOpts, "package.json");
-		}
-	} else {
+	let pkgPath = pathOpts;
+	if (typeof pkgPath !== "string") {
 		pkgPath = path.resolve(process.cwd(), "package.json");
+	}
+
+	if (!path.isAbsolute(pkgPath)) {
+		pkgPath = path.resolve(root, pkgPath);
+	}
+
+	if (path.basename(pkgPath) !== "package.json") {
+		pkgPath = path.resolve(pkgPath, "package.json");
 	}
 
 	const pkgJson = (
@@ -54,7 +52,5 @@ export async function update_rspack_handler(version, options) {
 
 	fs.writeFileSync(pkgPath, JSON.stringify(pkgJson, null, 2), "utf8");
 
-	console.log(
-		`Updated ${pkgPath} rspack related package version to ${version}`
-	);
+	console.log(`Updated rspack related package to ${version} in ${pkgPath}`);
 }
