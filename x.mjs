@@ -245,13 +245,6 @@ program
 	});
 
 program
-	.command("overrides-rspack")
-	.argument("<version>", "version field")
-	.option("--path <char>", "path to package.json")
-	.description("add pnpm.overrides of rspack to package.json")
-	.action(overrides_rspack_handler);
-
-program
 	.command("version")
 	.argument("<bump_version>", "bump version to (major|minor|patch|snapshot)")
 	.description("bump version")
