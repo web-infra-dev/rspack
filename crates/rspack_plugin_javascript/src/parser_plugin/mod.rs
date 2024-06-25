@@ -17,6 +17,7 @@ mod import_meta_context_dependency_parser_plugin;
 mod import_meta_plugin;
 mod import_parser_plugin;
 mod initialize_evaluating;
+mod inner_graph;
 mod javascript_meta_info_plugin;
 mod node_stuff_plugin;
 mod provide_plugin;
@@ -45,6 +46,7 @@ pub(crate) use self::import_meta_context_dependency_parser_plugin::ImportMetaCon
 pub(crate) use self::import_meta_plugin::ImportMetaPlugin;
 pub(crate) use self::import_parser_plugin::ImportParserPlugin;
 pub(crate) use self::initialize_evaluating::InitializeEvaluating;
+pub(crate) use self::inner_graph::{plugin::*, state::InnerGraphState};
 pub(crate) use self::javascript_meta_info_plugin::JavascriptMetaInfoPlugin;
 pub(crate) use self::node_stuff_plugin::NodeStuffPlugin;
 pub(crate) use self::provide_plugin::ProviderPlugin;
@@ -58,3 +60,6 @@ pub(crate) use self::worker_plugin::WorkerPlugin;
 
 pub static JS_DEFAULT_KEYWORD: once_cell::sync::Lazy<swc_core::atoms::Atom> =
   once_cell::sync::Lazy::new(|| swc_core::atoms::atom!("default"));
+
+pub static DEFAULT_STAR_JS_WORD: once_cell::sync::Lazy<swc_core::atoms::Atom> =
+  once_cell::sync::Lazy::new(|| swc_core::atoms::atom!("*default*"));

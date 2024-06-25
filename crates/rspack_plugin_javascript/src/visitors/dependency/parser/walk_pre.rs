@@ -2,8 +2,8 @@ use std::borrow::Cow;
 
 use rustc_hash::FxHashSet;
 use swc_core::common::Spanned;
-use swc_core::ecma::ast::FnDecl;
 use swc_core::ecma::ast::{AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt};
+use swc_core::ecma::ast::{ExportDecl, FnDecl};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, TryStmt, VarDecl, VarDeclKind, VarDeclarator};
@@ -46,11 +46,21 @@ impl<'parser> JavascriptParser<'parser> {
             self.is_esm = true;
           }
         };
+
+        self.block_pre_walk_module_declaration(statement);
+
         self.prev_statement = self.statement_path.pop();
       }
       ModuleItem::Stmt(stmt) => self.pre_walk_statement(stmt),
     }
     self.prev_statement = self.statement_path.pop();
+  }
+
+  pub fn pre_walk_export_declaration(&mut self, exp: &ExportDecl) {
+    // todo: move `hooks.export_decl.call` here
+    let decl = Stmt::Decl(exp.decl.clone());
+    self.pre_walk_statement(&decl);
+    self.block_pre_walk_statement(&decl);
   }
 
   pub fn pre_walk_statement(&mut self, statement: &Stmt) {

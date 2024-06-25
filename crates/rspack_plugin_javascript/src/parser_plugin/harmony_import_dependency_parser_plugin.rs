@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, DependencyType, SpanExt};
+use rspack_core::{ConstDependency, Dependency, DependencyType, SpanExt};
 use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{
@@ -7,12 +7,12 @@ use swc_core::ecma::ast::{
 };
 use swc_core::ecma::ast::{Expr, Ident, ImportDecl};
 
-use super::JavascriptParserPlugin;
+use super::{InnerGraphPlugin, JavascriptParserPlugin};
 use crate::dependency::{
   HarmonyImportSideEffectDependency, HarmonyImportSpecifierDependency, Specifier,
 };
+use crate::visitors::ImporterReferenceInfo;
 use crate::visitors::{collect_destructuring_assignment_properties, JavascriptParser, TagInfoData};
-use crate::visitors::{ExtraSpanInfo, ImporterReferenceInfo};
 
 pub(super) fn handle_harmony_import_side_effects_dep(
   parser: &mut JavascriptParser,
@@ -204,26 +204,37 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       .expect_get_tag_info(&parser.current_tag_info?);
     let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
 
-    parser
-      .rewrite_usage_span
-      .insert(ident.span, ExtraSpanInfo::ReWriteUsedByExports);
-    parser
-      .dependencies
-      .push(Box::new(HarmonyImportSpecifierDependency::new(
-        settings.source,
-        settings.name,
-        settings.source_order,
-        parser.in_short_hand,
-        !parser.is_asi_position(ident.span_lo()),
-        ident.span.real_lo(),
-        ident.span.real_hi(),
-        settings.ids,
-        parser.in_tagged_template_tag,
-        true,
-        HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
-        parser.properties_in_destructuring.remove(&ident.sym),
-        ident.span,
-      )));
+    let dep = HarmonyImportSpecifierDependency::new(
+      settings.source,
+      settings.name,
+      settings.source_order,
+      parser.in_short_hand,
+      !parser.is_asi_position(ident.span_lo()),
+      ident.span.real_lo(),
+      ident.span.real_hi(),
+      settings.ids,
+      parser.in_tagged_template_tag,
+      true,
+      HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
+      parser.properties_in_destructuring.remove(&ident.sym),
+      ident.span,
+    );
+    let dep_id = *dep.id();
+    parser.dependencies.push(Box::new(dep));
+
+    InnerGraphPlugin::on_usage(
+      parser,
+      Box::new(move |parser, used_by_exports| {
+        if let Some(dep) = parser
+          .dependencies
+          .iter_mut()
+          .find(|dep| dep.id() == &dep_id)
+        {
+          dep.set_used_by_exports(used_by_exports);
+        }
+      }),
+    );
+
     Some(true)
   }
 
@@ -260,26 +271,37 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let direct_import = members.is_empty();
-    parser
-      .rewrite_usage_span
-      .insert(callee.span(), ExtraSpanInfo::ReWriteUsedByExports);
-    parser
-      .dependencies
-      .push(Box::new(HarmonyImportSpecifierDependency::new(
-        settings.source,
-        settings.name,
-        settings.source_order,
-        false,
-        !parser.is_asi_position(call_expr.span_lo()),
-        start,
-        end,
-        ids,
-        true,
-        direct_import,
-        HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
-        None,
-        callee.span(),
-      )));
+    let dep = HarmonyImportSpecifierDependency::new(
+      settings.source,
+      settings.name,
+      settings.source_order,
+      false,
+      !parser.is_asi_position(call_expr.span_lo()),
+      start,
+      end,
+      ids,
+      true,
+      direct_import,
+      HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
+      None,
+      callee.span(),
+    );
+    let dep_id = *dep.id();
+    parser.dependencies.push(Box::new(dep));
+
+    InnerGraphPlugin::on_usage(
+      parser,
+      Box::new(move |parser, used_by_exports| {
+        if let Some(dep) = parser
+          .dependencies
+          .iter_mut()
+          .find(|dep| dep.id() == &dep_id)
+        {
+          dep.set_used_by_exports(used_by_exports);
+        }
+      }),
+    );
+
     parser.walk_expr_or_spread(&call_expr.args);
     Some(true)
   }
@@ -313,26 +335,37 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     };
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
-    parser
-      .rewrite_usage_span
-      .insert(member_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
-    parser
-      .dependencies
-      .push(Box::new(HarmonyImportSpecifierDependency::new(
-        settings.source,
-        settings.name,
-        settings.source_order,
-        false,
-        !parser.is_asi_position(member_expr.span_lo()),
-        start,
-        end,
-        ids,
-        false,
-        false, // x.xx()
-        HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
-        None,
-        member_expr.span,
-      )));
+    let dep = HarmonyImportSpecifierDependency::new(
+      settings.source,
+      settings.name,
+      settings.source_order,
+      false,
+      !parser.is_asi_position(member_expr.span_lo()),
+      start,
+      end,
+      ids,
+      false,
+      false, // x.xx()
+      HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
+      None,
+      member_expr.span,
+    );
+    let dep_id = *dep.id();
+    parser.dependencies.push(Box::new(dep));
+
+    InnerGraphPlugin::on_usage(
+      parser,
+      Box::new(move |parser, used_by_exports| {
+        if let Some(dep) = parser
+          .dependencies
+          .iter_mut()
+          .find(|dep| dep.id() == &dep_id)
+        {
+          dep.set_used_by_exports(used_by_exports);
+        }
+      }),
+    );
+
     Some(true)
   }
 

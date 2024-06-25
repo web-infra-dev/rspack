@@ -1,5 +1,7 @@
 use swc_core::common::Spanned;
-use swc_core::ecma::ast::{ClassDecl, ExportDecl, ImportDecl, ImportSpecifier, ModuleExportName};
+use swc_core::ecma::ast::{
+  ClassDecl, ClassExpr, ExportDecl, Expr, FnDecl, ImportDecl, ImportSpecifier, ModuleExportName,
+};
 use swc_core::ecma::ast::{Decl, DefaultDecl, ExportAll, ExportDefaultDecl, ExprStmt};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, NamedExport, Stmt, VarDecl, VarDeclKind};
 
@@ -19,7 +21,7 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn block_pre_walk_module_declaration(&mut self, statement: &ModuleItem) {
+  pub fn block_pre_walk_module_declaration(&mut self, statement: &ModuleItem) {
     match statement {
       ModuleItem::ModuleDecl(decl) => {
         self.statement_path.push(decl.span().into());
@@ -31,7 +33,12 @@ impl<'parser> JavascriptParser<'parser> {
             self.block_pre_walk_export_default_declaration(decl)
           }
           ModuleDecl::ExportNamed(decl) => self.block_pre_walk_export_name_declaration(decl),
-          ModuleDecl::ExportDefaultExpr(_) => (),
+          ModuleDecl::ExportDefaultExpr(default_expr) => {
+            self.block_pre_walk_expression_statement(&ExprStmt {
+              span: default_expr.span,
+              expr: default_expr.expr.clone(),
+            })
+          }
           ModuleDecl::ExportDecl(exp) => self.block_pre_walk_export_declaration(exp),
           ModuleDecl::TsImportEquals(_)
           | ModuleDecl::TsExportAssignment(_)
@@ -43,9 +50,18 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn block_pre_walk_statement(&mut self, stmt: &Stmt) {
+  pub fn block_pre_walk_statement(&mut self, stmt: &Stmt) {
     self.statement_path.push(stmt.span().into());
-    // TODO: `hooks.block_pre_statement.call`
+    if self
+      .plugin_drive
+      .clone()
+      .pre_block_statement(self, stmt)
+      .unwrap_or_default()
+    {
+      self.prev_statement = self.statement_path.pop();
+      return;
+    }
+
     match stmt {
       Stmt::Decl(stmt) => match stmt {
         Decl::Class(decl) => self.block_pre_walk_class_declaration(decl),
@@ -86,9 +102,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn block_pre_walk_export_declaration(&mut self, exp: &ExportDecl) {
     // todo: move `hooks.export_decl.call` here
-    let decl = Stmt::Decl(exp.decl.clone());
-    self.pre_walk_statement(&decl);
-    self.block_pre_walk_statement(&decl);
+    self.pre_walk_export_declaration(exp);
   }
 
   fn block_pre_walk_class_declaration(&mut self, decl: &ClassDecl) {
@@ -100,12 +114,56 @@ impl<'parser> JavascriptParser<'parser> {
     match &decl.decl {
       DefaultDecl::Class(expr) => {
         if let Some(ident) = &expr.ident {
-          self.define_variable(ident.sym.to_string())
+          self.define_variable(ident.sym.to_string());
+          self.pre_walk_statement(&Stmt::Decl(Decl::Class(ClassDecl {
+            ident: ident.clone(),
+            declare: false,
+            class: expr.class.clone(),
+          })));
+          self.block_pre_walk_statement(&Stmt::Decl(Decl::Class(ClassDecl {
+            ident: ident.clone(),
+            declare: false,
+            class: expr.class.clone(),
+          })));
+        } else {
+          self.pre_walk_statement(&Stmt::Expr(ExprStmt {
+            span: expr.span(),
+            expr: Box::new(Expr::Class(ClassExpr {
+              ident: None,
+              class: expr.class.clone(),
+            })),
+          }));
+          self.block_pre_walk_statement(&Stmt::Expr(ExprStmt {
+            span: expr.span(),
+            expr: Box::new(Expr::Class(ClassExpr {
+              ident: None,
+              class: expr.class.clone(),
+            })),
+          }));
         }
       }
       DefaultDecl::Fn(expr) => {
         if let Some(ident) = &expr.ident {
-          self.define_variable(ident.sym.to_string())
+          self.define_variable(ident.sym.to_string());
+          self.pre_walk_statement(&Stmt::Decl(Decl::Fn(FnDecl {
+            ident: ident.clone(),
+            declare: false,
+            function: expr.function.clone(),
+          })));
+          self.block_pre_walk_statement(&Stmt::Decl(Decl::Fn(FnDecl {
+            ident: ident.clone(),
+            declare: false,
+            function: expr.function.clone(),
+          })));
+        } else {
+          self.pre_walk_statement(&Stmt::Expr(ExprStmt {
+            span: expr.span(),
+            expr: Box::new(Expr::Fn(expr.clone())),
+          }));
+          self.block_pre_walk_statement(&Stmt::Expr(ExprStmt {
+            span: expr.span(),
+            expr: Box::new(Expr::Fn(expr.clone())),
+          }));
         }
       }
       DefaultDecl::TsInterfaceDecl(_) => unreachable!(),

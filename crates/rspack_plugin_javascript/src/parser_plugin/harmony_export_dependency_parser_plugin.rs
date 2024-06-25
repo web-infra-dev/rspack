@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, DependencyLocation, DependencyType, SpanExt, DEFAULT_EXPORT};
+use rspack_core::{ConstDependency, DependencyLocation, DependencyType, SpanExt};
 use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{
@@ -8,12 +8,15 @@ use swc_core::ecma::ast::{
 use swc_core::ecma::utils::{find_pat_ids, ExprFactory};
 
 use super::harmony_import_dependency_parser_plugin::handle_harmony_import_side_effects_dep;
-use super::{JavascriptParserPlugin, JS_DEFAULT_KEYWORD};
+use super::{
+  InnerGraphMapUsage, InnerGraphPlugin, JavascriptParserPlugin, DEFAULT_STAR_JS_WORD,
+  JS_DEFAULT_KEYWORD,
+};
 use crate::dependency::{
   DeclarationId, DeclarationInfo, HarmonyExportExpressionDependency, HarmonyExportHeaderDependency,
   HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, Specifier,
 };
-use crate::visitors::{ExtraSpanInfo, JavascriptParser};
+use crate::visitors::JavascriptParser;
 
 fn handle_esm_export_harmony_import_side_effects_dep(
   parser: &mut JavascriptParser,
@@ -204,9 +207,10 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
           JS_DEFAULT_KEYWORD.clone(),
           named_id.clone(),
         )));
-      parser.rewrite_usage_span.insert(
-        export_default_decl.span,
-        ExtraSpanInfo::AddVariableUsage(vec![(named_id, JS_DEFAULT_KEYWORD.clone())]),
+      InnerGraphPlugin::add_variable_usage(
+        parser,
+        &named_id,
+        InnerGraphMapUsage::Value(JS_DEFAULT_KEYWORD.clone()),
       );
       parser
         .presentational_dependencies
@@ -232,12 +236,14 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
     };
     let local = match &ident {
       Some(ident) => ident.sym.clone(),
-      None => DEFAULT_EXPORT.into(),
+      None => DEFAULT_STAR_JS_WORD.clone(),
     };
-    parser.rewrite_usage_span.insert(
-      export_default_decl.span,
-      ExtraSpanInfo::AddVariableUsage(vec![(local, JS_DEFAULT_KEYWORD.clone())]),
+    InnerGraphPlugin::add_variable_usage(
+      parser,
+      &local,
+      InnerGraphMapUsage::Value(JS_DEFAULT_KEYWORD.clone()),
     );
+
     parser
       .presentational_dependencies
       .push(Box::new(HarmonyExportExpressionDependency::new(
@@ -292,9 +298,10 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
     parser: &mut JavascriptParser,
     export_default_expr: &swc_core::ecma::ast::ExportDefaultExpr,
   ) -> Option<bool> {
-    parser.rewrite_usage_span.insert(
-      export_default_expr.span,
-      ExtraSpanInfo::AddVariableUsage(vec![(DEFAULT_EXPORT.into(), JS_DEFAULT_KEYWORD.clone())]),
+    InnerGraphPlugin::add_variable_usage(
+      parser,
+      &DEFAULT_STAR_JS_WORD,
+      InnerGraphMapUsage::Value(JS_DEFAULT_KEYWORD.clone()),
     );
     parser
       .presentational_dependencies
@@ -328,9 +335,10 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
             ident.sym.clone(),
           )));
 
-        parser.rewrite_usage_span.insert(
-          export_decl.span(),
-          ExtraSpanInfo::AddVariableUsage(vec![(ident.sym.clone(), ident.sym.clone())]),
+        InnerGraphPlugin::add_variable_usage(
+          parser,
+          &ident.sym,
+          InnerGraphMapUsage::Value(ident.sym.clone()),
         );
         parser
           .build_info
@@ -338,7 +346,6 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
           .insert(ident.sym.clone());
       }
       Decl::Var(v) => {
-        let mut usages = vec![];
         find_pat_ids::<_, Ident>(&v.decls)
           .into_iter()
           .for_each(|ident| {
@@ -349,13 +356,13 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
                 ident.sym.clone(),
               )));
 
-            usages.push((ident.sym.clone(), ident.sym.clone()));
+            InnerGraphPlugin::add_variable_usage(
+              parser,
+              &ident.sym,
+              InnerGraphMapUsage::Value(ident.sym.clone()),
+            );
             parser.build_info.harmony_named_exports.insert(ident.sym);
           });
-
-        parser
-          .rewrite_usage_span
-          .insert(export_decl.span(), ExtraSpanInfo::AddVariableUsage(usages));
       }
       _ => {}
     }
@@ -382,7 +389,6 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
     named_export: &NamedExport,
   ) -> Option<bool> {
     if named_export.src.is_none() {
-      let mut usages = vec![];
       named_export
         .specifiers
         .iter()
@@ -435,15 +441,16 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
                   .harmony_named_exports
                   .insert(export.clone());
               }
-              usages.push((orig.sym.clone(), export));
+              InnerGraphPlugin::add_variable_usage(
+                parser,
+                &orig.sym,
+                InnerGraphMapUsage::Value(export),
+              );
             }
           }
           _ => unreachable!(),
         });
 
-      parser
-        .rewrite_usage_span
-        .insert(named_export.span(), ExtraSpanInfo::AddVariableUsage(usages));
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(

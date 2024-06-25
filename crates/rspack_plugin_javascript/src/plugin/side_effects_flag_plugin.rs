@@ -15,13 +15,13 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 use sugar_path::SugarPath;
+use swc_core::common::comments::Comments;
 // use rspack_core::Plugin;
 // use rspack_error::Result;
 use swc_core::common::{comments, Span, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
-use swc_node_comments::SwcComments;
 
 use crate::dependency::{
   HarmonyExportImportedSpecifierDependency, HarmonyImportSpecifierDependency,
@@ -84,7 +84,7 @@ pub struct SideEffectsFlagPluginVisitor<'a> {
   unresolved_ctxt: SyntaxContext,
   pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   is_top_level: bool,
-  comments: Option<&'a SwcComments>,
+  comments: Option<&'a dyn Comments>,
 }
 
 impl<'a> Debug for SideEffectsFlagPluginVisitor<'a> {
@@ -109,7 +109,7 @@ impl SyntaxContextInfo {
 }
 
 impl<'a> SideEffectsFlagPluginVisitor<'a> {
-  pub fn new(mark_info: SyntaxContextInfo, comments: Option<&'a SwcComments>) -> Self {
+  pub fn new(mark_info: SyntaxContextInfo, comments: Option<&'a dyn Comments>) -> Self {
     Self {
       unresolved_ctxt: mark_info.unresolved_ctxt,
       side_effects_item: None,
@@ -336,7 +336,7 @@ static PURE_COMMENTS: Lazy<regex::Regex> =
 fn is_pure_call_expr(
   call_expr: &CallExpr,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&SwcComments>,
+  comments: Option<&dyn Comments>,
   paren_spans: &mut Vec<Span>,
 ) -> bool {
   let callee = &call_expr.callee;
@@ -345,7 +345,7 @@ fn is_pure_call_expr(
       paren_spans.push(callee.span());
       // dbg!(&comments.leading, &paren_spans);
       while let Some(span) = paren_spans.pop() {
-        if let Some(comment_list) = comments.leading.get(&span.lo)
+        if let Some(comment_list) = comments.get_leading(span.lo)
           && let Some(last_comment) = comment_list.last()
           && last_comment.kind == comments::CommentKind::Block
         {
@@ -375,15 +375,51 @@ fn is_pure_call_expr(
   }
 }
 
+pub fn is_pure_pat<'a>(
+  pat: &'a Pat,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&'a dyn Comments>,
+) -> bool {
+  match pat {
+    Pat::Ident(_) => true,
+    Pat::Array(array_pat) => array_pat.elems.iter().all(|ele| {
+      if let Some(pat) = ele {
+        is_pure_pat(pat, unresolved_ctxt, comments)
+      } else {
+        true
+      }
+    }),
+    Pat::Rest(_) => true,
+    Pat::Invalid(_) | Pat::Assign(_) | Pat::Object(_) => false,
+    Pat::Expr(expr) => is_pure_expression(expr, unresolved_ctxt, comments),
+  }
+}
+
+pub fn is_pure_function<'a>(
+  function: &'a Function,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&'a dyn Comments>,
+) -> bool {
+  if !function
+    .params
+    .iter()
+    .all(|param| is_pure_pat(&param.pat, unresolved_ctxt, comments))
+  {
+    return false;
+  }
+
+  true
+}
+
 pub fn is_pure_expression<'a>(
   expr: &'a Expr,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&'a SwcComments>,
+  comments: Option<&'a dyn Comments>,
 ) -> bool {
   pub fn _is_pure_expression<'a>(
     expr: &'a Expr,
     unresolved_ctxt: SyntaxContext,
-    comments: Option<&'a SwcComments>,
+    comments: Option<&'a dyn Comments>,
     paren_spans: &mut Vec<Span>,
   ) -> bool {
     match expr {
@@ -410,7 +446,7 @@ pub fn is_pure_expression<'a>(
 pub fn is_pure_class_member<'a>(
   member: &'a ClassMember,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&'a SwcComments>,
+  comments: Option<&'a dyn Comments>,
 ) -> bool {
   let is_key_pure = match member.class_key() {
     Some(PropName::Ident(_ident)) => true,
@@ -458,7 +494,7 @@ pub fn is_pure_class_member<'a>(
 pub fn is_pure_decl(
   stmt: &Decl,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&SwcComments>,
+  comments: Option<&dyn Comments>,
 ) -> bool {
   match stmt {
     Decl::Class(class) => is_pure_class(&class.class, unresolved_ctxt, comments),
@@ -476,7 +512,7 @@ pub fn is_pure_decl(
 pub fn is_pure_class(
   class: &Class,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&SwcComments>,
+  comments: Option<&dyn Comments>,
 ) -> bool {
   if let Some(ref super_class) = class.super_class {
     if !is_pure_expression(super_class, unresolved_ctxt, comments) {
@@ -533,7 +569,7 @@ pub fn is_pure_class(
 fn is_pure_var_decl<'a>(
   var: &'a VarDecl,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&'a SwcComments>,
+  comments: Option<&'a dyn Comments>,
 ) -> bool {
   var.decls.iter().all(|decl| {
     if let Some(ref init) = decl.init {
