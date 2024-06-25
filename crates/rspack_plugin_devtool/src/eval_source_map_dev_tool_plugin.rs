@@ -3,7 +3,6 @@ use std::{borrow::Cow, hash::Hash};
 use dashmap::DashMap;
 use derivative::Derivative;
 use futures::future::join_all;
-use once_cell::sync::Lazy;
 use rspack_core::{
   rspack_sources::{BoxSource, MapOptions, RawSource, Source, SourceExt},
   ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
@@ -24,8 +23,6 @@ use crate::{
   SourceMapDevToolPluginOptions,
 };
 
-static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
-
 const EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME: &str = "rspack.EvalSourceMapDevToolPlugin";
 
 #[plugin]
@@ -37,6 +34,7 @@ pub struct EvalSourceMapDevToolPlugin {
   #[derivative(Debug = "ignore")]
   module_filename_template: ModuleFilenameTemplate,
   namespace: String,
+  cache: DashMap<BoxSource, BoxSource>,
 }
 
 impl EvalSourceMapDevToolPlugin {
@@ -55,6 +53,7 @@ impl EvalSourceMapDevToolPlugin {
       options.no_sources,
       module_filename_template,
       namespace,
+      Default::default(),
     )
   }
 }
@@ -91,8 +90,8 @@ fn eval_source_map_devtool_plugin_render_module_content(
   let output_options = &compilation.options.output;
 
   let origin_source = render_source.source.clone();
-  if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
-    render_source.source = cached.value().clone();
+  if let Some(cached_source) = self.cache.get(&origin_source) {
+    render_source.source = cached_source.value().clone();
     return Ok(());
   } else if let Some(mut map) = origin_source.map(&MapOptions::new(self.columns)) {
     let source = {
@@ -172,7 +171,7 @@ fn eval_source_map_devtool_plugin_render_module_content(
         format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
       RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed()
     };
-    MODULE_RENDER_CACHE.insert(origin_source, source.clone());
+    self.cache.insert(origin_source, source.clone());
     render_source.source = source;
     return Ok(());
   }
