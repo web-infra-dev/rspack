@@ -286,7 +286,32 @@ export class RspackCLI {
 	}
 }
 
-export function defineConfig(config: RspackOptions): RspackOptions {
+export type RspackConfigFn = (
+	env: Record<string, any>,
+	argv: Record<string, any>
+) => RspackOptions | MultiRspackOptions;
+
+export type RspackConfigAsyncFn = (
+	env: Record<string, any>,
+	argv: Record<string, any>
+) => Promise<RspackOptions | MultiRspackOptions>;
+
+export type RspackConfigExport =
+	| RspackOptions
+	| MultiRspackOptions
+	| RspackConfigFn
+	| RspackConfigAsyncFn;
+
+/**
+ * This function helps you to autocomplete configuration types.
+ * It accepts a Rspack config object, or a function that returns a config.
+ */
+export function defineConfig(config: RspackOptions): RspackOptions;
+export function defineConfig(config: MultiRspackOptions): MultiRspackOptions;
+export function defineConfig(config: RspackConfigFn): RspackConfigFn;
+export function defineConfig(config: RspackConfigAsyncFn): RspackConfigAsyncFn;
+export function defineConfig(config: RspackConfigExport): RspackConfigExport;
+export function defineConfig(config: RspackConfigExport) {
 	return config;
 }
 
