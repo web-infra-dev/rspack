@@ -816,7 +816,7 @@ export interface RawCopyPattern {
   priority: number
   globOptions: RawCopyGlobOptions
   info?: RawInfo
-  transform?: (input: string | Buffer, absoluteFilename: string) => string | Buffer
+  transform?: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>
 }
 
 export interface RawCopyRspackPluginOptions {

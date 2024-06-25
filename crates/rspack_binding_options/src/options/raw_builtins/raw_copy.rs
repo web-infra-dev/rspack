@@ -10,7 +10,7 @@ use rspack_plugin_copy::{
   Transformer,
 };
 
-type RawTransformer = ThreadsafeFunction<(Either<String, Buffer>, String), Either<String, Buffer>>;
+type RawTransformer = ThreadsafeFunction<(Buffer, String), Either<String, Buffer>>;
 
 type RawToFn = ThreadsafeFunction<RawToOptions, String>;
 
@@ -41,7 +41,9 @@ pub struct RawCopyPattern {
   pub glob_options: RawCopyGlobOptions,
   pub info: Option<RawInfo>,
   #[derivative(Debug = "ignore")]
-  #[napi(ts_type = "(input: string | Buffer, absoluteFilename: string) => string | Buffer")]
+  #[napi(
+    ts_type = "(input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>"
+  )]
   pub transform: Option<RawTransformer>,
 }
 
@@ -147,15 +149,8 @@ impl From<RawCopyPattern> for CopyPattern {
             }
           }
 
-          fn convert_to_js_type(input: RawSource) -> Either<String, Buffer> {
-            match input {
-              RawSource::Source(s) => Either::A(s),
-              RawSource::Buffer(b) => Either::B(b.into()),
-            }
-          }
-
           Box::pin(async move {
-            f.call((convert_to_js_type(input), absolute_filename.to_owned()))
+            f.call((input.into(), absolute_filename.to_owned()))
               .await
               .map(convert_to_enum)
           })

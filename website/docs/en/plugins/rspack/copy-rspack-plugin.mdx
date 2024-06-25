@@ -41,9 +41,9 @@ new rspack.CopyRspackPlugin(options);
             ignore?: string[]; // ignore specific path
           };
           transform?: (
-            input: string | Buffer,
+            input: Buffer,
             absoluteFilename: string,
-          ) => string | Buffer;
+          ) => string | Buffer | Promise<string> | Promise<Buffer>;
         }
     )[];
   };
