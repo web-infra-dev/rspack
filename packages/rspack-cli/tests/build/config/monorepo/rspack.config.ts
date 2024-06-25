@@ -13,6 +13,6 @@ export default {
 	entry: path.resolve(__dirname, "main.ts"),
 	output: {
 		path: path.resolve(__dirname, "dist"),
-		filename: `moonrepo.bundle.depsA.${packageA_deps.version}-depsB.${packageB_deps.version}.js`
+		filename: `monorepo.bundle.depsA.${packageA_deps.version}-depsB.${packageB_deps.version}.js`
 	}
 };

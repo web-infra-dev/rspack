@@ -15,18 +15,18 @@ import semver from "semver";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { BuildCommand } from "./commands/build";
-import { PreviewCommand } from "./commands/preview";
-import { ServeCommand } from "./commands/serve";
+import { BuildCommand } from "./commands/build.js";
+import { PreviewCommand } from "./commands/preview.js";
+import { ServeCommand } from "./commands/serve.js";
 import {
 	RspackBuildCLIOptions,
 	RspackCLIColors,
 	RspackCLILogger,
 	RspackCLIOptions
-} from "./types";
-import findConfig from "./utils/findConfig";
-import { LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig";
-import { normalizeEnv } from "./utils/options";
+} from "./types.js";
+import findConfig from "./utils/findConfig.js";
+import { LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig.js";
+import { normalizeEnv } from "./utils/options.js";
 
 type Command = "serve" | "build";
 
@@ -286,7 +286,32 @@ export class RspackCLI {
 	}
 }
 
-export function defineConfig(config: RspackOptions): RspackOptions {
+export type RspackConfigFn = (
+	env: Record<string, any>,
+	argv: Record<string, any>
+) => RspackOptions | MultiRspackOptions;
+
+export type RspackConfigAsyncFn = (
+	env: Record<string, any>,
+	argv: Record<string, any>
+) => Promise<RspackOptions | MultiRspackOptions>;
+
+export type RspackConfigExport =
+	| RspackOptions
+	| MultiRspackOptions
+	| RspackConfigFn
+	| RspackConfigAsyncFn;
+
+/**
+ * This function helps you to autocomplete configuration types.
+ * It accepts a Rspack config object, or a function that returns a config.
+ */
+export function defineConfig(config: RspackOptions): RspackOptions;
+export function defineConfig(config: MultiRspackOptions): MultiRspackOptions;
+export function defineConfig(config: RspackConfigFn): RspackConfigFn;
+export function defineConfig(config: RspackConfigAsyncFn): RspackConfigAsyncFn;
+export function defineConfig(config: RspackConfigExport): RspackConfigExport;
+export function defineConfig(config: RspackConfigExport) {
 	return config;
 }
 

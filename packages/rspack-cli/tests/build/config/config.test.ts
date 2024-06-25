@@ -152,9 +152,36 @@ describe("rspack cli", () => {
 		});
 	});
 
-	describe("should load moonrepo config", () => {
-		const cwd = resolve(__dirname, "./moonrepo");
-		it("should load moonrepo config.ts file", async () => {
+	describe("should load config with defineConfig helper", () => {
+		const cwd = resolve(__dirname, "./esm");
+
+		it("should load config.ts file", async () => {
+			const { exitCode, stdout } = await run(cwd, ["-c", "rspack.config.ts"], {
+				nodeOptions: ["--experimental-loader=ts-node/esm"]
+			});
+			expect(stdout).toBeTruthy();
+			expect(exitCode).toBe(0);
+			expect(
+				readFile(resolve(cwd, "./dist/ts.bundle.js"), { encoding: "utf-8" })
+			).resolves.toMatch(/Main esm file/);
+		});
+
+		it("should load config.mts file", async () => {
+			const { exitCode, stdout } = await run(cwd, ["-c", "rspack.config.mts"], {
+				nodeOptions: ["--experimental-loader=ts-node/esm"]
+			});
+
+			expect(stdout).toBeTruthy();
+			expect(exitCode).toBe(0);
+			expect(
+				readFile(resolve(cwd, "./dist/mts.bundle.js"), { encoding: "utf-8" })
+			).resolves.toMatch(/Main esm file/);
+		});
+	});
+
+	describe("should load monorepo config", () => {
+		const cwd = resolve(__dirname, "./monorepo");
+		it("should load monorepo config.ts file", async () => {
 			const { exitCode, stdout } = await run(cwd, ["-c", "rspack.config.ts"], {
 				nodeOptions: ["--experimental-loader=ts-node/esm"]
 			});
@@ -162,10 +189,10 @@ describe("rspack cli", () => {
 			expect(exitCode).toBe(0);
 			expect(
 				readFile(
-					resolve(cwd, `./dist/moonrepo.bundle.depsA.1.0.0-depsB.2.0.0.js`),
+					resolve(cwd, `./dist/monorepo.bundle.depsA.1.0.0-depsB.2.0.0.js`),
 					{ encoding: "utf-8" }
 				)
-			).resolves.toMatch(/Main moonrepo file/);
+			).resolves.toMatch(/Main monorepo file/);
 		});
 	});
 });
