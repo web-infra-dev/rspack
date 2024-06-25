@@ -7,16 +7,16 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import type {
-	ExternalObject,
-	JsCompatSource,
-	JsCompilation,
-	JsDiagnostic,
-	JsModule,
-	JsPathData,
-	JsRuntimeModule,
-	JsStatsError,
-	JsStatsWarning
+import type * as binding from "@rspack/binding";
+import {
+	type ExternalObject,
+	type JsCompatSource,
+	type JsCompilation,
+	type JsModule,
+	type JsPathData,
+	JsRspackSeverity,
+	type JsRuntimeModule,
+	type JsStatsError
 } from "@rspack/binding";
 import * as tapable from "tapable";
 import { Source } from "webpack-sources";
@@ -38,7 +38,6 @@ import { Compiler } from "./Compiler";
 import { Entrypoint } from "./Entrypoint";
 import ErrorHelpers from "./ErrorHelpers";
 import { CodeGenerationResult, Module } from "./Module";
-import { NormalModule } from "./NormalModule";
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { Stats, StatsAsset, StatsError, StatsModule } from "./Stats";
 import { LogType, Logger } from "./logging/Logger";
@@ -51,6 +50,7 @@ import { createFakeCompilationDependencies } from "./util/fake";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
 import Hash = require("./util/hash");
+import { JsDiagnostic, RspackError } from "./RspackError";
 export { type AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
@@ -595,12 +595,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 *
 	 * @internal
 	 */
-	__internal__pushDiagnostic(
-		severity: "error" | "warning",
-		title: string,
-		message: string
-	) {
-		this.#inner.pushDiagnostic(severity, title, message);
+	__internal__pushDiagnostic(diagnostic: binding.JsDiagnostic) {
+		this.#inner.pushDiagnostic(diagnostic);
 	}
 
 	/**
@@ -614,10 +610,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#inner.pushNativeDiagnostics(diagnostics);
 	}
 
-	get errors(): JsStatsError[] {
+	get errors(): RspackError[] {
 		const inner = this.#inner;
-		type ErrorType = Error | JsStatsError | string;
-		const errors = inner.getStats().getErrors();
+		type ErrorType = RspackError;
+		const errors = inner.getErrors();
 		const proxyMethod = [
 			{
 				method: "push",
@@ -629,9 +625,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					for (let i = 0; i < errs.length; i++) {
 						const error = errs[i];
 						inner.pushDiagnostic(
-							"error",
-							error instanceof Error ? error.name : "Error",
-							concatErrorMsgAndStack(error)
+							JsDiagnostic.__to_binding(error, JsRspackSeverity.Error)
 						);
 					}
 					return Reflect.apply(target, thisArg, errs);
@@ -662,11 +656,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					errs: ErrorType[]
 				) {
 					const errList = errs.map(error => {
-						return {
-							severity: "error",
-							title: error instanceof Error ? error.name : "Error",
-							message: concatErrorMsgAndStack(error)
-						} satisfies JsDiagnostic;
+						return JsDiagnostic.__to_binding(error, JsRspackSeverity.Error);
 					});
 					inner.spliceDiagnostic(0, 0, errList);
 					return Reflect.apply(target, thisArg, errs);
@@ -680,11 +670,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					[startIdx, delCount, ...errors]: [number, number, ...ErrorType[]]
 				) {
 					const errList = errors.map(error => {
-						return {
-							severity: "error",
-							title: error instanceof Error ? error.name : "Error",
-							message: concatErrorMsgAndStack(error)
-						} satisfies JsDiagnostic;
+						return JsDiagnostic.__to_binding(error, JsRspackSeverity.Error);
 					});
 					inner.spliceDiagnostic(startIdx, startIdx + delCount, errList);
 					return Reflect.apply(target, thisArg, [
@@ -704,11 +690,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return errors;
 	}
 
-	get warnings(): JsStatsWarning[] {
+	get warnings(): RspackError[] {
 		const inner = this.#inner;
-		type WarnType = Error | JsStatsWarning;
+		type WarnType = Error | RspackError;
 		const processWarningsHook = this.hooks.processWarnings;
-		const warnings = inner.getStats().getWarnings();
+		const warnings = inner.getWarnings();
 		const proxyMethod = [
 			{
 				method: "push",
@@ -721,9 +707,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					for (let i = 0; i < warns.length; i++) {
 						const warn = warns[i];
 						inner.pushDiagnostic(
-							"warning",
-							warn instanceof Error ? warn.name : "Warning",
-							concatErrorMsgAndStack(warn)
+							JsDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
 						);
 					}
 					return Reflect.apply(target, thisArg, warns);
@@ -755,11 +739,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				) {
 					warns = processWarningsHook.call(warns as any);
 					const warnList = warns.map(warn => {
-						return {
-							severity: "warning",
-							title: warn instanceof Error ? warn.name : "Warning",
-							message: concatErrorMsgAndStack(warn)
-						} satisfies JsDiagnostic;
+						return JsDiagnostic.__to_binding(warn, JsRspackSeverity.Warn);
 					});
 					inner.spliceDiagnostic(0, 0, warnList);
 					return Reflect.apply(target, thisArg, warns);
@@ -774,11 +754,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				) {
 					warns = processWarningsHook.call(warns as any);
 					const warnList = warns.map(warn => {
-						return {
-							severity: "warning",
-							title: warn instanceof Error ? warn.name : "Warning",
-							message: concatErrorMsgAndStack(warn)
-						} satisfies JsDiagnostic;
+						return JsDiagnostic.__to_binding(warn, JsRspackSeverity.Warn);
 					});
 					inner.spliceDiagnostic(startIdx, startIdx + delCount, warnList);
 					return Reflect.apply(target, thisArg, [

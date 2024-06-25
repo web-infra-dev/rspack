@@ -8,6 +8,7 @@ use regex::{Captures, Regex};
 use rspack_core::{contextify, Compilation, OutputOptions};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, ModuleOrSource};
 
@@ -235,5 +236,38 @@ impl ModuleFilenameHelpers {
         }
       })
       .to_string()
+  }
+
+  pub fn replace_duplicates<F>(filenames: Vec<String>, mut fn_replace: F) -> Vec<String>
+  where
+    F: FnMut(String, usize, usize) -> String,
+  {
+    let mut count_map: HashMap<String, Vec<usize>> = HashMap::default();
+    let mut pos_map: HashMap<String, usize> = HashMap::default();
+
+    for (idx, item) in filenames.iter().enumerate() {
+      count_map.entry(item.clone()).or_default().push(idx);
+      pos_map.entry(item.clone()).or_insert(0);
+    }
+
+    filenames
+      .into_iter()
+      .enumerate()
+      .map(|(i, item)| {
+        let count = count_map
+          .get(&item)
+          .expect("should have a count entry in count_map");
+        if count.len() > 1 {
+          let pos = pos_map
+            .get_mut(&item)
+            .expect("should have a position entry in pos_map");
+          let result = fn_replace(item, i, *pos);
+          *pos += 1;
+          result
+        } else {
+          item
+        }
+      })
+      .collect()
   }
 }

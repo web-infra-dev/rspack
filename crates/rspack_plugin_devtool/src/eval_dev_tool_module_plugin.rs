@@ -15,6 +15,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesInlineInRuntimeBailout,
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
 };
+use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
 
 use crate::{
@@ -35,14 +36,31 @@ static EVAL_MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new
 const EVAL_DEV_TOOL_MODULE_PLUGIN_NAME: &str = "rspack.EvalDevToolModulePlugin";
 
 #[plugin]
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct EvalDevToolModulePlugin {
-  options: EvalDevToolModulePluginOptions,
+  namespace: String,
+  source_url_comment: String,
+  #[derivative(Debug = "ignore")]
+  module_filename_template: ModuleFilenameTemplate,
 }
 
 impl EvalDevToolModulePlugin {
   pub fn new(options: EvalDevToolModulePluginOptions) -> Self {
-    Self::new_inner(options)
+    let namespace = options.namespace.unwrap_or("".to_string());
+
+    let source_url_comment = options
+      .source_url_comment
+      .unwrap_or("\n//# sourceURL=[url]".to_string());
+
+    let module_filename_template =
+      options
+        .module_filename_template
+        .unwrap_or(ModuleFilenameTemplate::String(
+          "webpack://[namespace]/[resource-path]?[hash]".to_string(),
+        ));
+
+    Self::new_inner(namespace, source_url_comment, module_filename_template)
   }
 }
 
@@ -80,28 +98,15 @@ fn eval_devtool_plugin_render_module_content(
   } else if module.as_external_module().is_some() {
     return Ok(());
   }
+
   let output_options = &compilation.options.output;
-  let source_url_comment = self
-    .options
-    .source_url_comment
-    .clone()
-    .unwrap_or("\n//# sourceURL=[url]".to_string());
-  let namespace = self.options.namespace.clone().unwrap_or_default();
-  let module_filename_template =
-    self
-      .options
-      .module_filename_template
-      .clone()
-      .unwrap_or(ModuleFilenameTemplate::String(
-        "webpack://[namespace]/[resourcePath]?[loaders]".to_string(),
-      ));
-  let source_name = match &module_filename_template {
+  let str = match &self.module_filename_template {
     ModuleFilenameTemplate::String(s) => ModuleFilenameHelpers::create_filename_of_string_template(
       &ModuleOrSource::Module(module.identifier()),
       compilation,
       s,
       output_options,
-      namespace.as_str(),
+      &self.namespace,
     ),
     ModuleFilenameTemplate::Fn(f) => {
       futures::executor::block_on(ModuleFilenameHelpers::create_filename_of_fn_template(
@@ -109,14 +114,26 @@ fn eval_devtool_plugin_render_module_content(
         compilation,
         f,
         output_options,
-        namespace.as_str(),
-      ))
-      .expect("todo!")
+        &self.namespace,
+      ))?
     }
   };
   let source = {
     let source = &origin_source.source();
-    let footer = source_url_comment.replace("[url]", &source_name);
+    let footer = format!(
+      "\n{}",
+      self.source_url_comment.replace(
+        "[url]",
+        encode_uri(&str)
+          .replace("%2F", "/")
+          .replace("%20", "_")
+          .replace("%5E", "^")
+          .replace("%5C", "\\")
+          .trim_start_matches('/')
+      )
+    );
+    // TODO: Implement support for the trustedTypes option.
+    // This will depend on the additionalModuleRuntimeRequirements hook.
     RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed()
   };
 
@@ -160,5 +177,63 @@ impl Plugin for EvalDevToolModulePlugin {
       .compilation
       .tap(eval_devtool_plugin_compilation::new(self));
     Ok(())
+  }
+}
+
+// https://tc39.es/ecma262/#sec-encodeuri-uri
+fn encode_uri(uri: &str) -> String {
+  encode(uri, ";/?:@&=+$,#")
+}
+
+static ALWAYS_UNESCAPED: Lazy<HashSet<char>> = Lazy::new(|| {
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~!*'()"
+    .chars()
+    .collect()
+});
+
+// https://tc39.es/ecma262/#sec-encode
+fn encode(string: &str, extra_unescaped: &str) -> String {
+  // Let R be the empty String.
+  let mut r = String::new();
+  // Let alwaysUnescaped be the string-concatenation of the ASCII word characters and "-.!~*'()".
+  let always_unescaped = ALWAYS_UNESCAPED.clone();
+  // Let unescapedSet be the string-concatenation of alwaysUnescaped and extraUnescaped.
+  let unescaped_set: HashSet<char> = always_unescaped
+    .union(&extra_unescaped.chars().collect::<HashSet<_>>())
+    .cloned()
+    .collect();
+  for c in string.chars() {
+    if unescaped_set.contains(&c) {
+      r.push(c);
+    } else {
+      let mut b = [0u8; 4];
+      let octets = c.encode_utf8(&mut b).as_bytes().to_vec();
+      for octet in octets {
+        r.push_str(&format!("%{:02X}", octet));
+      }
+    }
+  }
+  r
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  // https://github.com/tc39/test262/blob/c47b716e8d6bea0c4510d449fd22b7ed5f8b0151/test/built-ins/encodeURI/S15.1.3.3_A4_T2.js#L6
+  #[test]
+  fn check_russian_alphabet() {
+    assert_eq!(
+      encode_uri("http://ru.wikipedia.org/wiki/Юникод"),
+      "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4"
+    );
+    assert_eq!(
+      encode_uri("http://ru.wikipedia.org/wiki/Юникод#Ссылки"),
+      "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4#%D0%A1%D1%81%D1%8B%D0%BB%D0%BA%D0%B8"
+    );
+    assert_eq!(
+      encode_uri("http://ru.wikipedia.org/wiki/Юникод#Версии Юникода"),
+      "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4#%D0%92%D0%B5%D1%80%D1%81%D0%B8%D0%B8%20%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4%D0%B0"
+    );
   }
 }

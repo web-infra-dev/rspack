@@ -380,7 +380,6 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
           self.clear_symbol_if_is_top_level();
         }
         _ => {
-          init_.visit_children_with(self);
           if is_pure_expression(init, self.unresolved_ctxt, self.comments.as_ref()) {
             self.set_symbol_if_is_top_level(symbol);
             let start = init.span().real_lo();
@@ -396,7 +395,10 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
                 }
               },
             ));
+            init_.visit_children_with(self);
             self.clear_symbol_if_is_top_level();
+          } else {
+            init_.visit_children_with(self);
           }
         }
       }

@@ -122,8 +122,6 @@ pub struct NormalModule {
   /// Loaders for the module
   #[derivative(Debug = "ignore")]
   loaders: Vec<BoxLoader>,
-  /// Whether loaders list contains inline loader
-  contains_inline_loader: bool,
 
   /// Original content of this module, will be available after module build
   original_source: Option<BoxSource>,
@@ -196,7 +194,6 @@ impl NormalModule {
     resource_data: Arc<ResourceData>,
     resolve_options: Option<Box<Resolve>>,
     loaders: Vec<BoxLoader>,
-    contains_inline_loader: bool,
   ) -> Self {
     let module_type = module_type.into();
     let id = Self::create_id(&module_type, &request);
@@ -216,7 +213,6 @@ impl NormalModule {
       resource_data,
       resolve_options,
       loaders,
-      contains_inline_loader,
       original_source: None,
       source: NormalModuleSource::Unbuild,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
@@ -269,14 +265,6 @@ impl NormalModule {
 
   pub fn loaders(&self) -> &[BoxLoader] {
     &self.loaders
-  }
-
-  pub fn loaders_mut_vec(&mut self) -> &mut Vec<BoxLoader> {
-    &mut self.loaders
-  }
-
-  pub fn contains_inline_loader(&self) -> bool {
-    self.contains_inline_loader
   }
 
   pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
@@ -408,7 +396,7 @@ impl Module for NormalModule {
       self.loaders.clone(),
       self.resource_data.clone(),
       Some(plugin.clone()),
-      build_context.compiler_context,
+      build_context.runner_context,
       additional_data,
     )
     .await;

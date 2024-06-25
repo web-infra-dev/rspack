@@ -147,7 +147,17 @@ export class DiffProcessor implements ITestProcessor {
 			plugins: [
 				type === ECompilerType.Webpack && new WebpackDiffConfigPlugin(),
 				type === ECompilerType.Rspack && new RspackDiffConfigPlugin()
-			].filter(Boolean)
+			].filter(Boolean),
+			experiments:
+				type === ECompilerType.Rspack
+					? {
+							rspackFuture: {
+								bundlerInfo: {
+									force: false
+								}
+							}
+						}
+					: {}
 		} as TCompilerOptions<T>;
 	}
 

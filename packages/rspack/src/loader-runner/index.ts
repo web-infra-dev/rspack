@@ -12,7 +12,12 @@ import querystring from "node:querystring";
 
 import assert from "assert";
 import { promisify } from "util";
-import { JsLoaderContext, JsLoaderItem, JsLoaderState } from "@rspack/binding";
+import {
+	JsLoaderContext,
+	JsLoaderItem,
+	JsLoaderState,
+	JsRspackSeverity
+} from "@rspack/binding";
 import {
 	OriginalSource,
 	RawSource,
@@ -24,6 +29,11 @@ import { Compilation } from "../Compilation";
 import { Compiler } from "../Compiler";
 import { Module } from "../Module";
 import { NormalModule } from "../NormalModule";
+import {
+	JsDiagnostic,
+	NonErrorEmittedError,
+	RspackError
+} from "../RspackError";
 import {
 	BUILTIN_LOADER_PREFIX,
 	LoaderContext,
@@ -611,28 +621,38 @@ export async function runLoaders(
 	};
 	loaderContext.rootContext = compiler.context;
 	loaderContext.emitError = function emitError(error) {
-		const title = "Module Error";
-		const message =
-			error instanceof Error ? concatErrorMsgAndStack(error) : error;
-		compiler._lastCompilation!.__internal__pushDiagnostic(
-			"error",
-			title,
-			`${message}\n(from: ${stringifyLoaderObject(
-				loaderContext.loaders[loaderContext.loaderIndex]
-			)})`
-		);
+		if (!(error instanceof Error)) {
+			error = new NonErrorEmittedError(error);
+		}
+		let hasStack = !!error.stack;
+		error.name = "ModuleError";
+		error.message = `${error.message} (from: ${stringifyLoaderObject(
+			loaderContext.loaders[loaderContext.loaderIndex]
+		)})`;
+		hasStack && Error.captureStackTrace(error);
+		error = concatErrorMsgAndStack(error);
+		(error as RspackError).moduleIdentifier = this._module.identifier();
+		compiler._lastCompilation!.__internal__pushDiagnostic({
+			error,
+			severity: JsRspackSeverity.Error
+		});
 	};
 	loaderContext.emitWarning = function emitWarning(warning) {
-		const title = "Module Warning";
-		const message =
-			warning instanceof Error ? concatErrorMsgAndStack(warning) : warning;
-		compiler._lastCompilation!.__internal__pushDiagnostic(
-			"warning",
-			title,
-			`${message}\n(from: ${stringifyLoaderObject(
-				loaderContext.loaders[loaderContext.loaderIndex]
-			)})`
-		);
+		if (!(warning instanceof Error)) {
+			warning = new NonErrorEmittedError(warning);
+		}
+		let hasStack = !!warning.stack;
+		warning.name = "ModuleWarning";
+		warning.message = `${warning.message} (from: ${stringifyLoaderObject(
+			loaderContext.loaders[loaderContext.loaderIndex]
+		)})`;
+		hasStack && Error.captureStackTrace(warning);
+		warning = concatErrorMsgAndStack(warning);
+		(warning as RspackError).moduleIdentifier = this._module.identifier();
+		compiler._lastCompilation!.__internal__pushDiagnostic({
+			error: warning,
+			severity: JsRspackSeverity.Warn
+		});
 	};
 	loaderContext.emitFile = function emitFile(
 		name,

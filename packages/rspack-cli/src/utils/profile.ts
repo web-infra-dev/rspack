@@ -66,7 +66,9 @@ type ProfileOptions = {
 };
 
 const timestamp = Date.now();
-const defaultOutputDirname = path.resolve(`.rspack-profile-${timestamp}`);
+const defaultOutputDirname = path.resolve(
+	`.rspack-profile-${timestamp}-${process.pid}`
+);
 const defaultJSCPUProfileOutput = path.join(
 	defaultOutputDirname,
 	`./jscpuprofile.json`
@@ -214,7 +216,8 @@ export async function applyProfile(profileValue: string, item: RspackOptions) {
 	const entries = Object.entries(resolveProfile(profileValue));
 	if (entries.length <= 0) return;
 	await fs.promises.mkdir(defaultOutputDirname);
-	entries.forEach(([kind, value]) => {
+	for (const [kind, value] of entries) {
+		await ensureFileDir(value.output);
 		if (kind === "TRACE" && "filter" in value) {
 			registerGlobalTrace(value.filter, value.layer, value.output);
 			exitHook(cleanupGlobalTrace);
@@ -225,5 +228,11 @@ export async function applyProfile(profileValue: string, item: RspackOptions) {
 		} else if (kind === "LOGGING") {
 			(item.plugins ??= []).push(new RspackProfileLoggingPlugin(value.output));
 		}
-	});
+	}
+}
+
+async function ensureFileDir(outputFilePath: string) {
+	const dir = path.dirname(outputFilePath);
+	await fs.promises.mkdir(dir, { recursive: true });
+	return dir;
 }

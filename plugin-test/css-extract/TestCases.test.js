@@ -142,6 +142,11 @@ describe("TestCases", () => {
 							optimization: { chunkIds: "named", ...config.optimization },
 							experiments: {
 								css: false,
+								rspackFuture: {
+									bundlerInfo: {
+										force: false
+									}
+								},
 								...config.experiments
 							}
 						};
@@ -150,6 +155,11 @@ describe("TestCases", () => {
 						...config,
 						experiments: {
 							css: false,
+							rspackFuture: {
+								bundlerInfo: {
+									force: false
+								}
+							},
 							...config.experiments
 						}
 					};
@@ -295,15 +305,13 @@ describe("TestCases", () => {
 						const expectedWarnings = require(warningsFile);
 						expect(
 							actualWarnings
-								.trim()
-								.split("\n")
-								.filter(warn => !warn.includes("(from: "))
-								.join("\n")
+								.replace(/(\(from: .*\))?/g, "")
 								.replace(/\*\scss\s(.*)?!/g, "* css /path/to/loader.js!")
+								.trim()
 						).toBe(
 							expectedWarnings
-								.trim()
 								.replace(/\*\scss\s(.*)?!/g, "* css /path/to/loader.js!")
+								.trim()
 						);
 					}
 

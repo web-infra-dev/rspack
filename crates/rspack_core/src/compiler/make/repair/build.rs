@@ -45,12 +45,11 @@ impl Task<MakeTaskContext> for BuildTask {
     let result = module
       .build(
         BuildContext {
-          compiler_context: RunnerContext {
+          runner_context: RunnerContext {
             options: compiler_options.clone(),
             resolver_factory: resolver_factory.clone(),
             module: CompilerModuleContext::from_module(module.as_ref()),
             module_source_map_kind: *module.get_source_map_kind(),
-            plugin_driver: plugin_driver.clone(),
           },
           plugin_driver: plugin_driver.clone(),
           compiler_options: &compiler_options,

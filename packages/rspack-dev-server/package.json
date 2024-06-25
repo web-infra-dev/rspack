@@ -5,6 +5,10 @@
   "description": "Development server for rspack",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "exports": {
     ".": {
       "default": "./dist/index.js"

@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::path::PathBuf;
 
 use either::Either;
 use itertools::Itertools;
@@ -439,6 +440,7 @@ impl Stats<'_> {
           module_identifier: module_identifier.map(|i| i.to_string()),
           module_name,
           module_id: module_id.flatten(),
+          file: d.file().map(ToOwned::to_owned),
         }
       })
       .collect()
@@ -466,6 +468,7 @@ impl Stats<'_> {
           module_identifier: module_identifier.map(|i| i.to_string()),
           module_name,
           module_id: module_id.flatten(),
+          file: d.file().map(ToOwned::to_owned),
         }
       })
       .collect()
@@ -989,6 +992,7 @@ pub struct StatsError {
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
+  pub file: Option<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -997,6 +1001,7 @@ pub struct StatsWarning {
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
+  pub file: Option<PathBuf>,
 }
 
 #[derive(Debug)]

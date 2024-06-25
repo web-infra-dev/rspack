@@ -280,6 +280,7 @@ pub struct RawJavascriptParserOptions {
   pub import_exports_presence: Option<String>,
   pub reexport_exports_presence: Option<String>,
   pub strict_export_presence: bool,
+  pub worker: Vec<String>,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
@@ -301,6 +302,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
         .reexport_exports_presence
         .map(|e| ExportPresenceMode::from(e.as_str())),
       strict_export_presence: value.strict_export_presence,
+      worker: value.worker,
     }
   }
 }

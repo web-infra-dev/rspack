@@ -1,4 +1,4 @@
-import type { JsStatsError } from "@rspack/binding";
+import type { JsRspackError, JsStatsError } from "@rspack/binding";
 import { LoaderObject } from "../loader-runner";
 
 export function mapValues(
@@ -69,15 +69,16 @@ export function isJsStatsError(err: any): err is JsStatsError {
 }
 
 export function concatErrorMsgAndStack(
-	err: Error | JsStatsError | string
-): string {
+	err: Error | JsRspackError | string
+): JsRspackError {
 	if (typeof err === "string") {
-		return err;
+		return new Error(err);
 	}
 	if ("stack" in err) {
-		return err.stack || err.message;
+		err.message = err.stack || err.message;
+		return err;
 	}
-	return err.message;
+	return err;
 }
 
 export function indent(str: string, prefix: string) {

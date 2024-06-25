@@ -206,7 +206,8 @@ const applyExperimentsDefaults = (
 				"version",
 				require("../../package.json").version
 			);
-			D(experiments.rspackFuture.bundlerInfo, "force", false);
+			D(experiments.rspackFuture.bundlerInfo, "bundler", "rspack");
+			D(experiments.rspackFuture.bundlerInfo, "force", true);
 		}
 	}
 };
@@ -254,6 +255,7 @@ const applyJavascriptParserOptionsDefaults = (
 		"strictExportPresence",
 		fallback?.strictExportPresence ?? false
 	);
+	D(parserOptions, "worker", fallback?.worker ?? ["..."]);
 };
 
 const applyModuleDefaults = (

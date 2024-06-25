@@ -34,7 +34,7 @@
 RSPACK_PROFILE=TRACE=layer=chrome rspack build
 ```
 
-产生了一个 trace 文件 (`.rspack-profile-${timestamp}/trace.json`) 在目前的工作目录。
+产生了一个 trace 文件 (`.rspack-profile-${timestamp}-${pid}/trace.json`) 在目前的工作目录。
 
 JSON 跟踪文件可以在 `chrome://tracing` 或者 [ui.perfetto.dev](https://ui.perfetto.dev) 查看。
 

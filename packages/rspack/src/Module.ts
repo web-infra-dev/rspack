@@ -2,6 +2,7 @@ import {
 	JsCodegenerationResult,
 	JsCodegenerationResults,
 	JsCreateData,
+	JsFactoryMeta,
 	JsModule
 } from "@rspack/binding";
 import { Source } from "webpack-sources";
@@ -55,6 +56,7 @@ export class Module {
 	userRequest?: Readonly<string>;
 	rawRequest?: Readonly<string>;
 
+	factoryMeta?: Readonly<JsFactoryMeta>;
 	/**
 	 * Records the dynamically added fields for Module on the JavaScript side.
 	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
@@ -81,6 +83,7 @@ export class Module {
 		this.userRequest = module.userRequest;
 		this.rawRequest = module.rawRequest;
 
+		this.factoryMeta = module.factoryMeta;
 		const customModule = compilation?.__internal__getCustomModule(
 			module.moduleIdentifier
 		);

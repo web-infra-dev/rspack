@@ -579,6 +579,7 @@ const reexportExportsPresence = z
 	.enum(["error", "warn", "auto"])
 	.or(z.literal(false));
 const strictExportPresence = z.boolean();
+const worker = z.array(z.string()).or(z.boolean());
 
 const javascriptParserOptions = z.strictObject({
 	dynamicImportMode: dynamicImportMode.optional(),
@@ -590,7 +591,8 @@ const javascriptParserOptions = z.strictObject({
 	exportsPresence: exportsPresence.optional(),
 	importExportsPresence: importExportsPresence.optional(),
 	reexportExportsPresence: reexportExportsPresence.optional(),
-	strictExportPresence: strictExportPresence.optional()
+	strictExportPresence: strictExportPresence.optional(),
+	worker: worker.optional()
 });
 export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
 
@@ -829,7 +831,30 @@ const allowTarget = z
 			value =>
 				typeof value === "string" && /^electron\d+\.\d+-preload$/.test(value)
 		)
+	)
+	.or(z.literal("nwjs"))
+	.or(
+		z.custom<`nwjs${number}`>(
+			value => typeof value === "string" && /^nwjs\d+$/.test(value)
+		)
+	)
+	.or(
+		z.custom<`nwjs${number}.${number}`>(
+			value => typeof value === "string" && /^nwjs\d+\.\d+$/.test(value)
+		)
+	)
+	.or(z.literal("node-webkit"))
+	.or(
+		z.custom<`node-webkit${number}`>(
+			value => typeof value === "string" && /^node-webkit\d+$/.test(value)
+		)
+	)
+	.or(
+		z.custom<`node-webkit${number}.${number}`>(
+			value => typeof value === "string" && /^node-webkit\d+\.\d+$/.test(value)
+		)
 	);
+
 const target = z.literal(false).or(allowTarget).or(allowTarget.array());
 export type Target = z.infer<typeof target>;
 //#endregion
@@ -1260,9 +1285,10 @@ const rspackFutureOptions = z.strictObject({
 	bundlerInfo: z
 		.strictObject({
 			version: z.string().optional(),
+			bundler: z.string().optional(),
 			force: z
 				.boolean()
-				.or(z.array(z.enum(["version"])))
+				.or(z.array(z.enum(["version", "uniqueId"])))
 				.optional()
 		})
 		.optional()

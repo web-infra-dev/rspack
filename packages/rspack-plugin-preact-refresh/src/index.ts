@@ -37,8 +37,8 @@ const PREACT_PATHS = [
 );
 const PREFRESH_CORE_PATH = require.resolve("@prefresh/core");
 const PREFRESH_UTILS_PATH = require.resolve("@prefresh/utils");
-const RUNTIME_UTIL_PATH = require.resolve("../client/prefresh");
-const RUNTIME_INTERCEPT_PATH = require.resolve("../client/intercept");
+const RUNTIME_UTIL_PATH = require.resolve("../client/prefresh.cjs");
+const RUNTIME_INTERCEPT_PATH = require.resolve("../client/intercept.cjs");
 
 const INTERNAL_PATHS = [
 	...Object.values(PREACT_PATHS),
@@ -69,7 +69,7 @@ class PreactRefreshRspackPlugin implements RspackPluginInstance {
 			return;
 
 		new compiler.webpack.ProvidePlugin({
-			__prefresh_utils__: require.resolve("../client/prefresh"),
+			__prefresh_utils__: RUNTIME_UTIL_PATH,
 			...(this.options.overlay
 				? {
 						__prefresh_errors__: require.resolve(this.options.overlay.module)

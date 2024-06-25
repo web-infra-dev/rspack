@@ -147,6 +147,11 @@ export class NormalProcessor<
 					});
 				}),
 			experiments: {
+				rspackFuture: {
+					bundlerInfo: {
+						force: false
+					}
+				},
 				asyncWebAssembly: true,
 				topLevelAwait: true,
 				// CHANGE: rspack does not support `backCompat` yet.

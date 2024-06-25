@@ -41,9 +41,11 @@ export class JsCompilation {
   getContextDependencies(): Array<string>
   getMissingDependencies(): Array<string>
   getBuildDependencies(): Array<string>
-  pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
+  pushDiagnostic(diagnostic: JsDiagnostic): void
   spliceDiagnostic(start: number, end: number, replaceWith: Array<JsDiagnostic>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
+  getErrors(): Array<JsRspackError>
+  getWarnings(): Array<JsRspackError>
   getStats(): JsStats
   getAssetPath(filename: LocalJsFilename, data: JsPathData): string
   getAssetPathWithInfo(filename: LocalJsFilename, data: JsPathData): PathWithInfo
@@ -338,9 +340,8 @@ export interface JsCreateData {
 }
 
 export interface JsDiagnostic {
-  severity: 'error' | 'warning'
-  title: string
-  message: string
+  severity: JsRspackSeverity
+  error: JsRspackError
 }
 
 export interface JsExecuteModuleArg {
@@ -358,6 +359,10 @@ export interface JsExecuteModuleResult {
   cacheable: boolean
   assets: Array<string>
   id: number
+}
+
+export interface JsFactoryMeta {
+  sideEffectFree?: boolean
 }
 
 export interface JsLoaderContext {
@@ -403,6 +408,7 @@ export interface JsModule {
   request?: string
   userRequest?: string
   rawRequest?: string
+  factoryMeta?: JsFactoryMeta
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {
@@ -445,6 +451,18 @@ export interface JsResourceData {
   query?: string
   /** Resource fragment with `#` prefix */
   fragment?: string
+}
+
+export interface JsRspackError {
+  name: string
+  message: string
+  moduleIdentifier?: string
+  file?: string
+}
+
+export enum JsRspackSeverity {
+  Error = 'Error',
+  Warn = 'Warn'
 }
 
 export interface JsRuntimeGlobals {
@@ -522,6 +540,7 @@ export interface JsStatsError {
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
+  file?: string
 }
 
 export interface JsStatsGetAssets {
@@ -612,6 +631,7 @@ export interface JsStatsWarning {
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
+  file?: string
 }
 
 export interface JsTap {
@@ -699,6 +719,7 @@ export interface RawBuiltins {
 
 export interface RawBundlerInfoPluginOptions {
   version: string
+  bundler: string
   force: boolean | string[]
 }
 
@@ -1012,6 +1033,7 @@ export interface RawJavascriptParserOptions {
   importExportsPresence?: string
   reexportExportsPresence?: string
   strictExportPresence: boolean
+  worker: Array<string>
 }
 
 export interface RawLazyCompilationOption {

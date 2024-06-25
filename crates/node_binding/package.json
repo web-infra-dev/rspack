@@ -6,7 +6,8 @@
   "main": "binding.js",
   "types": "binding.d.ts",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "files": [
     "binding.js",

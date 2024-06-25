@@ -26,7 +26,15 @@ export class StatsAPIProcessor<
 > extends SimpleTaskProcessor<T> {
 	constructor(protected _statsAPIOptions: IStatsAPIProcessorOptions<T>) {
 		super({
-			options: _statsAPIOptions.options,
+			options: context => {
+				const res = (_statsAPIOptions.options?.(context) ||
+					{}) as TCompilerOptions<ECompilerType.Rspack>;
+				res.experiments ??= {};
+				res.experiments!.rspackFuture ??= {};
+				res.experiments!.rspackFuture!.bundlerInfo ??= {};
+				res.experiments!.rspackFuture!.bundlerInfo!.force ??= false;
+				return res as TCompilerOptions<T>;
+			},
 			build: _statsAPIOptions.build,
 			compilerType: _statsAPIOptions.compilerType,
 			name: _statsAPIOptions.name,

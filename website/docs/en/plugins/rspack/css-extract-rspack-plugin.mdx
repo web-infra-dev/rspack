@@ -15,8 +15,10 @@ If your project does not depend on css-loader, it is recommended to use the buil
 
   ```ts
   export interface PluginOptions {
-    filename?: string;
-    chunkFilename?: string;
+    filename?: string | ((pathData: PathData, assetInfo?: AssetInfo) => string);
+    chunkFilename?:
+      | string
+      | ((pathData: PathData, assetInfo?: AssetInfo) => string);
     ignoreOrder?: boolean;
     insert?: string | ((linkTag: HTMLLinkElement) => void);
     attributes?: Record<string, string>;

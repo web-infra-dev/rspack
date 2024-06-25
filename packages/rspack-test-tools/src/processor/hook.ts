@@ -230,6 +230,13 @@ export class HookTaskProcessor<
 			},
 			optimization: {
 				minimize: false
+			},
+			experiments: {
+				rspackFuture: {
+					bundlerInfo: {
+						force: false
+					}
+				}
 			}
 		} as TCompilerOptions<T>;
 	}
