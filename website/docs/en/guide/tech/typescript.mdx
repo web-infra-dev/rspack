@@ -1,14 +1,38 @@
 # TypeScript
 
+## How to use
+
 Enabling TypeScript support can be done through [`builtin:swc-loader`](/guide/features/builtin-swc-loader).
 
-## Transpile-only
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        exclude: [/node_modules/],
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+## Transpile only
 
 For maximum speed, `builtin:swc-loader` transpiles TypeScript source code without performing any type checking. An external tool such as `tsc` must be used for type checking.
 
-## isolatedModules
+## Enable isolatedModules
 
-To maximize parallelism, `builtin:swc-loader` will transpile each module separately. This implies that [`isolatedModules`](https://www.typescriptlang.org/tsconfig#isolatedModules) must be enabled in your TypeScript configuration. Certain language features such as `const enum` rely on parsing the entire project, and thus cannot be used with isolated module transpilation. Enable `isolatedModules` in your `tsconfig.json ` file to ensure that your IDE hints and type checker accurately reflect Rspack's module handling behavior:
+To maximize parallelism, `builtin:swc-loader` will transpile each module separately. This requires that [`isolatedModules`](https://www.typescriptlang.org/tsconfig#isolatedModules) must be enabled in your TypeScript configuration to ensure type check of source code by tsc. Certain language features such as [const enums](https://www.typescriptlang.org/docs/handbook/enums.html#const-enums) rely on parsing the entire project, and thus cannot be used with isolated module transpilation. Enable `isolatedModules` in your `tsconfig.json ` file to ensure that your IDE hints and type checker accurately reflect Rspack's module handling behavior:
 
 ```json title="tsconfig.json"
 {
@@ -22,7 +46,7 @@ To maximize parallelism, `builtin:swc-loader` will transpile each module separat
 
 You can use the [fork-ts-checker-webpack-plugin](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin) to perform TypeScript type checking during compilation. However, it’s important to note that TypeScript’s type checking can be time-consuming, especially for larger projects. This means that the time required for type checking may exceed the build time of Rspack itself.
 
-If you are using the plugin in development mode, it won’t block the build and you can continue with the build process. However, in build mode, the plugin will block the build until the type checking is complete.
+If you are using the plugin in development mode, it won’t block the build and you can continue with the build process. However, in build mode, the plugin will block the build until the type checking is complete which may lead to longer build times.
 
 Based on your actual needs, you should decide whether to enable this plugin. If the type checking process becomes a bottleneck in your build process, we recommend using TypeScript’s incremental build feature. This feature can greatly speed up the type checking process by only analyzing the changed files since the last build.
 
@@ -36,28 +60,69 @@ Remember to evaluate the trade-off between build speed and the accuracy of type 
 
 Enabling TSX|JSX support can be done through [`builtin:swc-loader`](/guide/features/builtin-swc-loader).
 
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: 'ecmascript',
+                jsx: true,
+              },
+              transform: {
+                react: {
+                  pragma: 'React.createElement',
+                  pragmaFrag: 'React.Fragment',
+                  throwIfNamespace: true,
+                  development: false,
+                  useBuiltins: false,
+                },
+              },
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
 ## Alias
 
 See [resolve.tsConfig](/config/resolve#resolvetsconfig) for details.
 
 ## Client types
 
-It's possible to use webpack or Rspack specific features in your TypeScript code, such as [import.meta.webpackContext](/api/modules/module-variables#importmetawebpackcontext).
+It's possible to use the type of webpack or Rspack specific features in your TypeScript code, such as [import.meta.webpackContext](/api/modules/module-variables#importmetawebpackcontext).
 
-Rspack provides client module types via `@rspack/core/module`, you can add a TypeScript reference directive to declare them:
+Rspack provides client module types via `@rspack/core/module`, you can declare them in different ways:
 
-```ts title="src/index.ts"
-/// <reference types="@rspack/core/module" />
+1. Add the TypeScript reference directive to declare:
 
-console.log(import.meta.webpackContext); // without reference declared above, TypeScript will throw an error
-```
+   Add the following content to the global d.ts declarattion file:
 
-You can also add `@rspack/core/module` to the `types` field of tsconfig.json. This way, you no longer need to add the TypeScript reference directive in each file.
+   ```ts title="src/index.ts"
+   /// <reference types="@rspack/core/module" />
+   ```
 
-```json title="tsconfig.json"
-{
-  "compilerOptions": {
-    "types": ["@rspack/core/module"]
-  }
-}
-```
+   It can then be used in any TypeScript file:
+
+   ```ts title="src/index.ts"
+   console.log(import.meta.webpackContext); // without reference declared above, TypeScript will throw an error
+   ```
+
+2. You can also add `@rspack/core/module` to the `types` field of tsconfig.json. You could refer to the [tsconfig types document](https://www.typescriptlang.org/tsconfig/#types) for more details.
+
+   ```json title="tsconfig.json"
+   {
+     "compilerOptions": {
+       "types": ["@rspack/core/module"]
+     }
+   }
+   ```
