@@ -13,6 +13,9 @@ module.exports = {
 		+     "type": "filesystem",
 		+   },
 		@@ ... @@
+		-   "devtool": false,
+		+   "devtool": "eval",
+		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "development",
 		@@ ... @@

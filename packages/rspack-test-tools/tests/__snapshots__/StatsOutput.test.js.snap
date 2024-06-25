@@ -236,8 +236,8 @@ chunk (runtime: e2) e2.js (e2) 51 bytes (javascript) 8.38 KiB (runtime) [entry] 
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk should print correct stats for 1`] = `
-"Entrypoint e1 4.01 KiB = e1~runtime.js 3.68 KiB e1.js 338 bytes
-Entrypoint e2 4.01 KiB = e2~runtime.js 3.68 KiB e2.js 338 bytes
+"Entrypoint e1 4.07 KiB = e1~runtime.js 3.68 KiB e1.js 391 bytes
+Entrypoint e2 4.07 KiB = e2~runtime.js 3.68 KiB e2.js 391 bytes
 chunk (runtime: e1~runtime) e1.js (e1) 27 bytes [entry] [rendered]
 chunk (runtime: e1~runtime) e1~runtime.js (e1~runtime) 2.58 KiB [initial] [rendered]
 chunk (runtime: e2~runtime) e2.js (e2) 27 bytes [entry] [rendered]
@@ -245,8 +245,8 @@ chunk (runtime: e2~runtime) e2~runtime.js (e2~runtime) 2.58 KiB [initial] [rende
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk-multiple should print correct stats for 1`] = `
-"Entrypoint e1 4.01 KiB = runtime~e1.js 3.68 KiB e1.js 338 bytes
-Entrypoint e2 4.01 KiB = runtime~e2.js 3.68 KiB e2.js 338 bytes
+"Entrypoint e1 4.07 KiB = runtime~e1.js 3.68 KiB e1.js 391 bytes
+Entrypoint e2 4.07 KiB = runtime~e2.js 3.68 KiB e2.js 391 bytes
 chunk (runtime: runtime~e1) e1.js (e1) 27 bytes [entry] [rendered]
 chunk (runtime: runtime~e2) e2.js (e2) 27 bytes [entry] [rendered]
 chunk (runtime: runtime~e1) runtime~e1.js (runtime~e1) 2.58 KiB [initial] [rendered]
@@ -254,16 +254,16 @@ chunk (runtime: runtime~e2) runtime~e2.js (runtime~e2) 2.58 KiB [initial] [rende
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk-single should print correct stats for 1`] = `
-"Entrypoint e1 4.01 KiB = runtime.js 3.68 KiB e1.js 338 bytes
-Entrypoint e2 4.01 KiB = runtime.js 3.68 KiB e2.js 338 bytes
+"Entrypoint e1 4.06 KiB = runtime.js 3.68 KiB e1.js 391 bytes
+Entrypoint e2 4.06 KiB = runtime.js 3.68 KiB e2.js 391 bytes
 chunk (runtime: runtime) e1.js (e1) 27 bytes [entry] [rendered]
 chunk (runtime: runtime) e2.js (e2) 27 bytes [entry] [rendered]
 chunk (runtime: runtime) runtime.js (runtime) 2.58 KiB [initial] [rendered]"
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk-true should print correct stats for 1`] = `
-"Entrypoint e1 4.01 KiB = runtime~e1.js 3.68 KiB e1.js 338 bytes
-Entrypoint e2 4.01 KiB = runtime~e2.js 3.68 KiB e2.js 338 bytes
+"Entrypoint e1 4.07 KiB = runtime~e1.js 3.68 KiB e1.js 391 bytes
+Entrypoint e2 4.07 KiB = runtime~e2.js 3.68 KiB e2.js 391 bytes
 chunk (runtime: runtime~e1) e1.js (e1) 27 bytes [entry] [rendered]
 chunk (runtime: runtime~e2) e2.js (e2) 27 bytes [entry] [rendered]
 chunk (runtime: runtime~e1) runtime~e1.js (runtime~e1) 2.58 KiB [initial] [rendered]
@@ -387,8 +387,8 @@ Rspack x.x.x compiled with 1 error in X s"
 `;
 
 exports[`statsOutput statsOutput/resolve-unexpected-exports-in-pkg-error should print correct stats for 1`] = `
-"asset bundle.js 945 bytes [emitted] (name: main)
-Entrypoint main 945 bytes = bundle.js
+"asset bundle.js 1.38 KiB [emitted] (name: main)
+Entrypoint main 1.38 KiB = bundle.js
 runtime modules 280 bytes 1 module
 ./index.js 39 bytes [built] [code generated] [1 error]
 
@@ -441,8 +441,8 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/simple-export should print correct stats for 1`] = `
-"asset bundle.js 1.25 KiB [emitted] (name: main)
-Entrypoint main 1.25 KiB = bundle.js
+"asset bundle.js 1.71 KiB [emitted] (name: main)
+Entrypoint main 1.71 KiB = bundle.js
 runtime modules 677 bytes 3 modules
 ./index.js 26 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"

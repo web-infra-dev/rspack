@@ -38,18 +38,18 @@ Entrypoint main 294 KiB = no-warning.pro-node.js
 ./index.js 293 KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
-asset no-warning.dev-web.js 294 KiB [emitted] (name: main)
-Entrypoint main 294 KiB = no-warning.dev-web.js
+asset no-warning.dev-web.js 1.72 MiB [emitted] (name: main)
+Entrypoint main 1.72 MiB = no-warning.dev-web.js
 ./index.js 293 KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
-asset no-warning.dev-node.js 294 KiB [emitted] (name: main)
-Entrypoint main 294 KiB = no-warning.dev-node.js
+asset no-warning.dev-node.js 1.72 MiB [emitted] (name: main)
+Entrypoint main 1.72 MiB = no-warning.dev-node.js
 ./index.js 293 KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
-asset no-warning.dev-web-with-limit-set.js 294 KiB [emitted] (name: main)
-Entrypoint main 294 KiB = no-warning.dev-web-with-limit-set.js
+asset no-warning.dev-web-with-limit-set.js 1.72 MiB [emitted] (name: main)
+Entrypoint main 1.72 MiB = no-warning.dev-web-with-limit-set.js
 ./index.js 293 KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
