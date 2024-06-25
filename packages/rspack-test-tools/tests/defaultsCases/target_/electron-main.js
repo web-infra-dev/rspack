@@ -14,8 +14,9 @@ module.exports = {
 		+     "electronMain": true,
 		@@ ... @@
 		-     "node": false,
-		-     "web": true,
 		+     "node": true,
+		@@ ... @@
+		-     "web": true,
 		+     "web": false,
 		@@ ... @@
 		-       "document": true,

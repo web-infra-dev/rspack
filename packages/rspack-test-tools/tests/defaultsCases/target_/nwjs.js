@@ -1,7 +1,7 @@
 /** @type {import('../../..').TDefaultsCaseConfig} */
 module.exports = {
-	description: "target node",
-	options: () => ({ target: "node" }),
+	description: "target nwjs",
+	options: () => ({ target: "nwjs" }),
 	diff: e =>
 		e.toMatchInlineSnapshot(`
 		- Expected
@@ -9,16 +9,15 @@ module.exports = {
 
 		@@ ... @@
 		-     "node": false,
+		-     "nwjs": false,
 		+     "node": true,
-		@@ ... @@
-		-     "web": true,
-		+     "web": false,
+		+     "nwjs": true,
 		@@ ... @@
 		-       "document": true,
 		+       "document": false,
 		@@ ... @@
 		-     "target": "web",
-		+     "target": "node",
+		+     "target": "nwjs",
 		@@ ... @@
 		-         "exportsOnly": false,
 		+         "exportsOnly": true,
@@ -39,11 +38,11 @@ module.exports = {
 		-     "chunkFormat": "array-push",
 		-     "chunkLoading": "jsonp",
 		+     "chunkFormat": "commonjs",
-		+     "chunkLoading": "require",
+		+     "chunkLoading": "async-node",
 		@@ ... @@
 		-       "jsonp",
 		-       "import-scripts",
-		+       "require",
+		+       "async-node",
 		@@ ... @@
 		-       "fetch",
 		+       "async-node",
@@ -61,7 +60,7 @@ module.exports = {
 		+     "wasmLoading": "async-node",
 		@@ ... @@
 		-     "workerChunkLoading": "import-scripts",
-		+     "workerChunkLoading": "require",
+		+     "workerChunkLoading": "async-node",
 		@@ ... @@
 		-     "workerWasmLoading": "fetch",
 		+     "workerWasmLoading": "async-node",
@@ -101,10 +100,11 @@ module.exports = {
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
-		-       "browser",
 		+       "node",
 		@@ ... @@
+		+       "nwjs",
+		@@ ... @@
 		-   "target": "web",
-		+   "target": "node",
+		+   "target": "nwjs",
 	`)
 };

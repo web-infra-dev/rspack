@@ -363,3 +363,7 @@ jq('.my-element').animate(/* ... */);
 ### externalsPresets.electronPreload
 
 将 Electron 预加载脚本中常见的 Electron 内置模块如 `web-frame`、`ipc-renderer` 或 `shell` 视为外部模块，并在使用时通过 `require()` 加载它们。
+
+### externalsPresets.nwjs
+
+将 node-webkit 预加载脚本中常见的 node-webkit 内置模块如 `nw.gui` 视为外部模块，并在使用时通过 `import` 加载它们。

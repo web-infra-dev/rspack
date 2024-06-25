@@ -35,6 +35,7 @@ Object {
     "electronPreload": false,
     "electronRenderer": false,
     "node": false,
+    "nwjs": false,
     "web": true,
   },
   "externalsType": "var",
