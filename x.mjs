@@ -9,6 +9,7 @@ import {
 	launchRspackCli
 } from "./scripts/debug/launch.mjs";
 import { update_rspack_handler } from "./scripts/debug/update-rspack.mjs";
+import { overrides_rspack_handler } from "./scripts/debug/overrides-rspack.mjs";
 import { publish_handler } from "./scripts/release/publish.mjs";
 import { version_handler } from "./scripts/release/version.mjs";
 
@@ -250,6 +251,13 @@ program
 	.option("--path <char>", "path to package.json")
 	.description("update rspack related packages in package.json")
 	.action(update_rspack_handler);
+
+program
+	.command("overrides-rspack")
+	.argument("<version>", "version field")
+	.option("--path <char>", "path to package.json")
+	.description("add pnpm.overrides of rspack to package.json")
+	.action(overrides_rspack_handler);
 
 program
 	.command("version")
