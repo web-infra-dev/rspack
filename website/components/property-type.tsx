@@ -8,10 +8,7 @@ const PropertyType: FC<{ type: string; defaultValueList?: DefaultValue[] }> & {
 } = ({ type, defaultValueList }) => {
   return (
     <ul className="list-disc pl-5 my-4 leading-7">
-      <li
-        className="[&:not(:first-child)]:mt-2"
-        style={{ marginBottom: '10px' }}
-      >
+      <li className="[&:not(:first-child)]:mt-2">
         <strong>Type:</strong> <code>{type}</code>
       </li>
       {defaultValueList?.length && defaultValueList.length > 0 && (
@@ -44,10 +41,7 @@ const PropertyType: FC<{ type: string; defaultValueList?: DefaultValue[] }> & {
 PropertyType.CN = ({ type, defaultValueList }) => {
   return (
     <ul className="list-disc pl-5 my-4 leading-7">
-      <li
-        className="[&:not(:first-child)]:mt-2"
-        style={{ marginBottom: '10px' }}
-      >
+      <li className="[&:not(:first-child)]:mt-2">
         <strong>类型：</strong> <code>{type}</code>
       </li>
       {defaultValueList?.length && defaultValueList.length > 0 && (
