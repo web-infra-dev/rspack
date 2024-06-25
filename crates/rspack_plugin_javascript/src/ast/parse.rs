@@ -45,26 +45,40 @@ fn parse_with_lexer(
   lexer: Lexer,
   is_module: IsModule,
 ) -> Result<Program, Vec<parser::error::Error>> {
-  let mut parser = Parser::new_from(lexer);
-  let program_result = match is_module {
-    IsModule::Bool(true) => parser.parse_module().map(Program::Module),
-    IsModule::Bool(false) => parser.parse_script().map(Program::Script),
-    IsModule::Unknown => parser.parse_program(),
-  };
-  let mut errors = parser.take_errors();
-  // Using combinator will let rustc unhappy.
-  match program_result {
-    Ok(program) => {
-      if !errors.is_empty() {
-        return Err(errors);
+  let inner = || {
+    let mut parser = Parser::new_from(lexer);
+    let program_result = match is_module {
+      IsModule::Bool(true) => parser.parse_module().map(Program::Module),
+      IsModule::Bool(false) => parser.parse_script().map(Program::Script),
+      IsModule::Unknown => parser.parse_program(),
+    };
+    let mut errors = parser.take_errors();
+    // Using combinator will let rustc unhappy.
+    match program_result {
+      Ok(program) => {
+        if !errors.is_empty() {
+          return Err(errors);
+        }
+        Ok(program)
       }
-      Ok(program)
+      Err(err) => {
+        errors.push(err);
+        Err(errors)
+      }
     }
-    Err(err) => {
-      errors.push(err);
-      Err(errors)
-    }
+  };
+
+  #[cfg(debug_assertions)]
+  {
+    // Adjust stack to avoid stack overflow.
+    stacker::maybe_grow(
+      2 * 1024 * 1024, /* 2mb */
+      4 * 1024 * 1024, /* 4mb */
+      inner,
+    )
   }
+  #[cfg(not(debug_assertions))]
+  inner()
 }
 
 pub fn parse(
