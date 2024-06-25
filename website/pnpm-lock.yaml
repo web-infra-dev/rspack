@@ -16,7 +16,7 @@ importers:
         version: 2.30.0
       framer-motion:
         specifier: ^10.0.0
-        version: 10.18.0(react-dom@18.2.0)(react@18.2.0)
+        version: 10.18.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       markdown-to-jsx:
         specifier: ^7.2.1
         version: 7.4.3(react@18.2.0)
@@ -28,7 +28,7 @@ importers:
         version: 18.2.0(react@18.2.0)
       react-intersection-observer:
         specifier: ^9.4.3
-        version: 9.8.1(react-dom@18.2.0)(react@18.2.0)
+        version: 9.8.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       rsfamily-nav-icon:
         specifier: ^1.0.3
         version: 1.0.3
@@ -41,7 +41,7 @@ importers:
     devDependencies:
       '@rspress/plugin-rss':
         specifier: ^1.23.1
-        version: 1.23.1(react@18.2.0)(rspress@1.23.1)
+        version: 1.23.1(react@18.2.0)(rspress@1.23.1(@swc/helpers@0.5.3)(webpack@5.91.0))
       '@rspress/shared':
         specifier: ^1.23.1
         version: 1.23.1
@@ -63,12 +63,6 @@ importers:
       cspell-ban-words:
         specifier: 0.0.3
         version: 0.0.3
-      nano-staged:
-        specifier: ^0.8.0
-        version: 0.8.0
-      prettier:
-        specifier: 3.2.5
-        version: 3.2.5
       rsbuild-plugin-google-analytics:
         specifier: 1.0.0
         version: 1.0.0(@rsbuild/core@0.7.3)
@@ -77,7 +71,7 @@ importers:
         version: 1.0.0(@rsbuild/core@0.7.3)
       rspress:
         specifier: ^1.23.1
-        version: 1.23.1(webpack@5.91.0)
+        version: 1.23.1(@swc/helpers@0.5.3)(webpack@5.91.0)
       rspress-plugin-font-open-sans:
         specifier: 1.0.0
         version: 1.0.0
@@ -408,25 +402,21 @@ packages:
     resolution: {integrity: sha512-w4pbei0AQZfw5JhbkELY9r4a+jY3fVNfgI+NxqVEcx3oglHfM5bPW0zw6c8B4hMAFEF83+YTvI9yIsPOfUtt0w==}
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   '@rspack/binding-linux-arm64-musl@0.7.1':
     resolution: {integrity: sha512-rwGTbhJq0a+uWq0dsgR20+x8XB5Vnj1Ejk2V6XjA5mOVxf8W9zRJx2S0RjDF33o/r4YQE4P26FrOHKkR57nKuw==}
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   '@rspack/binding-linux-x64-gnu@0.7.1':
     resolution: {integrity: sha512-7xtSbOGovZ5A9F7sumbSpDby8DYpKHfbfVnGpmjvngiLYUb3tcVEi1JydFjxbIaebd0hhR4h3rdwjPKbFW7ZVw==}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   '@rspack/binding-linux-x64-musl@0.7.1':
     resolution: {integrity: sha512-EuOvMlDtpPL4lAetLW0InnZEMdVDoZfZ71vXu1u8/cPlbo32VD76ayymLgOmW0FX4hezKsu40LJKNWjCOmg4eA==}
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   '@rspack/binding-win32-arm64-msvc@0.7.1':
     resolution: {integrity: sha512-e1ZWVErTmrGOQUM4pEwHymS/d+j9W7aeCrD2Bd8HuR1C4+hjlD7BUHCIosZk64uYYct4jI6qMkPE9vkP9942YA==}
@@ -1761,11 +1751,6 @@ packages:
   mz@2.7.0:
     resolution: {integrity: sha512-z81GNO7nnYMEhrGh9LeymoE4+Yr0Wn5McHIZMK5cfQCl+NDX08sCZgUc9/6MHni9IWuFLm1Z3HTCXu2z9fN62Q==}
 
-  nano-staged@0.8.0:
-    resolution: {integrity: sha512-QSEqPGTCJbkHU2yLvfY6huqYPjdBrOaTMKatO1F8nCSrkQGXeKwtCiCnsdxnuMhbg3DTVywKaeWLGCE5oJpq0g==}
-    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
-    hasBin: true
-
   nanoid@3.3.7:
     resolution: {integrity: sha512-eSRppjcPIatRIMC1U6UngP8XFcz8MQWGQdt1MTBQ7NaAmvXDfvNxbvWV3x2y6CdEUciCSsDHDQZbhYaB8QEo2g==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
@@ -1911,11 +1896,6 @@ packages:
   postcss@8.4.38:
     resolution: {integrity: sha512-Wglpdk03BSfXkHoQa3b/oulrotAkwrlLDRSOb9D0bN86FdRyE9lppSp33aHNPgBa0JKCoB+drFLZkQoRRYae5A==}
     engines: {node: ^10 || ^12 || >=14}
-
-  prettier@3.2.5:
-    resolution: {integrity: sha512-3/GWa9aOC0YeD7LUfvOG2NiDyhOWRvt1k+rcKhOuYnMY24iiCphgneUfJDyFXd6rZCAnuLBv6UeAULtrhT/F4A==}
-    engines: {node: '>=14'}
-    hasBin: true
 
   prismjs@1.27.0:
     resolution: {integrity: sha512-t13BGPUlFDR7wRB5kQDG4jjl7XeuH6jbJGt11JHPL96qwsEHNX2+68tFXqc1/k+/jALsbSWJKUOT/hcYAZ5LkA==}
@@ -2881,17 +2861,17 @@ snapshots:
       '@rspack/core': 0.7.1(@swc/helpers@0.5.3)
       '@swc/helpers': 0.5.3
       core-js: 3.36.1
-      html-webpack-plugin: html-rspack-plugin@5.7.2(@rspack/core@0.7.1)
+      html-webpack-plugin: html-rspack-plugin@5.7.2(@rspack/core@0.7.1(@swc/helpers@0.5.3))
       postcss: 8.4.38
 
-  '@rsbuild/plugin-less@0.7.3(@rsbuild/core@0.7.3)':
+  '@rsbuild/plugin-less@0.7.3(@rsbuild/core@0.7.3)(@swc/helpers@0.5.3)':
     dependencies:
       '@rsbuild/core': 0.7.3
       '@rsbuild/shared': 0.7.3(@swc/helpers@0.5.3)
     transitivePeerDependencies:
       - '@swc/helpers'
 
-  '@rsbuild/plugin-react@0.7.3(@rsbuild/core@0.7.3)':
+  '@rsbuild/plugin-react@0.7.3(@rsbuild/core@0.7.3)(@swc/helpers@0.5.3)':
     dependencies:
       '@rsbuild/core': 0.7.3
       '@rsbuild/shared': 0.7.3(@swc/helpers@0.5.3)
@@ -2900,7 +2880,7 @@ snapshots:
     transitivePeerDependencies:
       - '@swc/helpers'
 
-  '@rsbuild/plugin-sass@0.7.3(@rsbuild/core@0.7.3)':
+  '@rsbuild/plugin-sass@0.7.3(@rsbuild/core@0.7.3)(@swc/helpers@0.5.3)':
     dependencies:
       '@rsbuild/core': 0.7.3
       '@rsbuild/shared': 0.7.3(@swc/helpers@0.5.3)
@@ -2913,7 +2893,7 @@ snapshots:
     dependencies:
       '@rspack/core': 0.7.1(@swc/helpers@0.5.3)
       caniuse-lite: 1.0.30001628
-      html-webpack-plugin: html-rspack-plugin@5.7.2(@rspack/core@0.7.1)
+      html-webpack-plugin: html-rspack-plugin@5.7.2(@rspack/core@0.7.1(@swc/helpers@0.5.3))
       postcss: 8.4.38
     optionalDependencies:
       fsevents: 2.3.3
@@ -2963,16 +2943,17 @@ snapshots:
     dependencies:
       '@module-federation/runtime-tools': 0.1.6
       '@rspack/binding': 0.7.1
-      '@swc/helpers': 0.5.3
       caniuse-lite: 1.0.30001621
       tapable: 2.2.1
       webpack-sources: 3.2.3
+    optionalDependencies:
+      '@swc/helpers': 0.5.3
 
   '@rspack/plugin-react-refresh@0.7.1(react-refresh@0.14.2)':
-    dependencies:
+    optionalDependencies:
       react-refresh: 0.14.2
 
-  '@rspress/core@1.23.1(webpack@5.91.0)':
+  '@rspress/core@1.23.1(@swc/helpers@0.5.3)(webpack@5.91.0)':
     dependencies:
       '@loadable/component': 5.16.4(react@18.2.0)
       '@mdx-js/loader': 2.3.0(webpack@5.91.0)
@@ -2980,9 +2961,9 @@ snapshots:
       '@mdx-js/react': 2.3.0(react@18.2.0)
       '@modern-js/utils': 2.51.0
       '@rsbuild/core': 0.7.3
-      '@rsbuild/plugin-less': 0.7.3(@rsbuild/core@0.7.3)
-      '@rsbuild/plugin-react': 0.7.3(@rsbuild/core@0.7.3)
-      '@rsbuild/plugin-sass': 0.7.3(@rsbuild/core@0.7.3)
+      '@rsbuild/plugin-less': 0.7.3(@rsbuild/core@0.7.3)(@swc/helpers@0.5.3)
+      '@rsbuild/plugin-react': 0.7.3(@rsbuild/core@0.7.3)(@swc/helpers@0.5.3)
+      '@rsbuild/plugin-sass': 0.7.3(@rsbuild/core@0.7.3)(@swc/helpers@0.5.3)
       '@rspress/mdx-rs': 0.5.7
       '@rspress/plugin-auto-nav-sidebar': 1.23.1
       '@rspress/plugin-container-syntax': 1.23.1
@@ -3008,7 +2989,7 @@ snapshots:
       postcss: 8.4.31
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
-      react-helmet-async: 1.3.0(react-dom@18.2.0)(react@18.2.0)
+      react-helmet-async: 1.3.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react-lazy-with-preload: 2.2.1
       react-syntax-highlighter: 15.5.0(react@18.2.0)
       rehype-external-links: 2.1.0
@@ -3081,20 +3062,20 @@ snapshots:
       '@rspress/runtime': 1.23.1
       medium-zoom: 1.1.0
 
-  '@rspress/plugin-rss@1.23.1(react@18.2.0)(rspress@1.23.1)':
+  '@rspress/plugin-rss@1.23.1(react@18.2.0)(rspress@1.23.1(@swc/helpers@0.5.3)(webpack@5.91.0))':
     dependencies:
       '@rspress/shared': 1.23.1
       feed: 4.2.2
       react: 18.2.0
-      rspress: 1.23.1(webpack@5.91.0)
+      rspress: 1.23.1(@swc/helpers@0.5.3)(webpack@5.91.0)
 
   '@rspress/runtime@1.23.1':
     dependencies:
       '@rspress/shared': 1.23.1
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
-      react-helmet-async: 1.3.0(react-dom@18.2.0)(react@18.2.0)
-      react-router-dom: 6.22.3(react-dom@18.2.0)(react@18.2.0)
+      react-helmet-async: 1.3.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      react-router-dom: 6.22.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
 
   '@rspress/shared@1.23.1':
     dependencies:
@@ -3123,9 +3104,9 @@ snapshots:
       nprogress: 0.2.0
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
-      react-helmet-async: 1.3.0(react-dom@18.2.0)(react@18.2.0)
+      react-helmet-async: 1.3.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react-syntax-highlighter: 15.5.0(react@18.2.0)
-      react-transition-group: 4.4.5(react-dom@18.2.0)(react@18.2.0)
+      react-transition-group: 4.4.5(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       rspack-plugin-virtual-module: 0.1.12
 
   '@selderee/plugin-htmlparser2@0.11.0':
@@ -3356,7 +3337,7 @@ snapshots:
 
   browserslist@4.23.0:
     dependencies:
-      caniuse-lite: 1.0.30001621
+      caniuse-lite: 1.0.30001628
       electron-to-chromium: 1.4.713
       node-releases: 2.0.14
       update-browserslist-db: 1.0.13(browserslist@4.23.0)
@@ -3795,13 +3776,13 @@ snapshots:
     dependencies:
       fetch-blob: 3.2.0
 
-  framer-motion@10.18.0(react-dom@18.2.0)(react@18.2.0):
+  framer-motion@10.18.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
-      react: 18.2.0
-      react-dom: 18.2.0(react@18.2.0)
       tslib: 2.6.2
     optionalDependencies:
       '@emotion/is-prop-valid': 0.8.8
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
 
   fs-extra@11.2.0:
     dependencies:
@@ -3990,8 +3971,8 @@ snapshots:
 
   html-entities@2.5.2: {}
 
-  html-rspack-plugin@5.7.2(@rspack/core@0.7.1):
-    dependencies:
+  html-rspack-plugin@5.7.2(@rspack/core@0.7.1(@swc/helpers@0.5.3)):
+    optionalDependencies:
       '@rspack/core': 0.7.1(@swc/helpers@0.5.3)
 
   html-tags@3.3.1: {}
@@ -4644,10 +4625,6 @@ snapshots:
       object-assign: 4.1.1
       thenify-all: 1.6.0
 
-  nano-staged@0.8.0:
-    dependencies:
-      picocolors: 1.0.0
-
   nanoid@3.3.7: {}
 
   neo-async@2.6.2: {}
@@ -4759,8 +4736,9 @@ snapshots:
   postcss-load-config@4.0.2(postcss@8.4.38):
     dependencies:
       lilconfig: 3.1.1
-      postcss: 8.4.38
       yaml: 2.4.1
+    optionalDependencies:
+      postcss: 8.4.38
 
   postcss-nested@6.0.1(postcss@8.4.38):
     dependencies:
@@ -4785,8 +4763,6 @@ snapshots:
       nanoid: 3.3.7
       picocolors: 1.0.0
       source-map-js: 1.2.0
-
-  prettier@3.2.5: {}
 
   prismjs@1.27.0: {}
 
@@ -4822,7 +4798,7 @@ snapshots:
 
   react-fast-compare@3.2.2: {}
 
-  react-helmet-async@1.3.0(react-dom@18.2.0)(react@18.2.0):
+  react-helmet-async@1.3.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
       '@babel/runtime': 7.24.1
       invariant: 2.2.4
@@ -4832,9 +4808,10 @@ snapshots:
       react-fast-compare: 3.2.2
       shallowequal: 1.1.0
 
-  react-intersection-observer@9.8.1(react-dom@18.2.0)(react@18.2.0):
+  react-intersection-observer@9.8.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
       react: 18.2.0
+    optionalDependencies:
       react-dom: 18.2.0(react@18.2.0)
 
   react-is@16.13.1: {}
@@ -4843,7 +4820,7 @@ snapshots:
 
   react-refresh@0.14.2: {}
 
-  react-router-dom@6.22.3(react-dom@18.2.0)(react@18.2.0):
+  react-router-dom@6.22.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
       '@remix-run/router': 1.15.3
       react: 18.2.0
@@ -4864,7 +4841,7 @@ snapshots:
       react: 18.2.0
       refractor: 3.6.0
 
-  react-transition-group@4.4.5(react-dom@18.2.0)(react@18.2.0):
+  react-transition-group@4.4.5(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
       '@babel/runtime': 7.24.1
       dom-helpers: 5.2.1
@@ -4978,11 +4955,11 @@ snapshots:
   reusify@1.0.4: {}
 
   rsbuild-plugin-google-analytics@1.0.0(@rsbuild/core@0.7.3):
-    dependencies:
+    optionalDependencies:
       '@rsbuild/core': 0.7.3
 
   rsbuild-plugin-open-graph@1.0.0(@rsbuild/core@0.7.3):
-    dependencies:
+    optionalDependencies:
       '@rsbuild/core': 0.7.3
 
   rsfamily-nav-icon@1.0.3: {}
@@ -4995,10 +4972,10 @@ snapshots:
 
   rspress-plugin-font-open-sans@1.0.0: {}
 
-  rspress@1.23.1(webpack@5.91.0):
+  rspress@1.23.1(@swc/helpers@0.5.3)(webpack@5.91.0):
     dependencies:
       '@rsbuild/core': 0.7.3
-      '@rspress/core': 1.23.1(webpack@5.91.0)
+      '@rspress/core': 1.23.1(@swc/helpers@0.5.3)(webpack@5.91.0)
       '@rspress/shared': 1.23.1
       cac: 6.7.14
       chalk: 5.3.0
