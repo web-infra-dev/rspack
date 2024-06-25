@@ -21,6 +21,15 @@ new Worker(new URL('./worker.js', import.meta.url), {
 });
 ```
 
+In addition to `new Worker()`, the following syntax is also supported:
+
+- `new SharedWorker()`
+- `import { Worker } from "worker_threads"`: usually used in Node environments
+- <ApiMeta addedVersion={'1.0.0-alpha.0'} inline /> `navigator.serviceWorker.register()`:
+  used to register Service Workers
+
+Custom syntax can be provided via [`module.parser.javascript.worker`](/config/module#moduleparserjavascriptworker).
+
 For examples:
 
 - [examples/worker](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/worker)
@@ -43,10 +52,7 @@ The syntax was chosen to allow running code without bundler, it is also availabl
 
    This is because Rspack cannot statically analyze the syntax. Please be sure to note this limitation when using the Worker syntax in Rspack.
 
-3. The current implementation supports most of the common usage scenarios, the following uncommon scenarios are still not supported
-   - Customized worker syntax from `module.parser.javascript.worker` is not supported
-   - Worker syntax for function calls such as `navigator.serviceWorker.register()` is not supported
-   - Not supported `/* webpackEntryOptions: { filename: "workers/[name].js" } */` magic comments
+3. Not support `/* webpackEntryOptions: { filename: "workers/[name].js" } */` magic comments for now.
 
 :::
 

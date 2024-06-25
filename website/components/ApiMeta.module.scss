@@ -2,18 +2,28 @@
   margin-top: 1.5rem;
 }
 
+.wrapperInline {
+  display: inline;
+}
+
 :global(h2) + .wrapper {
   margin-top: 0px;
 }
 
-.tag {
+.tagInline {
   display: inline-flex;
   color: #1c1c1c;
-  margin: 0 8px 12px 0;
+  margin-right: 8px;
   padding: 4px 10px;
   font-size: 12px;
   font-weight: 600;
   border-radius: 6px;
+  line-height: 18px;
+}
+
+.tag {
+  composes: tagInline;
+  margin-bottom: 12px;
 }
 
 .added {

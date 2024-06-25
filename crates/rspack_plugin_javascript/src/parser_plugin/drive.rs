@@ -380,6 +380,38 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
+  fn pattern(
+    &self,
+    parser: &mut JavascriptParser,
+    ident: &swc_core::ecma::ast::Ident,
+    for_name: &str,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.pattern(parser, ident, for_name);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn pre_declarator(
+    &self,
+    parser: &mut JavascriptParser,
+    declarator: &VarDeclarator,
+    declaration: &VarDecl,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.pre_declarator(parser, declarator, declaration);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
   fn can_rename(&self, parser: &mut JavascriptParser, str: &str) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.can_rename(parser, str);

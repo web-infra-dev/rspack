@@ -15,31 +15,34 @@ export interface ApiMetaProps {
   deprecatedVersion?: string;
   removedVersion?: string;
   stability?: Stability;
+  inline?: boolean;
 }
 
 export function ApiMeta(props: ApiMetaProps) {
   let lang = useLang();
   const href = `/${lang}/misc/planning/future`;
+  const tagStyle = props.inline ? styles.tagInline : styles.tag;
+  const wrapperStyle = props.inline ? styles.wrapperInline : styles.wrapper;
   return (
-    <div className={styles.wrapper}>
+    <div className={wrapperStyle}>
       {props.addedVersion && (
-        <span className={`${styles.tag} ${styles.added}`}>
+        <span className={`${tagStyle} ${styles.added}`}>
           <a href={href}>Added in v{props.addedVersion}</a>
         </span>
       )}
       {props.deprecatedVersion && (
-        <span className={`${styles.tag} ${styles.deprecated}`}>
+        <span className={`${tagStyle} ${styles.deprecated}`}>
           <a href={href}>Deprecated in v{props.deprecatedVersion}</a>
         </span>
       )}
       {props.removedVersion && (
-        <span className={`${styles.tag} ${styles.removed}`}>
+        <span className={`${tagStyle} ${styles.removed}`}>
           <a href={href}>Removed in v{props.removedVersion}</a>
         </span>
       )}
       {props.stability && (
         <div
-          className={`${styles.tag} ${
+          className={`${tagStyle} ${
             props.stability ? styles[props.stability.toLowerCase()] : ''
           }`}
         >

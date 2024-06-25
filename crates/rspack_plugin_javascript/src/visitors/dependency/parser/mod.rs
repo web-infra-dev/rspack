@@ -36,9 +36,25 @@ use crate::visitors::scope_info::{
   FreeName, ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoId,
 };
 
-pub trait TagInfoData {
+pub trait TagInfoData: Clone + Sized + 'static {
   fn into_any(data: Self) -> Box<dyn anymap::CloneAny>;
+
   fn downcast(any: Box<dyn anymap::CloneAny>) -> Self;
+}
+
+impl<T> TagInfoData for T
+where
+  T: Clone + Sized + 'static,
+{
+  fn into_any(data: Self) -> Box<dyn anymap::CloneAny> {
+    Box::new(data)
+  }
+
+  fn downcast(any: Box<dyn anymap::CloneAny>) -> Self {
+    *(any as Box<dyn std::any::Any>)
+      .downcast()
+      .expect("TagInfoData should be downcasted from correct tag info")
+  }
 }
 
 #[derive(Debug)]
@@ -699,8 +715,15 @@ impl<'parser> JavascriptParser<'parser> {
   where
     F: FnOnce(&mut Self, &Ident),
   {
-    // TODO: add hooks here;
-    on_ident(self, ident);
+    if !ident
+      .sym
+      .call_hooks_name(self, |parser, for_name| {
+        parser.plugin_drive.clone().pattern(parser, ident, for_name)
+      })
+      .unwrap_or_default()
+    {
+      on_ident(self, ident);
+    }
   }
 
   fn enter_array_pattern<F>(&mut self, array_pat: &ArrayPat, on_ident: F)

@@ -223,6 +223,35 @@ Warn or error for using non-existent exports, defaulting to the configuration of
 
 Warn or error for conflicting re-exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
 
+#### module.parser.javascript.worker
+
+<ApiMeta addedVersion="1.0.0-alpha.0" />
+
+- **Type:** `string[] | boolean`
+
+Provide custom syntax for Worker parsing, commonly used to support Worklet:
+
+```js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        worker: [
+          // Supports CSS paintWorklet
+          'CSS.paintWorklet.addModule()',
+          // Supports AudioWorklet, with the leading '*' indicating the recognition of a variable named 'context', for example:
+          // let context = new AudioContext();
+          // await context.audioWorklet.addModule(new URL("noise-processor.js", import.meta.url));
+          '*context.audioWorklet.addModule()',
+          // Extends default syntax: ["Worker", "SharedWorker", "navigator.serviceWorker.register()", "Worker from worker_threads"]
+          '...',
+        ],
+      },
+    },
+  },
+};
+```
+
 ### module.parser["javascript/auto"]
 
 <ApiMeta addedVersion="0.6.3" />

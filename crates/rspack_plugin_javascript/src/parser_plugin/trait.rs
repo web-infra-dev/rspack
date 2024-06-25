@@ -52,6 +52,15 @@ pub trait JavascriptParserPlugin {
     None
   }
 
+  fn pre_declarator(
+    &self,
+    _parser: &mut JavascriptParser,
+    _declarator: &VarDeclarator,
+    _declaration: &VarDecl,
+  ) -> Option<bool> {
+    None
+  }
+
   fn evaluate_typeof(
     &self,
     _parser: &mut JavascriptParser,
@@ -78,6 +87,15 @@ pub trait JavascriptParserPlugin {
     _expr: &CallExpr,
     _param: &BasicEvaluatedExpression,
   ) -> Option<BasicEvaluatedExpression> {
+    None
+  }
+
+  fn pattern(
+    &self,
+    _parser: &mut JavascriptParser,
+    _ident: &Ident,
+    _for_name: &str,
+  ) -> Option<bool> {
     None
   }
 
