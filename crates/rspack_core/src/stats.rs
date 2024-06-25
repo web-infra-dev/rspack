@@ -6,6 +6,7 @@ use itertools::Itertools;
 use rspack_error::emitter::{DiagnosticDisplay, DiagnosticDisplayer};
 use rspack_error::emitter::{StdioDiagnosticDisplay, StringDiagnosticDisplay};
 use rspack_error::Result;
+use rspack_identifier::Identifier;
 use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -163,6 +164,7 @@ impl Stats<'_> {
           used_exports,
           provided_exports,
           false,
+          None,
         )
       })
       .chain(
@@ -191,6 +193,7 @@ impl Stats<'_> {
             used_exports,
             provided_exports,
             true,
+            None,
           )
         })
         .collect::<Result<_>>()?;
@@ -233,6 +236,7 @@ impl Stats<'_> {
     f: impl Fn(Vec<StatsChunk>) -> T,
   ) -> Result<T> {
     let module_graph = self.compilation.get_module_graph();
+    let chunk_graph = &self.compilation.chunk_graph;
     let mut chunks: Vec<StatsChunk> = self
       .compilation
       .chunk_by_ukey
@@ -240,6 +244,13 @@ impl Stats<'_> {
       .map(|c| -> Result<_> {
         let mut files = Vec::from_iter(c.files.iter().cloned());
         files.sort_unstable();
+
+        let root_modules = HashSet::from_iter(
+          chunk_graph
+            .get_chunk_root_modules(&c.ukey, &module_graph)
+            .iter()
+            .copied(),
+        );
 
         let mut auxiliary_files = Vec::from_iter(c.auxiliary_files.iter().cloned());
         auxiliary_files.sort_unstable();
@@ -262,6 +273,7 @@ impl Stats<'_> {
                 used_exports,
                 provided_exports,
                 false,
+                Some(&root_modules),
               )
             })
             .collect::<Result<Vec<_>>>()?;
@@ -520,6 +532,7 @@ impl Stats<'_> {
     used_exports: bool,
     provided_exports: bool,
     executed: bool,
+    root_modules: Option<&HashSet<Identifier>>,
   ) -> Result<StatsModule<'a>> {
     let identifier = module.identifier();
     let mgm = module_graph
@@ -661,6 +674,7 @@ impl Stats<'_> {
               used_exports,
               provided_exports,
               executed,
+              root_modules,
             )
           })
           .collect::<Result<_>>()?;
@@ -747,6 +761,14 @@ impl Stats<'_> {
       })
       .collect_vec();
 
+    let dependent = if let Some(root_modules) = root_modules
+      && !executed
+    {
+      Some(!root_modules.contains(&identifier))
+    } else {
+      None
+    };
+
     Ok(StatsModule {
       r#type: "module",
       module_type: *module.module_type(),
@@ -800,6 +822,7 @@ impl Stats<'_> {
       failed: errors > 0,
       errors,
       warnings,
+      dependent,
     })
   }
 
@@ -851,6 +874,7 @@ impl Stats<'_> {
       failed: false,
       warnings: 0,
       errors: 0,
+      dependent: None,
     })
   }
 
@@ -922,6 +946,7 @@ impl Stats<'_> {
       failed: false,
       warnings: 0,
       errors: 0,
+      dependent: Some(false),
     })
   }
   fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
@@ -1039,6 +1064,7 @@ pub struct StatsModule<'a> {
   pub chunks: Vec<Option<String>>, // has id after the call of chunkIds hook
   pub size: f64,
   pub sizes: Vec<StatsSourceTypeSize>,
+  pub dependent: Option<bool>,
   pub issuer: Option<String>,
   pub issuer_name: Option<String>,
   pub issuer_id: Option<String>,
