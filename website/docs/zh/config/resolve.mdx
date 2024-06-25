@@ -120,7 +120,67 @@ module.exports = {
 - **类型：** `Record<string, false | string>`
 - **默认值：** `{}`
 
-解析失败时的重定向。
+当常规解析失败时重定向模块请求。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  resolve: {
+    fallback: {
+      abc: false, // 不为 abc 引入 polyfill
+      xyz: path.resolve(__dirname, 'path/to/file.js'), // 为 xyz 引入 polyfill
+    },
+  },
+};
+```
+
+Rspack 默认不会为 Node.js 核心模块提供 polyfills，这意味着如果你在浏览器或类似环境中运行的代码中使用它们，你将需要从 NPM 安装兼容的模块并自行包含它们。
+
+你可以使用 [node-polyfill-webpack-plugin](https://www.npmjs.com/package/node-polyfill-webpack-plugin) 来自动 polyfill Node.js 核心模块。
+
+```js title="rspack.config.js"
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+
+module.exports = {
+  // ...
+  plugins: [new NodePolyfillPlugin()],
+};
+```
+
+或者参考 webpack 4 使用的 Node.js polyfills 列表：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  resolve: {
+    fallback: {
+      assert: require.resolve('assert'),
+      buffer: require.resolve('buffer'),
+      console: require.resolve('console-browserify'),
+      constants: require.resolve('constants-browserify'),
+      crypto: require.resolve('crypto-browserify'),
+      domain: require.resolve('domain-browser'),
+      events: require.resolve('events'),
+      http: require.resolve('stream-http'),
+      https: require.resolve('https-browserify'),
+      os: require.resolve('os-browserify/browser'),
+      path: require.resolve('path-browserify'),
+      punycode: require.resolve('punycode'),
+      process: require.resolve('process/browser'),
+      querystring: require.resolve('querystring-es3'),
+      stream: require.resolve('stream-browserify'),
+      string_decoder: require.resolve('string_decoder'),
+      sys: require.resolve('util'),
+      timers: require.resolve('timers-browserify'),
+      tty: require.resolve('tty-browserify'),
+      url: require.resolve('url'),
+      util: require.resolve('util'),
+      vm: require.resolve('vm-browserify'),
+      zlib: require.resolve('browserify-zlib'),
+    },
+  },
+};
+```
 
 ## resolve.mainFields
 

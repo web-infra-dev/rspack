@@ -6,13 +6,13 @@ CSS is a first-class citizen with Rspack. Rspack has the ability to handle CSS o
 
 By default, files ending in `*.css` are treated as CSS types. Files ending in `*.module.css` are treated as [CSS Modules](https://github.com/css-modules/css-modules) module types.
 
-If you're migrating from Webpack, you can remove the `css-loader` or `style-loader` components from your configuration to use Rspack's built-in CSS processing capabilities, as described in [migration guide](/guide/migration/webpack#removing-css-loader-and-style-loader-and-mini-css-extract-plugin).
+If you're migrating from webpack, you can remove the `css-loader` or `style-loader` components from your configuration to use Rspack's built-in CSS processing capabilities, as described in [migration guide](/guide/migration/webpack#removing-css-loader-and-style-loader-and-mini-css-extract-plugin).
 
 ## CSS Modules
 
 By default, Rspack treats files with a `*.module.css` extension as CSS Modules. You can import them into your JavaScript files, and then access each class defined in the CSS file as an export from the module.
 
-```ts title="index.module.css"
+```css title="index.module.css"
 .red {
   color: red;
 }
@@ -77,7 +77,7 @@ module.exports = {
             },
           },
         ],
-        // set to 'css/auto' if you want to support '*.module.css' as CSS Module, otherwise set type to 'css'
+        // set to 'css/auto' if you want to support '*.module.css' as CSS Modules, otherwise set type to 'css'
         type: 'css/auto',
       },
     ],
@@ -110,7 +110,7 @@ module.exports = {
             },
           },
         ],
-        // set to 'css/auto' if you want to support '*.module.(scss|sass)' as CSS Module, otherwise set type to 'css'
+        // set to 'css/auto' if you want to support '*.module.(scss|sass)' as CSS Modules, otherwise set type to 'css'
         type: 'css/auto',
       },
     ],
@@ -140,7 +140,7 @@ module.exports = {
             },
           },
         ],
-        // set to 'css/auto' if you want to support '*.module.less' as CSS Module, otherwise set type to 'css'
+        // set to 'css/auto' if you want to support '*.module.less' as CSS Modules, otherwise set type to 'css'
         type: 'css/auto',
       },
     ],
