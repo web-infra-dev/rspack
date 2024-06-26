@@ -17,5 +17,6 @@
     "type": "dir",
     "name": "plugin-api",
     "label": "插件 API"
-  }
+  },
+  "stats"
 ]
