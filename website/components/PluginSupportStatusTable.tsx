@@ -75,11 +75,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'EvalSourceMapDevToolPlugin',
-    status: SupportStatus.PartiallySupported,
-    notes: {
-      en: '`test`, `include`, `exclude`, `moduleFilenameTemplate`, `protocol` options not supported',
-      zh: '不支持 `test`、`include`、`exclude`、`moduleFilenameTemplate`、`protocol` 选项',
-    },
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'HashedModuleIdsPlugin',
