@@ -29,17 +29,19 @@ Rspack 的配置是基于 webpack 的设计实现的，以此你能够非常轻�
   "scripts": {
 -   "serve": "webpack serve",
 -   "build": "webpack build",
-+   "serve": "rspack serve -c webpack.config.js",
-+   "build": "rspack build -c webpack.config.js",
++   "serve": "rspack serve",
++   "build": "rspack build",
   }
 }
 ```
 
+## 修改配置
+
+将 `webpack.config.js` 文件重命名为 `rspack.config.js`。
+
 :::tip 提示
 Rspack 命令与 webpack 命令相同，均可通过 `-c` 或 `--config` 指定配置文件。但与 webpack 不同的是，如果你未显式指定配置文件，Rspack 默认使用 `rspack.config.js`。
 :::
-
-## 修改配置
 
 Rspack 目前并不支持所有 webpack 配置，有些配置会影响构建产物，为保证构建产物的正确性，Rspack 默认开启了对配置的严格校验。
 不过，Rspack 也提供了宽松模式，方便进行渐进式迁移。你可以通过设置 `RSPACK_CONFIG_VALIDATE` 环境变量来开启宽松模式：
@@ -59,6 +61,8 @@ Rspack 正在积极推动 webpack 的下一个版本的功能，因此在某些�
 | node.\_\_filename | 'mock'         | 'warn-mock'   |
 | node.\_\_dirname  | 'mock'         | 'warn-mock'   |
 
+查阅[配置 Rspack](/config/index) 来了解 Rspack 支持的所有配置。
+
 ## Webpack 内置插件
 
 Rspack 实现了大部分 webpack 内置插件，其命名和参数配置与 webpack 保持一致，你可以非常轻松地替换它们。
@@ -69,7 +73,7 @@ Rspack 实现了大部分 webpack 内置插件，其命名和参数配置与 web
 
 例如替换 [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin)：
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
 - const webpack = require('webpack');
 + const rspack = require('@rspack/core');
 
@@ -94,7 +98,7 @@ Rspack 支持大部分 webpack 社区插件，并为暂不支持的插件提供�
 
 ### [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) → [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
 - const CopyWebpackPlugin = require('copy-webpack-plugin');
 + const rspack = require('@rspack/core');
 
@@ -110,7 +114,7 @@ module.exports = {
 
 ### [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) → [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
 - const CssExtractWebpackPlugin = require('mini-css-extract-plugin');
 + const rspack = require('@rspack/core');
 
@@ -138,7 +142,7 @@ module.exports = {
 
 ### [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin) → [resolve.tsConfig](/config/resolve#resolvetsconfig)
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
 - const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 module.exports = {
@@ -159,7 +163,7 @@ Rspack 已实现了与 Webpack 功能完全对齐的 loader 执行器，支持�
 
 如果你需要通过 babel 插件进行自定义转换逻辑，可以保留 `babel-loader`，但不建议对大量文件使用 `babel-loader`，因为这会导致显著的性能下降。
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
 module.exports = {
    module: {
      rules: [
@@ -241,7 +245,7 @@ Rspack 实现了 webpack 5 的[资源模块](https://webpack.js.org/guides/asset
 
 #### file-loader → asset/resource
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
  module.exports = {
    module: {
      rules: [
@@ -260,7 +264,7 @@ Rspack 实现了 webpack 5 的[资源模块](https://webpack.js.org/guides/asset
 
 #### url-loader → asset/inline
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
  module.exports = {
    module: {
      rules: [
@@ -279,7 +283,7 @@ Rspack 实现了 webpack 5 的[资源模块](https://webpack.js.org/guides/asset
 
 #### raw-loader → asset/source
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
  module.exports = {
    module: {
      rules: [

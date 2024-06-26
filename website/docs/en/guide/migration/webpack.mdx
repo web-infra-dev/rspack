@@ -30,18 +30,20 @@ Update your build scripts to use Rspack instead of webpack:
   "scripts": {
 -   "serve": "webpack serve",
 -   "build": "webpack build",
-+   "serve": "rspack serve -c webpack.config.js",
-+   "build": "rspack build -c webpack.config.js",
++   "serve": "rspack serve",
++   "build": "rspack build",
   }
 }
 ```
 
-:::tip
-Rspack commands can specify the configuration file with `-c` or `--config` like webpack commands.
-Unlike webpack, if you do not explicitly specify a configuration file, Rspack defaults to using `rspack.config.js`.
-:::
-
 ## Updating configuration
+
+Rename the `webpack.config.js` file to `rspack.config.js`.
+
+:::tip
+Rspack commands can specify the configuration file with -c or --config, similar to webpack commands.
+However, unlike webpack, if a configuration file is not explicitly specified, Rspack defaults to using rspack.config.js.
+:::
 
 Rspack does not currently support all webpack configurations, and some configurations might affect the build output.
 To ensure the correctness of the build output, Rspack enables strict configuration validation by default.
@@ -62,6 +64,8 @@ Rspack is actively working on implementing webpack's upcoming features, so some 
 | node.\_\_filename | 'mock'          | 'warn-mock'    |
 | node.\_\_dirname  | 'mock'          | 'warn-mock'    |
 
+You can refer to [Configure Rspack](/config/index) to see the configurations supported by Rspack.
+
 ## Webpack built-in plugins
 
 Rspack has implemented most of webpack's built-in plugins, with the same names and configuration parameters, allowing for easy replacement.
@@ -72,7 +76,7 @@ See [Webpack-aligned built-in plugins](/plugins/webpack/index) for more informat
 
 For example, replacing the [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin):
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
 - const webpack = require('webpack');
 + const rspack = require('@rspack/core');
 
@@ -97,7 +101,7 @@ Check [Plugin compat](/guide/compatibility/plugin) for more information on Rspac
 
 ### [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) → [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
 - const CopyWebpackPlugin = require('copy-webpack-plugin');
 + const rspack = require('@rspack/core');
 
@@ -113,7 +117,7 @@ module.exports = {
 
 ### [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) → [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
 - const CssExtractWebpackPlugin = require('mini-css-extract-plugin');
 + const rspack = require('@rspack/core');
 
@@ -141,7 +145,7 @@ module.exports = {
 
 ### [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin) → [resolve.tsConfig](/config/resolve#resolvetsconfig)
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
 - const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 module.exports = {
@@ -163,7 +167,7 @@ Using `builtin:swc-loader` offers better performance compared to the `babel-load
 
 If you need custom transformation logic using Babel plugins, you can retain `babel-loader`, but it is recommended to limit its use to fewer files to prevent significant performance degradation.
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
 module.exports = {
    module: {
      rules: [
@@ -245,7 +249,7 @@ Rspack implements Webpack 5's [Asset Modules](https://webpack.js.org/guides/asse
 
 #### file-loader → asset/resource
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
  module.exports = {
    module: {
      rules: [
@@ -264,7 +268,7 @@ Rspack implements Webpack 5's [Asset Modules](https://webpack.js.org/guides/asse
 
 #### url-loader → asset/inline
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
  module.exports = {
    module: {
      rules: [
@@ -283,7 +287,7 @@ Rspack implements Webpack 5's [Asset Modules](https://webpack.js.org/guides/asse
 
 #### raw-loader → asset/source
 
-```diff title="webpack.config.js"
+```diff title="rspack.config.js"
  module.exports = {
    module: {
      rules: [
