@@ -45,7 +45,7 @@ export const WebpackError = Error;
 
 export type { Watching } from "./Watching";
 
-const sources = require("webpack-sources"); // use require to avoid wrong types, @types/webpack-sources is outdate
+import * as sources from "./sources";
 export { sources };
 
 import {

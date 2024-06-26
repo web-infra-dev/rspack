@@ -20,8 +20,8 @@
     "./module": "./module.d.ts"
   },
   "scripts": {
-    "build": "prebundle && tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json",
-    "build:force": "prebundle && tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json",
+    "build": "prebundle && tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json && cp src/sources.d.ts dist/sources.d.ts",
+    "build:force": "prebundle && tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json && cp src/sources.d.ts dist/sources.d.ts",
     "dev": "prebundle && tsc -w",
     "doc-coverage": "node scripts/check-documentation-coverage.mjs",
     "api-extractor": "api-extractor run --verbose",
