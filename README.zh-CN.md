@@ -16,7 +16,7 @@
     <img src="https://img.shields.io/npm/dm/@rspack/core.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="downloads" />
   </a>
   <a href="https://nodejs.org/en/about/previous-releases">
-    <img src="https://img.shields.io/node/v/@rsbuild/core.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="node version">
+    <img src="https://img.shields.io/node/v/@rspack/core.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="node version">
   </a>
   <a href="https://github.com/web-infra-dev/rspack/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="license" />

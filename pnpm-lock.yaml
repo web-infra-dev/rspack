@@ -78,21 +78,6 @@ importers:
         specifier: 5.1.4
         version: 5.1.4(webpack@5.92.0)
 
-  benchcases/react-refresh:
-    devDependencies:
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      react:
-        specifier: 18.0.0
-        version: 18.0.0
-      react-dom:
-        specifier: 18.0.0
-        version: 18.0.0(react@18.0.0)
-      react-refresh:
-        specifier: 0.14.0
-        version: 0.14.0
-
   crates/node_binding:
     optionalDependencies:
       '@rspack/binding-darwin-arm64':

@@ -16,7 +16,6 @@ pnpm-lock.yaml
 # Infra
 
 /.github/workflows @jerrykingxyz
-/benchcases @IWANABETHATGUY
 /scripts @jerrykingxyz
 
 # Webpack Tests

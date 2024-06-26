@@ -175,7 +175,6 @@ packages/*/tests/js
 
 # Benchmark
 /github/
-/benchcases/three
 
 # profile
 profile.json
