@@ -16,7 +16,6 @@ pnpm-lock.yaml
 # Infra
 
 /.github/workflows @jerrykingxyz
-/benchcases @IWANABETHATGUY
 /scripts @jerrykingxyz
 
 # Webpack Tests
@@ -65,8 +64,6 @@ pnpm-lock.yaml
 /crates/rspack_plugin_schemes
 /crates/rspack_plugin_split_chunks
 /crates/rspack_plugin_wasm
-/crates/rspack_regex @IWANABETHATGUY
-/crates/rspack_symbol @IWANABETHATGUY
 /crates/rspack_tracing
 /crates/rspack_util
 

@@ -10,7 +10,6 @@
       "packages/**/etc/**/*",
       "packages/**/compiled/**/*",
       "plugin-test/**/*",
-      "benchcases/**/*",
       "crates/**/*",
       "webpack-test/**/*",
       "webpack-cli-test/**/*",

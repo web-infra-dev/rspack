@@ -9,7 +9,6 @@ packages:
   - "examples/**"
   - "!examples/three"
   - "webpack-examples"
-  - "benchcases/react-refresh"
   - "webpack-test"
   - "plugin-test"
   - "webpack-cli-test"
