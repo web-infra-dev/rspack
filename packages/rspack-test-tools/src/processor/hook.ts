@@ -232,6 +232,7 @@ export class HookTaskProcessor<
 				minimize: false
 			},
 			experiments: {
+				css: true,
 				rspackFuture: {
 					bundlerInfo: {
 						force: false

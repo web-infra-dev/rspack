@@ -147,6 +147,7 @@ export class NormalProcessor<
 					});
 				}),
 			experiments: {
+				css: true,
 				rspackFuture: {
 					bundlerInfo: {
 						force: false
@@ -158,7 +159,6 @@ export class NormalProcessor<
 				// backCompat: false,
 				// CHANGE: Rspack enables `css` by default.
 				// Turning off here to fallback to webpack's default css processing logic.
-				css: false,
 				...(compilerOptions?.module ? { outputModule: true } : {})
 			}
 			// infrastructureLogging: compilerOptions?.cache && {

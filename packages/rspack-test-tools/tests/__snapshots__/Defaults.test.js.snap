@@ -17,7 +17,7 @@ Object {
   },
   "experiments": Object {
     "asyncWebAssembly": false,
-    "css": true,
+    "css": undefined,
     "lazyCompilation": false,
     "rspackFuture": Object {
       "bundlerInfo": Object {
@@ -128,30 +128,6 @@ Object {
         "type": "javascript/esm",
       },
       Object {
-        "resolve": Object {
-          "fullySpecified": true,
-          "preferRelative": true,
-        },
-        "test": /\\\\\\.css\\$/i,
-        "type": "css/auto",
-      },
-      Object {
-        "mimetype": "text/css+module",
-        "resolve": Object {
-          "fullySpecified": true,
-          "preferRelative": true,
-        },
-        "type": "css/module",
-      },
-      Object {
-        "mimetype": "text/css",
-        "resolve": Object {
-          "fullySpecified": true,
-          "preferRelative": true,
-        },
-        "type": "css",
-      },
-      Object {
         "dependency": "url",
         "oneOf": Array [
           Object {
@@ -164,39 +140,13 @@ Object {
         ],
       },
     ],
-    "generator": Object {
-      "css": Object {
-        "esModule": true,
-        "exportsOnly": false,
-      },
-      "css/auto": Object {
-        "esModule": true,
-        "exportsConvention": "as-is",
-        "exportsOnly": false,
-        "localIdentName": "[uniqueName]-[id]-[local]",
-      },
-      "css/module": Object {
-        "esModule": true,
-        "exportsConvention": "as-is",
-        "exportsOnly": false,
-        "localIdentName": "[uniqueName]-[id]-[local]",
-      },
-    },
+    "generator": Object {},
     "noParse": undefined,
     "parser": Object {
       "asset": Object {
         "dataUrlCondition": Object {
           "maxSize": 8096,
         },
-      },
-      "css": Object {
-        "namedExports": true,
-      },
-      "css/auto": Object {
-        "namedExports": true,
-      },
-      "css/module": Object {
-        "namedExports": true,
       },
       "javascript": Object {
         "dynamicImportMode": "lazy",
@@ -322,7 +272,6 @@ Object {
       "chunks": "async",
       "defaultSizeTypes": Array [
         "javascript",
-        "css",
         "unknown",
       ],
       "hidePathInfo": false,
@@ -423,22 +372,6 @@ Object {
           "module",
           "...",
         ],
-      },
-      "css-import": Object {
-        "conditionNames": Array [
-          "webpack",
-          "production",
-          "style",
-        ],
-        "extensions": Array [
-          ".css",
-        ],
-        "mainFields": Array [
-          "style",
-          "...",
-        ],
-        "mainFiles": Array [],
-        "preferRelative": true,
       },
       "esm": Object {
         "aliasFields": Array [

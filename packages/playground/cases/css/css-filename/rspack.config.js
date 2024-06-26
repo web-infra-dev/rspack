@@ -19,5 +19,8 @@ module.exports = {
 	plugins: [new rspack.HtmlRspackPlugin()],
 	watchOptions: {
 		poll: 1000
+	},
+	experiments: {
+		css: true
 	}
 };

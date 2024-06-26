@@ -119,6 +119,7 @@ export class BuiltinProcessor<
 				extensions: [".js"]
 			},
 			experiments: {
+				css: true,
 				futureDefaults: true,
 				rspackFuture: {
 					bundlerInfo: {

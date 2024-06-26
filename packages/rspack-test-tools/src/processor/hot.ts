@@ -109,6 +109,7 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			},
 			target: this._hotOptions.target,
 			experiments: {
+				css: true,
 				rspackFuture: {
 					bundlerInfo: {
 						force: false

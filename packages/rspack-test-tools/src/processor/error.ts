@@ -90,6 +90,7 @@ export class ErrorProcessor<
 						minimize: false
 					},
 					experiments: {
+						css: true,
 						rspackFuture: {
 							bundlerInfo: {
 								force: false

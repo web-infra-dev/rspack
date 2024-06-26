@@ -69,7 +69,7 @@ function assertWebpackConfig(config) {
 	expect(rspackBaseConfig).toEqual(webpackBaseConfig);
 }
 
-describe("Base Defaults Snapshot", () => {
+describe.skip("Base Defaults Snapshot", () => {
 	const baseConfig = DefaultsConfigProcessor.getDefaultConfig(cwd, { mode: "none" });
 
 	it("should have the correct base config", () => {

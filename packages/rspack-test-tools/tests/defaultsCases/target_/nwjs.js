@@ -19,15 +19,6 @@ module.exports = {
 		-     "target": "web",
 		+     "target": "nwjs",
 		@@ ... @@
-		-         "exportsOnly": false,
-		+         "exportsOnly": true,
-		@@ ... @@
-		-         "exportsOnly": false,
-		+         "exportsOnly": true,
-		@@ ... @@
-		-         "exportsOnly": false,
-		+         "exportsOnly": true,
-		@@ ... @@
 		-     "__dirname": "warn-mock",
 		-     "__filename": "warn-mock",
 		-     "global": "warn",
