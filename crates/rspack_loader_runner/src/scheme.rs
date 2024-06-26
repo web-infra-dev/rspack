@@ -21,6 +21,10 @@ impl Scheme {
   pub fn is_none(&self) -> bool {
     matches!(self, Self::None)
   }
+
+  pub fn is_some(&self) -> bool {
+    !self.is_none()
+  }
 }
 
 impl From<&str> for Scheme {
