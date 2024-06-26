@@ -53,7 +53,7 @@ RSPACK_CONFIG_VALIDATE=loose rspack build
 RSPACK_CONFIG_VALIDATE=loose-silent rspack build
 ```
 
-Rspack 正在积极推动 webpack 的下一个版本的功能，因此在某些配置项上与 webpack 5 存在一些默认值的不同，如下：
+Rspack 正在积极推动 webpack 的下一个版本的功能，因此在部分配置项上与 webpack 5 的默认值不同，如下：
 
 | 配置              | webpack 默认值 | Rspack 默认值 |
 | ----------------- | -------------- | ------------- |
@@ -67,11 +67,7 @@ Rspack 正在积极推动 webpack 的下一个版本的功能，因此在某些�
 
 Rspack 实现了大部分 webpack 内置插件，其命名和参数配置与 webpack 保持一致，你可以非常轻松地替换它们。
 
-:::tip 提示
-查看[同步自 webpack 的内置插件](/plugins/webpack/index)以了解 Rspack 对 webpack 所有内置插件的支持情况。
-:::
-
-例如替换 [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin)：
+例如替换 [DefinePlugin](/plugins/webpack/define-plugin)：
 
 ```diff title="rspack.config.js"
 - const webpack = require('webpack');
@@ -88,13 +84,13 @@ module.exports = {
 }
 ```
 
+查看[同步自 webpack 的内置插件](/plugins/webpack/index)以了解 Rspack 对 webpack 所有内置插件的支持情况。
+
 ## 社区插件
 
 Rspack 支持大部分 webpack 社区插件，并为暂不支持的插件提供了替代方案。
 
-:::tip 提示
 查看[Plugin 兼容](/guide/compatibility/plugin)以了解 Rspack 对 webpack 常见社区插件的兼容情况。
-:::
 
 ### [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) → [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)
 

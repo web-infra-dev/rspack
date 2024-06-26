@@ -41,13 +41,13 @@ Update your build scripts to use Rspack instead of webpack:
 Rename the `webpack.config.js` file to `rspack.config.js`.
 
 :::tip
-Rspack commands can specify the configuration file with -c or --config, similar to webpack commands.
-However, unlike webpack, if a configuration file is not explicitly specified, Rspack defaults to using rspack.config.js.
+Rspack commands can specify the configuration file with `-c` or `--config`, similar to webpack commands.
+However, unlike webpack, if a configuration file is not explicitly specified, Rspack defaults to using `rspack.config.js`.
 :::
 
 Rspack does not currently support all webpack configurations, and some configurations might affect the build output.
-To ensure the correctness of the build output, Rspack enables strict configuration validation by default.
-However, Rspack also offers lenient modes to facilitate gradual migration. You can enable these modes by setting the `RSPACK_CONFIG_VALIDATE` environment variable:
+To ensure the correctness of the build output, Rspack enables strict validation of the configurations by default.
+However, Rspack also provides a loose mode for easy progressive migration. You can enable it by setting the `RSPACK_CONFIG_VALIDATE` environment variable:
 
 ```bash
 # Enable loose validation mode will print out erroneous configurations but will not throw error.
@@ -70,11 +70,7 @@ You can refer to [Configure Rspack](/config/index) to see the configurations sup
 
 Rspack has implemented most of webpack's built-in plugins, with the same names and configuration parameters, allowing for easy replacement.
 
-:::tip
-See [Webpack-aligned built-in plugins](/plugins/webpack/index) for more information about supported webpack plugins in Rspack.
-:::
-
-For example, replacing the [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin):
+For example, replacing the [DefinePlugin](/plugins/webpack/define-plugin):
 
 ```diff title="rspack.config.js"
 - const webpack = require('webpack');
@@ -91,13 +87,13 @@ module.exports = {
 }
 ```
 
+See [Webpack-aligned built-in plugins](/plugins/webpack/index) for more information about supported webpack plugins in Rspack.
+
 ## Community plugins
 
 Rspack supports most of the webpack community plugins and also offers alternative solutions for some currently unsupported plugins.
 
-:::tip
 Check [Plugin compat](/guide/compatibility/plugin) for more information on Rspack's compatibility with popular webpack community plugins.
-:::
 
 ### [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) → [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)
 
