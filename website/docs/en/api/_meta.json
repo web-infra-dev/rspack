@@ -17,5 +17,6 @@
     "type": "dir",
     "name": "plugin-api",
     "label": "Plugin API"
-  }
+  },
+  "stats"
 ]
