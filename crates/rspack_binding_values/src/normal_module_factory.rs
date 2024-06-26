@@ -15,6 +15,7 @@ pub type JsResolveForSchemeOutput = (Option<bool>, JsResourceData);
 pub struct JsBeforeResolveArgs {
   pub request: String,
   pub context: String,
+  pub issuer: String,
 }
 
 pub type JsBeforeResolveOutput = (Option<bool>, JsBeforeResolveArgs);
@@ -30,6 +31,7 @@ pub struct JsCreateData {
 pub struct JsAfterResolveData {
   pub request: String,
   pub context: String,
+  pub issuer: String,
   pub file_dependencies: Vec<String>,
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,

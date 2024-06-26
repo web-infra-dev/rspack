@@ -1014,6 +1014,9 @@ class Compiler {
 						this.#compilationParams!.normalModuleFactory.hooks.beforeResolve,
 					queried => async (resolveData: binding.JsBeforeResolveArgs) => {
 						const normalizedResolveData: ResolveData = {
+							contextInfo: {
+								issuer: resolveData.issuer
+							},
 							request: resolveData.request,
 							context: resolveData.context,
 							fileDependencies: [],
@@ -1043,6 +1046,9 @@ class Compiler {
 				() => this.#compilationParams!.normalModuleFactory.hooks.afterResolve,
 				queried => async (arg: binding.JsAfterResolveData) => {
 					const data: ResolveData = {
+						contextInfo: {
+							issuer: arg.issuer
+						},
 						request: arg.request,
 						context: arg.context,
 						fileDependencies: arg.fileDependencies,

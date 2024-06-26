@@ -1160,6 +1160,11 @@ impl NormalModuleFactoryBeforeResolve for NormalModuleFactoryBeforeResolveTap {
       .call_with_promise(JsBeforeResolveArgs {
         request: dependency.request().to_string(),
         context: data.context.to_string(),
+        issuer: data
+          .issuer
+          .as_ref()
+          .map(|issuer| issuer.to_string())
+          .unwrap_or_default(),
       })
       .await
     {
@@ -1212,6 +1217,11 @@ impl NormalModuleFactoryAfterResolve for NormalModuleFactoryAfterResolveTap {
       .call_with_promise(JsAfterResolveData {
         request: create_data.raw_request.to_string(),
         context: data.context.to_string(),
+        issuer: data
+          .issuer
+          .as_ref()
+          .map(|issuer| issuer.to_string())
+          .unwrap_or_default(),
         file_dependencies: data
           .file_dependencies
           .clone()

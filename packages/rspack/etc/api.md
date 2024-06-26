@@ -1477,6 +1477,11 @@ export type Context = z.infer<typeof context>;
 const context: z.ZodString;
 
 // @public (undocumented)
+type ContextInfo = {
+    issuer: string;
+};
+
+// @public (undocumented)
 class ContextModuleFactory {
     constructor();
     // (undocumented)
@@ -8191,6 +8196,7 @@ const resolveAlias: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLitera
 
 // @public (undocumented)
 type ResolveData = {
+    contextInfo: ContextInfo;
     context: string;
     request: string;
     fileDependencies: string[];

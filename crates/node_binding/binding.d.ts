@@ -197,6 +197,7 @@ export interface JsAdditionalTreeRuntimeRequirementsResult {
 export interface JsAfterResolveData {
   request: string
   context: string
+  issuer: string
   fileDependencies: Array<string>
   contextDependencies: Array<string>
   missingDependencies: Array<string>
@@ -259,6 +260,7 @@ export interface JsAssetInfoRelated {
 export interface JsBeforeResolveArgs {
   request: string
   context: string
+  issuer: string
 }
 
 export interface JsBuildTimeExecutionOption {
