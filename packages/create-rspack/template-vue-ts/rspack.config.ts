@@ -1,28 +1,23 @@
-import {
-	Configuration,
-	DefinePlugin,
-	HtmlRspackPlugin,
-	RspackPluginFunction
-} from "@rspack/core";
+import { defineConfig } from "@rspack/cli";
+import { type RspackPluginFunction, rspack } from "@rspack/core";
 import { VueLoaderPlugin } from "vue-loader";
 
-const isDev = process.env.NODE_ENV == "development";
-
-const config: Configuration = {
+export default defineConfig({
 	context: __dirname,
 	entry: {
 		main: "./src/main.ts"
 	},
 	resolve: {
-		extensions: ["...", ".ts"]
+		extensions: ["...", ".ts", ".vue"]
 	},
 	plugins: [
 		new VueLoaderPlugin() as RspackPluginFunction,
-		new HtmlRspackPlugin({
+		new rspack.HtmlRspackPlugin({
 			template: "./index.html"
 		}),
-		new DefinePlugin({
-			__VUE_PROD_DEVTOOLS__: isDev
+		new rspack.DefinePlugin({
+			__VUE_OPTIONS_API__: true,
+			__VUE_PROD_DEVTOOLS__: false
 		})
 	],
 	module: {
@@ -43,8 +38,7 @@ const config: Configuration = {
 							sourceMap: true,
 							jsc: {
 								parser: {
-									syntax: "typescript",
-									tsx: false
+									syntax: "typescript"
 								}
 							},
 							env: {
@@ -64,7 +58,8 @@ const config: Configuration = {
 				type: "asset/resource"
 			}
 		]
+	},
+	experiments: {
+		css: true
 	}
-};
-
-export default config;
+});

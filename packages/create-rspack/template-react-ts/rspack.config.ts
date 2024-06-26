@@ -1,10 +1,10 @@
-const rspack = require("@rspack/core");
-const refreshPlugin = require("@rspack/plugin-react-refresh");
+import { defineConfig } from "@rspack/cli";
+import { rspack } from "@rspack/core";
+import * as RefreshPlugin from "@rspack/plugin-react-refresh";
+
 const isDev = process.env.NODE_ENV === "development";
-/**
- * @type {import('@rspack/cli').Configuration}
- */
-module.exports = {
+
+export default defineConfig({
 	context: __dirname,
 	entry: {
 		main: "./src/main.tsx"
@@ -59,6 +59,9 @@ module.exports = {
 		new rspack.HtmlRspackPlugin({
 			template: "./index.html"
 		}),
-		isDev ? new refreshPlugin() : null
-	].filter(Boolean)
-};
+		isDev ? new RefreshPlugin() : null
+	].filter(Boolean),
+	experiments: {
+		css: true
+	}
+});
