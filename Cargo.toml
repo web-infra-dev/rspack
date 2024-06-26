@@ -1,3 +1,5 @@
+cargo-features = ["trim-paths"]
+
 [workspace]
 members  = ["crates/*"]
 resolver = "2"          # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
