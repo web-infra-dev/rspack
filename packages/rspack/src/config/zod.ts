@@ -945,7 +945,8 @@ const externalsPresets = z.strictObject({
 	electron: z.boolean().optional(),
 	electronMain: z.boolean().optional(),
 	electronPreload: z.boolean().optional(),
-	electronRenderer: z.boolean().optional()
+	electronRenderer: z.boolean().optional(),
+	nwjs: z.boolean().optional()
 });
 export type ExternalsPresets = z.infer<typeof externalsPresets>;
 //#endregion

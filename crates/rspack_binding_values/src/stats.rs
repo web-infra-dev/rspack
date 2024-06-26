@@ -231,6 +231,7 @@ pub struct JsStatsModule {
   pub size: f64,
   pub sizes: Vec<JsStatsSize>,
   pub depth: Option<u32>,
+  pub dependent: Option<bool>,
   pub issuer: Option<String>,
   pub issuer_name: Option<String>,
   pub issuer_id: Option<String>,
@@ -306,6 +307,7 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       module_type: stats.module_type.as_str().to_string(),
       identifier: stats.identifier.to_string(),
       id: stats.id,
+      dependent: stats.dependent,
       issuer: stats.issuer,
       issuer_name: stats.issuer_name,
       issuer_id: stats.issuer_id,
@@ -432,6 +434,8 @@ pub struct JsStatsChunk {
   pub files: Vec<String>,
   pub auxiliary_files: Vec<String>,
   pub id: Option<String>,
+  pub id_hints: Vec<String>,
+  pub hash: Option<String>,
   pub entry: bool,
   pub initial: bool,
   pub names: Vec<String>,
@@ -504,6 +508,8 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
           request: origin.request,
         })
         .collect::<Vec<_>>(),
+      id_hints: stats.id_hints,
+      hash: stats.hash,
     })
   }
 }

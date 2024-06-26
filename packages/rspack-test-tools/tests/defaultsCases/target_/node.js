@@ -9,8 +9,9 @@ module.exports = {
 
 		@@ ... @@
 		-     "node": false,
-		-     "web": true,
 		+     "node": true,
+		@@ ... @@
+		-     "web": true,
 		+     "web": false,
 		@@ ... @@
 		-       "document": true,

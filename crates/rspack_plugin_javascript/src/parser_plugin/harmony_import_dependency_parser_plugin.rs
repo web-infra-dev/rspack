@@ -81,18 +81,6 @@ pub struct HarmonySpecifierData {
   pub source_order: i32,
 }
 
-impl TagInfoData for HarmonySpecifierData {
-  fn into_any(data: Self) -> Box<dyn anymap::CloneAny> {
-    Box::new(data)
-  }
-
-  fn downcast(any: Box<dyn anymap::CloneAny>) -> Self {
-    *(any as Box<dyn std::any::Any>)
-      .downcast()
-      .expect("HarmonySpecifierData should be downcasted from correct tag info")
-  }
-}
-
 impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
   fn import(
     &self,

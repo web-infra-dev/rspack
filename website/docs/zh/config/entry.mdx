@@ -5,31 +5,11 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 # Entry
 
-输入：该选项用于设置 Rspack 构建的入口。
+入口：该选项用于设置 Rspack 构建的入口。
 
-- **类型：**
+- **类型：** `string | string[] | Record<string, string | string[] | EntryDescription> | Function`
 
-  ```ts
-  type EntryDescription = {
-    import: EntryItem;
-    runtime?: EntryRuntime;
-    chunkLoading?: ChunkLoading;
-    asyncChunks?: boolean;
-    publicPath?: PublicPath;
-    baseUri?: string;
-    filename?: EntryFilename;
-  };
-
-  type EntryObject = {
-    [k: string]: EntryItem | EntryDescription;
-  };
-
-  type Config = {
-    entry: EntryItem | EntryObject;
-  };
-  ```
-
-- **默认值：** `./src/index.js`
+- **默认值：** `'./src/index.js'`
 
 ## 单个入口
 
@@ -114,7 +94,7 @@ module.exports = {
 
 - **默认值：** `'./src/index.js'`
 
-入口模块的路径
+入口模块的路径。
 
 #### EntryDescription.runtime
 
@@ -204,6 +184,18 @@ module.exports = {
 <ApiMeta addedVersion={'0.3.12'} />
 
 修改该入口所生成 chunk 作为库的导出格式，详细配置可参考 [output.library](/config/output#outputlibrary)。
+
+#### EntryDescription.dependOn
+
+- **类型：**
+
+  ```ts
+  type EntryDependOn = string[] | string;
+  ```
+
+- **默认值：** `undefined`
+
+设置当前入口所依赖的入口。使用 `dependOn` 选项你可以与另一个入口 chunk 共享模块。
 
 ## 动态入口
 

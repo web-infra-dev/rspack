@@ -31,6 +31,8 @@ export type KnownStatsModule = Omit<
 	providedExports?: null | string[];
 	optimizationBailout?: null | string[];
 	sizes: Record<string, number>;
+	index?: number; // =preOrderIndex
+	index2?: number; // =postOrderIndex
 };
 
 export type StatsProfile = KnownStatsProfile & Record<string, any>;

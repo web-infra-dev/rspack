@@ -21,6 +21,15 @@ new Worker(new URL('./worker.js', import.meta.url), {
 });
 ```
 
+除 `new Worker()` 以外还支持以下语法：
+
+- `new SharedWorker()`
+- `import { Worker } from "worker_thread"`：常用于 node 环境
+- <ApiMeta addedVersion={'1.0.0-alpha.0'} inline /> `navigator.serviceWorker.register()`：用于注册
+  Service Worker
+
+可通过 [`module.parser.javascript.worker`](/config/module#moduleparserjavascriptworker) 提供自定义语法。
+
 使用示例可参考：
 
 - [examples/worker](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/worker)
@@ -43,10 +52,7 @@ new Worker(new URL('./worker.js', import.meta.url), {
 
    这是因为 Rspack 无法静态分析该语法。在 Rspack 中使用 Worker 语法时，请务必注意此限制。
 
-3. 目前的实现支持了大部分常见的使用场景，目前仍不支持以下不常见场景
-   - 不支持通过 `module.parser.javascript.worker` 来自定义 Worker 语法
-   - 不支持 `navigator.serviceWorker.register()` 等函数调用的 Worker 语法
-   - 不支持 `/* webpackEntryOptions: { filename: "workers/[name].js" } */` 魔法注释
+3. 目前不支持 `/* webpackEntryOptions: { filename: "workers/[name].js" } */` 魔法注释
 
 :::
 

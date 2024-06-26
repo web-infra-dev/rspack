@@ -31,8 +31,6 @@ pub struct EvalDevToolModulePluginOptions {
   pub source_url_comment: Option<String>,
 }
 
-static EVAL_MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
-
 const EVAL_DEV_TOOL_MODULE_PLUGIN_NAME: &str = "rspack.EvalDevToolModulePlugin";
 
 #[plugin]
@@ -43,6 +41,7 @@ pub struct EvalDevToolModulePlugin {
   source_url_comment: String,
   #[derivative(Debug = "ignore")]
   module_filename_template: ModuleFilenameTemplate,
+  cache: DashMap<BoxSource, BoxSource>,
 }
 
 impl EvalDevToolModulePlugin {
@@ -60,7 +59,12 @@ impl EvalDevToolModulePlugin {
           "webpack://[namespace]/[resource-path]?[hash]".to_string(),
         ));
 
-    Self::new_inner(namespace, source_url_comment, module_filename_template)
+    Self::new_inner(
+      namespace,
+      source_url_comment,
+      module_filename_template,
+      Default::default(),
+    )
   }
 }
 
@@ -92,8 +96,8 @@ fn eval_devtool_plugin_render_module_content(
   _init_fragments: &mut ChunkInitFragments,
 ) -> Result<()> {
   let origin_source = render_source.source.clone();
-  if let Some(cached) = EVAL_MODULE_RENDER_CACHE.get(&origin_source) {
-    render_source.source = cached.value().clone();
+  if let Some(cached_source) = self.cache.get(&origin_source) {
+    render_source.source = cached_source.value().clone();
     return Ok(());
   } else if module.as_external_module().is_some() {
     return Ok(());
@@ -137,7 +141,7 @@ fn eval_devtool_plugin_render_module_content(
     RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed()
   };
 
-  EVAL_MODULE_RENDER_CACHE.insert(origin_source, source.clone());
+  self.cache.insert(origin_source, source.clone());
   render_source.source = source;
   Ok(())
 }

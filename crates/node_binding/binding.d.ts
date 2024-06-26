@@ -507,6 +507,8 @@ export interface JsStatsChunk {
   files: Array<string>
   auxiliaryFiles: Array<string>
   id?: string
+  idHints: Array<string>
+  hash?: string
   entry: boolean
   initial: boolean
   names: Array<string>
@@ -570,6 +572,7 @@ export interface JsStatsModule {
   size: number
   sizes: Array<JsStatsSize>
   depth?: number
+  dependent?: boolean
   issuer?: string
   issuerName?: string
   issuerId?: string

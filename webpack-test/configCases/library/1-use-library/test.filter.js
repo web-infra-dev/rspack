@@ -1,1 +1,1 @@
-module.exports = () => {return "__nested_webpack_exports__"}
+module.exports = () => {return "https://github.com/web-infra-dev/rspack/issues/4313"}

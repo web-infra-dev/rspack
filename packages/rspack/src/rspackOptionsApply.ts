@@ -44,7 +44,6 @@ import {
 	HttpExternalsRspackPlugin,
 	InferAsyncModulesPlugin,
 	JavascriptModulesPlugin,
-	JsLoaderRspackPlugin,
 	JsonModulesPlugin,
 	LazyCompilationPlugin,
 	MangleExportsPlugin,
@@ -115,6 +114,9 @@ export class RspackOptionsApply {
 			!options.externalsPresets.electronRenderer
 		) {
 			new ElectronTargetPlugin().apply(compiler);
+		}
+		if (options.externalsPresets.nwjs) {
+			new ExternalsPlugin("node-commonjs", "nw.gui").apply(compiler);
 		}
 		if (
 			options.externalsPresets.web ||

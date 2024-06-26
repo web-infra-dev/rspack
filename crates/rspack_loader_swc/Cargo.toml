@@ -31,6 +31,7 @@ rspack_swc_visitors      = { path = "../rspack_swc_visitors" }
 rspack_util              = { path = "../rspack_util" }
 serde                    = { workspace = true, features = ["derive"] }
 serde_json               = { workspace = true }
+stacker                  = { workspace = true }
 swc_config               = { workspace = true }
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
 tokio                    = { workspace = true }

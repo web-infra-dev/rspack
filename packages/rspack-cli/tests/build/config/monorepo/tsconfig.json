@@ -3,12 +3,12 @@
     "baseUrl": ".",
     "rootDir": ".",
     "target": "ESNext",
-    "module": "ESNext",
-    "noEmit":true,
-    "resolveJsonModule":true,
+    "module": "NodeNext",
+    "noEmit": true,
+    "resolveJsonModule": true,
     "moduleResolution": "nodenext",
     "allowImportingTsExtensions": true,
-    "allowSyntheticDefaultImports": true,
+    "allowSyntheticDefaultImports": true
   },
   "include": ["**/*.ts", "**/*.js"]
 }

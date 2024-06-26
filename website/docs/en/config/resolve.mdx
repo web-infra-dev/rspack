@@ -120,7 +120,67 @@ module.exports = {
 - **Type:** `Record<string, false | string>`
 - **Default:** `{}`
 
-Redirect in case of failed parsing.
+Redirect module requests when normal resolving fails.
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  resolve: {
+    fallback: {
+      abc: false, // do not include a polyfill for abc
+      xyz: path.resolve(__dirname, 'path/to/file.js'), // include a polyfill for xyz
+    },
+  },
+};
+```
+
+Rspack does not polyfills Node.js core modules automatically which means if you use them in your code running in browsers or alike, you will have to install compatible modules from NPM and include them yourself.
+
+You could use [node-polyfill-webpack-plugin](https://www.npmjs.com/package/node-polyfill-webpack-plugin) to polyfill Node.js core API automatically.
+
+```js title="rspack.config.js"
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+
+module.exports = {
+  // ...
+  plugins: [new NodePolyfillPlugin()],
+};
+```
+
+Or refer to the list of Node.js polyfills used by webpack 4:
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  resolve: {
+    fallback: {
+      assert: require.resolve('assert'),
+      buffer: require.resolve('buffer'),
+      console: require.resolve('console-browserify'),
+      constants: require.resolve('constants-browserify'),
+      crypto: require.resolve('crypto-browserify'),
+      domain: require.resolve('domain-browser'),
+      events: require.resolve('events'),
+      http: require.resolve('stream-http'),
+      https: require.resolve('https-browserify'),
+      os: require.resolve('os-browserify/browser'),
+      path: require.resolve('path-browserify'),
+      punycode: require.resolve('punycode'),
+      process: require.resolve('process/browser'),
+      querystring: require.resolve('querystring-es3'),
+      stream: require.resolve('stream-browserify'),
+      string_decoder: require.resolve('string_decoder'),
+      sys: require.resolve('util'),
+      timers: require.resolve('timers-browserify'),
+      tty: require.resolve('tty-browserify'),
+      url: require.resolve('url'),
+      util: require.resolve('util'),
+      vm: require.resolve('vm-browserify'),
+      zlib: require.resolve('browserify-zlib'),
+    },
+  },
+};
+```
 
 ## resolve.importsFields
 

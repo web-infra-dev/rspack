@@ -7,8 +7,8 @@ import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
 
 Rspack provides two solutions to support React:
 
-- **Use Rsbuild**: Rsbuild provides out-of-the-box support for React, allowing you to quickly create a React project. See ["Rsbuild - React"](https://rsbuild.dev/guide/framework/react) for details.
-- **Manual configuration**: You can refer to the current document to manually add configurations for React.
+- **Use Rsbuild**: Rsbuild provides out-of-the-box support for React, allowing you to quickly create a React project. See [Rsbuild - React](https://rsbuild.dev/guide/framework/react) for details.
+- **Manual configure Rspack**: You can refer to the current document to manually add configurations for React.
 
 ## Configure JSX/TSX
 
@@ -61,25 +61,9 @@ Refer to [Builtin swc-loader](guide/features/builtin-swc-loader) for detailed co
 
 There are currently two ways to enable React Fast Refresh in Rspack:
 
-### builtins.react.refresh
-
-<ApiMeta stability={Stability.Deprecated} />
-
-In the early stage of Rspack, React Fast Refresh functionality was built into @rspack/dev-server and @rspack/core to provide an out-of-the-box experience for some projects. This means that if you are using @rspack/cli or @rspack/dev-server, React Fast Refresh is automatically enabled in development mode, ready for you to use directly in your projects. This enhanced the usability of Rspack for React projects but also led to various issues.
-
-This approach made Rspack not entirely framework-agnostic. If you were using other frameworks like Vue, you had to manually disable React Fast Refresh functionality using [builtins.react.refresh](/config/builtins#builtinsreact) to avoid injecting React Fast Refresh-related code into some Vue modules.
-
-Recognizing this issue, we aim to gradually transition users to a more correct approach through [experiments.rspackFuture.disableTransformByDefault](/config/experiments#disabletransformbydefault) and [@rspack/plugin-react-refresh](/guide/tech/react#rspackplugin-react-refresh), which represents the second method mentioned.
-
-### @rspack/plugin-react-refresh
-
 <ApiMeta addedVersion={'0.3.5'} />
 
-:::warning
-`@rspack/plugin-react-refresh` depends on [experiments.rspackFuture.disableTransformByDefault](/config/experiments#disabletransformbydefault)
-:::
-
-First you need to install the dependencies:
+First you need to install [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh) to support React Fast Refresh.
 
 <PackageManagerTabs command="add @rspack/plugin-react-refresh react-refresh -D" />
 
@@ -132,6 +116,25 @@ Compared to the previous approach, this method decouples the React Fast Refresh 
 
 - For usage with `builtin:swc-loader`, you can refer to the example at [examples/react-refresh](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-refresh/rspack.config.js), When using with `swc-loader`, simply replace `builtin:swc-loader` with `swc-loader`.
 - For usage with `babel-loader`, you can refer to the example at [examples/react-refresh-babel-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-refresh-babel-loader/rspack.config.js)
+
+<details>
+<summary>
+  <h2 style={{ fontWeight: "bold" }} >builtins.react.refresh (deprecated)</h2>
+</summary>
+
+<ApiMeta
+  deprecatedVersion="0.3.10"
+  removedVersion="0.5.0"
+  stability={Stability.Removed}
+/>
+
+In the early stage of Rspack, React Fast Refresh functionality was built into @rspack/dev-server and @rspack/core to provide an out-of-the-box experience for some projects. This means that if you are using @rspack/cli or @rspack/dev-server, React Fast Refresh is automatically enabled in development mode, ready for you to use directly in your projects. This enhanced the usability of Rspack for React projects but also led to various issues.
+
+This approach made Rspack not entirely framework-agnostic. If you were using other frameworks like Vue, you had to manually disable React Fast Refresh functionality using [builtins.react.refresh](/config/builtins#builtinsreact) to avoid injecting React Fast Refresh-related code into some Vue modules.
+
+Recognizing this issue, we aim to gradually transition users to a more correct approach through [experiments.rspackFuture.disableTransformByDefault](/config/experiments#disabletransformbydefault) and [@rspack/plugin-react-refresh](/guide/tech/react#rspackplugin-react-refresh), which represents the second method mentioned.
+
+</details>
 
 ## React Compiler
 
@@ -234,4 +237,4 @@ module.exports = {
 };
 ```
 
-For detailed usage of SVGR, please refer to [SVGR Documentation - Webpack](https://react-svgr.com/docs/webpack/).
+For detailed usage of SVGR, please refer to [SVGR Documentation - webpack](https://react-svgr.com/docs/webpack/).

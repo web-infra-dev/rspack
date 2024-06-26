@@ -6,7 +6,7 @@ import {
 	rspack
 } from "@rspack/core";
 
-import type { RspackCLI } from "../rspack-cli";
+import type { RspackCLI } from "../cli";
 import { RspackCommand, RspackPreviewCLIOptions } from "../types";
 import { previewOptions } from "../utils/options";
 

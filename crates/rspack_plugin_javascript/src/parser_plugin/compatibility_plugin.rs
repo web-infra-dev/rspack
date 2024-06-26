@@ -18,18 +18,6 @@ struct NestedRequireData {
   loc: DependencyLocation,
 }
 
-impl TagInfoData for NestedRequireData {
-  fn into_any(data: Self) -> Box<dyn anymap::CloneAny + 'static> {
-    Box::new(data)
-  }
-
-  fn downcast(any: Box<dyn anymap::CloneAny>) -> Self {
-    *(any as Box<dyn std::any::Any>)
-      .downcast()
-      .expect("NestedRequireData should be downcasted from correct tag info")
-  }
-}
-
 pub struct CompatibilityPlugin;
 
 impl CompatibilityPlugin {
@@ -86,6 +74,31 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     None
   }
 
+  fn pattern(
+    &self,
+    parser: &mut JavascriptParser,
+    ident: &swc_core::ecma::ast::Ident,
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name == RuntimeGlobals::EXPORTS.name() {
+      parser.tag_variable(
+        ident.sym.to_string(),
+        NESTED_WEBPACK_IDENTIFIER_TAG,
+        Some(NestedRequireData {
+          name: "__nested_webpack_exports__".to_string(),
+          update: false,
+          loc: DependencyLocation::new(
+            ident.span().real_lo(),
+            ident.span().real_hi(),
+            Some(parser.source_map.clone()),
+          ),
+        }),
+      );
+      return Some(true);
+    }
+    None
+  }
+
   fn pre_statement(
     &self,
     parser: &mut JavascriptParser,
@@ -121,10 +134,6 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name != NESTED_WEBPACK_IDENTIFIER_TAG {
-      return None;
-    }
-    let name = ident.sym.as_str();
-    if name != RuntimeGlobals::REQUIRE.name() {
       return None;
     }
     let tag_info = parser
