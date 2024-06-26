@@ -15,271 +15,261 @@ $ rspack --json=compilation-stats.json
 
 The top-level structure of the output object is as follows:
 
-```json
-{
+```ts
+type StatsCompilation = {
   // Fixed simulated webpack version number for compatibility with plugins
-  "version": "5.75.0",
+  version?: string;
   // Current version number of rspack
-  "rspackVersion": "0.7.4",
+  rspackVersion?: string;
+  // Compilation name
+  name?: string;
   // Compilation specific hash
-  "hash": "",
+  hash?: string;
   // Compilation time in milliseconds
-  "time": 2469,
+  time?: number;
+  // Compilation build end timestamp
+  builtAt?: number;
   // The `output.publicPath` in the configuration
-  "publicPath": "auto",
+  publicPath?: string;
   // Path to rspack output directory
-  "outputPath": "/",
+  outputPath?: string;
   // Chunk name to emitted asset(s) mapping
-  "assetsByChunkName": {
-    "main": ["main.js", "main.js.map"],
-    "named-chunk": ["named-chunk.js", "named-chunk.js.map"]
-  },
+  assetsByChunkName?: Record<string, string[]>;
   // List of asset objects, refer to the "Asset Object"
-  "assets": [],
+  assets?: StatsAsset[];
   // List of chunk objects, refer to the "Chunk Object"
-  "chunks": [],
+  chunks?: StatsChunk[];
   // List of module objects, refer to the "Module Object"
-  "modules": [],
-  // Map of entry objects, refer to the "Entry Object"
-  "entrypoints": {},
+  modules?: StatsModule[];
+  // Map of entry objects, refer to the "Entry/ChunkGroup Object"
+  entrypoints?: Record<string, StatsChunkGroup>;
+  // Map of named chunk groups, refer to the "Entry/ChunkGroup Object"
+  namedChunkGroups?: Record<string, StatsChunkGroup>;
   // List of error objects, refer to the "Error/Warning Object"
-  "errors": [],
+  errors?: StatsError[];
   // Number of errors
-  "errorsCount": 0,
+  errorsCount?: number;
   // List of warning objects, refer to the "Error/Warning Object"
-  "warnings": [],
+  warnings?: StatsWarnings[];
   // Number of warnings
-  "warningsCount": 0
-}
+  warningsCount?: number;
+};
 ```
 
 ## Asset Object
 
 Each asset object represents an output file emitted from the compilation, and its structure is as follows:
 
-```json
-{
-  "type": "asset",
+```ts
+type StatsAsset = {
   // The `output` filename
-  "name": "main.js",
+  name: string;
   // The size of the file in bytes
-  "size": 2467,
+  size: number;
   // Indicates whether or not the asset made it to the `output` directory
-  "emitted": true,
-  // The chunks this asset contains
-  "chunkNames": ["main"],
+  emitted: boolean;
   // The chunk IDs this asset contains
-  "chunks": ["909"],
-  "info": {
+  chunks: Array<string | undefined | null>;
+  // The chunks this asset contains
+  chunkNames: Array<string>;
+  info: {
     // A flag telling whether the asset is only used for development and doesn't count towards user-facing assets
-    "development": false,
+    development: boolean;
     // A flag telling whether the asset ships data for updating an existing application (HMR)
-    "hotModuleReplacement": false,
+    hotModuleReplacement: boolean;
     // sourceFilename when asset was created from a source file (potentially transformed)
-    "sourceFilename": "originalfile.js"
-  }
-}
+    sourceFilename?: string;
+  };
+};
 ```
 
 ## Chunk Object
 
 Each chunk object represents a group of modules known as a chunk, and its structure is as follows:
 
-```json
-{
-  "type": "chunk",
-  // Whether the chunk went through Code Generation
-  "rendered": true,
-  // Whether the chunk is loaded on initial page load or on demand
-  "initial": false,
-  // Whether the chunk contains the rspack runtime
-  "entry": false,
-  // Size of the chunk (in bytes)
-  "size": 5382,
-  // Total size of chunk modules group by the output type (in bytes)
-  "sizes": {
-    "asset": 5303,
-    "javascript": 79
-  },
-  // List of chunk names contained within this chunk
-  "names": ["named-chunk"],
-  // The runtime used by the chunk
-  "runtime": ["main"],
+```ts
+type StatsChunk = {
   // The list of product files contained in the chunk
-  "files": ["named-chunk.js"],
+  files: Array<string>;
   // The list of attached product files contained in the chunk
-  "auxiliaryFiles": ["named-chunk.js.map"],
-  // Chunk hash
-  "hash": "",
+  auxiliaryFiles: Array<string>;
   // Chunk ID
-  "id": "906",
-  // List of idHints of the cache groups hit when splitting chunks (need to enable `optimization.splitChunks`).
-  "idHints": [],
-  // Sibling chunk IDs
-  "siblings": [],
+  id?: string;
+  // List of chunk names contained within this chunk
+  names: Array<string>;
+  // The runtime used by the chunk
+  runtime: Array<string>;
+  // Size of the chunk (in bytes)
+  size: number;
+  // Total size of chunk modules group by the output type (in bytes)
+  sizes: Record<string, number>;
+  // Chunk hash
+  hash?: string;
+  // Whether the chunk contains the rspack runtime
+  entry: boolean;
+  // Whether the chunk is loaded on initial page load or on demand
+  initial: boolean;
+  // Whether the chunk went through Code Generation
+  rendered: boolean;
+
   // Parent chunk IDs
-  "parents": ["909"],
+  parents?: Array<string>;
   // Children chunk IDs
-  "children": [],
+  children?: Array<string>;
+  // Sibling chunk IDs
+  siblings?: Array<string>;
+
+  // Chunk create reason when splitting hunks (need to enable `optimization.splitChunks`).
+  reason?: string;
+  // List of idHints of the cache groups hit when splitting chunks (need to enable `optimization.splitChunks`).
+  idHints: Array<string>;
+
   // List of origins describing how the given chunk originated
-  "origins": [
-    {
-      // Path to the module
-      "module": "project_root/index.js",
-      // The identifier of the module
-      "moduleIdentifier": "project_root/index.js",
-      // Relative path to the module
-      "moduleName": "./index.js",
-      // Lines of code that generated this chunk
-      "loc": "2:0-50",
-      // The dependency request in the module
-      "request": "./dependent"
-    }
-  ],
+  origins: Array<{
+    // Path to the module
+    module: string;
+    // The identifier of the module
+    moduleIdentifier: string;
+    // Relative path to the module
+    moduleName: string;
+    // Lines of code that generated this chunk
+    loc: string;
+    // The dependency request in the module
+    request: string;
+  }>;
+
   // List of modules contained in the chunk, for details, refer to the "Module Object"
-  "modules": []
-}
+  modules?: Array<StatsModule>;
+};
 ```
 
 ## Module Object
 
 Each module object represents a module in the dependency graph, and its structure is as follows:
 
-```json
-{
-  "type": "module",
+```ts
+type StatsModule = {
   // Module ID
-  "id": 670,
+  id?: string;
   // Module source type
-  "moduleType": "javascript/auto",
+  moduleType: string;
   // A unique identifier used internally
-  "identifier": "project_root/a.js",
+  identifier: string;
   // Path to the actual file
-  "name": "./a.js",
+  name: string;
   // Estimated size of the module in bytes
-  "size": 19,
+  size: number;
   // Total size of module group by the output type (in bytes)
-  "sizes": {
-    "javascript": 19
-  },
+  sizes: Record<string, number>;
+
   // Whether the module went through loaders and parsing
-  "built": true,
+  built: boolean;
   // Whether the module went through code generation
-  "codeGenerated": true,
+  codeGenerated: boolean;
   // Whether the module is run during the compilation (you can see it while using css-extract)
-  "buildTimeExecuted": false,
+  buildTimeExecuted: boolean;
   // Whether the module is cached
-  "cached": false,
+  cached: boolean;
   // Whether the module can be cached
-  "cacheable": true,
+  cacheable: boolean;
   // Whether the module is optional, and if it is optional, only a warning will be issued when the module is not found
-  "optional": false,
+  optional: boolean;
+  // Whether the module is dependent by other modules
+  dependent?: boolean;
 
   // List of reasons why the module is introduced, similar to the structure of chunk.origins
-  "reasons": [],
+  reasons?: Array<JsStatsModuleReason>;
   // Unique identifier of the parent module
-  "issuer": "project_root/index.js",
+  issuer?: string;
   // Parent module ID
-  "issuerId": 237,
+  issuerId?: string;
   // Path to the actual file of parent module
-  "issuerName": "./index.js",
+  issuerName?: string;
   // Reference path from the entry to the current module
-  "issuerPath": [
-    {
-      "identifier": "project_root/index.js",
-      "name": "./index.js",
-      "id": 237
-    }
-  ],
+  issuerPath: Array<JsStatsModuleIssuer>;
   // Absolute path used by the module for conditional matching (usually the resource path)
-  "nameForCondition": "project_root/a.js",
+  nameForCondition?: string;
   // The top-down index of the module in the ChunkGroup
-  "preOrderIndex": 1,
+  preOrderIndex?: number;
   // The bottom-up index of the module in the ChunkGroup
-  "postOrderIndex": 1,
+  postOrderIndex?: number;
   // The level in module graph
-  "depth": 1,
-
+  depth?: number;
   // Whether the module is not included by any chunk
-  "orphan": false,
+  orphan: boolean;
   // List of IDs of chunks that contain the module
-  "chunks": [522],
+  chunks: Array<string | undefined | null>;
   // List of assets generated by the module
-  "assets": [],
+  assets?: Array<string>;
 
   // Whether the module compiles failed
-  "failed": false,
+  failed: boolean;
   // Number of errors
-  "errors": 0,
+  errors: number;
   // Number of warnings
-  "warnings": 0,
+  warnings: number;
 
   // Used module exports, true indicates that all are used, string[] indicates that some fields are used (need to enable `optimization.usedExports`)
-  "usedExports": true,
+  usedExports?: null | string[] | boolean;
   // List of fields exported by the module (need to enable `optimization.providedExports`)
-  "providedExports": ["a"],
+  providedExports?: null | string[];
   // Optimization bailout reasons (need to enable `optimization.concatenateModules`)
-  "optimizationBailout": [],
+  optimizationBailout?: null | string[];
+
   // If current module is generated by scope hoisting, this is the list of the original modules (need to enable `optimization.concatenateModules`)
-  "modules": [],
+  modules?: Array<JsStatsModule>;
 
   // Source code
-  "source": "export const a = 1;",
+  source?: string | Buffer;
 
   // The compilation time statistics for each phase (in milliseconds, need to enable `profile`)
-  "profile": {
-    // Resolving the module
-    "resolving": 13,
+  profile?: {
+    // Finding the module
+    resolving: number;
     // Compiling the module
-    "building": 31
-  }
-}
+    building: number;
+  };
+};
 ```
 
-## Entry Object
+## Entry/ChunkGroup Object
 
-Each entry object represents an entry chunk group, and its structure is as follows:
+Each entrypoint or chunk group object represents an group of chunks and assets, and its structure is as follows:
 
-```json
-"main": {
+```ts
+type StatsEntrypoints = Record<string, StatsChunkGroup>;
+type StatsNamedChunkGroups = Record<string, StatsChunkGroup>;
+
+type StatsChunkGroup = {
   // Name of the entry
-  "name": "main",
+  name: string;
   // Assets generated by the entry
-  "assets": [
-    {
-      // File name
-      "name": "main.js",
-      // File size
-      "size": 2467
-    }
-  ],
-  // Total size of the assets generated by the entry
-  "assetsSize": 2467,
+  assets: Array<{
+    // File name
+    name: string;
+    // File size
+    size: number;
+  }>;
   // List of IDs of the chunks included
-  "chunks": ["909"],
-}
+  chunks: Array<string | undefined | null>;
+  // Total size of the assets generated by the entry
+  assetsSize: number;
+};
 ```
 
 ## Error/Warning Object
 
-Each error/warning object represents an error/warning threw during the build process, and its structure is as follows:
+Each error or warning object represents an error/warning threw during the build process, and its structure is as follows:
 
-```json
-{
+```ts
+type StatsError = {
   // Visual message of the error/warning
-  "message": "
-  × Resolve error: Can't resolve './not-exists' in './index.js'
-    ╭─[1:1]
-  1 │
-  3 │ import('./not-exists');
-    · ─────────────────────
-    ╰────
-  ",
+  message: string;
   // Unique identifier of the module where the error/warning occurs
-  "moduleIdentifier": "project_root/index.js",
+  moduleIdentifier?: string;
   // Relative path of the module where the error/warning occurs
-  "moduleName": "./index.js",
+  moduleName?: string;
   // ID of the module where the error/warning occurs
-  "moduleId": "10"
-}
+  moduleId?: string;
+};
 ```
