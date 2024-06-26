@@ -15,272 +15,262 @@ $ rspack --json=compilation-stats.json
 
 输出的对象的顶层结构如下：
 
-```json
-{
+```ts
+type StatsCompilation = {
   // 固定的模拟 webpack 版本号，用于兼容社区 webpack 插件
-  "version": "5.75.0",
+  version?: string;
   // 当前 rspack 版本号
-  "rspackVersion": "0.7.4",
+  rspackVersion?: string;
+  // 配置中的 `name`
+  name?: string;
   // 编译的哈希值
-  "hash": "",
+  hash?: string;
   // 编译耗时（毫秒）
-  "time": 2469,
+  time?: number;
+  // 编译结束时间戳
+  builtAt?: number;
   // 配置中的 `output.publicPath`
-  "publicPath": "auto",
+  publicPath?: string;
   // 输出目录路径
-  "outputPath": "/",
+  outputPath?: string;
   // chunk 对应的输出文件列表
-  "assetsByChunkName": {
-    "main": ["main.js", "main.js.map"],
-    "named-chunk": ["named-chunk.js", "named-chunk.js.map"]
-  },
+  assetsByChunkName?: Record<string, string[]>;
   // asset 对象列表，详细结构参考《Asset 对象结构》章节
-  "assets": [],
+  assets?: StatsAsset[];
   // chunk 对象列表，详细结构参考《Chunk 对象结构》章节
-  "chunks": [],
+  chunks?: StatsChunk[];
   // module 对象列表，详细结构参考《Module 对象结构》章节
-  "modules": [],
-  // entry 对象，详细结构参考《Entry 对象结构》章节
-  "entrypoints": {},
+  modules?: StatsModule[];
+  // entry 对象，详细结构参考《Entry/ChunkGroup 对象结构》章节
+  entrypoints?: Record<string, StatsChunkGroup>;
+  // chunk group 对象，详细结构参考《Entry/ChunkGroup 对象结构》章节
+  namedChunkGroups?: Record<string, StatsChunkGroup>;
   // error 对象列表，详细结构参考《Error/Warning 对象结构》章节
-  "errors": [],
+  errors?: StatsError[];
   // 错误个数
-  "errorsCount": 0,
+  errorsCount?: number;
   // warning 对象列表，详细结构参考《Error/Warning 对象结构》章节
-  "warnings": [],
+  warnings?: StatsWarnings[];
   // 告警个数
-  "warningsCount": 0
-}
+  warningsCount?: number;
+};
 ```
 
 ## Asset 对象结构
 
 每个 asset 对象对应一个编译过程中生成的产物文件，它的结构如下：
 
-```json
-{
-  "type": "asset",
+```ts
+type StatsAsset = {
   // 产物的文件名
-  "name": "main.js",
+  name: string;
   // 产物的文件大小（单位为字节）
-  "size": 2467,
-  // 产物文件是否生成到 `output` 目录中
-  "emitted": true,
-  // 产物文件包含的 chunk 的名称列表
-  "chunkNames": ["main"],
+  size: number;
   // 产物文件包含的 chunk 的 ID 列表
-  "chunks": ["909"],
-  "info": {
+  chunks: Array<string | undefined | null>;
+  // 产物文件包含的 chunk 的名称列表
+  chunkNames: Array<string>;
+  info: {
     // 该产物是否仅用于 development 环境
-    "development": false,
+    development: boolean;
     // 该产物是否仅用于 HMR 更新场景
-    "hotModuleReplacement": false,
+    hotModuleReplacement: boolean;
     // 从源文件创建产物时（可能转换）sourceFilename
     // 常见于处理 assets 类型的资源和使用 CopyRspackPlugin 等场景
-    "sourceFilename": "originalfile.js"
-  }
-}
+    sourceFilename?: string;
+  };
+  // 产物文件是否生成到 `output` 目录中
+  emitted: boolean;
+};
 ```
 
 ## Chunk 对象结构
 
 每个 chunk 对象对应一个编译过程中产生的 chunk，它的结构如下：
 
-```json
-{
-  "type": "chunk",
-  // chunk 是否生成产物
-  "rendered": true,
-  // chunk 是否应被页面初始加载
-  "initial": false,
-  // chunk 是否包含 runtime
-  "entry": false,
-  // chunk 的大小（单位为字节）
-  "size": 5382,
-  // chunk 根据模块类型细分的大小（单位为字节）
-  "sizes": {
-    "asset": 5303,
-    "javascript": 79
-  },
-  // chunk 包含的 chunk 的名称列表
-  "names": ["named-chunk"],
-  // chunk 所使用的 runtime
-  "runtime": ["main"],
+```ts
+type StatsChunk = {
   // chunk 包含的产物文件列表
-  "files": ["named-chunk.js"],
+  files: Array<string>;
   // chunk 包含的附属产物文件列表
-  "auxiliaryFiles": ["named-chunk.js.map"],
-  // chunk 的哈希值
-  "hash": "",
+  auxiliaryFiles: Array<string>;
   // chunk 的 ID
-  "id": "906",
-  // split chunks 时命中的 cache group 的 idHint 列表（需开启 optimization.splitChunks）
-  "idHints": [],
-  // 同级 chunk 的 ID 列表
-  "siblings": [],
+  id?: string;
+  // chunk 包含的 chunk 的名称列表
+  names: Array<string>;
+  // chunk 所使用的 runtime
+  runtime: Array<string>;
+  // chunk 的大小（单位为字节）
+  size: number;
+  // chunk 根据模块类型细分的大小（单位为字节）
+  sizes: Record<string, number>;
+  // chunk 的哈希值
+  hash?: string;
+  // chunk 是否包含 runtime
+  entry: boolean;
+  // chunk 是否应被页面初始加载
+  initial: boolean;
+  // chunk 是否生成产物
+  rendered: boolean;
+
   // 父级 chunk 的 ID 列表
-  "parents": ["909"],
+  parents?: Array<string>;
   // 子 chunk 的 ID 列表
-  "children": [],
-  // chunk 内包含的 module 列表，详细结构参考《Module 对象结构》章节
-  "modules": [],
+  children?: Array<string>;
+  // 同级 chunk 的 ID 列表
+  siblings?: Array<string>;
+
+  // 生成 chunk 的原因（需开启 optimization.splitChunks）
+  reason?: string;
+  // split chunks 时命中的 cache group 的 idHint 列表（需开启 optimization.splitChunks）
+  idHints: Array<string>;
+
   // chunk 的引入来源列表
-  "origins": [
-    {
-      // 来源 module 的路径
-      "module": "project_root/index.js",
-      // 来源 module 的唯一标识
-      "moduleIdentifier": "project_root/index.js",
-      // 来源 module 的相对路径
-      "moduleName": "./index.js",
-      // 在来源 module 中的代码位置
-      "loc": "2:0-50",
-      // 在来源 module 中的依赖标识
-      "request": "./dependent"
-    }
-  ]
-}
+  origins: Array<{
+    // 来源 module 的路径
+    module: string;
+    // 来源 module 的唯一标识
+    moduleIdentifier: string;
+    // 来源 module 的相对路径
+    moduleName: string;
+    // 在来源 module 中的代码位置
+    loc: string;
+    // 在来源 module 中的依赖标识
+    request: string;
+  }>;
+
+  // chunk 内包含的 module 列表，详细结构参考《Module 对象结构》章节
+  modules?: Array<StatsModule>;
+};
 ```
 
 ## Module 对象结构
 
 每个 module 对象对应一个编译过程中产生的模块，它的结构如下：
 
-```json
-{
-  "type": "module",
+```ts
+type StatsModule = {
   // 模块的 ID
-  "id": 670,
+  id?: string;
   // 模块的类型
-  "moduleType": "javascript/auto",
+  moduleType: string;
   // 模块的唯一标识
-  "identifier": "project_root/a.js",
+  identifier: string;
   // 模块的相对路径
-  "name": "./a.js",
+  name: string;
   // 模块的大小（单位为字节）
-  "size": 19,
+  size: number;
   // 根据模块类型细分的大小（单位为字节）
-  "sizes": {
-    "javascript": 19
-  },
+  sizes: Record<string, number>;
+
   // 模块是否经过编译阶段
-  "built": true,
+  built: boolean;
   // 模块是否经过了代码生成阶段
-  "codeGenerated": true,
+  codeGenerated: boolean;
   // 模块是否在编译时运行（常见于 css-extract 等场景）
-  "buildTimeExecuted": false,
+  buildTimeExecuted: boolean;
   // 模块是否被缓存
-  "cached": false,
+  cached: boolean;
   // 模块是否可被缓存
-  "cacheable": true,
+  cacheable: boolean;
   // 模块是否可选，若可选当模块未找到时仅会出现警告
-  "optional": false,
+  optional: boolean;
+  // 模块是否被依赖
+  dependent?: boolean;
 
   // 模块被引入的原因列表，与 chunk.origins 结构类似
-  "reasons": [],
+  reasons?: Array<JsStatsModuleReason>;
   // 父模块的唯一标识
-  "issuer": "project_root/index.js",
+  issuer?: string;
   // 父模块的 ID
-  "issuerId": 237,
+  issuerId?: string;
   // 父模块的相对路径
-  "issuerName": "./index.js",
+  issuerName?: string;
   // 从 entry 到当前模块的引用路径
-  "issuerPath": [
-    {
-      "identifier": "project_root/index.js",
-      "name": "./index.js",
-      "id": 237
-    }
-  ],
+  issuerPath: Array<JsStatsModuleIssuer>;
   // 模块用于条件匹配的绝对路径（通常是资源路径）
-  "nameForCondition": "project_root/a.js",
+  nameForCondition?: string;
   // 模块在 Chunk Group 中自顶向下的序号
-  "preOrderIndex": 1,
+  preOrderIndex?: number;
   // 模块在 Chunk Group 中自底向上的序号
-  "postOrderIndex": 1,
+  postOrderIndex?: number;
   // 模块距离 entry 的层级距离
-  "depth": 1,
-
+  depth?: number;
   // 模块是否未被任何 chunk 包含
-  "orphan": false,
+  orphan: boolean;
   // 包含模块的 chunk 的 ID 列表
-  "chunks": [522],
+  chunks: Array<string | undefined | null>;
   // 模块相关的产物列表
-  "assets": [],
+  assets?: Array<string>;
 
   // 模块是否编译失败
-  "failed": false,
+  failed: boolean;
   // 模块包含的错误数量
-  "errors": 0,
+  errors: number;
   // 模块包含的警告数量
-  "warnings": 0,
+  warnings: number;
 
   // 被使用的模块导出，true 表示全部被使用，string[] 表示部分字段被使用（需开启 optimization.usedExports 配置）
-  "usedExports": true,
+  usedExports?: null | string[] | boolean;
   // 模块导出的字段列表（需开启 optimization.providedExports 配置）
-  "providedExports": ["a"],
+  providedExports?: null | string[];
   // 模块优化降级信息（需开启 optimization.concatenateModules 配置）
-  "optimizationBailout": [],
+  optimizationBailout?: null | string[];
+
   // 若当前模块为作用域提升后生成的新模块，此字段为原始的模块列表（需开启 optimization.concatenateModules 配置）
-  "modules": [],
+  modules?: Array<JsStatsModule>;
 
   // 模块的源代码
-  "source": "export const a = 1;",
+  source?: string | Buffer;
 
   // 模块各阶段编译耗时统计（单位为毫秒，需开启 profile 配置）
-  "profile": {
+  profile?: {
     // 查找模块
-    "resolving": 13,
+    resolving: number;
     // 编译模块
-    "building": 31
-  }
-}
+    building: number;
+  };
+};
 ```
 
-## Entry 对象结构
+## Entry/ChunkGroup 对象结构
 
 每个 entry 对象对应一个编译入口，它的结构如下：
 
-```json
-"main": {
+```ts
+type StatsEntrypoints = Record<string, StatsChunkGroup>;
+type StatsNamedChunkGroups = Record<string, StatsChunkGroup>;
+
+type StatsChunkGroup = {
   // entry 的名称
-  "name": "main",
+  name: string;
   // entry 对应的产物文件
-  "assets": [
-    {
-      // 产物文件名
-      "name": "main.js",
-      // 产物文件大小
-      "size": 2467
-    }
-  ],
-  // entry 对应总产物大小
-  "assetsSize": 2467,
+  assets: Array<{
+    // 产物文件名
+    name: string;
+    // 产物文件大小
+    size: number;
+  }>;
   // 包含的 chunk 的 ID 列表
-  "chunks": ["909"],
-}
+  chunks: Array<string | undefined | null>;
+  // entry 对应总产物大小
+  assetsSize: number;
+};
 ```
 
 ## Error/Warning 对象结构
 
 每个 error/warning 对象对应一个构建过程中产生的错误/警告，它的结构如下：
 
-```json
-{
-  // 错误/警告的提示信息，其中包含了错误的位置提示信息
-  "message": "
-  × Resolve error: Can't resolve './not-exists' in './index.js'
-    ╭─[1:1]
-  1 │
-  3 │ import('./not-exists');
-    · ─────────────────────
-    ╰────
-  ",
+```ts
+type StatsError = {
+  // 错误/警告的可视化提示信息
+  message: string;
   // 发生错误/警告的模块唯一标识
-  "moduleIdentifier": "project_root/index.js",
+  moduleIdentifier?: string;
   // 发生错误/警告的模块相对路径
-  "moduleName": "./index.js",
+  moduleName?: string;
   // 发生错误/警告的模块 ID
-  "moduleId": "10"
-}
+  moduleId?: string;
+};
 ```
