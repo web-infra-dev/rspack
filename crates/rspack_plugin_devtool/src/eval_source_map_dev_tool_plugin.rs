@@ -37,6 +37,7 @@ pub struct EvalSourceMapDevToolPlugin {
   #[derivative(Debug = "ignore")]
   module_filename_template: ModuleFilenameTemplate,
   namespace: String,
+  source_root: Option<String>,
 }
 
 impl EvalSourceMapDevToolPlugin {
@@ -55,6 +56,7 @@ impl EvalSourceMapDevToolPlugin {
       options.no_sources,
       module_filename_template,
       namespace,
+      options.source_root,
     )
   }
 }
@@ -84,7 +86,7 @@ async fn eval_source_map_devtool_plugin_compilation(
 fn eval_source_map_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
-  _module: &BoxModule,
+  module: &BoxModule,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
 ) -> Result<()> {
@@ -163,6 +165,9 @@ fn eval_source_map_devtool_plugin_render_module_content(
           *content = Cow::from(String::default());
         }
       }
+      map.set_source_root(self.source_root.clone());
+      map.set_file(Some(module.identifier().to_string()));
+
       let mut map_buffer = Vec::new();
       map
         .to_writer(&mut map_buffer)
