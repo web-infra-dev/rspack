@@ -18,11 +18,44 @@ Rspack 1.0 stable version is expected to be released this August. This is a sign
 
 ## Outputs Optimization
 
-Rspack 1.0 enables the `optimization.concatenateModules` by default during production builds. This enables module concatenation optimization, also known as scope hoisting.
+Rspack 1.0 enables the `optimization.concatenateModules` by default during production builds. This option enables module concatenation optimization, also known as scope hoisting.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    // Now enabled by default in production
+    concatenateModules: mode === 'production',
+  },
+};
+```
 
 The primary purpose of module concatenation is to merge multiple modules into a single function, thereby reducing the overhead associated with parsing and executing JavaScript code in the browser. By merging modules, redundant code such as import and export statements between modules can be reduced, resulting in smaller bundle sizes.
 
-With module concatenation enabled, the output size of Rspack can be reduced by about 4% to 10% (before Gzip).
+With module concatenation enabled, the output size of Rspack can be reduced by about **4% to 10%** (before Gzip).
+
+Currently, Rspack has implemented most of the optimization strategies aligned with webpack. In future versions, Rspack will explore and make improvements based on webpack to provide deeper optimizations and smaller output sizes.
+
+## Builtin Lightning CSS
+
+Rspack 1.0 has built-in integration with [Lightning CSS](https://github.com/parcel-bundler/lightningcss). Lightning CSS is an extremely fast CSS parser, transformer, bundler, and minifier written in Rust.
+
+The new version of Rspack has implemented the CSS minimizer plugin based on Lightning CSS, and it is now the default CSS minimizer of Rspack. Compared to the previously used SWC CSS minimizer plugin, it applies more optimizations to make the CSS output smaller.
+
+```diff title="rspack.config.mjs"
+export default {
+  optimization: {
+    minimizer: [
+      // The default CSS minimizer changed:
+-     new rspack.SwcCssMinimizerRspackPlugin()
++     new rspack.LightningCssMinimizerRspackPlugin()
+    ],
+  },
+};
+```
+
+For example, Rspack already has tree shaking for CSS Modules, but it only removes unused CSS Modules classnames referenced by JS files. With the [unusedSymbols](https://lightningcss.dev/minification.html#unused-symbols) option of Lightning CSS, Rspack can now eliminate unused declarations in CSS Modules files, including IDs, keyframes, CSS variables or other CSS identifiers.
+
+We believe that Lightning CSS will become the shared foundation for the next generation build tools, and Rspack will support more CSS complation features based on Lightning CSS.. Thanks to [@devongovett](https://github.com/devongovett) for creating such an excellent tool.
 
 ## Lean Core
 
@@ -47,7 +80,7 @@ npm i @swc/plugin-styled-components -D
 - Configuration:
 
 ```diff
-module.exports = {
+export default {
   module: {
     rules: [
       {
@@ -85,8 +118,8 @@ Starting with Rspack 1.0, the default value of `experiment.css` changes to `fals
 
 You can add the following configuration to continue using `experiment.css`:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     css: true,
   },
@@ -110,14 +143,16 @@ pnpm add -D --save-exact @rspack/core@alpha @rspack/cli@alpha
 
 During the Rspack alpha testing, new versions will still introduce some breaking changes, which we will highlight in the changelog. Please read the changelog to understand the differences before upgrading.
 
+For Rsbuild users, please wait for the release of Rsbuild 1.0 alpha version (expected in 1-2 weeks).
+
 ## Breaking Changes
 
 ### resolve.tsConfigPath
 
 `resolve.tsConfigPath` config has been removed, please use [resolve.tsConfig](config/resolve#resolvetsconfig) instead.
 
-```diff title="rspack.config.js"
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
   resolve: {
 -   tsConfigPath: path.resolve(__dirname, './tsconfig.json'),
 +   tsConfig: path.resolve(__dirname, './tsconfig.json'),
@@ -130,7 +165,7 @@ module.exports = {
 The `rspackExperiments.styledComponents` option of `builtin:swc-loader` has been removed, please use [@swc/plugin-styled-components](https://www.npmjs.com/package/@swc/plugin-styled-components) instead.
 
 ```diff
-module.exports = {
+export default {
   module: {
     rules: [
       {
@@ -157,7 +192,7 @@ module.exports = {
 The `rspackExperiments.emotion` option of `builtin:swc-loader` has been removed, please use [@swc/plugin-emotion](https://www.npmjs.com/package/@swc/plugin-emotion) instead.
 
 ```diff
-module.exports = {
+export default {
   module: {
     rules: [
       {
@@ -184,7 +219,7 @@ module.exports = {
 The `rspackExperiments.relay` option of `builtin:swc-loader` has been removed, please use [@swc/plugin-relay](https://www.npmjs.com/package/@swc/plugin-relay) instead.
 
 ```diff
-module.exports = {
+export default {
   module: {
     rules: [
       {
