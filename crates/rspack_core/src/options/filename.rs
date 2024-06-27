@@ -7,6 +7,7 @@ use std::{borrow::Cow, convert::Infallible};
 
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
+use rspack_error::error;
 use rspack_macros::MergeFrom;
 use rspack_util::MergeFrom;
 
@@ -121,7 +122,12 @@ impl LocalFilenameFn for Arc<dyn FilenameFn> {
     path_data: &PathData,
     asset_info: Option<&AssetInfo>,
   ) -> Result<String, Self::Error> {
-    self.deref().call(path_data, asset_info)
+    self.deref().call(path_data, asset_info).map_err(|err| {
+      error!(
+        "Failed to render filename function: {}. Did you return the correct filename?",
+        err.to_string()
+      )
+    })
   }
 }
 
