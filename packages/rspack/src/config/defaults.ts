@@ -912,17 +912,15 @@ const applyOptimizationDefaults = (
 	D(optimization, "removeAvailableModules", false);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
-	// IGNORE(optimization.moduleIds): set to "natural" by default in rspack 1.0
 	F(optimization, "moduleIds", (): "natural" | "named" | "deterministic" => {
 		if (production) return "deterministic";
 		if (development) return "named";
-		return "named";
+		return "natural";
 	});
-	// IGNORE(optimization.chunkIds): set to "natural" by default in rspack 1.0
 	F(optimization, "chunkIds", (): "natural" | "named" | "deterministic" => {
 		if (production) return "deterministic";
 		if (development) return "named";
-		return "named";
+		return "natural";
 	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "mangleExports", production);
