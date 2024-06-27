@@ -58,36 +58,38 @@ pub fn create_context_dependency(
     );
 
     let mut replaces = Vec::new();
-    let parts = param.parts();
-    for (i, part) in parts.iter().enumerate() {
-      if i % 2 == 0 {
-        if i == 0 {
-          let value = format!(
-            "{}{prefix}",
-            match param.template_string_kind() {
-              TemplateStringKind::Cooked => "`",
-              TemplateStringKind::Raw => "String.raw`",
-            }
-          );
-          replaces.push((value, param.range().0, part.range().1));
-        } else if i == parts.len() - 1 {
-          let value = format!("{postfix}`");
-          replaces.push((value, part.range().0, param.range().1));
-        } else {
-          let value = match param.template_string_kind() {
-            TemplateStringKind::Cooked => {
-              json_stringify(part.string()).trim_matches('"').to_owned()
-            }
-            TemplateStringKind::Raw => part.string().to_owned(),
-          };
-          let range = part.range();
-          replaces.push((value, range.0, range.1));
-        }
+    let (even_parts, odd_parts): (Vec<_>, Vec<_>) = param
+      .parts()
+      .into_iter()
+      .enumerate()
+      .partition(|&(index, _)| index % 2 == 0);
+    let last_index = even_parts.len() - 1;
+
+    for (i, part) in even_parts {
+      if i == 0 {
+        let value = format!(
+          "{}{prefix}",
+          match param.template_string_kind() {
+            TemplateStringKind::Cooked => "`",
+            TemplateStringKind::Raw => "String.raw`",
+          }
+        );
+        replaces.push((value, param.range().0, part.range().1));
+      } else if i == last_index {
+        let value = format!("{postfix}`");
+        replaces.push((value, part.range().0, param.range().1));
+      } else {
+        let value = match param.template_string_kind() {
+          TemplateStringKind::Cooked => json_stringify(part.string()).trim_matches('"').to_owned(),
+          TemplateStringKind::Raw => part.string().to_owned(),
+        };
+        let range = part.range();
+        replaces.push((value, range.0, range.1));
       }
     }
 
     let mut walker = ExprSpanFinder {
-      targets: vec![&parts[1]],
+      targets: odd_parts.into_iter().map(|(_, part)| part).collect_vec(),
       on_visit: |n| parser.walk_expression(n),
     };
     expr.visit_with(&mut walker);
