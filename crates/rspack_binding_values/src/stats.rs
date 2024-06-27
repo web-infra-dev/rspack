@@ -563,18 +563,43 @@ impl From<rspack_core::StatsChunkGroupAsset> for JsStatsChunkGroupAsset {
 #[napi(object)]
 pub struct JsStatsChunkGroup {
   pub name: String,
-  pub assets: Vec<JsStatsChunkGroupAsset>,
   pub chunks: Vec<Option<String>>,
+  pub assets: Vec<JsStatsChunkGroupAsset>,
   pub assets_size: f64,
+  pub auxiliary_assets: Option<Vec<JsStatsChunkGroupAsset>>,
+  pub auxiliary_assets_size: Option<f64>,
+  pub children: Option<JsStatsChunkGroupChildren>,
 }
 
 impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
   fn from(stats: rspack_core::StatsChunkGroup) -> Self {
     Self {
       name: stats.name,
-      assets: stats.assets.into_iter().map(Into::into).collect(),
       chunks: stats.chunks,
+      assets: stats.assets.into_iter().map(Into::into).collect(),
       assets_size: stats.assets_size,
+      auxiliary_assets: stats
+        .auxiliary_assets
+        .map(|assets| assets.into_iter().map(Into::into).collect()),
+      auxiliary_assets_size: stats.auxiliary_assets_size,
+      children: stats.children.map(|i| i.into()),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsStatsChunkGroupChildren {
+  pub preload: Option<Vec<JsStatsChunkGroup>>,
+  pub prefetch: Option<Vec<JsStatsChunkGroup>>,
+}
+
+impl From<rspack_core::StatsChunkGroupChildren> for JsStatsChunkGroupChildren {
+  fn from(stats: rspack_core::StatsChunkGroupChildren) -> Self {
+    Self {
+      preload: (!stats.preload.is_empty())
+        .then(|| stats.preload.into_iter().map(Into::into).collect()),
+      prefetch: (!stats.prefetch.is_empty())
+        .then(|| stats.prefetch.into_iter().map(Into::into).collect()),
     }
   }
 }
@@ -683,20 +708,28 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_entrypoints(&self) -> Vec<JsStatsChunkGroup> {
+  pub fn get_entrypoints(
+    &self,
+    chunk_group_auxiliary: bool,
+    chunk_group_children: bool,
+  ) -> Vec<JsStatsChunkGroup> {
     self
       .inner
-      .get_entrypoints()
+      .get_entrypoints(chunk_group_auxiliary, chunk_group_children)
       .into_iter()
       .map(Into::into)
       .collect()
   }
 
   #[napi]
-  pub fn get_named_chunk_groups(&self) -> Vec<JsStatsChunkGroup> {
+  pub fn get_named_chunk_groups(
+    &self,
+    chunk_group_auxiliary: bool,
+    chunk_group_children: bool,
+  ) -> Vec<JsStatsChunkGroup> {
     self
       .inner
-      .get_named_chunk_groups()
+      .get_named_chunk_groups(chunk_group_auxiliary, chunk_group_children)
       .into_iter()
       .map(Into::into)
       .collect()
