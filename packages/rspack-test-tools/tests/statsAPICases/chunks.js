@@ -102,6 +102,7 @@ module.exports = {
 		      Object {
 		        "loc": "2:9-46",
 		        "module": "<PROJECT_ROOT>/tests/fixtures/chunk-b.js",
+		        "moduleId": "725",
 		        "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/chunk-b.js",
 		        "moduleName": "./fixtures/chunk-b.js",
 		        "request": "./b",
@@ -202,6 +203,7 @@ module.exports = {
 		      Object {
 		        "loc": "main",
 		        "module": "",
+		        "moduleId": "",
 		        "moduleIdentifier": "",
 		        "moduleName": "",
 		        "request": "./fixtures/chunk-b",

@@ -114,6 +114,7 @@ Object {
         Object {
           "loc": "main",
           "module": "",
+          "moduleId": "",
           "moduleIdentifier": "",
           "moduleName": "",
           "request": "./fixtures/a",
@@ -535,6 +536,7 @@ Object {
         Object {
           "loc": "main",
           "module": "",
+          "moduleId": "",
           "moduleIdentifier": "",
           "moduleName": "",
           "request": "./fixtures/esm/abc",
@@ -1375,6 +1377,7 @@ exports.c = require(\\"./c?c=3\\");
         Object {
           "loc": "main",
           "module": "",
+          "moduleId": "",
           "moduleIdentifier": "",
           "moduleName": "",
           "request": "./fixtures/abc-query",

@@ -324,22 +324,36 @@ impl Stats<'_> {
           .flat_map(|ukey| {
             let chunk_group = chunk_group_by_ukey.expect_get(ukey);
             chunk_group.origins().iter().map(|origin| {
-              let id = origin
+              let module_identifier = origin
                 .module_id
                 .map(|id| id.to_string())
                 .unwrap_or_default();
               let module_name = origin
                 .module_id
-                .map(|module_id| {
+                .map(|identifier| {
                   module_graph
-                    .module_by_identifier(&module_id)
+                    .module_by_identifier(&identifier)
                     .map(|module| module.readable_identifier(context).to_string())
                     .unwrap_or_default()
                 })
                 .unwrap_or_default();
+
+              let module_id = origin
+                .module_id
+                .map(|identifier| {
+                  self
+                    .compilation
+                    .chunk_graph
+                    .get_module_id(identifier)
+                    .clone()
+                    .unwrap_or_default()
+                })
+                .unwrap_or_default();
+
               StatsOriginRecord {
-                module: id.clone(),
-                module_identifier: id,
+                module: module_identifier.clone(),
+                module_id,
+                module_identifier,
                 module_name,
                 loc: origin
                   .loc
@@ -1136,6 +1150,7 @@ pub struct StatsModuleProfile {
 #[derive(Debug)]
 pub struct StatsOriginRecord {
   pub module: String,
+  pub module_id: String,
   pub module_identifier: String,
   pub module_name: String,
   pub loc: String,

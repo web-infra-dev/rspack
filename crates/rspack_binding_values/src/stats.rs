@@ -445,6 +445,7 @@ impl From<rspack_core::StatsModuleReason> for JsStatsModuleReason {
 #[napi(object)]
 pub struct JsOriginRecord {
   pub module: String,
+  pub module_id: String,
   pub module_identifier: String,
   pub module_name: String,
   pub loc: String,
@@ -531,6 +532,7 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
         .into_iter()
         .map(|origin| JsOriginRecord {
           module: origin.module,
+          module_id: origin.module_id,
           module_identifier: origin.module_identifier,
           module_name: origin.module_name,
           loc: origin.loc,
