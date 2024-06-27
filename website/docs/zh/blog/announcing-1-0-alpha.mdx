@@ -28,7 +28,7 @@ Rspack 1.0 稳定版预计于今年 8 月初推出。
 - [@swc/plugin-relay](https://www.npmjs.com/package/@swc/plugin-relay)
 - [@swc/plugin-styled-components](https://www.npmjs.com/package/@swc/plugin-styled-components)
 
-### 迁移示例
+### 迁移
 
 以 `@swc/plugin-styled-components` 为例，在 v1.0 中可以通过如下方式使用。
 
@@ -199,3 +199,14 @@ module.exports = {
   },
 };
 ```
+
+### 其他
+
+其他不兼容更新如下：
+
+- 当 `mode === 'none'` 时，`optimization.chunkIds` 默认值为 `'natural'`，详见 [#6956](https://github.com/web-infra-dev/rspack/pull/6956)。
+- 当 `mode === 'none'` 时，`optimization.moduleIds` 默认值为 `'natural'`，详见 [#6956](https://github.com/web-infra-dev/rspack/pull/6956)。
+- Rust crate `swc_core` 已升级到 `0.95.x`，请升级你的 SWC Wasm 插件，详见 [#6887](https://github.com/web-infra-dev/rspack/pull/6887)。
+- 移除了 `Compilation.currentNormalModuleHooks`，详见 [#6859](https://github.com/web-infra-dev/rspack/pull/6859)。
+- 移除了 `stats.modules[].profile.integration`，详见 [#6947](https://github.com/web-infra-dev/rspack/pull/6947)。
+- 移除了一些 `SwcJsMinimizerRspackPluginOptions` 的选项，详见 [#6950](https://github.com/web-infra-dev/rspack/pull/6950)。

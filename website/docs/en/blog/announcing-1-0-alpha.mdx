@@ -28,9 +28,9 @@ Currently, Rspack supports the use of SWC plugins via [experimental.plugins](/gu
 - [@swc/plugin-relay](https://www.npmjs.com/package/@swc/plugin-relay)
 - [@swc/plugin-styled-components](https://www.npmjs.com/package/@swc/plugin-styled-components)
 
-### Migration Example
+### Migration
 
-Take @swc/plugin-styled-components as an example. In v1.0, you can use it as follows.
+Take `@swc/plugin-styled-components` as an example. In v1.0, you can use it as follows.
 
 - Installation:
 
@@ -199,3 +199,14 @@ module.exports = {
   },
 };
 ```
+
+### Others
+
+Other breaking changes:
+
+- `optimization.chunkIds` defaults to `'natural'` when `mode === 'none'`, see [#6956](https://github.com/web-infra-dev/rspack/pull/6956).
+- `optimization.moduleIds` defaults to `'natural'` when `mode === 'none'`, see [#6956](https://github.com/web-infra-dev/rspack/pull/6956).
+- Rust crate `swc_core` has been upgraded to `0.95.x`, please upgrade your SWC Wasm plugin, see [#6887](https://github.com/web-infra-dev/rspack/pull/6887).
+- Removed `Compilation.currentNormalModuleHooks`, see [#6859](https://github.com/web-infra-dev/rspack/pull/6859).
+- Removed `stats.modules[].profile.integration`, see [#6947](https://github.com/web-infra-dev/rspack/pull/6947).
+- Removed some options for `SwcJsMinimizerRspackPluginOptions`, see [#6950](https://github.com/web-infra-dev/rspack/pull/6950).
