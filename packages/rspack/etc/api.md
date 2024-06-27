@@ -6892,7 +6892,6 @@ const output: z.ZodObject<{
     libraryExport: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
     libraryTarget: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>>;
     umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
-    amdContainer: z.ZodOptional<z.ZodString>;
     auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
         amd: z.ZodOptional<z.ZodString>;
         commonjs: z.ZodOptional<z.ZodString>;
@@ -7028,7 +7027,6 @@ const output: z.ZodObject<{
     libraryExport?: string | string[] | undefined;
     libraryTarget?: string | undefined;
     umdNamedDefine?: boolean | undefined;
-    amdContainer?: string | undefined;
     auxiliaryComment?: string | {
         amd?: string | undefined;
         commonjs?: string | undefined;
@@ -7120,7 +7118,6 @@ const output: z.ZodObject<{
     libraryExport?: string | string[] | undefined;
     libraryTarget?: string | undefined;
     umdNamedDefine?: boolean | undefined;
-    amdContainer?: string | undefined;
     auxiliaryComment?: string | {
         amd?: string | undefined;
         commonjs?: string | undefined;
@@ -9015,7 +9012,6 @@ export const rspackOptions: z.ZodObject<{
         libraryExport: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
         libraryTarget: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>>;
         umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
-        amdContainer: z.ZodOptional<z.ZodString>;
         auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
             amd: z.ZodOptional<z.ZodString>;
             commonjs: z.ZodOptional<z.ZodString>;
@@ -9151,7 +9147,6 @@ export const rspackOptions: z.ZodObject<{
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
         umdNamedDefine?: boolean | undefined;
-        amdContainer?: string | undefined;
         auxiliaryComment?: string | {
             amd?: string | undefined;
             commonjs?: string | undefined;
@@ -9243,7 +9238,6 @@ export const rspackOptions: z.ZodObject<{
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
         umdNamedDefine?: boolean | undefined;
-        amdContainer?: string | undefined;
         auxiliaryComment?: string | {
             amd?: string | undefined;
             commonjs?: string | undefined;
@@ -10964,7 +10958,6 @@ export const rspackOptions: z.ZodObject<{
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
         umdNamedDefine?: boolean | undefined;
-        amdContainer?: string | undefined;
         auxiliaryComment?: string | {
             amd?: string | undefined;
             commonjs?: string | undefined;
@@ -11455,7 +11448,6 @@ export const rspackOptions: z.ZodObject<{
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
         umdNamedDefine?: boolean | undefined;
-        amdContainer?: string | undefined;
         auxiliaryComment?: string | {
             amd?: string | undefined;
             commonjs?: string | undefined;

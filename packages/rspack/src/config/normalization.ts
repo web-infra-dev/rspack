@@ -170,10 +170,7 @@ export const getNormalizedRspackOptions = (
 						output.auxiliaryComment !== undefined
 							? output.auxiliaryComment
 							: libraryBase.auxiliaryComment,
-					amdContainer:
-						output.amdContainer !== undefined
-							? output.amdContainer
-							: libraryBase.amdContainer,
+					amdContainer: libraryBase.amdContainer,
 					export:
 						output.libraryExport !== undefined
 							? output.libraryExport

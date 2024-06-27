@@ -9,37 +9,6 @@ Used to indicate how and where Rspack outputs the contents of the generated file
 
 - **Type:** `Object`
 
-## output.amdContainer
-
-- **Type:** `string`
-
-Use a container(defined in global space) for calling `define`/`require` functions in an AMD module.
-
-:::warning
-
-- Please use [`output.library.amdContainer`](#outputlibraryamdcontainer) instead as we might drop support for `output.amdContainer` in the future.
-- Note that the value of `amdContainer` **must be** set as a global variable.
-
-:::
-
-```js title="rspack.config.js"
-module.exports = {
-  // …
-  output: {
-    library: {
-      amdContainer: 'window["clientContainer"]',
-      type: 'amd', // or 'amd-require'
-    },
-  },
-};
-```
-
-Which will result in the following bundle:
-
-```js
-window['clientContainer'].define(/*define args*/); // or 'amd-require' window['clientContainer'].require(/*require args*/);
-```
-
 ## output.assetModuleFilename
 
 - **Type:** `string`
