@@ -18,6 +18,7 @@ Object {
   "experiments": Object {
     "asyncWebAssembly": false,
     "css": undefined,
+    "futureDefaults": false,
     "lazyCompilation": false,
     "rspackFuture": Object {
       "bundlerInfo": Object {
@@ -249,7 +250,7 @@ Object {
     "nodeEnv": false,
     "providedExports": true,
     "realContentHash": false,
-    "removeAvailableModules": true,
+    "removeAvailableModules": false,
     "removeEmptyChunks": true,
     "runtimeChunk": false,
     "sideEffects": "flag",
