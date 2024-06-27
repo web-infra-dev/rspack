@@ -4302,12 +4302,12 @@ interface KnownNormalizedStatsOptions {
 }
 
 // @public (undocumented)
-type KnownStatsAsset = Omit<binding.JsStatsAsset, 'info'> & {
+type KnownStatsAsset = Omit<binding.JsStatsAsset, "info"> & {
     info: KnownStatsAssetInfo;
 };
 
 // @public (undocumented)
-type KnownStatsAssetInfo = Omit<binding.JsStatsAssetInfo, 'related'> & {
+type KnownStatsAssetInfo = Omit<binding.JsStatsAssetInfo, "related"> & {
     related: Record<string, string[]>;
 };
 
