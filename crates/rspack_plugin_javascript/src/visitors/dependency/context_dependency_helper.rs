@@ -95,7 +95,7 @@ pub fn create_context_dependency(
       }
     }
 
-    let mut walker = ExprSpanFinder {
+    let mut walker = BasicEvaluatedExpressionVisitor {
       targets: odd_parts,
       on_visit: |n| parser.walk_expression(n),
     };
@@ -183,7 +183,7 @@ pub fn create_context_dependency(
     }
 
     if let Some(wrapped_inner_expressions) = param.wrapped_inner_expressions() {
-      let mut walker = ExprSpanFinder {
+      let mut walker = BasicEvaluatedExpressionVisitor {
         targets: wrapped_inner_expressions.iter().collect_vec(),
         on_visit: |n| parser.walk_expression(n),
       };
@@ -245,12 +245,12 @@ pub fn quote_meta(str: &str) -> Cow<str> {
   META_REG.replace_all(str, "\\$0")
 }
 
-struct ExprSpanFinder<'a, F: FnMut(&Expr) -> ()> {
+struct BasicEvaluatedExpressionVisitor<'a, F: FnMut(&Expr) -> ()> {
   targets: Vec<&'a BasicEvaluatedExpression>,
   on_visit: F,
 }
 
-impl<'a, F: FnMut(&Expr) -> ()> Visit for ExprSpanFinder<'a, F> {
+impl<'a, F: FnMut(&Expr) -> ()> Visit for BasicEvaluatedExpressionVisitor<'a, F> {
   fn visit_expr(&mut self, n: &Expr) {
     for t in self.targets.iter() {
       let span = n.span();
