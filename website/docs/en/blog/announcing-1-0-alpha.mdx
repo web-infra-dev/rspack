@@ -12,7 +12,56 @@ import { PackageManagerTabs } from '@theme';
 
 Rspack 1.0 Alpha is now available on npm!
 
-Before releasing Rspack 1.0 stable version, we will test for 1~2 months to improve the API stability and reliability of v1.0 and to verify its impact on downstream projects. The stable release of Rspack 1.0 is expected to be available in early August this year.
+Before releasing Rspack 1.0 stable version, we will test for 1~2 months to improve the API stability and reliability of v1.0 and to verify its impact on downstream projects.
+
+The stable release of Rspack 1.0 is expected to be available in early August this year.
+
+## Lean Core
+
+To ensure the long term stability of Rspack 1.0, we have removed some non-core features that were built into the Rspack core. This allows the core to be lean and focused on providing common bundler features.
+
+In v0.x, Rspack core has built-in SWC plugins to support Emotion, Styled Components, and Relay. This is because in the early days Rspack did not support the use of SWC Wasm plugins and could only integrate them into the core.
+
+Currently, Rspack supports the use of SWC plugins via [experimental.plugins](/guide/features/builtin-swc-loader#jscexperimentalplugins) in `builtin:swc-loader`. So we have removed the built-in plugins from the Rspack core, including:
+
+- [@swc/plugin-emotion](https://www.npmjs.com/package/@swc/plugin-emotion)
+- [@swc/plugin-relay](https://www.npmjs.com/package/@swc/plugin-relay)
+- [@swc/plugin-styled-components](https://www.npmjs.com/package/@swc/plugin-styled-components)
+
+### Migration Example
+
+Take @swc/plugin-styled-components as an example. In v1.0, you can use it as follows.
+
+- Installation:
+
+```bash
+npm i @swc/plugin-styled-components -D
+```
+
+- Configuration:
+
+```diff
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.jsx?$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           styledComponents: {},
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-styled-components", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
 
 ## Try it
 

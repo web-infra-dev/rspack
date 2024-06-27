@@ -12,9 +12,56 @@ import { PackageManagerTabs } from '@theme';
 
 Rspack 1.0 Alpha 现已发布至 npm！
 
-在发布 Rspack 1.0 稳定版之前，我们将进行 1～2 个月的测试，改进 1.0 版本的 API 稳定性和可靠性，并验证对下游项目的影响。Rspack 1.0 稳定版预计于今年 8 月初推出。
+在发布 Rspack 1.0 稳定版之前，我们将进行 1～2 个月的测试，改进 1.0 版本的 API 稳定性和可靠性，并验证对下游项目的影响。
 
-## What's new
+Rspack 1.0 稳定版预计于今年 8 月初推出。
+
+## 精简核心
+
+为了使 Rspack 1.0 能够保持长期稳定，我们移除了一些 Rspack core 内置的非核心功能，使 core 能够保持精简，专注于提供 bundler 层面的通用能力。
+
+在 0.x 版本中，Rspack core 内置了部分 SWC 插件，用于支持 Emotion、Styled Components 和 Relay，这是因为 Rspack 早期尚未支持使用 SWC Wasm 插件，只能通过 core 进行集成。
+
+目前 Rspack 已支持通过 `builtin:swc-loader` 的 [experimental.plugins](/guide/features/builtin-swc-loader#jscexperimentalplugins) 来使用 SWC 插件，因此我们移除了 Rspack core 内置的插件，包括：
+
+- [@swc/plugin-emotion](https://www.npmjs.com/package/@swc/plugin-emotion)
+- [@swc/plugin-relay](https://www.npmjs.com/package/@swc/plugin-relay)
+- [@swc/plugin-styled-components](https://www.npmjs.com/package/@swc/plugin-styled-components)
+
+### 迁移示例
+
+以 `@swc/plugin-styled-components` 为例，在 v1.0 中可以通过如下方式使用。
+
+- 安装：
+
+```bash
+npm i @swc/plugin-styled-components -D
+```
+
+- 配置：
+
+```diff
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.jsx?$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           styledComponents: {},
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-styled-components", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
 
 ## 尝鲜
 
