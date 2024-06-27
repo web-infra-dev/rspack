@@ -22,8 +22,8 @@ import { registerGlobalTrace as experimental_registerGlobalTrace } from '@rspack
 import { ExternalObject } from '@rspack/binding';
 import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
-import Hash = require('./util/hash');
-import Hash_2 = require('../util/hash');
+import Hash_2 = require('./util/hash');
+import Hash_3 = require('../util/hash');
 import { HookMap as HookMap_2 } from 'tapable';
 import { JsAssetInfo } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
@@ -63,7 +63,7 @@ import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
 import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
 import ResolverFactory = require('./ResolverFactory');
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
-import { Source } from 'webpack-sources';
+import sources = require('../compiled/webpack-sources');
 import { SyncBailHook as SyncBailHook_2 } from 'tapable';
 import { SyncHook as SyncHook_2 } from 'tapable';
 import { SyncWaterfallHook } from 'tapable';
@@ -1069,7 +1069,7 @@ export class Compilation {
         Iterable<Module>
         ], void>;
         finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
-        chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
+        chunkHash: liteTapable.SyncHook<[Chunk, Hash_2], void>;
         chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
         processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
         succeedModule: liteTapable.SyncHook<[Module], void>;
@@ -1164,7 +1164,7 @@ export class Compilation {
 
 // @public (undocumented)
 type CompilationHooks = {
-    chunkHash: liteTapable.SyncHook<[Chunk, Hash_2]>;
+    chunkHash: liteTapable.SyncHook<[Chunk, Hash_3]>;
 };
 
 // @public (undocumented)
@@ -3725,6 +3725,15 @@ type GroupOptions = {
 };
 
 // @public (undocumented)
+class Hash {
+    	constructor();
+
+    	digest(encoding?: string): string | Buffer;
+
+    	update(data: string | Buffer, inputEncoding?: string): Hash;
+}
+
+// @public (undocumented)
 export type HashDigest = z.infer<typeof hashDigest>;
 
 // @public (undocumented)
@@ -4809,7 +4818,7 @@ export interface LoaderContext<OptionsType = {}> {
     utils: {
         absolutify: (context: string, request: string) => string;
         contextify: (context: string, request: string) => string;
-        createHash: (algorithm?: string) => Hash_2;
+        createHash: (algorithm?: string) => Hash_3;
     };
     // (undocumented)
     version: 2;
@@ -4976,6 +4985,9 @@ const LogType: Readonly<{
 
 // @public (undocumented)
 type LogTypeEnum = (typeof LogType)[keyof typeof LogType];
+
+// @public (undocumented)
+type MapOptions = { columns?: boolean; module?: boolean };
 
 // @public (undocumented)
 type Matcher = string | RegExp | (string | RegExp)[];
@@ -8153,6 +8165,17 @@ export type RawPublicPath = z.infer<typeof rawPublicPath>;
 
 // @public (undocumented)
 const rawPublicPath: z.ZodString;
+
+// @public (undocumented)
+type RawSourceMap = {
+    	version: number;
+    	sources: string[];
+    	names: string[];
+    	sourceRoot?: string;
+    	sourcesContent?: string[];
+    	mappings: string;
+    	file: string;
+};
 
 // @public (undocumented)
 type ReactOptions = RawReactOptions | undefined;
@@ -12204,6 +12227,30 @@ export type SnapshotOptions = z.infer<typeof snapshotOptions>;
 const snapshotOptions: z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>;
 
 // @public (undocumented)
+abstract class Source {
+    	// (undocumented)
+    buffer(): Buffer;
+
+    	// (undocumented)
+    map(options?: MapOptions): RawSourceMap | null;
+
+    	// (undocumented)
+    size(): number;
+
+    	// (undocumented)
+    source(): string | Buffer;
+
+    	// (undocumented)
+    sourceAndMap(options?: MapOptions): {
+        		source: string | Buffer;
+        		map: Object;
+        	};
+
+    	// (undocumented)
+    updateHash(hash: Hash): void;
+}
+
+// @public (undocumented)
 interface SourceMap {
     // (undocumented)
     file?: string;
@@ -12248,8 +12295,7 @@ export type SourceMapFilename = z.infer<typeof sourceMapFilename>;
 // @public (undocumented)
 const sourceMapFilename: z.ZodString;
 
-// @public (undocumented)
-export const sources: any;
+export { sources }
 
 // @public (undocumented)
 class SplitChunksPlugin extends RspackBuiltinPlugin {

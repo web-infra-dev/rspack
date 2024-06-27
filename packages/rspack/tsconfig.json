@@ -17,6 +17,9 @@
       "zod-validation-error": ["../compiled/zod-validation-error"],
       "json-parse-even-better-errors": [
         "../compiled/json-parse-even-better-errors"
+      ],
+      "webpack-sources": [
+        "../compiled/webpack-sources"
       ]
     }
   },
