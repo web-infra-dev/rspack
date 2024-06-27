@@ -4,12 +4,31 @@ date: 2024-06-29 16:00:00
 
 import { PackageManagerTabs } from '@theme';
 
-# Announcing Rspack v1.0 alpha
+# Announcing Rspack v1.0 Alpha
 
 > June 29, 2024
 
-![](https://assets.rspack.dev/rspack/rspack-banner-v0-7.png)
+![](https://assets.rspack.dev/rspack/rspack-banner-v1-0-alpha.png)
 
-##
+Rspack 1.0 Alpha is now available on npm!
+
+Before releasing Rspack 1.0 stable version, we will test for 1~2 months to improve the API stability and reliability of v1.0 and to verify its impact on downstream projects. The stable release of Rspack 1.0 is expected to be available in early August this year.
+
+## Try it
+
+To install the alpha version of Rspack and Rspack CLI:
+
+```bash
+# npm
+npm add -D --save-exact @rspack/core@alpha @rspack/cli@alpha
+
+# yarn
+yarn add -D --save-exact @rspack/core@alpha @rspack/cli@alpha
+
+# pnpm
+pnpm add -D --save-exact @rspack/core@alpha @rspack/cli@alpha
+```
+
+During the Rspack alpha testing, new versions will still introduce some breaking changes, which we will highlight in the changelog. Please read the changelog to understand the differences before upgrading.
 
 ## Breaking Changes
