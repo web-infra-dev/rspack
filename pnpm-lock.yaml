@@ -445,9 +445,6 @@ importers:
       tapable:
         specifier: 2.2.1
         version: 2.2.1
-      webpack-sources:
-        specifier: 3.2.3
-        version: 3.2.3
     devDependencies:
       '@rspack/core':
         specifier: workspace:*
@@ -575,6 +572,9 @@ importers:
       watchpack:
         specifier: ^2.4.0
         version: 2.4.1
+      webpack-sources:
+        specifier: 3.2.3
+        version: 3.2.3
       zod:
         specifier: ^3.21.4
         version: 3.22.4

@@ -1,6 +1,7 @@
 // @ts-check
 import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from 'node:url';
 
 /** @type {import('prebundle').Config} */
 export default {
@@ -58,6 +59,18 @@ export default {
 						"export type ResolveRequest ="
 					)
 				);
+			}
+		},
+		{
+			name: "webpack-sources",
+			ignoreDts: true,
+			afterBundle(task) {
+				const __filename = fileURLToPath(import.meta.url);
+				const __dirname = dirname(__filename);
+				const dtsInputPath = join(__dirname, "declarations/webpack-sources.d.ts");
+				const dtsContent = readFileSync(dtsInputPath, "utf-8");
+				const dtsOutputPath = join(task.distPath, "index.d.ts");
+				writeFileSync(dtsOutputPath, dtsContent, "utf-8");
 			}
 		}
 	]
