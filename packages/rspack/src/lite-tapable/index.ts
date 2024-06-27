@@ -276,9 +276,9 @@ export class QueriedHook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 		const [from, to] = stageRange;
 		for (let tap of hook.taps) {
 			const stage = tap.stage ?? 0;
-			if (from < stage && stage <= to) {
+			if (from <= stage && stage < to) {
 				tapsInRange.push(tap);
-			} else if (from === minStage && stage === minStage) {
+			} else if (to === maxStage && stage === maxStage) {
 				tapsInRange.push(tap);
 			}
 		}

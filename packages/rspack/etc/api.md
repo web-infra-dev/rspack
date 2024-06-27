@@ -1477,6 +1477,11 @@ export type Context = z.infer<typeof context>;
 const context: z.ZodString;
 
 // @public (undocumented)
+type ContextInfo = {
+    issuer: string;
+};
+
+// @public (undocumented)
 class ContextModuleFactory {
     constructor();
     // (undocumented)
@@ -6130,6 +6135,7 @@ export class NormalModuleFactory {
     hooks: {
         resolveForScheme: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[ResourceDataWithData], true | void>>;
         beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
+        factorize: liteTapable.AsyncSeriesBailHook<[ResolveData], void>;
         afterResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
         createModule: liteTapable.AsyncSeriesBailHook<[
         NormalModuleCreateData,
@@ -8190,6 +8196,7 @@ const resolveAlias: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLitera
 
 // @public (undocumented)
 type ResolveData = {
+    contextInfo: ContextInfo;
     context: string;
     request: string;
     fileDependencies: string[];

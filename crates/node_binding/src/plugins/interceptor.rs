@@ -16,9 +16,9 @@ use rspack_binding_values::{
   JsBeforeResolveOutput, JsChunk, JsChunkAssetArgs, JsCompilation,
   JsContextModuleFactoryAfterResolveData, JsContextModuleFactoryAfterResolveResult,
   JsContextModuleFactoryBeforeResolveData, JsContextModuleFactoryBeforeResolveResult, JsCreateData,
-  JsExecuteModuleArg, JsModule, JsNormalModuleFactoryCreateModuleArgs, JsResolveForSchemeArgs,
-  JsResolveForSchemeOutput, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
-  ToJsCompatSource, ToJsModule,
+  JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput, JsModule,
+  JsNormalModuleFactoryCreateModuleArgs, JsResolveForSchemeArgs, JsResolveForSchemeOutput,
+  JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
 };
 use rspack_core::{
   rspack_sources::SourceExt, AfterResolveData, AfterResolveResult, AssetEmittedInfo,
@@ -45,7 +45,8 @@ use rspack_core::{
   ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
   NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolve,
   NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModule,
-  NormalModuleFactoryCreateModuleHook, NormalModuleFactoryResolveForScheme,
+  NormalModuleFactoryCreateModuleHook, NormalModuleFactoryFactorize,
+  NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolveForScheme,
   NormalModuleFactoryResolveForSchemeHook, ResourceData, RuntimeGlobals,
 };
 use rspack_hash::RspackHash;
@@ -315,6 +316,7 @@ pub enum RegisterJsTapKind {
   CompilationAfterProcessAssets,
   CompilationAfterSeal,
   NormalModuleFactoryBeforeResolve,
+  NormalModuleFactoryFactorize,
   NormalModuleFactoryAfterResolve,
   NormalModuleFactoryCreateModule,
   NormalModuleFactoryResolveForScheme,
@@ -443,6 +445,11 @@ pub struct RegisterJsTaps {
   )]
   pub register_normal_module_factory_before_resolve_taps:
     RegisterFunction<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsFactorizeArgs) => Promise<JsFactorizeArgs>); stage: number; }>"
+  )]
+  pub register_normal_module_factory_factorize_taps:
+    RegisterFunction<JsFactorizeArgs, Promise<JsFactorizeOutput>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>"
   )]
@@ -681,6 +688,14 @@ define_register!(
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::NormalModuleFactoryBeforeResolve,
+  skip = true,
+);
+define_register!(
+  RegisterNormalModuleFactoryFactorizeTaps,
+  tap = NormalModuleFactoryFactorizeTap<JsFactorizeArgs, Promise<JsFactorizeOutput>> @ NormalModuleFactoryFactorizeHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::NormalModuleFactoryFactorize,
   skip = true,
 );
 define_register!(
@@ -1160,6 +1175,11 @@ impl NormalModuleFactoryBeforeResolve for NormalModuleFactoryBeforeResolveTap {
       .call_with_promise(JsBeforeResolveArgs {
         request: dependency.request().to_string(),
         context: data.context.to_string(),
+        issuer: data
+          .issuer
+          .as_ref()
+          .map(|issuer| issuer.to_string())
+          .unwrap_or_default(),
       })
       .await
     {
@@ -1167,6 +1187,44 @@ impl NormalModuleFactoryBeforeResolve for NormalModuleFactoryBeforeResolveTap {
         dependency.set_request(resolve_data.request);
         data.context = resolve_data.context.into();
         Ok(ret)
+      }
+      Err(err) => Err(err),
+    }
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl NormalModuleFactoryFactorize for NormalModuleFactoryFactorizeTap {
+  async fn run(
+    &self,
+    data: &mut ModuleFactoryCreateData,
+  ) -> rspack_error::Result<Option<BoxModule>> {
+    let dependency = data
+      .dependency
+      .as_module_dependency_mut()
+      .expect("should be module dependency");
+    match self
+      .function
+      .call_with_promise(JsFactorizeArgs {
+        request: dependency.request().to_string(),
+        context: data.context.to_string(),
+        issuer: data
+          .issuer
+          .as_ref()
+          .map(|issuer| issuer.to_string())
+          .unwrap_or_default(),
+      })
+      .await
+    {
+      Ok(resolve_data) => {
+        dependency.set_request(resolve_data.request);
+        data.context = resolve_data.context.into();
+        // only supports update resolve request for now
+        Ok(None)
       }
       Err(err) => Err(err),
     }
@@ -1212,6 +1270,11 @@ impl NormalModuleFactoryAfterResolve for NormalModuleFactoryAfterResolveTap {
       .call_with_promise(JsAfterResolveData {
         request: create_data.raw_request.to_string(),
         context: data.context.to_string(),
+        issuer: data
+          .issuer
+          .as_ref()
+          .map(|issuer| issuer.to_string())
+          .unwrap_or_default(),
         file_dependencies: data
           .file_dependencies
           .clone()
