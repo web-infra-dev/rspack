@@ -9,7 +9,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 static URI_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"(?is)^data:([^;,]+)?((?:;[^;,]+)*?)(?:;(base64))?,(.*)$").expect("Invalid Regex")
+  Regex::new(r"(?i)^data:([^;,]+)?((?:;[^;,]+)*?)(?:;(base64))?,(.*)$").expect("Invalid Regex")
 });
 
 #[plugin]
