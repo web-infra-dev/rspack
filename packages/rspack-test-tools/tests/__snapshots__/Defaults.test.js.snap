@@ -240,10 +240,17 @@ Object {
         "affectedHooks": "compilation",
         "name": "SwcJsMinimizerRspackPlugin",
       },
-      SwcCssMinimizerRspackPlugin {
-        "_options": undefined,
+      LightningCssMinimizerRspackPlugin {
+        "_options": Object {
+          "browserslist": Array [
+            "defaults",
+          ],
+          "errorRecovery": false,
+          "removeUnusedLocalIdents": true,
+          "unusedSymbols": Array [],
+        },
         "affectedHooks": undefined,
-        "name": "SwcCssMinimizerRspackPlugin",
+        "name": "LightningCssMinimizerRspackPlugin",
       },
     ],
     "moduleIds": "natural",

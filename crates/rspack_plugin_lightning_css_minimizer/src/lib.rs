@@ -78,7 +78,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .map(|input_source_map| -> Result<_> {
             let mut sm =
               parcel_sourcemap::SourceMap::new(input_source_map.source_root().unwrap_or("/"));
-            sm.add_source(&filename);
+            sm.add_source(filename);
             sm.set_source_content(0, &input).map_err(|e| error!(e))?;
             Ok(sm)
           })
