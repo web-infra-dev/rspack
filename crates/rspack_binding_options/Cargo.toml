@@ -67,6 +67,5 @@ rspack_swc_visitors                   = { path = "../rspack_swc_visitors" }
 rustc-hash                            = { workspace = true }
 serde                                 = { workspace = true, features = ["derive"] }
 serde_json                            = { workspace = true }
-swc_config                            = { workspace = true }
 swc_core                              = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
 tokio                                 = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
