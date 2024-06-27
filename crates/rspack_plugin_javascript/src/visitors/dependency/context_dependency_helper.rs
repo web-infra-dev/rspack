@@ -252,9 +252,9 @@ struct BasicEvaluatedExpressionVisitor<'a, F: FnMut(&Expr) -> ()> {
 
 impl<'a, F: FnMut(&Expr) -> ()> Visit for BasicEvaluatedExpressionVisitor<'a, F> {
   fn visit_expr(&mut self, n: &Expr) {
-    self.targets.retain(|evaluted_expr| {
+    self.targets.retain(|evaluated_expr| {
       let span = n.span();
-      let (lo, hi) = evaluted_expr.range();
+      let (lo, hi) = evaluated_expr.range();
       if span.real_lo() == lo && span.hi().0 == hi {
         (self.on_visit)(n);
         return false;
