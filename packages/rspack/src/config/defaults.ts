@@ -13,8 +13,11 @@ import fs from "fs";
 import path from "path";
 
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
-import { SwcCssMinimizerRspackPlugin } from "../builtin-plugin/SwcCssMinimizerPlugin";
-import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";
+import {
+	LightningCssMinimizerRspackPlugin,
+	SwcCssMinimizerRspackPlugin,
+	SwcJsMinimizerRspackPlugin
+} from "../builtin-plugin";
 import { isNil } from "../util";
 import { assertNotNill } from "../util/assertNotNil";
 import { cleverMerge } from "../util/cleverMerge";
@@ -936,7 +939,7 @@ const applyOptimizationDefaults = (
 	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `SwcCssMinimizerRspackPlugin` by default
 	A(optimization, "minimizer", () => [
 		new SwcJsMinimizerRspackPlugin(),
-		new SwcCssMinimizerRspackPlugin()
+		new LightningCssMinimizerRspackPlugin()
 	]);
 	F(optimization, "nodeEnv", () => {
 		if (production) return "production";

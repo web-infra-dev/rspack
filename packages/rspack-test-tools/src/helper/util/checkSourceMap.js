@@ -27,16 +27,17 @@ export default async function checkSourceMap(
 	}
 	const map = await new sourceMap.SourceMapConsumer(outCodeMap);
 	for (const id in toSearch) {
-		const checkColumn = Array.isArray(toSearch[id])
-			? toSearch[id][1]
+		const isSearchConfig =
+			typeof toSearch[id] === "object" && toSearch[id] !== null;
+		const outId = isSearchConfig ? toSearch[id].outId ?? id : id;
+		const checkColumn = isSearchConfig
+			? toSearch[id].checkColumn ?? _checkColumn
 			: _checkColumn;
-		const inSource = Array.isArray(toSearch[id])
-			? toSearch[id][0]
-			: toSearch[id];
+		const inSource = isSearchConfig ? toSearch[id].inSource : toSearch[id];
 
-		const outIndex = out.indexOf(id);
+		const outIndex = out.indexOf(outId);
 		if (outIndex < 0)
-			throw new Error(`Failed to find "${id}" in output ${out}`);
+			throw new Error(`Failed to find "${outId}" in output ${out}`);
 		const outLines = out.slice(0, outIndex).split("\n");
 		const outLine = outLines.length;
 		const outLastLine = outLines[outLines.length - 1];
@@ -77,7 +78,7 @@ export default async function checkSourceMap(
 		recordCheck(
 			expected === observed,
 			`expected original position: ${expected}, observed original position: ${observed}, out: ${
-				outLine + "," + outColumn + "," + outIndex + ":" + id
+				outLine + "," + outColumn + "," + outIndex + ":" + outId
 			}, ${checkColumn ? "" : "(column ignored)"}`
 		);
 

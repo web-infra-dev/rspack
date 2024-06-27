@@ -74,22 +74,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let input = original_source.source().into_owned();
         let input_source_map = original_source.map(&MapOptions::default());
         let mut source_map = input_source_map
-          .clone()
+          .as_ref()
           .map(|input_source_map| -> Result<_> {
-            let mut map =
-              parcel_sourcemap::SourceMap::new(input_source_map.source_root().unwrap_or_default());
-            map
-              .add_vlq_map(
-                input_source_map.mappings().as_bytes(),
-                // TODO: move instead of clone
-                input_source_map.sources().to_vec(),
-                input_source_map.sources_content().to_vec(),
-                input_source_map.names().to_vec(),
-                0,
-                0,
-              )
-              .map_err(|e| error!(e.to_string()))?;
-            Ok(map)
+            let mut sm =
+              parcel_sourcemap::SourceMap::new(input_source_map.source_root().unwrap_or("/"));
+            sm.add_source(filename);
+            sm.set_source_content(0, &input).map_err(|e| error!(e))?;
+            Ok(sm)
           })
           .transpose()?;
         let result = {

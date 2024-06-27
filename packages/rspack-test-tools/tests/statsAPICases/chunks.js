@@ -26,7 +26,7 @@ module.exports = {
 		    "files": Array [
 		      "chunkB.js",
 		    ],
-		    "hash": "d9ccafc84b260cb22758",
+		    "hash": "c088d80352ca921645b1",
 		    "id": "250",
 		    "idHints": Array [],
 		    "initial": false,
@@ -133,7 +133,7 @@ module.exports = {
 		    "files": Array [
 		      "main.js",
 		    ],
-		    "hash": "f12c0371802c924eb6e4",
+		    "hash": "a2b5c1f89b5d5c1ddd87",
 		    "id": "909",
 		    "idHints": Array [],
 		    "initial": true,
