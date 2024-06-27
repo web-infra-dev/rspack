@@ -34,5 +34,8 @@ it("verify es6 (esmodule) minify bundle source map", async () => {
 });
 
 const checkColumn = (s) => {
-	return [s, true]
+	return {
+		inSource: s,
+		checkColumn: true,
+	}
 }

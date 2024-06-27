@@ -1,3 +1,5 @@
+const { rspack } = require("@rspack/core");
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	module: {
@@ -9,7 +11,10 @@ module.exports = {
 	},
 	devtool: "source-map",
 	optimization: {
-		minimize: true
+		minimize: true,
+		minimizer: [
+			new rspack.SwcCssMinimizerRspackPlugin()
+		]
 	},
 	externals: ["source-map"],
 	externalsType: "commonjs"
