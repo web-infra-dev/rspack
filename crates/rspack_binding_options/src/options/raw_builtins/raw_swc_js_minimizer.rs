@@ -6,8 +6,8 @@ use rspack_plugin_swc_js_minimizer::{
   ExtractComments, OptionWrapper, SwcJsMinimizerRspackPluginOptions, SwcJsMinimizerRule,
   SwcJsMinimizerRules,
 };
-use serde::Deserialize;
-use swc_config::config_types::BoolOrDataConfig;
+use serde::de::DeserializeOwned;
+use swc_core::base::BoolOrDataConfig;
 
 type RawSwcJsMinimizerRule = Either<String, JsRegExp>;
 type RawSwcJsMinimizerRules = Either3<String, JsRegExp, Vec<RawSwcJsMinimizerRule>>;
@@ -22,12 +22,12 @@ pub struct RawExtractComments {
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawSwcJsMinimizerRspackPluginOptions {
   pub extract_comments: Option<RawExtractComments>,
-  pub compress: Either<bool, String>,
-  pub mangle: Either<bool, String>,
-  pub format: String,
+  pub compress: serde_json::Value,
+  pub mangle: serde_json::Value,
+  pub format: serde_json::Value,
   pub module: Option<bool>,
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   pub test: Option<RawSwcJsMinimizerRules>,
@@ -37,13 +37,11 @@ pub struct RawSwcJsMinimizerRspackPluginOptions {
   pub exclude: Option<RawSwcJsMinimizerRules>,
 }
 
-fn try_deserialize_into<'de, T: 'de + Deserialize<'de>>(
-  value: &'de Either<bool, String>,
-) -> Result<BoolOrDataConfig<T>> {
-  Ok(match value {
-    Either::A(b) => BoolOrDataConfig::from_bool(*b),
-    Either::B(s) => BoolOrDataConfig::from_obj(serde_json::from_str(s).into_diagnostic()?),
-  })
+fn try_deserialize_into<T>(value: serde_json::Value) -> Result<T>
+where
+  T: DeserializeOwned,
+{
+  serde_json::from_value(value).into_diagnostic()
 }
 
 fn into_condition(c: Option<RawSwcJsMinimizerRules>) -> Option<SwcJsMinimizerRules> {
@@ -74,11 +72,19 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for SwcJsMinimizerRspackPlugi
   type Error = rspack_error::Error;
 
   fn try_from(value: RawSwcJsMinimizerRspackPluginOptions) -> Result<Self> {
+    let compress = try_deserialize_into::<
+      BoolOrDataConfig<rspack_plugin_swc_js_minimizer::TerserCompressorOptions>,
+    >(value.compress)?
+    .or(|| BoolOrDataConfig::from_bool(true));
+    let mangle = try_deserialize_into::<
+      BoolOrDataConfig<rspack_plugin_swc_js_minimizer::MangleOptions>,
+    >(value.mangle)?
+    .or(|| BoolOrDataConfig::from_bool(true));
     Ok(Self {
       extract_comments: into_extract_comments(value.extract_comments),
-      compress: try_deserialize_into(&value.compress)?,
-      mangle: try_deserialize_into(&value.mangle)?,
-      format: serde_json::from_str(&value.format).into_diagnostic()?,
+      compress,
+      mangle,
+      format: try_deserialize_into(value.format)?,
       module: value.module,
       test: into_condition(value.test),
       include: into_condition(value.include),

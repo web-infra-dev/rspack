@@ -1433,9 +1433,9 @@ export interface RawStyleConfig {
 
 export interface RawSwcJsMinimizerRspackPluginOptions {
   extractComments?: RawExtractComments
-  compress: boolean | string
-  mangle: boolean | string
-  format: string
+  compress: any
+  mangle: any
+  format: any
   module?: boolean
   test?: string | RegExp | (string | RegExp)[]
   include?: string | RegExp | (string | RegExp)[]

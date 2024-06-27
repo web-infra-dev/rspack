@@ -29,6 +29,6 @@ const fs = require("fs");
 // @lic
 
 it("should not contain banner", () => {
-	const includeNewline = fs.readFileSync(__filename, "utf-8").includes("\n");
-	expect(includeNewline).toBeFalsy();
+	const banner = fs.readFileSync(__filename, "utf-8").startsWith(`/*! For license information please see bundle0.js.LICENSE.txt */`);
+	expect(banner).toBeFalsy();
 });
