@@ -363,6 +363,12 @@ export interface JsExecuteModuleResult {
   id: number
 }
 
+export interface JsFactorizeArgs {
+  request: string
+  context: string
+  issuer: string
+}
+
 export interface JsFactoryMeta {
   sideEffectFree?: boolean
 }
@@ -1488,12 +1494,13 @@ export enum RegisterJsTapKind {
   CompilationAfterProcessAssets = 22,
   CompilationAfterSeal = 23,
   NormalModuleFactoryBeforeResolve = 24,
-  NormalModuleFactoryAfterResolve = 25,
-  NormalModuleFactoryCreateModule = 26,
-  NormalModuleFactoryResolveForScheme = 27,
-  ContextModuleFactoryBeforeResolve = 28,
-  ContextModuleFactoryAfterResolve = 29,
-  JavascriptModulesChunkHash = 30
+  NormalModuleFactoryFactorize = 25,
+  NormalModuleFactoryAfterResolve = 26,
+  NormalModuleFactoryCreateModule = 27,
+  NormalModuleFactoryResolveForScheme = 28,
+  ContextModuleFactoryBeforeResolve = 29,
+  ContextModuleFactoryAfterResolve = 30,
+  JavascriptModulesChunkHash = 31
 }
 
 export interface RegisterJsTaps {
@@ -1522,6 +1529,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
+  registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsFactorizeArgs) => Promise<[boolean | undefined, JsFactorizeOutput]>); stage: number; }>
   registerNormalModuleFactoryResolveForSchemeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>
   registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>

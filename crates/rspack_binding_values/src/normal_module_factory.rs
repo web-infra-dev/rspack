@@ -21,6 +21,15 @@ pub struct JsBeforeResolveArgs {
 pub type JsBeforeResolveOutput = (Option<bool>, JsBeforeResolveArgs);
 
 #[napi(object)]
+pub struct JsFactorizeArgs {
+  pub request: String,
+  pub context: String,
+  pub issuer: String,
+}
+
+pub type JsFactorizeOutput = JsFactorizeArgs;
+
+#[napi(object)]
 pub struct JsCreateData {
   pub request: String,
   pub user_request: String,

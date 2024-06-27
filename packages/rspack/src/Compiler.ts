@@ -1029,6 +1029,26 @@ class Compiler {
 						return [ret, resolveData];
 					}
 				),
+			registerNormalModuleFactoryFactorizeTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.NormalModuleFactoryFactorize,
+				() => this.#compilationParams!.normalModuleFactory.hooks.factorize,
+				queried => async (resolveData: binding.JsFactorizeArgs) => {
+					const normalizedResolveData: ResolveData = {
+						contextInfo: {
+							issuer: resolveData.issuer
+						},
+						request: resolveData.request,
+						context: resolveData.context,
+						fileDependencies: [],
+						missingDependencies: [],
+						contextDependencies: []
+					};
+					await queried.promise(normalizedResolveData);
+					resolveData.request = normalizedResolveData.request;
+					resolveData.context = normalizedResolveData.context;
+					return resolveData;
+				}
+			),
 			registerNormalModuleFactoryResolveForSchemeTaps:
 				this.#createHookMapRegisterTaps(
 					binding.RegisterJsTapKind.NormalModuleFactoryResolveForScheme,

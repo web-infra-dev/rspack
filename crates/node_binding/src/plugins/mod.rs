@@ -46,6 +46,7 @@ pub struct JsHooksAdapterPlugin {
   register_compilation_after_process_assets_taps: RegisterCompilationAfterProcessAssetsTaps,
   register_compilation_after_seal_taps: RegisterCompilationAfterSealTaps,
   register_normal_module_factory_before_resolve_taps: RegisterNormalModuleFactoryBeforeResolveTaps,
+  register_normal_module_factory_factorize_taps: RegisterNormalModuleFactoryFactorizeTaps,
   register_normal_module_factory_resolve_for_scheme_taps:
     RegisterNormalModuleFactoryResolveForSchemeTaps,
   register_normal_module_factory_after_resolve_taps: RegisterNormalModuleFactoryAfterResolveTaps,
@@ -216,6 +217,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
           .register_normal_module_factory_before_resolve_taps
           .clone(),
       );
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .factorize
+      .intercept(self.register_normal_module_factory_factorize_taps.clone());
     ctx
       .context
       .normal_module_factory_hooks
@@ -394,6 +400,11 @@ impl JsHooksAdapterPlugin {
         register_normal_module_factory_before_resolve_taps:
           RegisterNormalModuleFactoryBeforeResolveTaps::new(
             register_js_taps.register_normal_module_factory_before_resolve_taps,
+            non_skippable_registers.clone(),
+          ),
+        register_normal_module_factory_factorize_taps:
+          RegisterNormalModuleFactoryFactorizeTaps::new(
+            register_js_taps.register_normal_module_factory_factorize_taps,
             non_skippable_registers.clone(),
           ),
         register_normal_module_factory_resolve_for_scheme_taps:

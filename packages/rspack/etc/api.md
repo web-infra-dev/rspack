@@ -6136,6 +6136,7 @@ export class NormalModuleFactory {
     hooks: {
         resolveForScheme: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[ResourceDataWithData], true | void>>;
         beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
+        factorize: liteTapable.AsyncSeriesBailHook<[ResolveData], void>;
         afterResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
         createModule: liteTapable.AsyncSeriesBailHook<[
         NormalModuleCreateData,
