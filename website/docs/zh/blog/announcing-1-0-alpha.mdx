@@ -106,4 +106,96 @@ pnpm add -D --save-exact @rspack/core@alpha @rspack/cli@alpha
 
 ## 不兼容更新
 
-TODO
+### resolve.tsConfigPath
+
+`resolve.tsConfigPath` 配置已被移除，请使用 [resolve.tsConfig](config/resolve#resolvetsconfig) 代替。
+
+```diff title="rspack.config.js"
+module.exports = {
+  resolve: {
+-   tsConfigPath: path.resolve(__dirname, './tsconfig.json'),
++   tsConfig: path.resolve(__dirname, './tsconfig.json'),
+  },
+};
+```
+
+### rspackExperiments.styledComponents
+
+`builtin:swc-loader` 的 `rspackExperiments.styledComponents` 配置已被移除，请使用 [@swc/plugin-styled-components](https://www.npmjs.com/package/@swc/plugin-styled-components) 代替。
+
+```diff
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           styledComponents: true,
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-styled-components", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### rspackExperiments.emotion
+
+`builtin:swc-loader` 的 `rspackExperiments.emotion` 配置已被移除，请使用 [@swc/plugin-emotion](https://www.npmjs.com/package/@swc/plugin-emotion) 代替。
+
+```diff
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           emotion: true,
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-emotion", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### rspackExperiments.relay
+
+`builtin:swc-loader` 的 `rspackExperiments.relay` 配置已被移除，请使用 [@swc/plugin-relay](https://www.npmjs.com/package/@swc/plugin-relay) 代替。
+
+```diff
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           relay: true,
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-relay", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
