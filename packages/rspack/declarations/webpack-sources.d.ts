@@ -128,18 +128,3 @@ export class CompatSource extends Source {
 
 	static from(sourceLike: SourceLike): Source;
 }
-
-declare const sources: {
-	Source: Source;
-	RawSource: RawSource;
-	OriginalSource: OriginalSource;
-	ReplaceSource: ReplaceSource;
-	SourceMapSource: SourceMapSource;
-	ConcatSource: ConcatSource;
-	PrefixSource: PrefixSource;
-	CachedSource: CachedSource;
-	SizeOnlySource: SizeOnlySource;
-	CompatSource: CompatSource;
-};
-
-export default sources;
