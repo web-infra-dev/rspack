@@ -18,7 +18,7 @@ The stable release of Rspack 1.0 is expected to be available in early August thi
 
 ## Lean Core
 
-To ensure the long term stability of Rspack 1.0, we have removed some non-core features that were built into the Rspack core. This allows the core to be lean and focused on providing common bundler features.
+To ensure the long term stability of Rspack v1, we have removed some non-core features that were built into the Rspack core. This allows the core to be lean and focused on providing common bundler features.
 
 In v0.x, Rspack core has built-in SWC plugins to support Emotion, Styled Components, and Relay. This is because in the early days Rspack did not support the use of SWC Wasm plugins and could only integrate them into the core.
 
@@ -59,6 +59,30 @@ module.exports = {
         },
       },
     ],
+  },
+};
+```
+
+## Bundling CSS
+
+Rspack 1.0 aligns with the webpack [experiment.css](/config/experiments#experimentscss) default value, making it easier to migrate from webpack to Rspack.
+
+In the webpack ecosystem, there are three common approaches to bundling CSS files:
+
+1. Use [css-loader](https://github.com/webpack-contrib/css-loader) and [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) to generate standalone CSS files.
+2. Use [css-loader](https://github.com/webpack-contrib/css-loader) and [style-loader](https://github.com/webpack-contrib/style-loader) to inject CSS through `<style>` tags.
+3. Use [experiment.css](/config/experiments#experimentscss), an experimental feature introduced in webpack 5 that provides native CSS support.
+
+In version 0.x, Rspack enabled `experiment.css` by default, which would conflict with css-loader. Users had to manually disable `experiment.css` to use the other two methods.
+
+Starting with Rspack 1.0, the default value of `experiment.css` changes to `false`, in line with webpack, allowing users to use any of the above approaches.
+
+You can add the following configuration to continue using `experiment.css`:
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    css: true,
   },
 };
 ```

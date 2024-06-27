@@ -18,7 +18,7 @@ Rspack 1.0 稳定版预计于今年 8 月初推出。
 
 ## 精简核心
 
-为了使 Rspack 1.0 能够保持长期稳定，我们移除了一些 Rspack core 内置的非核心功能，使 core 能够保持精简，专注于提供 bundler 层面的通用能力。
+为了使 Rspack v1 能够保持长期稳定，我们移除了一些 Rspack core 内置的非核心功能，使 core 保持精简，专注于提供 bundler 层面的通用能力。
 
 在 0.x 版本中，Rspack core 内置了部分 SWC 插件，用于支持 Emotion、Styled Components 和 Relay，这是因为 Rspack 早期尚未支持使用 SWC Wasm 插件，只能通过 core 进行集成。
 
@@ -40,7 +40,7 @@ npm i @swc/plugin-styled-components -D
 
 - 配置：
 
-```diff
+```diff title="rspack.config.js"
 module.exports = {
   module: {
     rules: [
@@ -59,6 +59,30 @@ module.exports = {
         },
       },
     ],
+  },
+};
+```
+
+## CSS 打包
+
+Rspack 1.0 对齐了 webpack 的 [experiment.css](/config/experiments#experimentscss) 默认值，这使得从 webpack 迁移到 Rspack 更加容易。
+
+在 webpack 生态中，有三种常用的方式来打包 CSS 文件：
+
+1. 使用 [css-loader](https://github.com/webpack-contrib/css-loader) 和 [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin)，生成独立的 CSS 文件。
+2. 使用 [css-loader](https://github.com/webpack-contrib/css-loader) 和 [style-loader](https://github.com/webpack-contrib/style-loader)，将 CSS 通过 `<style>` 标签注入。
+3. 使用 [experiment.css](/config/experiments#experimentscss)，这是 webpack 5 引入的实验性功能，提供 CSS 原生支持。
+
+在 0.x 版本中，Rspack 默认启用了 `experiment.css`，这会与 css-loader 产生冲突。用户需要手动关闭 `experiment.css` 后，才能使用其他两种方式。
+
+从 Rspack 1.0 开始，`experiment.css` 的默认值变更为 `false`，与 webpack 保持一致，并允许用户使用以上任意一种方法。
+
+你可以添加以下配置来继续使用 `experiment.css`：
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    css: true,
   },
 };
 ```
