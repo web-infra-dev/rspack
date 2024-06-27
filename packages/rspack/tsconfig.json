@@ -24,7 +24,10 @@
     }
   },
   "include": ["src", "src/**/*.json"],
-  "exclude": ["src/config/schema.check.js"],
+  "exclude": [
+    "src/config/schema.check.js",
+    "src/container/default.runtime.js"
+  ],
   "ts-node": {
     "transpileOnly": true
   }

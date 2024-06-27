@@ -228,12 +228,12 @@ Object {
     "minimizer": Array [
       SwcJsMinimizerRspackPlugin {
         "_options": Object {
-          "compress": "{\\"passes\\":1,\\"pure_funcs\\":[],\\"drop_console\\":false}",
+          "compress": true,
           "exclude": undefined,
           "extractComments": undefined,
-          "format": "{\\"comments\\":false,\\"asciiOnly\\":false}",
+          "format": Object {},
           "include": undefined,
-          "mangle": "{\\"keep_classnames\\":false,\\"keep_fnames\\":false}",
+          "mangle": true,
           "module": undefined,
           "test": undefined,
         },
