@@ -230,6 +230,7 @@ impl HarmonyExportImportedSpecifierDependency {
     );
     // dbg!(
     //   self.request(),
+    //   &ignored_exports,
     //   &exports,
     //   &imported_module_identifier,
     //   &checked,
@@ -526,7 +527,7 @@ impl HarmonyExportImportedSpecifierDependency {
         let init_fragment = self
           .get_reexport_fragment(
             ctxt,
-            "reexport default from dynamic".to_string(),
+            "reexport default from dynamic",
             key,
             &import_var,
             ValueKey::Null,
@@ -544,7 +545,7 @@ impl HarmonyExportImportedSpecifierDependency {
         let init_fragment = self
           .get_reexport_fragment(
             ctxt,
-            "reexport default export from named module".to_string(),
+            "reexport default export from named module",
             key,
             &import_var,
             ValueKey::Str("".into()),
@@ -563,7 +564,7 @@ impl HarmonyExportImportedSpecifierDependency {
         let init_fragment = self
           .get_reexport_fragment(
             ctxt,
-            "reexport module object".to_string(),
+            "reexport module object",
             key,
             &import_var,
             ValueKey::Str("".into()),
@@ -592,7 +593,7 @@ impl HarmonyExportImportedSpecifierDependency {
         let init_fragment = self
           .get_reexport_fragment(
             ctxt,
-            "reexport non-default export from non-harmony".to_string(),
+            "reexport non-default export from non-harmony",
             key,
             "undefined",
             ValueKey::Str("".into()),
@@ -650,13 +651,7 @@ impl HarmonyExportImportedSpecifierDependency {
                 .id
                 .get_used_name(mg, None, UsedName::Vec(ids));
             let init_fragment = self
-              .get_reexport_fragment(
-                ctxt,
-                "reexport safe".to_string(),
-                key,
-                &import_var,
-                used_name.into(),
-              )
+              .get_reexport_fragment(ctxt, "reexport safe", key, &import_var, used_name.into())
               .boxed();
             fragments.push(init_fragment);
           }
@@ -725,7 +720,7 @@ impl HarmonyExportImportedSpecifierDependency {
   fn get_reexport_fragment(
     &self,
     ctxt: &mut TemplateContext,
-    comment: String,
+    comment: &str,
     key: String,
     name: &str,
     value_key: ValueKey,
