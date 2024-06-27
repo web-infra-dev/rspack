@@ -22,7 +22,7 @@ Rspack 1.0 enables the `optimization.concatenateModules` by default during produ
 
 The primary purpose of module concatenation is to merge multiple modules into a single function, thereby reducing the overhead associated with parsing and executing JavaScript code in the browser. By merging modules, redundant code such as import and export statements between modules can be reduced, resulting in smaller bundle sizes.
 
-With concatenateModules enabled, the size of Rspack's output is reduced by about 4% to 10% (before Gzip).
+With module concatenation enabled, the output size of Rspack can be reduced by about 4% to 10% (before Gzip).
 
 ## Lean Core
 
@@ -79,7 +79,7 @@ In the webpack ecosystem, there are three common approaches to bundling CSS file
 2. Use [css-loader](https://github.com/webpack-contrib/css-loader) and [style-loader](https://github.com/webpack-contrib/style-loader) to inject CSS through `<style>` tags.
 3. Use [experiment.css](/config/experiments#experimentscss), an experimental feature introduced in webpack 5 that provides native CSS support.
 
-In version 0.x, Rspack enabled `experiment.css` by default, which would conflict with css-loader. Users had to manually disable `experiment.css` to use the other two methods.
+In version 0.x, Rspack enabled `experiment.css` by default, which would conflict with css-loader. Users had to manually disable `experiment.css` to use css-loader.
 
 Starting with Rspack 1.0, the default value of `experiment.css` changes to `false`, in line with webpack, allowing users to use any of the above approaches.
 
@@ -93,7 +93,7 @@ module.exports = {
 };
 ```
 
-## Try it
+## How to Upgrade
 
 To install the alpha version of Rspack and Rspack CLI:
 
@@ -213,6 +213,7 @@ Other breaking changes:
 - `optimization.chunkIds` defaults to `'natural'` when `mode === 'none'`, see [#6956](https://github.com/web-infra-dev/rspack/pull/6956).
 - `optimization.moduleIds` defaults to `'natural'` when `mode === 'none'`, see [#6956](https://github.com/web-infra-dev/rspack/pull/6956).
 - Rust crate `swc_core` has been upgraded to `0.95.x`, please upgrade your SWC Wasm plugin, see [#6887](https://github.com/web-infra-dev/rspack/pull/6887).
+- Removed `output.amdContainer`, use `output.library.amdContainer` instead, see [#6958](https://github.com/web-infra-dev/rspack/pull/6958)。
 - Removed `Compilation.currentNormalModuleHooks`, see [#6859](https://github.com/web-infra-dev/rspack/pull/6859).
 - Removed `stats.modules[].profile.integration`, see [#6947](https://github.com/web-infra-dev/rspack/pull/6947).
 - Removed some options for `SwcJsMinimizerRspackPluginOptions`, see [#6950](https://github.com/web-infra-dev/rspack/pull/6950).
