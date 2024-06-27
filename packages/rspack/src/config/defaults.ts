@@ -81,14 +81,11 @@ export const applyRspackOptionsDefaults = (
 	// IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
 	D(options, "bail", false);
 
-	const futureDefaults = options.experiments.futureDefaults ?? false;
 	// IGNORE(cache): cache is default to { type: "memory" } in webpack when the mode is development,
 	// but Rspack currently does not support this option
 	F(options, "cache", () => development);
 
-	applyExperimentsDefaults(options.experiments, {
-		cache: options.cache!
-	});
+	applyExperimentsDefaults(options.experiments);
 
 	applySnapshotDefaults(options.snapshot, { production });
 
@@ -109,7 +106,7 @@ export const applyRspackOptionsDefaults = (
 		outputModule: options.experiments.outputModule,
 		development,
 		entry: options.entry,
-		futureDefaults
+		futureDefaults: options.experiments.futureDefaults!
 	});
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
@@ -184,14 +181,11 @@ const applyInfrastructureLoggingDefaults = (
 	D(infrastructureLogging, "appendOnly", !tty);
 };
 
-const applyExperimentsDefaults = (
-	experiments: ExperimentsNormalized,
-	{ cache }: { cache: boolean }
-) => {
+const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
+	D(experiments, "futureDefaults", false);
 	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
 	D(experiments, "lazyCompilation", false);
-	// IGNORE(experiments.asyncWebAssembly): The default value of `asyncWebAssembly` is determined by `futureDefaults` in webpack.
-	D(experiments, "asyncWebAssembly", false);
+	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
 	D(experiments, "topLevelAwait", true);
 
@@ -272,6 +266,7 @@ const applyModuleDefaults = (
 	assertNotNill(module.parser);
 	assertNotNill(module.generator);
 
+	// IGNORE(module.parser): already check to align in 2024.6.27
 	F(module.parser, ASSET_MODULE_TYPE, () => ({}));
 	assertNotNill(module.parser.asset);
 	F(module.parser.asset, "dataUrlCondition", () => ({}));
@@ -317,6 +312,7 @@ const applyModuleDefaults = (
 		assertNotNill(module.parser["css/module"]);
 		D(module.parser["css/module"], "namedExports", true);
 
+		// IGNORE(module.generator): already check to align in 2024.6.27
 		F(module.generator, "css", () => ({}));
 		assertNotNill(module.generator.css);
 		D(
@@ -913,8 +909,7 @@ const applyOptimizationDefaults = (
 		css
 	}: { production: boolean; development: boolean; css: boolean }
 ) => {
-	// IGNORE(optimization.removeAvailableModules): In webpack, removeAvailableModules is false by default
-	D(optimization, "removeAvailableModules", true);
+	D(optimization, "removeAvailableModules", false);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
 	// IGNORE(optimization.moduleIds): set to "natural" by default in rspack 1.0
