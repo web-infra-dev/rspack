@@ -174,6 +174,14 @@ pub fn create_context_dependency(
       ));
     }
 
+    if let Some(wrapped_inner_expressions) = param.wrapped_inner_expressions() {
+      let mut walker = ExprSpanFinder {
+        targets: wrapped_inner_expressions.iter().collect_vec(),
+        on_visit: |n| parser.walk_expression(n),
+      };
+      expr.visit_with(&mut walker);
+    }
+
     ContextModuleScanResult {
       context,
       reg,
@@ -181,7 +189,6 @@ pub fn create_context_dependency(
       fragment,
       replaces,
     }
-    // TODO: handle `param.wrappedInnerExpressions`
   } else {
     if parser.javascript_options.expr_context_critical {
       let range = param.range();
@@ -195,6 +202,7 @@ pub fn create_context_dependency(
         .with_severity(Severity::Warn),
       ));
     }
+    parser.walk_expression(expr);
     ContextModuleScanResult {
       context: String::from("."),
       reg: String::new(),
