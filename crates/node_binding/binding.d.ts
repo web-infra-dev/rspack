@@ -500,9 +500,20 @@ export interface JsStatsAsset {
 }
 
 export interface JsStatsAssetInfo {
+  minimized: boolean
   development: boolean
   hotModuleReplacement: boolean
   sourceFilename?: string
+  immutable: boolean
+  javascriptModule?: boolean
+  chunkHash: Array<string>
+  contentHash: Array<string>
+  related: Array<JsStatsAssetInfoRelated>
+}
+
+export interface JsStatsAssetInfoRelated {
+  name: string
+  value: Array<string>
 }
 
 export interface JsStatsAssetsByChunkName {

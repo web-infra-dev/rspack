@@ -63,6 +63,13 @@ impl Stats<'_> {
         .iter()
         .filter_map(|(name, asset)| {
           asset.get_source().map(|source| {
+            let mut related = vec![];
+            if let Some(source_map) = &asset.info.related.source_map {
+              related.push(StatsAssetInfoRelated {
+                name: "sourceMap".into(),
+                value: [source_map.clone()].into(),
+              })
+            }
             (
               name,
               StatsAsset {
@@ -72,6 +79,12 @@ impl Stats<'_> {
                 chunks: Vec::new(),
                 chunk_names: Vec::new(),
                 info: StatsAssetInfo {
+                  related,
+                  chunk_hash: asset.info.chunk_hash.iter().cloned().collect_vec(),
+                  content_hash: asset.info.content_hash.iter().cloned().collect_vec(),
+                  minimized: asset.info.minimized,
+                  immutable: asset.info.immutable,
+                  javascript_module: asset.info.javascript_module,
                   development: asset.info.development,
                   hot_module_replacement: asset.info.hot_module_replacement,
                   source_filename: asset.info.source_filename.clone(),
@@ -1051,9 +1064,21 @@ pub struct StatsAssetsByChunkName {
 
 #[derive(Debug)]
 pub struct StatsAssetInfo {
+  pub minimized: bool,
   pub development: bool,
   pub hot_module_replacement: bool,
   pub source_filename: Option<String>,
+  pub immutable: bool,
+  pub javascript_module: Option<bool>,
+  pub chunk_hash: Vec<String>,
+  pub content_hash: Vec<String>,
+  pub related: Vec<StatsAssetInfoRelated>,
+}
+
+#[derive(Debug)]
+pub struct StatsAssetInfoRelated {
+  pub name: String,
+  pub value: Vec<String>,
 }
 
 #[derive(Debug)]

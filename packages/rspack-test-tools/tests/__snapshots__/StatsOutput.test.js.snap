@@ -3,7 +3,7 @@
 exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats for 1`] = `
 "PublicPath: auto
 asset bundle.js 2.49 KiB {909} [emitted] (name: main)
-asset 2710c5e36f8babb0a3a4.png 7 bytes {909} [emitted] [from: raw.png] (name: main)
+asset 2710c5e36f8babb0a3a4.png 7 bytes {909} [emitted] [immutable] [from: raw.png] (name: main)
 Entrypoint main 2.49 KiB = bundle.js
 chunk {909} (runtime: main) bundle.js (main) 7 bytes (asset) 117 bytes (javascript) 1.28 KiB (runtime) [entry] [rendered]
   > ./index main
