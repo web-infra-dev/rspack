@@ -16,7 +16,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 207,
+      "size": 206,
       "type": "asset",
     },
   ],
@@ -35,7 +35,7 @@ Object {
       "files": Array [
         "main.js",
       ],
-      "hash": "93a9c2315c37cadce79d",
+      "hash": "0de84e4ce8fcd639bcde",
       "id": "909",
       "idHints": Array [],
       "initial": true,
@@ -132,10 +132,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 207,
+          "size": 206,
         },
       ],
-      "assetsSize": 207,
+      "assetsSize": 206,
       "chunks": Array [
         "909",
       ],
@@ -146,7 +146,7 @@ Object {
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "99b766bb1908ecab2ebb",
+  "hash": "53775971d218329cdf79",
   "modules": Array [
     Object {
       "assets": Array [],
@@ -214,10 +214,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 207,
+          "size": 206,
         },
       ],
-      "assetsSize": 207,
+      "assetsSize": 206,
       "chunks": Array [
         "909",
       ],
@@ -266,7 +266,7 @@ Object {
       "files": Array [
         "main.js",
       ],
-      "hash": "4936042f572297f50e12",
+      "hash": "b9e27e54724c1cf2d77c",
       "id": "909",
       "idHints": Array [],
       "initial": true,
@@ -561,7 +561,7 @@ Object {
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "ab30e6de8b30ef4cc8fb",
+  "hash": "9e5faccc8912709a0754",
   "modules": Array [
     Object {
       "assets": Array [],
@@ -966,7 +966,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 207,
+      "size": 206,
       "type": "asset",
     },
   ],
@@ -983,7 +983,7 @@ Object {
       "files": Array [
         "main.js",
       ],
-      "hash": "93a9c2315c37cadce79d",
+      "hash": "0de84e4ce8fcd639bcde",
       "id": "909",
       "idHints": Array [],
       "initial": true,
@@ -1058,7 +1058,7 @@ Object {
         "hotModuleReplacement": false,
       },
       "name": "main.js",
-      "size": 346,
+      "size": 337,
       "type": "asset",
     },
   ],
@@ -1077,7 +1077,7 @@ Object {
       "files": Array [
         "main.js",
       ],
-      "hash": "39e2485ff95dc65d08d1",
+      "hash": "e76e82e3d015ae94d407",
       "id": "909",
       "idHints": Array [],
       "initial": true,
@@ -1375,10 +1375,10 @@ exports.c = require(\\"./c?c=3\\");
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 346,
+          "size": 337,
         },
       ],
-      "assetsSize": 346,
+      "assetsSize": 337,
       "chunks": Array [
         "909",
       ],
@@ -1389,7 +1389,7 @@ exports.c = require(\\"./c?c=3\\");
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "9065311db3fa4c6235f4",
+  "hash": "177b5548f3cb0edb1d8d",
   "modules": Array [
     Object {
       "assets": Array [],
@@ -1658,10 +1658,10 @@ exports.c = require(\\"./c?c=3\\");
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 346,
+          "size": 337,
         },
       ],
-      "assetsSize": 346,
+      "assetsSize": 337,
       "chunks": Array [
         "909",
       ],

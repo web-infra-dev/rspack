@@ -12845,13 +12845,6 @@ export const SwcJsMinimizerRspackPlugin: {
 
 // @public (undocumented)
 export type SwcJsMinimizerRspackPluginOptions = {
-    passes?: number;
-    dropConsole?: boolean;
-    pureFuncs?: Array<string>;
-    keepClassNames?: boolean;
-    keepFnNames?: boolean;
-    comments?: false | "all" | "some";
-    asciiOnly?: boolean;
     extractComments?: ExtractCommentsOptions | undefined;
     compress?: TerserCompressOptions | boolean;
     mangle?: TerserMangleOptions | boolean;

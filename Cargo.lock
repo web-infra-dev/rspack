@@ -3084,7 +3084,6 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
- "swc_config",
  "swc_core",
  "tokio",
 ]
