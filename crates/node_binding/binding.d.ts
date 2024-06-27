@@ -608,7 +608,6 @@ export interface JsStatsModuleIssuer {
 
 export interface JsStatsModuleProfile {
   factory: JsStatsMillisecond
-  integration: JsStatsMillisecond
   building: JsStatsMillisecond
 }
 

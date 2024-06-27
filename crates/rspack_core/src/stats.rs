@@ -689,12 +689,10 @@ impl Stats<'_> {
       .transpose()?;
     let profile = if let Some(p) = mgm.get_profile()
       && let Some(factory) = p.factory.duration()
-      && let Some(integration) = p.integration.duration()
       && let Some(building) = p.building.duration()
     {
       Some(StatsModuleProfile {
         factory: StatsMillisecond::new(factory.as_secs(), factory.subsec_millis()),
-        integration: StatsMillisecond::new(integration.as_secs(), integration.subsec_millis()),
         building: StatsMillisecond::new(building.as_secs(), building.subsec_millis()),
       })
     } else {
@@ -1107,7 +1105,6 @@ pub enum StatsUsedExports {
 #[derive(Debug)]
 pub struct StatsModuleProfile {
   pub factory: StatsMillisecond,
-  pub integration: StatsMillisecond,
   pub building: StatsMillisecond,
 }
 
