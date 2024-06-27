@@ -84,6 +84,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       name: 'css-minimizer-webpack-plugin',
       url: 'https://github.com/webpack-contrib/css-minimizer-webpack-plugin',
       status: CompatibleStatus.Compatible,
+      description: i18n[lang]['css-minimizer-webpack-plugin-desc'],
     },
     {
       name: 'eslint-webpack-plugin',
@@ -110,7 +111,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'terser-webpack-plugin',
       url: 'https://webpack.js.org/plugins/terser-webpack-plugin',
-      status: CompatibleStatus.Alternative,
+      status: CompatibleStatus.Compatible,
       description: i18n[lang]['terser-webpack-plugin-desc'],
     },
     {

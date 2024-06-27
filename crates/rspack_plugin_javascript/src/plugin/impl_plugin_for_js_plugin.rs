@@ -143,25 +143,25 @@ async fn additional_tree_runtime_requirements(
 }
 
 #[plugin_hook(CompilationChunkHash for JsPlugin)]
-fn chunk_hash(
+async fn chunk_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  self.get_chunk_hash(chunk_ukey, compilation, hasher)?;
+  self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
   if compilation
     .chunk_by_ukey
     .expect_get(chunk_ukey)
     .has_runtime(&compilation.chunk_group_by_ukey)
   {
-    self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
+    self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)?;
   }
   Ok(())
 }
 
 #[plugin_hook(CompilationContentHash for JsPlugin)]
-fn content_hash(
+async fn content_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -173,13 +173,13 @@ fn content_hash(
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
   if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-    self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
+    self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)?;
   } else {
     chunk.id.hash(&mut hasher);
     chunk.ids.hash(&mut hasher);
   }
 
-  self.get_chunk_hash(chunk_ukey, compilation, hasher)?;
+  self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
 
   let module_graph = compilation.get_module_graph();
   let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(

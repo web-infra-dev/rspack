@@ -140,11 +140,18 @@ interface Wasm {
 }
 export const wasm: Wasm = { EnableWasmLoadingPlugin };
 
-import { EnableChunkLoadingPlugin } from "./builtin-plugin";
+import {
+	EnableChunkLoadingPlugin,
+	JavascriptModulesPlugin
+} from "./builtin-plugin";
 interface JavaScript {
 	EnableChunkLoadingPlugin: typeof EnableChunkLoadingPlugin;
+	JavascriptModulesPlugin: typeof JavascriptModulesPlugin;
 }
-export const javascript: JavaScript = { EnableChunkLoadingPlugin };
+export const javascript: JavaScript = {
+	EnableChunkLoadingPlugin,
+	JavascriptModulesPlugin
+};
 
 import { WebWorkerTemplatePlugin } from "./builtin-plugin";
 interface Webworker {

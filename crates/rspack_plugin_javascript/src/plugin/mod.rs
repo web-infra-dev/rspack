@@ -36,7 +36,7 @@ use crate::runtime::{
   render_chunk_modules, render_module, render_runtime_modules, stringify_array,
 };
 
-static COMPILATION_DRIVES_MAP: Lazy<FxDashMap<CompilationId, JavascriptModulesPluginPluginDrive>> =
+static COMPILATION_HOOKS_MAP: Lazy<FxDashMap<CompilationId, Box<JavascriptModulesPluginHooks>>> =
   Lazy::new(Default::default);
 
 #[plugin]
@@ -44,28 +44,28 @@ static COMPILATION_DRIVES_MAP: Lazy<FxDashMap<CompilationId, JavascriptModulesPl
 pub struct JsPlugin;
 
 impl JsPlugin {
-  pub fn get_compilation_drives(
+  pub fn get_compilation_hooks(
     compilation: &Compilation,
-  ) -> dashmap::mapref::one::Ref<'_, CompilationId, JavascriptModulesPluginPluginDrive, BuildFxHasher>
+  ) -> dashmap::mapref::one::Ref<'_, CompilationId, Box<JavascriptModulesPluginHooks>, BuildFxHasher>
   {
     let id = compilation.id();
-    if !COMPILATION_DRIVES_MAP.contains_key(&id) {
-      COMPILATION_DRIVES_MAP.insert(id, Default::default());
+    if !COMPILATION_HOOKS_MAP.contains_key(&id) {
+      COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
-    COMPILATION_DRIVES_MAP
+    COMPILATION_HOOKS_MAP
       .get(&id)
       .expect("should have js plugin drive")
   }
 
-  pub fn get_compilation_drives_mut(
+  pub fn get_compilation_hooks_mut(
     compilation: &Compilation,
   ) -> dashmap::mapref::one::RefMut<
     '_,
     CompilationId,
-    JavascriptModulesPluginPluginDrive,
+    Box<JavascriptModulesPluginHooks>,
     BuildFxHasher,
   > {
-    COMPILATION_DRIVES_MAP.entry(compilation.id()).or_default()
+    COMPILATION_HOOKS_MAP.entry(compilation.id()).or_default()
   }
 
   pub fn render_require(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> Vec<Cow<str>> {
@@ -149,7 +149,7 @@ impl JsPlugin {
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
-  ) -> RenderBootstrapResult {
+  ) -> Result<RenderBootstrapResult> {
     let runtime_requirements = compilation
       .chunk_graph
       .get_chunk_runtime_requirements(chunk_ukey);
@@ -304,12 +304,9 @@ impl JsPlugin {
             buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
             allow_inline_startup = false;
           }
-          if allow_inline_startup
-            && let Some(bailout) = {
-              let drive = JsPlugin::get_compilation_drives(compilation);
-              drive.inline_in_runtime_bailout()
-            }
-          {
+          let hooks = JsPlugin::get_compilation_hooks(compilation);
+          let bailout = hooks.inline_in_runtime_bailout.call(compilation)?;
+          if allow_inline_startup && let Some(bailout) = bailout {
             buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
             allow_inline_startup = false;
           }
@@ -459,11 +456,11 @@ impl JsPlugin {
       startup.push(format!("var __webpack_exports__ = {}();", RuntimeGlobals::STARTUP).into());
     }
 
-    RenderBootstrapResult {
+    Ok(RenderBootstrapResult {
       header,
       startup,
       allow_inline_startup,
-    }
+    })
   }
 
   pub async fn render_main(
@@ -471,7 +468,7 @@ impl JsPlugin {
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
   ) -> Result<BoxSource> {
-    let drive = Self::get_compilation_drives(compilation);
+    let hooks = Self::get_compilation_hooks(compilation);
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let supports_arrow_function = compilation
       .options
@@ -488,7 +485,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
-    } = self.render_bootstrap(chunk_ukey, compilation);
+    } = self.render_bootstrap(chunk_ukey, compilation)?;
     let module_graph = &compilation.get_module_graph();
     let all_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
       chunk_ukey,
@@ -521,7 +518,7 @@ impl JsPlugin {
         build_info.strict
       })
     {
-      if let Some(strict_bailout) = drive.strict_runtime_bailout(compilation, chunk_ukey)? {
+      if let Some(strict_bailout) = hooks.strict_runtime_bailout.call(compilation, chunk_ukey)? {
         sources.add(RawSource::from(format!(
           "// runtime can't be in strict mode because {strict_bailout}.\n"
         )));
@@ -618,8 +615,9 @@ impl JsPlugin {
         } else if exports && !webpack_exports {
           Some(format!("it uses a non-standard name for the exports ({exports_argument}).").into())
         } else {
-          drive
-            .embed_in_runtime_bailout(compilation, m, chunk)?
+          hooks
+            .embed_in_runtime_bailout
+            .call(compilation, m, chunk)?
             .map(|s| s.into())
         };
         let footer;
@@ -661,28 +659,32 @@ impl JsPlugin {
           RuntimeGlobals::EXPORTS,
         )));
       }
-      if let Some(source) = drive.render_startup(RenderJsStartupArgs {
-        compilation,
-        chunk: chunk_ukey,
-        module: *last_entry_module,
+      let mut render_source = RenderSource {
         source: startup_sources.boxed(),
-      })? {
-        sources.add(source);
-      }
+      };
+      hooks.render_startup.call(
+        compilation,
+        chunk_ukey,
+        last_entry_module,
+        &mut render_source,
+      )?;
+      sources.add(render_source.source);
     } else if let Some(last_entry_module) = compilation
       .chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
       .keys()
       .last()
     {
-      if let Some(source) = drive.render_startup(RenderJsStartupArgs {
-        compilation,
-        chunk: chunk_ukey,
-        module: *last_entry_module,
+      let mut render_source = RenderSource {
         source: RawSource::from(startup.join("\n") + "\n").boxed(),
-      })? {
-        sources.add(source);
-      }
+      };
+      hooks.render_startup.call(
+        compilation,
+        chunk_ukey,
+        last_entry_module,
+        &mut render_source,
+      )?;
+      sources.add(render_source.source);
     }
     if has_entry_modules
       && runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME)
@@ -692,22 +694,21 @@ impl JsPlugin {
     if iife {
       sources.add(RawSource::from("})()\n"));
     }
-    let mut final_source = render_init_fragments(
+    let final_source = render_init_fragments(
       sources.boxed(),
       chunk_init_fragments,
       &mut ChunkRenderContext {},
     )?;
-    if let Some(source) = drive.render(RenderJsArgs {
-      compilation,
-      chunk: chunk_ukey,
-      source: &final_source,
-    })? {
-      final_source = source;
+    let mut render_source = RenderSource {
+      source: final_source,
     };
+    hooks
+      .render
+      .call(compilation, chunk_ukey, &mut render_source)?;
     Ok(if iife {
-      ConcatSource::new([final_source, RawSource::from(";").boxed()]).boxed()
+      ConcatSource::new([render_source.source, RawSource::from(";").boxed()]).boxed()
     } else {
-      final_source
+      render_source.source
     })
   }
 
@@ -716,7 +717,7 @@ impl JsPlugin {
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
   ) -> Result<BoxSource> {
-    let drive = Self::get_compilation_drives(compilation);
+    let hooks = Self::get_compilation_hooks(compilation);
     let module_graph = &compilation.get_module_graph();
     let is_module = compilation.options.output.module;
     let mut all_strict = compilation.options.output.module;
@@ -734,7 +735,7 @@ impl JsPlugin {
         build_info.strict
       })
     {
-      if let Some(strict_bailout) = drive.strict_runtime_bailout(compilation, chunk_ukey)? {
+      if let Some(strict_bailout) = hooks.strict_runtime_bailout.call(compilation, chunk_ukey)? {
         sources.add(RawSource::from(format!(
           "// runtime can't be in strict mode because {strict_bailout}.\n"
         )));
@@ -746,29 +747,24 @@ impl JsPlugin {
     let (chunk_modules_source, chunk_init_fragments) =
       render_chunk_modules(compilation, chunk_ukey, chunk_modules, all_strict)?
         .unwrap_or_else(|| (RawSource::from("{}").boxed(), Vec::new()));
-    let chunk_modules_source = drive
-      .render_chunk(RenderJsChunkArgs {
-        compilation,
-        chunk_ukey,
-        module_source: chunk_modules_source,
-      })
-      .await?
-      .expect("should run render_chunk hook");
+    let mut render_source = RenderSource {
+      source: chunk_modules_source,
+    };
+    hooks
+      .render_chunk
+      .call(compilation, chunk_ukey, &mut render_source)?;
     let source_with_fragments = render_init_fragments(
-      chunk_modules_source,
+      render_source.source,
       chunk_init_fragments,
       &mut ChunkRenderContext {},
     )?;
-    let chunk_modules_source = if let Some(source) = drive.render(RenderJsArgs {
-      compilation,
-      chunk: chunk_ukey,
-      source: &source_with_fragments,
-    })? {
-      source
-    } else {
-      source_with_fragments
+    let mut render_source = RenderSource {
+      source: source_with_fragments,
     };
-    sources.add(chunk_modules_source);
+    hooks
+      .render
+      .call(compilation, chunk_ukey, &mut render_source)?;
+    sources.add(render_source.source);
     if !is_module {
       sources.add(RawSource::from(";"));
     }
@@ -776,18 +772,14 @@ impl JsPlugin {
   }
 
   #[inline]
-  pub fn get_chunk_hash(
+  pub async fn get_chunk_hash(
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
     hasher: &mut RspackHash,
-  ) -> PluginJsChunkHashHookOutput {
-    let drive = Self::get_compilation_drives(compilation);
-    drive.js_chunk_hash(JsChunkHashArgs {
-      compilation,
-      chunk_ukey,
-      hasher,
-    })
+  ) -> Result<()> {
+    let hooks = Self::get_compilation_hooks(compilation);
+    hooks.chunk_hash.call(compilation, chunk_ukey, hasher).await
   }
 
   #[inline]
@@ -796,16 +788,17 @@ impl JsPlugin {
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
     hasher: &mut RspackHash,
-  ) {
+  ) -> Result<()> {
     // sample hash use content
     let RenderBootstrapResult {
       header,
       startup,
       allow_inline_startup,
-    } = self.render_bootstrap(chunk_ukey, compilation);
+    } = self.render_bootstrap(chunk_ukey, compilation)?;
     header.hash(hasher);
     startup.hash(hasher);
     allow_inline_startup.hash(hasher);
+    Ok(())
   }
 }
 

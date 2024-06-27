@@ -1,12 +1,13 @@
 use std::{
   borrow::Cow,
+  hash::Hash,
   path::PathBuf,
   sync::{Arc, RwLock},
 };
 
 use async_trait::async_trait;
 use napi::{
-  bindgen_prelude::{FromNapiValue, Promise, ToNapiValue},
+  bindgen_prelude::{Buffer, FromNapiValue, Promise, ToNapiValue},
   Env, JsFunction, NapiRaw,
 };
 use rspack_binding_values::{
@@ -46,9 +47,11 @@ use rspack_core::{
   NormalModuleFactoryCreateModuleHook, NormalModuleFactoryResolveForScheme,
   NormalModuleFactoryResolveForSchemeHook, ResourceData, RuntimeGlobals,
 };
+use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
 use rspack_identifier::IdentifierSet;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use rspack_plugin_javascript::{JavascriptModulesChunkHash, JavascriptModulesChunkHashHook};
 
 #[napi(object)]
 pub struct JsTap {
@@ -315,6 +318,7 @@ pub enum RegisterJsTapKind {
   NormalModuleFactoryResolveForScheme,
   ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryAfterResolve,
+  JavascriptModulesChunkHash,
 }
 
 #[derive(Default, Clone)]
@@ -462,6 +466,10 @@ pub struct RegisterJsTaps {
     JsContextModuleFactoryAfterResolveResult,
     Promise<JsContextModuleFactoryAfterResolveResult>,
   >,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>"
+  )]
+  pub register_javascript_modules_chunk_hash_taps: RegisterFunction<JsChunk, Buffer>,
 }
 
 /* Compiler Hooks */
@@ -702,6 +710,16 @@ define_register!(
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::ContextModuleFactoryAfterResolve,
+  skip = true,
+);
+
+/* JavascriptModules Hooks */
+define_register!(
+  RegisterJavascriptModulesChunkHashTaps,
+  tap = JavascriptModulesChunkHashTap<JsChunk, Buffer> @ JavascriptModulesChunkHashHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::JavascriptModulesChunkHash,
   skip = true,
 );
 
@@ -1312,6 +1330,25 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
         Ok(AfterResolveResult::Data(Box::new(data)))
       }
     }
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl JavascriptModulesChunkHash for JavascriptModulesChunkHashTap {
+  async fn run(
+    &self,
+    compilation: &Compilation,
+    chunk_ukey: &ChunkUkey,
+    hasher: &mut RspackHash,
+  ) -> rspack_error::Result<()> {
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let result = self.function.call_with_sync(JsChunk::from(chunk)).await?;
+    result.hash(hasher);
+    Ok(())
   }
 
   fn stage(&self) -> i32 {
