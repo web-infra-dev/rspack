@@ -143,6 +143,9 @@ Object {
         },
       ],
       "assetsSize": 206,
+      "auxiliaryAssets": Array [],
+      "auxiliaryAssetsSize": 0,
+      "children": Object {},
       "chunks": Array [
         "909",
       ],
@@ -225,6 +228,9 @@ Object {
         },
       ],
       "assetsSize": 206,
+      "auxiliaryAssets": Array [],
+      "auxiliaryAssetsSize": 0,
+      "children": Object {},
       "chunks": Array [
         "909",
       ],
@@ -566,6 +572,9 @@ Object {
         },
       ],
       "assetsSize": 761,
+      "auxiliaryAssets": Array [],
+      "auxiliaryAssetsSize": 0,
+      "children": Object {},
       "chunks": Array [
         "909",
       ],
@@ -951,6 +960,9 @@ Object {
         },
       ],
       "assetsSize": 761,
+      "auxiliaryAssets": Array [],
+      "auxiliaryAssetsSize": 0,
+      "children": Object {},
       "chunks": Array [
         "909",
       ],
@@ -1406,6 +1418,9 @@ exports.c = require(\\"./c?c=3\\");
         },
       ],
       "assetsSize": 337,
+      "auxiliaryAssets": Array [],
+      "auxiliaryAssetsSize": 0,
+      "children": Object {},
       "chunks": Array [
         "909",
       ],
@@ -1689,6 +1704,9 @@ exports.c = require(\\"./c?c=3\\");
         },
       ],
       "assetsSize": 337,
+      "auxiliaryAssets": Array [],
+      "auxiliaryAssetsSize": 0,
+      "children": Object {},
       "chunks": Array [
         "909",
       ],

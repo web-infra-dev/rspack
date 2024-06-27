@@ -1,14 +1,15 @@
+use std::cmp::Ordering;
 use std::fmt::{self, Display};
 
 use itertools::Itertools;
 use rspack_database::DatabaseItem;
 use rspack_error::{error, Result};
 use rspack_identifier::IdentifierMap;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation,
-  FilenameTemplate,
+  compare_chunk_group, get_chunk_from_ukey, get_chunk_group_from_ukey, Chunk, ChunkByUkey,
+  ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation, FilenameTemplate,
 };
 use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
@@ -319,6 +320,48 @@ impl ChunkGroup {
 
   pub fn origins(&self) -> &Vec<OriginRecord> {
     &self.origins
+  }
+
+  pub fn get_children_by_orders(
+    &self,
+    compilation: &Compilation,
+  ) -> HashMap<ChunkGroupOrderKey, Vec<ChunkGroupUkey>> {
+    let mut children_by_orders = HashMap::<ChunkGroupOrderKey, Vec<ChunkGroupUkey>>::default();
+
+    let orders = vec![ChunkGroupOrderKey::Preload, ChunkGroupOrderKey::Prefetch];
+
+    for order_key in orders {
+      let mut list = vec![];
+      for child_ukey in &self.children {
+        let Some(child_group) =
+          get_chunk_group_from_ukey(&child_ukey, &compilation.chunk_group_by_ukey)
+        else {
+          continue;
+        };
+        if let Some(order) = child_group
+          .kind
+          .get_normal_options()
+          .and_then(|o| match order_key {
+            ChunkGroupOrderKey::Prefetch => o.prefetch_order,
+            ChunkGroupOrderKey::Preload => o.preload_order,
+          })
+        {
+          list.push((order, child_group.ukey));
+        }
+      }
+
+      list.sort_by(|a, b| {
+        let cmp = b.0.cmp(&a.0);
+        match cmp {
+          Ordering::Equal => compare_chunk_group(&a.1, &b.1, compilation),
+          _ => cmp,
+        }
+      });
+
+      children_by_orders.insert(order_key, list.iter().map(|i| i.1).collect_vec());
+    }
+
+    children_by_orders
   }
 }
 

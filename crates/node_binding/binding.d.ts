@@ -63,8 +63,8 @@ export class JsStats {
   getAssets(): JsStatsGetAssets
   getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsModule>
   getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsChunk>
-  getEntrypoints(): Array<JsStatsChunkGroup>
-  getNamedChunkGroups(): Array<JsStatsChunkGroup>
+  getEntrypoints(chunkGroupAuxiliary: boolean, chunkGroupChildren: boolean): Array<JsStatsChunkGroup>
+  getNamedChunkGroups(chunkGroupAuxiliary: boolean, chunkGroupChildren: boolean): Array<JsStatsChunkGroup>
   getErrors(): Array<JsStatsError>
   getWarnings(): Array<JsStatsWarning>
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
@@ -547,14 +547,22 @@ export interface JsStatsChunk {
 
 export interface JsStatsChunkGroup {
   name: string
-  assets: Array<JsStatsChunkGroupAsset>
   chunks: Array<string | undefined | null>
+  assets: Array<JsStatsChunkGroupAsset>
   assetsSize: number
+  auxiliaryAssets?: Array<JsStatsChunkGroupAsset>
+  auxiliaryAssetsSize?: number
+  children?: JsStatsChunkGroupChildren
 }
 
 export interface JsStatsChunkGroupAsset {
   name: string
   size: number
+}
+
+export interface JsStatsChunkGroupChildren {
+  preload?: Array<JsStatsChunkGroup>
+  prefetch?: Array<JsStatsChunkGroup>
 }
 
 export interface JsStatsError {

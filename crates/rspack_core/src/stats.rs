@@ -410,7 +410,13 @@ impl Stats<'_> {
     Ok(f(chunks))
   }
 
-  fn get_chunk_group(&self, name: &str, ukey: &ChunkGroupUkey) -> StatsChunkGroup {
+  fn get_chunk_group(
+    &self,
+    name: &str,
+    ukey: &ChunkGroupUkey,
+    chunk_group_auxiliary: bool,
+    chunk_group_children: bool,
+  ) -> StatsChunkGroup {
     let cg = self.compilation.chunk_group_by_ukey.expect_get(ukey);
     let chunks: Vec<Option<String>> = cg
       .chunks
@@ -418,45 +424,114 @@ impl Stats<'_> {
       .map(|c| self.compilation.chunk_by_ukey.expect_get(c))
       .map(|c| c.id.clone())
       .collect();
-    let assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
-      let chunk = self.compilation.chunk_by_ukey.expect_get(c);
-      for file in &chunk.files {
-        acc.push(StatsChunkGroupAsset {
-          name: file.clone(),
-          size: self
-            .compilation
-            .assets()
-            .get(file)
-            .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
-            .get_source()
-            .map_or(-1f64, |s| s.size() as f64),
+    let (assets, auxiliary_assets) =
+      cg.chunks
+        .iter()
+        .fold((Vec::new(), Vec::new()), |(mut acc, mut aacc), c| {
+          let chunk = self.compilation.chunk_by_ukey.expect_get(c);
+          for file in &chunk.files {
+            acc.push(StatsChunkGroupAsset {
+              name: file.clone(),
+              size: self
+                .compilation
+                .assets()
+                .get(file)
+                .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
+                .get_source()
+                .map_or(-1f64, |s| s.size() as f64),
+            });
+          }
+          if chunk_group_auxiliary {
+            for file in &chunk.auxiliary_files {
+              aacc.push(StatsChunkGroupAsset {
+                name: file.clone(),
+                size: self
+                  .compilation
+                  .assets()
+                  .get(file)
+                  .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
+                  .get_source()
+                  .map_or(-1f64, |s| s.size() as f64),
+              });
+            }
+          }
+
+          (acc, aacc)
         });
+
+    let children = chunk_group_children.then(|| {
+      let ordered_children = cg.get_children_by_orders(&self.compilation);
+
+      StatsChunkGroupChildren {
+        preload: ordered_children
+          .get(&ChunkGroupOrderKey::Preload)
+          .expect("should have preload chunk groups")
+          .iter()
+          .map(|ukey| {
+            let cg = self.compilation.chunk_group_by_ukey.expect_get(ukey);
+            self.get_chunk_group(
+              cg.name().unwrap_or_default(),
+              ukey,
+              chunk_group_auxiliary,
+              false,
+            )
+          })
+          .collect_vec(),
+        prefetch: ordered_children
+          .get(&ChunkGroupOrderKey::Prefetch)
+          .expect("should have prefetch chunk groups")
+          .iter()
+          .map(|ukey| {
+            let cg = self.compilation.chunk_group_by_ukey.expect_get(ukey);
+            self.get_chunk_group(
+              cg.name().unwrap_or_default(),
+              ukey,
+              chunk_group_auxiliary,
+              false,
+            )
+          })
+          .collect_vec(),
       }
-      acc
     });
     StatsChunkGroup {
       name: name.to_string(),
       chunks,
       assets_size: assets.iter().map(|i| i.size).sum(),
       assets,
+      auxiliary_assets_size: chunk_group_auxiliary
+        .then(|| auxiliary_assets.iter().map(|i| i.size).sum()),
+      auxiliary_assets: chunk_group_auxiliary.then(|| auxiliary_assets),
+      children,
     }
   }
 
-  pub fn get_entrypoints(&self) -> Vec<StatsChunkGroup> {
+  pub fn get_entrypoints(
+    &self,
+    chunk_group_auxiliary: bool,
+    chunk_group_children: bool,
+  ) -> Vec<StatsChunkGroup> {
     self
       .compilation
       .entrypoints
       .iter()
-      .map(|(name, ukey)| self.get_chunk_group(name, ukey))
+      .map(|(name, ukey)| {
+        self.get_chunk_group(name, ukey, chunk_group_auxiliary, chunk_group_children)
+      })
       .collect()
   }
 
-  pub fn get_named_chunk_groups(&self) -> Vec<StatsChunkGroup> {
+  pub fn get_named_chunk_groups(
+    &self,
+    chunk_group_auxiliary: bool,
+    chunk_group_children: bool,
+  ) -> Vec<StatsChunkGroup> {
     let mut named_chunk_groups: Vec<StatsChunkGroup> = self
       .compilation
       .named_chunk_groups
       .iter()
-      .map(|(name, ukey)| self.get_chunk_group(name, ukey))
+      .map(|(name, ukey)| {
+        self.get_chunk_group(name, ukey, chunk_group_auxiliary, chunk_group_children)
+      })
       .collect();
     named_chunk_groups.sort_by_cached_key(|e| e.name.to_string());
     named_chunk_groups
@@ -1190,9 +1265,18 @@ pub struct StatsChunkGroupAsset {
 #[derive(Debug)]
 pub struct StatsChunkGroup {
   pub name: String,
-  pub assets: Vec<StatsChunkGroupAsset>,
   pub chunks: Vec<Option<String>>,
+  pub assets: Vec<StatsChunkGroupAsset>,
   pub assets_size: f64,
+  pub auxiliary_assets: Option<Vec<StatsChunkGroupAsset>>,
+  pub auxiliary_assets_size: Option<f64>,
+  pub children: Option<StatsChunkGroupChildren>,
+}
+
+#[derive(Debug)]
+pub struct StatsChunkGroupChildren {
+  pub preload: Vec<StatsChunkGroup>,
+  pub prefetch: Vec<StatsChunkGroup>,
 }
 
 #[derive(Debug)]
