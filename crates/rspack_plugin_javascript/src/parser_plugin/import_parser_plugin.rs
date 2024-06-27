@@ -113,7 +113,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         query,
         fragment,
         replaces,
-      } = create_context_dependency(&param, parser);
+      } = create_context_dependency(&param, &dyn_imported.expr, parser);
       parser
         .dependencies
         .push(Box::new(ImportContextDependency::new(
@@ -146,8 +146,6 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           Some(node.span.into()),
           parser.in_try,
         )));
-      // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
-      parser.walk_expression(&dyn_imported.expr);
       Some(true)
     }
   }
