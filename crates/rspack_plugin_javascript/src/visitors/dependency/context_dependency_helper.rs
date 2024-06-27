@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use itertools::Either;
 use itertools::Itertools;
 use rspack_core::parse_resource;
 use rspack_core::SpanExt;
@@ -61,10 +62,16 @@ pub fn create_context_dependency(
       .parts()
       .into_iter()
       .enumerate()
-      .partition(|&(index, _)| index % 2 == 0);
+      .partition_map(|(index, part)| {
+        if index % 2 == 0 {
+          Either::Left(part)
+        } else {
+          Either::Right(part)
+        }
+      });
     let last_index = even_parts.len() - 1;
 
-    for (i, part) in even_parts {
+    for (i, part) in even_parts.into_iter().enumerate() {
       if i == 0 {
         let value = format!(
           "{}{prefix}",
@@ -88,7 +95,7 @@ pub fn create_context_dependency(
     }
 
     let mut walker = ExprSpanFinder {
-      targets: odd_parts.into_iter().map(|(_, part)| part).collect_vec(),
+      targets: odd_parts,
       on_visit: |n| parser.walk_expression(n),
     };
     expr.visit_with(&mut walker);
