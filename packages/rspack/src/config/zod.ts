@@ -353,7 +353,6 @@ const output = z.strictObject({
 	libraryExport: libraryExport.optional(),
 	libraryTarget: libraryType.optional(),
 	umdNamedDefine: umdNamedDefine.optional(),
-	amdContainer: amdContainer.optional(),
 	auxiliaryComment: auxiliaryComment.optional(),
 	module: outputModule.optional(),
 	strictModuleExceptionHandling: strictModuleExceptionHandling.optional(),
