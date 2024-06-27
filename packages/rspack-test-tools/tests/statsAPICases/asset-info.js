@@ -1,33 +1,35 @@
 /** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
-	description: "should generate asset info",
-	options(context) {
-		return {
-			devtool: "source-map",
-			context: context.getSource(),
-			optimization: {},
-			entry: {
-				main: "./fixtures/asset/index"
-			},
-			output: {},
-			module: {
-				rules: [
-					{
-						test: /\.png/,
-						type: "asset/resource"
-					}
-				]
-			}
-		};
-	},
-	async check(stats) {
-		const statsOptions = {
-			all: true,
-			timings: false,
-			builtAt: false,
-			version: false
-		};
-		expect(stats?.toJson(statsOptions).assets).toMatchInlineSnapshot(`
+  description: "should generate asset info",
+  options(context) {
+    return {
+      devtool: "source-map",
+      context: context.getSource(),
+      optimization: {
+        minimize: false
+      },
+      entry: {
+        main: "./fixtures/asset/index"
+      },
+      output: {},
+      module: {
+        rules: [
+          {
+            test: /\.png/,
+            type: "asset/resource"
+          }
+        ]
+      }
+    };
+  },
+  async check(stats) {
+    const statsOptions = {
+      all: true,
+      timings: false,
+      builtAt: false,
+      version: false
+    };
+    expect(stats?.toJson(statsOptions).assets).toMatchInlineSnapshot(`
 		Array [
 		  Object {
 		    "chunkNames": Array [
@@ -68,14 +70,18 @@ module.exports = {
 		      "hotModuleReplacement": false,
 		      "immutable": false,
 		      "javascriptModule": false,
-		      "minimized": true,
-		      "related": Object {},
+		      "minimized": false,
+		      "related": Object {
+		        "sourceMap": Array [
+		          "main.js.map",
+		        ],
+		      },
 		    },
 		    "name": "main.js",
-		    "size": 781,
+		    "size": 2597,
 		    "type": "asset",
 		  },
 		]
 	`);
-	}
+  }
 };
