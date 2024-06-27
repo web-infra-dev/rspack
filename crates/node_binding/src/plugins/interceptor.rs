@@ -446,7 +446,7 @@ pub struct RegisterJsTaps {
   pub register_normal_module_factory_before_resolve_taps:
     RegisterFunction<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsFactorizeArgs) => Promise<[boolean | undefined, JsFactorizeOutput]>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsFactorizeArgs) => Promise<JsFactorizeArgs>); stage: number; }>"
   )]
   pub register_normal_module_factory_factorize_taps:
     RegisterFunction<JsFactorizeArgs, Promise<JsFactorizeOutput>>,
