@@ -16,6 +16,14 @@ Rspack 1.0 Alpha 现已发布至 npm！
 
 Rspack 1.0 稳定版预计于今年 8 月推出。这将是一个重要的里程碑，意味着 Rspack 已经实现了 webpack 主要的功能和 API，能够帮助成千上万的 webpack 项目平滑地迁移，并获得显著的构建性能提升。
 
+## 产物优化
+
+Rspack 1.0 默认在 production 构建时开启 `optimization.concatenateModules` 优化项，它用于启用模块连接（Module Concatenation），也被称为作用域提升（Scope Hoisting）。
+
+Module concatenation 的作用是将多个模块合并到一个函数中，从而减少浏览器解析和执行 JavaScript 代码的开销。合并模块后，可以减少一些冗余的代码，比如模块间的导入和导出语句，这样可以进一步减小打包后的产物体积。
+
+开启 concatenateModules 后，Rspack 的产物体积减少约 4% ～ 10%（Gzip 前）。
+
 ## 精简核心
 
 为了使 Rspack v1 能够保持长期稳定，我们移除了一些 Rspack core 内置的非核心功能，使 core 保持精简，专注于提供 bundler 层面的通用能力。
