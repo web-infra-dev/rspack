@@ -460,7 +460,7 @@ impl Stats<'_> {
         });
 
     let children = chunk_group_children.then(|| {
-      let ordered_children = cg.get_children_by_orders(&self.compilation);
+      let ordered_children = cg.get_children_by_orders(self.compilation);
 
       StatsChunkGroupChildren {
         preload: ordered_children
@@ -500,7 +500,7 @@ impl Stats<'_> {
       assets,
       auxiliary_assets_size: chunk_group_auxiliary
         .then(|| auxiliary_assets.iter().map(|i| i.size).sum()),
-      auxiliary_assets: chunk_group_auxiliary.then(|| auxiliary_assets),
+      auxiliary_assets: chunk_group_auxiliary.then_some(auxiliary_assets),
       children,
     }
   }

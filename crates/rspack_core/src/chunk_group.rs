@@ -334,7 +334,7 @@ impl ChunkGroup {
       let mut list = vec![];
       for child_ukey in &self.children {
         let Some(child_group) =
-          get_chunk_group_from_ukey(&child_ukey, &compilation.chunk_group_by_ukey)
+          get_chunk_group_from_ukey(child_ukey, &compilation.chunk_group_by_ukey)
         else {
           continue;
         };
