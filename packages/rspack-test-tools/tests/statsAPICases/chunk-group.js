@@ -1,26 +1,26 @@
 /** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
-	description: "should generate chunk group asset",
-	options(context) {
-		return {
-			context: context.getSource(),
-			entry: {
-				main: "./fixtures/order/index"
-			},
-			optimization: {
-				minimize: false
-			},
-			devtool: "source-map"
-		};
-	},
-	async check(stats) {
-		const statsOptions = {
-			all: true,
-			timings: false,
-			builtAt: false,
-			version: false
-		};
-		expect(stats?.toJson(statsOptions).entrypoints).toMatchInlineSnapshot(`
+  description: "should generate chunk group asset",
+  options(context) {
+    return {
+      context: context.getSource(),
+      entry: {
+        main: "./fixtures/order/index"
+      },
+      optimization: {
+        minimize: false
+      },
+      devtool: "source-map"
+    };
+  },
+  async check(stats) {
+    const statsOptions = {
+      all: true,
+      timings: false,
+      builtAt: false,
+      version: false
+    };
+    expect(stats?.toJson(statsOptions).entrypoints).toMatchInlineSnapshot(`
 		Object {
 		  "main": Object {
 		    "assets": Array [
@@ -68,7 +68,7 @@ module.exports = {
 		  },
 		}
 	`);
-		expect(stats?.toJson(statsOptions).namedChunkGroups).toMatchInlineSnapshot(`
+    expect(stats?.toJson(statsOptions).namedChunkGroups).toMatchInlineSnapshot(`
 		Object {
 		  "chunk": Object {
 		    "assets": Array [
@@ -235,5 +235,5 @@ module.exports = {
 		  },
 		}
 	`);
-	}
+  }
 };
