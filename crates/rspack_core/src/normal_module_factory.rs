@@ -269,7 +269,6 @@ impl NormalModuleFactory {
     let resource_data = if scheme.is_some() {
       // resource with scheme
       let mut resource_data = ResourceData::new(unresolved_resource.to_owned(), "".into());
-      // resource with scheme
       plugin_driver
         .normal_module_factory_hooks
         .resolve_for_scheme
