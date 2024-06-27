@@ -877,12 +877,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	profile: {
 		_: (object, profile) => {
 			const factory = resolveStatsMillisecond(profile.factory);
-			const integration = resolveStatsMillisecond(profile.integration);
 			const building = resolveStatsMillisecond(profile.building);
 			const statsProfile: StatsProfile = {
-				total: factory + integration + building,
+				total: factory + building,
 				resolving: factory,
-				integration,
 				building
 			};
 			Object.assign(object, statsProfile);

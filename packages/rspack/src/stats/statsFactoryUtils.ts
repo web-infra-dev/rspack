@@ -40,7 +40,6 @@ export type StatsProfile = KnownStatsProfile & Record<string, any>;
 export type KnownStatsProfile = {
 	total: number;
 	resolving: number;
-	integration: number;
 	building: number;
 };
 

@@ -21,10 +21,6 @@ impl Task<MakeTaskContext> for AddTask {
     TaskType::Sync
   }
   fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
-    if let Some(current_profile) = &self.current_profile {
-      current_profile.mark_integration_start();
-    }
-
     let module_identifier = self.module.identifier();
     let artifact = &mut context.artifact;
     let module_graph =
@@ -71,10 +67,6 @@ impl Task<MakeTaskContext> for AddTask {
       self.dependencies,
       module_identifier,
     )?;
-
-    if let Some(current_profile) = &self.current_profile {
-      current_profile.mark_integration_end();
-    }
 
     tracing::trace!("Module added: {}", self.module.identifier());
 

@@ -4396,7 +4396,6 @@ type KnownStatsPrinterContext = {
 type KnownStatsProfile = {
     total: number;
     resolving: number;
-    integration: number;
     building: number;
 };
 

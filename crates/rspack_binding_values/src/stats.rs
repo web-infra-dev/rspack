@@ -346,7 +346,6 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
 #[napi(object)]
 pub struct JsStatsModuleProfile {
   pub factory: JsStatsMillisecond,
-  pub integration: JsStatsMillisecond,
   pub building: JsStatsMillisecond,
 }
 
@@ -354,7 +353,6 @@ impl From<rspack_core::StatsModuleProfile> for JsStatsModuleProfile {
   fn from(value: rspack_core::StatsModuleProfile) -> Self {
     Self {
       factory: value.factory.into(),
-      integration: value.integration.into(),
       building: value.building.into(),
     }
   }
