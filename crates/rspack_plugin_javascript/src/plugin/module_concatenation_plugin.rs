@@ -541,16 +541,11 @@ impl ModuleConcatenationPlugin {
     let mut possible_inners = HashSet::default();
     let start = logger.time("select relevant modules");
     let module_graph = compilation.get_module_graph();
-    let mut module_id_list = module_graph
+    let module_id_list = module_graph
       .module_graph_modules()
       .keys()
       .copied()
       .collect::<Vec<_>>();
-    module_id_list.sort_by(|a, b| {
-      let ad = module_graph.get_depth(a);
-      let bd = module_graph.get_depth(b);
-      ad.cmp(&bd)
-    });
     for module_id in module_id_list {
       let mut can_be_root = true;
       let mut can_be_inner = true;
@@ -605,8 +600,8 @@ impl ModuleConcatenationPlugin {
       }
 
       let exports_info = module_graph.get_exports_info(&module_id);
-      let relevnat_epxorts = exports_info.get_relevant_exports(None, &module_graph);
-      let unknown_exports = relevnat_epxorts
+      let relevant_exports = exports_info.get_relevant_exports(None, &module_graph);
+      let unknown_exports = relevant_exports
         .iter()
         .filter(|id| {
           let export_info = id.get_export_info_mut(&mut module_graph).clone();
@@ -637,7 +632,7 @@ impl ModuleConcatenationPlugin {
 
         continue;
       }
-      let unknown_provided_exports = relevnat_epxorts
+      let unknown_provided_exports = relevant_exports
         .iter()
         .filter(|id| {
           let export_info = id.get_export_info(&module_graph);
