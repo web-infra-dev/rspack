@@ -738,7 +738,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.name = asset.name;
 			object.size = asset.size;
 			object.emitted = asset.emitted;
-			object.info = asset.info;
+			object.info = {
+				...asset.info,
+				related: Object.fromEntries(
+					asset.info.related.map(i => [i.name, i.value])
+				)
+			};
 			Object.assign(
 				object,
 				factory.create(`${context.type}$visible`, asset, context)

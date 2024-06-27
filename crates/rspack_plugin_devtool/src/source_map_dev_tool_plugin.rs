@@ -528,6 +528,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     } = mapped_asset;
     if let Some(asset) = compilation.assets_mut().remove(&source_filename) {
       source_asset.info = asset.info;
+      if let Some((ref source_map_filename, _)) = source_map {
+        source_asset.info.related.source_map = Some(source_map_filename.clone());
+      }
     }
     compilation.emit_asset(source_filename.to_owned(), source_asset.clone());
     if let Some((source_map_filename, source_map_asset)) = source_map {

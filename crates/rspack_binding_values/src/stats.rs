@@ -203,17 +203,48 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
 
 #[napi(object)]
 pub struct JsStatsAssetInfo {
+  pub minimized: bool,
   pub development: bool,
   pub hot_module_replacement: bool,
   pub source_filename: Option<String>,
+  pub immutable: bool,
+  pub javascript_module: Option<bool>,
+  pub chunk_hash: Vec<String>,
+  pub content_hash: Vec<String>,
+  pub related: Vec<JsStatsAssetInfoRelated>,
 }
 
 impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
   fn from(stats: rspack_core::StatsAssetInfo) -> Self {
     Self {
+      minimized: stats.minimized,
       development: stats.development,
       hot_module_replacement: stats.hot_module_replacement,
       source_filename: stats.source_filename,
+      immutable: stats.immutable,
+      javascript_module: stats.javascript_module,
+      chunk_hash: stats.chunk_hash,
+      content_hash: stats.content_hash,
+      related: stats
+        .related
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<_>>(),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsStatsAssetInfoRelated {
+  pub name: String,
+  pub value: Vec<String>,
+}
+
+impl From<rspack_core::StatsAssetInfoRelated> for JsStatsAssetInfoRelated {
+  fn from(stats: rspack_core::StatsAssetInfoRelated) -> Self {
+    Self {
+      name: stats.name,
+      value: stats.value,
     }
   }
 }

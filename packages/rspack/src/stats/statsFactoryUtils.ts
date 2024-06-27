@@ -14,9 +14,15 @@ export type KnownStatsChunk = Omit<binding.JsStatsChunk, "sizes"> & {
 	sizes: Record<string, number>;
 };
 
+export type KnownStatsAssetInfo = Omit<binding.JsStatsAssetInfo, "related"> & {
+	related: Record<string, string[]>;
+};
+
 export type StatsChunkGroup = binding.JsStatsChunkGroup & Record<string, any>;
 
-export type KnownStatsAsset = binding.JsStatsAsset;
+export type KnownStatsAsset = Omit<binding.JsStatsAsset, "info"> & {
+	info: KnownStatsAssetInfo;
+};
 
 export type StatsAsset = KnownStatsAsset & Record<string, any>;
 
@@ -132,6 +138,7 @@ type ExtractorsByOption<T, O> = {
 type PreprocessedAsset = StatsAsset & {
 	type: string;
 	related: PreprocessedAsset[];
+	info: binding.JsStatsAssetInfo;
 };
 
 export type SimpleExtractors = {

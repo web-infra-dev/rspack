@@ -73,12 +73,24 @@ type StatsAsset = {
   // The chunks this asset contains
   chunkNames: Array<string>;
   info: {
+    // whether the asset is minimized
+    minimized: boolean;
     // A flag telling whether the asset is only used for development and doesn't count towards user-facing assets
     development: boolean;
     // A flag telling whether the asset ships data for updating an existing application (HMR)
     hotModuleReplacement: boolean;
     // sourceFilename when asset was created from a source file (potentially transformed)
     sourceFilename?: string;
+    // true, if the asset can be long term cached forever (contains a hash)
+    immutable: boolean;
+    // true, when asset is javascript and an ESM
+    javascriptModule?: boolean;
+    // the value(s) of the chunk hash used for this asset
+    chunkHash: Array<string>;
+    // the value(s) of the content hash used for this asset
+    contentHash: Array<string>;
+    // object of pointers to other assets, keyed by type of relation (only points from parent to child)
+    related: Record<string | string[]>;
   };
 };
 ```

@@ -71,6 +71,8 @@ type StatsAsset = {
   // 产物文件包含的 chunk 的名称列表
   chunkNames: Array<string>;
   info: {
+    // 该产物是否经过代码压缩
+    minimized: boolean;
     // 该产物是否仅用于 development 环境
     development: boolean;
     // 该产物是否仅用于 HMR 更新场景
@@ -78,6 +80,16 @@ type StatsAsset = {
     // 从源文件创建产物时（可能转换）sourceFilename
     // 常见于处理 assets 类型的资源和使用 CopyRspackPlugin 等场景
     sourceFilename?: string;
+    // 该产物是否可被持久化缓存（包含哈希值）
+    immutable: boolean;
+    // 该产物是否为 ESM 文件
+    javascriptModule?: boolean;
+    // 产物的 chunk 哈希值
+    chunkHash: Array<string>;
+    // 产物的内容哈希值
+    contentHash: Array<string>;
+    // 相关联的产物，如 source-map
+    related: Record<string | string[]>;
   };
   // 产物文件是否生成到 `output` 目录中
   emitted: boolean;
