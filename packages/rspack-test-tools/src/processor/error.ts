@@ -87,7 +87,9 @@ export class ErrorProcessor<
 					mode: "none",
 					devtool: false,
 					optimization: {
-						minimize: false
+						minimize: false,
+						moduleIds: "named",
+						chunkIds: "named"
 					},
 					experiments: {
 						css: true,

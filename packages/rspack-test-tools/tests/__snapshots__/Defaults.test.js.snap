@@ -219,7 +219,7 @@ Object {
     "global": "warn",
   },
   "optimization": Object {
-    "chunkIds": "named",
+    "chunkIds": "natural",
     "concatenateModules": false,
     "innerGraph": false,
     "mangleExports": false,
@@ -246,7 +246,7 @@ Object {
         "name": "SwcCssMinimizerRspackPlugin",
       },
     ],
-    "moduleIds": "named",
+    "moduleIds": "natural",
     "nodeEnv": false,
     "providedExports": true,
     "realContentHash": false,

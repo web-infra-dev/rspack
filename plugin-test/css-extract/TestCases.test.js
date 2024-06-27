@@ -139,7 +139,7 @@ describe("TestCases", () => {
 					? config.map(config => {
 						return {
 							...config,
-							optimization: { chunkIds: "named", ...config.optimization },
+							optimization: { moduleIds: "named", chunkIds: "named", ...config.optimization },
 							experiments: {
 								css: false,
 								rspackFuture: {
@@ -153,6 +153,11 @@ describe("TestCases", () => {
 					})
 					: {
 						...config,
+						optimization: {
+							moduleIds: "named",
+							chunkIds: "named",
+							...config.optimization,
+						},
 						experiments: {
 							css: false,
 							rspackFuture: {

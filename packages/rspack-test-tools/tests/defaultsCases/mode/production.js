@@ -11,7 +11,7 @@ module.exports = {
 		-   "mode": "none",
 		+   "mode": "production",
 		@@ ... @@
-		-     "chunkIds": "named",
+		-     "chunkIds": "natural",
 		+     "chunkIds": "deterministic",
 		@@ ... @@
 		-     "innerGraph": false,
@@ -22,7 +22,7 @@ module.exports = {
 		-     "minimize": false,
 		+     "minimize": true,
 		@@ ... @@
-		-     "moduleIds": "named",
+		-     "moduleIds": "natural",
 		-     "nodeEnv": false,
 		+     "moduleIds": "deterministic",
 		+     "nodeEnv": "production",
