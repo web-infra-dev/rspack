@@ -4,8 +4,13 @@ use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::parse_resource;
+use rspack_core::SpanExt;
 use rspack_error::Severity;
 use rspack_util::json_stringify;
+use swc_core::common::Spanned;
+use swc_core::ecma::ast::Expr;
+use swc_core::ecma::visit::Visit;
+use swc_core::ecma::visit::VisitWith;
 
 use super::create_traceable_error;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
@@ -15,6 +20,7 @@ const DEFAULT_WRAPPED_CONTEXT_REGEXP: &str = ".*";
 
 pub fn create_context_dependency(
   param: &BasicEvaluatedExpression,
+  expr: &Expr,
   parser: &mut crate::visitors::JavascriptParser,
 ) -> ContextModuleScanResult {
   if param.is_template_string() {
@@ -79,6 +85,12 @@ pub fn create_context_dependency(
         }
       }
     }
+
+    let mut walker = ExprSpanFinder {
+      targets: vec![&parts[1]],
+      on_visit: |n| parser.walk_expression(n),
+    };
+    expr.visit_with(&mut walker);
 
     if parser.javascript_options.wrapped_context_critical {
       let range = param.range();
@@ -214,4 +226,22 @@ static META_REG: Lazy<Regex> = Lazy::new(|| {
 
 pub fn quote_meta(str: &str) -> Cow<str> {
   META_REG.replace_all(str, "\\$0")
+}
+
+struct ExprSpanFinder<'a, F: FnMut(&Expr) -> ()> {
+  targets: Vec<&'a BasicEvaluatedExpression>,
+  on_visit: F,
+}
+
+impl<'a, F: FnMut(&Expr) -> ()> Visit for ExprSpanFinder<'a, F> {
+  fn visit_expr(&mut self, n: &Expr) {
+    for t in self.targets.iter() {
+      let span = n.span();
+      let (lo, hi) = t.range();
+      if span.real_lo() == lo && span.hi().0 == hi {
+        (self.on_visit)(n);
+      }
+    }
+    n.visit_children_with(self);
+  }
 }
