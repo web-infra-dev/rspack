@@ -43,7 +43,7 @@ for (const { root, match, comment } of [{
   match: "*.js",
   comment: `/** @type {import('../..').TStatsAPICaseConfig} */`
 }, {
-  root: path.resolve(__dirname, "../../plugin-test"),
+  root: path.resolve(__dirname, "../../tests/plugin-test"),
   match: "**/webpack.config.js",
   comment: `/** @type {import("@rspack/core").Configuration} */`
 }]) {

@@ -11,12 +11,9 @@ packages/rspack-plugin-preact-refresh/client
 packages/playground
 packages/rspack/src/stats/DefaultStatsPrinterPlugin.ts
 packages/rspack-test-tools/template
-webpack-examples
-webpack-test
-webpack-cli-test
 examples
-diffcases
 scripts/test/diff.cjs
 scripts/test/binary-path.cjs
-plugin-test
 scripts
+
+tests/**/*

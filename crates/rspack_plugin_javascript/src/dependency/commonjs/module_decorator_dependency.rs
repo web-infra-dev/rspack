@@ -52,7 +52,7 @@ impl DependencyTemplate for ModuleDecoratorDependency {
       .expect("should have mgm");
     let module_argument = module.get_module_argument();
 
-    // ref: webpack-test/cases/scope-hoisting/issue-5096 will return a `null` as module id
+    // ref: tests/webpack-test/cases/scope-hoisting/issue-5096 will return a `null` as module id
     let module_id = compilation
       .chunk_graph
       .get_module_id(module.identifier())

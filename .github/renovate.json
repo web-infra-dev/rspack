@@ -1,81 +1,163 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "timezone": "Asia/Shanghai",
-  "schedule": ["before 8am on wednesday"],
-  "enabledManagers": ["github-actions", "cargo", "npm"],
+  "schedule": [
+    "before 8am on wednesday"
+  ],
+  "enabledManagers": [
+    "github-actions",
+    "cargo",
+    "npm"
+  ],
   "ignorePaths": [
     "**/fixtures/**",
     "**/tests/**",
     "npm/**",
-    "webpack-examples/**",
-    "webpack-test/**"
+    "tests/webpack-examples/**",
+    "tests/webpack-test/**"
   ],
   "assignees": [],
   "packageRules": [
     {
       "groupName": "github-actions",
-      "matchManagers": ["github-actions"],
-      "excludePackageNames": ["actions/upload-artifact", "actions/download-artifact"]
+      "matchManagers": [
+        "github-actions"
+      ],
+      "excludePackageNames": [
+        "actions/upload-artifact",
+        "actions/download-artifact"
+      ]
     },
     {
       "groupName": "upload-download-actions",
-      "matchManagers": ["github-actions"],
-      "matchPackageNames": ["actions/upload-artifact", "actions/download-artifact"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "actions/upload-artifact",
+        "actions/download-artifact"
+      ],
       "enabled": false
     },
     {
       "groupName": "crates",
-      "matchManagers": ["cargo"],
-      "excludePackagePrefixes": ["swc", "napi"],
-      "excludePackageNames": ["ustr", "textwrap", "styled_components", "owo-colors", "miette", "rkyv"]
+      "matchManagers": [
+        "cargo"
+      ],
+      "excludePackagePrefixes": [
+        "swc",
+        "napi"
+      ],
+      "excludePackageNames": [
+        "ustr",
+        "textwrap",
+        "styled_components",
+        "owo-colors",
+        "miette",
+        "rkyv"
+      ]
     },
     {
       "groupName": "swc",
-      "matchManagers": ["cargo"],
-      "matchPackagePrefixes": ["swc"],
-      "matchPackageNames": ["styled_components"]
+      "matchManagers": [
+        "cargo"
+      ],
+      "matchPackagePrefixes": [
+        "swc"
+      ],
+      "matchPackageNames": [
+        "styled_components"
+      ]
     },
     {
       "groupName": "napi",
-      "matchManagers": ["cargo"],
-      "matchPackagePrefixes": ["napi"]
+      "matchManagers": [
+        "cargo"
+      ],
+      "matchPackagePrefixes": [
+        "napi"
+      ]
     },
     {
       "groupName": "ignored crates",
-      "matchManagers": ["cargo"],
-      "matchPackageNames": ["ustr", "textwrap", "owo-colors", "miette", "rkyv"],
+      "matchManagers": [
+        "cargo"
+      ],
+      "matchPackageNames": [
+        "ustr",
+        "textwrap",
+        "owo-colors",
+        "miette",
+        "rkyv"
+      ],
       "enabled": false
     },
     {
       "groupName": "ignored indexmap",
-      "matchManagers": ["cargo"],
-      "matchFileNames": ["crates/rspack_plugin_css/Cargo.toml"],
-      "matchPackageNames": ["indexmap"],
+      "matchManagers": [
+        "cargo"
+      ],
+      "matchFileNames": [
+        "crates/rspack_plugin_css/Cargo.toml"
+      ],
+      "matchPackageNames": [
+        "indexmap"
+      ],
       "enabled": false
     },
     {
       "groupName": "npm dev dependencies",
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["devDependencies"],
-      "excludePackagePrefixes": ["webpack", "sass"],
-      "excludePackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm"]
+      "matchManagers": [
+        "npm"
+      ],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "excludePackagePrefixes": [
+        "webpack",
+        "sass"
+      ],
+      "excludePackageNames": [
+        "@playwright/test",
+        "react",
+        "react-dom",
+        "typescript",
+        "pnpm"
+      ]
     },
     {
       "groupName": "npm dependencies",
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["dependencies"],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchDepTypes": [
+        "dependencies"
+      ],
       "enabled": false
     },
     {
       "groupName": "npm ignored dependencies",
-      "matchManagers": ["npm"],
-      "matchPackageNames": ["@playwright/test", "react", "react-dom", "typescript", "pnpm", "sass"],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchPackageNames": [
+        "@playwright/test",
+        "react",
+        "react-dom",
+        "typescript",
+        "pnpm",
+        "sass"
+      ],
       "enabled": false
     },
     {
       "groupName": "webpack",
-      "matchManagers": ["npm"],
-      "matchPackagePrefixes": ["webpack"],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchPackagePrefixes": [
+        "webpack"
+      ],
       "enabled": false
     }
   ]

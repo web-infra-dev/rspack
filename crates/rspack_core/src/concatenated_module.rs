@@ -702,7 +702,7 @@ impl Module for ConcatenatedModule {
             continue;
           }
           // deconflict naming from inner scope, the module level deconflict will be finished
-          // you could see webpack-test/cases/scope-hoisting/renaming-4967 as a example
+          // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
           // during module eval phase.
           if ident.id.span.ctxt != info.module_ctxt {
             all_used_names.insert(ident.id.sym.to_string());

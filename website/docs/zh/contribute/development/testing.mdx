@@ -39,7 +39,7 @@ Node 测试提供了三组测试套件：
 
 ### Webpack 测试
 
-Rspack 将整个 Webpack 测试套件拷贝到 `webpack-test` 文件夹中，用于检查 webpack 的兼容性。 如果您需要添加新的用例，建议首先在这个文件夹下查找相应的用例是否存在。移除文件夹中的 `test.filter.js` 或修改其返回值为 `true` 即可启用该用例。
+Rspack 将整个 Webpack 测试套件拷贝到 `tests/webpack-test` 文件夹中，用于检查 webpack 的兼容性。 如果您需要添加新的用例，建议首先在这个文件夹下查找相应的用例是否存在。移除文件夹中的 `test.filter.js` 或修改其返回值为 `true` 即可启用该用例。
 
 通过在根文件夹下运行 `./x test webpack` 或 `pnpm run test:webpack` 即可运行 Webpack 测试。
 
@@ -64,7 +64,7 @@ Rspack 的测试用例存放在在 `packages/rspack-test-tools/tests` 文件夹�
 
 ### Webpack 插件测试
 
-基于实现差异和性能考虑，Rspack 会将部分 Webpack 生态插件内置。同样会将插件的测试套件拷贝到 `plugin-test` 文件夹下，用于测试插件的兼容性。
+基于实现差异和性能考虑，Rspack 会将部分 Webpack 生态插件内置。同样会将插件的测试套件拷贝到 `tests/plugin-test` 文件夹下，用于测试插件的兼容性。
 
 通过在根文件夹下运行 `./x test plugin` 或 `pnpm run test:plugin` 即可运行 Webpack 插件测试。
 
