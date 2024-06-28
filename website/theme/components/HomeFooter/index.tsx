@@ -80,7 +80,7 @@ function useFooterData() {
         },
         {
           title: 'Discord',
-          link: 'https://discord.gg/ab2Rv4BXwf',
+          link: 'https://discord.gg/sYK4QjyZ4V',
         },
         {
           title: 'Twitter (X)',
