@@ -53,6 +53,19 @@ export default {
 };
 ```
 
+You can switch back to `SwcCssMinimizerRspackPlugin` by following configuration.
+
+```js
+export default {
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new rspack.SwcCssMinimizerRspackPlugin(),
+    ],
+  },
+};
+```
+
 For example, Rspack already has tree shaking for CSS Modules, but it only removes unused CSS Modules classnames referenced by JS files. With the [unusedSymbols](https://lightningcss.dev/minification.html#unused-symbols) option of Lightning CSS, Rspack can now eliminate unused declarations in CSS Modules files, including IDs, keyframes, CSS variables or other CSS identifiers.
 
 We believe that Lightning CSS will become the shared foundation for the next generation build tools, and Rspack will support more CSS compilation features based on Lightning CSS.. Thanks to [@devongovett](https://github.com/devongovett) for creating such an excellent tool.

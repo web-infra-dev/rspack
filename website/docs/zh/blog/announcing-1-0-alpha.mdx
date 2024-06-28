@@ -53,6 +53,19 @@ export default {
 };
 ```
 
+你也可以通过如下方式切换回 `SwcCssMinimizerRspackPlugin`
+
+```js
+export default {
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new rspack.SwcCssMinimizerRspackPlugin(),
+    ],
+  },
+};
+```
+
 例如，Rspack 已经能够对 CSS 模块进行 tree shaking 优化，但这仅能删除 JS 文件未引用的 CSS Modules 类名。使用 Lightning CSS 的 [unusedSymbols](https://lightningcss.dev/minification.html#unused-symbols) 选项后，Rspack 现在可以消除 CSS Modules 文件中未使用的声明，包括 ID、keyframes、CSS variables 或其他 CSS identifiers。
 
 我们相信 Lightning CSS 将成为下一代构建工具的基石，Rspack 将基于 Lightning CSS 支持更多 CSS 编译能力。感谢 [@devongovett](https://github.com/devongovett) 创造了这样优秀的工具。
