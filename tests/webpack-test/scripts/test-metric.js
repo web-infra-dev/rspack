@@ -18,10 +18,10 @@ process.stdin.on("end", () => {
 
 	// "numFailedTestSuites": 0,
 	// "numFailedTests": 0,
-  let jsonObj = {}
-  try {
-    jsonObj = JSON.parse(data)
-  } catch(e) {}
+	let jsonObj = {}
+	try {
+		jsonObj = JSON.parse(data)
+	} catch (e) { }
 	if (isEmptyObject(jsonObj)) {
 		process.exit(-1);
 	}
@@ -45,10 +45,10 @@ process.stdin.on("end", () => {
 			console.log(`${k}: ${v}`);
 		});
 	} else {
-    let json = JSON.stringify(extractedTestInfo)
-    console.log(json)
-    const rootPath = path.resolve(__dirname, "../../")
-    fs.writeFileSync(path.resolve(rootPath, "out.json"), json)
+		let json = JSON.stringify(extractedTestInfo)
+		console.log(json)
+		const rootPath = path.resolve(__dirname, "../../../")
+		fs.writeFileSync(path.resolve(rootPath, "out.json"), json)
 		fs.writeFileSync(path.resolve(rootPath, "out.md"), renderedTestMD)
 	}
 });

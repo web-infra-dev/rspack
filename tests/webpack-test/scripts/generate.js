@@ -5,7 +5,7 @@ const { run } = require("./utils");
 const GITHUB_ACTOR = process.env.GITHUB_ACTOR;
 const [, , token, commit_sha] = process.argv;
 (async () => {
-	const rootDir = path.resolve(__dirname, "../../");
+	const rootDir = path.resolve(__dirname, "../../../");
 	const currentDataPath = path.resolve(rootDir, "out.json");
 	const currentData = fs.readFileSync(currentDataPath).toString();
 
