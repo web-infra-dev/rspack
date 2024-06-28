@@ -40,11 +40,11 @@ importers:
         version: 3.4.1
     devDependencies:
       '@rspress/plugin-rss':
-        specifier: ^1.25.1
-        version: 1.25.1(react@18.2.0)(rspress@1.25.1(@swc/helpers@0.5.3)(webpack@5.91.0))
+        specifier: ^1.25.2
+        version: 1.25.2(react@18.2.0)(rspress@1.25.2(@swc/helpers@0.5.3)(webpack@5.91.0))
       '@rspress/shared':
-        specifier: ^1.25.1
-        version: 1.25.1
+        specifier: ^1.25.2
+        version: 1.25.2
       '@types/node':
         specifier: ^18.11.18
         version: 18.19.31
@@ -73,8 +73,8 @@ importers:
         specifier: 1.0.0
         version: 1.0.0(@rsbuild/core@0.7.8)
       rspress:
-        specifier: ^1.25.1
-        version: 1.25.1(@swc/helpers@0.5.3)(webpack@5.91.0)
+        specifier: ^1.25.2
+        version: 1.25.2(@swc/helpers@0.5.3)(webpack@5.91.0)
       rspress-plugin-font-open-sans:
         specifier: 1.0.0
         version: 1.0.0
@@ -333,8 +333,8 @@ packages:
     peerDependencies:
       react: '>=16'
 
-  '@modern-js/utils@2.54.2':
-    resolution: {integrity: sha512-ORsy7hMa8g1W6Z2m9R8xPlHNHeRfnW+MtdsApxG5MLDAgM5UQWjzlUau6N0QAgxoFYJKb7cevSPYNw86iBO3DQ==}
+  '@modern-js/utils@2.54.5':
+    resolution: {integrity: sha512-pSczSIGLPc7rckMLIvq/gwM+8/mBv9P9OoAPrPbLrog1EZ+MvM4d4eDGx9m3HH4GR0liSAtTuY9qbvUGwUisoQ==}
 
   '@module-federation/runtime-tools@0.1.6':
     resolution: {integrity: sha512-7ILVnzMIa0Dlc0Blck5tVZG1tnk1MmLnuZpLOMpbdW+zl+N6wdMjjHMjEZFCUAJh2E5XJ3BREwfX8Ets0nIkLg==}
@@ -456,8 +456,8 @@ packages:
       react-refresh:
         optional: true
 
-  '@rspress/core@1.25.1':
-    resolution: {integrity: sha512-BjLfdDuGqZMQq0Zn5Lc6eJF0I8VbO2WIUp+DyGPsh8BwrwY4ZL50FDdqtIQTtm4gboiLL7lNe5kbj7VAaJdgow==}
+  '@rspress/core@1.25.2':
+    resolution: {integrity: sha512-fh6a/uQvgJrNw62bbPbpgQExIPpM5tLHFeVHVncXltAMhmF2d0uP9jxxenGrEFU/syr4aCdQjfZIv00ioS+b1w==}
     engines: {node: '>=14.17.6'}
 
   '@rspress/mdx-rs-darwin-arm64@0.5.7':
@@ -512,40 +512,40 @@ packages:
     resolution: {integrity: sha512-Ie9TqTeMF7yCBqKAOxyLD1W2cDhRZkMsIFD4UJ9nAJTuV4zMj1aXoaKL94phsnl6ImDykF/dohTeuBUrwch08g==}
     engines: {node: '>= 10'}
 
-  '@rspress/plugin-auto-nav-sidebar@1.25.1':
-    resolution: {integrity: sha512-GWsQblMJh5cLFm37d+bYgHObbc2NMv2uZpuaGGSZrUpQt+yD3jCE4w/pZ/SVd+xhQdsY4C9bBehRF+sT7uwMMg==}
+  '@rspress/plugin-auto-nav-sidebar@1.25.2':
+    resolution: {integrity: sha512-0kVs9uorw0mXGV1VVh67Vko0oyd4041M74ZsTYs8gK899k6C9+nKOV7IqGrxftJCY1dhGE437UX1T1ouo2dCIA==}
     engines: {node: '>=14.17.6'}
 
-  '@rspress/plugin-container-syntax@1.25.1':
-    resolution: {integrity: sha512-+XlDAo5UAxKZE6ksMXzvG71iAw5Lc6J4dCAX7Pd3aTZlZuhjYixY5KooHCYfKQJiu42f74eY0llwcwTqeQc4zQ==}
+  '@rspress/plugin-container-syntax@1.25.2':
+    resolution: {integrity: sha512-3c7vVgxchOvZOWEgydgA8aPqPN9oXQsBl8TNbX/mDMB6ubUPpW3BCefca0amzPvplrcdHJAwuuS7J5vueNfwjQ==}
     engines: {node: '>=14.17.6'}
 
-  '@rspress/plugin-last-updated@1.25.1':
-    resolution: {integrity: sha512-7AcMsDRkfBBVesJpi+SeTxN4eRcDZGA7x3GXgwGKZPZV1/nrPp25WfYrAZTc1d55+lbVrRHMECAOgXS65RURlQ==}
+  '@rspress/plugin-last-updated@1.25.2':
+    resolution: {integrity: sha512-jG5mDSMudIqr5FV+SVQYxx3h9HrorB5sGDem7+DfpVxeP46BjK6h4oLNsl451ivzkya12EjP4Q1A68FR5sNqnw==}
     engines: {node: '>=14.17.6'}
 
-  '@rspress/plugin-medium-zoom@1.25.1':
-    resolution: {integrity: sha512-ueWN6v4T9B8Y6Pjmjo19oCDLr0Q5gTT9DuvdDvF2u39kVkStjzQptfPsNf5GC8ljMO1Z+1aL09mMF0Gz6SIInA==}
+  '@rspress/plugin-medium-zoom@1.25.2':
+    resolution: {integrity: sha512-47fy7Rl4xB0FEiNwa3blGsrjTHSSYPN/hav1AiVOC1Jrb/kXLplTqVknRHpFGcNpaLOUwDj5TjbalAn/YIeAFQ==}
     engines: {node: '>=14.17.6'}
     peerDependencies:
       '@rspress/runtime': ^1.0.2
 
-  '@rspress/plugin-rss@1.25.1':
-    resolution: {integrity: sha512-FhFuvadezeFGi9p/egYWvlkA+PfqhFWwmWXPqc/iopHOKHaSZtTHBTk2GfTXYzsld9S+dJuUvyOBVLaiTmwIQQ==}
+  '@rspress/plugin-rss@1.25.2':
+    resolution: {integrity: sha512-xSyWzUe/1Wm2GUXSXlUbRvj6oUMTiNDhXYYkCo1xBCV1TK14pS4qIVqfv88My5seDDwJTDRuV/yThuoYJascNA==}
     engines: {node: '>=14.17.6'}
     peerDependencies:
       react: '>=17.0.0'
       rspress: ^1.17.0
 
-  '@rspress/runtime@1.25.1':
-    resolution: {integrity: sha512-Hz75giWNNxGTdYCR/l6i64SeMgwDWkJzm+Tf8jeEBZpE6WN3uKMUZLgXtWWZHW+I1RBja0Ypec651XFUwpZiPA==}
+  '@rspress/runtime@1.25.2':
+    resolution: {integrity: sha512-XyFKObPG/ze4YPRESKtmGOKzYoZwtrxPSmfaLcQN9QmTFVd9dlVWekJMLo/SkGf4YpqnDbPPP6ehIi42FQpYHQ==}
     engines: {node: '>=14.17.6'}
 
-  '@rspress/shared@1.25.1':
-    resolution: {integrity: sha512-vTuHUZoEqZhyTEwqPb5zKES+6w5XlOV7oPj9TM0n8dG2Wn/TcdhDnnQeCbvYr0HglxkInmNeKDUbQXWfOnFFWQ==}
+  '@rspress/shared@1.25.2':
+    resolution: {integrity: sha512-qtqrMTuUu2fIwjHmyvB51iBcpi92FR4nlZnU/JIXwfF0hgF+OzKEiTv3NQEmqtw1E/Ryue5DigSIBOJBej1yjA==}
 
-  '@rspress/theme-default@1.25.1':
-    resolution: {integrity: sha512-Oc9eL4xOMi2zJq0t3mNGlq4vicCB/lnOXHvGcMQDOgUiUKQty8OOw1sbezv/2/oSLSCGajWj8Xco1fhPCe9sEg==}
+  '@rspress/theme-default@1.25.2':
+    resolution: {integrity: sha512-WUEIGzMgJs6+kTmBsj95FMP4A6wmfuRAyx7HTdxq0rNgobVlT5LrIMi35s7vonodrb4JyON5JBcUMrHtdrurpw==}
     engines: {node: '>=14.17.6'}
 
   '@selderee/plugin-htmlparser2@0.11.0':
@@ -776,9 +776,6 @@ packages:
   camelcase-css@2.0.1:
     resolution: {integrity: sha512-QOSvevhslijgYwRx6Rv7zKdMF8lbRmx+uQGx2+vDc+KI/eBnsy9kit5aj23AgGu3pa4t9AgwbnXWqS+iOY+2aA==}
     engines: {node: '>= 6'}
-
-  caniuse-lite@1.0.30001628:
-    resolution: {integrity: sha512-S3BnR4Kh26TBxbi5t5kpbcUlLJb9lhtDXISDPwOfI+JoC+ik0QksvkZtUVyikw3hjnkgkMPSJ8oIM9yMm9vflA==}
 
   caniuse-lite@1.0.30001638:
     resolution: {integrity: sha512-5SuJUJ7cZnhPpeLHaH0c/HPAnAHZvS6ElWyHK9GSIbVOQABLzowiI2pjmpvZ1WEbkyz46iFd4UXlOHR5SqgfMQ==}
@@ -1033,10 +1030,6 @@ packages:
   emojis-list@3.0.0:
     resolution: {integrity: sha512-/kyM18EfinwXZbno9FyUGeFh87KC8HRQBQGildHZbEuRyWFOmv1U10o9BBp8XVZDVNNuQKyIGIu5ZYAAXJ0V2Q==}
     engines: {node: '>= 4'}
-
-  enhanced-resolve@5.16.0:
-    resolution: {integrity: sha512-O+QWCviPNSSLAD9Ucn8Awv+poAkqn3T1XY5/N7kR7rQO9yfSGWkYZDwpJ+iKF7B8rxaQKWngSqACpgzeapSyoA==}
-    engines: {node: '>=10.13.0'}
 
   enhanced-resolve@5.17.0:
     resolution: {integrity: sha512-dwDPwZL0dmye8Txp2gzFmA6sxALaSvdRDjPH0viLcKrtlOL3tw62nWWweVD1SdILDTJrbrL6tdWVN58Wo6U3eA==}
@@ -2105,8 +2098,8 @@ packages:
   rspress-plugin-font-open-sans@1.0.0:
     resolution: {integrity: sha512-4GP0pd7h3W8EWdqE0VkA62nzUJZNy4ZnYK7be8+lOKHQKsQ5nZ+22A/VurNssi1eZFx3kjwbmIuoAkgb5W8S9Q==}
 
-  rspress@1.25.1:
-    resolution: {integrity: sha512-/TdVhsWNDjrac24CHrJjZnzQb+djAkpRJSeo8AX0XiGEm2N4OKZerk54gW5hoxsXi8IShK9WV5657TkjHk0n/g==}
+  rspress@1.25.2:
+    resolution: {integrity: sha512-BvElBR8+Iwv7jau5B+dRCvXRIdsmPSr9mlwFsMMUeTFpy05OP1I/yO7HjE2TehzKfYitKDBJIKVo82eWDB4yuQ==}
     hasBin: true
 
   run-parallel@1.2.0:
@@ -2843,10 +2836,10 @@ snapshots:
       '@types/react': 18.2.75
       react: 18.2.0
 
-  '@modern-js/utils@2.54.2':
+  '@modern-js/utils@2.54.5':
     dependencies:
       '@swc/helpers': 0.5.3
-      caniuse-lite: 1.0.30001628
+      caniuse-lite: 1.0.30001638
       lodash: 4.17.21
       rslog: 1.2.1
 
@@ -2972,7 +2965,7 @@ snapshots:
     dependencies:
       '@module-federation/runtime-tools': 0.1.6
       '@rspack/binding': 0.7.3
-      caniuse-lite: 1.0.30001628
+      caniuse-lite: 1.0.30001638
       tapable: 2.2.1
       webpack-sources: 3.2.3
     optionalDependencies:
@@ -2982,25 +2975,25 @@ snapshots:
     optionalDependencies:
       react-refresh: 0.14.2
 
-  '@rspress/core@1.25.1(@swc/helpers@0.5.3)(webpack@5.91.0)':
+  '@rspress/core@1.25.2(@swc/helpers@0.5.3)(webpack@5.91.0)':
     dependencies:
       '@loadable/component': 5.16.4(react@18.2.0)
       '@mdx-js/loader': 2.3.0(webpack@5.91.0)
       '@mdx-js/mdx': 2.3.0
       '@mdx-js/react': 2.3.0(react@18.2.0)
-      '@modern-js/utils': 2.54.2
+      '@modern-js/utils': 2.54.5
       '@rsbuild/core': 0.7.8
       '@rsbuild/plugin-less': 0.7.8(@rsbuild/core@0.7.8)(@swc/helpers@0.5.3)
       '@rsbuild/plugin-react': 0.7.8(@rsbuild/core@0.7.8)(@swc/helpers@0.5.3)
       '@rsbuild/plugin-sass': 0.7.8(@rsbuild/core@0.7.8)(@swc/helpers@0.5.3)
       '@rspress/mdx-rs': 0.5.7
-      '@rspress/plugin-auto-nav-sidebar': 1.25.1
-      '@rspress/plugin-container-syntax': 1.25.1
-      '@rspress/plugin-last-updated': 1.25.1
-      '@rspress/plugin-medium-zoom': 1.25.1(@rspress/runtime@1.25.1)
-      '@rspress/runtime': 1.25.1
-      '@rspress/shared': 1.25.1
-      '@rspress/theme-default': 1.25.1
+      '@rspress/plugin-auto-nav-sidebar': 1.25.2
+      '@rspress/plugin-container-syntax': 1.25.2
+      '@rspress/plugin-last-updated': 1.25.2
+      '@rspress/plugin-medium-zoom': 1.25.2(@rspress/runtime@1.25.2)
+      '@rspress/runtime': 1.25.2
+      '@rspress/shared': 1.25.2
+      '@rspress/theme-default': 1.25.2
       body-scroll-lock: 4.0.0-beta.0
       copy-to-clipboard: 3.3.3
       enhanced-resolve: 5.17.0
@@ -3074,39 +3067,39 @@ snapshots:
       '@rspress/mdx-rs-win32-arm64-msvc': 0.5.7
       '@rspress/mdx-rs-win32-x64-msvc': 0.5.7
 
-  '@rspress/plugin-auto-nav-sidebar@1.25.1':
+  '@rspress/plugin-auto-nav-sidebar@1.25.2':
     dependencies:
-      '@rspress/shared': 1.25.1
+      '@rspress/shared': 1.25.2
 
-  '@rspress/plugin-container-syntax@1.25.1':
+  '@rspress/plugin-container-syntax@1.25.2':
     dependencies:
-      '@rspress/shared': 1.25.1
+      '@rspress/shared': 1.25.2
 
-  '@rspress/plugin-last-updated@1.25.1':
+  '@rspress/plugin-last-updated@1.25.2':
     dependencies:
-      '@rspress/shared': 1.25.1
+      '@rspress/shared': 1.25.2
 
-  '@rspress/plugin-medium-zoom@1.25.1(@rspress/runtime@1.25.1)':
+  '@rspress/plugin-medium-zoom@1.25.2(@rspress/runtime@1.25.2)':
     dependencies:
-      '@rspress/runtime': 1.25.1
+      '@rspress/runtime': 1.25.2
       medium-zoom: 1.1.0
 
-  '@rspress/plugin-rss@1.25.1(react@18.2.0)(rspress@1.25.1(@swc/helpers@0.5.3)(webpack@5.91.0))':
+  '@rspress/plugin-rss@1.25.2(react@18.2.0)(rspress@1.25.2(@swc/helpers@0.5.3)(webpack@5.91.0))':
     dependencies:
-      '@rspress/shared': 1.25.1
+      '@rspress/shared': 1.25.2
       feed: 4.2.2
       react: 18.2.0
-      rspress: 1.25.1(@swc/helpers@0.5.3)(webpack@5.91.0)
+      rspress: 1.25.2(@swc/helpers@0.5.3)(webpack@5.91.0)
 
-  '@rspress/runtime@1.25.1':
+  '@rspress/runtime@1.25.2':
     dependencies:
-      '@rspress/shared': 1.25.1
+      '@rspress/shared': 1.25.2
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       react-helmet-async: 1.3.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react-router-dom: 6.22.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
 
-  '@rspress/shared@1.25.1':
+  '@rspress/shared@1.25.2':
     dependencies:
       '@rsbuild/core': 0.7.8
       chalk: 4.1.2
@@ -3115,11 +3108,11 @@ snapshots:
       gray-matter: 4.0.3
       unified: 10.1.2
 
-  '@rspress/theme-default@1.25.1':
+  '@rspress/theme-default@1.25.2':
     dependencies:
       '@mdx-js/react': 2.3.0(react@18.2.0)
-      '@rspress/runtime': 1.25.1
-      '@rspress/shared': 1.25.1
+      '@rspress/runtime': 1.25.2
+      '@rspress/shared': 1.25.2
       body-scroll-lock: 4.0.0-beta.0
       copy-to-clipboard: 3.3.3
       flexsearch: 0.6.32
@@ -3368,7 +3361,7 @@ snapshots:
 
   browserslist@4.23.0:
     dependencies:
-      caniuse-lite: 1.0.30001628
+      caniuse-lite: 1.0.30001638
       electron-to-chromium: 1.4.713
       node-releases: 2.0.14
       update-browserslist-db: 1.0.13(browserslist@4.23.0)
@@ -3382,8 +3375,6 @@ snapshots:
   callsites@3.1.0: {}
 
   camelcase-css@2.0.1: {}
-
-  caniuse-lite@1.0.30001628: {}
 
   caniuse-lite@1.0.30001638: {}
 
@@ -3662,11 +3653,6 @@ snapshots:
   emoji-regex@9.2.2: {}
 
   emojis-list@3.0.0: {}
-
-  enhanced-resolve@5.16.0:
-    dependencies:
-      graceful-fs: 4.2.11
-      tapable: 2.2.1
 
   enhanced-resolve@5.17.0:
     dependencies:
@@ -5020,11 +5006,11 @@ snapshots:
 
   rspress-plugin-font-open-sans@1.0.0: {}
 
-  rspress@1.25.1(@swc/helpers@0.5.3)(webpack@5.91.0):
+  rspress@1.25.2(@swc/helpers@0.5.3)(webpack@5.91.0):
     dependencies:
       '@rsbuild/core': 0.7.8
-      '@rspress/core': 1.25.1(@swc/helpers@0.5.3)(webpack@5.91.0)
-      '@rspress/shared': 1.25.1
+      '@rspress/core': 1.25.2(@swc/helpers@0.5.3)(webpack@5.91.0)
+      '@rspress/shared': 1.25.2
       cac: 6.7.14
       chalk: 5.3.0
       chokidar: 3.6.0
@@ -5433,7 +5419,7 @@ snapshots:
       acorn-import-assertions: 1.9.0(acorn@8.11.3)
       browserslist: 4.23.0
       chrome-trace-event: 1.0.3
-      enhanced-resolve: 5.16.0
+      enhanced-resolve: 5.17.0
       es-module-lexer: 1.5.0
       eslint-scope: 5.1.1
       events: 3.3.0
