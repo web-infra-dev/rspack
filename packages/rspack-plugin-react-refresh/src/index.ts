@@ -60,12 +60,12 @@ class ReactRefreshRspackPlugin {
 			new compiler.webpack.EntryPlugin(compiler.context, entry, {
 				name: undefined
 			}).apply(compiler);
-		})
+		});
 		addEntries.overlayEntries.forEach(entry => {
 			new compiler.webpack.EntryPlugin(compiler.context, entry, {
 				name: undefined
 			}).apply(compiler);
-		})
+		});
 		new compiler.webpack.ProvidePlugin({
 			$ReactRefreshRuntime$: reactRefreshPath
 		}).apply(compiler);
@@ -83,8 +83,8 @@ class ReactRefreshRspackPlugin {
 			__react_refresh_library__: JSON.stringify(
 				compiler.webpack.Template.toIdentifier(
 					this.options.library ||
-					compiler.options.output.uniqueName ||
-					compiler.options.output.library
+						compiler.options.output.uniqueName ||
+						compiler.options.output.library
 				)
 			)
 		};

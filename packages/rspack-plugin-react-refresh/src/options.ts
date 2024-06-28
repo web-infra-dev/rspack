@@ -39,8 +39,8 @@ const d = <K extends keyof PluginOptions>(
 
 const normalizeOverlay = (options: PluginOptions["overlay"]) => {
 	const defaultOverlay: OverlayOptions = {
-		entry: require.resolve('../client/errorOverlayEntry.js'),
-		module: require.resolve('../client/overlay/index.js'),
+		entry: require.resolve("../client/errorOverlayEntry.js"),
+		module: require.resolve("../client/overlay/index.js"),
 		sockIntegration: "wds"
 	};
 	if (!options) {
