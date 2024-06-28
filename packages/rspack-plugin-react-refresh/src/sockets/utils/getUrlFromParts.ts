@@ -1,5 +1,5 @@
-import type { WDSMetaObj } from "./getWDSMetadata";
 import type { SocketUrlParts } from "./getSocketUrlParts";
+import type { WDSMetaObj } from "./getWDSMetadata";
 
 /**
  * Create a valid URL from parsed URL parts.

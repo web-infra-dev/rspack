@@ -1,9 +1,9 @@
 import path from "path";
 import type { Compiler } from "@rspack/core";
 import {
-	normalizeOptions,
+	type NormalizedPluginOptions,
 	type PluginOptions,
-	type NormalizedPluginOptions
+	normalizeOptions
 } from "./options";
 import { getAdditionalEntries } from "./utils/getAdditionalEntries";
 import getSocketIntegration from "./utils/getSocketIntegration";
