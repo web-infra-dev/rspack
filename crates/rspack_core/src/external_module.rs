@@ -18,7 +18,7 @@ use crate::{
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
   ExternalType, FactoryMeta, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions,
   Module, ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, NAMESPACE_OBJECT_EXPORT,
+  StaticExportsDependency, StaticExportsSpec, Template, NAMESPACE_OBJECT_EXPORT,
 };
 use crate::{ChunkGraph, ModuleGraph};
 
@@ -245,21 +245,17 @@ impl ExternalModule {
       ),
       "module" if let Some(request) = request => {
         if compilation.options.output.module {
-          let id = compilation
-            .get_module_graph()
-            .module_graph_module_by_identifier(&self.identifier())
-            .map(|m| m.id(&compilation.chunk_graph))
-            .unwrap_or_default();
-          let identifier = to_identifier(id);
+          let id = Template::to_identifier(&request.primary);
           chunk_init_fragments.push(
             NormalInitFragment::new(
               format!(
-                "import * as __WEBPACK_EXTERNAL_MODULE_{identifier}__ from {};\n",
+                "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {};\n",
+                id.clone(),
                 json_stringify(request.primary())
               ),
               InitFragmentStage::StageHarmonyImports,
               0,
-              InitFragmentKey::ExternalModule(identifier.clone()),
+              InitFragmentKey::ExternalModule(request.primary().into()),
               None,
             )
             .boxed(),
@@ -269,10 +265,11 @@ impl ExternalModule {
             r#"
 var x = y => {{ var x = {{}}; {}(x, y); return x; }}
 var y = x => () => x
-{} = __WEBPACK_EXTERNAL_MODULE_{identifier}__;
+{} = __WEBPACK_EXTERNAL_MODULE_{}__;
 "#,
             RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
             get_namespace_object_export(concatenation_scope),
+            id.clone()
           )
         } else {
           format!(

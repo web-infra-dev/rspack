@@ -933,9 +933,7 @@ const applyOptimizationDefaults = (
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
-	// IGNORE(optimization.concatenateModules): webpack sets this option as true by default when the mode is production,
-	// but rspack is in the experimental stage and sets it to false by default
-	D(optimization, "concatenateModules", false);
+	D(optimization, "concatenateModules", production);
 	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `SwcCssMinimizerRspackPlugin` by default
 	A(optimization, "minimizer", () => [
 		new SwcJsMinimizerRspackPlugin(),

@@ -9,7 +9,8 @@ module.exports = [
       filename: "resource.js"
     },
     optimization: {
-      moduleIds: "named"
+      moduleIds: "named",
+			concatenateModules: false
     },
     plugins: [{
       apply(compiler) {
@@ -31,7 +32,8 @@ module.exports = [
       filename: "request.js"
     },
     optimization: {
-      moduleIds: "named"
+      moduleIds: "named",
+			concatenateModules: false,
     },
     plugins: [{
       apply(compiler) {
@@ -54,7 +56,8 @@ module.exports = [
       filename: "duplicate.js"
     },
     optimization: {
-      moduleIds: "named"
+      moduleIds: "named",
+			concatenateModules: false,
     },
     plugins: [{
       apply(compiler) {

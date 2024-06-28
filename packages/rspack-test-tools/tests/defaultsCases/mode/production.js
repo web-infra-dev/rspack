@@ -12,10 +12,11 @@ module.exports = {
 		+   "mode": "production",
 		@@ ... @@
 		-     "chunkIds": "natural",
-		+     "chunkIds": "deterministic",
-		@@ ... @@
+		-     "concatenateModules": false,
 		-     "innerGraph": false,
 		-     "mangleExports": false,
+		+     "chunkIds": "deterministic",
+		+     "concatenateModules": true,
 		+     "innerGraph": true,
 		+     "mangleExports": true,
 		@@ ... @@
