@@ -31,3 +31,35 @@ The [nightly release workflow](https://github.com/web-infra-dev/rspack/actions/w
 is triggered every day at UTC 16:00:07, which is 00:07 AM Beijing Time (offset with an odd minute to avoid cron jobs firing off at the same time).
 
 The nightly build fully replicates the full release build for catching errors early.
+
+## Canary
+
+[canary release workflow](https://github.com/web-infra-dev/rspack/actions/workflows/release-canary.yml) requires manual triggering.
+
+## Using nightly/canary version
+
+When releasing the nightly/canary versions of Rspack, the package name will be appended with the `-canary` suffix. You need to use the overrides feature of package managers like npm, yarn, or pnpm to use these versions.
+
+Take pnpm as an example:
+
+```json title=package.json
+{
+  "pnpm": {
+    "overrides": {
+      "@rspack/binding": "npm:@rspack/binding-canary@nightly",
+      "@rspack/core": "npm:@rspack/core-canary@nightly",
+      "@rspack/plugin-react-refresh": "npm:@rspack/plugin-react-refresh@nightly"
+    },
+    "peerDependencyRules": {
+      "allowAny": ["@rspack/*"]
+    }
+  }
+}
+```
+
+The Rspack community provides the [install-rspack](https://github.com/rspack-contrib/install-rspack) tool to quickly modify the Rspack version:
+
+```shell
+npx install-rspack --version nightly # Get latest nightly npm tag version
+npx install-rspack --version 0.7.5-canary-d614005-20240625082730 # A specific canary version
+```
