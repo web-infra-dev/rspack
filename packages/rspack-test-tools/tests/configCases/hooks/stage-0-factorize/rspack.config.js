@@ -6,7 +6,7 @@ module.exports = {
 	plugins: [new TestPlugin((compiler, list) => {
 		compiler.hooks.compilation.tap(TestPlugin.name, (compilation, { normalModuleFactory }) => {
 			normalModuleFactory.hooks.factorize.tap(TestPlugin.name, (resolveData) => {
-				list.push(`/* ${resolveData.request} */`);
+				list.push(`/*: ${resolveData.request} :*/`);
 			})
 		});
 	})]
