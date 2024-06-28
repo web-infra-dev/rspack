@@ -228,7 +228,9 @@ Object {
     "minimizer": Array [
       SwcJsMinimizerRspackPlugin {
         "_options": Object {
-          "compress": true,
+          "compress": Object {
+            "passes": 1,
+          },
           "exclude": undefined,
           "extractComments": undefined,
           "format": Object {
