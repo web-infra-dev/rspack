@@ -137,7 +137,7 @@ impl CommonJsImportsParserPlugin {
     let dep = create_commonjs_require_context_dependency(
       parser,
       param,
-      &argument_expr,
+      argument_expr,
       call_expr.callee.span().real_lo(),
       call_expr.callee.span().real_hi(),
       call_expr.span.real_hi(),

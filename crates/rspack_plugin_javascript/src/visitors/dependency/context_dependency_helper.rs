@@ -59,17 +59,18 @@ pub fn create_context_dependency(
     );
 
     let mut replaces = Vec::new();
-    let (even_parts, odd_parts): (Vec<_>, Vec<_>) = param
-      .parts()
-      .into_iter()
-      .enumerate()
-      .partition_map(|(index, part)| {
-        if index % 2 == 0 {
-          Either::Left(part)
-        } else {
-          Either::Right(part)
-        }
-      });
+    let (even_parts, odd_parts): (Vec<_>, Vec<_>) =
+      param
+        .parts()
+        .iter()
+        .enumerate()
+        .partition_map(|(index, part)| {
+          if index % 2 == 0 {
+            Either::Left(part)
+          } else {
+            Either::Right(part)
+          }
+        });
     let last_index = even_parts.len() - 1;
 
     for (i, part) in even_parts.into_iter().enumerate() {
@@ -245,12 +246,12 @@ pub fn quote_meta(str: &str) -> Cow<str> {
   META_REG.replace_all(str, "\\$0")
 }
 
-struct BasicEvaluatedExpressionVisitor<'a, F: FnMut(&Expr) -> ()> {
+struct BasicEvaluatedExpressionVisitor<'a, F: FnMut(&Expr)> {
   targets: Vec<&'a BasicEvaluatedExpression>,
   on_visit: F,
 }
 
-impl<'a, F: FnMut(&Expr) -> ()> Visit for BasicEvaluatedExpressionVisitor<'a, F> {
+impl<'a, F: FnMut(&Expr)> Visit for BasicEvaluatedExpressionVisitor<'a, F> {
   fn visit_expr(&mut self, n: &Expr) {
     self.targets.retain(|evaluated_expr| {
       let span = n.span();
