@@ -22,7 +22,7 @@ Object {
         "related": Object {},
       },
       "name": "main.js",
-      "size": 206,
+      "size": 207,
       "type": "asset",
     },
   ],
@@ -41,7 +41,7 @@ Object {
       "files": Array [
         "main.js",
       ],
-      "hash": "3c2ed4017f8489a873cb",
+      "hash": "f2bc7a8c0bdc1f7b62f2",
       "id": "909",
       "idHints": Array [],
       "initial": true,
@@ -139,10 +139,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 206,
+          "size": 207,
         },
       ],
-      "assetsSize": 206,
+      "assetsSize": 207,
       "auxiliaryAssets": Array [],
       "auxiliaryAssetsSize": 0,
       "children": Object {},
@@ -156,7 +156,7 @@ Object {
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "9d920d978765dde01ad2",
+  "hash": "ee11b48ddc40a1c0f1c4",
   "modules": Array [
     Object {
       "assets": Array [],
@@ -224,10 +224,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 206,
+          "size": 207,
         },
       ],
-      "assetsSize": 206,
+      "assetsSize": 207,
       "auxiliaryAssets": Array [],
       "auxiliaryAssetsSize": 0,
       "children": Object {},
@@ -285,7 +285,7 @@ Object {
       "files": Array [
         "main.js",
       ],
-      "hash": "9a0309478283095b50e2",
+      "hash": "c123f3f151ec18149845",
       "id": "909",
       "idHints": Array [],
       "initial": true,
@@ -584,7 +584,7 @@ Object {
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "59bbea9a66eb590db492",
+  "hash": "425b09c676aa5e20e258",
   "modules": Array [
     Object {
       "assets": Array [],
@@ -998,7 +998,7 @@ Object {
         "related": Object {},
       },
       "name": "main.js",
-      "size": 206,
+      "size": 207,
       "type": "asset",
     },
   ],
@@ -1015,7 +1015,7 @@ Object {
       "files": Array [
         "main.js",
       ],
-      "hash": "3c2ed4017f8489a873cb",
+      "hash": "f2bc7a8c0bdc1f7b62f2",
       "id": "909",
       "idHints": Array [],
       "initial": true,
@@ -1096,7 +1096,7 @@ Object {
         "related": Object {},
       },
       "name": "main.js",
-      "size": 337,
+      "size": 346,
       "type": "asset",
     },
   ],
@@ -1115,7 +1115,7 @@ Object {
       "files": Array [
         "main.js",
       ],
-      "hash": "bd40857208e9f471fe8e",
+      "hash": "289e5d4472c8b47aba57",
       "id": "909",
       "idHints": Array [],
       "initial": true,
@@ -1414,10 +1414,10 @@ exports.c = require(\\"./c?c=3\\");
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 337,
+          "size": 346,
         },
       ],
-      "assetsSize": 337,
+      "assetsSize": 346,
       "auxiliaryAssets": Array [],
       "auxiliaryAssetsSize": 0,
       "children": Object {},
@@ -1431,7 +1431,7 @@ exports.c = require(\\"./c?c=3\\");
   "errors": Array [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "4d422e3de07d6ed9da90",
+  "hash": "891879cb580b1ccbf8ab",
   "modules": Array [
     Object {
       "assets": Array [],
@@ -1700,10 +1700,10 @@ exports.c = require(\\"./c?c=3\\");
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 337,
+          "size": 346,
         },
       ],
-      "assetsSize": 337,
+      "assetsSize": 346,
       "auxiliaryAssets": Array [],
       "auxiliaryAssetsSize": 0,
       "children": Object {},
