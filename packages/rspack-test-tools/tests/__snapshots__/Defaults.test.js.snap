@@ -231,7 +231,9 @@ Object {
           "compress": true,
           "exclude": undefined,
           "extractComments": undefined,
-          "format": Object {},
+          "format": Object {
+            "comments": false,
+          },
           "include": undefined,
           "mangle": true,
           "module": undefined,
