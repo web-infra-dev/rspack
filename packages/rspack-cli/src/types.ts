@@ -32,6 +32,7 @@ export interface RspackBuildCLIOptions extends RspackCLIOptions {
 	mode?: string;
 	watch?: boolean;
 	analyze?: boolean;
+	profile?: boolean;
 	env?: Record<string, any>;
 	nodeEnv?: string;
 	"output-path"?: string;

@@ -18,6 +18,7 @@ Object {
   "experiments": Object {
     "asyncWebAssembly": false,
     "css": undefined,
+    "futureDefaults": false,
     "lazyCompilation": false,
     "rspackFuture": Object {
       "bundlerInfo": Object {
@@ -218,7 +219,7 @@ Object {
     "global": "warn",
   },
   "optimization": Object {
-    "chunkIds": "named",
+    "chunkIds": "natural",
     "concatenateModules": false,
     "innerGraph": false,
     "mangleExports": false,
@@ -227,29 +228,40 @@ Object {
     "minimizer": Array [
       SwcJsMinimizerRspackPlugin {
         "_options": Object {
-          "compress": "{\\"passes\\":1,\\"pure_funcs\\":[],\\"drop_console\\":false}",
+          "compress": Object {
+            "passes": 1,
+          },
           "exclude": undefined,
           "extractComments": undefined,
-          "format": "{\\"comments\\":false,\\"asciiOnly\\":false}",
+          "format": Object {
+            "comments": false,
+          },
           "include": undefined,
-          "mangle": "{\\"keep_classnames\\":false,\\"keep_fnames\\":false}",
+          "mangle": true,
           "module": undefined,
           "test": undefined,
         },
         "affectedHooks": "compilation",
         "name": "SwcJsMinimizerRspackPlugin",
       },
-      SwcCssMinimizerRspackPlugin {
-        "_options": undefined,
+      LightningCssMinimizerRspackPlugin {
+        "_options": Object {
+          "browserslist": Array [
+            "defaults",
+          ],
+          "errorRecovery": false,
+          "removeUnusedLocalIdents": true,
+          "unusedSymbols": Array [],
+        },
         "affectedHooks": undefined,
-        "name": "SwcCssMinimizerRspackPlugin",
+        "name": "LightningCssMinimizerRspackPlugin",
       },
     ],
-    "moduleIds": "named",
+    "moduleIds": "natural",
     "nodeEnv": false,
     "providedExports": true,
     "realContentHash": false,
-    "removeAvailableModules": true,
+    "removeAvailableModules": false,
     "removeEmptyChunks": true,
     "runtimeChunk": false,
     "sideEffects": "flag",

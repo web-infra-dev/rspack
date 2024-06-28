@@ -1,8 +1,7 @@
 import path from "path";
-import { Compilation, Compiler } from "@rspack/core";
+import { Compilation, Compiler, sources } from "@rspack/core";
 import { getSerializers } from "jest-snapshot";
 import { PrettyFormatOptions, format as prettyFormat } from "pretty-format";
-import { Source } from "webpack-sources";
 
 import { TTestContextOptions, TestContext } from "../test/context";
 import {
@@ -21,9 +20,9 @@ const distDir = path.resolve(__dirname, "../../tests/js/hook");
 
 const sourceSerializer = {
 	test(val: unknown) {
-		return val instanceof Source;
+		return val instanceof sources.Source;
 	},
-	print(val: Source) {
+	print(val: sources.Source) {
 		return val.source();
 	}
 };

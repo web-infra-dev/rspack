@@ -23,6 +23,11 @@ export class BuildCommand implements RspackCommand {
 					},
 					json: {
 						describe: "emit stats json"
+					},
+					profile: {
+						type: "boolean",
+						default: false,
+						describe: "capture timing information for each module"
 					}
 				}),
 			async options => {

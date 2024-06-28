@@ -20,9 +20,10 @@
     "./module": "./module.d.ts"
   },
   "scripts": {
-    "build": "prebundle && tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json",
-    "build:force": "prebundle && tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json",
+    "build": "prebundle && tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json && npm run prepare-container-runtime",
+    "build:force": "prebundle && tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json && npm run prepare-container-runtime",
     "dev": "prebundle && tsc -w",
+    "prepare-container-runtime": "node ./scripts/prepare-container-runtime.js",
     "doc-coverage": "node scripts/check-documentation-coverage.mjs",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
@@ -86,6 +87,7 @@
     "tsc-alias": "^1.8.8",
     "wast-loader": "^1.11.4",
     "watchpack": "^2.4.0",
+    "webpack-sources": "3.2.3",
     "zod": "^3.21.4",
     "zod-validation-error": "1.3.1"
   },
@@ -93,8 +95,7 @@
     "@module-federation/runtime-tools": "0.1.6",
     "@rspack/binding": "workspace:*",
     "caniuse-lite": "^1.0.30001616",
-    "tapable": "2.2.1",
-    "webpack-sources": "3.2.3"
+    "tapable": "2.2.1"
   },
   "peerDependencies": {
     "@swc/helpers": ">=0.5.1"

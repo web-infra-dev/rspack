@@ -418,6 +418,10 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
                       parser.javascript_options,
                     ),
                   )));
+                parser
+                  .build_info
+                  .harmony_named_exports
+                  .insert(export.clone());
               } else {
                 parser
                   .dependencies

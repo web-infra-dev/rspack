@@ -20,7 +20,11 @@ export type ResourceDataWithData = ResourceData & {
 	data?: Record<string, any>;
 };
 export type CreateData = Partial<JsCreateData>;
+export type ContextInfo = {
+	issuer: string;
+};
 export type ResolveData = {
+	contextInfo: ContextInfo;
 	context: string;
 	request: string;
 	fileDependencies: string[];

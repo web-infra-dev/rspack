@@ -129,10 +129,9 @@ for (const binding of bindings) {
 		fs.mkdirSync(output);
 	} catch (e) {}
 
-	const coreJson = require(path.resolve(
-		__dirname,
-		"../packages/rspack/package.json"
-	));
+	const coreJson = require(
+		path.resolve(__dirname, "../packages/rspack/package.json")
+	);
 	const pkgJson = {};
 	pkgJson.name = `@rspack/binding-${platformArchABI}`;
 	pkgJson.version = coreJson.version;
@@ -159,8 +158,8 @@ for (const binding of bindings) {
 	fs.writeFileSync(`${output}/${pkgJson.main}`, binary);
 
 	const README = `<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1610-dark.png">
-  <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1610.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://assets.rspack.dev/rspack/rspack-banner-plain-dark.png">
+  <img alt="Rspack Banner" src="https://assets.rspack.dev/rspack/rspack-banner-plain-light.png">
 </picture>
 
 # ${pkgJson.name}

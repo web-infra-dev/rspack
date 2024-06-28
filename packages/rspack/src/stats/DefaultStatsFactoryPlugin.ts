@@ -645,11 +645,13 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			_data,
+			{ chunkGroupAuxiliary, chunkGroupChildren },
 			_factory
 		) => {
 			// const { type } = context;
-			const array = context.getInner(compilation).getEntrypoints();
+			const array = context
+				.getInner(compilation)
+				.getEntrypoints(chunkGroupAuxiliary, chunkGroupChildren);
 
 			// object.entrypoints = factory.create(
 			// 	`${type}.entrypoints`,
@@ -669,13 +671,13 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			_options,
+			{ chunkGroupAuxiliary, chunkGroupChildren },
 			factory
 		) => {
 			// const { type } = context;
 			const namedChunkGroups = context
 				.getInner(compilation)
-				.getNamedChunkGroups();
+				.getNamedChunkGroups(chunkGroupAuxiliary, chunkGroupChildren);
 			// object.namedChunkGroups = factory.create(
 			// 	`${type}.namedChunkGroups`,
 			// 	namedChunkGroups,
@@ -738,7 +740,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.name = asset.name;
 			object.size = asset.size;
 			object.emitted = asset.emitted;
-			object.info = asset.info;
+			object.info = {
+				...asset.info,
+				related: Object.fromEntries(
+					asset.info.related.map(i => [i.name, i.value])
+				)
+			};
 			Object.assign(
 				object,
 				factory.create(`${context.type}$visible`, asset, context)
@@ -877,12 +884,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	profile: {
 		_: (object, profile) => {
 			const factory = resolveStatsMillisecond(profile.factory);
-			const integration = resolveStatsMillisecond(profile.integration);
 			const building = resolveStatsMillisecond(profile.building);
 			const statsProfile: StatsProfile = {
-				total: factory + integration + building,
+				total: factory + building,
 				resolving: factory,
-				integration,
 				building
 			};
 			Object.assign(object, statsProfile);

@@ -40,9 +40,13 @@ impl Task<MakeTaskContext> for FactorizeTask {
     let dependency = self.dependency;
     //    let dep_id = *dependency.id();
 
-    let context = if let Some(context) = dependency.get_context() {
+    let context = if let Some(context) = dependency.get_context()
+      && !context.is_empty()
+    {
       context
-    } else if let Some(context) = &self.original_module_context {
+    } else if let Some(context) = &self.original_module_context
+      && !context.is_empty()
+    {
       context
     } else {
       &self.options.context

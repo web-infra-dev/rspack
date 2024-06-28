@@ -185,6 +185,6 @@ function getDefaultEntryRuntime(
 			options.name ?? compiler.options.output.uniqueName
 		)}`,
 		compiler.webpack.Template.getFunctionContent(require("./default.runtime"))
-	].join("\n");
+	].join(";");
 	return `@module-federation/runtime/rspack.js!=!data:text/javascript,${content}`;
 }

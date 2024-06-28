@@ -63,8 +63,8 @@ export class JsStats {
   getAssets(): JsStatsGetAssets
   getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsModule>
   getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsChunk>
-  getEntrypoints(): Array<JsStatsChunkGroup>
-  getNamedChunkGroups(): Array<JsStatsChunkGroup>
+  getEntrypoints(chunkGroupAuxiliary: boolean, chunkGroupChildren: boolean): Array<JsStatsChunkGroup>
+  getNamedChunkGroups(chunkGroupAuxiliary: boolean, chunkGroupChildren: boolean): Array<JsStatsChunkGroup>
   getErrors(): Array<JsStatsError>
   getWarnings(): Array<JsStatsWarning>
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
@@ -197,6 +197,7 @@ export interface JsAdditionalTreeRuntimeRequirementsResult {
 export interface JsAfterResolveData {
   request: string
   context: string
+  issuer: string
   fileDependencies: Array<string>
   contextDependencies: Array<string>
   missingDependencies: Array<string>
@@ -259,6 +260,7 @@ export interface JsAssetInfoRelated {
 export interface JsBeforeResolveArgs {
   request: string
   context: string
+  issuer: string
 }
 
 export interface JsBuildTimeExecutionOption {
@@ -361,6 +363,12 @@ export interface JsExecuteModuleResult {
   id: number
 }
 
+export interface JsFactorizeArgs {
+  request: string
+  context: string
+  issuer: string
+}
+
 export interface JsFactoryMeta {
   sideEffectFree?: boolean
 }
@@ -421,6 +429,7 @@ export interface JsNormalModuleFactoryCreateModuleArgs {
 
 export interface JsOriginRecord {
   module: string
+  moduleId: string
   moduleIdentifier: string
   moduleName: string
   loc: string
@@ -492,9 +501,20 @@ export interface JsStatsAsset {
 }
 
 export interface JsStatsAssetInfo {
+  minimized: boolean
   development: boolean
   hotModuleReplacement: boolean
   sourceFilename?: string
+  immutable: boolean
+  javascriptModule?: boolean
+  chunkHash: Array<string>
+  contentHash: Array<string>
+  related: Array<JsStatsAssetInfoRelated>
+}
+
+export interface JsStatsAssetInfoRelated {
+  name: string
+  value: Array<string>
 }
 
 export interface JsStatsAssetsByChunkName {
@@ -527,14 +547,22 @@ export interface JsStatsChunk {
 
 export interface JsStatsChunkGroup {
   name: string
-  assets: Array<JsStatsChunkGroupAsset>
   chunks: Array<string | undefined | null>
+  assets: Array<JsStatsChunkGroupAsset>
   assetsSize: number
+  auxiliaryAssets?: Array<JsStatsChunkGroupAsset>
+  auxiliaryAssetsSize?: number
+  children?: JsStatsChunkGroupChildren
 }
 
 export interface JsStatsChunkGroupAsset {
   name: string
   size: number
+}
+
+export interface JsStatsChunkGroupChildren {
+  preload?: Array<JsStatsChunkGroup>
+  prefetch?: Array<JsStatsChunkGroup>
 }
 
 export interface JsStatsError {
@@ -608,7 +636,6 @@ export interface JsStatsModuleIssuer {
 
 export interface JsStatsModuleProfile {
   factory: JsStatsMillisecond
-  integration: JsStatsMillisecond
   building: JsStatsMillisecond
 }
 
@@ -1433,9 +1460,9 @@ export interface RawStyleConfig {
 
 export interface RawSwcJsMinimizerRspackPluginOptions {
   extractComments?: RawExtractComments
-  compress: boolean | string
-  mangle: boolean | string
-  format: string
+  compress: any
+  mangle: any
+  format: any
   module?: boolean
   test?: string | RegExp | (string | RegExp)[]
   include?: string | RegExp | (string | RegExp)[]
@@ -1486,12 +1513,13 @@ export enum RegisterJsTapKind {
   CompilationAfterProcessAssets = 22,
   CompilationAfterSeal = 23,
   NormalModuleFactoryBeforeResolve = 24,
-  NormalModuleFactoryAfterResolve = 25,
-  NormalModuleFactoryCreateModule = 26,
-  NormalModuleFactoryResolveForScheme = 27,
-  ContextModuleFactoryBeforeResolve = 28,
-  ContextModuleFactoryAfterResolve = 29,
-  JavascriptModulesChunkHash = 30
+  NormalModuleFactoryFactorize = 25,
+  NormalModuleFactoryAfterResolve = 26,
+  NormalModuleFactoryCreateModule = 27,
+  NormalModuleFactoryResolveForScheme = 28,
+  ContextModuleFactoryBeforeResolve = 29,
+  ContextModuleFactoryAfterResolve = 30,
+  JavascriptModulesChunkHash = 31
 }
 
 export interface RegisterJsTaps {
@@ -1520,6 +1548,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
+  registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsFactorizeArgs) => Promise<JsFactorizeArgs>); stage: number; }>
   registerNormalModuleFactoryResolveForSchemeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>
   registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>

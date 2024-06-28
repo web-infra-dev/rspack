@@ -19,7 +19,12 @@ module.exports = {
 		-   "mode": "none",
 		+   "mode": "development",
 		@@ ... @@
+		-     "chunkIds": "natural",
+		+     "chunkIds": "named",
+		@@ ... @@
+		-     "moduleIds": "natural",
 		-     "nodeEnv": false,
+		+     "moduleIds": "named",
 		+     "nodeEnv": "development",
 		@@ ... @@
 		-     "pathinfo": false,

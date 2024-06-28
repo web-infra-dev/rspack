@@ -15,6 +15,7 @@ export class NormalModuleFactory {
 			liteTapable.AsyncSeriesBailHook<[ResourceDataWithData], true | void>
 		>;
 		beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
+		factorize: liteTapable.AsyncSeriesBailHook<[ResolveData], void>;
 		afterResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
 		createModule: liteTapable.AsyncSeriesBailHook<
 			[NormalModuleCreateData, {}],
@@ -27,6 +28,7 @@ export class NormalModuleFactory {
 				() => new liteTapable.AsyncSeriesBailHook(["resourceData"])
 			),
 			beforeResolve: new liteTapable.AsyncSeriesBailHook(["resolveData"]),
+			factorize: new liteTapable.AsyncSeriesBailHook(["resolveData"]),
 			afterResolve: new liteTapable.AsyncSeriesBailHook(["resolveData"]),
 			createModule: new liteTapable.AsyncSeriesBailHook([
 				"createData",

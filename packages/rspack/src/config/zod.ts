@@ -353,7 +353,6 @@ const output = z.strictObject({
 	libraryExport: libraryExport.optional(),
 	libraryTarget: libraryType.optional(),
 	umdNamedDefine: umdNamedDefine.optional(),
-	amdContainer: amdContainer.optional(),
 	auxiliaryComment: auxiliaryComment.optional(),
 	module: outputModule.optional(),
 	strictModuleExceptionHandling: strictModuleExceptionHandling.optional(),
@@ -1200,7 +1199,12 @@ const optimizationSplitChunksName = z
 const optimizationSplitChunksChunks = z
 	.enum(["initial", "async", "all"])
 	.or(z.instanceof(RegExp))
-	.or(z.function().args(z.instanceof(Chunk)).returns(z.boolean()));
+	.or(
+		z
+			.function()
+			.args(z.instanceof(Chunk, { message: "Input not instance of Chunk" }))
+			.returns(z.boolean())
+	);
 const optimizationSplitChunksSizes = z.number();
 const optimizationSplitChunksDefaultSizeTypes = z.array(z.string());
 const sharedOptimizationSplitChunksCacheGroup = {

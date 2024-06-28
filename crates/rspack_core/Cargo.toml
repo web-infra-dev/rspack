@@ -17,7 +17,7 @@ either = "1"
 futures = { workspace = true }
 hashlink = { workspace = true }
 hex = { workspace = true }
-indexmap = { workspace = true }
+indexmap = { workspace = true, features = ["rayon"] }
 indoc = { workspace = true }
 itertools = { workspace = true }
 json = { workspace = true }

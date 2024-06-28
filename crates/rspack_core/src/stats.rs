@@ -63,6 +63,13 @@ impl Stats<'_> {
         .iter()
         .filter_map(|(name, asset)| {
           asset.get_source().map(|source| {
+            let mut related = vec![];
+            if let Some(source_map) = &asset.info.related.source_map {
+              related.push(StatsAssetInfoRelated {
+                name: "sourceMap".into(),
+                value: [source_map.clone()].into(),
+              })
+            }
             (
               name,
               StatsAsset {
@@ -72,6 +79,12 @@ impl Stats<'_> {
                 chunks: Vec::new(),
                 chunk_names: Vec::new(),
                 info: StatsAssetInfo {
+                  related,
+                  chunk_hash: asset.info.chunk_hash.iter().cloned().collect_vec(),
+                  content_hash: asset.info.content_hash.iter().cloned().collect_vec(),
+                  minimized: asset.info.minimized,
+                  immutable: asset.info.immutable,
+                  javascript_module: asset.info.javascript_module,
                   development: asset.info.development,
                   hot_module_replacement: asset.info.hot_module_replacement,
                   source_filename: asset.info.source_filename.clone(),
@@ -311,22 +324,36 @@ impl Stats<'_> {
           .flat_map(|ukey| {
             let chunk_group = chunk_group_by_ukey.expect_get(ukey);
             chunk_group.origins().iter().map(|origin| {
-              let id = origin
+              let module_identifier = origin
                 .module_id
                 .map(|id| id.to_string())
                 .unwrap_or_default();
               let module_name = origin
                 .module_id
-                .map(|module_id| {
+                .map(|identifier| {
                   module_graph
-                    .module_by_identifier(&module_id)
+                    .module_by_identifier(&identifier)
                     .map(|module| module.readable_identifier(context).to_string())
                     .unwrap_or_default()
                 })
                 .unwrap_or_default();
+
+              let module_id = origin
+                .module_id
+                .map(|identifier| {
+                  self
+                    .compilation
+                    .chunk_graph
+                    .get_module_id(identifier)
+                    .clone()
+                    .unwrap_or_default()
+                })
+                .unwrap_or_default();
+
               StatsOriginRecord {
-                module: id.clone(),
-                module_identifier: id,
+                module: module_identifier.clone(),
+                module_id,
+                module_identifier,
                 module_name,
                 loc: origin
                   .loc
@@ -383,7 +410,13 @@ impl Stats<'_> {
     Ok(f(chunks))
   }
 
-  fn get_chunk_group(&self, name: &str, ukey: &ChunkGroupUkey) -> StatsChunkGroup {
+  fn get_chunk_group(
+    &self,
+    name: &str,
+    ukey: &ChunkGroupUkey,
+    chunk_group_auxiliary: bool,
+    chunk_group_children: bool,
+  ) -> StatsChunkGroup {
     let cg = self.compilation.chunk_group_by_ukey.expect_get(ukey);
     let chunks: Vec<Option<String>> = cg
       .chunks
@@ -391,45 +424,114 @@ impl Stats<'_> {
       .map(|c| self.compilation.chunk_by_ukey.expect_get(c))
       .map(|c| c.id.clone())
       .collect();
-    let assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
-      let chunk = self.compilation.chunk_by_ukey.expect_get(c);
-      for file in &chunk.files {
-        acc.push(StatsChunkGroupAsset {
-          name: file.clone(),
-          size: self
-            .compilation
-            .assets()
-            .get(file)
-            .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
-            .get_source()
-            .map_or(-1f64, |s| s.size() as f64),
+    let (assets, auxiliary_assets) =
+      cg.chunks
+        .iter()
+        .fold((Vec::new(), Vec::new()), |(mut acc, mut aacc), c| {
+          let chunk = self.compilation.chunk_by_ukey.expect_get(c);
+          for file in &chunk.files {
+            acc.push(StatsChunkGroupAsset {
+              name: file.clone(),
+              size: self
+                .compilation
+                .assets()
+                .get(file)
+                .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
+                .get_source()
+                .map_or(-1f64, |s| s.size() as f64),
+            });
+          }
+          if chunk_group_auxiliary {
+            for file in &chunk.auxiliary_files {
+              aacc.push(StatsChunkGroupAsset {
+                name: file.clone(),
+                size: self
+                  .compilation
+                  .assets()
+                  .get(file)
+                  .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
+                  .get_source()
+                  .map_or(-1f64, |s| s.size() as f64),
+              });
+            }
+          }
+
+          (acc, aacc)
         });
+
+    let children = chunk_group_children.then(|| {
+      let ordered_children = cg.get_children_by_orders(self.compilation);
+
+      StatsChunkGroupChildren {
+        preload: ordered_children
+          .get(&ChunkGroupOrderKey::Preload)
+          .expect("should have preload chunk groups")
+          .iter()
+          .map(|ukey| {
+            let cg = self.compilation.chunk_group_by_ukey.expect_get(ukey);
+            self.get_chunk_group(
+              cg.name().unwrap_or_default(),
+              ukey,
+              chunk_group_auxiliary,
+              false,
+            )
+          })
+          .collect_vec(),
+        prefetch: ordered_children
+          .get(&ChunkGroupOrderKey::Prefetch)
+          .expect("should have prefetch chunk groups")
+          .iter()
+          .map(|ukey| {
+            let cg = self.compilation.chunk_group_by_ukey.expect_get(ukey);
+            self.get_chunk_group(
+              cg.name().unwrap_or_default(),
+              ukey,
+              chunk_group_auxiliary,
+              false,
+            )
+          })
+          .collect_vec(),
       }
-      acc
     });
     StatsChunkGroup {
       name: name.to_string(),
       chunks,
       assets_size: assets.iter().map(|i| i.size).sum(),
       assets,
+      auxiliary_assets_size: chunk_group_auxiliary
+        .then(|| auxiliary_assets.iter().map(|i| i.size).sum()),
+      auxiliary_assets: chunk_group_auxiliary.then_some(auxiliary_assets),
+      children,
     }
   }
 
-  pub fn get_entrypoints(&self) -> Vec<StatsChunkGroup> {
+  pub fn get_entrypoints(
+    &self,
+    chunk_group_auxiliary: bool,
+    chunk_group_children: bool,
+  ) -> Vec<StatsChunkGroup> {
     self
       .compilation
       .entrypoints
       .iter()
-      .map(|(name, ukey)| self.get_chunk_group(name, ukey))
+      .map(|(name, ukey)| {
+        self.get_chunk_group(name, ukey, chunk_group_auxiliary, chunk_group_children)
+      })
       .collect()
   }
 
-  pub fn get_named_chunk_groups(&self) -> Vec<StatsChunkGroup> {
+  pub fn get_named_chunk_groups(
+    &self,
+    chunk_group_auxiliary: bool,
+    chunk_group_children: bool,
+  ) -> Vec<StatsChunkGroup> {
     let mut named_chunk_groups: Vec<StatsChunkGroup> = self
       .compilation
       .named_chunk_groups
       .iter()
-      .map(|(name, ukey)| self.get_chunk_group(name, ukey))
+      .map(|(name, ukey)| {
+        self.get_chunk_group(name, ukey, chunk_group_auxiliary, chunk_group_children)
+      })
       .collect();
     named_chunk_groups.sort_by_cached_key(|e| e.name.to_string());
     named_chunk_groups
@@ -689,12 +791,10 @@ impl Stats<'_> {
       .transpose()?;
     let profile = if let Some(p) = mgm.get_profile()
       && let Some(factory) = p.factory.duration()
-      && let Some(integration) = p.integration.duration()
       && let Some(building) = p.building.duration()
     {
       Some(StatsModuleProfile {
         factory: StatsMillisecond::new(factory.as_secs(), factory.subsec_millis()),
-        integration: StatsMillisecond::new(integration.as_secs(), integration.subsec_millis()),
         building: StatsMillisecond::new(building.as_secs(), building.subsec_millis()),
       })
     } else {
@@ -1053,9 +1153,21 @@ pub struct StatsAssetsByChunkName {
 
 #[derive(Debug)]
 pub struct StatsAssetInfo {
+  pub minimized: bool,
   pub development: bool,
   pub hot_module_replacement: bool,
   pub source_filename: Option<String>,
+  pub immutable: bool,
+  pub javascript_module: Option<bool>,
+  pub chunk_hash: Vec<String>,
+  pub content_hash: Vec<String>,
+  pub related: Vec<StatsAssetInfoRelated>,
+}
+
+#[derive(Debug)]
+pub struct StatsAssetInfoRelated {
+  pub name: String,
+  pub value: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -1107,13 +1219,13 @@ pub enum StatsUsedExports {
 #[derive(Debug)]
 pub struct StatsModuleProfile {
   pub factory: StatsMillisecond,
-  pub integration: StatsMillisecond,
   pub building: StatsMillisecond,
 }
 
 #[derive(Debug)]
 pub struct StatsOriginRecord {
   pub module: String,
+  pub module_id: String,
   pub module_identifier: String,
   pub module_name: String,
   pub loc: String,
@@ -1153,9 +1265,18 @@ pub struct StatsChunkGroupAsset {
 #[derive(Debug)]
 pub struct StatsChunkGroup {
   pub name: String,
-  pub assets: Vec<StatsChunkGroupAsset>,
   pub chunks: Vec<Option<String>>,
+  pub assets: Vec<StatsChunkGroupAsset>,
   pub assets_size: f64,
+  pub auxiliary_assets: Option<Vec<StatsChunkGroupAsset>>,
+  pub auxiliary_assets_size: Option<f64>,
+  pub children: Option<StatsChunkGroupChildren>,
+}
+
+#[derive(Debug)]
+pub struct StatsChunkGroupChildren {
+  pub preload: Vec<StatsChunkGroup>,
+  pub prefetch: Vec<StatsChunkGroup>,
 }
 
 #[derive(Debug)]

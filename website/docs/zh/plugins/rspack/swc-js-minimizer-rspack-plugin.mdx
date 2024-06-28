@@ -23,34 +23,6 @@ module.exports = {
 
   ```ts
   type SwcJsMinimizerRspackPluginOptions = {
-    /**
-     * @deprecated Deprecated, move to `compress.passes`
-     */
-    passes?: number;
-    /**
-     * @deprecated Deprecated, move to `compress.drop_console`
-     */
-    dropConsole?: boolean;
-    /**
-     * @deprecated Deprecated, move to `compress.pure_funcs`
-     */
-    pureFuncs?: Array<string>;
-    /**
-     * @deprecated Deprecated, move to `mangle.keep_classnames`
-     */
-    keepClassNames?: boolean;
-    /**
-     * @deprecated Deprecated, move to `mangle.keep_fnames`
-     */
-    keepFnNames?: boolean;
-    /**
-     * @deprecated Deprecated, move to `format.comments`
-     */
-    comments?: false | 'all' | 'some';
-    /**
-     * @deprecated Deprecated, move to `format.ascii_only`
-     */
-    asciiOnly?: boolean;
     extractComments?: boolean | RegExp;
     compress?: TerserCompressOptions | boolean;
     mangle?: TerserMangleOptions | boolean;

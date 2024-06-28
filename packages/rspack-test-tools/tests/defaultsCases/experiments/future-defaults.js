@@ -12,10 +12,41 @@ module.exports = {
 		+ Received
 
 		@@ ... @@
+		-     "asyncWebAssembly": false,
 		-     "css": undefined,
+		-     "futureDefaults": false,
+		+     "asyncWebAssembly": true,
 		+     "css": true,
 		+     "futureDefaults": true,
 		@@ ... @@
+		+       },
+		+       Object {
+		+         "rules": Array [
+		+           Object {
+		+             "descriptionData": Object {
+		+               "type": "module",
+		+             },
+		+             "resolve": Object {
+		+               "fullySpecified": true,
+		+             },
+		+           },
+		+         ],
+		+         "test": /\\.wasm$/i,
+		+         "type": "webassembly/async",
+		@@ ... @@
+		+       Object {
+		+         "mimetype": "application/wasm",
+		+         "rules": Array [
+		@@ ... @@
+		+             "descriptionData": Object {
+		+               "type": "module",
+		+             },
+		+             "resolve": Object {
+		+               "fullySpecified": true,
+		+             },
+		+           },
+		+         ],
+		+         "type": "webassembly/async",
 		+       },
 		+       Object {
 		+         "resolve": Object {
@@ -38,9 +69,10 @@ module.exports = {
 		+         "resolve": Object {
 		+           "fullySpecified": true,
 		+           "preferRelative": true,
-		@@ ... @@
+		+         },
 		+         "type": "css",
 		+       },
+		+       Object {
 		@@ ... @@
 		-     "generator": Object {},
 		+     "generator": Object {
@@ -62,16 +94,16 @@ module.exports = {
 		+       },
 		+     },
 		@@ ... @@
-		+         },
 		+       },
 		+       "css": Object {
 		+         "namedExports": true,
-		+       },
+		@@ ... @@
 		+       "css/auto": Object {
 		+         "namedExports": true,
-		@@ ... @@
+		+       },
 		+       "css/module": Object {
 		+         "namedExports": true,
+		+       },
 		@@ ... @@
 		+         "css",
 		@@ ... @@

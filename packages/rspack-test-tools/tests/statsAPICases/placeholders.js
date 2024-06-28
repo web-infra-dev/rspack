@@ -22,16 +22,19 @@ module.exports = {
 	},
 	async check() {
 		expect(stats.entrypoints).toMatchInlineSnapshot(`
-      Object {
-        "main": Object {
-          "assets": Array [],
-          "assetsSize": 0,
-          "chunks": Array [
-            null,
-          ],
-          "name": "main",
-        },
-      }
-    `);
+		Object {
+		  "main": Object {
+		    "assets": Array [],
+		    "assetsSize": 0,
+		    "auxiliaryAssets": Array [],
+		    "auxiliaryAssetsSize": 0,
+		    "children": Object {},
+		    "chunks": Array [
+		      null,
+		    ],
+		    "name": "main",
+		  },
+		}
+	`);
 	}
 };

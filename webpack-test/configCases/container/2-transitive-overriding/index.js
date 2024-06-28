@@ -27,7 +27,6 @@ it("should have good module ids", async () => {
 		"./b.js",
 		"./modules-from-remote.js",
 		"./modules.js",
-		"./shared.js", // remove this line once concatenateModules is supported https://github.com/web-infra-dev/rspack/issues/3823
 		"webpack/container/entry/container-no-shared",
 		"webpack/container/reference/container-with-shared",
 		"webpack/container/remote/container-with-shared/b",

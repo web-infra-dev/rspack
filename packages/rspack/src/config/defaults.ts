@@ -13,8 +13,11 @@ import fs from "fs";
 import path from "path";
 
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
-import { SwcCssMinimizerRspackPlugin } from "../builtin-plugin/SwcCssMinimizerPlugin";
-import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";
+import {
+	LightningCssMinimizerRspackPlugin,
+	SwcCssMinimizerRspackPlugin,
+	SwcJsMinimizerRspackPlugin
+} from "../builtin-plugin";
 import { isNil } from "../util";
 import { assertNotNill } from "../util/assertNotNil";
 import { cleverMerge } from "../util/cleverMerge";
@@ -81,14 +84,11 @@ export const applyRspackOptionsDefaults = (
 	// IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
 	D(options, "bail", false);
 
-	const futureDefaults = options.experiments.futureDefaults ?? false;
 	// IGNORE(cache): cache is default to { type: "memory" } in webpack when the mode is development,
 	// but Rspack currently does not support this option
 	F(options, "cache", () => development);
 
-	applyExperimentsDefaults(options.experiments, {
-		cache: options.cache!
-	});
+	applyExperimentsDefaults(options.experiments);
 
 	applySnapshotDefaults(options.snapshot, { production });
 
@@ -109,7 +109,7 @@ export const applyRspackOptionsDefaults = (
 		outputModule: options.experiments.outputModule,
 		development,
 		entry: options.entry,
-		futureDefaults
+		futureDefaults: options.experiments.futureDefaults!
 	});
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
@@ -184,14 +184,11 @@ const applyInfrastructureLoggingDefaults = (
 	D(infrastructureLogging, "appendOnly", !tty);
 };
 
-const applyExperimentsDefaults = (
-	experiments: ExperimentsNormalized,
-	{ cache }: { cache: boolean }
-) => {
+const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
+	D(experiments, "futureDefaults", false);
 	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
 	D(experiments, "lazyCompilation", false);
-	// IGNORE(experiments.asyncWebAssembly): The default value of `asyncWebAssembly` is determined by `futureDefaults` in webpack.
-	D(experiments, "asyncWebAssembly", false);
+	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
 	D(experiments, "topLevelAwait", true);
 
@@ -272,6 +269,7 @@ const applyModuleDefaults = (
 	assertNotNill(module.parser);
 	assertNotNill(module.generator);
 
+	// IGNORE(module.parser): already check to align in 2024.6.27
 	F(module.parser, ASSET_MODULE_TYPE, () => ({}));
 	assertNotNill(module.parser.asset);
 	F(module.parser.asset, "dataUrlCondition", () => ({}));
@@ -317,6 +315,7 @@ const applyModuleDefaults = (
 		assertNotNill(module.parser["css/module"]);
 		D(module.parser["css/module"], "namedExports", true);
 
+		// IGNORE(module.generator): already check to align in 2024.6.27
 		F(module.generator, "css", () => ({}));
 		assertNotNill(module.generator.css);
 		D(
@@ -913,21 +912,18 @@ const applyOptimizationDefaults = (
 		css
 	}: { production: boolean; development: boolean; css: boolean }
 ) => {
-	// IGNORE(optimization.removeAvailableModules): In webpack, removeAvailableModules is false by default
-	D(optimization, "removeAvailableModules", true);
+	D(optimization, "removeAvailableModules", false);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
-	// IGNORE(optimization.moduleIds): set to "natural" by default in rspack 1.0
 	F(optimization, "moduleIds", (): "natural" | "named" | "deterministic" => {
 		if (production) return "deterministic";
 		if (development) return "named";
-		return "named";
+		return "natural";
 	});
-	// IGNORE(optimization.chunkIds): set to "natural" by default in rspack 1.0
 	F(optimization, "chunkIds", (): "natural" | "named" | "deterministic" => {
 		if (production) return "deterministic";
 		if (development) return "named";
-		return "named";
+		return "natural";
 	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "mangleExports", production);
@@ -937,13 +933,11 @@ const applyOptimizationDefaults = (
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
-	// IGNORE(optimization.concatenateModules): webpack sets this option as true by default when the mode is production,
-	// but rspack is in the experimental stage and sets it to false by default
-	D(optimization, "concatenateModules", false);
+	D(optimization, "concatenateModules", production);
 	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `SwcCssMinimizerRspackPlugin` by default
 	A(optimization, "minimizer", () => [
 		new SwcJsMinimizerRspackPlugin(),
-		new SwcCssMinimizerRspackPlugin()
+		new LightningCssMinimizerRspackPlugin()
 	]);
 	F(optimization, "nodeEnv", () => {
 		if (production) return "production";

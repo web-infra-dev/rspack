@@ -157,6 +157,9 @@ export class RspackCLI {
 					}
 				});
 			}
+			if (options.profile) {
+				item.profile = true;
+			}
 			if (process.env.RSPACK_PROFILE) {
 				const { applyProfile } = await import("./utils/profile.js");
 				await applyProfile(process.env.RSPACK_PROFILE, item);

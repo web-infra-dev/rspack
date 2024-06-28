@@ -22,8 +22,8 @@ import { registerGlobalTrace as experimental_registerGlobalTrace } from '@rspack
 import { ExternalObject } from '@rspack/binding';
 import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
-import Hash = require('./util/hash');
-import Hash_2 = require('../util/hash');
+import Hash_2 = require('./util/hash');
+import Hash_3 = require('../util/hash');
 import { HookMap as HookMap_2 } from 'tapable';
 import { JsAssetInfo } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
@@ -63,7 +63,7 @@ import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
 import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
 import ResolverFactory = require('./ResolverFactory');
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
-import { Source } from 'webpack-sources';
+import sources = require('../compiled/webpack-sources');
 import { SyncBailHook as SyncBailHook_2 } from 'tapable';
 import { SyncHook as SyncHook_2 } from 'tapable';
 import { SyncWaterfallHook } from 'tapable';
@@ -1069,7 +1069,7 @@ export class Compilation {
         Iterable<Module>
         ], void>;
         finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
-        chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
+        chunkHash: liteTapable.SyncHook<[Chunk, Hash_2], void>;
         chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
         processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
         succeedModule: liteTapable.SyncHook<[Module], void>;
@@ -1164,7 +1164,7 @@ export class Compilation {
 
 // @public (undocumented)
 type CompilationHooks = {
-    chunkHash: liteTapable.SyncHook<[Chunk, Hash_2]>;
+    chunkHash: liteTapable.SyncHook<[Chunk, Hash_3]>;
 };
 
 // @public (undocumented)
@@ -1475,6 +1475,11 @@ export type Context = z.infer<typeof context>;
 
 // @public (undocumented)
 const context: z.ZodString;
+
+// @public (undocumented)
+type ContextInfo = {
+    issuer: string;
+};
 
 // @public (undocumented)
 class ContextModuleFactory {
@@ -3725,6 +3730,15 @@ type GroupOptions = {
 };
 
 // @public (undocumented)
+class Hash {
+    	constructor();
+
+    	digest(encoding?: string): string | Buffer;
+
+    	update(data: string | Buffer, inputEncoding?: string): Hash;
+}
+
+// @public (undocumented)
 export type HashDigest = z.infer<typeof hashDigest>;
 
 // @public (undocumented)
@@ -4297,7 +4311,14 @@ interface KnownNormalizedStatsOptions {
 }
 
 // @public (undocumented)
-type KnownStatsAsset = binding.JsStatsAsset;
+type KnownStatsAsset = Omit<binding.JsStatsAsset, "info"> & {
+    info: KnownStatsAssetInfo;
+};
+
+// @public (undocumented)
+type KnownStatsAssetInfo = Omit<binding.JsStatsAssetInfo, "related"> & {
+    related: Record<string, string[]>;
+};
 
 // @public (undocumented)
 type KnownStatsChunk = Omit<binding.JsStatsChunk, "sizes"> & {
@@ -4396,7 +4417,6 @@ type KnownStatsPrinterContext = {
 type KnownStatsProfile = {
     total: number;
     resolving: number;
-    integration: number;
     building: number;
 };
 
@@ -4809,7 +4829,7 @@ export interface LoaderContext<OptionsType = {}> {
     utils: {
         absolutify: (context: string, request: string) => string;
         contextify: (context: string, request: string) => string;
-        createHash: (algorithm?: string) => Hash_2;
+        createHash: (algorithm?: string) => Hash_3;
     };
     // (undocumented)
     version: 2;
@@ -4976,6 +4996,9 @@ const LogType: Readonly<{
 
 // @public (undocumented)
 type LogTypeEnum = (typeof LogType)[keyof typeof LogType];
+
+// @public (undocumented)
+type MapOptions = { columns?: boolean; module?: boolean };
 
 // @public (undocumented)
 type Matcher = string | RegExp | (string | RegExp)[];
@@ -6131,6 +6154,7 @@ export class NormalModuleFactory {
     hooks: {
         resolveForScheme: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[ResourceDataWithData], true | void>>;
         beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
+        factorize: liteTapable.AsyncSeriesBailHook<[ResolveData], void>;
         afterResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
         createModule: liteTapable.AsyncSeriesBailHook<[
         NormalModuleCreateData,
@@ -6868,7 +6892,6 @@ const output: z.ZodObject<{
     libraryExport: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
     libraryTarget: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>>;
     umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
-    amdContainer: z.ZodOptional<z.ZodString>;
     auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
         amd: z.ZodOptional<z.ZodString>;
         commonjs: z.ZodOptional<z.ZodString>;
@@ -7004,7 +7027,6 @@ const output: z.ZodObject<{
     libraryExport?: string | string[] | undefined;
     libraryTarget?: string | undefined;
     umdNamedDefine?: boolean | undefined;
-    amdContainer?: string | undefined;
     auxiliaryComment?: string | {
         amd?: string | undefined;
         commonjs?: string | undefined;
@@ -7096,7 +7118,6 @@ const output: z.ZodObject<{
     libraryExport?: string | string[] | undefined;
     libraryTarget?: string | undefined;
     umdNamedDefine?: boolean | undefined;
-    amdContainer?: string | undefined;
     auxiliaryComment?: string | {
         amd?: string | undefined;
         commonjs?: string | undefined;
@@ -8155,6 +8176,17 @@ export type RawPublicPath = z.infer<typeof rawPublicPath>;
 const rawPublicPath: z.ZodString;
 
 // @public (undocumented)
+type RawSourceMap = {
+    	version: number;
+    	sources: string[];
+    	names: string[];
+    	sourceRoot?: string;
+    	sourcesContent?: string[];
+    	mappings: string;
+    	file: string;
+};
+
+// @public (undocumented)
 type ReactOptions = RawReactOptions | undefined;
 
 // @public (undocumented)
@@ -8191,6 +8223,7 @@ const resolveAlias: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLitera
 
 // @public (undocumented)
 type ResolveData = {
+    contextInfo: ContextInfo;
     context: string;
     request: string;
     fileDependencies: string[];
@@ -8979,7 +9012,6 @@ export const rspackOptions: z.ZodObject<{
         libraryExport: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
         libraryTarget: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>>;
         umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
-        amdContainer: z.ZodOptional<z.ZodString>;
         auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
             amd: z.ZodOptional<z.ZodString>;
             commonjs: z.ZodOptional<z.ZodString>;
@@ -9115,7 +9147,6 @@ export const rspackOptions: z.ZodObject<{
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
         umdNamedDefine?: boolean | undefined;
-        amdContainer?: string | undefined;
         auxiliaryComment?: string | {
             amd?: string | undefined;
             commonjs?: string | undefined;
@@ -9207,7 +9238,6 @@ export const rspackOptions: z.ZodObject<{
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
         umdNamedDefine?: boolean | undefined;
-        amdContainer?: string | undefined;
         auxiliaryComment?: string | {
             amd?: string | undefined;
             commonjs?: string | undefined;
@@ -10928,7 +10958,6 @@ export const rspackOptions: z.ZodObject<{
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
         umdNamedDefine?: boolean | undefined;
-        amdContainer?: string | undefined;
         auxiliaryComment?: string | {
             amd?: string | undefined;
             commonjs?: string | undefined;
@@ -11419,7 +11448,6 @@ export const rspackOptions: z.ZodObject<{
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
         umdNamedDefine?: boolean | undefined;
-        amdContainer?: string | undefined;
         auxiliaryComment?: string | {
             amd?: string | undefined;
             commonjs?: string | undefined;
@@ -12204,6 +12232,30 @@ export type SnapshotOptions = z.infer<typeof snapshotOptions>;
 const snapshotOptions: z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>;
 
 // @public (undocumented)
+abstract class Source {
+    	// (undocumented)
+    buffer(): Buffer;
+
+    	// (undocumented)
+    map(options?: MapOptions): RawSourceMap | null;
+
+    	// (undocumented)
+    size(): number;
+
+    	// (undocumented)
+    source(): string | Buffer;
+
+    	// (undocumented)
+    sourceAndMap(options?: MapOptions): {
+        		source: string | Buffer;
+        		map: Object;
+        	};
+
+    	// (undocumented)
+    updateHash(hash: Hash): void;
+}
+
+// @public (undocumented)
 interface SourceMap {
     // (undocumented)
     file?: string;
@@ -12248,8 +12300,7 @@ export type SourceMapFilename = z.infer<typeof sourceMapFilename>;
 // @public (undocumented)
 const sourceMapFilename: z.ZodString;
 
-// @public (undocumented)
-export const sources: any;
+export { sources }
 
 // @public (undocumented)
 class SplitChunksPlugin extends RspackBuiltinPlugin {
@@ -12839,13 +12890,6 @@ export const SwcJsMinimizerRspackPlugin: {
 
 // @public (undocumented)
 export type SwcJsMinimizerRspackPluginOptions = {
-    passes?: number;
-    dropConsole?: boolean;
-    pureFuncs?: Array<string>;
-    keepClassNames?: boolean;
-    keepFnNames?: boolean;
-    comments?: false | "all" | "some";
-    asciiOnly?: boolean;
     extractComments?: ExtractCommentsOptions | undefined;
     compress?: TerserCompressOptions | boolean;
     mangle?: TerserMangleOptions | boolean;

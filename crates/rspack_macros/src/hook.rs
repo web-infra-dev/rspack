@@ -209,8 +209,8 @@ impl ExecKind {
         #call
       }
       let mut all_taps = std::vec::Vec::new();
-      all_taps.extend(&additional_taps);
       all_taps.extend(&self.taps);
+      all_taps.extend(&additional_taps);
       all_taps.sort_by_key(|hook| hook.stage());
     }
   }

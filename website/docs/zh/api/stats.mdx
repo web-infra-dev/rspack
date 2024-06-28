@@ -71,6 +71,8 @@ type StatsAsset = {
   // 产物文件包含的 chunk 的名称列表
   chunkNames: Array<string>;
   info: {
+    // 该产物是否经过代码压缩
+    minimized: boolean;
     // 该产物是否仅用于 development 环境
     development: boolean;
     // 该产物是否仅用于 HMR 更新场景
@@ -78,6 +80,16 @@ type StatsAsset = {
     // 从源文件创建产物时（可能转换）sourceFilename
     // 常见于处理 assets 类型的资源和使用 CopyRspackPlugin 等场景
     sourceFilename?: string;
+    // 该产物是否可被持久化缓存（包含哈希值）
+    immutable: boolean;
+    // 该产物是否为 ESM 文件
+    javascriptModule?: boolean;
+    // 产物的 chunk 哈希值
+    chunkHash: Array<string>;
+    // 产物的内容哈希值
+    contentHash: Array<string>;
+    // 相关联的产物，如 source-map
+    related: Record<string | string[]>;
   };
   // 产物文件是否生成到 `output` 目录中
   emitted: boolean;
@@ -129,6 +141,8 @@ type StatsChunk = {
   origins: Array<{
     // 来源 module 的路径
     module: string;
+    // 来源 module 的 ID
+    moduleId: string;
     // 来源 module 的唯一标识
     moduleIdentifier: string;
     // 来源 module 的相对路径
@@ -244,17 +258,33 @@ type StatsNamedChunkGroups = Record<string, StatsChunkGroup>;
 type StatsChunkGroup = {
   // entry 的名称
   name: string;
-  // entry 对应的产物文件
+  // 包含的 chunk 的 ID 列表
+  chunks: Array<string | undefined | null>;
+  // chunk group 的产物文件
   assets: Array<{
     // 产物文件名
     name: string;
     // 产物文件大小
     size: number;
   }>;
-  // 包含的 chunk 的 ID 列表
-  chunks: Array<string | undefined | null>;
-  // entry 对应总产物大小
+  // chunk group 总产物大小
   assetsSize: number;
+  // chunk group 的附属产物文件，如 sourcemap
+  auxiliaryAssets?: Array<{
+    // 附属产物文件名
+    name: string;
+    // 附属产物文件大小
+    size: number;
+  }>;
+  // chunk group 的总附属产物大小，如 sourcemap
+  auxiliaryAssetsSize?: number;
+  // 子 chunk group 加载顺序，按照优先级排序
+  children?: {
+    // 需 preload 的 子 chunk group
+    preload?: Array<StatsChunkGroup>;
+    // 需 prefetch 的 子 chunk group
+    prefetch?: Array<StatsChunkGroup>;
+  };
 };
 ```
 
