@@ -68,7 +68,7 @@ export default defineConfig({
       {
         icon: 'discord',
         mode: 'link',
-        content: 'https://discord.gg/79ZZ66GH9E',
+        content: 'https://discord.gg/sYK4QjyZ4V',
       },
       {
         icon: 'twitter',
