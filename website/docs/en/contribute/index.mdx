@@ -58,24 +58,24 @@ When submitting a Pull Request, please note the following:
 
 ### Format of PR titles
 
-The format of PR titles follow Conventional Commits.
+The format of PR titles follow [Conventional Commits](https://www.conventionalcommits.org/).
 
-A example
+An example:
 
-```
-feat(ui): Add `Button` component
+```text
+feat(core): Add `fooBar` config
 ^    ^    ^
 |    |    |__ Subject
-|    |_______ Scope
+|    |_______ Scope (optional)
 |____________ Type
 ```
 
-Your PR
+If your PR contains any breaking changes, please append a `!` after the type/scope, then add the [release: breaking change](https://github.com/web-infra-dev/rspack/labels) GitHub label.
 
-- must have a `Type`
-- Optionally have a `Scope`
-  - `Scope` should be lower case
-- must have a `Subject`
+```text
+fix!: remove deprecated `fooBar` config
+fix(core)!: remove deprecated `fooBar` config
+```
 
 ## Other ways to contribute
 
