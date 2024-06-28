@@ -38,7 +38,7 @@ nightly 构建完全复制了全量发布构建，以便尽早发现错误。
 
 ## nightly/canary 版本的使用
 
-Rspack 的 nightly/canary 版本的包名会在增加 `-canary` 后缀之后发布，需要配合包管理器 npm/yarn/pnpm 的 overrides 功能使用。
+Rspack 的 nightly/canary 版本的包名会在增加 `-canary` 后缀之后发布，需要配合包管理器 pnpm / yarn / npm 的 overrides 功能使用。
 
 以 pnpm 为例:
 

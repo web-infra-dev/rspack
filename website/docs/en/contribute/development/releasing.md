@@ -38,7 +38,7 @@ The nightly build fully replicates the full release build for catching errors ea
 
 ## Use of nightly/canary version
 
-The package name of the nightly/canary version of Rspack will be released after adding the `-canary` suffix, and needs to be used with the overrides function of the package manager npm/yarn/pnpm.
+The package name of the nightly/canary version of Rspack will be released after adding the `-canary` suffix, and needs to be used with the overrides function of the package manager such as pnpm, yarn, npm.
 
 Take pnpm as an example:
 
