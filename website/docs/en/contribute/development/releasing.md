@@ -36,9 +36,9 @@ The nightly build fully replicates the full release build for catching errors ea
 
 [canary release workflow](https://github.com/web-infra-dev/rspack/actions/workflows/release-canary.yml) requires manual triggering.
 
-## Use of nightly/canary version
+## Using nightly/canary version
 
-The package name of the nightly/canary version of Rspack will be released after adding the `-canary` suffix, and needs to be used with the overrides function of the package manager such as pnpm, yarn, npm.
+When releasing the nightly/canary versions of Rspack, the package name will be appended with the `-canary` suffix. You need to use the overrides feature of package managers like npm, yarn, or pnpm to use these versions.
 
 Take pnpm as an example:
 

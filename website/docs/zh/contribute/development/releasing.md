@@ -36,9 +36,9 @@ nightly 构建完全复制了全量发布构建，以便尽早发现错误。
 
 [canary 发布工作流](https://github.com/web-infra-dev/rspack/actions/workflows/release-canary.yml) 需要手动触发。
 
-## nightly/canary 版本的使用
+## 使用 nightly/canary 版本
 
-Rspack 的 nightly/canary 版本的包名会在增加 `-canary` 后缀之后发布，需要配合包管理器 pnpm / yarn / npm 的 overrides 功能使用。
+在发布 Rspack 的 nightly/canary 版本时，发布的包名会被添加 `-canary` 后缀，你需要配合包管理器 npm / yarn / pnpm 的 overrides 功能来使用这些版本。
 
 以 pnpm 为例:
 
