@@ -64,6 +64,5 @@ export function normalizeOptions(
 	d(options, "library");
 	d(options, "forceEnable", false);
 	options.overlay = normalizeOverlay(options.overlay);
-	// @ts-expect-error -- promise options is NormalizedPluginOptions
-	return options;
+	return options as NormalizedPluginOptions;
 }

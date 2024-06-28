@@ -1,4 +1,3 @@
-/* global __webpack_dev_server_client__ */
 /**
  * The following code is modified based on
  * https://github.com/pmmmwh/react-refresh-webpack-plugin/blob/f1c8b9a44198449093ca95f85af5df97925e1cfc/sockets/WPSSocket.js
@@ -11,6 +10,10 @@
 import getSocketUrlParts from "./utils/getSocketUrlParts";
 import getUrlFromParts from "./utils/getUrlFromParts";
 import getWDSMetadata from "./utils/getWDSMetadata";
+
+declare global {
+	var __webpack_dev_server_client__: any;
+}
 
 /**
  * Initializes a socket server for HMR for webpack-dev-server.
