@@ -12,7 +12,6 @@ packages/playground
 packages/rspack/src/stats/DefaultStatsPrinterPlugin.ts
 packages/rspack-test-tools/template
 examples
-tests/diff-test
 scripts/test/diff.cjs
 scripts/test/binary-path.cjs
 scripts
