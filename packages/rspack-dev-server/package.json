@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-server",
-  "version": "0.7.4",
+  "version": "1.0.0-alpha.0",
   "license": "MIT",
   "description": "Development server for rspack",
   "main": "./dist/index.js",
