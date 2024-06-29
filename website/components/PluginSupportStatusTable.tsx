@@ -48,14 +48,6 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     status: SupportStatus.FullySupported,
   },
   {
-    name: 'ContextExclusionPlugin',
-    status: SupportStatus.NotSupported,
-  },
-  {
-    name: 'ContextReplacementPlugin',
-    status: SupportStatus.NotSupported,
-  },
-  {
     name: 'DefinePlugin',
     url: '/plugins/webpack/define-plugin',
     status: SupportStatus.PartiallySupported,
