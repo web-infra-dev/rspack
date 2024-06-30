@@ -7,9 +7,9 @@ use rspack_core::{
   NormalModuleFactoryResolveForScheme, NormalModuleReadResource, Plugin, PluginContext,
   ResourceData,
 };
-use rspack_error::Result;
+use rspack_error::error;
+use rspack_error::{AnyhowError, Error, Result};
 use rspack_hook::{plugin, plugin_hook}; // Add this import
-
 static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
 static EXTERNAL_HTTP_STD_REQUEST: Lazy<Regex> =
@@ -34,7 +34,6 @@ async fn resolve_for_scheme(
   }
   Ok(None)
 }
-
 #[plugin_hook(NormalModuleReadResource for HttpUriPlugin)]
 async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
   dbg!("reading resource");
@@ -46,17 +45,24 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
       .get(&resource_data.resource)
       .send()
       .await
-      .context("Failed to send HTTP request")?; // Wrap error with context
-    dbg!(&response); // Log the fetched response
+      .context("Failed to send HTTP request")
+      .map_err(|err| {
+        error!(err.to_string());
+        AnyhowError::from(err) // Convert to AnyhowError which implements Diagnostic
+      })?; // Use `into()` to convert anyhow::Error to rspack_error::Error
+    dbg!("Fetched response: {:?}", &response); // Log the fetched response using tracing
     let content = response
       .bytes()
       .await
-      .context("Failed to read response bytes")?; // Wrap error with context
-    return Ok(Some(Content::from(content.to_vec())));
+      .context("Failed to read response bytes")
+      .map_err(|err| {
+        error!(err.to_string());
+        AnyhowError::from(err) // Convert to AnyhowError which implements Diagnostic
+      })?;
+    return Ok(Some(Content::Buffer(content.to_vec())));
   }
   Ok(None)
 }
-
 #[async_trait::async_trait]
 impl Plugin for HttpUriPlugin {
   fn name(&self) -> &'static str {
