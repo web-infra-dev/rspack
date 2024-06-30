@@ -8,6 +8,7 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow        = "1.0.86"
 async-trait   = { workspace = true }
 base64        = "0.22.1"
 once_cell     = { workspace = true }
@@ -20,7 +21,6 @@ rspack_hook   = { path = "../rspack_hook" }
 sha2          = "0.11.0-pre.3"
 url           = { workspace = true }
 urlencoding   = { workspace = true }
-
 [dependencies.tokio]
 optional  = true
 workspace = true

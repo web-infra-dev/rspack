@@ -1,12 +1,14 @@
+use anyhow::Context;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use reqwest::Client; // Add reqwest for HTTP requests
 use rspack_core::{
   ApplyContext, CompilerOptions, Content, ModuleFactoryCreateData,
   NormalModuleFactoryResolveForScheme, NormalModuleReadResource, Plugin, PluginContext,
   ResourceData,
 };
 use rspack_error::Result;
-use rspack_hook::{plugin, plugin_hook};
+use rspack_hook::{plugin, plugin_hook}; // Add this import
 
 static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
@@ -39,7 +41,18 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
   if resource_data.get_scheme().is_http() && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
   {
     dbg!(&resource_data.resource);
-    // Implement your logic for reading HTTP resources here
+    let client = Client::new();
+    let response = client
+      .get(&resource_data.resource)
+      .send()
+      .await
+      .context("Failed to send HTTP request")?; // Wrap error with context
+    dbg!(&response); // Log the fetched response
+    let content = response
+      .bytes()
+      .await
+      .context("Failed to read response bytes")?; // Wrap error with context
+    return Ok(Some(Content::from(content.to_vec())));
   }
   Ok(None)
 }
