@@ -53,9 +53,6 @@ export * from "./ProgressPlugin";
 export * from "./ProvidePlugin";
 export * from "./RealContentHashPlugin";
 export * from "./RemoveEmptyChunksPlugin";
-export * from "./RSCClientEntryRspackPlugin";
-export * from "./RSCClientReferenceManifestRspackPlugin";
-export * from "./RSCProxyRspackPlugin";
 export * from "./RuntimeChunkPlugin";
 export * from "./RuntimePlugin";
 export * from "./SideEffectsFlagPlugin";
@@ -69,9 +66,9 @@ export * from "./WarnCaseSensitiveModulesPlugin";
 export * from "./WebWorkerTemplatePlugin";
 export * from "./WorkerPlugin";
 export * from "./FetchCompileAsyncWasmPlugin";
-export * from "./RSCClientEntryPlugin";
+export * from "./RSCClientEntryRspackPlugin";
 export * from "./RSCClientReferenceManifestRspackPlugin";
-export * from "./RSCServerReferenceManifestRspackPlugin";
+export * from "./RSCProxyRspackPlugin";
 
 ///// DEPRECATED /////
 import { RawBuiltins } from "@rspack/binding";

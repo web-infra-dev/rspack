@@ -24,7 +24,6 @@ use indoc::indoc;
 pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
 use once_cell::sync::Lazy;
-pub use react_server_components_plugin::*;
 use rspack_ast::javascript::Ast;
 use rspack_core::concatenated_module::find_new_name;
 use rspack_core::reserved_names::RESERVED_NAMES;
