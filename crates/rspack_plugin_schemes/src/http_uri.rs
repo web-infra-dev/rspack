@@ -88,7 +88,21 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
         error!(err.to_string());
         AnyhowError::from(err) // Convert to AnyhowError which implements Diagnostic
       })?;
-    dbg!("Response body: {:?}", &content); // Log the response body
+
+    let content_str = std::str::from_utf8(&content)
+      .context("Failed to convert response bytes to string")
+      .map_err(|err| {
+        error!(err.to_string());
+        AnyhowError::from(err)
+      })?;
+
+    let base_url = &resource_data.resource;
+    let replaced_content = content_str
+      .replace("import \"./", &format!("import \"{}/", base_url))
+      .replace("import \"/", &format!("import \"{}/", base_url));
+
+    let final_content = replaced_content.into_bytes();
+    dbg!("Response body: {:?}", &final_content); // Log the response body
 
     // Cache the response
     /*
@@ -106,7 +120,7 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
       })?;
     */
 
-    return Ok(Some(Content::Buffer(content.to_vec())));
+    return Ok(Some(Content::Buffer(final_content.to_vec())));
   }
   Ok(None)
 }
