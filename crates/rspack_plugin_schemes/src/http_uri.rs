@@ -34,6 +34,7 @@ async fn resolve_for_scheme(
   }
   Ok(None)
 }
+
 #[plugin_hook(NormalModuleReadResource for HttpUriPlugin)]
 async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
   dbg!("reading resource");
