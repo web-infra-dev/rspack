@@ -4229,6 +4229,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "serde",
  "sha2 0.11.0-pre.3",
  "tokio",
  "url",
