@@ -9,11 +9,18 @@ version    = "0.1.0"
 
 [dependencies]
 async-trait   = { workspace = true }
+base64        = "0.22.1"
 once_cell     = { workspace = true }
 regex         = { workspace = true }
+reqwest       = "0.12.5"
 rspack_base64 = { path = "../rspack_base64" }
 rspack_core   = { path = "../rspack_core" }
 rspack_error  = { path = "../rspack_error" }
 rspack_hook   = { path = "../rspack_hook" }
+sha2          = "0.11.0-pre.3"
 url           = { workspace = true }
 urlencoding   = { workspace = true }
+
+[dependencies.tokio]
+optional  = true
+workspace = true
