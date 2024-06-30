@@ -123,7 +123,7 @@ pub fn get_scheme(specifier: &str) -> Scheme {
     return Scheme::Http;
   }
 
-  Scheme::from(scheme_str)
+  Scheme::from(scheme_str.as_str())
 }
 
 #[cfg(test)]
