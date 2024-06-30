@@ -17,8 +17,10 @@ reqwest       = "0.12.5"
 rspack_base64 = { path = "../rspack_base64" }
 rspack_core   = { path = "../rspack_core" }
 rspack_error  = { path = "../rspack_error" }
+rspack_fs     = { path = "../rspack_fs" }
 rspack_hook   = { path = "../rspack_hook" }
 serde         = { workspace = true }
+serde_json    = { workspace = true }
 sha2          = "0.11.0-pre.3"
 tokio         = { workspace = true }
 url           = { workspace = true }
