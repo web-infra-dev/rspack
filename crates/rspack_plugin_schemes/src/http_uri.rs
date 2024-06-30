@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
+use std::sync::Arc;
 
 use anyhow::Context;
 use once_cell::sync::Lazy;
@@ -21,8 +24,7 @@ static EXTERNAL_HTTP_STD_REQUEST: Lazy<Regex> =
 static EXTERNAL_CSS_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^\.css(\?|$)").expect("Invalid regex"));
 
-static HTTP_CACHE: Lazy<RwLock<HashMap<String, Vec<u8>>>> =
-  Lazy::new(|| RwLock::new(HashMap::new()));
+static HTTP_CACHE_DIR: &str = "http_cache";
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -50,12 +52,20 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
     dbg!(&resource_data.resource);
 
     // Check cache first
-    {
-      let cache = HTTP_CACHE.read().await;
-      if let Some(cached_content) = cache.get(&resource_data.resource) {
-        dbg!("Cache hit");
-        return Ok(Some(Content::Buffer(cached_content.clone())));
-      }
+    let cache_path = format!(
+      "{}/{}",
+      HTTP_CACHE_DIR,
+      resource_data.resource.replace("/", "_")
+    );
+    if Path::new(&cache_path).exists() {
+      dbg!("Cache hit");
+      let cached_content = fs::read(&cache_path)
+        .context("Failed to read cached content")
+        .map_err(|err| {
+          error!(err.to_string());
+          AnyhowError::from(err)
+        })?;
+      return Ok(Some(Content::Buffer(cached_content)));
     }
 
     let client = Client::new();
@@ -79,10 +89,18 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
     dbg!("Response body: {:?}", &content); // Log the response body
 
     // Cache the response
-    {
-      let mut cache = HTTP_CACHE.write().await;
-      cache.insert(resource_data.resource.clone(), content.to_vec());
-    }
+    fs::create_dir_all(HTTP_CACHE_DIR)
+      .context("Failed to create cache directory")
+      .map_err(|err| {
+        error!(err.to_string());
+        AnyhowError::from(err)
+      })?;
+    fs::write(&cache_path, &content)
+      .context("Failed to write cache content")
+      .map_err(|err| {
+        error!(err.to_string());
+        AnyhowError::from(err)
+      })?;
 
     return Ok(Some(Content::Buffer(content.to_vec())));
   }
