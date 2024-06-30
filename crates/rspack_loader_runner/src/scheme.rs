@@ -25,6 +25,10 @@ impl Scheme {
   pub fn is_some(&self) -> bool {
     !self.is_none()
   }
+
+  pub fn is_http(&self) -> bool {
+    matches!(self, Self::Http)
+  }
 }
 
 impl From<&str> for Scheme {
@@ -134,6 +138,7 @@ mod tests {
   #[test]
   fn http_for_http_url() {
     assert_eq!(get_scheme("http://localhost"), Scheme::Http);
+    assert!(Scheme::Http.is_http());
   }
 
   #[test]
