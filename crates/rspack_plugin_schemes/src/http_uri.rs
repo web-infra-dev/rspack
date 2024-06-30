@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::Context;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -10,12 +12,17 @@ use rspack_core::{
 use rspack_error::error;
 use rspack_error::{AnyhowError, Error, Result};
 use rspack_hook::{plugin, plugin_hook}; // Add this import
+use tokio::sync::RwLock;
+
 static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
 static EXTERNAL_HTTP_STD_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|std:)").expect("Invalid regex"));
 static EXTERNAL_CSS_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^\.css(\?|$)").expect("Invalid regex"));
+
+static HTTP_CACHE: Lazy<RwLock<HashMap<String, Vec<u8>>>> =
+  Lazy::new(|| RwLock::new(HashMap::new()));
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -41,6 +48,16 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
   if resource_data.get_scheme().is_http() && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
   {
     dbg!(&resource_data.resource);
+
+    // Check cache first
+    {
+      let cache = HTTP_CACHE.read().await;
+      if let Some(cached_content) = cache.get(&resource_data.resource) {
+        dbg!("Cache hit");
+        return Ok(Some(Content::Buffer(cached_content.clone())));
+      }
+    }
+
     let client = Client::new();
     let response = client
       .get(&resource_data.resource)
@@ -60,10 +77,18 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
         AnyhowError::from(err) // Convert to AnyhowError which implements Diagnostic
       })?;
     dbg!("Response body: {:?}", &content); // Log the response body
+
+    // Cache the response
+    {
+      let mut cache = HTTP_CACHE.write().await;
+      cache.insert(resource_data.resource.clone(), content.to_vec());
+    }
+
     return Ok(Some(Content::Buffer(content.to_vec())));
   }
   Ok(None)
 }
+
 #[async_trait::async_trait]
 impl Plugin for HttpUriPlugin {
   fn name(&self) -> &'static str {
