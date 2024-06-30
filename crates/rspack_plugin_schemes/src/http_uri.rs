@@ -37,6 +37,7 @@ struct CacheEntry {
 pub struct HttpUriPlugin;
 
 #[plugin_hook(NormalModuleFactoryResolveForScheme for HttpUriPlugin)]
+#[plugin_hook(NormalModuleFactoryResolveForScheme for HttpUriPlugin)]
 async fn resolve_for_scheme(
   &self,
   _data: &mut ModuleFactoryCreateData,
