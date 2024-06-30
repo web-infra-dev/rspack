@@ -97,28 +97,31 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
       })?;
 
     let base_url = &resource_data.resource;
+    let origin = match url::Url::parse(base_url) {
+      Ok(url) => url.origin().ascii_serialization(),
+      Err(_) => "".to_string(),
+    };
     let replaced_content = content_str
-      .replace("import \"./", &format!("import \"{}/", base_url))
-      .replace("import \"/", &format!("import \"{}/", base_url));
+      .replace("import \"./", &format!("import \"{}/", origin))
+      .replace("import \"/", &format!("import \"{}/", origin));
 
     let final_content = replaced_content.into_bytes();
     dbg!("Response body: {:?}", &final_content); // Log the response body
-
-    // Cache the response
-    /*
-    fs::create_dir_all(HTTP_CACHE_DIR)
-      .context("Failed to create cache directory")
-      .map_err(|err| {
-        error!(err.to_string());
-        AnyhowError::from(err)
-      })?;
-    fs::write(&cache_path, &content)
-      .context("Failed to write cache content")
-      .map_err(|err| {
-        error!(err.to_string());
-        AnyhowError::from(err)
-      })?;
-    */
+                                                 // Cache the response
+                                                 /*
+                                                 fs::create_dir_all(HTTP_CACHE_DIR)
+                                                   .context("Failed to create cache directory")
+                                                   .map_err(|err| {
+                                                     error!(err.to_string());
+                                                     AnyhowError::from(err)
+                                                   })?;
+                                                 fs::write(&cache_path, &content)
+                                                   .context("Failed to write cache content")
+                                                   .map_err(|err| {
+                                                     error!(err.to_string());
+                                                     AnyhowError::from(err)
+                                                   })?;
+                                                 */
 
     return Ok(Some(Content::Buffer(final_content.to_vec())));
   }
