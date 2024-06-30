@@ -1,6 +1,7 @@
 mod raw_split_chunk_cache_group_test;
 mod raw_split_chunk_chunks;
 mod raw_split_chunk_name;
+mod raw_split_chunk_size;
 
 use std::sync::Arc;
 
@@ -21,6 +22,7 @@ use self::raw_split_chunk_cache_group_test::normalize_raw_cache_group_test;
 use self::raw_split_chunk_cache_group_test::RawCacheGroupTest;
 use self::raw_split_chunk_chunks::{create_chunks_filter, Chunks};
 use self::raw_split_chunk_name::default_chunk_option_name;
+use self::raw_split_chunk_size::RawSplitChunkSizes;
 
 #[derive(Derivative)]
 #[napi(object, object_to_js = false)]
@@ -41,14 +43,14 @@ pub struct RawSplitChunksOptions {
   pub default_size_types: Vec<String>,
   pub min_chunks: Option<u32>,
   pub hide_path_info: Option<bool>,
-  pub min_size: Option<f64>,
+  pub min_size: Option<Either<f64, RawSplitChunkSizes>>,
   //   pub min_size_reduction: usize,
   pub enforce_size_threshold: Option<f64>,
-  pub min_remaining_size: Option<f64>,
+  pub min_remaining_size: Option<Either<f64, RawSplitChunkSizes>>,
   // layer: String,
-  pub max_size: Option<f64>,
-  pub max_async_size: Option<f64>,
-  pub max_initial_size: Option<f64>,
+  pub max_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_async_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_initial_size: Option<Either<f64, RawSplitChunkSizes>>,
 }
 
 #[derive(Derivative)]
@@ -120,10 +122,32 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
 
     let empty_sizes = SplitChunkSizes::empty();
 
-    let overall_min_size = create_sizes(raw_opts.min_size);
-    let overall_max_size = create_sizes(raw_opts.max_size);
-    let overall_max_async_size = create_sizes(raw_opts.max_async_size).merge(&overall_max_size);
-    let overall_max_initial_size = create_sizes(raw_opts.max_initial_size).merge(&overall_max_size);
+    let overall_min_size = match raw_opts.min_size {
+      Some(Either::A(size)) => create_sizes(Some(size)),
+      Some(Either::B(sizes)) => sizes.into(),
+      None => create_sizes(None),
+    };
+
+    let overall_max_size = match raw_opts.max_size {
+      Some(Either::A(size)) => create_sizes(Some(size)),
+      Some(Either::B(sizes)) => sizes.into(),
+      None => create_sizes(None),
+    };
+
+    let overall_max_async_size = match raw_opts.max_async_size {
+      Some(Either::A(size)) => create_sizes(Some(size)),
+      Some(Either::B(sizes)) => sizes.into(),
+      None => create_sizes(None),
+    }
+    .merge(&overall_max_size);
+
+    let overall_max_initial_size = match raw_opts.max_initial_size {
+      Some(Either::A(size)) => create_sizes(Some(size)),
+      Some(Either::B(sizes)) => sizes.into(),
+      None => create_sizes(None),
+    }
+    .merge(&overall_max_size);
+
     let overall_automatic_name_delimiter = raw_opts
       .automatic_name_delimiter
       .unwrap_or(DEFAULT_DELIMITER.to_string());
