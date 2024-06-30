@@ -29,3 +29,7 @@ ignored = ["tracing"]
 [dependencies.tokio]
 optional  = true
 workspace = true
+
+[dependencies.serde]
+optional  = true
+workspace = true
