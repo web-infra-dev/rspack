@@ -169,8 +169,9 @@ impl SourceMapDevToolPlugin {
     let output_options = &compilation.options.output;
     let map_options = MapOptions::new(self.columns);
 
-    let mapped_sources = raw_assets
-      .par_iter()
+    let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(raw_assets.len());
+    let mut mapped_sources = raw_assets
+      .into_par_iter()
       .map(|(file, asset)| {
         let is_match = match &self.test {
           Some(test) => test(file.to_owned()),
@@ -192,8 +193,6 @@ impl SourceMapDevToolPlugin {
       .collect::<Vec<_>>();
 
     let mut used_names_set = HashSet::<String>::default();
-    let mut mapped_buffer: Vec<(String, Vec<u8>, Option<Vec<u8>>)> =
-      Vec::with_capacity(mapped_sources.len());
 
     let mut default_filenames = match &self.module_filename_template {
       ModuleFilenameTemplate::String(s) => mapped_sources
@@ -271,87 +270,87 @@ impl SourceMapDevToolPlugin {
     };
     let mut default_filenames_index = 0;
 
-    for (filename, asset, source_map) in mapped_sources {
-      let source_map_buffer = match source_map {
-        Some(mut source_map) => {
-          source_map.set_file(Some(filename.clone()));
+    for (filename, _asset, source_map) in mapped_sources.iter_mut() {
+      if let Some(source_map) = source_map {
+        source_map.set_file(Some(filename.clone()));
 
-          let sources = source_map.sources_mut();
-          for source in sources {
-            let (source_name, module_or_source) = default_filenames[default_filenames_index]
-              .take()
-              .expect("expected a filename at the given index but found None");
-            default_filenames_index += 1;
+        let sources = source_map.sources_mut();
+        for source in sources {
+          let (source_name, module_or_source) = default_filenames[default_filenames_index]
+            .take()
+            .expect("expected a filename at the given index but found None");
+          default_filenames_index += 1;
 
-            let mut has_name = used_names_set.contains(&source_name);
-            if !has_name {
-              used_names_set.insert(source_name.clone());
-              *source = Cow::from(source_name);
-              continue;
-            }
-
-            // Try the fallback name first
-            let mut source_name = match &self.fallback_module_filename_template {
-              ModuleFilenameTemplate::String(s) => {
-                ModuleFilenameHelpers::create_filename_of_string_template(
-                  &module_or_source,
-                  compilation,
-                  s,
-                  output_options,
-                  self.namespace.as_str(),
-                )
-              }
-              ModuleFilenameTemplate::Fn(f) => {
-                ModuleFilenameHelpers::create_filename_of_fn_template(
-                  &module_or_source,
-                  compilation,
-                  f,
-                  output_options,
-                  self.namespace.as_str(),
-                )
-                .await?
-              }
-            };
-
-            has_name = used_names_set.contains(&source_name);
-            if !has_name {
-              used_names_set.insert(source_name.clone());
-              *source = Cow::from(source_name);
-              continue;
-            }
-
-            // Otherwise, append stars until we have a valid name
-            while has_name {
-              source_name.push('*');
-              has_name = used_names_set.contains(&source_name);
-            }
+          let mut has_name = used_names_set.contains(&source_name);
+          if !has_name {
             used_names_set.insert(source_name.clone());
             *source = Cow::from(source_name);
+            continue;
           }
-          if self.no_sources {
-            for content in source_map.sources_content_mut() {
-              *content = Cow::from(String::default());
-            }
-          }
-          if let Some(source_root) = &self.source_root {
-            source_map.set_source_root(Some(source_root.clone()));
-          }
-          let mut source_map_buffer = Vec::new();
-          source_map
-            .to_writer(&mut source_map_buffer)
-            .unwrap_or_else(|e| panic!("{}", e.to_string()));
-          Some(source_map_buffer)
-        }
-        None => None,
-      };
 
-      let mut code_buffer = Vec::new();
-      asset.to_writer(&mut code_buffer).into_diagnostic()?;
-      mapped_buffer.push((filename.to_owned(), code_buffer, source_map_buffer));
+          // Try the fallback name first
+          let mut source_name = match &self.fallback_module_filename_template {
+            ModuleFilenameTemplate::String(s) => {
+              ModuleFilenameHelpers::create_filename_of_string_template(
+                &module_or_source,
+                compilation,
+                s,
+                output_options,
+                self.namespace.as_str(),
+              )
+            }
+            ModuleFilenameTemplate::Fn(f) => {
+              ModuleFilenameHelpers::create_filename_of_fn_template(
+                &module_or_source,
+                compilation,
+                f,
+                output_options,
+                self.namespace.as_str(),
+              )
+              .await?
+            }
+          };
+
+          has_name = used_names_set.contains(&source_name);
+          if !has_name {
+            used_names_set.insert(source_name.clone());
+            *source = Cow::from(source_name);
+            continue;
+          }
+
+          // Otherwise, append stars until we have a valid name
+          while has_name {
+            source_name.push('*');
+            has_name = used_names_set.contains(&source_name);
+          }
+          used_names_set.insert(source_name.clone());
+          *source = Cow::from(source_name);
+        }
+        if self.no_sources {
+          for content in source_map.sources_content_mut() {
+            *content = Cow::from(String::default());
+          }
+        }
+        if let Some(source_root) = &self.source_root {
+          source_map.set_source_root(Some(source_root.clone()));
+        }
+      }
     }
 
-    let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(raw_assets.len());
-    for (filename, code_buffer, source_map_buffer) in mapped_buffer {
+    for (filename, asset, source_map) in mapped_sources {
+      let code_buffer = {
+        let mut code_buffer = Vec::new();
+        asset.to_writer(&mut code_buffer).into_diagnostic()?;
+        code_buffer
+      };
+      let source_map_buffer = source_map.map(|source_map| {
+        let mut source_map_buffer = Vec::new();
+        source_map
+          .to_writer(&mut source_map_buffer)
+          .unwrap_or_else(|e| panic!("{}", e.to_string()));
+        source_map_buffer
+      });
+
       let mut asset = compilation
         .assets()
         .get(&filename)
