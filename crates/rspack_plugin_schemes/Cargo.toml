@@ -24,3 +24,7 @@ urlencoding   = { workspace = true }
 [dependencies.tokio]
 optional  = true
 workspace = true
+
+[dependencies.serde]
+optional  = true
+workspace = true
