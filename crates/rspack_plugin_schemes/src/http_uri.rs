@@ -50,7 +50,6 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
         error!(err.to_string());
         AnyhowError::from(err) // Convert to AnyhowError which implements Diagnostic
       })?; // Use `into()` to convert anyhow::Error to rspack_error::Error
-    dbg!("Fetched response: {:?}", &response); // Log the fetched response using tracing
     let content = response
       .bytes()
       .await
@@ -59,6 +58,7 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
         error!(err.to_string());
         AnyhowError::from(err) // Convert to AnyhowError which implements Diagnostic
       })?;
+    dbg!("Response body: {:?}", &content); // Log the response body
     return Ok(Some(Content::Buffer(content.to_vec())));
   }
   Ok(None)
