@@ -8,30 +8,19 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow        = { workspace = true }
 async-trait   = { workspace = true }
+base64        = "0.22.1"
 once_cell     = { workspace = true }
 regex         = { workspace = true }
-reqwest       = { version = "0.12.5", default_features = false, features = ["http2", "native-tls"] }
+reqwest       = "0.12.5"
 rspack_base64 = { path = "../rspack_base64" }
 rspack_core   = { path = "../rspack_core" }
 rspack_error  = { path = "../rspack_error" }
 rspack_hook   = { path = "../rspack_hook" }
-serde         = { workspace = true }
-serde_json    = { workspace = true }
-sha2          = "0.10.8"
-tokio         = { workspace = true }
-tracing       = { workspace = true }
+sha2          = "0.11.0-pre.3"
 url           = { workspace = true }
 urlencoding   = { workspace = true }
 
-[package.metadata.cargo-shear]
-ignored = ["tracing"]
-
 [dependencies.tokio]
-optional  = false
-workspace = true
-
-[dependencies.serde]
-optional  = false
+optional  = true
 workspace = true

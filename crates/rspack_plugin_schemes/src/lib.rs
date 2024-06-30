@@ -6,6 +6,8 @@ mod http_cache;
 mod http_uri;
 mod lockfile; // Added this line to import the lockfile module
 
+mod http_uri;
+
 pub use data_uri::DataUriPlugin;
 pub use file_uri::FileUriPlugin;
 pub use http_uri::HttpUriOptionsAllowedUris;
