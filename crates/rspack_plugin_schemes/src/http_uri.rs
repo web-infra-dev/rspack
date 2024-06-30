@@ -1,7 +1,5 @@
-use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use std::sync::Arc;
 
 use anyhow::Context;
 use once_cell::sync::Lazy;
@@ -13,16 +11,11 @@ use rspack_core::{
   ResourceData,
 };
 use rspack_error::error;
-use rspack_error::{AnyhowError, Error, Result};
+use rspack_error::{AnyhowError, Result}; // Removed `Error` import
 use rspack_hook::{plugin, plugin_hook}; // Add this import
-use tokio::sync::RwLock;
 
 static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
-static EXTERNAL_HTTP_STD_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(//|https?://|std:)").expect("Invalid regex"));
-static EXTERNAL_CSS_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^\.css(\?|$)").expect("Invalid regex"));
 
 static HTTP_CACHE_DIR: &str = "http_cache";
 
@@ -52,7 +45,6 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
     dbg!(&resource_data.resource);
 
     // Check cache first
-    /*
     let cache_path = format!(
       "{}/{}",
       HTTP_CACHE_DIR,
@@ -68,7 +60,6 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
         })?;
       return Ok(Some(Content::Buffer(cached_content)));
     }
-    */
 
     let client = Client::new();
     let response = client
@@ -107,10 +98,6 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
     dbg!(&replaced_content);
     let final_content = replaced_content.into_bytes();
 
-    // Use reference to avoid move
-    // Log the response body
-    // Cache the response
-    /*
     fs::create_dir_all(HTTP_CACHE_DIR)
       .context("Failed to create cache directory")
       .map_err(|err| {
@@ -123,7 +110,6 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
         error!(err.to_string());
         AnyhowError::from(err)
       })?;
-    */
 
     return Ok(Some(Content::Buffer(final_content.to_vec())));
   }
