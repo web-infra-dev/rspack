@@ -16,6 +16,4 @@ class JsSplitChunkSizes {
 	}
 }
 
-const test = JsSplitChunkSizes.__to_binding(1);
-
 export { JsSplitChunkSizes };
