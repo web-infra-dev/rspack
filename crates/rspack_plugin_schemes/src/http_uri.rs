@@ -52,6 +52,7 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
     dbg!(&resource_data.resource);
 
     // Check cache first
+    /*
     let cache_path = format!(
       "{}/{}",
       HTTP_CACHE_DIR,
@@ -67,6 +68,7 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
         })?;
       return Ok(Some(Content::Buffer(cached_content)));
     }
+    */
 
     let client = Client::new();
     let response = client
@@ -89,6 +91,7 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
     dbg!("Response body: {:?}", &content); // Log the response body
 
     // Cache the response
+    /*
     fs::create_dir_all(HTTP_CACHE_DIR)
       .context("Failed to create cache directory")
       .map_err(|err| {
@@ -101,6 +104,7 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
         error!(err.to_string());
         AnyhowError::from(err)
       })?;
+    */
 
     return Ok(Some(Content::Buffer(content.to_vec())));
   }
