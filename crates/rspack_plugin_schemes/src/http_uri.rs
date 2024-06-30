@@ -103,8 +103,8 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
     };
     let replaced_content = content_str
       .replace("import \"./", &format!("import \"{}/", origin))
-      .replace("import \"./", &format!("import \"{}/", origin));
-
+      .replace("import \"/", &format!("import \"{}/", origin))
+      .replace("from \"/", &format!("from \"{}/", origin));
     dbg!(&replaced_content);
     let final_content = replaced_content.into_bytes();
 
