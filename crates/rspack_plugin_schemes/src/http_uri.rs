@@ -35,6 +35,7 @@ async fn resolve_for_scheme(
 
 #[plugin_hook(NormalModuleReadResource for HttpUriPlugin)]
 async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
+  dbg!("reading resource");
   if resource_data.get_scheme().is_http() && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
   {
     dbg!(&resource_data.resource);

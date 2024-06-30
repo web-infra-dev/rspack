@@ -118,7 +118,12 @@ pub fn get_scheme(specifier: &str) -> Scheme {
     }
   }
 
-  Scheme::from(specifier[..i].to_ascii_lowercase().as_str())
+  let scheme_str = &specifier[..i].to_ascii_lowercase();
+  if scheme_str == "http" || scheme_str == "https" {
+    return Scheme::Http;
+  }
+
+  Scheme::from(scheme_str)
 }
 
 #[cfg(test)]
@@ -138,6 +143,7 @@ mod tests {
   #[test]
   fn http_for_http_url() {
     assert_eq!(get_scheme("http://localhost"), Scheme::Http);
+    assert_eq!(get_scheme("https://localhost"), Scheme::Http);
     assert!(Scheme::Http.is_http());
   }
 
