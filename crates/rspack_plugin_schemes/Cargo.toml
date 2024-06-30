@@ -27,9 +27,9 @@ urlencoding   = { workspace = true }
 ignored = ["tracing"]
 
 [dependencies.tokio]
-optional  = true
+optional  = false
 workspace = true
 
 [dependencies.serde]
-optional  = true
+optional  = false
 workspace = true
