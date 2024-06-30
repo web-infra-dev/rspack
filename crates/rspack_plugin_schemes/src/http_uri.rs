@@ -8,8 +8,12 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
-static URI_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(?i)^https?:\/\/[^\s/$.?#].[^\s]*$").expect("Invalid Regex"));
+static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
+static EXTERNAL_HTTP_STD_REQUEST: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^(//|https?://|std:)").expect("Invalid regex"));
+static EXTERNAL_CSS_REQUEST: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^\.css(\?|$)").expect("Invalid regex"));
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -21,10 +25,9 @@ async fn resolve_for_scheme(
   _data: &mut ModuleFactoryCreateData,
   resource_data: &mut ResourceData,
 ) -> Result<Option<bool>> {
-  if resource_data.get_scheme().is_http()
-    && let Some(captures) = URI_REGEX.captures(&resource_data.resource)
+  if resource_data.get_scheme().is_http() && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
   {
-    dbg!(&captures);
+    dbg!(&resource_data.resource);
     return Ok(None);
   }
   Ok(None)
@@ -32,10 +35,9 @@ async fn resolve_for_scheme(
 
 #[plugin_hook(NormalModuleReadResource for HttpUriPlugin)]
 async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
-  if resource_data.get_scheme().is_http()
-    && let Some(captures) = URI_REGEX.captures(&resource_data.resource)
+  if resource_data.get_scheme().is_http() && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
   {
-    dbg!(&captures);
+    dbg!(&resource_data.resource);
     // Implement your logic for reading HTTP resources here
   }
   Ok(None)
