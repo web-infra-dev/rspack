@@ -96,7 +96,6 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
       .replace("import \"/", &format!("import \"{}/", origin))
       .replace("from \"/", &format!("from \"{}/", origin));
     dbg!(&replaced_content);
-    let final_content = replaced_content.into_bytes();
 
     fs::create_dir_all(HTTP_CACHE_DIR)
       .context("Failed to create cache directory")
@@ -104,12 +103,14 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
         error!(err.to_string());
         AnyhowError::from(err)
       })?;
-    fs::write(&cache_path, &content)
+    fs::write(&cache_path, &replaced_content)
       .context("Failed to write cache content")
       .map_err(|err| {
         error!(err.to_string());
         AnyhowError::from(err)
       })?;
+
+    let final_content = replaced_content.into_bytes();
 
     return Ok(Some(Content::Buffer(final_content.to_vec())));
   }
