@@ -78,14 +78,14 @@ pub struct RawCacheGroupOptions {
   //   pub max_async_requests: usize,
   //   pub max_initial_requests: usize,
   pub min_chunks: Option<u32>,
-  pub min_size: Option<f64>,
+  pub min_size: Option<Either<f64, RawSplitChunkSizes>>,
   //   pub min_size_reduction: usize,
   //   pub enforce_size_threshold: usize,
   //   pub min_remaining_size: usize,
   // layer: String,
-  pub max_size: Option<f64>,
-  pub max_async_size: Option<f64>,
-  pub max_initial_size: Option<f64>,
+  pub max_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_async_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_initial_size: Option<Either<f64, RawSplitChunkSizes>>,
   #[napi(ts_type = "string | false | Function")]
   #[derivative(Debug = "ignore")]
   pub name: Option<RawChunkOptionName>,
@@ -114,39 +114,21 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
       .map(|size_type| SourceType::from(size_type.as_str()))
       .collect::<Vec<_>>();
 
-    let create_sizes = |size: Option<f64>| {
-      size
-        .map(|size| SplitChunkSizes::with_initial_value(&default_size_types, size))
-        .unwrap_or_default()
+    let create_sizes = |size: Option<Either<f64, RawSplitChunkSizes>>| match size {
+      Some(Either::A(size)) => SplitChunkSizes::with_initial_value(&default_size_types, size),
+      Some(Either::B(sizes)) => sizes.into(),
+      None => SplitChunkSizes::default(),
     };
 
     let empty_sizes = SplitChunkSizes::empty();
 
-    let overall_min_size = match raw_opts.min_size {
-      Some(Either::A(size)) => create_sizes(Some(size)),
-      Some(Either::B(sizes)) => sizes.into(),
-      None => create_sizes(None),
-    };
+    let overall_min_size = create_sizes(raw_opts.min_size);
 
-    let overall_max_size = match raw_opts.max_size {
-      Some(Either::A(size)) => create_sizes(Some(size)),
-      Some(Either::B(sizes)) => sizes.into(),
-      None => create_sizes(None),
-    };
+    let overall_max_size = create_sizes(raw_opts.max_size);
 
-    let overall_max_async_size = match raw_opts.max_async_size {
-      Some(Either::A(size)) => create_sizes(Some(size)),
-      Some(Either::B(sizes)) => sizes.into(),
-      None => create_sizes(None),
-    }
-    .merge(&overall_max_size);
+    let overall_max_async_size = create_sizes(raw_opts.max_async_size).merge(&overall_max_size);
 
-    let overall_max_initial_size = match raw_opts.max_initial_size {
-      Some(Either::A(size)) => create_sizes(Some(size)),
-      Some(Either::B(sizes)) => sizes.into(),
-      None => create_sizes(None),
-    }
-    .merge(&overall_max_size);
+    let overall_max_initial_size = create_sizes(raw_opts.max_initial_size).merge(&overall_max_size);
 
     let overall_automatic_name_delimiter = raw_opts
       .automatic_name_delimiter
@@ -279,10 +261,10 @@ pub struct RawFallbackCacheGroupOptions {
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
   #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
-  pub min_size: Option<f64>,
-  pub max_size: Option<f64>,
-  pub max_async_size: Option<f64>,
-  pub max_initial_size: Option<f64>,
+  pub min_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_async_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_initial_size: Option<Either<f64, RawSplitChunkSizes>>,
   pub automatic_name_delimiter: Option<String>,
 }
 

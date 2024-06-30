@@ -764,10 +764,10 @@ export interface RawCacheGroupOptions {
   type?: RegExp | string
   automaticNameDelimiter?: string
   minChunks?: number
-  minSize?: number
-  maxSize?: number
-  maxAsyncSize?: number
-  maxInitialSize?: number
+  minSize?: number | RawSplitChunkSizes
+  maxSize?: number | RawSplitChunkSizes
+  maxAsyncSize?: number | RawSplitChunkSizes
+  maxInitialSize?: number | RawSplitChunkSizes
   name?: string | false | Function
   reuseExistingChunk?: boolean
   enforce?: boolean
@@ -983,10 +983,10 @@ export interface RawExtractComments {
 
 export interface RawFallbackCacheGroupOptions {
   chunks?: RegExp | 'async' | 'initial' | 'all'
-  minSize?: number
-  maxSize?: number
-  maxAsyncSize?: number
-  maxInitialSize?: number
+  minSize?: number | RawSplitChunkSizes
+  maxSize?: number | RawSplitChunkSizes
+  maxAsyncSize?: number | RawSplitChunkSizes
+  maxInitialSize?: number | RawSplitChunkSizes
   automaticNameDelimiter?: string
 }
 
@@ -1427,6 +1427,10 @@ export interface RawSourceMapDevToolPluginOptions {
   test?: (text: string) => boolean
 }
 
+export interface RawSplitChunkSizes {
+  sizes: Record<string, any>
+}
+
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
   name?: string | false | Function
@@ -1439,12 +1443,12 @@ export interface RawSplitChunksOptions {
   defaultSizeTypes: Array<string>
   minChunks?: number
   hidePathInfo?: boolean
-  minSize?: number
+  minSize?: number | RawSplitChunkSizes
   enforceSizeThreshold?: number
-  minRemainingSize?: number
-  maxSize?: number
-  maxAsyncSize?: number
-  maxInitialSize?: number
+  minRemainingSize?: number | RawSplitChunkSizes
+  maxSize?: number | RawSplitChunkSizes
+  maxAsyncSize?: number | RawSplitChunkSizes
+  maxInitialSize?: number | RawSplitChunkSizes
 }
 
 export interface RawStatsOptions {

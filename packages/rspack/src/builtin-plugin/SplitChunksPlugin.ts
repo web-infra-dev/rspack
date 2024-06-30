@@ -12,6 +12,7 @@ import { Chunk } from "../Chunk";
 import { Compiler } from "../Compiler";
 import { Module } from "../Module";
 import { type OptimizationSplitChunksOptions } from "../config/zod";
+import { JsSplitChunkSizes } from "../util/SplitChunkSize";
 import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
 export class SplitChunksPlugin extends RspackBuiltinPlugin {
@@ -101,6 +102,10 @@ function toRawSplitChunksOptions(
 		defaultSizeTypes,
 		cacheGroups = {},
 		fallbackCacheGroup,
+		minSize,
+		maxSize,
+		maxAsyncSize,
+		maxInitialSize,
 		...passThrough
 	} = sc;
 
@@ -119,6 +124,10 @@ function toRawSplitChunksOptions(
 					test: getTest(test),
 					name: getName(name),
 					chunks: getChunks(chunks),
+					minSize: JsSplitChunkSizes.__to_binding(minSize) as any,
+					maxSize: JsSplitChunkSizes.__to_binding(maxSize) as any,
+					maxAsyncSize: JsSplitChunkSizes.__to_binding(maxAsyncSize) as any,
+					maxInitialSize: JsSplitChunkSizes.__to_binding(maxInitialSize) as any,
 					...passThrough
 				};
 				return rawGroup;
@@ -127,6 +136,10 @@ function toRawSplitChunksOptions(
 			chunks: getChunks(chunks),
 			...fallbackCacheGroup
 		},
+		minSize: JsSplitChunkSizes.__to_binding(minSize),
+		maxSize: JsSplitChunkSizes.__to_binding(maxSize),
+		maxAsyncSize: JsSplitChunkSizes.__to_binding(maxAsyncSize),
+		maxInitialSize: JsSplitChunkSizes.__to_binding(maxInitialSize),
 		...passThrough
 	};
 }
