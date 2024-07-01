@@ -14,7 +14,7 @@ const creator = new BasicCaseCreator({
 			format: (output: string) => {
 				// TODO: change to stats.errorStack
 				// TODO: add `errorStack: false`
-				return output;
+				return output.replace(/(│.* at ).*/g, "$1xxx");
 			}
 		})
 	]
