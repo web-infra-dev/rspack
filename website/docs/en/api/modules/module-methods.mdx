@@ -1,4 +1,5 @@
 import WebpackLicense from '@components/webpack-license';
+import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/api/module-methods/" />
 
@@ -7,10 +8,21 @@ import WebpackLicense from '@components/webpack-license';
 This section covers all methods available in code compiled with Rspack. When using Rspack to bundle your application, you can pick from a variety of module syntax styles including ES6, CommonJS.
 
 While Rspack supports multiple module syntaxes, we recommend following a single syntax for consistency and to avoid odd behaviors/bugs.
+Actually Rspack would enforce the recommendation for `.mjs` files, `.cjs` files or `.js` files when their nearest parent `package.json` file contains a `"type"` field with a value of either `"module"` or `"commonjs"`. Please pay attention to these enforcements before you read on:
+
+- `.mjs` or `.js` with `"type": "module"` in package.json
+  - No CommonJS allowed, for example, you can't use require, module.exports or exports
+  - File extensions are required when importing, e.g, you should use import './src/App.mjs' instead of import './src/App' (you can disable this enforcement with Rule.resolve.fullySpecified)
+- `.cjs` or `.js` with "type": "commonjs" in package.json
+  - Neither import nor export is available
 
 ## ES6 (Recommended)
 
 Rspack support ES6 module syntax natively, you can use static `import`, `export` and `import()` syntax.
+
+:::warning
+Keep in mind that you will still probably need swc or babel for other ES6+ features.
+:::
 
 ### import
 
@@ -68,7 +80,7 @@ if (module.hot) {
 This feature relies on `Promise` internally. If you use import() with older browsers, remember to shim `Promise` using a polyfill such as [es6-promise](https://github.com/stefanpenner/es6-promise) or [promise-polyfill](https://github.com/taylorhakes/promise-polyfill).
 :::
 
-### Dynamic expressions in import()
+#### Dynamic expressions in import()
 
 It is not possible to use a fully dynamic import statement, such as `import(foo)`. Because `foo` could potentially be any path to any file in your system or project.
 
@@ -83,7 +95,7 @@ import(`./locale/${language}.json`).then(module => {
 });
 ```
 
-### Magic Comments
+#### Magic Comments
 
 Inline comments to make features work. By adding comments to the import, we can do things such as name our chunk or select different modes. For a full list of these magic comments see the code below followed by an explanation of what these comments do.
 
@@ -92,19 +104,80 @@ import(
   /* webpackChunkName: "my-chunk-name" */
   /* webpackPrefetch: true */
   /* webpackPreload: true */
+  /* webpackMode: "lazy" */
+  /* webpackIgnore: true */
   'module'
 );
 ```
 
-`webpackChunkName`: A name for the new chunk.
+##### webpackIgnore
 
-`webpackPrefetch`: Tells the browser that the resource is probably needed for some navigation in the future (Available since 0.4.5).
+<ApiMeta addedVersion="0.5.0" />
+Disables dynamic import parsing when set to true.{' '}
 
-`webpackPreload`: Tells the browser that the resource might be needed during the current navigation (Available since 0.4.5).
+:::warning
+Note that setting webpackIgnore to true opts out of code splitting.
+:::
+
+##### webpackMode
+
+Different modes for resolving dynamic imports can be specified. The following options are supported:
+
+- `'lazy'` (default): Generates a lazy-loadable chunk for each `import()`ed module.
+- `'lazy-once'`: Generates a single lazy-loadable chunk that can satisfy all calls to `import()`. The chunk will be fetched on the first call to `import()`, and subsequent calls to `import()` will use the same network response. Note that this only makes sense in the case of a partially dynamic statement, e.g. `import("./locales/${language}.json")`, where multiple module paths that can potentially be requested.
+- `'eager'`：Generates no extra chunk. All modules are included in the current chunk and no additional network requests are made. A Promise is still returned but is already resolved. In contrast to a static import, the module isn't executed until the call to `import()` is made.
+- `'weak'`：Tries to load the module if the module function has already been loaded in some other way (e.g. another chunk imported it or a script containing the module was loaded). A Promise is still returned, but only successfully resolves if the chunks are already on the client. If the module is not available, the Promise is rejected. A network request will never be performed. This is useful for universal rendering when required chunks are always manually served in initial requests (embedded within the page), but not in cases where app navigation will trigger an import not initially served.
+
+##### webpackPrefetch
+
+<ApiMeta addedVersion="0.4.5" />
+
+Tells the browser that the resource is probably needed for some navigation in the future.
+
+##### webpackPreload
+
+<ApiMeta addedVersion="0.4.5" />
+
+Tells the browser that the resource might be needed during the current navigation.
+
+##### webpackChunkName
+
+A name for the new chunk.
 
 ## CommonJS
 
 Rspack is also support `CommonJS` syntax natively, you can use `require` and `module.exports` methods.
+
+### require
+
+Synchronously retrieve the exports from another module.
+
+```js
+require(dependency: String);
+```
+
+### require.resolve
+
+Synchronously retrieve a module's ID. It is recommended to treat it as an opaque value which can only be used with `require.cache[id]` or `__webpack_require__(id)` (best to avoid such usage).
+
+```js
+require.resolve(dependency: String);
+```
+
+:::warning
+Module ID's type can be a number or a string depending on the `optimization.moduleIds` configuration.
+:::
+
+### require.cache
+
+Multiple requires of the same module result in only one module execution and only one export. Therefore a cache in the runtime exists. Removing values from this cache causes new module execution and a new export.
+
+```js
+var d1 = require('dependency');
+require('dependency') === d1;
+delete require.cache[require.resolve('dependency')];
+require('dependency') !== d1;
+```
 
 ## Data URI Module
 
