@@ -8,6 +8,7 @@ import { ApiMeta } from '@components/ApiMeta';
 This section covers all methods available in code compiled with Rspack. When using Rspack to bundle your application, you can pick from a variety of module syntax styles including ES6, CommonJS.
 
 While Rspack supports multiple module syntaxes, we recommend following a single syntax for consistency and to avoid odd behaviors/bugs.
+
 Actually Rspack would enforce the recommendation for `.mjs` files, `.cjs` files or `.js` files when their nearest parent `package.json` file contains a `"type"` field with a value of either `"module"` or `"commonjs"`. Please pay attention to these enforcements before you read on:
 
 - `.mjs` or `.js` with `"type": "module"` in package.json
