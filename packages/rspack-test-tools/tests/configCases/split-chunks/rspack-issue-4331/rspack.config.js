@@ -4,7 +4,6 @@ module.exports = {
 	target: "node",
 	entry: {
 		main: "./src/index.js",
-		another: "./src/another.js"
 	},
 	output: {
 		filename: "[name].js"
