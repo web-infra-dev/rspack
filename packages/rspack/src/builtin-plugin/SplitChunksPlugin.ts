@@ -118,16 +118,25 @@ function toRawSplitChunksOptions(
 			.map(([key, group]) => {
 				group = group as Exclude<typeof group, false>;
 
-				const { test, name, chunks, ...passThrough } = group;
+				const {
+					test,
+					name,
+					chunks,
+					minSize,
+					maxSize,
+					maxAsyncSize,
+					maxInitialSize,
+					...passThrough
+				} = group;
 				const rawGroup: RawCacheGroupOptions = {
 					key,
 					test: getTest(test),
 					name: getName(name),
 					chunks: getChunks(chunks),
-					minSize: JsSplitChunkSizes.__to_binding(minSize) as any,
-					maxSize: JsSplitChunkSizes.__to_binding(maxSize) as any,
-					maxAsyncSize: JsSplitChunkSizes.__to_binding(maxAsyncSize) as any,
-					maxInitialSize: JsSplitChunkSizes.__to_binding(maxInitialSize) as any,
+					minSize: JsSplitChunkSizes.__to_binding(minSize),
+					maxSize: JsSplitChunkSizes.__to_binding(maxSize),
+					maxAsyncSize: JsSplitChunkSizes.__to_binding(maxAsyncSize),
+					maxInitialSize: JsSplitChunkSizes.__to_binding(maxInitialSize),
 					...passThrough
 				};
 				return rawGroup;
