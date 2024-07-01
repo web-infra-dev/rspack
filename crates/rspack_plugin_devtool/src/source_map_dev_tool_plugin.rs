@@ -310,7 +310,7 @@ impl SourceMapDevToolPlugin {
         for source in sources {
           let module_or_source = source_map_modules
             .get(source.as_ref())
-            .expect("Shoud have module or source");
+            .expect("expected a module or source");
           let source_name = module_to_source_name
             .get(module_or_source)
             .expect("expected a filename at the given index but found None")
