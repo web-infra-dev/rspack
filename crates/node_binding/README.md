@@ -6,8 +6,7 @@
 # @rspack/binding
 
 Private node binding crate for rspack.
-
-This package does *NOT* follow [semantic versioning](https://semver.org/).
+> Rspack's internal package, don't use it directly in your project, This package does *NOT* follow [semantic versioning](https://semver.org/).
 
 ## Documentation
 
