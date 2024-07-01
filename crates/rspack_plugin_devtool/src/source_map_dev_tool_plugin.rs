@@ -238,7 +238,7 @@ impl SourceMapDevToolPlugin {
           .into_par_iter()
           .map(|module_or_source| async move {
             let source_name = ModuleFilenameHelpers::create_filename_of_fn_template(
-              &module_or_source,
+              module_or_source,
               compilation,
               f,
               output_options,
@@ -267,7 +267,7 @@ impl SourceMapDevToolPlugin {
       let mut new_source_name = match &self.fallback_module_filename_template {
         ModuleFilenameTemplate::String(s) => {
           ModuleFilenameHelpers::create_filename_of_string_template(
-            &module_or_source,
+            module_or_source,
             compilation,
             s,
             output_options,
@@ -276,7 +276,7 @@ impl SourceMapDevToolPlugin {
         }
         ModuleFilenameTemplate::Fn(f) => {
           ModuleFilenameHelpers::create_filename_of_fn_template(
-            &module_or_source,
+            module_or_source,
             compilation,
             f,
             output_options,
