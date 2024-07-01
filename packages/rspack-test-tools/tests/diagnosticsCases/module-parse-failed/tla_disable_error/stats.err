@@ -11,4 +11,17 @@ ERROR in ./index.js
          ╰────
       
   help: 
-        You may need an appropri
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./index.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: The top-level-await experiment is not enabled (set experiments.topLevelAwait: true to enabled it)
+         ╭─[1:1]
+       1 │ const a = await Promise.resolve("aaa");
+         ·           ─────
+       2 │
+       3 │ for await (const _ of [Promise.resolve("bbbb")]) { }
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.

@@ -125,9 +125,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .map_err(|e| error!(e.to_string()))?;
           let warnings = warnings.read().expect("should lock");
           all_warnings.write().expect("should lock").extend(
-            warnings
-              .iter()
-              .map(|e| Diagnostic::error("Css minimize error".to_string(), e.to_string())),
+            warnings.iter().map(|e| {
+              Diagnostic::warn("LightningCSS minimize warning".to_string(), e.to_string())
+            }),
           );
           result
         };
