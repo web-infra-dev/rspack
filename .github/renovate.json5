@@ -67,7 +67,8 @@
       ],
       "matchPackageNames": [
         "styled_components"
-      ]
+      ],
+      "enable": false // manually update swc and related crate since it may contain breaking change in minor | patch version
     },
     {
       "groupName": "napi",
