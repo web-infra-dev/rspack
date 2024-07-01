@@ -119,6 +119,7 @@ pub struct ResourceData {
   pub encoding: Option<String>,
   pub encoded_content: Option<String>,
   pub(crate) scheme: OnceCell<Scheme>,
+  pub context: Option<String>,
 }
 
 impl ResourceData {
@@ -134,6 +135,7 @@ impl ResourceData {
       encoding: None,
       encoded_content: None,
       scheme: OnceCell::new(),
+      context: None,
     }
   }
 
@@ -230,8 +232,19 @@ impl ResourceData {
   pub fn set_encoded_content(&mut self, v: String) {
     self.encoded_content = Some(v);
   }
-}
 
+  pub fn set_context(&mut self) {
+    self.context = Some(
+      self
+        .resource_path
+        .parent()
+        .unwrap_or_else(|| Path::new(""))
+        .to_str()
+        .unwrap_or("")
+        .to_string(),
+    );
+  }
+}
 /// Used for [Rule.descriptionData](https://www.rspack.dev/config/module.html#ruledescriptiondata) and
 /// package.json.sideEffects in tree shaking.
 #[derive(Debug, Clone)]

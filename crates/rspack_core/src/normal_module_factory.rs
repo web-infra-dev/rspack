@@ -8,6 +8,7 @@ use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use rspack_util::MergeFrom;
 use sugar_path::SugarPath;
 use swc_core::common::Span;
+use url::Url;
 
 use crate::{
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
@@ -129,7 +130,6 @@ impl NormalModuleFactory {
       .expect("should be module dependency");
     let importer = data.issuer_identifier.as_ref();
     let raw_request = dependency.request().to_owned();
-
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
 
@@ -145,7 +145,16 @@ impl NormalModuleFactory {
 
     let mut scheme = get_scheme(dependency.request());
     let context_scheme = get_scheme(data.context.as_ref());
-    let mut unresolved_resource = dependency.request();
+    let mut unresolved_resource: &str = if context_scheme == Scheme::Http {
+      scheme = get_scheme(data.context.as_ref());
+      let context_url = Url::parse(data.context.as_str()).expect("Invalid context URL");
+      let origin = context_url.origin().ascii_serialization();
+      let url = Url::parse(&format!("{}{}", origin, dependency.request())).expect("Invalid URL");
+      Box::leak(url.as_str().to_string().into_boxed_str())
+    } else {
+      dependency.request()
+    };
+
     if scheme.is_none() {
       let mut request_without_match_resource = dependency.request();
       request_without_match_resource = {
@@ -274,6 +283,7 @@ impl NormalModuleFactory {
         .resolve_for_scheme
         .call(data, &mut resource_data)
         .await?;
+
       resource_data
     } else {
       // TODO: resource within scheme
