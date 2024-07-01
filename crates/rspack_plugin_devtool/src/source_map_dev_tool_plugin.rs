@@ -2,6 +2,7 @@ use std::{borrow::Cow, path::Path};
 
 use derivative::Derivative;
 use futures::future::{join_all, BoxFuture};
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
@@ -216,7 +217,7 @@ impl SourceMapDevToolPlugin {
       .into_iter()
       .collect::<HashMap<_, _>>();
 
-    let module_source_names = source_map_modules.values().collect::<HashSet<_>>();
+    let module_source_names = source_map_modules.values().collect::<Vec<_>>();
     let mut module_to_source_name = match &self.module_filename_template {
       ModuleFilenameTemplate::String(s) => module_source_names
         .into_par_iter()
@@ -256,7 +257,21 @@ impl SourceMapDevToolPlugin {
     };
 
     let mut used_names_set = HashSet::<String>::default();
-    for (module_or_source, source_name) in module_to_source_name.iter_mut() {
+    for (module_or_source, source_name) in
+      module_to_source_name
+        .iter_mut()
+        .sorted_by(|(key_a, _), (key_b, _)| {
+          let ident_a = match key_a {
+            ModuleOrSource::Module(identifier) => identifier,
+            ModuleOrSource::Source(source) => source.as_str(),
+          };
+          let ident_b = match key_b {
+            ModuleOrSource::Module(identifier) => identifier,
+            ModuleOrSource::Source(source) => source.as_str(),
+          };
+          ident_a.len().cmp(&ident_b.len())
+        })
+    {
       let mut has_name = used_names_set.contains(source_name);
       if !has_name {
         used_names_set.insert(source_name.clone());
