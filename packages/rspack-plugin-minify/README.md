@@ -7,6 +7,8 @@
 
 Minify plugin for rspack.
 
+> DEPRECATED, use [terser-webpack-plugin](https://github.com/webpack-contrib/terser-webpack-plugin) instead.
+
 ## Documentation
 
 See [https://rspack.dev](https://rspack.dev) for details.
