@@ -1,0 +1,1984 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AsyncSeriesBailHook should have to correct behavior 1`] = `
+{
+  "async": {
+    "callAsyncMultipleAsyncEarlyError": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultipleAsyncEarlyErrorCalled1": true,
+    "callAsyncMultipleAsyncError": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultipleAsyncErrorCalled1": true,
+    "callAsyncMultipleAsyncLateError": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultipleAsyncLateErrorCalled1": true,
+    "callAsyncMultipleAsyncLateErrorEarlyResult1": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultipleAsyncLateErrorEarlyResult1Called1": true,
+    "callAsyncMultipleAsyncLateErrorEarlyResult2": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncMultipleAsyncLateErrorEarlyResult2Called1": true,
+    "callAsyncMultipleAsyncWithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncMultipleAsyncWithArgCalled1": 42,
+    "callAsyncMultipleAsyncWithArgFirstReturn": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncMultipleAsyncWithArgFirstReturnCalled1": 42,
+    "callAsyncMultipleAsyncWithArgLastReturn": {
+      "type": "async",
+      "value": 44,
+    },
+    "callAsyncMultipleAsyncWithArgLastReturnCalled1": 42,
+    "callAsyncMultipleAsyncWithArgLastReturnCalled2": 42,
+    "callAsyncMultipleAsyncWithArgNoReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleAsyncWithArgNoReturnCalled1": 42,
+    "callAsyncMultipleAsyncWithArgNoReturnCalled2": 42,
+    "callAsyncMultipleMixed1WithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncMultipleMixed1WithArgCalled1": 42,
+    "callAsyncMultipleMixed2WithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncMultipleMixed2WithArgCalled1": 42,
+    "callAsyncMultipleMixed3WithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncMultipleMixed3WithArgCalled1": 42,
+    "callAsyncMultipleMixedError1WithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncMultipleMixedError1WithArgCalled1": 42,
+    "callAsyncMultipleMixedError2WithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncMultipleMixedError2WithArgCalled1": 42,
+    "callAsyncMultipleMixedError3WithArg": {
+      "error": "Error in async",
+      "type": "async",
+    },
+    "callAsyncMultipleMixedError3WithArgCalled1": 42,
+    "callAsyncMultipleMixedLateError": {
+      "error": "Error in async",
+      "type": "async",
+    },
+    "callAsyncMultipleMixedLateErrorCalled1": true,
+    "callAsyncMultiplePromiseEarlyError": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultiplePromiseEarlyErrorCalled1": true,
+    "callAsyncMultiplePromiseError": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultiplePromiseErrorCalled1": true,
+    "callAsyncMultiplePromiseLateError": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultiplePromiseLateErrorCalled1": true,
+    "callAsyncMultiplePromiseWithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncMultiplePromiseWithArgCalled1": 42,
+    "callAsyncMultiplePromiseWithArgFirstReturn": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncMultiplePromiseWithArgFirstReturnCalled1": 42,
+    "callAsyncMultiplePromiseWithArgLastReturn": {
+      "type": "async",
+      "value": 44,
+    },
+    "callAsyncMultiplePromiseWithArgLastReturnCalled1": 42,
+    "callAsyncMultiplePromiseWithArgLastReturnCalled2": 42,
+    "callAsyncMultiplePromiseWithArgNoReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultiplePromiseWithArgNoReturnCalled1": 42,
+    "callAsyncMultiplePromiseWithArgNoReturnCalled2": 42,
+    "callAsyncMultipleSync": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncMultipleSyncCalled1": true,
+    "callAsyncMultipleSyncError": {
+      "error": "Error in sync2",
+      "type": "async",
+    },
+    "callAsyncMultipleSyncErrorCalled1": true,
+    "callAsyncMultipleSyncLastReturn": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncMultipleSyncLastReturnCalled1": true,
+    "callAsyncMultipleSyncLastReturnCalled2": true,
+    "callAsyncMultipleSyncNoReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncNoReturnCalled1": true,
+    "callAsyncMultipleSyncNoReturnCalled2": true,
+    "callAsyncMultipleSyncWithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncMultipleSyncWithArgCalled1": 42,
+    "callAsyncMultipleSyncWithArgFirstReturn": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncMultipleSyncWithArgFirstReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgLastReturn": {
+      "type": "async",
+      "value": 44,
+    },
+    "callAsyncMultipleSyncWithArgLastReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgLastReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgNoReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgNoReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgNoReturnCalled2": 42,
+    "callAsyncNone": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncNoneWithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleAsyncWithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleAsyncWithArgCalled1": 42,
+    "callAsyncSinglePromiseWithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncSinglePromiseWithArgCalled1": 42,
+    "callAsyncSingleSync": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleSyncCalled1": true,
+    "callAsyncSingleSyncWithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncSingleSyncWithArgCalled1": 42,
+    "callAsyncSingleSyncWithArgNoReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleSyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleAsyncEarlyError": {
+      "type": "no result",
+    },
+    "promiseMultipleAsyncEarlyErrorCalled1": true,
+    "promiseMultipleAsyncError": {
+      "type": "async",
+      "value": undefined,
+    },
+    "promiseMultipleAsyncErrorCalled1": true,
+    "promiseMultipleAsyncLateError": {
+      "type": "async",
+      "value": undefined,
+    },
+    "promiseMultipleAsyncLateErrorCalled1": true,
+    "promiseMultipleAsyncLateErrorEarlyResult1": {
+      "type": "async",
+      "value": undefined,
+    },
+    "promiseMultipleAsyncLateErrorEarlyResult1Called1": true,
+    "promiseMultipleAsyncLateErrorEarlyResult2": {
+      "type": "no result",
+    },
+    "promiseMultipleAsyncLateErrorEarlyResult2Called1": true,
+    "promiseMultipleAsyncWithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "promiseMultipleAsyncWithArgCalled1": 42,
+    "promiseMultipleAsyncWithArgFirstReturn": {
+      "type": "async",
+      "value": 43,
+    },
+    "promiseMultipleAsyncWithArgFirstReturnCalled1": 42,
+    "promiseMultipleAsyncWithArgLastReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "promiseMultipleAsyncWithArgLastReturnCalled1": 42,
+    "promiseMultipleAsyncWithArgNoReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "promiseMultipleAsyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleMixed1WithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "promiseMultipleMixed1WithArgCalled1": 42,
+    "promiseMultipleMixed2WithArg": {
+      "type": "no result",
+    },
+    "promiseMultipleMixed2WithArgCalled1": 42,
+    "promiseMultipleMixed3WithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "promiseMultipleMixed3WithArgCalled1": 42,
+    "promiseMultipleMixedError1WithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "promiseMultipleMixedError1WithArgCalled1": 42,
+    "promiseMultipleMixedError2WithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "promiseMultipleMixedError2WithArgCalled1": 42,
+    "promiseMultipleMixedError3WithArg": {
+      "error": "Error in async",
+      "type": "async",
+    },
+    "promiseMultipleMixedError3WithArgCalled1": 42,
+    "promiseMultipleMixedLateError": {
+      "type": "no result",
+    },
+    "promiseMultipleMixedLateErrorCalled1": true,
+    "promiseMultiplePromiseEarlyError": {
+      "error": "Error in async2",
+      "type": "promise",
+    },
+    "promiseMultiplePromiseEarlyErrorCalled1": true,
+    "promiseMultiplePromiseError": {
+      "error": "Error in async2",
+      "type": "promise",
+    },
+    "promiseMultiplePromiseErrorCalled1": true,
+    "promiseMultiplePromiseLateError": {
+      "error": "Error in async2",
+      "type": "promise",
+    },
+    "promiseMultiplePromiseLateErrorCalled1": true,
+    "promiseMultiplePromiseWithArg": {
+      "type": "promise",
+      "value": 43,
+    },
+    "promiseMultiplePromiseWithArgCalled1": 42,
+    "promiseMultiplePromiseWithArgFirstReturn": {
+      "type": "promise",
+      "value": 43,
+    },
+    "promiseMultiplePromiseWithArgFirstReturnCalled1": 42,
+    "promiseMultiplePromiseWithArgLastReturn": {
+      "type": "promise",
+      "value": 44,
+    },
+    "promiseMultiplePromiseWithArgLastReturnCalled1": 42,
+    "promiseMultiplePromiseWithArgLastReturnCalled2": 42,
+    "promiseMultiplePromiseWithArgNoReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultiplePromiseWithArgNoReturnCalled1": 42,
+    "promiseMultiplePromiseWithArgNoReturnCalled2": 42,
+    "promiseMultipleSync": {
+      "type": "promise",
+      "value": 42,
+    },
+    "promiseMultipleSyncCalled1": true,
+    "promiseMultipleSyncError": {
+      "error": "Error in sync2",
+      "type": "promise",
+    },
+    "promiseMultipleSyncErrorCalled1": true,
+    "promiseMultipleSyncLastReturn": {
+      "type": "promise",
+      "value": 43,
+    },
+    "promiseMultipleSyncLastReturnCalled1": true,
+    "promiseMultipleSyncLastReturnCalled2": true,
+    "promiseMultipleSyncNoReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncNoReturnCalled1": true,
+    "promiseMultipleSyncNoReturnCalled2": true,
+    "promiseMultipleSyncWithArg": {
+      "type": "promise",
+      "value": 43,
+    },
+    "promiseMultipleSyncWithArgCalled1": 42,
+    "promiseMultipleSyncWithArgFirstReturn": {
+      "type": "promise",
+      "value": 43,
+    },
+    "promiseMultipleSyncWithArgFirstReturnCalled1": 42,
+    "promiseMultipleSyncWithArgLastReturn": {
+      "type": "promise",
+      "value": 44,
+    },
+    "promiseMultipleSyncWithArgLastReturnCalled1": 42,
+    "promiseMultipleSyncWithArgLastReturnCalled2": 42,
+    "promiseMultipleSyncWithArgNoReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleSyncWithArgNoReturnCalled2": 42,
+    "promiseNone": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseNoneWithArg": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleAsyncWithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "promiseSingleAsyncWithArgCalled1": 42,
+    "promiseSinglePromiseWithArg": {
+      "type": "promise",
+      "value": 43,
+    },
+    "promiseSinglePromiseWithArgCalled1": 42,
+    "promiseSingleSync": {
+      "type": "promise",
+      "value": 42,
+    },
+    "promiseSingleSyncCalled1": true,
+    "promiseSingleSyncWithArg": {
+      "type": "promise",
+      "value": 43,
+    },
+    "promiseSingleSyncWithArgCalled1": 42,
+    "promiseSingleSyncWithArgNoReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleSyncWithArgNoReturnCalled1": 42,
+  },
+  "intercept": {
+    "callAsyncContextIntercepted": {
+      "error": "Cannot create property 'number' on number '1'",
+    },
+    "callAsyncIntercepted": {
+      "type": "async",
+      "value": 6,
+    },
+    "callAsyncInterceptedCall1": [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedResult1": 6,
+    "callAsyncInterceptedResult2": 6,
+    "callAsyncInterceptedTap1": {
+      "fn": 3,
+      "name": "sync",
+      "type": "sync",
+    },
+    "callAsyncInterceptedTap2": {
+      "fn": 3,
+      "name": "sync",
+      "type": "sync",
+    },
+    "callAsyncUnusedContextIntercepted": {
+      "type": "async",
+      "value": 6,
+    },
+    "callAsyncUnusedContextInterceptedCall1": [
+      1,
+      2,
+      3,
+      undefined,
+    ],
+    "callAsyncUnusedContextInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncUnusedContextInterceptedTap1": {
+      "fn": [Function],
+      "name": "sync",
+      "type": "sync",
+    },
+    "promiseContextIntercepted": {
+      "error": "Cannot create property 'number' on number '1'",
+      "type": "promise",
+    },
+    "promiseIntercepted": {
+      "type": "promise",
+      "value": 6,
+    },
+    "promiseInterceptedCall1": [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedResult1": 6,
+    "promiseInterceptedResult2": 6,
+    "promiseInterceptedTap1": {
+      "fn": 3,
+      "name": "sync",
+      "type": "sync",
+    },
+    "promiseInterceptedTap2": {
+      "fn": 3,
+      "name": "sync",
+      "type": "sync",
+    },
+    "promiseUnusedContextIntercepted": {
+      "type": "promise",
+      "value": 6,
+    },
+    "promiseUnusedContextInterceptedCall1": [
+      1,
+      2,
+      3,
+      [Function],
+    ],
+    "promiseUnusedContextInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "promiseUnusedContextInterceptedTap1": {
+      "fn": [Function],
+      "name": "sync",
+      "type": "sync",
+    },
+  },
+  "sync": {
+    "callAsyncIntercepted": {
+      "type": "async",
+      "value": 6,
+    },
+    "callAsyncInterceptedCall1": [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedTap1": {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "callAsyncInterceptedTap2": {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "callAsyncMultipleSync": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncMultipleSyncCalled1": true,
+    "callAsyncMultipleSyncError": {
+      "error": "Error in sync2",
+      "type": "async",
+    },
+    "callAsyncMultipleSyncErrorCalled1": true,
+    "callAsyncMultipleSyncErrorCalled2": true,
+    "callAsyncMultipleSyncWithArg": {
+      "type": "async",
+      "value": 84,
+    },
+    "callAsyncMultipleSyncWithArgCalled1": 42,
+    "callAsyncMultipleSyncWithArgFirstReturn": {
+      "type": "async",
+      "value": 84,
+    },
+    "callAsyncMultipleSyncWithArgFirstReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgLastReturn": {
+      "type": "async",
+      "value": 85,
+    },
+    "callAsyncMultipleSyncWithArgLastReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgLastReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgNoReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgNoReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgNoReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgs": {
+      "type": "async",
+      "value": 129,
+    },
+    "callAsyncMultipleSyncWithArgsCalled1": [
+      42,
+      43,
+      44,
+    ],
+    "callAsyncNone": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncNoneWithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleSync": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleSyncCalled": true,
+    "callAsyncSingleSyncWithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleSyncWithArgCalled": 42,
+    "promiseIntercepted": {
+      "type": "promise",
+      "value": 6,
+    },
+    "promiseInterceptedCall1": [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedTap1": {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "promiseInterceptedTap2": {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "promiseMultipleSync": {
+      "type": "promise",
+      "value": 42,
+    },
+    "promiseMultipleSyncCalled1": true,
+    "promiseMultipleSyncError": {
+      "error": "Error in sync2",
+      "type": "promise",
+    },
+    "promiseMultipleSyncErrorCalled1": true,
+    "promiseMultipleSyncErrorCalled2": true,
+    "promiseMultipleSyncWithArg": {
+      "type": "promise",
+      "value": 84,
+    },
+    "promiseMultipleSyncWithArgCalled1": 42,
+    "promiseMultipleSyncWithArgFirstReturn": {
+      "type": "promise",
+      "value": 84,
+    },
+    "promiseMultipleSyncWithArgFirstReturnCalled1": 42,
+    "promiseMultipleSyncWithArgLastReturn": {
+      "type": "promise",
+      "value": 85,
+    },
+    "promiseMultipleSyncWithArgLastReturnCalled1": 42,
+    "promiseMultipleSyncWithArgLastReturnCalled2": 42,
+    "promiseMultipleSyncWithArgNoReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleSyncWithArgNoReturnCalled2": 42,
+    "promiseMultipleSyncWithArgs": {
+      "type": "promise",
+      "value": 129,
+    },
+    "promiseMultipleSyncWithArgsCalled1": [
+      42,
+      43,
+      44,
+    ],
+    "promiseNone": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseNoneWithArg": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleSync": {
+      "type": "promise",
+      "value": 42,
+    },
+    "promiseSingleSyncCalled": true,
+    "promiseSingleSyncWithArg": {
+      "type": "promise",
+      "value": 42,
+    },
+    "promiseSingleSyncWithArgCalled": 42,
+  },
+}
+`;
+
+exports[`AsyncSeriesHook should have to correct behavior 1`] = `
+{
+  "async": {
+    "callAsyncMultipleAsyncEarlyError": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultipleAsyncEarlyErrorCalled1": true,
+    "callAsyncMultipleAsyncError": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultipleAsyncErrorCalled1": true,
+    "callAsyncMultipleAsyncLateError": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultipleAsyncLateErrorCalled1": true,
+    "callAsyncMultipleAsyncLateErrorEarlyResult1": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultipleAsyncLateErrorEarlyResult1Called1": true,
+    "callAsyncMultipleAsyncLateErrorEarlyResult2": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultipleAsyncLateErrorEarlyResult2Called1": true,
+    "callAsyncMultipleAsyncWithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleAsyncWithArgCalled1": 42,
+    "callAsyncMultipleAsyncWithArgCalled2": 42,
+    "callAsyncMultipleAsyncWithArgFirstReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleAsyncWithArgFirstReturnCalled1": 42,
+    "callAsyncMultipleAsyncWithArgFirstReturnCalled2": 42,
+    "callAsyncMultipleAsyncWithArgLastReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleAsyncWithArgLastReturnCalled1": 42,
+    "callAsyncMultipleAsyncWithArgLastReturnCalled2": 42,
+    "callAsyncMultipleAsyncWithArgNoReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleAsyncWithArgNoReturnCalled1": 42,
+    "callAsyncMultipleAsyncWithArgNoReturnCalled2": 42,
+    "callAsyncMultipleMixed1WithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleMixed1WithArgCalled1": 42,
+    "callAsyncMultipleMixed1WithArgCalled2": 42,
+    "callAsyncMultipleMixed1WithArgCalled3": 42,
+    "callAsyncMultipleMixed2WithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleMixed2WithArgCalled1": 42,
+    "callAsyncMultipleMixed2WithArgCalled2": 42,
+    "callAsyncMultipleMixed3WithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleMixed3WithArgCalled1": 42,
+    "callAsyncMultipleMixed3WithArgCalled2": 42,
+    "callAsyncMultipleMixed3WithArgCalled3": 42,
+    "callAsyncMultipleMixedError1WithArg": {
+      "error": "Error in sync",
+      "type": "async",
+    },
+    "callAsyncMultipleMixedError1WithArgCalled1": 42,
+    "callAsyncMultipleMixedError1WithArgCalled2": 42,
+    "callAsyncMultipleMixedError1WithArgCalled3": 42,
+    "callAsyncMultipleMixedError2WithArg": {
+      "error": "Error in promise",
+      "type": "async",
+    },
+    "callAsyncMultipleMixedError2WithArgCalled1": 42,
+    "callAsyncMultipleMixedError2WithArgCalled2": 42,
+    "callAsyncMultipleMixedError3WithArg": {
+      "error": "Error in async",
+      "type": "async",
+    },
+    "callAsyncMultipleMixedError3WithArgCalled1": 42,
+    "callAsyncMultipleMixedLateError": {
+      "error": "Error in async",
+      "type": "async",
+    },
+    "callAsyncMultipleMixedLateErrorCalled1": true,
+    "callAsyncMultiplePromiseEarlyError": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultiplePromiseEarlyErrorCalled1": true,
+    "callAsyncMultiplePromiseError": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultiplePromiseErrorCalled1": true,
+    "callAsyncMultiplePromiseLateError": {
+      "error": "Error in async2",
+      "type": "async",
+    },
+    "callAsyncMultiplePromiseLateErrorCalled1": true,
+    "callAsyncMultiplePromiseWithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultiplePromiseWithArgCalled1": 42,
+    "callAsyncMultiplePromiseWithArgCalled2": 42,
+    "callAsyncMultiplePromiseWithArgFirstReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultiplePromiseWithArgFirstReturnCalled1": 42,
+    "callAsyncMultiplePromiseWithArgFirstReturnCalled2": 42,
+    "callAsyncMultiplePromiseWithArgLastReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultiplePromiseWithArgLastReturnCalled1": 42,
+    "callAsyncMultiplePromiseWithArgLastReturnCalled2": 42,
+    "callAsyncMultiplePromiseWithArgNoReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultiplePromiseWithArgNoReturnCalled1": 42,
+    "callAsyncMultiplePromiseWithArgNoReturnCalled2": 42,
+    "callAsyncMultipleSync": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncCalled1": true,
+    "callAsyncMultipleSyncCalled2": true,
+    "callAsyncMultipleSyncError": {
+      "error": "Error in sync2",
+      "type": "async",
+    },
+    "callAsyncMultipleSyncErrorCalled1": true,
+    "callAsyncMultipleSyncLastReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncLastReturnCalled1": true,
+    "callAsyncMultipleSyncLastReturnCalled2": true,
+    "callAsyncMultipleSyncNoReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncNoReturnCalled1": true,
+    "callAsyncMultipleSyncNoReturnCalled2": true,
+    "callAsyncMultipleSyncWithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgCalled1": 42,
+    "callAsyncMultipleSyncWithArgCalled2": 42,
+    "callAsyncMultipleSyncWithArgFirstReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgFirstReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgFirstReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgLastReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgLastReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgLastReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgNoReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgNoReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgNoReturnCalled2": 42,
+    "callAsyncNone": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncNoneWithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleAsyncWithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleAsyncWithArgCalled1": 42,
+    "callAsyncSinglePromiseWithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSinglePromiseWithArgCalled1": 42,
+    "callAsyncSingleSync": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleSyncCalled1": true,
+    "callAsyncSingleSyncWithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleSyncWithArgCalled1": 42,
+    "callAsyncSingleSyncWithArgNoReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleSyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleAsyncEarlyError": {
+      "type": "no result",
+    },
+    "promiseMultipleAsyncEarlyErrorCalled1": true,
+    "promiseMultipleAsyncError": {
+      "type": "async",
+      "value": undefined,
+    },
+    "promiseMultipleAsyncErrorCalled1": true,
+    "promiseMultipleAsyncLateError": {
+      "type": "async",
+      "value": undefined,
+    },
+    "promiseMultipleAsyncLateErrorCalled1": true,
+    "promiseMultipleAsyncLateErrorEarlyResult1": {
+      "type": "async",
+      "value": undefined,
+    },
+    "promiseMultipleAsyncLateErrorEarlyResult1Called1": true,
+    "promiseMultipleAsyncLateErrorEarlyResult2": {
+      "type": "no result",
+    },
+    "promiseMultipleAsyncLateErrorEarlyResult2Called1": true,
+    "promiseMultipleAsyncWithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "promiseMultipleAsyncWithArgCalled1": 42,
+    "promiseMultipleAsyncWithArgFirstReturn": {
+      "type": "async",
+      "value": 43,
+    },
+    "promiseMultipleAsyncWithArgFirstReturnCalled1": 42,
+    "promiseMultipleAsyncWithArgLastReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "promiseMultipleAsyncWithArgLastReturnCalled1": 42,
+    "promiseMultipleAsyncWithArgNoReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "promiseMultipleAsyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleMixed1WithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "promiseMultipleMixed1WithArgCalled1": 42,
+    "promiseMultipleMixed2WithArg": {
+      "type": "no result",
+    },
+    "promiseMultipleMixed2WithArgCalled1": 42,
+    "promiseMultipleMixed3WithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "promiseMultipleMixed3WithArgCalled1": 42,
+    "promiseMultipleMixedError1WithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "promiseMultipleMixedError1WithArgCalled1": 42,
+    "promiseMultipleMixedError2WithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "promiseMultipleMixedError2WithArgCalled1": 42,
+    "promiseMultipleMixedError3WithArg": {
+      "error": "Error in async",
+      "type": "async",
+    },
+    "promiseMultipleMixedError3WithArgCalled1": 42,
+    "promiseMultipleMixedLateError": {
+      "type": "no result",
+    },
+    "promiseMultipleMixedLateErrorCalled1": true,
+    "promiseMultiplePromiseEarlyError": {
+      "error": "Error in async2",
+      "type": "promise",
+    },
+    "promiseMultiplePromiseEarlyErrorCalled1": true,
+    "promiseMultiplePromiseError": {
+      "error": "Error in async2",
+      "type": "promise",
+    },
+    "promiseMultiplePromiseErrorCalled1": true,
+    "promiseMultiplePromiseLateError": {
+      "error": "Error in async2",
+      "type": "promise",
+    },
+    "promiseMultiplePromiseLateErrorCalled1": true,
+    "promiseMultiplePromiseWithArg": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultiplePromiseWithArgCalled1": 42,
+    "promiseMultiplePromiseWithArgCalled2": 42,
+    "promiseMultiplePromiseWithArgFirstReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultiplePromiseWithArgFirstReturnCalled1": 42,
+    "promiseMultiplePromiseWithArgFirstReturnCalled2": 42,
+    "promiseMultiplePromiseWithArgLastReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultiplePromiseWithArgLastReturnCalled1": 42,
+    "promiseMultiplePromiseWithArgLastReturnCalled2": 42,
+    "promiseMultiplePromiseWithArgNoReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultiplePromiseWithArgNoReturnCalled1": 42,
+    "promiseMultiplePromiseWithArgNoReturnCalled2": 42,
+    "promiseMultipleSync": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncCalled1": true,
+    "promiseMultipleSyncCalled2": true,
+    "promiseMultipleSyncError": {
+      "error": "Error in sync2",
+      "type": "promise",
+    },
+    "promiseMultipleSyncErrorCalled1": true,
+    "promiseMultipleSyncLastReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncLastReturnCalled1": true,
+    "promiseMultipleSyncLastReturnCalled2": true,
+    "promiseMultipleSyncNoReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncNoReturnCalled1": true,
+    "promiseMultipleSyncNoReturnCalled2": true,
+    "promiseMultipleSyncWithArg": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgCalled1": 42,
+    "promiseMultipleSyncWithArgCalled2": 42,
+    "promiseMultipleSyncWithArgFirstReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgFirstReturnCalled1": 42,
+    "promiseMultipleSyncWithArgFirstReturnCalled2": 42,
+    "promiseMultipleSyncWithArgLastReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgLastReturnCalled1": 42,
+    "promiseMultipleSyncWithArgLastReturnCalled2": 42,
+    "promiseMultipleSyncWithArgNoReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleSyncWithArgNoReturnCalled2": 42,
+    "promiseNone": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseNoneWithArg": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleAsyncWithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "promiseSingleAsyncWithArgCalled1": 42,
+    "promiseSinglePromiseWithArg": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSinglePromiseWithArgCalled1": 42,
+    "promiseSingleSync": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleSyncCalled1": true,
+    "promiseSingleSyncWithArg": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleSyncWithArgCalled1": 42,
+    "promiseSingleSyncWithArgNoReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleSyncWithArgNoReturnCalled1": 42,
+  },
+  "intercept": {
+    "callAsyncContextIntercepted": {
+      "error": "Cannot create property 'number' on number '1'",
+    },
+    "callAsyncIntercepted": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncInterceptedCall1": [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedDone1": true,
+    "callAsyncInterceptedDone2": true,
+    "callAsyncInterceptedTap1": {
+      "fn": 2,
+      "name": "promise",
+      "type": "promise",
+    },
+    "callAsyncInterceptedTap2": {
+      "fn": 3,
+      "name": "sync",
+      "type": "sync",
+    },
+    "callAsyncUnusedContextIntercepted": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncUnusedContextInterceptedCall1": [
+      1,
+      2,
+      3,
+      undefined,
+    ],
+    "callAsyncUnusedContextInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncUnusedContextInterceptedTap1": {
+      "fn": [Function],
+      "name": "sync",
+      "type": "sync",
+    },
+    "promiseContextIntercepted": {
+      "error": "Cannot create property 'number' on number '1'",
+      "type": "promise",
+    },
+    "promiseIntercepted": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseInterceptedCall1": [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedDone1": true,
+    "promiseInterceptedDone2": true,
+    "promiseInterceptedTap1": {
+      "fn": 2,
+      "name": "promise",
+      "type": "promise",
+    },
+    "promiseInterceptedTap2": {
+      "fn": 3,
+      "name": "sync",
+      "type": "sync",
+    },
+    "promiseUnusedContextIntercepted": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseUnusedContextInterceptedCall1": [
+      1,
+      2,
+      3,
+      [Function],
+    ],
+    "promiseUnusedContextInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "promiseUnusedContextInterceptedTap1": {
+      "fn": [Function],
+      "name": "sync",
+      "type": "sync",
+    },
+  },
+  "sync": {
+    "callAsyncIntercepted": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncInterceptedCall1": [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedTap1": {
+      "fn": 2,
+      "name": "sync2",
+      "type": "sync",
+    },
+    "callAsyncInterceptedTap2": {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "callAsyncMultipleSync": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncCalled1": true,
+    "callAsyncMultipleSyncCalled2": true,
+    "callAsyncMultipleSyncError": {
+      "error": "Error in sync2",
+      "type": "async",
+    },
+    "callAsyncMultipleSyncErrorCalled1": true,
+    "callAsyncMultipleSyncErrorCalled2": true,
+    "callAsyncMultipleSyncWithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgCalled1": 42,
+    "callAsyncMultipleSyncWithArgCalled2": 42,
+    "callAsyncMultipleSyncWithArgFirstReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgFirstReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgFirstReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgLastReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgLastReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgLastReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgNoReturn": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgNoReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgNoReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgs": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgsCalled1": [
+      42,
+      43,
+      44,
+    ],
+    "callAsyncMultipleSyncWithArgsCalled2": [
+      42,
+      43,
+      44,
+    ],
+    "callAsyncNone": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncNoneWithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleSync": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleSyncCalled": true,
+    "callAsyncSingleSyncWithArg": {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleSyncWithArgCalled": 42,
+    "promiseIntercepted": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseInterceptedCall1": [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedTap1": {
+      "fn": 2,
+      "name": "sync2",
+      "type": "sync",
+    },
+    "promiseInterceptedTap2": {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "promiseMultipleSync": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncCalled1": true,
+    "promiseMultipleSyncCalled2": true,
+    "promiseMultipleSyncError": {
+      "error": "Error in sync2",
+      "type": "promise",
+    },
+    "promiseMultipleSyncErrorCalled1": true,
+    "promiseMultipleSyncErrorCalled2": true,
+    "promiseMultipleSyncWithArg": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgCalled1": 42,
+    "promiseMultipleSyncWithArgCalled2": 42,
+    "promiseMultipleSyncWithArgFirstReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgFirstReturnCalled1": 42,
+    "promiseMultipleSyncWithArgFirstReturnCalled2": 42,
+    "promiseMultipleSyncWithArgLastReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgLastReturnCalled1": 42,
+    "promiseMultipleSyncWithArgLastReturnCalled2": 42,
+    "promiseMultipleSyncWithArgNoReturn": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleSyncWithArgNoReturnCalled2": 42,
+    "promiseMultipleSyncWithArgs": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgsCalled1": [
+      42,
+      43,
+      44,
+    ],
+    "promiseMultipleSyncWithArgsCalled2": [
+      42,
+      43,
+      44,
+    ],
+    "promiseNone": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseNoneWithArg": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleSync": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleSyncCalled": true,
+    "promiseSingleSyncWithArg": {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleSyncWithArgCalled": 42,
+  },
+}
+`;
+
+exports[`AsyncSeriesWaterfallHook should have to correct behavior 1`] = `
+{
+  "async": {
+    "callAsyncMultipleAsyncEarlyError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleAsyncError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleAsyncLateError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleAsyncLateErrorEarlyResult1": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleAsyncLateErrorEarlyResult2": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleAsyncWithArg": {
+      "type": "async",
+      "value": 45,
+    },
+    "callAsyncMultipleAsyncWithArgCalled1": 42,
+    "callAsyncMultipleAsyncWithArgCalled2": 43,
+    "callAsyncMultipleAsyncWithArgFirstReturn": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncMultipleAsyncWithArgFirstReturnCalled1": 42,
+    "callAsyncMultipleAsyncWithArgFirstReturnCalled2": 43,
+    "callAsyncMultipleAsyncWithArgLastReturn": {
+      "type": "async",
+      "value": 44,
+    },
+    "callAsyncMultipleAsyncWithArgLastReturnCalled1": 42,
+    "callAsyncMultipleAsyncWithArgLastReturnCalled2": 42,
+    "callAsyncMultipleAsyncWithArgNoReturn": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncMultipleAsyncWithArgNoReturnCalled1": 42,
+    "callAsyncMultipleAsyncWithArgNoReturnCalled2": 42,
+    "callAsyncMultipleMixed1WithArg": {
+      "type": "async",
+      "value": 48,
+    },
+    "callAsyncMultipleMixed1WithArgCalled1": 42,
+    "callAsyncMultipleMixed1WithArgCalled2": 43,
+    "callAsyncMultipleMixed1WithArgCalled3": 45,
+    "callAsyncMultipleMixed2WithArg": {
+      "type": "async",
+      "value": 45,
+    },
+    "callAsyncMultipleMixed2WithArgCalled1": 42,
+    "callAsyncMultipleMixed2WithArgCalled2": 43,
+    "callAsyncMultipleMixed3WithArg": {
+      "type": "async",
+      "value": 48,
+    },
+    "callAsyncMultipleMixed3WithArgCalled1": 42,
+    "callAsyncMultipleMixed3WithArgCalled2": 43,
+    "callAsyncMultipleMixed3WithArgCalled3": 45,
+    "callAsyncMultipleMixedError1WithArg": {
+      "error": "Error in sync",
+      "type": "async",
+    },
+    "callAsyncMultipleMixedError1WithArgCalled1": 42,
+    "callAsyncMultipleMixedError1WithArgCalled2": 42,
+    "callAsyncMultipleMixedError1WithArgCalled3": 43,
+    "callAsyncMultipleMixedError2WithArg": {
+      "error": "Error in promise",
+      "type": "async",
+    },
+    "callAsyncMultipleMixedError2WithArgCalled1": 42,
+    "callAsyncMultipleMixedError2WithArgCalled2": 42,
+    "callAsyncMultipleMixedError3WithArg": {
+      "error": "Error in async",
+      "type": "async",
+    },
+    "callAsyncMultipleMixedError3WithArgCalled1": 42,
+    "callAsyncMultipleMixedLateError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultiplePromiseEarlyError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultiplePromiseError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultiplePromiseLateError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultiplePromiseWithArg": {
+      "type": "async",
+      "value": 45,
+    },
+    "callAsyncMultiplePromiseWithArgCalled1": 42,
+    "callAsyncMultiplePromiseWithArgCalled2": 43,
+    "callAsyncMultiplePromiseWithArgFirstReturn": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncMultiplePromiseWithArgFirstReturnCalled1": 42,
+    "callAsyncMultiplePromiseWithArgFirstReturnCalled2": 43,
+    "callAsyncMultiplePromiseWithArgLastReturn": {
+      "type": "async",
+      "value": 44,
+    },
+    "callAsyncMultiplePromiseWithArgLastReturnCalled1": 42,
+    "callAsyncMultiplePromiseWithArgLastReturnCalled2": 42,
+    "callAsyncMultiplePromiseWithArgNoReturn": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncMultiplePromiseWithArgNoReturnCalled1": 42,
+    "callAsyncMultiplePromiseWithArgNoReturnCalled2": 42,
+    "callAsyncMultipleSync": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleSyncError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleSyncLastReturn": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleSyncNoReturn": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleSyncWithArg": {
+      "type": "async",
+      "value": 45,
+    },
+    "callAsyncMultipleSyncWithArgCalled1": 42,
+    "callAsyncMultipleSyncWithArgCalled2": 43,
+    "callAsyncMultipleSyncWithArgFirstReturn": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncMultipleSyncWithArgFirstReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgFirstReturnCalled2": 43,
+    "callAsyncMultipleSyncWithArgLastReturn": {
+      "type": "async",
+      "value": 44,
+    },
+    "callAsyncMultipleSyncWithArgLastReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgLastReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgNoReturn": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncMultipleSyncWithArgNoReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgNoReturnCalled2": 42,
+    "callAsyncNone": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncNoneWithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleAsyncWithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleAsyncWithArgCalled1": 42,
+    "callAsyncSinglePromiseWithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncSinglePromiseWithArgCalled1": 42,
+    "callAsyncSingleSync": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncSingleSyncWithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "callAsyncSingleSyncWithArgCalled1": 42,
+    "callAsyncSingleSyncWithArgNoReturn": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleSyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleAsyncEarlyError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleAsyncError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleAsyncLateError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleAsyncLateErrorEarlyResult1": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleAsyncLateErrorEarlyResult2": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleAsyncWithArg": {
+      "type": "async",
+      "value": 45,
+    },
+    "promiseMultipleAsyncWithArgCalled1": 42,
+    "promiseMultipleAsyncWithArgCalled2": 43,
+    "promiseMultipleAsyncWithArgFirstReturn": {
+      "type": "async",
+      "value": 43,
+    },
+    "promiseMultipleAsyncWithArgFirstReturnCalled1": 42,
+    "promiseMultipleAsyncWithArgFirstReturnCalled2": 43,
+    "promiseMultipleAsyncWithArgLastReturn": {
+      "type": "async",
+      "value": 44,
+    },
+    "promiseMultipleAsyncWithArgLastReturnCalled1": 42,
+    "promiseMultipleAsyncWithArgLastReturnCalled2": 42,
+    "promiseMultipleAsyncWithArgNoReturn": {
+      "type": "async",
+      "value": 42,
+    },
+    "promiseMultipleAsyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleAsyncWithArgNoReturnCalled2": 42,
+    "promiseMultipleMixed1WithArg": {
+      "type": "no result",
+    },
+    "promiseMultipleMixed1WithArgCalled1": 42,
+    "promiseMultipleMixed1WithArgCalled2": 43,
+    "promiseMultipleMixed1WithArgCalled3": 45,
+    "promiseMultipleMixed2WithArg": {
+      "type": "no result",
+    },
+    "promiseMultipleMixed2WithArgCalled1": 42,
+    "promiseMultipleMixed2WithArgCalled2": 43,
+    "promiseMultipleMixed3WithArg": {
+      "type": "no result",
+    },
+    "promiseMultipleMixed3WithArgCalled1": 42,
+    "promiseMultipleMixed3WithArgCalled2": 43,
+    "promiseMultipleMixed3WithArgCalled3": 45,
+    "promiseMultipleMixedError1WithArg": {
+      "type": "no result",
+    },
+    "promiseMultipleMixedError1WithArgCalled1": 42,
+    "promiseMultipleMixedError1WithArgCalled2": 42,
+    "promiseMultipleMixedError1WithArgCalled3": 43,
+    "promiseMultipleMixedError2WithArg": {
+      "type": "no result",
+    },
+    "promiseMultipleMixedError2WithArgCalled1": 42,
+    "promiseMultipleMixedError2WithArgCalled2": 42,
+    "promiseMultipleMixedError3WithArg": {
+      "error": "Error in async",
+      "type": "async",
+    },
+    "promiseMultipleMixedError3WithArgCalled1": 42,
+    "promiseMultipleMixedLateError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultiplePromiseEarlyError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultiplePromiseError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultiplePromiseLateError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultiplePromiseWithArg": {
+      "type": "no result",
+    },
+    "promiseMultiplePromiseWithArgCalled1": 42,
+    "promiseMultiplePromiseWithArgCalled2": 43,
+    "promiseMultiplePromiseWithArgFirstReturn": {
+      "type": "no result",
+    },
+    "promiseMultiplePromiseWithArgFirstReturnCalled1": 42,
+    "promiseMultiplePromiseWithArgFirstReturnCalled2": 43,
+    "promiseMultiplePromiseWithArgLastReturn": {
+      "type": "no result",
+    },
+    "promiseMultiplePromiseWithArgLastReturnCalled1": 42,
+    "promiseMultiplePromiseWithArgLastReturnCalled2": 42,
+    "promiseMultiplePromiseWithArgNoReturn": {
+      "type": "no result",
+    },
+    "promiseMultiplePromiseWithArgNoReturnCalled1": 42,
+    "promiseMultiplePromiseWithArgNoReturnCalled2": 42,
+    "promiseMultipleSync": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleSyncError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleSyncLastReturn": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleSyncNoReturn": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleSyncWithArg": {
+      "type": "async",
+      "value": 45,
+    },
+    "promiseMultipleSyncWithArgCalled1": 42,
+    "promiseMultipleSyncWithArgCalled2": 43,
+    "promiseMultipleSyncWithArgFirstReturn": {
+      "type": "async",
+      "value": 43,
+    },
+    "promiseMultipleSyncWithArgFirstReturnCalled1": 42,
+    "promiseMultipleSyncWithArgFirstReturnCalled2": 43,
+    "promiseMultipleSyncWithArgLastReturn": {
+      "type": "async",
+      "value": 44,
+    },
+    "promiseMultipleSyncWithArgLastReturnCalled1": 42,
+    "promiseMultipleSyncWithArgLastReturnCalled2": 42,
+    "promiseMultipleSyncWithArgNoReturn": {
+      "type": "async",
+      "value": 42,
+    },
+    "promiseMultipleSyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleSyncWithArgNoReturnCalled2": 42,
+    "promiseNone": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseNoneWithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "promiseSingleAsyncWithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "promiseSingleAsyncWithArgCalled1": 42,
+    "promiseSinglePromiseWithArg": {
+      "type": "no result",
+    },
+    "promiseSinglePromiseWithArgCalled1": 42,
+    "promiseSingleSync": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseSingleSyncWithArg": {
+      "type": "async",
+      "value": 43,
+    },
+    "promiseSingleSyncWithArgCalled1": 42,
+    "promiseSingleSyncWithArgNoReturn": {
+      "type": "async",
+      "value": 42,
+    },
+    "promiseSingleSyncWithArgNoReturnCalled1": 42,
+  },
+  "intercept": {
+    "callAsyncContextIntercepted": {
+      "error": "Cannot create property 'number' on number '1'",
+    },
+    "callAsyncIntercepted": {
+      "type": "no result",
+    },
+    "callAsyncInterceptedCall1": [
+      1,
+      undefined,
+      undefined,
+    ],
+    "callAsyncInterceptedCall2": [
+      1,
+      undefined,
+      undefined,
+    ],
+    "callAsyncInterceptedDone1": true,
+    "callAsyncInterceptedDone2": true,
+    "callAsyncInterceptedTap1": {
+      "fn": 2,
+      "name": "promise",
+      "type": "promise",
+    },
+    "callAsyncInterceptedTap2": {
+      "fn": 3,
+      "name": "sync",
+      "type": "sync",
+    },
+    "callAsyncUnusedContextIntercepted": {
+      "error": "cb is not a function",
+    },
+    "callAsyncUnusedContextInterceptedCall1": [
+      1,
+      undefined,
+      undefined,
+      undefined,
+    ],
+    "callAsyncUnusedContextInterceptedCall2": [
+      1,
+      undefined,
+      undefined,
+    ],
+    "callAsyncUnusedContextInterceptedTap1": {
+      "fn": [Function],
+      "name": "sync",
+      "type": "sync",
+    },
+    "promiseContextIntercepted": {
+      "error": "Cannot create property 'number' on number '1'",
+      "type": "promise",
+    },
+    "promiseIntercepted": {
+      "type": "no result",
+    },
+    "promiseInterceptedCall1": [
+      1,
+      undefined,
+      undefined,
+    ],
+    "promiseInterceptedCall2": [
+      1,
+      undefined,
+      undefined,
+    ],
+    "promiseInterceptedDone1": true,
+    "promiseInterceptedDone2": true,
+    "promiseInterceptedTap1": {
+      "fn": 2,
+      "name": "promise",
+      "type": "promise",
+    },
+    "promiseInterceptedTap2": {
+      "fn": 3,
+      "name": "sync",
+      "type": "sync",
+    },
+    "promiseUnusedContextIntercepted": {
+      "error": "cb is not a function",
+      "type": "promise",
+    },
+    "promiseUnusedContextInterceptedCall1": [
+      1,
+      undefined,
+      undefined,
+      undefined,
+    ],
+    "promiseUnusedContextInterceptedCall2": [
+      1,
+      undefined,
+      undefined,
+    ],
+    "promiseUnusedContextInterceptedTap1": {
+      "fn": [Function],
+      "name": "sync",
+      "type": "sync",
+    },
+  },
+  "sync": {
+    "callAsyncIntercepted": {
+      "error": "cb is not a function",
+    },
+    "callAsyncInterceptedCall1": [
+      1,
+      undefined,
+      undefined,
+    ],
+    "callAsyncInterceptedCall2": [
+      1,
+      undefined,
+      undefined,
+    ],
+    "callAsyncInterceptedTap1": {
+      "fn": 2,
+      "name": "sync2",
+      "type": "sync",
+    },
+    "callAsyncInterceptedTap2": {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "callAsyncMultipleSync": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleSyncError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleSyncWithArg": {
+      "type": "async",
+      "value": 127,
+    },
+    "callAsyncMultipleSyncWithArgCalled1": 42,
+    "callAsyncMultipleSyncWithArgCalled2": 84,
+    "callAsyncMultipleSyncWithArgFirstReturn": {
+      "type": "async",
+      "value": 84,
+    },
+    "callAsyncMultipleSyncWithArgFirstReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgFirstReturnCalled2": 84,
+    "callAsyncMultipleSyncWithArgLastReturn": {
+      "type": "async",
+      "value": 85,
+    },
+    "callAsyncMultipleSyncWithArgLastReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgLastReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgNoReturn": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncMultipleSyncWithArgNoReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgNoReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgs": {
+      "error": "cb is not a function",
+    },
+    "callAsyncMultipleSyncWithArgsCalled1": [
+      42,
+      undefined,
+      undefined,
+    ],
+    "callAsyncMultipleSyncWithArgsCalled2": [
+      NaN,
+      undefined,
+      undefined,
+    ],
+    "callAsyncNone": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncNoneWithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleSync": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncSingleSyncWithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleSyncWithArgCalled": 42,
+    "promiseIntercepted": {
+      "error": "cb is not a function",
+      "type": "promise",
+    },
+    "promiseInterceptedCall1": [
+      1,
+      undefined,
+      undefined,
+    ],
+    "promiseInterceptedCall2": [
+      1,
+      undefined,
+      undefined,
+    ],
+    "promiseInterceptedTap1": {
+      "fn": 2,
+      "name": "sync2",
+      "type": "sync",
+    },
+    "promiseInterceptedTap2": {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "promiseMultipleSync": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleSyncError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleSyncWithArg": {
+      "type": "async",
+      "value": 127,
+    },
+    "promiseMultipleSyncWithArgCalled1": 42,
+    "promiseMultipleSyncWithArgCalled2": 84,
+    "promiseMultipleSyncWithArgFirstReturn": {
+      "type": "async",
+      "value": 84,
+    },
+    "promiseMultipleSyncWithArgFirstReturnCalled1": 42,
+    "promiseMultipleSyncWithArgFirstReturnCalled2": 84,
+    "promiseMultipleSyncWithArgLastReturn": {
+      "type": "async",
+      "value": 85,
+    },
+    "promiseMultipleSyncWithArgLastReturnCalled1": 42,
+    "promiseMultipleSyncWithArgLastReturnCalled2": 42,
+    "promiseMultipleSyncWithArgNoReturn": {
+      "type": "async",
+      "value": 42,
+    },
+    "promiseMultipleSyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleSyncWithArgNoReturnCalled2": 42,
+    "promiseMultipleSyncWithArgs": {
+      "error": "cb is not a function",
+      "type": "promise",
+    },
+    "promiseMultipleSyncWithArgsCalled1": [
+      42,
+      undefined,
+      undefined,
+    ],
+    "promiseMultipleSyncWithArgsCalled2": [
+      NaN,
+      undefined,
+      undefined,
+    ],
+    "promiseNone": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseNoneWithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "promiseSingleSync": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseSingleSyncWithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "promiseSingleSyncWithArgCalled": 42,
+  },
+}
+`;

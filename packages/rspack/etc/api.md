@@ -6,14 +6,14 @@
 
 /// <reference types="node" />
 
-import { AsyncSeriesBailHook as AsyncSeriesBailHook_2 } from 'tapable';
-import { AsyncSeriesHook as AsyncSeriesHook_2 } from 'tapable';
+import { AsyncSeriesBailHook } from 'tapable';
+import { AsyncSeriesHook } from 'tapable';
 import * as binding from '@rspack/binding';
 import { BuiltinPlugin } from '@rspack/binding';
 import { BuiltinPluginName } from '@rspack/binding';
 import Cache_2 = require('./lib/Cache');
 import CacheFacade = require('./lib/CacheFacade');
-import { Callback as Callback_2 } from 'tapable';
+import { Callback } from 'tapable';
 import { Compiler as Compiler_2 } from '../Compiler';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
@@ -24,7 +24,7 @@ import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
 import Hash_2 = require('./util/hash');
 import Hash_3 = require('../util/hash');
-import { HookMap as HookMap_2 } from 'tapable';
+import { HookMap } from 'tapable';
 import { JsAssetInfo } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import { JsChunkGroup } from '@rspack/binding';
@@ -40,6 +40,7 @@ import { JsStats } from '@rspack/binding';
 import { JsStatsError } from '@rspack/binding';
 import { JsStatsWarning } from '@rspack/binding';
 import { libCacheFacade } from './lib/CacheFacade';
+import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
 import { MultiHook } from 'tapable';
 import { RawBannerPluginOptions } from '@rspack/binding';
@@ -64,12 +65,12 @@ import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
 import ResolverFactory = require('./ResolverFactory');
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import sources = require('../compiled/webpack-sources');
-import { SyncBailHook as SyncBailHook_2 } from 'tapable';
-import { SyncHook as SyncHook_2 } from 'tapable';
+import { SyncBailHook } from 'tapable';
+import { SyncHook } from 'tapable';
 import { SyncWaterfallHook } from 'tapable';
 import * as tapable from 'tapable';
 import Template = require('./Template');
-import { UnsetAdditionalOptions as UnsetAdditionalOptions_2 } from 'tapable';
+import { UnsetAdditionalOptions } from 'tapable';
 import type * as webpackDevServer from 'webpack-dev-server';
 
 // @public (undocumented)
@@ -96,29 +97,10 @@ export type AmdContainer = z.infer<typeof amdContainer>;
 const amdContainer: z.ZodString;
 
 // @public (undocumented)
-type Append<T extends any[], U> = {
-    0: [U];
-    1: [T[0], U];
-    2: [T[0], T[1], U];
-    3: [T[0], T[1], T[2], U];
-    4: [T[0], T[1], T[2], T[3], U];
-    5: [T[0], T[1], T[2], T[3], T[4], U];
-    6: [T[0], T[1], T[2], T[3], T[4], T[5], U];
-    7: [T[0], T[1], T[2], T[3], T[4], T[5], T[6], U];
-    8: [T[0], T[1], T[2], T[3], T[4], T[5], T[6], T[7], U];
-}[Measure<T["length"]>];
-
-// @public (undocumented)
 export const applyRspackOptionsBaseDefaults: (options: RspackOptionsNormalized) => void;
 
 // @public (undocumented)
 export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => void;
-
-// @public (undocumented)
-type ArgumentNames<T extends any[]> = FixedSizeArray<T["length"], string>;
-
-// @public (undocumented)
-type AsArray<T> = T extends any[] ? T : [T];
 
 // @public
 const asRegExp: (test: string | RegExp) => RegExp;
@@ -375,47 +357,6 @@ export type AsyncChunks = z.infer<typeof asyncChunks>;
 
 // @public (undocumented)
 const asyncChunks: z.ZodBoolean;
-
-// @public (undocumented)
-class AsyncParallelHook<T, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, void, AdditionalOptions> {
-    // (undocumented)
-    callAsyncStageRange(queried: QueriedHook<T, void, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, void>>): void;
-    // (undocumented)
-    tapAsync(options: Options<AdditionalOptions>, fn: FnWithCallback<T, void>): void;
-    // (undocumented)
-    tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void;
-}
-
-// @public (undocumented)
-class AsyncSeriesBailHook<T, R, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, R, AdditionalOptions> {
-    // (undocumented)
-    callAsyncStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, R>>): void;
-    // (undocumented)
-    tapAsync(options: Options<AdditionalOptions>, fn: FnWithCallback<T, void>): void;
-    // (undocumented)
-    tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void;
-}
-
-// @public (undocumented)
-class AsyncSeriesHook<T, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, void, AdditionalOptions> {
-    // (undocumented)
-    callAsyncStageRange(queried: QueriedHook<T, void, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, void>>): void;
-    // (undocumented)
-    tapAsync(options: Options<AdditionalOptions>, fn: FnWithCallback<T, void>): void;
-    // (undocumented)
-    tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void;
-}
-
-// @public (undocumented)
-class AsyncSeriesWaterfallHook<T, R, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, R, AdditionalOptions> {
-    constructor(args?: ArgumentNames<AsArray<T>>, name?: string);
-    // (undocumented)
-    callAsyncStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, R>>): void;
-    // (undocumented)
-    tapAsync(options: Options<AdditionalOptions>, fn: FnWithCallback<T, void>): void;
-    // (undocumented)
-    tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void;
-}
 
 // @public (undocumented)
 export type AuxiliaryComment = z.infer<typeof auxiliaryComment>;
@@ -800,16 +741,13 @@ export type BaseUri = z.infer<typeof baseUri>;
 const baseUri: z.ZodString;
 
 // @public (undocumented)
-type CacheHookMap = Map<string, SyncBailHook_2<[any[], StatsFactoryContext], any>[]>;
+type CacheHookMap = Map<string, SyncBailHook<[any[], StatsFactoryContext], any>[]>;
 
 // @public (undocumented)
 export type CacheOptions = z.infer<typeof cacheOptions>;
 
 // @public (undocumented)
 const cacheOptions: z.ZodBoolean;
-
-// @public (undocumented)
-type Callback<E, T> = (error: E | null, result?: T) => void;
 
 // @public (undocumented)
 type CallFn = (...args: any[]) => any;
@@ -1193,7 +1131,7 @@ export class Compiler {
     // (undocumented)
     close(callback: (error?: Error | null) => void): void;
     // (undocumented)
-    compile(callback: Callback_2<Error, Compilation>): void;
+    compile(callback: Callback<Error, Compilation>): void;
     // (undocumented)
     compilerPath: string;
     // (undocumented)
@@ -1285,13 +1223,13 @@ export class Compiler {
     // (undocumented)
     root: Compiler;
     // (undocumented)
-    run(callback: Callback_2<Error, Stats>): void;
+    run(callback: Callback<Error, Stats>): void;
     // (undocumented)
     runAsChild(callback: (err?: null | Error, entries?: Chunk[], compilation?: Compilation) => any): void;
     // (undocumented)
     running: boolean;
     // (undocumented)
-    watch(watchOptions: Watchpack.WatchOptions, handler: Callback_2<Error, Stats>): Watching;
+    watch(watchOptions: Watchpack.WatchOptions, handler: Callback<Error, Stats>): Watching;
     // (undocumented)
     watchFileSystem: WatchFileSystem | null;
     // (undocumented)
@@ -3333,24 +3271,6 @@ export type FilterTypes = z.infer<typeof filterTypes>;
 const filterTypes: z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodString]>, z.ZodFunction<z.ZodTuple<[z.ZodString], z.ZodUnknown>, z.ZodBoolean>]>, "many">, z.ZodUnion<[z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodString]>, z.ZodFunction<z.ZodTuple<[z.ZodString], z.ZodUnknown>, z.ZodBoolean>]>]>;
 
 // @public (undocumented)
-type FixedSizeArray<T extends number, U> = T extends 0 ? void[] : ReadonlyArray<U> & {
-    0: U;
-    length: T;
-};
-
-// @public (undocumented)
-type Fn<T, R> = (...args: AsArray<T>) => R;
-
-// @public (undocumented)
-type FnWithCallback<T, R> = (...args: Append<AsArray<T>, InnerCallback<Error, R>>) => void;
-
-// @public (undocumented)
-type FullTap = Tap & {
-    type: "sync" | "async" | "promise";
-    fn: Function;
-};
-
-// @public (undocumented)
 export type GeneratorOptionsByModuleType = z.infer<typeof generatorOptionsByModuleType>;
 
 // @public (undocumented)
@@ -3894,124 +3814,24 @@ export type HashSalt = z.infer<typeof hashSalt>;
 const hashSalt: z.ZodString;
 
 // @public (undocumented)
-class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
-    constructor(args?: ArgumentNames<AsArray<T>>, name?: string);
-    // (undocumented)
-    args?: ArgumentNames<AsArray<T>>;
-    // (undocumented)
-    callAsync(...args: Append<AsArray<T>, Callback<Error, R>>): void;
-    // (undocumented)
-    callAsyncStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, R>>): void;
-    // (undocumented)
-    _insert(item: FullTap & IfSet<AdditionalOptions>): void;
-    // (undocumented)
-    intercept(interceptor: HookInterceptor<T, R, AdditionalOptions>): void;
-    // (undocumented)
-    interceptors: HookInterceptor<T, R, AdditionalOptions>[];
-    // (undocumented)
-    isUsed(): boolean;
-    // (undocumented)
-    name?: string;
-    // (undocumented)
-    promise(...args: AsArray<T>): Promise<R>;
-    // (undocumented)
-    promiseStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: AsArray<T>): Promise<R>;
-    // (undocumented)
-    queryStageRange(stageRange: StageRange): QueriedHook<T, R, AdditionalOptions>;
-    // (undocumented)
-    _runCallInterceptors(...args: any[]): void;
-    // (undocumented)
-    _runDoneInterceptors(): void;
-    // (undocumented)
-    _runErrorInterceptors(e: Error): void;
-    // (undocumented)
-    _runRegisterInterceptors(options: FullTap & IfSet<AdditionalOptions>): FullTap & IfSet<AdditionalOptions>;
-    // (undocumented)
-    _runResultInterceptors(r: R): void;
-    // (undocumented)
-    _runTapInterceptors(tap: FullTap & IfSet<AdditionalOptions>): void;
-    // (undocumented)
-    tap(options: Options<AdditionalOptions>, fn: Fn<T, R>): void;
-    // (undocumented)
-    _tap(type: "sync" | "async" | "promise", options: Options<AdditionalOptions>, fn: Function): void;
-    // (undocumented)
-    taps: (FullTap & IfSet<AdditionalOptions>)[];
-}
-
-// @public (undocumented)
-type HookFactory<H> = (key: HookMapKey, hook?: H) => H;
-
-// @public (undocumented)
-interface HookInterceptor<T, R, AdditionalOptions = UnsetAdditionalOptions> {
-    // (undocumented)
-    call?: (...args: any[]) => void;
-    // (undocumented)
-    done?: () => void;
-    // (undocumented)
-    error?: (err: Error) => void;
-    // (undocumented)
-    loop?: (...args: any[]) => void;
-    // (undocumented)
-    name?: string;
-    // (undocumented)
-    register?: (tap: FullTap & IfSet<AdditionalOptions>) => FullTap & IfSet<AdditionalOptions>;
-    // (undocumented)
-    result?: (result: R) => void;
-    // (undocumented)
-    tap?: (tap: FullTap & IfSet<AdditionalOptions>) => void;
-}
-
-// @public (undocumented)
-class HookMap<H extends Hook<any, any, any>> {
-    constructor(factory: HookFactory<H>, name?: string);
-    // (undocumented)
-    _factory: HookFactory<H>;
-    // (undocumented)
-    for(key: HookMapKey): H;
-    // (undocumented)
-    get(key: HookMapKey): H | undefined;
-    // (undocumented)
-    intercept(interceptor: HookMapInterceptor<H>): void;
-    // (undocumented)
-    _interceptors: HookMapInterceptor<H>[];
-    // (undocumented)
-    isUsed(): boolean;
-    // (undocumented)
-    _map: Map<HookMapKey, H>;
-    // (undocumented)
-    name?: string;
-    // (undocumented)
-    queryStageRange(stageRange: StageRange): QueriedHookMap<H>;
-}
-
-// @public (undocumented)
-interface HookMapInterceptor<H> {
-    // (undocumented)
-    factory?: HookFactory<H>;
-}
-
-// @public (undocumented)
-type HookMapKey = any;
-
-// @public (undocumented)
 type Hooks = Readonly<{
-    extract: HookMap_2<SyncBailHook_2<[Object, any, StatsFactoryContext], undefined>>;
-    filter: HookMap_2<SyncBailHook_2<[any, StatsFactoryContext, number, number], undefined>>;
-    filterSorted: HookMap_2<SyncBailHook_2<[any, StatsFactoryContext, number, number], undefined>>;
-    groupResults: HookMap_2<SyncBailHook_2<[GroupConfig[], StatsFactoryContext], undefined>>;
-    filterResults: HookMap_2<SyncBailHook_2<[any, StatsFactoryContext, number, number], undefined>>;
-    sort: HookMap_2<SyncBailHook_2<[
+    extract: HookMap<SyncBailHook<[Object, any, StatsFactoryContext], undefined>>;
+    filter: HookMap<SyncBailHook<[any, StatsFactoryContext, number, number], undefined>>;
+    filterSorted: HookMap<SyncBailHook<[any, StatsFactoryContext, number, number], undefined>>;
+    groupResults: HookMap<SyncBailHook<[GroupConfig[], StatsFactoryContext], undefined>>;
+    filterResults: HookMap<SyncBailHook<[any, StatsFactoryContext, number, number], undefined>>;
+    sort: HookMap<SyncBailHook<[
     ((arg1: any, arg2: any) => number)[],
     StatsFactoryContext
     ], undefined>>;
-    sortResults: HookMap_2<SyncBailHook_2<[
+    sortResults: HookMap<SyncBailHook<[
     ((arg1: any, arg2: any) => number)[],
     StatsFactoryContext
     ], undefined>>;
-    result: HookMap_2<SyncWaterfallHook<[any[], StatsFactoryContext], undefined>>;
-    merge: HookMap_2<SyncBailHook_2<[any[], StatsFactoryContext], undefined>>;
-    getItemName: HookMap_2<SyncBailHook_2<[any, StatsFactoryContext], string | undefined>>;
-    getItemFactory: HookMap_2<SyncBailHook_2<[any, StatsFactoryContext], undefined>>;
+    result: HookMap<SyncWaterfallHook<[any[], StatsFactoryContext], undefined>>;
+    merge: HookMap<SyncBailHook<[any[], StatsFactoryContext], undefined>>;
+    getItemName: HookMap<SyncBailHook<[any, StatsFactoryContext], string | undefined>>;
+    getItemFactory: HookMap<SyncBailHook<[any, StatsFactoryContext], undefined>>;
 }>;
 
 // @public (undocumented)
@@ -4138,9 +3958,6 @@ interface IDirent {
 }
 
 // @public (undocumented)
-type IfSet<X> = X extends UnsetAdditionalOptions ? {} : X;
-
-// @public (undocumented)
 export const IgnorePlugin: {
     new (options: IgnorePluginOptions): {
         name: BuiltinPluginName;
@@ -4206,9 +4023,6 @@ const infrastructureLogging: z.ZodObject<{
     level?: "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
     stream?: NodeJS.WritableStream | undefined;
 }>;
-
-// @public (undocumented)
-type InnerCallback<E, T> = (error?: E | null | false, result?: T) => void;
 
 // @public (undocumented)
 interface IStats {
@@ -4835,33 +4649,6 @@ const LimitChunkCountPlugin: {
     };
 };
 
-declare namespace liteTapable {
-    export {
-        AsArray,
-        Fn,
-        FnWithCallback,
-        Options,
-        HookInterceptor,
-        Hook,
-        StageRange,
-        minStage,
-        maxStage,
-        safeStage,
-        QueriedHook,
-        SyncHook,
-        SyncBailHook,
-        AsyncParallelHook,
-        AsyncSeriesHook,
-        AsyncSeriesBailHook,
-        AsyncSeriesWaterfallHook,
-        HookMapKey,
-        HookFactory,
-        HookMapInterceptor,
-        HookMap,
-        QueriedHookMap
-    }
-}
-
 // @public (undocumented)
 export type Loader = z.infer<typeof loader>;
 
@@ -5151,19 +4938,10 @@ const matchObject: (obj: MatchObject, str: string) => boolean;
 const matchPart: (str: string, test: Matcher) => boolean;
 
 // @public (undocumented)
-const maxStage: number;
-
-// @public (undocumented)
-type Measure<T extends number> = T extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 ? T : never;
-
-// @public (undocumented)
 type MinifyCondition = string | RegExp;
 
 // @public (undocumented)
 type MinifyConditions = MinifyCondition | MinifyCondition[];
-
-// @public (undocumented)
-const minStage: number;
 
 // @public (undocumented)
 export type Mode = z.infer<typeof mode>;
@@ -6064,7 +5842,7 @@ type ModuleReplacer = (createData: ResolveData) => void;
 export class MultiCompiler {
     constructor(compilers: Compiler[] | Record<string, Compiler>, options?: MultiCompilerOptions);
     // (undocumented)
-    close(callback: Callback_2<Error, void>): void;
+    close(callback: Callback<Error, void>): void;
     // (undocumented)
     compilers: Compiler[];
     // (undocumented)
@@ -6073,12 +5851,12 @@ export class MultiCompiler {
     getInfrastructureLogger(name: string): Logger_2;
     // (undocumented)
     hooks: {
-        done: SyncHook_2<MultiStats>;
-        invalid: MultiHook<SyncHook_2<[string | null, number]>>;
-        run: MultiHook<AsyncSeriesHook_2<[Compiler]>>;
-        watchClose: SyncHook_2<[]>;
-        watchRun: MultiHook<AsyncSeriesHook_2<[Compiler]>>;
-        infrastructureLog: MultiHook<SyncBailHook_2<[string, string, any[]], true>>;
+        done: SyncHook<MultiStats>;
+        invalid: MultiHook<SyncHook<[string | null, number]>>;
+        run: MultiHook<AsyncSeriesHook<[Compiler]>>;
+        watchClose: SyncHook<[]>;
+        watchRun: MultiHook<AsyncSeriesHook<[Compiler]>>;
+        infrastructureLog: MultiHook<SyncBailHook<[string, string, any[]], true>>;
     };
     // (undocumented)
     get inputFileSystem(): void;
@@ -6098,15 +5876,15 @@ export class MultiCompiler {
     // (undocumented)
     purgeInputFileSystem(): void;
     // (undocumented)
-    run(callback: Callback_2<Error, MultiStats>): void;
+    run(callback: Callback<Error, MultiStats>): void;
     // (undocumented)
     running: boolean;
     // (undocumented)
     setDependencies(compiler: Compiler, dependencies: string[]): void;
     // (undocumented)
-    validateDependencies(callback: Callback_2<Error, MultiStats>): boolean;
+    validateDependencies(callback: Callback<Error, MultiStats>): boolean;
     // (undocumented)
-    watch(watchOptions: WatchOptions, handler: Callback_2<Error, MultiStats>): MultiWatching;
+    watch(watchOptions: WatchOptions, handler: Callback<Error, MultiStats>): MultiWatching;
     // (undocumented)
     get watchFileSystem(): WatchFileSystem;
     set watchFileSystem(value: WatchFileSystem);
@@ -6267,9 +6045,9 @@ type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, k
 export class NormalModule {
     // (undocumented)
     static getCompilationHooks(compilation: Compilation): {
-        loader: SyncHook_2<[LoaderContext<{}>], void, UnsetAdditionalOptions_2>;
+        loader: SyncHook<[LoaderContext<{}>], void, UnsetAdditionalOptions>;
         readResourceForScheme: any;
-        readResource: HookMap_2<AsyncSeriesBailHook_2<[LoaderContext<{}>], string | Buffer, UnsetAdditionalOptions_2>>;
+        readResource: HookMap<AsyncSeriesBailHook<[LoaderContext<{}>], string | Buffer, UnsetAdditionalOptions>>;
     };
 }
 
@@ -6917,9 +6695,6 @@ type OptimizerConfig = {
         minCost: number;
     };
 };
-
-// @public (undocumented)
-type Options<AdditionalOptions = UnsetAdditionalOptions> = string | (Tap & IfSet<AdditionalOptions>);
 
 // @public (undocumented)
 export type Output = z.infer<typeof output>;
@@ -8263,40 +8038,6 @@ export type PublicPath = z.infer<typeof publicPath>;
 const publicPath: z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodString]>;
 
 // @public (undocumented)
-class QueriedHook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
-    constructor(stageRange: StageRange, hook: Hook<T, R, AdditionalOptions>);
-    // (undocumented)
-    call(...args: AsArray<T>): R;
-    // (undocumented)
-    callAsync(...args: Append<AsArray<T>, Callback<Error, R>>): void;
-    // (undocumented)
-    hook: Hook<T, R, AdditionalOptions>;
-    // (undocumented)
-    isUsed(): boolean;
-    // (undocumented)
-    promise(...args: AsArray<T>): Promise<R>;
-    // (undocumented)
-    stageRange: StageRange;
-    // (undocumented)
-    tapsInRange: (FullTap & IfSet<AdditionalOptions>)[];
-}
-
-// @public (undocumented)
-class QueriedHookMap<H extends Hook<any, any, any>> {
-    constructor(stageRange: StageRange, hookMap: HookMap<H>);
-    // (undocumented)
-    for(key: HookMapKey): QueriedHook<any, any, any>;
-    // (undocumented)
-    get(key: HookMapKey): QueriedHook<any, any, any> | undefined;
-    // (undocumented)
-    hookMap: HookMap<H>;
-    // (undocumented)
-    isUsed(): boolean;
-    // (undocumented)
-    stageRange: StageRange;
-}
-
-// @public (undocumented)
 type RawPreactOptions = {
     library?: string;
 };
@@ -8419,13 +8160,13 @@ function rspack_2(options: RspackOptions): Compiler;
 function rspack_2(options: MultiRspackOptions | RspackOptions): MultiCompiler | Compiler;
 
 // @public (undocumented)
-function rspack_2(options: MultiRspackOptions, callback?: Callback_2<Error, MultiStats>): null | MultiCompiler;
+function rspack_2(options: MultiRspackOptions, callback?: Callback<Error, MultiStats>): null | MultiCompiler;
 
 // @public (undocumented)
-function rspack_2(options: RspackOptions, callback?: Callback_2<Error, Stats>): null | Compiler;
+function rspack_2(options: RspackOptions, callback?: Callback<Error, Stats>): null | Compiler;
 
 // @public (undocumented)
-function rspack_2(options: MultiRspackOptions | RspackOptions, callback?: Callback_2<Error, MultiStats | Stats>): null | MultiCompiler | Compiler;
+function rspack_2(options: MultiRspackOptions | RspackOptions, callback?: Callback<Error, MultiStats | Stats>): null | MultiCompiler | Compiler;
 
 // @public (undocumented)
 abstract class RspackBuiltinPlugin implements RspackPluginInstance {
@@ -12463,9 +12204,6 @@ export const RuntimeGlobals: {
 type RuntimePlugins = string[];
 
 // @public (undocumented)
-const safeStage: (stage: number) => number;
-
-// @public (undocumented)
 export type ScriptType = z.infer<typeof scriptType>;
 
 // @public (undocumented)
@@ -12631,9 +12369,6 @@ class SplitChunksPlugin extends RspackBuiltinPlugin {
 }
 
 // @public (undocumented)
-type StageRange = readonly [number, number];
-
-// @public (undocumented)
 export class Stats {
     constructor(compilation: Compilation);
     // (undocumented)
@@ -12671,13 +12406,13 @@ class StatsFactory {
     // (undocumented)
     create(type: string, data: any, baseContext: Omit<StatsFactoryContext, "type">): any;
     // (undocumented)
-    _forEachLevel(hookMap: HookMap_2<any>, cache: CacheHookMap, type: string, fn: CallFn): any;
+    _forEachLevel(hookMap: HookMap<any>, cache: CacheHookMap, type: string, fn: CallFn): any;
     // (undocumented)
-    _forEachLevelFilter(hookMap: HookMap_2<any>, cache: CacheHookMap, type: string, items: any[], fn: CallFn, forceClone: boolean): any[];
+    _forEachLevelFilter(hookMap: HookMap<any>, cache: CacheHookMap, type: string, items: any[], fn: CallFn, forceClone: boolean): any[];
     // (undocumented)
-    _forEachLevelWaterfall(hookMap: HookMap_2<any>, cache: CacheHookMap, type: string, data: any, fn: CallFn): any;
+    _forEachLevelWaterfall(hookMap: HookMap<any>, cache: CacheHookMap, type: string, data: any, fn: CallFn): any;
     // (undocumented)
-    _getAllLevelHooks(hookMap: HookMap_2<any>, cache: CacheHookMap, type: string): any[];
+    _getAllLevelHooks(hookMap: HookMap<any>, cache: CacheHookMap, type: string): any[];
     // (undocumented)
     hooks: Hooks;
 }
@@ -12924,13 +12659,13 @@ class StatsPrinter {
     constructor();
     // (undocumented)
     hooks: Readonly<{
-        sortElements: HookMap_2<SyncBailHook_2<[string[], StatsPrinterContext], true | void>>;
-        printElements: HookMap_2<SyncBailHook_2<[PrintedElement[], StatsPrinterContext], string>>;
-        sortItems: HookMap_2<SyncBailHook_2<[any[], StatsPrinterContext], true>>;
-        getItemName: HookMap_2<SyncBailHook_2<[any, StatsPrinterContext], string>>;
-        printItems: HookMap_2<SyncBailHook_2<[string[], StatsPrinterContext], string>>;
-        print: HookMap_2<SyncBailHook_2<[{}, StatsPrinterContext], string>>;
-        result: HookMap_2<SyncWaterfallHook<[string, StatsPrinterContext]>>;
+        sortElements: HookMap<SyncBailHook<[string[], StatsPrinterContext], true | void>>;
+        printElements: HookMap<SyncBailHook<[PrintedElement[], StatsPrinterContext], string>>;
+        sortItems: HookMap<SyncBailHook<[any[], StatsPrinterContext], true>>;
+        getItemName: HookMap<SyncBailHook<[any, StatsPrinterContext], string>>;
+        printItems: HookMap<SyncBailHook<[string[], StatsPrinterContext], string>>;
+        print: HookMap<SyncBailHook<[{}, StatsPrinterContext], string>>;
+        result: HookMap<SyncWaterfallHook<[string, StatsPrinterContext]>>;
     }>;
     // (undocumented)
     print(type: string, object: {
@@ -13331,51 +13066,12 @@ export interface SwcLoaderTsParserConfig {
 }
 
 // @public (undocumented)
-class SyncBailHook<T, R, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, R, AdditionalOptions> {
-    // (undocumented)
-    call(...args: AsArray<T>): R;
-    // (undocumented)
-    callAsyncStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, R>>): void;
-    // (undocumented)
-    callStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: AsArray<T>): R;
-    // (undocumented)
-    tapAsync(): never;
-    // (undocumented)
-    tapPromise(): never;
-}
-
-// @public (undocumented)
-class SyncHook<T, R = void, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, R, AdditionalOptions> {
-    // (undocumented)
-    call(...args: AsArray<T>): R;
-    // (undocumented)
-    callAsyncStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, R>>): void;
-    // (undocumented)
-    callStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: AsArray<T>): R;
-    // (undocumented)
-    tapAsync(): never;
-    // (undocumented)
-    tapPromise(): never;
-}
-
-// @public (undocumented)
 interface SystemjsConfig {
     // (undocumented)
     allowTopLevelThis?: boolean;
     // (undocumented)
     type: "systemjs";
 }
-
-// @public (undocumented)
-type Tap = TapOptions & {
-    name: string;
-};
-
-// @public (undocumented)
-type TapOptions = {
-    before?: string;
-    stage?: number;
-};
 
 // @public (undocumented)
 export type Target = z.infer<typeof target>;
@@ -13577,12 +13273,6 @@ export type UniqueName = z.infer<typeof uniqueName>;
 const uniqueName: z.ZodString;
 
 // @public (undocumented)
-class UnsetAdditionalOptions {
-    // (undocumented)
-    _UnsetAdditionalOptions: true;
-}
-
-// @public (undocumented)
 export const util: {
     createHash: (algorithm: any) => any;
     cleverMerge: <T, O>(first: T, second: O) => T | O | (T & O);
@@ -13677,7 +13367,7 @@ export class Watching {
     // (undocumented)
     blocked: boolean;
     // (undocumented)
-    callbacks: Callback_2<Error, void>[];
+    callbacks: Callback<Error, void>[];
     // (undocumented)
     close(callback?: () => void): void;
     // (undocumented)
@@ -13687,7 +13377,7 @@ export class Watching {
     // (undocumented)
     invalid: boolean;
     // (undocumented)
-    invalidate(callback?: Callback_2<Error, void>): void;
+    invalidate(callback?: Callback<Error, void>): void;
     // (undocumented)
     isBlocked?: () => boolean;
     // (undocumented)

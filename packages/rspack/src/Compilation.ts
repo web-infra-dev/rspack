@@ -21,6 +21,7 @@ import {
 import * as tapable from "tapable";
 import { Source } from "webpack-sources";
 
+import * as liteTapable from "@rspack/lite-tapable";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import {
 	Filename,
@@ -30,7 +31,6 @@ import {
 	StatsOptions,
 	StatsValue
 } from "./config";
-import * as liteTapable from "./lite-tapable";
 import ResolverFactory = require("./ResolverFactory");
 import { Chunk } from "./Chunk";
 import { ChunkGraph } from "./ChunkGraph";

@@ -310,6 +310,9 @@ importers:
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
+      '@rspack/lite-tapable':
+        specifier: workspace:*
+        version: link:../rspack-lite-tapable
       '@swc/helpers':
         specifier: '>=0.5.1'
         version: 0.5.6
@@ -559,6 +562,8 @@ importers:
       '@types/ws':
         specifier: 8.5.10
         version: 8.5.10
+
+  packages/rspack-lite-tapable: {}
 
   packages/rspack-plugin-minify:
     dependencies:

@@ -1,7 +1,7 @@
 import { BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
 
+import * as liteTapable from "@rspack/lite-tapable";
 import { Compilation } from "../Compilation";
-import * as liteTapable from "../lite-tapable";
 import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 import Hash = require("../util/hash");
 import { Chunk } from "../Chunk";

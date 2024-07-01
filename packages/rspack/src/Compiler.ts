@@ -12,6 +12,7 @@ import * as tapable from "tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type Watchpack from "watchpack";
 
+import * as liteTapable from "@rspack/lite-tapable";
 import { Compilation, CompilationParams } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import { RuleSetCompiler } from "./RuleSetCompiler";
@@ -24,7 +25,6 @@ import {
 	getRawOptions
 } from "./config";
 import { rspack } from "./index";
-import * as liteTapable from "./lite-tapable";
 import ResolverFactory = require("./ResolverFactory");
 import { ThreadsafeWritableNodeFS } from "./FileSystem";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";

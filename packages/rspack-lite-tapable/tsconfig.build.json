@@ -3,10 +3,5 @@
   "compilerOptions": {
     "sourceMap": false,
     "declarationMap": false,
-  },
-  "references": [
-    {
-      "path": "../rspack-lite-tapable/tsconfig.build.json"
-    }
-  ]
+  }
 }
