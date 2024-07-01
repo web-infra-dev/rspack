@@ -11,7 +11,7 @@ While Rspack supports multiple module syntaxes, we recommend following a single 
 Actually Rspack would enforce the recommendation for `.mjs` files, `.cjs` files or `.js` files when their nearest parent `package.json` file contains a `"type"` field with a value of either `"module"` or `"commonjs"`. Please pay attention to these enforcements before you read on:
 
 - `.mjs` or `.js` with `"type": "module"` in package.json
-  - No CommonJS allowed, for example, you can't use require, module.exports or exports
+  - No CommonJS allowed, for example, you can't use `require`, `module.exports` or `exports`
   - File extensions are required when importing, e.g, you should use import './src/App.mjs' instead of import './src/App' (you can disable this enforcement with Rule.resolve.fullySpecified)
 - `.cjs` or `.js` with "type": "commonjs" in package.json
   - Neither import nor export is available
