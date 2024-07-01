@@ -1,3 +1,11 @@
 ERROR in ./logo.svg
   × Module build failed:
   ╰─▶   × Error: Failed to load
+        │     at Object.<anonymous>.module.exports (<PROJECT_ROOT>/tests/diagnosticsCases/module-build-failed/asset-module-build-failed/my-loader.js:2:8)
+        │     at LOADER_EXECUTION (<RSPACK_ROOT>/dist/loader-runner/index.js:213:23)
+        │     at runSyncOrAsync (<RSPACK_ROOT>/dist/loader-runner/index.js:214:11)
+        │     at node:internal/util:442:7
+        │     at new Promise (<anonymous>)
+        │     at runSyncOrAsync (node:internal/util:428:12)
+        │     at runLoaders (<RSPACK_ROOT>/dist/loader-runner/index.js:705:28)
+        │

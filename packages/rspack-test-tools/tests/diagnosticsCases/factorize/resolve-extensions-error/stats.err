@@ -7,4 +7,33 @@ ERROR in ./err/index.js
   help: Found module '../a.txt'. However, it's not possible to request this module without the extension
         if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
         
-        1. add the extension `".txt"` to `resolve.extensions` in your rspack configur
+        1. add the extension `".txt"` to `resolve.extensions` in your rspack configuration
+        2. use '../a.txt' instead of '../a'
+
+ERROR in ./index.js
+  × Resolve error: Can't resolve './test' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/resolve-extensions-error'
+   ╭─[1:1]
+ 1 │ import './err';
+ 2 │ import './test';
+   ·        ────────
+ 3 │ import a from './a';
+   ╰────
+  help: Found module './test/index.txt'. However, it's not possible to request this module without the extension
+        if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
+        
+        1. add the extension `".txt"` to `resolve.extensions` in your rspack configuration
+        2. use './test/index.txt' instead of './test'
+
+ERROR in ./index.js
+  × Resolve error: Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/resolve-extensions-error'
+   ╭─[1:1]
+ 1 │ import './err';
+ 2 │ import './test';
+ 3 │ import a from './a';
+   ·               ─────
+   ╰────
+  help: Found module './a.txt'. However, it's not possible to request this module without the extension
+        if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
+        
+        1. add the extension `".txt"` to `resolve.extensions` in your rspack configuration
+        2. use './a.txt' instead of './a'
