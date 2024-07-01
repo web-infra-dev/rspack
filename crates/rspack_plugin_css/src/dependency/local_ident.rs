@@ -4,22 +4,21 @@ use rspack_core::{
   ExportsSpec, TemplateContext, TemplateReplaceSource,
 };
 
-#[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct CssLocalIdentDependency {
   id: DependencyId,
-  name: String,
   local_ident: String,
+  convention_names: Vec<String>,
   start: u32,
   end: u32,
 }
 
 impl CssLocalIdentDependency {
-  pub fn new(name: String, local_ident: String, start: u32, end: u32) -> Self {
+  pub fn new(local_ident: String, convention_names: Vec<String>, start: u32, end: u32) -> Self {
     Self {
       id: DependencyId::new(),
-      name,
       local_ident,
+      convention_names,
       start,
       end,
     }
@@ -41,11 +40,19 @@ impl Dependency for CssLocalIdentDependency {
 
   fn get_exports(&self, _mg: &rspack_core::ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
-        name: self.name.as_str().into(),
-        can_mangle: Some(false),
-        ..Default::default()
-      })]),
+      exports: ExportsOfExportsSpec::Array(
+        self
+          .convention_names
+          .iter()
+          .map(|name| {
+            ExportNameOrSpec::ExportSpec(ExportSpec {
+              name: name.as_str().into(),
+              can_mangle: Some(false),
+              ..Default::default()
+            })
+          })
+          .collect(),
+      ),
       ..Default::default()
     })
   }

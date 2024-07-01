@@ -196,27 +196,28 @@ impl ParserAndGenerator for CssParserAndGenerator {
             compiler_options,
           )
           .get_local_ident(name);
-          dependencies.push(Box::new(CssLocalIdentDependency::new(
-            name.to_string(),
-            format!("{prefix}{local_ident}"),
-            range.start,
-            range.end,
-          )));
-          let exports = self.exports.get_or_insert_default();
           let convention = self
             .convention
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
-          for name in export_locals_convention(name, convention) {
+          let exports = self.exports.get_or_insert_default();
+          let convention_names = export_locals_convention(name, convention);
+          for name in convention_names.iter() {
             update_css_exports(
               exports,
-              name,
+              name.to_owned(),
               CssExport {
                 ident: local_ident.clone(),
                 from: None,
               },
             );
           }
+          dependencies.push(Box::new(CssLocalIdentDependency::new(
+            format!("{prefix}{local_ident}"),
+            convention_names,
+            range.start,
+            range.end,
+          )));
         }
         css_module_lexer::Dependency::LocalKeyframes { name, range, .. }
         | css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
@@ -229,27 +230,28 @@ impl ParserAndGenerator for CssParserAndGenerator {
             compiler_options,
           )
           .get_local_ident(name);
-          dependencies.push(Box::new(CssLocalIdentDependency::new(
-            name.to_string(),
-            local_ident.clone(),
-            range.start,
-            range.end,
-          )));
           let exports = self.exports.get_or_insert_default();
           let convention = self
             .convention
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
-          for name in export_locals_convention(name, convention) {
+          let convention_names = export_locals_convention(name, convention);
+          for name in convention_names.iter() {
             update_css_exports(
               exports,
-              name,
+              name.to_owned(),
               CssExport {
                 ident: local_ident.clone(),
                 from: None,
               },
             );
           }
+          dependencies.push(Box::new(CssLocalIdentDependency::new(
+            local_ident.clone(),
+            convention_names,
+            range.start,
+            range.end,
+          )));
         }
         css_module_lexer::Dependency::Composes {
           local_classes,
@@ -297,20 +299,18 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .convention
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
-          for name in export_locals_convention(prop, convention) {
-            dependencies.push(Box::new(CssExportDependency::new(
-              name.clone(),
-              value.to_string(),
-            )));
+          let convention_names = export_locals_convention(prop, convention);
+          for name in convention_names.iter() {
             update_css_exports(
               exports,
-              name,
+              name.to_owned(),
               CssExport {
                 ident: value.to_string(),
                 from: None,
               },
             );
           }
+          dependencies.push(Box::new(CssExportDependency::new(convention_names)));
         }
         _ => {}
       }

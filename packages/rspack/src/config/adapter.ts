@@ -333,7 +333,7 @@ function getRawModule(
 		{ rules: module.rules as RuleSetRule[] }
 	];
 	const rules = ruleSet.map((rule, index) =>
-		getRawModuleRule(rule, `ruleSet[${index}]`, options)
+		getRawModuleRule(rule, `ruleSet[${index}]`, options, "javascript/auto")
 	);
 	return {
 		rules,
@@ -380,7 +380,8 @@ function tryMatch(payload: string, condition: RuleSetCondition): boolean {
 const getRawModuleRule = (
 	rule: RuleSetRule,
 	path: string,
-	options: ComposeJsUseOptions
+	options: ComposeJsUseOptions,
+	upperType: string
 ): RawModuleRule => {
 	// Rule.loader is a shortcut to Rule.use: [ { loader } ].
 	// See: https://webpack.js.org/configuration/module/#ruleloader
@@ -438,20 +439,30 @@ const getRawModuleRule = (
 				: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
 		type: rule.type,
 		parser: rule.parser
-			? getRawParserOptions(rule.parser, rule.type ?? "javascript/auto")
+			? getRawParserOptions(rule.parser, rule.type ?? upperType)
 			: undefined,
 		generator: rule.generator
-			? getRawGeneratorOptions(rule.generator, rule.type ?? "javascript/auto")
+			? getRawGeneratorOptions(rule.generator, rule.type ?? upperType)
 			: undefined,
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
 			? rule.oneOf.map((rule, index) =>
-					getRawModuleRule(rule, `${path}.oneOf[${index}]`, options)
+					getRawModuleRule(
+						rule,
+						`${path}.oneOf[${index}]`,
+						options,
+						rule.type ?? upperType
+					)
 				)
 			: undefined,
 		rules: rule.rules
 			? rule.rules.map((rule, index) =>
-					getRawModuleRule(rule, `${path}.rules[${index}]`, options)
+					getRawModuleRule(
+						rule,
+						`${path}.rules[${index}]`,
+						options,
+						rule.type ?? upperType
+					)
 				)
 			: undefined,
 		enforce: rule.enforce
