@@ -30,6 +30,15 @@ pub struct JsFactorizeArgs {
 pub type JsFactorizeOutput = JsFactorizeArgs;
 
 #[napi(object)]
+pub struct JsResolveArgs {
+  pub request: String,
+  pub context: String,
+  pub issuer: String,
+}
+
+pub type JsResolveOutput = JsResolveArgs;
+
+#[napi(object)]
 pub struct JsCreateData {
   pub request: String,
   pub user_request: String,
