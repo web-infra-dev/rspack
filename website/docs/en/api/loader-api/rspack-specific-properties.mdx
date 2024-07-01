@@ -1,3 +1,5 @@
+import { ApiMeta } from '@components/ApiMeta';
+
 import WebpackLicense from '@components/webpack-license';
 
 <WebpackLicense from="https://webpack.js.org/api/loaders/#webpack-specific-properties" />
@@ -14,8 +16,12 @@ Therefore you should only use them as a last resort. Using them will reduce the 
 
 ## this.\_compilation
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 Access to the current Compilation object of Rspack.
 
 ## this.\_compiler
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 Access to the current Compiler object of Rspack.
