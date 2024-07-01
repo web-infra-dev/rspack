@@ -3,6 +3,8 @@ use std::time::Instant;
 
 use async_trait::async_trait;
 use indexmap::set::IndexSet;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{
   ApplyContext, AssetInfo, Compilation, CompilationAsset, CompilationProcessAssets,
@@ -28,6 +30,9 @@ pub struct RSCClientEntryRspackPluginOptions {
 pub struct RSCClientEntryRspackPlugin {
   pub options: RSCClientEntryRspackPluginOptions,
 }
+
+static CSS_RE: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\.(css|scss|sass)").expect("css regexp init failed"));
 
 impl RSCClientEntryRspackPlugin {
   pub fn new(options: RSCClientEntryRspackPluginOptions) -> Self {
@@ -99,7 +104,10 @@ impl RSCClientEntryRspackPlugin {
       visited_modules.insert(String::from(&resource_str));
       let is_css = match module_type {
         ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto => true,
-        _ => false,
+        // css asset type only working with experimental.css
+        // use filepath match as fallback
+        // TODO: maybe we check module.identifier() has css-loader instead
+        _ => CSS_RE.is_match(resource_path_str),
       };
       // TODO: check css file is in used
       // TODO: unique css files from other entry
