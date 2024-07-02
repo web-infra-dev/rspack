@@ -180,7 +180,10 @@ export enum BuiltinPluginName {
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
-  LazyCompilationPlugin = 'LazyCompilationPlugin'
+  LazyCompilationPlugin = 'LazyCompilationPlugin',
+  RSCClientEntryRspackPlugin = 'RSCClientEntryRspackPlugin',
+  RSCClientReferenceManifestRspackPlugin = 'RSCClientReferenceManifestRspackPlugin',
+  RSCProxyRspackPlugin = 'RSCProxyRspackPlugin'
 }
 
 export function cleanupGlobalTrace(): void
@@ -949,6 +952,7 @@ export interface RawEvalDevToolModulePluginOptions {
 export interface RawExperiments {
   topLevelAwait: boolean
   rspackFuture: RawRspackFuture
+  rsc: boolean
 }
 
 export interface RawExposeOptions {
@@ -1335,6 +1339,11 @@ export interface RawReactOptions {
   refresh?: boolean
 }
 
+export interface RawReactRoute {
+  name: ChunkName
+  import: RoutePath
+}
+
 export interface RawRegex {
   source: string
   flags: string
@@ -1378,6 +1387,14 @@ export interface RawResolveTsconfigOptions {
   configFile: string
   referencesType: "auto" | "manual" | "disabled"
   references?: Array<string>
+}
+
+export interface RawRscClientEntryRspackPluginOptions {
+  routes?: Array<RawReactRoute>
+}
+
+export interface RawRscClientReferenceManifestRspackPluginOptions {
+  routes?: Array<RawReactRoute>
 }
 
 export interface RawRspackFuture {

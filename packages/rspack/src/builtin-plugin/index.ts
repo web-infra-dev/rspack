@@ -8,6 +8,8 @@ export * from "./BundlerInfoRspackPlugin";
 export * from "./ChunkPrefetchPreloadPlugin";
 export * from "./CommonJsChunkFormatPlugin";
 export * from "./CopyRspackPlugin";
+export * from "./CopyRspackPlugin";
+export * from "./css-extract";
 export * from "./css-extract";
 export * from "./CssModulesPlugin";
 export * from "./DataUriPlugin";
@@ -33,6 +35,7 @@ export * from "./HttpExternalsRspackPlugin";
 export * from "./IgnorePlugin";
 export * from "./InferAsyncModulesPlugin";
 export * from "./JavascriptModulesPlugin";
+export * from "./JsLoaderRspackPlugin";
 export * from "./JsLoaderRspackPlugin";
 export * from "./JsonModulesPlugin";
 export * from "./lazy-compilation/plugin";
@@ -63,6 +66,9 @@ export * from "./WarnCaseSensitiveModulesPlugin";
 export * from "./WebWorkerTemplatePlugin";
 export * from "./WorkerPlugin";
 export * from "./FetchCompileAsyncWasmPlugin";
+export * from "./RSCClientEntryRspackPlugin";
+export * from "./RSCClientReferenceManifestRspackPlugin";
+export * from "./RSCProxyRspackPlugin";
 
 ///// DEPRECATED /////
 import { RawBuiltins } from "@rspack/binding";

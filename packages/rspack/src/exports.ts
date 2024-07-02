@@ -264,3 +264,6 @@ export type {
 	SwcLoaderTransformConfig,
 	SwcLoaderTsParserConfig
 } from "./builtin-loader/swc/index";
+export { RSCClientEntryRspackPlugin } from "./builtin-plugin";
+export { RSCProxyRspackPlugin } from "./builtin-plugin";
+export { RSCClientReferenceManifestRspackPlugin } from "./builtin-plugin";

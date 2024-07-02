@@ -30,4 +30,5 @@ pub struct Experiments {
   pub incremental_rebuild: IncrementalRebuild,
   pub top_level_await: bool,
   pub rspack_future: RspackFuture,
+  pub rsc: bool,
 }

@@ -11,6 +11,7 @@ pub struct RawRspackFuture {}
 pub struct RawExperiments {
   pub top_level_await: bool,
   pub rspack_future: RawRspackFuture,
+  pub rsc: bool,
 }
 
 impl From<RawRspackFuture> for RspackFuture {
