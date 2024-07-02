@@ -22,7 +22,7 @@ heck               = { version = "0.5.0" }
 hex                = { version = "0.4.3" }
 indexmap           = { version = "2.2.6" }
 indoc              = { version = "2.0.5" }
-itertools          = { version = "0.12.1" }
+itertools          = { version = "0.13.0" }
 json               = { version = "0.12.4" }
 linked_hash_set    = { version = "0.1.4" }
 mimalloc-rust      = { version = "0.2" }
