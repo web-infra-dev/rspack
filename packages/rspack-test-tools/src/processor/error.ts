@@ -22,7 +22,11 @@ const CWD_PATTERN = new RegExp(
 	path.join(process.cwd(), "../../").replace(/\\/g, "/"),
 	"gm"
 );
-const ERROR_STACK_PATTERN = /(?:\n\s+at\s.*)+/gm;
+const ERROR_STACK_PATTERN = /(│.* at ).*/g;
+
+function cleanErrorStack(message: string) {
+	return message.replace(ERROR_STACK_PATTERN, "$1xxx");
+}
 
 function cleanError(err: Error) {
 	const result: Partial<Record<keyof Error, any>> = {};
@@ -31,11 +35,11 @@ function cleanError(err: Error) {
 	}
 
 	if (result.message) {
-		result.message = err.message.replace(ERROR_STACK_PATTERN, "");
+		result.message = cleanErrorStack(err.message);
 	}
 
 	if (result.stack) {
-		result.stack = result.stack.replace(ERROR_STACK_PATTERN, "");
+		result.stack = cleanErrorStack(result.stack);
 	}
 
 	return result;

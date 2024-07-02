@@ -1006,7 +1006,10 @@ export class Compilation {
         processWarnings: liteTapable.SyncWaterfallHook<[Error[]]>;
         succeedModule: liteTapable.SyncHook<[Module], void>;
         stillValidModule: liteTapable.SyncHook<[Module], void>;
-        statsPreset: liteTapable.HookMap<liteTapable.SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext], void>>;
+        statsPreset: liteTapable.HookMap<liteTapable.SyncHook<[
+        Partial<StatsOptions>,
+        CreateStatsOptionsContext
+        ], void>>;
         statsNormalize: liteTapable.SyncHook<[
         Partial<StatsOptions>,
         CreateStatsOptionsContext

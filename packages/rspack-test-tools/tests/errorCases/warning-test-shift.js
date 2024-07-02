@@ -23,7 +23,7 @@ module.exports = {
 		  "errors": Array [],
 		  "warnings": Array [
 		    Object {
-		      "message": "  ⚠ Error: test unshift\\n  │     at Object.fn (<cwd>packages/rspack-test-tools/tests/errorCases/warning-test-shift.js:13:37)\\n  │     at next (<cwd>packages/rspack-lite-tapable/dist/index.js:517:25)\\n  │     at AsyncSeriesHook.callAsyncStageRange (<cwd>packages/rspack-lite-tapable/dist/index.js:537:9)\\n  │     at AsyncSeriesHook.callAsync (<cwd>packages/rspack-lite-tapable/dist/index.js:75:21)\\n  │     at <cwd>packages/rspack/dist/Compiler.js:463:41\\n  │     at <cwd>packages/rspack/dist/Compiler.js:530:23\\n",
+		      "message": "  ⚠ Error: test unshift\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n",
 		    },
 		  ],
 		}
