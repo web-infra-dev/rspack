@@ -40,7 +40,7 @@ export default {
 		{
 			name: "enhanced-resolve",
 			externals: {
-				tapable: "tapable",
+				tapable: "@rspack/lite-tapable",
 				"graceful-fs": "../graceful-fs/index.js"
 			},
 			afterBundle({ depPath, distPath }) {
