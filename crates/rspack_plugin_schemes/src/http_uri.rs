@@ -6,9 +6,17 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use reqwest::Client; // Add reqwest for HTTP requests
 use rspack_core::{
-  ApplyContext, CompilerOptions, Content, ModuleFactoryCreateData,
-  NormalModuleFactoryResolveForScheme, NormalModuleReadResource, Plugin, PluginContext,
+  ApplyContext,
+  CompilerOptions,
+  Content,
+  ModuleFactoryCreateData,
+  NormalModuleFactoryResolveForScheme,
+  NormalModuleFactoryResolveInScheme,
+  NormalModuleReadResource,
+  Plugin,
+  PluginContext,
   ResourceData,
+  Scheme, // Add this import
 };
 use rspack_error::error;
 use rspack_error::{AnyhowError, Result}; // Removed `Error` import
@@ -37,9 +45,37 @@ async fn resolve_for_scheme(
   Ok(None)
 }
 
+#[plugin_hook(NormalModuleFactoryResolveInScheme for HttpUriPlugin)]
+async fn resolve_in_scheme(
+  &self,
+  _data: &mut ModuleFactoryCreateData,
+  resource_data: &mut ResourceData,
+) -> Result<Option<bool>> {
+  dbg!(&resource_data);
+  dbg!(resource_data.get_scheme());
+  dbg!(_data.context.get(self));
+
+  // if _data.context.inner.is_empty() {
+  //   if resource_data.get_scheme().is_http() {
+  //     dbg!("is http context");
+  //   }
+  // }
+  if resource_data.get_scheme().is_http() {
+    // if matches!(_data.context, Scheme::Http) { // Ensure Scheme is imported
+    //   let base_url = url::Url::parse(&_data.context)?;
+    //   let full_url = base_url.join(&resource_data.resource)?;
+    //   resource_data.set_resource(full_url.to_string());
+    //   dbg!(&resource_data.resource);
+    //
+    //   return Ok(None);
+    // }
+  }
+  Ok(None)
+}
+
 #[plugin_hook(NormalModuleReadResource for HttpUriPlugin)]
 async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
-  dbg!("reading resource");
+  dbg!("reading resource before", &resource_data.resource);
   if resource_data.get_scheme().is_http() && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
   {
     dbg!(&resource_data.resource);
@@ -136,6 +172,13 @@ impl Plugin for HttpUriPlugin {
       .normal_module_factory_hooks
       .resolve_for_scheme
       .tap(resolve_for_scheme::new(self));
+
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .resolve_in_scheme
+      .tap(resolve_in_scheme::new(self));
+
     ctx
       .context
       .normal_module_hooks
