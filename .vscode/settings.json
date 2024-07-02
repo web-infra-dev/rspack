@@ -14,7 +14,7 @@
   },
   "editor.formatOnSave": true,
   "git.ignoreLimitWarning": true,
-  "eslint.enable": true,
+  "eslint.enable": false,
   "cSpell.allowCompoundWords": true,
   "cSpell.caseSensitive": true,
   "rust-analyzer.procMacro.enable": true,
