@@ -80,6 +80,7 @@ impl RSCServerReferenceManifest {
   pub fn process_assets_stage_optimize_hash(&self, compilation: &mut Compilation) -> Result<()> {
     let now = Instant::now();
     let mut server_manifest = ServerReferenceManifest {
+      // client components module map used in server bundler manifest
       ssr_module_mapping: HashMap::default(),
       server_actions: HashMap::default(),
       server_imports: HashMap::default(),
@@ -190,6 +191,7 @@ impl RSCServerReferenceManifest {
       SHARED_DATA.lock().unwrap().server_actions.clone(),
     );
     *SHARED_DATA.lock().unwrap() = server_manifest.clone();
+    // TODO: a better way to prevent write same content manifest?
     let mut shim_server_manifest: HashMap<String, ServerActions> = HashMap::default();
     shim_server_manifest.insert(
       String::from("serverActions"),
