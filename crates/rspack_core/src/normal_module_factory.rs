@@ -47,6 +47,7 @@ pub struct NormalModuleFactoryHooks {
   /// So this hook is used to resolve inline loader (inline loader requests).
   // should move to ResolverFactory?
   pub resolve_loader: NormalModuleFactoryResolveLoaderHook,
+  pub resolve_in_scheme: NormalModuleFactoryResolveForSchemeHook, // Add this line
 }
 
 #[derive(Debug)]
@@ -282,9 +283,15 @@ impl NormalModuleFactory {
         .call(data, &mut resource_data)
         .await?;
       resource_data
+    } else if context_scheme.is_some() {
+      let mut resource_data = ResourceData::new(unresolved_resource.to_owned(), "".into());
+      plugin_driver
+        .normal_module_factory_hooks
+        .resolve_for_scheme
+        .call(data, &mut resource_data)
+        .await?;
+      resource_data
     } else {
-      // TODO: resource within scheme
-
       // default resolve
       // resource without scheme and with path
       if unresolved_resource.is_empty() || unresolved_resource.starts_with(QUESTION_MARK) {
