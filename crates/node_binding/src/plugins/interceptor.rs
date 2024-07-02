@@ -17,8 +17,9 @@ use rspack_binding_values::{
   JsContextModuleFactoryAfterResolveData, JsContextModuleFactoryAfterResolveResult,
   JsContextModuleFactoryBeforeResolveData, JsContextModuleFactoryBeforeResolveResult, JsCreateData,
   JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput, JsModule,
-  JsNormalModuleFactoryCreateModuleArgs, JsResolveForSchemeArgs, JsResolveForSchemeOutput,
-  JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
+  JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
+  JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
+  ToJsCompatSource, ToJsModule,
 };
 use rspack_core::{
   rspack_sources::SourceExt, AfterResolveData, AfterResolveResult, AssetEmittedInfo,
@@ -46,8 +47,9 @@ use rspack_core::{
   NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolve,
   NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModule,
   NormalModuleFactoryCreateModuleHook, NormalModuleFactoryFactorize,
-  NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolveForScheme,
-  NormalModuleFactoryResolveForSchemeHook, ResourceData, RuntimeGlobals,
+  NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
+  NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
+  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
@@ -317,6 +319,7 @@ pub enum RegisterJsTapKind {
   CompilationAfterSeal,
   NormalModuleFactoryBeforeResolve,
   NormalModuleFactoryFactorize,
+  NormalModuleFactoryResolve,
   NormalModuleFactoryAfterResolve,
   NormalModuleFactoryCreateModule,
   NormalModuleFactoryResolveForScheme,
@@ -450,6 +453,11 @@ pub struct RegisterJsTaps {
   )]
   pub register_normal_module_factory_factorize_taps:
     RegisterFunction<JsFactorizeArgs, Promise<JsFactorizeOutput>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveArgs) => Promise<JsResolveArgs>); stage: number; }>"
+  )]
+  pub register_normal_module_factory_resolve_taps:
+    RegisterFunction<JsResolveArgs, Promise<JsResolveOutput>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>"
   )]
@@ -696,6 +704,14 @@ define_register!(
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::NormalModuleFactoryFactorize,
+  skip = true,
+);
+define_register!(
+  RegisterNormalModuleFactoryResolveTaps,
+  tap = NormalModuleFactoryResolveTap<JsResolveArgs, Promise<JsResolveOutput>> @ NormalModuleFactoryResolveHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::NormalModuleFactoryResolve,
   skip = true,
 );
 define_register!(
@@ -1210,6 +1226,44 @@ impl NormalModuleFactoryFactorize for NormalModuleFactoryFactorizeTap {
     match self
       .function
       .call_with_promise(JsFactorizeArgs {
+        request: dependency.request().to_string(),
+        context: data.context.to_string(),
+        issuer: data
+          .issuer
+          .as_ref()
+          .map(|issuer| issuer.to_string())
+          .unwrap_or_default(),
+      })
+      .await
+    {
+      Ok(resolve_data) => {
+        dependency.set_request(resolve_data.request);
+        data.context = resolve_data.context.into();
+        // only supports update resolve request for now
+        Ok(None)
+      }
+      Err(err) => Err(err),
+    }
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl NormalModuleFactoryResolve for NormalModuleFactoryResolveTap {
+  async fn run(
+    &self,
+    data: &mut ModuleFactoryCreateData,
+  ) -> rspack_error::Result<Option<NormalModuleFactoryResolveResult>> {
+    let dependency = data
+      .dependency
+      .as_module_dependency_mut()
+      .expect("should be module dependency");
+    match self
+      .function
+      .call_with_promise(JsResolveArgs {
         request: dependency.request().to_string(),
         context: data.context.to_string(),
         issuer: data

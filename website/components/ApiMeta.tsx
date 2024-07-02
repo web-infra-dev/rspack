@@ -16,6 +16,7 @@ export interface ApiMetaProps {
   removedVersion?: string;
   stability?: Stability;
   inline?: boolean;
+  specific?: string[];
 }
 
 export function ApiMeta(props: ApiMetaProps) {
@@ -48,6 +49,12 @@ export function ApiMeta(props: ApiMetaProps) {
         >
           Stability: {props.stability}
         </div>
+      )}
+      {props.specific && props.specific.length > 0 && (
+        <span className={`${tagStyle} ${styles.specific}`}>
+          {props.specific.join('/')}{' '}
+          {props.specific.length > 1 ? 'specific' : 'only'}
+        </span>
       )}
     </div>
   );
