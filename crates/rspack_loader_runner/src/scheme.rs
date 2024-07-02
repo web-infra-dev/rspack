@@ -25,6 +25,10 @@ impl Scheme {
   pub fn is_some(&self) -> bool {
     !self.is_none()
   }
+
+  pub fn is_http(&self) -> bool {
+    matches!(self, Self::Http)
+  }
 }
 
 impl From<&str> for Scheme {
@@ -114,7 +118,12 @@ pub fn get_scheme(specifier: &str) -> Scheme {
     }
   }
 
-  Scheme::from(specifier[..i].to_ascii_lowercase().as_str())
+  let scheme_str = &specifier[..i].to_ascii_lowercase();
+  if scheme_str == "http" || scheme_str == "https" {
+    return Scheme::Http;
+  }
+
+  Scheme::from(scheme_str.as_str())
 }
 
 #[cfg(test)]
@@ -134,6 +143,8 @@ mod tests {
   #[test]
   fn http_for_http_url() {
     assert_eq!(get_scheme("http://localhost"), Scheme::Http);
+    assert_eq!(get_scheme("https://localhost"), Scheme::Http);
+    assert!(Scheme::Http.is_http());
   }
 
   #[test]
