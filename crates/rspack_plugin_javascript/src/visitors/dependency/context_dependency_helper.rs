@@ -1,9 +1,15 @@
 use std::borrow::Cow;
 
+use itertools::Either;
 use itertools::Itertools;
 use rspack_core::parse_resource;
+use rspack_core::SpanExt;
 use rspack_error::Severity;
 use rspack_util::json_stringify;
+use swc_core::common::Spanned;
+use swc_core::ecma::ast::Expr;
+use swc_core::ecma::visit::Visit;
+use swc_core::ecma::visit::VisitWith;
 
 use super::context_helper::{quote_meta, split_context_from_prefix};
 use super::{create_traceable_error, ContextModuleScanResult};
@@ -14,6 +20,7 @@ const DEFAULT_WRAPPED_CONTEXT_REGEXP: &str = ".*";
 
 pub fn create_context_dependency(
   param: &BasicEvaluatedExpression,
+  expr: &Expr,
   parser: &mut crate::visitors::JavascriptParser,
 ) -> ContextModuleScanResult {
   if param.is_template_string() {
@@ -51,33 +58,48 @@ pub fn create_context_dependency(
     );
 
     let mut replaces = Vec::new();
-    let parts = param.parts();
-    for (i, part) in parts.iter().enumerate() {
-      if i % 2 == 0 {
-        if i == 0 {
-          let value = format!(
-            "{}{prefix}",
-            match param.template_string_kind() {
-              TemplateStringKind::Cooked => "`",
-              TemplateStringKind::Raw => "String.raw`",
-            }
-          );
-          replaces.push((value, param.range().0, part.range().1));
-        } else if i == parts.len() - 1 {
-          let value = format!("{postfix}`");
-          replaces.push((value, part.range().0, param.range().1));
-        } else {
-          let value = match param.template_string_kind() {
-            TemplateStringKind::Cooked => {
-              json_stringify(part.string()).trim_matches('"').to_owned()
-            }
-            TemplateStringKind::Raw => part.string().to_owned(),
-          };
-          let range = part.range();
-          replaces.push((value, range.0, range.1));
-        }
+    let (even_parts, odd_parts): (Vec<_>, Vec<_>) =
+      param
+        .parts()
+        .iter()
+        .enumerate()
+        .partition_map(|(index, part)| {
+          if index % 2 == 0 {
+            Either::Left(part)
+          } else {
+            Either::Right(part)
+          }
+        });
+    let last_index = even_parts.len() - 1;
+
+    for (i, part) in even_parts.into_iter().enumerate() {
+      if i == 0 {
+        let value = format!(
+          "{}{prefix}",
+          match param.template_string_kind() {
+            TemplateStringKind::Cooked => "`",
+            TemplateStringKind::Raw => "String.raw`",
+          }
+        );
+        replaces.push((value, param.range().0, part.range().1));
+      } else if i == last_index {
+        let value = format!("{postfix}`");
+        replaces.push((value, part.range().0, param.range().1));
+      } else {
+        let value = match param.template_string_kind() {
+          TemplateStringKind::Cooked => json_stringify(part.string()).trim_matches('"').to_owned(),
+          TemplateStringKind::Raw => part.string().to_owned(),
+        };
+        let range = part.range();
+        replaces.push((value, range.0, range.1));
       }
     }
+
+    let mut walker = BasicEvaluatedExpressionVisitor {
+      targets: odd_parts,
+      on_visit: |n| parser.walk_expression(n),
+    };
+    expr.visit_with(&mut walker);
 
     if parser.javascript_options.wrapped_context_critical {
       let range = param.range();
@@ -160,6 +182,14 @@ pub fn create_context_dependency(
       ));
     }
 
+    if let Some(wrapped_inner_expressions) = param.wrapped_inner_expressions() {
+      let mut walker = BasicEvaluatedExpressionVisitor {
+        targets: wrapped_inner_expressions.iter().collect_vec(),
+        on_visit: |n| parser.walk_expression(n),
+      };
+      expr.visit_with(&mut walker);
+    }
+
     ContextModuleScanResult {
       context,
       reg,
@@ -167,7 +197,6 @@ pub fn create_context_dependency(
       fragment,
       replaces,
     }
-    // TODO: handle `param.wrappedInnerExpressions`
   } else {
     if parser.javascript_options.expr_context_critical {
       let range = param.range();
@@ -181,6 +210,7 @@ pub fn create_context_dependency(
         .with_severity(Severity::Warn),
       ));
     }
+    parser.walk_expression(expr);
     ContextModuleScanResult {
       context: String::from("."),
       reg: String::new(),
@@ -188,5 +218,25 @@ pub fn create_context_dependency(
       fragment: String::new(),
       replaces: Vec::new(),
     }
+  }
+}
+
+struct BasicEvaluatedExpressionVisitor<'a, F: FnMut(&Expr)> {
+  targets: Vec<&'a BasicEvaluatedExpression>,
+  on_visit: F,
+}
+
+impl<'a, F: FnMut(&Expr)> Visit for BasicEvaluatedExpressionVisitor<'a, F> {
+  fn visit_expr(&mut self, n: &Expr) {
+    self.targets.retain(|evaluated_expr| {
+      let span = n.span();
+      let (lo, hi) = evaluated_expr.range();
+      if span.real_lo() == lo && span.hi().0 == hi {
+        (self.on_visit)(n);
+        return false;
+      }
+      true
+    });
+    n.visit_children_with(self);
   }
 }
