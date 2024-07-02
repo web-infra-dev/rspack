@@ -50,9 +50,10 @@ export function ApiMeta(props: ApiMetaProps) {
           Stability: {props.stability}
         </div>
       )}
-      {props.specific && (
+      {props.specific && props.specific.length > 0 && (
         <span className={`${tagStyle} ${styles.specific}`}>
-          <a href={href}>{props.specific.join('/')} specific</a>
+          {props.specific.join('/')}{' '}
+          {props.specific.length > 1 ? 'specific' : 'only'}
         </span>
       )}
     </div>
