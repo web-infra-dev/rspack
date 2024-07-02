@@ -116,6 +116,9 @@ import(
 ##### webpackIgnore
 
 <ApiMeta addedVersion="0.5.0" />
+
+- **type:** `boolean`
+
 Disables dynamic import parsing when set to true.{' '}
 
 :::warning
@@ -123,6 +126,8 @@ Note that setting webpackIgnore to true opts out of code splitting.
 :::
 
 ##### webpackMode
+
+- **type:** `"eager" | "lazy" | "weak" | "lazy-once"`
 
 Different modes for resolving dynamic imports can be specified. The following options are supported:
 
@@ -135,15 +140,25 @@ Different modes for resolving dynamic imports can be specified. The following op
 
 <ApiMeta addedVersion="0.4.5" />
 
-Tells the browser that the resource is probably needed for some navigation in the future.
+- **type:**
+  - `number`: chunk prefetch priority
+  - `boolean`: `false` means not to prefetch, `true` means priority is `0`
+
+Tells the browser that the resource is probably needed for some navigation in the future, see [Prefetching/Preloading modules](/guide/optimization/code-splitting#prefetchingpreloading-modules) for more details.
 
 ##### webpackPreload
 
 <ApiMeta addedVersion="0.4.5" />
 
-Tells the browser that the resource might be needed during the current navigation.
+- **type:**
+  - `number`: chunk preload priority
+  - `boolean`: `false` means not to preload, `true` means priority is `0`
+
+Tells the browser that the resource might be needed during the current navigation, , see [Prefetching/Preloading modules](/guide/optimization/code-splitting#prefetchingpreloading-modules) for more details.
 
 ##### webpackChunkName
+
+- **type:**: `string`
 
 A name for the new chunk.
 

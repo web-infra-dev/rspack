@@ -1,4 +1,5 @@
 import WebpackLicense from '@components/webpack-license';
+import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.docschina.org/guides/code-splitting/" />
 
@@ -164,3 +165,71 @@ Entrypoint index = index.bundle.js
 [./src/shared.js] 24 bytes {src_shared_js}
 build: 67.303ms
 ```
+
+## 预取/预载模块
+
+<ApiMeta addedVersion="0.4.5" />
+
+声明 `import` 时使用下列内置指令可以让 Rspack 产出标签以触发浏览器：
+
+- **预取（prefetch）**: 将来某些导航下可能需要的资源
+- **预载（preload）**: 当前导航下可能需要资源
+
+试想一下下面的场景：现有一个 `HomePage` 组件，其内部渲染了一个 `LoginButton` 组件，点击该按钮后按需加载 `LoginModal` 组件。
+
+```js title=LoginButton.js
+//...
+import(/* webpackPrefetch: true */ './path/to/LoginModal.js');
+```
+
+上面的代码在构建时会生成 `<link rel="prefetch" href="login-modal-chunk.js">` 并添加到页面头部，以此触发浏览器在空闲时预取 `login-modal-chunk.js` 文件。
+
+:::info
+Rspack 将在父 chunk 加载后添加预取标签。
+:::
+
+预载与预取有如下不同点：
+
+- 预载 chunk 与父 chunk 同时并行加载，而预取 chunk 则在父 chunk 加载结束后开始加载。
+- 预载 chunk 具有中等优先级并立即加载，而预取 chunk 则需要等待浏览器空闲
+- 预载 chunk 会在父 chunk 中立即请求，而预取 chunk 则会在未来某个时间点被使用
+- 浏览器支持程度不同
+
+如以下示例，一个 Component 依赖一个大型库，该库被拆分到了一个独立 chunk 中
+
+假设一个 `ChartComponent` 组件 需要一个大型 `ChartingLibrary` 库。它会在渲染时显示一个 `LoadingIndicator` 组件，然后立即按需引入 `ChartingLibrary`：
+
+```js title=ChartComponent.js
+//...
+import(/* webpackPreload: true */ 'ChartingLibrary');
+```
+
+当请求使用 `ChartComponent` 的页面时，也会通过 `<link rel="preload">` 请求 `charting-library-chunk`。假设 `page-chunk` 较小且完成得更快，页面将显示`LoadingIndicator`，直到已请求的 `charting-library-chunk` 完成。这将带来一点加载时间的提升，因为它只需要一次往返而不是两次。尤其是在高延迟环境中。
+
+:::info
+错误地使用 webpackPreload 也会导致性能劣化，请谨慎使用
+:::
+
+有时您需要对预载拥有自己的控制权。例如，可以通过异步脚本完成任何动态导入的预载。这在流式服务器端渲染的情况下会很有用。
+
+```js
+const lazyComp = () =>
+  import('DynamicComponent').catch(error => {
+    // Do something with the error.
+    // For example, we can retry the request in case of any net error
+  });
+```
+
+如果在 Rspack 开始加载该脚本之前脚本加载失败（如果该脚本不在页面上，Rspack 创建一个 script 标签来加载代码），则该异常将无法被捕获，直到 chunkLoadTimeout 超时。这可能出乎预料但可解释为 —— Rspack 无法抛出任何异常，因为 Rspack 并不知道该脚本失败了。Rspack 将在错误发生后立即为 script 标签添加 onerror 监听。
+
+为了避免发生这类问题，您可以添加自己的 onerror 监听，在发生异常时删除该 script：
+
+```html
+<script
+  src="https://example.com/dist/dynamicComponent.js"
+  async
+  onerror="this.remove()"
+></script>
+```
+
+在这个示例中，发生错误的 script 将被移除。Rspack 会创建自己的 script 并在超时前处理任何发生的异常。

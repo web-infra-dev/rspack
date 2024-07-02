@@ -114,6 +114,9 @@ import(
 ##### webpackIgnore
 
 <ApiMeta addedVersion="0.5.0" />
+
+- **类型：** `boolean`
+
 设置为 true 时，禁用动态导入解析。
 
 :::warning
@@ -121,6 +124,8 @@ import(
 :::
 
 ##### webpackMode
+
+- **类型：** `"eager" | "lazy" | "weak" | "lazy-once"`
 
 可以指定以不同的模式解析动态导入。支持以下选项：
 
@@ -133,15 +138,25 @@ import(
 
 <ApiMeta addedVersion="0.4.5" />
 
-告诉浏览器将来可能需要该资源来进行某些导航跳转。
+- **类型：**
+  - `number`: 预取优先级
+  - `boolean`: `false` 表示不预取, `true` 表示预取并且优先级是 `0`
+
+告诉浏览器将来可能需要该资源来进行某些导航跳转，详情请查看[预取/预载模块](/guide/optimization/code-splitting#预取预载模块)。
 
 ##### webpackPreload
 
 <ApiMeta addedVersion="0.4.5" />
 
-告诉浏览器在当前导航期间可能需要该资源。
+- **类型：**
+  - `number`: 预载优先级
+  - `boolean`: `false` 表示不预载, `true` 表示预载并且优先级是 `0`
+
+告诉浏览器在当前导航期间可能需要该资源，详情请查看[预取/预载模块](/guide/optimization/code-splitting#预取预载模块)。
 
 ##### webpackChunkName
+
+- **类型：**: `string`
 
 指定新 chunk 的名称。
 
