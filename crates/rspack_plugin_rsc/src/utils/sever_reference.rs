@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
+use indexmap::IndexMap;
+use itertools::Itertools;
 use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{AssetInfo, Compilation, CompilationAsset, ExportInfoProvided};
 use rspack_error::Result;
@@ -82,7 +84,7 @@ impl RSCServerReferenceManifest {
     let mut server_manifest = ServerReferenceManifest {
       // client components module map used in server bundler manifest
       ssr_module_mapping: HashMap::default(),
-      server_actions: HashMap::default(),
+      server_actions: IndexMap::default(),
       server_imports: HashMap::default(),
     };
     let mut mapping = HashMap::default();
@@ -180,11 +182,16 @@ impl RSCServerReferenceManifest {
         }
       }
     }
-    server_manifest.server_actions.clone().keys().for_each(|f| {
-      server_manifest
-        .server_actions
-        .insert(f.to_string(), mapping.clone());
-    });
+    server_manifest
+      .server_actions
+      .clone()
+      .keys()
+      .sorted()
+      .for_each(|f| {
+        server_manifest
+          .server_actions
+          .insert(f.to_string(), mapping.clone());
+      });
     let mut prev_shim_server_manifest: HashMap<String, ServerActions> = HashMap::default();
     prev_shim_server_manifest.insert(
       String::from("serverActions"),
