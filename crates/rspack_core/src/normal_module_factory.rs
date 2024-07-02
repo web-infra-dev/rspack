@@ -21,16 +21,23 @@ use crate::{
 
 define_hook!(NormalModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
 define_hook!(NormalModuleFactoryFactorize: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> BoxModule);
+define_hook!(NormalModuleFactoryResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> NormalModuleFactoryResolveResult);
 define_hook!(NormalModuleFactoryResolveForScheme: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData) -> bool);
 define_hook!(NormalModuleFactoryAfterResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> bool);
 define_hook!(NormalModuleFactoryCreateModule: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule);
 define_hook!(NormalModuleFactoryModule: AsyncSeries(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule));
 define_hook!(NormalModuleFactoryResolveLoader: AsyncSeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader);
 
+pub enum NormalModuleFactoryResolveResult {
+  Module(BoxModule),
+  Ignored,
+}
+
 #[derive(Debug, Default)]
 pub struct NormalModuleFactoryHooks {
   pub before_resolve: NormalModuleFactoryBeforeResolveHook,
   pub factorize: NormalModuleFactoryFactorizeHook,
+  pub resolve: NormalModuleFactoryResolveHook,
   pub resolve_for_scheme: NormalModuleFactoryResolveForSchemeHook,
   pub after_resolve: NormalModuleFactoryAfterResolveHook,
   pub create_module: NormalModuleFactoryCreateModuleHook,
@@ -119,7 +126,7 @@ impl NormalModuleFactory {
       })
   }
 
-  pub async fn factorize_normal_module(
+  async fn resolve_normal_module(
     &self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<ModuleFactoryResult>> {
@@ -693,18 +700,46 @@ impl NormalModuleFactory {
   }
 
   async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
-    let result = self
+    if let Some(result) = self
       .plugin_driver
       .normal_module_factory_hooks
       .factorize
       .call(data)
-      .await?;
-
-    if let Some(result) = result {
+      .await?
+    {
       return Ok(ModuleFactoryResult::new_with_module(result));
     }
 
-    if let Some(result) = self.factorize_normal_module(data).await? {
+    if let Some(result) = self
+      .plugin_driver
+      .normal_module_factory_hooks
+      .resolve
+      .call(data)
+      .await?
+    {
+      if let NormalModuleFactoryResolveResult::Module(result) = result {
+        return Ok(ModuleFactoryResult::new_with_module(result));
+      } else {
+        let ident = format!(
+          "{}/{}",
+          &data.context,
+          data.request().expect("normal module should have request")
+        );
+        let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
+
+        let raw_module = RawModule::new(
+          "/* (ignored) */".to_owned(),
+          module_identifier,
+          format!("{ident} (ignored)"),
+          Default::default(),
+        )
+        .boxed();
+
+        return Ok(ModuleFactoryResult::new_with_module(raw_module));
+      }
+    }
+
+    if let Some(result) = self.resolve_normal_module(data).await? {
       return Ok(result);
     }
 
