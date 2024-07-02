@@ -1,7 +1,13 @@
-/*
-	MIT License http://www.opensource.org/licenses/mit-license.php
-	Author Tobias Koppers @sokra
-*/
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/tapable/blob/a0a7b26/lib/__tests__/HookTester.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
+
 "use strict";
 
 describe("HookTester", () => {
@@ -1082,6 +1088,7 @@ class HookTester {
 			);
 		}
 
+		// We don't support context, it's deprecated in tapable
 		// {
 		// 	const hook = this.createHook(
 		// 		["a", "b", "c"],
