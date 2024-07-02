@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
 use serde::{Deserialize, Serialize};
 
@@ -9,7 +10,7 @@ pub type ClientImports = HashMap<String, IndexSet<String>>;
 type SSRModuleMapping = HashMap<String, HashMap<String, ServerRef>>;
 pub type ServerImports = HashMap<String, ServerActionRef>;
 // action_id -> chunk_group -> platform
-pub type ServerActions = HashMap<String, HashMap<String, HashMap<String, String>>>;
+pub type ServerActions = IndexMap<String, HashMap<String, HashMap<String, String>>>;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct ServerActionRef {
