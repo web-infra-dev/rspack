@@ -54,10 +54,10 @@ export class AsyncSeriesHook<T, AdditionalOptions = UnsetAdditionalOptions> exte
 }
 
 // @public (undocumented)
-export class AsyncSeriesWaterfallHook<T, R, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, R, AdditionalOptions> {
-    constructor(args?: ArgumentNames<AsArray<T>>, name?: string);
+export class AsyncSeriesWaterfallHook<T, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, AsArray<T>[0], AdditionalOptions> {
+    constructor(args?: FixedSizeArray<AsArray<T>["length"], string>, name?: string);
     // (undocumented)
-    callAsyncStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, R>>): void;
+    callAsyncStageRange(queried: QueriedHook<T, AsArray<T>[0], AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, AsArray<T>[0]>>): void;
     // (undocumented)
     tapAsync(options: Options<AdditionalOptions>, fn: FnWithCallback<T, void>): void;
     // (undocumented)
@@ -65,7 +65,7 @@ export class AsyncSeriesWaterfallHook<T, R, AdditionalOptions = UnsetAdditionalO
 }
 
 // @public (undocumented)
-type Callback<E, T> = (error: E | null, result?: T) => void;
+export type Callback<E, T> = (error: E | null, result?: T) => void;
 
 // @public (undocumented)
 type FixedSizeArray<T extends number, U> = T extends 0 ? void[] : ReadonlyArray<U> & {
@@ -87,9 +87,9 @@ type FullTap = Tap & {
 
 // @public (undocumented)
 export class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
-    constructor(args?: ArgumentNames<AsArray<T>>, name?: string);
+    constructor(args?: FixedSizeArray<AsArray<T>["length"], string>, name?: string);
     // (undocumented)
-    args?: ArgumentNames<AsArray<T>>;
+    args: ArgumentNames<AsArray<T>>;
     // (undocumented)
     callAsync(...args: Append<AsArray<T>, Callback<Error, R>>): void;
     // (undocumented)
@@ -104,6 +104,8 @@ export class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
     isUsed(): boolean;
     // (undocumented)
     name?: string;
+    // (undocumented)
+    _prepareArgs(args: AsArray<T>): (T | undefined)[];
     // (undocumented)
     promise(...args: AsArray<T>): Promise<R>;
     // (undocumented)
@@ -201,6 +203,25 @@ type Measure<T extends number> = T extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 ? T
 export const minStage: number;
 
 // @public (undocumented)
+export class MultiHook<H> {
+    constructor(hooks: H[], name?: string);
+    // (undocumented)
+    hooks: H[];
+    // (undocumented)
+    intercept(interceptor: HookInterceptor<any, any, any>): void;
+    // (undocumented)
+    isUsed(): boolean;
+    // (undocumented)
+    name?: string;
+    // (undocumented)
+    tap(options: string | Tap, fn: Function): void;
+    // (undocumented)
+    tapAsync(options: string | Tap, fn: Function): void;
+    // (undocumented)
+    tapPromise(options: string | Tap, fn: Function): void;
+}
+
+// @public (undocumented)
 export type Options<AdditionalOptions = UnsetAdditionalOptions> = string | (Tap & IfSet<AdditionalOptions>);
 
 // @public (undocumented)
@@ -265,6 +286,21 @@ export class SyncHook<T, R = void, AdditionalOptions = UnsetAdditionalOptions> e
     callAsyncStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, R>>): void;
     // (undocumented)
     callStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: AsArray<T>): R;
+    // (undocumented)
+    tapAsync(): never;
+    // (undocumented)
+    tapPromise(): never;
+}
+
+// @public (undocumented)
+export class SyncWaterfallHook<T, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, AsArray<T>[0], AdditionalOptions> {
+    constructor(args?: FixedSizeArray<AsArray<T>["length"], string>, name?: string);
+    // (undocumented)
+    call(...args: AsArray<T>): AsArray<T>[0];
+    // (undocumented)
+    callAsyncStageRange(queried: QueriedHook<T, AsArray<T>[0], AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, AsArray<T>[0]>>): void;
+    // (undocumented)
+    callStageRange(queried: QueriedHook<T, AsArray<T>[0], AdditionalOptions>, ...args: AsArray<T>): AsArray<T>[0];
     // (undocumented)
     tapAsync(): never;
     // (undocumented)

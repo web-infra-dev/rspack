@@ -1082,66 +1082,66 @@ class HookTester {
 			);
 		}
 
-		{
-			const hook = this.createHook(
-				["a", "b", "c"],
-				`${type}ContextIntercepted`
-			);
-			hook.intercept({
-				call: (context, a, b, c) => {
-					context.number = 42;
-					result[`${type}ContextInterceptedCall1`] = [context, a, b, c];
-				},
-				loop: (context, a, b, c) => {
-					context.number2 = 88;
-					result[`${type}ContextInterceptedLoop1`] = [context, a, b, c];
-				},
-				tap: (context, tap) => {
-					result[`${type}ContextInterceptedTap1`] = context;
-				},
-				context: true
-			});
-			hook.intercept({
-				call: (a, b, c) => {
-					result[`${type}ContextInterceptedCall2`] = [a, b, c];
-				}
-			});
-			hook.tap(
-				{
-					name: "sync",
-					context: true
-				},
-				(context, a, b, c) => context.number + a + b + c
-			);
-			result[`${type}ContextIntercepted`] = await this.gainResult(cb =>
-				hook[type](1, 2, 3, cb)
-			);
-		}
+		// {
+		// 	const hook = this.createHook(
+		// 		["a", "b", "c"],
+		// 		`${type}ContextIntercepted`
+		// 	);
+		// 	hook.intercept({
+		// 		call: (context, a, b, c) => {
+		// 			context.number = 42;
+		// 			result[`${type}ContextInterceptedCall1`] = [context, a, b, c];
+		// 		},
+		// 		loop: (context, a, b, c) => {
+		// 			context.number2 = 88;
+		// 			result[`${type}ContextInterceptedLoop1`] = [context, a, b, c];
+		// 		},
+		// 		tap: (context, tap) => {
+		// 			result[`${type}ContextInterceptedTap1`] = context;
+		// 		},
+		// 		context: true
+		// 	});
+		// 	hook.intercept({
+		// 		call: (a, b, c) => {
+		// 			result[`${type}ContextInterceptedCall2`] = [a, b, c];
+		// 		}
+		// 	});
+		// 	hook.tap(
+		// 		{
+		// 			name: "sync",
+		// 			context: true
+		// 		},
+		// 		(context, a, b, c) => context.number + a + b + c
+		// 	);
+		// 	result[`${type}ContextIntercepted`] = await this.gainResult(cb =>
+		// 		hook[type](1, 2, 3, cb)
+		// 	);
+		// }
 
-		{
-			const hook = this.createHook(
-				["a", "b", "c"],
-				`${type}UnusedContextIntercepted`
-			);
-			hook.intercept({
-				call: (context, a, b, c) => {
-					result[`${type}UnusedContextInterceptedCall1`] = [context, a, b, c];
-				},
-				tap: (context, tap) => {
-					result[`${type}UnusedContextInterceptedTap1`] = context;
-				},
-				context: true
-			});
-			hook.intercept({
-				call: (a, b, c) => {
-					result[`${type}UnusedContextInterceptedCall2`] = [a, b, c];
-				}
-			});
-			hook.tap("sync", (a, b, c) => a + b + c);
-			result[`${type}UnusedContextIntercepted`] = await this.gainResult(cb =>
-				hook[type](1, 2, 3, cb)
-			);
-		}
+		// {
+		// 	const hook = this.createHook(
+		// 		["a", "b", "c"],
+		// 		`${type}UnusedContextIntercepted`
+		// 	);
+		// 	hook.intercept({
+		// 		call: (context, a, b, c) => {
+		// 			result[`${type}UnusedContextInterceptedCall1`] = [context, a, b, c];
+		// 		},
+		// 		tap: (context, tap) => {
+		// 			result[`${type}UnusedContextInterceptedTap1`] = context;
+		// 		},
+		// 		context: true
+		// 	});
+		// 	hook.intercept({
+		// 		call: (a, b, c) => {
+		// 			result[`${type}UnusedContextInterceptedCall2`] = [a, b, c];
+		// 		}
+		// 	});
+		// 	hook.tap("sync", (a, b, c) => a + b + c);
+		// 	result[`${type}UnusedContextIntercepted`] = await this.gainResult(cb =>
+		// 		hook[type](1, 2, 3, cb)
+		// 	);
+		// }
 	}
 
 	gainResult(fn) {

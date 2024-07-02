@@ -6,14 +6,12 @@
 
 /// <reference types="node" />
 
-import { AsyncSeriesBailHook } from 'tapable';
-import { AsyncSeriesHook } from 'tapable';
 import * as binding from '@rspack/binding';
 import { BuiltinPlugin } from '@rspack/binding';
 import { BuiltinPluginName } from '@rspack/binding';
 import Cache_2 = require('./lib/Cache');
 import CacheFacade = require('./lib/CacheFacade');
-import { Callback } from 'tapable';
+import { Callback } from '@rspack/lite-tapable';
 import { Compiler as Compiler_2 } from '../Compiler';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
@@ -24,7 +22,7 @@ import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
 import Hash_2 = require('./util/hash');
 import Hash_3 = require('../util/hash');
-import { HookMap } from 'tapable';
+import { HookMap } from '@rspack/lite-tapable';
 import { JsAssetInfo } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import { JsChunkGroup } from '@rspack/binding';
@@ -42,7 +40,6 @@ import { JsStatsWarning } from '@rspack/binding';
 import { libCacheFacade } from './lib/CacheFacade';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
-import { MultiHook } from 'tapable';
 import { RawBannerPluginOptions } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCopyRspackPluginOptions } from '@rspack/binding';
@@ -65,12 +62,9 @@ import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
 import ResolverFactory = require('./ResolverFactory');
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import sources = require('../compiled/webpack-sources');
-import { SyncBailHook } from 'tapable';
-import { SyncHook } from 'tapable';
-import { SyncWaterfallHook } from 'tapable';
-import * as tapable from 'tapable';
+import { SyncBailHook } from '@rspack/lite-tapable';
+import { SyncWaterfallHook } from '@rspack/lite-tapable';
 import Template = require('./Template');
-import { UnsetAdditionalOptions } from 'tapable';
 import type * as webpackDevServer from 'webpack-dev-server';
 
 // @public (undocumented)
@@ -993,8 +987,8 @@ export class Compilation {
     hooks: Readonly<{
         processAssets: liteTapable.AsyncSeriesHook<Assets>;
         afterProcessAssets: liteTapable.SyncHook<Assets>;
-        childCompiler: tapable.SyncHook<[Compiler, string, number]>;
-        log: tapable.SyncBailHook<[string, LogEntry], true>;
+        childCompiler: liteTapable.SyncHook<[Compiler, string, number]>;
+        log: liteTapable.SyncBailHook<[string, LogEntry], true>;
         additionalAssets: any;
         optimizeModules: liteTapable.SyncBailHook<Iterable<Module>, void>;
         afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>, void>;
@@ -1009,16 +1003,16 @@ export class Compilation {
         finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
         chunkHash: liteTapable.SyncHook<[Chunk, Hash_2], void>;
         chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
-        processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
+        processWarnings: liteTapable.SyncWaterfallHook<[Error[]]>;
         succeedModule: liteTapable.SyncHook<[Module], void>;
         stillValidModule: liteTapable.SyncHook<[Module], void>;
-        statsPreset: tapable.HookMap<tapable.SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext], void>>;
-        statsNormalize: tapable.SyncHook<[
+        statsPreset: liteTapable.HookMap<liteTapable.SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext], void>>;
+        statsNormalize: liteTapable.SyncHook<[
         Partial<StatsOptions>,
         CreateStatsOptionsContext
         ], void>;
-        statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
-        statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
+        statsFactory: liteTapable.SyncHook<[StatsFactory, StatsOptions], void>;
+        statsPrinter: liteTapable.SyncHook<[StatsPrinter, StatsOptions], void>;
         buildModule: liteTapable.SyncHook<[Module]>;
         executeModule: liteTapable.SyncHook<[
         ExecuteModuleArgument,
@@ -1131,7 +1125,7 @@ export class Compiler {
     // (undocumented)
     close(callback: (error?: Error | null) => void): void;
     // (undocumented)
-    compile(callback: Callback<Error, Compilation>): void;
+    compile(callback: liteTapable.Callback<Error, Compilation>): void;
     // (undocumented)
     compilerPath: string;
     // (undocumented)
@@ -1150,35 +1144,35 @@ export class Compiler {
     getInfrastructureLogger(name: string | (() => string)): Logger;
     // (undocumented)
     hooks: {
-        done: tapable.AsyncSeriesHook<Stats>;
-        afterDone: tapable.SyncHook<Stats>;
+        done: liteTapable.AsyncSeriesHook<Stats>;
+        afterDone: liteTapable.SyncHook<Stats>;
         thisCompilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
         compilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
-        invalid: tapable.SyncHook<[string | null, number]>;
-        compile: tapable.SyncHook<[CompilationParams]>;
-        normalModuleFactory: tapable.SyncHook<NormalModuleFactory>;
-        contextModuleFactory: tapable.SyncHook<ContextModuleFactory>;
-        initialize: tapable.SyncHook<[]>;
+        invalid: liteTapable.SyncHook<[string | null, number]>;
+        compile: liteTapable.SyncHook<[CompilationParams]>;
+        normalModuleFactory: liteTapable.SyncHook<NormalModuleFactory>;
+        contextModuleFactory: liteTapable.SyncHook<ContextModuleFactory>;
+        initialize: liteTapable.SyncHook<[]>;
         shouldEmit: liteTapable.SyncBailHook<[Compilation], boolean>;
-        infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
-        beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
-        run: tapable.AsyncSeriesHook<[Compiler]>;
+        infrastructureLog: liteTapable.SyncBailHook<[string, string, any[]], true>;
+        beforeRun: liteTapable.AsyncSeriesHook<[Compiler]>;
+        run: liteTapable.AsyncSeriesHook<[Compiler]>;
         emit: liteTapable.AsyncSeriesHook<[Compilation]>;
         assetEmitted: liteTapable.AsyncSeriesHook<[string, AssetEmittedInfo]>;
         afterEmit: liteTapable.AsyncSeriesHook<[Compilation]>;
-        failed: tapable.SyncHook<[Error]>;
-        shutdown: tapable.AsyncSeriesHook<[]>;
-        watchRun: tapable.AsyncSeriesHook<[Compiler]>;
-        watchClose: tapable.SyncHook<[]>;
-        environment: tapable.SyncHook<[]>;
-        afterEnvironment: tapable.SyncHook<[]>;
-        afterPlugins: tapable.SyncHook<[Compiler]>;
-        afterResolvers: tapable.SyncHook<[Compiler]>;
+        failed: liteTapable.SyncHook<[Error]>;
+        shutdown: liteTapable.AsyncSeriesHook<[]>;
+        watchRun: liteTapable.AsyncSeriesHook<[Compiler]>;
+        watchClose: liteTapable.SyncHook<[]>;
+        environment: liteTapable.SyncHook<[]>;
+        afterEnvironment: liteTapable.SyncHook<[]>;
+        afterPlugins: liteTapable.SyncHook<[Compiler]>;
+        afterResolvers: liteTapable.SyncHook<[Compiler]>;
         make: liteTapable.AsyncParallelHook<[Compilation]>;
-        beforeCompile: tapable.AsyncSeriesHook<[CompilationParams]>;
-        afterCompile: tapable.AsyncSeriesHook<[Compilation]>;
+        beforeCompile: liteTapable.AsyncSeriesHook<[CompilationParams]>;
+        afterCompile: liteTapable.AsyncSeriesHook<[Compilation]>;
         finishMake: liteTapable.AsyncSeriesHook<[Compilation]>;
-        entryOption: tapable.SyncBailHook<[string, EntryNormalized], any>;
+        entryOption: liteTapable.SyncBailHook<[string, EntryNormalized], any>;
     };
     // (undocumented)
     idle: boolean;
@@ -1223,13 +1217,13 @@ export class Compiler {
     // (undocumented)
     root: Compiler;
     // (undocumented)
-    run(callback: Callback<Error, Stats>): void;
+    run(callback: liteTapable.Callback<Error, Stats>): void;
     // (undocumented)
     runAsChild(callback: (err?: null | Error, entries?: Chunk[], compilation?: Compilation) => any): void;
     // (undocumented)
     running: boolean;
     // (undocumented)
-    watch(watchOptions: Watchpack.WatchOptions, handler: Callback<Error, Stats>): Watching;
+    watch(watchOptions: Watchpack.WatchOptions, handler: liteTapable.Callback<Error, Stats>): Watching;
     // (undocumented)
     watchFileSystem: WatchFileSystem | null;
     // (undocumented)
@@ -5842,7 +5836,7 @@ type ModuleReplacer = (createData: ResolveData) => void;
 export class MultiCompiler {
     constructor(compilers: Compiler[] | Record<string, Compiler>, options?: MultiCompilerOptions);
     // (undocumented)
-    close(callback: Callback<Error, void>): void;
+    close(callback: liteTapable.Callback<Error, void>): void;
     // (undocumented)
     compilers: Compiler[];
     // (undocumented)
@@ -5851,12 +5845,12 @@ export class MultiCompiler {
     getInfrastructureLogger(name: string): Logger_2;
     // (undocumented)
     hooks: {
-        done: SyncHook<MultiStats>;
-        invalid: MultiHook<SyncHook<[string | null, number]>>;
-        run: MultiHook<AsyncSeriesHook<[Compiler]>>;
-        watchClose: SyncHook<[]>;
-        watchRun: MultiHook<AsyncSeriesHook<[Compiler]>>;
-        infrastructureLog: MultiHook<SyncBailHook<[string, string, any[]], true>>;
+        done: liteTapable.SyncHook<MultiStats>;
+        invalid: liteTapable.MultiHook<liteTapable.SyncHook<[string | null, number]>>;
+        run: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
+        watchClose: liteTapable.SyncHook<[]>;
+        watchRun: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
+        infrastructureLog: liteTapable.MultiHook<liteTapable.SyncBailHook<[string, string, any[]], true>>;
     };
     // (undocumented)
     get inputFileSystem(): void;
@@ -5876,15 +5870,15 @@ export class MultiCompiler {
     // (undocumented)
     purgeInputFileSystem(): void;
     // (undocumented)
-    run(callback: Callback<Error, MultiStats>): void;
+    run(callback: liteTapable.Callback<Error, MultiStats>): void;
     // (undocumented)
     running: boolean;
     // (undocumented)
     setDependencies(compiler: Compiler, dependencies: string[]): void;
     // (undocumented)
-    validateDependencies(callback: Callback<Error, MultiStats>): boolean;
+    validateDependencies(callback: liteTapable.Callback<Error, MultiStats>): boolean;
     // (undocumented)
-    watch(watchOptions: WatchOptions, handler: Callback<Error, MultiStats>): MultiWatching;
+    watch(watchOptions: WatchOptions, handler: liteTapable.Callback<Error, MultiStats>): MultiWatching;
     // (undocumented)
     get watchFileSystem(): WatchFileSystem;
     set watchFileSystem(value: WatchFileSystem);
@@ -6045,9 +6039,13 @@ type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, k
 export class NormalModule {
     // (undocumented)
     static getCompilationHooks(compilation: Compilation): {
-        loader: SyncHook<[LoaderContext<{}>], void, UnsetAdditionalOptions>;
+        loader: liteTapable.SyncHook<[LoaderContext<{}>], void, {
+            _UnsetAdditionalOptions: true;
+        }>;
         readResourceForScheme: any;
-        readResource: HookMap<AsyncSeriesBailHook<[LoaderContext<{}>], string | Buffer, UnsetAdditionalOptions>>;
+        readResource: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[LoaderContext<{}>], string | Buffer, {
+            _UnsetAdditionalOptions: true;
+        }>>;
     };
 }
 

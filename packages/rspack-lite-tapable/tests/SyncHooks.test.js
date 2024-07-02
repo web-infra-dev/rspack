@@ -5,7 +5,7 @@
 "use strict";
 
 const HookTester = require("./HookTester");
-const { SyncHook, SyncBailHook } = require("../");
+const { SyncHook, SyncBailHook, SyncWaterfallHook } = require("../");
 
 describe("SyncHook", () => {
 	it("should have to correct behavior", async () => {
@@ -27,15 +27,15 @@ describe("SyncBailHook", () => {
 	}, 15000);
 });
 
-// describe("SyncWaterfallHook", () => {
-// 	it("should have to correct behavior", async () => {
-// 		const tester = new HookTester(args => new SyncWaterfallHook(args));
+describe("SyncWaterfallHook", () => {
+	it("should have to correct behavior", async () => {
+		const tester = new HookTester(args => new SyncWaterfallHook(args));
 
-// 		const result = await tester.run(true);
+		const result = await tester.run(true);
 
-// 		expect(result).toMatchSnapshot();
-// 	}, 15000);
-// });
+		expect(result).toMatchSnapshot();
+	}, 15000);
+});
 
 // describe("SyncLoopHook", () => {
 // 	it("should have to correct behavior", async () => {

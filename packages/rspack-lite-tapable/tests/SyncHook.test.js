@@ -61,8 +61,8 @@ describe("SyncHook", () => {
 
 		await h3.promise("x", "y");
 
-		expect(mock4).toHaveBeenLastCalledWith("x", "y");
-		expect(mock5).toHaveBeenLastCalledWith("x", "y");
+		expect(mock4).toHaveBeenLastCalledWith("x", "y", undefined);
+		expect(mock5).toHaveBeenLastCalledWith("x", "y", undefined);
 	});
 
 	it("should sync execute hooks", () => {

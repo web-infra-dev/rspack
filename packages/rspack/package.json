@@ -95,8 +95,7 @@
     "@module-federation/runtime-tools": "0.1.6",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "workspace:*",
-    "caniuse-lite": "^1.0.30001616",
-    "tapable": "2.2.1"
+    "caniuse-lite": "^1.0.30001616"
   },
   "peerDependencies": {
     "@swc/helpers": ">=0.5.1"

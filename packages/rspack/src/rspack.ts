@@ -9,7 +9,7 @@
  */
 import assert from "assert";
 import util from "util";
-import { Callback } from "tapable";
+import { Callback } from "@rspack/lite-tapable";
 
 import { Compiler } from "./Compiler";
 import {

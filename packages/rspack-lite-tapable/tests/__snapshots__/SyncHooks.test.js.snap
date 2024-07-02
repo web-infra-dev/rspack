@@ -529,3 +529,261 @@ exports[`SyncHook should have to correct behavior 1`] = `
   },
 }
 `;
+
+exports[`SyncWaterfallHook should have to correct behavior 1`] = `
+{
+  "async": {},
+  "intercept": {},
+  "sync": {
+    "callAsyncIntercepted": {
+      "type": "async",
+      "value": 9,
+    },
+    "callAsyncInterceptedCall1": [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedTap1": {
+      "fn": 2,
+      "name": "sync2",
+      "type": "sync",
+    },
+    "callAsyncInterceptedTap2": {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "callAsyncMultipleSync": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleSyncError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleSyncWithArg": {
+      "type": "async",
+      "value": 127,
+    },
+    "callAsyncMultipleSyncWithArgCalled1": 42,
+    "callAsyncMultipleSyncWithArgCalled2": 84,
+    "callAsyncMultipleSyncWithArgFirstReturn": {
+      "type": "async",
+      "value": 84,
+    },
+    "callAsyncMultipleSyncWithArgFirstReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgFirstReturnCalled2": 84,
+    "callAsyncMultipleSyncWithArgLastReturn": {
+      "type": "async",
+      "value": 85,
+    },
+    "callAsyncMultipleSyncWithArgLastReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgLastReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgNoReturn": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncMultipleSyncWithArgNoReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgNoReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgs": {
+      "type": "async",
+      "value": 217,
+    },
+    "callAsyncMultipleSyncWithArgsCalled1": [
+      42,
+      43,
+      44,
+    ],
+    "callAsyncMultipleSyncWithArgsCalled2": [
+      129,
+      43,
+      44,
+    ],
+    "callAsyncNone": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncNoneWithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleSync": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncSingleSyncWithArg": {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleSyncWithArgCalled": 42,
+    "callIntercepted": {
+      "type": "return",
+      "value": 9,
+    },
+    "callInterceptedCall1": [
+      1,
+      2,
+      3,
+    ],
+    "callInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "callInterceptedTap1": {
+      "fn": 2,
+      "name": "sync2",
+      "type": "sync",
+    },
+    "callInterceptedTap2": {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "callMultipleSync": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callMultipleSyncError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callMultipleSyncWithArg": {
+      "type": "return",
+      "value": 127,
+    },
+    "callMultipleSyncWithArgCalled1": 42,
+    "callMultipleSyncWithArgCalled2": 84,
+    "callMultipleSyncWithArgFirstReturn": {
+      "type": "return",
+      "value": 84,
+    },
+    "callMultipleSyncWithArgFirstReturnCalled1": 42,
+    "callMultipleSyncWithArgFirstReturnCalled2": 84,
+    "callMultipleSyncWithArgLastReturn": {
+      "type": "return",
+      "value": 85,
+    },
+    "callMultipleSyncWithArgLastReturnCalled1": 42,
+    "callMultipleSyncWithArgLastReturnCalled2": 42,
+    "callMultipleSyncWithArgNoReturn": {
+      "type": "return",
+      "value": 42,
+    },
+    "callMultipleSyncWithArgNoReturnCalled1": 42,
+    "callMultipleSyncWithArgNoReturnCalled2": 42,
+    "callMultipleSyncWithArgs": {
+      "type": "return",
+      "value": 217,
+    },
+    "callMultipleSyncWithArgsCalled1": [
+      42,
+      43,
+      44,
+    ],
+    "callMultipleSyncWithArgsCalled2": [
+      129,
+      43,
+      44,
+    ],
+    "callNone": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callNoneWithArg": {
+      "type": "return",
+      "value": 42,
+    },
+    "callSingleSync": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callSingleSyncWithArg": {
+      "type": "return",
+      "value": 42,
+    },
+    "callSingleSyncWithArgCalled": 42,
+    "promiseIntercepted": {
+      "type": "promise",
+      "value": 9,
+    },
+    "promiseInterceptedCall1": [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedCall2": [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedTap1": {
+      "fn": 2,
+      "name": "sync2",
+      "type": "sync",
+    },
+    "promiseInterceptedTap2": {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "promiseMultipleSync": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleSyncError": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleSyncWithArg": {
+      "type": "promise",
+      "value": 127,
+    },
+    "promiseMultipleSyncWithArgCalled1": 42,
+    "promiseMultipleSyncWithArgCalled2": 84,
+    "promiseMultipleSyncWithArgFirstReturn": {
+      "type": "promise",
+      "value": 84,
+    },
+    "promiseMultipleSyncWithArgFirstReturnCalled1": 42,
+    "promiseMultipleSyncWithArgFirstReturnCalled2": 84,
+    "promiseMultipleSyncWithArgLastReturn": {
+      "type": "promise",
+      "value": 85,
+    },
+    "promiseMultipleSyncWithArgLastReturnCalled1": 42,
+    "promiseMultipleSyncWithArgLastReturnCalled2": 42,
+    "promiseMultipleSyncWithArgNoReturn": {
+      "type": "promise",
+      "value": 42,
+    },
+    "promiseMultipleSyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleSyncWithArgNoReturnCalled2": 42,
+    "promiseMultipleSyncWithArgs": {
+      "type": "promise",
+      "value": 217,
+    },
+    "promiseMultipleSyncWithArgsCalled1": [
+      42,
+      43,
+      44,
+    ],
+    "promiseMultipleSyncWithArgsCalled2": [
+      129,
+      43,
+      44,
+    ],
+    "promiseNone": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseNoneWithArg": {
+      "type": "promise",
+      "value": 42,
+    },
+    "promiseSingleSync": {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseSingleSyncWithArg": {
+      "type": "promise",
+      "value": 42,
+    },
+    "promiseSingleSyncWithArgCalled": 42,
+  },
+}
+`;

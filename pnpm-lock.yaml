@@ -319,9 +319,6 @@ importers:
       caniuse-lite:
         specifier: ^1.0.30001616
         version: 1.0.30001616
-      tapable:
-        specifier: 2.2.1
-        version: 2.2.1
     devDependencies:
       '@rspack/core':
         specifier: workspace:*
