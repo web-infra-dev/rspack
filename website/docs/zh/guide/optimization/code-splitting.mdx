@@ -207,7 +207,7 @@ import(/* webpackPreload: true */ 'ChartingLibrary');
 当请求使用 `ChartComponent` 的页面时，也会通过 `<link rel="preload">` 请求 `charting-library-chunk`。假设 `page-chunk` 较小且完成得更快，页面将显示`LoadingIndicator`，直到已请求的 `charting-library-chunk` 完成。这将带来一点加载时间的提升，因为它只需要一次往返而不是两次。尤其是在高延迟环境中。
 
 :::info
-错误地使用 webpackPreload 也会导致性能劣化，请谨慎使用
+错误地使用 webpackPreload 也会导致性能劣化，请谨慎使用。
 :::
 
 有时您需要对预载拥有自己的控制权。例如，可以通过异步脚本完成任何动态导入的预载。这在流式服务器端渲染的情况下会很有用。
