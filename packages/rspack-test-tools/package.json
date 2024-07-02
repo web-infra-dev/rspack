@@ -78,14 +78,14 @@
     "@types/react-dom": "^18.2.18",
     "@types/webpack": "5.28.5",
     "@types/webpack-sources": "3.2.3",
-    "core-js": "3.36.1",
-    "monaco-editor": "0.47.0",
+    "core-js": "3.37.1",
+    "monaco-editor": "0.50.0",
     "monaco-editor-webpack-plugin": "7.1.0",
     "normalize.css": "^8.0.0",
     "npm-run-all2": "^6.2.0",
     "react": "18.0.0",
     "react-dom": "18.0.0",
-    "react-refresh": "0.14.0"
+    "react-refresh": "0.14.2"
   },
   "peerDependencies": {
     "@rspack/core": ">=0.7.0"
