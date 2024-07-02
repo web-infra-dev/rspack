@@ -33,10 +33,10 @@ features:
     details: 兼容 webpack 生态中的 plugin 和 loader，无缝衔接社区中沉淀的优秀库。
     icon: 📦
     link: /zh/guide/compatibility/plugin
-  - title: 内置常见构建能力
-    details: 对 Typescript、JSX、CSS、CSS Modules、Sass 等提供开箱即用的支持。
+  - title: 模块联邦
+    details: 为 Module Federation 提供一流的支持，助力开发规模化的 Web 应用。
     icon: 🎨
-    link: /zh/guide/tech/typescript
+    link: /guide/features/module-federation
   - title: 默认生产优化
     details: 默认内置多种优化策略，如 Tree Shaking、代码压缩等等。
     icon: 🛠️
