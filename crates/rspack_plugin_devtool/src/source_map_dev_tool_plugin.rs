@@ -213,8 +213,6 @@ impl SourceMapDevToolPlugin {
         };
         (source.to_string(), module_or_source)
       })
-      .collect::<Vec<_>>()
-      .into_iter()
       .collect::<HashMap<_, _>>();
 
     let module_source_names = source_map_modules.values().collect::<Vec<_>>();
@@ -231,8 +229,6 @@ impl SourceMapDevToolPlugin {
           );
           (module_or_source, source_name)
         })
-        .collect::<Vec<_>>()
-        .into_iter()
         .collect::<HashMap<_, _>>(),
       ModuleFilenameTemplate::Fn(f) => {
         let features = module_source_names
