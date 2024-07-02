@@ -12,11 +12,10 @@ import { BuiltinPluginName } from '@rspack/binding';
 import Cache_2 = require('./lib/Cache');
 import CacheFacade = require('./lib/CacheFacade');
 import { Callback } from '@rspack/lite-tapable';
+import { cleanupGlobalTrace } from '@rspack/binding';
 import { Compiler as Compiler_2 } from '../Compiler';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
-import { cleanupGlobalTrace as experimental_cleanupGlobalTrace } from '@rspack/binding';
-import { registerGlobalTrace as experimental_registerGlobalTrace } from '@rspack/binding';
 import { ExternalObject } from '@rspack/binding';
 import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
@@ -59,6 +58,7 @@ import type { RawReactOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
 import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
+import { registerGlobalTrace } from '@rspack/binding';
 import ResolverFactory = require('./ResolverFactory');
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import sources = require('../compiled/webpack-sources');
@@ -2885,15 +2885,23 @@ interface ExecuteModuleContext {
     __webpack_require__: (id: string) => any;
 }
 
-export { experimental_cleanupGlobalTrace }
-
-export { experimental_registerGlobalTrace }
+// @public (undocumented)
+export type Experiments = z.infer<typeof experiments_2>;
 
 // @public (undocumented)
-export type Experiments = z.infer<typeof experiments>;
+export const experiments: Experiments_2;
 
 // @public (undocumented)
-const experiments: z.ZodObject<{
+interface Experiments_2 {
+    // (undocumented)
+    globalTrace: {
+        register: typeof registerGlobalTrace;
+        cleanup: typeof cleanupGlobalTrace;
+    };
+}
+
+// @public (undocumented)
+const experiments_2: z.ZodObject<{
     lazyCompilation: z.ZodUnion<[z.ZodOptional<z.ZodBoolean>, z.ZodObject<{
         imports: z.ZodOptional<z.ZodBoolean>;
         entries: z.ZodOptional<z.ZodBoolean>;
@@ -8223,8 +8231,6 @@ declare namespace rspackExports {
         util,
         EntryOptionPlugin,
         OutputFileSystem,
-        experimental_cleanupGlobalTrace,
-        experimental_registerGlobalTrace,
         BannerPluginArgument,
         ProvidePluginOptions,
         DefinePluginOptions,
@@ -8308,6 +8314,7 @@ declare namespace rspackExports {
         SwcLoaderParserConfig,
         SwcLoaderTransformConfig,
         SwcLoaderTsParserConfig,
+        experiments,
         getRawLibrary,
         getRawChunkLoading,
         LoaderContext,

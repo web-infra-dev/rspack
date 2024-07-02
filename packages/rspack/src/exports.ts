@@ -75,10 +75,6 @@ export const util = { createHash, cleverMerge };
 
 export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
 export { type OutputFileSystem } from "./util/fs";
-export {
-	cleanupGlobalTrace as experimental_cleanupGlobalTrace,
-	registerGlobalTrace as experimental_registerGlobalTrace
-} from "@rspack/binding";
 
 ///// Internal Plugins /////
 export type { BannerPluginArgument } from "./builtin-plugin";
@@ -264,3 +260,18 @@ export type {
 	SwcLoaderTransformConfig,
 	SwcLoaderTsParserConfig
 } from "./builtin-loader/swc/index";
+
+///// Experiments Stuff /////
+import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
+interface Experiments {
+	globalTrace: {
+		register: typeof registerGlobalTrace;
+		cleanup: typeof cleanupGlobalTrace;
+	};
+}
+export const experiments: Experiments = {
+	globalTrace: {
+		register: registerGlobalTrace,
+		cleanup: cleanupGlobalTrace
+	}
+};
