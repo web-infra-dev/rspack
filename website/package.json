@@ -30,7 +30,7 @@
   "devDependencies": {
     "@rspress/plugin-rss": "^1.25.2",
     "@rspress/shared": "^1.25.2",
-    "@types/node": "^18.11.18",
+    "@types/node": "^20.0.0",
     "@types/react": "^18.0.27",
     "@types/semver": "^7.5.2",
     "case-police": "0.6.1",
