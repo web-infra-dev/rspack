@@ -32,6 +32,7 @@ mod exports_info;
 pub use exports_info::*;
 pub mod module;
 pub mod parser_and_generator;
+pub use concatenated_module::*;
 pub use module::*;
 pub use parser_and_generator::*;
 mod runtime_globals;

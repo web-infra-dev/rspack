@@ -9,8 +9,8 @@ use swc_core::ecma::atoms::Atom;
 #[derive(Debug, Clone)]
 pub struct HarmonyExportSpecifierDependency {
   id: DependencyId,
-  name: Atom,
-  value: Atom, // id
+  pub name: Atom,
+  pub value: Atom, // id
 }
 
 impl HarmonyExportSpecifierDependency {

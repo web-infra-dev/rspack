@@ -149,6 +149,7 @@ pub struct BuildMeta {
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
   pub side_effect_free: Option<bool>,
+  pub exports_final_name: Option<Vec<(String, String)>>,
 }
 
 // webpack build info

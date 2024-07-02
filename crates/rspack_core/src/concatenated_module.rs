@@ -15,6 +15,7 @@ use regex::Regex;
 use rspack_ast::javascript::Ast;
 use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableError};
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
+use rspack_hook::define_hook;
 use rspack_identifier::Identifiable;
 use rspack_sources::{CachedSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt};
 use rspack_util::{source_map::SourceMapKind, swc::join_atom};
@@ -37,14 +38,22 @@ use crate::{
   reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
   subtract_runtime_condition, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
-  ChunkInitFragments, CodeGenerationDataTopLevelDeclarations, CodeGenerationResult, Compilation,
-  ConcatenatedModuleIdent, ConcatenationScope, ConnectionId, ConnectionState, Context,
-  DependenciesBlock, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId,
-  ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector, LibIdentOptions,
-  Module, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
-  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template,
-  UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  ChunkInitFragments, CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
+  CodeGenerationResult, Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionId,
+  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, DependencyType,
+  ErrorSpan, ExportInfoId, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta,
+  IdentCollector, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, ModuleType, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
+  SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
+
+type ExportsDefinitionArgs = Vec<(String, String)>;
+define_hook!(ConcatenatedModuleExportsDefinitions: SyncSeriesBail(exports_definitions: &mut ExportsDefinitionArgs) -> bool);
+
+#[derive(Debug, Default)]
+pub struct ConcatenatedModuleHooks {
+  pub exports_definitions: ConcatenatedModuleExportsDefinitionsHook,
+}
 
 #[derive(Debug)]
 pub struct RootModuleContext {
@@ -407,6 +416,7 @@ impl ConcatenatedModule {
     modules: Vec<ConcatenatedInnerModule>,
     hash_function: Option<HashFunction>,
     runtime: Option<RuntimeSpec>,
+    compilation: &Compilation,
   ) -> Self {
     let id = Self::create_identifier(&root_module_ctxt, &modules, hash_function);
     Self::new(id.as_str().into(), root_module_ctxt, modules, runtime)
@@ -946,6 +956,7 @@ impl Module for ConcatenatedModule {
       .unwrap_or_default();
 
     let exports_info = module_graph.get_exports_info(&root_module_id);
+    let mut exports_final_names: Vec<(String, String)> = vec![];
 
     for (_, export_info_id) in exports_info.exports.iter() {
       let export_info = export_info_id.get_export_info(&module_graph);
@@ -959,7 +970,7 @@ impl Module for ConcatenatedModule {
         unused_exports.insert(name);
         continue;
       };
-      exports_map.insert(used_name, {
+      exports_map.insert(used_name.clone(), {
         let final_name = Self::get_final_name(
           &compilation.get_module_graph(),
           &root_module_id,
@@ -973,6 +984,7 @@ impl Module for ConcatenatedModule {
           Some(true),
           &compilation.options.context,
         );
+        exports_final_names.push((used_name.to_string(), final_name.clone()));
         format!(
           "/* {} */ {}",
           if export_info.is_reexport() {
@@ -986,6 +998,7 @@ impl Module for ConcatenatedModule {
     }
 
     let mut result = ConcatSource::default();
+    let mut should_add_harmony_flag = false;
 
     // Add harmony compatibility flag (must be first because of possible circular dependencies)
     if compilation
@@ -995,11 +1008,7 @@ impl Module for ConcatenatedModule {
       .get_used(&compilation.get_module_graph(), runtime)
       != UsageState::Unused
     {
-      result.add(RawSource::from("// ESM COMPAT FLAG\n"));
-      result.add(RawSource::from(define_es_module_flag_statement(
-        self.get_exports_argument(),
-        &mut runtime_requirements,
-      )));
+      should_add_harmony_flag = true
     }
 
     // Assuming the necessary imports and dependencies are declared
@@ -1017,17 +1026,35 @@ impl Module for ConcatenatedModule {
           returning_function(value, "")
         ));
       }
+
       let exports_argument = self
         .build_meta()
         .map(|meta| meta.exports_argument)
         .unwrap_or(ExportsArgument::Exports);
-      result.add(RawSource::from("\n// EXPORTS\n"));
-      result.add(RawSource::from(format!(
-        "{}({}, {{{}\n}});\n",
-        RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-        exports_argument,
-        definitions.join(",")
-      )));
+
+      let should_skip_render_definitions = compilation
+        .plugin_driver
+        .concatenated_module_hooks
+        .exports_definitions
+        .call(&mut exports_final_names)?;
+
+      if !matches!(should_skip_render_definitions, Some(true)) {
+        if should_add_harmony_flag {
+          result.add(RawSource::from("// ESM COMPAT FLAG\n"));
+          result.add(RawSource::from(define_es_module_flag_statement(
+            self.get_exports_argument(),
+            &mut runtime_requirements,
+          )));
+        }
+
+        result.add(RawSource::from("\n// EXPORTS\n"));
+        result.add(RawSource::from(format!(
+          "{}({}, {{{}\n}});\n",
+          RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+          exports_argument,
+          definitions.join(",")
+        )));
+      }
     }
 
     // List unused exports
@@ -1292,6 +1319,17 @@ impl Module for ConcatenatedModule {
       .insert(CodeGenerationDataTopLevelDeclarations::new(
         top_level_declarations,
       ));
+
+    if !exports_final_names.is_empty() {
+      let exports_final_names_map: HashMap<String, String> =
+        exports_final_names.into_iter().collect();
+
+      code_generation_result
+        .data
+        .insert(CodeGenerationExportsFinalNames::new(
+          exports_final_names_map,
+        ));
+    }
     Ok(code_generation_result)
   }
 

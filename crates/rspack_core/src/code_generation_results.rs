@@ -83,6 +83,21 @@ impl CodeGenerationDataTopLevelDeclarations {
   }
 }
 
+#[derive(Clone, Debug)]
+pub struct CodeGenerationExportsFinalNames {
+  inner: HashMap<String, String>,
+}
+
+impl CodeGenerationExportsFinalNames {
+  pub fn new(inner: HashMap<String, String>) -> Self {
+    Self { inner }
+  }
+
+  pub fn inner(&self) -> &HashMap<String, String> {
+    &self.inner
+  }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationData {
   inner: anymap::Map<dyn CloneAny + Send + Sync>,
