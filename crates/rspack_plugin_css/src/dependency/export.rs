@@ -4,20 +4,17 @@ use rspack_core::{
   ExportsSpec, TemplateContext, TemplateReplaceSource,
 };
 
-#[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct CssExportDependency {
   id: DependencyId,
-  name: String,
-  value: String,
+  convention_names: Vec<String>,
 }
 
 impl CssExportDependency {
-  pub fn new(name: String, value: String) -> Self {
+  pub fn new(convention_names: Vec<String>) -> Self {
     Self {
       id: DependencyId::new(),
-      name,
-      value,
+      convention_names,
     }
   }
 }
@@ -37,11 +34,19 @@ impl Dependency for CssExportDependency {
 
   fn get_exports(&self, _mg: &rspack_core::ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
-        name: self.name.as_str().into(),
-        can_mangle: Some(false),
-        ..Default::default()
-      })]),
+      exports: ExportsOfExportsSpec::Array(
+        self
+          .convention_names
+          .iter()
+          .map(|name| {
+            ExportNameOrSpec::ExportSpec(ExportSpec {
+              name: name.as_str().into(),
+              can_mangle: Some(false),
+              ..Default::default()
+            })
+          })
+          .collect(),
+      ),
       ..Default::default()
     })
   }

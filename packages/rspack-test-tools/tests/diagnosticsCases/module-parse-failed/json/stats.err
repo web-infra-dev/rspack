@@ -9,4 +9,4 @@ ERROR in ./syntax-error.json
          ╰────
       
   help: 
-        You may need an appropri
+        You may need an appropriate loader to handle this file type.

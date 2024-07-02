@@ -249,7 +249,7 @@ Object {
           "browserslist": Array [
             "defaults",
           ],
-          "errorRecovery": false,
+          "errorRecovery": true,
           "removeUnusedLocalIdents": true,
           "unusedSymbols": Array [],
         },

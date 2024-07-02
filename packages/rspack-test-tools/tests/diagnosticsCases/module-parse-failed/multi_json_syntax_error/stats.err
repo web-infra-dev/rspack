@@ -9,4 +9,15 @@ ERROR in ./a.json
          ╰────
       
   help: 
-        You may need an appropri
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./b.json
+  × Module parse failed:
+  ╰─▶   × Json parsing error: Unexpected end of JSON
+         ╭────
+       1 │ "测试utf8/"
+         ·           ▲
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
