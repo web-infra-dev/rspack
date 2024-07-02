@@ -1428,7 +1428,7 @@ export interface RawSourceMapDevToolPluginOptions {
 }
 
 export interface RawSplitChunkSizes {
-  sizes: Record<string, any>
+  sizes: Record<string, number>
 }
 
 export interface RawSplitChunksOptions {
