@@ -33,10 +33,10 @@ features:
     details: Compatible with plugins and loaders in the webpack ecosystem, seamlessly integrating excellent libraries built by the community.
     icon: 📦
     link: /guide/compatibility/plugin
-  - title: Batteries Included
-    details: Out-of-the-box support for TypeScript, JSX, CSS, CSS Modules, Sass, and more.
+  - title: Module Federation
+    details: Provide first-class support for Module Federation to facilitate the development of large-scale web applications.
     icon: 🎨
-    link: /guide/tech/typescript
+    link: /guide/features/module-federation
   - title: Production Optimizations
     details: Core optimizations such as tree shaking and minification have integrated implementations rather than deferring to plugins.
     icon: 🛠️
