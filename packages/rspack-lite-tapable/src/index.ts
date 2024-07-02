@@ -30,7 +30,7 @@ declare class UnsetAdditionalOptions {
 }
 type IfSet<X> = X extends UnsetAdditionalOptions ? {} : X;
 
-type Callback<E, T> = (error: E | null, result?: T) => void;
+export type Callback<E, T> = (error: E | null, result?: T) => void;
 type InnerCallback<E, T> = (error?: E | null | false, result?: T) => void;
 
 type FullTap = Tap & {
@@ -71,12 +71,15 @@ export interface HookInterceptor<
 type ArgumentNames<T extends any[]> = FixedSizeArray<T["length"], string>;
 
 export class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
-	args?: ArgumentNames<AsArray<T>>;
+	args: ArgumentNames<AsArray<T>>;
 	name?: string;
 	taps: (FullTap & IfSet<AdditionalOptions>)[];
 	interceptors: HookInterceptor<T, R, AdditionalOptions>[];
 
-	constructor(args?: ArgumentNames<AsArray<T>>, name?: string) {
+	constructor(
+		args = [] as unknown as ArgumentNames<AsArray<T>>,
+		name?: string
+	) {
 		this.args = args;
 		this.name = name;
 		this.taps = [];
@@ -252,6 +255,19 @@ export class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 		}
 		this.taps[i] = item;
 	}
+
+	_prepareArgs(args: AsArray<T>): (T | undefined)[] {
+		const len = this.args.length;
+		if (args.length < len) {
+			args.length = len;
+			return (args as (T | undefined)[]).fill(undefined, args.length, len);
+		}
+		if (args.length > len) {
+			args.length = len;
+			return args;
+		}
+		return args;
+	}
 }
 
 export type StageRange = readonly [number, number];
@@ -339,8 +355,9 @@ export class SyncHook<
 			stageRange: [from, to],
 			tapsInRange
 		} = queried;
-		const args2 = [...args];
-		const cb = args2.pop() as Callback<Error, R>;
+		const argsWithoutCb = args.slice(0, args.length - 1) as AsArray<T>;
+		const cb = args[args.length - 1] as Callback<Error, R>;
+		const args2 = this._prepareArgs(argsWithoutCb);
 		if (from === minStage) {
 			this._runCallInterceptors(...args2);
 		}
@@ -406,8 +423,9 @@ export class SyncBailHook<
 			stageRange: [from, to],
 			tapsInRange
 		} = queried;
-		const args2 = [...args];
-		const cb = args2.pop() as Callback<Error, R>;
+		const argsWithoutCb = args.slice(0, args.length - 1) as AsArray<T>;
+		const cb = args[args.length - 1] as Callback<Error, R>;
+		const args2 = this._prepareArgs(argsWithoutCb);
 		if (from === minStage) {
 			this._runCallInterceptors(...args2);
 		}
@@ -465,6 +483,85 @@ export class SyncBailHook<
 	}
 }
 
+export class SyncWaterfallHook<
+	T,
+	AdditionalOptions = UnsetAdditionalOptions
+> extends Hook<T, AsArray<T>[0], AdditionalOptions> {
+	constructor(
+		args = [] as unknown as ArgumentNames<AsArray<T>>,
+		name?: string
+	) {
+		if (args.length < 1)
+			throw new Error("Waterfall hooks must have at least one argument");
+		super(args, name);
+	}
+
+	callAsyncStageRange(
+		queried: QueriedHook<T, AsArray<T>[0], AdditionalOptions>,
+		...args: Append<AsArray<T>, Callback<Error, AsArray<T>[0]>>
+	) {
+		const {
+			stageRange: [from, to],
+			tapsInRange
+		} = queried;
+		const argsWithoutCb = args.slice(0, args.length - 1) as AsArray<T>;
+		const cb = args[args.length - 1] as Callback<Error, AsArray<T>[0]>;
+		const args2 = this._prepareArgs(argsWithoutCb);
+		if (from === minStage) {
+			this._runCallInterceptors(...args2);
+		}
+		for (let tap of tapsInRange) {
+			this._runTapInterceptors(tap);
+			try {
+				const r = tap.fn(...args2);
+				if (r !== undefined) {
+					args2[0] = r;
+				}
+			} catch (e) {
+				const err = e as Error;
+				this._runErrorInterceptors(err);
+				return cb(err);
+			}
+		}
+		if (to === maxStage) {
+			this._runDoneInterceptors();
+			cb(null, args2[0]);
+		}
+	}
+
+	call(...args: AsArray<T>): AsArray<T>[0] {
+		return this.callStageRange(this.queryStageRange(allStageRange), ...args);
+	}
+
+	callStageRange(
+		queried: QueriedHook<T, AsArray<T>[0], AdditionalOptions>,
+		...args: AsArray<T>
+	): AsArray<T>[0] {
+		let result, error;
+		this.callAsyncStageRange(
+			queried,
+			// @ts-expect-error
+			...args,
+			(e: Error, r: AsArray<T>[0]): void => {
+				error = e;
+				result = r;
+			}
+		);
+		if (error) {
+			throw error;
+		}
+		return result as AsArray<T>[0];
+	}
+
+	tapAsync(): never {
+		throw new Error("tapAsync is not supported on a SyncWaterfallHook");
+	}
+
+	tapPromise(): never {
+		throw new Error("tapPromise is not supported on a SyncWaterfallHook");
+	}
+}
+
 export class AsyncParallelHook<
 	T,
 	AdditionalOptions = UnsetAdditionalOptions
@@ -477,8 +574,9 @@ export class AsyncParallelHook<
 			stageRange: [from, to],
 			tapsInRange
 		} = queried;
-		const args2 = [...args];
-		const cb = args2.pop() as Callback<Error, void>;
+		const argsWithoutCb = args.slice(0, args.length - 1) as AsArray<T>;
+		const cb = args[args.length - 1] as Callback<Error, void>;
+		const args2 = this._prepareArgs(argsWithoutCb);
 		if (from === minStage) {
 			this._runCallInterceptors(...args2);
 		}
@@ -568,8 +666,9 @@ export class AsyncSeriesHook<
 			stageRange: [from, to],
 			tapsInRange
 		} = queried;
-		const args2 = [...args];
-		const cb = args2.pop() as Callback<Error, void>;
+		const argsWithoutCb = args.slice(0, args.length - 1) as AsArray<T>;
+		const cb = args[args.length - 1] as Callback<Error, void>;
+		const args2 = this._prepareArgs(argsWithoutCb);
 		if (from === minStage) {
 			this._runCallInterceptors(...args2);
 		}
@@ -671,8 +770,9 @@ export class AsyncSeriesBailHook<
 			stageRange: [from, to],
 			tapsInRange
 		} = queried;
-		const args2 = [...args];
-		const cb = args2.pop() as Callback<Error, R>;
+		const argsWithoutCb = args.slice(0, args.length - 1) as AsArray<T>;
+		const cb = args[args.length - 1] as Callback<Error, R>;
+		const args2 = this._prepareArgs(argsWithoutCb);
 		if (from === minStage) {
 			this._runCallInterceptors(...args2);
 		}
@@ -774,43 +874,46 @@ export class AsyncSeriesBailHook<
 
 export class AsyncSeriesWaterfallHook<
 	T,
-	R,
 	AdditionalOptions = UnsetAdditionalOptions
-> extends Hook<T, R, AdditionalOptions> {
-	constructor(args?: ArgumentNames<AsArray<T>>, name?: string) {
-		if (!args?.length)
+> extends Hook<T, AsArray<T>[0], AdditionalOptions> {
+	constructor(
+		args = [] as unknown as ArgumentNames<AsArray<T>>,
+		name?: string
+	) {
+		if (args.length < 1)
 			throw new Error("Waterfall hooks must have at least one argument");
 		super(args, name);
 	}
 
 	callAsyncStageRange(
-		queried: QueriedHook<T, R, AdditionalOptions>,
-		...args: Append<AsArray<T>, Callback<Error, R>>
+		queried: QueriedHook<T, AsArray<T>[0], AdditionalOptions>,
+		...args: Append<AsArray<T>, Callback<Error, AsArray<T>[0]>>
 	) {
 		const {
 			stageRange: [from, to],
 			tapsInRange
 		} = queried;
-		let data = args[0] as R;
-		const cb = args[1] as Callback<Error, R>;
+		const argsWithoutCb = args.slice(0, args.length - 1) as AsArray<T>;
+		const cb = args[args.length - 1] as Callback<Error, AsArray<T>[0]>;
+		const args2 = this._prepareArgs(argsWithoutCb);
 		if (from === minStage) {
-			this._runCallInterceptors(data);
+			this._runCallInterceptors(...args2);
 		}
-		const done = () => {
-			this._runDoneInterceptors();
-			cb(null, data);
+		const result = (r: AsArray<T>[0]) => {
+			this._runResultInterceptors(r);
+			cb(null, r);
 		};
 		const error = (e: Error) => {
 			this._runErrorInterceptors(e);
 			cb(e);
 		};
-		if (tapsInRange.length === 0) return done();
+		if (tapsInRange.length === 0) return result(args2[0]);
 		let index = 0;
 		const next = () => {
 			const tap = tapsInRange[index];
 			this._runTapInterceptors(tap);
 			if (tap.type === "promise") {
-				const promise = tap.fn(data);
+				const promise = tap.fn(...args2);
 				if (!promise || !promise.then) {
 					throw new Error(
 						"Tap function (tapPromise) did not return promise (returned " +
@@ -819,13 +922,13 @@ export class AsyncSeriesWaterfallHook<
 					);
 				}
 				promise.then(
-					(r: R) => {
+					(r: AsArray<T>[0]) => {
 						index += 1;
 						if (r !== undefined) {
-							data = r;
+							args2[0] = r;
 						}
 						if (index === tapsInRange.length) {
-							done();
+							result(args2[0]);
 						} else {
 							next();
 						}
@@ -836,17 +939,17 @@ export class AsyncSeriesWaterfallHook<
 					}
 				);
 			} else if (tap.type === "async") {
-				tap.fn(data, (e: Error, r: R) => {
+				tap.fn(...args2, (e: Error, r: AsArray<T>[0]) => {
 					if (e) {
 						index = tapsInRange.length;
 						error(e);
 					} else {
 						index += 1;
 						if (r !== undefined) {
-							data = r;
+							args2[0] = r;
 						}
 						if (index === tapsInRange.length) {
-							done();
+							result(args2[0]);
 						} else {
 							next();
 						}
@@ -855,9 +958,9 @@ export class AsyncSeriesWaterfallHook<
 			} else {
 				let hasError = false;
 				try {
-					const r = tap.fn(data);
+					const r = tap.fn(...args2);
 					if (r !== undefined) {
-						data = r;
+						args2[0] = r;
 					}
 				} catch (e) {
 					hasError = true;
@@ -867,7 +970,7 @@ export class AsyncSeriesWaterfallHook<
 				if (!hasError) {
 					index += 1;
 					if (index === tapsInRange.length) {
-						done();
+						result(args2[0]);
 					} else {
 						next();
 					}
@@ -981,5 +1084,46 @@ export class QueriedHookMap<H extends Hook<any, any, any>> {
 			}
 		}
 		return false;
+	}
+}
+
+export class MultiHook<H> {
+	hooks: H[];
+	name?: string;
+
+	constructor(hooks: H[], name?: string) {
+		this.hooks = hooks;
+		this.name = name;
+	}
+
+	tap(options: string | Tap, fn: Function) {
+		for (const hook of this.hooks) {
+			(hook as any).tap(options, fn);
+		}
+	}
+
+	tapAsync(options: string | Tap, fn: Function) {
+		for (const hook of this.hooks) {
+			(hook as any).tapAsync(options, fn);
+		}
+	}
+
+	tapPromise(options: string | Tap, fn: Function) {
+		for (const hook of this.hooks) {
+			(hook as any).tapPromise(options, fn);
+		}
+	}
+
+	isUsed() {
+		for (const hook of this.hooks) {
+			if ((hook as any).isUsed()) return true;
+		}
+		return false;
+	}
+
+	intercept(interceptor: HookInterceptor<any, any, any>) {
+		for (const hook of this.hooks) {
+			(hook as any).intercept(interceptor);
+		}
 	}
 }

@@ -310,15 +310,15 @@ importers:
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
+      '@rspack/lite-tapable':
+        specifier: workspace:*
+        version: link:../rspack-lite-tapable
       '@swc/helpers':
         specifier: '>=0.5.1'
         version: 0.5.6
       caniuse-lite:
         specifier: ^1.0.30001616
         version: 1.0.30001616
-      tapable:
-        specifier: 2.2.1
-        version: 2.2.1
     devDependencies:
       '@rspack/core':
         specifier: workspace:*
@@ -559,6 +559,8 @@ importers:
       '@types/ws':
         specifier: 8.5.10
         version: 8.5.10
+
+  packages/rspack-lite-tapable: {}
 
   packages/rspack-plugin-minify:
     dependencies:
