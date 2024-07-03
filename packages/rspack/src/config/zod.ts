@@ -1207,7 +1207,7 @@ const optimizationSplitChunksChunks = z
 			.args(z.instanceof(Chunk, { message: "Input not instance of Chunk" }))
 			.returns(z.boolean())
 	);
-const optimizationSplitChunksSizes = z.number();
+const optimizationSplitChunksSizes = z.number().or(z.record(z.number()));
 const optimizationSplitChunksDefaultSizeTypes = z.array(z.string());
 const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),

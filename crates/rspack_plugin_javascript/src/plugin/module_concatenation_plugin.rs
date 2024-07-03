@@ -5,14 +5,15 @@ use std::hash::Hasher;
 
 use indexmap::IndexSet;
 use linked_hash_set::LinkedHashSet;
+use rayon::prelude::*;
 use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
 use rspack_core::{
   filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation,
   CompilationOptimizeChunkModules, CompilerModuleContext, CompilerOptions, ExportInfoProvided,
-  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, MutableModuleGraph, Plugin, PluginContext, ProvidedExports,
+  ExtendedReferencedExport, ImmutableModuleGraph, LibIdentOptions, Logger, Module, ModuleExt,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports,
   RunnerContext, RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
@@ -541,146 +542,165 @@ impl ModuleConcatenationPlugin {
     let mut possible_inners = HashSet::default();
     let start = logger.time("select relevant modules");
     let module_graph = compilation.get_module_graph();
-    let module_id_list = module_graph
+
+    // filter modules that can be root
+    let modules: Vec<_> = module_graph
       .module_graph_modules()
       .keys()
       .copied()
-      .collect::<Vec<_>>();
-    for module_id in module_id_list {
-      let mut can_be_root = true;
-      let mut can_be_inner = true;
-      let number_of_module_chunks = compilation
-        .chunk_graph
-        .get_number_of_module_chunks(module_id);
-      let is_entry_module = compilation.chunk_graph.is_entry_module(&module_id);
-      let module_graph = compilation.get_module_graph();
-      let m = module_graph.module_by_identifier(&module_id);
+      .collect();
+    let res: Vec<_> = modules
+      .into_par_iter()
+      .map(|module_id| {
+        let mut can_be_root = true;
+        let mut can_be_inner = true;
+        let mut bailout_reason = vec![];
+        let number_of_module_chunks = compilation
+          .chunk_graph
+          .get_number_of_module_chunks(module_id);
+        let is_entry_module = compilation.chunk_graph.is_entry_module(&module_id);
+        let module_graph = compilation.get_module_graph();
+        let m = module_graph.module_by_identifier(&module_id);
 
-      if let Some(reason) = m
-        .expect("should have module")
-        .get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
-      {
-        self.set_bailout_reason(&module_id, reason, &mut compilation.get_module_graph_mut());
-        continue;
-      }
+        if let Some(reason) = m
+          .expect("should have module")
+          .get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
+        {
+          bailout_reason.push(reason);
+          return (false, false, module_id, bailout_reason);
+        }
 
-      // shadowing previous immutable binding, reduce borrow lifetime
-      let mut module_graph = compilation.get_module_graph_mut();
-      let m = module_graph.module_by_identifier(&module_id);
+        let m = module_graph.module_by_identifier(&module_id);
 
-      // If the result is `None`, that means we have some differences with webpack,
-      // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L168-L171
-      if module_graph
-        .is_async(&module_id)
-        .expect("should have async result")
-      {
-        self.set_bailout_reason(&module_id, "Module is async".to_string(), &mut module_graph);
-        continue;
-      }
+        // If the result is `None`, that means we have some differences with webpack,
+        // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L168-L171
+        if module_graph
+          .is_async(&module_id)
+          .expect("should have async result")
+        {
+          bailout_reason.push("Module is async".to_string());
+          return (false, false, module_id, bailout_reason);
+        }
 
-      if !m
-        .and_then(|m| m.build_info())
-        .expect("should have build info")
-        .strict
-      {
-        self.set_bailout_reason(
-          &module_id,
-          "Module is not in strict mode".to_string(),
-          &mut module_graph,
-        );
-        continue;
-      }
-      if number_of_module_chunks == 0 {
-        self.set_bailout_reason(
-          &module_id,
-          "Module is not in any chunk".to_string(),
-          &mut module_graph,
-        );
-        continue;
-      }
+        if !m
+          .and_then(|m| m.build_info())
+          .expect("should have build info")
+          .strict
+        {
+          bailout_reason.push("Module is not in strict mode".to_string());
+          return (false, false, module_id, bailout_reason);
+        }
+        if number_of_module_chunks == 0 {
+          bailout_reason.push("Module is not in any chunk".to_string());
+          return (false, false, module_id, bailout_reason);
+        }
 
-      let exports_info = module_graph.get_exports_info(&module_id);
-      let relevant_exports = exports_info.get_relevant_exports(None, &module_graph);
-      let unknown_exports = relevant_exports
-        .iter()
-        .filter(|id| {
-          let export_info = id.get_export_info_mut(&mut module_graph).clone();
-          let mut mga = MutableModuleGraph::new(&mut module_graph);
-          export_info.is_reexport() && export_info.id.get_target(&mut mga, None).is_none()
-        })
-        .copied()
-        .collect::<Vec<_>>();
-      if !unknown_exports.is_empty() {
-        let bailout_reason = unknown_exports
-          .into_iter()
-          .map(|id| {
-            let export_info = id.get_export_info(&module_graph);
-            let name = export_info
-              .name
-              .as_ref()
-              .map(|name| name.to_string())
-              .unwrap_or("other exports".to_string());
-            format!("{} : {}", name, export_info.id.get_used_info(&module_graph))
+        let exports_info = module_graph.get_exports_info(&module_id);
+        let relevant_exports = exports_info.get_relevant_exports(None, &module_graph);
+        let unknown_exports = relevant_exports
+          .iter()
+          .filter(|id| {
+            let export_info = id.get_export_info(&module_graph).clone();
+            let mut mga = ImmutableModuleGraph::new(&module_graph);
+            export_info.is_reexport() && export_info.id.get_target(&mut mga, None).is_none()
           })
-          .collect::<Vec<String>>()
-          .join(", ");
-        self.set_bailout_reason(
-          &module_id,
-          format!("Reexports in this module do not have a static target ({bailout_reason})"),
-          &mut module_graph,
-        );
+          .copied()
+          .collect::<Vec<_>>();
+        if !unknown_exports.is_empty() {
+          let cur_bailout_reason = unknown_exports
+            .into_iter()
+            .map(|id| {
+              let export_info = id.get_export_info(&module_graph);
+              let name = export_info
+                .name
+                .as_ref()
+                .map(|name| name.to_string())
+                .unwrap_or("other exports".to_string());
+              format!("{} : {}", name, export_info.id.get_used_info(&module_graph))
+            })
+            .collect::<Vec<String>>()
+            .join(", ");
+          // self.set_bailout_reason(
+          //   &module_id,
+          //   format!("Reexports in this module do not have a static target ({bailout_reason})"),
+          //   &mut module_graph,
+          // );
 
-        continue;
-      }
-      let unknown_provided_exports = relevant_exports
-        .iter()
-        .filter(|id| {
-          let export_info = id.get_export_info(&module_graph);
-          !matches!(export_info.provided, Some(ExportInfoProvided::True))
-        })
-        .copied()
-        .collect::<Vec<_>>();
+          bailout_reason.push(format!(
+            "Reexports in this module do not have a static target ({cur_bailout_reason})"
+          ));
 
-      if !unknown_provided_exports.is_empty() {
-        let bailout_reason = unknown_provided_exports
-          .into_iter()
-          .map(|id| {
+          return (false, false, module_id, bailout_reason);
+        }
+        let unknown_provided_exports = relevant_exports
+          .iter()
+          .filter(|id| {
             let export_info = id.get_export_info(&module_graph);
-            let name = export_info
-              .name
-              .as_ref()
-              .map(|name| name.to_string())
-              .unwrap_or("other exports".to_string());
-            format!(
-              "{} : {} and {}",
-              name,
-              export_info.id.get_provided_info(&module_graph),
-              export_info.id.get_used_info(&module_graph)
-            )
+            !matches!(export_info.provided, Some(ExportInfoProvided::True))
           })
-          .collect::<Vec<String>>()
-          .join(", ");
-        self.set_bailout_reason(
-          &module_id,
-          format!("List of module exports is dynamic ({bailout_reason})"),
-          &mut module_graph,
-        );
-        can_be_root = false;
-      }
+          .copied()
+          .collect::<Vec<_>>();
 
-      if is_entry_module {
-        self.set_bailout_reason(
-          &module_id,
-          "Module is an entry point".to_string(),
-          &mut module_graph,
-        );
-        can_be_inner = false;
-      }
+        if !unknown_provided_exports.is_empty() {
+          let cur_bailout_reason = unknown_provided_exports
+            .into_iter()
+            .map(|id| {
+              let export_info = id.get_export_info(&module_graph);
+              let name = export_info
+                .name
+                .as_ref()
+                .map(|name| name.to_string())
+                .unwrap_or("other exports".to_string());
+              format!(
+                "{} : {} and {}",
+                name,
+                export_info.id.get_provided_info(&module_graph),
+                export_info.id.get_used_info(&module_graph)
+              )
+            })
+            .collect::<Vec<String>>()
+            .join(", ");
+          // self.set_bailout_reason(
+          //   &module_id,
+          //   format!("List of module exports is dynamic ({bailout_reason})"),
+          //   &mut module_graph,
+          // );
+          bailout_reason.push(format!(
+            "List of module exports is dynamic ({cur_bailout_reason})"
+          ));
+          can_be_root = false;
+        }
+
+        if is_entry_module {
+          // self.set_bailout_reason(
+          //   &module_id,
+          //   "Module is an entry point".to_string(),
+          //   &mut module_graph,
+          // );
+          can_be_inner = false;
+          bailout_reason.push("Module is an entry point".to_string());
+        }
+        (can_be_root, can_be_inner, module_id, bailout_reason)
+        // if can_be_root {
+        //   relevant_modules.push(module_id);
+        // }
+        // if can_be_inner {
+        //   possible_inners.insert(module_id);
+        // }
+      })
+      .collect();
+
+    let mut module_graph = compilation.get_module_graph_mut();
+
+    for (can_be_root, can_be_inner, module_id, bailout_reason) in res {
       if can_be_root {
         relevant_modules.push(module_id);
       }
       if can_be_inner {
         possible_inners.insert(module_id);
+      }
+      for bailout_reason in bailout_reason {
+        self.set_bailout_reason(&module_id, bailout_reason, &mut module_graph);
       }
     }
 

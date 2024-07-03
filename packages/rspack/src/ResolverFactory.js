@@ -11,7 +11,11 @@
 "use strict";
 
 const Factory = require("enhanced-resolve").ResolverFactory;
-const { HookMap, SyncHook, SyncWaterfallHook } = require("tapable");
+const {
+	HookMap,
+	SyncHook,
+	SyncWaterfallHook
+} = require("@rspack/lite-tapable");
 const {
 	cachedCleverMerge,
 	removeOperations,

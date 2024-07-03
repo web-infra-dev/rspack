@@ -8,15 +8,8 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import * as liteTapable from "@rspack/lite-tapable";
 import asyncLib from "neo-async";
-import {
-	AsyncSeriesHook,
-	Callback,
-	MultiHook,
-	SyncBailHook,
-	SyncHook
-} from "tapable";
-
 import { Compiler, RspackOptions, Stats } from ".";
 import MultiStats from "./MultiStats";
 import MultiWatching from "./MultiWatching";
@@ -55,12 +48,16 @@ export class MultiCompiler {
 	compilers: Compiler[];
 	dependencies: WeakMap<Compiler, string[]>;
 	hooks: {
-		done: SyncHook<MultiStats>;
-		invalid: MultiHook<SyncHook<[string | null, number]>>;
-		run: MultiHook<AsyncSeriesHook<[Compiler]>>;
-		watchClose: SyncHook<[]>;
-		watchRun: MultiHook<AsyncSeriesHook<[Compiler]>>;
-		infrastructureLog: MultiHook<SyncBailHook<[string, string, any[]], true>>;
+		done: liteTapable.SyncHook<MultiStats>;
+		invalid: liteTapable.MultiHook<
+			liteTapable.SyncHook<[string | null, number]>
+		>;
+		run: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
+		watchClose: liteTapable.SyncHook<[]>;
+		watchRun: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
+		infrastructureLog: liteTapable.MultiHook<
+			liteTapable.SyncBailHook<[string, string, any[]], true>
+		>;
 	};
 	_options: MultiCompilerOptions;
 	running: boolean;
@@ -77,18 +74,12 @@ export class MultiCompiler {
 		}
 
 		this.hooks = {
-			/** @type {SyncHook<[MultiStats]>} */
-			done: new SyncHook(["stats"]),
-			/** @type {MultiHook<SyncHook<[string | null, number]>>} */
-			invalid: new MultiHook(compilers.map(c => c.hooks.invalid)),
-			/** @type {MultiHook<AsyncSeriesHook<[Compiler]>>} */
-			run: new MultiHook(compilers.map(c => c.hooks.run)),
-			/** @type {SyncHook<[]>} */
-			watchClose: new SyncHook([]),
-			/** @type {MultiHook<AsyncSeriesHook<[Compiler]>>} */
-			watchRun: new MultiHook(compilers.map(c => c.hooks.watchRun)),
-			/** @type {MultiHook<SyncBailHook<[string, string, any[]], true>>} */
-			infrastructureLog: new MultiHook(
+			done: new liteTapable.SyncHook(["stats"]),
+			invalid: new liteTapable.MultiHook(compilers.map(c => c.hooks.invalid)),
+			run: new liteTapable.MultiHook(compilers.map(c => c.hooks.run)),
+			watchClose: new liteTapable.SyncHook([]),
+			watchRun: new liteTapable.MultiHook(compilers.map(c => c.hooks.watchRun)),
+			infrastructureLog: new liteTapable.MultiHook(
 				compilers.map(c => c.hooks.infrastructureLog)
 			)
 		};
@@ -202,7 +193,9 @@ export class MultiCompiler {
 	 * @param callback - signals when the validation is complete
 	 * @returns true if the dependencies are valid
 	 */
-	validateDependencies(callback: Callback<Error, MultiStats>): boolean {
+	validateDependencies(
+		callback: liteTapable.Callback<Error, MultiStats>
+	): boolean {
 		const edges = new Set<{ source: Compiler; target: Compiler }>();
 		const missing: string[] = [];
 		const targetFound = (compiler: Compiler) => {
@@ -278,7 +271,7 @@ export class MultiCompiler {
 		setup: (
 			compiler?: Compiler,
 			idx?: number,
-			done?: Callback<Error, Stats>,
+			done?: liteTapable.Callback<Error, Stats>,
 			isBlocked?: () => boolean,
 			setChanged?: () => void,
 			setInvalid?: () => void
@@ -286,9 +279,9 @@ export class MultiCompiler {
 		run: (
 			compiler: Compiler,
 			res: SetupResult,
-			done: Callback<Error, Stats>
+			done: liteTapable.Callback<Error, Stats>
 		) => void,
-		callback: Callback<Error, MultiStats>
+		callback: liteTapable.Callback<Error, MultiStats>
 	): SetupResult[] {
 		/** @typedef {{ compiler: Compiler, setupResult: SetupResult, result: Stats, state: "pending" | "blocked" | "queued" | "starting" | "running" | "running-outdated" | "done", children: Node[], parents: Node[] }} Node */
 
@@ -478,7 +471,7 @@ export class MultiCompiler {
 	 */
 	watch(
 		watchOptions: WatchOptions,
-		handler: Callback<Error, MultiStats>
+		handler: liteTapable.Callback<Error, MultiStats>
 	): MultiWatching {
 		if (this.running) {
 			return handler(new ConcurrentCompilationError()) as never;
@@ -515,7 +508,7 @@ export class MultiCompiler {
 		return new MultiWatching([], this);
 	}
 
-	run(callback: Callback<Error, MultiStats>) {
+	run(callback: liteTapable.Callback<Error, MultiStats>) {
 		if (this.running) {
 			return callback(new ConcurrentCompilationError());
 		}
@@ -544,7 +537,7 @@ export class MultiCompiler {
 		}
 	}
 
-	close(callback: Callback<Error, void>) {
+	close(callback: liteTapable.Callback<Error, void>) {
 		asyncLib.each(
 			this.compilers,
 			(compiler, cb) => {

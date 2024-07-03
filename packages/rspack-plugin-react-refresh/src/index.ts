@@ -1,7 +1,12 @@
 import path from "path";
 import type { Compiler } from "@rspack/core";
-
-import { type PluginOptions, normalizeOptions } from "./options";
+import {
+	type NormalizedPluginOptions,
+	type PluginOptions,
+	normalizeOptions
+} from "./options";
+import { getAdditionalEntries } from "./utils/getAdditionalEntries";
+import getSocketIntegration from "./utils/getSocketIntegration";
 
 export type { PluginOptions };
 
@@ -26,7 +31,7 @@ const runtimePaths = [
  * @property {(string | RegExp | (string | RegExp)[] | null)=} exclude excluded resourcePath for loader
  */
 class ReactRefreshRspackPlugin {
-	options: PluginOptions;
+	options: NormalizedPluginOptions;
 
 	static deprecated_runtimePaths: string[];
 
@@ -46,9 +51,21 @@ class ReactRefreshRspackPlugin {
 		) {
 			return;
 		}
-		new compiler.webpack.EntryPlugin(compiler.context, reactRefreshEntryPath, {
-			name: undefined
-		}).apply(compiler);
+		const addEntries = getAdditionalEntries({
+			devServer: compiler.options.devServer,
+			options: this.options
+		});
+
+		addEntries.prependEntries.forEach(entry => {
+			new compiler.webpack.EntryPlugin(compiler.context, entry, {
+				name: undefined
+			}).apply(compiler);
+		});
+		addEntries.overlayEntries.forEach(entry => {
+			new compiler.webpack.EntryPlugin(compiler.context, entry, {
+				name: undefined
+			}).apply(compiler);
+		});
 		new compiler.webpack.ProvidePlugin({
 			$ReactRefreshRuntime$: reactRefreshPath
 		}).apply(compiler);
@@ -61,7 +78,7 @@ class ReactRefreshRspackPlugin {
 			use: "builtin:react-refresh-loader"
 		});
 
-		const definedModules = {
+		const definedModules: any = {
 			// For Multiple Instance Mode
 			__react_refresh_library__: JSON.stringify(
 				compiler.webpack.Template.toIdentifier(
@@ -71,7 +88,28 @@ class ReactRefreshRspackPlugin {
 				)
 			)
 		};
+		const providedModules: any = {
+			__react_refresh_utils__: refreshUtilsPath
+		};
+		if (this.options.overlay === false) {
+			// Stub errorOverlay module so their calls can be erased
+			definedModules.__react_refresh_error_overlay__ = false;
+			definedModules.__react_refresh_socket__ = false;
+		} else {
+			if (this.options.overlay.module) {
+				providedModules.__react_refresh_error_overlay__ = require.resolve(
+					this.options.overlay.module
+				);
+			}
+
+			if (this.options.overlay.sockIntegration) {
+				providedModules.__react_refresh_socket__ = getSocketIntegration(
+					this.options.overlay.sockIntegration
+				);
+			}
+		}
 		new compiler.webpack.DefinePlugin(definedModules).apply(compiler);
+		new compiler.webpack.ProvidePlugin(providedModules).apply(compiler);
 
 		const refreshPath = path.dirname(require.resolve("react-refresh"));
 		compiler.options.resolve.alias = {

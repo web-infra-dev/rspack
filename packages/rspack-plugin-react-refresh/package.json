@@ -40,6 +40,10 @@
     "@rspack/plugin-react-refresh": "workspace:*",
     "react-refresh": "0.14.0"
   },
+  "dependencies": {
+    "html-entities": "^2.1.0",
+    "error-stack-parser": "^2.0.6"
+  },
   "peerDependencies": {
     "react-refresh": ">=0.10.0 <1.0.0"
   },

@@ -4,11 +4,95 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta addedVersion={'0.3.3'} />
 
-此插件可以用来添加外部依赖。
+允许你指定外部依赖项，这些依赖项将不打包到输出文件中。这对于已经在全局范围内可用或通过其他方式另外管理的库非常有用。
+[`externalsType`](/config/externals#externalstype) 和 [`externals`](/config/externals#externals-1) 配置内部使用了该插件实现，你可以直接通过配置项来使用相应的功能，而无需单独使用插件。
 
 ```js
 new rspack.ExternalsPlugin(type, externals);
 ```
 
-- [type](/config/externals#externalstype)
-- [externals](/config/externals#externals-1)
+## 配置
+
+### type
+
+**类型：**
+
+```ts
+type ExternalsType =
+  | 'var'
+  | 'module'
+  | 'assign'
+  | 'this'
+  | 'window'
+  | 'self'
+  | 'global'
+  | 'commonjs'
+  | 'commonjs2'
+  | 'commonjs-module'
+  | 'commonjs-static'
+  | 'amd'
+  | 'amd-require'
+  | 'umd'
+  | 'umd2'
+  | 'jsonp'
+  | 'system'
+  | 'promise'
+  | 'import'
+  | 'script'
+  | 'node-commonjs';
+```
+
+指定 `externals` 的默认类型。
+
+详细信息请参阅 [externalsType](/config/externals#externalstype)。
+
+### externals
+
+**类型：**
+
+```ts
+type Externals = ExternalItem[] | ExternalItem;
+
+type ExternalItem =
+  | RegExp
+  | string
+  | (
+      | ((
+          data: ExternalItemFunctionData,
+          callback: (err?: Error | null, result?: ExternalItemValue) => void,
+        ) => void)
+      | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>)
+    );
+
+type ExternalItemValue =
+  | string[]
+  | boolean
+  | string
+  | {
+      [k: string]: any;
+    };
+
+type ExternalItemFunctionData = {
+  context?: string;
+  contextInfo?: ModuleFactoryCreateDataContextInfo;
+  getResolve?: (
+    options?: ResolveOptions,
+  ) =>
+    | ((
+        context: string,
+        request: string,
+        callback: (err?: Error, result?: string) => void,
+      ) => void)
+    | ((context: string, request: string) => Promise<string>);
+  request?: string;
+};
+
+type ModuleFactoryCreateDataContextInfo = {
+  issuer: string;
+  compiler: string;
+};
+```
+
+**阻止**将某些 import 的包（package）打包到 bundle 中，而是在运行时（runtime）再去从外部获取这些*扩展依赖*（external dependencies）。
+
+详细信息请参阅 [externals](/config/externals#externals-1)。

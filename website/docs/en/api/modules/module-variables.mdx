@@ -1,6 +1,6 @@
 import WebpackLicense from '@components/webpack-license';
 import Columns from '@components/Columns';
-import { ApiMeta } from '../../../../components/ApiMeta';
+import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.docschina.org/api/module-variables/" />
 
@@ -127,6 +127,8 @@ typeof import.meta.url
 
 ### import.meta.webpackContext
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 `import.meta.webpackContext` is a function specific to webpack that allows you to dynamically import a set of modules.
 
 You can use `import.meta.webpackContext` in your code, and Rspack will parse and reference the matching modules during the build process.
@@ -240,13 +242,17 @@ componentsContext.keys().forEach(fileName => {
 
 `import.meta.webpackContext()` streamlines the process of module importation especially when you have a lot of files to manage. When using it, please avoid matching unnecessary files, as this might lead to significantly increased build time and output size.
 
-### import.meta.webpackHot (Rspack/Webpack-specific)
+### import.meta.webpackHot
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 An alias for [`module.hot`](#modulehot), however `import.meta.webpackHot` can be used in strict ESM while `module.hot` can't.
 
-## Runtime (Rspack/Webpack-specific)
+## Runtime
 
 ### \_\_webpack_hash\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 It provides access to the hash of the compilation.
 
@@ -268,7 +274,7 @@ __webpack_require__.h = function () {
 
 ### \_\_webpack_runtime_id\_\_
 
-<ApiMeta addedVersion="0.4.4" />
+<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
 
 Access the runtime id of current entry.
 
@@ -287,6 +293,8 @@ __webpack_require__.j = '909';
 </Columns>
 
 ### \_\_webpack_public_path\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 Equals the configuration option's [`output.publicPath`](/config/output#outputpublicpath)。
 
@@ -308,7 +316,7 @@ __webpack_require__.p = 'calculated from document/location';
 
 ### \_\_webpack_base_uri\_\_
 
-<ApiMeta addedVersion="0.3.3" />
+<ApiMeta addedVersion="0.3.3" specific={['Rspack', 'Webpack']} />
 Get or change base URI at runtime.
 
 <Columns>
@@ -327,7 +335,7 @@ __webpack_require__.b = document.baseURI || self.location.href;
 
 ### \_\_webpack_nonce\_\_
 
-<ApiMeta addedVersion="0.4.4" />
+<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
 
 Rspack is capable of adding a nonce to all scripts that it loads.
 To activate this feature, set a `__webpack_nonce__` variable and include it in your entry script.
@@ -348,9 +356,11 @@ if (__webpack_require__.nc) {
 
 </Columns>
 
-## Modules (Rspack/Webpack-specific)
+## Modules
 
 ### \_\_webpack_modules\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 Access to the internal object of all modules.
 
@@ -372,6 +382,8 @@ __webpack_require__.m = __webpack_modules__;
 
 ### \_\_webpack_module\_\_
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 It provides access to the the current `module`. `module` is not available in strict ESM.
 
 <Columns>
@@ -389,6 +401,8 @@ __webpack_module__
 
 ### \_\_webpack_module\_\_.id
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 It provides access to the ID of current module (`module.id`). `module` is not available in strict ESM.
 
 <Columns>
@@ -405,6 +419,8 @@ __webpack_module__.id
 </Columns>
 
 ### \_\_webpack_require\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 The raw require function.
 This expression isn't parsed by the Parser for dependencies.
@@ -424,6 +440,8 @@ __webpack_require__('./dep.js')
 
 ### \_\_non_webpack_require\_\_
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 Generates a `require` function that is not parsed by webpack.
 Can be used to do cool stuff with a global require function if available.
 
@@ -442,7 +460,7 @@ __non_webpack_require__('outer.js')
 
 ### \_\_webpack_is_included\_\_
 
-<ApiMeta addedVersion="0.4.5" />
+<ApiMeta addedVersion="0.4.5" specific={['Rspack', 'Webpack']} />
 
 Test whether or not the given module is bundled by webpack.
 
@@ -463,6 +481,8 @@ if (true) {
 
 ### \_\_resourceQuery
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 The resource query of the current module.
 If the following `require` call was made, then the query string would be available in `file.js`.
 
@@ -481,11 +501,11 @@ __resourceQuery
 
 </Columns>
 
-## Chunks (Rspack/Webpack-specific)
+## Chunks
 
 ### \_\_webpack_chunkname\_\_
 
-<ApiMeta addedVersion="0.4.4" />
+<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
 
 Get current chunk name.
 
@@ -549,13 +569,15 @@ import('./module-a').then(moduleA => {
 
 ## Module Federation
 
-<ApiMeta addedVersion="0.4.1" />
-
 ### \_\_webpack_share_scopes\_\_
+
+<ApiMeta addedVersion="0.4.1" specific={['Rspack', 'Webpack']} />
 
 This object is used as a shared scope in the remote container and is filled with the provided modules from a host
 
 ### \_\_webpack_init_sharing\_\_
+
+<ApiMeta addedVersion="0.4.1" specific={['Rspack', 'Webpack']} />
 
 This method is used to initialize modules of a shared scope in the host container.
 
@@ -563,13 +585,15 @@ This method is used to initialize modules of a shared scope in the host containe
 
 ### \_\_system_context\_\_
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 Context from System.js when `output.libraryTarget="system"`
 
 ## Rspack
 
 ### \_\_rspack_version\_\_
 
-<ApiMeta addedVersion="0.5.2" />
+<ApiMeta addedVersion="0.5.2" specific={['Rspack']} />
 Current Rspack version, default to version in `@rspack/core/package.json`, can be
 modified through experiments.rspackFuture.bundlerInfo.version.
 
@@ -589,7 +613,7 @@ __webpack_require__.rv = '0.7.4';
 
 ### \_\_rspack_unique_id\_\_
 
-<ApiMeta addedVersion="1.0.0" />
+<ApiMeta addedVersion="1.0.0" specific={['Rspack']} />
 The ID of the current bundler, the value is `bundler={bundler}@{version}`: - `bundler`:
 Default to `"rspack"` and can be modified through `experiments.rspackFuture.bundlerInfo.bundler`.
 - `version`: Default to version in `@rspack/core/package.json` and can be modified

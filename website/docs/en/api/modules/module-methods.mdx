@@ -98,6 +98,8 @@ import(`./locale/${language}.json`).then(module => {
 
 #### Magic Comments
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 Inline comments to make features work. By adding comments to the import, we can do things such as name our chunk or select different modes. For a full list of these magic comments see the code below followed by an explanation of what these comments do.
 
 ```js
@@ -114,6 +116,9 @@ import(
 ##### webpackIgnore
 
 <ApiMeta addedVersion="0.5.0" />
+
+- **Type:** `boolean`
+
 Disables dynamic import parsing when set to true.{' '}
 
 :::warning
@@ -121,6 +126,8 @@ Note that setting webpackIgnore to true opts out of code splitting.
 :::
 
 ##### webpackMode
+
+- **Type:** `"eager" | "lazy" | "weak" | "lazy-once"`
 
 Different modes for resolving dynamic imports can be specified. The following options are supported:
 
@@ -133,15 +140,25 @@ Different modes for resolving dynamic imports can be specified. The following op
 
 <ApiMeta addedVersion="0.4.5" />
 
-Tells the browser that the resource is probably needed for some navigation in the future.
+- **Type:**
+  - `number`: chunk prefetch priority
+  - `boolean`: `false` means not to prefetch, `true` means priority is `0`
+
+Tells the browser that the resource is probably needed for some navigation in the future, see [Prefetching/Preloading modules](/guide/optimization/code-splitting#prefetchingpreloading-modules) for more details.
 
 ##### webpackPreload
 
 <ApiMeta addedVersion="0.4.5" />
 
-Tells the browser that the resource might be needed during the current navigation.
+- **Type:**
+  - `number`: chunk preload priority
+  - `boolean`: `false` means not to preload, `true` means priority is `0`
+
+Tells the browser that the resource might be needed during the current navigation, , see [Prefetching/Preloading modules](/guide/optimization/code-splitting#prefetchingpreloading-modules) for more details.
 
 ##### webpackChunkName
+
+- **Type:**: `string`
 
 A name for the new chunk.
 
@@ -180,40 +197,9 @@ delete require.cache[require.resolve('dependency')];
 require('dependency') !== d1;
 ```
 
-## Data URI Module
-
-Rspack supports importing Data URI modules using the `import` and `require` syntax.
-
-**import**
-
-```js
-import DataURI from 'data:text/javascript,export default 42';
-```
-
-**require**
-
-```js
-require('data:text/javascript,module.exports = 42');
-```
-
-In addition, Base64 encoded requests are also supported:
-
-```js
-const {
-  number,
-  fn,
-} = require('data:text/javascript;charset=utf-8;base64,ZXhwb3J0IGNvbnN0IG51bWJlciA9IDQyOwpleHBvcnQgZnVuY3Rpb24gZm4oKSB7CiAgcmV0dXJuICJIZWxsbyB3b3JsZCI7Cn0=');
-```
-
-::: tip
-The Data URI module can be used as a method to implement virtual modules, such as combining with a Loader to dynamically load custom modules at runtime.
-:::
-
-## Webpack specific
-
-Aside from the module syntaxes described above, Rspack also support some webpack-specific methods.
-
 ### require.context
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 `require.context` is a function specific to webpack that allows you to dynamically require a set of modules.
 
@@ -269,3 +255,32 @@ const context = require.context('./locales', true, /\.json$/, 'lazy');
 ```
 
 > The arguments passed to `require.context()` must be literals.
+
+## Data URI Module
+
+Rspack supports importing Data URI modules using the `import` and `require` syntax.
+
+**import**
+
+```js
+import DataURI from 'data:text/javascript,export default 42';
+```
+
+**require**
+
+```js
+require('data:text/javascript,module.exports = 42');
+```
+
+In addition, Base64 encoded requests are also supported:
+
+```js
+const {
+  number,
+  fn,
+} = require('data:text/javascript;charset=utf-8;base64,ZXhwb3J0IGNvbnN0IG51bWJlciA9IDQyOwpleHBvcnQgZnVuY3Rpb24gZm4oKSB7CiAgcmV0dXJuICJIZWxsbyB3b3JsZCI7Cn0=');
+```
+
+::: tip
+The Data URI module can be used as a method to implement virtual modules, such as combining with a Loader to dynamically load custom modules at runtime.
+:::

@@ -8,10 +8,8 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import * as binding from "@rspack/binding";
-import * as tapable from "tapable";
-import { Callback, SyncBailHook, SyncHook } from "tapable";
+import * as liteTapable from "@rspack/lite-tapable";
 import type Watchpack from "watchpack";
-
 import { Compilation, CompilationParams } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import { RuleSetCompiler } from "./RuleSetCompiler";
@@ -24,7 +22,6 @@ import {
 	getRawOptions
 } from "./config";
 import { rspack } from "./index";
-import * as liteTapable from "./lite-tapable";
 import ResolverFactory = require("./ResolverFactory");
 import { ThreadsafeWritableNodeFS } from "./FileSystem";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
@@ -91,35 +88,35 @@ class Compiler {
 	#ruleSet: RuleSetCompiler;
 
 	hooks: {
-		done: tapable.AsyncSeriesHook<Stats>;
-		afterDone: tapable.SyncHook<Stats>;
+		done: liteTapable.AsyncSeriesHook<Stats>;
+		afterDone: liteTapable.SyncHook<Stats>;
 		thisCompilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
 		compilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
-		invalid: tapable.SyncHook<[string | null, number]>;
-		compile: tapable.SyncHook<[CompilationParams]>;
-		normalModuleFactory: tapable.SyncHook<NormalModuleFactory>;
-		contextModuleFactory: tapable.SyncHook<ContextModuleFactory>;
-		initialize: tapable.SyncHook<[]>;
+		invalid: liteTapable.SyncHook<[string | null, number]>;
+		compile: liteTapable.SyncHook<[CompilationParams]>;
+		normalModuleFactory: liteTapable.SyncHook<NormalModuleFactory>;
+		contextModuleFactory: liteTapable.SyncHook<ContextModuleFactory>;
+		initialize: liteTapable.SyncHook<[]>;
 		shouldEmit: liteTapable.SyncBailHook<[Compilation], boolean>;
-		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
-		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
-		run: tapable.AsyncSeriesHook<[Compiler]>;
+		infrastructureLog: liteTapable.SyncBailHook<[string, string, any[]], true>;
+		beforeRun: liteTapable.AsyncSeriesHook<[Compiler]>;
+		run: liteTapable.AsyncSeriesHook<[Compiler]>;
 		emit: liteTapable.AsyncSeriesHook<[Compilation]>;
 		assetEmitted: liteTapable.AsyncSeriesHook<[string, AssetEmittedInfo]>;
 		afterEmit: liteTapable.AsyncSeriesHook<[Compilation]>;
-		failed: tapable.SyncHook<[Error]>;
-		shutdown: tapable.AsyncSeriesHook<[]>;
-		watchRun: tapable.AsyncSeriesHook<[Compiler]>;
-		watchClose: tapable.SyncHook<[]>;
-		environment: tapable.SyncHook<[]>;
-		afterEnvironment: tapable.SyncHook<[]>;
-		afterPlugins: tapable.SyncHook<[Compiler]>;
-		afterResolvers: tapable.SyncHook<[Compiler]>;
+		failed: liteTapable.SyncHook<[Error]>;
+		shutdown: liteTapable.AsyncSeriesHook<[]>;
+		watchRun: liteTapable.AsyncSeriesHook<[Compiler]>;
+		watchClose: liteTapable.SyncHook<[]>;
+		environment: liteTapable.SyncHook<[]>;
+		afterEnvironment: liteTapable.SyncHook<[]>;
+		afterPlugins: liteTapable.SyncHook<[Compiler]>;
+		afterResolvers: liteTapable.SyncHook<[Compiler]>;
 		make: liteTapable.AsyncParallelHook<[Compilation]>;
-		beforeCompile: tapable.AsyncSeriesHook<[CompilationParams]>;
-		afterCompile: tapable.AsyncSeriesHook<[Compilation]>;
+		beforeCompile: liteTapable.AsyncSeriesHook<[CompilationParams]>;
+		afterCompile: liteTapable.AsyncSeriesHook<[Compilation]>;
 		finishMake: liteTapable.AsyncSeriesHook<[Compilation]>;
-		entryOption: tapable.SyncBailHook<[string, EntryNormalized], any>;
+		entryOption: liteTapable.SyncBailHook<[string, EntryNormalized], any>;
 	};
 
 	webpack: typeof rspack;
@@ -166,12 +163,12 @@ class Compiler {
 		this.#ruleSet = new RuleSetCompiler();
 
 		this.hooks = {
-			initialize: new SyncHook([]),
+			initialize: new liteTapable.SyncHook([]),
 			shouldEmit: new liteTapable.SyncBailHook(["compilation"]),
-			done: new tapable.AsyncSeriesHook<Stats>(["stats"]),
-			afterDone: new tapable.SyncHook<Stats>(["stats"]),
-			beforeRun: new tapable.AsyncSeriesHook(["compiler"]),
-			run: new tapable.AsyncSeriesHook(["compiler"]),
+			done: new liteTapable.AsyncSeriesHook<Stats>(["stats"]),
+			afterDone: new liteTapable.SyncHook<Stats>(["stats"]),
+			beforeRun: new liteTapable.AsyncSeriesHook(["compiler"]),
+			run: new liteTapable.AsyncSeriesHook(["compiler"]),
 			emit: new liteTapable.AsyncSeriesHook(["compilation"]),
 			assetEmitted: new liteTapable.AsyncSeriesHook(["file", "info"]),
 			afterEmit: new liteTapable.AsyncSeriesHook(["compilation"]),
@@ -182,28 +179,32 @@ class Compiler {
 				"compilation",
 				"params"
 			]),
-			invalid: new SyncHook(["filename", "changeTime"]),
-			compile: new SyncHook(["params"]),
-			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
-			failed: new SyncHook(["error"]),
-			shutdown: new tapable.AsyncSeriesHook([]),
-			normalModuleFactory: new tapable.SyncHook<NormalModuleFactory>([
+			invalid: new liteTapable.SyncHook(["filename", "changeTime"]),
+			compile: new liteTapable.SyncHook(["params"]),
+			infrastructureLog: new liteTapable.SyncBailHook([
+				"origin",
+				"type",
+				"args"
+			]),
+			failed: new liteTapable.SyncHook(["error"]),
+			shutdown: new liteTapable.AsyncSeriesHook([]),
+			normalModuleFactory: new liteTapable.SyncHook<NormalModuleFactory>([
 				"normalModuleFactory"
 			]),
-			contextModuleFactory: new tapable.SyncHook<ContextModuleFactory>([
+			contextModuleFactory: new liteTapable.SyncHook<ContextModuleFactory>([
 				"contextModuleFactory"
 			]),
-			watchRun: new tapable.AsyncSeriesHook(["compiler"]),
-			watchClose: new tapable.SyncHook([]),
-			environment: new tapable.SyncHook([]),
-			afterEnvironment: new tapable.SyncHook([]),
-			afterPlugins: new tapable.SyncHook(["compiler"]),
-			afterResolvers: new tapable.SyncHook(["compiler"]),
+			watchRun: new liteTapable.AsyncSeriesHook(["compiler"]),
+			watchClose: new liteTapable.SyncHook([]),
+			environment: new liteTapable.SyncHook([]),
+			afterEnvironment: new liteTapable.SyncHook([]),
+			afterPlugins: new liteTapable.SyncHook(["compiler"]),
+			afterResolvers: new liteTapable.SyncHook(["compiler"]),
 			make: new liteTapable.AsyncParallelHook(["compilation"]),
-			beforeCompile: new tapable.AsyncSeriesHook(["params"]),
-			afterCompile: new tapable.AsyncSeriesHook(["compilation"]),
+			beforeCompile: new liteTapable.AsyncSeriesHook(["params"]),
+			afterCompile: new liteTapable.AsyncSeriesHook(["compilation"]),
 			finishMake: new liteTapable.AsyncSeriesHook(["compilation"]),
-			entryOption: new tapable.SyncBailHook(["context", "entry"])
+			entryOption: new liteTapable.SyncBailHook(["context", "entry"])
 		};
 
 		this.webpack = rspack;
@@ -375,7 +376,7 @@ class Compiler {
 	 */
 	watch(
 		watchOptions: Watchpack.WatchOptions,
-		handler: Callback<Error, Stats>
+		handler: liteTapable.Callback<Error, Stats>
 	): Watching {
 		if (this.running) {
 			// @ts-expect-error
@@ -391,7 +392,7 @@ class Compiler {
 	/**
 	 * @param callback - signals when the call finishes
 	 */
-	run(callback: Callback<Error, Stats>) {
+	run(callback: liteTapable.Callback<Error, Stats>) {
 		if (this.running) {
 			return callback(new ConcurrentCompilationError());
 		}
@@ -598,7 +599,7 @@ class Compiler {
 		return !isRoot;
 	}
 
-	compile(callback: Callback<Error, Compilation>) {
+	compile(callback: liteTapable.Callback<Error, Compilation>) {
 		const startTime = Date.now();
 		const params = this.#newCompilationParams();
 		this.hooks.beforeCompile.callAsync(params, (err: any) => {
@@ -1032,6 +1033,26 @@ class Compiler {
 			registerNormalModuleFactoryFactorizeTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.NormalModuleFactoryFactorize,
 				() => this.#compilationParams!.normalModuleFactory.hooks.factorize,
+				queried => async (resolveData: binding.JsFactorizeArgs) => {
+					const normalizedResolveData: ResolveData = {
+						contextInfo: {
+							issuer: resolveData.issuer
+						},
+						request: resolveData.request,
+						context: resolveData.context,
+						fileDependencies: [],
+						missingDependencies: [],
+						contextDependencies: []
+					};
+					await queried.promise(normalizedResolveData);
+					resolveData.request = normalizedResolveData.request;
+					resolveData.context = normalizedResolveData.context;
+					return resolveData;
+				}
+			),
+			registerNormalModuleFactoryResolveTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.NormalModuleFactoryResolve,
+				() => this.#compilationParams!.normalModuleFactory.hooks.resolve,
 				queried => async (resolveData: binding.JsFactorizeArgs) => {
 					const normalizedResolveData: ResolveData = {
 						contextInfo: {

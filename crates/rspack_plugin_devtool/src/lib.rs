@@ -34,6 +34,7 @@ pub struct ModuleFilenameTemplateFnCtx {
   pub namespace: String,
 }
 
+#[derive(Debug, PartialEq, Eq, Hash)]
 enum ModuleOrSource {
   Source(String),
   Module(ModuleIdentifier),

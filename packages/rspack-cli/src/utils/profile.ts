@@ -34,19 +34,16 @@ The full syntax, remember update this when you change something in this file.
 import fs from "fs";
 import path from "path";
 import { URLSearchParams } from "url";
-import {
-	type Compiler,
-	RspackOptions,
-	experimental_cleanupGlobalTrace as cleanupGlobalTrace,
-	experimental_registerGlobalTrace as registerGlobalTrace
-} from "@rspack/core";
+import { type Compiler, RspackOptions, rspack } from "@rspack/core";
 import inspector from "inspector";
 
 type JSCPUProfileOptionsOutput = string;
 type JSCPUProfileOptions = {
 	output: JSCPUProfileOptionsOutput;
 };
-type ParametersOfRegisterGlobalTrace = Parameters<typeof registerGlobalTrace>;
+type ParametersOfRegisterGlobalTrace = Parameters<
+	typeof rspack.experiments.globalTrace.register
+>;
 type RustTraceOptionsFilter = ParametersOfRegisterGlobalTrace[0];
 type RustTraceOptionsLayer = ParametersOfRegisterGlobalTrace[1];
 type RustTraceOptionsOutput = ParametersOfRegisterGlobalTrace[2];
@@ -219,8 +216,12 @@ export async function applyProfile(profileValue: string, item: RspackOptions) {
 	for (const [kind, value] of entries) {
 		await ensureFileDir(value.output);
 		if (kind === "TRACE" && "filter" in value) {
-			registerGlobalTrace(value.filter, value.layer, value.output);
-			exitHook(cleanupGlobalTrace);
+			rspack.experiments.globalTrace.register(
+				value.filter,
+				value.layer,
+				value.output
+			);
+			exitHook(rspack.experiments.globalTrace.cleanup);
 		} else if (kind === "JSCPU") {
 			(item.plugins ??= []).push(
 				new RspackProfileJSCPUProfilePlugin(value.output)

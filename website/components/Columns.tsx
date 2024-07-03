@@ -12,7 +12,12 @@ export default function Columns({
   return (
     <div className="flex flex-wrap gap-4">
       {Children.map(children, (child, index) => {
-        return <Column title={titles[index]}>{child}</Column>;
+        const title = titles[index];
+        return (
+          <Column key={title} title={title}>
+            {child}
+          </Column>
+        );
       })}
     </div>
   );

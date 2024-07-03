@@ -18,7 +18,7 @@ The supported tracing levels for
 Two ways to enable tracing:
 
 - if you are using `@rspack/cli`, you can enable it by `RSPACK_PROFILE` environment variable.
-- if you are using `@rspack/core` without `@rspack/cli`, you can enable it by `experimental_registerGlobalTrace` and `experimental_cleanupGlobalTrace`, checkout [how we implement `RSPACK_PROFILE` in `@rspack/cli` with these two function](https://github.com/web-infra-dev/rspack/blob/25df2981ce1f0232ab05109c0995a249f57e2a09/packages/rspack-cli/src/utils/profile.ts#L186-L187) for more details.
+- if you are using `@rspack/core` without `@rspack/cli`, you can enable it by `rspack.experiments.globalTrace.register` and `rspack.experiments.globalTrace.cleanup`, checkout [how we implement `RSPACK_PROFILE` in `@rspack/cli` with these two function](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224) for more details.
 
 ### Chrome
 

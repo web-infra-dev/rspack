@@ -94,8 +94,8 @@
   "dependencies": {
     "@module-federation/runtime-tools": "0.2.3",
     "@rspack/binding": "workspace:*",
-    "caniuse-lite": "^1.0.30001616",
-    "tapable": "2.2.1"
+    "@rspack/lite-tapable": "workspace:*",
+    "caniuse-lite": "^1.0.30001616"
   },
   "peerDependencies": {
     "@swc/helpers": ">=0.5.1"

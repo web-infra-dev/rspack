@@ -1,6 +1,6 @@
 import WebpackLicense from '@components/webpack-license';
 import Columns from '@components/Columns';
-import { ApiMeta } from '../../../../components/ApiMeta';
+import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.docschina.org/api/module-variables/" />
 
@@ -127,7 +127,9 @@ typeof import.meta.url
 
 </Columns>
 
-### import.meta.webpackContext (Rspack/Webpack 专有)
+### import.meta.webpackContext
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 `import.meta.webpackContext` 是 Rspack/Webpack 特有的一个函数，它允许你动态地 import 一组模块。
 
@@ -238,13 +240,17 @@ componentsContext.keys().forEach(fileName => {
 
 `import.meta.webpackContext()` 简化了模块导入过程，尤其是当你有大量模块需要管理时。在使用时，请避免匹配到不需要的文件，否则可能导致构建时间和产物体积明显增加。
 
-### import.meta.webpackHot (Rspack/Webpack 专有)
+### import.meta.webpackHot
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 [`module.hot`](#modulehot) 的别名，`import.meta.webpackHot` 可以在严格的 ESM 中使用，而 `module.hot` 不能。
 
-## Runtime (Rspack/Webpack 专有)
+## Runtime
 
 ### \_\_webpack_hash\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 提供对编译过程中（compilation）的 hash 信息的访问。
 
@@ -266,7 +272,7 @@ __webpack_require__.h = function () {
 
 ### \_\_webpack_runtime_id\_\_
 
-<ApiMeta addedVersion="0.4.4" />
+<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
 
 访问当前入口的 runtime chunk 的 id。
 
@@ -286,6 +292,7 @@ __webpack_require__.j = '909';
 
 ### \_\_webpack_public_path\_\_
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
 等于配置选项的 [output.publicPath](/config/output#outputpublicpath)。
 
 <Columns>
@@ -306,7 +313,7 @@ __webpack_require__.p = '由 document/location 计算得来';
 
 ### \_\_webpack_base_uri\_\_
 
-<ApiMeta addedVersion="0.3.3" />
+<ApiMeta addedVersion="0.3.3" specific={['Rspack', 'Webpack']} />
 运行时获取或修改 Base URI。
 
 <Columns>
@@ -325,7 +332,7 @@ __webpack_require__.b = document.baseURI || self.location.href;
 
 ### \_\_webpack_nonce\_\_
 
-<ApiMeta addedVersion="0.4.4" />
+<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
 
 Rspack 能够为其加载的所有脚本添加 nonce，即一次性随机数。在入口文件中设置 `__webpack_nonce__` 变量以激活此功能。
 
@@ -345,9 +352,11 @@ if (__webpack_require__.nc) {
 
 </Columns>
 
-## Modules (Rspack/Webpack 专有)
+## Modules
 
 ### \_\_webpack_modules\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 访问所有模块的内部对象。
 
@@ -369,6 +378,8 @@ __webpack_require__.m = __webpack_modules__;
 
 ### \_\_webpack_module\_\_
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 它提供对当前 `module` 的访问。`module` 在 ESM 严格模式下不可用。
 
 <Columns>
@@ -385,6 +396,8 @@ __webpack_module__
 </Columns>
 
 ### \_\_webpack_module\_\_.id
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 它提供对当前 `module`(`module.id`) ID 的访问。`module` 在 ESM 严格模式下不可用。
 
@@ -403,6 +416,8 @@ __webpack_module__.id
 
 ### \_\_webpack_require\_\_
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 原始 require 函数。这个表达式不会被解析器解析为依赖。
 
 <Columns>
@@ -419,6 +434,8 @@ __webpack_require__('./dep.js')
 </Columns>
 
 ### \_\_non_webpack_require\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 生成一个不会被 Rspack 解析的 `require` 函数。配合全局可以获取到的 `require` 函数，可以完成一些酷炫操作。
 
@@ -437,7 +454,7 @@ __non_webpack_require__('outer.js')
 
 ### \_\_webpack_is_included\_\_
 
-<ApiMeta addedVersion="0.4.5" />
+<ApiMeta addedVersion="0.4.5" specific={['Rspack', 'Webpack']} />
 
 测试给定的模块是否被 Rspack 打包。
 
@@ -458,6 +475,8 @@ if (true) {
 
 ### \_\_resourceQuery
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 当前模块的资源查询（resource query）。如果进行了如下的 `require` 调用，那么查询字符串（query string）在 `file.js` 中可用。
 
 ```js
@@ -475,11 +494,11 @@ __resourceQuery
 
 </Columns>
 
-## Chunks (Rspack/Webpack 专有)
+## Chunks
 
 ### \_\_webpack_chunkname\_\_
 
-<ApiMeta addedVersion="0.4.4" />
+<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
 
 访问当前 chunk 的名称。
 
@@ -545,13 +564,13 @@ import('./module-a').then(moduleA => {
 
 ### \_\_webpack_share_scopes\_\_
 
-<ApiMeta addedVersion="0.4.1" />
+<ApiMeta addedVersion="0.4.1" specific={['Rspack', 'Webpack']} />
 
 用于存储 module federation 中的一个远程容器共享作用域 (shared scope) 相关信息。
 
 ### \_\_webpack_init_sharing\_\_
 
-<ApiMeta addedVersion="0.4.1" />
+<ApiMeta addedVersion="0.4.1" specific={['Rspack', 'Webpack']} />
 
 用于初始化 module federation 中的一个远程容器共享作用域 (shared scope) 并加载相关模块。
 
@@ -559,13 +578,15 @@ import('./module-a').then(moduleA => {
 
 ### \_\_system_context\_\_
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 可在 `output.libraryTarget="system"` 时获取 System.js 上下文。
 
 ## Rspack
 
 ### \_\_rspack_version\_\_
 
-<ApiMeta addedVersion="0.5.2" />
+<ApiMeta addedVersion="0.5.2" specific={['Rspack']} />
 当前使用的 Rspack 版本，默认从 `@rspack/core/package.json` 读取。可以通过 `experiments.rspackFuture.bundlerInfo.version`
 修改。
 
@@ -585,7 +606,7 @@ __webpack_require__.rv = '0.7.4';
 
 ### \_\_rspack_unique_id\_\_
 
-<ApiMeta addedVersion="1.0.0" />
+<ApiMeta addedVersion="1.0.0" specific={['Rspack']} />
 
 当前打包工具的 ID，为 `{bundler}@{version}`。其中：
 

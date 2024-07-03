@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import assert from "assert";
-import { Callback } from "tapable";
+import { Callback } from "@rspack/lite-tapable";
 
 import type { Compilation, Compiler } from ".";
 import { Stats } from ".";
