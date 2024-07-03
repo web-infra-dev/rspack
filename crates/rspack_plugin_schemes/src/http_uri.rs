@@ -24,20 +24,22 @@ static ALLOWED_URIS: &[&str] = &["http://example.com"];
 static PROXY: &str = "http://proxy.example.com";
 
 #[plugin]
-
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct HttpUriPlugin {
+  options: HttpUriPluginOptions,
   lockfile_cache: LockfileCache,
 }
 
+#[derive(Debug, Default)]
+pub struct HttpUriPluginOptions {}
+
 impl HttpUriPlugin {
-  pub fn new() -> Self {
-      lockfile_cache: LockfileCache::new(),
+  pub fn new(options: HttpUriPluginOptions) -> Self {
+    Self::new_inner(options, LockfileCache::default())
   }
 }
 
-
-
+#[derive(Debug, Default)]
 pub struct LockfileCache {
   lockfile: Lockfile,
   snapshot: String, // Placeholder for the actual snapshot type
@@ -52,6 +54,7 @@ impl LockfileCache {
   }
 }
 
+#[derive(Debug)]
 pub struct Lockfile {
   pub version: u32,
   pub entries: Vec<LockfileEntry>,
