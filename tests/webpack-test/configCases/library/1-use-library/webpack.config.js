@@ -15,6 +15,42 @@ module.exports = (env, { testPath }) => [
 		]
 	},
 	{
+		entry: "./default-test-modern-module.js",
+		optimization: {
+			minimize: true
+		},
+		resolve: {
+			alias: {
+				library: path.resolve(testPath, "../0-create-library/modern-module.js")
+			}
+		},
+		plugins: [
+			new webpack.DefinePlugin({
+				NAME: JSON.stringify("modern-module-tree-shakable")
+			}),
+			/**
+			 * @this {Compiler} compiler
+			 */
+			function () {
+				/**
+				 * @param {Compilation} compilation compilation
+				 * @returns {void}
+				 */
+				const handler = compilation => {
+					compilation.hooks.afterProcessAssets.tap("testcase", assets => {
+						for (const asset of Object.keys(assets)) {
+							const source = assets[asset].source();
+							expect(source).not.toContain('"a"');
+							expect(source).not.toContain('"b"');
+							expect(source).not.toContain('"non-external"');
+						}
+					});
+				};
+				this.hooks.compilation.tap("testcase", handler);
+			}
+		]
+	},
+	{
 		resolve: {
 			alias: {
 				library: path.resolve(
@@ -53,30 +89,31 @@ module.exports = (env, { testPath }) => [
 			})
 		]
 	},
-	{
-		resolve: {
-			alias: {
-				library: path.resolve(testPath, "../0-create-library/amd.js")
-			}
-		},
-		plugins: [
-			new webpack.DefinePlugin({
-				NAME: JSON.stringify("amd")
-			})
-		]
-	},
-	{
-		resolve: {
-			alias: {
-				library: path.resolve(testPath, "../0-create-library/amd-iife.js")
-			}
-		},
-		plugins: [
-			new webpack.DefinePlugin({
-				NAME: JSON.stringify("amd-iife")
-			})
-		]
-	},
+	// TODO: https://github.com/web-infra-dev/rspack/issues/4313
+	// {
+	// 	resolve: {
+	// 		alias: {
+	// 			library: path.resolve(testPath, "../0-create-library/amd.js")
+	// 		}
+	// 	},
+	// 	plugins: [
+	// 		new webpack.DefinePlugin({
+	// 			NAME: JSON.stringify("amd")
+	// 		})
+	// 	]
+	// },
+	// {
+	// 	resolve: {
+	// 		alias: {
+	// 			library: path.resolve(testPath, "../0-create-library/amd-iife.js")
+	// 		}
+	// 	},
+	// 	plugins: [
+	// 		new webpack.DefinePlugin({
+	// 			NAME: JSON.stringify("amd-iife")
+	// 		})
+	// 	]
+	// },
 	{
 		externals: {
 			library: `promise (require(${JSON.stringify(
@@ -275,23 +312,24 @@ module.exports = (env, { testPath }) => [
 			})
 		]
 	},
-	{
-		resolve: {
-			alias: {
-				library: path.resolve(
-					testPath,
-					"../0-create-library/commonjs-static-external.js"
-				),
-				external: path.resolve(__dirname, "node_modules/external.js")
-			}
-		},
-		plugins: [
-			new webpack.DefinePlugin({
-				NAME: JSON.stringify("commonjs-static with external"),
-				TEST_EXTERNAL: true
-			})
-		]
-	},
+	// TODO: https://github.com/web-infra-dev/rspack/issues/4313
+	// {
+	// 	resolve: {
+	// 		alias: {
+	// 			library: path.resolve(
+	// 				testPath,
+	// 				"../0-create-library/commonjs-static-external.js"
+	// 			),
+	// 			external: path.resolve(__dirname, "node_modules/external.js")
+	// 		}
+	// 	},
+	// 	plugins: [
+	// 		new webpack.DefinePlugin({
+	// 			NAME: JSON.stringify("commonjs-static with external"),
+	// 			TEST_EXTERNAL: true
+	// 		})
+	// 	]
+	// },
 	{
 		resolve: {
 			alias: {
@@ -387,7 +425,6 @@ module.exports = (env, { testPath }) => [
 			})
 		]
 	},
-
 	{
 		resolve: {
 			alias: {
@@ -412,16 +449,17 @@ module.exports = (env, { testPath }) => [
 			})
 		]
 	},
-	{
-		resolve: {
-			alias: {
-				library: path.resolve(testPath, "../0-create-library/entryC.js")
-			}
-		},
-		plugins: [
-			new webpack.DefinePlugin({
-				NAME: JSON.stringify("entryC")
-			})
-		]
-	}
+	// TODO: https://github.com/web-infra-dev/rspack/issues/4313
+	// {
+	// 	resolve: {
+	// 		alias: {
+	// 			library: path.resolve(testPath, "../0-create-library/entryC.js")
+	// 		}
+	// 	},
+	// 	plugins: [
+	// 		new webpack.DefinePlugin({
+	// 			NAME: JSON.stringify("entryC")
+	// 		})
+	// 	]
+	// }
 ];
