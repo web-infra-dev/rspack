@@ -2,15 +2,19 @@ import { Badge } from '@theme';
 
 # Compilation 钩子
 
+:::info
+Rspack 主要编译逻辑运行在 Rust 侧。出于稳定性、性能、架构等因素，在使用钩子时 Rust 侧编译对象传输到 JavaScript 侧后，对 JavaScript 侧的修改不会被同步到 Rust 侧。因此绝大部分钩子为“只读”。
+:::
+
 ## `buildModule`
 
 <Badge text="只读" type="info" />
 
-在模块被构建之前调用，可以用来修改模块。
+在模块被构建之前调用。
 
 - **类型：** `SyncHook<[Module]>`
 - **参数：**
-  - 模块实例：`Module`
+  - `Module`：模块实例
 
 ```ts
 type Module = {
@@ -22,7 +26,12 @@ type Module = {
   factoryMeta?: JsFactoryMeta;
   buildInfo: Record<string, any>;
   buildMeta: Record<string, any>;
-  originalSource(): Source | null;
+  originalSource(): {
+    isRaw: boolean;
+    isBuffer: boolean;
+    source: Buffer;
+    map?: Buffer;
+  } | null;
   identifier(): string;
   nameForCondition(): string | null;
 };
@@ -36,8 +45,8 @@ type Module = {
 
 - **类型：** `SyncHook<[ExecuteModuleArgument, ExecuteModuleContext]>`
 - **参数：**
-  - 运行参数：`ExecuteModuleArgument`
-  - 运行上下文：`ExecuteModuleContext`
+  - `ExecuteModuleArgument`：模块运行参数
+  - `ExecuteModuleContext`：模块运行上下文
 
 ```ts
 type ExecuteModuleArgument = {
@@ -65,7 +74,7 @@ type ExecuteModuleContext = {
 
 - **类型：** `SyncHook<[Module]>`
 - **参数：**
-  - 模块实例：`Module`
+  - `Module`：模块实例
 
 ## `finishModules`
 
@@ -75,7 +84,7 @@ type ExecuteModuleContext = {
 
 - **类型：** `AsyncSeriesHook<[Module[]]>`
 - **参数：**
-  - 模块列表：`Module[]`
+  - `Module[]`：所有模块列表
 
 ## `optimizeModules`
 
@@ -85,7 +94,7 @@ type ExecuteModuleContext = {
 
 - **类型：** `SyncBailHook<[Module[]]>`
 - **参数：**
-  - 模块列表：`Module[]`
+  - `Module[]`：所有模块列表
 
 ## `afterOptimizeModules`
 
@@ -95,7 +104,7 @@ type ExecuteModuleContext = {
 
 - **类型：** `SyncBailHook<[Module[]]>`
 - **参数：**
-  - 模块列表：`Module[]`
+  - `Module[]`：所有模块列表
 
 ## `optimizeTree`
 
@@ -105,8 +114,8 @@ type ExecuteModuleContext = {
 
 - **类型：** `AsyncSeriesHook<[Chunk[], Module[]]>`
 - **参数：**
-  - Chunk 列表：`Chunk[]`
-  - 模块列表：`Module[]`
+  - `Chunk[]`：Chunk 列表：
+  - `Module[]`：模块列表
 
 ```ts
 type Chunk = {
@@ -141,8 +150,8 @@ type Chunk = {
 
 - **类型：** `AsyncSeriesBailHook<[Chunk[], Module[]]>`
 - **参数：**
-  - Chunk 列表：`Chunk[]`
-  - 模块列表：`Module[]`
+  - `Chunk[]`：Chunk 列表：
+  - `Module[]`：模块列表
 
 ## `additionalTreeRuntimeRequirements`
 
@@ -152,8 +161,8 @@ type Chunk = {
 
 - **类型：** `SyncHook<[Chunk, Set<RuntimeGlobals>]>`
 - **参数：**
-  - Chunk 实例：`Chunk`
-  - 模块列表：`Set<RuntimeGlobals>`
+  - `Chunk`：Chunk 实例
+  - `Set<RuntimeGlobals>`：运行时依赖
 
 ```ts
 enum RuntimeGlobals {}
@@ -167,8 +176,8 @@ enum RuntimeGlobals {}
 
 - **类型：** `SyncHook<[RuntimeModule, Chunk]>`
 - **参数：**
-  - 运行时模块：`RuntimeModule`
-  - Chunk 实例：`Chunk`
+  - `RuntimeModule`：运行时模块
+  - `Chunk`：Chunk 实例
 
 ```ts
 type RuntimeModule = {
@@ -190,7 +199,7 @@ type RuntimeModule = {
 
 - **类型：** `AsyncSeriesHook<Assets>`
 - **参数：**
-  - 产物资源：`Assets`
+  - `Assets`：产物资源映射表
 
 ```ts
 type Assets = Record<
@@ -213,13 +222,11 @@ type Assets = Record<
 
 - **类型：** `SyncHook<Assets>`
 - **参数：**
-  - 产物资源：`Assets`
+  - `Assets`：产物资源映射表
 
 ## `afterSeal`
 
 <Badge text="只读" type="info" />
-
-`AsyncSeriesHook<[]>`
 
 在 seal 阶段结束后调用
 
@@ -233,8 +240,8 @@ type Assets = Record<
 
 - **类型：** `SyncHook<[Chunk, Hash]>`
 - **参数：**
-  - Chunk 实例：`Chunk`
-  - Chunk 哈希：`Hash`
+  - `Chunk`：Chunk 实例
+  - `Hash`：Chunk 哈希实例
 
 ```ts
 type Hash = {
@@ -251,8 +258,8 @@ type Hash = {
 
 - **类型：** `SyncHook<[Chunk, string]>`
 - **参数：**
-  - Chunk 实例：`Chunk`
-  - 产物文件名：`string`
+  - `Chunk`：Chunk 实例
+  - `string`：产物文件名
 
 ## `childCompiler`
 
@@ -262,9 +269,9 @@ type Hash = {
 
 - **类型：** `SyncHook<[Compiler, string, number]>`
 - **参数：**
-  - 子编译实例：`Compiler`
-  - 子编译名称：`string`
-  - 子编译索引：`number`
+  - `Compiler`：子编译实例：
+  - `string`：子编译名称
+  - `number`：子编译索引
 
 ## `statsPreset`
 
@@ -274,8 +281,8 @@ type Hash = {
 
 - **类型：** `SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>`
 - **参数：**
-  - Stats 配置：`Partial<StatsOptions>`
-  - Stats 上下文：`CreateStatsOptionsContext`
+  - `Partial<StatsOptions>`：Stats 配置
+  - `CreateStatsOptionsContext`：Stats 上下文
 
 ```ts
 type StatsOptions = {
@@ -306,8 +313,8 @@ compilation.hooks.statsPreset.for('my-preset').tap('MyPlugin', options => {
 
 - **类型：** `SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>`
 - **参数：**
-  - Stats 配置：`Partial<StatsOptions>`
-  - Stats 上下文：`CreateStatsOptionsContext`
+  - `Partial<StatsOptions>`：Stats 配置
+  - `CreateStatsOptionsContext`：Stats 上下文
 
 以如下插件为例：
 
@@ -329,8 +336,8 @@ compilation.hooks.statsNormalize.tap('MyPlugin', options => {
 
 - **类型：** `SyncHook<[StatsFactory, StatsOptions]>`
 - **参数：**
-  - Stats 工厂实例：`StatsFactory`，详见 [Stats 钩子](/api/plugin-api/stats-hooks#StatsFactory)
-  - Stats 配置：`StatsOptions`
+  - `StatsFactory`：Stats 工厂实例，详见 [Stats Factory 钩子](/api/plugin-api/stats-hooks#statsfactory)
+  - `StatsOptions`：Stats 配置
 
 ```ts
 type StatsFactory = {
@@ -351,8 +358,8 @@ type StatsFactory = {
 
 - **类型：** `SyncHook<[StatsPrinter, StatsOptions]>`
 - **参数：**
-  - Stats 输出实例：`StatsPrinter`，详见 [Stats 钩子](/api/plugin-api/stats-hooks#StatsPrinter)
-  - Stats 配置：`StatsOptions`
+  - `StatsPrinter`：Stats 打印实例，详见 [Stats Printer 钩子](/api/plugin-api/stats-hooks#statsprinter)
+  - `StatsOptions`：Stats 配置
 
 ```ts
 type StatsPrinter = {
