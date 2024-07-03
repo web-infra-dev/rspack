@@ -239,7 +239,6 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
       .expect("should have build_meta")
       .strict_harmony_module,
   );
-  dbg!(&imported_module.build_meta());
   let create_error = |message: String| {
     let (severity, title) = if should_error {
       (Severity::Error, "HarmonyLinkingError")

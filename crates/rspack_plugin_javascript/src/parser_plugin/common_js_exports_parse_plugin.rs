@@ -167,7 +167,6 @@ impl<'parser> JavascriptParser<'parser> {
 
   // can't scan `__esModule` value
   fn bailout(&mut self) {
-    dbg!(&self.parser_exports_state);
     if matches!(self.parser_exports_state, Some(true)) {
       self.build_meta.exports_type = BuildMetaExportsType::Unset;
       self.build_meta.default_object = BuildMetaDefaultObject::False;
