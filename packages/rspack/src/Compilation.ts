@@ -258,7 +258,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				},
 				tapAsync: (
 					options: liteTapable.Options,
-					fn: liteTapable.FnWithCallback<T, void>
+					fn: liteTapable.FnAsync<T, void>
 				) => {
 					processAssetsHook.tapAsync(getOptions(options), (assets, callback) =>
 						(fn as any)(...getArgs(), callback)
@@ -266,7 +266,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				},
 				tapPromise: (
 					options: liteTapable.Options,
-					fn: liteTapable.Fn<T, void>
+					fn: liteTapable.FnPromise<T, void>
 				) => {
 					processAssetsHook.tapPromise(getOptions(options), () =>
 						fn(...getArgs())

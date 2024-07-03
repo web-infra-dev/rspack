@@ -24,48 +24,41 @@ type ArgumentNames<T extends any[]> = FixedSizeArray<T["length"], string>;
 export type AsArray<T> = T extends any[] ? T : [T];
 
 // @public (undocumented)
-export class AsyncParallelHook<T, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, void, AdditionalOptions> {
+export class AsyncParallelHook<T, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, void, AdditionalOptions> {
     // (undocumented)
     callAsyncStageRange(queried: QueriedHook<T, void, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, void>>): void;
-    // (undocumented)
-    tapAsync(options: Options<AdditionalOptions>, fn: FnWithCallback<T, void>): void;
-    // (undocumented)
-    tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void;
 }
 
 // @public (undocumented)
-export class AsyncSeriesBailHook<T, R, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, R, AdditionalOptions> {
+export class AsyncSeriesBailHook<T, R, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, R, AdditionalOptions> {
     // (undocumented)
     callAsyncStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, R>>): void;
-    // (undocumented)
-    tapAsync(options: Options<AdditionalOptions>, fn: FnWithCallback<T, void>): void;
-    // (undocumented)
-    tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void;
 }
 
 // @public (undocumented)
-export class AsyncSeriesHook<T, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, void, AdditionalOptions> {
+export class AsyncSeriesHook<T, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, void, AdditionalOptions> {
     // (undocumented)
     callAsyncStageRange(queried: QueriedHook<T, void, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, void>>): void;
-    // (undocumented)
-    tapAsync(options: Options<AdditionalOptions>, fn: FnWithCallback<T, void>): void;
-    // (undocumented)
-    tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void;
 }
 
 // @public (undocumented)
-export class AsyncSeriesWaterfallHook<T, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, AsArray<T>[0], AdditionalOptions> {
+export class AsyncSeriesWaterfallHook<T, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, AsArray<T>[0], AdditionalOptions> {
     constructor(args?: FixedSizeArray<AsArray<T>["length"], string>, name?: string);
     // (undocumented)
     callAsyncStageRange(queried: QueriedHook<T, AsArray<T>[0], AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, AsArray<T>[0]>>): void;
-    // (undocumented)
-    tapAsync(options: Options<AdditionalOptions>, fn: FnWithCallback<T, void>): void;
-    // (undocumented)
-    tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void;
 }
 
 // @public (undocumented)
 export type Callback<E, T> = (error: E | null, result?: T) => void;
+
+// @public (undocumented)
+type ExtractHookAdditionalOptions<H> = H extends Hook<any, any, infer A> ? A : never;
+
+// @public (undocumented)
+type ExtractHookArgs<H> = H extends Hook<infer T, any> ? T : never;
+
+// @public (undocumented)
+type ExtractHookReturn<H> = H extends Hook<any, infer R> ? R : never;
 
 // @public (undocumented)
 type FixedSizeArray<T extends number, U> = T extends 0 ? void[] : ReadonlyArray<U> & {
@@ -77,7 +70,10 @@ type FixedSizeArray<T extends number, U> = T extends 0 ? void[] : ReadonlyArray<
 export type Fn<T, R> = (...args: AsArray<T>) => R;
 
 // @public (undocumented)
-export type FnWithCallback<T, R> = (...args: Append<AsArray<T>, InnerCallback<Error, R>>) => void;
+export type FnAsync<T, R> = (...args: Append<AsArray<T>, InnerCallback<Error, R>>) => void;
+
+// @public (undocumented)
+export type FnPromise<T, R> = (...args: AsArray<T>) => Promise<R>;
 
 // @public (undocumented)
 type FullTap = Tap & {
@@ -86,7 +82,27 @@ type FullTap = Tap & {
 };
 
 // @public (undocumented)
-export class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
+export interface Hook<T = any, R = any, AdditionalOptions = UnsetAdditionalOptions> {
+    // (undocumented)
+    intercept(interceptor: HookInterceptor<T, R, AdditionalOptions>): void;
+    // (undocumented)
+    isUsed(): boolean;
+    // (undocumented)
+    name?: string;
+    // (undocumented)
+    queryStageRange(stageRange: StageRange): QueriedHook<T, R, AdditionalOptions>;
+    // (undocumented)
+    tap(opt: Options<AdditionalOptions>, fn: Fn<T, R>): void;
+    // (undocumented)
+    tapAsync(opt: Options<AdditionalOptions>, fn: FnAsync<T, R>): void;
+    // (undocumented)
+    tapPromise(opt: Options<AdditionalOptions>, fn: FnPromise<T, R>): void;
+    // (undocumented)
+    withOptions(opt: TapOptions & IfSet<AdditionalOptions>): Hook<T, R, AdditionalOptions>;
+}
+
+// @public (undocumented)
+export class HookBase<T, R, AdditionalOptions = UnsetAdditionalOptions> implements Hook<T, R, AdditionalOptions> {
     constructor(args?: FixedSizeArray<AsArray<T>["length"], string>, name?: string);
     // (undocumented)
     args: ArgumentNames<AsArray<T>>;
@@ -129,7 +145,13 @@ export class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
     // (undocumented)
     _tap(type: "sync" | "async" | "promise", options: Options<AdditionalOptions>, fn: Function): void;
     // (undocumented)
+    tapAsync(options: Options<AdditionalOptions>, fn: FnAsync<T, R>): void;
+    // (undocumented)
+    tapPromise(options: Options<AdditionalOptions>, fn: FnPromise<T, R>): void;
+    // (undocumented)
     taps: (FullTap & IfSet<AdditionalOptions>)[];
+    // (undocumented)
+    withOptions(options: TapOptions & IfSet<AdditionalOptions>): Hook<T, R, AdditionalOptions>;
 }
 
 // @public (undocumented)
@@ -156,7 +178,7 @@ export interface HookInterceptor<T, R, AdditionalOptions = UnsetAdditionalOption
 }
 
 // @public (undocumented)
-export class HookMap<H extends Hook<any, any, any>> {
+export class HookMap<H extends Hook> {
     constructor(factory: HookFactory<H>, name?: string);
     // (undocumented)
     _factory: HookFactory<H>;
@@ -203,22 +225,24 @@ type Measure<T extends number> = T extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 ? T
 export const minStage: number;
 
 // @public (undocumented)
-export class MultiHook<H> {
+export class MultiHook<H extends Hook> {
     constructor(hooks: H[], name?: string);
     // (undocumented)
     hooks: H[];
     // (undocumented)
-    intercept(interceptor: HookInterceptor<any, any, any>): void;
+    intercept(interceptor: HookInterceptor<ExtractHookArgs<Hook>, ExtractHookReturn<Hook>, ExtractHookAdditionalOptions<Hook>>): void;
     // (undocumented)
     isUsed(): boolean;
     // (undocumented)
     name?: string;
     // (undocumented)
-    tap(options: string | Tap, fn: Function): void;
+    tap(options: Options<ExtractHookAdditionalOptions<Hook>>, fn: Fn<ExtractHookArgs<Hook>, ExtractHookReturn<Hook>>): void;
     // (undocumented)
-    tapAsync(options: string | Tap, fn: Function): void;
+    tapAsync(options: Options<ExtractHookAdditionalOptions<Hook>>, fn: FnAsync<ExtractHookArgs<Hook>, ExtractHookReturn<Hook>>): void;
     // (undocumented)
-    tapPromise(options: string | Tap, fn: Function): void;
+    tapPromise(options: Options<ExtractHookAdditionalOptions<Hook>>, fn: FnPromise<ExtractHookArgs<Hook>, ExtractHookReturn<Hook>>): void;
+    // (undocumented)
+    withOptions(options: TapOptions & IfSet<ExtractHookAdditionalOptions<Hook>>): MultiHook<Hook<any, any, UnsetAdditionalOptions>>;
 }
 
 // @public (undocumented)
@@ -226,13 +250,13 @@ export type Options<AdditionalOptions = UnsetAdditionalOptions> = string | (Tap 
 
 // @public (undocumented)
 export class QueriedHook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
-    constructor(stageRange: StageRange, hook: Hook<T, R, AdditionalOptions>);
+    constructor(stageRange: StageRange, hook: HookBase<T, R, AdditionalOptions>);
     // (undocumented)
     call(...args: AsArray<T>): R;
     // (undocumented)
     callAsync(...args: Append<AsArray<T>, Callback<Error, R>>): void;
     // (undocumented)
-    hook: Hook<T, R, AdditionalOptions>;
+    hook: HookBase<T, R, AdditionalOptions>;
     // (undocumented)
     isUsed(): boolean;
     // (undocumented)
@@ -244,12 +268,12 @@ export class QueriedHook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 }
 
 // @public (undocumented)
-export class QueriedHookMap<H extends Hook<any, any, any>> {
+export class QueriedHookMap<H extends Hook> {
     constructor(stageRange: StageRange, hookMap: HookMap<H>);
     // (undocumented)
-    for(key: HookMapKey): QueriedHook<any, any, any>;
+    for(key: HookMapKey): QueriedHook<any, any, UnsetAdditionalOptions>;
     // (undocumented)
-    get(key: HookMapKey): QueriedHook<any, any, any> | undefined;
+    get(key: HookMapKey): QueriedHook<any, any, UnsetAdditionalOptions> | undefined;
     // (undocumented)
     hookMap: HookMap<H>;
     // (undocumented)
@@ -265,7 +289,7 @@ export const safeStage: (stage: number) => number;
 export type StageRange = readonly [number, number];
 
 // @public (undocumented)
-export class SyncBailHook<T, R, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, R, AdditionalOptions> {
+export class SyncBailHook<T, R, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, R, AdditionalOptions> {
     // (undocumented)
     call(...args: AsArray<T>): R;
     // (undocumented)
@@ -279,7 +303,7 @@ export class SyncBailHook<T, R, AdditionalOptions = UnsetAdditionalOptions> exte
 }
 
 // @public (undocumented)
-export class SyncHook<T, R = void, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, R, AdditionalOptions> {
+export class SyncHook<T, R = void, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, R, AdditionalOptions> {
     // (undocumented)
     call(...args: AsArray<T>): R;
     // (undocumented)
@@ -293,7 +317,7 @@ export class SyncHook<T, R = void, AdditionalOptions = UnsetAdditionalOptions> e
 }
 
 // @public (undocumented)
-export class SyncWaterfallHook<T, AdditionalOptions = UnsetAdditionalOptions> extends Hook<T, AsArray<T>[0], AdditionalOptions> {
+export class SyncWaterfallHook<T, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, AsArray<T>[0], AdditionalOptions> {
     constructor(args?: FixedSizeArray<AsArray<T>["length"], string>, name?: string);
     // (undocumented)
     call(...args: AsArray<T>): AsArray<T>[0];
