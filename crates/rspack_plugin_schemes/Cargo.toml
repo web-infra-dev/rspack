@@ -11,6 +11,7 @@ version    = "0.1.0"
 anyhow        = "1.0.86"
 async-trait   = { workspace = true }
 base64        = "0.22.1"
+hex           = "0.4.3"
 once_cell     = { workspace = true }
 regex         = { workspace = true }
 reqwest       = "0.12.5"
