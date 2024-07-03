@@ -569,6 +569,7 @@ export type CssModuleParserOptions = z.infer<typeof cssModuleParserOptions>;
 const dynamicImportMode = z.enum(["eager", "lazy", "weak", "lazy-once"]);
 const dynamicImportPreload = z.union([z.boolean(), z.number()]);
 const dynamicImportPrefetch = z.union([z.boolean(), z.number()]);
+const dynamicImportFetchPriority = z.enum(["low", "high", "auto"]);
 const javascriptParserUrl = z.union([z.literal("relative"), z.boolean()]);
 const exprContextCritical = z.boolean();
 const wrappedContextCritical = z.boolean();
@@ -586,6 +587,7 @@ const javascriptParserOptions = z.strictObject({
 	dynamicImportMode: dynamicImportMode.optional(),
 	dynamicImportPreload: dynamicImportPreload.optional(),
 	dynamicImportPrefetch: dynamicImportPrefetch.optional(),
+	dynamicImportFetchPriority: dynamicImportFetchPriority.optional(),
 	url: javascriptParserUrl.optional(),
 	exprContextCritical: exprContextCritical.optional(),
 	wrappedContextCritical: wrappedContextCritical.optional(),

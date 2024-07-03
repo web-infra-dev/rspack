@@ -1,4 +1,4 @@
-__webpack_require__.f.css = function (chunkId, promises) {
+__webpack_require__.f.css = function (chunkId, promises$FETCH_PRIORITY$) {
 	// css chunk loading
 	var installedChunkData = __webpack_require__.o(installedChunks, chunkId)
 		? installedChunks[chunkId]
@@ -48,7 +48,7 @@ __webpack_require__.f.css = function (chunkId, promises) {
 						}
 					}
 				};
-				var link = loadStylesheet(chunkId, url, loadingEnded);
+				var link = loadStylesheet(chunkId, url, loadingEnded$FETCH_PRIORITY$);
 			} else installedChunks[chunkId] = 0;
 		}
 	}

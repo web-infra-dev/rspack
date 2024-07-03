@@ -82,6 +82,34 @@ impl From<&str> for DynamicImportMode {
   }
 }
 
+#[derive(Debug, Clone, Copy, MergeFrom, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum DynamicImportFetchPriority {
+  Low,
+  High,
+  Auto,
+}
+
+impl From<&str> for DynamicImportFetchPriority {
+  fn from(value: &str) -> Self {
+    match value {
+      "low" => DynamicImportFetchPriority::Low,
+      "high" => DynamicImportFetchPriority::High,
+      "auto" => DynamicImportFetchPriority::Auto,
+      _ => DynamicImportFetchPriority::Auto,
+    }
+  }
+}
+
+impl fmt::Display for DynamicImportFetchPriority {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      DynamicImportFetchPriority::Low => write!(f, "low"),
+      DynamicImportFetchPriority::High => write!(f, "high"),
+      DynamicImportFetchPriority::Auto => write!(f, "auto"),
+    }
+  }
+}
+
 #[derive(Debug, Clone, Copy, MergeFrom)]
 pub enum JavascriptParserUrl {
   Enable,
@@ -170,6 +198,7 @@ pub struct JavascriptParserOptions {
   pub dynamic_import_mode: DynamicImportMode,
   pub dynamic_import_preload: JavascriptParserOrder,
   pub dynamic_import_prefetch: JavascriptParserOrder,
+  pub dynamic_import_fetch_priority: Option<DynamicImportFetchPriority>,
   pub url: JavascriptParserUrl,
   pub expr_context_critical: bool,
   pub wrapped_context_critical: bool,

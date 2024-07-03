@@ -33,6 +33,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let unique_name = &compilation.options.output.unique_name;
       let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+      let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
       let condition_map =
         compilation
@@ -99,7 +100,38 @@ impl RuntimeModule for CssLoadingRuntimeModule {
             "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
             &cross_origin_content,
           )
-          .replace("__UNIQUE_NAME__", unique_name),
+          .replace("__UNIQUE_NAME__", unique_name)
+          .replace(
+            "$FETCH_PRIORITY_SET_ATTRIBUTE$",
+            if with_fetch_priority {
+              r#"
+              if(fetchPriority) {
+                link.setAttribute("fetchpriority", fetchPriority);
+              }
+              "#
+            } else {
+              ""
+            },
+          )
+          .replace(
+            "$FETCH_PRIORITY$",
+            if with_fetch_priority {
+              ", fetchPriority"
+            } else {
+              ""
+            },
+          )
+          .replace("$HMR$", if with_hmr { ", hmr" } else { "" })
+          .replace("$HMR_IF_START$", if with_hmr { "if(hmr){" } else { "" })
+          .replace("$HMR_IF_END$", if with_hmr { "}" } else { "" })
+          .replace(
+            "$HMR_INSERT$",
+            if with_hmr {
+              r#"hmr ? hmr.parentNode.insertBefore(link, hmr) : "#
+            } else {
+              ""
+            },
+          ),
       ));
 
       if with_loading {
@@ -111,7 +143,15 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         source.add(RawSource::from(
           include_str!("./css_loading_with_loading.js")
             .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
-            .replace("CSS_MATCHER", &has_css_matcher.render("chunkId")),
+            .replace("CSS_MATCHER", &has_css_matcher.render("chunkId"))
+            .replace(
+              "$FETCH_PRIORITY$",
+              if with_fetch_priority {
+                ", fetchPriority"
+              } else {
+                ""
+              },
+            ),
         ));
       }
 

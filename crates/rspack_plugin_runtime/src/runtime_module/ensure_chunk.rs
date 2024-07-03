@@ -31,8 +31,15 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     Ok(
       RawSource::from(
         match runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
-          true => include_str!("runtime/ensure_chunk.js"),
-          false => include_str!("runtime/ensure_chunk_with_inline.js"),
+          true => include_str!("runtime/ensure_chunk.js").replace(
+            "$FETCH_PRIORITY$",
+            if runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY) {
+              ", fetchPriority"
+            } else {
+              ""
+            },
+          ),
+          false => include_str!("runtime/ensure_chunk_with_inline.js").to_string(),
         },
       )
       .boxed(),

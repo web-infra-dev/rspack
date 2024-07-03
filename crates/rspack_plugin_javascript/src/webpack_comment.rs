@@ -13,6 +13,7 @@ pub enum WebpackComment {
   Prefetch,
   Preload,
   Ignore,
+  FetchPriority,
   Mode,
 }
 
@@ -54,6 +55,10 @@ impl WebpackCommentMap {
         None
       }
     })
+  }
+
+  pub fn get_fetch_priority(&self) -> Option<&String> {
+    self.0.get(&WebpackComment::FetchPriority)
   }
 }
 
@@ -198,6 +203,28 @@ pub fn try_extract_webpack_magic_comment(
                   warning_diagnostics,
                   import_span,
                 );
+              }
+            }
+            "webpackFetchPriority" => {
+              if let Some(item_value_match) = captures
+                .name("_1")
+                .or(captures.name("_2"))
+                .or(captures.name("_3"))
+              {
+                let priority = item_value_match.as_str();
+                if priority == "low" || priority == "high" || priority == "auto" {
+                  result.insert(WebpackComment::FetchPriority, priority.to_string());
+                  return;
+                } else {
+                  // add_magic_comment_warning(
+                  //   source_file,
+                  //   item_name,
+                  //   r#""low", "high" or "auto""#,
+                  //   &captures,
+                  //   warning_diagnostics,
+                  //   import_span,
+                  // );
+                }
               }
             }
             _ => {

@@ -1062,6 +1062,7 @@ export interface RawJavascriptParserOptions {
   dynamicImportMode: string
   dynamicImportPreload: string
   dynamicImportPrefetch: string
+  dynamicImportFetchPriority?: string
   url: string
   exprContextCritical: boolean
   wrappedContextCritical: boolean

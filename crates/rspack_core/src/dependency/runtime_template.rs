@@ -590,22 +590,52 @@ pub fn block_promise(
     .map(|c| compilation.chunk_by_ukey.expect_get(c))
     .filter(|c| !c.has_runtime(&compilation.chunk_group_by_ukey) && c.id.is_some())
     .collect::<Vec<_>>();
+
   if chunks.len() == 1 {
     let chunk_id = serde_json::to_string(chunks[0].id.as_ref().expect("should have chunk.id"))
       .expect("should able to json stringify");
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
-    format!("{}({comment}{chunk_id})", RuntimeGlobals::ENSURE_CHUNK)
+
+    let fetch_priority = chunk_group
+      .kind
+      .get_normal_options()
+      .and_then(|x| x.fetch_priority);
+
+    if fetch_priority.is_some() {
+      runtime_requirements.insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
+    }
+
+    format!(
+      "{}({comment}{chunk_id}{})",
+      RuntimeGlobals::ENSURE_CHUNK,
+      fetch_priority
+        .map(|x| format!(r#", "{x}""#))
+        .unwrap_or_default()
+    )
   } else if !chunks.is_empty() {
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
+
+    let fetch_priority = chunk_group
+      .kind
+      .get_normal_options()
+      .and_then(|x| x.fetch_priority);
+
+    if fetch_priority.is_some() {
+      runtime_requirements.insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
+    }
+
     format!(
       "Promise.all({comment}[{}])",
       chunks
         .iter()
         .map(|c| format!(
-          "{}({})",
+          "{}({}{})",
           RuntimeGlobals::ENSURE_CHUNK,
           serde_json::to_string(c.id.as_ref().expect("should have chunk.id"))
-            .expect("should able to json stringify")
+            .expect("should able to json stringify"),
+          fetch_priority
+            .map(|x| format!(r#", "{x}""#))
+            .unwrap_or_default()
         ))
         .collect::<Vec<_>>()
         .join(", ")

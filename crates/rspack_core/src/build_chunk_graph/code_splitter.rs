@@ -234,6 +234,9 @@ fn add_chunk_in_group(
     group_options
       .and_then(|x| x.normal_options())
       .and_then(|x| x.prefetch_order),
+    group_options
+      .and_then(|x| x.normal_options())
+      .and_then(|x| x.fetch_priority),
   );
   let kind = ChunkGroupKind::Normal { options };
   let mut chunk_group = ChunkGroup::new(kind);

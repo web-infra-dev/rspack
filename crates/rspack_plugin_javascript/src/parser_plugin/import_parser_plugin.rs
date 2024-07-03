@@ -1,8 +1,8 @@
-use rspack_core::ChunkGroupOptions;
 use rspack_core::{
   context_reg_exp, AsyncDependenciesBlock, DependencyLocation, DynamicImportMode, ErrorSpan,
   GroupOptions,
 };
+use rspack_core::{ChunkGroupOptions, DynamicImportFetchPriority};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Callee};
@@ -33,6 +33,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .javascript_options
       .dynamic_import_prefetch
       .get_order();
+    let dynamic_import_fetch_priority = parser.javascript_options.dynamic_import_fetch_priority;
 
     let magic_comment_options = try_extract_webpack_magic_comment(
       parser.source_file,
@@ -63,6 +64,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .get_webpack_preload()
       .and_then(|x| parse_order_string(x.as_str()))
       .or(dynamic_import_preload);
+    let fetch_priority = magic_comment_options
+      .get_fetch_priority()
+      .map(|x| DynamicImportFetchPriority::from(x.as_str()))
+      .or(dynamic_import_fetch_priority);
 
     let param = parser.evaluate_expression(dyn_imported.expr.as_ref());
 
@@ -103,6 +108,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         chunk_name,
         chunk_preload,
         chunk_prefetch,
+        fetch_priority,
       )));
       parser.blocks.push(block);
       Some(true)
@@ -138,6 +144,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
               chunk_name,
               chunk_preload,
               chunk_prefetch,
+              fetch_priority,
             ))),
             replaces,
             start: node.span().real_lo(),
