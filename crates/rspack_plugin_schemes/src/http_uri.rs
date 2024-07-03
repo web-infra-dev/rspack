@@ -24,17 +24,19 @@ static ALLOWED_URIS: &[&str] = &["http://example.com"];
 static PROXY: &str = "http://proxy.example.com";
 
 #[plugin]
-impl HttpUriPlugin {
-  pub fn new() -> Self {
-    Self {
-      lockfile_cache: LockfileCache::new(),
-    }
-  }
-}
 
+#[derive(Debug)]
 pub struct HttpUriPlugin {
   lockfile_cache: LockfileCache,
 }
+
+impl HttpUriPlugin {
+  pub fn new() -> Self {
+      lockfile_cache: LockfileCache::new(),
+  }
+}
+
+
 
 pub struct LockfileCache {
   lockfile: Lockfile,
