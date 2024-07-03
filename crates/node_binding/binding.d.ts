@@ -1507,30 +1507,29 @@ export enum RegisterJsTapKind {
   CompilerAfterEmit = 6,
   CompilerAssetEmitted = 7,
   CompilationBuildModule = 8,
-  CompilationStillValidModule = 9,
-  CompilationSucceedModule = 10,
-  CompilationExecuteModule = 11,
-  CompilationFinishModules = 12,
-  CompilationOptimizeModules = 13,
-  CompilationAfterOptimizeModules = 14,
-  CompilationOptimizeTree = 15,
-  CompilationOptimizeChunkModules = 16,
-  CompilationAdditionalTreeRuntimeRequirements = 17,
-  CompilationRuntimeModule = 18,
-  CompilationChunkHash = 19,
-  CompilationChunkAsset = 20,
-  CompilationProcessAssets = 21,
-  CompilationAfterProcessAssets = 22,
-  CompilationAfterSeal = 23,
-  NormalModuleFactoryBeforeResolve = 24,
-  NormalModuleFactoryFactorize = 25,
-  NormalModuleFactoryResolve = 26,
-  NormalModuleFactoryAfterResolve = 27,
-  NormalModuleFactoryCreateModule = 28,
-  NormalModuleFactoryResolveForScheme = 29,
-  ContextModuleFactoryBeforeResolve = 30,
-  ContextModuleFactoryAfterResolve = 31,
-  JavascriptModulesChunkHash = 32
+  CompilationSucceedModule = 9,
+  CompilationExecuteModule = 10,
+  CompilationFinishModules = 11,
+  CompilationOptimizeModules = 12,
+  CompilationAfterOptimizeModules = 13,
+  CompilationOptimizeTree = 14,
+  CompilationOptimizeChunkModules = 15,
+  CompilationAdditionalTreeRuntimeRequirements = 16,
+  CompilationRuntimeModule = 17,
+  CompilationChunkHash = 18,
+  CompilationChunkAsset = 19,
+  CompilationProcessAssets = 20,
+  CompilationAfterProcessAssets = 21,
+  CompilationAfterSeal = 22,
+  NormalModuleFactoryBeforeResolve = 23,
+  NormalModuleFactoryFactorize = 24,
+  NormalModuleFactoryResolve = 25,
+  NormalModuleFactoryAfterResolve = 26,
+  NormalModuleFactoryCreateModule = 27,
+  NormalModuleFactoryResolveForScheme = 28,
+  ContextModuleFactoryBeforeResolve = 29,
+  ContextModuleFactoryAfterResolve = 30,
+  JavascriptModulesChunkHash = 31
 }
 
 export interface RegisterJsTaps {
@@ -1543,7 +1542,6 @@ export interface RegisterJsTaps {
   registerCompilerAfterEmitTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerCompilerAssetEmittedTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAssetEmittedArgs) => Promise<void>); stage: number; }>
   registerCompilationBuildModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
-  registerCompilationStillValidModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationSucceedModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>
   registerCompilationAdditionalTreeRuntimeRequirements: (stages: Array<number>) => Array<{ function: ((arg: JsAdditionalTreeRuntimeRequirementsArg) => JsAdditionalTreeRuntimeRequirementsResult | undefined); stage: number; }>

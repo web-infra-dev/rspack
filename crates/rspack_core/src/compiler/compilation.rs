@@ -44,7 +44,6 @@ pub type BuildDependency = (
 
 define_hook!(CompilationAddEntry: AsyncSeries(compilation: &mut Compilation, entry_name: Option<&str>));
 define_hook!(CompilationBuildModule: AsyncSeries(module: &mut BoxModule));
-define_hook!(CompilationStillValidModule: AsyncSeries(module: &mut BoxModule));
 define_hook!(CompilationSucceedModule: AsyncSeries(module: &mut BoxModule));
 define_hook!(CompilationExecuteModule:
   SyncSeries(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
@@ -76,7 +75,6 @@ define_hook!(CompilationAfterSeal: AsyncSeries(compilation: &mut Compilation));
 pub struct CompilationHooks {
   pub add_entry: CompilationAddEntryHook,
   pub build_module: CompilationBuildModuleHook,
-  pub still_valid_module: CompilationStillValidModuleHook,
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
   pub finish_modules: CompilationFinishModulesHook,

@@ -165,7 +165,6 @@ export class Compilation {
 		chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
 		processWarnings: liteTapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: liteTapable.SyncHook<[Module], void>;
-		stillValidModule: liteTapable.SyncHook<[Module], void>;
 
 		statsPreset: liteTapable.HookMap<
 			liteTapable.SyncHook<
@@ -302,7 +301,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			chunkAsset: new liteTapable.SyncHook(["chunk", "filename"]),
 			processWarnings: new liteTapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new liteTapable.SyncHook(["module"]),
-			stillValidModule: new liteTapable.SyncHook(["module"]),
 
 			statsPreset: new liteTapable.HookMap(
 				() => new liteTapable.SyncHook(["options", "context"])

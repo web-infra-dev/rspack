@@ -852,12 +852,6 @@ class Compiler {
 				queired => (m: binding.JsModule) =>
 					queired.call(Module.__from_binding(m, this.#compilation))
 			),
-			registerCompilationStillValidModuleTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationStillValidModule,
-				() => this.#compilation!.hooks.stillValidModule,
-				queired => (m: binding.JsModule) =>
-					queired.call(Module.__from_binding(m, this.#compilation))
-			),
 			registerCompilationSucceedModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationSucceedModule,
 				() => this.#compilation!.hooks.succeedModule,

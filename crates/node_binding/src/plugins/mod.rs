@@ -29,7 +29,6 @@ pub struct JsHooksAdapterPlugin {
   register_compiler_after_emit_taps: RegisterCompilerAfterEmitTaps,
   register_compiler_asset_emitted_taps: RegisterCompilerAssetEmittedTaps,
   register_compilation_build_module_taps: RegisterCompilationBuildModuleTaps,
-  register_compilation_still_valid_module_taps: RegisterCompilationStillValidModuleTaps,
   register_compilation_succeed_module_taps: RegisterCompilationSucceedModuleTaps,
   register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps,
   register_compilation_finish_modules_taps: RegisterCompilationFinishModulesTaps,
@@ -121,11 +120,6 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .compilation_hooks
       .build_module
       .intercept(self.register_compilation_build_module_taps.clone());
-    ctx
-      .context
-      .compilation_hooks
-      .still_valid_module
-      .intercept(self.register_compilation_still_valid_module_taps.clone());
     ctx
       .context
       .compilation_hooks
@@ -337,10 +331,6 @@ impl JsHooksAdapterPlugin {
         ),
         register_compilation_build_module_taps: RegisterCompilationBuildModuleTaps::new(
           register_js_taps.register_compilation_build_module_taps,
-          non_skippable_registers.clone(),
-        ),
-        register_compilation_still_valid_module_taps: RegisterCompilationStillValidModuleTaps::new(
-          register_js_taps.register_compilation_still_valid_module_taps,
           non_skippable_registers.clone(),
         ),
         register_compilation_succeed_module_taps: RegisterCompilationSucceedModuleTaps::new(

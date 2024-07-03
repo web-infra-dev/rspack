@@ -35,19 +35,18 @@ use rspack_core::{
   CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
   CompilationOptimizeTree, CompilationOptimizeTreeHook, CompilationParams,
   CompilationProcessAssets, CompilationProcessAssetsHook, CompilationRuntimeModule,
-  CompilationRuntimeModuleHook, CompilationStillValidModule, CompilationStillValidModuleHook,
-  CompilationSucceedModule, CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook,
-  CompilerAssetEmitted, CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook,
-  CompilerEmit, CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerMake,
-  CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
-  CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
-  ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
-  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, ModuleFactoryCreateData,
-  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
-  NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolve,
-  NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModule,
-  NormalModuleFactoryCreateModuleHook, NormalModuleFactoryFactorize,
-  NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
+  CompilationRuntimeModuleHook, CompilationSucceedModule, CompilationSucceedModuleHook,
+  CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted, CompilerAssetEmittedHook,
+  CompilerCompilation, CompilerCompilationHook, CompilerEmit, CompilerEmitHook, CompilerFinishMake,
+  CompilerFinishMakeHook, CompilerMake, CompilerMakeHook, CompilerShouldEmit,
+  CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
+  ContextModuleFactoryAfterResolve, ContextModuleFactoryAfterResolveHook,
+  ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
+  ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
+  NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
+  NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
+  NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
+  NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
 };
@@ -302,7 +301,6 @@ pub enum RegisterJsTapKind {
   CompilerAfterEmit,
   CompilerAssetEmitted,
   CompilationBuildModule,
-  CompilationStillValidModule,
   CompilationSucceedModule,
   CompilationExecuteModule,
   CompilationFinishModules,
@@ -381,10 +379,6 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
   )]
   pub register_compilation_build_module_taps: RegisterFunction<JsModule, ()>,
-  #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
-  )]
-  pub register_compilation_still_valid_module_taps: RegisterFunction<JsModule, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
   )]
@@ -566,14 +560,6 @@ define_register!(
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationBuildModule,
-  skip = true,
-);
-define_register!(
-  RegisterCompilationStillValidModuleTaps,
-  tap = CompilationStillValidModuleTap<JsModule, ()> @ CompilationStillValidModuleHook,
-  cache = true,
-  sync = false,
-  kind = RegisterJsTapKind::CompilationStillValidModule,
   skip = true,
 );
 define_register!(
@@ -905,20 +891,6 @@ impl CompilerAssetEmitted for CompilerAssetEmittedTap {
 
 #[async_trait]
 impl CompilationBuildModule for CompilationBuildModuleTap {
-  async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
-    self
-      .function
-      .call_with_sync(module.to_js_module().expect("Convert to js_module failed."))
-      .await
-  }
-
-  fn stage(&self) -> i32 {
-    self.stage
-  }
-}
-
-#[async_trait]
-impl CompilationStillValidModule for CompilationStillValidModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
     self
       .function

@@ -1005,7 +1005,6 @@ export class Compilation {
         chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
         processWarnings: liteTapable.SyncWaterfallHook<[Error[]]>;
         succeedModule: liteTapable.SyncHook<[Module], void>;
-        stillValidModule: liteTapable.SyncHook<[Module], void>;
         statsPreset: liteTapable.HookMap<liteTapable.SyncHook<[
         Partial<StatsOptions>,
         CreateStatsOptionsContext
