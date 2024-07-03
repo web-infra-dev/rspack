@@ -439,6 +439,13 @@ impl<'parser> JavascriptParser<'parser> {
     self.semicolons.remove(&pos)
   }
 
+  pub fn is_statement_level_expression(&self, expr_span: Span) -> bool {
+    let Some(curr_path) = self.statement_path.last() else {
+      return false;
+    };
+    curr_path.span() == expr_span
+  }
+
   pub fn get_mut_variable_info(&mut self, name: &str) -> Option<&mut VariableInfo> {
     let Some(id) = self.definitions_db.get(&self.definitions, name) else {
       return None;

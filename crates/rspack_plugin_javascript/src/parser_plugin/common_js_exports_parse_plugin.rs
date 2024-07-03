@@ -167,6 +167,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   // can't scan `__esModule` value
   fn bailout(&mut self) {
+    dbg!(&self.parser_exports_state);
     if matches!(self.parser_exports_state, Some(true)) {
       self.build_meta.exports_type = BuildMetaExportsType::Unset;
       self.build_meta.default_object = BuildMetaDefaultObject::False;
@@ -493,6 +494,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       // Object.defineProperty(module.exports, "xxx", { value: 1 });
       // Object.defineProperty(this, "xxx", { value: 1 });
       if expr_matcher::is_object_define_property(&**expr)
+        && parser.is_statement_level_expression(call_expr.span())
         && let Some(ExprOrSpread { expr, .. }) = call_expr.args.first()
         && parser.is_exports_or_module_exports_or_this_expr(expr)
         && let Some(arg2) = call_expr.args.get(2)

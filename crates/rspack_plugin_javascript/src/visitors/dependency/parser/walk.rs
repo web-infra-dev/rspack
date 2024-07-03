@@ -201,8 +201,13 @@ impl<'parser> JavascriptParser<'parser> {
       },
       Stmt::DoWhile(stmt) => self.walk_do_while_statement(stmt),
       Stmt::Expr(stmt) => {
-        self.last_stmt_is_expr_stmt = true;
-        self.walk_expression_statement(stmt)
+        // This is a bit different with webpack, so we can easily implement is_statement_level_exporession
+        // we didn't use pre_statement here like usual, this is referenced from walk_sequence_expression, which did the similar
+        let old = self.statement_path.pop().expect("should in statement");
+        self.statement_path.push(stmt.span().into());
+        self.walk_expression_statement(stmt);
+        self.statement_path.pop();
+        self.statement_path.push(old);
       }
       Stmt::ForIn(stmt) => self.walk_for_in_statement(stmt),
       Stmt::ForOf(stmt) => self.walk_for_of_statement(stmt),
@@ -534,7 +539,18 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_sequence_expression(&mut self, expr: &SeqExpr) {
     let exprs = expr.exprs.iter().map(|expr| &**expr);
-    self.walk_expressions(exprs);
+    if self.is_statement_level_expression(expr.span())
+      && let Some(old) = self.statement_path.pop()
+    {
+      for expr in exprs {
+        self.statement_path.push(expr.span().into());
+        self.walk_expression(expr);
+        self.statement_path.pop();
+      }
+      self.statement_path.push(old);
+    } else {
+      self.walk_expressions(exprs);
+    }
   }
 
   fn walk_object_expression(&mut self, expr: &ObjectLit) {
