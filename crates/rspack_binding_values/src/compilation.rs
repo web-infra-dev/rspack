@@ -176,6 +176,11 @@ impl JsCompilation {
   }
 
   #[napi]
+  pub fn get_named_chunk_keys(&self) -> Vec<String> {
+    self.0.named_chunks.keys().cloned().collect::<Vec<_>>()
+  }
+
+  #[napi]
   pub fn get_named_chunk(&self, name: String) -> Option<JsChunk> {
     self
       .0
