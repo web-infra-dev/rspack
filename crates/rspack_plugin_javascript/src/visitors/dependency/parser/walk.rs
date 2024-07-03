@@ -201,7 +201,7 @@ impl<'parser> JavascriptParser<'parser> {
       },
       Stmt::DoWhile(stmt) => self.walk_do_while_statement(stmt),
       Stmt::Expr(stmt) => {
-        // This is a bit different with webpack, so we can easily implement is_statement_level_exporession
+        // This is a bit different with webpack, so we can easily implement is_statement_level_expression
         // we didn't use pre_statement here like usual, this is referenced from walk_sequence_expression, which did the similar
         let old = self.statement_path.pop().expect("should in statement");
         self.statement_path.push(stmt.span().into());
