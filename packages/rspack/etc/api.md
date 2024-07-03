@@ -12382,11 +12382,15 @@ export class Stats {
     // (undocumented)
     compilation: Compilation;
     // (undocumented)
+    get endTime(): number | undefined;
+    // (undocumented)
     hasErrors(): boolean;
     // (undocumented)
     get hash(): Readonly<string | null>;
     // (undocumented)
     hasWarnings(): boolean;
+    // (undocumented)
+    get startTime(): number | undefined;
     // (undocumented)
     toJson(opts?: StatsValue, forToString?: boolean): StatsCompilation;
     // (undocumented)
