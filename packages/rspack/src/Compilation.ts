@@ -15,8 +15,7 @@ import {
 	type JsModule,
 	type JsPathData,
 	JsRspackSeverity,
-	type JsRuntimeModule,
-	type JsStatsError
+	type JsRuntimeModule
 } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import { Source } from "webpack-sources";
@@ -376,10 +375,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	/**
 	 * Get the named chunks.
 	 *
-	 * Note: This is a proxy for webpack internal API, only method `get` is supported now.
+	 * Note: This is a proxy for webpack internal API, only method `get` and `keys` is supported now.
 	 */
 	get namedChunks(): ReadonlyMap<string, Readonly<Chunk>> {
 		return {
+			keys: (): IterableIterator<string> => {
+				const names = this.#inner.getNamedChunkKeys();
+				return names[Symbol.iterator]();
+			},
 			get: (property: unknown) => {
 				if (typeof property === "string") {
 					const chunk = this.#inner.getNamedChunk(property) || undefined;

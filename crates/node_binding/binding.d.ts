@@ -27,6 +27,7 @@ export class JsCompilation {
   getModules(): Array<JsModule>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): Array<JsChunk>
+  getNamedChunkKeys(): Array<string>
   getNamedChunk(name: string): JsChunk | null
   setAssetSource(name: string, source: JsCompatSource): void
   deleteAssetSource(name: string): void
