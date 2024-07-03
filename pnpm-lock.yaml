@@ -147,6 +147,9 @@ importers:
       '@types/react-dom':
         specifier: ^18.2.18
         version: 18.2.24
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       react-refresh:
         specifier: ^0.14.0
         version: 0.14.0
@@ -175,6 +178,9 @@ importers:
       '@types/react-dom':
         specifier: ^18.2.18
         version: 18.2.24
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       react-refresh:
         specifier: ^0.14.0
         version: 0.14.0
@@ -196,6 +202,9 @@ importers:
       browserify:
         specifier: latest
         version: 17.0.0
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
 
   packages/create-rspack/template-vue:
     dependencies:
@@ -209,6 +218,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../rspack
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       vue-loader:
         specifier: ^17.2.2
         version: 17.4.2(vue@3.2.45)(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
@@ -225,6 +237,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../rspack
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@swc/core@1.4.0)(@types/node@20.12.7)(typescript@5.4.2)
