@@ -21,9 +21,10 @@ type Append<T extends any[], U> = {
 export type AsArray<T> = T extends any[] ? T : [T];
 
 export type Fn<T, R> = (...args: AsArray<T>) => R;
-export type FnWithCallback<T, R> = (
+export type FnAsync<T, R> = (
 	...args: Append<AsArray<T>, InnerCallback<Error, R>>
 ) => void;
+export type FnPromise<T, R> = (...args: AsArray<T>) => Promise<R>;
 
 declare class UnsetAdditionalOptions {
 	_UnsetAdditionalOptions: true;
@@ -69,8 +70,31 @@ export interface HookInterceptor<
 }
 
 type ArgumentNames<T extends any[]> = FixedSizeArray<T["length"], string>;
+type ExtractHookArgs<H> = H extends Hook<infer T, any> ? T : never;
+type ExtractHookReturn<H> = H extends Hook<any, infer R> ? R : never;
+type ExtractHookAdditionalOptions<H> =
+	H extends Hook<any, any, infer A> ? A : never;
 
-export class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
+export interface Hook<
+	T = any,
+	R = any,
+	AdditionalOptions = UnsetAdditionalOptions
+> {
+	name?: string;
+	tap(opt: Options<AdditionalOptions>, fn: Fn<T, R>): void;
+	tapAsync(opt: Options<AdditionalOptions>, fn: FnAsync<T, R>): void;
+	tapPromise(opt: Options<AdditionalOptions>, fn: FnPromise<T, R>): void;
+	intercept(interceptor: HookInterceptor<T, R, AdditionalOptions>): void;
+	isUsed(): boolean;
+	withOptions(
+		opt: TapOptions & IfSet<AdditionalOptions>
+	): Hook<T, R, AdditionalOptions>;
+	queryStageRange(stageRange: StageRange): QueriedHook<T, R, AdditionalOptions>;
+}
+
+export class HookBase<T, R, AdditionalOptions = UnsetAdditionalOptions>
+	implements Hook<T, R, AdditionalOptions>
+{
 	args: ArgumentNames<AsArray<T>>;
 	name?: string;
 	taps: (FullTap & IfSet<AdditionalOptions>)[];
@@ -149,6 +173,30 @@ export class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 		}
 	}
 
+	withOptions(
+		options: TapOptions & IfSet<AdditionalOptions>
+	): Hook<T, R, AdditionalOptions> {
+		const mergeOptions = (opt: any) =>
+			Object.assign({}, options, typeof opt === "string" ? { name: opt } : opt);
+
+		return {
+			name: this.name,
+			tap: (opt: Options<AdditionalOptions>, fn: Fn<T, R>) =>
+				this.tap(mergeOptions(opt), fn),
+			tapAsync: (opt: Options<AdditionalOptions>, fn: FnAsync<T, R>) =>
+				this.tapAsync(mergeOptions(opt), fn),
+			tapPromise: (opt: Options<AdditionalOptions>, fn: FnPromise<T, R>) =>
+				this.tapPromise(mergeOptions(opt), fn),
+			intercept: (interceptor: HookInterceptor<T, R, AdditionalOptions>) =>
+				this.intercept(interceptor),
+			isUsed: () => this.isUsed(),
+			withOptions: (opt: TapOptions & IfSet<AdditionalOptions>) =>
+				this.withOptions(mergeOptions(opt)),
+			queryStageRange: (stageRange: StageRange) =>
+				this.queryStageRange(stageRange)
+		};
+	}
+
 	isUsed() {
 		return this.taps.length > 0 || this.interceptors.length > 0;
 	}
@@ -196,6 +244,14 @@ export class Hook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 
 	tap(options: Options<AdditionalOptions>, fn: Fn<T, R>) {
 		this._tap("sync", options, fn);
+	}
+
+	tapAsync(options: Options<AdditionalOptions>, fn: FnAsync<T, R>) {
+		this._tap("async", options, fn);
+	}
+
+	tapPromise(options: Options<AdditionalOptions>, fn: FnPromise<T, R>) {
+		this._tap("promise", options, fn);
 	}
 
 	_tap(
@@ -284,10 +340,10 @@ export const safeStage = (stage: number) => {
 
 export class QueriedHook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 	stageRange: StageRange;
-	hook: Hook<T, R, AdditionalOptions>;
+	hook: HookBase<T, R, AdditionalOptions>;
 	tapsInRange: (FullTap & IfSet<AdditionalOptions>)[];
 
-	constructor(stageRange: StageRange, hook: Hook<T, R, AdditionalOptions>) {
+	constructor(stageRange: StageRange, hook: HookBase<T, R, AdditionalOptions>) {
 		const tapsInRange = [];
 		const [from, to] = stageRange;
 		for (let tap of hook.taps) {
@@ -346,7 +402,7 @@ export class SyncHook<
 	T,
 	R = void,
 	AdditionalOptions = UnsetAdditionalOptions
-> extends Hook<T, R, AdditionalOptions> {
+> extends HookBase<T, R, AdditionalOptions> {
 	callAsyncStageRange(
 		queried: QueriedHook<T, R, AdditionalOptions>,
 		...args: Append<AsArray<T>, Callback<Error, R>>
@@ -414,7 +470,7 @@ export class SyncBailHook<
 	T,
 	R,
 	AdditionalOptions = UnsetAdditionalOptions
-> extends Hook<T, R, AdditionalOptions> {
+> extends HookBase<T, R, AdditionalOptions> {
 	callAsyncStageRange(
 		queried: QueriedHook<T, R, AdditionalOptions>,
 		...args: Append<AsArray<T>, Callback<Error, R>>
@@ -486,7 +542,7 @@ export class SyncBailHook<
 export class SyncWaterfallHook<
 	T,
 	AdditionalOptions = UnsetAdditionalOptions
-> extends Hook<T, AsArray<T>[0], AdditionalOptions> {
+> extends HookBase<T, AsArray<T>[0], AdditionalOptions> {
 	constructor(
 		args = [] as unknown as ArgumentNames<AsArray<T>>,
 		name?: string
@@ -565,7 +621,7 @@ export class SyncWaterfallHook<
 export class AsyncParallelHook<
 	T,
 	AdditionalOptions = UnsetAdditionalOptions
-> extends Hook<T, void, AdditionalOptions> {
+> extends HookBase<T, void, AdditionalOptions> {
 	callAsyncStageRange(
 		queried: QueriedHook<T, void, AdditionalOptions>,
 		...args: Append<AsArray<T>, Callback<Error, void>>
@@ -641,23 +697,12 @@ export class AsyncParallelHook<
 			if (counter <= 0) return;
 		}
 	}
-
-	tapAsync(
-		options: Options<AdditionalOptions>,
-		fn: FnWithCallback<T, void>
-	): void {
-		this._tap("async", options, fn);
-	}
-
-	tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void {
-		this._tap("promise", options, fn);
-	}
 }
 
 export class AsyncSeriesHook<
 	T,
 	AdditionalOptions = UnsetAdditionalOptions
-> extends Hook<T, void, AdditionalOptions> {
+> extends HookBase<T, void, AdditionalOptions> {
 	callAsyncStageRange(
 		queried: QueriedHook<T, void, AdditionalOptions>,
 		...args: Append<AsArray<T>, Callback<Error, void>>
@@ -744,24 +789,13 @@ export class AsyncSeriesHook<
 		};
 		next();
 	}
-
-	tapAsync(
-		options: Options<AdditionalOptions>,
-		fn: FnWithCallback<T, void>
-	): void {
-		this._tap("async", options, fn);
-	}
-
-	tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void {
-		this._tap("promise", options, fn);
-	}
 }
 
 export class AsyncSeriesBailHook<
 	T,
 	R,
 	AdditionalOptions = UnsetAdditionalOptions
-> extends Hook<T, R, AdditionalOptions> {
+> extends HookBase<T, R, AdditionalOptions> {
 	callAsyncStageRange(
 		queried: QueriedHook<T, R, AdditionalOptions>,
 		...args: Append<AsArray<T>, Callback<Error, R>>
@@ -859,23 +893,12 @@ export class AsyncSeriesBailHook<
 		};
 		next();
 	}
-
-	tapAsync(
-		options: Options<AdditionalOptions>,
-		fn: FnWithCallback<T, void>
-	): void {
-		this._tap("async", options, fn);
-	}
-
-	tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void {
-		this._tap("promise", options, fn);
-	}
 }
 
 export class AsyncSeriesWaterfallHook<
 	T,
 	AdditionalOptions = UnsetAdditionalOptions
-> extends Hook<T, AsArray<T>[0], AdditionalOptions> {
+> extends HookBase<T, AsArray<T>[0], AdditionalOptions> {
 	constructor(
 		args = [] as unknown as ArgumentNames<AsArray<T>>,
 		name?: string
@@ -980,17 +1003,6 @@ export class AsyncSeriesWaterfallHook<
 		};
 		next();
 	}
-
-	tapAsync(
-		options: Options<AdditionalOptions>,
-		fn: FnWithCallback<T, void>
-	): void {
-		this._tap("async", options, fn);
-	}
-
-	tapPromise(options: Options<AdditionalOptions>, fn: Fn<T, void>): void {
-		this._tap("promise", options, fn);
-	}
 }
 
 const defaultFactory = (key: HookMapKey, hook: unknown) => hook;
@@ -1001,7 +1013,7 @@ export interface HookMapInterceptor<H> {
 	factory?: HookFactory<H>;
 }
 
-export class HookMap<H extends Hook<any, any, any>> {
+export class HookMap<H extends Hook> {
 	_map: Map<HookMapKey, H> = new Map();
 	_factory: HookFactory<H>;
 	name?: string;
@@ -1060,7 +1072,7 @@ export class HookMap<H extends Hook<any, any, any>> {
 	}
 }
 
-export class QueriedHookMap<H extends Hook<any, any, any>> {
+export class QueriedHookMap<H extends Hook> {
 	stageRange: StageRange;
 	hookMap: HookMap<H>;
 
@@ -1087,7 +1099,7 @@ export class QueriedHookMap<H extends Hook<any, any, any>> {
 	}
 }
 
-export class MultiHook<H> {
+export class MultiHook<H extends Hook> {
 	hooks: H[];
 	name?: string;
 
@@ -1096,34 +1108,56 @@ export class MultiHook<H> {
 		this.name = name;
 	}
 
-	tap(options: string | Tap, fn: Function) {
+	tap(
+		options: Options<ExtractHookAdditionalOptions<Hook>>,
+		fn: Fn<ExtractHookArgs<Hook>, ExtractHookReturn<Hook>>
+	) {
 		for (const hook of this.hooks) {
-			(hook as any).tap(options, fn);
+			hook.tap(options, fn);
 		}
 	}
 
-	tapAsync(options: string | Tap, fn: Function) {
+	tapAsync(
+		options: Options<ExtractHookAdditionalOptions<Hook>>,
+		fn: FnAsync<ExtractHookArgs<Hook>, ExtractHookReturn<Hook>>
+	) {
 		for (const hook of this.hooks) {
-			(hook as any).tapAsync(options, fn);
+			hook.tapAsync(options, fn);
 		}
 	}
 
-	tapPromise(options: string | Tap, fn: Function) {
+	tapPromise(
+		options: Options<ExtractHookAdditionalOptions<Hook>>,
+		fn: FnPromise<ExtractHookArgs<Hook>, ExtractHookReturn<Hook>>
+	) {
 		for (const hook of this.hooks) {
-			(hook as any).tapPromise(options, fn);
+			hook.tapPromise(options, fn);
 		}
 	}
 
 	isUsed() {
 		for (const hook of this.hooks) {
-			if ((hook as any).isUsed()) return true;
+			if (hook.isUsed()) return true;
 		}
 		return false;
 	}
 
-	intercept(interceptor: HookInterceptor<any, any, any>) {
+	intercept(
+		interceptor: HookInterceptor<
+			ExtractHookArgs<Hook>,
+			ExtractHookReturn<Hook>,
+			ExtractHookAdditionalOptions<Hook>
+		>
+	) {
 		for (const hook of this.hooks) {
-			(hook as any).intercept(interceptor);
+			hook.intercept(interceptor);
 		}
+	}
+
+	withOptions(options: TapOptions & IfSet<ExtractHookAdditionalOptions<Hook>>) {
+		return new MultiHook(
+			this.hooks.map(h => h.withOptions(options)),
+			this.name
+		);
 	}
 }

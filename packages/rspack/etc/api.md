@@ -3833,7 +3833,7 @@ type Hooks = Readonly<{
     ((arg1: any, arg2: any) => number)[],
     StatsFactoryContext
     ], undefined>>;
-    result: HookMap<SyncWaterfallHook<[any[], StatsFactoryContext], undefined>>;
+    result: HookMap<SyncWaterfallHook<[any[], StatsFactoryContext]>>;
     merge: HookMap<SyncBailHook<[any[], StatsFactoryContext], undefined>>;
     getItemName: HookMap<SyncBailHook<[any, StatsFactoryContext], string | undefined>>;
     getItemFactory: HookMap<SyncBailHook<[any, StatsFactoryContext], undefined>>;

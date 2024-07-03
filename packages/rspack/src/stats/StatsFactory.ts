@@ -56,7 +56,7 @@ type Hooks = Readonly<{
 			undefined
 		>
 	>;
-	result: HookMap<SyncWaterfallHook<[any[], StatsFactoryContext], undefined>>;
+	result: HookMap<SyncWaterfallHook<[any[], StatsFactoryContext]>>;
 	merge: HookMap<SyncBailHook<[any[], StatsFactoryContext], undefined>>;
 	getItemName: HookMap<
 		SyncBailHook<[any, StatsFactoryContext], string | undefined>
@@ -143,7 +143,7 @@ export class StatsFactory {
 			),
 			result: new HookMap(
 				() =>
-					new SyncWaterfallHook<[any[], StatsFactoryContext], undefined>([
+					new SyncWaterfallHook<[any[], StatsFactoryContext]>([
 						"result",
 						"context"
 					])
