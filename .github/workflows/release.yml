@@ -33,6 +33,8 @@ jobs:
   get-runner-labels:
     name: Get Runner Labels
     uses: ./.github/workflows/get-runner-labels.yml
+    with:
+      force-use-github-runner: true
 
   build:
     needs: [get-runner-labels]
