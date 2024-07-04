@@ -1,4 +1,4 @@
-use rspack_core::{clean_regexp_in_context_module, try_convert_str_to_context_mode};
+use rspack_core::try_convert_str_to_context_mode;
 use rspack_core::{ContextMode, ContextOptions, DependencyCategory, SpanExt};
 use rspack_regex::RspackRegex;
 use swc_core::common::Spanned;
@@ -7,7 +7,7 @@ use swc_core::ecma::ast::CallExpr;
 use super::JavascriptParserPlugin;
 use crate::dependency::RequireContextDependency;
 use crate::visitors::expr_matcher::is_require_context;
-use crate::visitors::JavascriptParser;
+use crate::visitors::{clean_regexp_in_context_module, JavascriptParser};
 
 pub struct RequireContextDependencyParserPlugin;
 
@@ -37,17 +37,21 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
       ContextMode::Sync
     };
 
-    let reg_exp = if expr.args.len() >= 3 {
+    let (reg_exp, reg_exp_span) = if expr.args.len() >= 3 {
       let reg_exp_expr = parser.evaluate_expression(&expr.args[2].expr);
-      if !reg_exp_expr.is_regexp() {
+      let reg_exp = if !reg_exp_expr.is_regexp() {
         // FIXME: return `None` in webpack
         RspackRegex::new(DEFAULT_REGEXP_STR).expect("reg should success")
       } else {
         let (expr, flags) = reg_exp_expr.regexp();
         RspackRegex::with_flags(expr.as_str(), flags.as_str()).expect("reg should success")
-      }
+      };
+      (reg_exp, Some(expr.args[2].expr.span().into()))
     } else {
-      RspackRegex::new(DEFAULT_REGEXP_STR).expect("reg should success")
+      (
+        RspackRegex::new(DEFAULT_REGEXP_STR).expect("reg should success"),
+        None,
+      )
     };
 
     let recursive = if expr.args.len() >= 2 {
@@ -62,12 +66,13 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
       true
     };
 
-    if !expr.args.is_empty() {
-      let request_expr = parser.evaluate_expression(&expr.args[0].expr);
+    if let Some(arg) = expr.args.first() {
+      let request_expr = parser.evaluate_expression(&arg.expr);
       if !request_expr.is_string() {
         return None;
       }
 
+      let reg_exp = clean_regexp_in_context_module(reg_exp, reg_exp_span, parser);
       parser
         .dependencies
         .push(Box::new(RequireContextDependency::new(
@@ -76,7 +81,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
           ContextOptions {
             mode,
             recursive,
-            reg_exp: clean_regexp_in_context_module(reg_exp),
+            reg_exp,
             include: None,
             exclude: None,
             category: DependencyCategory::CommonJS,
