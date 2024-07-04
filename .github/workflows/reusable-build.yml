@@ -283,12 +283,20 @@ jobs:
       #   if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
       #   run: node ./scripts/test/diff.cjs
 
-      ### x86_64-apple-darwin
+      ### *-apple-darwin
 
-      - name: Test x86_64-apple-darwin
+      - name: Test apple-darwin
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
-        if: ${{ inputs.target == 'x86_64-apple-darwin' && !inputs.skipable }}
-        run: pnpm run test:ci
+        if: ${{ contains(inputs.target, 'apple-darwin') && !inputs.skipable }}
+        run: |
+          # arch is ARM and target is ARM
+          if [[ '${{ runner.arch }}' == ARM* && '${{ inputs.target }}' == 'aarch64-apple-darwin' ]]; then
+            pnpm run test:ci
+          fi
+          # arch is x64 and target is x64
+          if [[ '${{ runner.arch }}' != ARM* && '${{ inputs.target }}' != 'aarch64-apple-darwin' ]]; then
+            pnpm run test:ci
+          fi
 
       ### x86_64-pc-windows-msvc
 
