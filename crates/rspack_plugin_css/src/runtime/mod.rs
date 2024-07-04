@@ -100,38 +100,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
             "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
             &cross_origin_content,
           )
-          .replace("__UNIQUE_NAME__", unique_name)
-          .replace(
-            "$FETCH_PRIORITY_SET_ATTRIBUTE$",
-            if with_fetch_priority {
-              r#"
-              if(fetchPriority) {
-                link.setAttribute("fetchpriority", fetchPriority);
-              }
-              "#
-            } else {
-              ""
-            },
-          )
-          .replace(
-            "$FETCH_PRIORITY$",
-            if with_fetch_priority {
-              ", fetchPriority"
-            } else {
-              ""
-            },
-          )
-          .replace("$HMR$", if with_hmr { ", hmr" } else { "" })
-          .replace("$HMR_IF_START$", if with_hmr { "if(hmr){" } else { "" })
-          .replace("$HMR_IF_END$", if with_hmr { "}" } else { "" })
-          .replace(
-            "$HMR_INSERT$",
-            if with_hmr {
-              r#"hmr ? hmr.parentNode.insertBefore(link, hmr) : "#
-            } else {
-              ""
-            },
-          ),
+          .replace("__UNIQUE_NAME__", unique_name),
       ));
 
       if with_loading {

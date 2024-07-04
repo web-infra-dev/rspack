@@ -134,7 +134,7 @@ module.exports = {
 		    "files": Array [
 		      "main.js",
 		    ],
-		    "hash": "209a370004f0d25de9b5",
+		    "hash": "d38a996f51bebe958d5c",
 		    "id": "909",
 		    "idHints": Array [],
 		    "initial": true,
@@ -221,7 +221,7 @@ module.exports = {
 		    "size": 85,
 		    "sizes": Object {
 		      "javascript": 85,
-		      "runtime": 8788,
+		      "runtime": 8791,
 		    },
 		    "type": "chunk",
 		  },

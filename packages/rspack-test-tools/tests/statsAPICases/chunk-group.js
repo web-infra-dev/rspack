@@ -1,42 +1,42 @@
 /** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
-  description: "should generate chunk group asset",
-  options(context) {
-    return {
-      context: context.getSource(),
-      entry: {
-        main: "./fixtures/order/index"
-      },
-      optimization: {
-        minimize: false
-      },
-      devtool: "source-map"
-    };
-  },
-  async check(stats) {
-    const statsOptions = {
-      all: true,
-      timings: false,
-      builtAt: false,
-      version: false
-    };
-    expect(stats?.toJson(statsOptions).entrypoints).toMatchInlineSnapshot(`
+	description: "should generate chunk group asset",
+	options(context) {
+		return {
+			context: context.getSource(),
+			entry: {
+				main: "./fixtures/order/index"
+			},
+			optimization: {
+				minimize: false
+			},
+			devtool: "source-map"
+		};
+	},
+	async check(stats) {
+		const statsOptions = {
+			all: true,
+			timings: false,
+			builtAt: false,
+			version: false
+		};
+		expect(stats?.toJson(statsOptions).entrypoints).toMatchInlineSnapshot(`
 		Object {
 		  "main": Object {
 		    "assets": Array [
 		      Object {
 		        "name": "main.js",
-		        "size": 14164,
+		        "size": 14167,
 		      },
 		    ],
-		    "assetsSize": 14164,
+		    "assetsSize": 14167,
 		    "auxiliaryAssets": Array [
 		      Object {
 		        "name": "main.js.map",
-		        "size": 680,
+		        "size": 681,
 		      },
 		    ],
-		    "auxiliaryAssetsSize": 680,
+		    "auxiliaryAssetsSize": 681,
 		    "children": Object {
 		      "prefetch": Array [
 		        Object {
@@ -68,7 +68,7 @@ module.exports = {
 		  },
 		}
 	`);
-    expect(stats?.toJson(statsOptions).namedChunkGroups).toMatchInlineSnapshot(`
+		expect(stats?.toJson(statsOptions).namedChunkGroups).toMatchInlineSnapshot(`
 		Object {
 		  "chunk": Object {
 		    "assets": Array [
@@ -193,17 +193,17 @@ module.exports = {
 		    "assets": Array [
 		      Object {
 		        "name": "main.js",
-		        "size": 14164,
+		        "size": 14167,
 		      },
 		    ],
-		    "assetsSize": 14164,
+		    "assetsSize": 14167,
 		    "auxiliaryAssets": Array [
 		      Object {
 		        "name": "main.js.map",
-		        "size": 680,
+		        "size": 681,
 		      },
 		    ],
-		    "auxiliaryAssetsSize": 680,
+		    "auxiliaryAssetsSize": 681,
 		    "children": Object {
 		      "prefetch": Array [
 		        Object {
@@ -235,5 +235,5 @@ module.exports = {
 		  },
 		}
 	`);
-  }
+	}
 };
