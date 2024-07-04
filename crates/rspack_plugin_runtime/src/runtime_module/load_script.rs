@@ -1,9 +1,11 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+
+use crate::get_chunk_runtime_requirements;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -11,14 +13,16 @@ pub struct LoadScriptRuntimeModule {
   id: Identifier,
   unique_name: String,
   with_create_script_url: bool,
+  chunk_ukey: ChunkUkey,
 }
 
 impl LoadScriptRuntimeModule {
-  pub fn new(unique_name: String, with_create_script_url: bool) -> Self {
+  pub fn new(unique_name: String, with_create_script_url: bool, chunk_ukey: ChunkUkey) -> Self {
     Self::with_default(
       Identifier::from("webpack/runtime/load_script"),
       unique_name,
       with_create_script_url,
+      chunk_ukey,
     )
   }
 }
@@ -29,6 +33,9 @@ impl RuntimeModule for LoadScriptRuntimeModule {
   }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk_ukey);
+    let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
+
     let url = if self.with_create_script_url {
       format!("{}(url)", RuntimeGlobals::CREATE_SCRIPT_URL)
     } else {
@@ -84,6 +91,20 @@ impl RuntimeModule for LoadScriptRuntimeModule {
             None => r#"s.getAttribute("src") == url"#,
           },
         )
+        .replace("$FETCH_PRIORITY_SET_ATTRIBUTE$", if with_fetch_priority {
+          r#"
+            if(fetchPriority) {
+              script.setAttribute("fetchpriority", fetchPriority);
+            }
+          "#
+        } else {
+          ""
+        })
+        .replace("$FETCH_PRIORITY$", if with_fetch_priority {
+          ", fetchPriority"
+        } else {
+          ""
+        })
         .replace(
           "$UNIQUE_SET_ATTRIBUTE$",
           match unique_prefix {

@@ -4115,6 +4115,7 @@ const javascriptParserOptions: z.ZodObject<{
     dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
     dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
     dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+    dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
     url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
     exprContextCritical: z.ZodOptional<z.ZodBoolean>;
     wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -4127,6 +4128,7 @@ const javascriptParserOptions: z.ZodObject<{
     dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
     dynamicImportPreload?: number | boolean | undefined;
     dynamicImportPrefetch?: number | boolean | undefined;
+    dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
     url?: boolean | "relative" | undefined;
     exprContextCritical?: boolean | undefined;
     wrappedContextCritical?: boolean | undefined;
@@ -4139,6 +4141,7 @@ const javascriptParserOptions: z.ZodObject<{
     dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
     dynamicImportPreload?: number | boolean | undefined;
     dynamicImportPrefetch?: number | boolean | undefined;
+    dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
     url?: boolean | "relative" | undefined;
     exprContextCritical?: boolean | undefined;
     wrappedContextCritical?: boolean | undefined;
@@ -5086,6 +5089,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
             dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
             dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+            dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
             url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
             exprContextCritical: z.ZodOptional<z.ZodBoolean>;
             wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -5098,6 +5102,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5110,6 +5115,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5123,6 +5129,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
             dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
             dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+            dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
             url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
             exprContextCritical: z.ZodOptional<z.ZodBoolean>;
             wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -5135,6 +5142,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5147,6 +5155,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5160,6 +5169,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
             dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
             dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+            dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
             url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
             exprContextCritical: z.ZodOptional<z.ZodBoolean>;
             wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -5172,6 +5182,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5184,6 +5195,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5197,6 +5209,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
             dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
             dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+            dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
             url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
             exprContextCritical: z.ZodOptional<z.ZodBoolean>;
             wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -5209,6 +5222,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5221,6 +5235,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5249,6 +5264,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5262,6 +5278,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5275,6 +5292,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5288,6 +5306,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5316,6 +5335,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5329,6 +5349,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5342,6 +5363,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5355,6 +5377,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5614,6 +5637,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5627,6 +5651,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5640,6 +5665,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5653,6 +5679,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5730,6 +5757,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5743,6 +5771,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5756,6 +5785,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -5769,6 +5799,7 @@ const moduleOptions: z.ZodObject<{
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
+            dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
@@ -7273,6 +7304,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
         dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
         dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+        dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
         url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
         exprContextCritical: z.ZodOptional<z.ZodBoolean>;
         wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -7285,6 +7317,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7297,6 +7330,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7310,6 +7344,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
         dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
         dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+        dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
         url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
         exprContextCritical: z.ZodOptional<z.ZodBoolean>;
         wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -7322,6 +7357,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7334,6 +7370,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7347,6 +7384,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
         dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
         dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+        dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
         url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
         exprContextCritical: z.ZodOptional<z.ZodBoolean>;
         wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -7359,6 +7397,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7371,6 +7410,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7384,6 +7424,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
         dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
         dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+        dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
         url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
         exprContextCritical: z.ZodOptional<z.ZodBoolean>;
         wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -7396,6 +7437,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7408,6 +7450,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7436,6 +7479,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7449,6 +7493,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7462,6 +7507,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7475,6 +7521,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7503,6 +7550,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7516,6 +7564,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7529,6 +7578,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7542,6 +7592,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7600,6 +7651,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
         dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
         dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+        dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
         url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
         exprContextCritical: z.ZodOptional<z.ZodBoolean>;
         wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -7612,6 +7664,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7624,6 +7677,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7637,6 +7691,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
         dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
         dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+        dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
         url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
         exprContextCritical: z.ZodOptional<z.ZodBoolean>;
         wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -7649,6 +7704,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7661,6 +7717,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7674,6 +7731,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
         dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
         dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+        dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
         url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
         exprContextCritical: z.ZodOptional<z.ZodBoolean>;
         wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -7686,6 +7744,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7698,6 +7757,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7711,6 +7771,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
         dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
         dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+        dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
         url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
         exprContextCritical: z.ZodOptional<z.ZodBoolean>;
         wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -7723,6 +7784,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7735,6 +7797,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7763,6 +7826,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7776,6 +7840,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7789,6 +7854,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7802,6 +7868,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7830,6 +7897,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7843,6 +7911,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7856,6 +7925,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -7869,6 +7939,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
+        dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
@@ -10114,6 +10185,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
                 dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
                 dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+                dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
                 url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
                 exprContextCritical: z.ZodOptional<z.ZodBoolean>;
                 wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -10126,6 +10198,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10138,6 +10211,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10151,6 +10225,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
                 dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
                 dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+                dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
                 url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
                 exprContextCritical: z.ZodOptional<z.ZodBoolean>;
                 wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -10163,6 +10238,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10175,6 +10251,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10188,6 +10265,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
                 dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
                 dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+                dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
                 url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
                 exprContextCritical: z.ZodOptional<z.ZodBoolean>;
                 wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -10200,6 +10278,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10212,6 +10291,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10225,6 +10305,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
                 dynamicImportPreload: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
                 dynamicImportPrefetch: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodNumber]>>;
+                dynamicImportFetchPriority: z.ZodOptional<z.ZodEnum<["low", "high", "auto"]>>;
                 url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
                 exprContextCritical: z.ZodOptional<z.ZodBoolean>;
                 wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
@@ -10237,6 +10318,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10249,6 +10331,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10277,6 +10360,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10290,6 +10374,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10303,6 +10388,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10316,6 +10402,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10344,6 +10431,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10357,6 +10445,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10370,6 +10459,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10383,6 +10473,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10642,6 +10733,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10655,6 +10747,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10668,6 +10761,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10681,6 +10775,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10758,6 +10853,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10771,6 +10867,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10784,6 +10881,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -10797,6 +10895,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -11285,6 +11384,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -11298,6 +11398,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -11311,6 +11412,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -11324,6 +11426,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -11802,6 +11905,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -11815,6 +11919,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -11828,6 +11933,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
@@ -11841,6 +11947,7 @@ export const rspackOptions: z.ZodObject<{
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
+                dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;

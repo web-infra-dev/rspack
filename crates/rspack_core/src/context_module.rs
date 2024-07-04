@@ -1156,6 +1156,7 @@ impl ContextModule {
           });
         let preload_order = group_options.and_then(|o| o.preload_order);
         let prefetch_order = group_options.and_then(|o| o.prefetch_order);
+        let fetch_priority = group_options.and_then(|o| o.fetch_priority);
         let mut block = AsyncDependenciesBlock::new(
           self.identifier,
           None,
@@ -1167,6 +1168,7 @@ impl ContextModule {
           name,
           preload_order,
           prefetch_order,
+          fetch_priority,
         )));
         blocks.push(block);
       }

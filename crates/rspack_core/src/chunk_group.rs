@@ -9,7 +9,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   compare_chunk_group, get_chunk_from_ukey, get_chunk_group_from_ukey, Chunk, ChunkByUkey,
-  ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation, FilenameTemplate,
+  ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation, DynamicImportFetchPriority,
+  FilenameTemplate,
 };
 use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
@@ -510,6 +511,7 @@ pub struct ChunkGroupOptions {
   pub name: Option<String>,
   pub preload_order: Option<u32>,
   pub prefetch_order: Option<u32>,
+  pub fetch_priority: Option<DynamicImportFetchPriority>,
 }
 
 impl ChunkGroupOptions {
@@ -517,11 +519,13 @@ impl ChunkGroupOptions {
     name: Option<String>,
     preload_order: Option<u32>,
     prefetch_order: Option<u32>,
+    fetch_priority: Option<DynamicImportFetchPriority>,
   ) -> Self {
     Self {
       name,
       preload_order,
       prefetch_order,
+      fetch_priority,
     }
   }
   pub fn name_optional(mut self, name: Option<String>) -> Self {

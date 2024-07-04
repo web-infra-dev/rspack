@@ -389,6 +389,7 @@ fn runtime_requirements_in_tree(
           LoadScriptRuntimeModule::new(
             compilation.options.output.unique_name.clone(),
             compilation.options.output.trusted_types.is_some(),
+            *chunk_ukey,
           )
           .boxed(),
         )?;

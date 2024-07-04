@@ -2,7 +2,7 @@ var inProgress = {};
 
 $UNIQUE_PREFIX$
 // loadScript function to load a script via script tag
-__webpack_require__.l = function (url, done, key, chunkId) {
+__webpack_require__.l = function (url, done, key, chunkId$FETCH_PRIORITY$) {
 	if (inProgress[url]) {
 		inProgress[url].push(done);
 		return;
@@ -28,6 +28,7 @@ __webpack_require__.l = function (url, done, key, chunkId) {
 			script.setAttribute("nonce", __webpack_require__.nc);
 		}
 		$UNIQUE_SET_ATTRIBUTE$
+		$FETCH_PRIORITY_SET_ATTRIBUTE$
 		script.src = $URL$;
 
 		__CROSS_ORIGIN_LOADING_PLACEHOLDER__

@@ -244,7 +244,10 @@ bitflags! {
 
     const HAS_CSS_MODULES = 1 << 63;
 
+    // rspack only
     const RSPACK_UNIQUE_ID = 1 << 64;
+
+    const HAS_FETCH_PRIORITY = 1 << 65;
   }
 }
 
@@ -329,6 +332,8 @@ impl RuntimeGlobals {
       R::RSPACK_VERSION => "__webpack_require__.rv",
       R::RSPACK_UNIQUE_ID => "__webpack_require__.ruid",
       R::HAS_CSS_MODULES => "has css modules",
+
+      R::HAS_FETCH_PRIORITY => "has fetch priority",
       _ => unreachable!(),
     }
   }

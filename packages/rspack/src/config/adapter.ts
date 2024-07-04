@@ -635,6 +635,7 @@ function getRawJavascriptParserOptions(
 		dynamicImportMode: parser.dynamicImportMode ?? "lazy",
 		dynamicImportPreload: parser.dynamicImportPreload?.toString() ?? "false",
 		dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString() ?? "false",
+		dynamicImportFetchPriority: parser.dynamicImportFetchPriority?.toString(),
 		url:
 			parser.url === false
 				? "false"
