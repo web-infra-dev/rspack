@@ -107,6 +107,7 @@ import(
   /* webpackPreload: true */
   /* webpackMode: "lazy" */
   /* webpackIgnore: true */
+  /* webpackFetchPriority: "high" */
   'module'
 );
 ```
@@ -159,6 +160,14 @@ import(
 - **类型：**: `string`
 
 指定新 chunk 的名称。
+
+##### webpackFetchPriority
+
+<ApiMeta addedVersion="1.0.0" />
+
+- **类型：**: `"low" | "high" | "auto"`
+
+为指定的动态导入设置 [`fetchPriority`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/fetchPriority)。也可以通过使用 `module.parser.javascript.dynamicImportFetchPriority` 选项为所有动态导入设置全局默认值。
 
 ## CommonJS
 

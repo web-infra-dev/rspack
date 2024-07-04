@@ -109,6 +109,7 @@ import(
   /* webpackPreload: true */
   /* webpackMode: "lazy" */
   /* webpackIgnore: true */
+  /* webpackFetchPriority: "high" */
   'module'
 );
 ```
@@ -161,6 +162,14 @@ Tells the browser that the resource might be needed during the current navigatio
 - **Type:**: `string`
 
 A name for the new chunk.
+
+##### webpackFetchPriority
+
+<ApiMeta addedVersion="1.0.0" />
+
+- **Type:**: `"low" | "high" | "auto"`
+
+Set [`fetchPriority`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/fetchPriority) for specific dynamic imports. It's also possible to set a global default value for all dynamic imports by using the `module.parser.javascript.dynamicImportFetchPriority` option.
 
 ## CommonJS
 
