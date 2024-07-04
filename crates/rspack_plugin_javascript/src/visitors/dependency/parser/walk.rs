@@ -318,6 +318,9 @@ impl<'parser> JavascriptParser<'parser> {
         self.walk_nested_statement(alt);
         // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
         self.path_ignored_spans.push(stmt.cons.span());
+      } else {
+        // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
+        self.path_ignored_spans.push(stmt.cons.span());
       }
     } else {
       self.walk_expression(&stmt.test);

@@ -190,7 +190,9 @@ export type EntryObject = z.infer<typeof entryObject>;
 const entryStatic = entryObject.or(entryUnnamed);
 export type EntryStatic = z.infer<typeof entryStatic>;
 
-const entry = entryStatic.or(z.function().returns(entryStatic));
+const entry = entryStatic.or(
+	z.function().returns(entryStatic.or(z.promise(entryStatic)))
+);
 export type Entry = z.infer<typeof entry>;
 //#endregion
 
@@ -353,7 +355,6 @@ const output = z.strictObject({
 	libraryExport: libraryExport.optional(),
 	libraryTarget: libraryType.optional(),
 	umdNamedDefine: umdNamedDefine.optional(),
-	amdContainer: amdContainer.optional(),
 	auxiliaryComment: auxiliaryComment.optional(),
 	module: outputModule.optional(),
 	strictModuleExceptionHandling: strictModuleExceptionHandling.optional(),
@@ -1206,7 +1207,7 @@ const optimizationSplitChunksChunks = z
 			.args(z.instanceof(Chunk, { message: "Input not instance of Chunk" }))
 			.returns(z.boolean())
 	);
-const optimizationSplitChunksSizes = z.number();
+const optimizationSplitChunksSizes = z.number().or(z.record(z.number()));
 const optimizationSplitChunksDefaultSizeTypes = z.array(z.string());
 const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),

@@ -15,12 +15,10 @@ import {
 	type JsModule,
 	type JsPathData,
 	JsRspackSeverity,
-	type JsRuntimeModule,
-	type JsStatsError
+	type JsRuntimeModule
 } from "@rspack/binding";
-import * as tapable from "tapable";
+import * as liteTapable from "@rspack/lite-tapable";
 import { Source } from "webpack-sources";
-
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import {
 	Filename,
@@ -30,7 +28,6 @@ import {
 	StatsOptions,
 	StatsValue
 } from "./config";
-import * as liteTapable from "./lite-tapable";
 import ResolverFactory = require("./ResolverFactory");
 import { Chunk } from "./Chunk";
 import { ChunkGraph } from "./ChunkGraph";
@@ -150,8 +147,8 @@ export class Compilation {
 	hooks: Readonly<{
 		processAssets: liteTapable.AsyncSeriesHook<Assets>;
 		afterProcessAssets: liteTapable.SyncHook<Assets>;
-		childCompiler: tapable.SyncHook<[Compiler, string, number]>;
-		log: tapable.SyncBailHook<[string, LogEntry], true>;
+		childCompiler: liteTapable.SyncHook<[Compiler, string, number]>;
+		log: liteTapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
 		optimizeModules: liteTapable.SyncBailHook<Iterable<Module>, void>;
 		afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>, void>;
@@ -165,19 +162,22 @@ export class Compilation {
 		finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
 		chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
 		chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
-		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
+		processWarnings: liteTapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: liteTapable.SyncHook<[Module], void>;
 		stillValidModule: liteTapable.SyncHook<[Module], void>;
 
-		statsPreset: tapable.HookMap<
-			tapable.SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext], void>
+		statsPreset: liteTapable.HookMap<
+			liteTapable.SyncHook<
+				[Partial<StatsOptions>, CreateStatsOptionsContext],
+				void
+			>
 		>;
-		statsNormalize: tapable.SyncHook<
+		statsNormalize: liteTapable.SyncHook<
 			[Partial<StatsOptions>, CreateStatsOptionsContext],
 			void
 		>;
-		statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
-		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
+		statsFactory: liteTapable.SyncHook<[StatsFactory, StatsOptions], void>;
+		statsPrinter: liteTapable.SyncHook<[StatsPrinter, StatsOptions], void>;
 
 		buildModule: liteTapable.SyncHook<[Module]>;
 		executeModule: liteTapable.SyncHook<
@@ -257,7 +257,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				},
 				tapAsync: (
 					options: liteTapable.Options,
-					fn: liteTapable.FnWithCallback<T, void>
+					fn: liteTapable.FnAsync<T, void>
 				) => {
 					processAssetsHook.tapAsync(getOptions(options), (assets, callback) =>
 						(fn as any)(...getArgs(), callback)
@@ -265,7 +265,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				},
 				tapPromise: (
 					options: liteTapable.Options,
-					fn: liteTapable.Fn<T, void>
+					fn: liteTapable.FnPromise<T, void>
 				) => {
 					processAssetsHook.tapPromise(getOptions(options), () =>
 						fn(...getArgs())
@@ -283,12 +283,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
 				() => []
 			),
-			childCompiler: new tapable.SyncHook([
+			childCompiler: new liteTapable.SyncHook([
 				"childCompiler",
 				"compilerName",
 				"compilerIndex"
 			]),
-			log: new tapable.SyncBailHook(["origin", "logEntry"]),
+			log: new liteTapable.SyncBailHook(["origin", "logEntry"]),
 			optimizeModules: new liteTapable.SyncBailHook(["modules"]),
 			afterOptimizeModules: new liteTapable.SyncBailHook(["modules"]),
 			optimizeTree: new liteTapable.AsyncSeriesHook(["chunks", "modules"]),
@@ -299,16 +299,16 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			finishModules: new liteTapable.AsyncSeriesHook(["modules"]),
 			chunkHash: new liteTapable.SyncHook(["chunk", "hash"]),
 			chunkAsset: new liteTapable.SyncHook(["chunk", "filename"]),
-			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
+			processWarnings: new liteTapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new liteTapable.SyncHook(["module"]),
 			stillValidModule: new liteTapable.SyncHook(["module"]),
 
-			statsPreset: new tapable.HookMap(
-				() => new tapable.SyncHook(["options", "context"])
+			statsPreset: new liteTapable.HookMap(
+				() => new liteTapable.SyncHook(["options", "context"])
 			),
-			statsNormalize: new tapable.SyncHook(["options", "context"]),
-			statsFactory: new tapable.SyncHook(["statsFactory", "options"]),
-			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
+			statsNormalize: new liteTapable.SyncHook(["options", "context"]),
+			statsFactory: new liteTapable.SyncHook(["statsFactory", "options"]),
+			statsPrinter: new liteTapable.SyncHook(["statsPrinter", "options"]),
 
 			buildModule: new liteTapable.SyncHook(["module"]),
 			executeModule: new liteTapable.SyncHook(["options", "context"]),
@@ -375,10 +375,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	/**
 	 * Get the named chunks.
 	 *
-	 * Note: This is a proxy for webpack internal API, only method `get` is supported now.
+	 * Note: This is a proxy for webpack internal API, only method `get` and `keys` is supported now.
 	 */
 	get namedChunks(): ReadonlyMap<string, Readonly<Chunk>> {
 		return {
+			keys: (): IterableIterator<string> => {
+				const names = this.#inner.getNamedChunkKeys();
+				return names[Symbol.iterator]();
+			},
 			get: (property: unknown) => {
 				if (typeof property === "string") {
 					const chunk = this.#inner.getNamedChunk(property) || undefined;

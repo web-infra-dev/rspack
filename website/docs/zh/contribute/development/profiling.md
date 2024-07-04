@@ -20,7 +20,7 @@
 两种方式开启 tracing:
 
 - 如果你正在使用 `@rspack/cli`，你可以通过 `RSPACK_PROFILE` 环境变量来开启它。
-- 如果你正在使用 `@rspack/core` 而不是 `@rspack/cli`，你可以通过`experimental_registerGlobalTrace` 和 `experimental_cleanupGlobalTrace` 开启，查看 [我们如何使用这两个函数在 `@rspack/cli` 中实现 `RSPACK_PROFILE`](https://github.com/web-infra-dev/rspack/blob/25df2981ce1f0232ab05109c0995a249f57e2a09/packages/rspack-cli/src/utils/profile.ts#L186-L187) 获取更多信息。
+- 如果你正在使用 `@rspack/core` 而不是 `@rspack/cli`，你可以通过 `rspack.experiments.globalTrace.register` 和 `rspack.experiments.globalTrace.cleanup` 开启，查看 [我们如何使用这两个函数在 `@rspack/cli` 中实现 `RSPACK_PROFILE`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224) 获取更多信息。
 
 ### Chrome
 

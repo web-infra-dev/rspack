@@ -27,6 +27,7 @@ export class JsCompilation {
   getModules(): Array<JsModule>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): Array<JsChunk>
+  getNamedChunkKeys(): Array<string>
   getNamedChunk(name: string): JsChunk | null
   setAssetSource(name: string, source: JsCompatSource): void
   deleteAssetSource(name: string): void
@@ -63,8 +64,8 @@ export class JsStats {
   getAssets(): JsStatsGetAssets
   getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsModule>
   getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsChunk>
-  getEntrypoints(): Array<JsStatsChunkGroup>
-  getNamedChunkGroups(): Array<JsStatsChunkGroup>
+  getEntrypoints(chunkGroupAuxiliary: boolean, chunkGroupChildren: boolean): Array<JsStatsChunkGroup>
+  getNamedChunkGroups(chunkGroupAuxiliary: boolean, chunkGroupChildren: boolean): Array<JsStatsChunkGroup>
   getErrors(): Array<JsStatsError>
   getWarnings(): Array<JsStatsWarning>
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
@@ -429,6 +430,7 @@ export interface JsNormalModuleFactoryCreateModuleArgs {
 
 export interface JsOriginRecord {
   module: string
+  moduleId: string
   moduleIdentifier: string
   moduleName: string
   loc: string
@@ -443,6 +445,12 @@ export interface JsPathData {
   url?: string
   id?: string
   chunk?: JsChunkPathData
+}
+
+export interface JsResolveArgs {
+  request: string
+  context: string
+  issuer: string
 }
 
 export interface JsResolveForSchemeArgs {
@@ -546,14 +554,22 @@ export interface JsStatsChunk {
 
 export interface JsStatsChunkGroup {
   name: string
-  assets: Array<JsStatsChunkGroupAsset>
   chunks: Array<string | undefined | null>
+  assets: Array<JsStatsChunkGroupAsset>
   assetsSize: number
+  auxiliaryAssets?: Array<JsStatsChunkGroupAsset>
+  auxiliaryAssetsSize?: number
+  children?: JsStatsChunkGroupChildren
 }
 
 export interface JsStatsChunkGroupAsset {
   name: string
   size: number
+}
+
+export interface JsStatsChunkGroupChildren {
+  preload?: Array<JsStatsChunkGroup>
+  prefetch?: Array<JsStatsChunkGroup>
 }
 
 export interface JsStatsError {
@@ -755,10 +771,10 @@ export interface RawCacheGroupOptions {
   type?: RegExp | string
   automaticNameDelimiter?: string
   minChunks?: number
-  minSize?: number
-  maxSize?: number
-  maxAsyncSize?: number
-  maxInitialSize?: number
+  minSize?: number | RawSplitChunkSizes
+  maxSize?: number | RawSplitChunkSizes
+  maxAsyncSize?: number | RawSplitChunkSizes
+  maxInitialSize?: number | RawSplitChunkSizes
   name?: string | false | Function
   reuseExistingChunk?: boolean
   enforce?: boolean
@@ -974,10 +990,10 @@ export interface RawExtractComments {
 
 export interface RawFallbackCacheGroupOptions {
   chunks?: RegExp | 'async' | 'initial' | 'all'
-  minSize?: number
-  maxSize?: number
-  maxAsyncSize?: number
-  maxInitialSize?: number
+  minSize?: number | RawSplitChunkSizes
+  maxSize?: number | RawSplitChunkSizes
+  maxAsyncSize?: number | RawSplitChunkSizes
+  maxInitialSize?: number | RawSplitChunkSizes
   automaticNameDelimiter?: string
 }
 
@@ -1418,6 +1434,10 @@ export interface RawSourceMapDevToolPluginOptions {
   test?: (text: string) => boolean
 }
 
+export interface RawSplitChunkSizes {
+  sizes: Record<string, number>
+}
+
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
   name?: string | false | Function
@@ -1430,12 +1450,12 @@ export interface RawSplitChunksOptions {
   defaultSizeTypes: Array<string>
   minChunks?: number
   hidePathInfo?: boolean
-  minSize?: number
+  minSize?: number | RawSplitChunkSizes
   enforceSizeThreshold?: number
-  minRemainingSize?: number
-  maxSize?: number
-  maxAsyncSize?: number
-  maxInitialSize?: number
+  minRemainingSize?: number | RawSplitChunkSizes
+  maxSize?: number | RawSplitChunkSizes
+  maxAsyncSize?: number | RawSplitChunkSizes
+  maxInitialSize?: number | RawSplitChunkSizes
 }
 
 export interface RawStatsOptions {
@@ -1505,12 +1525,13 @@ export enum RegisterJsTapKind {
   CompilationAfterSeal = 23,
   NormalModuleFactoryBeforeResolve = 24,
   NormalModuleFactoryFactorize = 25,
-  NormalModuleFactoryAfterResolve = 26,
-  NormalModuleFactoryCreateModule = 27,
-  NormalModuleFactoryResolveForScheme = 28,
-  ContextModuleFactoryBeforeResolve = 29,
-  ContextModuleFactoryAfterResolve = 30,
-  JavascriptModulesChunkHash = 31
+  NormalModuleFactoryResolve = 26,
+  NormalModuleFactoryAfterResolve = 27,
+  NormalModuleFactoryCreateModule = 28,
+  NormalModuleFactoryResolveForScheme = 29,
+  ContextModuleFactoryBeforeResolve = 30,
+  ContextModuleFactoryAfterResolve = 31,
+  JavascriptModulesChunkHash = 32
 }
 
 export interface RegisterJsTaps {
@@ -1540,6 +1561,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsFactorizeArgs) => Promise<JsFactorizeArgs>); stage: number; }>
+  registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveArgs) => Promise<JsResolveArgs>); stage: number; }>
   registerNormalModuleFactoryResolveForSchemeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>
   registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>

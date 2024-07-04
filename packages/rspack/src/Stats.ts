@@ -47,6 +47,14 @@ export class Stats {
 		return this.compilation.hash;
 	}
 
+	get startTime() {
+		return this.compilation.startTime;
+	}
+
+	get endTime() {
+		return this.compilation.endTime;
+	}
+
 	hasErrors() {
 		return this.#inner.getErrors().length > 0;
 	}

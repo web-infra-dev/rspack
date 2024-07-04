@@ -1,4 +1,5 @@
 import WebpackLicense from '@components/webpack-license';
+import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/api/module-methods/" />
 
@@ -6,11 +7,23 @@ import WebpackLicense from '@components/webpack-license';
 
 当使用 Rspack 打包应用程序时，你可以选择多种模块语法风格，包括 ES6、CommonJS。
 
-尽管 Rspack 支持多种模块语法，我们建议为了保持一致性并避免奇怪的 bug，最好遵循单一的语法。
+尽管 Rspack 支持多种模块语法，但我们还是建议尽量使用一致的语法，以此避免一些奇怪的行为和 bug。
+
+事实上，当距离最近的 `package.json` 文件中 `"type"` 字段值为 `"module"` 或 `"commonjs"` 时，Rspack 会对 `.mjs` 文件、`.cjs` 文件或`.js` 文件进行对应的处理：
+
+- 后缀为 `.mjs` 或者 `package.json` 中 `"type": "module"` 且后缀为 `.js` 时：
+  - 不允许使用 CommonJS，如 `require`，`module.exports` 或 `exports`
+  - 引入文件时需指定扩展名，例如，应使用 `import './src/App.mjs'`，而非 `import './src/App'`
+- 后缀为 `.cjs` 或者 `package.json` 中 `"type": "commonjs"` 且后缀为 `.js` 时：
+  - 不允许使用 ESM，如 `import` 和 `export`
 
 ## ES6 (推荐)
 
 Rspack 原生支持 ES6 模块语法，可以使用静态的 `import`、`export` 和 `import()` 语法。
+
+:::warning
+如果使用其他的 ES6+ 特性，仍然需要引入 SWC / Babel 进行转换。
+:::
 
 ### import
 
@@ -68,7 +81,7 @@ if (module.hot) {
 此功能内部依赖于 `Promise`。如果你在旧版浏览器中使用 `import()`，请记得使用类似于 [`es6-promise`](https://github.com/stefanpenner/es6-promise) 或 [`promise-polyfill`](https://github.com/taylorhakes/promise-polyfill) 的 polyfill 来模拟 `Promise`。
 :::
 
-### import() 中的动态表达式
+#### import() 中的动态表达式
 
 无法使用完全动态的导入语句，例如 `import(foo)`。因为 `foo` 可能是系统或项目中任何文件的任何路径。
 
@@ -83,7 +96,7 @@ import(`./locale/${language}.json`).then(module => {
 });
 ```
 
-### Magic Comments
+#### Magic Comments
 
 通过向 import 语句添加注释，我们可以执行诸如命名 chunk 或选择不同模式等操作。有关这些魔法注释的完整列表，请参见下面的代码，以及对这些注释功能的解释。
 
@@ -92,19 +105,95 @@ import(
   /* webpackChunkName: "my-chunk-name" */
   /* webpackPrefetch: true */
   /* webpackPreload: true */
+  /* webpackMode: "lazy" */
+  /* webpackIgnore: true */
   'module'
 );
 ```
 
-`webpackChunkName`：新 chunk 的名称。
+##### webpackIgnore
 
-`webpackPrefetch`：告诉浏览器将来可能需要该资源来进行某些导航跳转（0.4.5 及以上版本支持）。
+<ApiMeta addedVersion="0.5.0" />
 
-`webpackPreload`：告诉浏览器在当前导航期间可能需要该资源（0.4.5 及以上版本支持）。
+- **类型：** `boolean`
+
+设置为 true 时，禁用动态导入解析。
+
+:::warning
+当 webpackIgnore 为 true 时，不会将代码分离成为独立的 chunk。
+:::
+
+##### webpackMode
+
+- **类型：** `"eager" | "lazy" | "weak" | "lazy-once"`
+
+可以指定以不同的模式解析动态导入。支持以下选项：
+
+- `'lazy'` (默认值)：为每个 `import()` 导入的模块生成一个可延迟加载（lazy-loadable）的 chunk。
+- `'lazy-once'`：生成一个可以满足所有 `import()` 调用的单个可延迟加载（lazy-loadable）的 chunk。此 chunk 将在第一次 `import()` 时调用时获取，随后的 `import()` 则使用相同的网络响应。注意，这种模式仅在部分动态语句中有意义，例如 `import("./locales/${language}.json")`，其中可能含有多个被请求的模块路径。
+- `'eager'`：不会生成额外的 chunk。所有的模块都被当前的 chunk 引入，并且没有额外的网络请求。但是仍会返回一个 resolved 状态的 Promise。与静态导入相比，在调用 `import()` 完成之前，该模块不会被执行。
+- `'weak'`：尝试加载模块，如果该模块函数已经以其他方式加载，（即另一个 chunk 导入过此模块，或包含模块的脚本被加载）。仍会返回 Promise， 但是只有在客户端上已经有该 chunk 时才会成功解析。如果该模块不可用，则返回 rejected 状态的 Promise，且网络请求永远都不会执行。当需要的 chunks 始终在（嵌入在页面中的）初始请求中手动提供，而不是在应用程序导航在最初没有提供的模块导入的情况下触发，这对于通用渲染（SSR）是非常有用的。
+
+##### webpackPrefetch
+
+<ApiMeta addedVersion="0.4.5" />
+
+- **类型：**
+  - `number`: 预取优先级
+  - `boolean`: `false` 表示不预取, `true` 表示预取并且优先级是 `0`
+
+告诉浏览器将来可能需要该资源来进行某些导航跳转，详情请查看[预取/预载模块](/guide/optimization/code-splitting#预取预载模块)。
+
+##### webpackPreload
+
+<ApiMeta addedVersion="0.4.5" />
+
+- **类型：**
+  - `number`: 预载优先级
+  - `boolean`: `false` 表示不预载, `true` 表示预载并且优先级是 `0`
+
+告诉浏览器在当前导航期间可能需要该资源，详情请查看[预取/预载模块](/guide/optimization/code-splitting#预取预载模块)。
+
+##### webpackChunkName
+
+- **类型：**: `string`
+
+指定新 chunk 的名称。
 
 ## CommonJS
 
 Rspack 也支持 `CommonJS` 语法，可以使用 `require` 和 `module.exports` 语法。
+
+### require
+
+以同步的方式引入其他模块。
+
+```js
+require(dependency: string);
+```
+
+### require.resolve
+
+以同步的方式获取模块的 ID。可视为只能与 require.cache[id] 或 **webpack_require**(id) 配合使用（最好避免这种用法）。
+
+```js
+require.resolve(dependency: string);
+```
+
+:::warning
+模块 ID 的类型可以是 `number` 或 `string`，具体取决于 `optimization.moduleIds` 配置。
+:::
+
+### require.cache
+
+多处引用同一模块，最终只会产生一次模块执行和一次导出。所以，会在运行时（runtime）中会保存一份缓存。删除此缓存，则会产生新的模块执行和新的导出。
+
+```js
+var d1 = require('dependency');
+require('dependency') === d1;
+delete require.cache[require.resolve('dependency')];
+require('dependency') !== d1;
+```
 
 ## Data URI 模块
 

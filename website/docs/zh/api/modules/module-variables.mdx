@@ -1,5 +1,6 @@
 import WebpackLicense from '@components/webpack-license';
-import { ApiMeta } from '../../../../components/ApiMeta';
+import Columns from '@components/Columns';
+import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.docschina.org/api/module-variables/" />
 
@@ -7,13 +8,130 @@ import { ApiMeta } from '../../../../components/ApiMeta';
 
 本节涵盖了使用 Rspack 编译代码时所有可用的变量。模块将能够通过 `module` 和其他变量访问来自编译过程的特定数据。
 
-## module.hot（webpack 专用）
+## CommonJs
+
+### module.loaded
+
+`false` 表示该模块正在执行， `true` 表示同步执行已经完成。
+
+### module.id
+
+当前模块的 ID。
+
+```js title=src/main.js
+module.id === require.resolve('./src/main.js'); // true
+```
+
+### module.hot
 
 是否启用了热模块替换，并提供了一些方法来处理该过程。有关详细信息，请参阅 [HMR API](/api/hmr) 页面。
 
-## import.meta.webpackContext
+### global
 
-`import.meta.webpackContext` 是 webpack 特有的一个函数，它允许你动态地 import 一组模块。
+见 [node.js global](https://nodejs.org/api/globals.html#globals_global).
+
+Rspack 会将 global 替换为代理对象并在其中处理兼容性问题。
+
+<Columns>
+```js title=源码
+global['property']
+```
+
+```js title=产物
+__webpack_require__.g['property'];
+
+// webpack/runtime/global
+__webpack_require__.g = (function () {
+  // 兼容处理
+})();
+```
+
+</Columns>
+
+### \_\_filename
+
+依赖于配置项 [`node.__filename`](/config/node#node__filename)。
+
+- `false`：未定义
+- `mock`：等于 `'/index.js'`
+- `true`：[NodeJs \_\_filename](https://nodejs.org/api/modules.html#__filename)
+
+如果在一个被 Parser 解析的表达式内部使用，则配置选项会被当作 `true` 处理。
+
+<Columns>
+```js title=源码
+__filename
+```
+
+```js title=产物
+'src/main.js';
+```
+
+</Columns>
+
+### \_\_dirname
+
+依赖于配置项 [`node.__dirname`](/config/node#node__dirname)。
+
+- `false`：未定义
+- `mock`：等于 `'/'`
+- `true`：[NodeJs \_\_dirname](https://nodejs.org/api/modules.html#__dirname)
+
+如果在一个被 Parser 解析的表达式内部使用，则配置选项会被当作 `true` 处理。
+
+<Columns>
+```js title=源码
+__dirname
+```
+
+```js title=产物
+'src';
+```
+
+</Columns>
+
+## import.meta（ESM）
+
+`import.meta` 将特定上下文的元数据暴露给 JavaScript 模块，例如模块的 URL。它仅在 ESM（ECMAScript 模块）中可用。
+
+> 请注意，Rspack 不支持直接访问 `import.meta`（将抛出警告）。因此，您应该访问其属性或使用解构赋值。
+
+<Columns>
+```js title=源码
+import.meta
+typeof import.meta
+```
+
+```js title=产物
+{
+} // Warning: Accessing import.meta directly is unsupported (only property access or destructuring is supported)
+('object');
+```
+
+</Columns>
+
+### import.meta.url
+
+返回模块以 `file:` 开头绝对路径的 URL。
+
+<Columns>
+```js title=源码
+import.meta.url
+typeof import.meta.url
+```
+
+```js title=产物
+'file://project_root/src/main.js';
+'string';
+```
+
+</Columns>
+
+### import.meta.webpackContext
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+`import.meta.webpackContext` 是 Rspack/Webpack 特有的一个函数，它允许你动态地 import 一组模块。
 
 你可以在代码中使用 `import.meta.webpackContext`，Rspack 将在构建时进行解析并引用匹配的模块。
 
@@ -82,7 +200,7 @@ const context = import.meta.webpackContext('./locales', {
 
 > 传递给 `import.meta.webpackContext()` 的第一个参数必须是字面量。
 
-### context API
+#### context API
 
 `import.meta.webpackContext()` 返回的 context 是一个函数，它接收一个 `request` 参数（模块路径）。
 
@@ -122,56 +240,389 @@ componentsContext.keys().forEach(fileName => {
 
 `import.meta.webpackContext()` 简化了模块导入过程，尤其是当你有大量模块需要管理时。在使用时，请避免匹配到不需要的文件，否则可能导致构建时间和产物体积明显增加。
 
-## import.meta.webpackHot（webpack 专用）
+### import.meta.webpackHot
 
-`module.hot` 的别名，`import.meta.webpackHot` 可以在严格的 ESM 中使用，而 module.hot 不能。
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
-## \_\_dirname（NodeJS）
+[`module.hot`](#modulehot) 的别名，`import.meta.webpackHot` 可以在严格的 ESM 中使用，而 `module.hot` 不能。
 
-依赖于配置项 [`node.__dirname`](/config/node#node__dirname)。
+## Runtime
 
-- `false`：未定义
-- `mock`：等于 `'/'`
-- `true`：[node.js \_\_dirname](https://nodejs.org/api/globals.html#globals_dirname)
+### \_\_webpack_hash\_\_
 
-如果在一个被 Parser 解析的表达式内部使用，则配置选项会被当作 `true` 处理。
-
-## \_\_resourceQuery（webpack 专用）
-
-当前模块的资源查询（resource query）。如果进行了如下的 `require` 调用，那么查询字符串（query string）在 `file.js` 中可用。
-
-```ts
-require('file.js?test');
-```
-
-```ts title="file.js"
-__resourceQuery === '?test';
-```
-
-## \_\_webpack_modules\_\_ (webpack 专用)
-
-访问所有模块的内部对象。
-
-## \_\_webpack_hash\_\_ (webpack 专用)
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 提供对编译过程中（compilation）的 hash 信息的访问。
 
-## \_\_webpack_public_path\_\_ (webpack 专用)
+<Columns>
+```js title=源码
+__webpack_hash__
+```
 
+```js title=产物
+__webpack_require__.h();
+
+// webpack/runtime/get_full_hash
+__webpack_require__.h = function () {
+  return '9210c6f859a51c6f9a62';
+};
+```
+
+</Columns>
+
+### \_\_webpack_runtime_id\_\_
+
+<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
+
+访问当前入口的 runtime chunk 的 id。
+
+<Columns>
+```js title=源码
+__webpack_runtime_id__
+```
+
+```js title=产物
+__webpack_require__.j;
+
+// webpack/runtime/runtime_id
+__webpack_require__.j = '909';
+```
+
+</Columns>
+
+### \_\_webpack_public_path\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
 等于配置选项的 [output.publicPath](/config/output#outputpublicpath)。
 
-## \_\_webpack_chunkname\_\_ (webpack-specific)
+<Columns>
+```js title=源码
+__webpack_public_path__
+```
 
-<ApiMeta addedVersion="0.4.4" />
+```js title=产物
+__webpack_require__.p;
+
+// output.publicPath !== "auto"
+__webpack_require__.p = 'output.publicPath';
+// output.publicPath === "auto"，
+__webpack_require__.p = '由 document/location 计算得来';
+```
+
+</Columns>
+
+### \_\_webpack_base_uri\_\_
+
+<ApiMeta addedVersion="0.3.3" specific={['Rspack', 'Webpack']} />
+运行时获取或修改 Base URI。
+
+<Columns>
+```js title=源码
+__webpack_base_uri__
+```
+
+```js title=产物
+__webpack_require__.b;
+
+// chunk loading
+__webpack_require__.b = document.baseURI || self.location.href;
+```
+
+</Columns>
+
+### \_\_webpack_nonce\_\_
+
+<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
+
+Rspack 能够为其加载的所有脚本添加 nonce，即一次性随机数。在入口文件中设置 `__webpack_nonce__` 变量以激活此功能。
+
+<Columns>
+```js title=源码
+__webpack_nonce__ = 'your_nonce_code';
+```
+
+```js title=产物
+__webpack_require__.nc = '2312312';
+
+// webpack/runtime/load_script
+if (__webpack_require__.nc) {
+  script.setAttribute('nonce', __webpack_require__.nc);
+}
+```
+
+</Columns>
+
+## Modules
+
+### \_\_webpack_modules\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+访问所有模块的内部对象。
+
+<Columns>
+```js title=源码
+__webpack_modules__
+```
+
+```js title=产物
+var __webpack_modules__ = {
+  'main.js': function () {
+    __webpack_require__.m;
+  },
+};
+__webpack_require__.m = __webpack_modules__;
+```
+
+</Columns>
+
+### \_\_webpack_module\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+它提供对当前 `module` 的访问。`module` 在 ESM 严格模式下不可用。
+
+<Columns>
+```js title=源码
+__webpack_module__
+```
+
+```js title=产物
+"main.js": function(renamed_module) {
+  renamed_module
+}
+```
+
+</Columns>
+
+### \_\_webpack_module\_\_.id
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+它提供对当前 `module`(`module.id`) ID 的访问。`module` 在 ESM 严格模式下不可用。
+
+<Columns>
+```js title=源码
+__webpack_module__.id
+```
+
+```js title=产物
+"main.js": function(renamed_module) {
+  renamed_module.id
+}
+```
+
+</Columns>
+
+### \_\_webpack_require\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+原始 require 函数。这个表达式不会被解析器解析为依赖。
+
+<Columns>
+```js title=源码
+__webpack_require__('./dep.js')
+```
+
+```js title=产物
+"main.js": function(_, __, renamed_require) {
+  renamed_require('./dep.js')
+}
+```
+
+</Columns>
+
+### \_\_non_webpack_require\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+生成一个不会被 Rspack 解析的 `require` 函数。配合全局可以获取到的 `require` 函数，可以完成一些酷炫操作。
+
+<Columns>
+```js title=源码
+__non_webpack_require__('outer.js')
+```
+
+```js title=产物
+"main.js": function(_, __, __webpack_require__) {
+  require('outer.js')
+}
+```
+
+</Columns>
+
+### \_\_webpack_is_included\_\_
+
+<ApiMeta addedVersion="0.4.5" specific={['Rspack', 'Webpack']} />
+
+测试给定的模块是否被 Rspack 打包。
+
+<Columns>
+```js title=源码
+if (__webpack_is_included__('./dep.js')) {
+  // do something
+}
+```
+
+```js title=产物
+if (true) {
+  // do something
+}
+```
+
+</Columns>
+
+### \_\_resourceQuery
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+当前模块的资源查询（resource query）。如果进行了如下的 `require` 调用，那么查询字符串（query string）在 `file.js` 中可用。
+
+```js
+require('file.js?test');
+```
+
+<Columns>
+```js title=源码
+__resourceQuery
+```
+
+```js title=产物
+'?test';
+```
+
+</Columns>
+
+## Chunks
+
+### \_\_webpack_chunkname\_\_
+
+<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
 
 访问当前 chunk 的名称。
 
-## \_\_webpack_runtime_id\_\_ (webpack-specific)
+<Columns>
+```js title=源码
+__webpack_chunkname__
+```
 
-<ApiMeta addedVersion="0.4.4" />
+```js title=产物
+__webpack_require__.cn;
 
-访问当前入口的 runtime id。
+// webpack/runtime/chunk_name
+__webpack_require__.cn = 'main';
+```
+
+</Columns>
+
+### \_\_webpack_chunk_load\_\_
+
+内部 chunk 载入函数，有一个输入参数：
+
+- `chunkId`: 需要载入的 chunk id
+
+<Columns>
+```js title=源码
+__webpack_chunk_load__
+```
+
+```js title=产物
+__webpack_require__.e;
+
+// webpack/runtime/ensure_chunk
+__webpack_require__.e = function (chunkId) {
+  // return chunk loading promise
+};
+```
+
+</Columns>
+
+以下为当一个 chunk 加载失败时，从备用公共路径加载 chunk 的示例：
 
 ```js
-console.log(__webpack_runtime_id__ === 'main');
+const originalLoad = __webpack_chunk_load__;
+const publicPaths = ['a', 'b', 'c'];
+__webpack_chunk_load__ = async id => {
+  let error;
+  for (const path of publicPaths) {
+    __webpack_public_path__ = path;
+    try {
+      return await originalLoad(id);
+    } catch (e) {
+      error = e;
+    }
+  }
+  throw error;
+};
+import('./module-a').then(moduleA => {
+  // now webpack will use the custom __webpack_chunk_load__ to load chunk
+});
 ```
+
+## Module Federation
+
+### \_\_webpack_share_scopes\_\_
+
+<ApiMeta addedVersion="0.4.1" specific={['Rspack', 'Webpack']} />
+
+用于存储 module federation 中的一个远程容器共享作用域 (shared scope) 相关信息。
+
+### \_\_webpack_init_sharing\_\_
+
+<ApiMeta addedVersion="0.4.1" specific={['Rspack', 'Webpack']} />
+
+用于初始化 module federation 中的一个远程容器共享作用域 (shared scope) 并加载相关模块。
+
+## System.js
+
+### \_\_system_context\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+可在 `output.libraryTarget="system"` 时获取 System.js 上下文。
+
+## Rspack
+
+### \_\_rspack_version\_\_
+
+<ApiMeta addedVersion="0.5.2" specific={['Rspack']} />
+当前使用的 Rspack 版本，默认从 `@rspack/core/package.json` 读取。可以通过 `experiments.rspackFuture.bundlerInfo.version`
+修改。
+
+<Columns>
+```js title=源码
+__rspack_version__
+```
+
+```js title=产物
+__webpack_require__.rv;
+
+// webpack/runtime/rspack_version
+__webpack_require__.rv = '0.7.4';
+```
+
+</Columns>
+
+### \_\_rspack_unique_id\_\_
+
+<ApiMeta addedVersion="1.0.0" specific={['Rspack']} />
+
+当前打包工具的 ID，为 `{bundler}@{version}`。其中：
+
+- `bundler`：默认为 `"rspack"` 可以通过 `experiments.rspackFuture.bundlerInfo.bundler` 修改
+- `version`：默认从 @rspack/core 读取，可以通过 `experiments.rspackFuture.bundlerInfo.version` 修改
+
+<Columns>
+```js title=源码
+__rspack_unique_id__
+```
+
+```js title=产物
+__webpack_require__.ruid;
+
+// webpack/runtime/rspack_unique_id
+__webpack_require__.ruid = 'bundler=rspack@0.7.4';
+```
+
+</Columns>

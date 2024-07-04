@@ -273,7 +273,22 @@ export const SwcJsMinimizerRspackPlugin = create(
 	): RawSwcJsMinimizerRspackPluginOptions => {
 		let compress = options?.compress ?? true;
 		let mangle = options?.mangle ?? true;
-		let format = options?.format ?? {};
+		let format = {
+			comments: false, // terser and swc use different default value: 'some'
+			...options?.format
+		};
+
+		if (compress && typeof compress === "object") {
+			compress = {
+				passes: 1, // terser and swc use different default value: 0
+				...compress
+			};
+		} else if (compress) {
+			compress = {
+				passes: 1
+			};
+		}
+
 		return {
 			extractComments: getRawExtractCommentsOptions(options?.extractComments),
 			compress,

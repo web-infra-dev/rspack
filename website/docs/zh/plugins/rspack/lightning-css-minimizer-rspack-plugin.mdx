@@ -2,7 +2,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # LightningCssMinimizerRspackPlugin
 
-<ApiMeta addedVersion={'0.7.4'} />
+<ApiMeta addedVersion={'0.7.4'} specific={['Rspack']} />
 
 此插件使用 [lightningcss](https://lightningcss.dev/) 来压缩 CSS 产物。参见 [optimization.minimizer](/config/optimization#optimizationminimizer)。
 
@@ -20,7 +20,7 @@ module.exports = {
 ### errorRecovery
 
 - **类型：** `boolean`
-- **默认值：** `false`
+- **默认值：** `true`
 
 是否忽略无效的规则和声明而不进行报错。
 

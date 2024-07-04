@@ -58,8 +58,8 @@ build/Release
 # Dependency directories
 node_modules/
 !scripts/node_modules/
-!webpack-examples/*/node_modules
-!webpack-test/*/**/node_modules
+!tests/webpack-examples/*/node_modules
+!tests/webpack-test/*/**/node_modules
 !packages/rspack-cli/tests/**/node_modules
 !packages/rspack-test-tools/tests/**/node_modules
 jspm_packages/
@@ -209,17 +209,17 @@ justfile
 ## Angular Incremental Build Cache
 **/.angular/
 # align to webpack
-/webpack-test/js
-/webpack-test/browsertest/js
-/webpack-test/fixtures/temp-*
-/webpack-test/temp
-/webpack-test/ChangesAndRemovals
-/webpack-test/**/dev-defaults.webpack.lock
-!/webpack-test/**/target
-!/webpack-test/cases/**/node_modules
+tests/webpack-test/js
+tests/webpack-test/browsertest/js
+tests/webpack-test/fixtures/temp-*
+tests/webpack-test/temp
+tests/webpack-test/ChangesAndRemovals
+tests/webpack-test/**/dev-defaults.webpack.lock
+!tests/webpack-test/**/target
+!tests/webpack-test/cases/**/node_modules
 
-/plugin-test/css-extract/js
-!/plugin-test/css-extract/**/node_modules
+tests/plugin-test/css-extract/js
+!tests/plugin-test/css-extract/**/node_modules
 
 /webpack-examples/**/dist
 

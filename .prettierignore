@@ -15,11 +15,6 @@ packages/rspack-test-tools/tests/**/*
 packages/rspack-test-preact-refresh/tests/**/*
 packages/rspack-plugin-mini-css-extract/test/cases/**/*
 
-plugin-test/**/*
-
 crates/**/*
 target/**/*
-
-webpack-test/**/*
-webpack-cli-test/**/*
-webpack-examples/**/*
+tests/**/*

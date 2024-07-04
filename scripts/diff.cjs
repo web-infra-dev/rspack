@@ -6,7 +6,7 @@ const fs = require("fs-extra");
 
 process.env['RSPACK_DIFF'] = "true"; // enable rspack diff injection
 
-const CASE_DIR = path.resolve(__dirname, '../diffcases');
+const CASE_DIR = path.resolve(__dirname, '../tests/diff-test');
 const OUTPUT_DIR = path.join(__dirname, '../diff_output');
 
 (async () => {
@@ -66,7 +66,7 @@ const OUTPUT_DIR = path.join(__dirname, '../diff_output');
       await tester.prepare();
       do {
         await tester.compile();
-        await tester.check({ expect: () => ({ toBe: (() => {}) }) });
+        await tester.check({ expect: () => ({ toBe: (() => { }) }) });
       } while (tester.next());
       await tester.resume();
     } catch (e) {

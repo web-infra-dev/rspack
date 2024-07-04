@@ -10,4 +10,5 @@ ERROR in ./index.js
         probably because the origin is strict EcmaScript Module,
         e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '"type": "module"'.
         
-        The extension in the request is mand
+        The extension in the request is mandatory for it to be fully specified.
+        Add the extension to the request.

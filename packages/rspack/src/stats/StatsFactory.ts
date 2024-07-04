@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import { JsStats, JsStatsError, JsStatsWarning } from "@rspack/binding";
-import { HookMap, SyncBailHook, SyncWaterfallHook } from "tapable";
+import { HookMap, SyncBailHook, SyncWaterfallHook } from "@rspack/lite-tapable";
 
 import type { Compilation } from "../Compilation";
 import { Comparator, concatComparators } from "../util/comparators";
@@ -56,7 +56,7 @@ type Hooks = Readonly<{
 			undefined
 		>
 	>;
-	result: HookMap<SyncWaterfallHook<[any[], StatsFactoryContext], undefined>>;
+	result: HookMap<SyncWaterfallHook<[any[], StatsFactoryContext]>>;
 	merge: HookMap<SyncBailHook<[any[], StatsFactoryContext], undefined>>;
 	getItemName: HookMap<
 		SyncBailHook<[any, StatsFactoryContext], string | undefined>
@@ -143,7 +143,7 @@ export class StatsFactory {
 			),
 			result: new HookMap(
 				() =>
-					new SyncWaterfallHook<[any[], StatsFactoryContext], undefined>([
+					new SyncWaterfallHook<[any[], StatsFactoryContext]>([
 						"result",
 						"context"
 					])

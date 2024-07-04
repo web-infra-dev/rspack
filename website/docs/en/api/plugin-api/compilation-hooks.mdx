@@ -1,49 +1,377 @@
+import { Badge } from '@theme';
+
 # Compilation Hooks
+
+:::info
+The main compilation logic of Rspack runs on the Rust side. For factors such as stability, performance, and architecture, after the Rust side compilation objects are transferred to the JavaScript side when using hooks, the modifications on these objects will not be synchronized to the Rust side. Therefore, most of hooks are "read-only".
+:::
 
 ## `buildModule`
 
-`SyncHook<[JsModule]>`
+<Badge text="Read-only" type="info" />
 
-Triggered before a module build has started, can be used to modify the module (Rspack currently only support reading the module, modifying is not supported yet).
+Triggered before a module build has started。
 
-## `processAssets`
+- **Type:** `SyncHook<[Module]>`
+- **Arguments:**
+  - `Module`: module instance
 
-`AsyncSeriesHook<[CompilationAssets]>`
+```ts
+type Module = {
+  context?: string;
+  resource?: string;
+  request?: string;
+  userRequest?: string;
+  rawRequest?: string;
+  factoryMeta?: JsFactoryMeta;
+  buildInfo: Record<string, any>;
+  buildMeta: Record<string, any>;
+  originalSource(): {
+    isRaw: boolean;
+    isBuffer: boolean;
+    source: Buffer;
+    map?: Buffer;
+  } | null;
+  identifier(): string;
+  nameForCondition(): string | null;
+};
+```
 
-Process the assets before emit.
+## `executeModule`
 
-## `optimizeModules`
+<Badge text="Read-only" type="info" />
 
-`SyncBailHook<[JsModule[]]>`
+If there exists compiled-time execution modules, this hook will be called when they are executed.
 
-Called at the beginning of the module optimization phase. A plugin can tap into this hook to perform optimizations on modules.
+- **Type:** `SyncHook<[ExecuteModuleArgument, ExecuteModuleContext]>`
+- **Arguments:**
+  - `ExecuteModuleArgument`: arguments of compiled-time execution module
+  - `ExecuteModuleContext`: context of compiled-time execution module
 
-## `optimizeChunkModule`
+```ts
+type ExecuteModuleArgument = {
+  codeGenerationResult: {
+    get(sourceType: string): string;
+  };
+  moduleObject: {
+    id: string;
+    exports: any;
+    loaded: boolean;
+    error?: Error;
+  };
+};
 
-`AsyncSeriesBailHook<[JsModule[]]>`
-
-Called after the tree optimization, at the beginning of the chunk modules optimization. A plugin can tap into this hook to perform optimizations of chunk modules.
+type ExecuteModuleContext = {
+  __webpack_require__: (id: string) => any;
+};
+```
 
 ## `succeedModule`
 
-`SyncHook<[JsModule]>`
+<Badge text="Read-only" type="info" />
 
 Executed when a module has been built successfully.
 
+- **Type:** `SyncHook<[Module]>`
+- **Arguments:**
+  - `Module`: module instance
+
 ## `finishModules`
 
-`AsyncSeriesHook<[JsModule[]]>`
+<Badge text="Read-only" type="info" />
 
 Called when all modules have been built without errors.
 
+- **Type:** `AsyncSeriesHook<[Module[]]>`
+- **Arguments:**
+  - `Module[]`: List of module instances
+
+## `optimizeModules`
+
+<Badge text="Read-only" type="info" />
+
+Called at the beginning of the module optimization phase.
+
+- **Type:** `SyncBailHook<[Module[]]>`
+- **Arguments:**
+  - `Module[]`: list of module instances
+
+## `afterOptimizeModules`
+
+<Badge text="Read-only" type="info" />
+
+Called after modules optimization has completed.
+
+- **Type:** `SyncBailHook<[Module[]]>`
+- **Arguments:**
+  - `Module[]`: list of module instances
+
+## `optimizeTree`
+
+<Badge text="Read-only" type="info" />
+
+Called before optimizing the dependency tree.
+
+- **Type:** `AsyncSeriesHook<[Chunk[], Module[]]>`
+- **Arguments:**
+  - `Chunk[]`: list of chunk instances
+  - `Module[]`: list of module instances
+
+```ts
+type Chunk = {
+  name?: string;
+  id?: string;
+  ids: string[];
+  idNameHints: string[];
+  filenameTemplate?: string;
+  cssFilenameTemplate?: string;
+  files: Set<string>;
+  runtime: Set<string>;
+  hash?: string;
+  contentHash: Record<string, string>;
+  renderedHash?: string;
+  chunkReason?: string;
+  auxiliaryFiles: Set<string>;
+  isOnlyInitial(): boolean;
+  canBeInitial(): boolean;
+  hasRuntime(): boolean;
+  groupsIterable: Set<ChunkGroup>;
+  getAllAsyncChunks(): Set<Chunk>;
+  getAllInitialChunks(): Set<Chunk>;
+  getAllReferencedChunks(): Set<Chunk>;
+};
+```
+
+## `optimizeChunkModules`
+
+<Badge text="Read-only" type="info" />
+
+Called after the tree optimization, at the beginning of the chunk modules optimization.
+
+- **Type:** `AsyncSeriesBailHook<[Chunk[], Module[]]>`
+- **Arguments:**
+  - `Chunk[]`: list of chunk instances
+  - `Module[]`: list of module instances
+
+## `additionalTreeRuntimeRequirements`
+
+<Badge text="Read-only" type="info" />
+
+Called after the tree runtime requirements collection.
+
+- **Type:** `SyncHook<[Chunk, Set<RuntimeGlobals>]>`
+- **Arguments:**
+  - `Chunk`: chunk instance
+  - `Set<RuntimeGlobals>`: runtime requirements
+
+```ts
+enum RuntimeGlobals {}
+```
+
+## `runtimeModule`
+
+<Badge text="Read-only" type="info" />
+
+Called after a runtime module is added into the compilation.
+
+- **Type:** `SyncHook<[RuntimeModule, Chunk]>`
+- **Arguments:**
+  - `RuntimeModule`: runtime module instance
+  - `Chunk`: chunk instance
+
+```ts
+type RuntimeModule = {
+  source?: {
+    isRaw: boolean;
+    isBuffer: boolean;
+    source: Buffer;
+    map?: Buffer;
+  };
+  moduleIdentifier: string;
+  constructorName: string;
+  name: string;
+};
+```
+
+## `processAssets`
+
+Process the assets before emit.
+
+- **Type:** `AsyncSeriesHook<Assets>`
+- **Arguments:**
+  - `Assets`: list of asset instances
+
+```ts
+type Assets = Record<
+  string,
+  {
+    source(): string | ArrayBuffer;
+    buffer(): Buffer;
+    size(): number;
+    map(options?: MapOptions): RawSourceMap | null;
+    sourceAndMap(options?: MapOptions): SourceAndMapResult;
+  }
+>;
+```
+
+## `afterProcessAssets`
+
+<Badge text="Read-only" type="info" />
+
+Called after the [processAssets](#processAssets) hook had finished without error.
+
+- **Type:** `SyncHook<Assets>`
+- **Arguments:**
+  - `Assets`: list of asset instances
+
+## `afterSeal`
+
+<Badge text="Read-only" type="info" />
+
+Called after the seal phase.
+
+- **Type:** `AsyncSeriesHook<[]>`
+
 ## `chunkHash`
 
-`SyncHook<[JsChunk, Hash]>`
+<Badge text="Read-only" type="info" />
 
-Triggered when calculating the chunk hash for a chunk.
+Triggered to emit the hash for each chunk.
+
+- **Type:** `SyncHook<[Chunk, Hash]>`
+- **Arguments:**
+  - `Chunk`: chunk instance
+  - `Hash`: chunk hash instance
+
+```ts
+type Hash = {
+  update(data: string | Buffer, inputEncoding?: string): Hash;
+  digest(encoding?: string): string | Buffer;
+};
+```
 
 ## `chunkAsset`
 
-`SyncHook<[JsChunk[], string /** filename*/ ]>`
+<Badge text="Read-only" type="info" />
 
 Triggered when an asset from a chunk was added to the compilation.
+
+- **Type:** `SyncHook<[Chunk, string]>`
+- **Arguments:**
+  - `Chunk`: chunk instance
+  - `string`: asset filename
+
+## `childCompiler`
+
+<Badge text="Read-only" type="info" />
+
+Executed after setting up a child compiler.
+
+- **Type:** `SyncHook<[Compiler, string, number]>`
+- **Arguments:**
+  - `Compiler`: child compiler instance
+  - `string`: child compiler name
+  - `number`: child compiler index
+
+## `statsPreset`
+
+<Badge text="Read-only" type="info" />
+
+This hook is like a list of actions that gets triggered when a preset is used. It takes in an options object. When a plugin manages a preset, it should change settings in this object carefully without replacing existing ones.
+
+- **Type:** `SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>`
+- **Arguments:**
+  - `Partial<StatsOptions>`: stats options
+  - `CreateStatsOptionsContext`: stats context
+
+```ts
+type StatsOptions = {
+  // `stats` in compiler options
+};
+
+type CreateStatsOptionsContext = {
+  forToString?: boolean;
+  [key: string]: any;
+};
+```
+
+Here's an illustrative plugin example:
+
+```js
+compilation.hooks.statsPreset.for('my-preset').tap('MyPlugin', options => {
+  if (options.all === undefined) options.all = true;
+});
+```
+
+This plugin ensures that for the preset `"my-preset"`, if the `all` option is undefined, it defaults to `true`.
+
+## `statsNormalize`
+
+<Badge text="Read-only" type="info" />
+
+This hook is used to transform an options object into a consistent format that can be easily used by subsequent hooks. It also ensures that missing options are set to their default values.
+
+- **Type:** `SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>`
+- **Arguments:**
+  - `Partial<StatsOptions>`: stats options
+  - `CreateStatsOptionsContext`: stats context
+
+Here's an illustrative plugin example:
+
+```js
+compilation.hooks.statsNormalize.tap('MyPlugin', options => {
+  if (options.myOption === undefined) options.myOption = [];
+
+  if (!Array.isArray(options.myOption)) options.myOptions = [options.myOptions];
+});
+```
+
+In this plugin, if the `myOption` is missing, it sets it to `[]`. Additionally, it ensures that `myOption` is always an array even if it was originally defined as a single value.
+
+## `statsFactory`
+
+<Badge text="Read-only" type="info" />
+
+This hook provides access to the StatsFactory class for specific options.
+
+- **Type:** `SyncHook<[StatsFactory, StatsOptions]>`
+- **Arguments:**
+  - `StatsFactory`: stats factory instance, see [Stats Factory Hooks](/api/plugin-api/stats-hooks#statsfactory) for more details
+  - `StatsOptions`: stats options
+
+```ts
+type StatsFactory = {
+  hooks: StatsFactoryHooks;
+  create(
+    type: string,
+    data: any,
+    baseContext: Omit<StatsFactoryContext, 'type'>,
+  ): void;
+};
+```
+
+## `statsPrinter`
+
+<Badge text="Read-only" type="info" />
+
+This hook provides access to the StatsPrinter class for specific options.
+
+- **Type:** `SyncHook<[StatsPrinter, StatsOptions]>`
+- **Arguments:**
+  - `StatsPrinter`: stats printer instance, see [Stats Printer Hooks](/api/plugin-api/stats-hooks#statsprinter) for more details.
+  - `StatsOptions`: stats options
+
+```ts
+type StatsPrinter = {
+  hooks: StatsPrinterHooks;
+  print(
+    type: string,
+    object: {
+      [key: string]: any;
+    },
+    baseContext?: {
+      [key: string]: any;
+    },
+  ): string;
+};
+```

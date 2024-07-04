@@ -30,5 +30,10 @@
   ],
   "ts-node": {
     "transpileOnly": true
-  }
+  },
+  "references": [
+    {
+      "path": "../rspack-lite-tapable"
+    }
+  ]
 }

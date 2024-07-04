@@ -16,7 +16,7 @@ runs:
       shell: bash
       run: |
         echo "## Test Compatibility Diff" > output.md
-        node ./webpack-test/scripts/pr-diff.js ${{ inputs.github-token }} ${{ inputs.sha }}
+        node ./tests/webpack-test/scripts/pr-diff.js ${{ inputs.github-token }} ${{ inputs.sha }}
 
         echo "comment=$comment" >> $GITHUB_OUTPUT
 

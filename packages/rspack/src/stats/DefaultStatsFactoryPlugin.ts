@@ -645,11 +645,13 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			_data,
+			{ chunkGroupAuxiliary, chunkGroupChildren },
 			_factory
 		) => {
 			// const { type } = context;
-			const array = context.getInner(compilation).getEntrypoints();
+			const array = context
+				.getInner(compilation)
+				.getEntrypoints(chunkGroupAuxiliary, chunkGroupChildren);
 
 			// object.entrypoints = factory.create(
 			// 	`${type}.entrypoints`,
@@ -669,13 +671,13 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			_options,
+			{ chunkGroupAuxiliary, chunkGroupChildren },
 			factory
 		) => {
 			// const { type } = context;
 			const namedChunkGroups = context
 				.getInner(compilation)
-				.getNamedChunkGroups();
+				.getNamedChunkGroups(chunkGroupAuxiliary, chunkGroupChildren);
 			// object.namedChunkGroups = factory.create(
 			// 	`${type}.namedChunkGroups`,
 			// 	namedChunkGroups,

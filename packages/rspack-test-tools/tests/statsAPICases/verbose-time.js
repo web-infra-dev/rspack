@@ -47,6 +47,12 @@ module.exports = {
 		LOG from rspack.EnsureChunkConditionsPlugin
 		<t> ensure chunk conditions: X ms
 
+		LOG from rspack.ModuleConcatenationPlugin
+		<t> select relevant modules: X ms
+		<t> sort relevant modules: X ms
+		<t> find modules to concatenate: X ms
+		<t> sort concat configurations: X ms
+
 		LOG from rspack.RealContentHashPlugin
 		<t> hash to asset names: X ms
 

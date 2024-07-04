@@ -14,11 +14,10 @@ export default defineConfig({
   title: 'Rspack',
   description: 'The fast Rust-based web bundler',
   logo: {
-    light:
-      'https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/navbar-logo-2027.png',
-    dark: 'https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/navbar-logo-dark-2027.png',
+    light: 'https://assets.rspack.dev/rspack/navbar-logo-light.png',
+    dark: 'https://assets.rspack.dev/rspack/navbar-logo-dark.png',
   },
-  icon: 'https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/favicon-1714.png',
+  icon: 'https://assets.rspack.dev/rspack/favicon-128x128.png',
   lang: 'en',
   globalStyles: path.join(__dirname, 'theme', 'index.css'),
   markdown: {
@@ -69,7 +68,7 @@ export default defineConfig({
       {
         icon: 'discord',
         mode: 'link',
-        content: 'https://discord.gg/79ZZ66GH9E',
+        content: 'https://discord.gg/sYK4QjyZ4V',
       },
       {
         icon: 'twitter',
@@ -115,7 +114,8 @@ export default defineConfig({
         title: 'Rspack',
         type: 'website',
         url: PUBLISH_URL,
-        image: 'https://assets.rspack.dev/rspack/rspack-og-image.png',
+        image:
+          'https://assets.rspack.dev/rspack/assets/rspack-og-image-v1-0-alpha.png',
         description: 'Fast Rust-based Web Bundler',
         twitter: {
           site: '@rspack_dev',

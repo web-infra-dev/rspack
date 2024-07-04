@@ -5,11 +5,33 @@
 ```ts
 
 // @public (undocumented)
+type IntegrationType = "wds";
+
+// @public (undocumented)
+interface OverlayOptions {
+    // (undocumented)
+    entry: string;
+    // (undocumented)
+    module: string;
+    // (undocumented)
+    sockHost?: string;
+    // (undocumented)
+    sockIntegration: IntegrationType;
+    // (undocumented)
+    sockPath?: string;
+    // (undocumented)
+    sockPort?: string;
+    // (undocumented)
+    sockProtocol?: string;
+}
+
+// @public (undocumented)
 export type PluginOptions = {
     include?: string | RegExp | (string | RegExp)[] | null;
     exclude?: string | RegExp | (string | RegExp)[] | null;
     library?: string;
     forceEnable?: boolean;
+    overlay?: boolean | OverlayOptions;
 };
 
 // (No @packageDocumentation comment for this package)

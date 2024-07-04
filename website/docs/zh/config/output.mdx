@@ -9,37 +9,6 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 - **类型：** `Object`
 
-## output.amdContainer
-
-- **类型：** `string`
-
-在全局为 AMD 模块添加 `define`/`require` 函数的容器。
-
-:::warning
-
-- 请使用 [`output.library.amdContainer`](#outputlibraryamdcontainer)，因为我们未来可能会停止支持 `output.amdContainer`。
-- 请注意，`amdContainer` 的值必须设置为全局变量。
-
-:::
-
-```js title="rspack.config.js"
-module.exports = {
-  // …
-  output: {
-    library: {
-      amdContainer: 'window["clientContainer"]',
-      type: 'amd', // or 'amd-require'
-    },
-  },
-};
-```
-
-这将产生以下 bundle：
-
-```js
-window['clientContainer'].define(/*define args*/); // or 'amd-require' window['clientContainer'].require(/*require args*/);
-```
-
 ## output.assetModuleFilename
 
 - **类型：** `string`

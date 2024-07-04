@@ -1,4 +1,4 @@
-// should not panic at crates/rspack_plugin_javascript/src/dependency/context/require_context_dependency.rs
+// should not panic
 
 require.context("./test", false, /\.test\.js$/);
 

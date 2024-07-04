@@ -14,7 +14,7 @@ export const LightningCssMinimizerRspackPlugin = create(
 		options?: LightningCssMinimizerRspackPluginOptions
 	): RawLightningCssMinimizerRspackPluginOptions => {
 		return {
-			errorRecovery: options?.errorRecovery ?? false,
+			errorRecovery: options?.errorRecovery ?? true,
 			unusedSymbols: options?.unusedSymbols ?? [],
 			removeUnusedLocalIdents: options?.removeUnusedLocalIdents ?? true,
 			browserslist: options?.browserslist ?? ["defaults"]

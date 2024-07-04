@@ -1,26 +1,16 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://lf3-static.bytednsdoc.com/obj/eden-cn/dhozeh7vhpebvog/rspack-banner-1610-dark.png">
-  <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/dhozeh7vhpebvog/rspack-banner-1610.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://assets.rspack.dev/rspack/rspack-banner-plain-dark.png">
+  <img alt="Rspack Banner" src="https://assets.rspack.dev/rspack/rspack-banner-plain-light.png">
 </picture>
 
 # Rspack
 
 <p>
-  <a href="https://discord.gg/79ZZ66GH9E">
-    <img src="https://img.shields.io/badge/chat-discord-blue?style=flat-square&logo=discord&colorA=564341&colorB=EDED91" alt="discord channel" />
-  </a>
-  <a href="https://www.npmjs.com/package/@rspack/core?activeTab=versions">
-   <img src="https://img.shields.io/npm/v/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" />
-  </a>
-  <a href="https://npmcharts.com/compare/@rspack/core?minimal=true">
-    <img src="https://img.shields.io/npm/dm/@rspack/core.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="downloads" />
-  </a>
-  <a href="https://nodejs.org/en/about/previous-releases">
-    <img src="https://img.shields.io/node/v/@rspack/core.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="node version">
-  </a>
-  <a href="https://github.com/web-infra-dev/rspack/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="license" />
-  </a>
+  <a href="https://discord.gg/79ZZ66GH9E"><img src="https://img.shields.io/badge/chat-discord-blue?style=flat-square&logo=discord&colorA=564341&colorB=EDED91" alt="discord channel" /></a>
+  <a href="https://www.npmjs.com/package/@rspack/core?activeTab=versions"><img src="https://img.shields.io/npm/v/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>
+  <a href="https://npmcharts.com/compare/@rspack/core?minimal=true"><img src="https://img.shields.io/npm/dm/@rspack/core.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="downloads" /></a>
+  <a href="https://nodejs.org/en/about/previous-releases"><img src="https://img.shields.io/node/v/@rspack/core.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="node version"></a>
+  <a href="https://github.com/web-infra-dev/rspack/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="license" /></a>
 </p>
 
 [English](./README.md) | 简体中文
@@ -32,7 +22,7 @@ Rspack 是一个基于 Rust 编写的高性能 JavaScript 打包工具，它提�
 - 🚀 **启动速度极快**: 基于 Rust 实现，构建速度极快，带给你极致的开发体验。
 - ⚡ **闪电般的 HMR**: 内置增量编译机制，HMR 速度极快，完全胜任大型项目的开发。
 - 📦 **兼容 webpack 生态**: 兼容 webpack 生态中的 plugin 和 loader，无缝衔接社区中沉淀的优秀库。
-- 🎨 **内置常见构建能力**: 对 TypeScript、JSX、CSS、CSS Modules、Sass 等提供开箱即用的支持。
+- 🎨 **模块联邦**: 为 Module Federation 提供一流的支持，助力开发规模化的 Web 应用。
 - 🛠️ **默认生产优化**: 默认内置多种优化策略，如 Tree Shaking、代码压缩等等。
 - 🎯 **框架无关**: 不和任何前端框架绑定，保证足够的灵活性。
 

@@ -21,7 +21,7 @@ const {
 
 const WORKSPACE_ROOT = path.resolve(__dirname, "../../");
 const RSPACK_TEST = "packages/rspack/tests";
-const WEBPACK_TEST = "webpack-test";
+const WEBPACK_TEST = "tests/webpack-test";
 
 const indentLines = s =>
 	s
@@ -44,7 +44,7 @@ const CONTENT_COMPARATOR = async (p, a, b) => {
 		};
 		aa = await format(aa, o);
 		bb = await format(bb, o);
-	} catch (e) {}
+	} catch (e) { }
 	return aa === bb;
 };
 

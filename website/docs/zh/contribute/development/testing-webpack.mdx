@@ -2,7 +2,7 @@
 
 ## 运行 Webpack 用例
 
-> **注意**: `rspack/webpack-test` 完全基于 [webpack/test](https://github.com/webpack/webpack/tree/main/test)
+> **注意**: `tests/webpack-test` 完全基于 [webpack/test](https://github.com/webpack/webpack/tree/main/test)
 
 ### **持续迁移 webpack 测试**
 
@@ -32,7 +32,7 @@ module.exports = () => {
 
 ## 运行 Webpack 插件用例
 
-基于实现差异和性能考虑，Rspack 会将部分 Webpack 生态插件内置。同样会将插件的测试套件复制到 `plugin-test` 文件夹下，用于测试插件的兼容性。
+基于实现差异和性能考虑，Rspack 会将部分 Webpack 生态插件内置。同样会将插件的测试套件复制到 `tests/plugin-test` 文件夹下，用于测试插件的兼容性。
 
 因此，为了保持这些测试用例与其原仓库的一致性，不建议对测试用例进行修改，仅当如下场景满足时可变更：
 
@@ -46,17 +46,17 @@ module.exports = () => {
 可以通过如下方式运行这些测试用例：
 
 - 根目录下运行 `./x test plugin` 或 `pnpm run test:plugin`。
-- 或在 `plugin-test` 目录下运行 `npm run test`。
-- 如需更新 snapshot，在 `plugin-test` 目录下运行 `npm run test -- -u`。
-- 如需传入特定 jest cli 参数，在 `plugin-test` 目录下运行 `npm run test -- {args}`。
+- 或在 `tests/plugin-test` 目录下运行 `npm run test`。
+- 如需更新 snapshot，在 `tests/plugin-test` 目录下运行 `npm run test -- -u`。
+- 如需传入特定 jest cli 参数，在 `tests/plugin-test` 目录下运行 `npm run test -- {args}`。
 
 ### 添加用例
 
-1. 建立 `plugin-test/{插件名}` 文件夹，并将该插件的测试用例复制到该文件夹中。
-2. 适配 `plugin-test/jest.config.js` 中的测试配置，如有特殊配置遵循如下流程：
-   1. 建立 `plugin-test/jest.{plugin-name}.config.js`，引入 `jest.config.js` 并在其基础上修改。
-   2. 在 `plugin-test/package.json` 的 `scripts` 中添加 `test:{plugin-name}` 命令
+1. 建立 `tests/plugin-test/{插件名}` 文件夹，并将该插件的测试用例复制到该文件夹中。
+2. 适配 `tests/plugin-test/jest.config.js` 中的测试配置，如有特殊配置遵循如下流程：
+   1. 建立 `tests/plugin-test/jest.{plugin-name}.config.js`，引入 `jest.config.js` 并在其基础上修改。
+   2. 在 `tests/plugin-test/package.json` 的 `scripts` 中添加 `test:{plugin-name}` 命令
    3. 如包含 snapshot 测试，使用 `global.updateSnapshot` 全局变量判断是否刷新 snapshot
 3. 更新 License 信息：
-   1. 添加 `plugin-test/{插件名}/README.md` 文件，添加测试用例来源仓库的 License 信息。
-   2. 更新 `plugin-test/README.md` 文件，添加测试用例来源仓库的链接和感谢信息。
+   1. 添加 `tests/plugin-test/{插件名}/README.md` 文件，添加测试用例来源仓库的 License 信息。
+   2. 更新 `tests/plugin-test/README.md` 文件，添加测试用例来源仓库的链接和感谢信息。

@@ -9,6 +9,8 @@ use std::{
 use dashmap::DashMap;
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::OnceCell;
+use rayon::prelude::*;
+// use rayon::prelude::*;
 use regex::Regex;
 use rspack_ast::javascript::Ast;
 use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableError};
@@ -598,6 +600,11 @@ impl Module for ConcatenatedModule {
       for d in module.get_diagnostics() {
         diagnostics_guard.push(d.clone());
       }
+      // populate assets
+      for asset in &cur_build_info.asset_filenames {
+        build_info.asset_filenames.insert(asset.clone());
+      }
+
       // release guard ASAP
       drop(diagnostics_guard);
 
@@ -644,17 +651,25 @@ impl Module for ConcatenatedModule {
     // Generate source code and analyze scopes
     // Prepare a ReplaceSource for the final source
     //
-    let mut updated_pairs = vec![];
     let arc_map = Arc::new(module_to_info_map);
-    for (id, info) in arc_map.iter() {
-      let updated_module_info = self.analyze_module(
-        compilation,
-        Arc::clone(&arc_map),
-        info.clone(),
-        Some(&merged_runtime),
-      )?;
-      updated_pairs.push((*id, updated_module_info));
+    let tmp: Vec<rspack_error::Result<(rspack_identifier::Identifier, ModuleInfo)>> = arc_map
+      .par_iter()
+      .map(|(id, info)| {
+        let updated_module_info = self.analyze_module(
+          compilation,
+          Arc::clone(&arc_map),
+          info.clone(),
+          Some(&merged_runtime),
+        )?;
+        Ok((*id, updated_module_info))
+      })
+      .collect::<Vec<_>>();
+
+    let mut updated_pairs = vec![];
+    for item in tmp.into_iter() {
+      updated_pairs.push(item?);
     }
+
     let mut module_to_info_map = Arc::into_inner(arc_map).expect("reference count should be one");
 
     for (id, module_info) in updated_pairs {
@@ -687,7 +702,7 @@ impl Module for ConcatenatedModule {
             continue;
           }
           // deconflict naming from inner scope, the module level deconflict will be finished
-          // you could see webpack-test/cases/scope-hoisting/renaming-4967 as a example
+          // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
           // during module eval phase.
           if ident.id.span.ctxt != info.module_ctxt {
             all_used_names.insert(ident.id.sym.to_string());
@@ -1183,7 +1198,6 @@ impl Module for ConcatenatedModule {
             )
             .as_str(),
           ));
-
           // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1582
           result.add(info.source.clone().expect("should have source"));
 

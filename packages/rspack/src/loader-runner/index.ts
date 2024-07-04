@@ -228,6 +228,7 @@ class JsSourceMap {
 	static __from_binding(map?: Buffer) {
 		return isNil(map) ? undefined : toObject(map);
 	}
+
 	static __to_binding(map?: object) {
 		return serializeObject(map);
 	}
@@ -276,18 +277,23 @@ const runSyncOrAsync = promisify(function runSyncOrAsync(
 		})();
 		if (isSync) {
 			isDone = true;
-			// @ts-expect-error
-			if (result === undefined) return callback();
+			if (result === undefined) {
+				// @ts-expect-error
+				callback();
+				return;
+			}
 			if (
 				result &&
 				typeof result === "object" &&
 				typeof result.then === "function"
 			) {
-				return result.then(function (r: unknown) {
+				result.then(function (r: unknown) {
 					callback(null, [r]);
 				}, callback);
+				return;
 			}
-			return callback(null, [result]);
+			callback(null, [result]);
+			return;
 		}
 	} catch (e: unknown) {
 		if (isError) throw e;

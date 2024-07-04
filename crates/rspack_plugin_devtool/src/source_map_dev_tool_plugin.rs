@@ -2,6 +2,7 @@ use std::{borrow::Cow, path::Path};
 
 use derivative::Derivative;
 use futures::future::{join_all, BoxFuture};
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
@@ -169,8 +170,9 @@ impl SourceMapDevToolPlugin {
     let output_options = &compilation.options.output;
     let map_options = MapOptions::new(self.columns);
 
-    let mapped_sources = raw_assets
-      .par_iter()
+    let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(raw_assets.len());
+    let mut mapped_sources = raw_assets
+      .into_par_iter()
       .map(|(file, asset)| {
         let is_match = match &self.test {
           Some(test) => test(file.to_owned()),
@@ -191,167 +193,166 @@ impl SourceMapDevToolPlugin {
       .flatten()
       .collect::<Vec<_>>();
 
-    let mut used_names_set = HashSet::<String>::default();
-    let mut mapped_buffer: Vec<(String, Vec<u8>, Option<Vec<u8>>)> =
-      Vec::with_capacity(mapped_sources.len());
+    let source_map_modules = mapped_sources
+      .par_iter()
+      .filter_map(|(_file, _asset, source_map)| source_map.as_ref())
+      .flat_map(|source_map| source_map.sources())
+      .map(|source| {
+        let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
+          let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
+          let identifier = ModuleIdentifier::from(source.clone());
+          match compilation
+            .get_module_graph()
+            .module_by_identifier(&identifier)
+          {
+            Some(module) => ModuleOrSource::Module(module.identifier()),
+            None => ModuleOrSource::Source(source),
+          }
+        } else {
+          ModuleOrSource::Source(source.to_string())
+        };
+        (source.to_string(), module_or_source)
+      })
+      .collect::<HashMap<_, _>>();
 
-    let mut default_filenames = match &self.module_filename_template {
-      ModuleFilenameTemplate::String(s) => mapped_sources
-        .iter()
-        .filter_map(|(_file, _asset, source_map)| source_map.as_ref())
-        .flat_map(|source_map| source_map.sources())
-        .collect::<Vec<_>>()
-        .par_iter()
-        .map(|source| {
-          let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
-            let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
-            let identifier = ModuleIdentifier::from(source.clone());
-            match compilation
-              .get_module_graph()
-              .module_by_identifier(&identifier)
-            {
-              Some(module) => ModuleOrSource::Module(module.identifier()),
-              None => ModuleOrSource::Source(source),
-            }
-          } else {
-            ModuleOrSource::Source(source.to_string())
-          };
-          Some((
-            ModuleFilenameHelpers::create_filename_of_string_template(
-              &module_or_source,
-              compilation,
-              s,
-              output_options,
-              self.namespace.as_str(),
-            ),
+    let module_source_names = source_map_modules.values().collect::<Vec<_>>();
+    let mut module_to_source_name = match &self.module_filename_template {
+      ModuleFilenameTemplate::String(s) => module_source_names
+        .into_par_iter()
+        .map(|module_or_source| {
+          let source_name = ModuleFilenameHelpers::create_filename_of_string_template(
             module_or_source,
-          ))
+            compilation,
+            s,
+            output_options,
+            self.namespace.as_str(),
+          );
+          (module_or_source, source_name)
         })
-        .collect::<Vec<_>>(),
+        .collect::<HashMap<_, _>>(),
       ModuleFilenameTemplate::Fn(f) => {
-        let features = mapped_sources
-          .iter()
-          .filter_map(|(_file, _asset, source_map)| source_map.as_ref())
-          .flat_map(|source_map| source_map.sources())
-          .map(|source| async {
-            let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
-              let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
-              let identifier = ModuleIdentifier::from(source.clone());
-              match compilation
-                .get_module_graph()
-                .module_by_identifier(&identifier)
-              {
-                Some(module) => ModuleOrSource::Module(module.identifier()),
-                None => ModuleOrSource::Source(source),
-              }
-            } else {
-              ModuleOrSource::Source(source.to_string())
-            };
-
-            let filename = ModuleFilenameHelpers::create_filename_of_fn_template(
-              &module_or_source,
+        let features = module_source_names
+          .into_par_iter()
+          .map(|module_or_source| async move {
+            let source_name = ModuleFilenameHelpers::create_filename_of_fn_template(
+              module_or_source,
               compilation,
               f,
               output_options,
               self.namespace.as_str(),
             )
-            .await;
-
-            match filename {
-              Ok(filename) => Ok(Some((filename, module_or_source))),
-              Err(err) => Err(err),
-            }
+            .await?;
+            Ok((module_or_source, source_name))
           })
           .collect::<Vec<_>>();
         join_all(features)
           .await
           .into_iter()
-          .collect::<Result<Vec<_>>>()?
+          .collect::<Result<HashMap<_, _>>>()?
       }
     };
-    let mut default_filenames_index = 0;
 
-    for (filename, asset, source_map) in mapped_sources {
-      let source_map_buffer = match source_map {
-        Some(mut source_map) => {
-          source_map.set_file(Some(filename.clone()));
+    let mut used_names_set = HashSet::<String>::default();
+    for (module_or_source, source_name) in
+      module_to_source_name
+        .iter_mut()
+        .sorted_by(|(key_a, _), (key_b, _)| {
+          let ident_a = match key_a {
+            ModuleOrSource::Module(identifier) => identifier,
+            ModuleOrSource::Source(source) => source.as_str(),
+          };
+          let ident_b = match key_b {
+            ModuleOrSource::Module(identifier) => identifier,
+            ModuleOrSource::Source(source) => source.as_str(),
+          };
+          ident_a.len().cmp(&ident_b.len())
+        })
+    {
+      let mut has_name = used_names_set.contains(source_name);
+      if !has_name {
+        used_names_set.insert(source_name.clone());
+        continue;
+      }
 
-          let sources = source_map.sources_mut();
-          for source in sources {
-            let (source_name, module_or_source) = default_filenames[default_filenames_index]
-              .take()
-              .expect("expected a filename at the given index but found None");
-            default_filenames_index += 1;
-
-            let mut has_name = used_names_set.contains(&source_name);
-            if !has_name {
-              used_names_set.insert(source_name.clone());
-              *source = Cow::from(source_name);
-              continue;
-            }
-
-            // Try the fallback name first
-            let mut source_name = match &self.fallback_module_filename_template {
-              ModuleFilenameTemplate::String(s) => {
-                ModuleFilenameHelpers::create_filename_of_string_template(
-                  &module_or_source,
-                  compilation,
-                  s,
-                  output_options,
-                  self.namespace.as_str(),
-                )
-              }
-              ModuleFilenameTemplate::Fn(f) => {
-                ModuleFilenameHelpers::create_filename_of_fn_template(
-                  &module_or_source,
-                  compilation,
-                  f,
-                  output_options,
-                  self.namespace.as_str(),
-                )
-                .await?
-              }
-            };
-
-            has_name = used_names_set.contains(&source_name);
-            if !has_name {
-              used_names_set.insert(source_name.clone());
-              *source = Cow::from(source_name);
-              continue;
-            }
-
-            // Otherwise, append stars until we have a valid name
-            while has_name {
-              source_name.push('*');
-              has_name = used_names_set.contains(&source_name);
-            }
-            used_names_set.insert(source_name.clone());
-            *source = Cow::from(source_name);
-          }
-          if self.no_sources {
-            for content in source_map.sources_content_mut() {
-              *content = Cow::from(String::default());
-            }
-          }
-          if let Some(source_root) = &self.source_root {
-            source_map.set_source_root(Some(source_root.clone()));
-          }
-          let mut source_map_buffer = Vec::new();
-          source_map
-            .to_writer(&mut source_map_buffer)
-            .unwrap_or_else(|e| panic!("{}", e.to_string()));
-          Some(source_map_buffer)
+      // Try the fallback name first
+      let mut new_source_name = match &self.fallback_module_filename_template {
+        ModuleFilenameTemplate::String(s) => {
+          ModuleFilenameHelpers::create_filename_of_string_template(
+            module_or_source,
+            compilation,
+            s,
+            output_options,
+            self.namespace.as_str(),
+          )
         }
-        None => None,
+        ModuleFilenameTemplate::Fn(f) => {
+          ModuleFilenameHelpers::create_filename_of_fn_template(
+            module_or_source,
+            compilation,
+            f,
+            output_options,
+            self.namespace.as_str(),
+          )
+          .await?
+        }
       };
 
-      let mut code_buffer = Vec::new();
-      asset.to_writer(&mut code_buffer).into_diagnostic()?;
-      mapped_buffer.push((filename.to_owned(), code_buffer, source_map_buffer));
+      has_name = used_names_set.contains(&new_source_name);
+      if !has_name {
+        used_names_set.insert(new_source_name.clone());
+        *source_name = new_source_name;
+        continue;
+      }
+
+      // Otherwise, append stars until we have a valid name
+      while has_name {
+        new_source_name.push('*');
+        has_name = used_names_set.contains(&new_source_name);
+      }
+      used_names_set.insert(new_source_name.clone());
+      *source_name = new_source_name;
     }
 
-    let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(raw_assets.len());
-    for (filename, code_buffer, source_map_buffer) in mapped_buffer {
+    for (filename, _asset, source_map) in mapped_sources.iter_mut() {
+      if let Some(source_map) = source_map {
+        source_map.set_file(Some(filename.clone()));
+
+        let sources = source_map.sources_mut();
+        for source in sources {
+          let module_or_source = source_map_modules
+            .get(source.as_ref())
+            .expect("expected a module or source");
+          let source_name = module_to_source_name
+            .get(module_or_source)
+            .expect("expected a filename at the given index but found None")
+            .clone();
+          *source = Cow::from(source_name);
+        }
+        if self.no_sources {
+          for content in source_map.sources_content_mut() {
+            *content = Cow::from(String::default());
+          }
+        }
+        if let Some(source_root) = &self.source_root {
+          source_map.set_source_root(Some(source_root.clone()));
+        }
+      }
+    }
+
+    for (filename, asset, source_map) in mapped_sources {
+      let code_buffer = {
+        let mut code_buffer = Vec::new();
+        asset.to_writer(&mut code_buffer).into_diagnostic()?;
+        code_buffer
+      };
+      let source_map_buffer = source_map.map(|source_map| {
+        let mut source_map_buffer = Vec::new();
+        source_map
+          .to_writer(&mut source_map_buffer)
+          .unwrap_or_else(|e| panic!("{}", e.to_string()));
+        source_map_buffer
+      });
+
       let mut asset = compilation
         .assets()
         .get(&filename)

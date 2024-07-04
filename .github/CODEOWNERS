@@ -20,7 +20,7 @@ pnpm-lock.yaml
 
 # Webpack Tests
 
-/webpack-test
+/tests/webpack-test
 
 # Crates in alphabetical order
 

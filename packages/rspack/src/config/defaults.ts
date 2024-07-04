@@ -13,8 +13,11 @@ import fs from "fs";
 import path from "path";
 
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
-import { SwcCssMinimizerRspackPlugin } from "../builtin-plugin/SwcCssMinimizerPlugin";
-import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";
+import {
+	LightningCssMinimizerRspackPlugin,
+	SwcCssMinimizerRspackPlugin,
+	SwcJsMinimizerRspackPlugin
+} from "../builtin-plugin";
 import { isNil } from "../util";
 import { assertNotNill } from "../util/assertNotNil";
 import { cleverMerge } from "../util/cleverMerge";
@@ -930,13 +933,11 @@ const applyOptimizationDefaults = (
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
-	// IGNORE(optimization.concatenateModules): webpack sets this option as true by default when the mode is production,
-	// but rspack is in the experimental stage and sets it to false by default
-	D(optimization, "concatenateModules", false);
+	D(optimization, "concatenateModules", production);
 	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `SwcCssMinimizerRspackPlugin` by default
 	A(optimization, "minimizer", () => [
 		new SwcJsMinimizerRspackPlugin(),
-		new SwcCssMinimizerRspackPlugin()
+		new LightningCssMinimizerRspackPlugin()
 	]);
 	F(optimization, "nodeEnv", () => {
 		if (production) return "production";

@@ -26,7 +26,7 @@ module.exports = {
 		    "files": Array [
 		      "chunkB.js",
 		    ],
-		    "hash": "d9ccafc84b260cb22758",
+		    "hash": "e9b9cfaf734ee7b137b7",
 		    "id": "250",
 		    "idHints": Array [],
 		    "initial": false,
@@ -64,6 +64,7 @@ module.exports = {
 		        "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/b.js",
 		        "optimizationBailout": Array [
 		          "Statement with side_effects in source code at ./fixtures/b.js:1:0-3:2",
+		          "ModuleConcatenation bailout: Module is not an ECMAScript module",
 		        ],
 		        "optional": false,
 		        "orphan": false,
@@ -102,6 +103,7 @@ module.exports = {
 		      Object {
 		        "loc": "2:9-46",
 		        "module": "<PROJECT_ROOT>/tests/fixtures/chunk-b.js",
+		        "moduleId": "725",
 		        "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/chunk-b.js",
 		        "moduleName": "./fixtures/chunk-b.js",
 		        "request": "./b",
@@ -132,7 +134,7 @@ module.exports = {
 		    "files": Array [
 		      "main.js",
 		    ],
-		    "hash": "f12c0371802c924eb6e4",
+		    "hash": "209a370004f0d25de9b5",
 		    "id": "909",
 		    "idHints": Array [],
 		    "initial": true,
@@ -164,6 +166,7 @@ module.exports = {
 		        "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/chunk-b.js",
 		        "optimizationBailout": Array [
 		          "Statement with side_effects in source code at ./fixtures/chunk-b.js:1:0-3:2",
+		          "ModuleConcatenation bailout: Module is not an ECMAScript module",
 		        ],
 		        "optional": false,
 		        "orphan": false,
@@ -202,6 +205,7 @@ module.exports = {
 		      Object {
 		        "loc": "main",
 		        "module": "",
+		        "moduleId": "",
 		        "moduleIdentifier": "",
 		        "moduleName": "",
 		        "request": "./fixtures/chunk-b",

@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_ENV=development rspack serve",
-    "build": "NODE_ENV=production rspack build"
+    "dev": "cross-env NODE_ENV=development rspack serve",
+    "build": "cross-env NODE_ENV=production rspack build"
   },
   "dependencies": {
     "vue": "3.4.21"
@@ -12,6 +12,7 @@
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
+    "cross-env": "^7.0.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
     "vue-loader": "^17.2.2"

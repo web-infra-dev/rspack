@@ -7,9 +7,7 @@ module.exports = {
 	optimization: {
 		minimize: true,
 		minimizer: [
-			new rspack.LightningCssMinimizerRspackPlugin({
-				errorRecovery: true,
-			}),
+			new rspack.LightningCssMinimizerRspackPlugin(),
 		]
 	},
 	experiments: {

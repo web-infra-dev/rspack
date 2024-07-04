@@ -141,6 +141,8 @@ type StatsChunk = {
   origins: Array<{
     // 来源 module 的路径
     module: string;
+    // 来源 module 的 ID
+    moduleId: string;
     // 来源 module 的唯一标识
     moduleIdentifier: string;
     // 来源 module 的相对路径
@@ -256,17 +258,33 @@ type StatsNamedChunkGroups = Record<string, StatsChunkGroup>;
 type StatsChunkGroup = {
   // entry 的名称
   name: string;
-  // entry 对应的产物文件
+  // 包含的 chunk 的 ID 列表
+  chunks: Array<string | undefined | null>;
+  // chunk group 的产物文件
   assets: Array<{
     // 产物文件名
     name: string;
     // 产物文件大小
     size: number;
   }>;
-  // 包含的 chunk 的 ID 列表
-  chunks: Array<string | undefined | null>;
-  // entry 对应总产物大小
+  // chunk group 总产物大小
   assetsSize: number;
+  // chunk group 的附属产物文件，如 sourcemap
+  auxiliaryAssets?: Array<{
+    // 附属产物文件名
+    name: string;
+    // 附属产物文件大小
+    size: number;
+  }>;
+  // chunk group 的总附属产物大小，如 sourcemap
+  auxiliaryAssetsSize?: number;
+  // 子 chunk group 加载顺序，按照优先级排序
+  children?: {
+    // 需 preload 的 子 chunk group
+    preload?: Array<StatsChunkGroup>;
+    // 需 prefetch 的 子 chunk group
+    prefetch?: Array<StatsChunkGroup>;
+  };
 };
 ```
 

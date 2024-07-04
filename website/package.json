@@ -28,8 +28,8 @@
     "tailwindcss": "^3.2.7"
   },
   "devDependencies": {
-    "@rspress/plugin-rss": "^1.23.1",
-    "@rspress/shared": "^1.23.1",
+    "@rspress/plugin-rss": "^1.25.2",
+    "@rspress/shared": "^1.25.2",
     "@types/node": "^18.11.18",
     "@types/react": "^18.0.27",
     "@types/semver": "^7.5.2",
@@ -39,7 +39,7 @@
     "prettier": "3.2.5",
     "rsbuild-plugin-google-analytics": "1.0.0",
     "rsbuild-plugin-open-graph": "1.0.0",
-    "rspress": "^1.23.1",
+    "rspress": "^1.25.2",
     "rspress-plugin-font-open-sans": "1.0.0",
     "typescript": "^5.0.4"
   }

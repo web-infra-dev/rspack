@@ -193,7 +193,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
     if !entrypoints_over_limit.is_empty() {
       Self::add_entrypoints_over_size_limit_warning(
         &entrypoints_over_limit,
-        max_asset_size,
+        max_entrypoint_size,
         hints,
         &mut diagnostics,
       );

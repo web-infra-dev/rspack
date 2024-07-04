@@ -1,1 +1,7 @@
-ERROR in × Unknown
+WARNING in ⚠ Unknown at rule: @apply at main.css:4:7
+
+WARNING in ⚠ Unexpected end of input at main.css:12:8
+
+WARNING in ⚠ Unexpected end of input at main.css:12:14
+
+WARNING in ⚠ Unexpected token Delim('<') at main.css:15:3
