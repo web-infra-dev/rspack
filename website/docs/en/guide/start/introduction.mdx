@@ -111,6 +111,10 @@ Today Rspack is primarily tested using a subset of webpack's test cases. In the 
 
 Rspack and Rollup are both bundling tools, but they focus on different areas. Rollup is more suitable for bundling libraries, while Rspack is more suitable for bundling applications. Therefore, Rspack has optimized many features for bundling applications, such as HMR and Bundle splitting. Rollup produces ESM outputs that are more friendly to libraries than Rspack. There are also many tools in the community that encapsulate Rollup to some extent and provide more friendly support for bundling applications, such as vite and wmr. Currently, Rspack has better production build performance than rollup.
 
+## Compared with Parcel
+
+The overall architecture of Rspack has a lot in common with [Parcel](https://parceljs.org/), as both regard CSS and Assets as first-class citizens and both support filter-based transformers. However, Parcel focuses more on out-of-the-box usability, while Rspack focuses more on providing flexible configurations for upper-level frameworks and tools. The innovative features of Parcel like Unified Graph and treating HTML as first-class citizens are features that Rspack will support in the future."
+
 ## Next step
 
 Please read [Quick start](/guide/start/quick-start) to start using Rspack.
