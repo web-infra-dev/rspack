@@ -246,28 +246,34 @@ pub fn minify(
             leading_trivial.iter().for_each(|(_, comments)| {
               comments.iter().for_each(|c| {
                 if extract_comments.condition.is_match(&c.text) {
-                  extracted_comments.push(match c.kind {
+                  let comment = match c.kind {
                     CommentKind::Line => {
                       format!("// {}", c.text)
                     }
                     CommentKind::Block => {
                       format!("/*{}*/", c.text)
                     }
-                  });
+                  };
+                  if !extracted_comments.contains(&comment) {
+                    extracted_comments.push(comment);
+                  }
                 }
               });
             });
             trailing_trivial.iter().for_each(|(_, comments)| {
               comments.iter().for_each(|c| {
                 if extract_comments.condition.is_match(&c.text) {
-                  extracted_comments.push(match c.kind {
+                  let comment = match c.kind {
                     CommentKind::Line => {
                       format!("// {}", c.text)
                     }
                     CommentKind::Block => {
                       format!("/*{}*/", c.text)
                     }
-                  });
+                  };
+                  if !extracted_comments.contains(&comment) {
+                    extracted_comments.push(comment);
+                  }
                 }
               });
             });
