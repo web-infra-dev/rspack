@@ -1,12 +1,13 @@
 use std::borrow::Cow;
 
 use itertools::Itertools;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_core::parse_resource;
 use rspack_error::Severity;
 use rspack_util::json_stringify;
 
-use super::context_helper::{quote_meta, split_context_from_prefix};
-use super::{create_traceable_error, ContextModuleScanResult};
+use super::create_traceable_error;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
 
 // FIXME: delete this after `parserOptions.wrappedContextRegExp.source`
@@ -189,4 +190,28 @@ pub fn create_context_dependency(
       replaces: Vec::new(),
     }
   }
+}
+
+pub struct ContextModuleScanResult {
+  pub context: String,
+  pub reg: String,
+  pub query: String,
+  pub fragment: String,
+  pub replaces: Vec<(String, u32, u32)>,
+}
+
+pub(super) fn split_context_from_prefix(prefix: String) -> (String, String) {
+  if let Some(idx) = prefix.rfind('/') {
+    (prefix[..idx].to_string(), format!(".{}", &prefix[idx..]))
+  } else {
+    (".".to_string(), prefix)
+  }
+}
+
+static META_REG: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Failed to initialize `MATCH_RESOURCE_REGEX`")
+});
+
+pub fn quote_meta(str: &str) -> Cow<str> {
+  META_REG.replace_all(str, "\\$0")
 }
