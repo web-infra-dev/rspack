@@ -402,7 +402,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
               (assign_expr.span().real_lo(), assign_expr.span().real_hi()),
               base,
               remaining,
-              false, // TODO: align parser.isStatementLevelExpression
+              !parser.is_statement_level_expression(assign_expr.span()),
             )));
           return Some(true);
         }
@@ -423,7 +423,8 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           // const flagIt = () => (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = false
           // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
           // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
-          parser.stmt_level == 1 && parser.last_stmt_is_expr_stmt,
+          parser.statement_path.len() == 1
+            && parser.is_statement_level_expression(assign_expr.span()),
           Some(&assign_expr.right),
         );
       }
@@ -493,6 +494,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       // Object.defineProperty(module.exports, "xxx", { value: 1 });
       // Object.defineProperty(this, "xxx", { value: 1 });
       if expr_matcher::is_object_define_property(&**expr)
+        && parser.is_statement_level_expression(call_expr.span())
         && let Some(ExprOrSpread { expr, .. }) = call_expr.args.first()
         && parser.is_exports_or_module_exports_or_this_expr(expr)
         && let Some(arg2) = call_expr.args.get(2)
@@ -509,7 +511,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           // Object.defineProperty(this, "__esModule", { value: true });
           if str.value == "__esModule" {
             parser.check_namespace(
-              parser.stmt_level == 1,
+              parser.statement_path.len() == 1,
               get_value_of_property_description(arg2),
             );
           }

@@ -256,8 +256,6 @@ pub struct JavascriptParser<'parser> {
   // TODO: delete `enter_call`
   pub(crate) enter_call: u32,
   pub(crate) member_expr_in_optional_chain: bool,
-  pub(crate) stmt_level: u32,
-  pub(crate) last_stmt_is_expr_stmt: bool,
   // TODO: delete `properties_in_destructuring`
   pub(crate) properties_in_destructuring: FxHashMap<Atom, FxHashSet<Atom>>,
   pub(crate) semicolons: &'parser mut FxHashSet<BytePos>,
@@ -405,8 +403,6 @@ impl<'parser> JavascriptParser<'parser> {
       module_type,
       parser_exports_state,
       enter_call: 0,
-      stmt_level: 0,
-      last_stmt_is_expr_stmt: false,
       worker_index: 0,
       module_identifier,
       import_map,
@@ -437,6 +433,13 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn unset_asi_position(&mut self, pos: BytePos) -> bool {
     self.semicolons.remove(&pos)
+  }
+
+  pub fn is_statement_level_expression(&self, expr_span: Span) -> bool {
+    let Some(curr_path) = self.statement_path.last() else {
+      return false;
+    };
+    curr_path.span() == expr_span
   }
 
   pub fn get_mut_variable_info(&mut self, name: &str) -> Option<&mut VariableInfo> {
