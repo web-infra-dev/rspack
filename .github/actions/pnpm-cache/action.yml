@@ -27,7 +27,7 @@ runs:
     # https://pnpm.io/continuous-integration#github-actions
     # Uses `packageManagement` field from package.json
     - name: Install pnpm
-      uses: pnpm/action-setup@v2
+      uses: pnpm/action-setup@v4
       with:
         dest: ${{ runner.tool_cache }}/pnpm
         # Use `@pnpm/exe` for Node 16
