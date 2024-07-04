@@ -76,16 +76,18 @@ export const util = { createHash, cleverMerge };
 export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
 export { type OutputFileSystem } from "./util/fs";
 
+///// Internal Parser Plugins /////
+export type { DefinePluginOptions } from "./parser-plugin";
+export { DefinePlugin } from "./parser-plugin";
+
 ///// Internal Plugins /////
 export type { BannerPluginArgument } from "./builtin-plugin";
 export type { ProvidePluginOptions } from "./builtin-plugin";
-export type { DefinePluginOptions } from "./builtin-plugin";
 export type { ProgressPluginArgument } from "./builtin-plugin";
 export type { EntryOptions } from "./builtin-plugin";
 export { BannerPlugin } from "./builtin-plugin";
 export { IgnorePlugin, type IgnorePluginOptions } from "./builtin-plugin";
 export { ProvidePlugin } from "./builtin-plugin";
-export { DefinePlugin } from "./builtin-plugin";
 export { ProgressPlugin } from "./builtin-plugin";
 export { EntryPlugin } from "./builtin-plugin";
 export { DynamicEntryPlugin } from "./builtin-plugin";

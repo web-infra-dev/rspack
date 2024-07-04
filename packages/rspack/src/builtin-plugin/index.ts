@@ -11,7 +11,6 @@ export * from "./CopyRspackPlugin";
 export * from "./css-extract";
 export * from "./CssModulesPlugin";
 export * from "./DataUriPlugin";
-export * from "./DefinePlugin";
 export * from "./DeterministicChunkIdsPlugin";
 export * from "./DeterministicModuleIdsPlugin";
 export * from "./DynamicEntryPlugin";

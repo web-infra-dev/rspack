@@ -10,6 +10,7 @@ anymap = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
 dashmap = { workspace = true }
+derivative = { workspace = true }
 glob-match = "0.2.1"
 indexmap = { workspace = true }
 indoc = { workspace = true }

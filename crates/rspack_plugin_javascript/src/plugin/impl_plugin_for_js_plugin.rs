@@ -310,18 +310,36 @@ impl Plugin for JsPlugin {
       .render_manifest
       .tap(render_manifest::new(self));
 
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::JsAuto,
-      Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
-    );
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::JsEsm,
-      Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
-    );
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::JsDynamic,
-      Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
-    );
+    ctx
+      .context
+      .register_parser_and_generator_builder(ModuleType::JsAuto, {
+        let parser_plugins = self.parser_plugins.clone();
+        Box::new(move |_, _| {
+          Box::new(JavaScriptParserAndGenerator::from_plugins(
+            parser_plugins.clone(),
+          )) as Box<dyn ParserAndGenerator>
+        })
+      });
+    ctx
+      .context
+      .register_parser_and_generator_builder(ModuleType::JsEsm, {
+        let parser_plugins = self.parser_plugins.clone();
+        Box::new(move |_, _| {
+          Box::new(JavaScriptParserAndGenerator::from_plugins(
+            parser_plugins.clone(),
+          )) as Box<dyn ParserAndGenerator>
+        })
+      });
+    ctx
+      .context
+      .register_parser_and_generator_builder(ModuleType::JsDynamic, {
+        let parser_plugins = self.parser_plugins.clone();
+        Box::new(move |_, _| {
+          Box::new(JavaScriptParserAndGenerator::from_plugins(
+            parser_plugins.clone(),
+          )) as Box<dyn ParserAndGenerator>
+        })
+      });
 
     Ok(())
   }

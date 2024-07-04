@@ -121,7 +121,6 @@ pub struct RawBuiltins {
 impl RawBuiltins {
   pub fn apply(self) -> rspack_error::Result<Builtins> {
     Ok(Builtins {
-      define: Default::default(),
       provide: Default::default(),
     })
   }

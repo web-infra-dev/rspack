@@ -38,16 +38,22 @@ impl Rspack {
     env: Env,
     options: RawOptions,
     builtin_plugins: Vec<BuiltinPlugin>,
+    parser_plugins: Vec<JsParserPlugin>,
     register_js_taps: RegisterJsTaps,
     output_filesystem: ThreadsafeNodeFS,
   ) -> Result<Self> {
     tracing::info!("raw_options: {:#?}", &options);
 
     let mut plugins = Vec::new();
+    let mut js_parser_plugins = Vec::new();
     let js_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
     plugins.push(js_plugin.clone().boxed());
+    for pp in parser_plugins {
+      pp.append_to(&mut js_parser_plugins, &mut plugins)
+        .map_err(|e| Error::from_reason(format!("{e}")))?;
+    }
     for bp in builtin_plugins {
-      bp.append_to(env, &mut plugins)
+      bp.append_to(env, &mut js_parser_plugins, &mut plugins)
         .map_err(|e| Error::from_reason(format!("{e}")))?;
     }
 

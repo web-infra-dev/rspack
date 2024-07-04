@@ -1,10 +1,10 @@
-import { BuiltinPluginName } from "@rspack/binding";
+import { JsParserPluginName } from "@rspack/binding";
 
 import { create } from "./base";
 
 export type DefinePluginOptions = Record<string, string | boolean | undefined>;
 export const DefinePlugin = create(
-	BuiltinPluginName.DefinePlugin,
+	JsParserPluginName.DefinePlugin,
 	(define: DefinePluginOptions): Record<string, string> => {
 		const entries = Object.entries(define).map(([key, value]) => {
 			if (typeof value !== "string") {
@@ -13,6 +13,5 @@ export const DefinePlugin = create(
 			return [key, value];
 		});
 		return Object.fromEntries(entries);
-	},
-	"compilation"
+	}
 );

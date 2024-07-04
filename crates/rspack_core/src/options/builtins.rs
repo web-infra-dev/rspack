@@ -1,35 +1,9 @@
 use std::fmt::Debug;
 
 use rspack_error::Result;
-pub use rspack_swc_visitors::{Define, Provide};
+pub use rspack_swc_visitors::Provide;
 
 use crate::{ApplyContext, CompilerOptions, Plugin, PluginContext};
-
-#[derive(Debug)]
-pub struct DefinePlugin {
-  options: Define,
-}
-
-impl DefinePlugin {
-  pub fn new(options: Define) -> Self {
-    Self { options }
-  }
-}
-
-impl Plugin for DefinePlugin {
-  fn name(&self) -> &'static str {
-    "rspack.DefinePlugin"
-  }
-
-  fn apply(
-    &self,
-    _ctx: PluginContext<&mut ApplyContext>,
-    options: &mut CompilerOptions,
-  ) -> Result<()> {
-    options.builtins.define.extend(self.options.clone());
-    Ok(())
-  }
-}
 
 #[derive(Debug)]
 pub struct ProvidePlugin {
@@ -67,8 +41,6 @@ pub struct DecoratorOptions {
 
 #[derive(Debug, Clone, Default)]
 pub struct Builtins {
-  // TODO: refactor to string-replacement based
-  pub define: Define,
   // TODO: refactor to string-replacement based
   pub provide: Provide,
 }

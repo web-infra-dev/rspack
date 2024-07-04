@@ -14,10 +14,12 @@ mod raw_size_limits;
 mod raw_swc_js_minimizer;
 mod raw_to_be_deprecated;
 
+use std::sync::Arc;
+
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
-use rspack_core::{BoxPlugin, Define, DefinePlugin, Plugin, PluginExt, Provide, ProvidePlugin};
+use rspack_core::{BoxPlugin, Plugin, PluginExt, Provide, ProvidePlugin};
 use rspack_error::Result;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
@@ -43,9 +45,9 @@ use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
-  api_plugin::APIPlugin, FlagDependencyExportsPlugin, FlagDependencyUsagePlugin,
-  InferAsyncModulesPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin,
-  SideEffectsFlagPlugin,
+  api_plugin::APIPlugin, define_plugin::DefinePlugin, BoxJavascriptParserPlugin,
+  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
+  MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -101,7 +103,6 @@ use crate::{
 #[derive(Debug)]
 pub enum BuiltinPluginName {
   // webpack also have these plugins
-  DefinePlugin,
   ProvidePlugin,
   BannerPlugin,
   IgnorePlugin,
@@ -187,13 +188,14 @@ pub struct BuiltinPlugin {
 }
 
 impl BuiltinPlugin {
-  pub fn append_to(self, env: Env, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
+  pub fn append_to(
+    self,
+    env: Env,
+    parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
+    plugins: &mut Vec<BoxPlugin>,
+  ) -> rspack_error::Result<()> {
     match self.name {
       // webpack also have these plugins
-      BuiltinPluginName::DefinePlugin => {
-        let plugin = DefinePlugin::new(downcast_into::<Define>(self.options)?).boxed();
-        plugins.push(plugin);
-      }
       BuiltinPluginName::ProvidePlugin => {
         let plugin = ProvidePlugin::new(downcast_into::<Provide>(self.options)?).boxed();
         plugins.push(plugin);
@@ -369,7 +371,9 @@ impl BuiltinPlugin {
       BuiltinPluginName::InferAsyncModulesPlugin => {
         plugins.push(InferAsyncModulesPlugin::default().boxed())
       }
-      BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::default().boxed()),
+      BuiltinPluginName::JavascriptModulesPlugin => {
+        plugins.push(JsPlugin::new(parser_plugins.clone()).boxed())
+      }
       BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {
         plugins.push(AsyncWasmPlugin::default().boxed())
       }
@@ -508,6 +512,35 @@ impl BuiltinPlugin {
         ) as Box<dyn Plugin>)
       }
     }
+    Ok(())
+  }
+}
+
+#[napi(string_enum)]
+#[derive(Debug)]
+pub enum JsParserPluginName {
+  DefinePlugin,
+}
+
+#[napi(object)]
+pub struct JsParserPlugin {
+  pub name: JsParserPluginName,
+  pub options: JsUnknown,
+}
+
+impl JsParserPlugin {
+  pub fn append_to(
+    self,
+    plugins: &mut Vec<BoxJavascriptParserPlugin>,
+    builtin_plugins: &mut Vec<Box<dyn Plugin>>,
+  ) -> rspack_error::Result<()> {
+    match self.name {
+      JsParserPluginName::DefinePlugin => {
+        let plugin = DefinePlugin::new(downcast_into(self.options)?);
+        plugins.push(Arc::new(plugin.clone()));
+        builtin_plugins.push(Box::new(plugin));
+      }
+    };
     Ok(())
   }
 }

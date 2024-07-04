@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use std::sync::Arc;
 
+use derivative::Derivative;
 use rayon::prelude::*;
 pub mod api_plugin;
 mod drive;
@@ -49,6 +50,7 @@ use swc_core::ecma::transforms::base::resolver;
 use crate::runtime::{
   render_chunk_modules, render_module, render_runtime_modules, stringify_array,
 };
+use crate::BoxJavascriptParserPlugin;
 
 static COMPILATION_HOOKS_MAP: Lazy<FxDashMap<CompilationId, Box<JavascriptModulesPluginHooks>>> =
   Lazy::new(Default::default);
@@ -110,12 +112,19 @@ struct RenameInfoPatch {
 }
 
 #[plugin]
-#[derive(Debug, Default)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct JsPlugin {
+  #[derivative(Debug = "ignore")]
+  parser_plugins: Vec<BoxJavascriptParserPlugin>,
   rename_module_cache: RenameModuleCache,
 }
 
 impl JsPlugin {
+  pub fn new(parser_plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
+    Self::new_inner(parser_plugins, RenameModuleCache::default())
+  }
+
   pub fn get_compilation_hooks(
     compilation: &Compilation,
   ) -> dashmap::mapref::one::Ref<'_, CompilationId, Box<JavascriptModulesPluginHooks>, BuildFxHasher>

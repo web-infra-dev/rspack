@@ -73,7 +73,7 @@ export class JsStats {
 }
 
 export class Rspack {
-  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS)
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, parserPlugins: Array<JsParserPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -112,7 +112,6 @@ export interface BuiltinPlugin {
 }
 
 export enum BuiltinPluginName {
-  DefinePlugin = 'DefinePlugin',
   ProvidePlugin = 'ProvidePlugin',
   BannerPlugin = 'BannerPlugin',
   IgnorePlugin = 'IgnorePlugin',
@@ -435,6 +434,15 @@ export interface JsOriginRecord {
   moduleName: string
   loc: string
   request: string
+}
+
+export interface JsParserPlugin {
+  name: JsParserPluginName
+  options: unknown
+}
+
+export enum JsParserPluginName {
+  DefinePlugin = 'DefinePlugin'
 }
 
 export interface JsPathData {

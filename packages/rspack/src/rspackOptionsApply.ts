@@ -27,7 +27,6 @@ import {
 	CommonJsChunkFormatPlugin,
 	CssModulesPlugin,
 	DataUriPlugin,
-	DefinePlugin,
 	DeterministicChunkIdsPlugin,
 	DeterministicModuleIdsPlugin,
 	ElectronTargetPlugin,
@@ -68,6 +67,7 @@ import {
 } from "./builtin-plugin";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import { DefinePlugin } from "./parser-plugin";
 import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPresetPlugin } from "./stats/DefaultStatsPresetPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
