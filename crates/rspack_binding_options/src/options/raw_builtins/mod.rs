@@ -372,7 +372,7 @@ impl BuiltinPlugin {
         plugins.push(InferAsyncModulesPlugin::default().boxed())
       }
       BuiltinPluginName::JavascriptModulesPlugin => {
-        plugins.push(JsPlugin::new(parser_plugins.clone()).boxed())
+        plugins.push(JsPlugin::new(std::mem::take(parser_plugins)).boxed())
       }
       BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {
         plugins.push(AsyncWasmPlugin::default().boxed())
