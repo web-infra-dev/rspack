@@ -16,13 +16,6 @@ use crate::lockfile::LockfileEntry;
 static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
 
-static LOCKFILE_LOCATION: &str = "default_lockfile_location";
-static CACHE_LOCATION: &str = "default_cache_location";
-static UPGRADE: bool = true;
-static FROZEN: bool = false;
-static ALLOWED_URIS: &[&str] = &["http://example.com"];
-static PROXY: &str = "http://proxy.example.com";
-
 #[plugin]
 #[derive(Debug, Default)]
 pub struct HttpUriPlugin {
@@ -30,13 +23,20 @@ pub struct HttpUriPlugin {
   lockfile_cache: LockfileCache,
 }
 
-#[derive(Debug, Default)]
-pub struct HttpUriPluginOptions {}
-
 impl HttpUriPlugin {
   pub fn new(options: HttpUriPluginOptions) -> Self {
     Self::new_inner(options, LockfileCache::default())
   }
+}
+
+#[derive(Debug, Default)]
+pub struct HttpUriPluginOptions {
+  pub allowed_uris: HttpUriOptionsAllowedUris,
+  pub cache_location: Option<String>,
+  pub frozen: Option<bool>,
+  pub lockfile_location: Option<String>,
+  pub proxy: Option<String>,
+  pub upgrade: Option<bool>,
 }
 
 #[derive(Debug, Default)]
@@ -116,7 +116,7 @@ async fn resolve_in_scheme(
 async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
   if resource_data.get_scheme().is_http() && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
   {
-    let fetch_result = fetch_content(&resource_data.resource)
+    let fetch_result = fetch_content(&resource_data.resource, &self.options)
       .await
       .map_err(rspack_error::AnyhowError::from)?;
     match fetch_result {
@@ -159,3 +159,6 @@ impl Plugin for HttpUriPlugin {
     Ok(())
   }
 }
+
+#[derive(Debug, Default)]
+pub struct HttpUriOptionsAllowedUris;

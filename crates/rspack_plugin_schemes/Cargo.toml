@@ -11,6 +11,8 @@ version    = "0.1.0"
 anyhow        = "1.0.86"
 async-trait   = { workspace = true }
 base64        = "0.22.1"
+bincode       = "1.3.3"
+futures       = { workspace = true }
 hex           = "0.4.3"
 once_cell     = { workspace = true }
 regex         = { workspace = true }
@@ -18,6 +20,7 @@ reqwest       = "0.12.5"
 rspack_base64 = { path = "../rspack_base64" }
 rspack_core   = { path = "../rspack_core" }
 rspack_error  = { path = "../rspack_error" }
+rspack_fs     = { path = "../rspack_fs" }
 rspack_hook   = { path = "../rspack_hook" }
 serde         = { workspace = true }
 serde_json    = { workspace = true }
