@@ -185,8 +185,6 @@ impl<'parser> JavascriptParser<'parser> {
   fn walk_statement(&mut self, statement: &Stmt) {
     self.statement_path.push(statement.span().into());
     // TODO: `self.hooks.statement.call`
-    let old_last_stmt_is_expr_stmt = self.last_stmt_is_expr_stmt;
-    self.stmt_level += 1;
 
     match statement {
       Stmt::Block(stmt) => self.walk_block_statement(stmt),
@@ -223,8 +221,6 @@ impl<'parser> JavascriptParser<'parser> {
       _ => (),
     }
 
-    self.last_stmt_is_expr_stmt = old_last_stmt_is_expr_stmt;
-    self.stmt_level -= 1;
     self.prev_statement = self.statement_path.pop();
   }
 
