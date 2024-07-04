@@ -1,6 +1,5 @@
 use rspack_core::{
-  context_reg_exp, AsyncDependenciesBlock, DependencyLocation, DynamicImportMode, ErrorSpan,
-  GroupOptions,
+  AsyncDependenciesBlock, DependencyLocation, DynamicImportMode, ErrorSpan, GroupOptions,
 };
 use rspack_core::{ChunkGroupOptions, DynamicImportFetchPriority};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
@@ -10,7 +9,8 @@ use swc_core::ecma::ast::{CallExpr, Callee};
 use super::JavascriptParserPlugin;
 use crate::dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency};
 use crate::visitors::{
-  create_context_dependency, parse_order_string, ContextModuleScanResult, JavascriptParser,
+  context_reg_exp, create_context_dependency, parse_order_string, ContextModuleScanResult,
+  JavascriptParser,
 };
 use crate::webpack_comment::try_extract_webpack_magic_comment;
 
@@ -120,6 +120,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         fragment,
         replaces,
       } = create_context_dependency(&param, parser);
+      let reg_exp = context_reg_exp(&reg, "", Some(dyn_imported.span().into()), parser);
       parser
         .dependencies
         .push(Box::new(ImportContextDependency::new(
@@ -129,7 +130,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           ContextOptions {
             mode: mode.into(),
             recursive: true,
-            reg_exp: context_reg_exp(&reg, ""),
+            reg_exp,
             include: None,
             exclude: None,
             category: DependencyCategory::Esm,

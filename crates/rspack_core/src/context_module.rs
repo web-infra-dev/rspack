@@ -116,23 +116,6 @@ impl ContextNameSpaceObject {
   }
 }
 
-pub fn context_reg_exp(expr: &str, flags: &str) -> Option<RspackRegex> {
-  if expr.is_empty() {
-    return None;
-  }
-  let regexp = RspackRegex::with_flags(expr, flags).expect("reg failed");
-  clean_regexp_in_context_module(regexp)
-}
-
-pub fn clean_regexp_in_context_module(regexp: RspackRegex) -> Option<RspackRegex> {
-  if regexp.sticky() || regexp.global() {
-    // TODO: warning
-    None
-  } else {
-    Some(regexp)
-  }
-}
-
 #[derive(Debug, Clone, Copy, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub enum ContextTypePrefix {
   Import,

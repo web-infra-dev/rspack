@@ -1,7 +1,5 @@
 use itertools::Itertools;
-use rspack_core::{
-  context_reg_exp, ConstDependency, ContextMode, DependencyCategory, ErrorSpan, SpanExt,
-};
+use rspack_core::{ConstDependency, ContextMode, DependencyCategory, ErrorSpan, SpanExt};
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::Severity;
 use swc_core::common::{Span, Spanned};
@@ -13,7 +11,8 @@ use crate::dependency::{CommonJsFullRequireDependency, CommonJsRequireContextDep
 use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::{
-  create_context_dependency, create_traceable_error, expr_matcher, expr_name, JavascriptParser,
+  context_reg_exp, create_context_dependency, create_traceable_error, expr_matcher, expr_name,
+  JavascriptParser,
 };
 use crate::visitors::{extract_require_call_info, is_require_call_start};
 
@@ -29,7 +28,7 @@ fn create_commonjs_require_context_dependency(
   let options = ContextOptions {
     mode: ContextMode::Sync,
     recursive: true,
-    reg_exp: context_reg_exp(&result.reg, ""),
+    reg_exp: context_reg_exp(&result.reg, "", None, parser),
     include: None,
     exclude: None,
     category: DependencyCategory::CommonJS,

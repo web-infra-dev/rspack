@@ -1,6 +1,5 @@
 use rspack_core::{
-  clean_regexp_in_context_module, context_reg_exp, ContextMode, ContextNameSpaceObject,
-  ContextOptions, DependencyCategory, SpanExt,
+  ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt,
 };
 use rspack_regex::RspackRegex;
 use swc_core::common::Spanned;
@@ -10,11 +9,13 @@ use super::JavascriptParserPlugin;
 use crate::dependency::ImportMetaContextDependency;
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop};
-use crate::visitors::{expr_name, JavascriptParser};
+use crate::visitors::{
+  clean_regexp_in_context_module, context_reg_exp, expr_name, JavascriptParser,
+};
 
 fn create_import_meta_context_dependency(
   node: &CallExpr,
-  optional: bool,
+  parser: &mut JavascriptParser,
 ) -> Option<ImportMetaContextDependency> {
   assert!(node.callee.is_expr());
   let dyn_imported = node.args.first()?;
@@ -43,7 +44,9 @@ fn create_import_meta_context_dependency(
     })?;
   let reg = r"^\.\/.*$";
   let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
-    let regexp = get_regex_by_obj_prop(obj, "regExp")
+    let regexp = get_regex_by_obj_prop(obj, "regExp");
+    let regexp_span = regexp.map(|r| r.span().into());
+    let regexp = regexp
       .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"))
       .unwrap_or(RspackRegex::new(reg).expect("reg failed"));
     // let include = get_regex_by_obj_prop(obj, "include")
@@ -57,7 +60,7 @@ fn create_import_meta_context_dependency(
       .map(|bool| bool.value)
       .unwrap_or(true);
     ContextOptions {
-      reg_exp: clean_regexp_in_context_module(regexp),
+      reg_exp: clean_regexp_in_context_module(regexp, regexp_span, parser),
       include: None,
       exclude: None,
       recursive,
@@ -77,7 +80,7 @@ fn create_import_meta_context_dependency(
       mode: ContextMode::Sync,
       include: None,
       exclude: None,
-      reg_exp: context_reg_exp(reg, ""),
+      reg_exp: context_reg_exp(reg, "", None, parser),
       category: DependencyCategory::Esm,
       request: context.clone(),
       context,
@@ -93,7 +96,7 @@ fn create_import_meta_context_dependency(
     node.span.real_hi(),
     context_options,
     Some(node.span.into()),
-    optional,
+    parser.in_try,
   ))
 }
 
@@ -131,7 +134,7 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
       || expr.args.len() > 2
     {
       None
-    } else if let Some(dep) = create_import_meta_context_dependency(expr, parser.in_try) {
+    } else if let Some(dep) = create_import_meta_context_dependency(expr, parser) {
       parser.dependencies.push(Box::new(dep));
       Some(true)
     } else {
