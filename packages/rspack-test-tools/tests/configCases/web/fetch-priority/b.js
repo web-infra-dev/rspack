@@ -1,3 +1,3 @@
 import * as shared from './shared';
-console.log(shared);
+shared;
 export default "b";

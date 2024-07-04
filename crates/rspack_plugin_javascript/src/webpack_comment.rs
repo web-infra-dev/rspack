@@ -1,7 +1,7 @@
 use once_cell::sync::Lazy;
 use regex::Captures;
 use rspack_error::miette::{Diagnostic, Severity};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::comments::{CommentKind, Comments};
 use swc_core::common::{SourceFile, Span};
 
@@ -106,11 +106,17 @@ pub fn try_extract_webpack_magic_comment(
 ) -> WebpackCommentMap {
   let mut result = WebpackCommentMap::new();
   comments.with_leading(span.lo, |comments| {
+    // TODO: remove this, parser.comments contains two same block comment
+    let mut parsed_comment = FxHashSet::<Span>::default();
     for comment in comments
       .iter()
       .rev()
       .filter(|c| matches!(c.kind, CommentKind::Block))
     {
+      if parsed_comment.contains(&comment.span) {
+        continue;
+      }
+      parsed_comment.insert(comment.span);
       for captures in WEBPACK_MAGIC_COMMENT_REGEXP.captures_iter(&comment.text) {
         if let Some(item_name_match) = captures.name("_0") {
           let item_name = item_name_match.as_str();
@@ -216,14 +222,14 @@ pub fn try_extract_webpack_magic_comment(
                   result.insert(WebpackComment::FetchPriority, priority.to_string());
                   return;
                 } else {
-                  // add_magic_comment_warning(
-                  //   source_file,
-                  //   item_name,
-                  //   r#""low", "high" or "auto""#,
-                  //   &captures,
-                  //   warning_diagnostics,
-                  //   import_span,
-                  // );
+                  add_magic_comment_warning(
+                    source_file,
+                    item_name,
+                    r#""low", "high" or "auto""#,
+                    &captures,
+                    warning_diagnostics,
+                    import_span,
+                  );
                 }
               }
             }

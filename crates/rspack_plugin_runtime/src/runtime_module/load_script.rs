@@ -91,11 +91,15 @@ impl RuntimeModule for LoadScriptRuntimeModule {
             None => r#"s.getAttribute("src") == url"#,
           },
         )
-        .replace("$FETCH_PRIORITY_SET_ATTRIBUTE$", with_fetch_priority.then(||r#"
-          if(fetchPriority) {
-            script.setAttribute("fetchpriority", fetchPriority);
-          }
-        "#).unwrap_or(""))
+        .replace("$FETCH_PRIORITY_SET_ATTRIBUTE$", if with_fetch_priority {
+          r#"
+            if(fetchPriority) {
+              script.setAttribute("fetchpriority", fetchPriority);
+            }
+          "#
+        } else {
+          ""
+        })
         .replace("$FETCH_PRIORITY$", if with_fetch_priority {
           ", fetchPriority"
         } else {
