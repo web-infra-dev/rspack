@@ -402,7 +402,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
               (assign_expr.span().real_lo(), assign_expr.span().real_hi()),
               base,
               remaining,
-              !parser.is_statement_level_expression(assign_expr.span().into()),
+              !parser.is_statement_level_expression(assign_expr.span()),
             )));
           return Some(true);
         }
@@ -424,7 +424,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
           // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
           parser.statement_path.len() == 1
-            && parser.is_statement_level_expression(assign_expr.span().into()),
+            && parser.is_statement_level_expression(assign_expr.span()),
           Some(&assign_expr.right),
         );
       }
