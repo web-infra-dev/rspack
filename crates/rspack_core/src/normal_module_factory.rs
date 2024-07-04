@@ -23,6 +23,7 @@ define_hook!(NormalModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut Module
 define_hook!(NormalModuleFactoryFactorize: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> BoxModule);
 define_hook!(NormalModuleFactoryResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> NormalModuleFactoryResolveResult);
 define_hook!(NormalModuleFactoryResolveForScheme: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData) -> bool);
+define_hook!(NormalModuleFactoryResolveInScheme: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData) -> bool);
 define_hook!(NormalModuleFactoryAfterResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> bool);
 define_hook!(NormalModuleFactoryCreateModule: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule);
 define_hook!(NormalModuleFactoryModule: AsyncSeries(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule));
@@ -47,6 +48,7 @@ pub struct NormalModuleFactoryHooks {
   /// So this hook is used to resolve inline loader (inline loader requests).
   // should move to ResolverFactory?
   pub resolve_loader: NormalModuleFactoryResolveLoaderHook,
+  pub resolve_in_scheme: NormalModuleFactoryResolveInSchemeHook,
 }
 
 #[derive(Debug)]
@@ -282,9 +284,15 @@ impl NormalModuleFactory {
         .call(data, &mut resource_data)
         .await?;
       resource_data
+    } else if context_scheme.is_some() {
+      let mut resource_data = ResourceData::new(unresolved_resource.to_owned(), "".into());
+      plugin_driver
+        .normal_module_factory_hooks
+        .resolve_in_scheme
+        .call(data, &mut resource_data)
+        .await?;
+      resource_data
     } else {
-      // TODO: resource within scheme
-
       // default resolve
       // resource without scheme and with path
       if unresolved_resource.is_empty() || unresolved_resource.starts_with(QUESTION_MARK) {
