@@ -1,16 +1,11 @@
-use std::{
-  collections::HashMap,
-  fs,
-  path::Path,
-  sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, fs, path::Path};
 
 use anyhow::{Context as AnyhowContext, Error as AnyhowError};
 use reqwest::Client;
 use rspack_base64::encode_to_string;
 use rspack_error::{error, Result};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha512};
+use sha2::{digest::Digest, Sha512};
 
 use crate::{
   http_uri::HttpUriPluginOptions,
@@ -136,8 +131,10 @@ async fn fetch_content_raw(
     return Err(anyhow::anyhow!("Request failed with status: {}", status));
   }
 
+  let integrity = compute_integrity(&content);
   let entry = LockfileEntry {
     resolved: url.to_string(),
+    integrity,
     content_type: headers
       .get("content-type")
       .and_then(|v| v.to_str().ok())
@@ -170,26 +167,16 @@ pub async fn read_from_cache(
 ) -> Result<Option<ContentFetchResult>, anyhow::Error> {
   let cache_path = format!("{}/{}", cache_location, resource.replace("/", "_"));
   if Path::new(&cache_path).exists() {
-    let cached_content = fs::read(&cache_path)
+    let cached_content = fs::read_to_string(&cache_path)
       .context("Failed to read cached content")
       .map_err(|err| {
         error!("{}", err.to_string());
         anyhow::Error::from(err)
       })?;
-    return Ok(Some(ContentFetchResult {
-      entry: LockfileEntry {
-        resolved: resource.to_string(),
-        content_type: String::new(),
-      },
-      content: cached_content,
-      meta: FetchResultMeta {
-        store_cache: true,
-        store_lock: true,
-        valid_until: u64::MAX,
-        etag: None,
-        fresh: true,
-      },
-    }));
+    // Deserialize cached_content to ContentFetchResult
+    let deserialized_content: ContentFetchResult =
+      serde_json::from_str(&cached_content).context("Failed to deserialize cached content")?;
+    return Ok(Some(deserialized_content));
   }
   Ok(None)
 }
@@ -201,7 +188,8 @@ pub async fn write_to_cache(
 ) -> Result<(), anyhow::Error> {
   let cache_path = format!("{}/{}", cache_location, resource.replace("/", "_"));
   fs::create_dir_all(cache_location).context("Failed to create cache directory")?;
-  fs::write(&cache_path, &content.content).context("Failed to write to cache")
+  let serialized_content = serde_json::to_string(content).context("Failed to serialize content")?;
+  fs::write(&cache_path, serialized_content).context("Failed to write to cache")
 }
 
 fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bool, bool, u64) {
