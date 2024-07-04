@@ -248,7 +248,7 @@ pub fn minify(
                 if extract_comments.condition.is_match(&c.text) {
                   let comment = match c.kind {
                     CommentKind::Line => {
-                      format!("// {}", c.text)
+                      format!("//{}", c.text)
                     }
                     CommentKind::Block => {
                       format!("/*{}*/", c.text)
@@ -265,7 +265,7 @@ pub fn minify(
                 if extract_comments.condition.is_match(&c.text) {
                   let comment = match c.kind {
                     CommentKind::Line => {
-                      format!("// {}", c.text)
+                      format!("//{}", c.text)
                     }
                     CommentKind::Block => {
                       format!("/*{}*/", c.text)
