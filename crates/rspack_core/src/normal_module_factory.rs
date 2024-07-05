@@ -286,12 +286,69 @@ impl NormalModuleFactory {
       resource_data
     } else if context_scheme.is_some() {
       let mut resource_data = ResourceData::new(unresolved_resource.to_owned(), "".into());
-      plugin_driver
+      let mut mutable_data = data.clone();
+      let handled = plugin_driver
         .normal_module_factory_hooks
         .resolve_in_scheme
-        .call(data, &mut resource_data)
+        .call(&mut mutable_data, &mut resource_data)
         .await?;
-      resource_data
+
+      if handled != Some(true) {
+        let resolve_args = ResolveArgs {
+          importer,
+          issuer: data.issuer.as_deref(),
+          context: if context_scheme != Scheme::None {
+            self.options.context.clone()
+          } else {
+            data.context.clone()
+          },
+          specifier: unresolved_resource,
+          dependency_type: dependency.dependency_type(),
+          dependency_category: dependency.category(),
+          span: dependency.source_span(),
+          // take the options is safe here, because it
+          // is not used in after_resolve hooks
+          resolve_options: data.resolve_options.take(),
+          resolve_to_context: false,
+          optional: dependency.get_optional(),
+          file_dependencies: &mut file_dependencies,
+          missing_dependencies: &mut missing_dependencies,
+        };
+
+        // default resolve
+        let resource_data = resolve(resolve_args, plugin_driver).await;
+
+        match resource_data {
+          Ok(ResolveResult::Resource(resource)) => {
+            let uri = resource.full_path().display().to_string();
+            ResourceData::new(uri, resource.path)
+              .query(resource.query)
+              .fragment(resource.fragment)
+              .description_optional(resource.description_data)
+          }
+          Ok(ResolveResult::Ignored) => {
+            let ident = format!("{}/{}", &data.context, unresolved_resource);
+            let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
+
+            let raw_module = RawModule::new(
+              "/* (ignored) */".to_owned(),
+              module_identifier,
+              format!("{ident} (ignored)"),
+              Default::default(),
+            )
+            .boxed();
+
+            return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
+          }
+          Err(err) => {
+            data.add_file_dependencies(file_dependencies);
+            data.add_missing_dependencies(missing_dependencies);
+            return Err(err);
+          }
+        }
+      } else {
+        resource_data
+      }
     } else {
       // default resolve
       // resource without scheme and with path
