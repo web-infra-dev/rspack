@@ -183,6 +183,7 @@ fn analyze_comments(
     for captures in WEBPACK_MAGIC_COMMENT_REGEXP.captures_iter(&comment.text) {
       if let Some(item_name_match) = captures.name("_0") {
         let item_name = item_name_match.as_str();
+
         match item_name {
           "webpackChunkName" => {
             if let Some(item_value_match) = captures
