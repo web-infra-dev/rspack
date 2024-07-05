@@ -8,8 +8,9 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-const util = require("util");
-const truncateArgs = require("../logging/truncateArgs");
+import * as util from "util";
+import { truncateArgs } from "../logging/truncateArgs";
+
 // @ts-expect-error
 export = ({ colors, appendOnly, stream }) => {
 	// @ts-expect-error
