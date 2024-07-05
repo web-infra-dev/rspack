@@ -45,15 +45,21 @@ funs
 Hana
 HerringtonDarkholme
 htmlrspackplugin
+idents
+Idents
 iife
 Iife
+indicatif
+innovatively
 IWANABETHATGUY
 jantimon
 JavaScript
 jerrykingxyz
 jkzing
+jscexperimentalplugins
 JSCPU
 jscpuprofile
+lightningcss
 lingyucoder
 linux
 lippzhang
@@ -94,6 +100,7 @@ outputdevtoolfallbackmodulefilenametemplate
 outputdevtoolmodulefilenametemplate
 outputdevtoolnamespace
 outputenabledwasmloadingtypes
+outputlibraryamdcontainer
 outputlibraryumdnameddefine
 perfetto
 pmmmwh
@@ -112,6 +119,7 @@ Rspack
 rspackplugin
 rspress
 Rspress
+ruid
 ruleoneof
 ruleparserdataurlcondition
 Rust
@@ -150,14 +158,7 @@ xctrace
 Xeon
 XKKCNZZNJD
 xstyled
+xxhash
 Zack
 Zack Jackson
 zackarychapple
-indicatif
-outputlibraryamdcontainer
-lightningcss
-Idents
-idents
-xxhash
-jscexperimentalplugins
-ruid
