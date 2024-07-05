@@ -162,12 +162,4 @@ xxhash
 Zack
 Zack Jackson
 zackarychapple
-indicatif
-outputlibraryamdcontainer
-lightningcss
-Idents
-idents
-xxhash
-jscexperimentalplugins
-ruid
 noimport
