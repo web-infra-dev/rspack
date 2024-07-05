@@ -101,14 +101,23 @@ import(`./locale/${language}.json`).then(module => {
 通过向 import 语句添加注释，我们可以执行诸如命名 chunk 或选择不同模式等操作。有关这些魔法注释的完整列表，请参见下面的代码，以及对这些注释功能的解释。
 
 ```js
+// 单个模块
 import(
   /* webpackChunkName: "my-chunk-name" */
-  /* webpackPrefetch: true */
-  /* webpackPreload: true */
   /* webpackMode: "lazy" */
-  /* webpackIgnore: true */
   /* webpackFetchPriority: "high" */
   'module'
+);
+
+// 多个可能模块
+import(
+  /* webpackInclude: /\.json$/ */
+  /* webpackExclude: /\.noimport\.json$/ */
+  /* webpackChunkName: "my-chunk-name" */
+  /* webpackMode: "lazy" */
+  /* webpackPrefetch: true */
+  /* webpackPreload: true */
+  `./locale/${language}`
 );
 ```
 
@@ -168,6 +177,26 @@ import(
 - **类型：**: `"low" | "high" | "auto"`
 
 为指定的动态导入设置 [`fetchPriority`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/fetchPriority)。也可以通过使用 `module.parser.javascript.dynamicImportFetchPriority` 选项为所有动态导入设置全局默认值。
+
+##### webpackInclude
+
+<ApiMeta addedVersion="1.0.0" />
+
+- **类型：**: `Regexp`
+
+在导入解析时匹配的正则表达式。只有匹配的模块**才会被打包**。
+
+##### webpackExclude
+
+<ApiMeta addedVersion="1.0.0" />
+
+- **类型：**: `Regexp`
+
+在导入解析时匹配的正则表达式。只有匹配的模块**不会被打包**。
+
+:::info
+请注意，`webpackInclude` 和 `webpackExclude` 选项不会影响前缀。例如：`./locale`。
+:::
 
 ## CommonJS
 

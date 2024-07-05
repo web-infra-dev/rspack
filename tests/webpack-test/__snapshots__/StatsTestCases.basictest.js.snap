@@ -1,5 +1,21 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`StatsTestCases should print correct stats for import-context-filter 1`] = `
+"asset entry.js 9.65 KiB [emitted] (name: entry)
+asset 228.js 426 bytes [emitted]
+asset 271.js 426 bytes [emitted]
+asset 536.js 426 bytes [emitted]
+Entrypoint entry 9.65 KiB = entry.js
+runtime modules 6.94 KiB 9 modules
+cacheable modules 724 bytes
+  ./entry.js 450 bytes [built] [code generated]
+  Xdir/import-context-filter/templates|lazy|/^\\\\.\\\\/.*$/|exclude: /\\\\.noimport\\\\.js$/|groupOptions: {}|namespace object 160 bytes [built] [code generated]
+  ./templates/bar.js 38 bytes [built] [code generated]
+  ./templates/baz.js 38 bytes [built] [code generated]
+  ./templates/foo.js 38 bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X s"
+`;
+
 exports[`StatsTestCases should print correct stats for performance-different-mode-and-target 1`] = `
 "asset warning.pro-web.js 294 KiB [emitted] (name: main)
 Entrypoint main 294 KiB = warning.pro-web.js

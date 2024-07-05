@@ -1,6 +1,7 @@
 use once_cell::sync::Lazy;
 use regex::Captures;
 use rspack_error::miette::{Diagnostic, Severity};
+use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::comments::{Comment, CommentKind, Comments};
 use swc_core::common::{SourceFile, Span};
@@ -14,6 +15,10 @@ pub enum WebpackComment {
   Preload,
   Ignore,
   FetchPriority,
+  IncludeRegexp,
+  IncludeFlags,
+  ExcludeRegexp,
+  ExcludeFlags,
   Mode,
 }
 
@@ -60,6 +65,36 @@ impl WebpackCommentMap {
   pub fn get_fetch_priority(&self) -> Option<&String> {
     self.0.get(&WebpackComment::FetchPriority)
   }
+
+  pub fn get_webpack_include(&self) -> Option<RspackRegex> {
+    self.0.get(&WebpackComment::IncludeRegexp).map(|expr| {
+      let flags = self
+        .0
+        .get(&WebpackComment::IncludeFlags)
+        .map(|x| x.as_str())
+        .unwrap_or_default();
+
+      RspackRegex::with_flags(expr, flags).unwrap_or_else(|_| {
+        // test when capture
+        unreachable!();
+      })
+    })
+  }
+
+  pub fn get_webpack_exclude(&self) -> Option<RspackRegex> {
+    self.0.get(&WebpackComment::ExcludeRegexp).map(|expr| {
+      let flags = self
+        .0
+        .get(&WebpackComment::ExcludeFlags)
+        .map(|x| x.as_str())
+        .unwrap_or_default();
+
+      RspackRegex::with_flags(expr, flags).unwrap_or_else(|_| {
+        // test when capture
+        unreachable!();
+      })
+    })
+  }
 }
 
 fn add_magic_comment_warning(
@@ -91,9 +126,10 @@ fn add_magic_comment_warning(
 // _3 for `xxx`
 // _4 for number
 // _5 for true/false
+// _6 for regexp
 // TODO: regexp/array
 static WEBPACK_MAGIC_COMMENT_REGEXP: Lazy<regex::Regex> = Lazy::new(|| {
-  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*("(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false))"#)
+  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*("(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false)|(?P<_6>/([^,]+)/([dgimsuvy]*)))"#)
     .expect("invalid regex")
 });
 
@@ -257,6 +293,48 @@ fn analyze_comments(
                   warning_diagnostics,
                   error_span,
                 );
+              }
+            }
+          }
+          "webpackInclude" => {
+            if captures.name("_6").is_some() {
+              if let Some(regexp) = captures.get(9).map(|x| x.as_str()) {
+                let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
+                if RspackRegex::with_flags(regexp, flags).is_ok() {
+                  result.insert(WebpackComment::IncludeRegexp, regexp.to_string());
+                  result.insert(WebpackComment::IncludeFlags, flags.to_string());
+                  return;
+                } else {
+                  add_magic_comment_warning(
+                    source_file,
+                    item_name,
+                    r#"a regular expression"#,
+                    &captures,
+                    warning_diagnostics,
+                    error_span,
+                  );
+                }
+              }
+            }
+          }
+          "webpackExclude" => {
+            if captures.name("_6").is_some() {
+              if let Some(regexp) = captures.get(9).map(|x| x.as_str()) {
+                let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
+                if RspackRegex::with_flags(regexp, flags).is_ok() {
+                  result.insert(WebpackComment::ExcludeRegexp, regexp.to_string());
+                  result.insert(WebpackComment::ExcludeFlags, flags.to_string());
+                  return;
+                } else {
+                  add_magic_comment_warning(
+                    source_file,
+                    item_name,
+                    r#"a regular expression"#,
+                    &captures,
+                    warning_diagnostics,
+                    error_span,
+                  );
+                }
               }
             }
           }
