@@ -285,17 +285,16 @@ fn analyze_comments(
               if priority == "low" || priority == "high" || priority == "auto" {
                 result.insert(WebpackComment::FetchPriority, priority.to_string());
                 return;
-              } else {
-                add_magic_comment_warning(
-                  source_file,
-                  item_name,
-                  r#""low", "high" or "auto""#,
-                  &captures,
-                  warning_diagnostics,
-                  error_span,
-                );
               }
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              r#""low", "high" or "auto""#,
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           "webpackInclude" => {
             if captures.name("_6").is_some() {
@@ -305,18 +304,17 @@ fn analyze_comments(
                   result.insert(WebpackComment::IncludeRegexp, regexp.to_string());
                   result.insert(WebpackComment::IncludeFlags, flags.to_string());
                   return;
-                } else {
-                  add_magic_comment_warning(
-                    source_file,
-                    item_name,
-                    r#"a regular expression"#,
-                    &captures,
-                    warning_diagnostics,
-                    error_span,
-                  );
                 }
               }
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              r#"a regular expression"#,
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           "webpackExclude" => {
             if captures.name("_6").is_some() {
@@ -326,18 +324,17 @@ fn analyze_comments(
                   result.insert(WebpackComment::ExcludeRegexp, regexp.to_string());
                   result.insert(WebpackComment::ExcludeFlags, flags.to_string());
                   return;
-                } else {
-                  add_magic_comment_warning(
-                    source_file,
-                    item_name,
-                    r#"a regular expression"#,
-                    &captures,
-                    warning_diagnostics,
-                    error_span,
-                  );
                 }
               }
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              r#"a regular expression"#,
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           _ => {
             // TODO: other magic comment
