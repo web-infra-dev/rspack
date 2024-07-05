@@ -6,21 +6,54 @@ use regex::Regex;
 use rspack_core::{rspack_sources::MapOptions, Compilation, CompilationProcessAssets, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig};
+use rspack_regex::RspackRegex;
+use rspack_util::try_any_sync;
+use swc_css_compiler::{match_object, SwcCssCompiler, SwcCssSourceMapGenConfig};
 
 static CSS_ASSET_REGEXP: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
 
+#[derive(Debug, Default)]
+pub struct SwcCssMinimizerRspackPluginOptions {
+  pub test: Option<SwcCssMinimizerRules>,
+  pub include: Option<SwcCssMinimizerRules>,
+  pub exclude: Option<SwcCssMinimizerRules>,
+}
+
+impl std::hash::Hash for SwcCssMinimizerRspackPluginOptions {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.test.hash(state);
+    self.include.hash(state);
+    self.exclude.hash(state);
+  }
+}
+
 #[plugin]
 #[derive(Debug, Default)]
-pub struct SwcCssMinimizerRspackPlugin;
+pub struct SwcCssMinimizerRspackPlugin {
+  options: SwcCssMinimizerRspackPluginOptions,
+}
 
 #[plugin_hook(CompilationProcessAssets for SwcCssMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let minify_options = &self.options;
+
   compilation
     .assets_mut()
     .par_iter_mut()
-    .filter(|(filename, _)| CSS_ASSET_REGEXP.is_match(filename))
+    .filter(|(filename, original)| {
+      if !CSS_ASSET_REGEXP.is_match(filename) {
+        return false;
+      }
+
+      let is_matched = match_object(minify_options, filename).unwrap_or(false);
+
+      if !is_matched || original.get_info().minimized {
+        return false;
+      }
+
+      true
+    })
     .try_for_each(|(filename, original)| -> Result<()> {
       if original.get_info().minimized {
         return Ok(());
@@ -68,4 +101,36 @@ impl Plugin for SwcCssMinimizerRspackPlugin {
   }
 
   // TODO: chunk hash
+}
+
+#[derive(Debug, Clone, Hash)]
+pub enum SwcCssMinimizerRule {
+  String(String),
+  Regexp(RspackRegex),
+}
+
+impl SwcCssMinimizerRule {
+  pub fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
+    match self {
+      Self::String(s) => Ok(data.starts_with(s)),
+      Self::Regexp(r) => Ok(r.test(data)),
+    }
+  }
+}
+
+#[derive(Debug, Clone, Hash)]
+pub enum SwcCssMinimizerRules {
+  String(String),
+  Regexp(rspack_regex::RspackRegex),
+  Array(Vec<SwcCssMinimizerRule>),
+}
+
+impl SwcCssMinimizerRules {
+  pub fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
+    match self {
+      Self::String(s) => Ok(data.starts_with(s)),
+      Self::Regexp(r) => Ok(r.test(data)),
+      Self::Array(l) => try_any_sync(l, |i| i.try_match(data)),
+    }
+  }
 }
