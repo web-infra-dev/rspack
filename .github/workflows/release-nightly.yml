@@ -9,6 +9,7 @@ on:
 permissions:
   # To publish packages with provenance
   id-token: write
+  contents: write
 
 jobs:
   get-runner-labels:
