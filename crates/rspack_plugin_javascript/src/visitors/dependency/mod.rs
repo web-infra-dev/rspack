@@ -1,5 +1,4 @@
 mod context_dependency_helper;
-mod context_helper;
 mod parser;
 mod util;
 
@@ -15,8 +14,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::{comments::Comments, BytePos, SourceFile, SourceMap, Span};
 use swc_core::ecma::atoms::Atom;
 
-pub use self::context_dependency_helper::create_context_dependency;
-pub use self::context_helper::{scanner_context_module, ContextModuleScanResult};
+pub use self::context_dependency_helper::{create_context_dependency, ContextModuleScanResult};
 pub use self::parser::{
   AllowedMemberTypes, CallExpressionInfo, CallHooksName, ExportedVariableInfo, PathIgnoredSpans,
 };

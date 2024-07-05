@@ -1,6 +1,6 @@
 {
   "name": "@rspack/lite-tapable",
-  "version": "1.0.0-alpha.0",
+  "version": "1.0.0-alpha.1",
   "license": "MIT",
   "description": "Lite weight tapable for Rspack",
   "main": "./dist/index.js",
