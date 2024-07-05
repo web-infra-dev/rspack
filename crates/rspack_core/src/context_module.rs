@@ -129,8 +129,10 @@ pub struct ContextOptions {
   pub recursive: bool,
   #[derivative(Hash = "ignore", PartialEq = "ignore")]
   pub reg_exp: Option<RspackRegex>,
-  pub include: Option<String>,
-  pub exclude: Option<String>,
+  #[derivative(Hash = "ignore", PartialEq = "ignore")]
+  pub include: Option<RspackRegex>,
+  #[derivative(Hash = "ignore", PartialEq = "ignore")]
+  pub exclude: Option<RspackRegex>,
   pub category: DependencyCategory,
   pub request: String,
   pub context: String,
@@ -1000,8 +1002,19 @@ impl ContextModule {
     if !dir.is_dir() {
       return Ok(());
     }
+    let include = &options.context_options.include;
+    let exclude = &options.context_options.exclude;
     for entry in fs::read_dir(dir).into_diagnostic()? {
       let path = entry.into_diagnostic()?.path();
+      let path_str = path.to_string_lossy().to_string();
+
+      if let Some(exclude) = exclude
+        && exclude.test(&path_str)
+      {
+        // ignore excluded files
+        continue;
+      }
+
       if path.is_dir() {
         if options.context_options.recursive {
           Self::visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
@@ -1013,11 +1026,17 @@ impl ContextModule {
         // ignore hidden files
         continue;
       } else {
+        if let Some(include) = include
+          && !include.test(&path_str)
+        {
+          // ignore not included files
+          continue;
+        }
+
         // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
         let relative_path = {
-          let p = path
-            .to_string_lossy()
-            .to_string()
+          let p = path_str
+            .clone()
             .drain(ctx.len()..)
             .collect::<String>()
             .replace('\\', "/");
@@ -1027,6 +1046,7 @@ impl ContextModule {
             format!("./{p}")
           }
         };
+
         let requests = alternative_requests(
           resolve_options,
           vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
@@ -1191,11 +1211,11 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
   }
   if let Some(include) = &options.context_options.include {
     id += "|include: ";
-    id += &include;
+    id += &include.to_source_string();
   }
   if let Some(exclude) = &options.context_options.exclude {
     id += "|exclude: ";
-    id += &exclude;
+    id += &exclude.to_source_string();
   }
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {
     if let Some(chunk_name) = &group.name {
