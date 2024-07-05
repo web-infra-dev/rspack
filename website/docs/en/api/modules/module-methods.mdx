@@ -103,14 +103,23 @@ import(`./locale/${language}.json`).then(module => {
 Inline comments to make features work. By adding comments to the import, we can do things such as name our chunk or select different modes. For a full list of these magic comments see the code below followed by an explanation of what these comments do.
 
 ```js
+// Single target
 import(
   /* webpackChunkName: "my-chunk-name" */
-  /* webpackPrefetch: true */
-  /* webpackPreload: true */
   /* webpackMode: "lazy" */
-  /* webpackIgnore: true */
   /* webpackFetchPriority: "high" */
   'module'
+);
+
+// Multiple possible targets
+import(
+  /* webpackInclude: /\.json$/ */
+  /* webpackExclude: /\.noimport\.json$/ */
+  /* webpackChunkName: "my-chunk-name" */
+  /* webpackMode: "lazy" */
+  /* webpackPrefetch: true */
+  /* webpackPreload: true */
+  `./locale/${language}`
 );
 ```
 
@@ -170,6 +179,26 @@ A name for the new chunk.
 - **Type:**: `"low" | "high" | "auto"`
 
 Set [`fetchPriority`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/fetchPriority) for specific dynamic imports. It's also possible to set a global default value for all dynamic imports by using the `module.parser.javascript.dynamicImportFetchPriority` option.
+
+##### webpackInclude
+
+<ApiMeta addedVersion="1.0.0" />
+
+- **Type:**: `Regexp`
+
+A regular expression that will be matched against during import resolution. Only modules that match **will be bundled**.
+
+##### webpackExclude
+
+<ApiMeta addedVersion="1.0.0" />
+
+- **Type:**: `Regexp`
+
+A regular expression that will be matched against during import resolution. Any module that matches **will not be bundled**.
+
+:::info
+Note that `webpackInclude` and `webpackExclude` options do not interfere with the prefix. eg: `./locale`.
+:::
 
 ## CommonJS
 

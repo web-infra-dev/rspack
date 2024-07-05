@@ -68,6 +68,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .get_fetch_priority()
       .map(|x| DynamicImportFetchPriority::from(x.as_str()))
       .or(dynamic_import_fetch_priority);
+    let include = magic_comment_options.get_webpack_include();
+    let exclude = magic_comment_options.get_webpack_exclude();
 
     let param = parser.evaluate_expression(dyn_imported.expr.as_ref());
 
@@ -131,8 +133,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             mode: mode.into(),
             recursive: true,
             reg_exp,
-            include: None,
-            exclude: None,
+            include,
+            exclude,
             category: DependencyCategory::Esm,
             request: format!("{}{}{}", context.clone(), query, fragment),
             context,

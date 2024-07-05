@@ -162,3 +162,15 @@ xxhash
 Zack
 Zack Jackson
 zackarychapple
+<<<<<<< Updated upstream
+=======
+indicatif
+outputlibraryamdcontainer
+lightningcss
+Idents
+idents
+xxhash
+jscexperimentalplugins
+ruid
+noimport
+>>>>>>> Stashed changes
