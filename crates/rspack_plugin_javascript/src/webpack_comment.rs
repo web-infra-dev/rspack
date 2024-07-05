@@ -195,16 +195,16 @@ fn analyze_comments(
                 WebpackComment::ChunkName,
                 item_value_match.as_str().to_string(),
               );
-            } else {
-              add_magic_comment_warning(
-                source_file,
-                item_name,
-                "a string",
-                &captures,
-                warning_diagnostics,
-                error_span,
-              );
+              return;
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              "a string",
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           "webpackPrefetch" => {
             if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
@@ -212,16 +212,16 @@ fn analyze_comments(
                 WebpackComment::Prefetch,
                 item_value_match.as_str().to_string(),
               );
-            } else {
-              add_magic_comment_warning(
-                source_file,
-                item_name,
-                "true or a number",
-                &captures,
-                warning_diagnostics,
-                error_span,
-              );
+              return;
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              "true or a number",
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           "webpackPreload" => {
             if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
@@ -229,16 +229,16 @@ fn analyze_comments(
                 WebpackComment::Preload,
                 item_value_match.as_str().to_string(),
               );
-            } else {
-              add_magic_comment_warning(
-                source_file,
-                item_name,
-                "true or a number",
-                &captures,
-                warning_diagnostics,
-                error_span,
-              );
+              return;
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              "true or a number",
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           "webpackIgnore" => {
             if let Some(item_value_match) = captures.name("_5") {
@@ -246,16 +246,16 @@ fn analyze_comments(
                 WebpackComment::Ignore,
                 item_value_match.as_str().to_string(),
               );
-            } else {
-              add_magic_comment_warning(
-                source_file,
-                item_name,
-                "true or false",
-                &captures,
-                warning_diagnostics,
-                error_span,
-              );
+              return;
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              "true or false",
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           "webpackMode" => {
             if let Some(item_value_match) = captures
@@ -264,16 +264,16 @@ fn analyze_comments(
               .or(captures.name("_3"))
             {
               result.insert(WebpackComment::Mode, item_value_match.as_str().to_string());
-            } else {
-              add_magic_comment_warning(
-                source_file,
-                item_name,
-                "a string",
-                &captures,
-                warning_diagnostics,
-                error_span,
-              );
+              return;
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              "a string",
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           "webpackFetchPriority" => {
             if let Some(item_value_match) = captures
