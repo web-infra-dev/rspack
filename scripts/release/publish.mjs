@@ -23,7 +23,7 @@ export async function publish_handler(mode, options) {
 	}
 	await $`pnpm publish -r ${options.dryRun ? "--dry-run" : ""} --tag ${
 		options.tag
-	} --no-git-checks`;
+	} --no-git-checks --provenance`;
 	const version = await getLastVersion(root);
 	core.setOutput("version", version);
 	core.notice(`Version: ${version}`);
