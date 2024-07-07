@@ -172,7 +172,7 @@ jobs:
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
 
-      - name: lint_js
+      - name: Lint js
         if: steps.changes.outputs.src == 'true'
         run: pnpm run lint:js
       - name: Prettier
