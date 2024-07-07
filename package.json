@@ -48,7 +48,7 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "9.3.0"
+    "pnpm": "9.5.0-beta.3"
   },
   "devDependencies": {
     "@biomejs/biome": "1.8.0",
@@ -74,5 +74,5 @@
     "webpack": "5.92.0",
     "webpack-cli": "5.1.4"
   },
-  "packageManager": "pnpm@9.3.0"
+  "packageManager": "pnpm@9.5.0-beta.3"
 }

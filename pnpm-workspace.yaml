@@ -13,3 +13,8 @@ packages:
   - "tests/plugin-test"
   - "tests/webpack-cli-test"
   - "tests/diff-test/*"
+
+catalog:
+  react: 18.0.0
+  react-dom: 18.0.0
+  react-refresh: 0.14.0
