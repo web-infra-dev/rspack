@@ -24,7 +24,6 @@ json = { workspace = true }
 mime_guess = { workspace = true }
 num-bigint = "0.4.4"
 once_cell = { workspace = true }
-oxc_resolver = { version = "1.8.1", features = ["package_json_raw_json_api"] }
 paste = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
@@ -39,6 +38,7 @@ rspack_identifier = { path = "../rspack_identifier" }
 rspack_loader_runner = { path = "../rspack_loader_runner" }
 rspack_macros = { path = "../rspack_macros" }
 rspack_regex = { path = "../rspack_regex" }
+rspack_resolver = { version = "0.1.0", features = ["package_json_raw_json_api"] }
 rspack_sources = { workspace = true }
 rspack_swc_visitors = { path = "../rspack_swc_visitors" }
 rspack_util = { path = "../rspack_util" }
