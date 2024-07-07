@@ -22,21 +22,21 @@ pub struct ResolveContext {
   pub missing_dependencies: HashSet<PathBuf>,
 }
 
-/// Proxy to [nodejs_resolver::Error] or [oxc_resolver::ResolveError]
+/// Proxy to [nodejs_resolver::Error] or [rspack_resolver::ResolveError]
 #[derive(Debug)]
 pub enum ResolveInnerError {
-  OxcResolver(oxc_resolver::ResolveError),
+  RspackResolver(rspack_resolver::ResolveError),
 }
 
-/// Proxy to [oxc_resolver::ResolveOptions]
+/// Proxy to [rspack_resolver::ResolveOptions]
 pub enum ResolveInnerOptions<'a> {
-  OxcResolver(&'a oxc_resolver::ResolveOptions),
+  RspackResolver(&'a rspack_resolver::ResolveOptions),
 }
 
 impl<'a> fmt::Debug for ResolveInnerOptions<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
-      Self::OxcResolver(options) => {
+      Self::RspackResolver(options) => {
         write!(f, "{:?}", options)
       }
     }
@@ -46,55 +46,55 @@ impl<'a> fmt::Debug for ResolveInnerOptions<'a> {
 impl<'a> ResolveInnerOptions<'a> {
   pub fn is_enforce_extension_enabled(&self) -> bool {
     match self {
-      Self::OxcResolver(options) => matches!(
+      Self::RspackResolver(options) => matches!(
         options.enforce_extension,
-        oxc_resolver::EnforceExtension::Enabled
+        rspack_resolver::EnforceExtension::Enabled
       ),
     }
   }
 
   pub fn extensions(&self) -> impl Iterator<Item = &String> {
     match self {
-      Self::OxcResolver(options) => options.extensions.iter(),
+      Self::RspackResolver(options) => options.extensions.iter(),
     }
   }
 
   pub fn main_files(&self) -> impl Iterator<Item = &String> {
     match self {
-      Self::OxcResolver(options) => options.main_files.iter(),
+      Self::RspackResolver(options) => options.main_files.iter(),
     }
   }
 
   pub fn modules(&self) -> impl Iterator<Item = &String> {
     match self {
-      Self::OxcResolver(options) => options.modules.iter(),
+      Self::RspackResolver(options) => options.modules.iter(),
     }
   }
 }
 
-/// Proxy to [oxc_resolver::Resolver]
+/// Proxy to [rspack_resolver::Resolver]
 ///
 /// Internal caches are shared.
 #[derive(Debug)]
 pub enum Resolver {
-  OxcResolver(oxc_resolver::Resolver),
+  RspackResolver(rspack_resolver::Resolver),
 }
 
 impl Resolver {
   pub fn new(options: Resolve) -> Self {
-    Self::new_oxc_resolver(options)
+    Self::new_rspack_resolver(options)
   }
 
-  fn new_oxc_resolver(options: Resolve) -> Self {
-    let options = to_oxc_resolver_options(options, false, DependencyCategory::Unknown);
-    let resolver = oxc_resolver::Resolver::new(options);
-    Self::OxcResolver(resolver)
+  fn new_rspack_resolver(options: Resolve) -> Self {
+    let options = to_rspack_resolver_options(options, false, DependencyCategory::Unknown);
+    let resolver = rspack_resolver::Resolver::new(options);
+    Self::RspackResolver(resolver)
   }
 
   /// Clear cache for all resolver instances
   pub fn clear_cache(&self) {
     match self {
-      Self::OxcResolver(resolver) => resolver.clear_cache(),
+      Self::RspackResolver(resolver) => resolver.clear_cache(),
     }
   }
 
@@ -105,14 +105,14 @@ impl Resolver {
     options_with_dependency_type: &ResolveOptionsWithDependencyType,
   ) -> Self {
     match self {
-      Self::OxcResolver(resolver) => {
-        let options = to_oxc_resolver_options(
+      Self::RspackResolver(resolver) => {
+        let options = to_rspack_resolver_options(
           options,
           options_with_dependency_type.resolve_to_context,
           options_with_dependency_type.dependency_category,
         );
         let resolver = resolver.clone_with_options(options);
-        Self::OxcResolver(resolver)
+        Self::RspackResolver(resolver)
       }
     }
   }
@@ -120,14 +120,14 @@ impl Resolver {
   /// Return the options from the resolver
   pub fn options(&self) -> ResolveInnerOptions<'_> {
     match self {
-      Self::OxcResolver(resolver) => ResolveInnerOptions::OxcResolver(resolver.options()),
+      Self::RspackResolver(resolver) => ResolveInnerOptions::RspackResolver(resolver.options()),
     }
   }
 
   /// Resolve a specifier to a given path.
   pub fn resolve(&self, path: &Path, request: &str) -> Result<ResolveResult, ResolveInnerError> {
     match self {
-      Self::OxcResolver(resolver) => match resolver.resolve(path, request) {
+      Self::RspackResolver(resolver) => match resolver.resolve(path, request) {
         Ok(r) => Ok(ResolveResult::Resource(Resource {
           path: r.path().to_path_buf(),
           query: r.query().unwrap_or_default().to_string(),
@@ -136,8 +136,8 @@ impl Resolver {
             .package_json()
             .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
         })),
-        Err(oxc_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
-        Err(error) => Err(ResolveInnerError::OxcResolver(error)),
+        Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
+        Err(error) => Err(ResolveInnerError::RspackResolver(error)),
       },
     }
   }
@@ -150,7 +150,7 @@ impl Resolver {
     resolve_context: &mut ResolveContext,
   ) -> Result<ResolveResult, ResolveInnerError> {
     match self {
-      Self::OxcResolver(resolver) => {
+      Self::RspackResolver(resolver) => {
         let mut context = Default::default();
         let result = resolver.resolve_with_context(path, request, &mut context);
         resolve_context
@@ -168,8 +168,8 @@ impl Resolver {
               .package_json()
               .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
           })),
-          Err(oxc_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
-          Err(error) => Err(ResolveInnerError::OxcResolver(error)),
+          Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
+          Err(error) => Err(ResolveInnerError::RspackResolver(error)),
         }
       }
     }
@@ -179,25 +179,25 @@ impl Resolver {
 impl ResolveInnerError {
   pub fn into_resolve_error(self, args: &ResolveArgs<'_>) -> Box<dyn Diagnostic + Send + Sync> {
     match self {
-      Self::OxcResolver(error) => map_oxc_resolver_error(error, args),
+      Self::RspackResolver(error) => map_rspack_resolver_error(error, args),
     }
   }
 }
 
-fn to_oxc_resolver_options(
+fn to_rspack_resolver_options(
   options: Resolve,
   resolve_to_context: bool,
   dependency_type: DependencyCategory,
-) -> oxc_resolver::ResolveOptions {
+) -> rspack_resolver::ResolveOptions {
   let options = options.merge_by_dependency(dependency_type);
   let tsconfig = options.tsconfig.map(|c| c.into());
   let enforce_extension = options
     .enforce_extension
     .map(|e| match e {
-      true => oxc_resolver::EnforceExtension::Enabled,
-      false => oxc_resolver::EnforceExtension::Disabled,
+      true => rspack_resolver::EnforceExtension::Enabled,
+      false => rspack_resolver::EnforceExtension::Disabled,
     })
-    .unwrap_or(oxc_resolver::EnforceExtension::Auto);
+    .unwrap_or(rspack_resolver::EnforceExtension::Auto);
   let description_files = options
     .description_files
     .unwrap_or_else(|| vec!["package.json".to_string()]);
@@ -213,8 +213,8 @@ fn to_oxc_resolver_options(
       let value = value
         .into_iter()
         .map(|x| match x {
-          AliasMap::Path(target) => oxc_resolver::AliasValue::Path(target),
-          AliasMap::Ignore => oxc_resolver::AliasValue::Ignore,
+          AliasMap::Path(target) => rspack_resolver::AliasValue::Path(target),
+          AliasMap::Ignore => rspack_resolver::AliasValue::Ignore,
         })
         .collect();
       (key, value)
@@ -243,8 +243,8 @@ fn to_oxc_resolver_options(
       let value = value
         .into_iter()
         .map(|x| match x {
-          AliasMap::Path(target) => oxc_resolver::AliasValue::Path(target),
-          AliasMap::Ignore => oxc_resolver::AliasValue::Ignore,
+          AliasMap::Path(target) => rspack_resolver::AliasValue::Path(target),
+          AliasMap::Ignore => rspack_resolver::AliasValue::Ignore,
         })
         .collect();
       (key, value)
@@ -262,7 +262,7 @@ fn to_oxc_resolver_options(
     .restrictions
     .unwrap_or_default()
     .into_iter()
-    .map(|s| oxc_resolver::Restriction::Path(PathBuf::from(s)))
+    .map(|s| rspack_resolver::Restriction::Path(PathBuf::from(s)))
     .collect();
   let roots = options
     .roots
@@ -271,7 +271,7 @@ fn to_oxc_resolver_options(
     .map(PathBuf::from)
     .collect();
 
-  oxc_resolver::ResolveOptions {
+  rspack_resolver::ResolveOptions {
     fallback,
     modules,
     extensions,
@@ -297,14 +297,14 @@ fn to_oxc_resolver_options(
   }
 }
 
-fn map_oxc_resolver_error(
-  error: oxc_resolver::ResolveError,
+fn map_rspack_resolver_error(
+  error: rspack_resolver::ResolveError,
   args: &ResolveArgs<'_>,
 ) -> Box<dyn Diagnostic + Send + Sync> {
   match error {
-    oxc_resolver::ResolveError::IOError(error) => diagnostic!("{}", error).boxed(),
-    oxc_resolver::ResolveError::Recursion => map_resolver_error(true, args),
-    oxc_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
+    rspack_resolver::ResolveError::IOError(error) => diagnostic!("{}", error).boxed(),
+    rspack_resolver::ResolveError::Recursion => map_resolver_error(true, args),
+    rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
     _ => diagnostic!("{}", error).boxed(),
   }
 }
