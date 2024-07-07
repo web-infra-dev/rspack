@@ -172,14 +172,9 @@ jobs:
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
 
-      - name: Oxlint
+      - name: lint_js
         if: steps.changes.outputs.src == 'true'
         run: pnpm run lint:js
-
-      - name: Biome Sort Imports Order
-        if: steps.changes.outputs.src == 'true'
-        run: pnpm run lint-ci:js-sort-imports-order
-
       - name: Prettier
         if: steps.changes.outputs.src == 'true'
         run: pnpm run format-ci:js

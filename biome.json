@@ -3,6 +3,12 @@
   "formatter": {
     "enabled": false
   },
+  "json": {
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": true
+    }
+  },
   "organizeImports": {
     "enabled": true,
     "ignore": [
@@ -22,7 +28,11 @@
     ]
   },
   "linter": {
-    "enabled": false
+    "enabled": true,
+    "rules": {
+      "recommended": false
+    },
+    "ignore": ["tests/**/*", "crates/**/*", "diff.bundle.js"]
   },
   "vcs": {
     "enabled": true,
