@@ -1,0 +1,147 @@
+import { ApiMeta, Stability } from '@components/ApiMeta';
+
+# ModuleFederationPlugin
+
+<ApiMeta addedVersion={'0.5.0'} stability={Stability.Experimental} />
+
+This plugin implements [Module Federation 1.5](https://github.com/module-federation/universe/tree/main/packages/enhanced).
+
+## Example
+
+```js
+const rspack = require('@rspack/core');
+
+module.exports = {
+  output: {
+    // set uniqueName explicitly to make HMR works
+    uniqueName: 'app',
+  },
+  plugins: [
+    new rspack.container.ModuleFederationPlugin({
+      // options
+    }),
+  ],
+};
+```
+
+## Options
+
+### implementation
+
+- Type: `string`
+
+Provide a path as the implementation for Module Federation 1.5 runtime, which defaults to [@module-federation/runtime-tools](https://github.com/module-federation/universe/tree/main/packages/runtime-tools).
+
+### runtimePlugins
+
+- Type: `string[]`
+
+Provide the plugin required to run Module Federation 1.5, which can extend the behavior and capabilities of Module Federation.
+
+### name
+
+- Type: `string`
+
+Define the unique name exposed to other containers in the current build. This name will exist as a global variable for the remote container.
+
+### filename
+
+- Type: `string`
+
+Specify the filename of the remote container entry file. Other containers will load the exposed modules through this file.
+
+### runtime
+
+- Type: `string | false`
+
+Define the runtime chunk for remote container entry.
+
+### library
+
+- Type: [`LibraryOptions`](/config/output#outputlibrary)
+
+Define the output format of remote container entry. The default libraryType is "var".
+
+### shareScope
+
+- Type: `string`
+
+Define the namespace for shared dependencies in the current container. By configuring share scopes between different containers, the sharing behavior of modules can be controlled, including determining which modules are shared between different containers. The default share scope is `"default"`.
+
+### remoteType
+
+- Type: [`ExternalsType`](/config/externals#externalstype)
+
+Defines how to load remote containers, defaulting to `"script"`, which loads via the `<script />` tag.
+
+### remotes
+
+- Type:
+  ```ts
+  type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
+  type RemotesItem = string;
+  type RemotesItems = RemotesItem[];
+  interface RemotesObject {
+    [k: string]: RemotesConfig | RemotesItem | RemotesItems;
+  }
+  interface RemotesConfig {
+    external: RemotesItem | RemotesItems;
+    shareScope?: string;
+  }
+  ```
+
+Definition of the modules and their addresses that will be loaded remotely. The key is the name of the remote container, the value is the global variable name exposed by the remote container and the URL of the remote container entry. You can also specify shareScope to control whether the remote container shares dependencies.
+
+### exposes
+
+- Type:
+  ```ts
+  type Exposes = (ExposesItem | ExposesObject)[] | ExposesObject;
+  type ExposesItem = string;
+  type ExposesItems = ExposesItem[];
+  interface ExposesObject {
+    [k: string]: ExposesConfig | ExposesItem | ExposesItems;
+  }
+  interface ExposesConfig {
+    import: ExposesItem | ExposesItems;
+    name?: string;
+  }
+  ```
+
+Define how local modules can be referenced by remote containers. The key is the name of the module when referenced as a remote module in the remote container, and the value is the module path relative to the current folder. You can provide a name to specify the name of the exposed local module.
+
+### shared
+
+- Type:
+  ```ts
+  type Shared = (SharedItem | SharedObject)[] | SharedObject;
+  type SharedItem = string;
+  interface SharedObject {
+    [k: string]: SharedConfig | SharedItem;
+  }
+  interface SharedConfig {
+    import?: false | SharedItem;
+    eager?: boolean;
+    packageName?: string;
+    requiredVersion?: false | string;
+    shareKey?: string;
+    shareScope?: string;
+    singleton?: boolean;
+    strictVersion?: boolean;
+    version?: false | string;
+  }
+  ```
+
+Specify which dependencies should be shared dependencies. This allows multiple micro-frontends to share the same instance of a dependency library to avoid loading the same code repeatedly. It can be an object dictionary where the keys are the names of the shared modules and the values are configuration or version strings. It can also be an array where the array items are the shared package names or configurations.
+
+The SharedConfig can include the following sub-options:
+
+- import: Module that should be placed in the share scope of the shared module. If the shared module cannot be found in the share scope of the shared module or the version is invalid, this provided module can be used as a fallback module.
+- eager: If set to `true`, the shared module will be loaded in the initial chunk instead of being dynamically loaded when used. This means that the shared module will be loaded together with the main entry point regardless of whether it has been used. This can eliminate the delay caused by dynamic loading, but it will increase the size of the initial package. Also, please note that when this configuration is enabled, all provided modules and fallback modules will always be downloaded.
+- packageName: Used to determine the package name and required version from `package.json`. Configuration is only necessary when the package name cannot be automatically determined based on the request.
+- requiredVersion: Accepts semantic version number. For example, `"^1.2.3"`. Used to set the version range of shared modules. If the module version of the remote container does not meet this range, the module will not be loaded.
+- shareKey: Use this key to search for the requested shared module in the share scope of the shared module. The default is the name of the shared module.
+- shareScope: Define the share scope of the shared module. This allows different builds to use their own share scope independently without conflict. The default share scope is `"default"`.
+- singleton: Ensure that shared modules are only loaded once between different versions, following the singleton pattern. This is necessary for libraries designed to run as singletons, such as React, as it can prevent various issues caused by instantiating multiple library instances.
+- strictVersion: Used to strengthen `requiredVersion`. If set to `true`, the shared module must match the version specified in requiredVersion exactly, otherwise an error will be reported and the module will not be loaded. If set to `false`, it can tolerate imprecise matching.
+- version: Explicitly set the version of the shared module. By default, the version in `package.json` will be used.

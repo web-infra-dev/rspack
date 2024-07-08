@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::fmt::{Debug, Display};
 
-use crate::ErrorSpan;
+use crate::ContextTypePrefix;
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
@@ -12,20 +12,28 @@ pub enum DependencyType {
   ExportInfoApi,
   Entry,
   // Harmony import
-  EsmImport(/* HarmonyImportSideEffectDependency.span */ ErrorSpan), /* TODO: remove span after old tree shaking is removed */
+  EsmImport,
   EsmImportSpecifier,
   // Harmony export
-  EsmExport(ErrorSpan),
+  EsmExport,
   EsmExportImportedSpecifier,
   EsmExportSpecifier,
+  EsmExportExpression,
+  EsmExportHeader,
   // import()
   DynamicImport,
   // import() eager
   DynamicImportEager,
   // cjs require
   CjsRequire,
+  // cjs full require
+  CjsFullRequire,
   // cjs exports
   CjsExports,
+  // module.exports = require(), should bailout in old tree shaking
+  CjsExportRequire,
+  // cjs self reference
+  CjsSelfReference,
   // new URL("./foo", import.meta.url)
   NewUrl,
   // new Worker()
@@ -44,8 +52,12 @@ pub enum DependencyType {
   CssImport,
   // css modules compose
   CssCompose,
+  // css :export
+  CssExport,
+  // css modules local ident
+  CssLocalIdent,
   // context element
-  ContextElement,
+  ContextElement(ContextTypePrefix),
   // import context
   ImportContext,
   // import.meta.webpackContext
@@ -72,12 +84,18 @@ pub enum DependencyType {
   RemoteToFallback,
   /// fallback item
   RemoteToFallbackItem,
+  Provided,
   /// provide shared module
   ProvideSharedModule,
   /// provide module for shared
   ProvideModuleForShared,
   /// consume shared fallback
   ConsumeSharedFallback,
+  /// Webpack is included
+  WebpackIsIncluded,
+  LoaderImport,
+  LazyImport,
+  ModuleDecorator,
   Custom(Box<str>), // TODO it will increase large layout size
 }
 
@@ -86,14 +104,19 @@ impl DependencyType {
     match self {
       DependencyType::Unknown => Cow::Borrowed("unknown"),
       DependencyType::Entry => Cow::Borrowed("entry"),
-      DependencyType::EsmImport(_) => Cow::Borrowed("esm import"),
-      DependencyType::EsmExport(_) => Cow::Borrowed("esm export"),
+      DependencyType::EsmImport => Cow::Borrowed("esm import"),
+      DependencyType::EsmExport => Cow::Borrowed("esm export"),
       DependencyType::EsmExportSpecifier => Cow::Borrowed("esm export specifier"),
       DependencyType::EsmExportImportedSpecifier => Cow::Borrowed("esm export import specifier"),
       DependencyType::EsmImportSpecifier => Cow::Borrowed("esm import specifier"),
-      DependencyType::DynamicImport => Cow::Borrowed("dynamic import"),
+      DependencyType::EsmExportExpression => Cow::Borrowed("esm export expression"),
+      DependencyType::EsmExportHeader => Cow::Borrowed("esm export header"),
+      DependencyType::DynamicImport => Cow::Borrowed("import()"),
       DependencyType::CjsRequire => Cow::Borrowed("cjs require"),
+      DependencyType::CjsFullRequire => Cow::Borrowed("cjs full require"),
       DependencyType::CjsExports => Cow::Borrowed("cjs exports"),
+      DependencyType::CjsExportRequire => Cow::Borrowed("cjs export require"),
+      DependencyType::CjsSelfReference => Cow::Borrowed("cjs self exports reference"),
       DependencyType::NewUrl => Cow::Borrowed("new URL()"),
       DependencyType::NewWorker => Cow::Borrowed("new Worker()"),
       DependencyType::ImportMetaHotAccept => Cow::Borrowed("import.meta.webpackHot.accept"),
@@ -103,7 +126,12 @@ impl DependencyType {
       DependencyType::CssUrl => Cow::Borrowed("css url"),
       DependencyType::CssImport => Cow::Borrowed("css import"),
       DependencyType::CssCompose => Cow::Borrowed("css compose"),
-      DependencyType::ContextElement => Cow::Borrowed("context element"),
+      DependencyType::CssExport => Cow::Borrowed("css export"),
+      DependencyType::CssLocalIdent => Cow::Borrowed("css local ident"),
+      DependencyType::ContextElement(type_prefix) => match type_prefix {
+        ContextTypePrefix::Import => Cow::Borrowed("import() context element"),
+        ContextTypePrefix::Normal => Cow::Borrowed("context element"),
+      },
       // TODO: mode
       DependencyType::ImportContext => Cow::Borrowed("import context"),
       DependencyType::DynamicImportEager => Cow::Borrowed("import() eager"),
@@ -113,6 +141,7 @@ impl DependencyType {
       DependencyType::WasmImport => Cow::Borrowed("wasm import"),
       DependencyType::WasmExportImported => Cow::Borrowed("wasm export imported"),
       DependencyType::StaticExports => Cow::Borrowed("static exports"),
+      DependencyType::LoaderImport => Cow::Borrowed("loader import"),
       DependencyType::Custom(ty) => Cow::Owned(format!("custom {ty}")),
       DependencyType::ExportInfoApi => Cow::Borrowed("export info api"),
       // TODO: mode
@@ -122,9 +151,13 @@ impl DependencyType {
       DependencyType::RemoteToExternal => Cow::Borrowed("remote to external"),
       DependencyType::RemoteToFallback => Cow::Borrowed("fallback"),
       DependencyType::RemoteToFallbackItem => Cow::Borrowed("fallback item"),
+      DependencyType::Provided => Cow::Borrowed("provided"),
       DependencyType::ProvideSharedModule => Cow::Borrowed("provide shared module"),
       DependencyType::ProvideModuleForShared => Cow::Borrowed("provide module for shared"),
       DependencyType::ConsumeSharedFallback => Cow::Borrowed("consume shared fallback"),
+      DependencyType::WebpackIsIncluded => Cow::Borrowed("__webpack_is_included__"),
+      DependencyType::LazyImport => Cow::Borrowed("lazy import()"),
+      DependencyType::ModuleDecorator => Cow::Borrowed("module decorator"),
     }
   }
 }

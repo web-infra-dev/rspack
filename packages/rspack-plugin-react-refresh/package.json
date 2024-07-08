@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-react-refresh",
-  "version": "0.4.3",
+  "version": "1.0.0-alpha.1",
   "license": "MIT",
   "description": "React refresh plugin for rspack",
   "main": "dist/index.js",
@@ -14,16 +14,19 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "rimraf dist/ && tsc -b ./tsconfig.build.json --force",
+    "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -b -w",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand --colors",
+    "api-extractor": "api-extractor run --verbose",
+    "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },
   "files": [
     "client",
     "dist"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -36,6 +39,10 @@
     "@rspack/core": "workspace:*",
     "@rspack/plugin-react-refresh": "workspace:*",
     "react-refresh": "0.14.0"
+  },
+  "dependencies": {
+    "html-entities": "^2.1.0",
+    "error-stack-parser": "^2.0.6"
   },
   "peerDependencies": {
     "react-refresh": ">=0.10.0 <1.0.0"

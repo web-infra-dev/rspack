@@ -14,13 +14,9 @@
 
 <!-- It would be helpful if you could provide any relevant context, such as GitHub issues or related discussions. -->
 
-## Test Plan
+## Checklist
 
-<!-- Can you please describe how you tested the changes you made to the code? -->
+<!--- Check and mark with an "x" -->
 
-## Require Documentation?
-
-<!-- Does this PR require documentation? -->
-
-- [ ] No
-- [ ] Yes, the corresponding rspack-website PR is \_\_
+- [ ] Tests updated (or not required).
+- [ ] Documentation updated (or not required).

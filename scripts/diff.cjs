@@ -6,7 +6,7 @@ const fs = require("fs-extra");
 
 process.env['RSPACK_DIFF'] = "true"; // enable rspack diff injection
 
-const CASE_DIR = path.resolve(__dirname, '../diffcases');
+const CASE_DIR = path.resolve(__dirname, '../tests/diff-test');
 const OUTPUT_DIR = path.join(__dirname, '../diff_output');
 
 (async () => {
@@ -21,7 +21,10 @@ const OUTPUT_DIR = path.join(__dirname, '../diff_output');
     report: true,
   });
   const htmlReporter = new DiffHtmlReporter({
-    dist: OUTPUT_DIR
+    dist: OUTPUT_DIR,
+    ignore: {
+      test: () => false,
+    },
   });
 
   while (cases.length) {
@@ -41,12 +44,12 @@ const OUTPUT_DIR = path.join(__dirname, '../diff_output');
         ignoreSwcHelpersPath: true,
         ignoreObjectPropertySequence: true,
         ignoreCssFilePath: true,
+        detail: false,
         onCompareModules: function (file, results) {
           htmlReporter.increment(name, results);
           statsReporter.increment(name, results);
         },
         onCompareRuntimeModules: function (file, results) {
-          console.log(results);
           htmlReporter.increment(name, results);
           statsReporter.increment(name, results);
         },
@@ -63,7 +66,7 @@ const OUTPUT_DIR = path.join(__dirname, '../diff_output');
       await tester.prepare();
       do {
         await tester.compile();
-        await tester.check();
+        await tester.check({ expect: () => ({ toBe: (() => { }) }) });
       } while (tester.next());
       await tester.resume();
     } catch (e) {

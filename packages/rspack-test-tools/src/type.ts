@@ -1,46 +1,46 @@
+/// <reference types="../jest.d.ts" />
+
+import EventEmitter from "events";
 import {
-	RspackOptions,
 	Compiler as RspackCompiler,
-	Stats as RspackStats
+	RspackOptions,
+	Stats as RspackStats,
+	StatsCompilation as RspackStatsCompilation
 } from "@rspack/core";
 import type {
-	Configuration as WebpackOptions,
 	Compiler as WebpackCompiler,
-	Stats as WebpackStats
+	Configuration as WebpackOptions,
+	Stats as WebpackStats,
+	StatsCompilation as WebpackStatsCompilation
 } from "webpack";
 
+import { IBasicModuleScope, TRunnerRequirer } from "./runner/type";
+
 export interface ITestContext {
-	errors: Error[];
 	getSource(sub?: string): string;
 	getDist(sub?: string): string;
-	options<T extends ECompilerType>(
-		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T>,
-		name?: string
-	): void;
-	compiler<T extends ECompilerType>(
-		fn: (
-			options: TCompilerOptions<T>,
-			compiler: TCompiler<T> | null
-		) => TCompiler<T> | null,
-		name?: string
-	): void;
-	stats<T extends ECompilerType>(
-		fn: (
-			compiler: TCompiler<T> | null,
-			stats: TCompilerStats<T> | null
-		) => TCompilerStats<T> | null,
-		name?: string
-	): void;
-	result<T extends ECompilerType>(
-		fn: <R>(compiler: TCompiler<T> | null, result: R) => R,
-		name?: string
-	): void;
-	build<T extends ECompilerType>(
-		fn: (compiler: TCompiler<T>) => Promise<void>,
-		name?: string
-	): Promise<void>;
-	emitError(err: Error | string): void;
-	hasError(): boolean;
+	getTemp(sub?: string): string | null;
+
+	getCompiler<T extends ECompilerType>(
+		name: string,
+		type: T | void
+	): ITestCompilerManager<T>;
+
+	getTestConfig<T extends ECompilerType>(): TTestConfig<T>;
+	getRunnerFactory<T extends ECompilerType>(
+		name: string
+	): TRunnerFactory<T> | null;
+	getRunner(key: string): ITestRunner | null;
+	setRunner(key: string, runner: ITestRunner): void;
+
+	setValue<T>(name: string, key: string, value: T): void;
+	getValue<T>(name: string, key: string): T | void;
+	getNames(): string[];
+
+	hasError(name?: string): boolean;
+	emitError(name: string, err: Error | string): void;
+	getError(name?: string): Error[];
+	clearError(name?: string): void;
 }
 
 export enum ECompilerType {
@@ -58,51 +58,51 @@ export type TCompilerStats<T> = T extends ECompilerType.Rspack
 	? RspackStats
 	: WebpackStats;
 
+export type TCompilerStatsCompilation<T> = T extends ECompilerType.Rspack
+	? RspackStatsCompilation
+	: WebpackStatsCompilation;
+
 export interface ITestCompilerManager<T extends ECompilerType> {
-	options(
-		context: ITestContext,
-		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T>
-	): void;
-	compiler(
-		context: ITestContext,
-		fn: (
-			options: TCompilerOptions<T>,
-			compiler: TCompiler<T> | null
-		) => TCompiler<T> | null
-	): void;
-	stats(
-		context: ITestContext,
-		fn: (
-			compiler: TCompiler<T> | null,
-			stats: TCompilerStats<T> | null
-		) => TCompilerStats<T> | null
-	): void;
-	result(
-		context: ITestContext,
-		fn: <R>(compiler: TCompiler<T> | null, result: R) => R
-	): void;
-	build(
-		context: ITestContext,
-		fn: (compiler: TCompiler<T>) => Promise<void>
-	): Promise<void>;
+	getOptions(): TCompilerOptions<T>;
+	setOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T>;
+	mergeOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T>;
+	getCompiler(): TCompiler<T> | null;
+	createCompiler(): TCompiler<T>;
+	build(): Promise<TCompilerStats<T>>;
+	watch(timeout?: number): void;
+	getStats(): TCompilerStats<T> | null;
+	getEmitter(): EventEmitter;
+	close(): Promise<void>;
 }
 
 export interface ITestLoader {
 	walk(): Promise<void>;
 }
 
+export type TTestRunResult = Record<string, any>;
+
 export interface ITesterConfig {
 	name: string;
 	src: string;
 	dist: string;
+	temp?: string;
 	steps?: ITestProcessor[];
+	testConfig?: TTestConfig<ECompilerType>;
+	compilerFactories?: TCompilerFactories;
+	contextValue?: Record<string, unknown>;
+	runnerFactory?: new (
+		name: string,
+		context: ITestContext
+	) => TRunnerFactory<ECompilerType>;
 }
 
 export interface ITester {
 	step: number;
+	total: number;
+	getContext(): ITestContext;
 	prepare(): Promise<void>;
 	compile(): Promise<void>;
-	check(): Promise<void>;
+	check(env: ITestEnv): Promise<void>;
 	next(): boolean;
 	resume(): Promise<void>;
 }
@@ -116,8 +116,8 @@ export interface ITestProcessor {
 	config?(context: ITestContext): Promise<void>;
 	compiler?(context: ITestContext): Promise<void>;
 	build?(context: ITestContext): Promise<void>;
-	run?(context: ITestContext): Promise<void>;
-	check?(context: ITestContext): Promise<unknown>;
+	run?(env: ITestEnv, context: ITestContext): Promise<void>;
+	check?(env: ITestEnv, context: ITestContext): Promise<unknown>;
 }
 
 export interface ITestReporter<T> {
@@ -171,3 +171,67 @@ export type TDiffStats = {
 	root: string;
 	data: Array<TDiffStatsItem>;
 };
+
+export interface ITestEnv {
+	expect: jest.Expect;
+	it: (...args: any[]) => void;
+	beforeEach: (...args: any[]) => void;
+	afterEach: (...args: any[]) => void;
+	[key: string]: unknown;
+}
+
+export const enum EDocumentType {
+	Fake = "fake",
+	JSDOM = "jsdom"
+}
+
+export type TTestConfig<T extends ECompilerType> = {
+	documentType?: EDocumentType;
+	validate?: (stats: TCompilerStats<T>, stderr?: string) => void;
+	noTest?: boolean;
+	beforeExecute?: () => void;
+	afterExecute?: () => void;
+	moduleScope?: (ms: IBasicModuleScope) => IBasicModuleScope;
+	findBundle?: (
+		index: number,
+		options: TCompilerOptions<T>
+	) => string | string[];
+	bundlePath?: string[];
+	nonEsmThis?: (p: string | string[]) => Object;
+	modules?: Record<string, Object>;
+	timeout?: number;
+};
+
+export type TTestFilter<T extends ECompilerType> = (
+	creatorConfig: Record<string, unknown>,
+	testConfig: TTestConfig<T>
+) => boolean | string;
+
+export interface ITestRunner {
+	run(file: string): Promise<unknown>;
+	getRequire(): TRunnerRequirer;
+	getGlobal(name: string): unknown;
+}
+
+export type TCompilerFactory<T extends ECompilerType> = (
+	options: TCompilerOptions<T> | TCompilerOptions<T>[]
+) => TCompiler<T>;
+
+export interface TRunnerFactory<T extends ECompilerType> {
+	create(
+		file: string,
+		compilerOptions: TCompilerOptions<T>,
+		env: ITestEnv
+	): ITestRunner;
+}
+
+export type TUpdateOptions = {
+	updateIndex: number;
+	totalUpdates: number;
+	changedFiles: string[];
+};
+
+export type TCompilerFactories = Record<
+	ECompilerType,
+	TCompilerFactory<ECompilerType>
+>;

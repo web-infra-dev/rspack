@@ -5,12 +5,5 @@ test("should update body css", async ({ page, fileAction, rspack }) => {
 	fileAction.updateFile("src/index.css", content =>
 		content.replace("block", "flex")
 	);
-	await rspack.waitingForHmr(async function () {
-		try {
-			await expect(page.locator("body")).toHaveCSS("display", "flex");
-			return true;
-		} catch (e) {
-			return false;
-		}
-	});
+	await expect(page.locator("body")).toHaveCSS("display", "flex");
 });

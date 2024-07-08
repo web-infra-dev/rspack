@@ -10,11 +10,11 @@ inputs:
     required: true
     type: string
   profile:
-    default: 'release'
+    default: "release"
     required: false
     type: string
   options:
-    description: 'Options for docker'
+    description: "Options for docker"
     default: ""
     required: false
     type: string
@@ -41,15 +41,27 @@ runs:
           fi
           ${{ inputs.pre }}
           rustup target add ${{ inputs.target }}
+
+          # corepack > 0.24.1 will use native fetch
+          # and native fetch not support HTTP_PROXY
+          # https://github.com/nodejs/undici/issues/1650
+          npm install -g corepack@0.24.1
           corepack enable
+
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
           ${{ inputs.post }}
         '
+        if [[ ! -n "$CARGO_HOME" ]]; then
+          CARGO_HOME="$(dirname $(dirname $(which cargo)))"
+        fi
 
         docker run \
           --rm \
           --privileged \
           --user 0:0 \
+          -v $CARGO_HOME/registry/index:/usr/local/cargo/registry/index \
+          -v $CARGO_HOME/registry/cache:/usr/local/cargo/registry/cache \
+          -v $CARGO_HOME/git/db:/usr/local/cargo/git/db \
           ${{ inputs.options }} \
           -e CI=1 \
           -e HOME=$HOME \

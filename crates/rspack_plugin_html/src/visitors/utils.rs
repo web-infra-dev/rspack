@@ -1,4 +1,4 @@
-use swc_core::{common::DUMMY_SP, ecma::atoms::JsWord};
+use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
 use swc_html::ast::{Attribute, Element, Namespace};
 
 use super::asset::{HTMLPluginTag, HtmlPluginAttribute};
@@ -10,7 +10,7 @@ pub fn create_attribute(name: &str, value: &Option<String>) -> Attribute {
     prefix: None,
     name: name.into(),
     raw_name: None,
-    value: value.as_ref().map(|str| JsWord::from(str.as_str())),
+    value: value.as_ref().map(|str| Atom::from(str.as_str())),
     raw_value: None,
   }
 }
@@ -24,7 +24,7 @@ pub fn create_attributes(attrs: &[HtmlPluginAttribute]) -> Vec<Attribute> {
 
 pub fn create_element(tag: &HTMLPluginTag) -> Element {
   Element {
-    tag_name: JsWord::from(&*tag.tag_name),
+    tag_name: Atom::from(&*tag.tag_name),
     attributes: create_attributes(&tag.attributes),
     children: vec![],
     content: None,

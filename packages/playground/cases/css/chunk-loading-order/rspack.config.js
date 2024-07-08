@@ -7,7 +7,6 @@ module.exports = {
 	devServer: {
 		hot: true
 	},
-	cache: false,
 	stats: "none",
 	plugins: [new rspack.HtmlRspackPlugin()],
 	watchOptions: {
@@ -27,5 +26,8 @@ module.exports = {
 				}
 			}
 		}
+	},
+	experiments: {
+		css: true
 	}
 };

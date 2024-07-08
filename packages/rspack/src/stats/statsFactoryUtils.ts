@@ -1,28 +1,44 @@
 import * as binding from "@rspack/binding";
+
+import type { Compilation, NormalizedStatsOptions } from "../Compilation";
 import {
 	type Comparator,
-	compareSelect,
-	compareIds
+	compareIds,
+	compareSelect
 } from "../util/comparators";
-import type { Compilation } from "../Compilation";
-import type { StatsOptions } from "../config";
-
 import type { StatsFactory, StatsFactoryContext } from "./StatsFactory";
 
 export type KnownStatsChunkGroup = binding.JsStatsChunkGroup;
 
-export type KnownStatsChunk = binding.JsStatsChunk;
+export type KnownStatsChunk = Omit<binding.JsStatsChunk, "sizes"> & {
+	sizes: Record<string, number>;
+};
+
+export type KnownStatsAssetInfo = Omit<binding.JsStatsAssetInfo, "related"> & {
+	related: Record<string, string[]>;
+};
 
 export type StatsChunkGroup = binding.JsStatsChunkGroup & Record<string, any>;
 
-export type KnownStatsAsset = binding.JsStatsAsset;
+export type KnownStatsAsset = Omit<binding.JsStatsAsset, "info"> & {
+	info: KnownStatsAssetInfo;
+};
 
 export type StatsAsset = KnownStatsAsset & Record<string, any>;
 
 export type StatsChunk = KnownStatsChunk & Record<string, any>;
 
-export type KnownStatsModule = binding.JsStatsModule & {
+export type KnownStatsModule = Omit<
+	binding.JsStatsModule,
+	"usedExports" | "providedExports" | "optimizationBailout" | "sizes"
+> & {
 	profile?: StatsProfile;
+	usedExports?: null | string[] | boolean;
+	providedExports?: null | string[];
+	optimizationBailout?: null | string[];
+	sizes: Record<string, number>;
+	index?: number; // =preOrderIndex
+	index2?: number; // =postOrderIndex
 };
 
 export type StatsProfile = KnownStatsProfile & Record<string, any>;
@@ -30,7 +46,6 @@ export type StatsProfile = KnownStatsProfile & Record<string, any>;
 export type KnownStatsProfile = {
 	total: number;
 	resolving: number;
-	integration: number;
 	building: number;
 };
 
@@ -123,6 +138,7 @@ type ExtractorsByOption<T, O> = {
 type PreprocessedAsset = StatsAsset & {
 	type: string;
 	related: PreprocessedAsset[];
+	info: binding.JsStatsAssetInfo;
 };
 
 export type SimpleExtractors = {
@@ -147,60 +163,11 @@ export type SimpleExtractors = {
 		binding.JsStatsModuleReason,
 		StatsModuleReason
 	>;
-	chunk: ExtractorsByOption<StatsChunk, KnownStatsChunk>;
+	chunk: ExtractorsByOption<binding.JsStatsChunk, KnownStatsChunk>;
 	// chunkOrigin: ExtractorsByOption<OriginRecord, StatsChunkOrigin>;
 	// error: ExtractorsByOption<binding.JsStatsError, StatsError>;
 	// warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;
 };
-
-// todo: need implement normalize stats options in DefaultStatsPresetPlugin
-type KnownNormalizedStatsOptions = {
-	context: string;
-	// requestShortener: any;
-	// chunksSort: string;
-	// modulesSort: string;
-	// chunkModulesSort: string;
-	// nestedModulesSort: string;
-	// assetsSort: string;
-	// ids: boolean;
-	// cachedAssets: boolean;
-	// groupAssetsByEmitStatus: boolean;
-	// groupAssetsByPath: boolean;
-	// groupAssetsByExtension: boolean;
-	// assetsSpace: number;
-	// excludeAssets: ((value: string, asset: StatsAsset) => boolean)[];
-	// excludeModules: ((
-	// 	name: string,
-	// 	module: StatsModule,
-	// 	type: "module" | "chunk" | "root-of-chunk" | "nested"
-	// ) => boolean)[];
-	// warningsFilter: ((warning: StatsError, textValue: string) => boolean)[];
-	// cachedModules: boolean;
-	// orphanModules: boolean;
-	// dependentModules: boolean;
-	// runtimeModules: boolean;
-	// groupModulesByCacheStatus: boolean;
-	// groupModulesByLayer: boolean;
-	// groupModulesByAttributes: boolean;
-	// groupModulesByPath: boolean;
-	// groupModulesByExtension: boolean;
-	// groupModulesByType: boolean;
-	// entrypoints: boolean | "auto";
-	// chunkGroups: boolean;
-	// chunkGroupAuxiliary: boolean;
-	// chunkGroupChildren: boolean;
-	// chunkGroupMaxAssets: number;
-	// modulesSpace: number;
-	// chunkModulesSpace: number;
-	// nestedModulesSpace: number;
-	// logging: false | "none" | "error" | "warn" | "info" | "log" | "verbose";
-	// loggingDebug: ((value: string) => boolean)[];
-	// loggingTrace: boolean;
-};
-
-export type NormalizedStatsOptions = KnownNormalizedStatsOptions &
-	Omit<StatsOptions, keyof KnownNormalizedStatsOptions> &
-	Record<string, any>;
 
 export const uniqueArray = <T, I>(
 	items: Iterable<T>,
@@ -303,8 +270,8 @@ const getItemSize = (item: Child) => {
 	return !item.children
 		? 1
 		: item.filteredChildren
-		? 2 + getTotalSize(item.children)
-		: 1 + getTotalSize(item.children);
+			? 2 + getTotalSize(item.children)
+			: 1 + getTotalSize(item.children);
 };
 
 export const spaceLimited = (
@@ -498,12 +465,12 @@ export const assetGroup = (children: StatsAsset[]) => {
 
 export const moduleGroup = (children: KnownStatsModule[]) => {
 	let size = 0;
-	const sizes = {};
+	const sizes: Record<string, number> = {};
 	for (const module of children) {
 		size += module.size;
-		// for (const key of Object.keys(module.sizes)) {
-		// 	sizes[key] = (sizes[key] || 0) + module.sizes[key];
-		// }
+		for (const key of Object.keys(module.sizes)) {
+			sizes[key] = (sizes[key] || 0) + module.sizes[key];
+		}
 	}
 	return {
 		size,

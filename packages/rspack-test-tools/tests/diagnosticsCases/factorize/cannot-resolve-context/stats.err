@@ -1,0 +1,9 @@
+ERROR in ./index.js
+  × Resolve error: Can't resolve './test' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-context'
+   ╭─[1:1]
+ 1 │ // should not panic
+ 2 │ 
+ 3 │ require.context("./test", false, //.test/.js$/);
+   · ───────────────────────────────────────────────
+ 4 │ 
+   ╰────

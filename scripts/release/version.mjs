@@ -1,6 +1,6 @@
-import semver from "semver";
 import path from "path";
 import { findWorkspacePackagesNoCheck } from "@pnpm/find-workspace-packages";
+import semver from "semver";
 
 async function getCommitId() {
 	const result = await $`git rev-parse --short HEAD`;
@@ -15,6 +15,15 @@ export async function getLastVersion(root) {
 	});
 	return result.default.version;
 }
+
+export function getNextName(name) {
+	if (["monorepo"].includes(name)) {
+		return name;
+	}
+	const nextName = name + "-canary";
+	return nextName;
+}
+
 export async function getSnapshotVersion(lastVersion) {
 	const commitId = await getCommitId();
 	const dateTime = new Date()
@@ -35,7 +44,7 @@ export async function version_handler(version) {
 	const lastVersion = await getLastVersion(root);
 	let nextVersion;
 	if (version === "snapshot") {
-		nextVersion = await getSnapshotVersion(lastVersion);
+		nextVersion = await getSnapshotVersion(semver.inc(lastVersion, "patch"));
 	} else {
 		nextVersion = semver.inc(lastVersion, version);
 	}
@@ -49,10 +58,22 @@ export async function version_handler(version) {
 		) {
 			continue;
 		}
-		const newManifest = {
-			...workspace.manifest,
-			version: nextVersion
-		};
+		let newManifest;
+
+		if (version === "snapshot") {
+			const nextName = getNextName(workspace.manifest.name);
+			newManifest = {
+				...workspace.manifest,
+				name: nextName,
+				version: nextVersion
+			};
+		} else {
+			newManifest = {
+				...workspace.manifest,
+				version: nextVersion
+			};
+		}
+		console.log(newManifest.name);
 		workspace.writeProjectManifest(newManifest);
 	}
 }

@@ -1,0 +1,23 @@
+{
+  "compatible": "兼容",
+  "alternative": "有替代",
+  "included": "已内置",
+  "babel-loader-description": "内部使用 SWC 实现了 babel-loader 的大部分转换功能",
+  "babel-loader-remark": "babel-loader 对性能影响较大，请谨慎使用",
+  "html-webpack-plugin-desc": "在 v0.3.3 已实现对该插件的支持，请升级 Rspack 版本来使用",
+  "sentry_webpack-plugin-desc": "在 v0.3.3 已实现对该插件 v1.20.1 以上版本的支持",
+  "copy-plugin-desc": "使用 [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 替代",
+  "mini-css-extract-plugin-desc": "使用 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) 替代",
+  "terser-webpack-plugin-desc": "Rspack 提供 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 以带来更好的性能",
+  "css-minimizer-webpack-plugin-desc": "Rspack 提供 [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 和 [SwcCssMinimizerRspackPlugin](/plugins/rspack/swc-css-minimizer-rspack-plugin) 以带来更好的性能",
+  "tsconfig-paths-webpack-plugin-desc": "使用 [resolve.tsConfig](/config/resolve#resolvetsconfig) 替代",
+  "case-sensitive-paths-webpack-plugin-desc": "不支持 `useBeforeEmitHook` 选项",
+  "moment-locales-webpack-plugin-desc": "在 v0.7.0 已实现对该插件的支持，请升级 Rspack 版本来使用",
+  "image-minimizer-webpack-plugin-desc": "仅支持 [loader](https://www.npmjs.com/package/image-minimizer-webpack-plugin#standalone-loader) 用法",
+  "resolve-plugin-un-support-desc": "不支持 `resolve.plugins`",
+  "progress-plugin-function-un-support-desc": "rspack.ProgressPlugin `function` 选项不支持",
+  "webpack-virtual-modules-desc": "使用 [rspack-plugin-virtual-module](https://github.com/rspack-contrib/rspack-plugins/tree/main/packages/plugin-virtual-module) 替代",
+  "webpack-manifest-plugin-desc": "使用 [rspack-manifest-plugin](https://github.com/rspack-contrib/rspack-manifest-plugin) 替代",
+  "workbox-webpack-plugin-desc": "使用 [@aaroon/workbox-rspack-plugin](https://github.com/Clarkkkk/workbox-rspack-plugin) 替代",
+  "react-refresh-webpack-plugin-desc": "使用 [@rspack/plugin-react-refresh](/guide/tech/react#rspackplugin-react-refresh) 替代"
+}

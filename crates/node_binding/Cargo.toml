@@ -9,38 +9,34 @@ version    = "0.1.0"
 [lib]
 crate-type = ["cdylib"]
 
+[features]
+default = []
+plugin  = ["rspack_binding_options/plugin"]
+
 [dependencies]
-rspack_binding_macros  = { path = "../rspack_binding_macros" }
-rspack_binding_options = { path = "../rspack_binding_options" }
-rspack_binding_values  = { path = "../rspack_binding_values" }
-rspack_core            = { path = "../rspack_core" }
-rspack_error           = { path = "../rspack_error" }
-rspack_fs_node         = { path = "../rspack_fs_node" }
-rspack_identifier      = { path = "../rspack_identifier" }
-rspack_napi_shared     = { path = "../rspack_napi_shared" }
-rspack_tracing         = { path = "../rspack_tracing" }
+rspack_allocator         = { path = "../rspack_allocator" }
+rspack_binding_options   = { path = "../rspack_binding_options" }
+rspack_binding_values    = { path = "../rspack_binding_values" }
+rspack_core              = { path = "../rspack_core" }
+rspack_error             = { path = "../rspack_error" }
+rspack_fs_node           = { path = "../rspack_fs_node" }
+rspack_hash              = { path = "../rspack_hash" }
+rspack_hook              = { path = "../rspack_hook" }
+rspack_identifier        = { path = "../rspack_identifier" }
+rspack_napi              = { path = "../rspack_napi" }
+rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
+rspack_tracing           = { path = "../rspack_tracing" }
+tokio                    = { workspace = true, features = ["rt", "rt-multi-thread"] }
 
 async-trait = { workspace = true }
-dashmap     = { workspace = true }
-futures     = { workspace = true }
 once_cell   = { workspace = true }
-rustc-hash  = { workspace = true }
 tracing     = { workspace = true }
 
 napi        = { workspace = true }
 napi-derive = { workspace = true }
-napi-sys    = { workspace = true }
 
 color-backtrace = "0.6"
 
-[target.'cfg(not(target_os = "linux"))'.dependencies]
-mimalloc-rust = { workspace = true }
-
-[target.'cfg(all(target_os = "linux", target_env = "gnu", any(target_arch = "x86_64", target_arch = "aarch64")))'.dependencies]
-tikv-jemallocator = { workspace = true }
 
 [build-dependencies]
 napi-build = { workspace = true }
-
-[dev-dependencies]
-testing_macros = { workspace = true }

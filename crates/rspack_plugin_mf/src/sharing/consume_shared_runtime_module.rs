@@ -10,7 +10,8 @@ use rustc_hash::FxHashMap;
 use super::consume_shared_plugin::ConsumeVersion;
 use crate::utils::json_stringify;
 
-#[derive(Debug, Eq)]
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct ConsumeSharedRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -19,11 +20,11 @@ pub struct ConsumeSharedRuntimeModule {
 
 impl ConsumeSharedRuntimeModule {
   pub fn new(enhanced: bool) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/consumes_loading"),
-      chunk: None,
+    Self::with_default(
+      Identifier::from("webpack/runtime/consumes_loading"),
+      None,
       enhanced,
-    }
+    )
   }
 }
 
@@ -36,11 +37,12 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+    let module_graph = compilation.get_module_graph();
     let mut chunk_to_module_mapping = FxHashMap::default();
     let mut module_id_to_consume_data_mapping = FxHashMap::default();
     let mut initial_consumes = Vec::new();
@@ -74,12 +76,15 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .get_chunk_modules_iterable_by_source_type(
           &chunk,
           SourceType::ConsumeShared,
-          &compilation.module_graph,
+          &module_graph,
         );
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       let mut ids = vec![];
       for module in modules {
         add_module(module.identifier(), chunk, &mut ids);
+      }
+      if ids.is_empty() {
+        continue;
       }
       chunk_to_module_mapping.insert(
         chunk
@@ -95,7 +100,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .get_chunk_modules_iterable_by_source_type(
           &chunk,
           SourceType::ConsumeShared,
-          &compilation.module_graph,
+          &module_graph,
         );
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       for module in modules {
@@ -103,7 +108,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       }
     }
     if module_id_to_consume_data_mapping.is_empty() {
-      return RawSource::from("").boxed();
+      return Ok(RawSource::from("").boxed());
     }
     let module_id_to_consume_data_mapping = module_id_to_consume_data_mapping
       .into_iter()
@@ -125,9 +130,9 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
         .runtime_requirements
         .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       {
-        source += "__webpack_require__.f.consumes = function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
+        source += "__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
       }
-      return RawSource::from(source).boxed();
+      return Ok(RawSource::from(source).boxed());
     }
     source += include_str!("./consumesCommon.js");
     if !initial_consumes.is_empty() {
@@ -141,15 +146,13 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
     {
       source += include_str!("./consumesLoading.js");
     }
-    RawSource::from(source).boxed()
+    Ok(RawSource::from(source).boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(ConsumeSharedRuntimeModule);
 
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataConsumeShared {

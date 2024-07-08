@@ -8,7 +8,8 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
-#[derive(Debug, Eq)]
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct StartupChunkDependenciesRuntimeModule {
   id: Identifier,
   async_chunk_loading: bool,
@@ -17,11 +18,11 @@ pub struct StartupChunkDependenciesRuntimeModule {
 
 impl StartupChunkDependenciesRuntimeModule {
   pub fn new(async_chunk_loading: bool) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/startup_chunk_dependencies"),
+    Self::with_default(
+      Identifier::from("webpack/runtime/startup_chunk_dependencies"),
       async_chunk_loading,
-      chunk: None,
-    }
+      None,
+    )
   }
 }
 
@@ -30,7 +31,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk_ids = compilation
         .chunk_graph
@@ -40,11 +41,11 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           &compilation.chunk_group_by_ukey,
         )
         .map(|chunk_ukey| {
-          let chunk = compilation
+          compilation
             .chunk_by_ukey
-            .get(&chunk_ukey)
-            .expect("Chunk not found");
-          chunk.expect_id().to_string()
+            .expect_get(&chunk_ukey)
+            .expect_id()
+            .to_string()
         })
         .collect::<Vec<_>>();
 
@@ -77,16 +78,18 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           .join("\n")
       };
 
-      RawSource::from(format!(
-        r#"var next = {};
+      Ok(
+        RawSource::from(format!(
+          r#"var next = {};
         {} = function() {{
           {}
         }};"#,
-        RuntimeGlobals::STARTUP,
-        RuntimeGlobals::STARTUP,
-        body
-      ))
-      .boxed()
+          RuntimeGlobals::STARTUP,
+          RuntimeGlobals::STARTUP,
+          body
+        ))
+        .boxed(),
+      )
     } else {
       unreachable!("should have chunk for StartupChunkDependenciesRuntimeModule")
     }
@@ -96,5 +99,3 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(StartupChunkDependenciesRuntimeModule);

@@ -4,7 +4,7 @@ description: Install Node.js with pnpm global cache
 
 inputs:
   node-version:
-    default: '16'
+    default: "20"
     required: false
     type: string
   frozen-lockfile:
@@ -20,30 +20,36 @@ runs:
   using: composite
   steps:
     - name: Install Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
 
     # https://pnpm.io/continuous-integration#github-actions
     # Uses `packageManagement` field from package.json
     - name: Install pnpm
-      uses: pnpm/action-setup@v2
+      uses: pnpm/action-setup@v4
       with:
         dest: ${{ runner.tool_cache }}/pnpm
+        # Use `@pnpm/exe` for Node 16
+        standalone: ${{ inputs.node-version == '16' }}
 
     - name: Get pnpm store directory
       id: pnpm-cache
       shell: bash
       run: |
-        # set cache-dir to .cache
-        pnpm config set store-dir ~/.cache/pnpm/$(pnpm -v) --location project
+        # set store-dir to $(pnpm config get store-dir)/$(pnpm -v)
+        global_store_path=$(pnpm config get store-dir)
+        if [ -z "${global_store_path}" ] || [ "${global_store_path}" = "undefined" ]; then
+          global_store_path=~/.cache/pnpm
+        fi
+        pnpm config set store-dir $global_store_path/$(pnpm -v) --location project
         echo "STORE_PATH is $(pnpm store path)"
         echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
     - name: Restore pnpm cache
       id: restore
       if: ${{ startsWith(runner.name, 'GitHub Actions') }}
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
         key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
@@ -60,7 +66,7 @@ runs:
         fi
 
     - name: Save pnpm cache
-      uses: actions/cache/save@v3
+      uses: actions/cache/save@v4
       if: ${{ startsWith(runner.name, 'GitHub Actions') && inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}

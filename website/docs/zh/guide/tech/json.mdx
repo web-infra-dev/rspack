@@ -1,0 +1,31 @@
+# JSON
+
+JSON 是 Rspack 的一等公民，你可以直接导入，例如：
+
+## 默认导入
+
+```json title="example.json"
+{
+  "foo": "bar"
+}
+```
+
+```ts title="index.js"
+import json from './example.json';
+console.log(json.foo); // "bar"
+```
+
+## 具名导入
+
+在非 `.mjs` 的非严格 ESM 文件中，你可以直接导入 JSON 中的属性。
+
+```json title="example.json"
+{
+  "foo": "bar"
+}
+```
+
+```ts title="index.js"
+import { foo } from './example.json';
+console.log(foo); // "bar"
+```

@@ -1,5 +1,6 @@
 const rspack = require("@rspack/core");
 const path = require("path");
+const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
 
 const prod = process.env.NODE_ENV === "production";
 
@@ -9,13 +10,13 @@ module.exports = {
 	},
 	resolve: {
 		extensions: ["*", ".js", ".jsx", ".tsx", ".ts"],
-		tsConfigPath: path.resolve(__dirname, "tsconfig.assets.json")
+		tsConfig: path.resolve(__dirname, "tsconfig.assets.json")
 	},
 	devtool: false,
 	output: {
 		globalObject: "self",
 		filename: "[name].bundle.js",
-		path: path.resolve(__dirname, "dist/viewer")
+		path: path.resolve(__dirname, "template")
 	},
 	module: {
 		rules: [
@@ -24,7 +25,7 @@ module.exports = {
 				exclude: [/[\\/]node_modules[\\/]/],
 				loader: "builtin:swc-loader",
 				options: {
-					sourceMap: false,
+					sourceMaps: false,
 					jsc: {
 						parser: {
 							syntax: "typescript"
@@ -41,7 +42,7 @@ module.exports = {
 				loader: "builtin:swc-loader",
 				exclude: [/[\\/]node_modules[\\/]/],
 				options: {
-					sourceMap: false,
+					sourceMaps: false,
 					jsc: {
 						parser: {
 							syntax: "typescript",
@@ -71,6 +72,9 @@ module.exports = {
 		new rspack.HtmlRspackPlugin({
 			template: "./viewer/templates/diff.html",
 			filename: "[name].html"
+		}),
+		new MonacoWebpackPlugin({
+			languages: ["javascript"]
 		})
 	]
 };

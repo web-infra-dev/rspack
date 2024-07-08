@@ -1,0 +1,28 @@
+```js title=main.js
+"use strict";
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./index.js": (function (module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _v128_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./v128.wasm");
+var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_v128_wasm__WEBPACK_IMPORTED_MODULE_0__]);
+_v128_wasm__WEBPACK_IMPORTED_MODULE_0__ = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];
+
+console.log(_v128_wasm__WEBPACK_IMPORTED_MODULE_0__["default"].x);
+
+__webpack_async_result__();
+} catch(e) { __webpack_async_result__(e); } });
+
+}),
+"./v128.wasm": (function (module, exports, __webpack_require__) {
+ module.exports = __webpack_require__.v(exports, module.id, "296add7190111276" );
+
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

@@ -25,10 +25,6 @@ impl CssImportDependency {
 }
 
 impl Dependency for CssImportDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "CssImportDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -67,6 +63,10 @@ impl DependencyTemplate for CssImportDependency {
     _code_generatable_context: &mut TemplateContext,
   ) {
     source.replace(self.start, self.end, "", None);
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

@@ -1,0 +1,23 @@
+{
+  "compatible": "compatible",
+  "alternative": "alternative",
+  "included": "included",
+  "babel-loader-description": "SWC has been used internally to implement babel-loader with most of its conversion capabilities",
+  "babel-loader-remark": "Be cautious of the performance impact of babel-loader",
+  "html-webpack-plugin-desc": "Support for this plugin was implemented in v0.3.3, please upgrade the Rspack version to use it",
+  "sentry_webpack-plugin-desc": "Support for the plugin version v1.20.1 and above has been implemented in v0.3.3",
+  "copy-plugin-desc": "Use [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead",
+  "mini-css-extract-plugin-desc": "Use [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) instead",
+  "terser-webpack-plugin-desc": "Rspack provides [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) to deliver better performance",
+  "css-minimizer-webpack-plugin-desc": "Rspack provides [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) and [SwcCssMinimizerRspackPlugin](/plugins/rspack/swc-css-minimizer-rspack-plugin) to deliver better performance",
+  "tsconfig-paths-webpack-plugin-desc": "Use [resolve.tsConfig](/config/resolve#resolvetsconfig) instead",
+  "image-minimizer-webpack-plugin-desc": "Only supports using [loader](https://www.npmjs.com/package/image-minimizer-webpack-plugin#standalone-loader) standalone",
+  "case-sensitive-paths-webpack-plugin-desc": "`useBeforeEmitHook` option not supported",
+  "moment-locales-webpack-plugin-desc": "Support for this plugin was implemented in v0.7.0, please upgrade the Rspack version to use it",
+  "resolve-plugin-un-support-desc": "`resolve.plugins` option not supported",
+  "progress-plugin-function-un-support-desc": "rspack.ProgressPlugin `function` option not supported",
+  "webpack-virtual-modules-desc": "Use [rspack-plugin-virtual-module](https://github.com/rspack-contrib/rspack-plugins/tree/main/packages/plugin-virtual-module) instead",
+  "webpack-manifest-plugin-desc": "Use [rspack-manifest-plugin](https://github.com/rspack-contrib/rspack-manifest-plugin) instead",
+  "workbox-webpack-plugin-desc": "Use [@aaroon/workbox-rspack-plugin](https://github.com/Clarkkkk/workbox-rspack-plugin) instead",
+  "react-refresh-webpack-plugin-desc": "Use [@rspack/plugin-react-refresh](/guide/tech/react#rspackplugin-react-refresh) instead"
+}

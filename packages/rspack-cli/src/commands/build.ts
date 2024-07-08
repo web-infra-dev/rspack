@@ -1,8 +1,13 @@
 import * as fs from "fs";
-import type { RspackCLI } from "../rspack-cli";
-import { RspackCommand } from "../types";
-import { commonOptions } from "../utils/options";
 import { MultiStats, Stats } from "@rspack/core";
+
+import type { RspackCLI } from "../cli";
+import { RspackCommand } from "../types";
+import {
+	commonOptions,
+	ensureEnvObject,
+	setBuiltinEnvArg
+} from "../utils/options";
 
 export class BuildCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
@@ -18,9 +23,21 @@ export class BuildCommand implements RspackCommand {
 					},
 					json: {
 						describe: "emit stats json"
+					},
+					profile: {
+						type: "boolean",
+						default: false,
+						describe: "capture timing information for each module"
 					}
 				}),
 			async options => {
+				const env = ensureEnvObject(options);
+				if (options.watch) {
+					setBuiltinEnvArg(env, "WATCH", true);
+				} else {
+					setBuiltinEnvArg(env, "BUNDLE", true);
+					setBuiltinEnvArg(env, "BUILD", true);
+				}
 				const logger = cli.getLogger();
 				let createJsonStringifyStream: typeof import("@discoveryjs/json-ext").stringifyStream;
 				if (options.json) {
@@ -47,10 +64,10 @@ export class BuildCommand implements RspackCommand {
 								children: compiler.compilers.map(compiler =>
 									compiler.options ? compiler.options.stats : undefined
 								)
-						  }
+							}
 						: compiler.options
-						? compiler.options.stats
-						: undefined;
+							? compiler.options.stats
+							: undefined;
 					if (options.json && createJsonStringifyStream) {
 						const handleWriteError = (error: Error) => {
 							logger.error(error);
@@ -93,12 +110,26 @@ export class BuildCommand implements RspackCommand {
 					errorHandler
 				);
 
-				if (!compiler) return;
-				if (cli.isWatch(compiler)) {
+				if (!compiler || cli.isWatch(compiler)) {
 					return;
-				} else {
-					compiler.run(errorHandler);
 				}
+
+				compiler.run(
+					(error: Error | null, stats: Stats | MultiStats | undefined) => {
+						// If there is a compilation error, the close method should not be called,
+						// Otherwise Rspack may generate invalid caches.
+						if (error || stats?.hasErrors()) {
+							errorHandler(error, stats);
+						} else {
+							compiler.close(closeErr => {
+								if (closeErr) {
+									logger.error(closeErr);
+								}
+								errorHandler(error, stats);
+							});
+						}
+					}
+				);
 			}
 		);
 	}

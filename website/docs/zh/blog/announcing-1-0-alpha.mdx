@@ -1,0 +1,267 @@
+---
+date: 2024-06-28 16:00:00
+---
+
+import { PackageManagerTabs } from '@theme';
+
+# Rspack v1.0 Alpha 发布公告
+
+> 2024 年 6 月 28 日
+
+![](https://assets.rspack.dev/rspack/rspack-banner-v1-0-alpha.png)
+
+Rspack 1.0 alpha 现已发布至 npm！
+
+在发布 Rspack 1.0 稳定版之前，我们将进行 1～2 个月的测试，以改进 1.0 版本的 API 稳定性和可靠性，并验证对下游项目的影响。
+
+Rspack 1.0 稳定版预计于今年 8 月推出。这将是一个重要的里程碑，意味着 Rspack 已经实现了 webpack 主要的功能和 API，能够帮助成千上万的 webpack 项目平滑地迁移，并获得显著的构建性能提升。
+
+## 产物优化
+
+Rspack 1.0 默认在 production 构建时开启 `optimization.concatenateModules`，这个选项用于启用 module concatenation 优化，也被称为作用域提升（Scope Hoisting）。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    // 现在在生产中默认启用
+    concatenateModules: mode === 'production',
+  },
+};
+```
+
+Module concatenation 的作用是将多个模块合并到一个函数中，从而减少浏览器解析和执行 JavaScript 代码的开销。合并模块后，可以减少一些冗余的代码，比如模块间的导入和导出语句，这样可以进一步减小打包后的产物体积。
+
+开启 module concatenation 后，Rspack 的产物体积可以减少约 **4% ～ 10%**（before Gzip）。
+
+当前 Rspack 已经对标 webpack 实现了绝大多数的优化策略，在未来的版本中，Rspack 将在 webpack 的基础上进行探索和改进，以提供更深度的优化和更小的产物体积。
+
+## 内置 Lightning CSS
+
+Rspack 1.0 内置支持了 [Lightning CSS](https://github.com/parcel-bundler/lightningcss)。Lightning CSS 是一个用 Rust 编写的高性能 CSS 解析器、转换器、打包器和压缩器。
+
+Rspack 新版本实现了基于 Lightning CSS 的 CSS 压缩插件，并将其作为 Rspack 的默认 CSS 压缩器。与之前使用的 SWC CSS 压缩插件相比，它进行了更多的优化，能够使 CSS 产物更小。
+
+```diff title="rspack.config.mjs"
+export default {
+  optimization: {
+    minimizer: [
+      // 默认的 CSS 压缩器已更改：
+-     new rspack.SwcCssMinimizerRspackPlugin()
++     new rspack.LightningCssMinimizerRspackPlugin()
+    ],
+  },
+};
+```
+
+你也可以通过如下方式切换回 `SwcCssMinimizerRspackPlugin`
+
+```js
+export default {
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new rspack.SwcCssMinimizerRspackPlugin(),
+    ],
+  },
+};
+```
+
+例如，Rspack 已经能够对 CSS 模块进行 tree shaking 优化，但这仅能删除 JS 文件未引用的 CSS Modules 类名。使用 Lightning CSS 的 [unusedSymbols](https://lightningcss.dev/minification.html#unused-symbols) 选项后，Rspack 现在可以消除 CSS Modules 文件中未使用的声明，包括 ID、keyframes、CSS variables 或其他 CSS identifiers。
+
+我们相信 Lightning CSS 将成为下一代构建工具的基石，Rspack 将基于 Lightning CSS 支持更多 CSS 编译能力。感谢 [@devongovett](https://github.com/devongovett) 创造了这样优秀的工具。
+
+## 精简核心
+
+为了使 Rspack v1 能够保持长期稳定，我们移除了一些 Rspack core 内置的非核心功能，使 core 保持精简，并专注于提供 bundler 层面的通用能力。
+
+在 0.x 版本中，Rspack core 内置了部分 SWC 插件，用于支持 Emotion、Styled Components 和 Relay，这是因为 Rspack 早期尚未支持使用 SWC Wasm 插件，只能在 core 中集成它们。
+
+目前 Rspack 已支持通过 `builtin:swc-loader` 的 [experimental.plugins](/guide/features/builtin-swc-loader#jscexperimentalplugins) 来使用 SWC 插件，因此我们移除了 Rspack core 内置的插件，包括：
+
+- [@swc/plugin-emotion](https://www.npmjs.com/package/@swc/plugin-emotion)
+- [@swc/plugin-relay](https://www.npmjs.com/package/@swc/plugin-relay)
+- [@swc/plugin-styled-components](https://www.npmjs.com/package/@swc/plugin-styled-components)
+
+以 `@swc/plugin-styled-components` 为例，在 v1.0 中可以通过如下方式使用。
+
+- 安装：
+
+```bash
+npm i @swc/plugin-styled-components -D
+```
+
+- 配置：
+
+```diff title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.jsx?$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           styledComponents: {},
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-styled-components", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+## CSS 打包
+
+Rspack 1.0 对齐了 webpack 的 [experiment.css](/config/experiments#experimentscss) 默认值，这使得从 webpack 迁移到 Rspack 更加容易。
+
+在 webpack 生态中，有三种常用的方式来打包 CSS 文件：
+
+1. 使用 [css-loader](https://github.com/webpack-contrib/css-loader) 和 [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin)，生成独立的 CSS 文件。
+2. 使用 [css-loader](https://github.com/webpack-contrib/css-loader) 和 [style-loader](https://github.com/webpack-contrib/style-loader)，将 CSS 通过 `<style>` 标签注入。
+3. 使用 [experiment.css](/config/experiments#experimentscss)，这是 webpack 5 引入的实验性功能，提供 CSS 原生支持。
+
+在 0.x 版本中，Rspack 默认启用了 `experiment.css`，这会与 css-loader 产生冲突。用户需要手动关闭 `experiment.css` 才能使用 css-loader。
+
+从 Rspack 1.0 开始，`experiment.css` 的默认值变更为 `false`，与 webpack 保持一致，并允许用户使用以上任意一种方法。
+
+你可以添加以下配置来继续使用 `experiment.css`：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    css: true,
+  },
+};
+```
+
+## 如何升级
+
+安装 Rspack 和 Rspack CLI 的 alpha 版本：
+
+```bash
+# npm
+npm add -D --save-exact @rspack/core@alpha @rspack/cli@alpha
+
+# yarn
+yarn add -D --save-exact @rspack/core@alpha @rspack/cli@alpha
+
+# pnpm
+pnpm add -D --save-exact @rspack/core@alpha @rspack/cli@alpha
+```
+
+在 Rspack alpha 测试的过程中，新版本仍会引入少量不兼容更新。我们会在更新日志中标注这些变更。因此，在升级版本之前，请阅读更新日志以了解具体差异。
+
+对于使用 Rsbuild 的用户，请等待 Rsbuild 1.0 Alpha 版本发布（预计在 1～2 周以后）。
+
+## 不兼容更新
+
+### resolve.tsConfigPath
+
+`resolve.tsConfigPath` 配置已被移除，请使用 [resolve.tsConfig](config/resolve#resolvetsconfig) 代替。
+
+```diff title="rspack.config.mjs"
+export default {
+  resolve: {
+-   tsConfigPath: path.resolve(__dirname, './tsconfig.json'),
++   tsConfig: path.resolve(__dirname, './tsconfig.json'),
+  },
+};
+```
+
+### rspackExperiments.styledComponents
+
+`builtin:swc-loader` 的 `rspackExperiments.styledComponents` 配置已被移除，请使用 [@swc/plugin-styled-components](https://www.npmjs.com/package/@swc/plugin-styled-components) 代替。
+
+```diff
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           styledComponents: true,
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-styled-components", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### rspackExperiments.emotion
+
+`builtin:swc-loader` 的 `rspackExperiments.emotion` 配置已被移除，请使用 [@swc/plugin-emotion](https://www.npmjs.com/package/@swc/plugin-emotion) 代替。
+
+```diff
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           emotion: true,
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-emotion", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### rspackExperiments.relay
+
+`builtin:swc-loader` 的 `rspackExperiments.relay` 配置已被移除，请使用 [@swc/plugin-relay](https://www.npmjs.com/package/@swc/plugin-relay) 代替。
+
+```diff
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           relay: true,
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-relay", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### 其他
+
+其他不兼容更新如下：
+
+- 当 `mode === 'none'` 时，`optimization.chunkIds` 默认值变更为 `'natural'`，详见 [#6956](https://github.com/web-infra-dev/rspack/pull/6956)。
+- 当 `mode === 'none'` 时，`optimization.moduleIds` 默认值变更为 `'natural'`，详见 [#6956](https://github.com/web-infra-dev/rspack/pull/6956)。
+- Rust crate `swc_core` 已升级到 `0.95.x`，请升级你的 SWC Wasm 插件，详见 [#6887](https://github.com/web-infra-dev/rspack/pull/6887)。
+- 移除了 `output.amdContainer`，使用 `output.library.amdContainer` 代替，详见 [#6958](https://github.com/web-infra-dev/rspack/pull/6958)。
+- 移除了 `Compilation.currentNormalModuleHooks`，详见 [#6859](https://github.com/web-infra-dev/rspack/pull/6859)。
+- 移除了 `stats.modules[].profile.integration`，详见 [#6947](https://github.com/web-infra-dev/rspack/pull/6947)。
+- 移除了一些 `SwcJsMinimizerRspackPluginOptions` 的选项，详见 [#6950](https://github.com/web-infra-dev/rspack/pull/6950)。

@@ -24,10 +24,6 @@ impl Dependency for JsonExportsDependency {
     &self.id
   }
 
-  fn dependency_debug_name(&self) -> &'static str {
-    "JsonExportsDependency"
-  }
-
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: get_exports_from_data(&self.data).unwrap_or(ExportsOfExportsSpec::Null),
@@ -45,6 +41,10 @@ impl DependencyTemplate for JsonExportsDependency {
     _source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

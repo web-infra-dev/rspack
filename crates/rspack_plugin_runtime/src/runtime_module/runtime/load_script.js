@@ -1,8 +1,8 @@
 var inProgress = {};
 
-// var dataWebpackPrefix = "webpack:";
+$UNIQUE_PREFIX$
 // loadScript function to load a script via script tag
-__webpack_require__.l = function (url, done, key, chunkId) {
+__webpack_require__.l = function (url, done, key, chunkId$FETCH_PRIORITY$) {
 	if (inProgress[url]) {
 		inProgress[url].push(done);
 		return;
@@ -12,10 +12,7 @@ __webpack_require__.l = function (url, done, key, chunkId) {
 		var scripts = document.getElementsByTagName("script");
 		for (var i = 0; i < scripts.length; i++) {
 			var s = scripts[i];
-			if (
-				s.getAttribute("src") == url
-				// || s.getAttribute("data-webpack") == dataWebpackPrefix + key
-			) {
+			if ($UNIQUE_GET_ATTRIBUTE$) {
 				script = s;
 				break;
 			}
@@ -27,10 +24,11 @@ __webpack_require__.l = function (url, done, key, chunkId) {
 		$SCRIPT_TYPE$
 		script.charset = 'utf-8';
 		script.timeout = 120;
-		// script.setAttribute("data-webpack", dataWebpackPrefix + key);
 		if (__webpack_require__.nc) {
 			script.setAttribute("nonce", __webpack_require__.nc);
 		}
+		$UNIQUE_SET_ATTRIBUTE$
+		$FETCH_PRIORITY_SET_ATTRIBUTE$
 		script.src = $URL$;
 
 		__CROSS_ORIGIN_LOADING_PLACEHOLDER__

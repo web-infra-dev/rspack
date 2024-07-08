@@ -23,15 +23,21 @@ pub struct ResolverFactory {
   resolvers: DashMap<ResolveOptionsWithDependencyType, Arc<Resolver>, BuildHasherDefault<FxHasher>>,
 }
 
+impl Default for ResolverFactory {
+  fn default() -> Self {
+    Self::new(Resolve::default())
+  }
+}
+
 impl ResolverFactory {
   pub fn clear_cache(&self) {
     self.resolver.clear_cache();
   }
 
-  pub fn new(new_resolver: bool, options: Resolve) -> Self {
+  pub fn new(options: Resolve) -> Self {
     Self {
       base_options: options.clone(),
-      resolver: Resolver::new(new_resolver, options),
+      resolver: Resolver::new(options),
       resolvers: Default::default(),
     }
   }

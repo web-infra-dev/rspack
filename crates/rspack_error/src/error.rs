@@ -1,13 +1,8 @@
-use std::{
-  fmt,
-  path::{Path, PathBuf},
-};
+use std::{fmt::Display, path::Path};
 
 use miette::{
-  Diagnostic, IntoDiagnostic, LabeledSpan, MietteDiagnostic, NamedSource, SourceCode, SourceSpan,
+  Diagnostic, IntoDiagnostic, LabeledSpan, MietteDiagnostic, Severity, SourceCode, SourceSpan,
 };
-use rspack_util::swc::normalize_custom_filename;
-use sugar_path::SugarPath;
 use swc_core::common::SourceFile;
 use thiserror::Error;
 
@@ -48,46 +43,75 @@ pub struct AnyhowError(#[from] anyhow::Error);
 /// For a [TraceableError], the path is required.
 /// Because if the source code is missing when you construct a [TraceableError], we could read it from file system later
 /// when convert it into [crate::Diagnostic], but the reverse will not working.
-#[derive(Debug, Error)]
-#[error("{severity:?}[{kind}]: {title}")]
+#[derive(Debug, Clone, Error)]
+#[error("{title}: {message}")]
 pub struct TraceableError {
   title: String,
   kind: DiagnosticKind,
   message: String,
-  severity: miette::Severity,
-  src: NamedSource,
+  severity: Severity,
+  src: String,
   label: SourceSpan,
+  help: Option<String>,
+  url: Option<String>,
 }
 
-impl miette::Diagnostic for TraceableError {
-  fn severity(&self) -> Option<miette::Severity> {
+impl Diagnostic for TraceableError {
+  fn severity(&self) -> Option<Severity> {
     Some(self.severity)
   }
+
+  fn help(&self) -> Option<Box<dyn Display + '_>> {
+    self
+      .help
+      .as_ref()
+      .map(Box::new)
+      .map(|c| c as Box<dyn Display>)
+  }
+
+  fn url(&self) -> Option<Box<dyn Display + '_>> {
+    self
+      .url
+      .as_ref()
+      .map(Box::new)
+      .map(|c| c as Box<dyn Display>)
+  }
+
+  fn source_code(&self) -> Option<&dyn SourceCode> {
+    Some(&self.src)
+  }
+
   fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
     use miette::macro_helpers::{OptionalWrapper, ToOption};
-    let Self { message, .. } = self;
     std::option::Option::Some(Box::new(
       vec![OptionalWrapper::<SourceSpan>::new()
         .to_option(&self.label)
-        .map(|label| miette::LabeledSpan::new_with_span(Some(message.to_string()), *label))]
+        .map(|label| miette::LabeledSpan::new_with_span(None, *label))]
       .into_iter()
       .filter(Option::is_some)
       .flatten(),
     ))
   }
-  fn source_code(&self) -> Option<&dyn SourceCode> {
-    Some(&self.src)
-  }
 }
 
 impl TraceableError {
-  pub fn with_severity(mut self, severity: impl Into<miette::Severity>) -> Self {
+  pub fn with_severity(mut self, severity: impl Into<Severity>) -> Self {
     self.severity = severity.into();
     self
   }
 
   pub fn with_kind(mut self, kind: DiagnosticKind) -> Self {
     self.kind = kind;
+    self
+  }
+
+  pub fn with_help(mut self, help: Option<impl Into<String>>) -> Self {
+    self.help = help.map(|h| h.into());
+    self
+  }
+
+  pub fn with_url(mut self, url: Option<impl Into<String>>) -> Self {
+    self.url = url.map(|u| u.into());
     self
   }
 
@@ -98,8 +122,6 @@ impl TraceableError {
     title: String,
     message: String,
   ) -> Self {
-    let file_path = normalize_custom_filename(&source_file.name.to_string()).to_string();
-    let file_path = relative_to_pwd(PathBuf::from(file_path));
     let file_src = source_file.src.to_string();
     let start = if start >= file_src.len() { 0 } else { start };
     let end = if end >= file_src.len() { 0 } else { end };
@@ -108,27 +130,42 @@ impl TraceableError {
       kind: Default::default(),
       message,
       severity: Default::default(),
-      src: NamedSource::new(file_path.as_os_str().to_string_lossy(), file_src),
+      src: file_src,
       label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
+      help: None,
+      url: None,
     }
   }
 
   pub fn from_file(
-    file_path: String,
     file_src: String,
     start: usize,
     end: usize,
     title: String,
     message: String,
   ) -> Self {
-    let file_path = relative_to_pwd(PathBuf::from(file_path));
     Self {
       title,
       kind: Default::default(),
       message,
       severity: Default::default(),
-      src: NamedSource::new(file_path.as_os_str().to_string_lossy(), file_src),
+      src: file_src,
       label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
+      help: None,
+      url: None,
+    }
+  }
+
+  pub fn from_empty_file(start: usize, end: usize, title: String, message: String) -> Self {
+    Self {
+      title,
+      kind: Default::default(),
+      message,
+      severity: Default::default(),
+      src: "".to_string(),
+      label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
+      help: None,
+      url: None,
     }
   }
 
@@ -142,14 +179,7 @@ impl TraceableError {
     let file_src = std::fs::read_to_string(path).into_diagnostic()?;
     let start = if start >= file_src.len() { 0 } else { start };
     let end = if end >= file_src.len() { 0 } else { end };
-    Ok(Self::from_file(
-      path.to_string_lossy().into_owned(),
-      file_src,
-      start,
-      end,
-      title,
-      message,
-    ))
+    Ok(Self::from_file(file_src, start, end, title, message))
   }
 }
 
@@ -183,39 +213,79 @@ impl From<Vec<miette::Error>> for BatchErrors {
   }
 }
 
+#[macro_export]
 macro_rules! impl_diagnostic_transparent {
-  ($ty:ty) => {
+  (code = $value:expr, $ty:ty) => {
     impl miette::Diagnostic for $ty {
-      fn code<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
-        (&*self.0).code()
+      fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        Some(Box::new($value))
       }
 
       fn severity(&self) -> Option<miette::Severity> {
-        (&*self.0).severity()
+        self.0.severity()
       }
 
-      fn help<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
-        (&*self.0).help()
+      fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        self.0.help()
       }
 
-      fn url<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
-        (&*self.0).url()
+      fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        self.0.url()
       }
 
-      fn source_code(&self) -> Option<&dyn SourceCode> {
-        (&*self.0).source_code()
+      fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        self.0.source_code()
       }
 
-      fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
-        (&*self.0).labels()
+      fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
+        self.0.labels()
       }
 
-      fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn Diagnostic> + 'a>> {
-        (&*self.0).related()
+      fn related<'a>(
+        &'a self,
+      ) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
+        self.0.related()
       }
 
       fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
-        (&*self.0).diagnostic_source()
+        self.0.diagnostic_source()
+      }
+    }
+  };
+  ($ty:ty) => {
+    impl miette::Diagnostic for $ty {
+      fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        self.0.code()
+      }
+
+      fn severity(&self) -> Option<miette::Severity> {
+        self.0.severity()
+      }
+
+      fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        self.0.help()
+      }
+
+      fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        self.0.url()
+      }
+
+      fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        self.0.source_code()
+      }
+
+      fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
+        self.0.labels()
+      }
+
+      fn related<'a>(
+        &'a self,
+      ) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
+        self.0.related()
+      }
+
+      fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
+        self.0.diagnostic_source()
       }
     }
   };
@@ -223,14 +293,23 @@ macro_rules! impl_diagnostic_transparent {
 
 impl_diagnostic_transparent!(InternalError);
 
-/// # Panic
-///
-/// Panics if `current_dir` is not accessible.
-/// See [std::env::current_dir] for details.
-fn relative_to_pwd(file: impl AsRef<Path>) -> PathBuf {
-  file
-    .as_ref()
-    .relative(std::env::current_dir().expect("`current_dir` should exist"))
+#[macro_export]
+macro_rules! impl_error_transparent {
+  ($ty:ty) => {
+    impl std::error::Error for ModuleBuildError {
+      fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
+        std::error::Error::source(<Error as AsRef<dyn std::error::Error>>::as_ref(&self.0))
+      }
+    }
+
+    #[allow(unused_qualifications)]
+    impl ::core::fmt::Display for ModuleBuildError {
+      #[allow(clippy::used_underscore_binding)]
+      fn fmt(&self, __formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        ::core::fmt::Display::fmt(&self.0, __formatter)
+      }
+    }
+  };
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]

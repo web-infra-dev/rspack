@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use once_cell::sync::OnceCell;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct TimeRange {
   start: OnceCell<Instant>,
   end: OnceCell<Instant>,
@@ -27,7 +27,7 @@ impl TimeRange {
   }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ModulePhaseProfile {
   range: TimeRange,
   parallelism_factor: OnceCell<u16>,
@@ -46,17 +46,13 @@ impl ModulePhaseProfile {
   }
 }
 
-#[derive(Debug, Default)]
+// https://github.com/webpack/webpack/blob/4809421990a20dfefa06e6445191e65001e75f88/lib/ModuleProfile.js
+// NOTE: Rspack has different cache design, remove cache related profiles
+
+#[derive(Debug, Default, Clone)]
 pub struct ModuleProfile {
   pub factory: ModulePhaseProfile,
-  // pub restoring: ModulePhaseProfile,
-  pub integration: ModulePhaseProfile,
   pub building: ModulePhaseProfile,
-  // pub storing: ModulePhaseProfile,
-
-  // pub additional_factory_times: Vec<TimeRange>,
-  // pub additional_factories: Duration,
-  // pub additional_factories_parallelism_factor: u16,
 }
 
 impl ModuleProfile {
@@ -72,43 +68,6 @@ impl ModuleProfile {
   pub fn mark_factory_end(&self) {
     self
       .factory
-      .range
-      .end
-      .set(Instant::now())
-      .expect("should only call once");
-  }
-
-  // TODO: restore module to cache is not implemented yet
-  // pub fn mark_restoring_start(&self) {
-  //   self
-  //     .restoring
-  //     .range
-  //     .start
-  //     .set(Instant::now())
-  //     .expect("should only call once");
-  // }
-
-  // pub fn mark_restoring_end(&self) {
-  //   self
-  //     .restoring
-  //     .range
-  //     .end
-  //     .set(Instant::now())
-  //     .expect("should only call once");
-  // }
-
-  pub fn mark_integration_start(&self) {
-    self
-      .integration
-      .range
-      .start
-      .set(Instant::now())
-      .expect("should only call once");
-  }
-
-  pub fn mark_integration_end(&self) {
-    self
-      .integration
       .range
       .end
       .set(Instant::now())
@@ -132,36 +91,4 @@ impl ModuleProfile {
       .set(Instant::now())
       .expect("should only call once");
   }
-
-  // TODO: store module to cache is not implemented yet
-  // pub fn mark_storing_start(&self) {
-  //   self
-  //     .storing
-  //     .range
-  //     .start
-  //     .set(Instant::now())
-  //     .expect("should only call once");
-  // }
-
-  // pub fn mark_storing_end(&self) {
-  //   self
-  //     .storing
-  //     .range
-  //     .end
-  //     .set(Instant::now())
-  //     .expect("should only call once");
-  // }
-
-  // pub fn merge(&mut self, other: Self) {
-  //   self.additional_factories += other.factory.duration().expect("should have duration");
-  //   self.additional_factory_times.push(TimeRange::with_value(
-  //     *other
-  //       .factory
-  //       .range
-  //       .start
-  //       .get()
-  //       .expect("should have duration"),
-  //     *other.factory.range.end.get().expect("should have duration"),
-  //   ));
-  // }
 }

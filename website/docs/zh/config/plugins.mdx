@@ -1,0 +1,31 @@
+# Plugins
+
+`plugins` 选项用于以各种方式自定义 Rspack 构建过程。Rspack 附带了各种内置插件，可以通过 `rspack.[plugin-name]` 访问这些插件。请查看[插件页面](/plugins/index)获取插件列表和对应文档，但请注意这只是其中一部分，社区中还有许多插件。
+
+- **类型：** `Array<RspackPluginInstance | RspackPluginFunction | RspackBuiltinPlugin>`
+- **默认值：** `[]`
+
+一组 Rspack 插件。例如，[`DefinePlugin`](/plugins/webpack/define-plugin) 允许你创建可在编译时配置的全局常量。这对需要再开发环境构建和生产环境构建之间产生不同行为来说非常有用。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  plugins: [
+    new rspack.DefinePlugin({
+      // 定义的全局常量...
+    }),
+  ],
+};
+```
+
+Rspack 致力于兼容 webpack 生态下的插件，以使用社区中已经积累和验证的优秀功能。请查看[插件兼容列表](/guide/compatibility/plugin)获取经过我们兼容性测试的 webpack 插件清单：
+
+```js title=rspack.config.js
+const rspack = require('@rspack/core');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+
+module.exports = {
+  //...
+  plugins: [new ForkTsCheckerWebpackPlugin()],
+};
+```

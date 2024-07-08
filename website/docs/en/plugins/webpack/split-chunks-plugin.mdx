@@ -1,0 +1,295 @@
+import WebpackLicense from '@components/webpack-license';
+import { ApiMeta } from '../../../../components/ApiMeta';
+
+<WebpackLicense from="https://webpack.js.org/configuration/optimization/" />
+
+# SplitChunksPlugin
+
+## Default
+
+Out of the box `SplitChunksPlugin` should work well for most users.
+
+By default it only affects on-demand chunks, because changing initial chunks would affect the script tags the HTML file should include to run the project.
+
+Rspack will automatically split chunks based on these conditions:
+
+- New chunk can be shared OR modules are from the node_modules folder
+- New chunk would be bigger than 20kb (before min+gz)
+- Maximum number of parallel requests when loading chunks on demand would be lower or equal to 30
+- Maximum number of parallel requests at initial page load would be lower or equal to 30
+
+When trying to fulfill the last two conditions, bigger chunks are preferred.
+
+## Options
+
+Rspack provides a set of options for developers that want more control over this functionality.
+
+:::warning
+The default configuration was chosen to fit web performance best practices, but the optimal strategy for your project might differ. If you're changing the configuration, you should measure the effect of your changes to ensure there's a real benefit.
+:::
+
+### optimization.splitChunks
+
+This configuration object represents the default behavior of the `SplitChunksPlugin`.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    splitChunks: {
+      chunks: 'async',
+      minChunks: 1,
+      minSize: 20000,
+      maxAsyncRequests: 30,
+      maxInitialRequests: 30,
+      cacheGroups: {
+        defaultVendors: {
+          test: /[\\/]node_modules[\\/]/,
+          priority: -10,
+          reuseExistingChunk: true,
+        },
+        default: {
+          minChunks: 2,
+          priority: -20,
+          reuseExistingChunk: true,
+        },
+      },
+    },
+  },
+};
+```
+
+:::warning
+
+When files paths are processed by Rspack, they always contain `/` on UNIX systems and `\` on Windows. That's why using `[\\/]` in `{cacheGroup}.test` fields is necessary to represent a path separator. `/` or `\` in `{cacheGroup}.test` will cause issues when used cross-platform.
+
+:::
+
+:::warning
+
+Passing an entry name to `{cacheGroup}.test` and using a name of an existing chunk for `{cacheGroup}.name` is no longer allowed.
+
+:::
+
+### splitChunks.cacheGroups
+
+Cache groups can inherit and/or override any options from `splitChunks.{cacheGroup}.*`; but `test`, `priority` and `reuseExistingChunk` can only be configured on cache group level. To disable any of the default cache groups, set them to `false`.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        default: false,
+      },
+    },
+  },
+};
+```
+
+### splitChunks.chunks
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.chunks
+
+- **Type:** `'initial' | 'all' | 'async' | RegExp | ((chunk: Chunk) => bool)`
+- **Default:** `'async'`
+
+This indicates which chunks will be selected for optimization.
+
+When a string is provided, valid values are `all`, `async`, and `initial`. Providing `all` can be particularly powerful, because it means that chunks can be shared even between async and non-async chunks.
+
+Alternatively, you may provide a function for more control. The return value will indicate whether to include each chunk.
+
+You can also pass a regular expression, which is a short for `(chunk) => regex.test(chunk.name)`.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    splitChunks: {
+      // include all types of chunks
+      chunks: 'all',
+    },
+  },
+};
+```
+
+### splitChunks.maxAsyncRequests
+
+- **Type:** `number`
+- **Default:** `30`
+
+Maximum number of parallel requests when on-demand loading.
+
+### splitChunks.maxInitialRequests
+
+- **Type:** `number`
+- **Default:** `30`
+
+Maximum number of parallel requests at an entry point.
+
+### splitChunks.minChunks
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.minChunks
+
+- **Type:** `number`
+- **Default:** `1`
+
+The minimum times must a module be shared among chunks before splitting.
+
+### splitChunks.hidePathInfo
+
+<ApiMeta addedVersion="0.4.3" />
+
+- **Type:** `boolean`
+- **Default:** defaults to `true` if `options.mode` is `'production'`, otherwise defaults to `false`
+
+Prevents exposing path info when creating names for parts splitted by maxSize.
+
+### splitChunks.minSize
+
+- **Type:** `number | Record<string, number>`
+- **Default:** `20000` in production and `10000` in others
+
+Minimum size, in bytes, for a chunk to be generated.
+
+### splitChunks.maxSize
+
+`number | Record<string, number> = 0`
+
+Using `maxSize` (either globally `optimization.splitChunks.maxSize` per cache group `optimization.splitChunks.cacheGroups[x].maxSize` or for the fallback cache group `optimization.splitChunks.fallbackCacheGroup.maxSize`) tells Rspack to try to split chunks bigger than `maxSize` bytes into smaller parts. Parts will be at least `minSize` (next to `maxSize`) in size.
+The algorithm is deterministic and changes to the modules will only have local effects. So that it is usable when using long term caching and doesn't require records. `maxSize` is only a hint and could be violated when modules are bigger than `maxSize` or splitting would violate `minSize`.
+
+When the chunk has a name already, each part will get a new name derived from that name. Depending on the value of `optimization.splitChunks.hidePathInfo` it will add a key derived from the first module name or a hash of it.
+
+`maxSize` option is intended to be used with HTTP/2 and long term caching. It increases the request count for better caching. It could also be used to decrease the file size for faster rebuilding.
+
+:::info Tip
+
+`maxSize` takes higher priority than `maxInitialRequest/maxAsyncRequests`. Actual priority is `maxInitialRequest/maxAsyncRequests < maxSize < minSize`.
+
+:::
+
+:::info Tip
+
+Setting the value for `maxSize` sets the value for both `maxAsyncSize` and `maxInitialSize`.
+
+:::
+
+### splitChunks.maxAsyncSize
+
+`number | Record<string, number>`
+
+Like `maxSize`, `maxAsyncSize` can be applied globally (`splitChunks.maxAsyncSize`), to cacheGroups (`splitChunks.cacheGroups.{cacheGroup}.maxAsyncSize`), or to the fallback cache group (`splitChunks.fallbackCacheGroup.maxAsyncSize`).
+
+The difference between `maxAsyncSize` and `maxSize` is that `maxAsyncSize` will only affect on-demand loading chunks.
+
+### splitChunks.maxInitialSize
+
+`number | Record<string, number>`
+
+Like `maxSize`, `maxInitialSize` can be applied globally (`splitChunks.maxInitialSize`), to cacheGroups (`splitChunks.cacheGroups.{cacheGroup}.maxInitialSize`), or to the fallback cache group (`splitChunks.fallbackCacheGroup.maxInitialSize`).
+
+The difference between `maxInitialSize` and `maxSize` is that `maxInitialSize` will only affect initial load chunks.
+
+### splitChunks.automaticNameDelimiter
+
+<ApiMeta addedVersion="0.4.3" />
+
+- **Type:** `string`
+- **Default:** `-`
+
+By default Rspack will generate names using origin and name of the chunk (e.g. vendors-main.js).
+
+This option lets you specify the delimiter to use for the generated names.
+
+### splitChunks.name
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.name
+
+- **Type:** `string | function`
+- **Default:** `false`
+
+> where the version of the function type is `>=0.4.1`.
+
+Also available for each cacheGroup: `splitChunks.cacheGroups.{cacheGroup}.name`.
+
+The name of the split chunk. Providing `false` will keep the same name of the chunks so it doesn't change names unnecessarily. It is the recommended value for production builds.
+
+Providing a string allows you to use a custom name. Specifying a string will merge all common modules and vendors into a single chunk. This might lead to bigger initial downloads and slow down page loads.
+
+If the `splitChunks.name` matches an [entry point](/config/entry) name, the entry point will be removed.
+
+:::info
+
+`splitChunks.cacheGroups.{cacheGroup}.name` can be used to move modules into a chunk that is a parent of the source chunk. For example, use `name: "entry-name"` to move modules into the `entry-name` chunk. You can also use on demand named chunks, but you must be careful that the selected modules are only used under this chunk.
+
+:::
+
+### splitChunks.cacheGroups
+
+Cache groups can inherit and/or override any options from `splitChunks.*`; but `test`, `priority` and `reuseExistingChunk` can only be configured on cache group level. To disable any of the default cache groups, set them to `false`.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        default: false,
+      },
+    },
+  },
+};
+```
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.priority
+
+- **Type:** `number`
+- **Default:** `-20`
+
+A module can belong to multiple cache groups. The optimization will prefer the cache group with a higher `priority`. The default groups have a negative priority to allow custom groups to take higher priority (default value is `0` for custom groups).
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.test
+
+- **Type:** `RegExp | string | function`
+
+> where the version of the function type is `>=0.4.1`.
+
+Controls which modules are selected by this cache group. Omitting it selects all modules. It can match the absolute module resource path or chunk names. When a chunk name is matched, all modules in the chunk are selected.
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.enforce
+
+- **Type:** `boolean`
+
+Tells Rspack to ignore `splitChunks.minSize`, splitChunks`.minChunks`, `splitChunks.maxAsyncRequests` and `splitChunks.maxInitialRequests` options and always create chunks for this cache group.
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.idHint
+
+- **Type:** `string`
+
+Sets the hint for chunk id. It will be added to chunk's filename.
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.filename
+
+<ApiMeta addedVersion="0.4.3" />
+
+- **Type:** `string`
+
+Allows to override the filename when and only when it's an initial chunk. All placeholders available in output.filename are also available here.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        defaultVendors: {
+          filename: 'vendors-[name].js',
+        },
+      },
+    },
+  },
+};
+```

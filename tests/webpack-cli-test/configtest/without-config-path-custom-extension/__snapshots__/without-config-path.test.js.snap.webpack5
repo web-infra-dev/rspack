@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`'configtest' command without the configuration path option should validate default configuration: stderr 1`] = `""`;
+
+exports[`'configtest' command without the configuration path option should validate default configuration: stdout 1`] = `
+"[webpack-cli] Validate '<cwd>/test/configtest/without-config-path-custom-extension/webpack.config.json'.
+[webpack-cli] There are no validation errors in the given webpack configuration."
+`;

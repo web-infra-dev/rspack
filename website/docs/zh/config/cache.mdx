@@ -1,0 +1,22 @@
+# Cache
+
+缓存：该选项可以开启或者关闭 Rspack 构建过程中对快照及中间产物的缓存，如果开启，在下次构建中可以使用它们来提升构建的速度。
+
+:::info 缓存类型
+rspack 当前仅支持内存缓存（Memory Cache），持久化缓存（Persistent Cache）正在规划中，更多细节参考 [Persistent Cache 支持](/misc/planning/roadmap#persistent-cache-支持)。
+:::
+
+此配置当前仅支持控制是否进行缓存。
+
+- **类型：** `boolean`
+- **默认值：** [production 模式](config/mode#production) 为 `false`，[development 模式](config/mode#development) 为 `true`
+
+## 用法
+
+你可以在 `rspack.config.js` 中直接设置 cache 来禁用缓存:
+
+```ts title="rspack.config.js"
+module.exports = {
+  cache: false,
+};
+```

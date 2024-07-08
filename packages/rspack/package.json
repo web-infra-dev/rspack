@@ -1,25 +1,38 @@
 {
   "name": "@rspack/core",
-  "version": "0.4.3",
+  "version": "1.0.0-alpha.1",
   "webpackVersion": "5.75.0",
   "license": "MIT",
-  "description": "A Fast Rust-based Web Bundler",
+  "description": "The fast Rust-based web bundler with webpack-compatible API",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "exports": {
     ".": {
       "default": "./dist/index.js"
     },
-    "./package.json": "./package.json"
+    "./hot/*": "./hot/*.js",
+    "./hot/*.js": "./hot/*.js",
+    "./package.json": "./package.json",
+    "./module": "./module.d.ts"
   },
   "scripts": {
-    "build": "tsc -b ./tsconfig.build.json",
-    "dev": "tsc -w",
-    "test": "cross-env NO_COLOR=1 RSPACK_DEP_WARNINGS=false node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathIgnorePatterns \".diff.test.ts\"",
-    "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 RSPACK_DEP_WARNINGS=false node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \".diff.test.ts\""
+    "build": "prebundle && tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json && npm run prepare-container-runtime",
+    "build:force": "prebundle && tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json && npm run prepare-container-runtime",
+    "dev": "prebundle && tsc -w",
+    "prepare-container-runtime": "node ./scripts/prepare-container-runtime.js",
+    "doc-coverage": "node scripts/check-documentation-coverage.mjs",
+    "api-extractor": "api-extractor run --verbose",
+    "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },
   "files": [
-    "dist"
+    "dist",
+    "hot",
+    "compiled",
+    "module.d.ts"
   ],
   "engines": {
     "node": ">=16.0.0"
@@ -34,53 +47,62 @@
   "devDependencies": {
     "@rspack/core": "workspace:*",
     "@rspack/plugin-minify": "workspace:^",
-    "@rspack/plugin-node-polyfill": "workspace:^",
-    "@rspack/test-tools": "workspace:^",
-    "@swc/core": "^1.3.96",
-    "@swc/jest": "^0.2.29",
+    "@swc/plugin-remove-console": "1.5.121",
+    "@types/neo-async": "^2.6.6",
     "@types/watchpack": "^2.4.0",
-    "@types/webpack-dev-server": "^4.7.2",
-    "@types/webpack-sources": "3.2.0",
-    "@types/ws": "8.5.3",
+    "@types/webpack-sources": "3.2.3",
+    "@types/ws": "8.5.10",
     "babel-loader": "^9.1.0",
     "babel-plugin-import": "^1.13.5",
+    "browserslist": "^4.21.3",
     "copy-webpack-plugin": "5.1.2",
     "cross-env": "^7.0.3",
+    "del": "^6.0.0",
+    "enhanced-resolve": "5.12.0",
     "file-loader": "^6.2.0",
     "glob": "^10.3.10",
-    "html-loader": "^4.2.0",
-    "html-webpack-plugin": "^5.5.0",
-    "jest-serializer-path": "^0.1.15",
-    "less": "4.1.3",
-    "less-loader": "^11.1.0",
-    "postcss-loader": "^7.0.2",
-    "postcss-pxtorem": "^6.0.0",
-    "pug-loader": "^2.4.0",
-    "react-relay": "^14.1.0",
-    "sass": "^1.56.2",
-    "sass-loader": "^13.2.0",
-    "source-map": "^0.7.4",
-    "styled-components": "^6.0.8",
-    "terser": "5.16.1",
-    "ts-node": "10.9.1",
-    "wast-loader": "^1.11.4",
-    "webpack": "5.89.0"
-  },
-  "dependencies": {
-    "@rspack/binding": "workspace:*",
-    "@swc/helpers": "0.5.1",
-    "browserslist": "^4.21.3",
-    "compare-versions": "6.0.0-rc.1",
-    "enhanced-resolve": "5.12.0",
     "graceful-fs": "4.2.10",
+    "html-loader": "^5.0.0",
+    "html-webpack-plugin": "^5.5.0",
+    "identity-obj-proxy": "3.0.0",
+    "jest-environment-jsdom": "^29",
+    "jest-serializer-path": "^0.1.15",
+    "jsdom": "^24.0.0",
     "json-parse-even-better-errors": "^3.0.0",
+    "less": "4.2.0",
+    "less-loader": "^12.0.0",
     "neo-async": "2.6.2",
-    "react-refresh": "0.14.0",
-    "tapable": "2.2.1",
-    "terminal-link": "^2.1.1",
+    "node-polyfill-webpack-plugin": "3.0.0",
+    "postcss-loader": "^8.0.0",
+    "postcss-pxtorem": "^6.0.0",
+    "prebundle": "^1.1.0",
+    "pug-loader": "^2.4.0",
+    "react-relay": "^16.0.0",
+    "sass": "1.56.2",
+    "sass-loader": "14.2.1",
+    "source-map": "^0.7.4",
+    "source-map-loader": "^5.0.0",
+    "styled-components": "^6.0.8",
+    "terser": "5.27.2",
+    "tsc-alias": "^1.8.8",
+    "wast-loader": "^1.11.4",
     "watchpack": "^2.4.0",
     "webpack-sources": "3.2.3",
     "zod": "^3.21.4",
     "zod-validation-error": "1.3.1"
+  },
+  "dependencies": {
+    "@module-federation/runtime-tools": "0.2.3",
+    "@rspack/binding": "workspace:*",
+    "@rspack/lite-tapable": "workspace:*",
+    "caniuse-lite": "^1.0.30001616"
+  },
+  "peerDependencies": {
+    "@swc/helpers": ">=0.5.1"
+  },
+  "peerDependenciesMeta": {
+    "@swc/helpers": {
+      "optional": true
+    }
   }
 }

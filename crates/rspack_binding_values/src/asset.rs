@@ -1,7 +1,5 @@
 use napi_derive::napi;
 
-use super::JsCompatSource;
-
 #[napi(object)]
 pub struct JsAssetInfoRelated {
   pub source_map: Option<String>,
@@ -14,6 +12,7 @@ impl From<JsAssetInfoRelated> for rspack_core::AssetInfoRelated {
     }
   }
 }
+
 #[napi(object)]
 pub struct JsAssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
@@ -40,6 +39,13 @@ pub struct JsAssetInfo {
   pub javascript_module: Option<bool>,
   /// related object to other assets, keyed by type of relation (only points from parent to child)
   pub related: JsAssetInfoRelated,
+  /// unused css local ident for the css chunk
+  pub css_unused_idents: Option<Vec<String>>,
+  /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
+  /// But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
+  /// in the rust struct and have the Js side to reshape and align with webpack
+  /// Related: packages/rspack/src/Compilation.ts
+  pub extras: serde_json::Map<String, serde_json::Value>,
 }
 
 impl From<JsAssetInfo> for rspack_core::AssetInfo {
@@ -55,6 +61,8 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
       version: String::from(""),
       source_filename: i.source_filename,
       javascript_module: i.javascript_module,
+      css_unused_idents: i.css_unused_idents.map(|i| i.into_iter().collect()),
+      extras: i.extras,
     }
   }
 }
@@ -62,7 +70,6 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
 #[napi(object)]
 pub struct JsAsset {
   pub name: String,
-  pub source: Option<JsCompatSource>,
   pub info: JsAssetInfo,
 }
 
@@ -86,6 +93,8 @@ impl From<rspack_core::AssetInfo> for JsAssetInfo {
       content_hash: info.content_hash.into_iter().collect(),
       source_filename: info.source_filename,
       javascript_module: info.javascript_module,
+      css_unused_idents: info.css_unused_idents.map(|i| i.into_iter().collect()),
+      extras: info.extras,
     }
   }
 }
@@ -95,14 +104,4 @@ pub struct JsAssetEmittedArgs {
   pub filename: String,
   pub output_path: String,
   pub target_path: String,
-}
-
-impl From<&rspack_core::AssetEmittedArgs<'_>> for JsAssetEmittedArgs {
-  fn from(args: &rspack_core::AssetEmittedArgs) -> Self {
-    Self {
-      filename: args.filename.to_string(),
-      output_path: args.output_path.to_string_lossy().to_string(),
-      target_path: args.target_path.to_string_lossy().to_string(),
-    }
-  }
 }

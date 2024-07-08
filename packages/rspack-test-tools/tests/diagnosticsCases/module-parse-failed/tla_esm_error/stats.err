@@ -1,0 +1,25 @@
+ERROR in ./index.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Top-level-await is only supported in EcmaScript Modules
+         ╭─[1:1]
+       1 │ await Promise.resolve("aaa");
+       2 │
+       3 │ for await (const _ of [Promise.resolve("bbbb")]) { }
+         ·     ─────
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./index.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Top-level-await is only supported in EcmaScript Modules
+         ╭─[1:1]
+       1 │ await Promise.resolve("aaa");
+         · ─────
+       2 │
+       3 │ for await (const _ of [Promise.resolve("bbbb")]) { }
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.

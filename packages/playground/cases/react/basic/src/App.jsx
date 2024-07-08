@@ -4,6 +4,7 @@ import { ContextComponent } from './CountProvider'
 import { ReactRefreshFinder } from './ReactRefreshFinder'
 import { SameExportName as SameExportName1 } from './SameExportName1'
 import { SameExportName as SameExportName2 } from './SameExportName2'
+import ComponentInNodeModules from "foo"
 
 const Button = () => {
 	const [count, setCount] = React.useState(10)
@@ -25,6 +26,7 @@ export const App = () => {
 			<React.Suspense fallback={<div>loading...</div>}>
 				<LazyComponent />
 			</React.Suspense>
+			<ComponentInNodeModules />
 		</div>
 	)
 }

@@ -8,73 +8,80 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { Compilation } from "..";
-import { deprecatedWarn } from "../util";
+import type { Compilation } from "../Compilation";
 import type {
+	AssetModuleFilename,
+	Bail,
+	CacheOptions,
+	ChunkFilename,
+	ChunkLoading,
+	ChunkLoadingGlobal,
+	Clean,
 	Context,
+	CrossOriginLoading,
+	CssChunkFilename,
+	CssFilename,
 	Dependencies,
-	Node,
+	DevServer,
 	DevTool,
+	DevtoolFallbackModuleFilenameTemplate,
+	DevtoolModuleFilenameTemplate,
+	DevtoolNamespace,
+	EnabledLibraryTypes,
+	EnabledWasmLoadingTypes,
+	EntryFilename,
+	EntryRuntime,
 	EntryStatic,
+	Environment,
 	Externals,
 	ExternalsPresets,
 	ExternalsType,
-	InfrastructureLogging,
-	LibraryOptions,
-	Mode,
-	Name,
-	OptimizationRuntimeChunk,
-	Resolve,
-	RspackOptions,
-	Target,
-	SnapshotOptions,
-	CacheOptions,
-	StatsValue,
-	Optimization,
-	Plugins,
-	Watch,
-	WatchOptions,
-	DevServer,
-	Profile,
-	Builtins,
-	EntryRuntime,
-	ChunkLoading,
-	PublicPath,
-	EntryFilename,
-	Path,
-	Clean,
 	Filename,
-	ChunkFilename,
-	CrossOriginLoading,
-	CssFilename,
-	CssChunkFilename,
-	HotUpdateMainFilename,
-	HotUpdateChunkFilename,
-	AssetModuleFilename,
-	UniqueName,
-	ChunkLoadingGlobal,
-	EnabledLibraryTypes,
-	OutputModule,
-	StrictModuleErrorHandling,
+	GeneratorOptionsByModuleType,
 	GlobalObject,
-	ImportFunctionName,
-	Iife,
-	WasmLoading,
-	EnabledWasmLoadingTypes,
-	WebassemblyModuleFilename,
-	TrustedTypes,
-	SourceMapFilename,
 	HashDigest,
 	HashDigestLength,
 	HashFunction,
 	HashSalt,
-	WorkerPublicPath,
-	RuleSetRules,
+	HotUpdateChunkFilename,
+	HotUpdateGlobal,
+	HotUpdateMainFilename,
+	Iife,
+	ImportFunctionName,
+	InfrastructureLogging,
+	LazyCompilationOptions,
+	LibraryOptions,
+	Loader,
+	Mode,
+	Name,
+	NoParseOption,
+	Node,
+	Optimization,
+	OptimizationRuntimeChunk,
+	OutputModule,
 	ParserOptionsByModuleType,
-	GeneratorOptionsByModuleType,
-	IncrementalRebuildOptions,
+	Path,
+	Performance,
+	Plugins,
+	Profile,
+	PublicPath,
+	Resolve,
 	RspackFutureOptions,
-	HotUpdateGlobal
+	RspackOptions,
+	RuleSetRules,
+	ScriptType,
+	SnapshotOptions,
+	SourceMapFilename,
+	StatsValue,
+	StrictModuleErrorHandling,
+	Target,
+	TrustedTypes,
+	UniqueName,
+	WasmLoading,
+	Watch,
+	WatchOptions,
+	WebassemblyModuleFilename,
+	WorkerPublicPath
 } from "./zod";
 
 export const getNormalizedRspackOptions = (
@@ -91,7 +98,7 @@ export const getNormalizedRspackOptions = (
 								return ignore.test(warning.message);
 							};
 						}
-				  })
+					})
 				: undefined,
 		name: config.name,
 		dependencies: config.dependencies,
@@ -100,7 +107,12 @@ export const getNormalizedRspackOptions = (
 		entry:
 			config.entry === undefined
 				? { main: {} }
-				: getNormalizedEntryStatic(config.entry),
+				: typeof config.entry === "function"
+					? (
+							fn => () =>
+								Promise.resolve().then(fn).then(getNormalizedEntryStatic)
+						)(config.entry)
+					: getNormalizedEntryStatic(config.entry),
 		output: nestedConfig(config.output, output => {
 			const { library } = output;
 			const libraryAsName = library;
@@ -111,35 +123,13 @@ export const getNormalizedRspackOptions = (
 				"type" in library
 					? library
 					: libraryAsName || output.libraryTarget
-					? ({
-							name: libraryAsName
-					  } as LibraryOptions)
-					: undefined;
-			// DEPRECATE: remove this in after version
-			{
-				const ext = "[ext]";
-				const filenames = [
-					"filename",
-					"chunkFilename",
-					"cssFilename",
-					"cssChunkFilename"
-				] as const;
-				const checkFilename = (prop: (typeof filenames)[number]) => {
-					const oldFilename = output[prop];
-					if (typeof oldFilename === "string" && oldFilename.endsWith(ext)) {
-						const newFilename =
-							oldFilename.slice(0, -ext.length) +
-							(prop.includes("css") ? ".css" : ".js");
-						deprecatedWarn(
-							`Deprecated: output.${prop} ends with [ext] is now deprecated, please use ${newFilename} instead.`
-						);
-						output[prop] = newFilename;
-					}
-				};
-				filenames.forEach(checkFilename);
-			}
+						? ({
+								name: libraryAsName
+							} as LibraryOptions)
+						: undefined;
 			return {
 				path: output.path,
+				pathinfo: output.pathinfo,
 				publicPath: output.publicPath,
 				filename: output.filename,
 				clean: output.clean,
@@ -180,10 +170,7 @@ export const getNormalizedRspackOptions = (
 						output.auxiliaryComment !== undefined
 							? output.auxiliaryComment
 							: libraryBase.auxiliaryComment,
-					amdContainer:
-						output.amdContainer !== undefined
-							? output.amdContainer
-							: libraryBase.amdContainer,
+					amdContainer: libraryBase.amdContainer,
 					export:
 						output.libraryExport !== undefined
 							? output.libraryExport
@@ -214,16 +201,32 @@ export const getNormalizedRspackOptions = (
 				workerChunkLoading: output.workerChunkLoading,
 				workerWasmLoading: output.workerWasmLoading,
 				workerPublicPath: output.workerPublicPath,
-				scriptType: output.scriptType
+				scriptType: output.scriptType,
+				devtoolNamespace: output.devtoolNamespace,
+				devtoolModuleFilenameTemplate: output.devtoolModuleFilenameTemplate,
+				devtoolFallbackModuleFilenameTemplate:
+					output.devtoolFallbackModuleFilenameTemplate,
+				environment: cloneObject(output.environment)
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
-			...resolve
+			...resolve,
+			tsConfig: optionalNestedConfig(resolve.tsConfig, tsConfig => {
+				return typeof tsConfig === "string"
+					? { configFile: tsConfig }
+					: tsConfig;
+			})
 		})),
 		resolveLoader: nestedConfig(config.resolveLoader, resolve => ({
-			...resolve
+			...resolve,
+			tsConfig: optionalNestedConfig(resolve.tsConfig, tsConfig => {
+				return typeof tsConfig === "string"
+					? { configFile: tsConfig }
+					: tsConfig;
+			})
 		})),
 		module: nestedConfig(config.module, module => ({
+			noParse: module.noParse,
 			parser: keyedNestedConfig(
 				module.parser as Record<string, any>,
 				cloneObject,
@@ -250,16 +253,8 @@ export const getNormalizedRspackOptions = (
 					...node
 				}
 		),
-		snapshot: nestedConfig(config.snapshot, snapshot => ({
-			resolve: optionalNestedConfig(snapshot.resolve, resolve => ({
-				timestamp: resolve.timestamp,
-				hash: resolve.hash
-			})),
-			module: optionalNestedConfig(snapshot.module, module => ({
-				timestamp: module.timestamp,
-				hash: module.hash
-			}))
-		})),
+		loader: cloneObject(config.loader),
+		snapshot: nestedConfig(config.snapshot, _snapshot => ({})),
 		cache: optionalNestedConfig(config.cache, cache => cache),
 		stats: nestedConfig(config.stats, stats => {
 			if (stats === false) {
@@ -292,16 +287,20 @@ export const getNormalizedRspackOptions = (
 					splitChunks =>
 						splitChunks && {
 							...splitChunks,
+							defaultSizeTypes: splitChunks.defaultSizeTypes
+								? [...splitChunks.defaultSizeTypes]
+								: ["..."],
 							cacheGroups: cloneObject(splitChunks.cacheGroups)
 						}
 				)
 			};
 		}),
+		performance: config.performance,
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
 			...experiments,
-			incrementalRebuild: optionalNestedConfig(
-				experiments.incrementalRebuild,
+			lazyCompilation: optionalNestedConfig(
+				experiments.lazyCompilation,
 				options => (options === true ? {} : options)
 			)
 		})),
@@ -309,9 +308,7 @@ export const getNormalizedRspackOptions = (
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
 		profile: config.profile,
-		builtins: nestedConfig(config.builtins, builtins => ({
-			...builtins
-		}))
+		bail: config.bail
 	};
 };
 
@@ -350,7 +347,12 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 				chunkLoading: value.chunkLoading,
 				asyncChunks: value.asyncChunks,
 				filename: value.filename,
-				library: value.library
+				library: value.library,
+				dependOn: Array.isArray(value.dependOn)
+					? value.dependOn
+					: value.dependOn
+						? [value.dependOn]
+						: undefined
 			};
 		}
 	}
@@ -364,19 +366,20 @@ const getNormalizedOptimizationRuntimeChunk = (
 	if (runtimeChunk === false) return false;
 	if (runtimeChunk === "single") {
 		return {
-			name: () => "runtime"
+			name: "single"
 		};
 	}
 	if (runtimeChunk === true || runtimeChunk === "multiple") {
 		return {
-			name: (entrypoint: { name: string }) => `runtime~${entrypoint.name}`
+			name: "multiple"
 		};
 	}
-	const { name } = runtimeChunk;
-	const opts: OptimizationRuntimeChunkNormalized = {
-		name: typeof name === "function" ? name : () => name
-	};
-	return opts;
+	if (runtimeChunk.name) {
+		const opts: OptimizationRuntimeChunkNormalized = {
+			name: runtimeChunk.name
+		};
+		return opts;
+	}
 };
 
 const nestedConfig = <T, R>(value: T | undefined, fn: (value: T) => R) =>
@@ -413,7 +416,7 @@ const keyedNestedConfig = <T, R>(
 						obj
 					),
 					{} as Record<string, R>
-			  );
+				);
 	if (customKeys) {
 		for (const key of Object.keys(customKeys)) {
 			if (!(key in result)) {
@@ -424,7 +427,10 @@ const keyedNestedConfig = <T, R>(
 	return result;
 };
 
-export type EntryNormalized = EntryStaticNormalized;
+export type EntryDynamicNormalized = () => Promise<EntryStaticNormalized>;
+
+export type EntryNormalized = EntryDynamicNormalized | EntryStaticNormalized;
+
 export interface EntryStaticNormalized {
 	[k: string]: EntryDescriptionNormalized;
 }
@@ -437,10 +443,12 @@ export interface EntryDescriptionNormalized {
 	baseUri?: string;
 	filename?: EntryFilename;
 	library?: LibraryOptions;
+	dependOn?: string[];
 }
 
 export interface OutputNormalized {
 	path?: Path;
+	pathinfo?: boolean | "verbose";
 	clean?: Clean;
 	publicPath?: PublicPath;
 	filename?: Filename;
@@ -477,7 +485,11 @@ export interface OutputNormalized {
 	workerChunkLoading?: ChunkLoading;
 	workerWasmLoading?: WasmLoading;
 	workerPublicPath?: WorkerPublicPath;
-	scriptType?: "module" | "text/javascript" | false;
+	scriptType?: ScriptType;
+	devtoolNamespace?: DevtoolNamespace;
+	devtoolModuleFilenameTemplate?: DevtoolModuleFilenameTemplate;
+	devtoolFallbackModuleFilenameTemplate?: DevtoolFallbackModuleFilenameTemplate;
+	environment?: Environment;
 }
 
 export interface ModuleOptionsNormalized {
@@ -485,14 +497,13 @@ export interface ModuleOptionsNormalized {
 	rules: RuleSetRules;
 	parser: ParserOptionsByModuleType;
 	generator: GeneratorOptionsByModuleType;
+	noParse?: NoParseOption;
 }
 
 export interface ExperimentsNormalized {
-	lazyCompilation?: boolean;
-	incrementalRebuild?: false | IncrementalRebuildOptions;
+	lazyCompilation?: false | LazyCompilationOptions;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
-	newSplitChunks?: boolean;
 	topLevelAwait?: boolean;
 	css?: boolean;
 	futureDefaults?: boolean;
@@ -507,7 +518,7 @@ export type IgnoreWarningsNormalized = ((
 export type OptimizationRuntimeChunkNormalized =
 	| false
 	| {
-			name: (...args: any[]) => string | undefined;
+			name: string | ((entrypoint: { name: string }) => string);
 	  };
 
 export interface RspackOptionsNormalized {
@@ -527,6 +538,7 @@ export interface RspackOptionsNormalized {
 	infrastructureLogging: InfrastructureLogging;
 	devtool?: DevTool;
 	node: Node;
+	loader: Loader;
 	snapshot: SnapshotOptions;
 	cache?: CacheOptions;
 	stats: StatsValue;
@@ -537,6 +549,7 @@ export interface RspackOptionsNormalized {
 	watchOptions: WatchOptions;
 	devServer?: DevServer;
 	ignoreWarnings?: IgnoreWarningsNormalized;
+	performance?: Performance;
 	profile?: Profile;
-	builtins: Builtins;
+	bail?: Bail;
 }

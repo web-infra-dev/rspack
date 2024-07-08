@@ -1,0 +1,53 @@
+# Target
+
+Used to configure the target environment of Rspack output and the ECMAScript version of Rspack runtime code.
+
+- **Type:** `string | string[]`
+
+## string
+
+The following options are now supported:
+
+| options                      | description                                                                                                                                                                                                                                   |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `'node[[X].Y]'`              | Compile as available for Node.js environments                                                                                                                                                                                                 |
+| `'async-node[[X].Y]'`        | Compile for usage in a Node.js-like environment (uses fs and vm to load chunks asynchronously)                                                                                                                                                |
+| `'web'`                      | Compile as available in the browser environment (default)                                                                                                                                                                                     |
+| `'esX'`                      | Compile Rspack runtime to the corresponding ECMAScript version. Currently supports `es3`, `es5`, `es2015`, `es2016`, `es2017`, `es2018`, `es2019`, `es2020`, `es2021`, `es2022` (es5 is used by default)                                      |
+| `'browserslist'`             | Infer the ECMAScript version based on the configured browserslist                                                                                                                                                                             |
+| `'electron[[X].Y]-main'`     | Compile for Electron for main process.                                                                                                                                                                                                        |
+| `'electron[[X].Y]-renderer'` | Compile for Electron for renderer process, providing a target using `array-push` as chunkFormat and `jsonp` as chunkLoading for browser environments and `NodeTargetPlugin` and `ExternalsPlugin` for CommonJS and Electron built-in modules. |
+| `'electron[[X].Y]-preload'`  | Compile for Electron for preload script of renderer process                                                                                                                                                                                   |
+| `'nwjs[[X].Y]'`              | Compile as available for NW.js environments                                                                                                                                                                                                   |
+| `'node-webkit[[X].Y]'`       | Compile as available for node-webkit environments                                                                                                                                                                                             |
+
+{/* | `'webworker'`   | Compile as WebWorker                                                                                                                                                                                     | */}
+
+:::warning Specifies the ECMAScript version of the user code
+
+The `esX` in the `target` configuration can only specify the ECMAScript version syntax of the code in the Rspack runtime. If you want to specify the ECMAScript version of the user code, you should use [builtin:swc-loader](/guide/features/builtin-swc-loader.html), or [babel-loader](https://www.npmjs.com/package/babel-loader), or [swc-loader](https://www.npmjs.com/package/swc-loader) to degrade the user code.
+
+:::
+
+## Example
+
+Specify that the Compiler needs to compile to the Node.js environment:
+
+```ts title="rspack.config.js"
+module.exports = {
+  target: 'node',
+};
+```
+
+When specifying that the Compiler needs to be compiled for multiple platforms, an error is reported:
+
+```ts title="rspack.config.js"
+module.exports = {
+  target: ['web', 'node'],
+};
+```
+
+{
+// TODO: add link to MultiCompiler
+// In this case, you can use MultiCompiler to package it in multiple configurations.
+}

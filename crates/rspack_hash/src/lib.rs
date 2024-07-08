@@ -6,7 +6,7 @@ use std::{
 use data_encoding::HEXLOWER_PERMISSIVE;
 use md4::Digest;
 use smol_str::SmolStr;
-use xxhash_rust::xxh3;
+use xxhash_rust::xxh64::Xxh64;
 
 #[derive(Debug, Clone, Copy)]
 pub enum HashFunction {
@@ -55,7 +55,7 @@ impl From<Option<String>> for HashSalt {
 
 #[derive(Clone)]
 pub enum RspackHash {
-  Xxhash64(Box<xxh3::Xxh3>),
+  Xxhash64(Box<Xxh64>),
   MD4(md4::Md4),
 }
 
@@ -71,20 +71,22 @@ impl fmt::Debug for RspackHash {
 impl RspackHash {
   pub fn new(function: &HashFunction) -> Self {
     match function {
-      HashFunction::Xxhash64 => Self::Xxhash64(Box::new(xxh3::Xxh3::new())),
+      HashFunction::Xxhash64 => Self::Xxhash64(Box::new(Xxh64::new(0))),
       HashFunction::MD4 => Self::MD4(md4::Md4::new()),
     }
   }
 
   pub fn with_salt(function: &HashFunction, salt: &HashSalt) -> Self {
     let mut this = Self::new(function);
-    salt.hash(&mut this);
+    if !matches!(salt, HashSalt::None) {
+      salt.hash(&mut this);
+    }
     this
   }
 
   pub fn digest(self, digest: &HashDigest) -> RspackHashDigest {
     let inner = match self {
-      RspackHash::Xxhash64(hasher) => hasher.finish().to_le_bytes().to_vec(),
+      RspackHash::Xxhash64(hasher) => hasher.finish().to_be_bytes().to_vec(),
       RspackHash::MD4(hash) => hash.finalize().to_vec(),
     };
     RspackHashDigest::new(inner, digest)

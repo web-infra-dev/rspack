@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use napi_derive::napi;
-use rspack_core::{Chunk, ChunkAssetArgs, ChunkUkey, Compilation};
+use rspack_core::{Chunk, ChunkUkey, Compilation};
 
 use crate::JsCompilation;
 
@@ -22,7 +22,7 @@ pub struct JsChunk {
   pub hash: Option<String>,
   pub content_hash: HashMap<String, String>,
   pub rendered_hash: Option<String>,
-  pub chunk_reasons: Vec<String>,
+  pub chunk_reason: Option<String>,
   pub auxiliary_files: Vec<String>,
 }
 
@@ -48,7 +48,8 @@ impl JsChunk {
       hash,
       rendered_hash,
       content_hash,
-      chunk_reasons,
+      chunk_reason,
+      ..
     } = chunk;
     let mut files = Vec::from_iter(files.iter().cloned());
     files.sort_unstable();
@@ -70,10 +71,10 @@ impl JsChunk {
       id_name_hints: Vec::from_iter(id_name_hints.clone()),
       filename_template: filename_template
         .as_ref()
-        .map(|tpl| tpl.template().to_string()),
+        .and_then(|f| Some(f.template()?.to_string())),
       css_filename_template: css_filename_template
         .as_ref()
-        .map(|tpl| tpl.template().to_string()),
+        .and_then(|f| Some(f.template()?.to_string())),
       files,
       runtime,
       hash: hash.as_ref().map(|d| d.encoded().to_string()),
@@ -82,7 +83,7 @@ impl JsChunk {
         .map(|(key, v)| (key.to_string(), v.encoded().to_string()))
         .collect::<std::collections::HashMap<String, String>>(),
       rendered_hash: rendered_hash.as_ref().map(|hash| hash.to_string()),
-      chunk_reasons: chunk_reasons.clone(),
+      chunk_reason: chunk_reason.clone(),
       auxiliary_files,
     }
   }
@@ -90,36 +91,33 @@ impl JsChunk {
 
 fn chunk(ukey: u32, compilation: &Compilation) -> &Chunk {
   let ukey = ChunkUkey::from(ukey as usize);
-  compilation
-    .chunk_by_ukey
-    .get(&ukey)
-    .expect("Chunk must exist")
+  compilation.chunk_by_ukey.expect_get(&ukey)
 }
 
 #[napi(js_name = "__chunk_inner_is_only_initial")]
 pub fn is_only_initial(js_chunk_ukey: u32, compilation: &JsCompilation) -> bool {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let chunk = chunk(js_chunk_ukey, compilation);
   chunk.is_only_initial(&compilation.chunk_group_by_ukey)
 }
 
 #[napi(js_name = "__chunk_inner_can_be_initial")]
 pub fn can_be_initial(js_chunk_ukey: u32, compilation: &JsCompilation) -> bool {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let chunk = chunk(js_chunk_ukey, compilation);
   chunk.can_be_initial(&compilation.chunk_group_by_ukey)
 }
 
 #[napi(js_name = "__chunk_inner_has_runtime")]
 pub fn has_runtime(js_chunk_ukey: u32, compilation: &JsCompilation) -> bool {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let chunk = chunk(js_chunk_ukey, compilation);
   chunk.has_runtime(&compilation.chunk_group_by_ukey)
 }
 
 #[napi(js_name = "__chunk_inner_get_all_async_chunks")]
 pub fn get_all_async_chunks(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsChunk> {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let chunk = chunk(js_chunk_ukey, compilation);
   chunk
     .get_all_async_chunks(&compilation.chunk_group_by_ukey)
@@ -130,7 +128,7 @@ pub fn get_all_async_chunks(js_chunk_ukey: u32, compilation: &JsCompilation) -> 
 
 #[napi(js_name = "__chunk_inner_get_all_initial_chunks")]
 pub fn get_all_initial_chunks(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsChunk> {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let chunk = chunk(js_chunk_ukey, compilation);
   chunk
     .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
@@ -141,7 +139,7 @@ pub fn get_all_initial_chunks(js_chunk_ukey: u32, compilation: &JsCompilation) -
 
 #[napi(js_name = "__chunk_inner_get_all_referenced_chunks")]
 pub fn get_all_referenced_chunks(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsChunk> {
-  let compilation = &compilation.inner;
+  let compilation = &compilation.0;
   let chunk = chunk(js_chunk_ukey, compilation);
   chunk
     .get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
@@ -154,13 +152,4 @@ pub fn get_all_referenced_chunks(js_chunk_ukey: u32, compilation: &JsCompilation
 pub struct JsChunkAssetArgs {
   pub chunk: JsChunk,
   pub filename: String,
-}
-
-impl From<&ChunkAssetArgs<'_>> for JsChunkAssetArgs {
-  fn from(value: &ChunkAssetArgs) -> Self {
-    Self {
-      chunk: JsChunk::from(value.chunk),
-      filename: value.filename.to_string(),
-    }
-  }
 }

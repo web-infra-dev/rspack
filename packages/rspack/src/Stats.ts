@@ -8,30 +8,51 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import type * as binding from "@rspack/binding";
-import { Compilation, FilterItemTypes } from ".";
-import { StatsValue, StatsOptions } from "./config";
+
+import { Compilation } from "./Compilation";
+import { StatsOptions, StatsValue } from "./config";
 import type { StatsCompilation } from "./stats/statsFactoryUtils";
 
 export type {
-	StatsCompilation,
 	StatsAsset,
 	StatsChunk,
-	StatsModule,
+	StatsCompilation,
 	StatsError,
+	StatsModule,
 	StatsWarnings
 } from "./stats/statsFactoryUtils";
 
 export class Stats {
 	#inner: binding.JsStats;
 	compilation: Compilation;
+	#innerMap: WeakMap<Compilation, binding.JsStats>;
 
 	constructor(compilation: Compilation) {
 		this.#inner = compilation.__internal_getInner().getStats();
 		this.compilation = compilation;
+		this.#innerMap = new WeakMap([[this.compilation, this.#inner]]);
+	}
+
+	// use correct JsStats for child compilation
+	#getInnerByCompilation(compilation: Compilation) {
+		if (this.#innerMap.has(compilation)) {
+			return this.#innerMap.get(compilation);
+		}
+		const inner = compilation.__internal_getInner().getStats();
+		this.#innerMap.set(compilation, inner);
+		return inner;
 	}
 
 	get hash() {
 		return this.compilation.hash;
+	}
+
+	get startTime() {
+		return this.compilation.startTime;
+	}
+
+	get endTime() {
+		return this.compilation.endTime;
 	}
 
 	hasErrors() {
@@ -57,7 +78,7 @@ export class Stats {
 		try {
 			stats = statsFactory.create("compilation", this.compilation, {
 				compilation: this.compilation,
-				_inner: this.#inner
+				getInner: this.#getInnerByCompilation.bind(this)
 			});
 		} catch (e) {
 			console.warn(
@@ -84,7 +105,7 @@ export class Stats {
 		try {
 			stats = statsFactory.create("compilation", this.compilation, {
 				compilation: this.compilation,
-				_inner: this.#inner
+				getInner: this.#getInnerByCompilation.bind(this)
 			});
 		} catch (e) {
 			console.warn(
@@ -115,8 +136,8 @@ export function normalizeStatsPreset(options?: StatsValue): StatsOptions {
 }
 
 function presetToOptions(name?: boolean | string): StatsOptions {
-	const pn = (typeof name === "string" && name.toLowerCase()) || name;
-	switch (pn) {
+	const preset = (typeof name === "string" && name.toLowerCase()) || name;
+	switch (preset) {
 		case "none":
 			return {
 				all: false
@@ -147,34 +168,3 @@ function presetToOptions(name?: boolean | string): StatsOptions {
 			return {};
 	}
 }
-
-export const normalizeFilter = (item: FilterItemTypes) => {
-	if (typeof item === "string") {
-		const regExp = new RegExp(
-			`[\\\\/]${item.replace(
-				// eslint-disable-next-line no-useless-escape
-				/[-[\]{}()*+?.\\^$|]/g,
-				"\\$&"
-			)}([\\\\/]|$|!|\\?)`
-		);
-		return (ident: string) => regExp.test(ident);
-	}
-	if (item && typeof item === "object" && typeof item.test === "function") {
-		return (ident: string) => item.test(ident);
-	}
-	if (typeof item === "function") {
-		return item;
-	}
-	if (typeof item === "boolean") {
-		return () => item;
-	}
-	throw new Error(
-		`unreachable: typeof ${item} should be one of string | RegExp | ((value: string) => boolean)`
-	);
-};
-
-export const optionsOrFallback = (...args: any) => {
-	let optionValues = [];
-	optionValues.push(...args);
-	return optionValues.find(optionValue => optionValue !== undefined);
-};

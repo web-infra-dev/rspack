@@ -1,11 +1,21 @@
+use std::{
+  fmt::Display,
+  hash::{Hash, Hasher},
+  sync::Arc,
+};
+
+use derivative::Derivative;
 use rspack_error::{
   miette::{self, Diagnostic},
   thiserror::{self, Error},
 };
-use serde::Serialize;
-use ustr::Ustr;
+use rspack_identifier::Identifier;
+use swc_core::common::{source_map::Pos, BytePos, SourceMap};
 
-use crate::{BoxDependency, Compilation, DependencyId, GroupOptions, ModuleIdentifier};
+use crate::{
+  update_hash::{UpdateHashContext, UpdateRspackHash},
+  BoxDependency, DependencyId, DependencyTemplate, GroupOptions, ModuleIdentifier,
+};
 
 pub trait DependenciesBlock {
   fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier);
@@ -15,40 +25,24 @@ pub trait DependenciesBlock {
   fn add_dependency_id(&mut self, dependency: DependencyId);
 
   fn get_dependencies(&self) -> &[DependencyId];
-}
 
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
-pub struct AsyncDependenciesBlockIdentifier {
-  pub from: ModuleIdentifier,
-  modifier: Ustr,
-}
-
-impl AsyncDependenciesBlockIdentifier {
-  pub fn new(from: ModuleIdentifier, modifier: Ustr) -> Self {
-    Self { from, modifier }
-  }
-
-  pub fn get<'a>(&self, compilation: &'a Compilation) -> Option<&'a AsyncDependenciesBlock> {
-    compilation.module_graph.block_by_id(self)
-  }
-
-  pub fn expect_get<'a>(&self, compilation: &'a Compilation) -> &'a AsyncDependenciesBlock {
-    compilation
-      .module_graph
-      .block_by_id(self)
-      .expect("should have block")
+  fn get_presentational_dependencies_for_block(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
+    None
   }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Derivative)]
+#[derivative(Debug, Clone)]
 pub struct DependencyLocation {
   start: u32,
   end: u32,
+  #[derivative(Debug = "ignore")]
+  source: Option<Arc<SourceMap>>,
 }
 
 impl DependencyLocation {
-  pub fn new(start: u32, end: u32) -> Self {
-    Self { start, end }
+  pub fn new(start: u32, end: u32, source: Option<Arc<SourceMap>>) -> Self {
+    Self { start, end, source }
   }
 
   #[inline]
@@ -62,6 +56,37 @@ impl DependencyLocation {
   }
 }
 
+impl From<(u32, u32)> for DependencyLocation {
+  fn from(value: (u32, u32)) -> Self {
+    Self {
+      start: value.0,
+      end: value.1,
+      source: None,
+    }
+  }
+}
+
+impl Display for DependencyLocation {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    if let Some(source) = &self.source {
+      let pos = source.lookup_char_pos(BytePos::from_u32(self.start + 1));
+      let pos = format!("{}:{}", pos.line, pos.col.to_usize());
+      f.write_str(format!("{}-{}", pos, self.end - self.start).as_str())
+    } else {
+      Ok(())
+    }
+  }
+}
+
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct AsyncDependenciesBlockIdentifier(Identifier);
+
+impl From<String> for AsyncDependenciesBlockIdentifier {
+  fn from(value: String) -> Self {
+    Self(value.into())
+  }
+}
+
 #[derive(Debug, Clone)]
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
@@ -71,43 +96,53 @@ pub struct AsyncDependenciesBlock {
   dependency_ids: Vec<DependencyId>,
   dependencies: Vec<BoxDependency>,
   loc: Option<DependencyLocation>,
+  parent: ModuleIdentifier,
+  request: Option<String>,
 }
 
 impl AsyncDependenciesBlock {
   /// modifier should be Dependency.span in most of time
   pub fn new(
-    from: ModuleIdentifier,
-    modifier: impl AsRef<str>,
+    parent: ModuleIdentifier,
     loc: Option<DependencyLocation>,
+    modifier: Option<&str>,
+    dependencies: Vec<BoxDependency>,
+    request: Option<String>,
   ) -> Self {
+    let loc_str = loc.clone().map_or_else(
+      || "".to_string(),
+      |loc| format!("|loc={}:{}", loc.start(), loc.end()),
+    );
+
+    let modifier_str = modifier.map_or_else(
+      || "".to_string(),
+      |modifier| format!("|modifier={modifier}"),
+    );
+
     Self {
-      id: AsyncDependenciesBlockIdentifier::new(from, modifier.as_ref().into()),
+      id: format!(
+        "{parent}|dep={}{}{}",
+        dependencies.iter().fold(String::default(), |mut s, dep| {
+          s += dep.resource_identifier().unwrap_or_default();
+          s
+        }),
+        loc_str,
+        modifier_str
+      )
+      .into(),
       group_options: Default::default(),
       blocks: Default::default(),
       block_ids: Default::default(),
-      dependency_ids: Default::default(),
-      dependencies: Default::default(),
+      dependency_ids: dependencies.iter().map(|dep| *dep.id()).collect(),
+      dependencies,
       loc,
+      parent,
+      request,
     }
   }
-}
 
-impl AsyncDependenciesBlock {
-  // represent an unique AsyncDependenciesBlock, we use this as the block_promise_key at codegen
-  // why not Id(u32)? Id(u32) is unstable since module is built concurrently
-  // why not ChunkGroup.id? ChunkGroup.id = ChunkGroup.chunks.map(c => c.id).join("+"), probably will break incremental build, same reason we create __webpack_require__.el
   pub fn identifier(&self) -> AsyncDependenciesBlockIdentifier {
     self.id
-  }
-
-  pub fn block_promise_key(&self, compilation: &Compilation) -> String {
-    let module_id = compilation
-      .chunk_graph
-      .get_module_id(self.id.from)
-      .as_ref()
-      .expect("should have module_id");
-    let key = format!("{}@{}", module_id, self.id.modifier);
-    serde_json::to_string(&key).expect("AsyncDependenciesBlock.id should be able to json to_string")
   }
 
   pub fn set_group_options(&mut self, group_options: GroupOptions) {
@@ -116,11 +151,6 @@ impl AsyncDependenciesBlock {
 
   pub fn get_group_options(&self) -> Option<&GroupOptions> {
     self.group_options.as_ref()
-  }
-
-  pub fn add_dependency(&mut self, dependency: BoxDependency) {
-    self.dependency_ids.push(*dependency.id());
-    self.dependencies.push(dependency);
   }
 
   pub fn take_dependencies(&mut self) -> Vec<BoxDependency> {
@@ -140,6 +170,14 @@ impl AsyncDependenciesBlock {
   pub fn loc(&self) -> Option<&DependencyLocation> {
     self.loc.as_ref()
   }
+
+  pub fn parent(&self) -> &ModuleIdentifier {
+    &self.parent
+  }
+
+  pub fn request(&self) -> &Option<String> {
+    &self.request
+  }
 }
 
 impl DependenciesBlock for AsyncDependenciesBlock {
@@ -158,6 +196,22 @@ impl DependenciesBlock for AsyncDependenciesBlock {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependency_ids
+  }
+}
+
+impl UpdateRspackHash for AsyncDependenciesBlock {
+  fn update_hash<H: Hasher>(&self, state: &mut H, context: &UpdateHashContext) {
+    self.group_options.hash(state);
+    if let Some(chunk_group) = context
+      .compilation
+      .chunk_graph
+      .get_block_chunk_group(&self.id, &context.compilation.chunk_group_by_ukey)
+    {
+      chunk_group.id(context.compilation).hash(state);
+    }
+    for block in &self.blocks {
+      block.update_hash(state, context);
+    }
   }
 }
 

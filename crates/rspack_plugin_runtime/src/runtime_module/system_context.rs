@@ -5,16 +5,15 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
-#[derive(Debug, Eq)]
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct SystemContextRuntimeModule {
   id: Identifier,
 }
 
 impl Default for SystemContextRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/start_entry_point"),
-    }
+    Self::with_default(Identifier::from("webpack/runtime/start_entry_point"))
   }
 }
 
@@ -23,13 +22,13 @@ impl RuntimeModule for SystemContextRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(format!(
-      "{} = __system_context__",
-      RuntimeGlobals::SYSTEM_CONTEXT
-    ))
-    .boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(
+      RawSource::from(format!(
+        "{} = __system_context__",
+        RuntimeGlobals::SYSTEM_CONTEXT
+      ))
+      .boxed(),
+    )
   }
 }
-
-impl_runtime_module!(SystemContextRuntimeModule);

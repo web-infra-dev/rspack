@@ -3,12 +3,13 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "dev": "NODE_ENV=development rspack serve",
-    "build": "NODE_ENV=production rspack build"
+    "dev": "cross-env NODE_ENV=development rspack serve",
+    "build": "cross-env NODE_ENV=production rspack build"
   },
   "devDependencies": {
     "browserify": "latest",
-    "@rspack/cli": "0.4.0",
-    "@rspack/core": "0.4.0"
+    "cross-env": "^7.0.3",
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*"
   }
 }

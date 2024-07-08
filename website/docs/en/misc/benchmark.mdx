@@ -1,0 +1,105 @@
+# Benchmark
+
+To run this benchmark yourself, clone [web-infra-dev/bundler-benchmark](https://github.com/web-infra-dev/bundler-benchmark) and then use this command from the root:
+
+```bash
+./scripts/bench-all.sh ${platform} # `platform` is used to uniquely identify the generated benchmark data.
+```
+
+## Benchmark case
+
+### all
+
+This project is used for comparing development mode and production mode build performance.
+It is combined by several sub projects `atlaskit-editor`, `common-libs`, `common-libs-chunks`, `rome` and `esbuild-three`, which has a total of 50000 modules.
+here is the simple description of each sub project:
+
+**atlaskit-editor**
+
+Basic react application with `@atlaskit/editor-core`
+
+**common-libs**
+
+A application that used some common libraries in JavaScript ecosystem.
+
+**common-libs-chunks**
+
+Same as `common-libs`, but using async `import()` syntax to force bundler generate multiple chunks.
+
+**esbuild-three**
+
+A large JavaScript codebase by duplicating the three.js library 10 times.
+
+**rome**
+
+The old Rome code base (prior to their Rust rewrite) to approximate a large TypeScript codebase.
+
+#### Data
+
+Tested on Intel(R) Xeon(R) Platinum 8260 CPU @ 2.40GHz 32Core, 64GB of RAM
+| mode | Rspack | webpack(with swc) | webpack (with babel) |
+|------------------------|---------|-------------------|----------------------|
+| development cold start | 3.79s | 31.25s | 42.61s |
+| production cold start | 22.353s | 75.054s | 160.059s |
+
+### react-components-10000
+
+10000 react components (each component only have basic skeleton) to test hot module replacement performance of each devServer of bundler.
+
+#### Data
+
+Tested on Intel(R) Xeon(R) Platinum 8260 CPU @ 2.40GHz 32Core, 64GB of RAM
+| | rspack/root | rspack/leaf | webpack(with swc)/root | webpack (with swc)/leaf | webpack (with babel)/root | webpack (with babel)/leaf |
+|---------|-------------|-------------|------------------------|--------------------------|---------------------------|-------------------------|
+| 1 | 711ms | 562ms | 2023ms | 1534ms | 2081ms | 1644ms |
+| 2 | 507ms | 566ms | 1725ms | 1593ms | 1642ms | 1652ms |
+| 3 | 551ms | 592ms | 1602ms | 1454ms | 1786ms | 1595ms |
+| 4 | 525ms | 513ms | 1480ms | 1587ms | 1543ms | 1684ms |
+| 5 | 545ms | 571ms | 1517ms | 1470ms | 1658ms | 1603ms |
+| average | 567.8ms | 560.8ms | 1669.4ms | 1527.6ms | 1742ms | 1635.6ms |
+
+## Metrics
+
+- dev-cold-start: the time it takes for the development build to complete without caching.
+- production-build-cold-start: the time it takes for the production build to complete without caching.
+- HMR: the time it takes for the development server rebuild the project when an update is applied to a source file.
+  **there are two sub metrics of HMR**:
+  - leaf: time for updating a react component file that has no dependency
+  - root: time for updating a root react component, normally it is named `App.tsx` or `index.tsx`
+
+## Bundler involved in comparison
+
+- webpack + ts-loader (or babel-loader in react-components-10000) + terser-webpack-plugin
+
+- webpack + swc-loader + swc-minifier
+
+- Rspack (using SWC as transpiler and minifier)
+
+All the configuration in development mode keep as is except the loader which depends on the test target.
+
+In production mode we set `devtool` to `source-map` and use loader and minifier depends on the test target, keep other configuration as is.
+
+## Methodology
+
+### dev-cold-start
+
+Using `hyperfine` to run each development build command 10 times with warmup and get the average time, finally generate corresponding markdown table.
+
+### production-cold-start
+
+Using `hyperfine` to run each production build command 10 times with warmup and get the average time, finally generate corresponding markdown table.
+
+### HMR
+
+The HMR benchmark is relatively complex because it is usually implemented in four stages.
+
+1. devServer listens for file changes and rebuilds the project (usually a partial build).
+2. devServer sends the built diff to the HMR client over the local network (usually a websocket).
+3. HMR client receives the diff and applies the diff to runtime code of the browser.
+4. the browser rerendering the view.
+
+Sometimes it takes about half time of HMR from second stage to fourth stage.
+
+Some tools' HMR benchmarks use the entire HMR time as the metric time, and since each toolchain may implement each stage of HMR differently, it's fine to compare in this way.
+
+However, our implementation is basically the same as webpack's in phases two through four, unlike webpack, Rspack uses a more fine-grained incremental build algorithm to accelerate phase one, and to better demonstrate the effect of this algorithm, we use the re-build time of both build tools as a metric.

@@ -6,7 +6,8 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
-#[derive(Debug, Eq)]
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct RuntimeIdRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -14,10 +15,7 @@ pub struct RuntimeIdRuntimeModule {
 
 impl Default for RuntimeIdRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/runtime_id"),
-      chunk: None,
-    }
+    Self::with_default(Identifier::from("webpack/runtime/runtime_id"), None)
   }
 }
 
@@ -30,12 +28,9 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get(&chunk_ukey)
-        .expect("Chunk not found");
+      let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
 
       let runtime = &chunk.runtime;
 
@@ -52,16 +47,16 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
           .to_string(),
       );
 
-      RawSource::from(format!(
-        "{} = {};",
-        RuntimeGlobals::RUNTIME_ID,
-        serde_json::to_string(&id).expect("Invalid json string")
-      ))
-      .boxed()
+      Ok(
+        RawSource::from(format!(
+          "{} = {};",
+          RuntimeGlobals::RUNTIME_ID,
+          serde_json::to_string(&id).expect("Invalid json string")
+        ))
+        .boxed(),
+      )
     } else {
       unreachable!("should attach chunk for css_loading")
     }
   }
 }
-
-impl_runtime_module!(RuntimeIdRuntimeModule);

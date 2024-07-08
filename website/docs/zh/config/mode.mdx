@@ -1,0 +1,63 @@
+# Mode
+
+模式：该选项用于设置 Rspack 的构建模式，以启用对应模式下的默认优化策略。
+
+- **类型：**
+
+```ts
+type Mode = 'production' | 'development' | 'none';
+```
+
+- **默认值：** `'production'`
+
+## 用法
+
+你可以在 `rspack.config.js` 中直接设置 mode:
+
+```ts title="rspack.config.js"
+module.exports = {
+  mode: 'production',
+};
+```
+
+在实际场景中，你可以根据 `process.env.NODE_ENV` 来动态设置 mode:
+
+```ts title="rspack.config.js"
+const isProduction = process.env.NODE_ENV === 'production';
+
+module.exports = {
+  mode: isProduction ? 'production' : 'development',
+};
+```
+
+除此之外，你也可以在 Rspack 命令行中通过 `--mode` 选项来设置 mode:
+
+```bash
+rspack --mode=production
+```
+
+:::info
+命令行中的 `--mode` 选项优先级高于 `rspack.config.js` 中的 `mode`。
+:::
+
+## 可选值
+
+`mode` 有以下可选值：
+
+### production
+
+在 production 模式下，Rspack 会自动启用以下优化策略：
+
+- 将代码中的 `process.env.NODE_ENV` 替换为 `'production'`。
+- 将 `optimization.minimize` 的默认值设置为 `true`，并使用 SWC 对代码进行压缩优化。
+
+### development
+
+在 development 模式下，Rspack 会自动启用以下优化策略：
+
+- 将代码中的 `process.env.NODE_ENV` 替换为 `'development'`。
+- 为模块和 chunks 设置合适的命名格式。
+
+### none
+
+当 `mode` 被设置为 `'none'` 时，Rspack 不会启用任何默认优化策略。

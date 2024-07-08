@@ -1,0 +1,386 @@
+import { ApiMeta } from '../../../components/ApiMeta';
+
+# Resolve
+
+Used to configure the Rspack module resolution logic.
+
+- **Type:** `Object`
+
+## resolve.alias
+
+- **Type:** `Record<string, false | string | (string | false)[]>`
+- **Default:** `{}`
+
+Path alias, e.g.
+
+```
+{
+  "@": path.resolve(__dirname, './src'),
+  "abc$": path.resolve(__dirname, './node_modules/abc/index.js'),
+}
+```
+
+At this point:
+
+- `require("@/a")` will attempt to resolve `<root>/src/a`.
+- `require("abc")` will attempt to resolve `<root>/src/abc`.
+- `require("abc/file.js")` will not match, and it will attempt to resolve `node_modules/abc/file.js`.
+
+## resolve.aliasFields
+
+<ApiMeta addedVersion="0.5.1" />
+
+- **Type:** `string[]`
+- **Default:** `['browser']`
+
+Define a field, such as `browser`, that should be parsed in accordance with [this specification](https://github.com/defunctzombie/package-browser-field-spec).
+
+## resolve.browserField
+
+<ApiMeta deprecatedVersion="0.5.1" removedVersion="0.7.0" />
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to resolve according to the [package-browser-filed-spec](https://github.com/defunctzombie/package-browser-field-spec) rule.
+
+Works the same with enhanced-resolve's `resolve.aliasFields = ["browser"]`.
+
+## resolve.conditionNames
+
+- **Type:** `string[]`
+- **Default:** `[]`
+
+Same as node's [conditionNames](https://nodejs.org/api/packages.html#conditional-exports) for the `exports` and `imports` fields in package.json.
+
+## resolve.descriptionFiles
+
+<ApiMeta addedVersion="0.6.6" />
+
+- **Type:** `string[]`
+- **Default:** `['package.json']`
+
+The JSON files to use for descriptions.
+
+```js title="rspack.config.js"
+module.exports = {
+  resolve: {
+    descriptionFiles: ['package.json'],
+  },
+};
+```
+
+## resolve.enforceExtension
+
+<ApiMeta addedVersion="0.6.6" />
+
+- **Type:** `boolean`
+
+By default, It changes to `true` if [resolve.extensions](#resolveextensions) contains an empty string; otherwise, this value changes to `false`.
+
+If `true`, it will not allow extension-less files. So by default `require('./foo')` works if `./foo` has a `.js` extension, but with this enabled only `require('./foo.js')` will work.
+
+```js title="rspack.config.js"
+module.exports = {
+  resolve: {
+    enforceExtension: false,
+  },
+};
+```
+
+## resolve.extensions
+
+- **Type:** `string[]`
+- **Default:** `[".js", ".json", ".wasm"]`
+
+Parse modules in order, e.g. `require('. /index')`, will try to parse `'. /index.js'`, `'. /index.json'`...
+
+## resolve.extensionAlias
+
+- **Type:** `Record<string, string[] | string>`
+- **Default:** `{}`
+
+Define alias for the extension. e.g.
+
+```js
+// rspack.config.js
+module.exports = {
+  resolve: {
+    extensionAlias: {
+      '.js': ['.ts', '.js'],
+    },
+  },
+};
+```
+
+`require('./index.js')` will try to parse `'./index.ts'`, `./index.js`.
+
+## resolve.fallback
+
+- **Type:** `Record<string, false | string>`
+- **Default:** `{}`
+
+Redirect module requests when normal resolving fails.
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  resolve: {
+    fallback: {
+      abc: false, // do not include a polyfill for abc
+      xyz: path.resolve(__dirname, 'path/to/file.js'), // include a polyfill for xyz
+    },
+  },
+};
+```
+
+Rspack does not polyfills Node.js core modules automatically which means if you use them in your code running in browsers or alike, you will have to install compatible modules from NPM and include them yourself.
+
+You could use [node-polyfill-webpack-plugin](https://www.npmjs.com/package/node-polyfill-webpack-plugin) to polyfill Node.js core API automatically.
+
+```js title="rspack.config.js"
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+
+module.exports = {
+  // ...
+  plugins: [new NodePolyfillPlugin()],
+};
+```
+
+Or refer to the list of Node.js polyfills used by webpack 4:
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  resolve: {
+    fallback: {
+      assert: require.resolve('assert'),
+      buffer: require.resolve('buffer'),
+      console: require.resolve('console-browserify'),
+      constants: require.resolve('constants-browserify'),
+      crypto: require.resolve('crypto-browserify'),
+      domain: require.resolve('domain-browser'),
+      events: require.resolve('events'),
+      http: require.resolve('stream-http'),
+      https: require.resolve('https-browserify'),
+      os: require.resolve('os-browserify/browser'),
+      path: require.resolve('path-browserify'),
+      punycode: require.resolve('punycode'),
+      process: require.resolve('process/browser'),
+      querystring: require.resolve('querystring-es3'),
+      stream: require.resolve('stream-browserify'),
+      string_decoder: require.resolve('string_decoder'),
+      sys: require.resolve('util'),
+      timers: require.resolve('timers-browserify'),
+      tty: require.resolve('tty-browserify'),
+      url: require.resolve('url'),
+      util: require.resolve('util'),
+      vm: require.resolve('vm-browserify'),
+      zlib: require.resolve('browserify-zlib'),
+    },
+  },
+};
+```
+
+## resolve.importsFields
+
+<ApiMeta addedVersion="0.6.6" />
+
+- **Type:** `string[]`
+- **Default:** `["imports"]`
+
+Customize the `imports` field in package.json which are used to provide the internal requests of a package (requests starting with `#` are considered internal).
+
+e.g.
+
+```
+// package.json
+{
+  "name": "lib",
+  "imports": {
+    "#foo": "./src/foo.js",
+    "#common/*": "./src/common/*.js"
+  }
+  "testImports": {
+    "#foo": "./src/test/foo.js",
+  }
+}
+```
+
+When this configuration is ["testImports", "imports"], the result of `import value from '#foo'` in current package is `src/test/foo.js`.
+
+## resolve.mainFields
+
+- **Type:** `string[]`
+- **Default:**
+  - `target` is `["browser", "module", "main"]` when it is web
+  - `["module", "main"]` for others
+
+Try to parse the fields in package.json, e.g.
+
+```json
+// package.json
+{
+  "name": "lib",
+  "module": "es/index.js"
+}
+```
+
+then `import value from 'lib'` results in `lib/es/index.js`.
+
+## resolve.mainFiles
+
+- **Type:** `string[]`
+- **default:** `["index"]`
+
+The filename suffix when resolving directories, e.g. `require('. /dir/')` will try to resolve `'. /dir/index'`.
+
+## resolve.exportsFields
+
+- **Type:** `string[]`
+- **Default:** `["exports"]`
+
+Customize the `exports` field in package.json. e.g.
+
+```json
+// lib/package.json
+{
+  "name": "lib",
+  "testExports": {
+    ".": "./test.js"
+  },
+  "exports": {
+    ".": "./index.js"
+  }
+}
+```
+
+When this configuration is `["testExports", "exports"]`, the result of `import value from 'lib'` is `lib/test.js`.
+
+## resolve.modules
+
+- **Type:** `string[]`
+- **Default:** `["node_modules"]`
+
+The name of the directory to use when resolving dependencies.
+
+## resolve.preferRelative
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+When enabled, `require('file')` will first look for the `. /file` file in the current directory, not `<modules>/file`.
+
+## resolve.preferAbsolute
+
+<ApiMeta addedVersion="0.5.1" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Opt for absolute paths when resolving, in relation to `resolve.roots`.
+
+## resolve.tsConfigPath
+
+<ApiMeta removedVersion="1.0.0-alpha.0" />
+
+- **Type:** `string | undefined`
+- **Default:** `undefined`
+
+If you pass the path of `tsconfig.json` via the option, Rspack will try to resolve modules based on the `paths` and `baseUrl` of `tsconfig.json`, functionally equivalent to [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin).
+
+```js rspack.config.js
+const path = require('path');
+
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
+  // ...
+  resolve: {
+    tsConfigPath: path.resolve(__dirname, 'tsconfig.json'),
+  },
+  // ...
+};
+module.exports = config;
+```
+
+## resolve.tsConfig
+
+<ApiMeta addedVersion="0.3.7" />
+
+- **Type:** `string | object | undefined`
+- **Default:** `undefined`
+
+The replacement of [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin) in Rspack.
+
+```js title="rspack.config.js"
+module.exports = {
+  resolve: {
+    // string
+    tsConfig: path.resolve(__dirname, './tsconfig.json'),
+    // or object
+    tsConfig: {
+      configFile: path.resolve(__dirname, './tsconfig.json'),
+      references: 'auto',
+    },
+  },
+};
+```
+
+[Click to see the example](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/basic-ts).
+
+### resolve.tsConfig.configFile
+
+- **Type:** `string`
+
+If you pass the path of `tsconfig.json` via the option, Rspack will try to resolve modules based on the `paths` and `baseUrl` of `tsconfig.json`, functionally equivalent to [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin).
+
+### resolve.tsConfig.references
+
+- **Type:** `string[] | "auto" | undefined`
+- **Default:** `undefined`
+
+Supports [tsconfig project references](https://www.typescriptlang.org/docs/handbook/project-references.html) defined in [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin#references-_string-defaultundefined).
+
+The list of tsconfig paths can be provided manually, or you may specify `auto` to read the paths list from `tsconfig.references` automatically.
+
+This feature is disabled when the value is `undefined`.
+
+## resolve.fullySpecified
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+No longer resolve extensions, no longer resolve mainFiles in package.json (but does not affect requests from mainFiles, browser, alias).
+
+## resolve.restrictions
+
+<ApiMeta addedVersion="0.5.1" />
+
+- **Type:** `string[]`
+- **Default:** `[]`
+
+A list of resolve restrictions to restrict the paths that a request can be resolved on.
+
+## resolve.roots
+
+<ApiMeta addedVersion="0.5.1" />
+
+- **Type:** `string[]`
+- **Default:** `[]`
+
+A list of directories where server-relative URLs (beginning with '/') are resolved. It defaults to the `context` configuration option. On systems other than Windows, these requests are initially resolved as an absolute path.
+
+## resolve.symlinks
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to resolve symlinks to their symlinked location.
+
+When enabled, symlinked resources are resolved to their real path, not their symlinked location. Note that this may cause module resolution to fail when using tools that symlink packages (like `npm link`).
+
+## resolve.byDependency
+
+- **Type:** `Record<string, Resolve>`.
+
+Customize the Resolve configuration based on the module type.

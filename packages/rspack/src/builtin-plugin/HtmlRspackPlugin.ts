@@ -1,7 +1,8 @@
+import { BuiltinPluginName, RawHtmlRspackPluginOptions } from "@rspack/binding";
 import { z } from "zod";
-import { RawHtmlRspackPluginOptions } from "@rspack/binding";
-import { BuiltinPluginName, create } from "./base";
+
 import { validate } from "../util/validate";
+import { create } from "./base";
 
 const htmlRspackPluginOptions = z.strictObject({
 	filename: z.string().optional(),
@@ -47,8 +48,8 @@ export const HtmlRspackPlugin = create(
 					? "body"
 					: "head"
 				: configInject === false
-				? "false"
-				: configInject;
+					? "false"
+					: configInject;
 		return {
 			...c,
 			meta,

@@ -7,28 +7,28 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import {
-	getNormalizedRspackOptions,
-	RspackOptions,
-	applyRspackOptionsBaseDefaults,
-	applyRspackOptionsDefaults,
-	RspackPluginFunction,
-	rspackOptions
-} from "./config";
-import { Compiler } from "./Compiler";
-import { Stats } from "./Stats";
+import assert from "assert";
 import util from "util";
+import { Callback } from "@rspack/lite-tapable";
 
-import { RspackOptionsApply } from "./rspackOptionsApply";
-import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
+import { Compiler } from "./Compiler";
 import {
 	MultiCompiler,
 	MultiCompilerOptions,
 	MultiRspackOptions
 } from "./MultiCompiler";
-import { Callback } from "tapable";
 import MultiStats from "./MultiStats";
-import assert from "assert";
+import { Stats } from "./Stats";
+import {
+	RspackOptions,
+	RspackPluginFunction,
+	applyRspackOptionsBaseDefaults,
+	applyRspackOptionsDefaults,
+	getNormalizedRspackOptions,
+	rspackOptions
+} from "./config";
+import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
+import { RspackOptionsApply } from "./rspackOptionsApply";
 import { asArray, isNil } from "./util";
 import { validate } from "./util/validate";
 
@@ -60,12 +60,6 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 		infrastructureLogging: options.infrastructureLogging
 	}).apply(compiler);
 
-	const logger = compiler.getInfrastructureLogger("config");
-	logger.debug(
-		"RawOptions:",
-		util.inspect(userOptions, { colors: true, depth: null })
-	);
-
 	if (Array.isArray(options.plugins)) {
 		for (const plugin of options.plugins) {
 			if (typeof plugin === "function") {
@@ -76,10 +70,7 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 		}
 	}
 	applyRspackOptionsDefaults(compiler.options);
-	logger.debug(
-		"NormalizedOptions:",
-		util.inspect(compiler.options, { colors: true, depth: null })
-	);
+
 	compiler.hooks.environment.call();
 	compiler.hooks.afterEnvironment.call();
 	new RspackOptionsApply().process(compiler.options, compiler);
@@ -112,9 +103,17 @@ function rspack(
 	options: MultiRspackOptions | RspackOptions,
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
-	asArray(options).every(opts => {
-		validate(opts, rspackOptions);
-	});
+	try {
+		for (let o of asArray(options)) {
+			validate(o, rspackOptions);
+		}
+	} catch (e) {
+		if (e instanceof Error && callback) {
+			callback(e);
+			return null;
+		}
+		throw e;
+	}
 	const create = () => {
 		if (isMultiRspackOptions(options)) {
 			const compiler = createMultiCompiler(options);
@@ -149,7 +148,7 @@ function rspack(
 		const { compiler, watch } = create();
 		if (watch) {
 			util.deprecate(
-				() => { },
+				() => {},
 				"A 'callback' argument needs to be provided to the 'rspack(options, callback)' function when the 'watch' option is set. There is no way to handle the 'watch' option without a callback."
 			)();
 		}
@@ -158,5 +157,5 @@ function rspack(
 }
 
 // deliberately alias rspack as webpack
-export { rspack, createCompiler, createMultiCompiler, Stats, MultiStats };
+export { createCompiler, createMultiCompiler, MultiStats, rspack, Stats };
 export default rspack;

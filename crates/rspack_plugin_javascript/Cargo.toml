@@ -5,34 +5,33 @@ name       = "rspack_plugin_javascript"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
-[dev-dependencies]
-rspack_testing = { path = "../rspack_testing" }
-
 [dependencies]
-anyhow = { workspace = true }
-async-recursion = { workspace = true }
+anymap = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
-either = "1"
+dashmap = { workspace = true }
+glob-match = "0.2.1"
 indexmap = { workspace = true }
+indoc = { workspace = true }
+itertools = { workspace = true }
 linked_hash_set = { workspace = true }
 num-bigint = { version = "0.4.4" }
 once_cell = { workspace = true }
-preset_env_base = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
+ropey = "1.6.1"
 rspack_ast = { path = "../rspack_ast" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_hash = { path = "../rspack_hash" }
+rspack_hook = { path = "../rspack_hook" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_ids = { path = "../rspack_ids/" }
 rspack_regex = { path = "../rspack_regex" }
-rspack_swc_visitors = { path = "../rspack_swc_visitors" }
-rspack_util = { path = "../rspack_util/" }
+rspack_util = { path = "../rspack_util" }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
-sourcemap = "6.2.3"
+stacker = { workspace = true }
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
   "__parser",
@@ -44,10 +43,9 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_compat",
   "ecma_transforms_proposal",
   "ecma_transforms_typescript",
+  "base",
   "ecma_quote",
+  "base",
 ] }
-swc_emotion = { workspace = true }
 swc_node_comments = { workspace = true }
-swc_plugin_import = { path = "../swc_plugin_import" }
-url = "2.4.0"
-xxhash-rust = { workspace = true, features = ["xxh32"] }
+url = { workspace = true }

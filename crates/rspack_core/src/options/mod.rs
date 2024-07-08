@@ -1,8 +1,6 @@
 mod compiler_options;
 
 pub use compiler_options::*;
-mod devtool;
-pub use devtool::*;
 mod entry;
 pub use entry::*;
 mod optimizations;
@@ -37,3 +35,5 @@ mod experiments;
 pub use experiments::*;
 mod node;
 pub use node::*;
+mod filename;
+pub use filename::*;

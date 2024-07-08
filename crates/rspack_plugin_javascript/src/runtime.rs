@@ -1,70 +1,33 @@
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  ChunkInitFragments, ChunkUkey, Compilation, ModuleGraphModule, RenderModuleContentArgs,
-  RuntimeGlobals, SourceType,
+  to_normal_comment, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, RuntimeGlobals,
+  SourceType,
 };
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
+use rspack_util::diff_mode::is_diff_mode;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::utils::is_diff_mode;
+use crate::{JsPlugin, RenderSource};
 
 pub fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-) -> Result<(BoxSource, ChunkInitFragments)> {
-  let module_graph = &compilation.module_graph;
-  let ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
-    chunk_ukey,
-    SourceType::JavaScript,
-    module_graph,
-  );
-  let chunk = compilation
-    .chunk_by_ukey
-    .get(chunk_ukey)
-    .expect("chunk not found");
-
-  let plugin_driver = &compilation.plugin_driver;
-
-  let include_module_ids = &compilation.include_module_ids;
-
+  ordered_modules: &Vec<&BoxModule>,
+  all_strict: bool,
+) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
   let mut module_code_array = ordered_modules
     .par_iter()
-    .filter(|mgm| include_module_ids.contains(&mgm.module_identifier))
-    .filter_map(|mgm| {
-      let code_gen_result = compilation
-        .code_generation_results
-        .get(&mgm.module_identifier, Some(&chunk.runtime));
-      if let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) {
-        let render_module_result = plugin_driver
-          .render_module_content(RenderModuleContentArgs {
-            compilation,
-            module_graph_module: mgm,
-            module_source: origin_source.clone(),
-            chunk_init_fragments: ChunkInitFragments::default(),
-          })
-          .expect("render_module_content failed");
-
-        let runtime_requirements = compilation
-          .chunk_graph
-          .get_module_runtime_requirements(mgm.module_identifier, &chunk.runtime);
-
-        Some((
-          mgm.module_identifier,
-          render_module(
-            render_module_result.module_source,
-            mgm,
-            runtime_requirements,
-            mgm.id(&compilation.chunk_graph),
-          ),
-          &code_gen_result.chunk_init_fragments,
-          render_module_result.chunk_init_fragments,
-        ))
-      } else {
-        None
-      }
+    .filter_map(|module| {
+      render_module(compilation, chunk_ukey, module, all_strict, true)
+        .transpose()
+        .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
     })
-    .collect::<Vec<_>>();
+    .collect::<Result<Vec<_>>>()?;
+
+  if module_code_array.is_empty() {
+    return Ok(None);
+  }
 
   module_code_array.sort_unstable_by_key(|(module_identifier, _, _, _)| *module_identifier);
 
@@ -80,7 +43,7 @@ pub fn render_chunk_modules(
   let module_sources: Vec<_> = module_code_array
     .into_iter()
     .map(|(_, source, _, _)| source)
-    .collect::<Result<_>>()?;
+    .collect();
   let module_sources = module_sources
     .into_par_iter()
     .fold(ConcatSource::default, |mut output, source| {
@@ -94,68 +57,111 @@ pub fn render_chunk_modules(
   sources.add(ConcatSource::new(module_sources));
   sources.add(RawSource::from("\n}"));
 
-  Ok((sources.boxed(), chunk_init_fragments))
+  Ok(Some((sources.boxed(), chunk_init_fragments)))
 }
 
-fn render_module(
-  source: BoxSource,
-  mgm: &ModuleGraphModule,
-  runtime_requirements: Option<&RuntimeGlobals>,
-  module_id: &str,
-) -> Result<BoxSource> {
-  let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
-  // TODO: determine arguments by runtime requirements after aligning commonjs dependencies with webpack
-  // let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
-  // let need_require = runtime_requirements.is_some_and(|r| {
-  //   r.contains(RuntimeGlobals::REQUIRE) || r.contains(RuntimeGlobals::REQUIRE_SCOPE)
-  // });
-  let need_exports = true;
-  let need_require = true;
+pub fn render_module(
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  module: &BoxModule,
+  all_strict: bool,
+  factory: bool,
+) -> Result<Option<(BoxSource, ChunkInitFragments, ChunkInitFragments)>> {
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let code_gen_result = compilation
+    .code_generation_results
+    .get(&module.identifier(), Some(&chunk.runtime));
+  let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) else {
+    return Ok(None);
+  };
+  let hooks = JsPlugin::get_compilation_hooks(compilation);
+  let mut module_chunk_init_fragments = ChunkInitFragments::default();
+  let mut render_source = RenderSource {
+    source: origin_source.clone(),
+  };
+  hooks.render_module_content.call(
+    compilation,
+    module,
+    &mut render_source,
+    &mut module_chunk_init_fragments,
+  )?;
+  let mut sources = ConcatSource::default();
 
-  let mut args = Vec::new();
-  if need_module || need_exports || need_require {
-    let module_argument = mgm.get_module_argument();
-    args.push(if need_module {
-      module_argument.to_string()
-    } else {
-      format!("__unused_webpack_{module_argument}")
-    });
-  }
-  if need_exports || need_require {
-    let exports_argument = mgm.get_exports_argument();
-    args.push(if need_exports {
-      exports_argument.to_string()
-    } else {
-      format!("__unused_webpack_{exports_argument}")
-    });
-  }
-  if need_require {
-    args.push(RuntimeGlobals::REQUIRE.to_string());
-  }
-  let mut sources = ConcatSource::new([
-    RawSource::from(serde_json::to_string(module_id).map_err(|e| internal_error!(e.to_string()))?),
-    RawSource::from(": "),
-  ]);
-  if is_diff_mode() {
-    sources.add(RawSource::from(format!("\n/* start::{} */\n", module_id)));
-  }
-  sources.add(RawSource::from(format!(
-    "(function ({}) {{\n",
-    args.join(", ")
-  )));
-  if let Some(build_info) = &mgm.build_info
-    && build_info.strict
-  {
-    sources.add(RawSource::from("\"use strict\";\n"));
-  }
-  sources.add(source);
-  sources.add(RawSource::from("})"));
-  if is_diff_mode() {
-    sources.add(RawSource::from(format!("\n/* end::{} */\n", module_id)));
-  }
-  sources.add(RawSource::from(",\n"));
+  if factory {
+    let runtime_requirements = compilation
+      .chunk_graph
+      .get_module_runtime_requirements(module.identifier(), &chunk.runtime);
 
-  Ok(sources.boxed())
+    let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
+    let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
+    let need_require = runtime_requirements.is_some_and(|r| {
+      r.contains(RuntimeGlobals::REQUIRE) || r.contains(RuntimeGlobals::REQUIRE_SCOPE)
+    });
+
+    let mut args = Vec::new();
+    if need_module || need_exports || need_require {
+      let module_argument = module.get_module_argument();
+      args.push(if need_module {
+        module_argument.to_string()
+      } else {
+        format!("__unused_webpack_{module_argument}")
+      });
+    }
+
+    if need_exports || need_require {
+      let exports_argument = module.get_exports_argument();
+      args.push(if need_exports {
+        exports_argument.to_string()
+      } else {
+        format!("__unused_webpack_{exports_argument}")
+      });
+    }
+    if need_require {
+      args.push(RuntimeGlobals::REQUIRE.to_string());
+    }
+    let module_id = compilation
+      .chunk_graph
+      .get_module_id(module.identifier())
+      .as_deref()
+      .expect("should have module_id in render_module");
+    sources.add(RawSource::from(
+      serde_json::to_string(&module_id).map_err(|e| error!(e.to_string()))?,
+    ));
+    sources.add(RawSource::from(": "));
+    if is_diff_mode() {
+      sources.add(RawSource::from(format!(
+        "\n{}\n",
+        to_normal_comment(&format!("start::{}", module.identifier()))
+      )));
+    }
+    sources.add(RawSource::from(format!(
+      "(function ({}) {{\n",
+      args.join(", ")
+    )));
+    if let Some(build_info) = &module.build_info()
+      && build_info.strict
+      && !all_strict
+    {
+      sources.add(RawSource::from("\"use strict\";\n"));
+    }
+    sources.add(render_source.source);
+    sources.add(RawSource::from("\n\n})"));
+    if is_diff_mode() {
+      sources.add(RawSource::from(format!(
+        "\n{}\n",
+        to_normal_comment(&format!("end::{}", module.identifier()))
+      )));
+    }
+    sources.add(RawSource::from(",\n"));
+  } else {
+    sources.add(render_source.source);
+  }
+
+  Ok(Some((
+    sources.boxed(),
+    code_gen_result.chunk_init_fragments.clone(),
+    module_chunk_init_fragments,
+  )))
 }
 
 pub fn render_chunk_runtime_modules(
@@ -182,51 +188,62 @@ pub fn render_runtime_modules(
   chunk_ukey: &ChunkUkey,
 ) -> Result<BoxSource> {
   let mut sources = ConcatSource::default();
-  let mut runtime_modules = compilation
+  compilation
     .chunk_graph
-    .get_chunk_runtime_modules_in_order(chunk_ukey)
-    .iter()
-    .map(|identifier| {
+    .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
+    .map(|(identifier, runtime_module)| {
       (
         compilation
           .runtime_module_code_generation_results
           .get(identifier)
           .expect("should have runtime module result"),
-        compilation
-          .runtime_modules
-          .get(identifier)
-          .expect("should have runtime module"),
+        runtime_module,
       )
     })
-    .collect::<Vec<_>>();
-  runtime_modules.sort_unstable_by_key(|(_, m)| m.stage());
-  runtime_modules.iter().for_each(|((_, source), module)| {
-    if is_diff_mode() {
-      sources.add(RawSource::from(format!(
-        "/* start::{} */\n",
-        module.identifier()
-      )));
-    } else {
-      sources.add(RawSource::from(format!("// {}\n", module.identifier())));
-    }
-    if !module.should_isolate() {
-      sources.add(RawSource::from("!function() {\n"));
-    }
-    if module.cacheable() {
-      sources.add(source.clone());
-    } else {
-      sources.add(module.generate(compilation));
-    }
-    if !module.should_isolate() {
-      sources.add(RawSource::from("\n}();\n"));
-    }
-    if is_diff_mode() {
-      sources.add(RawSource::from(format!(
-        "/* end::{} */\n",
-        module.identifier()
-      )));
-    }
-  });
+    .try_for_each(|((_, source), module)| -> Result<()> {
+      if source.size() == 0 {
+        return Ok(());
+      }
+      if is_diff_mode() {
+        sources.add(RawSource::from(format!(
+          "/* start::{} */\n",
+          module.identifier()
+        )));
+      } else {
+        sources.add(RawSource::from(format!("// {}\n", module.identifier())));
+      }
+      let supports_arrow_function = compilation
+        .options
+        .output
+        .environment
+        .supports_arrow_function();
+      if module.should_isolate() {
+        sources.add(RawSource::from(if supports_arrow_function {
+          "(() => {\n"
+        } else {
+          "!function() {\n"
+        }));
+      }
+      if module.cacheable() {
+        sources.add(source.clone());
+      } else {
+        sources.add(module.generate_with_custom(compilation)?);
+      }
+      if module.should_isolate() {
+        sources.add(RawSource::from(if supports_arrow_function {
+          "\n})();\n"
+        } else {
+          "\n}();\n"
+        }));
+      }
+      if is_diff_mode() {
+        sources.add(RawSource::from(format!(
+          "/* end::{} */\n",
+          module.identifier()
+        )));
+      }
+      Ok(())
+    })?;
   Ok(sources.boxed())
 }
 
@@ -251,12 +268,4 @@ pub fn stringify_array(vec: &[String]) -> String {
       .collect::<Vec<_>>()
       .join(", ")
   )
-}
-
-pub fn render_iife(content: BoxSource) -> BoxSource {
-  let mut sources = ConcatSource::default();
-  sources.add(RawSource::from("(function() {\n"));
-  sources.add(content);
-  sources.add(RawSource::from("\n})()\n"));
-  sources.boxed()
 }

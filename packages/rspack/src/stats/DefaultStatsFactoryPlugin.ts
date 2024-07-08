@@ -7,40 +7,41 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import { compareSelect, compareIds as _compareIds } from "../util/comparators";
-import { makePathsRelative } from "../util/identifier";
 import * as util from "node:util";
+
+import { JsOriginRecord } from "@rspack/binding";
+import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { StatsOptions } from "../config";
-import type { GroupConfig } from "../util/smartGrouping";
-
-import type { StatsFactory, KnownStatsFactoryContext } from "./StatsFactory";
 import {
-	iterateConfig,
-	spaceLimited,
-	moduleGroup,
-	countWithChildren,
-	sortByField,
-	assetGroup,
-	resolveStatsMillisecond
-} from "./statsFactoryUtils";
+	LogType,
+	LogTypeEnum,
+	getLogTypeBitFlag,
+	getLogTypesBitFlag
+} from "../logging/Logger";
+import { compareIds as _compareIds, compareSelect } from "../util/comparators";
+import { makePathsRelative } from "../util/identifier";
+import type { GroupConfig } from "../util/smartGrouping";
+import type { KnownStatsFactoryContext, StatsFactory } from "./StatsFactory";
 import type {
 	KnownStatsAsset,
-	KnownStatsModule,
 	KnownStatsChunkGroup,
+	KnownStatsLoggingEntry,
+	KnownStatsModule,
 	SimpleExtractors,
 	StatsAsset,
 	StatsChunk,
-	NormalizedStatsOptions,
-	KnownStatsLoggingEntry,
 	StatsProfile
 } from "./statsFactoryUtils";
 import {
-	LogType,
-	getLogTypesBitFlag,
-	getLogTypeBitFlag,
-	LogTypeEnum
-} from "../logging/Logger";
+	assetGroup,
+	countWithChildren,
+	iterateConfig,
+	moduleGroup,
+	resolveStatsMillisecond,
+	sortByField,
+	spaceLimited
+} from "./statsFactoryUtils";
 
 const compareIds = _compareIds as <T>(a: T, b: T) => -1 | 0 | 1;
 const GROUP_EXTENSION_REGEXP = /(\.[^.]+?)(?:\?|(?: \+ \d+ modules?)?$)/;
@@ -112,13 +113,13 @@ const ASSETS_GROUPERS: Record<
 								[name]: !!key,
 								filteredChildren: assets.length,
 								...assetGroup(children)
-						  }
+							}
 						: {
 								type: "assets by status",
 								[name]: !!key,
 								children,
 								...assetGroup(children)
-						  };
+							};
 				}
 			});
 		};
@@ -351,14 +352,25 @@ const SORTERS: Record<
 		_: comparators => {
 			comparators.push(compareSelect((c: StatsChunk) => c.id, compareIds));
 		}
-	}
-	// not support compilation.modules / chunk.rootModules / chunk.modules / module.modules  (missing Module.moduleGraph)
+	},
 	// "compilation.modules": MODULES_SORTER,
 	// "chunk.rootModules": MODULES_SORTER,
 	// "chunk.modules": MODULES_SORTER,
-	// "module.modules": MODULES_SORTER
+	// "module.modules": MODULES_SORTER,
 	// not support module.reasons (missing Module.identifier())
-	// not support chunk.origins (missing compilation.chunkGraph)
+	"chunk.origins": {
+		_: comparators => {
+			comparators.push(
+				// compareSelect(
+				// 	origin =>
+				// 		origin.module ? chunkGraph.getModuleId(origin.module) : undefined,
+				// 	compareIds
+				// ),
+				compareSelect((origin: JsOriginRecord) => origin.loc, compareIds),
+				compareSelect((origin: JsOriginRecord) => origin.request, compareIds)
+			);
+		}
+	}
 };
 
 const SIMPLE_EXTRACTORS: SimpleExtractors = {
@@ -377,12 +389,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 			if (!context.cachedGetErrors) {
 				context.cachedGetErrors = _compilation => {
-					return context._inner.getErrors();
+					return context.getInner(compilation).getErrors();
 				};
 			}
 			if (!context.cachedGetWarnings) {
 				context.cachedGetWarnings = _compilation => {
-					const warnings = context._inner.getWarnings();
+					const warnings = context.getInner(compilation).getWarnings();
 
 					return compilation.hooks.processWarnings.call(
 						warnings as any
@@ -447,9 +459,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				}
 				object.logging = {};
 				const compilationLogging = compilation.logging;
-				for (const { name, ...rest } of context._inner.getLogging(
-					acceptedTypes
-				)) {
+				for (const { name, ...rest } of context
+					.getInner(compilation)
+					.getLogging(acceptedTypes)) {
 					const value = compilationLogging.get(name);
 					const entry = {
 						type: rest.type,
@@ -528,8 +540,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				}
 			}
 		},
-		hash: (object, _compilation, context: KnownStatsFactoryContext) => {
-			object.hash = context._inner.getHash() || undefined;
+		hash: (object, compilation, context: KnownStatsFactoryContext) => {
+			object.hash = context.getInner(compilation).getHash() || undefined;
 		},
 		version: object => {
 			const { version, webpackVersion } = require("../../package.json");
@@ -555,12 +567,14 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		assets: (
 			object,
-			_compilation,
+			compilation,
 			context: KnownStatsFactoryContext,
 			options,
 			factory
 		) => {
-			const { assets, assetsByChunkName } = context._inner.getAssets();
+			const { assets, assetsByChunkName } = context
+				.getInner(compilation)
+				.getAssets();
 			object.assetsByChunkName = assetsByChunkName.reduce<
 				Record<string, string[]>
 			>((acc, cur) => {
@@ -584,20 +598,24 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		chunks: (
 			object,
-			_compilation,
+			compilation,
 			context: KnownStatsFactoryContext,
 			options: StatsOptions,
 			factory
 		) => {
 			const { type } = context;
-			const chunks = context._inner.getChunks(
-				options.chunkModules!,
-				options.chunkRelations!,
-				options.reasons!,
-				options.moduleAssets!,
-				options.nestedModules!,
-				options.source!
-			);
+			const chunks = context
+				.getInner(compilation)
+				.getChunks(
+					options.chunkModules!,
+					options.chunkRelations!,
+					options.reasons!,
+					options.moduleAssets!,
+					options.nestedModules!,
+					options.source!,
+					options.usedExports!,
+					options.providedExports!
+				);
 			object.chunks = factory.create(`${type}.chunks`, chunks, context);
 		},
 		modules: (
@@ -608,12 +626,16 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			factory
 		) => {
 			const { type } = context;
-			const array = context._inner.getModules(
-				options.reasons!,
-				options.moduleAssets!,
-				options.nestedModules!,
-				options.source!
-			);
+			const array = context
+				.getInner(compilation)
+				.getModules(
+					options.reasons!,
+					options.moduleAssets!,
+					options.nestedModules!,
+					options.source!,
+					options.usedExports!,
+					options.providedExports!
+				);
 			const groupedModules = factory.create(`${type}.modules`, array, context);
 			const limited = spaceLimited(groupedModules, options.modulesSpace!);
 			object.modules = limited.children;
@@ -621,13 +643,15 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		entrypoints: (
 			object,
-			_compilation,
+			compilation,
 			context: KnownStatsFactoryContext,
-			_data,
+			{ chunkGroupAuxiliary, chunkGroupChildren },
 			_factory
 		) => {
 			// const { type } = context;
-			const array = context._inner.getEntrypoints();
+			const array = context
+				.getInner(compilation)
+				.getEntrypoints(chunkGroupAuxiliary, chunkGroupChildren);
 
 			// object.entrypoints = factory.create(
 			// 	`${type}.entrypoints`,
@@ -645,13 +669,15 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		chunkGroups: (
 			object,
-			_compilation,
+			compilation,
 			context: KnownStatsFactoryContext,
-			_options,
+			{ chunkGroupAuxiliary, chunkGroupChildren },
 			factory
 		) => {
-			const { type } = context;
-			const namedChunkGroups = context._inner.getNamedChunkGroups();
+			// const { type } = context;
+			const namedChunkGroups = context
+				.getInner(compilation)
+				.getNamedChunkGroups(chunkGroupAuxiliary, chunkGroupChildren);
 			// object.namedChunkGroups = factory.create(
 			// 	`${type}.namedChunkGroups`,
 			// 	namedChunkGroups,
@@ -714,7 +740,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.name = asset.name;
 			object.size = asset.size;
 			object.emitted = asset.emitted;
-			object.info = asset.info;
+			object.info = {
+				...asset.info,
+				related: Object.fromEntries(
+					asset.info.related.map(i => [i.name, i.value])
+				)
+			};
 			Object.assign(
 				object,
 				factory.create(`${context.type}$visible`, asset, context)
@@ -740,8 +771,21 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			const { type } = context;
 			object.type = module.type;
 			object.moduleType = module.moduleType;
+			// TODO: object.layer = module.layer;
 			object.size = module.size;
-			Object.assign(object, factory.create(`${type}$visible`, module, context));
+			object.sizes = Object.fromEntries(
+				module.sizes.map(({ sourceType, size }) => [sourceType, size])
+			);
+			object.built = module.built;
+			object.codeGenerated = module.codeGenerated;
+			object.buildTimeExecuted = module.buildTimeExecuted;
+			object.cached = module.cached;
+			if (module.built || module.codeGenerated || options.cachedModules) {
+				Object.assign(
+					object,
+					factory.create(`${type}$visible`, module, context)
+				);
+			}
 		}
 	},
 	module$visible: {
@@ -750,6 +794,14 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.identifier = module.identifier;
 			object.name = module.name;
 			object.nameForCondition = module.nameForCondition;
+			object.index = module.preOrderIndex;
+			object.preOrderIndex = module.preOrderIndex;
+			object.index2 = module.postOrderIndex;
+			object.postOrderIndex = module.postOrderIndex;
+			object.cacheable = module.cacheable;
+			object.optional = module.optional;
+			object.orphan = module.orphan;
+			object.dependent = module.dependent;
 			object.issuer = module.issuer;
 			object.issuerName = module.issuerName;
 			object.issuerPath = factory.create(
@@ -757,6 +809,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				module.issuerPath,
 				context
 			);
+			object.failed = module.failed;
+			object.errors = module.errors;
+			object.warnings = module.warnings;
 			const profile = module.profile;
 			if (profile) {
 				object.profile = factory.create(`${type}.profile`, profile, context);
@@ -780,17 +835,59 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		source: (object, module) => {
 			object.source = module.source;
+		},
+		usedExports: (object, module) => {
+			if (typeof module.usedExports === "string") {
+				if (module.usedExports === "null") {
+					object.usedExports = null;
+				} else {
+					object.usedExports = module.usedExports === "true";
+				}
+			} else if (Array.isArray(module.usedExports)) {
+				object.usedExports = module.usedExports;
+			} else {
+				object.usedExports = null;
+			}
+		},
+		providedExports: (object, module) => {
+			if (Array.isArray(module.providedExports)) {
+				object.providedExports = module.providedExports;
+			} else {
+				object.providedExports = null;
+			}
+		},
+		optimizationBailout: (object, module) => {
+			object.optimizationBailout = module.optimizationBailout || null;
+		},
+		depth: (object, module) => {
+			object.depth = module.depth;
+		},
+		nestedModules: (object, module, context, options, factory) => {
+			const { type } = context;
+			const innerModules =
+				/** @type {Module & { modules?: Module[] }} */ module.modules;
+			if (Array.isArray(innerModules) && innerModules.length > 0) {
+				const groupedModules = factory.create(
+					`${type.slice(0, -8)}.modules`,
+					innerModules,
+					context
+				);
+				const limited = spaceLimited(
+					groupedModules,
+					options.nestedModulesSpace
+				);
+				object.modules = limited.children;
+				object.filteredModules = limited.filteredChildren;
+			}
 		}
 	},
 	profile: {
 		_: (object, profile) => {
 			const factory = resolveStatsMillisecond(profile.factory);
-			const integration = resolveStatsMillisecond(profile.integration);
 			const building = resolveStatsMillisecond(profile.building);
 			const statsProfile: StatsProfile = {
-				total: factory + integration + building,
+				total: factory + building,
 				resolving: factory,
-				integration,
 				building
 			};
 			Object.assign(object, statsProfile);
@@ -819,12 +916,21 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	chunk: {
 		_: (object, chunk) => {
 			object.type = chunk.type;
+			object.rendered = chunk.rendered;
 			object.initial = chunk.initial;
 			object.entry = chunk.entry;
+			object.reason = chunk.reason;
 			object.size = chunk.size;
+			object.sizes = Object.fromEntries(
+				chunk.sizes.map(({ sourceType, size }) => [sourceType, size])
+			);
 			object.names = chunk.names;
+			object.idHints = chunk.idHints;
+			object.runtime = chunk.runtime;
 			object.files = chunk.files;
 			object.auxiliaryFiles = chunk.auxiliaryFiles;
+			object.hash = chunk.hash;
+			object.childrenByOrder = chunk.childrenByOrder;
 		},
 		ids: (object, chunk) => {
 			object.id = chunk.id;
@@ -841,6 +947,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				chunk.modules,
 				context
 			);
+		},
+		chunkOrigins: (object, chunk, context, options, factory) => {
+			object.origins = chunk.origins;
 		}
 	}
 };

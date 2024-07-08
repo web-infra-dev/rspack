@@ -1,0 +1,285 @@
+import WebpackLicense from '@components/webpack-license';
+import { ApiMeta } from '../../../../components/ApiMeta';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/optimization/" />
+
+# SplitChunksPlugin
+
+## 默认值
+
+开箱即用的 `SplitChunksPlugin` 对于大部分用户来说非常友好。
+
+默认情况下，它只会影响到按需加载的 chunk，因为初始 chunk 会影响到项目的 HTML 文件中的脚本标签。
+
+rspack 将根据以下条件自动拆分 chunk：
+
+- 新的 chunk 可以被共享，或者模块来自于 `node_modules` 文件夹
+- 新的 chunk 体积大于 20kb（在进行 min+gz 之前的体积）
+- 当按需加载 chunks 时，并行请求的最大数量小于或等于 30
+- 当加载初始化页面时，并发请求的最大数量小于或等于 30
+
+## 配置
+
+rspack 为希望对该功能进行更多控制的开发者提供了一组选项。
+
+:::warning
+Rspack 的默认配置符合 Web 性能最佳实践，但是项目的最佳策略可能有所不同。如果要更改配置，则应评估所做更改的影响，以确保有真正的收益。
+:::
+
+### optimization.splitChunks
+
+下面这个配置对象代表 `SplitChunksPlugin` 的默认行为。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    splitChunks: {
+      chunks: 'async',
+      minChunks: 1,
+      minSize: 20000,
+      maxAsyncRequests: 30,
+      maxInitialRequests: 30,
+      cacheGroups: {
+        defaultVendors: {
+          test: /[\\/]node_modules[\\/]/,
+          priority: -10,
+          reuseExistingChunk: true,
+        },
+        default: {
+          minChunks: 2,
+          priority: -20,
+          reuseExistingChunk: true,
+        },
+      },
+    },
+  },
+};
+```
+
+:::warning
+
+当 Rspack 处理文件路径时，它们始终包含 UNIX 系统中的 `/` 和 Windows 系统中的 `\`。这就是为什么在 `{cacheGroup}.test` 字段中使用 `[\\/]` 来表示路径分隔符的原因。`{cacheGroup}.test` 中的 `/` 或 `\` 会在跨平台使用时产生问题。
+
+:::
+
+:::warning
+
+Rspack 不允许将 entry 名称传递给 `{cacheGroup}.test` 或者为 `{cacheGroup}.name` 使用现有的 chunk 的名称。
+
+:::
+
+### splitChunks.cacheGroups
+
+缓存组可以继承和/或覆盖来自 `splitChunks.{cacheGroup}.*` 的任何选项。但是 `test`、`priority` 和 `reuseExistingChunk` 只能在缓存组级别上进行配置。将它们设置为 `false` 以禁用任何默认缓存组。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        default: false,
+      },
+    },
+  },
+};
+```
+
+### splitChunks.chunks
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.chunks
+
+- **类型：** `string 'initial' | 'all' | 'async'`
+- **默认值：** `'async'`
+
+这表明将选择哪些 chunk 进行优化。当提供一个字符串，有效值为 `all` ，`async` 和 `initial`。设置为 `all` 可能会更强大，因为这意味着 chunk 可以在异步和非异步 chunk 之间共享。
+
+或者，也可以提供一个函数来进行更多控制。返回值将显示是否包含该 Chunk。
+
+还可以传递正则表达式，它是 `(chunk) => regex.test(chunk.name)` 的缩写。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    splitChunks: {
+      // include all types of chunks
+      chunks: 'all',
+    },
+  },
+};
+```
+
+### splitChunks.maxAsyncRequests
+
+- **类型：** `number`
+- **默认值：** `30`
+
+按需加载时的最大并行请求数。
+
+### splitChunks.maxInitialRequests
+
+- **类型：** `number`
+- **默认值：** `30`
+
+每一个入口点所允许的的最大并行请求数。
+
+### splitChunks.minSize
+
+- **类型：** `number | Record<string, number>`
+- **默认值：** 生产环境下为 `20000`, 其余为 `10000`
+
+生成 chunk 的最小体积（以 bytes 为单位）。
+
+### splitChunks.minChunks
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.minChunks
+
+- **类型：** `number`
+- **默认值：** `1`
+
+拆分前必须共享模块的最小 chunk 数。
+
+### splitChunks.hidePathInfo
+
+<ApiMeta addedVersion="0.4.3" />
+
+- **类型：** `boolean`
+- **默认值：** `options.mode` 为 `'production'` 时默认为 `true`
+
+是否隐藏路径名。
+
+### splitChunks.maxSize
+
+使用 `maxSize`（每个缓存组 `optimization.splitChunks.cacheGroups[x].maxSize` 全局使用 `optimization.splitChunks.maxSize` 或对后备缓存组 `optimization.splitChunks.fallbackCacheGroup.maxSize` 使用）告诉 Rspack 尝试将大于 `maxSize` 个字节的 chunk 分割成较小的部分。 这些较小的部分在体积上至少为 `minSize`（仅次于 `maxSize`）。
+该算法是确定性的，对模块的更改只会产生局部影响。这样，在使用长期缓存时就可以使用它并且不需要记录。`maxSize` 只是一个提示，当模块大于 `maxSize` 或者拆分不符合 `minSize` 时可能会被违反。
+
+当 chunk 已经有一个名称时，每个部分将获得一个从该名称派生的新名称。 根据 `optimization.splitChunks.hidePathInfo` 的值，它将添加一个从第一个模块名称或其哈希值派生的密钥。
+
+`maxSize` 选项旨在与 HTTP/2 和长期缓存一起使用。它增加了请求数量以实现更好的缓存。它还可以用于减小文件大小，以加快二次构建速度。
+
+:::info Tip
+
+`maxSize` 比 `maxInitialRequest`/`maxAsyncRequests` 具有更高的优先级。实际优先级是 `maxInitialRequest`/`maxAsyncRequests` < `maxSize` < `minSize`。
+
+:::
+
+:::info Tip
+
+设置 `maxSize` 的值会同时设置 `maxAsyncSize` 和 `maxInitialSize` 的值。
+
+:::
+
+### splitChunks.maxAsyncSize
+
+- **类型：** `number | Record<string, number>`
+
+像 `maxSize` 一样，`maxAsyncSize` 可以为 cacheGroups（`splitChunks.cacheGroups.{cacheGroup}.maxAsyncSize`）或 fallback 缓存组（`splitChunks.fallbackCacheGroup.maxAsyncSize` ）全局应用（`splitChunks.maxAsyncSize`）
+
+`maxAsyncSize` 和 `maxSize` 的区别在于 `maxAsyncSize` 仅会影响按需加载 chunk。
+
+### splitChunks.maxInitialSize
+
+- **类型：** `number | Record<string, number>`
+
+像 `maxSize` 一样，`maxInitialSize` 可以对 cacheGroups（`splitChunks.cacheGroups.{cacheGroup}.maxInitialSize`）或 fallback 缓存组（`splitChunks.fallbackCacheGroup.maxInitialSize`）全局应用（splitChunks.maxInitialSize）。
+
+`maxInitialSize` 和 `maxSize` 的区别在于 `maxInitialSize` 仅会影响初始加载 chunks。
+
+### splitChunks.automaticNameDelimiter
+
+<ApiMeta addedVersion="0.4.3" />
+
+- **类型：** `string`
+- **默认值：** `-`
+
+默认情况下，Rspack 将使用 chunk 的来源和名称生成名称（例如 vendors-main.js）。此选项使你可以指定用于生成名称的分隔符。
+
+### splitChunks.name
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.name
+
+- **类型：** `string | function`
+- **默认值：** `false`
+
+> 其中函数类型的版本要求为 `>=0.4.1`
+
+每个 cacheGroup 也可以使用：`splitChunks.cacheGroups.{cacheGroup}.name`。
+
+拆分 chunk 的名称。设为 `false` 将保持 chunk 的相同名称，因此不会不必要地更改名称。这是生产环境下构建的建议值。
+
+如果 `splitChunks.name` 与 entry point 名称匹配，entry point 将被删除。
+
+:::info
+
+`splitChunks.cacheGroups.{cacheGroup}.name` 可以用来将模块移到其所属 Chunk 的的父 Chunk 中。例如，使用 `name: "entry-name "` 来将模块移到 `entry-name` chunk 中。你也可以使用按需命名的 chunk，但你必须注意所选的模块只在这个 chunk 下使用。
+
+:::
+
+### splitChunks.cacheGroups
+
+缓存组可以继承和/或覆盖来自 `splitChunks.*` 的任何选项。但是 `test`、`priority` 和 `reuseExistingChunk` 只能在缓存组级别上进行配置。将它们设置为 `false` 以禁用任何默认缓存组。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        default: false,
+      },
+    },
+  },
+};
+```
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.priority
+
+- **类型：** `number`
+- **默认值：** `-20`
+
+一个模块可以属于多个缓存组。优化将优先考虑具有更高 `priority`（优先级）的缓存组。默认组的优先级为负，以允许自定义组获得更高的优先级（自定义组的默认值为 `0`）。
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.test
+
+- **类型：** `RegExp | string | function`
+
+> 其中函数类型的版本要求为 `>=0.4.1`
+
+控制此缓存组选择的模块。省略它会选择所有模块。它可以匹配绝对模块资源路径或 chunk 名称。匹配 chunk 名称时，将选择 chunk 中的所有模块。
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.enforce
+
+- **类型：** `boolean`
+
+告诉 Rspack 忽略 `splitChunks.minSize`、`splitChunks.minChunks`、`splitChunks.maxAsyncRequests` 和 `splitChunks.maxInitialRequests` 选项，并始终为此缓存组创建 chunk。
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.idHint
+
+- **类型：** `string`
+
+设置 chunk id 的提示。 它将被添加到 chunk 的文件名中。
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.filename
+
+<ApiMeta addedVersion="0.4.3" />
+
+- **类型：** `string`
+
+仅在初始 chunk 时才允许覆盖文件名。 也可以在 output.filename 中使用所有占位符。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        defaultVendors: {
+          filename: 'vendors-[name].js',
+        },
+      },
+    },
+  },
+};
+```

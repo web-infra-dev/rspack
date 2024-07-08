@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "0.4.3",
+  "version": "1.0.0-alpha.1",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -9,20 +9,32 @@
     ".": {
       "default": "./dist/index.js"
     },
+    "./setup-expect": "./dist/helper/setup-expect.js",
+    "./setup-env": "./dist/helper/setup-env.js",
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "rimraf dist/ && tsc -b ./tsconfig.build.json --force",
+    "build": "tsc -b ./tsconfig.build.json",
     "build:viewer": "rspack build",
     "dev:viewer": "rspack serve",
-    "dev": "tsc -b -w"
+    "dev": "tsc -b -w",
+    "test": "sh -c 'run-s \"test:* -- $*\"' sh",
+    "testu": "sh -c 'run-s \"test:* -u -- $*\"' sh",
+    "test:base": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.js --passWithNoTests",
+    "test:hot": "cross-env RSPACK_HOT_TEST=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.hot.js --passWithNoTests",
+    "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.diff.js --passWithNoTests",
+    "api-extractor": "api-extractor run --verbose",
+    "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },
   "files": [
     "client",
-    "dist"
+    "dist",
+    "template",
+    "jest.d.ts"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -38,38 +50,44 @@
     "@babel/template": "7.22.15",
     "@babel/traverse": "7.23.2",
     "@babel/types": "7.23.0",
-    "@rspack/core": "workspace:*",
     "csv-to-markdown-table": "^1.3.0",
     "deepmerge": "^4.3.1",
+    "filenamify": "4.3.0",
     "fs-extra": "^11.1.1",
+    "glob": "^10.3.10",
     "jest-diff": "^29.7.0",
+    "jest-serializer-path": "^0.1.15",
+    "jest-snapshot": "29.7.0",
+    "jsdom": "24.0.0",
+    "memfs": "4.7.7",
+    "mkdirp": "0.5.6",
+    "pretty-format": "29.7.0",
+    "rimraf": "3.0.2",
+    "strip-ansi": "6.0.1",
+    "webpack": "^5.92.0",
+    "webpack-merge": "5.9.0",
     "webpack-sources": "3.2.3"
   },
   "devDependencies": {
     "@arco-design/web-react": "^2.56.1",
     "@monaco-editor/react": "^4.6.0",
     "@rspack/cli": "workspace:*",
-    "@types/prettier": "^2.7.2",
-    "@types/react": "^18.0.25",
-    "@types/react-dom": "^18.0.8",
-    "@types/webpack": "5.28.3",
-    "@types/webpack-sources": "3.2.0",
-    "core-js": "3.25.0",
-    "monaco-editor": "^0.34.1",
+    "@rspack/core": "workspace:*",
+    "@rspack/plugin-minify": "workspace:*",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@types/webpack": "5.28.5",
+    "@types/webpack-sources": "3.2.3",
+    "core-js": "3.36.1",
+    "monaco-editor": "0.47.0",
+    "monaco-editor-webpack-plugin": "7.1.0",
     "normalize.css": "^8.0.0",
-    "prettier": "^2.8.3",
+    "npm-run-all2": "^6.2.0",
     "react": "18.0.0",
     "react-dom": "18.0.0",
-    "react-refresh": "0.13.0",
-    "typescript": "5.1.6",
-    "webpack": "5.89.0"
+    "react-refresh": "0.14.0"
   },
-  "peerDependenciesMeta": {},
-  "jest": {
-    "watchPathIgnorePatterns": [
-      "<rootDir>/dist",
-      "<rootDir>/tests/dist"
-    ],
-    "testEnvironment": "../../scripts/test/patch-node-env.cjs"
+  "peerDependencies": {
+    "@rspack/core": ">=0.7.0"
   }
 }

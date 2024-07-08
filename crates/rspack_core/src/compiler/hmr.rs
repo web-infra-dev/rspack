@@ -4,11 +4,13 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_hash::RspackHashDigest;
-use rspack_identifier::IdentifierMap;
+use rspack_identifier::{Identifier, IdentifierMap};
+use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
-use super::MakeParam;
-use crate::{fast_set, ChunkKind, Compilation, Compiler, ModuleGraph, RuntimeSpec};
+use crate::{
+  fast_set, get_chunk_from_ukey, ChunkKind, Compilation, Compiler, ModuleExecutor, RuntimeSpec,
+};
 
 impl<T> Compiler<T>
 where
@@ -17,21 +19,17 @@ where
   pub async fn rebuild(
     &mut self,
     changed_files: std::collections::HashSet<String>,
-    removed_files: std::collections::HashSet<String>,
+    deleted_files: std::collections::HashSet<String>,
   ) -> Result<()> {
-    assert!(!changed_files.is_empty() || !removed_files.is_empty());
     let old = self.compilation.get_stats();
     let old_hash = self.compilation.hash.clone();
 
-    let (old_all_modules, old_runtime_modules) = collect_changed_modules(old.compilation);
+    let (old_all_modules, old_runtime_modules) = collect_changed_modules(old.compilation)?;
     // TODO: should use `records`
 
     let mut all_old_runtime: RuntimeSpec = Default::default();
     for entry_ukey in old.compilation.get_chunk_graph_entries() {
-      if let Some(runtime) = old
-        .compilation
-        .chunk_by_ukey
-        .get(&entry_ukey)
+      if let Some(runtime) = get_chunk_from_ukey(&entry_ukey, &old.compilation.chunk_by_ukey)
         .map(|entry_chunk| entry_chunk.runtime.clone())
       {
         all_old_runtime.extend(runtime);
@@ -57,22 +55,28 @@ where
     {
       let mut modified_files = HashSet::default();
       modified_files.extend(changed_files.iter().map(PathBuf::from));
-      modified_files.extend(removed_files.iter().map(PathBuf::from));
+      let mut removed_files = HashSet::default();
+      removed_files.extend(deleted_files.iter().map(PathBuf::from));
 
-      self.cache.end_idle();
+      let mut all_files = modified_files.clone();
+      all_files.extend(removed_files.clone());
+
+      self.old_cache.end_idle();
       self
-        .cache
-        .set_modified_files(modified_files.iter().cloned().collect::<Vec<_>>());
+        .old_cache
+        .set_modified_files(all_files.into_iter().collect());
       self.plugin_driver.resolver_factory.clear_cache();
 
       let mut new_compilation = Compilation::new(
         self.options.clone(),
-        ModuleGraph::default().with_treeshaking(self.options.is_new_tree_shaking()),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         Some(records),
-        self.cache.clone(),
+        self.old_cache.clone(),
+        Some(ModuleExecutor::default()),
+        modified_files,
+        removed_files,
       );
 
       if let Some(state) = self.options.get_incremental_rebuild_make_state() {
@@ -85,49 +89,25 @@ where
       if is_incremental_rebuild_make {
         // copy field from old compilation
         // make stage used
-        new_compilation.module_graph = std::mem::take(&mut self.compilation.module_graph);
-        new_compilation.make_failed_dependencies =
-          std::mem::take(&mut self.compilation.make_failed_dependencies);
-        new_compilation.make_failed_module =
-          std::mem::take(&mut self.compilation.make_failed_module);
-        new_compilation.entries = std::mem::take(&mut self.compilation.entries);
-        new_compilation.global_entry = std::mem::take(&mut self.compilation.global_entry);
-        new_compilation.lazy_visit_modules =
-          std::mem::take(&mut self.compilation.lazy_visit_modules);
-        new_compilation.file_dependencies = std::mem::take(&mut self.compilation.file_dependencies);
-        new_compilation.context_dependencies =
-          std::mem::take(&mut self.compilation.context_dependencies);
-        new_compilation.missing_dependencies =
-          std::mem::take(&mut self.compilation.missing_dependencies);
-        new_compilation.build_dependencies =
-          std::mem::take(&mut self.compilation.build_dependencies);
-        // tree shaking usage start
-        new_compilation.optimize_analyze_result_map =
-          std::mem::take(&mut self.compilation.optimize_analyze_result_map);
-        new_compilation.entry_module_identifiers =
-          std::mem::take(&mut self.compilation.entry_module_identifiers);
-        new_compilation.bailout_module_identifiers =
-          std::mem::take(&mut self.compilation.bailout_module_identifiers);
-        // tree shaking usage end
+        self
+          .compilation
+          .swap_make_artifact_with_compilation(&mut new_compilation);
 
         // seal stage used
         new_compilation.code_splitting_cache =
           std::mem::take(&mut self.compilation.code_splitting_cache);
 
-        new_compilation.has_module_import_export_change = false;
+        // reuse module executor
+        new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
 
+      // FOR BINDING SAFETY:
+      // Update `compilation` for each rebuild.
+      // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
       fast_set(&mut self.compilation, new_compilation);
+      self.compile().await?;
 
-      self.compilation.lazy_visit_modules = changed_files.clone();
-
-      let setup_make_params = if is_incremental_rebuild_make {
-        MakeParam::ModifiedFiles(modified_files)
-      } else {
-        MakeParam::ForceBuildDeps(Default::default())
-      };
-      self.compile(setup_make_params).await?;
-      self.cache.begin_idle();
+      self.old_cache.begin_idle();
     }
 
     self.compile_done().await?;
@@ -145,12 +125,11 @@ pub struct CompilationRecords {
   pub old_hash: Option<RspackHashDigest>,
 }
 
-pub fn collect_changed_modules(
-  compilation: &Compilation,
-) -> (
+pub type ChangedModules = (
   IdentifierMap<(RspackHashDigest, String)>,
   IdentifierMap<String>,
-) {
+);
+pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModules> {
   let modules_map = compilation
     .chunk_graph
     .chunk_graph_module_by_module_identifier
@@ -173,13 +152,16 @@ pub fn collect_changed_modules(
   let old_runtime_modules = compilation
     .runtime_modules
     .iter()
-    .map(|(identifier, module)| {
-      (
+    .map(|(identifier, module)| -> Result<(Identifier, String)> {
+      Ok((
         *identifier,
-        module.generate(compilation).source().to_string(),
-      )
+        module
+          .generate_with_custom(compilation)?
+          .source()
+          .to_string(),
+      ))
     })
-    .collect();
+    .collect::<Result<IdentifierMap<String>>>()?;
 
-  (modules_map, old_runtime_modules)
+  Ok((modules_map, old_runtime_modules))
 }

@@ -1,22 +1,22 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeModule,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
 
-#[derive(Debug, Default, Eq)]
+use crate::get_chunk_runtime_requirements;
+
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct EnsureChunkRuntimeModule {
   id: Identifier,
-  has_ensure_chunk_handlers: bool,
+  chunk: Option<ChunkUkey>,
 }
 
-impl EnsureChunkRuntimeModule {
-  pub fn new(has_ensure_chunk_handlers: bool) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/ensure_chunk"),
-      has_ensure_chunk_handlers,
-    }
+impl Default for EnsureChunkRuntimeModule {
+  fn default() -> Self {
+    Self::with_default(Identifier::from("webpack/runtime/ensure_chunk"), None)
   }
 }
 
@@ -25,13 +25,28 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(match self.has_ensure_chunk_handlers {
-      true => include_str!("runtime/ensure_chunk.js"),
-      false => include_str!("runtime/ensure_chunk_with_inline.js"),
-    })
-    .boxed()
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let chunk_ukey = self.chunk.expect("should have chunk");
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
+    Ok(
+      RawSource::from(
+        match runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+          true => include_str!("runtime/ensure_chunk.js").replace(
+            "$FETCH_PRIORITY$",
+            if runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY) {
+              ", fetchPriority"
+            } else {
+              ""
+            },
+          ),
+          false => include_str!("runtime/ensure_chunk_with_inline.js").to_string(),
+        },
+      )
+      .boxed(),
+    )
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(EnsureChunkRuntimeModule);

@@ -1,14 +1,19 @@
-use std::fmt::{self, Debug};
+use std::{
+  fmt::{self, Debug},
+  sync::Arc,
+};
 
 use async_recursion::async_recursion;
+use bitflags::bitflags;
 use derivative::Derivative;
 use futures::future::BoxFuture;
 use rspack_error::Result;
+use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
-use rspack_util::{try_all, try_any};
+use rspack_util::{try_all, try_any, MergeFrom};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{Filename, ModuleType, PublicPath, Resolve};
+use crate::{Filename, Module, ModuleType, PublicPath, Resolve};
 
 #[derive(Debug)]
 pub struct ParserOptionsByModuleType(HashMap<ModuleType, ParserOptions>);
@@ -25,18 +30,21 @@ impl ParserOptionsByModuleType {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub enum ParserOptions {
   Asset(AssetParserOptions),
+  Css(CssParserOptions),
+  CssAuto(CssAutoParserOptions),
+  CssModule(CssModuleParserOptions),
   Javascript(JavascriptParserOptions),
   Unknown,
 }
 
-macro_rules! get_parser_option {
-  ($fn_name:ident, $variant:ident, $module_variant:ident, $ret_ty:ident) => {
-    pub fn $fn_name(&self, module_type: &ModuleType) -> Option<&$ret_ty> {
+macro_rules! get_variant {
+  ($fn_name:ident, $variant:ident, $ret_ty:ident) => {
+    pub fn $fn_name(&self) -> Option<&$ret_ty> {
       match self {
-        Self::$variant(value) if *module_type == ModuleType::$module_variant => Some(value),
+        Self::$variant(value) => Some(value),
         _ => None,
       }
     }
@@ -44,13 +52,15 @@ macro_rules! get_parser_option {
 }
 
 impl ParserOptions {
-  get_parser_option!(get_asset, Asset, Asset, AssetParserOptions);
-  get_parser_option!(get_javascript, Javascript, Js, JavascriptParserOptions);
+  get_variant!(get_asset, Asset, AssetParserOptions);
+  get_variant!(get_css, Css, CssParserOptions);
+  get_variant!(get_css_auto, CssAuto, CssAutoParserOptions);
+  get_variant!(get_css_module, CssModule, CssModuleParserOptions);
+  get_variant!(get_javascript, Javascript, JavascriptParserOptions);
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, MergeFrom)]
 pub enum DynamicImportMode {
-  #[default]
   Lazy,
   Weak,
   Eager,
@@ -63,18 +73,45 @@ impl From<&str> for DynamicImportMode {
       "weak" => DynamicImportMode::Weak,
       "eager" => DynamicImportMode::Eager,
       "lazy" => DynamicImportMode::Lazy,
-      "lazyOnce" => DynamicImportMode::LazyOnce,
+      "lazy-once" => DynamicImportMode::LazyOnce,
       _ => {
         // TODO: warning
-        DynamicImportMode::default()
+        DynamicImportMode::Lazy
       }
     }
   }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, MergeFrom, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum DynamicImportFetchPriority {
+  Low,
+  High,
+  Auto,
+}
+
+impl From<&str> for DynamicImportFetchPriority {
+  fn from(value: &str) -> Self {
+    match value {
+      "low" => DynamicImportFetchPriority::Low,
+      "high" => DynamicImportFetchPriority::High,
+      "auto" => DynamicImportFetchPriority::Auto,
+      _ => DynamicImportFetchPriority::Auto,
+    }
+  }
+}
+
+impl fmt::Display for DynamicImportFetchPriority {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      DynamicImportFetchPriority::Low => write!(f, "low"),
+      DynamicImportFetchPriority::High => write!(f, "high"),
+      DynamicImportFetchPriority::Auto => write!(f, "auto"),
+    }
+  }
+}
+
+#[derive(Debug, Clone, Copy, MergeFrom)]
 pub enum JavascriptParserUrl {
-  #[default]
   Enable,
   Disable,
   Relative,
@@ -90,26 +127,117 @@ impl From<&str> for JavascriptParserUrl {
   }
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct JavascriptParserOptions {
-  pub dynamic_import_mode: DynamicImportMode,
-  pub url: JavascriptParserUrl,
+#[derive(Debug, Clone, Copy, MergeFrom)]
+pub enum JavascriptParserOrder {
+  Disable,
+  Order(u32),
 }
 
-#[derive(Debug, Clone)]
+impl JavascriptParserOrder {
+  pub fn get_order(&self) -> Option<u32> {
+    match self {
+      Self::Disable => None,
+      Self::Order(o) => Some(*o),
+    }
+  }
+}
+
+impl From<&str> for JavascriptParserOrder {
+  fn from(value: &str) -> Self {
+    match value {
+      "false" => Self::Disable,
+      "true" => Self::Order(0),
+      _ => {
+        if let Ok(order) = value.parse::<u32>() {
+          Self::Order(order)
+        } else {
+          Self::Order(0)
+        }
+      }
+    }
+  }
+}
+
+#[derive(Debug, Clone, Copy, MergeFrom)]
+pub enum ExportPresenceMode {
+  None,
+  Warn,
+  Auto,
+  Error,
+}
+
+impl From<&str> for ExportPresenceMode {
+  fn from(value: &str) -> Self {
+    match value {
+      "false" => Self::None,
+      "warn" => Self::Warn,
+      "error" => Self::Error,
+      _ => Self::Auto,
+    }
+  }
+}
+
+impl ExportPresenceMode {
+  pub fn get_effective_export_presence(&self, module: &dyn Module) -> Option<bool> {
+    match self {
+      ExportPresenceMode::None => None,
+      ExportPresenceMode::Warn => Some(false),
+      ExportPresenceMode::Error => Some(true),
+      ExportPresenceMode::Auto => Some(
+        module
+          .build_meta()
+          .map(|m| m.strict_harmony_module)
+          .unwrap_or_default(),
+      ),
+    }
+  }
+}
+
+#[derive(Debug, Clone, MergeFrom)]
+pub struct JavascriptParserOptions {
+  pub dynamic_import_mode: DynamicImportMode,
+  pub dynamic_import_preload: JavascriptParserOrder,
+  pub dynamic_import_prefetch: JavascriptParserOrder,
+  pub dynamic_import_fetch_priority: Option<DynamicImportFetchPriority>,
+  pub url: JavascriptParserUrl,
+  pub expr_context_critical: bool,
+  pub wrapped_context_critical: bool,
+  pub exports_presence: Option<ExportPresenceMode>,
+  pub import_exports_presence: Option<ExportPresenceMode>,
+  pub reexport_exports_presence: Option<ExportPresenceMode>,
+  pub strict_export_presence: bool,
+  pub worker: Vec<String>,
+}
+
+#[derive(Debug, Clone, MergeFrom)]
 pub struct AssetParserOptions {
   pub data_url_condition: Option<AssetParserDataUrl>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub enum AssetParserDataUrl {
   Options(AssetParserDataUrlOptions),
   // TODO: Function
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub struct AssetParserDataUrlOptions {
   pub max_size: Option<u32>,
+}
+
+#[derive(Debug, Clone, MergeFrom)]
+pub struct CssParserOptions {
+  pub named_exports: Option<bool>,
+}
+
+#[derive(Debug, Clone, MergeFrom)]
+pub struct CssAutoParserOptions {
+  pub named_exports: Option<bool>,
+}
+
+#[derive(Debug, Clone, MergeFrom)]
+pub struct CssModuleParserOptions {
+  pub named_exports: Option<bool>,
 }
 
 #[derive(Debug)]
@@ -127,104 +255,126 @@ impl GeneratorOptionsByModuleType {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub enum GeneratorOptions {
   Asset(AssetGeneratorOptions),
   AssetInline(AssetInlineGeneratorOptions),
   AssetResource(AssetResourceGeneratorOptions),
+  Css(CssGeneratorOptions),
+  CssAuto(CssAutoGeneratorOptions),
+  CssModule(CssModuleGeneratorOptions),
   Unknown,
 }
 
 impl GeneratorOptions {
-  pub fn get_asset(&self, module_type: &ModuleType) -> Option<&AssetGeneratorOptions> {
-    let maybe = match self {
-      Self::Asset(i) => Some(i),
-      _ => None,
-    };
-    maybe.filter(|_| matches!(module_type, ModuleType::Asset))
-  }
+  get_variant!(get_asset, Asset, AssetGeneratorOptions);
+  get_variant!(get_asset_inline, AssetInline, AssetInlineGeneratorOptions);
+  get_variant!(
+    get_asset_resource,
+    AssetResource,
+    AssetResourceGeneratorOptions
+  );
+  get_variant!(get_css, Css, CssGeneratorOptions);
+  get_variant!(get_css_auto, CssAuto, CssAutoGeneratorOptions);
+  get_variant!(get_css_module, CssModule, CssModuleGeneratorOptions);
 
-  fn get_asset_inline(&self, module_type: &ModuleType) -> Option<&AssetInlineGeneratorOptions> {
-    let maybe = match self {
-      Self::AssetInline(i) => Some(i),
-      _ => None,
-    };
-    maybe.filter(|_| matches!(module_type, ModuleType::AssetInline))
-  }
-
-  fn get_asset_resource(&self, module_type: &ModuleType) -> Option<&AssetResourceGeneratorOptions> {
-    let maybe = match self {
-      Self::AssetResource(i) => Some(i),
-      _ => None,
-    };
-    maybe.filter(|_| matches!(module_type, ModuleType::AssetResource))
-  }
-
-  pub fn asset_filename(&self, module_type: &ModuleType) -> Option<&Filename> {
+  pub fn asset_filename(&self) -> Option<&Filename> {
     self
-      .get_asset(module_type)
+      .get_asset()
       .and_then(|x| x.filename.as_ref())
-      .or_else(|| {
-        self
-          .get_asset_resource(module_type)
-          .and_then(|x| x.filename.as_ref())
-      })
+      .or_else(|| self.get_asset_resource().and_then(|x| x.filename.as_ref()))
   }
 
-  pub fn asset_public_path(&self, module_type: &ModuleType) -> Option<&PublicPath> {
+  pub fn asset_public_path(&self) -> Option<&PublicPath> {
     self
-      .get_asset(module_type)
+      .get_asset()
       .and_then(|x| x.public_path.as_ref())
       .or_else(|| {
         self
-          .get_asset_resource(module_type)
+          .get_asset_resource()
           .and_then(|x| x.public_path.as_ref())
       })
   }
 
-  pub fn asset_data_url(&self, module_type: &ModuleType) -> Option<&AssetGeneratorDataUrl> {
+  pub fn asset_data_url(&self) -> Option<&AssetGeneratorDataUrl> {
     self
-      .get_asset(module_type)
+      .get_asset()
       .and_then(|x| x.data_url.as_ref())
-      .or_else(|| {
-        self
-          .get_asset_inline(module_type)
-          .and_then(|x| x.data_url.as_ref())
-      })
+      .or_else(|| self.get_asset_inline().and_then(|x| x.data_url.as_ref()))
+  }
+
+  pub fn asset_emit(&self) -> Option<bool> {
+    self
+      .get_asset()
+      .and_then(|x| x.emit)
+      .or_else(|| self.get_asset_resource().and_then(|x| x.emit))
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub struct AssetInlineGeneratorOptions {
   pub data_url: Option<AssetGeneratorDataUrl>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub struct AssetResourceGeneratorOptions {
+  pub emit: Option<bool>,
   pub filename: Option<Filename>,
   pub public_path: Option<PublicPath>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub struct AssetGeneratorOptions {
+  pub emit: Option<bool>,
   pub filename: Option<Filename>,
   pub public_path: Option<PublicPath>,
   pub data_url: Option<AssetGeneratorDataUrl>,
 }
 
-#[derive(Debug, Clone)]
-pub enum AssetGeneratorDataUrl {
-  Options(AssetGeneratorDataUrlOptions),
-  // TODO: Function
+pub struct AssetGeneratorDataUrlFnArgs {
+  pub filename: String,
+  pub content: String,
 }
 
-#[derive(Debug, Clone)]
+pub type AssetGeneratorDataUrlFn =
+  Arc<dyn Fn(AssetGeneratorDataUrlFnArgs) -> Result<String> + Sync + Send>;
+
+pub enum AssetGeneratorDataUrl {
+  Options(AssetGeneratorDataUrlOptions),
+  Func(AssetGeneratorDataUrlFn),
+}
+
+impl fmt::Debug for AssetGeneratorDataUrl {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Options(i) => i.fmt(f),
+      Self::Func(_) => "Func(...)".fmt(f),
+    }
+  }
+}
+
+impl Clone for AssetGeneratorDataUrl {
+  fn clone(&self) -> Self {
+    match self {
+      Self::Options(i) => Self::Options(i.clone()),
+      Self::Func(i) => Self::Func(i.clone()),
+    }
+  }
+}
+
+impl MergeFrom for AssetGeneratorDataUrl {
+  fn merge_from(self, other: &Self) -> Self {
+    other.clone()
+  }
+}
+
+#[derive(Debug, Clone, MergeFrom)]
 pub struct AssetGeneratorDataUrlOptions {
   pub encoding: Option<DataUrlEncoding>,
   pub mimetype: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MergeFrom)]
 pub enum DataUrlEncoding {
   None,
   Base64,
@@ -249,10 +399,96 @@ impl From<String> for DataUrlEncoding {
   }
 }
 
+#[derive(Debug, Clone, MergeFrom)]
+pub struct CssGeneratorOptions {
+  pub exports_only: Option<bool>,
+  pub es_module: Option<bool>,
+}
+
+#[derive(Debug, Clone, MergeFrom)]
+pub struct CssAutoGeneratorOptions {
+  pub exports_convention: Option<CssExportsConvention>,
+  pub exports_only: Option<bool>,
+  pub local_ident_name: Option<LocalIdentName>,
+  pub es_module: Option<bool>,
+}
+
+#[derive(Debug, Clone, MergeFrom)]
+pub struct CssModuleGeneratorOptions {
+  pub exports_convention: Option<CssExportsConvention>,
+  pub exports_only: Option<bool>,
+  pub local_ident_name: Option<LocalIdentName>,
+  pub es_module: Option<bool>,
+}
+
+#[derive(Debug, Clone, MergeFrom)]
+pub struct LocalIdentName {
+  pub template: crate::FilenameTemplate,
+}
+
+impl From<String> for LocalIdentName {
+  fn from(value: String) -> Self {
+    Self {
+      template: value.into(),
+    }
+  }
+}
+
+bitflags! {
+  #[derive(Debug, Clone, Copy)]
+  struct ExportsConventionFlags: u8 {
+    const ASIS = 1 << 0;
+    const CAMELCASE = 1 << 1;
+    const DASHES = 1 << 2;
+  }
+}
+
+impl MergeFrom for ExportsConventionFlags {
+  fn merge_from(self, other: &Self) -> Self {
+    *other
+  }
+}
+
+#[derive(Debug, Clone, Copy, MergeFrom)]
+pub struct CssExportsConvention(ExportsConventionFlags);
+
+impl CssExportsConvention {
+  pub fn as_is(&self) -> bool {
+    self.0.contains(ExportsConventionFlags::ASIS)
+  }
+
+  pub fn camel_case(&self) -> bool {
+    self.0.contains(ExportsConventionFlags::CAMELCASE)
+  }
+
+  pub fn dashes(&self) -> bool {
+    self.0.contains(ExportsConventionFlags::DASHES)
+  }
+}
+
+impl From<String> for CssExportsConvention {
+  fn from(s: String) -> Self {
+    match s.as_str() {
+      "as-is" => Self(ExportsConventionFlags::ASIS),
+      "camel-case" => Self(ExportsConventionFlags::ASIS | ExportsConventionFlags::CAMELCASE),
+      "camel-case-only" => Self(ExportsConventionFlags::CAMELCASE),
+      "dashes" => Self(ExportsConventionFlags::ASIS | ExportsConventionFlags::DASHES),
+      "dashes-only" => Self(ExportsConventionFlags::DASHES),
+      _ => unreachable!("css exportsConventions error"),
+    }
+  }
+}
+
+impl Default for CssExportsConvention {
+  fn default() -> Self {
+    Self(ExportsConventionFlags::ASIS)
+  }
+}
+
 pub type DescriptionData = HashMap<String, RuleSetCondition>;
 
 pub type RuleSetConditionFnMatcher =
-  Box<dyn Fn(&str) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+  Box<dyn Fn(&serde_json::Value) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
 
 pub enum RuleSetCondition {
   String(String),
@@ -276,10 +512,15 @@ impl fmt::Debug for RuleSetCondition {
 
 impl RuleSetCondition {
   #[async_recursion]
-  pub async fn try_match(&self, data: &str) -> Result<bool> {
+  pub async fn try_match(&self, data: &serde_json::Value) -> Result<bool> {
     match self {
-      Self::String(s) => Ok(data.starts_with(s)),
-      Self::Regexp(r) => Ok(r.test(data)),
+      Self::String(s) => Ok(
+        data
+          .as_str()
+          .map(|data| data.starts_with(s))
+          .unwrap_or_default(),
+      ),
+      Self::Regexp(r) => Ok(data.as_str().map(|data| r.test(data)).unwrap_or_default()),
       Self::Logical(g) => g.try_match(data).await,
       Self::Array(l) => try_any(l, |i| async { i.try_match(data).await }).await,
       Self::Func(f) => f(data).await,
@@ -296,7 +537,7 @@ pub struct RuleSetLogicalConditions {
 
 impl RuleSetLogicalConditions {
   #[async_recursion]
-  pub async fn try_match(&self, data: &str) -> Result<bool> {
+  pub async fn try_match(&self, data: &serde_json::Value) -> Result<bool> {
     if let Some(and) = &self.and
       && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await?
     {
@@ -398,6 +639,50 @@ fn fmt_use(
   }
 }
 
+pub type ModuleNoParseTestFn =
+  Box<dyn Fn(String) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+
+pub enum ModuleNoParseRule {
+  AbsPathPrefix(String),
+  Regexp(RspackRegex),
+  TestFn(ModuleNoParseTestFn),
+}
+
+impl Debug for ModuleNoParseRule {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::TestFn(_) => "Fn(...)".fmt(f),
+      _ => self.fmt(f),
+    }
+  }
+}
+
+impl ModuleNoParseRule {
+  pub async fn try_match(&self, request: &str) -> Result<bool> {
+    match self {
+      Self::AbsPathPrefix(s) => Ok(request.starts_with(s)),
+      Self::Regexp(reg) => Ok(reg.test(request)),
+      Self::TestFn(func) => func(request.to_string()).await,
+    }
+  }
+}
+
+#[derive(Debug)]
+pub enum ModuleNoParseRules {
+  Rule(ModuleNoParseRule),
+  Rules(Vec<ModuleNoParseRule>),
+}
+
+impl ModuleNoParseRules {
+  #[async_recursion]
+  pub async fn try_match(&self, request: &str) -> Result<bool> {
+    match self {
+      Self::Rule(r) => r.try_match(request).await,
+      Self::Rules(list) => try_any(list, |r| r.try_match(request)).await,
+    }
+  }
+}
+
 #[derive(Debug, Default)]
 pub enum ModuleRuleEnforce {
   Post,
@@ -411,4 +696,5 @@ pub struct ModuleOptions {
   pub rules: Vec<ModuleRule>,
   pub parser: Option<ParserOptionsByModuleType>,
   pub generator: Option<GeneratorOptionsByModuleType>,
+  pub no_parse: Option<ModuleNoParseRules>,
 }

@@ -7,11 +7,12 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import { HookMap, SyncBailHook, SyncWaterfallHook } from "tapable";
-import { concatComparators, Comparator } from "../util/comparators";
-import { smartGrouping, GroupConfig } from "../util/smartGrouping";
-import type { Compilation } from "../Compilation";
 import { JsStats, JsStatsError, JsStatsWarning } from "@rspack/binding";
+import { HookMap, SyncBailHook, SyncWaterfallHook } from "@rspack/lite-tapable";
+
+import type { Compilation } from "../Compilation";
+import { Comparator, concatComparators } from "../util/comparators";
+import { GroupConfig, smartGrouping } from "../util/smartGrouping";
 
 export type KnownStatsFactoryContext = {
 	type: string;
@@ -23,7 +24,7 @@ export type KnownStatsFactoryContext = {
 	// runtime?: RuntimeSpec | undefined;
 	cachedGetErrors?: ((arg0: Compilation) => JsStatsError[]) | undefined;
 	cachedGetWarnings?: ((arg0: Compilation) => JsStatsWarning[]) | undefined;
-	_inner: JsStats;
+	getInner: (compilation: Compilation) => JsStats;
 };
 
 export type StatsFactoryContext = KnownStatsFactoryContext &
@@ -55,7 +56,7 @@ type Hooks = Readonly<{
 			undefined
 		>
 	>;
-	result: HookMap<SyncWaterfallHook<[any[], StatsFactoryContext], undefined>>;
+	result: HookMap<SyncWaterfallHook<[any[], StatsFactoryContext]>>;
 	merge: HookMap<SyncBailHook<[any[], StatsFactoryContext], undefined>>;
 	getItemName: HookMap<
 		SyncBailHook<[any, StatsFactoryContext], string | undefined>
@@ -142,7 +143,7 @@ export class StatsFactory {
 			),
 			result: new HookMap(
 				() =>
-					new SyncWaterfallHook<[any[], StatsFactoryContext], undefined>([
+					new SyncWaterfallHook<[any[], StatsFactoryContext]>([
 						"result",
 						"context"
 					])

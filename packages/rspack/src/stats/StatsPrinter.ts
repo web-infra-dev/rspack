@@ -7,15 +7,16 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import type { Hook, AsArray } from "tapable";
-import { HookMap, SyncBailHook, SyncWaterfallHook } from "tapable";
+import type { AsArray, Hook } from "@rspack/lite-tapable";
+import { HookMap, SyncBailHook, SyncWaterfallHook } from "@rspack/lite-tapable";
+
 import type {
 	StatsAsset,
 	StatsChunk,
 	StatsChunkGroup,
+	StatsCompilation,
 	StatsModule,
-	StatsModuleReason,
-	StatsCompilation
+	StatsModuleReason
 } from "./statsFactoryUtils";
 
 type PrintedElement = {

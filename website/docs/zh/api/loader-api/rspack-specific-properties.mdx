@@ -1,0 +1,27 @@
+import { ApiMeta } from '@components/ApiMeta';
+
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/api/loaders/#webpack-specific-properties" />
+
+# Rspack 特有属性
+
+Loader API 提供了所有模块相关的信息。然而，在极少数情况下，你可能需要访问编译器API本身。
+
+:::warning 警告
+请注意，使用这些特定于 Rspack 的属性会对你的 loader 的兼容性产生负面影响。
+
+因此，你应该将它们作为最后的手段使用。使用它们会降低你的 loader 的可移植性。
+:::
+
+## this.\_compilation
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+访问Rspack当前的Compilation对象。
+
+## this.\_compiler
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+访问Rspack当前的Compiler对象。

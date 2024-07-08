@@ -1,6 +1,7 @@
-import { Colorette } from "colorette";
-import { RspackCLI } from "./rspack-cli";
 import type { DevServer } from "@rspack/core";
+import { Colorette } from "colorette";
+
+import { RspackCLI } from "./cli";
 export type { Configuration } from "@rspack/core";
 
 export interface IRspackCLI {
@@ -31,6 +32,7 @@ export interface RspackBuildCLIOptions extends RspackCLIOptions {
 	mode?: string;
 	watch?: boolean;
 	analyze?: boolean;
+	profile?: boolean;
 	env?: Record<string, any>;
 	nodeEnv?: string;
 	"output-path"?: string;

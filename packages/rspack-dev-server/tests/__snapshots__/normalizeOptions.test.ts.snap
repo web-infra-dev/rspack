@@ -6,8 +6,8 @@ exports[`normalize options snapshot additional entires should added 1`] = `
     "<prefix>/./placeholder.js",
   ],
   "undefined": [
-    "<prefix>/webpack-dev-server/client/index.js?protocol=ws%3A&hostname=0.0.0.0&&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
-    "<prefix>/webpack/hot/dev-server.js",
+    "<prefix>/rspack-dev-server/client/index.js?protocol=ws%3A&hostname=0.0.0.0&&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
+    "<prefix>/rspack/hot/dev-server.js",
   ],
 }
 `;
@@ -35,7 +35,6 @@ exports[`normalize options snapshot no options 1`] = `
     "type": "http",
   },
   "setupExitSignals": true,
-  "setupMiddlewares": [Function],
   "static": [
     {
       "directory": "<PROJECT_ROOT>/public",
@@ -92,7 +91,6 @@ exports[`normalize options snapshot port string 1`] = `
     "type": "http",
   },
   "setupExitSignals": true,
-  "setupMiddlewares": [Function],
   "static": [
     {
       "directory": "<PROJECT_ROOT>/public",
@@ -123,29 +121,5 @@ exports[`normalize options snapshot port string 1`] = `
     },
     "type": "ws",
   },
-}
-`;
-
-exports[`normalize options snapshot react-refresh client added when react/refresh enabled 1`] = `
-{
-  "main": [
-    "<prefix>/./placeholder.js",
-  ],
-  "undefined": [
-    "<prefix>/webpack-dev-server/client/index.js?protocol=ws%3A&hostname=0.0.0.0&&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
-    "<prefix>/webpack/hot/dev-server.js",
-  ],
-}
-`;
-
-exports[`normalize options snapshot shouldn't have reactRefreshEntry.js when react.refresh is false 1`] = `
-{
-  "main": [
-    "<prefix>/./placeholder.js",
-  ],
-  "undefined": [
-    "<prefix>/webpack-dev-server/client/index.js?protocol=ws%3A&hostname=0.0.0.0&&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
-    "<prefix>/webpack/hot/dev-server.js",
-  ],
 }
 `;

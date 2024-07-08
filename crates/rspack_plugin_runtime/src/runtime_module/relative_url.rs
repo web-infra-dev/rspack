@@ -5,16 +5,15 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
-#[derive(Debug, Eq)]
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct RelativeUrlRuntimeModule {
   id: Identifier,
 }
 
 impl Default for RelativeUrlRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/relative_url"),
-    }
+    Self::with_default(Identifier::from("webpack/runtime/relative_url"))
   }
 }
 
@@ -23,9 +22,7 @@ impl RuntimeModule for RelativeUrlRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/relative_url.js")).boxed()
+  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(include_str!("runtime/relative_url.js")).boxed())
   }
 }
-
-impl_runtime_module!(RelativeUrlRuntimeModule);

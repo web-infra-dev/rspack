@@ -1,0 +1,306 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.docschina.org/api/stats/" />
+
+# Stats Data
+
+While using Rspack, you can use the following command to generate a JSON file of the statistics module information to analyze the module dependency relationship:
+
+```bash
+# Generate a statistical information JSON file named `compilation-stats.json`
+$ rspack --json=compilation-stats.json
+```
+
+## Structure
+
+The top-level structure of the output object is as follows:
+
+```ts
+type StatsCompilation = {
+  // Fixed simulated webpack version number for compatibility with plugins
+  version?: string;
+  // Current version number of rspack
+  rspackVersion?: string;
+  // Compilation name
+  name?: string;
+  // Compilation specific hash
+  hash?: string;
+  // Compilation time in milliseconds
+  time?: number;
+  // Compilation build end timestamp
+  builtAt?: number;
+  // The `output.publicPath` in the configuration
+  publicPath?: string;
+  // Path to rspack output directory
+  outputPath?: string;
+  // Chunk name to emitted asset(s) mapping
+  assetsByChunkName?: Record<string, string[]>;
+  // List of asset objects, refer to the "Asset Object"
+  assets?: StatsAsset[];
+  // List of chunk objects, refer to the "Chunk Object"
+  chunks?: StatsChunk[];
+  // List of module objects, refer to the "Module Object"
+  modules?: StatsModule[];
+  // Map of entry objects, refer to the "Entry/ChunkGroup Object"
+  entrypoints?: Record<string, StatsChunkGroup>;
+  // Map of named chunk groups, refer to the "Entry/ChunkGroup Object"
+  namedChunkGroups?: Record<string, StatsChunkGroup>;
+  // List of error objects, refer to the "Error/Warning Object"
+  errors?: StatsError[];
+  // Number of errors
+  errorsCount?: number;
+  // List of warning objects, refer to the "Error/Warning Object"
+  warnings?: StatsWarnings[];
+  // Number of warnings
+  warningsCount?: number;
+};
+```
+
+## Asset Object
+
+Each asset object represents an output file emitted from the compilation, and its structure is as follows:
+
+```ts
+type StatsAsset = {
+  // The `output` filename
+  name: string;
+  // The size of the file in bytes
+  size: number;
+  // Indicates whether or not the asset made it to the `output` directory
+  emitted: boolean;
+  // The chunk IDs this asset contains
+  chunks: Array<string | undefined | null>;
+  // The chunks this asset contains
+  chunkNames: Array<string>;
+  info: {
+    // whether the asset is minimized
+    minimized: boolean;
+    // A flag telling whether the asset is only used for development and doesn't count towards user-facing assets
+    development: boolean;
+    // A flag telling whether the asset ships data for updating an existing application (HMR)
+    hotModuleReplacement: boolean;
+    // sourceFilename when asset was created from a source file (potentially transformed)
+    sourceFilename?: string;
+    // true, if the asset can be long term cached forever (contains a hash)
+    immutable: boolean;
+    // true, when asset is javascript and an ESM
+    javascriptModule?: boolean;
+    // the value(s) of the chunk hash used for this asset
+    chunkHash: Array<string>;
+    // the value(s) of the content hash used for this asset
+    contentHash: Array<string>;
+    // object of pointers to other assets, keyed by type of relation (only points from parent to child)
+    related: Record<string | string[]>;
+  };
+};
+```
+
+## Chunk Object
+
+Each chunk object represents a group of modules known as a chunk, and its structure is as follows:
+
+```ts
+type StatsChunk = {
+  // The list of product files contained in the chunk
+  files: Array<string>;
+  // The list of attached product files contained in the chunk
+  auxiliaryFiles: Array<string>;
+  // Chunk ID
+  id?: string;
+  // List of chunk names contained within this chunk
+  names: Array<string>;
+  // The runtime used by the chunk
+  runtime: Array<string>;
+  // Size of the chunk (in bytes)
+  size: number;
+  // Total size of chunk modules group by the output type (in bytes)
+  sizes: Record<string, number>;
+  // Chunk hash
+  hash?: string;
+  // Whether the chunk contains the rspack runtime
+  entry: boolean;
+  // Whether the chunk is loaded on initial page load or on demand
+  initial: boolean;
+  // Whether the chunk went through Code Generation
+  rendered: boolean;
+
+  // Parent chunk IDs
+  parents?: Array<string>;
+  // Children chunk IDs
+  children?: Array<string>;
+  // Sibling chunk IDs
+  siblings?: Array<string>;
+
+  // Chunk create reason when splitting hunks (need to enable `optimization.splitChunks`).
+  reason?: string;
+  // List of idHints of the cache groups hit when splitting chunks (need to enable `optimization.splitChunks`).
+  idHints: Array<string>;
+
+  // List of origins describing how the given chunk originated
+  origins: Array<{
+    // Path to the module
+    module: string;
+    // ID of the module
+    moduleId: string;
+    // The identifier of the module
+    moduleIdentifier: string;
+    // Relative path to the module
+    moduleName: string;
+    // Lines of code that generated this chunk
+    loc: string;
+    // The dependency request in the module
+    request: string;
+  }>;
+
+  // List of modules contained in the chunk, for details, refer to the "Module Object"
+  modules?: Array<StatsModule>;
+};
+```
+
+## Module Object
+
+Each module object represents a module in the dependency graph, and its structure is as follows:
+
+```ts
+type StatsModule = {
+  // Module ID
+  id?: string;
+  // Module source type
+  moduleType: string;
+  // A unique identifier used internally
+  identifier: string;
+  // Path to the actual file
+  name: string;
+  // Estimated size of the module in bytes
+  size: number;
+  // Total size of module group by the output type (in bytes)
+  sizes: Record<string, number>;
+
+  // Whether the module went through loaders and parsing
+  built: boolean;
+  // Whether the module went through code generation
+  codeGenerated: boolean;
+  // Whether the module is run during the compilation (you can see it while using css-extract)
+  buildTimeExecuted: boolean;
+  // Whether the module is cached
+  cached: boolean;
+  // Whether the module can be cached
+  cacheable: boolean;
+  // Whether the module is optional, and if it is optional, only a warning will be issued when the module is not found
+  optional: boolean;
+  // Whether the module is dependent by other modules
+  dependent?: boolean;
+
+  // List of reasons why the module is introduced, similar to the structure of chunk.origins
+  reasons?: Array<JsStatsModuleReason>;
+  // Unique identifier of the parent module
+  issuer?: string;
+  // Parent module ID
+  issuerId?: string;
+  // Path to the actual file of parent module
+  issuerName?: string;
+  // Reference path from the entry to the current module
+  issuerPath: Array<JsStatsModuleIssuer>;
+  // Absolute path used by the module for conditional matching (usually the resource path)
+  nameForCondition?: string;
+  // The top-down index of the module in the ChunkGroup
+  preOrderIndex?: number;
+  // The bottom-up index of the module in the ChunkGroup
+  postOrderIndex?: number;
+  // The level in module graph
+  depth?: number;
+  // Whether the module is not included by any chunk
+  orphan: boolean;
+  // List of IDs of chunks that contain the module
+  chunks: Array<string | undefined | null>;
+  // List of assets generated by the module
+  assets?: Array<string>;
+
+  // Whether the module compiles failed
+  failed: boolean;
+  // Number of errors
+  errors: number;
+  // Number of warnings
+  warnings: number;
+
+  // Used module exports, true indicates that all are used, string[] indicates that some fields are used (need to enable `optimization.usedExports`)
+  usedExports?: null | string[] | boolean;
+  // List of fields exported by the module (need to enable `optimization.providedExports`)
+  providedExports?: null | string[];
+  // Optimization bailout reasons (need to enable `optimization.concatenateModules`)
+  optimizationBailout?: null | string[];
+
+  // If current module is generated by scope hoisting, this is the list of the original modules (need to enable `optimization.concatenateModules`)
+  modules?: Array<JsStatsModule>;
+
+  // Source code
+  source?: string | Buffer;
+
+  // The compilation time statistics for each phase (in milliseconds, need to enable `profile`)
+  profile?: {
+    // Finding the module
+    resolving: number;
+    // Compiling the module
+    building: number;
+  };
+};
+```
+
+## Entry/ChunkGroup Object
+
+Each entrypoint or chunk group object represents an group of chunks and assets, and its structure is as follows:
+
+```ts
+type StatsEntrypoints = Record<string, StatsChunkGroup>;
+type StatsNamedChunkGroups = Record<string, StatsChunkGroup>;
+
+type StatsChunkGroup = {
+  // Name of the entry
+  name: string;
+  // List of IDs of the chunks included
+  chunks: Array<string | undefined | null>;
+  // Assets generated by the chunk group
+  assets: Array<{
+    // File name
+    name: string;
+    // File size
+    size: number;
+  }>;
+  // Total size of the assets generated by the chunk group
+  assetsSize: number;
+
+  // Auxiliary assets generated by the chunk group
+  auxiliaryAssets?: Array<{
+    // File name
+    name: string;
+    // File size
+    size: number;
+  }>;
+  // Total size of the auxiliary assets generated by the chunk group
+  auxiliaryAssetsSize?: number;
+  // Ordered children chunk groups, order by preload/prefetch
+  children?: {
+    // preload children chunk groups
+    preload?: Array<StatsChunkGroup>;
+    // prefetch children chunk groups
+    prefetch?: Array<StatsChunkGroup>;
+  };
+};
+```
+
+## Error/Warning Object
+
+Each error or warning object represents an error/warning threw during the build process, and its structure is as follows:
+
+```ts
+type StatsError = {
+  // Visual message of the error/warning
+  message: string;
+  // Unique identifier of the module where the error/warning occurs
+  moduleIdentifier?: string;
+  // Relative path of the module where the error/warning occurs
+  moduleName?: string;
+  // ID of the module where the error/warning occurs
+  moduleId?: string;
+};
+```

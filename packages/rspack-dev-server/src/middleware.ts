@@ -1,11 +1,11 @@
-import { extname } from "path";
+import crypto from "crypto";
 import type { IncomingMessage } from "http";
+import { extname } from "path";
+import { parse } from "url";
 import type { Compiler } from "@rspack/core";
-import wdm from "webpack-dev-middleware";
 import type { RequestHandler, Response } from "express";
 import mime from "mime-types";
-import { parse } from "url";
-import crypto from "crypto";
+import wdm from "webpack-dev-middleware";
 
 function etag(buf: any) {
 	const hash = crypto.createHash("sha256").update(buf).digest("hex");
@@ -33,18 +33,18 @@ export function getRspackMemoryAssets(
 		// @ts-expect-error
 		const filename = path.startsWith(publicPath)
 			? // @ts-expect-error
-			  path.slice(publicPath.length)
+				path.slice(publicPath.length)
 			: // @ts-expect-error
-			  path.slice(1);
+				path.slice(1);
 		const buffer =
-			compiler.getAsset(filename) ??
+			compiler._lastCompilation?.getAsset(filename) ??
 			(() => {
 				const { index } = rdm.context.options;
 				const indexValue =
 					typeof index === "undefined" || typeof index === "boolean"
 						? "index.html"
 						: index;
-				return compiler.getAsset(filename + indexValue);
+				return compiler._lastCompilation?.getAsset(filename + indexValue);
 			})();
 		if (!buffer) {
 			return next();

@@ -1,5 +1,10 @@
-import { RawCopyPattern, RawCopyRspackPluginOptions } from "@rspack/binding";
-import { BuiltinPluginName, create } from "./base";
+import {
+	BuiltinPluginName,
+	RawCopyPattern,
+	RawCopyRspackPluginOptions
+} from "@rspack/binding";
+
+import { create } from "./base";
 
 export type CopyRspackPluginOptions = {
 	patterns: (

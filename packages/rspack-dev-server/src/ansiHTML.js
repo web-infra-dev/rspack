@@ -20,7 +20,7 @@ var _regANSI =
 	/(?:(?:\u001b\[)|\u009b)(?:(?:[0-9]{1,3})?(?:(?:;[0-9]{0,3})*)?[A-M|f-m])|\u001b[A-M]/;
 
 var _defColors = {
-	reset: ["fff", "000"], // [FOREGROUD_COLOR, BACKGROUND_COLOR]
+	reset: ["fff", "000"], // [FOREGROUND_COLOR, BACKGROUND_COLOR]
 	black: "000",
 	red: "ff0000",
 	green: "209805",
@@ -155,8 +155,11 @@ function ansiHTML(text) {
 			return rep;
 
 			function applySeq(seq) {
-				var ot = _openTags[seq];
-				if (ot && (ot = typeof ot === "function" ? ot(match) : ot)) {
+				var other = _openTags[seq];
+				if (
+					other &&
+					(other = typeof other === "function" ? other(match) : other)
+				) {
 					// If reset signal is encountered, we have to reset everything.
 					var ret = "";
 					if (seq === "0") {
@@ -170,7 +173,9 @@ function ansiHTML(text) {
 					}
 					// Open tag.
 					ansiCodes.push(seq);
-					return ret + (ot[0] === "<" ? ot : '<span style="' + ot + ';">');
+					return (
+						ret + (other[0] === "<" ? other : '<span style="' + other + ';">')
+					);
 				}
 
 				var ct = _closeTags[seq];

@@ -1,0 +1,57 @@
+import { Table } from '@builtIns';
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# ProgressPlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+此插件可以用来配置进度条。
+
+Rspack 使用 [indicatif::ProgressBar](https://github.com/console-rs/indicatif) 绘制进度条.
+
+```js
+new rspack.ProgressPlugin(options);
+```
+
+## 选项
+
+### prefix
+
+- **Type:** `string`
+- **Default:** `'Rspack'`
+
+进度条前显示文案。
+
+### profile
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+是否收集进度步骤的性能数据。
+
+### template
+
+- **Type:** `string`
+- **Default:** `● {prefix:.bold} {bar:25.green/white.dim} ({percent}%) {wide_msg:.dim}`
+
+进度条的模板。
+
+详情查阅 [indicatif::ProgressBar::with_template](https://docs.rs/indicatif/latest/indicatif/style/struct.ProgressStyle.html#method.with_template).
+
+### tick
+
+- **Type:** `string | string[] | undefined`
+- **Default:** `undefined`
+
+Spinner 变化的字符串序列，如果是字符串，则会被拆分为字符。
+
+详情查阅 [indicatif::ProgressBar::tick_strings](https://docs.rs/indicatif/latest/indicatif/style/struct.ProgressStyle.html#method.tick_strings).
+
+### progressChars
+
+- **Type:** `string`
+- **Default:** `━━`
+
+组成进度条的字符。
+
+详情查阅 [indicatif::ProgressBar::progress_chars](https://docs.rs/indicatif/latest/indicatif/style/struct.ProgressStyle.html#method.progress_chars).

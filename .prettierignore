@@ -1,22 +1,20 @@
 package.json
 
 # Ignore generated
+
 dist/
 packages/rspack/src/config/schema.check.js
 
 # Ignore example fixtures
 
 # Ignore test related
-packages/rspack/tests/fixtures/**/*
-packages/rspack/tests/statsCases/**/*
-packages/rspack/tests/configCases/errors/**/*
-packages/rspack/tests/hotCases/**/*
-packages/rspack/tests/js/**/*
-packages/rspack/tests/copyPlugin/build/**/*
 
-benchcases/**/*
+packages/**/etc/**/*
+packages/rspack-test-tools/template/**/*
+packages/rspack-test-tools/tests/**/*
+packages/rspack-test-preact-refresh/tests/**/*
+packages/rspack-plugin-mini-css-extract/test/cases/**/*
+
 crates/**/*
 target/**/*
-
-webpack-test/**/*
-webpack-examples/**/*
+tests/**/*

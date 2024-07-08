@@ -7,7 +7,6 @@ version    = "0.1.0"
 
 [dependencies]
 anyhow = { workspace = true }
-rspack_error = { path = "../rspack_error" }
 swc_core = { workspace = true, features = [
   "__ecma",
   "__visit",
@@ -35,4 +34,3 @@ swc_core = { workspace = true, features = [
 ] }
 swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
-tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }

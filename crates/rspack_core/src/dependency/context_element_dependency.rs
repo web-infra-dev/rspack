@@ -1,4 +1,4 @@
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 use crate::{AsContextDependency, AsDependencyTemplate, Context};
 use crate::{ContextMode, ContextOptions, Dependency};
@@ -6,7 +6,7 @@ use crate::{DependencyCategory, DependencyId, DependencyType};
 use crate::{ExtendedReferencedExport, ModuleDependency};
 use crate::{ModuleGraph, ReferencedExport, RuntimeSpec};
 
-#[derive(Debug, Eq, PartialEq, Clone, Hash)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct ContextElementDependency {
   pub id: DependencyId,
   // TODO remove this async dependency mark
@@ -16,14 +16,11 @@ pub struct ContextElementDependency {
   pub category: DependencyCategory,
   pub context: Context,
   pub resource_identifier: String,
-  pub referenced_exports: Option<Vec<JsWord>>,
+  pub referenced_exports: Option<Vec<Atom>>,
+  pub dependency_type: DependencyType,
 }
 
 impl Dependency for ContextElementDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "ContextElementDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -33,7 +30,7 @@ impl Dependency for ContextElementDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::ContextElement
+    &self.dependency_type
   }
 
   fn get_context(&self) -> Option<&Context> {
@@ -42,6 +39,18 @@ impl Dependency for ContextElementDependency {
 
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    if let Some(referenced_exports) = &self.referenced_exports {
+      vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
+    } else {
+      vec![ExtendedReferencedExport::Array(vec![])]
+    }
   }
 }
 
@@ -63,18 +72,6 @@ impl ModuleDependency for ContextElementDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-
-  fn get_referenced_exports(
-    &self,
-    _module_graph: &ModuleGraph,
-    _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    if let Some(referenced_exports) = &self.referenced_exports {
-      vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
-    } else {
-      vec![ExtendedReferencedExport::Array(vec![])]
-    }
   }
 }
 

@@ -1,0 +1,89 @@
+# 总览
+
+我们非常感谢您有兴趣为 Rspack 做出贡献！
+每一项贡献都很重要，并帮助我们将 Rspack 提升到一个新的水平。
+
+## 提出问题
+
+如果您遇到任何问题，请随时在 [Discord](https://discord.gg/sYK4QjyZ4V) 中的 support 频道或 [GitHub discussion board](https://github.com/web-infra-dev/rspack/discussions) 提问。
+
+### 最小复现
+
+[Rspack 复现模版](https://github.com/web-infra-dev/rspack-repro) 可以被用于创建一个最小复现示例。
+一个最小复现示例 (MRE) 是一段这样的代码:
+
+- 短
+- 独立的
+- 展示遇到的问题
+
+MRE 至关重要，因为它使我们能够快速理解并重现您的问题。
+这反过来又增加了在更短的时间内获得有用且准确的响应的可能性。
+值得注意的是，MRE 不应包含与不相关功能相关的无关代码，
+而应该只关注手头的问题。
+
+> 请查看来自 Stack Overflow 的 [如何创建最小的、可重复的示例](https://stackoverflow.com/help/minimal-reproducible-example)。
+
+## 我应该做什么？
+
+### Good First Issue
+
+如果您想深入了解代码库并开始使用，
+建议查看我们的 标有 [good first issue 标签](https://github.com/web-infra-dev/rspack/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22) 的 issue 列表。
+这将帮助您熟悉该项目并开始做出贡献。
+
+### Tracking Issue
+
+如果您有兴趣了解我们项目的方向并希望解决与我们优先事项相符的问题，
+我们的 [正在跟踪 issues 列表](https://github.com/web-infra-dev/rspack/issues?q=is%3Aopen+label%3A%22tracking+issue%22+sort%3Aupdated-desc) 概括了我们的进展和当前目标。
+
+## 提交 pull request
+
+1. [Fork](https://help.github.com/articles/fork-a-repo/) Rspack 的仓库到你自己的 GitHub 个人账户中。
+2. [Clone](https://help.github.com/articles/cloning-a-repository/) 下这个仓库到本地。
+3. 从 `main` 签出一个新的分支。
+4. 搭建开发环境，可以阅读 [准备工作](/contribute/development/prerequisites) 部分来了解。
+5. 如果您修复了错误或添加了需要被测试的代码，则需要添加一些测试。
+6. 确保所有测试都通过，您可以阅读下面的 [Testing](/contribute/development/testing) 部分来了解。
+7. 执行 `pnpm run lint:js` 和 `pnpm run lint:rs` 来检查代码风格。
+8. 提交 Pull Request， 确保所有的 CI 都通过.
+9. maintainers 之后会检查你的 Pull Request。
+
+提交 Pull Request 时，请注意以下事项：
+
+- 保持 PR 足够小，以便每个 PR 只解决一个问题或添加一个功能。
+- 请在 PR 中包含适当的描述，并链接相关问题。
+
+### PR 标题格式
+
+PR 标题的格式遵循 [Conventional Commits](https://www.conventionalcommits.org/) 规范。
+
+一个示例：
+
+```
+feat(core): Add `fooBar` config
+^    ^    ^
+|    |    |__ Subject
+|    |_______ Scope (可选)
+|____________ Type
+```
+
+如果你的 PR 包含了任何不兼容更新，请在 type/scope 后面添加一个 `!`，并添加 [release: breaking change](https://github.com/web-infra-dev/rspack/labels) GitHub label。
+
+```text
+fix!: remove deprecated `fooBar` config
+fix(core)!: remove deprecated `fooBar` config
+```
+
+## 其他贡献方式
+
+我们一直在寻找贡献者，不仅仅是我们的主仓库。
+
+尝试这些其他可以参与进来的方式，可以从现在就行动起来。
+
+- 文档站位于 [web-infra-dev/rspack/website](https://github.com/web-infra-dev/rspack/tree/main/website)
+- 社区的 packages 在 [github.com/rspack-contrib](https://github.com/rspack-contrib)
+- 欢迎给 [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack) 添加 Rspack 相关项目
+
+---
+
+提醒一下，所有贡献者都应该遵循我们的 [Code of Conduct](https://github.com/web-infra-dev/rspack/blob/main/CODE_OF_CONDUCT.md).

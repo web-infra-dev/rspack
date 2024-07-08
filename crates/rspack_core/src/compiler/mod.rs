@@ -1,33 +1,52 @@
 mod compilation;
 mod hmr;
 mod make;
-mod queue;
+mod module_executor;
 
-use std::collections::hash_map::Entry;
-use std::ops::Deref;
-use std::{path::Path, sync::Arc};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
-pub use compilation::*;
-pub use hmr::{collect_changed_modules, CompilationRecords};
-pub use make::MakeParam;
-pub use queue::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
-use rspack_identifier::{IdentifierMap, IdentifierSet};
+use rspack_hook::define_hook;
+use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
-use swc_core::ecma::atoms::JsWord;
 use tracing::instrument;
 
-use crate::cache::Cache;
-use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
-use crate::tree_shaking::visitor::SymbolRef;
+pub use self::compilation::*;
+pub use self::hmr::{collect_changed_modules, CompilationRecords};
+pub use self::module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor};
+use crate::old_cache::Cache as OldCache;
 use crate::{
-  fast_set, AssetEmittedArgs, CompilerOptions, Logger, ModuleGraph, PluginDriver, ResolverFactory,
-  SharedPluginDriver,
+  fast_set, BoxPlugin, CompilerOptions, Logger, PluginDriver, ResolverFactory, SharedPluginDriver,
 };
-use crate::{BoxPlugin, ExportInfo, UsageState};
-use crate::{CompilationParams, ContextModuleFactory, NormalModuleFactory};
+use crate::{ContextModuleFactory, NormalModuleFactory};
+
+// should be SyncHook, but rspack need call js hook
+define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
+// should be SyncHook, but rspack need call js hook
+define_hook!(CompilerCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
+// should be AsyncParallelHook
+define_hook!(CompilerMake: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilerFinishMake: AsyncSeries(compilation: &mut Compilation));
+// should be SyncBailHook, but rspack need call js hook
+define_hook!(CompilerShouldEmit: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilerEmit: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilerAfterEmit: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilerAssetEmitted: AsyncSeries(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
+
+#[derive(Debug, Default)]
+pub struct CompilerHooks {
+  pub this_compilation: CompilerThisCompilationHook,
+  pub compilation: CompilerCompilationHook,
+  pub make: CompilerMakeHook,
+  pub finish_make: CompilerFinishMakeHook,
+  pub should_emit: CompilerShouldEmitHook,
+  pub emit: CompilerEmitHook,
+  pub after_emit: CompilerAfterEmitHook,
+  pub asset_emitted: CompilerAssetEmittedHook,
+}
 
 #[derive(Debug)]
 pub struct Compiler<T>
@@ -40,7 +59,7 @@ where
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
-  pub cache: Arc<Cache>,
+  pub old_cache: Arc<OldCache>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
@@ -58,32 +77,29 @@ where
         debug_info.with_context(options.context.to_string());
       }
     }
-    let new_resolver = options.experiments.rspack_future.new_resolver;
-    let resolver_factory = Arc::new(ResolverFactory::new(new_resolver, options.resolve.clone()));
-    let loader_resolver_factory = Arc::new(ResolverFactory::new(
-      new_resolver,
-      options.resolve_loader.clone(),
-    ));
+    let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
+    let loader_resolver_factory = Arc::new(ResolverFactory::new(options.resolve_loader.clone()));
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
-    let cache = Arc::new(Cache::new(options.clone()));
-    let is_new_treeshaking = options.is_new_tree_shaking();
-    assert!(!(options.is_new_tree_shaking() && options.builtins.tree_shaking.enable()), "Can't enable builtins.tree_shaking and `experiments.rspack_future.new_treeshaking` at the same time");
+    let old_cache = Arc::new(OldCache::new(options.clone()));
+    let module_executor = ModuleExecutor::default();
     Self {
       options: options.clone(),
       compilation: Compilation::new(
         options,
-        ModuleGraph::default().with_treeshaking(is_new_treeshaking),
         plugin_driver.clone(),
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
         None,
-        cache.clone(),
+        old_cache.clone(),
+        Some(module_executor),
+        Default::default(),
+        Default::default(),
       ),
       output_filesystem,
       plugin_driver,
       resolver_factory,
       loader_resolver_factory,
-      cache,
+      old_cache,
       emitted_asset_versions: Default::default(),
     }
   }
@@ -95,184 +111,92 @@ where
 
   #[instrument(name = "build", skip_all)]
   pub async fn build(&mut self) -> Result<()> {
-    self.cache.end_idle();
+    self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.resolver_factory.clear_cache();
 
+    let module_executor = ModuleExecutor::default();
     fast_set(
       &mut self.compilation,
       Compilation::new(
         self.options.clone(),
-        ModuleGraph::default().with_treeshaking(self.options.is_new_tree_shaking()),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
-        self.cache.clone(),
+        self.old_cache.clone(),
+        Some(module_executor),
+        Default::default(),
+        Default::default(),
       ),
     );
 
-    self
-      .compile(MakeParam::ForceBuildDeps(Default::default()))
-      .await?;
-    self.cache.begin_idle();
+    self.compile().await?;
+    self.old_cache.begin_idle();
     self.compile_done().await?;
     Ok(())
   }
 
   #[instrument(name = "compile", skip_all)]
-  async fn compile(&mut self, params: MakeParam) -> Result<()> {
-    let compilation_params = self.new_compilation_params();
+  async fn compile(&mut self) -> Result<()> {
+    let mut compilation_params = self.new_compilation_params();
+    // FOR BINDING SAFETY:
+    // Make sure `thisCompilation` hook was called for each `JsCompilation` update before any access to it.
+    // `JsCompiler` tapped `thisCompilation` to update the `JsCompilation` on the JavaScript side.
+    // Otherwise, trying to access the old native `JsCompilation` would cause undefined behavior
+    // as the previous instance might get dropped.
     self
       .plugin_driver
-      .before_compile(&compilation_params)
+      .compiler_hooks
+      .this_compilation
+      .call(&mut self.compilation, &mut compilation_params)
       .await?;
-    // Fake this compilation as *currently* rebuilding does not create a new compilation
     self
       .plugin_driver
-      .this_compilation(&mut self.compilation, &compilation_params)
-      .await?;
-    self
-      .plugin_driver
-      .compilation(&mut self.compilation, &compilation_params)
+      .compiler_hooks
+      .compilation
+      .call(&mut self.compilation, &mut compilation_params)
       .await?;
 
     let logger = self.compilation.get_logger("rspack.Compiler");
-    let start = logger.time("make");
-    self.compilation.make(params).await?;
-    logger.time_end(start);
+    let make_start = logger.time("make");
+    let make_hook_start = logger.time("make hook");
+    if let Some(e) = self
+      .plugin_driver
+      .compiler_hooks
+      .make
+      .call(&mut self.compilation)
+      .await
+      .err()
+    {
+      self.compilation.extend_diagnostics(vec![e.into()]);
+    }
+    logger.time_end(make_hook_start);
+    self.compilation.make().await?;
+    logger.time_end(make_start);
 
     let start = logger.time("finish make hook");
     self
       .plugin_driver
-      .finish_make(&mut self.compilation)
+      .compiler_hooks
+      .finish_make
+      .call(&mut self.compilation)
       .await?;
     logger.time_end(start);
 
     let start = logger.time("finish compilation");
     self.compilation.finish(self.plugin_driver.clone()).await?;
     logger.time_end(start);
-    // by default include all module in final chunk
-    self.compilation.include_module_ids = self
-      .compilation
-      .module_graph
-      .modules()
-      .keys()
-      .cloned()
-      .collect::<IdentifierSet>();
-
-    if self.options.builtins.tree_shaking.enable()
-      || self
-        .options
-        .output
-        .enabled_library_types
-        .as_ref()
-        .map(|types| {
-          types
-            .iter()
-            .any(|item| item == "module" || item == "commonjs-static")
-        })
-        .unwrap_or(false)
-    {
-      let (analyze_result, diagnostics) = self
-        .compilation
-        .optimize_dependency()
-        .await?
-        .split_into_parts();
-      if !diagnostics.is_empty() {
-        self.compilation.push_batch_diagnostic(diagnostics);
-      }
-      self.compilation.used_symbol_ref = analyze_result.used_symbol_ref;
-      let mut exports_info_map: IdentifierMap<HashMap<JsWord, ExportInfo>> =
-        IdentifierMap::default();
-      self.compilation.used_symbol_ref.iter().for_each(|item| {
-        let (importer, name) = match item {
-          SymbolRef::Declaration(d) => (d.src(), d.exported()),
-          SymbolRef::Indirect(i) => match i.ty {
-            IndirectType::Import(_, _) => (i.src(), i.indirect_id()),
-            IndirectType::ImportDefault(_) => (i.src(), DEFAULT_JS_WORD.deref()),
-            IndirectType::ReExport(_, _) => (i.importer(), i.id()),
-            _ => return,
-          },
-          SymbolRef::Star(s) => match s.ty() {
-            StarSymbolKind::ReExportAllAs => (s.module_ident(), s.binding()),
-            _ => return,
-          },
-          SymbolRef::Usage(_, _, _) => return,
-          SymbolRef::Url { .. } => return,
-          SymbolRef::Worker { .. } => return,
-        };
-        match exports_info_map.entry(importer) {
-          Entry::Occupied(mut occ) => {
-            let export_info = ExportInfo::new(Some(name.clone()), UsageState::Used, None);
-            occ.get_mut().insert(name.clone(), export_info);
-          }
-          Entry::Vacant(vac) => {
-            let mut map = HashMap::default();
-            let export_info = ExportInfo::new(Some(name.clone()), UsageState::Used, None);
-            map.insert(name.clone(), export_info);
-            vac.insert(map);
-          }
-        }
-      });
-      {
-        // take the ownership to avoid rustc complain can't use `&` and `&mut` at the same time
-        let mut mi_to_mgm = std::mem::take(
-          &mut self
-            .compilation
-            .module_graph
-            .module_identifier_to_module_graph_module,
-        );
-        let mut export_info_map =
-          std::mem::take(&mut self.compilation.module_graph.export_info_map);
-        for mgm in mi_to_mgm.values_mut() {
-          if let Some(exports_map) = exports_info_map.remove(&mgm.module_identifier) {
-            let exports = self
-              .compilation
-              .module_graph
-              .exports_info_map
-              .get_mut(&mgm.exports)
-              .expect("should have exports info");
-            for (name, export_info) in exports_map {
-              exports.exports.insert(name, export_info.id);
-              export_info_map.insert(export_info.id, export_info);
-            }
-          }
-        }
-        self.compilation.module_graph.export_info_map = export_info_map;
-        self
-          .compilation
-          .module_graph
-          .module_identifier_to_module_graph_module = mi_to_mgm;
-      }
-
-      self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
-      self.compilation.side_effects_free_modules = analyze_result.side_effects_free_modules;
-      self.compilation.module_item_map = analyze_result.module_item_map;
-      if self.options.builtins.tree_shaking.enable()
-        && self.options.optimization.side_effects.is_enable()
-      {
-        self.compilation.include_module_ids = analyze_result.include_module_ids;
-      }
-      self.compilation.optimize_analyze_result_map = analyze_result.analyze_results;
-    }
     let start = logger.time("seal compilation");
     self.compilation.seal(self.plugin_driver.clone()).await?;
-    logger.time_end(start);
-
-    let start = logger.time("afterCompile hook");
-    self
-      .plugin_driver
-      .after_compile(&mut self.compilation)
-      .await?;
     logger.time_end(start);
 
     // Consume plugin driver diagnostic
     let plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
     self
       .compilation
-      .push_batch_diagnostic(plugin_driver_diagnostics);
+      .extend_diagnostics(plugin_driver_diagnostics);
 
     Ok(())
   }
@@ -281,23 +205,22 @@ where
   async fn compile_done(&mut self) -> Result<()> {
     let logger = self.compilation.get_logger("rspack.Compiler");
 
-    if !self
-      .plugin_driver
-      .should_emit(&mut self.compilation)
-      .await?
-    {
-      return self.compilation.done(self.plugin_driver.clone()).await;
+    if matches!(
+      self
+        .plugin_driver
+        .compiler_hooks
+        .should_emit
+        .call(&mut self.compilation)
+        .await?,
+      Some(false)
+    ) {
+      return Ok(());
     }
 
-    if !self.compilation.options.builtins.no_emit_assets {
-      let start = logger.time("emitAssets");
-      self.emit_assets().await?;
-      logger.time_end(start);
-    }
-
-    let start = logger.time("done hook");
-    self.compilation.done(self.plugin_driver.clone()).await?;
+    let start = logger.time("emitAssets");
+    self.emit_assets().await?;
     logger.time_end(start);
+
     Ok(())
   }
 
@@ -327,7 +250,12 @@ where
       }
     }
 
-    self.plugin_driver.emit(&mut self.compilation).await?;
+    self
+      .plugin_driver
+      .compiler_hooks
+      .emit
+      .call(&mut self.compilation)
+      .await?;
 
     let mut new_emitted_asset_versions = HashMap::default();
     let results = self
@@ -356,7 +284,12 @@ where
       item?;
     }
 
-    self.plugin_driver.after_emit(&mut self.compilation).await
+    self
+      .plugin_driver
+      .compiler_hooks
+      .after_emit
+      .call(&mut self.compilation)
+      .await
   }
 
   async fn emit_asset(
@@ -386,16 +319,16 @@ where
 
       self.compilation.emitted_assets.insert(filename.to_string());
 
-      let asset_emitted_args = AssetEmittedArgs {
-        filename,
-        output_path,
+      let info = AssetEmittedInfo {
+        output_path: output_path.to_owned(),
         source: source.clone(),
-        target_path: file_path.as_path(),
-        compilation: &self.compilation,
+        target_path: file_path,
       };
       self
         .plugin_driver
-        .asset_emitted(&asset_emitted_args)
+        .compiler_hooks
+        .asset_emitted
+        .call(&self.compilation, filename, &info)
         .await?;
     }
     Ok(())
@@ -407,12 +340,25 @@ where
         self.options.clone(),
         self.loader_resolver_factory.clone(),
         self.plugin_driver.clone(),
-        self.cache.clone(),
       )),
       context_module_factory: Arc::new(ContextModuleFactory::new(
+        self.resolver_factory.clone(),
+        self.loader_resolver_factory.clone(),
         self.plugin_driver.clone(),
-        self.cache.clone(),
       )),
     }
   }
+}
+
+#[derive(Debug)]
+pub struct CompilationParams {
+  pub normal_module_factory: Arc<NormalModuleFactory>,
+  pub context_module_factory: Arc<ContextModuleFactory>,
+}
+
+#[derive(Debug)]
+pub struct AssetEmittedInfo {
+  pub source: BoxSource,
+  pub output_path: PathBuf,
+  pub target_path: PathBuf,
 }

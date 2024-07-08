@@ -1,60 +1,29 @@
-mod js_loader;
-
+use std::fmt::Formatter;
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use derivative::Derivative;
-pub use js_loader::JsLoaderAdapter;
-pub use js_loader::*;
-use napi::bindgen_prelude::*;
+use napi::bindgen_prelude::Either3;
+use napi::Either;
 use napi_derive::napi;
+use rspack_binding_values::RawRegex;
 use rspack_core::{
-  AssetGeneratorDataUrl, AssetGeneratorDataUrlOptions, AssetGeneratorOptions,
-  AssetInlineGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
-  AssetResourceGeneratorOptions, BoxLoader, DescriptionData, DynamicImportMode, FuncUseCtx,
-  GeneratorOptions, GeneratorOptionsByModuleType, JavascriptParserOptions, JavascriptParserUrl,
-  ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType,
-  ParserOptions, ParserOptionsByModuleType,
+  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetGeneratorDataUrlOptions,
+  AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
+  AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
+  CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
+  CssModuleParserOptions, CssParserOptions, DescriptionData, DynamicImportFetchPriority,
+  DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions,
+  GeneratorOptionsByModuleType, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
+  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions,
+  ParserOptionsByModuleType,
 };
-use rspack_error::{internal_error, miette::IntoDiagnostic};
-use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
-use rspack_loader_sass::SASS_LOADER_IDENTIFIER;
-use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
-use rspack_napi_shared::get_napi_env;
-use serde::Deserialize;
-use {
-  rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  rspack_napi_shared::NapiResultExt,
-};
+use rspack_error::error;
+use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use tokio::runtime::Handle;
 
-use crate::{RawOptionsApply, RawResolveOptions};
-
-pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
-  if builtin.starts_with(SASS_LOADER_IDENTIFIER) {
-    return Arc::new(rspack_loader_sass::SassLoader::new(
-      serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-        panic!("Could not parse builtin:sass-loader options: {options:?}, error: {e:?}")
-      }),
-    ));
-  }
-
-  if builtin.starts_with(SWC_LOADER_IDENTIFIER) {
-    return Arc::new(
-      rspack_loader_swc::SwcLoader::new(
-        serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-          panic!("Could not parse builtin:swc-loader options:{options:?},error: {e:?}")
-        }),
-      )
-      .with_identifier(builtin.into()),
-    );
-  }
-  if builtin.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
-    return Arc::new(
-      rspack_loader_react_refresh::ReactRefreshLoader::default().with_identifier(builtin.into()),
-    );
-  }
-
-  unreachable!("Unexpected builtin loader: {builtin}")
-}
+use crate::RawResolveOptions;
 
 /// `loader` is for both JS and Rust loaders.
 /// `options` is
@@ -63,8 +32,6 @@ pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
 ///   - a `Some(string)` on rust side, deserialized by `serde_json::from_str`
 /// and passed to rust side loader in [get_builtin_loader] when using with
 /// `builtin_loader`.
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawModuleRuleUse {
   pub loader: String,
@@ -80,48 +47,16 @@ impl Debug for RawModuleRuleUse {
   }
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawModuleRuleUses {
-  #[napi(ts_type = r#""array" | "function""#)]
-  pub r#type: String,
-  pub array_use: Option<Vec<RawModuleRuleUse>>,
-  #[serde(skip_deserializing)]
-  pub func_use: Option<JsFunction>,
-}
-
-impl Debug for RawModuleRuleUses {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RawModuleRuleUses")
-      .field("r#type", &self.r#type)
-      .field("array_use", &self.array_use)
-      .field("func_use", &"...")
-      .finish()
-  }
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawRegexMatcher {
-  pub source: String,
-  pub flags: String,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawRuleSetCondition {
   #[napi(ts_type = r#""string" | "regexp" | "logical" | "array" | "function""#)]
   pub r#type: String,
   pub string_matcher: Option<String>,
-  pub regexp_matcher: Option<RawRegexMatcher>,
+  pub regexp_matcher: Option<RawRegex>,
   pub logical_matcher: Option<Vec<RawRuleSetLogicalConditions>>,
   pub array_matcher: Option<Vec<RawRuleSetCondition>>,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = r#"(value: string) => boolean"#)]
-  pub func_matcher: Option<JsFunction>,
+  pub func_matcher: Option<ThreadsafeFunction<serde_json::Value, bool>>,
 }
 
 impl Debug for RawRuleSetCondition {
@@ -137,9 +72,8 @@ impl Debug for RawRuleSetCondition {
   }
 }
 
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[derive(Debug, Default)]
+#[napi(object, object_to_js = false)]
 pub struct RawRuleSetLogicalConditions {
   pub and: Option<Vec<RawRuleSetCondition>>,
   pub or: Option<Vec<RawRuleSetCondition>>,
@@ -178,26 +112,25 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
   fn try_from(x: RawRuleSetCondition) -> rspack_error::Result<Self> {
     let result = match x.r#type.as_str() {
       "string" => Self::String(x.string_matcher.ok_or_else(|| {
-        internal_error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
+        error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
       })?),
       "regexp" => {
         let reg_matcher = x.regexp_matcher.as_ref().ok_or_else(|| {
-          internal_error!(
+          error!(
             "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\""
           )
         })?;
         let reg = rspack_regex::RspackRegex::with_flags(&reg_matcher.source, &reg_matcher.flags)?;
-        tracing::debug!(regex_matcher = ?x.regexp_matcher, algo_type = ?reg.algo);
         Self::Regexp(reg)
       },
       "logical" => {
         let mut logical_matcher = x.logical_matcher.ok_or_else(|| {
-          internal_error!(
+          error!(
             "should have a logical_matcher when RawRuleSetCondition.type is \"logical\""
           )
         })?;
         let logical_matcher = logical_matcher.get_mut(0).ok_or_else(|| {
-          internal_error!(
+          error!(
             "TODO: use Box after https://github.com/napi-rs/napi-rs/issues/1500 landed"
           )
         })?;
@@ -209,7 +142,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
       "array" => Self::Array(
         x.array_matcher
           .ok_or_else(|| {
-            internal_error!(
+            error!(
               "should have a array_matcher when RawRuleSetCondition.type is \"array\""
             )
           })?
@@ -219,30 +152,14 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
       ),
       "function" => {
         let func_matcher = x.func_matcher.ok_or_else(|| {
-          internal_error!(
+          error!(
             "should have a func_matcher when RawRuleSetCondition.type is \"function\""
           )
         })?;
-
-        let env = get_napi_env();
-
-        let func_matcher: napi::Result<ThreadsafeFunction<String, bool>> = try {
-            rspack_binding_macros::js_fn_into_threadsafe_fn!(func_matcher, &Env::from(env))
-        };
-        let func_matcher = Arc::new(func_matcher.expect("convert to threadsafe function failed"));
-
-        Self::Func(Box::new(move |data: &str| {
+        Self::Func(Box::new(move|data: &serde_json::Value| {
+          let data = data.clone();
           let func_matcher = func_matcher.clone();
-          let data = data.to_string();
-          Box::pin(async move {
-            func_matcher
-              .call(data, ThreadsafeFunctionCallMode::NonBlocking)
-              .into_rspack_result()?
-              .await
-              .unwrap_or_else(|err| {
-                panic!("Failed to call RuleSetCondition func_matcher: {err}")
-              })
-          })
+          Box::pin(async move { func_matcher.call(data).await })
         }))
       }
       _ => panic!(
@@ -255,10 +172,11 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
   }
 }
 
-#[derive(Derivative, Deserialize)]
+type ThreadsafeUse = ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>;
+
+#[derive(Derivative)]
 #[derivative(Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawModuleRule {
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
@@ -276,7 +194,8 @@ pub struct RawModuleRule {
   pub resource_fragment: Option<RawRuleSetCondition>,
   pub description_data: Option<HashMap<String, RawRuleSetCondition>>,
   pub side_effects: Option<bool>,
-  pub r#use: Option<RawModuleRuleUses>,
+  #[napi(ts_type = "RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])")]
+  pub r#use: Option<Either<Vec<RawModuleRuleUse>, ThreadsafeUse>>,
   pub r#type: Option<String>,
   pub parser: Option<RawParserOptions>,
   pub generator: Option<RawGeneratorOptions>,
@@ -292,13 +211,17 @@ pub struct RawModuleRule {
   pub enforce: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawParserOptions {
-  #[napi(ts_type = r#""asset" | "javascript" | "unknown""#)]
+  #[napi(
+    ts_type = r#""asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm""#
+  )]
   pub r#type: String,
   pub asset: Option<RawAssetParserOptions>,
+  pub css: Option<RawCssParserOptions>,
+  pub css_auto: Option<RawCssAutoParserOptions>,
+  pub css_module: Option<RawCssModuleParserOptions>,
   pub javascript: Option<RawJavascriptParserOptions>,
 }
 
@@ -311,37 +234,85 @@ impl From<RawParserOptions> for ParserOptions {
           .expect("should have an \"asset\" when RawParserOptions.type is \"asset\"")
           .into(),
       ),
-      "javascript" => Self::Javascript(
-        value.javascript.expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"").into()
+      "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" => {
+        Self::Javascript(
+          value
+            .javascript
+            .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"")
+            .into(),
+        )
+      }
+      "css" => Self::Css(
+        value
+          .css
+          .expect("should have an \"css\" when RawParserOptions.type is \"css\"")
+          .into(),
       ),
-      "unknown" => Self::Unknown,
+      "css/auto" => Self::CssAuto(
+        value
+          .css_auto
+          .expect("should have an \"css_auto\" when RawParserOptions.type is \"css/auto\"")
+          .into(),
+      ),
+      "css/module" => Self::CssModule(
+        value
+          .css_module
+          .expect("should have an \"css_module\" when RawParserOptions.type is \"css/module\"")
+          .into(),
+      ),
       _ => panic!(
-        "Failed to resolve the RawParserOptions.type {}. Expected type is \"asset\", \"javascript\",  \"unknown\".",
+        "Failed to resolve the RawParserOptions.type {}.",
         value.r#type
       ),
     }
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawJavascriptParserOptions {
   pub dynamic_import_mode: String,
+  pub dynamic_import_preload: String,
+  pub dynamic_import_prefetch: String,
+  pub dynamic_import_fetch_priority: Option<String>,
   pub url: String,
+  pub expr_context_critical: bool,
+  pub wrapped_context_critical: bool,
+  pub exports_presence: Option<String>,
+  pub import_exports_presence: Option<String>,
+  pub reexport_exports_presence: Option<String>,
+  pub strict_export_presence: bool,
+  pub worker: Vec<String>,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
   fn from(value: RawJavascriptParserOptions) -> Self {
     Self {
       dynamic_import_mode: DynamicImportMode::from(value.dynamic_import_mode.as_str()),
+      dynamic_import_preload: JavascriptParserOrder::from(value.dynamic_import_preload.as_str()),
+      dynamic_import_prefetch: JavascriptParserOrder::from(value.dynamic_import_prefetch.as_str()),
+      dynamic_import_fetch_priority: value
+        .dynamic_import_fetch_priority
+        .map(|x| DynamicImportFetchPriority::from(x.as_str())),
       url: JavascriptParserUrl::from(value.url.as_str()),
+      expr_context_critical: value.expr_context_critical,
+      wrapped_context_critical: value.wrapped_context_critical,
+      exports_presence: value
+        .exports_presence
+        .map(|e| ExportPresenceMode::from(e.as_str())),
+      import_exports_presence: value
+        .import_exports_presence
+        .map(|e| ExportPresenceMode::from(e.as_str())),
+      reexport_exports_presence: value
+        .reexport_exports_presence
+        .map(|e| ExportPresenceMode::from(e.as_str())),
+      strict_export_presence: value.strict_export_presence,
+      worker: value.worker,
     }
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawAssetParserOptions {
   pub data_url_condition: Option<RawAssetParserDataUrl>,
@@ -355,8 +326,7 @@ impl From<RawAssetParserOptions> for AssetParserOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawAssetParserDataUrl {
   #[napi(ts_type = r#""options""#)]
@@ -382,9 +352,8 @@ impl From<RawAssetParserDataUrl> for AssetParserDataUrl {
   }
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Default)]
 #[napi(object)]
-#[serde(rename_all = "camelCase")]
 pub struct RawAssetParserDataUrlOptions {
   pub max_size: Option<u32>,
 }
@@ -397,15 +366,61 @@ impl From<RawAssetParserDataUrlOptions> for AssetParserDataUrlOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
+pub struct RawCssParserOptions {
+  pub named_exports: Option<bool>,
+}
+
+impl From<RawCssParserOptions> for CssParserOptions {
+  fn from(value: RawCssParserOptions) -> Self {
+    Self {
+      named_exports: value.named_exports,
+    }
+  }
+}
+
+#[derive(Debug, Default)]
+#[napi(object)]
+pub struct RawCssAutoParserOptions {
+  pub named_exports: Option<bool>,
+}
+
+impl From<RawCssAutoParserOptions> for CssAutoParserOptions {
+  fn from(value: RawCssAutoParserOptions) -> Self {
+    Self {
+      named_exports: value.named_exports,
+    }
+  }
+}
+
+#[derive(Debug, Default)]
+#[napi(object)]
+pub struct RawCssModuleParserOptions {
+  pub named_exports: Option<bool>,
+}
+
+impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
+  fn from(value: RawCssModuleParserOptions) -> Self {
+    Self {
+      named_exports: value.named_exports,
+    }
+  }
+}
+
+#[derive(Debug, Default)]
+#[napi(object, object_to_js = false)]
 pub struct RawGeneratorOptions {
-  #[napi(ts_type = r#""asset" | "asset/inline" | "asset/resource" | "unknown""#)]
+  #[napi(
+    ts_type = r#""asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module""#
+  )]
   pub r#type: String,
   pub asset: Option<RawAssetGeneratorOptions>,
   pub asset_inline: Option<RawAssetInlineGeneratorOptions>,
   pub asset_resource: Option<RawAssetResourceGeneratorOptions>,
+  pub css: Option<RawCssGeneratorOptions>,
+  pub css_auto: Option<RawCssAutoGeneratorOptions>,
+  pub css_module: Option<RawCssModuleGeneratorOptions>,
 }
 
 impl From<RawGeneratorOptions> for GeneratorOptions {
@@ -433,53 +448,84 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
           )
           .into(),
       ),
-      "unknown" => Self::Unknown,
+      "css" => Self::Css(
+        value
+          .css
+          .expect("should have an \"css\" when RawGeneratorOptions.type is \"css\"")
+          .into(),
+      ),
+      "css/auto" => Self::CssAuto(
+        value
+          .css_auto
+          .expect("should have an \"css_auto\" when RawGeneratorOptions.type is \"css/auto\"")
+          .into(),
+      ),
+      "css/module" => Self::CssModule(
+        value
+          .css_module
+          .expect("should have an \"css_module\" when RawGeneratorOptions.type is \"css/module\"")
+          .into(),
+      ),
       _ => panic!(
-        r#"Failed to resolve the RawGeneratorOptions.type {}. Expected type is "asset", "asset/inline", "asset/resource", "unknown"."#,
+        r#"Failed to resolve the RawGeneratorOptions.type {}."#,
         value.r#type
       ),
     }
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[derive(Derivative, Default)]
+#[derivative(Debug)]
+#[napi(object, object_to_js = false)]
 pub struct RawAssetGeneratorOptions {
+  pub emit: Option<bool>,
   pub filename: Option<String>,
   pub public_path: Option<String>,
+  #[derivative(Debug = "ignore")]
+  #[napi(
+    ts_type = "RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)"
+  )]
   pub data_url: Option<RawAssetGeneratorDataUrl>,
 }
 
 impl From<RawAssetGeneratorOptions> for AssetGeneratorOptions {
   fn from(value: RawAssetGeneratorOptions) -> Self {
     Self {
+      emit: value.emit,
       filename: value.filename.map(|i| i.into()),
       public_path: value.public_path.map(|i| i.into()),
-      data_url: value.data_url.map(|i| i.into()),
+      data_url: value
+        .data_url
+        .map(|i| RawAssetGeneratorDataUrlWrapper(i).into()),
     }
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[derive(Derivative, Default)]
+#[derivative(Debug)]
+#[napi(object, object_to_js = false)]
 pub struct RawAssetInlineGeneratorOptions {
+  #[derivative(Debug = "ignore")]
+  #[napi(
+    ts_type = "RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)"
+  )]
   pub data_url: Option<RawAssetGeneratorDataUrl>,
 }
 
 impl From<RawAssetInlineGeneratorOptions> for AssetInlineGeneratorOptions {
   fn from(value: RawAssetInlineGeneratorOptions) -> Self {
     Self {
-      data_url: value.data_url.map(|i| i.into()),
+      data_url: value
+        .data_url
+        .map(|i| RawAssetGeneratorDataUrlWrapper(i).into()),
     }
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawAssetResourceGeneratorOptions {
+  pub emit: Option<bool>,
   pub filename: Option<String>,
   pub public_path: Option<String>,
 }
@@ -487,41 +533,46 @@ pub struct RawAssetResourceGeneratorOptions {
 impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
   fn from(value: RawAssetResourceGeneratorOptions) -> Self {
     Self {
+      emit: value.emit,
       filename: value.filename.map(|i| i.into()),
       public_path: value.public_path.map(|i| i.into()),
     }
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+type RawAssetGeneratorDataUrl = Either<
+  RawAssetGeneratorDataUrlOptions,
+  ThreadsafeFunction<RawAssetGeneratorDataUrlFnArgs, String>,
+>;
+struct RawAssetGeneratorDataUrlWrapper(RawAssetGeneratorDataUrl);
+
+#[derive(Debug, Clone)]
 #[napi(object)]
-pub struct RawAssetGeneratorDataUrl {
-  #[napi(ts_type = r#""options""#)]
-  pub r#type: String,
-  pub options: Option<RawAssetGeneratorDataUrlOptions>,
-  // TODO: pub function
+pub struct RawAssetGeneratorDataUrlFnArgs {
+  pub filename: String,
+  pub content: String,
 }
 
-impl From<RawAssetGeneratorDataUrl> for AssetGeneratorDataUrl {
-  fn from(value: RawAssetGeneratorDataUrl) -> Self {
-    match value.r#type.as_str() {
-      "options" => Self::Options(
-        value
-          .options
-          .expect("should have an \"options\" when RawAssetGeneratorDataUrl.type is \"options\"")
-          .into(),
-      ),
-      _ => panic!(
-        "Failed to resolve the RawAssetGeneratorDataUrl.type {}. Expected type is `options`.",
-        value.r#type
-      ),
+impl From<AssetGeneratorDataUrlFnArgs> for RawAssetGeneratorDataUrlFnArgs {
+  fn from(value: AssetGeneratorDataUrlFnArgs) -> Self {
+    Self {
+      filename: value.filename,
+      content: value.content,
     }
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+impl From<RawAssetGeneratorDataUrlWrapper> for AssetGeneratorDataUrl {
+  fn from(value: RawAssetGeneratorDataUrlWrapper) -> Self {
+    let handle = Handle::current();
+    match value.0 {
+      Either::A(a) => Self::Options(a.into()),
+      Either::B(b) => Self::Func(Arc::new(move |ctx| handle.block_on(b.call(ctx.into())))),
+    }
+  }
+}
+
+#[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawAssetGeneratorDataUrlOptions {
   #[napi(ts_type = r#""base64" | "false" | undefined"#)]
@@ -538,17 +589,87 @@ impl From<RawAssetGeneratorDataUrlOptions> for AssetGeneratorDataUrlOptions {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 #[napi(object)]
+pub struct RawCssGeneratorOptions {
+  pub exports_only: Option<bool>,
+  pub es_module: Option<bool>,
+}
+
+impl From<RawCssGeneratorOptions> for CssGeneratorOptions {
+  fn from(value: RawCssGeneratorOptions) -> Self {
+    Self {
+      exports_only: value.exports_only,
+      es_module: value.es_module,
+    }
+  }
+}
+
+#[derive(Debug, Default)]
+#[napi(object)]
+pub struct RawCssAutoGeneratorOptions {
+  #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
+  pub exports_convention: Option<String>,
+  pub exports_only: Option<bool>,
+  pub local_ident_name: Option<String>,
+  pub es_module: Option<bool>,
+}
+
+impl From<RawCssAutoGeneratorOptions> for CssAutoGeneratorOptions {
+  fn from(value: RawCssAutoGeneratorOptions) -> Self {
+    Self {
+      exports_convention: value.exports_convention.map(|n| n.into()),
+      exports_only: value.exports_only,
+      local_ident_name: value.local_ident_name.map(|n| n.into()),
+      es_module: value.es_module,
+    }
+  }
+}
+
+#[derive(Debug, Default)]
+#[napi(object)]
+pub struct RawCssModuleGeneratorOptions {
+  #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
+  pub exports_convention: Option<String>,
+  pub exports_only: Option<bool>,
+  pub local_ident_name: Option<String>,
+  pub es_module: Option<bool>,
+}
+
+impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
+  fn from(value: RawCssModuleGeneratorOptions) -> Self {
+    Self {
+      exports_convention: value.exports_convention.map(|n| n.into()),
+      exports_only: value.exports_only,
+      local_ident_name: value.local_ident_name.map(|n| n.into()),
+      es_module: value.es_module,
+    }
+  }
+}
+
+#[napi(object, object_to_js = false)]
 pub struct RawModuleOptions {
   pub rules: Vec<RawModuleRule>,
   pub parser: Option<HashMap<String, RawParserOptions>>,
   pub generator: Option<HashMap<String, RawGeneratorOptions>>,
+  #[napi(
+    ts_type = "string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]"
+  )]
+  pub no_parse: Option<RawModuleNoParseRules>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+impl Debug for RawModuleOptions {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("RawModuleOptions")
+      .field("rules", &self.rules)
+      .field("parser", &self.parser)
+      .field("generator", &self.generator)
+      .field("no_parse", &"...")
+      .finish()
+  }
+}
+
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawFuncUseCtx {
   pub resource: Option<String>,
@@ -568,89 +689,62 @@ impl From<FuncUseCtx> for RawFuncUseCtx {
   }
 }
 
-impl RawOptionsApply for RawModuleRule {
-  type Options = ModuleRule;
+impl TryFrom<RawModuleRule> for ModuleRule {
+  type Error = rspack_error::Error;
 
-  fn apply(
-    self,
-    _plugins: &mut Vec<rspack_core::BoxPlugin>,
-  ) -> std::result::Result<Self::Options, rspack_error::Error> {
-    // Even this part is using the plural version of loader, it's recommended to use singular version from js side to reduce overhead (This behavior maybe changed later for advanced usage).
-    let uses = self.r#use.map(|raw| match raw.r#type.as_str() {
-      "array" => {
-        let uses = raw
-          .array_use
-          .map(|uses| {
-            uses
-              .into_iter()
-              .map(|rule_use| ModuleRuleUseLoader {
-                loader: rule_use.loader,
-                options: rule_use.options,
-              })
-              .collect::<Vec<_>>()
+  fn try_from(value: RawModuleRule) -> rspack_error::Result<Self> {
+    let uses = value.r#use.map(|raw| match raw {
+      Either::A(array) => {
+        let uses = array
+          .into_iter()
+          .map(|rule_use| ModuleRuleUseLoader {
+            loader: rule_use.loader,
+            options: rule_use.options,
           })
-          .unwrap_or_default();
+          .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
       }
-      "function" => {
-        let func_use = raw.func_use.ok_or_else(|| {
-          internal_error!(
-            "should have a func_matcher when RawRuleSetCondition.type is \"function\""
-          )
-        })?;
-        let func_use: Result<ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>> = try {
-          let env = get_napi_env();
-          rspack_binding_macros::js_fn_into_threadsafe_fn!(func_use, &Env::from(env))
-        };
-        let func_use = Arc::new(func_use.into_diagnostic()?);
-        Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Func(Box::new(
-          move |ctx: FuncUseCtx| {
-            let func_use = func_use.clone();
-            Box::pin(async move {
-              func_use
-                .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
-                .into_rspack_result()?
-                .await
-                .unwrap_or_else(|err| panic!("Failed to call rule.use function: {err}"))
-                .map(|uses| {
-                  uses
-                    .into_iter()
-                    .map(|rule_use| ModuleRuleUseLoader {
-                      loader: rule_use.loader,
-                      options: rule_use.options,
-                    })
-                    .collect::<Vec<_>>()
+      Either::B(tsfn) => Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Func(Box::new(
+        move |ctx: FuncUseCtx| {
+          let tsfn = tsfn.clone();
+          Box::pin(async move {
+            tsfn.call(ctx.into()).await.map(|uses| {
+              uses
+                .into_iter()
+                .map(|rule_use| ModuleRuleUseLoader {
+                  loader: rule_use.loader,
+                  options: rule_use.options,
                 })
+                .collect::<Vec<_>>()
             })
-          },
-        )))
-      }
-      _ => Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(vec![])),
+          })
+        },
+      ))),
     });
 
-    let module_type = self.r#type.map(|t| (&*t).try_into()).transpose()?;
+    let module_type = value.r#type.map(|t| (&*t).into());
 
-    let one_of = self
+    let one_of = value
       .one_of
       .map(|one_of| {
         one_of
           .into_iter()
-          .map(|raw| raw.apply(_plugins))
+          .map(|raw| raw.try_into())
           .collect::<rspack_error::Result<Vec<_>>>()
       })
       .transpose()?;
 
-    let rules = self
+    let rules = value
       .rules
       .map(|rule| {
         rule
           .into_iter()
-          .map(|raw| raw.apply(_plugins))
+          .map(|raw| raw.try_into())
           .collect::<rspack_error::Result<Vec<_>>>()
       })
       .transpose()?;
 
-    let description_data = self
+    let description_data = value
       .description_data
       .map(|data| {
         data
@@ -660,12 +754,12 @@ impl RawOptionsApply for RawModuleRule {
       })
       .transpose()?;
 
-    let enforce = self
+    let enforce = value
       .enforce
       .map(|enforce| match &*enforce {
         "pre" => Ok(ModuleRuleEnforce::Pre),
         "post" => Ok(ModuleRuleEnforce::Post),
-        _ => Err(internal_error!(
+        _ => Err(error!(
           "Unsupported Rule.enforce type, supported: 'pre' | 'post' | undefined"
         )),
       })
@@ -673,27 +767,30 @@ impl RawOptionsApply for RawModuleRule {
       .unwrap_or_default();
 
     Ok(ModuleRule {
-      rspack_resource: self.rspack_resource.map(|raw| raw.try_into()).transpose()?,
-      test: self.test.map(|raw| raw.try_into()).transpose()?,
-      include: self.include.map(|raw| raw.try_into()).transpose()?,
-      exclude: self.exclude.map(|raw| raw.try_into()).transpose()?,
-      resource_query: self.resource_query.map(|raw| raw.try_into()).transpose()?,
-      resource_fragment: self
+      rspack_resource: value
+        .rspack_resource
+        .map(|raw| raw.try_into())
+        .transpose()?,
+      test: value.test.map(|raw| raw.try_into()).transpose()?,
+      include: value.include.map(|raw| raw.try_into()).transpose()?,
+      exclude: value.exclude.map(|raw| raw.try_into()).transpose()?,
+      resource_query: value.resource_query.map(|raw| raw.try_into()).transpose()?,
+      resource_fragment: value
         .resource_fragment
         .map(|raw| raw.try_into())
         .transpose()?,
-      resource: self.resource.map(|raw| raw.try_into()).transpose()?,
+      resource: value.resource.map(|raw| raw.try_into()).transpose()?,
       description_data,
       r#use: uses.transpose()?.unwrap_or_default(),
       r#type: module_type,
-      parser: self.parser.map(|raw| raw.into()),
-      generator: self.generator.map(|raw| raw.into()),
-      resolve: self.resolve.map(|raw| raw.try_into()).transpose()?,
-      side_effects: self.side_effects,
-      issuer: self.issuer.map(|raw| raw.try_into()).transpose()?,
-      dependency: self.dependency.map(|raw| raw.try_into()).transpose()?,
-      scheme: self.scheme.map(|raw| raw.try_into()).transpose()?,
-      mimetype: self.mimetype.map(|raw| raw.try_into()).transpose()?,
+      parser: value.parser.map(|raw| raw.into()),
+      generator: value.generator.map(|raw| raw.into()),
+      resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
+      side_effects: value.side_effects,
+      issuer: value.issuer.map(|raw| raw.try_into()).transpose()?,
+      dependency: value.dependency.map(|raw| raw.try_into()).transpose()?,
+      scheme: value.scheme.map(|raw| raw.try_into()).transpose()?,
+      mimetype: value.mimetype.map(|raw| raw.try_into()).transpose()?,
       one_of,
       rules,
       enforce,
@@ -701,36 +798,75 @@ impl RawOptionsApply for RawModuleRule {
   }
 }
 
-impl RawOptionsApply for RawModuleOptions {
-  type Options = ModuleOptions;
+impl TryFrom<RawModuleOptions> for ModuleOptions {
+  type Error = rspack_error::Error;
 
-  fn apply(
-    self,
-    plugins: &mut Vec<rspack_core::BoxPlugin>,
-  ) -> std::result::Result<Self::Options, rspack_error::Error> {
-    let rules = self
+  fn try_from(value: RawModuleOptions) -> rspack_error::Result<Self> {
+    let rules = value
       .rules
       .into_iter()
-      .map(|rule| rule.apply(plugins))
+      .map(|rule| rule.try_into())
       .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
     Ok(ModuleOptions {
       rules,
-      parser: self
+      parser: value
         .parser
         .map(|x| {
           x.into_iter()
-            .map(|(k, v)| Ok((ModuleType::try_from(k.as_str())?, v.into())))
+            .map(|(k, v)| Ok((ModuleType::from(k.as_str()), v.into())))
             .collect::<std::result::Result<ParserOptionsByModuleType, rspack_error::Error>>()
         })
         .transpose()?,
-      generator: self
+      generator: value
         .generator
         .map(|x| {
           x.into_iter()
-            .map(|(k, v)| Ok((ModuleType::try_from(k.as_str())?, v.into())))
+            .map(|(k, v)| Ok((ModuleType::from(k.as_str()), v.into())))
             .collect::<std::result::Result<GeneratorOptionsByModuleType, rspack_error::Error>>()
         })
         .transpose()?,
+      no_parse: value
+        .no_parse
+        .map(|x| RawModuleNoParseRulesWrapper(x).into()),
     })
+  }
+}
+
+type RawModuleNoParseRule = Either3<String, JsRegExp, ThreadsafeFunction<String, Option<bool>>>;
+type RawModuleNoParseRules = Either<RawModuleNoParseRule, Vec<RawModuleNoParseRule>>;
+
+struct RawModuleNoParseRuleWrapper(RawModuleNoParseRule);
+
+struct RawModuleNoParseRulesWrapper(RawModuleNoParseRules);
+
+fn js_func_to_no_parse_test_func(
+  v: ThreadsafeFunction<String, Option<bool>>,
+) -> ModuleNoParseTestFn {
+  Box::new(move |s| {
+    let v = v.clone();
+    Box::pin(async move { v.call(s).await.map(|v| v.unwrap_or_default()) })
+  })
+}
+
+impl From<RawModuleNoParseRuleWrapper> for ModuleNoParseRule {
+  fn from(x: RawModuleNoParseRuleWrapper) -> Self {
+    match x.0 {
+      Either3::A(v) => Self::AbsPathPrefix(v),
+      Either3::B(v) => Self::Regexp(v.to_rspack_regex()),
+      Either3::C(v) => Self::TestFn(js_func_to_no_parse_test_func(v)),
+    }
+  }
+}
+
+impl From<RawModuleNoParseRulesWrapper> for ModuleNoParseRules {
+  fn from(x: RawModuleNoParseRulesWrapper) -> Self {
+    match x.0 {
+      Either::A(v) => Self::Rule(RawModuleNoParseRuleWrapper(v).into()),
+      Either::B(v) => Self::Rules(
+        v.into_iter()
+          .map(|r| RawModuleNoParseRuleWrapper(r).into())
+          .collect(),
+      ),
+    }
   }
 }

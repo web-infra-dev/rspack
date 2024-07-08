@@ -1,0 +1,69 @@
+# Case re-export-optimization: Step 1
+
+## Changed Files
+- entry.js
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 1188
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./bar.js
+- ./entry.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["webpackHotUpdate"]('main', {
+"./bar.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ('bar');
+
+
+}),
+"./entry.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
+/* harmony import */var _reexport__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./reexport */ "./foo.js");
+/* harmony import */var _reexport__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./reexport */ "./bar.js");
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_reexport__WEBPACK_IMPORTED_MODULE_0__["default"] + _reexport__WEBPACK_IMPORTED_MODULE_1__["default"]);
+
+
+}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = function () {
+	return "CURRENT_HASH";
+};
+
+})();
+
+}
+);
+```

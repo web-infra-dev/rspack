@@ -1,8 +1,10 @@
 import { RspackOptions, rspack } from "@rspack/core";
-import { RspackDevServer, Configuration } from "@rspack/dev-server";
+import { Configuration, RspackDevServer } from "@rspack/dev-server";
 import ReactRefreshPlugin from "@rspack/plugin-react-refresh";
 // @ts-expect-error
 import serializer from "jest-serializer-path";
+import customConfig from "./fixtures/provide-plugin-custom/webpack.config";
+
 expect.addSnapshotSerializer(serializer);
 
 // The aims of use a cutstom value rather than
@@ -30,98 +32,57 @@ describe("normalize options snapshot", () => {
 		).toMatchSnapshot();
 	});
 
-	it("react-refresh client added when react/refresh enabled", async () => {
-		expect(
-			await getAdditionEntries(
-				{},
-				{
-					entry: ["something"],
-					builtins: {
-						react: {
-							refresh: true
-						}
-					}
-				}
-			)
-		).toMatchSnapshot();
-	});
-
-	it("shouldn't have reactRefreshEntry.js when react.refresh is false", async () => {
-		expect(
-			await getAdditionEntries(
-				{},
-				{
-					entry: ["something"],
-					builtins: {
-						react: {
-							refresh: false
-						}
-					}
-				}
-			)
-		).toMatchSnapshot();
-	});
-
-	it("shouldn't have reactRefreshEntry.js by default when rspackFuture.disableReactRefreshByDefault is enabled", async () => {
+	it("shouldn't have reactRefreshEntry.js by default when in production mode", async () => {
 		const reactRefreshEntry =
 			"<prefix>/rspack-plugin-react-refresh/client/reactRefreshEntry.js";
 		const entries1 = await getAdditionEntries(
 			{},
 			{
-				entry: ["something"],
-				experiments: {
-					rspackFuture: {
-						disableTransformByDefault: true
-					}
-				}
+				mode: "production",
+				entry: ["something"]
 			}
 		);
 		expect(entries1["undefined"]).not.toContain(reactRefreshEntry);
 		const entries2 = await getAdditionEntries(
 			{},
 			{
+				mode: "production",
 				entry: ["something"],
-				plugins: [new ReactRefreshPlugin()],
-				experiments: {
-					rspackFuture: {
-						disableTransformByDefault: true
-					}
-				}
+				plugins: [new ReactRefreshPlugin({ forceEnable: true })]
 			}
 		);
 		expect(entries2["undefined"]).toContain(reactRefreshEntry);
-	});
-
-	it("react.development and react.refresh should be true by default when hot enabled", async () => {
-		const compiler = rspack({
-			entry: ENTRY,
-			stats: "none",
-			experiments: {
-				rspackFuture: {
-					disableTransformByDefault: false
-				}
-			}
-		});
-		const server = new RspackDevServer(
+		const entries3 = await getAdditionEntries(
+			{},
 			{
-				hot: true
-			},
-			compiler
+				mode: "development",
+				entry: ["something"],
+				plugins: [new ReactRefreshPlugin()]
+			}
 		);
-		await server.start();
-		expect(compiler.options.builtins.react?.refresh).toBe(true);
-		expect(compiler.options.builtins.react?.development).toBe(true);
-		await server.stop();
+		expect(entries3["undefined"]).toContain(reactRefreshEntry);
+		const entries4 = await getAdditionEntries(
+			{},
+			{
+				mode: "production",
+				entry: ["something"],
+				plugins: [new ReactRefreshPlugin()]
+			}
+		);
+		expect(entries4["undefined"]).not.toContain(reactRefreshEntry);
 	});
 
-	it("hot should be true by default", async () => {
+	it("should apply HMR plugin by default", async () => {
 		const compiler = rspack({
 			entry: ENTRY,
 			stats: "none"
 		});
 		const server = new RspackDevServer({}, compiler);
 		await server.start();
-		expect(compiler.options.devServer?.hot).toBe(true);
+		const hmrPlugins = compiler.__internal__builtinPlugins.filter(
+			p => p.name === "HotModuleReplacementPlugin"
+		);
+		expect(hmrPlugins.length).toBe(1);
 		expect(server.options.hot).toBe(true);
 		await server.stop();
 	});
@@ -138,6 +99,21 @@ describe("normalize options snapshot", () => {
 			}
 		]);
 		const server = new RspackDevServer({}, compiler);
+		await server.start();
+		await server.stop();
+	});
+
+	it("should support custom client transport", async () => {
+		const compiler = rspack(customConfig);
+		const devServerOptions = {
+			client: {
+				webSocketTransport: require.resolve(
+					"./fixtures/custom-client/CustomSockJSClient"
+				)
+			},
+			webSocketServer: "sockjs"
+		};
+		const server = new RspackDevServer(devServerOptions, compiler);
 		await server.start();
 		await server.stop();
 	});
@@ -173,7 +149,7 @@ async function getAdditionEntries(
 
 	const server = new RspackDevServer(serverConfig, compiler);
 	await server.start();
-	const entries = compiler.builtinPlugins
+	const entries = compiler.__internal__builtinPlugins
 		.filter(p => p.name === "EntryPlugin")
 		.map(p => p.options)
 		.reduce<Object>((acc, cur: any) => {

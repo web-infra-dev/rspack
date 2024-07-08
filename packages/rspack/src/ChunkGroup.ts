@@ -1,23 +1,25 @@
 import {
-	__chunk_group_inner_get_chunk_group,
 	type JsChunkGroup,
-	type JsCompilation
+	type JsCompilation,
+	__chunk_group_inner_get_chunk_group
 } from "@rspack/binding";
+
+import { Chunk } from "./Chunk";
 
 export class ChunkGroup {
 	#inner: JsChunkGroup;
-	#inner_compilation: JsCompilation;
+	#innerCompilation: JsCompilation;
 
 	static __from_binding(chunk: JsChunkGroup, compilation: JsCompilation) {
 		return new ChunkGroup(chunk, compilation);
 	}
 
-	private constructor(inner: JsChunkGroup, compilation: JsCompilation) {
+	protected constructor(inner: JsChunkGroup, compilation: JsCompilation) {
 		this.#inner = inner;
-		this.#inner_compilation = compilation;
+		this.#innerCompilation = compilation;
 	}
 
-	getFiles(): string[] {
+	getFiles(): ReadonlyArray<string> {
 		const files = new Set<string>();
 
 		for (const chunk of this.#inner.chunks) {
@@ -29,21 +31,45 @@ export class ChunkGroup {
 		return Array.from(files);
 	}
 
-	getParents(): ChunkGroup[] {
+	getParents(): ReadonlyArray<ChunkGroup> {
 		return this.#inner.__inner_parents.map(parent => {
 			const cg = __chunk_group_inner_get_chunk_group(
 				parent,
-				this.#inner_compilation
+				this.#innerCompilation
 			);
-			return ChunkGroup.__from_binding(cg, this.#inner_compilation);
+			return ChunkGroup.__from_binding(cg, this.#innerCompilation);
 		});
 	}
 
-	get index(): number | undefined {
+	get chunks(): ReadonlyArray<Chunk> {
+		return this.#inner.chunks.map(c =>
+			Chunk.__from_binding(c, this.#innerCompilation)
+		);
+	}
+
+	get index(): Readonly<number | undefined> {
 		return this.#inner.index;
 	}
 
-	get name(): string | undefined {
+	get name(): Readonly<string | undefined> {
 		return this.#inner.name;
+	}
+
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__innerUkey() {
+		return this.#inner.__inner_ukey;
+	}
+
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__innerCompilation() {
+		return this.#innerCompilation;
 	}
 }

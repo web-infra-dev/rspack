@@ -1,0 +1,377 @@
+import { Badge } from '@theme';
+
+# Compilation 钩子
+
+:::info
+Rspack 主要编译逻辑运行在 Rust 侧。出于稳定性、性能、架构等因素，在使用钩子时 Rust 侧编译对象传输到 JavaScript 侧后，对 JavaScript 侧的修改不会被同步到 Rust 侧。因此绝大部分钩子为“只读”。
+:::
+
+## `buildModule`
+
+<Badge text="只读" type="info" />
+
+在模块被构建之前调用。
+
+- **类型：** `SyncHook<[Module]>`
+- **参数：**
+  - `Module`：模块实例
+
+```ts
+type Module = {
+  context?: string;
+  resource?: string;
+  request?: string;
+  userRequest?: string;
+  rawRequest?: string;
+  factoryMeta?: JsFactoryMeta;
+  buildInfo: Record<string, any>;
+  buildMeta: Record<string, any>;
+  originalSource(): {
+    isRaw: boolean;
+    isBuffer: boolean;
+    source: Buffer;
+    map?: Buffer;
+  } | null;
+  identifier(): string;
+  nameForCondition(): string | null;
+};
+```
+
+## `executeModule`
+
+<Badge text="只读" type="info" />
+
+若存在编译期执行模块，将在模块被执行时调用。
+
+- **类型：** `SyncHook<[ExecuteModuleArgument, ExecuteModuleContext]>`
+- **参数：**
+  - `ExecuteModuleArgument`：模块运行参数
+  - `ExecuteModuleContext`：模块运行上下文
+
+```ts
+type ExecuteModuleArgument = {
+  codeGenerationResult: {
+    get(sourceType: string): string;
+  };
+  moduleObject: {
+    id: string;
+    exports: any;
+    loaded: boolean;
+    error?: Error;
+  };
+};
+
+type ExecuteModuleContext = {
+  __webpack_require__: (id: string) => any;
+};
+```
+
+## `succeedModule`
+
+<Badge text="只读" type="info" />
+
+在模块成功构建后调用。
+
+- **类型：** `SyncHook<[Module]>`
+- **参数：**
+  - `Module`：模块实例
+
+## `finishModules`
+
+<Badge text="只读" type="info" />
+
+当所有模块都没有错误地构建完成时调用。
+
+- **类型：** `AsyncSeriesHook<[Module[]]>`
+- **参数：**
+  - `Module[]`：所有模块列表
+
+## `optimizeModules`
+
+<Badge text="只读" type="info" />
+
+在模块优化阶段开始时调用。
+
+- **类型：** `SyncBailHook<[Module[]]>`
+- **参数：**
+  - `Module[]`：所有模块列表
+
+## `afterOptimizeModules`
+
+<Badge text="只读" type="info" />
+
+在模块优化完成之后调用。
+
+- **类型：** `SyncBailHook<[Module[]]>`
+- **参数：**
+  - `Module[]`：所有模块列表
+
+## `optimizeTree`
+
+<Badge text="只读" type="info" />
+
+在优化依赖树之前调用。
+
+- **类型：** `AsyncSeriesHook<[Chunk[], Module[]]>`
+- **参数：**
+  - `Chunk[]`：Chunk 列表：
+  - `Module[]`：模块列表
+
+```ts
+type Chunk = {
+  name?: string;
+  id?: string;
+  ids: string[];
+  idNameHints: string[];
+  filenameTemplate?: string;
+  cssFilenameTemplate?: string;
+  files: Set<string>;
+  runtime: Set<string>;
+  hash?: string;
+  contentHash: Record<string, string>;
+  renderedHash?: string;
+  chunkReason?: string;
+  auxiliaryFiles: Set<string>;
+  isOnlyInitial(): boolean;
+  canBeInitial(): boolean;
+  hasRuntime(): boolean;
+  groupsIterable: Set<ChunkGroup>;
+  getAllAsyncChunks(): Set<Chunk>;
+  getAllInitialChunks(): Set<Chunk>;
+  getAllReferencedChunks(): Set<Chunk>;
+};
+```
+
+## `optimizeChunkModules`
+
+<Badge text="只读" type="info" />
+
+在树优化之后，chunk 模块优化开始时调用。
+
+- **类型：** `AsyncSeriesBailHook<[Chunk[], Module[]]>`
+- **参数：**
+  - `Chunk[]`：Chunk 列表：
+  - `Module[]`：模块列表
+
+## `additionalTreeRuntimeRequirements`
+
+<Badge text="只读" type="info" />
+
+在树运行时依赖计算完成后调用。
+
+- **类型：** `SyncHook<[Chunk, Set<RuntimeGlobals>]>`
+- **参数：**
+  - `Chunk`：Chunk 实例
+  - `Set<RuntimeGlobals>`：运行时依赖
+
+```ts
+enum RuntimeGlobals {}
+```
+
+## `runtimeModule`
+
+<Badge text="只读" type="info" />
+
+在运行时模块被添加后调用。
+
+- **类型：** `SyncHook<[RuntimeModule, Chunk]>`
+- **参数：**
+  - `RuntimeModule`：运行时模块
+  - `Chunk`：Chunk 实例
+
+```ts
+type RuntimeModule = {
+  source?: {
+    isRaw: boolean;
+    isBuffer: boolean;
+    source: Buffer;
+    map?: Buffer;
+  };
+  moduleIdentifier: string;
+  constructorName: string;
+  name: string;
+};
+```
+
+## `processAssets`
+
+在产物输出之前进行修改产物。
+
+- **类型：** `AsyncSeriesHook<Assets>`
+- **参数：**
+  - `Assets`：产物资源映射表
+
+```ts
+type Assets = Record<
+  string,
+  {
+    source(): string | ArrayBuffer;
+    buffer(): Buffer;
+    size(): number;
+    map(options?: MapOptions): RawSourceMap | null;
+    sourceAndMap(options?: MapOptions): SourceAndMapResult;
+  }
+>;
+```
+
+## `afterProcessAssets`
+
+<Badge text="只读" type="info" />
+
+在 [processAssets](#processAssets) hook 无错误执行后调用。
+
+- **类型：** `SyncHook<Assets>`
+- **参数：**
+  - `Assets`：产物资源映射表
+
+## `afterSeal`
+
+<Badge text="只读" type="info" />
+
+在 seal 阶段结束后调用。
+
+- **类型：** `AsyncSeriesHook<[]>`
+
+## `chunkHash`
+
+<Badge text="只读" type="info" />
+
+触发来为每个 chunk 生成 hash。
+
+- **类型：** `SyncHook<[Chunk, Hash]>`
+- **参数：**
+  - `Chunk`：Chunk 实例
+  - `Hash`：Chunk 哈希实例
+
+```ts
+type Hash = {
+  update(data: string | Buffer, inputEncoding?: string): Hash;
+  digest(encoding?: string): string | Buffer;
+};
+```
+
+## `chunkAsset`
+
+<Badge text="只读" type="info" />
+
+一个 chunk 中的一个 asset 被添加到 compilation 时调用。
+
+- **类型：** `SyncHook<[Chunk, string]>`
+- **参数：**
+  - `Chunk`：Chunk 实例
+  - `string`：产物文件名
+
+## `childCompiler`
+
+<Badge text="只读" type="info" />
+
+创建子 compiler 之后调用。
+
+- **类型：** `SyncHook<[Compiler, string, number]>`
+- **参数：**
+  - `Compiler`：子编译实例：
+  - `string`：子编译名称
+  - `number`：子编译索引
+
+## `statsPreset`
+
+<Badge text="只读" type="info" />
+
+当使用预设 stats 配置时触发。接收一个 stats 配置对象，当插件管理 stats 预设配置时，它应当在配置对象上仔细地修改，而非直接替换整个配置对象。
+
+- **类型：** `SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>`
+- **参数：**
+  - `Partial<StatsOptions>`：Stats 配置
+  - `CreateStatsOptionsContext`：Stats 上下文
+
+```ts
+type StatsOptions = {
+  // 见构建配置中的 stats
+};
+
+type CreateStatsOptionsContext = {
+  forToString?: boolean;
+  [key: string]: any;
+};
+```
+
+以如下插件为例：
+
+```js
+compilation.hooks.statsPreset.for('my-preset').tap('MyPlugin', options => {
+  if (options.all === undefined) options.all = true;
+});
+```
+
+该插件确保对于预设 `"my-preset"`，如果 `all` 选项未定义，则默认为 `true`。
+
+## `statsNormalize`
+
+<Badge text="只读" type="info" />
+
+此钩子用于将选项对象转换为便于后续钩子使用的格式。它还确保缺失的选项被设置为默认值。
+
+- **类型：** `SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>`
+- **参数：**
+  - `Partial<StatsOptions>`：Stats 配置
+  - `CreateStatsOptionsContext`：Stats 上下文
+
+以如下插件为例：
+
+```js
+compilation.hooks.statsNormalize.tap('MyPlugin', options => {
+  if (options.myOption === undefined) options.myOption = [];
+
+  if (!Array.isArray(options.myOption)) options.myOptions = [options.myOptions];
+});
+```
+
+在这个插件中，如果 `myOption` 缺失，会将其设置为 `[]`。此外，它确保 `myOption` 始终是一个数组，即使它最初被定义为单个值。
+
+## `statsFactory`
+
+<Badge text="只读" type="info" />
+
+此钩子提供了对 `StatsFactory` 的访问，以调用其钩子。该类用于构造 Stats 对象。
+
+- **类型：** `SyncHook<[StatsFactory, StatsOptions]>`
+- **参数：**
+  - `StatsFactory`：Stats 工厂实例，详见 [Stats Factory 钩子](/api/plugin-api/stats-hooks#statsfactory)
+  - `StatsOptions`：Stats 配置
+
+```ts
+type StatsFactory = {
+  hooks: StatsFactoryHooks;
+  create(
+    type: string,
+    data: any,
+    baseContext: Omit<StatsFactoryContext, 'type'>,
+  ): void;
+};
+```
+
+## `statsPrinter`
+
+<Badge text="只读" type="info" />
+
+此钩子提供了对 `StatsPrinter` 的访问，以调用其钩子。该类用于打印 Stats 信息。
+
+- **类型：** `SyncHook<[StatsPrinter, StatsOptions]>`
+- **参数：**
+  - `StatsPrinter`：Stats 打印实例，详见 [Stats Printer 钩子](/api/plugin-api/stats-hooks#statsprinter)
+  - `StatsOptions`：Stats 配置
+
+```ts
+type StatsPrinter = {
+  hooks: StatsPrinterHooks;
+  print(
+    type: string,
+    object: {
+      [key: string]: any;
+    },
+    baseContext?: {
+      [key: string]: any;
+    },
+  ): string;
+};
+```

@@ -1,0 +1,53 @@
+# Devtool
+
+The `devtool` configuration is used to control the behavior of the Source Map generation.
+
+- **Type:**
+
+```ts
+export type Devtool =
+  | false
+  | 'eval'
+  | 'cheap-source-map'
+  | 'cheap-module-source-map'
+  | 'source-map'
+  | 'inline-cheap-source-map'
+  | 'inline-cheap-module-source-map'
+  | 'inline-source-map'
+  | 'inline-nosources-cheap-source-map'
+  | 'inline-nosources-cheap-module-source-map'
+  | 'inline-nosources-source-map'
+  | 'nosources-cheap-source-map'
+  | 'nosources-cheap-module-source-map'
+  | 'nosources-source-map'
+  | 'hidden-nosources-cheap-source-map'
+  | 'hidden-nosources-cheap-module-source-map'
+  | 'hidden-nosources-source-map'
+  | 'hidden-cheap-source-map'
+  | 'hidden-cheap-module-source-map'
+  | 'hidden-source-map'
+  | 'eval-cheap-source-map'
+  | 'eval-cheap-module-source-map'
+  | 'eval-source-map'
+  | 'eval-nosources-cheap-source-map'
+  | 'eval-nosources-cheap-module-source-map'
+  | 'eval-nosources-source-map';
+```
+
+- **Default:** `eval`
+
+The main types of Source Map generated behaviors are `source-map`, `eval`, `cheap`, `module`, `inline`, `nosources` and `hidden`, and they can be combined.
+
+- `source-map` is the most basic behavior, indicating the generation of Source Map, which has a partial overhead on build performance when Source Map is turned on.
+
+- `eval` wraps the module generated code with `eval()`, so Rspack can internally cache the module generated results, so when `eval` is used in combination with `source-map`, it optimizes the speed of Source Map generation when rebuilding.
+
+- `cheap` means that the Source Map will only generate the mapping of rows, ignoring the mapping of columns, in order to speed up the generation of the Source Map.
+
+- `module` is used to control whether the loader needs to return the Source Map, so without `module`, the Source Map can only map code that will be processed by the loader, and because the loader does not need to process the Source Map, the Source Map generation speed will be improved.
+
+- `inline` indicates whether the generated Source Map is inlined into the end of the file via the data url.
+
+- `nosources` is used to control whether the generated Source Map contains source code content to reduce the size of the generated Source Map.
+
+- `hidden` is used to control whether the end of the generated file contains the `# sourceMappingURL=...` annotation. The browser developer tools and VS Code etc. will look for the Source Map by the path or data url of this annotation in order to map the product's row number back to its location in the source code during debugging.

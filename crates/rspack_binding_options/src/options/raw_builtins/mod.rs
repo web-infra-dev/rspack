@@ -1,58 +1,100 @@
 mod raw_banner;
+mod raw_bundle_info;
 mod raw_copy;
+mod raw_css_extract;
 mod raw_html;
+mod raw_ignore;
+mod raw_lazy_compilation;
+mod raw_lightning_css_minimizer;
 mod raw_limit_chunk_count;
 mod raw_mf;
 mod raw_progress;
+mod raw_runtime_chunk;
+mod raw_size_limits;
 mod raw_swc_js_minimizer;
 mod raw_to_be_deprecated;
 
-use napi::{
-  bindgen_prelude::{FromNapiValue, ToNapiValue},
-  JsUnknown,
-};
+use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
-use rspack_core::{BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin};
+use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
+use rspack_core::{BoxPlugin, Define, DefinePlugin, Plugin, PluginExt, Provide, ProvidePlugin};
 use rspack_error::Result;
-use rspack_napi_shared::NapiResultExt;
+use rspack_ids::{
+  DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
+  NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin,
+};
+use rspack_napi::NapiResultExt;
+use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
+use rspack_plugin_css::CssPlugin;
+use rspack_plugin_devtool::{
+  EvalDevToolModulePlugin, EvalSourceMapDevToolPlugin, SourceMapDevToolModuleOptionsPlugin,
+  SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
+  SourceMapDevToolPluginOptions,
+};
+use rspack_plugin_dynamic_entry::DynamicEntryPlugin;
+use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_externals::{
   electron_target_plugin, http_externals_rspack_plugin, node_target_plugin, ExternalsPlugin,
 };
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
+use rspack_plugin_ignore::IgnorePlugin;
+use rspack_plugin_javascript::{
+  api_plugin::APIPlugin, FlagDependencyExportsPlugin, FlagDependencyUsagePlugin,
+  InferAsyncModulesPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin,
+  SideEffectsFlagPlugin,
+};
+use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
+use rspack_plugin_lightning_css_minimizer::LightningCssMinimizerRspackPlugin;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
 use rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin;
 use rspack_plugin_mf::{
-  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ProvideSharedPlugin,
-  ShareRuntimePlugin,
+  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationRuntimePlugin,
+  ProvideSharedPlugin, ShareRuntimePlugin,
 };
 use rspack_plugin_progress::ProgressPlugin;
+use rspack_plugin_real_content_hash::RealContentHashPlugin;
+use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
 use rspack_plugin_runtime::{
-  enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, CommonJsChunkFormatPlugin,
-  ModuleChunkFormatPlugin,
+  enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin,
+  ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
 };
+use rspack_plugin_runtime_chunk::RuntimeChunkPlugin;
+use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
+use rspack_plugin_size_limits::SizeLimitsPlugin;
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
-use rspack_plugin_wasm::enable_wasm_loading_plugin;
+use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
+use rspack_plugin_wasm::{
+  enable_wasm_loading_plugin, AsyncWasmPlugin, FetchCompileAsyncWasmPlugin,
+};
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
 
-use self::raw_mf::{
-  RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions,
-};
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
-  raw_html::RawHtmlRspackPluginOptions, raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
-  raw_mf::RawContainerPluginOptions, raw_progress::RawProgressPluginOptions,
+  raw_html::RawHtmlRspackPluginOptions, raw_ignore::RawIgnorePluginOptions,
+  raw_limit_chunk_count::RawLimitChunkCountPluginOptions, raw_mf::RawContainerPluginOptions,
+  raw_progress::RawProgressPluginOptions,
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
+use self::{
+  raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
+  raw_css_extract::RawCssExtractPluginOption,
+  raw_lazy_compilation::{JsBackend, RawLazyCompilationOption},
+  raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
+  raw_runtime_chunk::RawRuntimeChunkOptions,
+  raw_size_limits::RawSizeLimitsPluginOptions,
+};
 use crate::{
-  RawEntryPluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawOptionsApply, RawSplitChunksOptions,
+  plugins::{CssExtractRspackAdditionalDataPlugin, JsLoaderRspackPlugin},
+  JsLoaderRunner, RawDynamicEntryPluginOptions, RawEntryPluginOptions,
+  RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
+  RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -62,14 +104,18 @@ pub enum BuiltinPluginName {
   DefinePlugin,
   ProvidePlugin,
   BannerPlugin,
+  IgnorePlugin,
   ProgressPlugin,
   EntryPlugin,
+  DynamicEntryPlugin,
   ExternalsPlugin,
   NodeTargetPlugin,
   ElectronTargetPlugin,
   EnableChunkLoadingPlugin,
   EnableLibraryPlugin,
   EnableWasmLoadingPlugin,
+  FetchCompileAsyncWasmPlugin,
+  ChunkPrefetchPreloadPlugin,
   CommonJsChunkFormatPlugin,
   ArrayPushCallbackChunkFormatPlugin,
   ModuleChunkFormatPlugin,
@@ -79,19 +125,58 @@ pub enum BuiltinPluginName {
   WebWorkerTemplatePlugin,
   MergeDuplicateChunksPlugin,
   SplitChunksPlugin,
-  OldSplitChunksPlugin,
   ShareRuntimePlugin,
   ContainerPlugin,
   ContainerReferencePlugin,
   ProvideSharedPlugin,
   ConsumeSharedPlugin,
+  ModuleFederationRuntimePlugin,
+  NamedModuleIdsPlugin,
+  NaturalModuleIdsPlugin,
+  DeterministicModuleIdsPlugin,
+  NaturalChunkIdsPlugin,
+  NamedChunkIdsPlugin,
+  DeterministicChunkIdsPlugin,
+  RealContentHashPlugin,
+  RemoveEmptyChunksPlugin,
+  EnsureChunkConditionsPlugin,
+  WarnCaseSensitiveModulesPlugin,
+  DataUriPlugin,
+  FileUriPlugin,
+  RuntimePlugin,
+  JsonModulesPlugin,
+  InferAsyncModulesPlugin,
+  JavascriptModulesPlugin,
+  AsyncWebAssemblyModulesPlugin,
+  AssetModulesPlugin,
+  SourceMapDevToolPlugin,
+  EvalSourceMapDevToolPlugin,
+  EvalDevToolModulePlugin,
+  SideEffectsFlagPlugin,
+  FlagDependencyExportsPlugin,
+  FlagDependencyUsagePlugin,
+  MangleExportsPlugin,
+  ModuleConcatenationPlugin,
+  CssModulesPlugin,
+  APIPlugin,
+  RuntimeChunkPlugin,
+  SizeLimitsPlugin,
 
   // rspack specific plugins
+  // naming format follow XxxRspackPlugin
   HttpExternalsRspackPlugin,
   CopyRspackPlugin,
   HtmlRspackPlugin,
   SwcJsMinimizerRspackPlugin,
   SwcCssMinimizerRspackPlugin,
+  LightningCssMinimizerRspackPlugin,
+  BundlerInfoRspackPlugin,
+  CssExtractRspackPlugin,
+
+  // rspack js adapter plugins
+  // naming format follow XxxRspackPlugin
+  JsLoaderRspackPlugin,
+  LazyCompilationPlugin,
 }
 
 #[napi(object)]
@@ -101,13 +186,8 @@ pub struct BuiltinPlugin {
   pub can_inherent_from_parent: Option<bool>,
 }
 
-impl RawOptionsApply for BuiltinPlugin {
-  type Options = ();
-
-  fn apply(
-    self,
-    plugins: &mut Vec<BoxPlugin>,
-  ) -> std::result::Result<Self::Options, rspack_error::Error> {
+impl BuiltinPlugin {
+  pub fn append_to(self, env: Env, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
     match self.name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
@@ -124,6 +204,11 @@ impl RawOptionsApply for BuiltinPlugin {
             .boxed();
         plugins.push(plugin);
       }
+      BuiltinPluginName::IgnorePlugin => {
+        let plugin =
+          IgnorePlugin::new(downcast_into::<RawIgnorePluginOptions>(self.options)?.into()).boxed();
+        plugins.push(plugin);
+      }
       BuiltinPluginName::ProgressPlugin => {
         let plugin =
           ProgressPlugin::new(downcast_into::<RawProgressPluginOptions>(self.options)?.into())
@@ -136,6 +221,13 @@ impl RawOptionsApply for BuiltinPlugin {
         let entry_request = plugin_options.entry;
         let options = plugin_options.options.into();
         let plugin = EntryPlugin::new(context, entry_request, options).boxed();
+        plugins.push(plugin);
+      }
+      BuiltinPluginName::DynamicEntryPlugin => {
+        let plugin = DynamicEntryPlugin::new(
+          downcast_into::<RawDynamicEntryPluginOptions>(self.options)?.into(),
+        )
+        .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::ExternalsPlugin => {
@@ -167,17 +259,23 @@ impl RawOptionsApply for BuiltinPlugin {
           wasm_loading_type.as_str().into(),
         ));
       }
+      BuiltinPluginName::FetchCompileAsyncWasmPlugin => {
+        plugins.push(FetchCompileAsyncWasmPlugin::default().boxed())
+      }
+      BuiltinPluginName::ChunkPrefetchPreloadPlugin => {
+        plugins.push(ChunkPrefetchPreloadPlugin::default().boxed());
+      }
       BuiltinPluginName::CommonJsChunkFormatPlugin => {
-        plugins.push(CommonJsChunkFormatPlugin.boxed());
+        plugins.push(CommonJsChunkFormatPlugin::default().boxed());
       }
       BuiltinPluginName::ArrayPushCallbackChunkFormatPlugin => {
-        plugins.push(ArrayPushCallbackChunkFormatPlugin.boxed());
+        plugins.push(ArrayPushCallbackChunkFormatPlugin::default().boxed());
       }
       BuiltinPluginName::ModuleChunkFormatPlugin => {
-        plugins.push(ModuleChunkFormatPlugin.boxed());
+        plugins.push(ModuleChunkFormatPlugin::default().boxed());
       }
       BuiltinPluginName::HotModuleReplacementPlugin => {
-        plugins.push(HotModuleReplacementPlugin.boxed());
+        plugins.push(HotModuleReplacementPlugin::default().boxed());
       }
       BuiltinPluginName::LimitChunkCountPlugin => {
         let plugin = LimitChunkCountPlugin::new(
@@ -187,20 +285,15 @@ impl RawOptionsApply for BuiltinPlugin {
         plugins.push(plugin);
       }
       BuiltinPluginName::WorkerPlugin => {
-        plugins.push(WorkerPlugin.boxed());
+        plugins.push(WorkerPlugin::default().boxed());
       }
       BuiltinPluginName::WebWorkerTemplatePlugin => {
         web_worker_template_plugin(plugins);
       }
       BuiltinPluginName::MergeDuplicateChunksPlugin => {
-        plugins.push(MergeDuplicateChunksPlugin.boxed());
+        plugins.push(MergeDuplicateChunksPlugin::default().boxed());
       }
       BuiltinPluginName::SplitChunksPlugin => {
-        use rspack_plugin_split_chunks_new::SplitChunksPlugin;
-        let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
-        plugins.push(SplitChunksPlugin::new(options).boxed());
-      }
-      BuiltinPluginName::OldSplitChunksPlugin => {
         use rspack_plugin_split_chunks::SplitChunksPlugin;
         let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
         plugins.push(SplitChunksPlugin::new(options).boxed());
@@ -236,6 +329,110 @@ impl RawOptionsApply for BuiltinPlugin {
         )
         .boxed(),
       ),
+      BuiltinPluginName::ModuleFederationRuntimePlugin => {
+        plugins.push(ModuleFederationRuntimePlugin::default().boxed())
+      }
+      BuiltinPluginName::NamedModuleIdsPlugin => {
+        plugins.push(NamedModuleIdsPlugin::default().boxed())
+      }
+      BuiltinPluginName::NaturalModuleIdsPlugin => {
+        plugins.push(NaturalModuleIdsPlugin::default().boxed())
+      }
+      BuiltinPluginName::DeterministicModuleIdsPlugin => {
+        plugins.push(DeterministicModuleIdsPlugin::default().boxed())
+      }
+      BuiltinPluginName::NaturalChunkIdsPlugin => {
+        plugins.push(NaturalChunkIdsPlugin::default().boxed())
+      }
+      BuiltinPluginName::NamedChunkIdsPlugin => {
+        plugins.push(NamedChunkIdsPlugin::new(None, None).boxed())
+      }
+      BuiltinPluginName::DeterministicChunkIdsPlugin => {
+        plugins.push(DeterministicChunkIdsPlugin::default().boxed())
+      }
+      BuiltinPluginName::RealContentHashPlugin => {
+        plugins.push(RealContentHashPlugin::default().boxed())
+      }
+      BuiltinPluginName::RemoveEmptyChunksPlugin => {
+        plugins.push(RemoveEmptyChunksPlugin::default().boxed())
+      }
+      BuiltinPluginName::EnsureChunkConditionsPlugin => {
+        plugins.push(EnsureChunkConditionsPlugin::default().boxed())
+      }
+      BuiltinPluginName::WarnCaseSensitiveModulesPlugin => {
+        plugins.push(WarnCaseSensitiveModulesPlugin::default().boxed())
+      }
+      BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
+      BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),
+      BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin::default().boxed()),
+      BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
+      BuiltinPluginName::InferAsyncModulesPlugin => {
+        plugins.push(InferAsyncModulesPlugin::default().boxed())
+      }
+      BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::default().boxed()),
+      BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {
+        plugins.push(AsyncWasmPlugin::default().boxed())
+      }
+      BuiltinPluginName::AssetModulesPlugin => plugins.push(AssetPlugin::default().boxed()),
+      BuiltinPluginName::SourceMapDevToolPlugin => {
+        let options: SourceMapDevToolPluginOptions =
+          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into();
+        plugins.push(
+          SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
+            module: options.module,
+            cheap: !options.columns,
+          })
+          .boxed(),
+        );
+        plugins.push(SourceMapDevToolPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::EvalSourceMapDevToolPlugin => {
+        let options: SourceMapDevToolPluginOptions =
+          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into();
+        plugins.push(
+          SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
+            module: options.module,
+            cheap: !options.columns,
+          })
+          .boxed(),
+        );
+        plugins.push(EvalSourceMapDevToolPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::EvalDevToolModulePlugin => {
+        plugins.push(
+          EvalDevToolModulePlugin::new(
+            downcast_into::<RawEvalDevToolModulePluginOptions>(self.options)?.into(),
+          )
+          .boxed(),
+        );
+      }
+      BuiltinPluginName::SideEffectsFlagPlugin => {
+        plugins.push(SideEffectsFlagPlugin::default().boxed())
+      }
+      BuiltinPluginName::FlagDependencyExportsPlugin => {
+        plugins.push(FlagDependencyExportsPlugin::default().boxed())
+      }
+      BuiltinPluginName::FlagDependencyUsagePlugin => {
+        plugins.push(FlagDependencyUsagePlugin::new(downcast_into::<bool>(self.options)?).boxed())
+      }
+      BuiltinPluginName::MangleExportsPlugin => {
+        plugins.push(MangleExportsPlugin::new(downcast_into::<bool>(self.options)?).boxed())
+      }
+      BuiltinPluginName::ModuleConcatenationPlugin => {
+        plugins.push(ModuleConcatenationPlugin::default().boxed())
+      }
+      BuiltinPluginName::CssModulesPlugin => plugins.push(CssPlugin::default().boxed()),
+      BuiltinPluginName::APIPlugin => plugins.push(APIPlugin::default().boxed()),
+      BuiltinPluginName::RuntimeChunkPlugin => plugins.push(
+        RuntimeChunkPlugin::new(downcast_into::<RawRuntimeChunkOptions>(self.options)?.into())
+          .boxed(),
+      ),
+      BuiltinPluginName::SizeLimitsPlugin => {
+        let plugin =
+          SizeLimitsPlugin::new(downcast_into::<RawSizeLimitsPluginOptions>(self.options)?.into())
+            .boxed();
+        plugins.push(plugin)
+      }
 
       // rspack specific plugins
       BuiltinPluginName::HttpExternalsRspackPlugin => {
@@ -251,8 +448,14 @@ impl RawOptionsApply for BuiltinPlugin {
         plugins.push(plugin);
       }
       BuiltinPluginName::SwcCssMinimizerRspackPlugin => {
-        plugins.push(SwcCssMinimizerRspackPlugin {}.boxed())
+        plugins.push(SwcCssMinimizerRspackPlugin::default().boxed())
       }
+      BuiltinPluginName::LightningCssMinimizerRspackPlugin => plugins.push(
+        LightningCssMinimizerRspackPlugin::new(
+          downcast_into::<RawLightningCssMinimizerRspackPluginOptions>(self.options)?.try_into()?,
+        )
+        .boxed(),
+      ),
       BuiltinPluginName::CopyRspackPlugin => {
         let plugin = CopyRspackPlugin::new(
           CopyRspackPluginOptions::from(downcast_into::<RawCopyRspackPluginOptions>(self.options)?)
@@ -267,13 +470,50 @@ impl RawOptionsApply for BuiltinPlugin {
             .boxed();
         plugins.push(plugin);
       }
+      BuiltinPluginName::BundlerInfoRspackPlugin => {
+        let plugin_options = downcast_into::<RawBundlerInfoPluginOptions>(self.options)?;
+        plugins.push(
+          BundlerInfoPlugin::new(
+            plugin_options.version,
+            plugin_options.bundler,
+            RawBundlerInfoModeWrapper(plugin_options.force).into(),
+          )
+          .boxed(),
+        )
+      }
+      BuiltinPluginName::CssExtractRspackPlugin => {
+        let additional_data_plugin = CssExtractRspackAdditionalDataPlugin::new(env)?.boxed();
+        plugins.push(additional_data_plugin);
+        let plugin = rspack_plugin_extract_css::plugin::PluginCssExtract::new(
+          downcast_into::<RawCssExtractPluginOption>(self.options)?.into(),
+        )
+        .boxed();
+        plugins.push(plugin);
+      }
+      BuiltinPluginName::JsLoaderRspackPlugin => {
+        plugins
+          .push(JsLoaderRspackPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed());
+      }
+      BuiltinPluginName::LazyCompilationPlugin => {
+        let options = downcast_into::<RawLazyCompilationOption>(self.options)?;
+        let js_backend = JsBackend::from(&options);
+        plugins.push(Box::new(
+          rspack_plugin_lazy_compilation::plugin::LazyCompilationPlugin::new(
+            options.cacheable,
+            js_backend,
+            options.test.map(|test| test.into()),
+            options.entries,
+            options.imports,
+          ),
+        ) as Box<dyn Plugin>)
+      }
     }
     Ok(())
   }
 }
 
 fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
-  rspack_napi_shared::downcast_into(o).into_rspack_result()
+  rspack_napi::downcast_into(o).into_rspack_result()
 }
 
 // TO BE DEPRECATED

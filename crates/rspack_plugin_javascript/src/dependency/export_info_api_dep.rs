@@ -1,18 +1,20 @@
-use rspack_core::{DependencyTemplate, TemplateContext, TemplateReplaceSource, UsageState};
-use swc_core::ecma::atoms::JsWord;
+use rspack_core::{
+  AsDependency, DependencyTemplate, TemplateContext, TemplateReplaceSource, UsageState,
+};
+use swc_core::ecma::atoms::Atom;
 
 #[derive(Debug, Clone)]
 pub struct ExportInfoApiDependency {
   start: u32,
   end: u32,
   // id: DependencyId,
-  export_name: Vec<JsWord>,
-  property: JsWord,
+  export_name: Vec<Atom>,
+  property: Atom,
   // TODO: runtime_requirements
 }
 
 impl ExportInfoApiDependency {
-  pub fn new(start: u32, end: u32, export_name: Vec<JsWord>, property: JsWord) -> Self {
+  pub fn new(start: u32, end: u32, export_name: Vec<Atom>, property: Atom) -> Self {
     Self {
       start,
       end,
@@ -35,6 +37,10 @@ impl DependencyTemplate for ExportInfoApiDependency {
     );
     source.replace(self.start, self.end, usage.to_string().as_ref(), None);
   }
+
+  fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
+    None
+  }
 }
 
 impl ExportInfoApiDependency {
@@ -47,29 +53,20 @@ impl ExportInfoApiDependency {
     } = context;
     let export_name = &self.export_name;
     let prop = &self.property;
+    let module_graph = compilation.get_module_graph();
     // TODO: nested export_name, one level is enough for test
     if export_name.len() == 1 {
       let export_name = &export_name[0];
       match prop.to_string().as_str() {
         "used" => {
           let id = module.identifier();
-          let mgm = compilation
-            .module_graph
-            .module_graph_module_by_identifier(&id)?;
-          let exports_info = compilation
-            .module_graph
-            .get_exports_info_by_id(&mgm.exports);
-          let info_id = exports_info.exports.get(export_name)?;
-          let export_info = compilation.module_graph.export_info_map.get(info_id)?;
-          if compilation.options.is_new_tree_shaking() {
-            Some(exports_info.get_used(
-              rspack_core::UsedName::Str(export_name.clone()),
-              *runtime,
-              &compilation.module_graph,
-            ))
-          } else {
-            Some(export_info.usage_state)
-          }
+          let mgm = module_graph.module_graph_module_by_identifier(&id)?;
+          let exports_info = module_graph.get_exports_info_by_id(&mgm.exports);
+          Some(exports_info.get_used(
+            rspack_core::UsedName::Str(export_name.clone()),
+            *runtime,
+            &module_graph,
+          ))
         }
         _ => {
           // TODO: support other prop
@@ -81,3 +78,4 @@ impl ExportInfoApiDependency {
     }
   }
 }
+impl AsDependency for ExportInfoApiDependency {}

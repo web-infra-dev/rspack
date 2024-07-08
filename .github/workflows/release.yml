@@ -12,6 +12,8 @@ on:
           - canary
           - nightly
           - latest
+          - beta
+          - alpha
       dry_run:
         type: boolean
         description: "DryRun release"
@@ -22,10 +24,17 @@ on:
         description: "push tags to github"
         required: true
         default: true
+
+permissions:
+  # To publish packages with provenance
+  id-token: write
+
 jobs:
   get-runner-labels:
     name: Get Runner Labels
     uses: ./.github/workflows/get-runner-labels.yml
+    with:
+      force-use-github-runner: true
 
   build:
     needs: [get-runner-labels]
@@ -60,12 +69,14 @@ jobs:
     name: Release
     permissions:
       contents: write
+      # To publish packages with provenance
+      id-token: write
     runs-on: ubuntu-latest
     needs: build
     if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           # This makes Actions fetch only one branch to release
           fetch-depth: 1
@@ -99,6 +110,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
           ONLY_RELEASE_TAG: true
+
       - name: Release Nightly(After Full)
         run: |
           ./x version snapshot

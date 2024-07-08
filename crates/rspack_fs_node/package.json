@@ -11,7 +11,7 @@
     "test:local": "jest"
   },
   "devDependencies": {
-    "@napi-rs/cli": "2.14.2",
-    "memfs": "3.4.12"
+    "@napi-rs/cli": "2.18.0",
+    "memfs": "4.8.1"
   }
 }

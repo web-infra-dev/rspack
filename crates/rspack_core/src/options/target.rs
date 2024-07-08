@@ -1,4 +1,4 @@
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
 pub use swc_core::ecma::ast::EsVersion;
 
 // TODO(swc-loader): Target still coupled with javascript downgrade, it should only affect runtime
@@ -32,12 +32,13 @@ impl Target {
       if item.starts_with("es") || item == "browserslist" {
         // es version
         if !es_version.is_none() {
-          return Err(internal_error!("Target es version conflict"));
+          return Err(error!("Target es version conflict"));
         }
         let version = match item {
           "browserslist" => TargetEsVersion::BrowsersList,
           "es3" => TargetEsVersion::Esx(EsVersion::Es3),
           "es5" => TargetEsVersion::Esx(EsVersion::Es5),
+          "es6" => TargetEsVersion::Esx(EsVersion::Es2015),
           "es2015" => TargetEsVersion::Esx(EsVersion::Es2015),
           "es2016" => TargetEsVersion::Esx(EsVersion::Es2016),
           "es2017" => TargetEsVersion::Esx(EsVersion::Es2017),
@@ -47,7 +48,7 @@ impl Target {
           "es2021" => TargetEsVersion::Esx(EsVersion::Es2021),
           "es2022" => TargetEsVersion::Esx(EsVersion::Es2022),
           _ => {
-            return Err(internal_error!("Unknown target es version {}", item));
+            return Err(error!("Unknown target es version {}", item));
           }
         };
         es_version = version;

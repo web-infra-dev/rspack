@@ -1,17 +1,21 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
+use rspack_macros::impl_source_map_config;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
+use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  dependencies_block::AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildResult,
-  CodeGenerationResult, Context, DependenciesBlock, DependencyId, Module, ModuleIdentifier,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Context, DependenciesBlock,
+  DependencyId, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
+use crate::{Compilation, ConcatenationScope, FactoryMeta};
 
+#[impl_source_map_config]
 #[derive(Debug)]
 pub struct RawModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -20,6 +24,9 @@ pub struct RawModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
+  factory_meta: Option<FactoryMeta>,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -39,6 +46,10 @@ impl RawModule {
       identifier,
       readable_identifier,
       runtime_requirements,
+      factory_meta: None,
+      build_info: None,
+      build_meta: None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 }
@@ -69,8 +80,14 @@ impl DependenciesBlock for RawModule {
 
 #[async_trait::async_trait]
 impl Module for RawModule {
+  impl_module_meta_info!();
+
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
+  }
+
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::Js
+    &ModuleType::JsAuto
   }
 
   fn source_types(&self) -> &[SourceType] {
@@ -85,34 +102,34 @@ impl Module for RawModule {
     Cow::Borrowed(&self.readable_identifier)
   }
 
-  fn size(&self, _source_type: &SourceType) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     f64::max(1.0, self.source.size() as f64)
   }
 
   async fn build(
     &mut self,
     build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+    _: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
-    Ok(
-      BuildResult {
-        build_info: BuildInfo {
-          hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
-          cacheable: true,
-          ..Default::default()
-        },
-        dependencies: vec![],
+    Ok(BuildResult {
+      build_info: BuildInfo {
+        hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
+        cacheable: true,
+        strict: true,
         ..Default::default()
-      }
-      .with_empty_diagnostic(),
-    )
+      },
+      dependencies: vec![],
+      ..Default::default()
+    })
   }
 
   fn code_generation(
     &self,
     compilation: &crate::Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     cgr.runtime_requirements.insert(self.runtime_requirements);
@@ -125,6 +142,8 @@ impl Module for RawModule {
     Ok(cgr)
   }
 }
+
+impl_empty_diagnosable_trait!(RawModule);
 
 impl Hash for RawModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

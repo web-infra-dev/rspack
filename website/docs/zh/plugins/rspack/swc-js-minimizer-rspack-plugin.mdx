@@ -1,0 +1,216 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# SwcJsMinimizerRspackPlugin
+
+<ApiMeta addedVersion={'0.3.3'} specific={['Rspack']} />
+
+此插件可以用来压缩 JS 产物。参见 [optimization.minimizer](/config/optimization#optimizationminimizer)。
+
+```js
+module.exports = {
+  // ...
+  optimization: {
+    minimizer: [new rspack.SwcJsMinimizerRspackPlugin(options)],
+  },
+};
+```
+
+- options
+
+  - **类型：**
+
+  如需获取配置项的更多信息，请点击[这里](https://swc.rs/docs/configuration/minification).
+
+  ```ts
+  type SwcJsMinimizerRspackPluginOptions = {
+    extractComments?: boolean | RegExp;
+    compress?: TerserCompressOptions | boolean;
+    mangle?: TerserMangleOptions | boolean;
+    module?: boolean;
+    format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+
+    test?: MinifyConditions;
+    exclude?: MinifyConditions;
+    include?: MinifyConditions;
+  };
+
+  type MinifyCondition = string | RegExp;
+  type MinifyConditions = MinifyCondition | MinifyCondition[];
+
+  interface JsFormatOptions {
+    /**
+     * Currently noop.
+     * @default false
+     * @alias ascii_only
+     */
+    asciiOnly?: boolean;
+    /**
+     * Currently noop.
+     * @default false
+     */
+    beautify?: boolean;
+    /**
+     * Currently noop.
+     * @default false
+     */
+    braces?: boolean;
+    /**
+     * - `false`: removes all comments
+     * - `'some'`: preserves some comments
+     * - `'all'`: preserves all comments
+     * @default false
+     */
+    comments?: false | 'some' | 'all';
+    /**
+     * Currently noop.
+     * @default 5
+     */
+    ecma?: TerserEcmaVersion;
+    /**
+     * Currently noop.
+     * @alias indent_level
+     */
+    indentLevel?: number;
+    /**
+     * Currently noop.
+     * @alias indent_start
+     */
+    indentStart?: number;
+    /**
+     * Currently noop.
+     * @alias inline_script
+     */
+    inlineScript?: number;
+    /**
+     * Currently noop.
+     * @alias keep_numbers
+     */
+    keepNumbers?: number;
+    /**
+     * Currently noop.
+     * @alias keep_quoted_props
+     */
+    keepQuotedProps?: boolean;
+    /**
+     * Currently noop.
+     * @alias max_line_len
+     */
+    maxLineLen?: number | false;
+    /**
+     * Currently noop.
+     */
+    preamble?: string;
+    /**
+     * Currently noop.
+     * @alias quote_keys
+     */
+    quoteKeys?: boolean;
+    /**
+     * Currently noop.
+     * @alias quote_style
+     */
+    quoteStyle?: boolean;
+    /**
+     * Currently noop.
+     * @alias preserve_annotations
+     */
+    preserveAnnotations?: boolean;
+    /**
+     * Currently noop.
+     */
+    safari10?: boolean;
+    /**
+     * Currently noop.
+     */
+    semicolons?: boolean;
+    /**
+     * Currently noop.
+     */
+    shebang?: boolean;
+    /**
+     * Currently noop.
+     */
+    webkit?: boolean;
+    /**
+     * Currently noop.
+     * @alias wrap_iife
+     */
+    wrapIife?: boolean;
+    /**
+     * Currently noop.
+     * @alias wrap_func_args
+     */
+    wrapFuncArgs?: boolean;
+  }
+
+  type TerserEcmaVersion = 5 | 2015 | 2016 | string | number;
+  interface TerserCompressOptions {
+    arguments?: boolean;
+    arrows?: boolean;
+    booleans?: boolean;
+    booleans_as_integers?: boolean;
+    collapse_vars?: boolean;
+    comparisons?: boolean;
+    computed_props?: boolean;
+    conditionals?: boolean;
+    dead_code?: boolean;
+    defaults?: boolean;
+    directives?: boolean;
+    drop_console?: boolean;
+    drop_debugger?: boolean;
+    ecma?: TerserEcmaVersion;
+    evaluate?: boolean;
+    expression?: boolean;
+    global_defs?: any;
+    hoist_funs?: boolean;
+    hoist_props?: boolean;
+    hoist_vars?: boolean;
+    ie8?: boolean;
+    if_return?: boolean;
+    inline?: 0 | 1 | 2 | 3;
+    join_vars?: boolean;
+    keep_classnames?: boolean;
+    keep_fargs?: boolean;
+    keep_fnames?: boolean;
+    keep_infinity?: boolean;
+    loops?: boolean;
+    negate_iife?: boolean;
+    passes?: number;
+    properties?: boolean;
+    pure_getters?: any;
+    pure_funcs?: string[];
+    reduce_funcs?: boolean;
+    reduce_vars?: boolean;
+    sequences?: any;
+    side_effects?: boolean;
+    switches?: boolean;
+    top_retain?: any;
+    toplevel?: any;
+    typeofs?: boolean;
+    unsafe?: boolean;
+    unsafe_passes?: boolean;
+    unsafe_arrows?: boolean;
+    unsafe_comps?: boolean;
+    unsafe_function?: boolean;
+    unsafe_math?: boolean;
+    unsafe_symbols?: boolean;
+    unsafe_methods?: boolean;
+    unsafe_proto?: boolean;
+    unsafe_regexp?: boolean;
+    unsafe_undefined?: boolean;
+    unused?: boolean;
+    const_to_let?: boolean;
+    module?: boolean;
+  }
+  interface TerserMangleOptions {
+    props?: TerserManglePropertiesOptions;
+    toplevel?: boolean;
+    keep_classnames?: boolean;
+    keep_fnames?: boolean;
+    keep_private_props?: boolean;
+    ie8?: boolean;
+    safari10?: boolean;
+    reserved?: string[];
+  }
+  interface TerserManglePropertiesOptions {}
+  ```

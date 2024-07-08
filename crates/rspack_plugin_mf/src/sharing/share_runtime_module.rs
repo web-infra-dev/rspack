@@ -11,7 +11,8 @@ use rustc_hash::FxHashMap;
 use super::provide_shared_plugin::ProvideVersion;
 use crate::utils::json_stringify;
 
-#[derive(Debug, Eq)]
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct ShareRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -20,11 +21,7 @@ pub struct ShareRuntimeModule {
 
 impl ShareRuntimeModule {
   pub fn new(enhanced: bool) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/sharing"),
-      chunk: None,
-      enhanced,
-    }
+    Self::with_default(Identifier::from("webpack/runtime/sharing"), None, enhanced)
   }
 }
 
@@ -33,11 +30,12 @@ impl RuntimeModule for ShareRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ShareRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+    let module_graph = compilation.get_module_graph();
     let mut init_per_scope: FxHashMap<
       String,
       LinkedHashMap<DataInitStage, LinkedHashSet<DataInitInfo>>,
@@ -46,11 +44,7 @@ impl RuntimeModule for ShareRuntimeModule {
       let chunk = compilation.chunk_by_ukey.expect_get(&c);
       let modules = compilation
         .chunk_graph
-        .get_chunk_modules_iterable_by_source_type(
-          &c,
-          SourceType::ShareInit,
-          &compilation.module_graph,
-        )
+        .get_chunk_modules_iterable_by_source_type(&c, SourceType::ShareInit, &module_graph)
         .sorted_unstable_by_key(|m| m.identifier());
       for m in modules {
         let code_gen = compilation
@@ -83,7 +77,7 @@ impl RuntimeModule for ShareRuntimeModule {
             DataInitInfo::ExternalModuleId(Some(id)) => json_stringify(&id),
             DataInitInfo::ProvideSharedInfo(info) => {
               format!(
-                "[{}, {}, {}, {}]",
+                "{{ name: {}, version: {}, factory: {}, eager: {} }}",
                 json_stringify(&info.name),
                 json_stringify(&info.version.to_string()),
                 info.factory,
@@ -98,11 +92,11 @@ impl RuntimeModule for ShareRuntimeModule {
       .collect::<Vec<_>>()
       .join(", ");
     let initialize_sharing_impl = if self.enhanced {
-      "__webpack_require__.I = function() { throw new Error(\"should have __webpack_require__.I\") }"
+      "__webpack_require__.I = __webpack_require__.I || function() { throw new Error(\"should have __webpack_require__.I\") }"
     } else {
       include_str!("./initializeSharing.js")
     };
-    RawSource::from(format!(
+    Ok(RawSource::from(format!(
       r#"
 {share_scope_map} = {{}};
 __webpack_require__.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
@@ -113,15 +107,13 @@ __webpack_require__.initializeSharingData = {{ scopeToSharingDataMapping: {{ {sc
       unique_name = json_stringify(&compilation.options.output.unique_name),
       initialize_sharing_impl = initialize_sharing_impl,
     ))
-    .boxed()
+    .boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(ShareRuntimeModule);
 
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataShareInit {

@@ -1,4 +1,6 @@
-use crate::{DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource};
+use crate::{
+  AsDependency, DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+};
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub struct RuntimeRequirementsDependency {
@@ -15,7 +17,12 @@ impl DependencyTemplate for RuntimeRequirementsDependency {
       .runtime_requirements
       .insert(self.runtime_requirements);
   }
+
+  fn dependency_id(&self) -> Option<crate::DependencyId> {
+    None
+  }
 }
+impl AsDependency for RuntimeRequirementsDependency {}
 
 impl RuntimeRequirementsDependency {
   pub fn new(runtime_requirements: RuntimeGlobals) -> Self {

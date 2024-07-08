@@ -1,5 +1,0 @@
----
-source: crates/rspack_error/tests/fixtures.rs
-expression: should_warn_when_esm_not_export
----
-

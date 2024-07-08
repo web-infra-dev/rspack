@@ -1,15 +1,19 @@
 use std::{any::Any, fmt::Debug};
 
 use dyn_clone::{clone_trait_object, DynClone};
+use rspack_error::Diagnostic;
 use rspack_util::ext::AsAny;
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::{common::Span, ecma::atoms::JsWord};
+use swc_core::{common::Span, ecma::atoms::Atom};
 
 use super::dependency_template::AsDependencyTemplate;
 use super::module_dependency::*;
 use super::ExportsSpec;
 use super::{DependencyCategory, DependencyId, DependencyType};
+use crate::create_exports_object_referenced;
 use crate::AsContextDependency;
+use crate::ExtendedReferencedExport;
+use crate::RuntimeSpec;
 use crate::{ConnectionState, Context, ErrorSpan, ModuleGraph, ModuleIdentifier, UsedByExports};
 
 pub trait Dependency:
@@ -22,9 +26,6 @@ pub trait Dependency:
   + Sync
   + Debug
 {
-  /// name of the original struct or enum
-  fn dependency_debug_name(&self) -> &'static str;
-
   fn id(&self) -> &DependencyId;
 
   fn category(&self) -> &DependencyCategory {
@@ -57,6 +58,10 @@ pub trait Dependency:
     None
   }
 
+  fn source_order(&self) -> Option<i32> {
+    None
+  }
+
   /// `Span` used for Dependency search in `on_usage` in `InnerGraph`
   fn span_for_on_usage_search(&self) -> Option<ErrorSpan> {
     self.span()
@@ -73,12 +78,24 @@ pub trait Dependency:
 
   // For now only `HarmonyImportSpecifierDependency` and
   // `HarmonyExportImportedSpecifierDependency` can use this method
-  fn get_ids(&self, _mg: &ModuleGraph) -> Vec<JsWord> {
+  fn get_ids(&self, _mg: &ModuleGraph) -> Vec<Atom> {
     unreachable!()
   }
 
   fn resource_identifier(&self) -> Option<&str> {
     None
+  }
+
+  fn get_diagnostics(&self, _module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+    None
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    create_exports_object_referenced()
   }
 }
 
@@ -89,6 +106,22 @@ impl dyn Dependency + '_ {
 
   pub fn downcast_mut<D: Any>(&mut self) -> Option<&mut D> {
     self.as_any_mut().downcast_mut::<D>()
+  }
+
+  pub fn is<D: Any>(&self) -> bool {
+    self.downcast_ref::<D>().is_some()
+  }
+}
+
+pub trait AsDependency {
+  fn as_dependency(&self) -> Option<Box<&dyn Dependency>> {
+    None
+  }
+}
+
+impl<T: Dependency> AsDependency for T {
+  fn as_dependency(&self) -> Option<Box<&dyn Dependency>> {
+    Some(Box::new(self))
   }
 }
 

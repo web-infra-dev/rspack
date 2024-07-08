@@ -1,0 +1,12 @@
+ERROR in ./index.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expected ',', got ':'
+         ╭─[1:1]
+       1 │ function add(a: number, b: number): number {
+         ·               ─
+       2 │     return a + b;
+       3 │ }
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.

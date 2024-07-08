@@ -7,21 +7,27 @@ use hashlink::LinkedHashMap;
 
 use crate::DependencyCategory;
 
-pub type AliasMap = nodejs_resolver::AliasMap;
+pub type AliasMap = rspack_resolver::AliasValue;
+pub type Alias = rspack_resolver::Alias;
 
-pub type Alias = Vec<(String, Vec<AliasMap>)>;
 pub(super) type Extensions = Vec<String>;
 pub(super) type PreferRelative = bool;
+pub(super) type PreferAbsolute = bool;
 pub(super) type Symlink = bool;
 pub(super) type MainFiles = Vec<String>;
 pub(super) type MainFields = Vec<String>;
-pub(super) type BrowserField = bool;
+pub(super) type DescriptionFiles = Vec<String>;
+pub(super) type AliasFields = Vec<Vec<String>>;
 pub(super) type ConditionNames = Vec<String>;
 pub(super) type Fallback = Alias;
 pub(super) type FullySpecified = bool;
-pub(super) type ExportsField = Vec<Vec<String>>;
+pub(super) type EnforceExtension = bool;
+pub(super) type ExportsFields = Vec<Vec<String>>;
+pub(super) type ImportsFields = Vec<Vec<String>>;
 pub(super) type ExtensionAlias = Vec<(String, Vec<String>)>;
 pub(super) type Modules = Vec<String>;
+pub(super) type Roots = Vec<String>;
+pub(super) type Restrictions = Vec<String>;
 
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
 pub struct Resolve {
@@ -33,6 +39,8 @@ pub struct Resolve {
   /// Prefer to resolve request as relative request and
   /// fallback to resolving as modules.
   pub prefer_relative: Option<PreferRelative>,
+  /// Prefer absolute paths to `resolve.roots` when resolving.
+  pub prefer_absolute: Option<PreferAbsolute>,
   /// Whether to resolve the real path when the result
   /// is a symlink.
   pub symlinks: Option<Symlink>,
@@ -40,9 +48,6 @@ pub struct Resolve {
   pub main_files: Option<MainFiles>,
   /// Main fields in Description.
   pub main_fields: Option<MainFields>,
-  /// Whether read and parse `"browser"` filed
-  /// in package.json.
-  pub browser_field: Option<BrowserField>,
   /// Condition names for exports filed. Note that its
   /// type is a `HashSet`, because the priority is
   /// related to the order in which the export field
@@ -62,11 +67,25 @@ pub struct Resolve {
   pub fully_specified: Option<FullySpecified>,
   /// A list of exports fields in descriptions files
   /// Default is `[["exports"]]`.
-  pub exports_field: Option<ExportsField>,
+  pub exports_fields: Option<ExportsFields>,
   /// A list map ext to another.
   /// Default is `[]`
   pub extension_alias: Option<ExtensionAlias>,
+  /// Specify a field, such as browser, to be parsed according to [this specification](https://github.com/defunctzombie/package-browser-field-spec).
+  pub alias_fields: Option<AliasFields>,
+  /// A list of directories where requests of server-relative URLs (starting with '/') are resolved
+  pub roots: Option<Roots>,
+  /// A list of resolve restrictions to restrict the paths that a request can be resolved on.
+  pub restrictions: Option<Restrictions>,
+  /// Field names from the description file (usually package.json) which are used to provide internal request of a package (requests starting with # are considered as internal).
+  pub imports_fields: Option<ImportsFields>,
+  /// Configure resolve options by the type of module request.
   pub by_dependency: Option<ByDependency>,
+  /// The JSON files to use for descriptions
+  /// Default is ["package.json"]
+  pub description_files: Option<DescriptionFiles>,
+  /// If enforce_extension is set to EnforceExtension::Enabled, resolution will not allow extension-less files. This means require('./foo.js') will resolve, while require('./foo') will not.
+  pub enforce_extension: Option<EnforceExtension>,
 }
 
 /// Tsconfig Options
@@ -84,9 +103,9 @@ pub struct TsconfigOptions {
   pub references: TsconfigReferences,
 }
 
-impl From<TsconfigOptions> for oxc_resolver::TsconfigOptions {
+impl From<TsconfigOptions> for rspack_resolver::TsconfigOptions {
   fn from(val: TsconfigOptions) -> Self {
-    oxc_resolver::TsconfigOptions {
+    rspack_resolver::TsconfigOptions {
       config_file: val.config_file,
       references: val.references.into(),
     }
@@ -103,14 +122,29 @@ pub enum TsconfigReferences {
   Paths(Vec<PathBuf>),
 }
 
-impl From<TsconfigReferences> for oxc_resolver::TsconfigReferences {
+impl From<TsconfigReferences> for rspack_resolver::TsconfigReferences {
   fn from(val: TsconfigReferences) -> Self {
     match val {
-      TsconfigReferences::Disabled => oxc_resolver::TsconfigReferences::Disabled,
-      TsconfigReferences::Auto => oxc_resolver::TsconfigReferences::Auto,
-      TsconfigReferences::Paths(paths) => oxc_resolver::TsconfigReferences::Paths(paths),
+      TsconfigReferences::Disabled => rspack_resolver::TsconfigReferences::Disabled,
+      TsconfigReferences::Auto => rspack_resolver::TsconfigReferences::Auto,
+      TsconfigReferences::Paths(paths) => rspack_resolver::TsconfigReferences::Paths(paths),
     }
   }
+}
+
+macro_rules! impl_resolve_by_dependency {
+  ($ident:ident) => {
+    pub fn $ident(&self, cat: Option<&DependencyCategory>) -> Option<bool> {
+      cat
+        .and_then(|cat| {
+          self
+            .by_dependency
+            .as_ref()
+            .and_then(|by_dep| by_dep.get(cat).and_then(|d| d.$ident))
+        })
+        .or(self.$ident)
+    }
+  };
 }
 
 impl Resolve {
@@ -130,6 +164,9 @@ impl Resolve {
   pub fn merge(self, value: Self) -> Self {
     clever_merge::merge_resolve(self, value)
   }
+
+  impl_resolve_by_dependency!(fully_specified);
+  impl_resolve_by_dependency!(prefer_relative);
 }
 
 type DependencyCategoryStr = Cow<'static, str>;

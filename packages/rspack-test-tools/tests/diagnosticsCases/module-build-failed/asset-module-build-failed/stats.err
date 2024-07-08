@@ -1,0 +1,11 @@
+ERROR in ./logo.svg
+  × Module build failed:
+  ╰─▶   × Error: Failed to load
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │

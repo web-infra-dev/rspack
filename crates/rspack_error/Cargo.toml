@@ -8,23 +8,15 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow         = { workspace = true, features = ["backtrace"] }
-futures        = { workspace = true }
-miette         = { version = "5", features = ["fancy"] }
-rspack_sources = { workspace = true }
-rspack_util    = { path = "../rspack_util" }
-serde_json     = { workspace = true }
-sugar_path     = { workspace = true }
-swc_core       = { workspace = true, features = ["common"] }
-termcolor      = "1"
-thiserror      = "1"
-
-[dev-dependencies]
-insta = { workspace = true }
-# rspack = { path = "../rspack" }
-rspack_binding_options = { path = "../rspack_binding_options" }
-rspack_core            = { path = "../rspack_core" }
-rspack_fs              = { path = "../rspack_fs", features = ["async"] }
-rspack_testing         = { path = "../rspack_testing" }
-rspack_tracing         = { path = "../rspack_tracing" }
-tokio                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
+anyhow            = { workspace = true, features = ["backtrace"] }
+derivative        = { workspace = true }
+futures           = { workspace = true }
+miette            = { version = "5", features = ["fancy"] }
+once_cell         = { workspace = true }
+owo-colors        = "3.5.0"
+rspack_identifier = { path = "../rspack_identifier" }
+swc_core          = { workspace = true, features = ["common"] }
+termcolor         = "1"
+textwrap          = "0.15.2"
+thiserror         = "1"
+unicode-width     = "0.1.11"

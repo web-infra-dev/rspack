@@ -7,7 +7,8 @@ use rspack_identifier::Identifier;
 
 use crate::get_chunk_runtime_requirements;
 
-#[derive(Debug, Eq)]
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct GetTrustedTypesPolicyRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -15,10 +16,10 @@ pub struct GetTrustedTypesPolicyRuntimeModule {
 
 impl Default for GetTrustedTypesPolicyRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/get_trusted_types_policy"),
-      chunk: None,
-    }
+    Self::with_default(
+      Identifier::from("webpack/runtime/get_trusted_types_policy"),
+      None,
+    )
   }
 }
 
@@ -27,7 +28,7 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let trusted_types = compilation
       .options
       .output
@@ -65,12 +66,10 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
       );
     }
     result = result.replace("$policyContent$", policy_content.join(",\n").as_ref());
-    RawSource::from(result).boxed()
+    Ok(RawSource::from(result).boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
   }
 }
-
-impl_runtime_module!(GetTrustedTypesPolicyRuntimeModule);

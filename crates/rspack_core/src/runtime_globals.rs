@@ -1,19 +1,12 @@
 use std::fmt;
 
 use bitflags::bitflags;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 bitflags! {
-  pub struct RuntimeGlobals: u64 {
+  #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+  pub struct RuntimeGlobals: u128 {
     const REQUIRE_SCOPE = 1 << 0;
-
-    const EXPORT_STAR = 1 << 1;
-    /**
-     * rspack
-     * load chunk with module, let module code generation result can be cached at hmr
-     */
-    const LOAD_CHUNK_WITH_BLOCK = 1 << 2;
-    // port from webpack RuntimeGlobals
 
     /**
      * the internal module object
@@ -236,6 +229,25 @@ bitflags! {
     const CHUNK_NAME = 1 << 56;
 
     const RUNTIME_ID = 1 << 57;
+
+    // prefetch and preload
+    const PREFETCH_CHUNK = 1 << 58;
+
+    const PREFETCH_CHUNK_HANDLERS = 1 << 59;
+
+    const PRELOAD_CHUNK = 1 << 60;
+
+    const PRELOAD_CHUNK_HANDLERS = 1 << 61;
+
+    // rspack only
+    const RSPACK_VERSION = 1 << 62;
+
+    const HAS_CSS_MODULES = 1 << 63;
+
+    // rspack only
+    const RSPACK_UNIQUE_ID = 1 << 64;
+
+    const HAS_FETCH_PRIORITY = 1 << 65;
   }
 }
 
@@ -253,12 +265,10 @@ impl Default for RuntimeGlobals {
 }
 
 impl RuntimeGlobals {
-  pub fn name(&self) -> &'static str {
+  pub const fn name(&self) -> &'static str {
     use RuntimeGlobals as R;
     match *self {
       R::REQUIRE_SCOPE => "__webpack_require__.*",
-      R::EXPORT_STAR => "es",
-      R::LOAD_CHUNK_WITH_BLOCK => "__webpack_require__.el",
       R::MODULE => "module",
       R::MODULE_ID => "module.id",
       R::MODULE_LOADED => "module.loaded",
@@ -314,30 +324,22 @@ impl RuntimeGlobals {
       R::RELATIVE_URL => "__webpack_require__.U",
       R::CHUNK_NAME => "__webpack_require__.cn",
       R::RUNTIME_ID => "__webpack_require__.j",
-      r => panic!(
-        "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
-      ),
-    }
-  }
+      R::PREFETCH_CHUNK => "__webpack_require__.E",
+      R::PREFETCH_CHUNK_HANDLERS => "__webpack_require__.F",
+      R::PRELOAD_CHUNK => "__webpack_require__.G",
+      R::PRELOAD_CHUNK_HANDLERS => "__webpack_require__.H",
+      // rspack only
+      R::RSPACK_VERSION => "__webpack_require__.rv",
+      R::RSPACK_UNIQUE_ID => "__webpack_require__.ruid",
+      R::HAS_CSS_MODULES => "has css modules",
 
-  /// A stub function for bitflags `iter` in 2.0.0, we are stuck to 1.3.0 now
-  pub fn iter(&self) -> impl Iterator<Item = Self> {
-    let mut bit = 0;
-    let bits = self.bits();
-    std::iter::from_fn(move || {
-      while bit < 64 {
-        let flag = 1 << bit;
-        bit += 1;
-        if bits & flag != 0 {
-          return Self::from_bits(flag);
-        }
-      }
-      None
-    })
+      R::HAS_FETCH_PRIORITY => "has fetch priority",
+      _ => unreachable!(),
+    }
   }
 }
 
-impl From<RuntimeGlobals> for JsWord {
+impl From<RuntimeGlobals> for Atom {
   fn from(value: RuntimeGlobals) -> Self {
     value.name().into()
   }

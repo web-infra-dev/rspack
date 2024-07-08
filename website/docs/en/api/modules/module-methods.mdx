@@ -1,0 +1,324 @@
+import WebpackLicense from '@components/webpack-license';
+import { ApiMeta } from '@components/ApiMeta';
+
+<WebpackLicense from="https://webpack.js.org/api/module-methods/" />
+
+# Module Methods
+
+This section covers all methods available in code compiled with Rspack. When using Rspack to bundle your application, you can pick from a variety of module syntax styles including ES6, CommonJS.
+
+While Rspack supports multiple module syntaxes, we recommend following a single syntax for consistency and to avoid odd behaviors/bugs.
+
+Actually Rspack would enforce the recommendation for `.mjs` files, `.cjs` files or `.js` files when their nearest parent `package.json` file contains a `"type"` field with a value of either `"module"` or `"commonjs"`. Please pay attention to these enforcements before you read on:
+
+- `.mjs` or `.js` with `"type": "module"` in package.json
+  - No CommonJS allowed, for example, you can't use `require`, `module.exports` or `exports`
+  - File extensions are required when importing, e.g, you should use import './src/App.mjs' instead of import './src/App' (you can disable this enforcement with Rule.resolve.fullySpecified)
+- `.cjs` or `.js` with "type": "commonjs" in package.json
+  - Neither import nor export is available
+
+## ES6 (Recommended)
+
+Rspack support ES6 module syntax natively, you can use static `import`, `export` and `import()` syntax.
+
+:::warning
+Keep in mind that you will still probably need SWC or Babel for other ES6+ features.
+:::
+
+### import
+
+Statically `import` the `export`s of another module.
+
+```js
+import MyModule from './my-module.js';
+import { NamedExport } from './other-module.js';
+```
+
+You can also `import` Data URI:
+
+```js
+import 'data:text/javascript;charset=utf-8;base64,Y29uc29sZS5sb2coJ2lubGluZSAxJyk7';
+import {
+  number,
+  fn,
+} from 'data:text/javascript;charset=utf-8;base64,ZXhwb3J0IGNvbnN0IG51bWJlciA9IDQyOwpleHBvcnQgY29uc3QgZm4gPSAoKSA9PiAiSGVsbG8gd29ybGQiOw==';
+```
+
+### export
+
+Export anything as a `default` or named export.
+
+```js
+// Named exports
+export var Count = 5;
+export function Multiply(a, b) {
+  return a * b;
+}
+
+// Default export
+export default {
+  // Some data...
+};
+```
+
+### Dynamic import()
+
+```ts
+function import(path: string): Promise;
+```
+
+Dynamically load modules. Calls to `import()` are treated as split points, meaning the requested module and its children are split out into a separate chunk.
+
+```js
+if (module.hot) {
+  import('lodash').then(_ => {
+    // Do something with lodash (a.k.a '_')...
+  });
+}
+```
+
+:::warning
+This feature relies on `Promise` internally. If you use import() with older browsers, remember to shim `Promise` using a polyfill such as [es6-promise](https://github.com/stefanpenner/es6-promise) or [promise-polyfill](https://github.com/taylorhakes/promise-polyfill).
+:::
+
+#### Dynamic expressions in import()
+
+It is not possible to use a fully dynamic import statement, such as `import(foo)`. Because `foo` could potentially be any path to any file in your system or project.
+
+The `import()` must contain at least some information about where the module is located. Bundling can be limited to a specific directory or set of files so that when you are using a dynamic expression - every module that could potentially be requested on an `import()` call is included.
+For example, `import(`./locale/$\{language}.json`)` will cause every `.json` file in the `./locale` directory to be bundled into the new chunk. At run time, when the variable `language` has been computed, any file like `english.json` or `german.json` will be available for consumption.
+
+```js
+// imagine we had a method to get language from cookies or other storage
+const language = detectVisitorLanguage();
+import(`./locale/${language}.json`).then(module => {
+  // do something with the translations
+});
+```
+
+#### Magic Comments
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+Inline comments to make features work. By adding comments to the import, we can do things such as name our chunk or select different modes. For a full list of these magic comments see the code below followed by an explanation of what these comments do.
+
+```js
+// Single target
+import(
+  /* webpackChunkName: "my-chunk-name" */
+  /* webpackMode: "lazy" */
+  /* webpackFetchPriority: "high" */
+  'module'
+);
+
+// Multiple possible targets
+import(
+  /* webpackInclude: /\.json$/ */
+  /* webpackExclude: /\.noimport\.json$/ */
+  /* webpackChunkName: "my-chunk-name" */
+  /* webpackMode: "lazy" */
+  /* webpackPrefetch: true */
+  /* webpackPreload: true */
+  `./locale/${language}`
+);
+```
+
+##### webpackIgnore
+
+<ApiMeta addedVersion="0.5.0" />
+
+- **Type:** `boolean`
+
+Disables dynamic import parsing when set to true.{' '}
+
+:::warning
+Note that setting webpackIgnore to true opts out of code splitting.
+:::
+
+##### webpackMode
+
+- **Type:** `"eager" | "lazy" | "weak" | "lazy-once"`
+
+Different modes for resolving dynamic imports can be specified. The following options are supported:
+
+- `'lazy'` (default): Generates a lazy-loadable chunk for each `import()`ed module.
+- `'lazy-once'`: Generates a single lazy-loadable chunk that can satisfy all calls to `import()`. The chunk will be fetched on the first call to `import()`, and subsequent calls to `import()` will use the same network response. Note that this only makes sense in the case of a partially dynamic statement, e.g. `import("./locales/${language}.json")`, where multiple module paths that can potentially be requested.
+- `'eager'`：Generates no extra chunk. All modules are included in the current chunk and no additional network requests are made. A Promise is still returned but is already resolved. In contrast to a static import, the module isn't executed until the call to `import()` is made.
+- `'weak'`：Tries to load the module if the module function has already been loaded in some other way (e.g. another chunk imported it or a script containing the module was loaded). A Promise is still returned, but only successfully resolves if the chunks are already on the client. If the module is not available, the Promise is rejected. A network request will never be performed. This is useful for universal rendering when required chunks are always manually served in initial requests (embedded within the page), but not in cases where app navigation will trigger an import not initially served.
+
+##### webpackPrefetch
+
+<ApiMeta addedVersion="0.4.5" />
+
+- **Type:**
+  - `number`: chunk prefetch priority
+  - `boolean`: `false` means not to prefetch, `true` means priority is `0`
+
+Tells the browser that the resource is probably needed for some navigation in the future, see [Prefetching/Preloading modules](/guide/optimization/code-splitting#prefetchingpreloading-modules) for more details.
+
+##### webpackPreload
+
+<ApiMeta addedVersion="0.4.5" />
+
+- **Type:**
+  - `number`: chunk preload priority
+  - `boolean`: `false` means not to preload, `true` means priority is `0`
+
+Tells the browser that the resource might be needed during the current navigation, , see [Prefetching/Preloading modules](/guide/optimization/code-splitting#prefetchingpreloading-modules) for more details.
+
+##### webpackChunkName
+
+- **Type:**: `string`
+
+A name for the new chunk.
+
+##### webpackFetchPriority
+
+<ApiMeta addedVersion="1.0.0" />
+
+- **Type:**: `"low" | "high" | "auto"`
+
+Set [`fetchPriority`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/fetchPriority) for specific dynamic imports. It's also possible to set a global default value for all dynamic imports by using the `module.parser.javascript.dynamicImportFetchPriority` option.
+
+##### webpackInclude
+
+<ApiMeta addedVersion="1.0.0" />
+
+- **Type:**: `Regexp`
+
+A regular expression that will be matched against during import resolution. Only modules that match **will be bundled**.
+
+##### webpackExclude
+
+<ApiMeta addedVersion="1.0.0" />
+
+- **Type:**: `Regexp`
+
+A regular expression that will be matched against during import resolution. Any module that matches **will not be bundled**.
+
+:::info
+Note that `webpackInclude` and `webpackExclude` options do not interfere with the prefix. eg: `./locale`.
+:::
+
+## CommonJS
+
+Rspack is also support `CommonJS` syntax natively, you can use `require` and `module.exports` methods.
+
+### require
+
+Synchronously retrieve the exports from another module.
+
+```js
+require(dependency: string);
+```
+
+### require.resolve
+
+Synchronously retrieve a module's ID. It is recommended to treat it as an opaque value which can only be used with `require.cache[id]` or `__webpack_require__(id)` (best to avoid such usage).
+
+```js
+require.resolve(dependency: string);
+```
+
+:::warning
+Module ID's type can be a number or a string depending on the `optimization.moduleIds` configuration.
+:::
+
+### require.cache
+
+Multiple requires of the same module result in only one module execution and only one export. Therefore a cache in the runtime exists. Removing values from this cache causes new module execution and a new export.
+
+```js
+var d1 = require('dependency');
+require('dependency') === d1;
+delete require.cache[require.resolve('dependency')];
+require('dependency') !== d1;
+```
+
+### require.context
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+`require.context` is a function specific to webpack that allows you to dynamically require a set of modules.
+
+You can use `require.context` in your code, and Rspack will parse and reference the matching modules during the build process.
+
+:::tip
+The return value of `require.context` is the same as [import.meta.webpackContext](/api/modules/module-variables#importmetawebpackcontext). We recommend using `import.meta.webpackContext`, which is more powerful.
+:::
+
+- **Type:**
+
+```ts
+function requireContext(
+  /**
+   * A directory to search.
+   */
+  directory: string,
+  /**
+   * Whether subdirectories should be searched.
+   * @default true
+   */
+  includeSubdirs?: boolean,
+  /**
+   * A regular expression to match files.
+   * @default /^\.\/.*$/ (any file)
+   */
+  filter?: RegExp,
+  /**
+   * Module loading mode.
+   * @default 'sync'
+   */
+  mode?: 'sync' | 'eager' | 'weak' | 'lazy' | 'lazy-once',
+): Context;
+```
+
+- **Example:**
+
+```js
+// Create a context, with files from the test directory that
+// can be required with a request ending with `.test.js`.
+const context = require.context('./test', false, /\.test\.js$/);
+```
+
+```js
+// Create a context with all files in the parent folder and
+// descending folders ending with `.stories.js`.
+const context = require.context('../', true, /\.stories\.js$/);
+```
+
+```js
+// If mode is set to 'lazy', the underlying modules will be loaded asynchronously
+const context = require.context('./locales', true, /\.json$/, 'lazy');
+```
+
+> The arguments passed to `require.context()` must be literals.
+
+## Data URI Module
+
+Rspack supports importing Data URI modules using the `import` and `require` syntax.
+
+**import**
+
+```js
+import DataURI from 'data:text/javascript,export default 42';
+```
+
+**require**
+
+```js
+require('data:text/javascript,module.exports = 42');
+```
+
+In addition, Base64 encoded requests are also supported:
+
+```js
+const {
+  number,
+  fn,
+} = require('data:text/javascript;charset=utf-8;base64,ZXhwb3J0IGNvbnN0IG51bWJlciA9IDQyOwpleHBvcnQgZnVuY3Rpb24gZm4oKSB7CiAgcmV0dXJuICJIZWxsbyB3b3JsZCI7Cn0=');
+```
+
+::: tip
+The Data URI module can be used as a method to implement virtual modules, such as combining with a Loader to dynamically load custom modules at runtime.
+:::

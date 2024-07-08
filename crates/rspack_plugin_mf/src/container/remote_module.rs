@@ -3,14 +3,16 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_core::{
+  impl_module_meta_info, impl_source_map_config,
   rspack_sources::{RawSource, Source, SourceExt},
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
-  Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
+  FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_util::source_map::SourceMapKind;
 
 use super::{
   fallback_dependency::FallbackDependency,
@@ -20,6 +22,7 @@ use crate::{
   sharing::share_runtime_module::DataInitInfo, CodeGenerationDataShareInit, ShareInitData,
 };
 
+#[impl_source_map_config]
 #[derive(Debug)]
 pub struct RemoteModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -31,6 +34,10 @@ pub struct RemoteModule {
   external_requests: Vec<String>,
   pub internal_request: String,
   pub share_scope: String,
+  pub remote_key: String,
+  factory_meta: Option<FactoryMeta>,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 impl RemoteModule {
@@ -39,6 +46,7 @@ impl RemoteModule {
     external_requests: Vec<String>,
     internal_request: String,
     share_scope: String,
+    remote_key: String,
   ) -> Self {
     let readable_identifier = format!("remote {}", &request);
     let lib_ident = format!("webpack/container/remote/{}", &request);
@@ -57,6 +65,11 @@ impl RemoteModule {
       external_requests,
       internal_request,
       share_scope,
+      remote_key,
+      factory_meta: None,
+      build_info: None,
+      build_meta: None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 }
@@ -87,12 +100,18 @@ impl DependenciesBlock for RemoteModule {
 
 #[async_trait]
 impl Module for RemoteModule {
-  fn size(&self, _source_type: &SourceType) -> f64 {
+  impl_module_meta_info!();
+
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     6.0
   }
 
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Remote
+  }
+
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
   }
 
   fn source_types(&self) -> &[SourceType] {
@@ -118,7 +137,8 @@ impl Module for RemoteModule {
   async fn build(
     &mut self,
     build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+    _: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
 
@@ -137,16 +157,13 @@ impl Module for RemoteModule {
       dependencies.push(Box::new(dep));
     }
 
-    Ok(
-      BuildResult {
-        build_info,
-        build_meta: Default::default(),
-        dependencies,
-        blocks: Vec::new(),
-        analyze_result: Default::default(),
-      }
-      .with_empty_diagnostic(),
-    )
+    Ok(BuildResult {
+      build_info,
+      build_meta: Default::default(),
+      dependencies,
+      blocks: Vec::new(),
+      optimization_bailouts: vec![],
+    })
   }
 
   #[allow(clippy::unwrap_in_result)]
@@ -154,9 +171,11 @@ impl Module for RemoteModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut codegen = CodeGenerationResult::default();
-    let module = compilation.module_graph.get_module(&self.dependencies[0]);
+    let module_graph = compilation.get_module_graph();
+    let module = module_graph.get_module_by_dependency_id(&self.dependencies[0]);
     let id = module.and_then(|m| {
       compilation
         .chunk_graph
@@ -174,6 +193,8 @@ impl Module for RemoteModule {
     Ok(codegen)
   }
 }
+
+impl_empty_diagnosable_trait!(RemoteModule);
 
 impl Hash for RemoteModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

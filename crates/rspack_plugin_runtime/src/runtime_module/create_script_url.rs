@@ -5,16 +5,15 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
-#[derive(Debug, Eq)]
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct CreateScriptUrlRuntimeModule {
   id: Identifier,
 }
 
 impl Default for CreateScriptUrlRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/create_script_url"),
-    }
+    Self::with_default(Identifier::from("webpack/runtime/create_script_url"))
   }
 }
 
@@ -23,25 +22,25 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
-    RawSource::from(format!(
-      r#"
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(
+      RawSource::from(format!(
+        r#"
     {} = function(url){{
       return {};
     }};
     "#,
-      RuntimeGlobals::CREATE_SCRIPT_URL,
-      if compilation.options.output.trusted_types.is_some() {
-        format!(
-          "{}().createScriptURL(url)",
-          RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
-        )
-      } else {
-        "'{url}'".to_string()
-      }
-    ))
-    .boxed()
+        RuntimeGlobals::CREATE_SCRIPT_URL,
+        if compilation.options.output.trusted_types.is_some() {
+          format!(
+            "{}().createScriptURL(url)",
+            RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
+          )
+        } else {
+          "'{url}'".to_string()
+        }
+      ))
+      .boxed(),
+    )
   }
 }
-
-impl_runtime_module!(CreateScriptUrlRuntimeModule);

@@ -9,4 +9,4 @@ version = "0.1.0"
 [dependencies]
 hashlink = { workspace = true }
 serde    = { workspace = true }
-ustr     = { workspace = true, features = ["serialization"] }
+ustr     = { workspace = true, features = ["serde"] }

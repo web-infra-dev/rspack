@@ -1,0 +1,129 @@
+# TypeScript
+
+## 如何使用
+
+通过 [`builtin:swc-loader`](/guide/features/builtin-swc-loader) 可以开启对 TypeScript 的支持。
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        exclude: [/node_modules/],
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+## 仅转译（transpile only）
+
+`builtin:swc-loader` 仅会对源码进行转译，因此你需要使用其他工具（如：tsc）完成对源码的类型检查。
+
+## 开启 isolatedModules
+
+`builtin:swc-loader` 会为每一个模块分开转译，这需要开启 [`isolatedModules`](https://www.typescriptlang.org/tsconfig#isolatedModules) 保证 tsc 对源代码的类型校验。
+而某一些功能，如 [const enums](https://www.typescriptlang.org/docs/handbook/enums.html#const-enums) 则是依赖了对整个项目的分析，因此，这些功能将无法使用。推荐显式地在 `tsconfig.json` 中开启这个选项，以使得 Rspack 的模块处理行为与 IDE 提示或类型检查中保持一致。
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "isolatedModules": true
+  }
+}
+```
+
+## 类型检查
+
+你可以使用 [fork-ts-checker-webpack-plugin](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin) 在编译过程中执行 TypeScript 类型检查。然而，需要注意的是，特别是对于较大的项目，TypeScript 的类型检查可能非常耗时。这意味着类型检查所需的时间可能超过 Rspack 本身的构建时间。
+
+如果你在开发模式下使用该插件，它将不会阻塞构建过程，你可以继续进行构建。但是，在构建模式下，该插件将会阻塞构建，直到类型检查完成，所以可能会导致构建时间变长。
+
+根据你的实际需求，你应该决定是否启用该插件。如果类型检查过程成为构建过程的瓶颈，我们建议使用 TypeScript 的增量构建功能。该功能可以通过仅分析自上次构建以来修改的文件来大大加快类型检查的速度。
+
+要启用 TypeScript 的增量构建，你可以在独立使用 `tsc --incremental` 或者在插件里[使用 incremental mode](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin#enabling-incremental-mode)。
+
+启用增量构建可以帮助减少类型检查的时间，特别是当只有少数文件被修改时。这样，你可以在优化构建过程的同时，不会损失类型检查的好处。
+
+请记住，在你的具体项目中，需要权衡构建速度和类型检查准确性之间的权衡，并据此选择最佳方法。
+
+## JSX/TSX
+
+通过 [`builtin:swc-loader`](/guide/features/builtin-swc-loader) 可以开启对 JSX 和 TSX 的支持。
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: 'ecmascript',
+                jsx: true,
+              },
+              transform: {
+                react: {
+                  pragma: 'React.createElement',
+                  pragmaFrag: 'React.Fragment',
+                  throwIfNamespace: true,
+                  development: false,
+                  useBuiltins: false,
+                },
+              },
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+## Alias
+
+点击 [resolve.tsConfig](/config/resolve#resolvetsconfig) 查看详情。
+
+## Client 类型
+
+在 TypeScript 代码中，可以获取到 webpack 或 Rspack 特有的功能，例如 [import.meta.webpackContext](/api/modules/module-variables#importmetawebpackcontext) 的类型。
+
+Rspack 通过 `@rspack/core/module` 提供 Client 模块的类型，你可以通过不同方法来声明它们：
+
+1. 添加 TypeScript reference 指令来声明：
+
+   在全局的 d.ts 声明文件中添加以下内容：
+
+   ```ts title="src/app-env.d.ts"
+   /// <reference types="@rspack/core/module" />
+   ```
+
+   然后便可以在任意 TypeScript 文件中使用：
+
+   ```ts title="src/index.ts"
+   console.log(import.meta.webpackContext); // 如果没有上面的引用声明，TypeScript 将会抛出错误
+   ```
+
+2. 你也可以将 `@rspack/core/module` 添加到 tsconfig.json 的 `types` 字段中。具体可参考 [tsconfig types 文档](https://www.typescriptlang.org/tsconfig/#types)。
+
+   ```json title="tsconfig.json"
+   {
+     "compilerOptions": {
+       "types": ["@rspack/core/module"]
+     }
+   }
+   ```

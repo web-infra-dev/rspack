@@ -8,8 +8,9 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-const util = require("util");
-const truncateArgs = require("../logging/truncateArgs");
+import * as util from "util";
+import { truncateArgs } from "../logging/truncateArgs";
+
 // @ts-expect-error
 export = ({ colors, appendOnly, stream }) => {
 	// @ts-expect-error
@@ -112,26 +113,25 @@ export = ({ colors, appendOnly, stream }) => {
 			else if (currentIndent.length >= 2)
 				currentIndent = currentIndent.slice(0, currentIndent.length - 2);
 		},
-		// eslint-disable-next-line node/no-unsupported-features/node-builtins
+
 		// @ts-expect-error
 		profile: console.profile && (name => console.profile(name)),
-		// eslint-disable-next-line node/no-unsupported-features/node-builtins
+
 		// @ts-expect-error
 		profileEnd: console.profileEnd && (name => console.profileEnd(name)),
 		clear:
 			!appendOnly &&
-			// eslint-disable-next-line node/no-unsupported-features/node-builtins
 			console.clear &&
 			(() => {
 				clearStatusMessage();
-				// eslint-disable-next-line node/no-unsupported-features/node-builtins
+
 				console.clear();
 				writeStatusMessage();
 			}),
 		status: appendOnly
 			? writeColored("<s> ", "", "")
 			: // @ts-expect-error
-			  (name, ...args) => {
+				(name, ...args) => {
 					args = args.filter(Boolean);
 					if (name === undefined && args.length === 0) {
 						clearStatusMessage();
@@ -149,6 +149,6 @@ export = ({ colors, appendOnly, stream }) => {
 						currentStatusMessage = [name, ...args];
 						writeStatusMessage();
 					}
-			  }
+				}
 	};
 };

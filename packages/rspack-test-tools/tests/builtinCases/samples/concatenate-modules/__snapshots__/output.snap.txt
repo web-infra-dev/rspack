@@ -1,0 +1,28 @@
+```js title=main.js
+"use strict";
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./index.js": (function () {
+
+;// CONCATENATED MODULE: ./answer.js
+const answer = 103330;
+
+;// CONCATENATED MODULE: ./index.js
+
+answer;
+
+function index_answer() {}
+
+index_answer();
+
+function test() {}
+
+
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

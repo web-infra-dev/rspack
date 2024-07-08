@@ -1,0 +1,185 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/api/loaders/#the-loader-context" />
+
+# The Loader Context
+
+The loader context represents the properties that are available inside of a loader assigned to the `this` property.
+
+## this.addContextDependency()
+
+```ts
+function addContextDependency(directory: string): void;
+```
+
+Add the directory as a dependency for the loader results so that any changes to the files in the directory can be listened to.
+
+## this.addDependency()
+
+```ts
+function addDependency(file: string): void;
+```
+
+Add a file as a dependency on the loader results so that any changes to them can be listened to. For example, `sass-loader`, `less-loader` use this trick to recompile when the imported style files change.
+
+## this.dependency()
+
+```ts
+function dependency(file: string): void;
+```
+
+Alias of `this.addDependency()`.
+
+## this.addMissingDependency()
+
+```ts
+function addMissingDependency(file: string): void;
+```
+
+Add a non-existent file as a dependency on the loader results to make them listenable.
+
+## this.async()
+
+Tells Rspack that this loader will be called asynchronously. Returns `this.callback`.
+
+## this.cacheable()
+
+A function that sets the cacheable flag:
+
+```ts
+function cacheable(flag: boolean = true): void;
+```
+
+By default, the processing results of the loader are marked as cacheable. Calling this method and passing `false` turns off the loader's ability to cache processing results.
+
+## this.callback()
+
+```ts
+function callback(
+  err: Error | null,
+  content: string | Buffer,
+  sourceMap?: SourceMap,
+  meta?: any,
+): void;
+```
+
+A function that can be called synchronously or asynchronously in order to return multiple results. The expected arguments are:
+
+1. The first parameter must be `Error` or `null`, which marks the current module as a compilation failure.
+2. The second argument is a `string` or `Buffer`, which indicates the contents of the file after the module has been processed by the loader.
+3. The third parameter is a source map that can be processed by the loader.
+4. The fourth parameter is ignored by Rspack and can be anything (e.g. some metadata).
+
+## this.clearDependencies()
+
+```ts
+function clearDependencies(): void;
+```
+
+Removes all dependencies of the loader result.
+
+## this.context
+
+The directory where the current module is located.
+
+## this.data
+
+A data object shared between the pitch and the normal phase.
+
+## this.emitError()
+
+```ts
+function emitError(error: Error): void;
+```
+
+Emit an error. Unlike `throw` and `this.callback(err)` in the loader, it does not mark the current module as a compilation failure, it just adds an error to Rspack's Compilation and displays it on the command line at the end of this compilation.
+
+## this.emitWarning(warning: Error)
+
+```ts
+function emitWarning(warning: Error): void;
+```
+
+Emit a warning.
+
+## this.emitFile()
+
+```ts
+function emitFile(
+  name: string,
+  content: Buffer | string,
+  sourceMap: SourceMap,
+): void;
+```
+
+Emit a file.
+
+## this.getOptions(schema)
+
+Extracts the given loader option, accepting an optional JSON schema as an argument.
+
+## this.getResolve()
+
+```ts
+function getResolve(options: ResolveOptions): resolve;
+```
+
+Create a resolver like `this.resolve`.
+
+## this.resolve()
+
+```ts
+function resolve(
+  context: string,
+  request: string,
+  callback: (err: Error | null, result: string) => void,
+): void;
+```
+
+Resolve a request.
+
+- `context` must be the absolute path to a directory. This directory is used as the starting location for resolving.
+- `request` is the request to be resolved.
+- `callback` is a callback function that gives the resolved path.
+
+## this.mode
+
+The value of [`mode`](/config/mode) is read when Rspack is run.
+
+The possible values are: `'production'`, `'development'`, `'none'`
+
+## this.target
+
+The value of [`target`](/config/target) is read when Rspack is run.
+
+## this.resource
+
+The path string of the current module. For example `'/abc/resource.js?query#hash'`.
+
+## this.resourcePath
+
+The path string of the current module, excluding the query and fragment parameters. For example `'/abc/resource.js?query#hash'` in `'/abc/resource.js'`.
+
+## this.resourceQuery
+
+The query parameter for the path string of the current module. For example `'?query'` in `'/abc/resource.js?query#hash'`.
+
+## this.resourceFragment
+
+The fragment parameter of the current module's path string. For example `'#hash'` in `'/abc/resource.js?query#hash'`.
+
+## this.rootContext
+
+The directory where the project is configured in config
+
+## this.sourceMap
+
+Whether a source map should be generated.
+
+## this.getLogger()
+
+```ts
+function getLogger(name?: string): void;
+```
+
+Get the logger of this compilation, through which messages can be logged.

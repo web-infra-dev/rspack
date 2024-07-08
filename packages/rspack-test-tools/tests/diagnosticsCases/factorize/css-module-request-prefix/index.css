@@ -1,0 +1,5 @@
+@import "~pkg";
+
+.class {
+  background-image: url(~pkg/img.png);
+}

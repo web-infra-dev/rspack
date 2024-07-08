@@ -1,1 +1,0 @@
-module.exports = [[/Expression expected/]];

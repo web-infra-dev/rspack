@@ -1,0 +1,13 @@
+# Case dispose-removed-chunk: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: a_js.CURRENT_HASH.js
+- Bundle: bundle.js
+
+## Manifest
+
+
+## Update

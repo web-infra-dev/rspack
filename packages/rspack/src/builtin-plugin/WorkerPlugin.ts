@@ -1,18 +1,15 @@
-import { BuiltinPlugin } from "@rspack/binding";
-import {
-	BuiltinPluginName,
-	RspackBuiltinPlugin,
-	createBuiltinPlugin
-} from "./base";
+import { BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
+
+import { Compiler } from "../Compiler";
 import {
 	ChunkLoading,
 	OutputModule,
 	WasmLoading,
 	WorkerPublicPath
 } from "../config";
-import { Compiler } from "../Compiler";
 import { EnableChunkLoadingPlugin } from "./EnableChunkLoadingPlugin";
 import { EnableWasmLoadingPlugin } from "./EnableWasmLoadingPlugin";
+import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
 export class WorkerPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.WorkerPlugin;

@@ -58,10 +58,10 @@ build/Release
 # Dependency directories
 node_modules/
 !scripts/node_modules/
-!webpack-examples/*/node_modules
-!webpack-test/*/**/node_modules
+!tests/webpack-examples/*/node_modules
+!tests/webpack-test/*/**/node_modules
 !packages/rspack-cli/tests/**/node_modules
-!packages/rspack/tests/**/node_modules
+!packages/rspack-test-tools/tests/**/node_modules
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)
@@ -111,7 +111,10 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
+
+# Dist files
 dist
+compiled
 webpack-dist
 
 # Gatsby files
@@ -165,17 +168,13 @@ webpack-dist
 
 .pnpm-store/
 
-!packages/rspack/tests/configCases/target
-packages/rspack/tests/js
-packages/rspack/tests/fixtures/temp-*
+!packages/rspack-test-tools/tests/configCases/target
 packages/playground/temp
+packages/*/tests/js
 
-# Ignore local integrate debug file
-packages/rspack/tests/*.debug.[tj]s
 
 # Benchmark
 /github/
-/benchcases/three
 
 # profile
 profile.json
@@ -188,8 +187,7 @@ esbuild.cpuprofile
 
 
 # this node_modules is used for tree-shaking snapshot
-!crates/rspack/tests/tree-shaking/node_modules
-!packages/rspack/tests/configCases/less/resolve/node_modules
+!packages/rspack-test-tools/tests/treeShakingCases/node_modules
 
 # Binding artifacts
 artifacts
@@ -211,17 +209,25 @@ justfile
 ## Angular Incremental Build Cache
 **/.angular/
 # align to webpack
-/webpack-test/js
-/webpack-test/browsertest/js
-/webpack-test/fixtures/temp-*
-/webpack-test/temp
-/webpack-test/ChangesAndRemovals
-/webpack-test/**/dev-defaults.webpack.lock
-!/webpack-test/**/target
-!/webpack-test/cases/**/node_modules
+tests/webpack-test/js
+tests/webpack-test/browsertest/js
+tests/webpack-test/fixtures/temp-*
+tests/webpack-test/temp
+tests/webpack-test/ChangesAndRemovals
+tests/webpack-test/**/dev-defaults.webpack.lock
+!tests/webpack-test/**/target
+!tests/webpack-test/cases/**/node_modules
+
+tests/plugin-test/css-extract/js
+!tests/plugin-test/css-extract/**/node_modules
 
 /webpack-examples/**/dist
 
 smoke-example
 diff_output
 
+# .swc plugins cache
+.swc/
+
+# api-extractor temp folder (https://api-extractor.com/pages/configs/api-extractor_json/#apireportreporttempfolder)
+/packages/*/temp

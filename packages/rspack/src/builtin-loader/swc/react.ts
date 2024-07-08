@@ -1,4 +1,4 @@
-import { RawReactOptions } from "@rspack/binding";
+import type { RawReactOptions } from "@rspack/binding";
 
 function resolveReact(react: ReactOptions): RawReactOptions {
 	return react ?? {};

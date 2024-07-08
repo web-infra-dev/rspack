@@ -1,40 +1,6 @@
 import * as binding from "@rspack/binding";
-import { Compiler, RspackPluginInstance } from "..";
 
-// TODO: workaround for https://github.com/napi-rs/napi-rs/pull/1690
-export enum BuiltinPluginName {
-	DefinePlugin = "DefinePlugin",
-	ProvidePlugin = "ProvidePlugin",
-	BannerPlugin = "BannerPlugin",
-	ProgressPlugin = "ProgressPlugin",
-	EntryPlugin = "EntryPlugin",
-	ExternalsPlugin = "ExternalsPlugin",
-	NodeTargetPlugin = "NodeTargetPlugin",
-	ElectronTargetPlugin = "ElectronTargetPlugin",
-	EnableChunkLoadingPlugin = "EnableChunkLoadingPlugin",
-	EnableLibraryPlugin = "EnableLibraryPlugin",
-	EnableWasmLoadingPlugin = "EnableWasmLoadingPlugin",
-	CommonJsChunkFormatPlugin = "CommonJsChunkFormatPlugin",
-	ArrayPushCallbackChunkFormatPlugin = "ArrayPushCallbackChunkFormatPlugin",
-	ModuleChunkFormatPlugin = "ModuleChunkFormatPlugin",
-	HotModuleReplacementPlugin = "HotModuleReplacementPlugin",
-	HttpExternalsRspackPlugin = "HttpExternalsRspackPlugin",
-	CopyRspackPlugin = "CopyRspackPlugin",
-	HtmlRspackPlugin = "HtmlRspackPlugin",
-	SwcJsMinimizerRspackPlugin = "SwcJsMinimizerRspackPlugin",
-	SwcCssMinimizerRspackPlugin = "SwcCssMinimizerRspackPlugin",
-	LimitChunkCountPlugin = "LimitChunkCountPlugin",
-	WorkerPlugin = "WorkerPlugin",
-	WebWorkerTemplatePlugin = "WebWorkerTemplatePlugin",
-	MergeDuplicateChunksPlugin = "MergeDuplicateChunksPlugin",
-	SplitChunksPlugin = "SplitChunksPlugin",
-	OldSplitChunksPlugin = "OldSplitChunksPlugin",
-	ShareRuntimePlugin = "ShareRuntimePlugin",
-	ContainerPlugin = "ContainerPlugin",
-	ContainerReferencePlugin = "ContainerReferencePlugin",
-	ProvideSharedPlugin = "ProvideSharedPlugin",
-	ConsumeSharedPlugin = "ConsumeSharedPlugin"
-}
+import { Compiler, RspackPluginInstance } from "..";
 
 type AffectedHooks = keyof Compiler["hooks"];
 
@@ -58,8 +24,8 @@ export function canInherentFromParent(affectedHooks?: AffectedHooks): boolean {
 }
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
-	abstract raw(compiler: Compiler): binding.BuiltinPlugin | null;
-	abstract name: BuiltinPluginName;
+	abstract raw(compiler: Compiler): binding.BuiltinPlugin | undefined;
+	abstract name: binding.BuiltinPluginName;
 
 	affectedHooks?: AffectedHooks;
 	apply(compiler: Compiler) {
@@ -72,7 +38,7 @@ export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 }
 
 export function createBuiltinPlugin<R>(
-	name: BuiltinPluginName,
+	name: binding.BuiltinPluginName,
 	options: R
 ): binding.BuiltinPlugin {
 	return {
@@ -82,9 +48,9 @@ export function createBuiltinPlugin<R>(
 }
 
 export function create<T extends any[], R>(
-	name: BuiltinPluginName,
+	name: binding.BuiltinPluginName,
 	resolve: (...args: T) => R,
-	// `affectedHooks` is used to inform `createChildCompile` about which builtin plugin can be reversed.
+	// `affectedHooks` is used to inform `createChildCompile` about which builtin plugin can be reserved.
 	// However, this has a drawback as it doesn't represent the actual condition but merely serves as an indicator.
 	affectedHooks?: AffectedHooks
 ) {

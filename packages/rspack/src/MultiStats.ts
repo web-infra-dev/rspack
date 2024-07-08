@@ -9,8 +9,8 @@
  */
 
 import { KnownCreateStatsOptionsContext } from "./Compilation";
-import { StatsCompilation } from "./stats/statsFactoryUtils";
 import { Stats } from "./Stats";
+import { StatsCompilation } from "./stats/statsFactoryUtils";
 import { indent } from "./util";
 import * as identifierUtils from "./util/identifier";
 
@@ -53,8 +53,8 @@ export default class MultiStats {
 					...(typeof childOptions === "string"
 						? { preset: childOptions }
 						: childOptions && typeof childOptions === "object"
-						? childOptions
-						: undefined)
+							? childOptions
+							: undefined)
 				},
 				context
 			);

@@ -31,16 +31,16 @@ impl<Item: Any> Database<Item> {
     }
   }
 
+  pub fn len(&self) -> usize {
+    self.inner.len()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.inner.is_empty()
+  }
+
   pub fn contains(&self, id: &Ukey<Item>) -> bool {
     self.inner.contains_key(id)
-  }
-
-  pub fn get(&self, id: &Ukey<Item>) -> Option<&Item> {
-    self.inner.get(id)
-  }
-
-  pub fn get_mut(&mut self, id: &Ukey<Item>) -> Option<&mut Item> {
-    self.inner.get_mut(id)
   }
 
   pub fn remove(&mut self, id: &Ukey<Item>) -> Option<Item> {
@@ -55,14 +55,14 @@ impl<Item: Any> Database<Item> {
     self
       .inner
       .get(id)
-      .unwrap_or_else(|| panic!("Not found {id:?}"))
+      .unwrap_or_else(|| panic!("Chunk({id:?}) not found in ChunkGroup: {self:?}"))
   }
 
   pub fn expect_get_mut(&mut self, id: &Ukey<Item>) -> &mut Item {
     self
       .inner
       .get_mut(id)
-      .unwrap_or_else(|| panic!("Not found {id:?}"))
+      .unwrap_or_else(|| panic!("Chunk({id:?}) not found in ChunkGroup"))
   }
 
   pub fn values(&self) -> impl Iterator<Item = &Item> {
@@ -122,9 +122,9 @@ impl<Item: Default + DatabaseItem + 'static> Database<Item> {
 }
 
 impl<Item: DatabaseItem> Database<Item> {
-  pub fn add(&mut self, item: Item) {
+  pub fn add(&mut self, item: Item) -> &mut Item {
     debug_assert!(self.inner.get(&item.ukey()).is_none());
     let ukey = item.ukey();
-    self.inner.insert(ukey, item);
+    self.inner.entry(ukey).or_insert(item)
   }
 }

@@ -8,7 +8,8 @@ use rspack_identifier::Identifier;
 
 use super::utils::get_undo_path;
 
-#[derive(Debug, Eq)]
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct AutoPublicPathRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -16,10 +17,7 @@ pub struct AutoPublicPathRuntimeModule {
 
 impl Default for AutoPublicPathRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/auto_public_path"),
-      chunk: None,
-    }
+    Self::with_default(Identifier::from("webpack/runtime/auto_public_path"), None)
   }
 }
 
@@ -36,12 +34,9 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = self.chunk.expect("The chunk should be attached");
-    let chunk = compilation
-      .chunk_by_ukey
-      .get(&chunk)
-      .expect("Chunk is not found, make sure you had attach chunkUkey successfully.");
+    let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
     let filename = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,
@@ -55,12 +50,14 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
           .get(&SourceType::JavaScript)
           .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
       ),
-    );
-    RawSource::from(auto_public_path_template(
-      &filename,
-      &compilation.options.output,
-    ))
-    .boxed()
+    )?;
+    Ok(
+      RawSource::from(auto_public_path_template(
+        &filename,
+        &compilation.options.output,
+      ))
+      .boxed(),
+    )
   }
 }
 
@@ -94,7 +91,7 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
           var scripts = document.getElementsByTagName("script");
               if (scripts.length) {{
                 var i = scripts.length - 1;
-                while (i > -1 && !scriptUrl) scriptUrl = scripts[i--].src;
+                while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
               }}
         }}
       }}
@@ -112,5 +109,3 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
     "#
   )
 }
-
-impl_runtime_module!(AutoPublicPathRuntimeModule);

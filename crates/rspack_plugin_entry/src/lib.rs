@@ -1,59 +1,63 @@
 #![feature(let_chains)]
 
+use async_trait::async_trait;
 use rspack_core::{
-  BoxDependency, Compilation, CompilationArgs, CompilationParams, Context, DependencyType,
-  EntryDependency, EntryOptions, MakeParam, Plugin, PluginCompilationHookOutput, PluginContext,
-  PluginMakeHookOutput,
+  ApplyContext, BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake,
+  CompilerOptions, Context, DependencyType, EntryDependency, EntryOptions, Plugin, PluginContext,
 };
+use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook};
 
+#[plugin]
 #[derive(Debug)]
 pub struct EntryPlugin {
+  dependency: BoxDependency,
   options: EntryOptions,
-  entry_request: String,
-  context: Context,
 }
 
 impl EntryPlugin {
   pub fn new(context: Context, entry_request: String, options: EntryOptions) -> Self {
-    Self {
-      options,
+    let dependency: BoxDependency = Box::new(EntryDependency::new(
       entry_request,
       context,
-    }
+      options.name.is_none(),
+    ));
+    Self::new_inner(dependency, options)
   }
 }
 
-#[async_trait::async_trait]
-impl Plugin for EntryPlugin {
-  async fn compilation(
-    &self,
-    args: CompilationArgs<'_>,
-    params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    args
-      .compilation
-      .set_dependency_factory(DependencyType::Entry, params.normal_module_factory.clone());
-    Ok(())
-  }
+#[plugin_hook(CompilerCompilation for EntryPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(DependencyType::Entry, params.normal_module_factory.clone());
+  Ok(())
+}
 
-  async fn make(
+#[plugin_hook(CompilerMake for EntryPlugin)]
+async fn make(&self, compilation: &mut Compilation) -> Result<()> {
+  let this = &self.inner;
+  compilation
+    .add_entry(this.dependency.clone(), this.options.clone())
+    .await?;
+  Ok(())
+}
+
+#[async_trait]
+impl Plugin for EntryPlugin {
+  fn apply(
     &self,
-    _ctx: PluginContext,
-    compilation: &mut Compilation,
-    param: &mut MakeParam,
-  ) -> PluginMakeHookOutput {
-    if let Some(state) = compilation.options.get_incremental_rebuild_make_state()
-      && !state.is_first()
-    {
-      return Ok(());
-    }
-    let dependency: BoxDependency = Box::new(EntryDependency::new(
-      self.entry_request.clone(),
-      self.context.clone(),
-    ));
-    let dependency_id = *dependency.id();
-    compilation.add_entry(dependency, self.options.clone());
-    param.add_force_build_dependency(dependency_id, None);
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx.context.compiler_hooks.make.tap(make::new(self));
     Ok(())
   }
 }

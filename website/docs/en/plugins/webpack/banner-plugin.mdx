@@ -1,0 +1,122 @@
+import { Table } from '@builtIns';
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# BannerPlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+```js
+new rspack.BannerPlugin(options);
+```
+
+Adds a banner to the top or bottom of each generated chunk.
+
+## Options
+
+- **Type:**
+
+```ts
+type BannerContent = string;
+type BannerRules = string | RegExp | Array<string | RegExp>;
+type BannerPluginOptions = {
+  banner: BannerContent;
+  entryOnly?: boolean;
+  footer?: boolean;
+  raw?: boolean;
+  stage?: number;
+  test?: BannerRules;
+  include?: BannerRules;
+  exclude?: BannerRules;
+};
+type BannerPluginArgument = BannerContent | BannerPluginOptions;
+```
+
+- **Default:** `undefined`
+
+<Table
+  header={[
+    {
+      name: 'Name',
+      key: 'name',
+    },
+    {
+      name: 'Type',
+      key: 'type',
+    },
+    {
+      name: 'Default',
+      key: 'default',
+    },
+    {
+      name: 'Description',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`banner`',
+      type: '`string`',
+      default: 'undefined',
+      description: 'Specifies the banner, it will be wrapped in a comment.',
+    },
+    {
+      name: '`entryOnly`',
+      type: '`boolean|undefined`',
+      default: 'undefined',
+      description:
+        'If true, the banner will only be added to the entry chunks.',
+    },
+    {
+      name: '`footer`',
+      type: '`boolean|undefined`',
+      default: 'undefined',
+      description: 'If true, banner will be placed at the end of the output.',
+    },
+    {
+      name: '`raw`',
+      type: '`boolean|undefined`',
+      default: 'undefined',
+      description: 'If true, banner will not be wrapped in a comment.',
+    },
+    {
+      name: '`stage`',
+      type: '`number|undefined`',
+      default: '`PROCESS_ASSETS_STAGE_ADDITIONS`(-100)',
+      description:
+        'The stage of the compilation in which the banner should be injected.',
+    },
+    {
+      name: '`test`',
+      type: '`BannerRules|undefined`',
+      default: 'undefined',
+      description: 'Include all modules that pass test assertion.',
+    },
+    {
+      name: '`include`',
+      type: '`BannerRules|undefined`',
+      default: 'undefined',
+      description: 'Include all modules matching any of these conditions.',
+    },
+    {
+      name: '`exclude`',
+      type: '`BannerRules|undefined`',
+      default: 'undefined',
+      description: 'Exclude all modules matching any of these conditions.',
+    },
+  ]}
+/>
+
+## Examples
+
+Add a banner to the bottom of each chunk file.
+
+```ts title="rspack.config.js"
+module.exports = {
+  plugins: [
+    new rspack.BannerPlugin({
+      banner: 'hello world',
+      footer: true,
+    }),
+  ],
+};
+```

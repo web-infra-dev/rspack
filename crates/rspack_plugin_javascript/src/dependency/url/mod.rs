@@ -4,7 +4,7 @@ use rspack_core::{
   ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
   UsedByExports,
 };
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 #[derive(Debug, Clone)]
 pub struct URLDependency {
@@ -13,7 +13,7 @@ pub struct URLDependency {
   outer_start: u32,
   outer_end: u32,
   id: DependencyId,
-  request: JsWord,
+  request: Atom,
   span: Option<ErrorSpan>,
   used_by_exports: Option<UsedByExports>,
   relative: bool,
@@ -25,7 +25,7 @@ impl URLDependency {
     end: u32,
     outer_start: u32,
     outer_end: u32,
-    request: JsWord,
+    request: Atom,
     span: Option<ErrorSpan>,
     relative: bool,
   ) -> Self {
@@ -44,10 +44,6 @@ impl URLDependency {
 }
 
 impl Dependency for URLDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "URLDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -126,6 +122,10 @@ impl DependencyTemplate for URLDependency {
         None,
       );
     }
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

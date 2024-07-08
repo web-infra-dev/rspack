@@ -12,10 +12,16 @@ pub struct ContainerEntryDependency {
   pub exposes: Vec<(String, ExposeOptions)>,
   pub share_scope: String,
   resource_identifier: String,
+  pub(crate) enhanced: bool,
 }
 
 impl ContainerEntryDependency {
-  pub fn new(name: String, exposes: Vec<(String, ExposeOptions)>, share_scope: String) -> Self {
+  pub fn new(
+    name: String,
+    exposes: Vec<(String, ExposeOptions)>,
+    share_scope: String,
+    enhanced: bool,
+  ) -> Self {
     let resource_identifier = format!("container-entry-{}", &name);
     Self {
       id: DependencyId::new(),
@@ -23,15 +29,12 @@ impl ContainerEntryDependency {
       exposes,
       share_scope,
       resource_identifier,
+      enhanced,
     }
   }
 }
 
 impl Dependency for ContainerEntryDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "ContainerEntryDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

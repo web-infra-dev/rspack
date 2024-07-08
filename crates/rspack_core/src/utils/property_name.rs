@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
 pub static SAFE_IDENTIFIER: Lazy<Regex> =
@@ -68,7 +68,7 @@ pub fn property_name(prop: &str) -> Result<Cow<str>> {
     Ok(Cow::from(prop))
   } else {
     serde_json::to_string(prop)
-      .map_err(|e| internal_error!(e.to_string()))
+      .map_err(|e| error!(e.to_string()))
       .map(Cow::from)
   }
 }

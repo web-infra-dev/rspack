@@ -1,23 +1,27 @@
 #![allow(clippy::unwrap_used)]
 
+mod legacy_case;
 mod visit;
+
 use std::fmt::Debug;
 
 use handlebars::{Context, Helper, HelperResult, Output, RenderContext, Template};
+use heck::{ToKebabCase, ToLowerCamelCase, ToSnakeCase};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Deserialize;
 use swc_core::{
-  common::{util::take::Take, BytePos, Span, SyntaxContext, DUMMY_SP},
+  common::{errors::HANDLER, util::take::Take, BytePos, Span, SyntaxContext, DUMMY_SP},
   ecma::{
     ast::{
-      Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportSpecifier, Module,
-      ModuleDecl, ModuleExportName, ModuleItem, Str,
+      Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
+      ImportSpecifier, Module, ModuleDecl, ModuleExportName, ModuleItem, Str,
     },
-    atoms::JsWord,
+    atoms::Atom,
     visit::{as_folder, Fold, VisitMut, VisitWith},
   },
 };
 
+use crate::legacy_case::{identifier_to_legacy_kebab_case, identifier_to_legacy_snake_case};
 use crate::visit::IdentComponent;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -76,13 +80,16 @@ const CUSTOM_JS: &str = "CUSTOM_JS_NAME";
 const CUSTOM_STYLE: &str = "CUSTOM_STYLE";
 const CUSTOM_STYLE_NAME: &str = "CUSTOM_STYLE_NAME";
 
+/// Panic:
+///
+/// Panics in sometimes if [swc_core::common::errors::HANDLER] is not provided.
 pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   let mut renderer = handlebars::Handlebars::new();
 
   renderer.register_helper(
     "kebabCase",
     Box::new(
-      |helper: &Helper<'_, '_>,
+      |helper: &Helper<'_>,
        _: &'_ handlebars::Handlebars<'_>,
        _: &'_ Context,
        _: &mut RenderContext<'_, '_>,
@@ -92,7 +99,83 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
           .param(0)
           .and_then(|v| v.value().as_str())
           .unwrap_or("");
-        out.write(param.camel_to_kebab().as_ref())?;
+        out.write(param.to_kebab_case().as_ref())?;
+        Ok(())
+      },
+    ),
+  );
+
+  renderer.register_helper(
+    "legacyKebabCase",
+    Box::new(
+      |helper: &Helper<'_>,
+       _: &'_ handlebars::Handlebars<'_>,
+       _: &'_ Context,
+       _: &mut RenderContext<'_, '_>,
+       out: &mut dyn Output|
+       -> HelperResult {
+        let param = helper
+          .param(0)
+          .and_then(|v| v.value().as_str())
+          .unwrap_or("");
+        out.write(identifier_to_legacy_kebab_case(param).as_ref())?;
+        Ok(())
+      },
+    ),
+  );
+
+  renderer.register_helper(
+    "camelCase",
+    Box::new(
+      |helper: &Helper<'_>,
+       _: &'_ handlebars::Handlebars<'_>,
+       _: &'_ Context,
+       _: &mut RenderContext<'_, '_>,
+       out: &mut dyn Output|
+       -> HelperResult {
+        let param = helper
+          .param(0)
+          .and_then(|v| v.value().as_str())
+          .unwrap_or("");
+        out.write(param.to_lower_camel_case().as_ref())?;
+        Ok(())
+      },
+    ),
+  );
+
+  renderer.register_helper(
+    "snakeCase",
+    Box::new(
+      |helper: &Helper<'_>,
+       _: &'_ handlebars::Handlebars<'_>,
+       _: &'_ Context,
+       _: &mut RenderContext<'_, '_>,
+       out: &mut dyn Output|
+       -> HelperResult {
+        let param = helper
+          .param(0)
+          .and_then(|v| v.value().as_str())
+          .unwrap_or("");
+        out.write(param.to_snake_case().as_ref())?;
+        Ok(())
+      },
+    ),
+  );
+
+  renderer.register_helper(
+    "legacySnakeCase",
+    Box::new(
+      |helper: &Helper<'_>,
+       _: &'_ handlebars::Handlebars<'_>,
+       _: &'_ Context,
+       _: &mut RenderContext<'_, '_>,
+       out: &mut dyn Output|
+       -> HelperResult {
+        let param = helper
+          .param(0)
+          .and_then(|v| v.value().as_str())
+          .unwrap_or("");
+        out.write(identifier_to_legacy_snake_case(param).as_ref())?;
         Ok(())
       },
     ),
@@ -101,7 +184,7 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   renderer.register_helper(
     "upperCase",
     Box::new(
-      |helper: &Helper<'_, '_>,
+      |helper: &Helper<'_>,
        _: &'_ handlebars::Handlebars<'_>,
        _: &'_ Context,
        _: &mut RenderContext<'_, '_>,
@@ -120,7 +203,7 @@ pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
   renderer.register_helper(
     "lowerCase",
     Box::new(
-      |helper: &Helper<'_, '_>,
+      |helper: &Helper<'_>,
        _: &'_ handlebars::Handlebars<'_>,
        _: &'_ Context,
        _: &mut RenderContext<'_, '_>,
@@ -200,26 +283,24 @@ impl<'a> ImportPlugin<'a> {
       .unwrap_or(false);
 
     let transformed_name = if config.camel_to_dash_component_name.unwrap_or(true) {
-      name.camel_to_kebab()
+      name.to_kebab_case()
     } else {
       name.clone()
     };
 
     let path = if let Some(transform) = &config.custom_name {
       match transform {
-        CustomTransform::Fn(f) => f(name.clone()),
-        CustomTransform::Tpl(_) => Some(
-          self
-            .renderer
-            .render(
-              format!("{}{}", &config.library_name, CUSTOM_JS).as_str(),
-              &render_context(name.clone()),
-            )
-            .unwrap(),
-        ),
+        CustomTransform::Fn(f) => Ok(f(name.clone())),
+        CustomTransform::Tpl(_) => self
+          .renderer
+          .render(
+            format!("{}{}", &config.library_name, CUSTOM_JS).as_str(),
+            &render_context(name.clone()),
+          )
+          .map(Some),
       }
     } else {
-      Some(format!(
+      Ok(Some(format!(
         "{}/{}/{}",
         &config.library_name,
         config
@@ -227,7 +308,17 @@ impl<'a> ImportPlugin<'a> {
           .as_ref()
           .unwrap_or(&"lib".to_string()),
         transformed_name
-      ))
+      )))
+    };
+
+    let path = match path {
+      Ok(p) => p,
+      Err(e) => {
+        HANDLER.with(|handler| {
+          handler.err(&e.to_string());
+        });
+        None
+      }
     };
 
     if path.is_none() {
@@ -399,7 +490,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
                 BytePos::DUMMY,
                 SyntaxContext::from_u32(js_source.mark),
               ),
-              sym: JsWord::from(js_source.as_name.unwrap_or(js_source.default_spec).as_str()),
+              sym: Atom::from(js_source.as_name.unwrap_or(js_source.default_spec).as_str()),
               optional: false,
             },
           })]
@@ -409,7 +500,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
             imported: if js_source.as_name.is_some() {
               Some(ModuleExportName::Ident(Ident {
                 span: DUMMY_SP,
-                sym: JsWord::from(js_source.default_spec.as_str()),
+                sym: Atom::from(js_source.default_spec.as_str()),
                 optional: false,
               }))
             } else {
@@ -421,7 +512,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
                 BytePos::DUMMY,
                 SyntaxContext::from_u32(js_source.mark),
               ),
-              sym: JsWord::from(js_source.as_name.unwrap_or(js_source.default_spec).as_str()),
+              sym: Atom::from(js_source.as_name.unwrap_or(js_source.default_spec).as_str()),
               optional: false,
             },
             is_type_only: false,
@@ -429,11 +520,12 @@ impl<'a> VisitMut for ImportPlugin<'a> {
         },
         src: Box::new(Str {
           span: DUMMY_SP,
-          value: JsWord::from(js_source_ref),
+          value: Atom::from(js_source_ref),
           raw: None,
         }),
         type_only: false,
         with: Default::default(),
+        phase: ImportPhase::default(),
       }));
       body.insert(0, dec);
     }
@@ -444,11 +536,12 @@ impl<'a> VisitMut for ImportPlugin<'a> {
         specifiers: vec![],
         src: Box::new(Str {
           span: DUMMY_SP,
-          value: JsWord::from(css_source),
+          value: Atom::from(css_source),
           raw: None,
         }),
         type_only: false,
         with: Default::default(),
+        phase: ImportPhase::default(),
       }));
       body.insert(0, dec);
     }
@@ -459,40 +552,4 @@ fn render_context(s: String) -> HashMap<&'static str, String> {
   let mut ctx = HashMap::default();
   ctx.insert("member", s);
   ctx
-}
-
-trait KebabCase {
-  fn camel_to_kebab(&self) -> String;
-}
-
-impl<T> KebabCase for T
-where
-  T: AsRef<str>,
-{
-  fn camel_to_kebab(&self) -> String {
-    let s: &str = self.as_ref();
-    let mut output = String::with_capacity(s.len());
-
-    s.chars().enumerate().for_each(|(idx, c)| {
-      if c.is_uppercase() {
-        if idx > 0 {
-          output.push('-');
-        }
-        output.push_str(c.to_lowercase().to_string().as_str());
-      } else {
-        output.push(c);
-      }
-    });
-
-    output
-  }
-}
-
-#[test]
-fn test_kebab_case() {
-  assert_eq!("ABCD".camel_to_kebab(), "a-b-c-d");
-  assert_eq!("AbCd".camel_to_kebab(), "ab-cd");
-  assert_eq!("Aaaa".camel_to_kebab(), "aaaa");
-  assert_eq!("A".camel_to_kebab(), "a");
-  assert_eq!("".camel_to_kebab(), "");
 }

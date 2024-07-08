@@ -1,52 +1,75 @@
-use rspack_core::{AsContextDependency, AsModuleDependency, Dependency};
+use itertools::Itertools;
+use rspack_core::{
+  property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
+  DependencyLocation, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
+  HarmonyExportInitFragment, ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName, DEFAULT_EXPORT,
+};
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
+use rspack_identifier::Identifier;
+use swc_core::atoms::Atom;
 
-pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
-// pub const NAMESPACE_OBJECT_EXPORT: &'static str = "__WEBPACK_NAMESPACE_OBJECT__";
+use crate::parser_plugin::JS_DEFAULT_KEYWORD;
 
 #[derive(Debug, Clone)]
-pub struct AnonymousFunctionRangeInfo {
-  pub is_async: bool,
-  pub is_generator: bool,
-  pub body_start: u32,
-  pub first_parmas_start: Option<u32>,
+pub enum DeclarationId {
+  Id(String),
+  Func(DeclarationInfo),
+}
+
+#[derive(Debug, Clone)]
+pub struct DeclarationInfo {
+  pub range: DependencyLocation,
+  pub prefix: String,
+  pub suffix: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct HarmonyExportExpressionDependency {
-  pub start: u32,
-  pub end: u32,
-  pub declaration: bool,
-  pub function: Option<AnonymousFunctionRangeInfo>,
+  pub range: DependencyLocation,
+  pub range_stmt: DependencyLocation,
+  pub declaration: Option<DeclarationId>,
   pub id: DependencyId,
 }
 
 impl HarmonyExportExpressionDependency {
   pub fn new(
-    start: u32,
-    end: u32,
-    declaration: bool,
-    function: Option<AnonymousFunctionRangeInfo>,
+    range: DependencyLocation,
+    range_stmt: DependencyLocation,
+    declaration: Option<DeclarationId>,
   ) -> Self {
     Self {
-      start,
-      end,
+      range,
+      range_stmt,
       declaration,
-      function,
       id: DependencyId::default(),
     }
   }
 }
 
 impl Dependency for HarmonyExportExpressionDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyExportExpressionDependency"
+  fn dependency_type(&self) -> &DependencyType {
+    &DependencyType::EsmExportExpression
   }
+
   fn id(&self) -> &rspack_core::DependencyId {
     &self.id
   }
 
+  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+    Some(ExportsSpec {
+      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(
+        JS_DEFAULT_KEYWORD.clone(),
+      )]),
+      priority: Some(1),
+      can_mangle: None,
+      terminal_binding: Some(true),
+      from: None,
+      dependencies: None,
+      hide_export: None,
+      exclude_exports: None,
+    })
+  }
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
@@ -62,41 +85,138 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
+    code_generatable_context: &mut TemplateContext,
   ) {
-    if self.declaration {
-      source.replace(self.start, self.end, "", None);
-    } else if let Some(AnonymousFunctionRangeInfo {
-      is_async,
-      is_generator,
-      body_start,
-      first_parmas_start,
-    }) = &self.function
-    {
-      // hoist anonymous function
-      let prefix = format!(
-        "{}function{} {DEFAULT_EXPORT}",
-        if *is_async { "async " } else { "" },
-        if *is_generator { "*" } else { "" },
-      );
-      if let Some(first_parmas_start) = first_parmas_start {
-        source.replace(self.start, first_parmas_start - 1, prefix.as_str(), None);
-      } else {
-        source.replace(
-          self.start,
-          *body_start,
-          format!("{prefix}()").as_str(),
-          None,
-        );
+    let TemplateContext {
+      compilation,
+      runtime,
+      runtime_requirements,
+      module,
+      init_fragments,
+      concatenation_scope,
+      ..
+    } = code_generatable_context;
+
+    fn get_used_name(
+      name: &str,
+      compilation: &Compilation,
+      runtime: &Option<&RuntimeSpec>,
+      module_identifier: &Identifier,
+    ) -> Option<UsedName> {
+      let module_graph = compilation.get_module_graph();
+      module_graph
+        .get_exports_info(module_identifier)
+        .id
+        .get_used_name(&module_graph, *runtime, UsedName::Str(name.into()))
+    }
+
+    if let Some(declaration) = &self.declaration {
+      let name = match declaration {
+        DeclarationId::Id(id) => id,
+        DeclarationId::Func(func) => {
+          source.replace(
+            func.range.start(),
+            func.range.end(),
+            &format!("{}{}{}", func.prefix, DEFAULT_EXPORT, func.suffix),
+            None,
+          );
+          DEFAULT_EXPORT
+        }
+      };
+
+      if let Some(scope) = concatenation_scope {
+        scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string());
+      } else if let Some(used) = get_used_name(
+        JS_DEFAULT_KEYWORD.as_str(),
+        compilation,
+        runtime,
+        &module.identifier(),
+      ) {
+        init_fragments.push(Box::new(HarmonyExportInitFragment::new(
+          module.get_exports_argument(),
+          vec![(
+            match used {
+              UsedName::Str(s) => s,
+              UsedName::Vec(v) => v
+                .iter()
+                .map(|i| i.to_string())
+                .collect_vec()
+                .join("")
+                .into(),
+            },
+            Atom::from(format!("/* export default binding */ {name}")),
+          )],
+        )));
       }
-    } else {
+
       source.replace(
-        self.start,
-        self.end,
-        format!("var {DEFAULT_EXPORT} = ").as_str(),
+        self.range_stmt.start(),
+        self.range.start(),
+        "/* harmony default export */ ",
         None,
       );
+    } else {
+      // 'var' is a little bit incorrect as TDZ is not correct, but we can't use 'const'
+      let supports_const = compilation.options.output.environment.supports_const();
+      let content = if let Some(ref mut scope) = concatenation_scope {
+        scope.register_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT.to_string());
+        format!(
+          "/* harmony default export */ {} {DEFAULT_EXPORT} = ",
+          if supports_const { "const" } else { "var" }
+        )
+      } else if let Some(used) = get_used_name(
+        JS_DEFAULT_KEYWORD.as_str(),
+        compilation,
+        runtime,
+        &module.identifier(),
+      ) {
+        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+        if supports_const {
+          init_fragments.push(Box::new(HarmonyExportInitFragment::new(
+            module.get_exports_argument(),
+            vec![(
+              match used {
+                UsedName::Str(s) => s,
+                UsedName::Vec(v) => v
+                  .iter()
+                  .map(|i| i.to_string())
+                  .collect_vec()
+                  .join("")
+                  .into(),
+              },
+              DEFAULT_EXPORT.into(),
+            )],
+          )));
+          format!("/* harmony default export */ const {DEFAULT_EXPORT} = ")
+        } else {
+          format!(
+            r#"/* harmony default export */ {}{} = "#,
+            module.get_exports_argument(),
+            property_access(
+              match used {
+                UsedName::Str(name) => vec![name].into_iter(),
+                UsedName::Vec(names) => names.into_iter(),
+              },
+              0
+            )
+          )
+        }
+      } else {
+        format!("/* unused harmony default export */ var {DEFAULT_EXPORT} = ")
+      };
+
+      source.replace(
+        self.range_stmt.start(),
+        self.range.start(),
+        &format!("{}(", content),
+        None,
+      );
+      source.replace(self.range.end(), self.range_stmt.end(), ");", None);
     }
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

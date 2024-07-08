@@ -1,0 +1,4 @@
+@import "./c-dir/c.css";
+b:nth-child(0):after { content: "b0"; }
+b:nth-child(1):after { content: "b1"; }
+b:nth-child(2):after { content: "b2"; }

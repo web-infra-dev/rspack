@@ -10,9 +10,12 @@ use rspack_error::Result;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_util::ext::{DynHash, IntoAny};
 use rustc_hash::FxHasher;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
-use crate::{property_name, ExportsArgument, GenerateContext, RuntimeGlobals};
+use crate::{
+  merge_runtime, property_name, runtime_condition_expression, ExportsArgument, GenerateContext,
+  RuntimeCondition, RuntimeGlobals,
+};
 
 pub struct InitFragmentContents {
   pub start: String,
@@ -24,15 +27,17 @@ pub type InitFragmentKeyUKey = rspack_database::Ukey<InitFragmentKeyUnique>;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum InitFragmentKey {
+  Unique(InitFragmentKeyUKey),
   HarmonyImport(String),
   HarmonyExportStar(String), // TODO: align with webpack and remove this
   HarmonyExports,
+  CommonJsExports(String),
   ExternalModule(String),
   AwaitDependencies,
   HarmonyCompatibility,
   ModuleDecorator(String /* module_id */),
-  Unique(InitFragmentKeyUKey),
   HarmonyFakeNamespaceObjectFragment(String),
+  Const(String),
 }
 
 impl InitFragmentKey {
@@ -47,8 +52,37 @@ impl InitFragmentKey {
     fragments: Vec<Box<dyn InitFragment<C>>>,
   ) -> Box<dyn InitFragment<C>> {
     match self {
+      InitFragmentKey::HarmonyImport(_) => {
+        let mut iter = fragments.into_iter();
+        let first = iter
+          .next()
+          .expect("keyed_fragments should at least have one value");
+        let first = first
+          .into_any()
+          .downcast::<ConditionalInitFragment>()
+          .expect("fragment of InitFragmentKey::HarmonyImport should be a ConditionalInitFragment");
+
+        if matches!(first.runtime_condition, RuntimeCondition::Boolean(true)) {
+          return first;
+        }
+
+        let mut res = first;
+        for fragment in iter {
+          let fragment = fragment
+            .into_any()
+            .downcast::<ConditionalInitFragment>()
+            .expect(
+              "fragment of InitFragmentKey::HarmonyImport should be a ConditionalInitFragment",
+            );
+          res = ConditionalInitFragment::merge(res, fragment);
+          if matches!(res.runtime_condition, RuntimeCondition::Boolean(true)) {
+            return res;
+          }
+        }
+        res
+      }
       InitFragmentKey::HarmonyExports => {
-        let mut export_map = vec![];
+        let mut export_map: Vec<(Atom, Atom)> = vec![];
         let mut iter = fragments.into_iter();
         let first = iter
           .next()
@@ -76,11 +110,12 @@ impl InitFragmentKey {
         let promises = fragments.into_iter().map(|f| f.into_any().downcast::<AwaitDependenciesInitFragment>().expect("fragment of InitFragmentKey::AwaitDependencies should be a AwaitDependenciesInitFragment")).flat_map(|f| f.promises).collect();
         AwaitDependenciesInitFragment::new(promises).boxed()
       }
-      InitFragmentKey::HarmonyImport(_)
-      | InitFragmentKey::HarmonyFakeNamespaceObjectFragment(_)
+      InitFragmentKey::HarmonyFakeNamespaceObjectFragment(_)
       | InitFragmentKey::HarmonyExportStar(_)
       | InitFragmentKey::ExternalModule(_)
-      | InitFragmentKey::ModuleDecorator(_) => first(fragments),
+      | InitFragmentKey::ModuleDecorator(_)
+      | InitFragmentKey::CommonJsExports(_)
+      | InitFragmentKey::Const(_) => first(fragments),
       InitFragmentKey::HarmonyCompatibility | InitFragmentKey::Unique(_) => {
         debug_assert!(fragments.len() == 1, "fragment = {:?}", self);
         first(fragments)
@@ -98,6 +133,7 @@ fn first<C>(fragments: Vec<Box<dyn InitFragment<C>>>) -> Box<dyn InitFragment<C>
 
 pub trait InitFragmentRenderContext {
   fn add_runtime_requirements(&mut self, requirement: RuntimeGlobals);
+  fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String;
 }
 
 pub trait InitFragment<C>: IntoAny + DynHash + DynClone + Debug + Sync + Send {
@@ -201,6 +237,15 @@ impl InitFragmentRenderContext for GenerateContext<'_> {
   fn add_runtime_requirements(&mut self, requirement: RuntimeGlobals) {
     self.runtime_requirements.insert(requirement);
   }
+
+  fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String {
+    runtime_condition_expression(
+      &self.compilation.chunk_graph,
+      Some(runtime_condition),
+      self.runtime,
+      self.runtime_requirements,
+    )
+  }
 }
 
 pub struct ChunkRenderContext;
@@ -208,6 +253,10 @@ pub struct ChunkRenderContext;
 impl InitFragmentRenderContext for ChunkRenderContext {
   fn add_runtime_requirements(&mut self, _requirement: RuntimeGlobals) {
     unreachable!("should not add runtime requirements in chunk render context")
+  }
+
+  fn runtime_condition_expression(&mut self, _runtime_condition: &RuntimeCondition) -> String {
+    unreachable!("should not call runtime condition expression in chunk render context")
   }
 }
 
@@ -263,11 +312,11 @@ impl<C> InitFragment<C> for NormalInitFragment {
 pub struct HarmonyExportInitFragment {
   exports_argument: ExportsArgument,
   // TODO: should be a map
-  export_map: Vec<(JsWord, JsWord)>,
+  export_map: Vec<(Atom, Atom)>,
 }
 
 impl HarmonyExportInitFragment {
-  pub fn new(exports_argument: ExportsArgument, export_map: Vec<(JsWord, JsWord)>) -> Self {
+  pub fn new(exports_argument: ExportsArgument, export_map: Vec<(Atom, Atom)>) -> Self {
     Self {
       exports_argument,
       export_map,
@@ -342,6 +391,14 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
         start: "".to_string(),
         end: None,
       })
+    } else if self.promises.len() == 1 {
+      let sep = self.promises.front().expect("at least have one");
+      Ok(InitFragmentContents {
+        start: format!(
+          "var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{sep}]);\n{sep} = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];"
+        ),
+        end: None,
+      })
     } else {
       let sep = Vec::from_iter(self.promises).join(", ");
       Ok(InitFragmentContents {
@@ -364,4 +421,116 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
   fn key(&self) -> &InitFragmentKey {
     &InitFragmentKey::AwaitDependencies
   }
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct ConditionalInitFragment {
+  content: String,
+  stage: InitFragmentStage,
+  position: i32,
+  key: InitFragmentKey,
+  end_content: Option<String>,
+  runtime_condition: RuntimeCondition,
+}
+
+impl ConditionalInitFragment {
+  pub fn new(
+    content: String,
+    stage: InitFragmentStage,
+    position: i32,
+    key: InitFragmentKey,
+    end_content: Option<String>,
+    runtime_condition: RuntimeCondition,
+  ) -> Self {
+    ConditionalInitFragment {
+      content,
+      stage,
+      position,
+      key,
+      end_content,
+      runtime_condition,
+    }
+  }
+
+  pub fn merge(
+    one: Box<ConditionalInitFragment>,
+    other: Box<ConditionalInitFragment>,
+  ) -> Box<ConditionalInitFragment> {
+    if matches!(one.runtime_condition, RuntimeCondition::Boolean(true)) {
+      return one;
+    }
+    if matches!(other.runtime_condition, RuntimeCondition::Boolean(true)) {
+      return other;
+    }
+    if matches!(one.runtime_condition, RuntimeCondition::Boolean(false)) {
+      return other;
+    }
+    if matches!(other.runtime_condition, RuntimeCondition::Boolean(false)) {
+      return one;
+    }
+    Box::new(Self {
+      content: one.content,
+      stage: one.stage,
+      position: one.position,
+      key: one.key,
+      end_content: one.end_content,
+      runtime_condition: RuntimeCondition::Spec(merge_runtime(
+        one.runtime_condition.as_spec().expect("should be spec"),
+        other.runtime_condition.as_spec().expect("should be spec"),
+      )),
+    })
+  }
+}
+
+impl<C: InitFragmentRenderContext> InitFragment<C> for ConditionalInitFragment {
+  fn contents(self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
+    Ok(
+      if matches!(self.runtime_condition, RuntimeCondition::Boolean(false))
+        || self.content.is_empty()
+      {
+        InitFragmentContents {
+          start: "".to_owned(),
+          end: Some("".to_owned()),
+        }
+      } else if matches!(self.runtime_condition, RuntimeCondition::Boolean(true)) {
+        InitFragmentContents {
+          start: self.content,
+          end: self.end_content,
+        }
+      } else {
+        let condition = context.runtime_condition_expression(&self.runtime_condition);
+        if condition == "true" {
+          InitFragmentContents {
+            start: self.content,
+            end: self.end_content,
+          }
+        } else {
+          InitFragmentContents {
+            start: wrap_in_condition(&condition, &self.content),
+            end: self.end_content.map(|c| wrap_in_condition(&condition, &c)),
+          }
+        }
+      },
+    )
+  }
+
+  fn stage(&self) -> InitFragmentStage {
+    self.stage
+  }
+
+  fn position(&self) -> i32 {
+    self.position
+  }
+
+  fn key(&self) -> &InitFragmentKey {
+    &self.key
+  }
+}
+
+fn wrap_in_condition(condition: &str, source: &str) -> String {
+  format!(
+    r#"if ({condition}) {{
+  {source}
+}}"#
+  )
 }

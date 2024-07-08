@@ -1,21 +1,18 @@
 use rspack_core::{
-  impl_runtime_module,
+  compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 
-use super::{
-  render_condition_map,
-  utils::{chunk_has_js, get_output_dir},
-  BooleanMatcher,
-};
+use super::utils::{chunk_has_js, get_output_dir};
 use crate::{
   get_chunk_runtime_requirements,
   runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
 };
 
-#[derive(Debug, Eq)]
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct ModuleChunkLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -23,10 +20,10 @@ pub struct ModuleChunkLoadingRuntimeModule {
 
 impl Default for ModuleChunkLoadingRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/module_chunk_loading"),
-      chunk: None,
-    }
+    Self::with_default(
+      Identifier::from("webpack/runtime/module_chunk_loading"),
+      None,
+    )
   }
 }
 
@@ -56,11 +53,10 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = compilation
       .chunk_by_ukey
-      .get(&self.chunk.expect("The chunk should be attached."))
-      .expect("Chunk is not found, make sure you had attach chunkUkey successfully.");
+      .expect_get(&self.chunk.expect("The chunk should be attached."));
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
 
     let with_base_uri = runtime_requirements.contains(RuntimeGlobals::BASE_URI);
@@ -74,10 +70,10 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       compilation
         .chunk_graph
         .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
-    let has_js_matcher = render_condition_map(&condition_map, "chunkId");
+    let has_js_matcher = compile_boolean_matcher(&condition_map);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
 
-    let root_output_dir = get_output_dir(chunk, compilation, true);
+    let root_output_dir = get_output_dir(chunk, compilation, true)?;
 
     let mut source = ConcatSource::default();
 
@@ -119,7 +115,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
         include_str!("runtime/module_chunk_loading_with_loading.js")
-          .replace("$JS_MATCHER$", has_js_matcher.to_string().as_str())
+          .replace("$JS_MATCHER$", &has_js_matcher.render("chunkId"))
           .replace(
             "$IMPORT_FUNCTION_NAME$",
             &compilation.options.output.import_function_name,
@@ -165,7 +161,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       )));
     }
 
-    source.boxed()
+    Ok(source.boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {
@@ -176,5 +172,3 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 }
-
-impl_runtime_module!(ModuleChunkLoadingRuntimeModule);

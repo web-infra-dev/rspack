@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use rspack_core::module_id;
 use rspack_core::{AsContextDependency, Dependency, DependencyCategory, DependencyLocation};
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ErrorSpan, ModuleDependency};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
+use swc_core::common::SourceMap;
 
 #[derive(Debug, Clone)]
 pub struct CommonJsRequireDependency {
@@ -19,9 +22,10 @@ impl CommonJsRequireDependency {
     span: Option<ErrorSpan>,
     start: u32,
     end: u32,
+    source: Option<Arc<SourceMap>>,
     optional: bool,
   ) -> Self {
-    let loc = DependencyLocation::new(start, end);
+    let loc = DependencyLocation::new(start, end, source);
     Self {
       id: DependencyId::new(),
       request,
@@ -47,10 +51,6 @@ impl Dependency for CommonJsRequireDependency {
 
   fn span(&self) -> Option<ErrorSpan> {
     self.span
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "CommonJsRequireDependency"
   }
 }
 
@@ -90,6 +90,10 @@ impl DependencyTemplate for CommonJsRequireDependency {
       .as_str(),
       None,
     );
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

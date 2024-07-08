@@ -1,4 +1,6 @@
-use rspack_core::{DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource};
+use rspack_core::{
+  AsDependency, DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+};
 
 #[derive(Debug, Clone)]
 pub struct ModuleArgumentDependency {
@@ -29,8 +31,8 @@ impl DependencyTemplate for ModuleArgumentDependency {
     runtime_requirements.insert(RuntimeGlobals::MODULE);
 
     let module_argument = compilation
-      .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+      .get_module_graph()
+      .module_by_identifier(&module.identifier())
       .expect("should have mgm")
       .get_module_argument();
 
@@ -45,4 +47,10 @@ impl DependencyTemplate for ModuleArgumentDependency {
       source.replace(self.start, self.end, &format!("{module_argument}"), None);
     }
   }
+
+  fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
+    None
+  }
 }
+
+impl AsDependency for ModuleArgumentDependency {}

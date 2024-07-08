@@ -1,38 +1,26 @@
-import { RawSwcJsMinimizerRspackPluginOptions } from "@rspack/binding";
-import { BuiltinPluginName, create } from "./base";
+import {
+	BuiltinPluginName,
+	RawExtractComments,
+	RawSwcJsMinimizerRspackPluginOptions
+} from "@rspack/binding";
+
+import { create } from "./base";
 
 type MinifyCondition = string | RegExp;
 type MinifyConditions = MinifyCondition | MinifyCondition[];
+
+type ExtractCommentsCondition = boolean | RegExp;
+type ExtractCommentsBanner = string | boolean;
+// type ExtractFilename = string;
+type ExtractCommentsObject = {
+	condition?: ExtractCommentsCondition | undefined;
+	banner?: ExtractCommentsBanner | undefined;
+	// filename?: ExtractFilename | undefined
+};
+type ExtractCommentsOptions = ExtractCommentsCondition | ExtractCommentsObject;
+
 export type SwcJsMinimizerRspackPluginOptions = {
-	/**
-	 * @deprecated Deprecated, move to `compress.passes`
-	 */
-	passes?: number;
-	/**
-	 * @deprecated Deprecated, move to `compress.drop_console`
-	 */
-	dropConsole?: boolean;
-	/**
-	 * @deprecated Deprecated, move to `compress.pure_funcs`
-	 */
-	pureFuncs?: Array<string>;
-	/**
-	 * @deprecated Deprecated, move to `mangle.keep_classnames`
-	 */
-	keepClassNames?: boolean;
-	/**
-	 * @deprecated Deprecated, move to `mangle.keep_fnames`
-	 */
-	keepFnNames?: boolean;
-	/**
-	 * @deprecated Deprecated, move to `format.comments`
-	 */
-	comments?: false | "all" | "some";
-	/**
-	 * @deprecated Deprecated, move to `format.ascii_only`
-	 */
-	asciiOnly?: boolean;
-	extractComments?: boolean | RegExp;
+	extractComments?: ExtractCommentsOptions | undefined;
 	compress?: TerserCompressOptions | boolean;
 	mangle?: TerserMangleOptions | boolean;
 	format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
@@ -50,7 +38,7 @@ type ToSnakeCase<T extends string> = T extends `${infer A}${infer B}`
 	? `${A extends Lowercase<A> ? A : `_${Lowercase<A>}`}${ToSnakeCase<B>}`
 	: T;
 /**
- * @example ToSnakeCaseProperties<{indentLevel: 3}> == {indent_level: 3}
+ * @example ToSnakeCaseProperties\<{indentLevel: 3\}\> == {indent_level: 3\}
  */
 type ToSnakeCaseProperties<T> = {
 	[K in keyof T as K extends string ? ToSnakeCase<K> : K]: T[K];
@@ -229,88 +217,53 @@ export interface TerserMangleOptions {
 }
 export interface TerserManglePropertiesOptions {}
 
-function getRawCompressOptions(options?: SwcJsMinimizerRspackPluginOptions) {
-	function _inner(): TerserCompressOptions | boolean {
-		const _default = {
-			passes: options?.passes ?? 1,
-			pure_funcs: options?.pureFuncs ?? [],
-			drop_console: options?.dropConsole ?? false
-		} satisfies TerserCompressOptions;
+function isObject(value: any): value is Object {
+	const type = typeof value;
 
-		if (options?.compress === true) {
-			return _default;
-		}
-
-		if (options?.compress === false) {
-			return false;
-		}
-
-		if (options?.compress && typeof options.compress === "object") {
-			return {
-				// TODO: deprecate default merging in 0.4
-				..._default,
-				...options.compress
-			};
-		}
-
-		return _default;
-	}
-
-	let inner = _inner();
-
-	return typeof inner === "boolean" ? inner : JSON.stringify(inner);
+	return value != null && (type === "object" || type === "function");
 }
 
-function getRawMangleOptions(options?: SwcJsMinimizerRspackPluginOptions) {
-	function _inner(): TerserMangleOptions | boolean {
-		const _default = {
-			keep_classnames: options?.keepClassNames ?? false,
-			keep_fnames: options?.keepFnNames ?? false
-		} satisfies TerserMangleOptions;
-
-		if (options?.mangle === true) {
-			return _default;
+function getRawExtractCommentsOptions(
+	extractComments?: ExtractCommentsOptions
+): RawExtractComments | undefined {
+	const conditionStr = (condition?: ExtractCommentsCondition): string => {
+		if (typeof condition === "undefined" || condition === true) {
+			// copied from terser-webpack-plugin
+			return "@preserve|@lic|@cc_on|^\\**!";
+		} else if (condition === false) {
+			throw Error("unreachable");
+		} else {
+			// FIXME: flags
+			return condition.source;
 		}
-
-		if (options?.mangle === false) {
-			return false;
-		}
-
-		if (options?.mangle && typeof options.mangle === "object") {
-			return {
-				// TODO: deprecate default merging in 0.4
-				..._default,
-				...options.mangle
+	};
+	if (typeof extractComments === "boolean") {
+		if (!extractComments) {
+			return undefined;
+		} else {
+			const res = {
+				condition: conditionStr(extractComments)
 			};
+			return res;
 		}
-
-		return _default;
-	}
-
-	let inner = _inner();
-
-	return typeof inner === "boolean" ? inner : JSON.stringify(inner);
-}
-
-function getRawFormatOptions(options?: SwcJsMinimizerRspackPluginOptions) {
-	function _inner() {
-		const _default = {
-			comments: options?.comments ? options?.comments : false,
-			asciiOnly: options?.asciiOnly ?? false
-		} satisfies SwcJsMinimizerRspackPluginOptions["format"];
-
-		if (options?.format && typeof options.format === "object") {
-			// TODO: deprecate default merging in 0.4
-			return {
-				..._default,
-				...options.format
+	} else if (extractComments instanceof RegExp) {
+		const res = {
+			condition: extractComments.source
+		};
+		return res;
+	} else if (isObject(extractComments)) {
+		if (extractComments.condition === false) {
+			return undefined;
+		} else {
+			const res = {
+				condition: conditionStr(extractComments.condition),
+				banner: extractComments.banner
 			};
+			return res;
 		}
-
-		return _default;
+	} else {
+		return undefined;
 	}
-
-	return JSON.stringify(_inner());
 }
 
 export const SwcJsMinimizerRspackPlugin = create(
@@ -318,13 +271,29 @@ export const SwcJsMinimizerRspackPlugin = create(
 	(
 		options?: SwcJsMinimizerRspackPluginOptions
 	): RawSwcJsMinimizerRspackPluginOptions => {
+		let compress = options?.compress ?? true;
+		let mangle = options?.mangle ?? true;
+		let format = {
+			comments: false, // terser and swc use different default value: 'some'
+			...options?.format
+		};
+
+		if (compress && typeof compress === "object") {
+			compress = {
+				passes: 1, // terser and swc use different default value: 0
+				...compress
+			};
+		} else if (compress) {
+			compress = {
+				passes: 1
+			};
+		}
+
 		return {
-			extractComments: options?.extractComments
-				? String(options.extractComments)
-				: undefined,
-			compress: getRawCompressOptions(options),
-			mangle: getRawMangleOptions(options),
-			format: getRawFormatOptions(options),
+			extractComments: getRawExtractCommentsOptions(options?.extractComments),
+			compress,
+			mangle,
+			format,
 			module: options?.module,
 			test: options?.test,
 			include: options?.include,

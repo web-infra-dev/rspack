@@ -17,9 +17,18 @@ pub struct EntryDescription {
   pub filename: Option<Filename>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct EntryData {
   pub dependencies: Vec<DependencyId>,
   pub include_dependencies: Vec<DependencyId>,
   pub options: EntryOptions,
+}
+
+impl EntryData {
+  pub fn all_dependencies(&self) -> impl Iterator<Item = &DependencyId> {
+    self
+      .dependencies
+      .iter()
+      .chain(self.include_dependencies.iter())
+  }
 }

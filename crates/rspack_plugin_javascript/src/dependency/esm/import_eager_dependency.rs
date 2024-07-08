@@ -4,25 +4,25 @@ use rspack_core::{
   ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 #[derive(Debug, Clone)]
 pub struct ImportEagerDependency {
   start: u32,
   end: u32,
   id: DependencyId,
-  request: JsWord,
+  request: Atom,
   span: Option<ErrorSpan>,
-  referenced_exports: Option<Vec<JsWord>>,
+  referenced_exports: Option<Vec<Atom>>,
 }
 
 impl ImportEagerDependency {
   pub fn new(
     start: u32,
     end: u32,
-    request: JsWord,
+    request: Atom,
     span: Option<ErrorSpan>,
-    referenced_exports: Option<Vec<JsWord>>,
+    referenced_exports: Option<Vec<Atom>>,
   ) -> Self {
     Self {
       start,
@@ -52,8 +52,16 @@ impl Dependency for ImportEagerDependency {
     self.span
   }
 
-  fn dependency_debug_name(&self) -> &'static str {
-    "ImportEagerDependency"
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    if let Some(referenced_exports) = &self.referenced_exports {
+      vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
+    } else {
+      vec![ExtendedReferencedExport::Array(vec![])]
+    }
   }
 }
 
@@ -69,22 +77,10 @@ impl ModuleDependency for ImportEagerDependency {
   fn set_request(&mut self, request: String) {
     self.request = request.into();
   }
-
-  fn get_referenced_exports(
-    &self,
-    _module_graph: &ModuleGraph,
-    _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    if let Some(referenced_exports) = &self.referenced_exports {
-      vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
-    } else {
-      vec![ExtendedReferencedExport::Array(vec![])]
-    }
-  }
 }
 
 impl ImportDependencyTrait for ImportEagerDependency {
-  fn referenced_exports(&self) -> Option<&Vec<JsWord>> {
+  fn referenced_exports(&self) -> Option<&Vec<Atom>> {
     self.referenced_exports.as_ref()
   }
 }
@@ -95,10 +91,8 @@ impl DependencyTemplate for ImportEagerDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let block = code_generatable_context
-      .compilation
-      .module_graph
-      .get_parent_block(&self.id);
+    let module_graph = code_generatable_context.compilation.get_module_graph();
+    let block = module_graph.get_parent_block(&self.id);
     source.replace(
       self.start,
       self.end,
@@ -113,6 +107,10 @@ impl DependencyTemplate for ImportEagerDependency {
       .as_str(),
       None,
     );
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

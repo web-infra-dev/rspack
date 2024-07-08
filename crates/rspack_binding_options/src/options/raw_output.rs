@@ -1,15 +1,13 @@
+use napi::Either;
 use napi_derive::napi;
+use rspack_binding_values::JsFilename;
 use rspack_core::{
-  BoxPlugin, CrossOriginLoading, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
-  LibraryOptions,
+  CrossOriginLoading, Environment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, PathInfo,
 };
 use rspack_core::{LibraryAuxiliaryComment, OutputOptions, TrustedTypes};
-use serde::Deserialize;
 
-use crate::RawOptionsApply;
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawTrustedTypes {
   pub policy_name: Option<String>,
@@ -23,8 +21,7 @@ impl From<RawTrustedTypes> for TrustedTypes {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawLibraryName {
   #[napi(ts_type = r#""string" | "array" | "umdObject""#)]
@@ -58,8 +55,7 @@ impl From<RawLibraryName> for LibraryName {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawLibraryCustomUmdObject {
   pub amd: Option<String>,
@@ -77,8 +73,7 @@ impl From<RawLibraryCustomUmdObject> for LibraryCustomUmdObject {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawLibraryAuxiliaryComment {
   pub root: Option<String>,
@@ -98,8 +93,7 @@ impl From<RawLibraryAuxiliaryComment> for LibraryAuxiliaryComment {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawLibraryOptions {
   pub name: Option<RawLibraryName>,
@@ -124,8 +118,7 @@ impl From<RawLibraryOptions> for LibraryOptions {
   }
 }
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawCrossOriginLoading {
   #[napi(ts_type = r#""bool" | "string""#)]
@@ -148,22 +141,39 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
   }
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
+pub struct RawEnvironment {
+  pub r#const: Option<bool>,
+  pub arrow_function: Option<bool>,
+}
+
+impl From<RawEnvironment> for Environment {
+  fn from(value: RawEnvironment) -> Self {
+    Self {
+      r#const: value.r#const,
+      arrow_function: value.arrow_function,
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object, object_to_js = false)]
 pub struct RawOutputOptions {
   pub path: String,
+  #[napi(ts_type = "boolean | \"verbose\"")]
+  pub pathinfo: Either<bool, String>,
   pub clean: bool,
   pub public_path: String,
   pub asset_module_filename: String,
   pub wasm_loading: String,
   pub enabled_wasm_loading_types: Vec<String>,
   pub webassembly_module_filename: String,
-  pub filename: String,
-  pub chunk_filename: String,
+  pub filename: JsFilename,
+  pub chunk_filename: JsFilename,
   pub cross_origin_loading: RawCrossOriginLoading,
-  pub css_filename: String,
-  pub css_chunk_filename: String,
+  pub css_filename: JsFilename,
+  pub css_chunk_filename: JsFilename,
   pub hot_update_main_filename: String,
   pub hot_update_chunk_filename: String,
   pub hot_update_global: String,
@@ -190,47 +200,56 @@ pub struct RawOutputOptions {
   pub worker_public_path: String,
   #[napi(ts_type = r#""module" | "text/javascript" | "false""#)]
   pub script_type: String,
+  pub environment: RawEnvironment,
 }
 
-impl RawOptionsApply for RawOutputOptions {
-  type Options = OutputOptions;
-  fn apply(self, _: &mut Vec<BoxPlugin>) -> Result<OutputOptions, rspack_error::Error> {
+impl TryFrom<RawOutputOptions> for OutputOptions {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: RawOutputOptions) -> rspack_error::Result<Self> {
+    let pathinfo = match value.pathinfo {
+      Either::A(b) => PathInfo::Bool(b),
+      Either::B(s) => PathInfo::String(s),
+    };
+
     Ok(OutputOptions {
-      path: self.path.into(),
-      clean: self.clean,
-      public_path: self.public_path.into(),
-      asset_module_filename: self.asset_module_filename.into(),
-      wasm_loading: self.wasm_loading.as_str().into(),
-      webassembly_module_filename: self.webassembly_module_filename.into(),
-      unique_name: self.unique_name,
-      chunk_loading: self.chunk_loading.as_str().into(),
-      chunk_loading_global: self.chunk_loading_global.as_str().into(),
-      filename: self.filename.into(),
-      chunk_filename: self.chunk_filename.into(),
-      cross_origin_loading: self.cross_origin_loading.into(),
-      css_filename: self.css_filename.into(),
-      css_chunk_filename: self.css_chunk_filename.into(),
-      hot_update_main_filename: self.hot_update_main_filename.into(),
-      hot_update_chunk_filename: self.hot_update_chunk_filename.into(),
-      hot_update_global: self.hot_update_global,
-      library: self.library.map(Into::into),
-      strict_module_error_handling: self.strict_module_error_handling,
-      enabled_library_types: self.enabled_library_types,
-      global_object: self.global_object,
-      import_function_name: self.import_function_name,
-      iife: self.iife,
-      module: self.module,
-      trusted_types: self.trusted_types.map(Into::into),
-      source_map_filename: self.source_map_filename.into(),
-      hash_function: self.hash_function.as_str().into(),
-      hash_digest: self.hash_digest.as_str().into(),
-      hash_digest_length: self.hash_digest_length as usize,
-      hash_salt: self.hash_salt.into(),
-      async_chunks: self.async_chunks,
-      worker_chunk_loading: self.worker_chunk_loading.as_str().into(),
-      worker_wasm_loading: self.worker_wasm_loading.as_str().into(),
-      worker_public_path: self.worker_public_path,
-      script_type: self.script_type,
+      path: value.path.into(),
+      pathinfo,
+      clean: value.clean,
+      public_path: value.public_path.into(),
+      asset_module_filename: value.asset_module_filename.into(),
+      wasm_loading: value.wasm_loading.as_str().into(),
+      webassembly_module_filename: value.webassembly_module_filename.into(),
+      unique_name: value.unique_name,
+      chunk_loading: value.chunk_loading.as_str().into(),
+      chunk_loading_global: value.chunk_loading_global.as_str().into(),
+      filename: value.filename.into(),
+      chunk_filename: value.chunk_filename.into(),
+      cross_origin_loading: value.cross_origin_loading.into(),
+      css_filename: value.css_filename.into(),
+      css_chunk_filename: value.css_chunk_filename.into(),
+      hot_update_main_filename: value.hot_update_main_filename.into(),
+      hot_update_chunk_filename: value.hot_update_chunk_filename.into(),
+      hot_update_global: value.hot_update_global,
+      library: value.library.map(Into::into),
+      strict_module_error_handling: value.strict_module_error_handling,
+      enabled_library_types: value.enabled_library_types,
+      global_object: value.global_object,
+      import_function_name: value.import_function_name,
+      iife: value.iife,
+      module: value.module,
+      trusted_types: value.trusted_types.map(Into::into),
+      source_map_filename: value.source_map_filename.into(),
+      hash_function: value.hash_function.as_str().into(),
+      hash_digest: value.hash_digest.as_str().into(),
+      hash_digest_length: value.hash_digest_length as usize,
+      hash_salt: value.hash_salt.into(),
+      async_chunks: value.async_chunks,
+      worker_chunk_loading: value.worker_chunk_loading.as_str().into(),
+      worker_wasm_loading: value.worker_wasm_loading.as_str().into(),
+      worker_public_path: value.worker_public_path,
+      script_type: value.script_type,
+      environment: value.environment.into(),
     })
   }
 }

@@ -1,0 +1,15 @@
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_hook"
+repository = "https://github.com/web-infra-dev/rspack"
+version    = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-trait         = { workspace = true }
+futures-concurrency = "7.5.0"
+rspack_error        = { path = "../rspack_error" }
+rspack_macros       = { path = "../rspack_macros" }
+rustc-hash          = { workspace = true }

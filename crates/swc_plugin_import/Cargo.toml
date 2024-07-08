@@ -6,7 +6,11 @@ name        = "swc_plugin_import"
 version     = "0.1.5"
 
 [dependencies]
-handlebars = "4.3.7"
+handlebars = "5.1.2"
+heck       = { workspace = true }
 rustc-hash = { workspace = true }
 serde      = { workspace = true }
 swc_core   = { workspace = true, features = ["common", "ecma_ast", "ecma_visit"] }
+
+[package.metadata.cargo-machete]
+ignored = ["Inflector"]

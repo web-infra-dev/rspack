@@ -11,7 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = { workspace = true }
-argh = "0.1.10"
+argh = "0.1.12"
 regex = { workspace = true }
 swc_core = { workspace = true, features = [
   "ecma_ast",

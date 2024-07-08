@@ -2,6 +2,12 @@ name: Get Runner Labels
 
 on:
   workflow_call:
+    inputs:
+      force-use-github-runner:
+        type: boolean
+        description: "Force use github runner"
+        required: false
+        default: false
     outputs:
       LINUX_RUNNER_LABELS:
         description: "linux runner labels"
@@ -25,7 +31,22 @@ jobs:
       - id: run
         shell: bash
         run: |
-          # set default value for vars.XXX_RUNNER_LABELS
-          echo 'LINUX_RUNNER_LABELS=${{ vars.LINUX_RUNNER_LABELS || '"ubuntu-latest"' }}' >> "$GITHUB_OUTPUT"
-          echo 'MACOS_RUNNER_LABELS=${{ vars.MACOS_RUNNER_LABELS || '"macos-latest"' }}' >> "$GITHUB_OUTPUT"
-          echo 'WINDOWS_RUNNER_LABELS=${{ vars.WINDOWS_RUNNER_LABELS || '"windows-latest"' }}' >> "$GITHUB_OUTPUT"
+          if ${{ !inputs.force-use-github-runner }}; then
+            LINUX_RUNNER_LABELS='${{ vars.LINUX_RUNNER_LABELS }}';
+            MACOS_RUNNER_LABELS='${{ vars.MACOS_RUNNER_LABELS }}';
+            WINDOWS_RUNNER_LABELS='${{ vars.WINDOWS_RUNNER_LABELS }}';
+          fi
+          # set default value
+          if [[ -z "$LINUX_RUNNER_LABELS" ]]; then
+            LINUX_RUNNER_LABELS='"ubuntu-latest"';
+          fi
+          if [[ -z "$MACOS_RUNNER_LABELS" ]]; then
+            MACOS_RUNNER_LABELS='"macos-latest"';
+          fi
+          if [[ -z "$WINDOWS_RUNNER_LABELS" ]]; then
+            WINDOWS_RUNNER_LABELS='"windows-latest"';
+          fi
+          # set output
+          echo "LINUX_RUNNER_LABELS=$LINUX_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
+          echo "MACOS_RUNNER_LABELS=$MACOS_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
+          echo "WINDOWS_RUNNER_LABELS=$WINDOWS_RUNNER_LABELS" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,32 @@
+[
+  {
+    "type": "dir",
+    "name": "start",
+    "label": "Getting started"
+  },
+  {
+    "type": "dir",
+    "name": "features",
+    "label": "Features"
+  },
+  {
+    "type": "dir",
+    "name": "tech",
+    "label": "Languages and Frameworks"
+  },
+  {
+    "type": "dir",
+    "name": "optimization",
+    "label": "Optimization"
+  },
+  {
+    "type": "dir",
+    "name": "migration",
+    "label": "Migration"
+  },
+  {
+    "type": "dir",
+    "name": "compatibility",
+    "label": "Compatibility"
+  }
+]

@@ -2,14 +2,17 @@ use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
 use rspack_core::{
-  async_module_factory, rspack_sources::Source, sync_module_factory, AsyncDependenciesBlock,
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
-  Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  async_module_factory, impl_module_meta_info, impl_source_map_config, rspack_sources::Source,
+  sync_module_factory, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency,
+  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context,
+  DependenciesBlock, DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_core::{ConcatenationScope, FactoryMeta};
+use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_util::source_map::SourceMapKind;
 
 use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
@@ -17,6 +20,7 @@ use super::{
 };
 use crate::{utils::json_stringify, ConsumeOptions};
 
+#[impl_source_map_config]
 #[derive(Debug)]
 pub struct ConsumeSharedModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -26,6 +30,9 @@ pub struct ConsumeSharedModule {
   readable_identifier: String,
   context: Context,
   options: ConsumeOptions,
+  factory_meta: Option<FactoryMeta>,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 impl ConsumeSharedModule {
@@ -68,6 +75,10 @@ impl ConsumeSharedModule {
       readable_identifier: identifier,
       context,
       options,
+      factory_meta: None,
+      build_info: None,
+      build_meta: None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 }
@@ -98,8 +109,14 @@ impl DependenciesBlock for ConsumeSharedModule {
 
 #[async_trait]
 impl Module for ConsumeSharedModule {
-  fn size(&self, _source_type: &SourceType) -> f64 {
+  impl_module_meta_info!();
+
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     42.0
+  }
+
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
   }
 
   fn module_type(&self) -> &ModuleType {
@@ -129,7 +146,8 @@ impl Module for ConsumeSharedModule {
   async fn build(
     &mut self,
     build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+    _: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
     let hash = hasher.digest(&build_context.compiler_options.output.hash_digest);
@@ -141,25 +159,21 @@ impl Module for ConsumeSharedModule {
       if self.options.eager {
         dependencies.push(dep as BoxDependency);
       } else {
-        let mut block = AsyncDependenciesBlock::new(self.identifier, "", None);
-        block.add_dependency(dep);
+        let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
         blocks.push(block);
       }
     }
 
-    Ok(
-      BuildResult {
-        build_info: BuildInfo {
-          hash: Some(hash),
-          ..Default::default()
-        },
-        build_meta: Default::default(),
-        dependencies,
-        blocks,
+    Ok(BuildResult {
+      build_info: BuildInfo {
+        hash: Some(hash),
         ..Default::default()
-      }
-      .with_empty_diagnostic(),
-    )
+      },
+      build_meta: Default::default(),
+      dependencies,
+      blocks,
+      ..Default::default()
+    })
   }
 
   #[allow(clippy::unwrap_in_result)]
@@ -167,6 +181,7 @@ impl Module for ConsumeSharedModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result
@@ -222,6 +237,8 @@ impl Module for ConsumeSharedModule {
     Ok(code_generation_result)
   }
 }
+
+impl_empty_diagnosable_trait!(ConsumeSharedModule);
 
 impl Hash for ConsumeSharedModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Mutex;
 use std::{fmt, path::Path, sync::Arc};
 
@@ -5,14 +6,14 @@ use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, Compilation, CompilationParams, Context,
-  DependencyCategory, DependencyType, FactorizeArgs, ModuleExt, ModuleFactoryResult,
-  NormalModuleCreateData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
-  PluginFactorizeHookOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
-  PluginThisCompilationHookOutput, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  RuntimeGlobals, ThisCompilationArgs,
+  ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationParams, CompilerOptions, CompilerThisCompilation, Context, DependencyCategory,
+  DependencyType, ModuleExt, ModuleFactoryCreateData, NormalModuleCreateData,
+  NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, Plugin, PluginContext,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, RuntimeGlobals,
 };
-use rspack_error::internal_error;
+use rspack_error::{error, Diagnostic, Result};
+use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -75,8 +76,7 @@ fn resolve_matched_configs(
       let Ok(ResolveResult::Resource(resource)) =
         resolver.resolve(compilation.options.context.as_ref(), request)
       else {
-        compilation
-          .push_diagnostic(internal_error!("Can't resolve shared module {request}").into());
+        compilation.push_diagnostic(error!("Can't resolve shared module {request}").into());
         continue;
       };
       resolved.insert(resource.path.to_string_lossy().into_owned(), config.clone());
@@ -96,14 +96,14 @@ fn resolve_matched_configs(
   }
 }
 
-async fn get_description_file(mut dir: &Path) -> Option<serde_json::Value> {
+async fn get_description_file(mut dir: &Path) -> Option<(PathBuf, serde_json::Value)> {
   let description_filename = "package.json";
   loop {
     let description_file = dir.join(description_filename);
-    if let Ok(data) = tokio::fs::read(description_file).await
+    if let Ok(data) = tokio::fs::read(&description_file).await
       && let Ok(data) = serde_json::from_slice::<serde_json::Value>(&data)
     {
-      return Some(data);
+      return Some((description_file, data));
     }
     if let Some(parent) = dir.parent() {
       dir = parent;
@@ -140,6 +140,7 @@ pub struct ConsumeSharedPluginOptions {
   pub enhanced: bool,
 }
 
+#[plugin]
 #[derive(Debug)]
 pub struct ConsumeSharedPlugin {
   options: ConsumeSharedPluginOptions,
@@ -150,12 +151,12 @@ pub struct ConsumeSharedPlugin {
 
 impl ConsumeSharedPlugin {
   pub fn new(options: ConsumeSharedPluginOptions) -> Self {
-    Self {
+    Self::new_inner(
       options,
-      resolver: Default::default(),
-      compiler_context: Default::default(),
-      matched_consumes: Default::default(),
-    }
+      Default::default(),
+      Default::default(),
+      Default::default(),
+    )
   }
 
   fn init_context(&self, compilation: &Compilation) {
@@ -200,11 +201,63 @@ impl ConsumeSharedPlugin {
     lock.clone().expect("init_matched_consumes first")
   }
 
+  async fn get_required_version(
+    &self,
+    context: &Context,
+    request: &str,
+    config: Arc<ConsumeOptions>,
+    mut add_diagnostic: impl FnMut(Diagnostic),
+  ) -> Option<ConsumeVersion> {
+    let mut required_version_warning = |details: &str| {
+      add_diagnostic(Diagnostic::warn(self.name().into(), format!("No required version specified and unable to automatically determine one. {details} file: shared module {request}")))
+    };
+    if let Some(version) = config.required_version.as_ref() {
+      Some(version.clone())
+    } else {
+      let package_name = if let Some(name) = &config.package_name {
+        Some(name.as_str())
+      } else if ABSOLUTE_REQUEST.is_match(request) {
+        return None;
+      } else if let Some(caps) = PACKAGE_NAME.captures(request)
+        && let Some(mat) = caps.get(0)
+      {
+        Some(mat.as_str())
+      } else {
+        required_version_warning("Unable to extract the package name from request.");
+        return None;
+      };
+      if let Some(package_name) = package_name
+        && let Some((description_path, data)) = get_description_file(context.as_ref()).await
+      {
+        if let Some(name) = data.get("name").and_then(|n| n.as_str())
+          && name == package_name
+        {
+          // Package self-referencing
+          return None;
+        }
+        get_required_version_from_description_file(data, package_name).or_else(|| {
+          required_version_warning(&format!(
+            "Unable to find required version for \"{package_name}\" in description file ({}). It need to be in dependencies, devDependencies or peerDependencies.",
+            description_path.display(),
+          ));
+          None
+        })
+      } else {
+        required_version_warning(&format!(
+          "Unable to find description file in {}",
+          context.as_str()
+        ));
+        None
+      }
+    }
+  }
+
   async fn create_consume_shared_module(
     &self,
     context: &Context,
     request: &str,
     config: Arc<ConsumeOptions>,
+    mut add_diagnostic: impl FnMut(Diagnostic),
   ) -> ConsumeSharedModule {
     let direct_fallback = matches!(&config.import, Some(i) if RELATIVE_REQUEST.is_match(i) | ABSOLUTE_REQUEST.is_match(i));
     let import_resolved = config
@@ -222,37 +275,27 @@ impl ConsumeSharedPlugin {
             .as_ref(),
             import,
           )
+          .map_err(|_e| {
+            add_diagnostic(Diagnostic::error(
+              "ModuleNotFoundError".into(),
+              format!("resolving fallback for shared module {request}"),
+            ))
+          })
           .ok()
       })
       .and_then(|i| match i {
         ResolveResult::Resource(r) => Some(r.path.to_string_lossy().into_owned()),
         ResolveResult::Ignored => None,
       });
-    let required_version = if let Some(version) = config.required_version.as_ref() {
-      Some(version.clone())
-    } else {
-      let package_name = if let Some(name) = &config.package_name {
-        Some(name.as_str())
-      } else if ABSOLUTE_REQUEST.is_match(request) {
-        None
-      } else if let Some(caps) = PACKAGE_NAME.captures(request)
-        && let Some(mat) = caps.get(0)
-      {
-        Some(mat.as_str())
-      } else {
-        None
-      };
-      if let Some(package_name) = package_name
-        && let Some(data) = get_description_file(context.as_ref()).await
-      {
-        // TODO: emit warning
-        get_required_version_from_description_file(data, package_name)
-      } else {
-        None
-      }
-    };
+    let required_version = self
+      .get_required_version(context, request, config.clone(), add_diagnostic)
+      .await;
     ConsumeSharedModule::new(
-      context.clone(),
+      if direct_fallback {
+        self.get_context()
+      } else {
+        context.clone()
+      },
       ConsumeOptions {
         import: import_resolved
           .is_some()
@@ -271,120 +314,147 @@ impl ConsumeSharedPlugin {
   }
 }
 
+#[plugin_hook(CompilerThisCompilation for ConsumeSharedPlugin)]
+async fn this_compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(
+    DependencyType::ConsumeSharedFallback,
+    params.normal_module_factory.clone(),
+  );
+  self.init_context(compilation);
+  self.init_resolver(compilation);
+  self.init_matched_consumes(compilation, self.get_resolver());
+  Ok(())
+}
+
+#[plugin_hook(NormalModuleFactoryFactorize for ConsumeSharedPlugin)]
+async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
+  let dep = data
+    .dependency
+    .as_module_dependency()
+    .expect("should be module dependency");
+  if matches!(
+    dep.dependency_type(),
+    DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
+  ) {
+    return Ok(None);
+  }
+  let request = dep.request();
+  let consumes = self.get_matched_consumes();
+  if let Some(matched) = consumes.unresolved.get(request) {
+    let module = self
+      .create_consume_shared_module(&data.context, request, matched.clone(), |d| {
+        data.diagnostics.push(d)
+      })
+      .await;
+    return Ok(Some(module.boxed()));
+  }
+  for (prefix, options) in &consumes.prefixed {
+    if request.starts_with(prefix) {
+      let remainder = &request[prefix.len()..];
+      let module = self
+        .create_consume_shared_module(
+          &data.context,
+          request,
+          Arc::new(ConsumeOptions {
+            import: options.import.as_ref().map(|i| i.to_owned() + remainder),
+            import_resolved: options.import_resolved.clone(),
+            share_key: options.share_key.clone() + remainder,
+            share_scope: options.share_scope.clone(),
+            required_version: options.required_version.clone(),
+            package_name: options.package_name.clone(),
+            strict_version: options.strict_version,
+            singleton: options.singleton,
+            eager: options.eager,
+          }),
+          |d| data.diagnostics.push(d),
+        )
+        .await;
+      return Ok(Some(module.boxed()));
+    }
+  }
+  Ok(None)
+}
+
+#[plugin_hook(NormalModuleFactoryCreateModule for ConsumeSharedPlugin)]
+async fn create_module(
+  &self,
+  data: &mut ModuleFactoryCreateData,
+  create_data: &mut NormalModuleCreateData,
+) -> Result<Option<BoxModule>> {
+  if matches!(
+    data.dependency.dependency_type(),
+    DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
+  ) {
+    return Ok(None);
+  }
+  let resource = &create_data.resource_resolve_data.resource;
+  let consumes = self.get_matched_consumes();
+  if let Some(options) = consumes.resolved.get(resource) {
+    let module = self
+      .create_consume_shared_module(&data.context, resource, options.clone(), |d| {
+        data.diagnostics.push(d)
+      })
+      .await;
+    return Ok(Some(module.boxed()));
+  }
+  Ok(None)
+}
+
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ConsumeSharedPlugin)]
+async fn additional_tree_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  runtime_requirements.insert(RuntimeGlobals::MODULE);
+  runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
+  runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
+  runtime_requirements.insert(RuntimeGlobals::SHARE_SCOPE_MAP);
+  runtime_requirements.insert(RuntimeGlobals::INITIALIZE_SHARING);
+  runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+  compilation.add_runtime_module(
+    chunk_ukey,
+    Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
+  )?;
+  Ok(())
+}
+
 #[async_trait]
 impl Plugin for ConsumeSharedPlugin {
   fn name(&self) -> &'static str {
     "rspack.ConsumeSharedPlugin"
   }
 
-  async fn this_compilation(
+  fn apply(
     &self,
-    args: ThisCompilationArgs<'_>,
-    params: &CompilationParams,
-  ) -> PluginThisCompilationHookOutput {
-    args.this_compilation.set_dependency_factory(
-      DependencyType::ConsumeSharedFallback,
-      params.normal_module_factory.clone(),
-    );
-    self.init_context(args.this_compilation);
-    self.init_resolver(args.this_compilation);
-    self.init_matched_consumes(args.this_compilation, self.get_resolver());
-    Ok(())
-  }
-
-  async fn factorize(
-    &self,
-    _ctx: PluginContext,
-    args: FactorizeArgs<'_>,
-  ) -> PluginFactorizeHookOutput {
-    let dep = args.dependency;
-    if matches!(
-      dep.dependency_type(),
-      DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
-    ) {
-      return Ok(None);
-    }
-    let request = dep.request();
-    let consumes = self.get_matched_consumes();
-    if let Some(matched) = consumes.unresolved.get(request) {
-      let module = self
-        .create_consume_shared_module(args.context, request, matched.clone())
-        .await;
-      return Ok(Some(ModuleFactoryResult::new(module.boxed())));
-    }
-    for (prefix, options) in &consumes.prefixed {
-      if request.starts_with(prefix) {
-        let remainder = &request[prefix.len()..];
-        let module = self
-          .create_consume_shared_module(
-            args.context,
-            request,
-            Arc::new(ConsumeOptions {
-              import: options.import.as_ref().map(|i| i.to_owned() + remainder),
-              import_resolved: options.import_resolved.clone(),
-              share_key: options.share_key.clone() + remainder,
-              share_scope: options.share_scope.clone(),
-              required_version: options.required_version.clone(),
-              package_name: options.package_name.clone(),
-              strict_version: options.strict_version,
-              singleton: options.singleton,
-              eager: options.eager,
-            }),
-          )
-          .await;
-        return Ok(Some(ModuleFactoryResult::new(module.boxed())));
-      }
-    }
-    Ok(None)
-  }
-
-  async fn normal_module_factory_create_module(
-    &self,
-    _ctx: PluginContext,
-    args: &NormalModuleCreateData,
-  ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
-    if matches!(
-      args.dependency_type,
-      DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
-    ) {
-      return Ok(None);
-    }
-    let resource = &args.resource_resolve_data.resource;
-    let consumes = self.get_matched_consumes();
-    if let Some(options) = consumes.resolved.get(resource) {
-      let module = self
-        .create_consume_shared_module(&args.context, resource, options.clone())
-        .await;
-      return Ok(Some(module.boxed()));
-    }
-    Ok(None)
-  }
-
-  fn additional_tree_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    args.runtime_requirements.insert(RuntimeGlobals::MODULE);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::MODULE_CACHE);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::SHARE_SCOPE_MAP);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::INITIALIZE_SHARING);
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    args.compilation.add_runtime_module(
-      args.chunk,
-      Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
-    );
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .this_compilation
+      .tap(this_compilation::new(self));
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .factorize
+      .tap(factorize::new(self));
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .create_module
+      .tap(create_module::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
     Ok(())
   }
 }

@@ -2,15 +2,23 @@ use std::{borrow::Cow, hash::Hash};
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, Chunk, ChunkUkey, Compilation, ExternalModule,
-  ExternalRequest, Filename, JsChunkHashArgs, LibraryAuxiliaryComment, LibraryCustomUmdObject,
-  LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
-  PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
+  ApplyContext, Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
+  FilenameTemplate, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext,
+  RuntimeGlobals, SourceType,
 };
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
+use rspack_hash::RspackHash;
+use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_javascript::{
+  JavascriptModulesChunkHash, JavascriptModulesRender, JsPlugin, RenderSource,
+};
+use rspack_util::infallible::ResultInfallibleExt as _;
 
 use crate::utils::{external_arguments, externals_dep_array, get_options_for_chunk};
+
+const PLUGIN_NAME: &str = "rspack.UmdLibraryPlugin";
 
 #[derive(Debug)]
 struct UmdLibraryPluginParsed<'a> {
@@ -19,6 +27,7 @@ struct UmdLibraryPluginParsed<'a> {
   named_define: Option<bool>,
 }
 
+#[plugin]
 #[derive(Debug)]
 pub struct UmdLibraryPlugin {
   _optional_amd_external_as_global: bool,
@@ -26,11 +35,8 @@ pub struct UmdLibraryPlugin {
 }
 
 impl UmdLibraryPlugin {
-  pub fn new(_optional_amd_external_as_global: bool, library_type: LibraryType) -> Self {
-    Self {
-      library_type,
-      _optional_amd_external_as_global,
-    }
+  pub fn new(optional_amd_external_as_global: bool, library_type: LibraryType) -> Self {
+    Self::new_inner(optional_amd_external_as_global, library_type)
   }
 
   fn parse_options<'a>(&self, library: &'a LibraryOptions) -> UmdLibraryPluginParsed<'a> {
@@ -74,178 +80,221 @@ impl UmdLibraryPlugin {
   }
 }
 
-impl Plugin for UmdLibraryPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.UmdLibraryPlugin"
-  }
+#[plugin_hook(CompilerCompilation for UmdLibraryPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  hooks.render.tap(render::new(self));
+  hooks.chunk_hash.tap(js_chunk_hash::new(self));
+  Ok(())
+}
 
-  fn additional_chunk_runtime_requirements(
-    &self,
-    _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    let Some(_) = self.get_options_for_chunk(args.compilation, args.chunk) else {
-      return Ok(());
-    };
-    args
-      .runtime_requirements
-      .insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
-    Ok(())
-  }
+#[plugin_hook(JavascriptModulesRender for UmdLibraryPlugin)]
+fn render(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  render_source: &mut RenderSource,
+) -> Result<()> {
+  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey) else {
+    return Ok(());
+  };
+  let supports_arrow_function = compilation
+    .options
+    .output
+    .environment
+    .supports_arrow_function();
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let module_graph = compilation.get_module_graph();
+  let modules = compilation
+    .chunk_graph
+    .get_chunk_module_identifiers(chunk_ukey)
+    .iter()
+    .filter_map(|identifier| {
+      module_graph
+        .module_by_identifier(identifier)
+        .and_then(|module| module.as_external_module())
+        .and_then(|m| {
+          let ty = m.get_external_type();
+          (ty == "umd" || ty == "umd2").then_some(m)
+        })
+    })
+    .collect::<Vec<&ExternalModule>>();
+  // TODO check if external module is optional
+  let optional_externals: Vec<&ExternalModule> = vec![];
+  let externals = modules.clone();
+  let required_externals = modules.clone();
 
-  fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
-    let compilation = args.compilation;
-    let Some(options) = self.get_options_for_chunk(compilation, args.chunk) else {
-      return Ok(None);
-    };
-    let chunk = args.chunk();
-    let modules = compilation
-      .chunk_graph
-      .get_chunk_module_identifiers(args.chunk)
-      .iter()
-      .filter_map(|identifier| {
-        compilation
-          .module_graph
-          .module_by_identifier(identifier)
-          .and_then(|module| module.as_external_module())
-          .and_then(|m| {
-            let ty = m.get_external_type();
-            (ty == "umd" || ty == "umd2").then_some(m)
-          })
-      })
-      .collect::<Vec<&ExternalModule>>();
-    // TODO check if external module is optional
-    let optional_externals: Vec<&ExternalModule> = vec![];
-    let externals = modules.clone();
-    let required_externals = modules.clone();
+  let amd_factory = if optional_externals.is_empty() {
+    "factory"
+  } else {
+    ""
+  };
 
-    let amd_factory = if optional_externals.is_empty() {
-      "factory"
-    } else {
-      ""
-    };
+  let UmdLibraryPluginParsed {
+    names,
+    auxiliary_comment,
+    named_define,
+  } = options;
 
-    let UmdLibraryPluginParsed {
-      names,
-      auxiliary_comment,
-      named_define,
-    } = options;
+  let define = if let (Some(amd), Some(_)) = &(&names.amd, named_define) {
+    format!(
+      "define({}, {}, {amd_factory});\n",
+      library_name(&[amd.to_string()], chunk, compilation),
+      externals_dep_array(&required_externals)?
+    )
+  } else {
+    format!(
+      "define({}, {amd_factory});\n",
+      externals_dep_array(&required_externals)?
+    )
+  };
 
-    let define = if let (Some(amd), Some(_)) = &(&names.amd, named_define) {
-      format!(
-        "define({}, {}, {amd_factory});\n",
-        library_name(&[amd.to_string()], chunk, compilation),
-        externals_dep_array(&required_externals)?
-      )
-    } else {
-      format!(
-        "define({}, {amd_factory});\n",
-        externals_dep_array(&required_externals)?
-      )
-    };
-
-    let factory = if names.commonjs.is_some() || names.root.is_some() {
-      let commonjs_code = format!(
-        "{}
-        exports[{}] = factory({});\n",
-        get_auxiliary_comment("commonjs", auxiliary_comment),
-        names
-          .commonjs
+  let factory = if names.commonjs.is_some() || names.root.is_some() {
+    let commonjs_code = format!(
+      "{}
+      exports[{}] = factory({});\n",
+      get_auxiliary_comment("commonjs", auxiliary_comment),
+      names
+        .commonjs
+        .clone()
+        .map(|commonjs| library_name(&[commonjs], chunk, compilation))
+        .or_else(|| names
+          .root
           .clone()
-          .map(|commonjs| library_name(&[commonjs], chunk, compilation))
-          .or_else(|| names
+          .map(|root| library_name(&root, chunk, compilation)))
+        .unwrap_or_default(),
+      externals_require_array("commonjs", &externals)?,
+    );
+    let root_code = format!(
+      "{}
+      {} = factory({});",
+      get_auxiliary_comment("root", auxiliary_comment),
+      replace_keys(
+        accessor_access(
+          Some("root"),
+          &names
             .root
             .clone()
-            .map(|root| library_name(&root, chunk, compilation)))
-          .unwrap_or_default(),
-        externals_require_array("commonjs", &externals)?,
-      );
-      let root_code = format!(
-        "{}
-        {} = factory({});",
-        get_auxiliary_comment("root", auxiliary_comment),
-        replace_keys(
-          accessor_access(
-            Some("root"),
-            &names
-              .root
-              .clone()
-              .or_else(|| names.commonjs.clone().map(|commonjs| vec![commonjs]))
-              .unwrap_or_default(),
-          ),
-          chunk,
-          compilation,
+            .or_else(|| names.commonjs.clone().map(|commonjs| vec![commonjs]))
+            .unwrap_or_default(),
         ),
-        external_root_array(&externals)?
-      );
-      format!(
-        "}} else if(typeof exports === 'object'){{\n
-            {commonjs_code}
-        }} else {{\n
-            {root_code}
-        }}\n",
-      )
+        chunk,
+        compilation,
+      ),
+      external_root_array(&externals)?
+    );
+    format!(
+      "}} else if(typeof exports === 'object'){{\n
+          {commonjs_code}
+      }} else {{\n
+          {root_code}
+      }}\n",
+    )
+  } else {
+    let value = if externals.is_empty() {
+      "var a = factory();\n".to_string()
     } else {
-      let value = if externals.is_empty() {
-        "var a = factory();\n".to_string()
-      } else {
-        format!(
-          "var a = typeof exports === 'object' ? factory({}) : factory({});\n",
-          externals_require_array("commonjs", &externals)?,
-          external_root_array(&externals)?
-        )
-      };
       format!(
-        "}} else {{
-            {value}
-            for(var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];\n
-        }}\n"
+        "var a = typeof exports === 'object' ? factory({}) : factory({});\n",
+        externals_require_array("commonjs", &externals)?,
+        external_root_array(&externals)?
       )
     };
+    format!(
+      "}} else {{
+          {value}
+          for(var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];\n
+      }}\n"
+    )
+  };
 
-    let mut source = ConcatSource::default();
-    source.add(RawSource::from(
-      "(function webpackUniversalModuleDefinition(root, factory) {\n",
-    ));
-    source.add(RawSource::from(format!(
-      r#"{}
-        if(typeof exports === 'object' && typeof module === 'object') {{
-            module.exports = factory({});
-        }}"#,
-      get_auxiliary_comment("commonjs2", auxiliary_comment),
-      externals_require_array("commonjs2", &externals)?
-    )));
-    source.add(RawSource::from(format!(
-      "else if(typeof define === 'function' && define.amd) {{
-            {}
-            {define}
-            {factory}
-        }})({}, function({}) {{
-            return ",
-      get_auxiliary_comment("amd", auxiliary_comment),
-      compilation.options.output.global_object,
-      external_arguments(&externals, compilation)
-    )));
-    source.add(args.source.clone());
-    source.add(RawSource::from("\n});"));
-    Ok(Some(source.boxed()))
+  let mut source = ConcatSource::default();
+  source.add(RawSource::from(
+    "(function webpackUniversalModuleDefinition(root, factory) {\n",
+  ));
+  source.add(RawSource::from(format!(
+    r#"{}
+      if(typeof exports === 'object' && typeof module === 'object') {{
+          module.exports = factory({});
+      }}"#,
+    get_auxiliary_comment("commonjs2", auxiliary_comment),
+    externals_require_array("commonjs2", &externals)?
+  )));
+  source.add(RawSource::from(format!(
+    "else if(typeof define === 'function' && define.amd) {{
+          {}
+          {define}
+          {factory}
+      }})({}, {} {{
+          return ",
+    get_auxiliary_comment("amd", auxiliary_comment),
+    compilation.options.output.global_object,
+    if supports_arrow_function {
+      format!("({}) =>", external_arguments(&externals, compilation))
+    } else {
+      format!("function({})", external_arguments(&externals, compilation))
+    },
+  )));
+  source.add(render_source.source.clone());
+  source.add(RawSource::from("\n})"));
+  render_source.source = source.boxed();
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesChunkHash for UmdLibraryPlugin)]
+async fn js_chunk_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  hasher: &mut RspackHash,
+) -> Result<()> {
+  let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey) else {
+    return Ok(());
+  };
+  PLUGIN_NAME.hash(hasher);
+  compilation.options.output.library.hash(hasher);
+  Ok(())
+}
+
+#[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for UmdLibraryPlugin)]
+fn additional_chunk_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey) else {
+    return Ok(());
+  };
+  runtime_requirements.insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
+  Ok(())
+}
+
+#[async_trait::async_trait]
+impl Plugin for UmdLibraryPlugin {
+  fn name(&self) -> &'static str {
+    PLUGIN_NAME
   }
 
-  fn js_chunk_hash(
+  fn apply(
     &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
-    let Some(_) = self.get_options_for_chunk(args.compilation, args.chunk_ukey) else {
-      return Ok(());
-    };
-    self.name().hash(&mut args.hasher);
-    args
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
       .compilation
-      .options
-      .output
-      .library
-      .hash(&mut args.hasher);
+      .tap(compilation::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .additional_chunk_runtime_requirements
+      .tap(additional_chunk_runtime_requirements::new(self));
     Ok(())
   }
 }
@@ -257,15 +306,17 @@ fn library_name(v: &[String], chunk: &Chunk, compilation: &Compilation) -> Strin
 }
 
 fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> String {
-  compilation.get_path(
-    &Filename::from(v),
-    PathData::default().chunk(chunk).content_hash_optional(
-      chunk
-        .content_hash
-        .get(&SourceType::JavaScript)
-        .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-    ),
-  )
+  compilation
+    .get_path(
+      &FilenameTemplate::from(v),
+      PathData::default().chunk(chunk).content_hash_optional(
+        chunk
+          .content_hash
+          .get(&SourceType::JavaScript)
+          .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
+      ),
+    )
+    .always_ok()
 }
 
 fn externals_require_array(typ: &str, externals: &[&ExternalModule]) -> Result<String> {
@@ -277,11 +328,11 @@ fn externals_require_array(typ: &str, externals: &[&ExternalModule]) -> Result<S
           ExternalRequest::Single(r) => r,
           ExternalRequest::Map(map) => map
             .get(typ)
-            .ok_or_else(|| internal_error!("Missing external configuration for type: {typ}"))?,
+            .ok_or_else(|| error!("Missing external configuration for type: {typ}"))?,
         };
         // TODO: check if external module is optional
         let primary =
-          serde_json::to_string(request.primary()).map_err(|e| internal_error!(e.to_string()))?;
+          serde_json::to_string(request.primary()).map_err(|e| error!(e.to_string()))?;
         let expr = if let Some(rest) = request.rest() {
           format!("require({}){}", primary, &accessor_to_object_access(rest))
         } else {
@@ -305,7 +356,7 @@ fn external_root_array(modules: &[&ExternalModule]) -> Result<String> {
           ExternalRequest::Map(map) => map
             .get(typ)
             .map(|r| r.primary())
-            .ok_or_else(|| internal_error!("Missing external configuration for type: {typ}"))?,
+            .ok_or_else(|| error!("Missing external configuration for type: {typ}"))?,
         };
         Ok(format!("root{}", accessor_to_object_access([request])))
       })
@@ -327,7 +378,7 @@ fn accessor_to_object_access<S: AsRef<str>>(accessor: impl IntoIterator<Item = S
     .join("")
 }
 
-fn accessor_access(base: Option<&str>, accessor: &Vec<String>) -> String {
+fn accessor_access(base: Option<&str>, accessor: &[String]) -> String {
   accessor
     .iter()
     .enumerate()

@@ -1,0 +1,21 @@
+ERROR in ./non-recoverable.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expected ident
+         ╭────
+       1 │ ##$$
+         ·  ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./recoverable.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
+         ╭────
+       1 │ const foo {};
+         ·           ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.

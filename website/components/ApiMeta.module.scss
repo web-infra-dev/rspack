@@ -1,0 +1,47 @@
+.wrapper {
+  margin-top: 1.5rem;
+}
+
+.wrapperInline {
+  display: inline;
+}
+
+:global(h2) + .wrapper {
+  margin-top: 0px;
+}
+
+.tagInline {
+  display: inline-flex;
+  color: #1c1c1c;
+  margin-right: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  line-height: 18px;
+}
+
+.tag {
+  composes: tagInline;
+  margin-bottom: 12px;
+}
+
+.added {
+  background-color: hsl(162deg 60% 75%);
+}
+
+.deprecated {
+  background-color: hsl(36deg 100% 82%);
+}
+
+.removed {
+  background-color: hsl(0deg 100% 90%);
+}
+
+.experimental {
+  background-color: hsl(262deg 100% 90%);
+}
+
+.specific {
+  background-color: hsl(262deg, 10%, 90%);
+}

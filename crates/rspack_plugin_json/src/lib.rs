@@ -4,20 +4,22 @@ use std::borrow::Cow;
 use json::{
   number::Number,
   object::Object,
+  stringify,
   Error::{
     ExceededDepthLimit, FailedUtf8Parsing, UnexpectedCharacter, UnexpectedEndOfJson, WrongType,
   },
   JsonValue,
 };
 use rspack_core::{
+  diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  BuildMetaDefaultObject, BuildMetaExportsType, CompilerOptions, ExportsInfo, GenerateContext,
-  Module, ModuleGraph, ParserAndGenerator, Plugin, RuntimeGlobals, RuntimeSpec, SourceType,
-  UsageState,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportsInfo,
+  GenerateContext, Module, ModuleGraph, ParserAndGenerator, Plugin, RuntimeGlobals, RuntimeSpec,
+  SourceType, UsageState, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{
-  internal_error, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-  TraceableError,
+  miette::diagnostic, DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result,
+  TWithDiagnosticArray, TraceableError,
 };
 
 use crate::json_exports_dependency::JsonExportsDependency;
@@ -33,7 +35,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     &[SourceType::JavaScript]
   }
 
-  fn size(&self, module: &dyn Module, _source_type: &SourceType) -> f64 {
+  fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
     module.original_source().map_or(0, |source| source.size()) as f64
   }
 
@@ -43,15 +45,11 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   ) -> Result<TWithDiagnosticArray<rspack_core::ParseResult>> {
     let rspack_core::ParseContext {
       source: box_source,
-      resource_data,
       build_info,
       build_meta,
+      loaders,
       ..
     } = parse_context;
-    build_info.strict = true;
-    build_meta.exports_type = BuildMetaExportsType::Default;
-    // TODO default_object is not align with webpack
-    build_meta.default_object = BuildMetaDefaultObject::RedirectWarn;
     let source = box_source.source();
     let strip_bom_source = source.strip_prefix('\u{feff}');
     let need_strip_bom = strip_bom_source.is_some();
@@ -71,7 +69,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             start_offset
           };
           TraceableError::from_file(
-            resource_data.resource_path.to_string_lossy().to_string(),
             source.into_owned(),
             // one character offset
             start_offset,
@@ -80,16 +77,13 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             format!("Unexpected character {ch}"),
           )
           .with_kind(DiagnosticKind::Json)
-          .into()
+          .boxed()
         }
-        ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => {
-          internal_error!(format!("{e}"))
-        }
+        ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => diagnostic!("{e}").boxed(),
         UnexpectedEndOfJson => {
           // End offset of json file
           let offset = source.len() - 1;
           TraceableError::from_file(
-            resource_data.resource_path.to_string_lossy().to_string(),
             source.into_owned(),
             offset,
             offset,
@@ -97,16 +91,23 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             format!("{e}"),
           )
           .with_kind(DiagnosticKind::Json)
-          .into()
+          .boxed()
         }
       }
     });
 
     let (diagnostics, data) = match parse_result {
       Ok(data) => (vec![], Some(data)),
-      Err(err) => (vec![err.into()], None),
+      Err(err) => (
+        vec![ModuleParseError::new(err, loaders).boxed().into()],
+        None,
+      ),
     };
     build_info.json_data = data.clone();
+    build_info.strict = true;
+    build_meta.exports_type = BuildMetaExportsType::Default;
+    // Ignore the json named exports warning, this violates standards, but other bundlers support it without warning.
+    build_meta.default_object = BuildMetaDefaultObject::RedirectWarn { ignore: true };
 
     Ok(
       rspack_core::ParseResult {
@@ -117,8 +118,9 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           vec![]
         },
         blocks: vec![],
+        code_generation_dependencies: vec![],
         source: box_source,
-        analyze_result: Default::default(),
+        side_effects_bailout: None,
       }
       .with_diagnostic(diagnostics),
     )
@@ -135,45 +137,39 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     let GenerateContext {
       compilation,
       runtime,
+      concatenation_scope,
       ..
     } = generate_context;
+    let module_graph = compilation.get_module_graph();
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
         generate_context
           .runtime_requirements
           .insert(RuntimeGlobals::MODULE);
-        let mgm = compilation
-          .module_graph
-          .module_graph_module_by_identifier(&module.identifier())
+        let module = module_graph
+          .module_by_identifier(&module.identifier())
           .expect("should have module identifier");
-        let json_data = mgm
-          .build_info
+        let json_data = module
+          .build_info()
           .as_ref()
           .and_then(|info| info.json_data.as_ref())
           .expect("should have json data");
-        let exports_info = compilation
-          .module_graph
-          .get_exports_info(&module.identifier());
+        let exports_info = module_graph.get_exports_info(&module.identifier());
 
         let final_json = match json_data {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)
             if exports_info
               .other_exports_info
-              .get_export_info(&compilation.module_graph)
+              .get_export_info(&module_graph)
               .get_used(*runtime)
               == UsageState::Unused =>
           {
-            create_object_for_exports_info(
-              json_data.clone(),
-              exports_info,
-              *runtime,
-              &compilation.module_graph,
-            )
+            create_object_for_exports_info(json_data.clone(), exports_info, *runtime, &module_graph)
           }
           _ => json_data.clone(),
         };
         let is_js_object = final_json.is_object() || final_json.is_array();
-        let final_json_string = final_json.to_string();
+        let final_json_string = stringify(final_json);
         let json_str = utils::escape_json(&final_json_string);
         let json_expr = if is_js_object && json_str.len() > 20 {
           Cow::Owned(format!(
@@ -183,13 +179,28 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         } else {
           json_str
         };
-        Ok(RawSource::from(format!(r#"module.exports = {}"#, json_expr)).boxed())
+        let content = if let Some(ref mut scope) = concatenation_scope {
+          scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
+          format!("var {NAMESPACE_OBJECT_EXPORT} = {json_expr}")
+        } else {
+          format!(r#"module.exports = {}"#, json_expr)
+        };
+        Ok(RawSource::from(content).boxed())
       }
       _ => panic!(
         "Unsupported source type: {:?}",
         generate_context.requested_source_type
       ),
     }
+  }
+
+  fn get_concatenation_bailout_reason(
+    &self,
+    _module: &dyn Module,
+    _mg: &ModuleGraph,
+    _cg: &ChunkGraph,
+  ) -> Option<String> {
+    None
   }
 }
 
@@ -208,7 +219,7 @@ impl Plugin for JsonPlugin {
   ) -> Result<()> {
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
-      Box::new(|| Box::new(JsonParserAndGenerator {})),
+      Box::new(|_, _| Box::new(JsonParserAndGenerator {})),
     );
 
     Ok(())
@@ -250,7 +261,7 @@ fn create_object_for_exports_info(
           std::mem::replace(value, JsonValue::Null)
         };
         let used_name = export_info
-          .get_used_name(&key.into(), runtime)
+          .get_used_name(Some(&(key.into())), runtime)
           .expect("should have used name");
         used_pair.push((used_name, new_value));
       }
@@ -301,7 +312,7 @@ fn create_object_for_exports_info(
       let used_length = if let Some(array_length_when_used) = array_length_when_used {
         array_length_when_used
       } else {
-        max_used_index + 1
+        (max_used_index + 1).min(ret.len())
       };
       ret.drain(used_length..);
       let normalized_ret = ret

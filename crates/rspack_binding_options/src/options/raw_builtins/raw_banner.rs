@@ -1,14 +1,11 @@
-use std::sync::Arc;
-
 use derivative::Derivative;
-use napi::{Either, Env, JsFunction};
+use napi::Either;
 use napi_derive::napi;
 use rspack_binding_values::JsChunk;
 use rspack_error::Result;
-use rspack_napi_shared::{
-  get_napi_env,
-  threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  JsRegExp, JsRegExpExt, NapiResultExt,
+use rspack_napi::{
+  regexp::{JsRegExp, JsRegExpExt},
+  threadsafe_function::ThreadsafeFunction,
 };
 use rspack_plugin_banner::{
   BannerContent, BannerContentFnCtx, BannerPluginOptions, BannerRule, BannerRules,
@@ -31,7 +28,7 @@ impl<'a> From<BannerContentFnCtx<'a>> for RawBannerContentFnCtx {
   }
 }
 
-type RawBannerContent = Either<String, JsFunction>;
+type RawBannerContent = Either<String, ThreadsafeFunction<RawBannerContentFnCtx, String>>;
 struct RawBannerContentWrapper(RawBannerContent);
 
 impl TryFrom<RawBannerContentWrapper> for BannerContent {
@@ -39,25 +36,13 @@ impl TryFrom<RawBannerContentWrapper> for BannerContent {
   fn try_from(value: RawBannerContentWrapper) -> Result<Self> {
     match value.0 {
       Either::A(s) => Ok(Self::String(s)),
-      Either::B(f) => {
-        let func: napi::Result<ThreadsafeFunction<RawBannerContentFnCtx, String>> = try {
-          let env = get_napi_env();
-          rspack_binding_macros::js_fn_into_threadsafe_fn!(f, &Env::from(env))
-        };
-        let func = Arc::new(func.expect("convert to threadsafe function failed"));
-        Ok(BannerContent::Fn(Box::new(
-          move |ctx: BannerContentFnCtx| {
-            let func = func.clone();
-            Box::pin(async move {
-              func
-                .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
-                .into_rspack_result()?
-                .await
-                .unwrap_or_else(|err| panic!("Failed to call rule.use function: {err}"))
-            })
-          },
-        )))
-      }
+      Either::B(f) => Ok(BannerContent::Fn(Box::new(
+        move |ctx: BannerContentFnCtx| {
+          let ctx = ctx.into();
+          let f = f.clone();
+          Box::pin(async move { f.call(ctx).await })
+        },
+      ))),
     }
   }
 }
@@ -69,7 +54,7 @@ struct RawBannerRulesWrapper(RawBannerRules);
 
 #[derive(Derivative)]
 #[derivative(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawBannerPluginOptions {
   #[derivative(Debug = "ignore")]
   #[napi(ts_type = "string | ((...args: any[]) => any)")]
@@ -77,6 +62,7 @@ pub struct RawBannerPluginOptions {
   pub entry_only: Option<bool>,
   pub footer: Option<bool>,
   pub raw: Option<bool>,
+  pub stage: Option<i32>,
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   pub test: Option<RawBannerRules>,
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
@@ -114,6 +100,7 @@ impl TryFrom<RawBannerPluginOptions> for BannerPluginOptions {
       entry_only: value.entry_only,
       footer: value.footer,
       raw: value.raw,
+      stage: value.stage,
       test: value.test.map(|v| RawBannerRulesWrapper(v).into()),
       include: value.include.map(|v| RawBannerRulesWrapper(v).into()),
       exclude: value.exclude.map(|v| RawBannerRulesWrapper(v).into()),

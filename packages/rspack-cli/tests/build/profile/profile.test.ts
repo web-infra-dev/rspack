@@ -1,13 +1,13 @@
 import fs from "fs";
-import { run } from "../../utils/test-utils";
 import { resolve } from "path";
+import { run } from "../../utils/test-utils";
 
 const defaultTracePath = "./trace.json";
 const defaultJSCPUPath = "./jscpuprofile.json";
 const defaultLoggingPath = "./logging.json";
-const customTracePath = "./custom.trace";
-const customJSCPUPath = "./custom.jscpuprofile";
-const customLoggingPath = "./custom.logging";
+const customTracePath = "./custom/trace";
+const customJSCPUPath = "./custom/jscpuprofile";
+const customLoggingPath = "./custom/logging";
 
 function findDefaultOutputDirname() {
 	const files = fs.readdirSync(__dirname);

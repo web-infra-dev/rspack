@@ -1,0 +1,27 @@
+# 功能规划
+
+当前文档列出了 Rspack 正在支持的一些重要功能，其中一部分功能已经在实现过程中，一部分将在 Rspack 未来的版本中实现。
+
+## Rspack v1.0
+
+我们计划在 2024 年 7 月发布 Rspack v1.0 正式版，该版本旨在改进 Rspack 的 API 稳定性，并发布一些重要功能，比如 Lazy Compilation。
+
+> 请参考 [Rspack v1.0 Release Plan](https://github.com/web-infra-dev/rspack/discussions/6315) 了解更多。
+
+## Rsbuild v1.0
+
+Rsbuild 是基于 Rspack 的新一代构建工具，由 Rspack 团队开发。Rsbuild v1.0 版本将在 2024 年 7 月与 Rspack 同步发布。
+
+> 请参考 [Rsbuild v1.0 Release Plan](https://github.com/web-infra-dev/rsbuild/discussions/1678) 了解更多。
+
+## 性能优化
+
+我们仍然存在着很多的性能优化空间，我们将在未来和上游项目如 [SWC](https://github.com/swc-project/swc) 和 [NAPI-RS](https://github.com/napi-rs/napi-rs) 一起持续地进行性能优化。
+
+## Webpack 生态兼容性
+
+由于 webpack 包含了大量的 API，我们需要逐步支持。我们将根据社区的反馈，优先支持一些高频使用的 loaders 和 plugins。
+
+## Persistent Cache
+
+Persistent Cache 能够大幅的优化项目的二次编译性能，即使 Rspack 目前在绝大部分项目里都能够达到不错的性能，但是在某些超大规模的项目的场景下，Persistent Cache 仍然能够带来很大的性能提升，我们将在未来计划支持该功能。

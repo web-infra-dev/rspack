@@ -1,0 +1,62 @@
+# Testing Webpack
+
+## 运行 Webpack 用例
+
+> **注意**: `tests/webpack-test` 完全基于 [webpack/test](https://github.com/webpack/webpack/tree/main/test)
+
+### **持续迁移 webpack 测试**
+
+在迁移 webpack 测试的过程中，我们使用以下公式来计算兼容性：`passedTestCaseCount / totalTestCount`，其中 `totalTestCount = passedTestCaseCount + failedTestCount + skippedTestCount`。
+
+但是有时由于一些原因（例如性能、部分历史遗留功能），可能很难与所有的 webpack 测试用例保持兼容。因此，我们需要一种方法来跳过这些不希望支持的测试用例。我们将原始公式调整为 `(passedTestCaseCount + willNotSupportTestCount) / totalTestCount`。
+
+目前，可在用例目录下添加 `test.filter.js` 文件，用于跳过失败的测试用例。使得我们可以逐步迁移 webpack 测试用例，而不影响实际的兼容性（因为这种方法不影响真实的 `passedTestCaseCount`）。
+
+例如：
+
+```javascript title="test.filter.js"
+module.exports = () => {
+  return false; // false 表示当前测试用例暂时被跳过，但也许我们将来会支持它；-1 表示我们不希望兼容这个测试用例，这与 `willNotSupportTest` 相关。
+};
+```
+
+如果您发现测试用例已可以通过，那么将 `test.filter.js` 更改为：
+
+```javascript title="test.filter.js"
+module.exports = () => {
+  return true;
+};
+```
+
+或者直接删除 `test.filter.js` 文件。
+
+## 运行 Webpack 插件用例
+
+基于实现差异和性能考虑，Rspack 会将部分 Webpack 生态插件内置。同样会将插件的测试套件复制到 `tests/plugin-test` 文件夹下，用于测试插件的兼容性。
+
+因此，为了保持这些测试用例与其原仓库的一致性，不建议对测试用例进行修改，仅当如下场景满足时可变更：
+
+- 在 Rspack 中内置了新的 Webpack 生态插件，此时需要复制该插件的用例。
+- 因 Rspack 与 Webpack 的产物差异（如 hash 不同），需要修改部分用例。
+
+非以上场景时，请遵循 [Rspack 测试](./testing-rspack) 添加测试用例
+
+### 运行测试
+
+可以通过如下方式运行这些测试用例：
+
+- 根目录下运行 `./x test plugin` 或 `pnpm run test:plugin`。
+- 或在 `tests/plugin-test` 目录下运行 `npm run test`。
+- 如需更新 snapshot，在 `tests/plugin-test` 目录下运行 `npm run test -- -u`。
+- 如需传入特定 jest cli 参数，在 `tests/plugin-test` 目录下运行 `npm run test -- {args}`。
+
+### 添加用例
+
+1. 建立 `tests/plugin-test/{插件名}` 文件夹，并将该插件的测试用例复制到该文件夹中。
+2. 适配 `tests/plugin-test/jest.config.js` 中的测试配置，如有特殊配置遵循如下流程：
+   1. 建立 `tests/plugin-test/jest.{plugin-name}.config.js`，引入 `jest.config.js` 并在其基础上修改。
+   2. 在 `tests/plugin-test/package.json` 的 `scripts` 中添加 `test:{plugin-name}` 命令
+   3. 如包含 snapshot 测试，使用 `global.updateSnapshot` 全局变量判断是否刷新 snapshot
+3. 更新 License 信息：
+   1. 添加 `tests/plugin-test/{插件名}/README.md` 文件，添加测试用例来源仓库的 License 信息。
+   2. 更新 `tests/plugin-test/README.md` 文件，添加测试用例来源仓库的链接和感谢信息。

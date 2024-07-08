@@ -1,11 +1,11 @@
 mod raw_split_chunk_cache_group_test;
 mod raw_split_chunk_chunks;
 mod raw_split_chunk_name;
+mod raw_split_chunk_size;
 
 use std::sync::Arc;
 
 use derivative::Derivative;
-use napi::bindgen_prelude::Either3;
 use napi::{Either, JsString};
 use napi_derive::napi;
 use raw_split_chunk_name::normalize_raw_chunk_name;
@@ -13,121 +13,54 @@ use raw_split_chunk_name::RawChunkOptionName;
 use rspack_core::Filename;
 use rspack_core::SourceType;
 use rspack_core::DEFAULT_DELIMITER;
-use rspack_napi_shared::{JsRegExp, JsRegExpExt, JsStringExt};
-use rspack_plugin_split_chunks_new::ChunkNameGetter;
-use serde::Deserialize;
+use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
+use rspack_napi::string::JsStringExt;
+use rspack_plugin_split_chunks::ChunkNameGetter;
 
 use self::raw_split_chunk_cache_group_test::default_cache_group_test;
 use self::raw_split_chunk_cache_group_test::normalize_raw_cache_group_test;
 use self::raw_split_chunk_cache_group_test::RawCacheGroupTest;
 use self::raw_split_chunk_chunks::{create_chunks_filter, Chunks};
 use self::raw_split_chunk_name::default_chunk_option_name;
+use self::raw_split_chunk_size::RawSplitChunkSizes;
 
-#[derive(Derivative, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[derive(Derivative)]
+#[napi(object, object_to_js = false)]
 #[derivative(Debug)]
 pub struct RawSplitChunksOptions {
   pub fallback_cache_group: Option<RawFallbackCacheGroupOptions>,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "string | false | Function")]
   #[derivative(Debug = "ignore")]
   pub name: Option<RawChunkOptionName>,
   pub cache_groups: Option<Vec<RawCacheGroupOptions>>,
   /// What kind of chunks should be selected.
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all' | Function")]
   #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
   pub automatic_name_delimiter: Option<String>,
   pub max_async_requests: Option<u32>,
   pub max_initial_requests: Option<u32>,
-  //   pub default_size_types: Option<Vec<SizeType>>,
+  pub default_size_types: Vec<String>,
   pub min_chunks: Option<u32>,
   pub hide_path_info: Option<bool>,
-  pub min_size: Option<f64>,
+  pub min_size: Option<Either<f64, RawSplitChunkSizes>>,
   //   pub min_size_reduction: usize,
   pub enforce_size_threshold: Option<f64>,
-  pub min_remaining_size: Option<f64>,
+  pub min_remaining_size: Option<Either<f64, RawSplitChunkSizes>>,
   // layer: String,
-  pub max_size: Option<f64>,
-  pub max_async_size: Option<f64>,
-  pub max_initial_size: Option<f64>,
+  pub max_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_async_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_initial_size: Option<Either<f64, RawSplitChunkSizes>>,
 }
 
-impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::SplitChunksOptions {
-  fn from(value: RawSplitChunksOptions) -> Self {
-    use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
-
-    let mut defaults = SplitChunksOptions {
-      max_async_requests: value.max_async_requests,
-      max_initial_requests: value.max_initial_requests,
-      min_chunks: value.min_chunks,
-      min_size: value.min_size,
-      enforce_size_threshold: value.enforce_size_threshold,
-      min_remaining_size: value.min_remaining_size,
-      automatic_name_delimiter: Some(DEFAULT_DELIMITER.to_string()),
-      chunks: value.chunks.map(|chunks| {
-        let Either3::B(chunks) = chunks else {
-          panic!("expected string")
-        };
-        let chunks = chunks.into_string();
-        match chunks.as_str() {
-          "initial" => ChunkType::Initial,
-          "async" => ChunkType::Async,
-          "all" => ChunkType::All,
-          _ => panic!("Invalid chunk type: {chunks}"),
-        }
-      }),
-      ..Default::default()
-    };
-
-    defaults
-      .cache_groups
-      .extend(value.cache_groups.unwrap_or_default().into_iter().map(|v| {
-        (
-          v.key,
-          CacheGroupOptions {
-            // FIXME: since old split chunk will not used so I use `None` here
-            automatic_name_delimiter: Some(DEFAULT_DELIMITER.to_string()),
-            name: None,
-            priority: v.priority,
-            reuse_existing_chunk: Some(false),
-            test: v.test.map(|_| {
-              let f: TestFn = Arc::new(move |_| false);
-              f // FIXME: since old split chunk will not used so I use `|| -> false` here
-            }),
-            chunks: v.chunks.map(|chunks| {
-              let Either3::B(chunks) = chunks else {
-                panic!("expected string")
-              };
-              let chunks = chunks.into_string();
-              match chunks.as_str() {
-                "initial" => ChunkType::Initial,
-                "async" => ChunkType::Async,
-                "all" => ChunkType::All,
-                _ => panic!("Invalid chunk type: {chunks}"),
-              }
-            }),
-            min_chunks: v.min_chunks,
-            ..Default::default()
-          },
-        )
-      }));
-    defaults
-  }
-}
-
-#[derive(Derivative, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[derive(Derivative)]
+#[napi(object, object_to_js = false)]
 #[derivative(Debug)]
 pub struct RawCacheGroupOptions {
   pub key: String,
   pub priority: Option<i32>,
   // pub reuse_existing_chunk: Option<bool>,
   //   pub r#type: SizeType,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | string | Function")]
   #[derivative(Debug = "ignore")]
   pub test: Option<RawCacheGroupTest>,
@@ -135,11 +68,9 @@ pub struct RawCacheGroupOptions {
   //   pub enforce: bool,
   pub id_hint: Option<String>,
   /// What kind of chunks should be selected.
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
   #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | string")]
   #[derivative(Debug = "ignore")]
   pub r#type: Option<Either<JsRegExp, JsString>>,
@@ -147,15 +78,14 @@ pub struct RawCacheGroupOptions {
   //   pub max_async_requests: usize,
   //   pub max_initial_requests: usize,
   pub min_chunks: Option<u32>,
-  pub min_size: Option<f64>,
+  pub min_size: Option<Either<f64, RawSplitChunkSizes>>,
   //   pub min_size_reduction: usize,
   //   pub enforce_size_threshold: usize,
   //   pub min_remaining_size: usize,
   // layer: String,
-  pub max_size: Option<f64>,
-  pub max_async_size: Option<f64>,
-  pub max_initial_size: Option<f64>,
-  #[serde(skip_deserializing)]
+  pub max_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_async_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_initial_size: Option<Either<f64, RawSplitChunkSizes>>,
   #[napi(ts_type = "string | false | Function")]
   #[derivative(Debug = "ignore")]
   pub name: Option<RawChunkOptionName>,
@@ -164,9 +94,9 @@ pub struct RawCacheGroupOptions {
   pub enforce: Option<bool>,
 }
 
-impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptions {
+impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
   fn from(raw_opts: RawSplitChunksOptions) -> Self {
-    use rspack_plugin_split_chunks_new::SplitChunkSizes;
+    use rspack_plugin_split_chunks::SplitChunkSizes;
 
     let mut cache_groups = vec![];
 
@@ -178,20 +108,28 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptio
       normalize_raw_chunk_name(name)
     });
 
-    let default_size_types = [SourceType::JavaScript, SourceType::Unknown];
+    let default_size_types = raw_opts
+      .default_size_types
+      .into_iter()
+      .map(|size_type| SourceType::from(size_type.as_str()))
+      .collect::<Vec<_>>();
 
-    let create_sizes = |size: Option<f64>| {
-      size
-        .map(|size| SplitChunkSizes::with_initial_value(&default_size_types, size))
-        .unwrap_or_default()
+    let create_sizes = |size: Option<Either<f64, RawSplitChunkSizes>>| match size {
+      Some(Either::A(size)) => SplitChunkSizes::with_initial_value(&default_size_types, size),
+      Some(Either::B(sizes)) => sizes.into(),
+      None => SplitChunkSizes::default(),
     };
 
     let empty_sizes = SplitChunkSizes::empty();
 
     let overall_min_size = create_sizes(raw_opts.min_size);
+
     let overall_max_size = create_sizes(raw_opts.max_size);
+
     let overall_max_async_size = create_sizes(raw_opts.max_async_size).merge(&overall_max_size);
+
     let overall_max_initial_size = create_sizes(raw_opts.max_initial_size).merge(&overall_max_size);
+
     let overall_automatic_name_delimiter = raw_opts
       .automatic_name_delimiter
       .unwrap_or(DEFAULT_DELIMITER.to_string());
@@ -238,7 +176,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptio
           let r#type = v
             .r#type
             .map(create_module_type_filter)
-            .unwrap_or_else(rspack_plugin_split_chunks_new::create_default_module_type_filter);
+            .unwrap_or_else(rspack_plugin_split_chunks::create_default_module_type_filter);
 
           let mut name = v.name.map_or(default_chunk_option_name(), |name| {
             normalize_raw_chunk_name(name)
@@ -246,7 +184,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptio
           if matches!(name, ChunkNameGetter::Disabled) {
             name = overall_name_getter.clone();
           }
-          rspack_plugin_split_chunks_new::CacheGroup {
+          rspack_plugin_split_chunks::CacheGroup {
             id_hint: v.id_hint.unwrap_or_else(|| v.key.clone()),
             key: v.key,
             name,
@@ -257,7 +195,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptio
             chunk_filter: v.chunks.map(create_chunks_filter).unwrap_or_else(|| {
               overall_chunk_filter
                 .clone()
-                .unwrap_or_else(rspack_plugin_split_chunks_new::create_async_chunk_filter)
+                .unwrap_or_else(rspack_plugin_split_chunks::create_async_chunk_filter)
             }),
             min_chunks,
             min_size,
@@ -296,13 +234,13 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptio
       .merge(&overall_max_initial_size)
       .merge(&overall_max_size);
 
-    rspack_plugin_split_chunks_new::PluginOptions {
+    rspack_plugin_split_chunks::PluginOptions {
       cache_groups,
-      fallback_cache_group: rspack_plugin_split_chunks_new::FallbackCacheGroup {
+      fallback_cache_group: rspack_plugin_split_chunks::FallbackCacheGroup {
         chunks_filter: fallback_chunks_filter.unwrap_or_else(|| {
           overall_chunk_filter
             .clone()
-            .unwrap_or_else(rspack_plugin_split_chunks_new::create_all_chunk_filter)
+            .unwrap_or_else(rspack_plugin_split_chunks::create_all_chunk_filter)
         }),
         min_size: fallback_min_size,
         max_async_size: fallback_max_async_size,
@@ -316,25 +254,23 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptio
   }
 }
 
-#[derive(Deserialize, Default, Derivative)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[derive(Default, Derivative)]
+#[napi(object, object_to_js = false)]
 #[derivative(Debug)]
 pub struct RawFallbackCacheGroupOptions {
-  #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
   #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
-  pub min_size: Option<f64>,
-  pub max_size: Option<f64>,
-  pub max_async_size: Option<f64>,
-  pub max_initial_size: Option<f64>,
+  pub min_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_async_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_initial_size: Option<Either<f64, RawSplitChunkSizes>>,
   pub automatic_name_delimiter: Option<String>,
 }
 
 fn create_module_type_filter(
   raw: Either<JsRegExp, JsString>,
-) -> rspack_plugin_split_chunks_new::ModuleTypeFilter {
+) -> rspack_plugin_split_chunks::ModuleTypeFilter {
   match raw {
     Either::A(js_reg) => {
       let regex = js_reg.to_rspack_regex();

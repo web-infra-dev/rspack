@@ -1,20 +1,13 @@
 use napi_derive::napi;
 use rspack_core::{
-  BoxPlugin, CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
-  IncrementalRebuildMakeState, MangleExportsOption, ModuleOptions, ModuleType, OutputOptions,
-  PluginExt, TreeShaking,
+  CacheOptions, CompilerOptions, Context, Experiments, IncrementalRebuild,
+  IncrementalRebuildMakeState, ModuleOptions, OutputOptions, References, Target,
 };
-use rspack_plugin_javascript::{
-  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
-  SideEffectsFlagPlugin,
-};
-use serde::Deserialize;
 
 mod raw_builtins;
 mod raw_cache;
-mod raw_context;
-mod raw_dev_server;
 mod raw_devtool;
+mod raw_dynamic_entry;
 mod raw_entry;
 mod raw_experiments;
 mod raw_external;
@@ -26,13 +19,11 @@ mod raw_output;
 mod raw_snapshot;
 mod raw_split_chunks;
 mod raw_stats;
-mod raw_target;
 
 pub use raw_builtins::*;
 pub use raw_cache::*;
-pub use raw_context::*;
-pub use raw_dev_server::*;
 pub use raw_devtool::*;
+pub use raw_dynamic_entry::*;
 pub use raw_entry::*;
 pub use raw_experiments::*;
 pub use raw_external::*;
@@ -44,151 +35,61 @@ pub use raw_output::*;
 pub use raw_snapshot::*;
 pub use raw_split_chunks::*;
 pub use raw_stats::*;
-pub use raw_target::*;
-pub use rspack_binding_values::raw_resolve::*;
 
-pub trait RawOptionsApply {
-  type Options;
-  fn apply(self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error>;
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[derive(Debug)]
+#[napi(object, object_to_js = false)]
 pub struct RawOptions {
   #[napi(ts_type = "undefined | 'production' | 'development' | 'none'")]
   pub mode: Option<RawMode>,
-  #[napi(ts_type = "Array<string>")]
-  pub target: RawTarget,
-  #[napi(ts_type = "string")]
-  pub context: RawContext,
+  pub target: Vec<String>,
+  pub context: String,
   pub output: RawOutputOptions,
   pub resolve: RawResolveOptions,
   pub resolve_loader: RawResolveOptions,
   pub module: RawModuleOptions,
-  #[napi(ts_type = "string")]
-  pub devtool: RawDevtool,
+  pub devtool: String,
   pub optimization: RawOptimizationOptions,
   pub stats: RawStatsOptions,
-  pub dev_server: RawDevServer,
   pub snapshot: RawSnapshotOptions,
   pub cache: RawCacheOptions,
   pub experiments: RawExperiments,
   pub node: Option<RawNodeOption>,
   pub profile: bool,
-  pub builtins: RawBuiltins,
+  pub bail: bool,
+  #[napi(js_name = "__references", ts_type = "Record<string, any>")]
+  pub __references: References,
 }
 
-impl RawOptionsApply for RawOptions {
-  type Options = CompilerOptions;
+impl TryFrom<RawOptions> for CompilerOptions {
+  type Error = rspack_error::Error;
 
-  fn apply(self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error> {
-    let context: Context = self.context.into();
-    let output: OutputOptions = self.output.apply(plugins)?;
-    let resolve = self.resolve.try_into()?;
-    let resolve_loader = self.resolve_loader.try_into()?;
-    let devtool: Devtool = self.devtool.into();
-    let mode = self.mode.unwrap_or_default().into();
-    let module: ModuleOptions = self.module.apply(plugins)?;
-    let target = self.target.apply(plugins)?;
-    let cache = self.cache.into();
+  fn try_from(value: RawOptions) -> Result<Self, rspack_error::Error> {
+    let context: Context = value.context.into();
+    let output: OutputOptions = value.output.try_into()?;
+    let resolve = value.resolve.try_into()?;
+    let resolve_loader = value.resolve_loader.try_into()?;
+    let mode = value.mode.unwrap_or_default().into();
+    let module: ModuleOptions = value.module.try_into()?;
+    let target = Target::new(&value.target)?;
+    let cache = value.cache.into();
     let experiments = Experiments {
-      lazy_compilation: self.experiments.lazy_compilation,
       incremental_rebuild: IncrementalRebuild {
-        make: self
-          .experiments
-          .incremental_rebuild
-          .make
-          .then(IncrementalRebuildMakeState::default),
-        emit_asset: self.experiments.incremental_rebuild.emit_asset,
+        make: if matches!(cache, CacheOptions::Disabled) {
+          None
+        } else {
+          Some(IncrementalRebuildMakeState::default())
+        },
+        emit_asset: true,
       },
-      async_web_assembly: self.experiments.async_web_assembly,
-      new_split_chunks: self.experiments.new_split_chunks,
-      top_level_await: self.experiments.top_level_await,
-      rspack_future: self.experiments.rspack_future.into(),
+      top_level_await: value.experiments.top_level_await,
+      rspack_future: value.experiments.rspack_future.into(),
     };
-    let optimization = IS_ENABLE_NEW_SPLIT_CHUNKS.set(&experiments.new_split_chunks, || {
-      self.optimization.apply(plugins)
-    })?;
-    let stats = self.stats.into();
-    let snapshot = self.snapshot.into();
-    let node = self.node.map(|n| n.into());
-    let dev_server: DevServerOptions = self.dev_server.into();
+    let optimization = value.optimization.try_into()?;
+    let stats = value.stats.into();
+    let snapshot = value.snapshot.into();
+    let node = value.node.map(|n| n.into());
 
-    plugins.push(rspack_plugin_schemes::DataUriPlugin.boxed());
-    plugins.push(rspack_plugin_schemes::FileUriPlugin.boxed());
-
-    plugins.push(
-      rspack_plugin_asset::AssetPlugin::new(rspack_plugin_asset::AssetConfig {
-        parse_options: module
-          .parser
-          .as_ref()
-          .and_then(|x| x.get(&ModuleType::Asset))
-          .and_then(|x| x.get_asset(&ModuleType::Asset).cloned()),
-      })
-      .boxed(),
-    );
-    plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
-    plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
-    if experiments.lazy_compilation {
-      plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
-    }
-    if experiments.async_web_assembly {
-      plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
-    }
-    plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
-    plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
-
-    if devtool.source_map() {
-      plugins.push(
-        rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
-          inline: devtool.inline(),
-          append: !devtool.hidden(),
-          namespace: output.unique_name.clone(),
-          columns: !devtool.cheap(),
-          no_sources: devtool.no_sources(),
-          public_path: None,
-        })
-        .boxed(),
-      );
-    }
-
-    if experiments.rspack_future.new_treeshaking {
-      if optimization.side_effects.is_enable() {
-        plugins.push(SideEffectsFlagPlugin::default().boxed());
-      }
-      if optimization.provided_exports {
-        plugins.push(FlagDependencyExportsPlugin::default().boxed());
-      }
-      if optimization.used_exports.is_enable() {
-        plugins.push(FlagDependencyUsagePlugin::default().boxed());
-      }
-    }
-    if optimization.mangle_exports.is_enable() {
-      // We already know mangle_exports != false
-      plugins.push(
-        MangleExportsPlugin::new(!matches!(
-          optimization.mangle_exports,
-          MangleExportsOption::Size
-        ))
-        .boxed(),
-      );
-    }
-
-    // Notice the plugin need to be placed after SplitChunksPlugin
-    if optimization.remove_empty_chunks {
-      plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin.boxed());
-    }
-
-    plugins.push(rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin.boxed());
-
-    plugins.push(rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin.boxed());
-    let mut builtins = self.builtins.apply(plugins)?;
-    if experiments.rspack_future.new_treeshaking {
-      builtins.tree_shaking = TreeShaking::False;
-    }
-
-    Ok(Self::Options {
+    Ok(CompilerOptions {
       context,
       mode,
       module,
@@ -196,16 +97,17 @@ impl RawOptionsApply for RawOptions {
       output,
       resolve,
       resolve_loader,
-      devtool,
       experiments,
       stats,
       cache,
       snapshot,
       optimization,
       node,
-      dev_server,
-      profile: self.profile,
-      builtins,
+      dev_server: Default::default(),
+      profile: value.profile,
+      bail: value.bail,
+      builtins: Default::default(),
+      __references: value.__references,
     })
   }
 }

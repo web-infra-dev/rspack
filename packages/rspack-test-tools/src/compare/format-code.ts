@@ -1,11 +1,12 @@
-import { parse } from "@babel/parser";
 import generate from "@babel/generator";
-import traverse from "@babel/traverse";
+import { parse } from "@babel/parser";
+import traverse, { NodePath } from "@babel/traverse";
 import * as T from "@babel/types";
+
 import { replaceModuleArgument } from "./replace-module-argument";
 
 export interface IFormatCodeOptions {
-	replacements?: Record<string, string>;
+	replacements?: IFormatCodeReplacement[];
 	ignorePropertyQuotationMark: boolean;
 	ignoreModuleId: boolean;
 	ignoreModuleArguments: boolean;
@@ -13,6 +14,12 @@ export interface IFormatCodeOptions {
 	ignoreSwcHelpersPath: boolean;
 	ignoreObjectPropertySequence: boolean;
 	ignoreCssFilePath: boolean;
+	ignoreIfCertainCondition: boolean;
+}
+
+export interface IFormatCodeReplacement {
+	from: string | RegExp;
+	to: string;
 }
 
 const SWC_HELPER_PATH_REG =
@@ -29,6 +36,13 @@ export function formatCode(
 		sourceType: "unambiguous"
 	});
 	traverse(ast, {
+		BlockStatement(path) {
+			if (options.ignoreBlockOnlyStatement) {
+				if (path.parentPath.isBlockStatement()) {
+					path.replaceWithMultiple(path.node.body);
+				}
+			}
+		},
 		ObjectProperty(path) {
 			if (options.ignorePropertyQuotationMark) {
 				const keyPath = path.get("key");
@@ -59,7 +73,14 @@ export function formatCode(
 				}
 			}
 		},
+		StringLiteral(path) {
+			if (path.node.extra?.raw) {
+				path.node.extra.raw = JSON.stringify(path.node.extra.rawValue);
+			}
+		},
 		IfStatement(path) {
+			let consequentNode;
+			let alternateNode;
 			if (options.ignoreBlockOnlyStatement) {
 				const consequent = path.get("consequent");
 				if (
@@ -68,17 +89,49 @@ export function formatCode(
 				) {
 					consequent.node.body[0].leadingComments =
 						consequent.node.leadingComments;
-					consequent.replaceWith(
-						T.cloneNode(consequent.node.body[0], true, false)
-					);
+					consequentNode = consequent.node.body[0];
+					consequent.replaceWith(consequentNode);
 				}
 				const alternate = path.get("alternate");
 				if (alternate.isBlockStatement() && alternate.node.body.length === 1) {
 					alternate.node.body[0].leadingComments =
 						alternate.node.leadingComments;
-					alternate.replaceWith(
-						T.cloneNode(alternate.node.body[0], true, false)
-					);
+
+					alternateNode = alternate.node.body[0];
+					alternate.replaceWith(alternateNode);
+				}
+			}
+			if (options.ignoreIfCertainCondition) {
+				const testExpr = path.get("test");
+				const testResult = testExpr.isBooleanLiteral()
+					? testExpr.node.value
+					: undefined;
+				if (typeof testResult === "boolean") {
+					if (testResult) {
+						const consequent = path.get("consequent");
+						if (consequent.isBlockStatement()) {
+							if (consequentNode) {
+								path.replaceWith(consequentNode);
+							} else {
+								path.replaceWithMultiple(consequent.node.body);
+							}
+						} else {
+							path.replaceWith(consequent);
+						}
+					} else {
+						const alternate = path.get("alternate");
+						if (alternate.isBlockStatement()) {
+							if (alternateNode) {
+								path.replaceWith(alternateNode);
+							} else {
+								path.replaceWithMultiple(alternate.node.body);
+							}
+						} else if (alternate.isStatement()) {
+							path.replaceWith(alternate);
+						} else {
+							path.remove();
+						}
+					}
 				}
 			}
 		},
@@ -89,6 +142,23 @@ export function formatCode(
 					body.node.body[0].leadingComments = body.node.leadingComments;
 					body.replaceWith(T.cloneNode(body.node.body[0], true, false));
 				}
+			}
+		},
+		While(path) {
+			if (options.ignoreBlockOnlyStatement) {
+				const body = path.get("body");
+				if (body.isBlockStatement() && body.node.body.length === 1) {
+					body.node.body[0].leadingComments = body.node.leadingComments;
+					body.replaceWith(T.cloneNode(body.node.body[0], true, false));
+				}
+			}
+		},
+		SwitchCase(path) {
+			if (
+				path.node.consequent.length === 1 &&
+				path.node.consequent[0].type === "BlockStatement"
+			) {
+				path.node.consequent = path.node.consequent[0].body;
 			}
 		},
 		ObjectExpression(path) {
@@ -140,10 +210,24 @@ export function formatCode(
 	}
 
 	if (options.replacements) {
-		for (let [key, value] of Object.entries(options.replacements)) {
-			result = result.split(key).join(value);
+		for (let { from, to } of options.replacements) {
+			result = result.replaceAll(from, to);
 		}
 	}
 
-	return result.trim();
+	// result of generate() is not stable with comments sometimes
+	// so do it again
+	return generate(
+		parse(result, {
+			sourceType: "unambiguous"
+		}),
+		{
+			comments: false,
+			compact: false,
+			concise: false,
+			jsescOption: {
+				quotes: "double"
+			}
+		}
+	).code.trim();
 }

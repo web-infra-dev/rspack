@@ -1,24 +1,27 @@
-import { RawContainerPluginOptions, BuiltinPlugin } from "@rspack/binding";
 import {
+	BuiltinPlugin,
 	BuiltinPluginName,
+	RawContainerPluginOptions
+} from "@rspack/binding";
+
+import { Compiler } from "../Compiler";
+import {
 	RspackBuiltinPlugin,
 	createBuiltinPlugin
 } from "../builtin-plugin/base";
 import {
 	EntryRuntime,
-	Filename,
+	FilenameTemplate,
 	LibraryOptions,
-	getRawEntryRuntime,
 	getRawLibrary
 } from "../config";
-import { isNil } from "../util";
 import { parseOptions } from "../container/options";
-import { Compiler } from "../Compiler";
 import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
+import { isNil } from "../util";
 
 export type ContainerPluginOptions = {
 	exposes: Exposes;
-	filename?: Filename;
+	filename?: FilenameTemplate;
 	library?: LibraryOptions;
 	name: string;
 	runtime?: EntryRuntime;
@@ -78,7 +81,7 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
 			name,
 			shareScope,
 			library: getRawLibrary(library),
-			runtime: !isNil(runtime) ? getRawEntryRuntime(runtime) : undefined,
+			runtime,
 			filename,
 			exposes: exposes.map(([key, r]) => ({ key, ...r })),
 			enhanced

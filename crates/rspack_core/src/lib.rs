@@ -4,9 +4,12 @@
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(hash_raw_entry)]
-
+#![feature(option_get_or_insert_default)]
+#![feature(slice_group_by)]
 use std::{fmt, sync::Arc};
 mod dependencies_block;
+pub mod diagnostics;
+mod update_hash;
 pub use dependencies_block::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock, DependencyLocation,
 };
@@ -21,10 +24,8 @@ pub mod external_module;
 pub use external_module::*;
 mod logger;
 pub use logger::*;
-pub mod cache;
-mod missing_module;
-pub use missing_module::*;
 mod normal_module;
+pub mod old_cache;
 mod raw_module;
 pub use raw_module::*;
 mod exports_info;
@@ -48,6 +49,12 @@ mod module_factory;
 pub use module_factory::*;
 mod normal_module_factory;
 pub use normal_module_factory::*;
+mod ignore_error_module_factory;
+pub use ignore_error_module_factory::*;
+mod self_module_factory;
+pub use self_module_factory::*;
+mod self_module;
+pub use self_module::*;
 mod compiler;
 pub use compiler::*;
 mod options;
@@ -59,6 +66,7 @@ pub use chunk::*;
 mod dependency;
 pub use dependency::*;
 mod utils;
+use ustr::Ustr;
 pub use utils::*;
 mod chunk_graph;
 pub use chunk_graph::*;
@@ -81,13 +89,13 @@ mod chunk_group;
 pub use chunk_group::*;
 mod ukey;
 pub use ukey::*;
-mod module_graph_module;
-pub use module_graph_module::*;
 pub mod resolver;
 pub use resolver::*;
-pub mod tree_shaking;
+pub mod concatenated_module;
+pub mod reserved_names;
 
 pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme, BUILTIN_LOADER_PREFIX};
+pub use rspack_macros::{impl_runtime_module, impl_source_map_config};
 pub use rspack_sources;
 
 #[cfg(debug_assertions)]
@@ -103,8 +111,11 @@ pub enum SourceType {
   Remote,
   ShareInit,
   ConsumeShared,
+  Custom(Ustr),
   #[default]
   Unknown,
+  CssImport,
+  Runtime,
 }
 
 impl std::fmt::Display for SourceType {
@@ -119,29 +130,27 @@ impl std::fmt::Display for SourceType {
       SourceType::ShareInit => write!(f, "share-init"),
       SourceType::ConsumeShared => write!(f, "consume-shared"),
       SourceType::Unknown => write!(f, "unknown"),
+      SourceType::CssImport => write!(f, "css-import"),
+      SourceType::Custom(source_type) => f.write_str(source_type),
+      SourceType::Runtime => write!(f, "runtime"),
     }
   }
 }
 
-impl TryFrom<&str> for SourceType {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: &str) -> Result<Self, Self::Error> {
+impl From<&str> for SourceType {
+  fn from(value: &str) -> Self {
     match value {
-      "javascript" => Ok(Self::JavaScript),
-      "css" => Ok(Self::Css),
-      "wasm" => Ok(Self::Wasm),
-      "asset" => Ok(Self::Asset),
-      "expose" => Ok(Self::Expose),
-      "remote" => Ok(Self::Remote),
-      "share-init" => Ok(Self::ShareInit),
-      "consume-shared" => Ok(Self::ConsumeShared),
-      "unknown" => Ok(Self::Unknown),
-
-      _ => {
-        use rspack_error::internal_error;
-        Err(internal_error!("invalid source type: {value}"))
-      }
+      "javascript" => Self::JavaScript,
+      "css" => Self::Css,
+      "wasm" => Self::Wasm,
+      "asset" => Self::Asset,
+      "expose" => Self::Expose,
+      "remote" => Self::Remote,
+      "share-init" => Self::ShareInit,
+      "consume-shared" => Self::ConsumeShared,
+      "unknown" => Self::Unknown,
+      "css-import" => Self::CssImport,
+      other => SourceType::Custom(other.into()),
     }
   }
 }
@@ -152,14 +161,9 @@ pub enum ModuleType {
   Css,
   CssModule,
   CssAuto,
-  Js,
+  JsAuto,
   JsDynamic,
   JsEsm,
-  Jsx,
-  JsxDynamic,
-  JsxEsm,
-  Tsx,
-  Ts,
   WasmSync,
   WasmAsync,
   AssetInline,
@@ -171,6 +175,8 @@ pub enum ModuleType {
   Fallback,
   ProvideShared,
   ConsumeShared,
+  SelfReference,
+  Custom(Ustr),
 }
 
 impl ModuleType {
@@ -181,8 +187,8 @@ impl ModuleType {
   pub fn is_js_like(&self) -> bool {
     matches!(
       self,
-      ModuleType::Js | ModuleType::JsEsm | ModuleType::JsDynamic | ModuleType::Ts
-    ) || self.is_jsx_like()
+      ModuleType::JsAuto | ModuleType::JsEsm | ModuleType::JsDynamic
+    )
   }
 
   pub fn is_asset_like(&self) -> bool {
@@ -191,36 +197,21 @@ impl ModuleType {
       ModuleType::Asset | ModuleType::AssetInline | ModuleType::AssetResource
     )
   }
-  pub fn is_jsx_like(&self) -> bool {
-    matches!(
-      self,
-      ModuleType::Tsx | ModuleType::Jsx | ModuleType::JsxEsm | ModuleType::JsxDynamic
-    )
-  }
 
   pub fn is_wasm_like(&self) -> bool {
     matches!(self, ModuleType::WasmSync | ModuleType::WasmAsync)
   }
 
   pub fn is_js_auto(&self) -> bool {
-    matches!(
-      self,
-      ModuleType::Js | ModuleType::Jsx | ModuleType::Ts | ModuleType::Tsx
-    )
+    matches!(self, ModuleType::JsAuto)
   }
 
   pub fn is_js_esm(&self) -> bool {
-    matches!(
-      self,
-      ModuleType::JsEsm | ModuleType::JsxEsm | ModuleType::Ts | ModuleType::Tsx
-    )
+    matches!(self, ModuleType::JsEsm)
   }
 
   pub fn is_js_dynamic(&self) -> bool {
-    matches!(
-      self,
-      ModuleType::JsDynamic | ModuleType::JsxDynamic | ModuleType::Ts | ModuleType::Tsx
-    )
+    matches!(self, ModuleType::JsDynamic)
   }
 
   /// Webpack arbitrary determines the binary type from [NormalModule.binary](https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/NormalModule.js#L302)
@@ -230,16 +221,9 @@ impl ModuleType {
 
   pub fn as_str(&self) -> &str {
     match self {
-      ModuleType::Js => "javascript/auto",
+      ModuleType::JsAuto => "javascript/auto",
       ModuleType::JsEsm => "javascript/esm",
       ModuleType::JsDynamic => "javascript/dynamic",
-
-      ModuleType::Jsx => "javascriptx",
-      ModuleType::JsxEsm => "javascriptx/esm",
-      ModuleType::JsxDynamic => "javascriptx/dynamic",
-
-      ModuleType::Ts => "typescript",
-      ModuleType::Tsx => "typescriptx",
 
       ModuleType::Css => "css",
       ModuleType::CssModule => "css/module",
@@ -259,6 +243,9 @@ impl ModuleType {
       ModuleType::Fallback => "fallback-module",
       ModuleType::ProvideShared => "provide-module",
       ModuleType::ConsumeShared => "consume-shared-module",
+      ModuleType::SelfReference => "self-reference-module",
+
+      ModuleType::Custom(custom) => custom,
     }
   }
 }
@@ -269,44 +256,30 @@ impl fmt::Display for ModuleType {
   }
 }
 
-impl TryFrom<&str> for ModuleType {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: &str) -> Result<Self, Self::Error> {
+impl From<&str> for ModuleType {
+  fn from(value: &str) -> Self {
     match value {
-      "mjs" => Ok(Self::JsEsm),
-      "cjs" => Ok(Self::JsDynamic),
-      "js" | "javascript" | "js/auto" | "javascript/auto" => Ok(Self::Js),
-      "js/dynamic" | "javascript/dynamic" => Ok(Self::JsDynamic),
-      "js/esm" | "javascript/esm" => Ok(Self::JsEsm),
+      "mjs" => Self::JsEsm,
+      "cjs" => Self::JsDynamic,
+      "js" | "javascript" | "js/auto" | "javascript/auto" => Self::JsAuto,
+      "js/dynamic" | "javascript/dynamic" => Self::JsDynamic,
+      "js/esm" | "javascript/esm" => Self::JsEsm,
 
-      // TODO: remove in 0.5.0
-      "jsx" | "javascriptx" | "jsx/auto" | "javascriptx/auto" => Ok(Self::Jsx),
-      "jsx/dynamic" | "javascriptx/dynamic" => Ok(Self::JsxDynamic),
-      "jsx/esm" | "javascriptx/esm" => Ok(Self::JsxEsm),
+      "css" => Self::Css,
+      "css/module" => Self::CssModule,
+      "css/auto" => Self::CssAuto,
 
-      // TODO: remove in 0.5.0
-      "ts" | "typescript" => Ok(Self::Ts),
-      "tsx" | "typescriptx" => Ok(Self::Tsx),
+      "json" => Self::Json,
 
-      "css" => Ok(Self::Css),
-      "css/module" => Ok(Self::CssModule),
-      "css/auto" => Ok(Self::CssAuto),
+      "webassembly/sync" => Self::WasmSync,
+      "webassembly/async" => Self::WasmAsync,
 
-      "json" => Ok(Self::Json),
+      "asset" => Self::Asset,
+      "asset/resource" => Self::AssetResource,
+      "asset/source" => Self::AssetSource,
+      "asset/inline" => Self::AssetInline,
 
-      "webassembly/sync" => Ok(Self::WasmSync),
-      "webassembly/async" => Ok(Self::WasmAsync),
-
-      "asset" => Ok(Self::Asset),
-      "asset/resource" => Ok(Self::AssetResource),
-      "asset/source" => Ok(Self::AssetSource),
-      "asset/inline" => Ok(Self::AssetInline),
-
-      _ => {
-        use rspack_error::internal_error;
-        Err(internal_error!("invalid module type: {value}"))
-      }
+      custom => Self::Custom(custom.into()),
     }
   }
 }
@@ -314,3 +287,36 @@ impl TryFrom<&str> for ModuleType {
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;
 pub(crate) type SharedPluginDriver = Arc<PluginDriver>;
+
+pub fn get_chunk_group_from_ukey<'a>(
+  ukey: &ChunkGroupUkey,
+  chunk_group_by_ukey: &'a ChunkGroupByUkey,
+) -> Option<&'a ChunkGroup> {
+  if chunk_group_by_ukey.contains(ukey) {
+    Some(chunk_group_by_ukey.expect_get(ukey))
+  } else {
+    None
+  }
+}
+
+pub fn get_chunk_from_ukey<'a>(
+  ukey: &ChunkUkey,
+  chunk_by_ukey: &'a ChunkByUkey,
+) -> Option<&'a Chunk> {
+  if chunk_by_ukey.contains(ukey) {
+    Some(chunk_by_ukey.expect_get(ukey))
+  } else {
+    None
+  }
+}
+
+pub fn get_mut_chunk_from_ukey<'a>(
+  ukey: &ChunkUkey,
+  chunk_by_ukey: &'a mut ChunkByUkey,
+) -> Option<&'a mut Chunk> {
+  if chunk_by_ukey.contains(ukey) {
+    Some(chunk_by_ukey.expect_get_mut(ukey))
+  } else {
+    None
+  }
+}

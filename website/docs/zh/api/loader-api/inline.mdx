@@ -1,0 +1,33 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/concepts/loaders/#inline" />
+
+# 内联 loader
+
+可以在 `import` 语句中指定 loader，或者任何同等的 "导入"方法。用 `!` 将 loader 从资源中分离出来。每个部分都是相对于当前目录来解析的。
+
+```js
+import Styles from 'style-loader!css-loader?modules!./styles.css';
+```
+
+通过在 inline import 语句中加前缀，可以覆盖配置中的任何 loaders、preLoaders 和 postLoaders：
+
+前缀为 `!` 时将禁用所有配置的 Normal Loader
+
+```js
+import Styles from '!style-loader!css-loader?modules!./styles.css';
+```
+
+前缀为 `!!` 时将禁用所有配置的 loader（preLoaders、loaders、postLoaders）。
+
+```js
+import Styles from '!!style-loader!css-loader?modules!./styles.css';
+```
+
+前缀为 `-!` 时将禁用所有配置的 preLoaders 和 loaders，但不包括 postLoaders
+
+```js
+import Styles from '-!style-loader!css-loader?modules!./styles.css';
+```
+
+选项可以用查询参数来传递，例如 `?key=value&foo=bar`，或者是 JSON 对象，例如 `?{"key": "value", "foo": "bar"}`。

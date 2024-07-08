@@ -30,21 +30,38 @@ function getStringBetween(
 	};
 }
 
-export function parseModules(content: string) {
+function isValidModule(name: string) {
+	if (name.startsWith("data:")) {
+		return false;
+	}
+	if (name.startsWith("https:")) {
+		return false;
+	}
+	return true;
+}
+
+export function parseModules(
+	content: string,
+	options: {
+		bootstrap?: boolean;
+	} = {}
+) {
 	const modules: Map<string, string> = new Map();
 	const runtimeModules: Map<string, string> = new Map();
 
 	let currentPosition = 0;
 
-	// parse bootstrap code
-	const bootstrap = getStringBetween(
-		content,
-		0,
-		BOOTSTRAP_SPLIT_LINE,
-		BOOTSTRAP_SPLIT_LINE
-	);
-	if (bootstrap.result) {
-		runtimeModules.set("webpack/runtime/bootstrap", bootstrap.result);
+	if (options.bootstrap) {
+		// parse bootstrap code
+		const bootstrap = getStringBetween(
+			content,
+			0,
+			BOOTSTRAP_SPLIT_LINE,
+			BOOTSTRAP_SPLIT_LINE
+		);
+		if (bootstrap.result) {
+			runtimeModules.set("webpack/runtime/bootstrap", bootstrap.result);
+		}
 	}
 	// parse module & runtime module code
 	let moduleName = getStringBetween(
@@ -53,7 +70,6 @@ export function parseModules(content: string) {
 		MODULE_START_FLAG,
 		MODULE_FLAG_END
 	).result;
-	let totalLength = 0;
 	while (moduleName) {
 		const moduleContent = getStringBetween(
 			content,
@@ -65,11 +81,11 @@ export function parseModules(content: string) {
 			throw new Error(`Module code parsed error: ${moduleName}`);
 		}
 		if (moduleName.startsWith("webpack/runtime")) {
-			totalLength += moduleContent.result.length;
 			runtimeModules.set(moduleName, moduleContent.result);
 		} else {
-			totalLength += moduleContent.result.length;
-			modules.set(moduleName, moduleContent.result);
+			if (isValidModule(moduleName)) {
+				modules.set(moduleName, moduleContent.result);
+			}
 		}
 		currentPosition = moduleContent.remain;
 		moduleName = getStringBetween(

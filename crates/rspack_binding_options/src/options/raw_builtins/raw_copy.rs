@@ -1,17 +1,38 @@
 use std::path::PathBuf;
 
+use derivative::Derivative;
+use napi::{bindgen_prelude::Buffer, Either};
 use napi_derive::napi;
+use rspack_core::rspack_sources::RawSource;
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_copy::{
-  CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, Info, Related, ToType,
+  CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, Info, Related, ToOption, ToType,
+  Transformer,
 };
-use serde::Deserialize;
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+type RawTransformer = ThreadsafeFunction<(Buffer, String), Either<String, Buffer>>;
+
+type RawToFn = ThreadsafeFunction<RawToOptions, String>;
+
+type RawTo = Either<String, RawToFn>;
+
+#[derive(Debug, Clone)]
 #[napi(object)]
+pub struct RawToOptions {
+  pub context: String,
+  pub absolute_filename: Option<String>,
+}
+
+#[derive(Derivative)]
+#[derivative(Debug, Clone)]
+#[napi(object, object_to_js = false)]
 pub struct RawCopyPattern {
   pub from: String,
-  pub to: Option<String>,
+  #[derivative(Debug = "ignore")]
+  #[napi(
+    ts_type = "string | ((pathData: { context: string; absoluteFilename?: string }) => string)"
+  )]
+  pub to: Option<RawTo>,
   pub context: Option<String>,
   pub to_type: Option<String>,
   pub no_error_on_missing: bool,
@@ -19,10 +40,14 @@ pub struct RawCopyPattern {
   pub priority: i32,
   pub glob_options: RawCopyGlobOptions,
   pub info: Option<RawInfo>,
+  #[derivative(Debug = "ignore")]
+  #[napi(
+    ts_type = "(input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>"
+  )]
+  pub transform: Option<RawTransformer>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawInfo {
   pub immutable: Option<bool>,
@@ -35,15 +60,13 @@ pub struct RawInfo {
   pub version: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawRelated {
   pub source_map: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawCopyGlobOptions {
   pub case_sensitive_match: Option<bool>,
@@ -51,9 +74,8 @@ pub struct RawCopyGlobOptions {
   pub ignore: Option<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[derive(Debug)]
+#[napi(object, object_to_js = false)]
 pub struct RawCopyRspackPluginOptions {
   pub patterns: Vec<RawCopyPattern>,
 }
@@ -70,11 +92,24 @@ impl From<RawCopyPattern> for CopyPattern {
       priority,
       glob_options,
       info,
+      transform,
     } = value;
 
     Self {
       from,
-      to,
+      to: to.map(|to| match to {
+        Either::A(s) => ToOption::String(s),
+        Either::B(f) => ToOption::Fn(Box::new(move |ctx| {
+          let f = f.clone();
+          Box::pin(async move {
+            f.call(RawToOptions {
+              context: ctx.context.to_owned(),
+              absolute_filename: ctx.absolute_filename.map(|filename| filename.to_owned()),
+            })
+            .await
+          })
+        })),
+      }),
       context: context.map(PathBuf::from),
       to_type: if let Some(to_type) = to_type {
         match to_type.to_lowercase().as_str() {
@@ -103,6 +138,24 @@ impl From<RawCopyPattern> for CopyPattern {
             .collect()
         }),
       },
+      transform: transform.map(|transformer| {
+        Transformer::Fn(Box::new(move |input, absolute_filename| {
+          let f = transformer.clone();
+
+          fn convert_to_enum(input: Either<String, Buffer>) -> RawSource {
+            match input {
+              Either::A(s) => RawSource::Source(s),
+              Either::B(b) => RawSource::Buffer(b.to_vec()),
+            }
+          }
+
+          Box::pin(async move {
+            f.call((input.into(), absolute_filename.to_owned()))
+              .await
+              .map(convert_to_enum)
+          })
+        }))
+      }),
     }
   }
 }

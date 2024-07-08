@@ -1,14 +1,17 @@
 #!/usr/bin/env zx
 
 import "zx/globals";
-import { Command } from "commander";
-import { version_handler } from "./scripts/release/version.mjs";
-import { publish_handler } from "./scripts/release/publish.mjs";
-import {
-	launchRspackCli,
-	launchJestWithArgs
-} from "./scripts/debug/launch.mjs";
 
+import { Command } from "commander";
+
+import {
+	launchJestWithArgs,
+	launchRspackCli
+} from "./scripts/debug/launch.mjs";
+import { publish_handler } from "./scripts/release/publish.mjs";
+import { version_handler } from "./scripts/release/version.mjs";
+
+process.env.CARGO_TERM_COLOR = "always"; // Assume every terminal that using zx supports color
 process.env.FORCE_COLOR = 3; // Fix zx losing color output in subprocesses
 
 const program = new Command();
@@ -30,7 +33,6 @@ program
 		await $`cargo test`;
 		await $`pnpm install`;
 		await $`pnpm run build:cli:release`;
-		await $`pnpm run test:example`;
 		await $`pnpm run test:unit`;
 		console.log(chalk.green("All passed."));
 	});
@@ -71,10 +73,15 @@ buildCommand
 	.option("-b", "build rust binding")
 	.option("-j", "build js packages")
 	.option("-r", "release")
-	.action(async function ({ a, b = a, j = a, r }) {
+	.option("-f", "force")
+	.action(async function ({ a, b = a, j = a, r, f }) {
 		let mode = r ? "release" : "debug";
-		b && (await $`pnpm --filter @rspack/binding build:${mode}`);
-		j && (await $`pnpm --filter "@rspack/*" build`);
+		try {
+			b && (await $`pnpm --filter @rspack/binding build:${mode}`);
+			j && (await $`pnpm --filter "@rspack/*" build ${f ? "--force" : ""}`);
+		} catch (e) {
+			process.exit(e.exitCode);
+		}
 	});
 
 watchCommand
@@ -84,8 +91,12 @@ watchCommand
 	.option("-r", "release")
 	.action(async function ({ a, b = a, j = a, r }) {
 		let mode = r ? "release" : "debug";
-		b && (await $`pnpm --filter @rspack/binding watch:${mode}`);
-		j && (await $`pnpm --filter "@rspack/*" watch`);
+		try {
+			b && (await $`pnpm --filter @rspack/binding watch:${mode}`);
+			j && (await $`pnpm --filter "@rspack/*" watch`);
+		} catch (e) {
+			process.exit(e.exitCode);
+		}
 	});
 
 // x build binding
@@ -115,14 +126,6 @@ testCommand
 		await $`cargo test`;
 	});
 
-// x test example
-testCommand
-	.command("example")
-	.description("build examples")
-	.action(async function () {
-		await $`pnpm --filter "example-*" build`;
-	});
-
 // x test unit
 testCommand
 	.command("unit")
@@ -137,15 +140,53 @@ testCommand
 	.command("ci")
 	.description("run tests for ci")
 	.action(async function () {
-		await $`./x test example`;
 		await $`./x test unit`;
 	});
+
 // x test webpack
 testCommand
 	.command("webpack")
 	.description("run webpack test suites")
 	.action(async function () {
 		await $`pnpm --filter "webpack-test" test`;
+	});
+
+// x test plugin
+testCommand
+	.command("plugin")
+	.description("run plugin test suites")
+	.action(async function () {
+		await $`pnpm --filter "plugin-test" test`;
+	});
+
+// x api-extractor
+const extractorCommand = program
+	.command("api-extractor")
+	.alias("ae")
+	.description("api extractor");
+
+extractorCommand
+	.command("update")
+	.description("update api extractor snapshots")
+	.action(async function () {
+		await $`pnpm -w build:js`;
+		await $`pnpm --filter '@rspack/*' api-extractor --local`;
+	});
+
+extractorCommand
+	.command("ci")
+	.description("test api extractor snapshots")
+	.action(async function () {
+		try {
+			await $`pnpm --filter '@rspack/*' api-extractor:ci`;
+		} catch (e) {
+			console.error(
+				`Api-extractor testing failed. Did you forget to update the snapshots locally?
+Run the command below locally to fix this error (in the *ROOT* of rspack workspace).
+$ ./x api-extractor update`
+			);
+			process.exit(e.exitCode);
+		}
 	});
 
 // x rspack / x rs

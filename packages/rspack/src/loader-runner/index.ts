@@ -8,7 +8,16 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 
-import type { JsLoaderContext } from "@rspack/binding";
+import querystring from "node:querystring";
+
+import assert from "assert";
+import { promisify } from "util";
+import {
+	JsLoaderContext,
+	JsLoaderItem,
+	JsLoaderState,
+	JsRspackSeverity
+} from "@rspack/binding";
 import {
 	OriginalSource,
 	RawSource,
@@ -16,12 +25,18 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
-import { Compiler } from "../Compiler";
-import { NormalModule } from "../NormalModule";
 import { Compilation } from "../Compilation";
+import { Compiler } from "../Compiler";
+import { Module } from "../Module";
+import { NormalModule } from "../NormalModule";
 import {
+	JsDiagnostic,
+	NonErrorEmittedError,
+	RspackError
+} from "../RspackError";
+import {
+	BUILTIN_LOADER_PREFIX,
 	LoaderContext,
-	LoaderObject,
 	isUseSimpleSourceMap,
 	isUseSourceMap
 } from "../config/adapterRuleUse";
@@ -29,47 +44,25 @@ import {
 	concatErrorMsgAndStack,
 	isNil,
 	serializeObject,
+	stringifyLoaderObject,
 	toBuffer,
-	toObject,
-	stringifyLoaderObject
+	toObject
 } from "../util";
-import { absolutify, contextify, makePathsRelative } from "../util/identifier";
-import { memoize } from "../util/memoize";
 import { createHash } from "../util/createHash";
-import loadLoader = require("./loadLoader");
-const querystring = require("node:querystring");
+import {
+	absolutify,
+	contextify,
+	makePathsRelative,
+	parseResourceWithoutFragment
+} from "../util/identifier";
+import { memoize } from "../util/memoize";
+import loadLoader from "./loadLoader";
 
-const PATH_QUERY_FRAGMENT_REGEXP =
-	/^((?:\0.|[^?#\0])*)(\?(?:\0.|[^#\0])*)?(#.*)?$/;
-
-export function parsePathQueryFragment(str: string): {
-	path: string;
-	query: string;
-	fragment: string;
-} {
-	const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
-	return {
-		path: match?.[1].replace(/\0(.)/g, "$1") || "",
-		query: match?.[2] ? match[2].replace(/\0(.)/g, "$1") : "",
-		fragment: match?.[3] || ""
-	};
-}
-
-function dirname(path: string) {
-	if (path === "/") return "/";
-	const i = path.lastIndexOf("/");
-	const j = path.lastIndexOf("\\");
-	const i2 = path.indexOf("/");
-	const j2 = path.indexOf("\\");
-	const idx = i > j ? i : j;
-	const idx2 = i > j ? i2 : j2;
-	if (idx < 0) return path;
-	if (idx === idx2) return path.slice(0, idx + 1);
-	return path.slice(0, idx);
-}
-
-function createLoaderObject(loader: any, compiler: Compiler): LoaderObject {
-	const obj: any = {
+function createLoaderObject(
+	loader: JsLoaderItem,
+	compiler: Compiler
+): LoaderObject {
+	var obj: any = {
 		path: null,
 		query: null,
 		fragment: null,
@@ -86,39 +79,47 @@ function createLoaderObject(loader: any, compiler: Compiler): LoaderObject {
 		enumerable: true,
 		get: function () {
 			return (
-				obj.path.replace(/#/g, "\0#") +
-				obj.query.replace(/#/g, "\0#") +
+				obj.path.replace(/#/g, "\u200b#") +
+				obj.query.replace(/#/g, "\u200b#") +
 				obj.fragment
 			);
 		},
 		set: function (value) {
-			if (typeof value === "string") {
-				const splittedRequest = parsePathQueryFragment(value);
-				obj.path = splittedRequest.path;
-				obj.query = splittedRequest.query;
-				obj.fragment = splittedRequest.fragment;
-				obj.options = undefined;
-				obj.ident = undefined;
-			} else {
-				if (!value.loader)
+			var splittedRequest = parseResourceWithoutFragment(value.request);
+			obj.path = splittedRequest.path;
+			obj.query = splittedRequest.query;
+			obj.fragment = splittedRequest.fragment || "";
+			obj.options =
+				obj.options === null
+					? splittedRequest.query
+						? splittedRequest.query.slice(1)
+						: undefined
+					: obj.options;
+
+			if (typeof obj.options === "string" && obj.options[0] === "?") {
+				const ident = obj.options.slice(1);
+				if (ident === "[[missing ident]]") {
 					throw new Error(
-						"request should be a string or object with loader and options (" +
-							JSON.stringify(value) +
-							")"
+						"No ident is provided by referenced loader. " +
+							"When using a function for Rule.use in config you need to " +
+							"provide an 'ident' property for referenced loader options."
 					);
-				obj.path = value.loader;
-				obj.fragment = value.fragment || "";
-				obj.type = value.type;
-				obj.options = value.options;
-				obj.ident = value.ident;
-				if (obj.options === null) obj.query = value.query;
-				else if (obj.options === undefined) obj.query = value.query;
-				else if (typeof obj.options === "string") obj.query = "?" + obj.options;
-				else if (obj.ident) obj.query = "??" + obj.ident;
-				else if (typeof obj.options === "object" && obj.options.ident)
-					obj.query = "??" + obj.options.ident;
-				else obj.query = "?" + JSON.stringify(obj.options);
+				}
+				obj.options = compiler.__internal__ruleSet.references.get(ident);
+				if (obj.options === undefined) {
+					throw new Error("Invalid ident is provided by referenced loader");
+				}
+				obj.ident = ident;
 			}
+
+			obj.type = value.type;
+			if (obj.options === null) obj.query = "";
+			else if (obj.options === undefined) obj.query = "";
+			else if (typeof obj.options === "string") obj.query = "?" + obj.options;
+			else if (obj.ident) obj.query = "??" + obj.ident;
+			else if (typeof obj.options === "object" && obj.options.ident)
+				obj.query = "??" + obj.options.ident;
+			else obj.query = "?" + JSON.stringify(obj.options);
 		}
 	});
 	obj.request = loader;
@@ -126,6 +127,201 @@ function createLoaderObject(loader: any, compiler: Compiler): LoaderObject {
 		Object.preventExtensions(obj);
 	}
 	return obj;
+}
+
+export class LoaderObject {
+	request: string;
+	path: string;
+	query: string;
+	fragment: string;
+	options?: string | object;
+	ident: string;
+	normal?: Function;
+	pitch?: Function;
+	raw?: boolean;
+	type?: "module" | "commonjs";
+	#loaderItem: JsLoaderItem;
+
+	constructor(loaderItem: JsLoaderItem, compiler: Compiler) {
+		const {
+			request,
+			path,
+			query,
+			fragment,
+			options,
+			ident,
+			normal,
+			pitch,
+			raw,
+			type
+		} = createLoaderObject(loaderItem, compiler);
+		this.request = request;
+		this.path = path;
+		this.query = query;
+		this.fragment = fragment;
+		this.options = options;
+		this.ident = ident;
+		this.normal = normal;
+		this.pitch = pitch;
+		this.raw = raw;
+		this.type = type;
+		this.#loaderItem = loaderItem;
+	}
+
+	get pitchExecuted() {
+		return this.#loaderItem.pitchExecuted;
+	}
+
+	set pitchExecuted(value: boolean) {
+		assert(value);
+		this.#loaderItem.pitchExecuted = true;
+	}
+
+	get normalExecuted() {
+		return this.#loaderItem.normalExecuted;
+	}
+
+	set normalExecuted(value: boolean) {
+		assert(value);
+		this.#loaderItem.normalExecuted = true;
+	}
+
+	// A data object shared between the pitch and the normal phase
+	get data() {
+		return new Proxy((this.#loaderItem.data = this.#loaderItem.data ?? {}), {
+			set: (_, property, value) => {
+				if (typeof property === "string") {
+					this.#loaderItem.data[property] = value;
+				}
+				return true;
+			},
+			get: (_, property) => {
+				if (typeof property === "string") {
+					return this.#loaderItem.data[property];
+				}
+			}
+		});
+	}
+
+	// A data object shared between the pitch and the normal phase
+	set data(data: any) {
+		this.#loaderItem.data = data;
+	}
+
+	shouldYield() {
+		return this.request.startsWith(BUILTIN_LOADER_PREFIX);
+	}
+
+	static __from_binding(
+		loaderItem: JsLoaderItem,
+		compiler: Compiler
+	): LoaderObject {
+		return new this(loaderItem, compiler);
+	}
+
+	static __to_binding(loader: LoaderObject): JsLoaderItem {
+		return loader.#loaderItem;
+	}
+}
+
+class JsSourceMap {
+	static __from_binding(map?: Buffer) {
+		return isNil(map) ? undefined : toObject(map);
+	}
+
+	static __to_binding(map?: object) {
+		return serializeObject(map);
+	}
+}
+
+const loadLoaderAsync: (loaderObject: LoaderObject) => Promise<void> =
+	promisify(loadLoader);
+
+const runSyncOrAsync = promisify(function runSyncOrAsync(
+	fn: Function,
+	context: LoaderContext,
+	args: any[],
+	callback: (err: Error | null, args: any[]) => void
+) {
+	let isSync = true;
+	let isDone = false;
+	let isError = false; // internal error
+	let reportedError = false;
+	// @ts-expect-error loader-runner leverages `arguments` to achieve the same functionality.
+	context.async = function async() {
+		if (isDone) {
+			if (reportedError) return; // ignore
+			throw new Error("async(): The callback was already called.");
+		}
+		isSync = false;
+		return innerCallback;
+	};
+	const innerCallback = (context.callback = function (err, ...args) {
+		if (isDone) {
+			if (reportedError) return; // ignore
+			throw new Error("callback(): The callback was already called.");
+		}
+		isDone = true;
+		isSync = false;
+		try {
+			// @ts-expect-error
+			callback(err, args);
+		} catch (e) {
+			isError = true;
+			throw e;
+		}
+	});
+	try {
+		const result = (function LOADER_EXECUTION() {
+			return fn.apply(context, args);
+		})();
+		if (isSync) {
+			isDone = true;
+			if (result === undefined) {
+				// @ts-expect-error
+				callback();
+				return;
+			}
+			if (
+				result &&
+				typeof result === "object" &&
+				typeof result.then === "function"
+			) {
+				result.then(function (r: unknown) {
+					callback(null, [r]);
+				}, callback);
+				return;
+			}
+			callback(null, [result]);
+			return;
+		}
+	} catch (e: unknown) {
+		if (isError) throw e;
+		if (isDone) {
+			// loader is already "done", so we cannot use the callback function
+			// for better debugging we print the error on the console
+			if (e instanceof Error) console.error(e.stack);
+			else console.error(e);
+			return;
+		}
+		isDone = true;
+		reportedError = true;
+		// @ts-expect-error
+		callback(e);
+	}
+});
+
+function dirname(path: string) {
+	if (path === "/") return "/";
+	const i = path.lastIndexOf("/");
+	const j = path.lastIndexOf("\\");
+	const i2 = path.indexOf("/");
+	const j2 = path.indexOf("\\");
+	const idx = i > j ? i : j;
+	const idx2 = i > j ? i2 : j2;
+	if (idx < 0) return path;
+	if (idx === idx2) return path.slice(0, idx + 1);
+	return path.slice(0, idx);
 }
 
 function getCurrentLoader(
@@ -146,69 +342,39 @@ function getCurrentLoader(
 
 export async function runLoaders(
 	compiler: Compiler,
-	rawContext: JsLoaderContext
-) {
-	const resource = rawContext.resource;
-	const loaderContext: LoaderContext = {} as LoaderContext;
+	context: JsLoaderContext
+): Promise<JsLoaderContext> {
+	const loaderState = context.loaderState;
 
 	//
-	const splittedResource = parsePathQueryFragment(resource);
-	const resourcePath = splittedResource.path;
-	const resourceQuery = splittedResource.query;
-	const resourceFragment = splittedResource.fragment;
-	const contextDirectory = dirname(resourcePath);
+	const { resource } = context.resourceData;
+	const splittedResource = resource && parsePathQueryFragment(resource);
+	const resourcePath = splittedResource ? splittedResource.path : undefined;
+	const resourceQuery = splittedResource ? splittedResource.query : undefined;
+	const resourceFragment = splittedResource
+		? splittedResource.fragment
+		: undefined;
+	const contextDirectory = resourcePath ? dirname(resourcePath) : null;
 
 	// execution state
-	let cacheable = true;
-	const fileDependencies: string[] = rawContext.fileDependencies.slice();
-	const contextDependencies: string[] = rawContext.contextDependencies.slice();
-	const missingDependencies: string[] = rawContext.missingDependencies.slice();
-	const buildDependencies: string[] = rawContext.buildDependencies.slice();
-	const assetFilenames = rawContext.assetFilenames.slice();
+	const fileDependencies = context.fileDependencies;
+	const contextDependencies = context.contextDependencies;
+	const missingDependencies = context.missingDependencies;
+	const buildDependencies = context.buildDependencies;
+	const assetFilenames = context.assetFilenames;
 
-	const loaders = rawContext.currentLoader.split("$").map(loader => {
-		const splittedRequest = parsePathQueryFragment(loader);
-		const obj: any = {};
-		obj.loader = obj.path = splittedRequest.path;
-		obj.query = splittedRequest.query;
-		obj.fragment = splittedRequest.fragment;
-		const type = /\.mjs$/i.test(splittedRequest.path) ? "module" : "commonjs";
-		obj.type = type;
-		obj.options = splittedRequest.query
-			? splittedRequest.query.slice(1)
-			: undefined;
-		if (typeof obj.options === "string" && obj.options[0] === "?") {
-			const ident = obj.options.slice(1);
-			if (ident === "[[missing ident]]") {
-				throw new Error(
-					"No ident is provided by referenced loader. " +
-						"When using a function for Rule.use in config you need to " +
-						"provide an 'ident' property for referenced loader options."
-				);
-			}
-			obj.options = compiler.ruleSet.references.get(ident);
-			if (obj.options === undefined) {
-				throw new Error(
-					`Invalid ident("${ident}") is provided by referenced loader`
-				);
-			}
-			obj.ident = ident;
-		}
-		return createLoaderObject(obj, compiler);
+	/// Construct `loaderContext`
+	const loaderContext = {} as LoaderContext;
+
+	loaderContext.loaders = context.loaderItems.map(item => {
+		return LoaderObject.__from_binding(item, compiler);
 	});
 
-	loaderContext.__internal__context = rawContext;
+	loaderContext.hot = context.hot;
 	loaderContext.context = contextDirectory;
-	loaderContext.loaderIndex = 0;
-	loaderContext.loaders = loaders;
-	loaderContext.resourcePath = resourcePath;
-	loaderContext.resourceQuery = resourceQuery;
-	loaderContext.resourceFragment = resourceFragment;
-	loaderContext.cacheable = function (flag) {
-		if (flag === false) {
-			cacheable = false;
-		}
-	};
+	loaderContext.resourcePath = resourcePath!;
+	loaderContext.resourceQuery = resourceQuery!;
+	loaderContext.resourceFragment = resourceFragment!;
 	loaderContext.dependency = loaderContext.addDependency =
 		function addDependency(file) {
 			fileDependencies.push(file);
@@ -218,6 +384,9 @@ export async function runLoaders(
 	};
 	loaderContext.addMissingDependency = function addMissingDependency(context) {
 		missingDependencies.push(context);
+	};
+	loaderContext.addBuildDependency = function addBuildDependency(file) {
+		buildDependencies.push(file);
 	};
 	loaderContext.getDependencies = function getDependencies() {
 		return fileDependencies.slice();
@@ -232,15 +401,93 @@ export async function runLoaders(
 		fileDependencies.length = 0;
 		contextDependencies.length = 0;
 		missingDependencies.length = 0;
-		cacheable = true;
+		context.cacheable = true;
+	};
+	loaderContext.importModule = function importModule(
+		request,
+		options,
+		callback
+	) {
+		if (!callback) {
+			return new Promise((resolve, reject) => {
+				compiler
+					._lastCompilation!.__internal_getInner()
+					.importModule(
+						request,
+						options.publicPath,
+						options.baseUri,
+						context._module.moduleIdentifier,
+						loaderContext.context,
+						(err, res) => {
+							if (err) reject(err);
+							else {
+								for (const dep of res.buildDependencies) {
+									this.addBuildDependency(dep);
+								}
+								for (const dep of res.contextDependencies) {
+									this.addContextDependency(dep);
+								}
+								for (const dep of res.missingDependencies) {
+									this.addMissingDependency(dep);
+								}
+								for (const dep of res.fileDependencies) {
+									this.addDependency(dep);
+								}
+								if (res.cacheable === false) {
+									this.cacheable(false);
+								}
+								assetFilenames.push(...res.assets);
+
+								resolve(compiler.__internal__getModuleExecutionResult(res.id));
+							}
+						}
+					);
+			});
+		}
+		return compiler
+			._lastCompilation!.__internal_getInner()
+			.importModule(
+				request,
+				options.publicPath,
+				options.baseUri,
+				context._module.moduleIdentifier,
+				loaderContext.context,
+				(err, res) => {
+					if (err) {
+						callback(err, undefined);
+					} else {
+						for (const dep of res.buildDependencies) {
+							this.addBuildDependency(dep);
+						}
+						for (const dep of res.contextDependencies) {
+							this.addContextDependency(dep);
+						}
+						for (const dep of res.missingDependencies) {
+							this.addMissingDependency(dep);
+						}
+						for (const dep of res.fileDependencies) {
+							this.addDependency(dep);
+						}
+						if (res.cacheable === false) {
+							this.cacheable(false);
+						}
+						assetFilenames.push(...res.assets);
+
+						callback(
+							undefined,
+							compiler.__internal__getModuleExecutionResult(res.id)
+						);
+					}
+				}
+			);
 	};
 	Object.defineProperty(loaderContext, "resource", {
 		enumerable: true,
 		get: function () {
 			if (loaderContext.resourcePath === undefined) return undefined;
 			return (
-				loaderContext.resourcePath.replace(/#/g, "\0#") +
-				loaderContext.resourceQuery.replace(/#/g, "\0#") +
+				loaderContext.resourcePath.replace(/#/g, "\u200b#") +
+				loaderContext.resourceQuery.replace(/#/g, "\u200b#") +
 				loaderContext.resourceFragment
 			);
 		},
@@ -317,38 +564,31 @@ export async function runLoaders(
 				: entry.query;
 		}
 	});
-	Object.defineProperty(loaderContext, "data", {
-		enumerable: true,
-		get: function () {
-			return loaderContext.loaders[loaderContext.loaderIndex].data;
-		}
-	});
 	loaderContext.version = 2;
 	loaderContext.sourceMap = compiler.options.devtool
 		? isUseSourceMap(compiler.options.devtool)
 		: false;
 	loaderContext.mode = compiler.options.mode;
-	loaderContext.hot = compiler.options.devServer?.hot;
+	Object.assign(loaderContext, compiler.options.loader);
 
 	const getResolveContext = () => {
-		// FIXME: resolve's fileDependencies will includes lots of dir, '/', etc
 		return {
 			fileDependencies: {
-				// @ts-expect-error
+				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
-					// loaderContext.addDependency(d)
+					loaderContext.addDependency(d);
 				}
 			},
 			contextDependencies: {
-				// @ts-expect-error
+				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
-					// loaderContext.addContextDependency(d)
+					loaderContext.addContextDependency(d);
 				}
 			},
 			missingDependencies: {
-				// @ts-expect-error
+				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
-					// loaderContext.addMissingDependency(d)
+					loaderContext.addMissingDependency(d);
 				}
 			}
 		};
@@ -381,39 +621,45 @@ export async function runLoaders(
 		};
 	};
 	loaderContext.getLogger = function getLogger(name) {
-		return compiler.compilation.getLogger(
+		return compiler._lastCompilation!.getLogger(
 			[name, resource].filter(Boolean).join("|")
 		);
 	};
 	loaderContext.rootContext = compiler.context;
 	loaderContext.emitError = function emitError(error) {
-		const title = "Module Error";
-		const message =
-			error instanceof Error ? concatErrorMsgAndStack(error) : error;
-		compiler.compilation.pushDiagnostic(
-			"error",
-			title,
-			`${message}\n(from: ${stringifyLoaderObject(
-				loaderContext.loaders[loaderContext.loaderIndex]
-			)})`
-		);
+		if (!(error instanceof Error)) {
+			error = new NonErrorEmittedError(error);
+		}
+		let hasStack = !!error.stack;
+		error.name = "ModuleError";
+		error.message = `${error.message} (from: ${stringifyLoaderObject(
+			loaderContext.loaders[loaderContext.loaderIndex]
+		)})`;
+		hasStack && Error.captureStackTrace(error);
+		error = concatErrorMsgAndStack(error);
+		(error as RspackError).moduleIdentifier = this._module.identifier();
+		compiler._lastCompilation!.__internal__pushDiagnostic({
+			error,
+			severity: JsRspackSeverity.Error
+		});
 	};
 	loaderContext.emitWarning = function emitWarning(warning) {
-		const title = "Module Warning";
-		const message =
-			warning instanceof Error ? concatErrorMsgAndStack(warning) : warning;
-		compiler.compilation.pushDiagnostic(
-			"warning",
-			title,
-			`${message}\n(from: ${stringifyLoaderObject(
-				loaderContext.loaders[loaderContext.loaderIndex]
-			)})`
-		);
+		if (!(warning instanceof Error)) {
+			warning = new NonErrorEmittedError(warning);
+		}
+		let hasStack = !!warning.stack;
+		warning.name = "ModuleWarning";
+		warning.message = `${warning.message} (from: ${stringifyLoaderObject(
+			loaderContext.loaders[loaderContext.loaderIndex]
+		)})`;
+		hasStack && Error.captureStackTrace(warning);
+		warning = concatErrorMsgAndStack(warning);
+		(warning as RspackError).moduleIdentifier = this._module.identifier();
+		compiler._lastCompilation!.__internal__pushDiagnostic({
+			error: warning,
+			severity: JsRspackSeverity.Warn
+		});
 	};
-	loaderContext.__internal__pushNativeDiagnostics =
-		function __internal__pushNativeDiagnostics(diagnostics) {
-			compiler.compilation.__internal__pushNativeDiagnostics(diagnostics);
-		};
 	loaderContext.emitFile = function emitFile(
 		name,
 		content,
@@ -430,7 +676,7 @@ export async function runLoaders(
 			) {
 				source = new OriginalSource(
 					content,
-					makePathsRelative(contextDirectory, sourceMap, compiler)
+					makePathsRelative(contextDirectory!, sourceMap, compiler)
 				);
 			}
 
@@ -439,7 +685,7 @@ export async function runLoaders(
 					// @ts-expect-error webpack-sources type declaration is wrong
 					content,
 					name,
-					makePathsRelative(contextDirectory, sourceMap, compiler)
+					makePathsRelative(contextDirectory!, sourceMap, compiler)
 				);
 			}
 		} else {
@@ -450,17 +696,17 @@ export async function runLoaders(
 		}
 		assetFilenames.push(name),
 			// @ts-expect-error
-			compiler.compilation.emitAsset(name, source, assetInfo);
+			compiler._lastCompilation.emitAsset(name, source, assetInfo);
 	};
 	loaderContext.fs = compiler.inputFileSystem;
 
 	const getAbsolutify = memoize(() => absolutify.bindCache(compiler.root));
 	const getAbsolutifyInContext = memoize(() =>
-		absolutify.bindContextCache(contextDirectory, compiler.root)
+		absolutify.bindContextCache(contextDirectory!, compiler.root)
 	);
 	const getContextify = memoize(() => contextify.bindCache(compiler.root));
 	const getContextifyInContext = memoize(() =>
-		contextify.bindContextCache(contextDirectory, compiler.root)
+		contextify.bindContextCache(contextDirectory!, compiler.root)
 	);
 
 	loaderContext.utils = {
@@ -476,41 +722,18 @@ export async function runLoaders(
 		},
 		createHash: type => {
 			return createHash(
-				type || compiler.compilation.outputOptions.hashFunction
+				type || compiler._lastCompilation!.outputOptions.hashFunction
 			);
 		}
 	};
-	loaderContext.addBuildDependency = function addBuildDependency(file) {
-		buildDependencies.push(file);
-	};
-	loaderContext.addDependency = function addDependency(file) {
-		fileDependencies.push(file);
-	};
-	loaderContext.dependency = function dependency(file) {
-		fileDependencies.push(file);
-	};
-	loaderContext.addContextDependency = function addContextDependency(context) {
-		contextDependencies.push(context);
-	};
-	loaderContext.addMissingDependency = function addMissingDependency(missing) {
-		missingDependencies.push(missing);
-	};
-	loaderContext.clearDependencies = function clearDependencies() {
-		fileDependencies.length = 0;
-		contextDependencies.length = 0;
-		missingDependencies.length = 0;
-	};
-	loaderContext.getDependencies = function getDependencies() {
-		return fileDependencies.slice();
-	};
-	loaderContext.getContextDependencies = function getContextDependencies() {
-		return contextDependencies.slice();
-	};
-	loaderContext.getMissingDependencies = function getMissingDependencies() {
-		return missingDependencies.slice();
-	};
+
 	loaderContext._compiler = compiler;
-	loaderContext._compilation = compiler.compilation;
+	loaderContext._compilation = compiler._lastCompilation!;
+	loaderContext._module = Module.__from_binding(
+		context._module,
+		compiler._lastCompilation
+	);
+
 	loaderContext.getOptions = function () {
 		const loader = getCurrentLoader(loaderContext);
 		let options = loader?.options;
@@ -535,7 +758,7 @@ export async function runLoaders(
 		return options;
 	};
 
-	let compilation: Compilation | undefined = compiler.compilation;
+	let compilation: Compilation | undefined = compiler._lastCompilation;
 	let step = 0;
 	while (compilation) {
 		NormalModule.getCompilationHooks(compilation).loader.call(loaderContext);
@@ -548,65 +771,106 @@ export async function runLoaders(
 		}
 	}
 
-	return new Promise((resolve, reject) => {
-		if (loaderContext.__internal__context.isPitching) {
-			iteratePitchingLoaders(loaderContext, [], (err: Error, result: any[]) => {
-				if (err) {
-					return reject(err);
-				}
-				const [content, sourceMap, additionalData] = result;
-				resolve({
-					content: isNil(content) ? undefined : toBuffer(content),
-					sourceMap: serializeObject(sourceMap),
-					additionalData: serializeObject(additionalData),
-					buildDependencies,
-					cacheable,
-					fileDependencies,
-					contextDependencies,
-					missingDependencies,
-					assetFilenames,
-					isPitching: loaderContext.__internal__context.isPitching,
-					additionalDataExternal:
-						loaderContext.__internal__context.additionalDataExternal
-				});
-			});
-		} else {
-			// normal
-			loaderContext.loaderIndex = loaderContext.loaders.length - 1;
-			iterateNormalLoaders(
-				loaderContext,
-				[
-					rawContext.content,
-					isNil(rawContext.sourceMap)
-						? undefined
-						: toObject(rawContext.sourceMap),
-					isNil(rawContext.additionalData)
-						? undefined
-						: toObject(rawContext.additionalData)
-				],
-				(err: Error, result: any[]) => {
-					if (err) {
-						return reject(err);
-					}
-					const [content, sourceMap, additionalData] = result;
-					resolve({
-						content: isNil(content) ? undefined : toBuffer(content),
-						sourceMap: serializeObject(sourceMap),
-						additionalData: serializeObject(additionalData),
-						buildDependencies,
-						cacheable,
-						fileDependencies,
-						contextDependencies,
-						missingDependencies,
-						assetFilenames,
-						isPitching: loaderContext.__internal__context.isPitching,
-						additionalDataExternal:
-							loaderContext.__internal__context.additionalDataExternal
-					});
-				}
-			);
+	/// Sync with `context`
+	Object.defineProperty(loaderContext, "loaderIndex", {
+		enumerable: true,
+		get: () => context.loaderIndex,
+		set: loaderIndex => (context.loaderIndex = loaderIndex)
+	});
+	Object.defineProperty(loaderContext, "cacheable", {
+		enumerable: true,
+		get: () => (cacheable: boolean) => {
+			if (cacheable === false) {
+				context.cacheable = cacheable;
+			}
 		}
 	});
+	Object.defineProperty(loaderContext, "data", {
+		enumerable: true,
+		get: () => loaderContext.loaders[loaderContext.loaderIndex].data,
+		set: data => (loaderContext.loaders[loaderContext.loaderIndex].data = data)
+	});
+
+	switch (loaderState) {
+		case JsLoaderState.Pitching: {
+			while (loaderContext.loaderIndex < loaderContext.loaders.length) {
+				const currentLoaderObject =
+					loaderContext.loaders[loaderContext.loaderIndex];
+
+				if (currentLoaderObject.shouldYield()) break;
+				if (currentLoaderObject.pitchExecuted) {
+					loaderContext.loaderIndex += 1;
+					continue;
+				}
+
+				await loadLoaderAsync(currentLoaderObject);
+				const fn = currentLoaderObject.pitch;
+				currentLoaderObject.pitchExecuted = true;
+				if (!fn) continue;
+
+				const args =
+					(await runSyncOrAsync(fn, loaderContext, [
+						loaderContext.remainingRequest,
+						loaderContext.previousRequest,
+						currentLoaderObject.data
+					])) || [];
+
+				const hasArg = args.some(function (value) {
+					return value !== undefined;
+				});
+
+				if (hasArg) {
+					const [content, sourceMap, additionalData] = args;
+					context.content = isNil(content) ? null : toBuffer(content);
+					context.sourceMap = serializeObject(sourceMap);
+					context.additionalData = additionalData;
+					break;
+				}
+			}
+
+			break;
+		}
+		case JsLoaderState.Normal: {
+			let content = context.content;
+			let sourceMap = JsSourceMap.__from_binding(context.sourceMap);
+			let additionalData = context.additionalData;
+
+			while (loaderContext.loaderIndex >= 0) {
+				const currentLoaderObject =
+					loaderContext.loaders[loaderContext.loaderIndex];
+
+				if (currentLoaderObject.shouldYield()) break;
+				if (currentLoaderObject.normalExecuted) {
+					loaderContext.loaderIndex--;
+					continue;
+				}
+
+				await loadLoaderAsync(currentLoaderObject);
+				const fn = currentLoaderObject.normal;
+				currentLoaderObject.normalExecuted = true;
+				if (!fn) continue;
+				let args = [content, sourceMap, additionalData];
+				convertArgs(args, !!currentLoaderObject.raw);
+				[content, sourceMap, additionalData] =
+					(await runSyncOrAsync(fn, loaderContext, args)) || [];
+			}
+
+			context.content = isNil(content) ? null : toBuffer(content);
+			context.sourceMap = JsSourceMap.__to_binding(sourceMap);
+			context.additionalData = additionalData;
+
+			break;
+		}
+		default:
+			throw new Error(`Unexpected loader runner state: ${loaderState}`);
+	}
+
+	// update loader state
+	context.loaderItems = loaderContext.loaders.map(item =>
+		LoaderObject.__to_binding(item)
+	);
+
+	return context;
 }
 
 function utf8BufferToString(buf: Buffer) {
@@ -624,169 +888,18 @@ function convertArgs(args: any[], raw: boolean) {
 		args[0] = Buffer.from(args[0], "utf-8");
 }
 
-function runSyncOrAsync(
-	fn: Function,
-	context: LoaderContext,
-	args: any[],
-	callback: Function
-) {
-	let isSync = true;
-	let isDone = false;
-	let isError = false; // internal error
-	let reportedError = false;
-	// @ts-expect-error loader-runner leverages `arguments` to achieve the same functionality.
-	context.async = function async() {
-		if (isDone) {
-			if (reportedError) return; // ignore
-			throw new Error("async(): The callback was already called.");
-		}
-		isSync = false;
-		return innerCallback;
+const PATH_QUERY_FRAGMENT_REGEXP =
+	/^((?:\u200b.|[^?#\u200b])*)(\?(?:\u200b.|[^#\u200b])*)?(#.*)?$/;
+
+export function parsePathQueryFragment(str: string): {
+	path: string;
+	query: string;
+	fragment: string;
+} {
+	const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
+	return {
+		path: match?.[1].replace(/\u200b(.)/g, "$1") || "",
+		query: match?.[2] ? match[2].replace(/\u200b(.)/g, "$1") : "",
+		fragment: match?.[3] || ""
 	};
-	const innerCallback = (context.callback = function () {
-		if (isDone) {
-			if (reportedError) return; // ignore
-			throw new Error("callback(): The callback was already called.");
-		}
-		isDone = true;
-		isSync = false;
-		try {
-			callback.apply(null, arguments);
-		} catch (e) {
-			isError = true;
-			throw e;
-		}
-	});
-	try {
-		const result = (function LOADER_EXECUTION() {
-			return fn.apply(context, args);
-		})();
-		if (isSync) {
-			isDone = true;
-			if (result === undefined) return callback();
-			if (
-				result &&
-				typeof result === "object" &&
-				typeof result.then === "function"
-			) {
-				return result.then(function (r: unknown) {
-					callback(null, r);
-				}, callback);
-			}
-			return callback(null, result);
-		}
-	} catch (e: unknown) {
-		if (isError) throw e;
-		if (isDone) {
-			// loader is already "done", so we cannot use the callback function
-			// for better debugging we print the error on the console
-			if (e instanceof Error) console.error(e.stack);
-			else console.error(e);
-			return;
-		}
-		isDone = true;
-		reportedError = true;
-		callback(e);
-	}
-}
-
-function iteratePitchingLoaders(
-	loaderContext: LoaderContext,
-	args: any[],
-	callback: Function
-): void {
-	// Running out of js loaders, so yield back to rust.
-	// Directly callback as we may still have other loaders on the rust side,
-	// The difference between rspack loader-runner and webpack loader-runner is
-	// that we do not run the loaders in the normal stage if pitching is not successful.
-	if (loaderContext.loaderIndex >= loaderContext.loaders.length)
-		return callback(null, args);
-
-	const currentLoaderObject = loaderContext.loaders[loaderContext.loaderIndex];
-
-	// iterate
-	if (currentLoaderObject.pitchExecuted) {
-		loaderContext.loaderIndex++;
-		return iteratePitchingLoaders(loaderContext, args, callback);
-	}
-
-	// load loader module
-	loadLoader(currentLoaderObject, function (err: Error) {
-		if (err) {
-			loaderContext.cacheable(false);
-			return callback(err);
-		}
-		const fn = currentLoaderObject.pitch;
-		currentLoaderObject.pitchExecuted = true;
-		if (!fn) return iteratePitchingLoaders(loaderContext, args, callback);
-
-		runSyncOrAsync(
-			fn,
-			loaderContext,
-			[
-				loaderContext.remainingRequest,
-				loaderContext.previousRequest,
-				(currentLoaderObject.data = {})
-			],
-			function (err: Error) {
-				if (err) return callback(err);
-				const args = Array.prototype.slice.call(arguments, 1);
-				// Determine whether to continue the pitching process based on
-				// argument values (as opposed to argument presence) in order
-				// to support synchronous and asynchronous usages.
-				const hasArg = args.some(function (value) {
-					return value !== undefined;
-				});
-				// If a loader pitched successfully,
-				// then It should execute normal loaders too.
-				if (hasArg) {
-					// Instruct rust side to execute loaders in backwards.
-					loaderContext.__internal__context.isPitching = false;
-					loaderContext.loaderIndex--;
-					iterateNormalLoaders(loaderContext, args, callback);
-				} else {
-					iteratePitchingLoaders(loaderContext, args, callback);
-				}
-			}
-		);
-	});
-}
-
-function iterateNormalLoaders(
-	loaderContext: LoaderContext,
-	args: any[],
-	callback: Function
-): void {
-	// JS loaders ends
-	if (loaderContext.loaderIndex < 0) return callback(null, args);
-
-	const currentLoaderObject = loaderContext.loaders[loaderContext.loaderIndex];
-
-	// iterate
-	if (currentLoaderObject.normalExecuted) {
-		loaderContext.loaderIndex--;
-		return iterateNormalLoaders(loaderContext, args, callback);
-	}
-
-	loadLoader(currentLoaderObject, function (err: Error) {
-		if (err) {
-			loaderContext.cacheable(false);
-			return callback(err);
-		}
-
-		const fn = currentLoaderObject.normal;
-		currentLoaderObject.normalExecuted = true;
-		if (!fn) {
-			return iterateNormalLoaders(loaderContext, args, callback);
-		}
-
-		convertArgs(args, !!currentLoaderObject.raw);
-
-		runSyncOrAsync(fn, loaderContext, args, function (err: Error) {
-			if (err) return callback(err);
-
-			const args = Array.prototype.slice.call(arguments, 1);
-			iterateNormalLoaders(loaderContext, args, callback);
-		});
-	});
 }

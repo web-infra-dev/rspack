@@ -1,10 +1,14 @@
 {
   "name": "create-rspack",
-  "version": "0.4.3",
+  "version": "1.0.0-alpha.1",
   "license": "MIT",
   "main": "index.js",
   "bin": {
     "create-rspack": "index.js"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",

@@ -1,0 +1,192 @@
+import { Table } from '@builtIns';
+import WebpackLicense from '@components/webpack-license';
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+<WebpackLicense from="https://webpack.js.org/plugins/copy-webpack-plugin/#root" />
+
+# CopyRspackPlugin
+
+<ApiMeta addedVersion={'0.3.3'} specific={['Rspack']} />
+
+Copies individual files or entire directories, which already exist, to the build directory.
+
+```js
+new rspack.CopyRspackPlugin(options);
+```
+
+- options
+
+  - **Type:**
+
+  ```ts
+  export type CopyRspackPluginOptions = {
+    patterns: (
+      | string // If input is string, it's the same as { from: `your input string` }
+      | {
+          from: string;
+          to?:
+            | string
+            | ((pathData: {
+                context: string;
+                absoluteFilename?: string;
+              }) => string); // Determine based on `from`
+          context?: string; // Default to `context` in Rspack config
+          toType?: 'dir' | 'file' | 'template'; // Determine based on `from`
+          noErrorOnMissing?: boolean; // Default to false
+          force?: boolean; // Default to false
+          priority?: number; // Default to 0
+          globOptions?: {
+            caseSensitiveMatch?: boolean; // Default to true
+            dot?: boolean; // Default to true
+            ignore?: string[]; // ignore specific path
+          };
+          transform?: (
+            input: Buffer,
+            absoluteFilename: string,
+          ) => string | Buffer | Promise<string> | Promise<Buffer>;
+        }
+    )[];
+  };
+  ```
+
+  - **Default:** `undefined`
+
+  <Table
+    header={[
+      {
+        name: 'Name',
+        key: 'name',
+      },
+      {
+        name: 'Type',
+        key: 'type',
+      },
+      {
+        name: 'Default',
+        key: 'default',
+      },
+      {
+        name: 'Description',
+        key: 'description',
+      },
+    ]}
+    body={[
+      {
+        name: '`from`',
+        type: '`string`',
+        default: 'undefined',
+        description:
+          'The source path of the copy operation, which can be an absolute path, a relative path, or a glob search string. It can refer to a file or a directory. If a relative path is passed, it is relative to the `context` configuration.',
+      },
+      {
+        name: '`to`',
+        type: '`string | ((pathData: { context: string; absoluteFilename?: string }) => string)`',
+        default: 'undefined',
+        description:
+          "The destination of the copy operation, which can be an absolute path, a relative path, or a template string, such as `'[name].[hash][ext]'`. If not specified, it is equal to output path.",
+      },
+      {
+        name: '`context`',
+        type: '`string`',
+        default: 'undefined',
+        description:
+          'This configuration determines how the "from" path is matched and the resulting structure after copying.',
+      },
+      {
+        name: '`toType`',
+        type: "`'dir'|'file'|'template'`",
+        default: 'undefined',
+        description:
+          'Specify the type of `to`, which can be a directory, a file, or a template name in rspack. If not specified, it will be automatically inferred.',
+      },
+      {
+        name: '`noErrorOnMissing`',
+        type: '`boolean`',
+        default: 'false',
+        description: 'Ignore error if there are missing files or directories.',
+      },
+      {
+        name: '`force`',
+        type: '`boolean`',
+        default: 'false',
+        description: 'Whether to overwrite the asset if it already exist.',
+      },
+      {
+        name: '`priority`',
+        type: '`number`',
+        default: '0',
+        description:
+          'When `force` is set to `true`, if a matching file is found, the one with higher priority will overwrite the one with lower priority.',
+      },
+      {
+        name: '`globOptions`',
+        type: '`object`',
+        default: 'undefined',
+        description:
+          'The configuration for glob queries: `caseSensitiveMatch` determines whether the matching is case sensitive, and `dot` determines whether files starting with . are matched. `ignore` is an array of strings in glob format that can be used to ignore specific paths.',
+      },
+      {
+        name: '`transform`',
+        type: '`function`',
+        default: 'undefined',
+        description: 'Allows to modify the file contents.',
+      },
+    ]}
+  />
+
+For example:
+
+```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+module.exports = {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'file.txt',
+        },
+      ],
+    }),
+  ],
+};
+```
+
+The result of running with the above configuration would be: `"dist/file.txt"`.
+
+```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+module.exports = {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'directory',
+        },
+      ],
+    }),
+  ],
+};
+```
+
+The result of running with the above configuration would be: files and directories inside `directory` will be placed at output path.
+
+```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+module.exports = {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'directory/**/*',
+          to: 'newdirectory',
+        },
+      ],
+    }),
+  ],
+};
+```
+
+The result of running with the above configuration would be that the `directory` folder is moved to the `newdirectory` folder within the output folder, for example `dist/newdirectory/directory/foo`.

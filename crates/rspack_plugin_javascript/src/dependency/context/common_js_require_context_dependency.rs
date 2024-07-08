@@ -1,9 +1,11 @@
-use rspack_core::{module_id_expr, AsModuleDependency, ContextDependency};
-use rspack_core::{normalize_context, DependencyCategory, DependencyId, DependencyTemplate};
+use rspack_core::{AsModuleDependency, ContextDependency};
 use rspack_core::{ContextOptions, Dependency, TemplateReplaceSource};
-use rspack_core::{DependencyType, ErrorSpan, RuntimeGlobals, TemplateContext};
+use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
+use rspack_core::{DependencyType, ErrorSpan, TemplateContext};
 
-use super::create_resource_identifier_for_context_dependency;
+use super::{
+  context_dependency_template_as_require_call, create_resource_identifier_for_context_dependency,
+};
 
 #[derive(Debug, Clone)]
 pub struct CommonJsRequireContextDependency {
@@ -14,6 +16,7 @@ pub struct CommonJsRequireContextDependency {
   options: ContextOptions,
   span: Option<ErrorSpan>,
   resource_identifier: String,
+  optional: bool,
 }
 
 impl CommonJsRequireContextDependency {
@@ -23,6 +26,7 @@ impl CommonJsRequireContextDependency {
     args_end: u32,
     options: ContextOptions,
     span: Option<ErrorSpan>,
+    optional: bool,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
@@ -33,6 +37,7 @@ impl CommonJsRequireContextDependency {
       span,
       id: DependencyId::new(),
       resource_identifier,
+      optional,
     }
   }
 }
@@ -52,10 +57,6 @@ impl Dependency for CommonJsRequireContextDependency {
 
   fn span(&self) -> Option<ErrorSpan> {
     self.span
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "CommonJsRequireContextDependency"
   }
 }
 
@@ -79,6 +80,14 @@ impl ContextDependency for CommonJsRequireContextDependency {
   fn set_request(&mut self, request: String) {
     self.options.request = request;
   }
+
+  fn get_optional(&self) -> bool {
+    self.optional
+  }
+
+  fn type_prefix(&self) -> rspack_core::ContextTypePrefix {
+    rspack_core::ContextTypePrefix::Normal
+  }
 }
 
 impl DependencyTemplate for CommonJsRequireContextDependency {
@@ -87,38 +96,18 @@ impl DependencyTemplate for CommonJsRequireContextDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext { compilation, .. } = code_generatable_context;
-
-    let module_id = compilation
-      .module_graph
-      .module_graph_module_by_dependency_id(&self.id)
-      .map(|m| m.id(&compilation.chunk_graph))
-      .unwrap_or_else(|| {
-        panic!(
-          "should have dependency id, failed at {}",
-          compilation.options.context
-        )
-      });
-
-    let module_id_str = module_id_expr(&self.options.request, module_id);
-
-    source.replace(
+    context_dependency_template_as_require_call(
+      self,
+      source,
+      code_generatable_context,
       self.callee_start,
       self.callee_end,
-      format!("{}({module_id_str})", RuntimeGlobals::REQUIRE,).as_str(),
-      None,
+      self.args_end,
     );
+  }
 
-    let context = normalize_context(&self.options.request);
-
-    if !context.is_empty() {
-      source.insert(self.callee_end, "(", None);
-      source.insert(
-        self.args_end,
-        format!(".replace('{context}', './'))").as_str(),
-        None,
-      );
-    }
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

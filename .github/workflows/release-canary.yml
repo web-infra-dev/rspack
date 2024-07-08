@@ -1,35 +1,52 @@
-# Release Canary by comment with "!canary"
-
 name: Release Canary
 
 on:
-  issue_comment:
-    types: [created]
+  workflow_dispatch:
+    inputs:
+      commit:
+        required: true
+        type: string
+        description: "Commit SHA"
+
+permissions:
+  # To publish packages with provenance
+  id-token: write
 
 jobs:
   get-runner-labels:
     name: Get Runner Labels
     uses: ./.github/workflows/get-runner-labels.yml
+    with:
+      force-use-github-runner: true
 
   build:
     name: Build Canary
     needs: [get-runner-labels]
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '!canary')
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
         array:
+          - target: x86_64-unknown-linux-gnu
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: aarch64-unknown-linux-gnu
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: x86_64-unknown-linux-musl
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: aarch64-unknown-linux-musl
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: i686-pc-windows-msvc
+            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+          - target: x86_64-pc-windows-msvc
+            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+          - target: aarch64-pc-windows-msvc
+            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
           - target: x86_64-apple-darwin
             runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
           - target: aarch64-apple-darwin
             runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
-          - target: x86_64-unknown-linux-gnu # For Cloud IDE
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-          - target: x86_64-pc-windows-msvc
-            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
     uses: ./.github/workflows/reusable-build.yml
     with:
-      ref: refs/pull/${{ github.event.issue.number }}/head
+      ref: ${{inputs.commit}}
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
       test: false
@@ -40,10 +57,10 @@ jobs:
     needs: build
     steps:
       - name: Checkout Branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
-          ref: refs/pull/${{ github.event.issue.number }}/head
+          ref: ${{inputs.commit}}
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
@@ -72,14 +89,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-          PULL_REQUEST_NUMBER: ${{ github.event.issue.number }}
-          COMMENT: ${{ toJson(github.event.comment) }}
-
-      - name: Write a new comment
-        uses: peter-evans/create-or-update-comment@v3
-        continue-on-error: true
-        with:
-          issue-number: ${{ github.event.issue.number }}
-
-          body-path: 'version_output'

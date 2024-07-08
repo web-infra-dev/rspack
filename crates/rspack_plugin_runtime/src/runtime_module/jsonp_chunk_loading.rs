@@ -1,19 +1,19 @@
 use rspack_core::{
-  impl_runtime_module,
+  compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  BooleanMatcher, Chunk, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 
-use super::BooleanMatcher;
+use super::generate_javascript_hmr_runtime;
 use crate::{
   get_chunk_runtime_requirements,
-  runtime_module::utils::{
-    chunk_has_js, get_initial_chunk_ids, render_condition_map, stringify_chunks,
-  },
+  runtime_module::utils::{chunk_has_js, get_initial_chunk_ids, stringify_chunks},
 };
 
-#[derive(Debug, Eq)]
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct JsonpChunkLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -21,10 +21,10 @@ pub struct JsonpChunkLoadingRuntimeModule {
 
 impl Default for JsonpChunkLoadingRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/jsonp_chunk_loading"),
-      chunk: None,
-    }
+    Self::with_default(
+      Identifier::from("webpack/runtime/jsonp_chunk_loading"),
+      None,
+    )
   }
 }
 
@@ -44,11 +44,10 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> BoxSource {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = compilation
       .chunk_by_ukey
-      .get(&self.chunk.expect("The chunk should be attached"))
-      .expect("should have chunk");
+      .expect_get(&self.chunk.expect("The chunk should be attached"));
 
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
     let with_base_uri = runtime_requirements.contains(RuntimeGlobals::BASE_URI);
@@ -57,13 +56,20 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
     let with_hmr_manifest = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
     let with_callback = runtime_requirements.contains(RuntimeGlobals::CHUNK_CALLBACK);
+    let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS);
+    let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS);
+    let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
+    let cross_origin_loading = &compilation.options.output.cross_origin_loading;
+    let script_type = &compilation.options.output.script_type;
 
     let condition_map =
       compilation
         .chunk_graph
         .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
-    let has_js_matcher = render_condition_map(&condition_map, "chunkId");
+    let has_js_matcher = compile_boolean_matcher(&condition_map);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
+
+    let js_matcher = has_js_matcher.render("chunkId");
 
     let mut source = ConcatSource::default();
 
@@ -93,7 +99,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
         include_str!("runtime/jsonp_chunk_loading.js")
-          .replace("$JS_MATCHER$", has_js_matcher.to_string().as_str())
+          .replace("$JS_MATCHER$", &js_matcher)
           .replace(
             "$MATCH_FALLBACK$",
             if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
@@ -102,16 +108,87 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
               "else installedChunks[chunkId] = 0;\n"
             },
           )
+          .replace(
+            "$FETCH_PRIORITY$",
+            if with_fetch_priority {
+              ", fetchPriority"
+            } else {
+              ""
+            },
+          )
       };
 
       source.add(RawSource::from(format!(
         r#"
-        {}.j = function (chunkId, promises) {{
+        {}.j = function (chunkId, promises{}) {{
           {body}
         }}
         "#,
-        RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+        RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+        if with_fetch_priority {
+          ", fetchPriority"
+        } else {
+          ""
+        },
       )));
+    }
+
+    if with_prefetch && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
+      let cross_origin = match cross_origin_loading {
+        CrossOriginLoading::Disable => "".to_string(),
+        CrossOriginLoading::Enable(_) => {
+          format!("link.crossOrigin = {}", cross_origin_loading)
+        }
+      };
+      source.add(RawSource::from(
+        include_str!("runtime/jsonp_chunk_loading_with_prefetch.js")
+          .replace("$JS_MATCHER$", &js_matcher)
+          .replace("$CROSS_ORIGIN$", cross_origin.as_str()),
+      ));
+    }
+
+    if with_preload && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
+      let cross_origin = match cross_origin_loading {
+        CrossOriginLoading::Disable => "".to_string(),
+        CrossOriginLoading::Enable(cross_origin_value) => {
+          if cross_origin_value.eq("use-credentials") {
+            "link.crossOrigin = \"use-credentials\";".to_string()
+          } else {
+            format!(
+              r#"
+              if (link.href.indexOf(window.location.origin + '/') !== 0) {{
+                link.crossOrigin = {}
+              }}
+              "#,
+              cross_origin_loading
+            )
+          }
+        }
+      };
+      let script_type_link_pre = if script_type.eq("module") || script_type.eq("false") {
+        "".to_string()
+      } else {
+        format!(
+          "link.type = {}",
+          serde_json::to_string(script_type).expect("invalid json tostring")
+        )
+      };
+      let script_type_link_post = if script_type.eq("module") {
+        "link.rel = \"modulepreload\";"
+      } else {
+        r#"
+        link.rel = "preload";
+        link.as = "script";
+        "#
+      };
+
+      source.add(RawSource::from(
+        include_str!("runtime/jsonp_chunk_loading_with_preload.js")
+          .replace("$JS_MATCHER$", &js_matcher)
+          .replace("$CROSS_ORIGIN$", cross_origin.as_str())
+          .replace("$SCRIPT_TYPE_LINK_PRE$", script_type_link_pre.as_str())
+          .replace("$SCRIPT_TYPE_LINK_POST$", script_type_link_post),
+      ));
     }
 
     if with_hmr {
@@ -124,9 +201,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
               .expect("failed to serde_json::to_string(hot_update_global)"),
           ),
       ));
-      source.add(RawSource::from(
-        include_str!("runtime/javascript_hot_module_replacement.js").replace("$key$", "jsonp"),
-      ));
+      source.add(RawSource::from(generate_javascript_hmr_runtime("jsonp")));
     }
 
     if with_hmr_manifest {
@@ -159,7 +234,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       ));
     }
 
-    source.boxed()
+    Ok(source.boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {
@@ -170,5 +245,3 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 }
-
-impl_runtime_module!(JsonpChunkLoadingRuntimeModule);

@@ -1,0 +1,67 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`validate options should throw an error on the "esModule" option with "1" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin Loader has been initialized using an options object that does not match the API schema.
+ - options.esModule should be a boolean.
+   -> Generates JS modules that use the ES modules syntax.
+   -> Read more at https://github.com/webpack-contrib/mini-css-extract-plugin#esmodule"
+`;
+
+exports[`validate options should throw an error on the "publicPath" option with "true" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin Loader has been initialized using an options object that does not match the API schema.
+ - options.publicPath should be one of these:
+   string | function
+   -> Specifies a custom public path for the external resources like images, files, etc inside CSS.
+   -> Read more at https://github.com/webpack-contrib/mini-css-extract-plugin#publicpath
+   Details:
+    * options.publicPath should be a string.
+    * options.publicPath should be an instance of function."
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "/test/" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin Loader has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { publicPath?, emit?, esModule?, layer? }"
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "[]" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin Loader has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { publicPath?, emit?, esModule?, layer? }"
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "{"foo":"bar"}" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin Loader has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { publicPath?, emit?, esModule?, layer? }"
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "{}" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin Loader has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { publicPath?, emit?, esModule?, layer? }"
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "1" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin Loader has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { publicPath?, emit?, esModule?, layer? }"
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "false" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin Loader has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { publicPath?, emit?, esModule?, layer? }"
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "test" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin Loader has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { publicPath?, emit?, esModule?, layer? }"
+`;
+
+exports[`validate options should throw an error on the "unknown" option with "true" value 1`] = `
+"Invalid options object. Mini CSS Extract Plugin Loader has been initialized using an options object that does not match the API schema.
+ - options has an unknown property 'unknown'. These properties are valid:
+   object { publicPath?, emit?, esModule?, layer? }"
+`;

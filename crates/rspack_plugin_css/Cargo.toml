@@ -6,39 +6,21 @@ repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
 [dependencies]
-anyhow = { workspace = true }
-async-trait = { workspace = true }
-bitflags = { workspace = true }
-heck = "0.4.1"
-indexmap = { workspace = true }
-once_cell = { workspace = true }
-rayon = { workspace = true }
-regex = { workspace = true }
-rkyv = { workspace = true, features = ["indexmap", "validation"] }
-rspack_core = { path = "../rspack_core" }
-rspack_error = { path = "../rspack_error" }
-rspack_hash = { path = "../rspack_hash" }
-rspack_identifier = { path = "../rspack_identifier" }
-rustc-hash = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
-sugar_path = { workspace = true }
-swc_core = { workspace = true, features = [
-  "css_ast",
-  "css_codegen",
-  "css_parser",
-  "css_utils",
-  "css_visit",
-  "css_visit_path",
-  "css_compat",
-  "css_modules",
-  "css_prefixer",
-  "css_minifier",
-] }
-tracing = { workspace = true }
-urlencoding = "2.1.2"
-
-[dev-dependencies]
-hrx-parser     = "0.1.1"
-insta          = "1.30.0"
-rspack_testing = { path = "../rspack_testing" }
+async-trait           = { workspace = true }
+css-module-lexer      = { workspace = true }
+heck                  = { workspace = true }
+indexmap              = { version = "=1.9.3", features = ["serde-1"] }
+once_cell             = { workspace = true }
+rayon                 = { workspace = true }
+regex                 = { workspace = true }
+rspack_core           = { path = "../rspack_core" }
+rspack_error          = { path = "../rspack_error" }
+rspack_hash           = { path = "../rspack_hash" }
+rspack_hook           = { path = "../rspack_hook" }
+rspack_identifier     = { path = "../rspack_identifier" }
+rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
+rspack_util           = { path = "../rspack_util" }
+rustc-hash            = { workspace = true }
+serde_json            = { workspace = true }
+tracing               = { workspace = true }
+urlencoding           = { workspace = true }

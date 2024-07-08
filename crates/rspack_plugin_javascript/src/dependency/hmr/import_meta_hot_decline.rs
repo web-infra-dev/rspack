@@ -2,19 +2,19 @@ use rspack_core::{
   module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
   DependencyType, ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 #[derive(Debug, Clone)]
 pub struct ImportMetaHotDeclineDependency {
   id: DependencyId,
-  request: JsWord,
+  request: Atom,
   start: u32,
   end: u32,
   span: Option<ErrorSpan>,
 }
 
 impl ImportMetaHotDeclineDependency {
-  pub fn new(start: u32, end: u32, request: JsWord, span: Option<ErrorSpan>) -> Self {
+  pub fn new(start: u32, end: u32, request: Atom, span: Option<ErrorSpan>) -> Self {
     Self {
       start,
       end,
@@ -26,10 +26,6 @@ impl ImportMetaHotDeclineDependency {
 }
 
 impl Dependency for ImportMetaHotDeclineDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "ImportMetaHotDeclineDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -59,6 +55,10 @@ impl ModuleDependency for ImportMetaHotDeclineDependency {
   fn set_request(&mut self, request: String) {
     self.request = request.into();
   }
+
+  fn weak(&self) -> bool {
+    true
+  }
 }
 
 impl DependencyTemplate for ImportMetaHotDeclineDependency {
@@ -74,11 +74,15 @@ impl DependencyTemplate for ImportMetaHotDeclineDependency {
         code_generatable_context.compilation,
         &self.id,
         &self.request,
-        false,
+        self.weak(),
       )
       .as_str(),
       None,
     );
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

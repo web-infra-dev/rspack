@@ -7,7 +7,7 @@ use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   ModuleType,
 };
-use rspack_error::{internal_error, BatchErrors, DiagnosticKind, Result, TraceableError};
+use rspack_error::{error, BatchErrors, DiagnosticKind, Result, TraceableError};
 use rspack_plugin_javascript::{ast::parse_js, utils::DedupEcmaErrors};
 use rspack_plugin_javascript::{
   ast::{print, SourceMapConfig},
@@ -27,10 +27,10 @@ use swc_core::{
   },
   ecma::{
     ast::Ident,
-    atoms::JsWord,
-    parser::{EsConfig, Syntax},
+    atoms::Atom,
+    parser::{EsSyntax, Syntax},
     transforms::base::{
-      fixer::fixer,
+      fixer::{fixer, paren_remover},
       helpers::{self, Helpers},
       hygiene::hygiene,
       resolver,
@@ -43,7 +43,7 @@ use swc_ecma_minifier::{
   option::{MinifyOptions, TopLevelOptions},
 };
 
-use crate::{ExtractComments, JsMinifyOptions, SwcJsMinimizerRspackPluginOptions};
+use crate::{JsMinifyOptions, NormalizedExtractComments, SwcJsMinimizerRspackPluginOptions};
 
 pub fn match_object(obj: &SwcJsMinimizerRspackPluginOptions, str: &str) -> Result<bool> {
   if let Some(condition) = &obj.test {
@@ -103,7 +103,7 @@ pub fn minify(
   input: String,
   filename: &str,
   all_extract_comments: &Mutex<HashMap<String, ExtractedCommentsInfo>>,
-  extract_comments: &Option<ExtractComments<'_>>,
+  extract_comments: &Option<NormalizedExtractComments>,
 ) -> std::result::Result<TransformOutput, BatchErrors> {
   let cm: Arc<SourceMap> = Default::default();
   GLOBALS.set(
@@ -151,7 +151,7 @@ pub fn minify(
           // top_level defaults to true if module is true
 
           // https://github.com/swc-project/swc/issues/2254
-          if opts.module {
+          if opts.module.unwrap_or(false) {
             if let Some(opts) = &mut min_opts.compress {
               if opts.top_level.is_none() {
                 opts.top_level = Some(TopLevelOptions { functions: true });
@@ -168,13 +168,15 @@ pub fn minify(
           let program = parse_js(
             fm.clone(),
             target,
-            Syntax::Es(EsConfig {
+            Syntax::Es(EsSyntax {
               jsx: true,
               decorators: true,
               decorators_before_export: true,
               ..Default::default()
             }),
-            IsModule::Bool(opts.module),
+            opts
+              .module
+              .map_or_else(|| IsModule::Unknown, IsModule::Bool),
             Some(&comments),
           )
           .map_err(|errs| {
@@ -182,7 +184,13 @@ pub fn minify(
               errs
                 .dedup_ecma_errors()
                 .into_iter()
-                .map(|err| ecma_parse_error_deduped_to_rspack_error(err, &fm, &ModuleType::Js))
+                .map(|err| {
+                  rspack_error::miette::Error::new(ecma_parse_error_deduped_to_rspack_error(
+                    err,
+                    &fm,
+                    &ModuleType::JsAuto,
+                  ))
+                })
                 .collect::<Vec<_>>(),
             )
           })?;
@@ -206,8 +214,9 @@ pub fn minify(
 
           let program = helpers::HELPERS.set(&Helpers::new(false), || {
             HANDLER.set(handler, || {
-              let program =
-                program.fold_with(&mut resolver(unresolved_mark, top_level_mark, false));
+              let program = program
+                .fold_with(&mut resolver(unresolved_mark, top_level_mark, false))
+                .fold_with(&mut paren_remover(Some(&comments as &dyn Comments)));
 
               let mut program = swc_ecma_minifier::optimize(
                 program,
@@ -237,34 +246,41 @@ pub fn minify(
             leading_trivial.iter().for_each(|(_, comments)| {
               comments.iter().for_each(|c| {
                 if extract_comments.condition.is_match(&c.text) {
-                  extracted_comments.push(match c.kind {
+                  let comment = match c.kind {
                     CommentKind::Line => {
-                      format!("// {}", c.text)
+                      format!("//{}", c.text)
                     }
                     CommentKind::Block => {
                       format!("/*{}*/", c.text)
                     }
-                  });
+                  };
+                  if !extracted_comments.contains(&comment) {
+                    extracted_comments.push(comment);
+                  }
                 }
               });
             });
             trailing_trivial.iter().for_each(|(_, comments)| {
               comments.iter().for_each(|c| {
                 if extract_comments.condition.is_match(&c.text) {
-                  extracted_comments.push(match c.kind {
+                  let comment = match c.kind {
                     CommentKind::Line => {
-                      format!("// {}", c.text)
+                      format!("//{}", c.text)
                     }
                     CommentKind::Block => {
                       format!("/*{}*/", c.text)
                     }
-                  });
+                  };
+                  if !extracted_comments.contains(&comment) {
+                    extracted_comments.push(comment);
+                  }
                 }
               });
             });
 
             // if not matched comments, we don't need to emit .License.txt file
             if !extracted_comments.is_empty() {
+              extracted_comments.sort();
               all_extract_comments
                 .lock()
                 .expect("all_extract_comments lock failed")
@@ -295,9 +311,10 @@ pub fn minify(
             SourceMapConfig {
               enable: source_map.enabled(),
               inline_sources_content: opts.inline_sources_content,
-              emit_columns: opts.emit_source_map_columns,
+              emit_columns: true,
               names: source_map_names,
             },
+            None,
             true,
             Some(&comments),
             &opts.format,
@@ -310,7 +327,7 @@ pub fn minify(
 }
 
 pub struct IdentCollector {
-  names: AHashMap<BytePos, JsWord>,
+  names: AHashMap<BytePos, Atom>,
 }
 
 impl Visit for IdentCollector {
@@ -353,7 +370,7 @@ impl Emitter for RspackErrorEmitter {
     } else {
       self
         .tx
-        .send(internal_error!(db.message()))
+        .send(error!(db.message()))
         .expect("Sender should drop after emit called");
     }
   }

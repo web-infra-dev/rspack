@@ -1,0 +1,147 @@
+import { ApiMeta, Stability } from '@components/ApiMeta';
+
+# ModuleFederationPlugin
+
+<ApiMeta addedVersion={'0.5.0'} stability={Stability.Experimental} />
+
+该插件实现了 [Module Federation 1.5](https://github.com/module-federation/universe/tree/main/packages/enhanced)。
+
+## 示例
+
+```js
+const rspack = require('@rspack/core');
+
+module.exports = {
+  output: {
+    // set uniqueName explicitly to make HMR works
+    uniqueName: 'app',
+  },
+  plugins: [
+    new rspack.container.ModuleFederationPlugin({
+      // options
+    }),
+  ],
+};
+```
+
+## 选项
+
+### implementation
+
+- 类型：`string`
+
+传入一个路径，作为 Module Federation 1.5 运行时部分的实现，默认为 [@module-federation/runtime-tools](https://github.com/module-federation/universe/tree/main/packages/runtime-tools)。
+
+### runtimePlugins
+
+- 类型：`string[]`
+
+传入 Module Federation 1.5 运行时所需的插件，插件可以对 Module Federation 的行为与能力进行扩展。
+
+### name
+
+- 类型：`string`
+
+定义当前构建中暴露给其他应用的唯一名称。此名称将作为远程应用的全局变量存在。
+
+### filename
+
+- 类型：`string`
+
+指定远程应用入口文件的名称。其他应用将通过该文件加载暴露的模块。
+
+### runtime
+
+- 类型：`string | false`
+
+定义远程应用入口的 runtime chunk。
+
+### library
+
+- 类型：[`LibraryOptions`](/config/output#outputlibrary)
+
+定义远程应用入口的产物格式。默认的 libraryType 为 `"var"`。
+
+### shareScope
+
+- 类型：`string`
+
+定义当前应用共享依赖的命名空间。通过在不同的应用之间配置命名空间，可以控制模块的共享行为，包括确定哪些模块在不同的应用之间是共享的。默认的命名空间为 `"default"`。
+
+### remoteType
+
+- 类型：[`ExternalsType`](/config/externals#externalstype)
+
+定义如何加载远程应用，默认为 `"script"`，即通过 `<script />` 标签加载。
+
+### remotes
+
+- 类型：
+  ```ts
+  type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
+  type RemotesItem = string;
+  type RemotesItems = RemotesItem[];
+  interface RemotesObject {
+    [k: string]: RemotesConfig | RemotesItem | RemotesItems;
+  }
+  interface RemotesConfig {
+    external: RemotesItem | RemotesItems;
+    shareScope?: string;
+  }
+  ```
+
+定义将要从远程加载的模块及其地址。键是远程应用的名称，值是远程应用暴露的全局变量名和远程应用入口的 URL。你也可以指定 `shareScope` 来控制远程应用是否共享依赖。
+
+### exposes
+
+- 类型：
+  ```ts
+  type Exposes = (ExposesItem | ExposesObject)[] | ExposesObject;
+  type ExposesItem = string;
+  type ExposesItems = ExposesItem[];
+  interface ExposesObject {
+    [k: string]: ExposesConfig | ExposesItem | ExposesItems;
+  }
+  interface ExposesConfig {
+    import: ExposesItem | ExposesItems;
+    name?: string;
+  }
+  ```
+
+定义本地模块如何被远程应用引用。键是该模块在远程应用中作为远程模块引用时的名称，值是相对于当前文件夹的模块路径。你可以提供 `name` 来指定被暴露的本地模块的名称。
+
+### shared
+
+- 类型：
+  ```ts
+  type Shared = (SharedItem | SharedObject)[] | SharedObject;
+  type SharedItem = string;
+  interface SharedObject {
+    [k: string]: SharedConfig | SharedItem;
+  }
+  interface SharedConfig {
+    import?: false | SharedItem;
+    eager?: boolean;
+    packageName?: string;
+    requiredVersion?: false | string;
+    shareKey?: string;
+    shareScope?: string;
+    singleton?: boolean;
+    strictVersion?: boolean;
+    version?: false | string;
+  }
+  ```
+
+指定哪些依赖应该作为共享依赖。这允许多个微前端应用共享相同的依赖库实例，以避免重复加载相同代码。可以是一个对象字典，其中键是共享模块的名称，值是配置或版本字符串。也可以是一个数组，数组项是被共享的包名或配置。
+
+其中 `SharedConfig` 可以包含以下子选项：
+
+- import：应放置在共享模块的命名空间中的模块。如果在共享模块的命名空间中找不到共享模块或版本无效，则此提供的模块可作为后备模块进行兜底。
+- eager：如果设置为 `true`，则共享模块会在初始 Chunk 中被加载，而不是在使用时才被动态加载。这意味着共享模块会随着主入口点一起加载，而不考虑是否已经被使用。这可以消除动态加载造成的延迟，但是会增加初始包的大小。另外，请注意，启用此配置时，将始终下载所有提供的模块和后备模块。
+- packageName：用于从 `package.json` 中确定所需版本的包名称。仅当无法根据请求自动确定包名称时才需要进行配置。
+- requiredVersion：接受语义版本号。例如 `"^1.2.3"`。用来设定共享模块的版本范围，如果远程应用的模块版本不符合这个范围，模块将不会被加载。
+- shareKey：通过此键在共享模块的命名空间中查找请求的共享模块。默认为共享模块的名称。
+- shareScope：定义共享模块的命名空间。这可以使得不同的构建可以相互独立地使用各自的共享命名空间，而不冲突。默认的命名空间是 `"default"`。
+- singleton：确保共享模块在不同版本间只会被加载一次，遵守单例模式。这对于一些设计为单例运行的库（如 React）是很有必要的，因为这样可以避免由于实例化了多个库实例而导致的各种问题。
+- strictVersion：用来强化 `requiredVersion`。如果设置为 `true`，那么必须精确地匹配 `requiredVersion` 中规定的版本，否则共享模块会报错并且不会加载该模块。如果设置为 `false`，那么可以容忍不精确的匹配。
+- version：显式地设置共享模块的版本。默认会使用 `package.json` 中的版本。

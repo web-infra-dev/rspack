@@ -3,18 +3,18 @@ use rspack_core::{
   DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
   HarmonyExportInitFragment, ModuleGraph, TemplateContext, TemplateReplaceSource, UsedName,
 };
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
 #[derive(Debug, Clone)]
 pub struct HarmonyExportSpecifierDependency {
   id: DependencyId,
-  name: JsWord,
-  value: JsWord, // id
+  name: Atom,
+  value: Atom, // id
 }
 
 impl HarmonyExportSpecifierDependency {
-  pub fn new(name: JsWord, value: JsWord) -> Self {
+  pub fn new(name: Atom, value: Atom) -> Self {
     Self {
       id: DependencyId::new(),
       name,
@@ -24,10 +24,6 @@ impl HarmonyExportSpecifierDependency {
 }
 
 impl Dependency for HarmonyExportSpecifierDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyExportSpecifierDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -75,24 +71,22 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
       compilation,
       module,
       runtime,
+      concatenation_scope,
       ..
     } = code_generatable_context;
-
-    let mgm = compilation
-      .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+    if let Some(scope) = concatenation_scope {
+      scope.register_export(self.name.clone(), self.value.to_string());
+      return;
+    }
+    let module_graph = compilation.get_module_graph();
+    let module = module_graph
+      .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
-    let used_name = if compilation.options.is_new_tree_shaking() {
-      let exports_info_id = compilation
-        .module_graph
-        .get_exports_info(&module.identifier())
-        .id;
-      let used_name = exports_info_id.get_used_name(
-        &compilation.module_graph,
-        *runtime,
-        UsedName::Str(self.name.clone()),
-      );
+    let used_name = {
+      let exports_info_id = module_graph.get_exports_info(&module.identifier()).id;
+      let used_name =
+        exports_info_id.get_used_name(&module_graph, *runtime, UsedName::Str(self.name.clone()));
       used_name.map(|item| match item {
         UsedName::Str(name) => name,
         UsedName::Vec(vec) => {
@@ -101,22 +95,17 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
           vec[0].clone()
         }
       })
-    } else if compilation.options.builtins.tree_shaking.is_true() {
-      compilation
-        .module_graph
-        .get_exports_info(&module.identifier())
-        .old_get_used_exports()
-        .contains(&self.name)
-        .then(|| self.name.clone())
-    } else {
-      Some(self.name.clone())
     };
     if let Some(used_name) = used_name {
       init_fragments.push(Box::new(HarmonyExportInitFragment::new(
-        mgm.get_exports_argument(),
+        module.get_exports_argument(),
         vec![(used_name, self.value.clone())],
       )));
     }
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

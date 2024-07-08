@@ -1,37 +1,8 @@
-use std::{path::PathBuf, str::FromStr};
-
 use napi_derive::napi;
-use rspack_core::{Builtins, DecoratorOptions, PluginExt, PresetEnv};
-use rspack_error::internal_error;
-use rspack_plugin_css::{
-  plugin::{CssConfig, LocalIdentName, LocalsConvention, ModulesConfig},
-  CssPlugin,
-};
-use rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin;
-use rspack_swc_visitors::{
-  CustomTransform, ImportOptions, ReactOptions, RelayLanguageConfig, RelayOptions, StyleConfig,
-};
-use serde::{Deserialize, Serialize};
+use rspack_core::Builtins;
+use rspack_swc_visitors::{CustomTransform, ImportOptions, ReactOptions, StyleConfig};
 
-#[derive(Deserialize, Debug, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawDecoratorOptions {
-  pub legacy: bool,
-  pub emit_metadata: bool,
-}
-
-impl From<RawDecoratorOptions> for DecoratorOptions {
-  fn from(value: RawDecoratorOptions) -> Self {
-    Self {
-      legacy: value.legacy,
-      emit_metadata: value.emit_metadata,
-    }
-  }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawStyleConfig {
   pub style_library_directory: Option<String>,
@@ -56,7 +27,7 @@ impl From<RawStyleConfig> for StyleConfig {
   }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawPluginImportConfig {
   pub library_name: String,
@@ -98,36 +69,9 @@ impl From<RawPluginImportConfig> for ImportOptions {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawPresetEnv {
-  pub targets: Vec<String>,
-  #[napi(ts_type = "'usage' | 'entry'")]
-  pub mode: Option<String>,
-  pub core_js: Option<String>,
-}
-
-impl From<RawPresetEnv> for PresetEnv {
-  fn from(raw_preset_env: RawPresetEnv) -> Self {
-    Self {
-      targets: raw_preset_env.targets,
-      mode: raw_preset_env.mode.and_then(|mode| match mode.as_str() {
-        "usage" => Some(swc_core::ecma::preset_env::Mode::Usage),
-        "entry" => Some(swc_core::ecma::preset_env::Mode::Entry),
-        _ => None,
-      }),
-      core_js: raw_preset_env.core_js,
-    }
-  }
-}
-
 use swc_core::ecma::transforms::react::Runtime;
 
-use crate::RawOptionsApply;
-
-#[derive(Deserialize, Debug, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default, Clone)]
 #[napi(object)]
 pub struct RawReactOptions {
   #[napi(ts_type = "\"automatic\" | \"classic\"")]
@@ -168,107 +112,17 @@ impl From<RawReactOptions> for ReactOptions {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawRelayConfig {
-  pub artifact_directory: Option<String>,
-  #[napi(ts_type = "'javascript' | 'typescript' | 'flow'")]
-  pub language: String,
-}
-
-impl From<RawRelayConfig> for RelayOptions {
-  fn from(raw_config: RawRelayConfig) -> Self {
-    Self {
-      artifact_directory: raw_config.artifact_directory.map(PathBuf::from),
-      language: match raw_config.language.as_str() {
-        "typescript" => RelayLanguageConfig::TypeScript,
-        "flow" => RelayLanguageConfig::Flow,
-        _ => RelayLanguageConfig::JavaScript,
-      },
-    }
-  }
-}
-
-#[derive(Deserialize, Debug, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawCssPluginConfig {
-  pub modules: RawCssModulesConfig,
-}
-
-#[derive(Deserialize, Debug, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawCssModulesConfig {
-  #[napi(ts_type = "\"asIs\" | \"camelCase\" | \"camelCaseOnly\" | \"dashes\" | \"dashesOnly\"")]
-  pub locals_convention: String,
-  pub local_ident_name: String,
-  pub exports_only: bool,
-}
-
-impl TryFrom<RawCssModulesConfig> for ModulesConfig {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: RawCssModulesConfig) -> Result<Self, Self::Error> {
-    Ok(Self {
-      locals_convention: LocalsConvention::from_str(&value.locals_convention)?,
-      local_ident_name: LocalIdentName::from(value.local_ident_name),
-      exports_only: value.exports_only,
-    })
-  }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawBuiltins {
-  pub css: Option<RawCssPluginConfig>,
-  pub preset_env: Option<RawPresetEnv>,
   pub tree_shaking: String,
-  pub react: RawReactOptions,
-  pub decorator: Option<RawDecoratorOptions>,
-  pub no_emit_assets: bool,
-  pub emotion: Option<String>,
-  pub dev_friendly_split_chunks: bool,
-  pub plugin_import: Option<Vec<RawPluginImportConfig>>,
-  pub relay: Option<RawRelayConfig>,
 }
 
-impl RawOptionsApply for RawBuiltins {
-  type Options = Builtins;
-
-  fn apply(
-    self,
-    plugins: &mut Vec<rspack_core::BoxPlugin>,
-  ) -> Result<Self::Options, rspack_error::Error> {
-    if let Some(css) = self.css {
-      let options = CssConfig {
-        modules: css.modules.try_into()?,
-      };
-      plugins.push(CssPlugin::new(options).boxed());
-    }
-    if self.dev_friendly_split_chunks {
-      plugins.push(DevFriendlySplitChunksPlugin::new().boxed());
-    }
-
+impl RawBuiltins {
+  pub fn apply(self) -> rspack_error::Result<Builtins> {
     Ok(Builtins {
       define: Default::default(),
       provide: Default::default(),
-      preset_env: self.preset_env.map(Into::into),
-      tree_shaking: self.tree_shaking.into(),
-      react: self.react.into(),
-      decorator: self.decorator.map(|i| i.into()),
-      no_emit_assets: self.no_emit_assets,
-      emotion: self
-        .emotion
-        .map(|i| serde_json::from_str(&i))
-        .transpose()
-        .map_err(|e| internal_error!(e.to_string()))?,
-      plugin_import: self
-        .plugin_import
-        .map(|plugin_imports| plugin_imports.into_iter().map(Into::into).collect()),
-      relay: self.relay.map(Into::into),
     })
   }
 }

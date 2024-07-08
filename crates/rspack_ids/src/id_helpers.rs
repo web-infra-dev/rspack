@@ -40,7 +40,7 @@ pub fn get_used_module_ids_and_modules(
   //   }
 
   compilation
-    .module_graph
+    .get_module_graph()
     .modules()
     .values()
     .for_each(|module| {
@@ -111,11 +111,6 @@ pub fn get_hash(s: impl Hash, length: usize) -> String {
     hash_str.truncate(length);
   }
   hash_str
-}
-
-// TODO: we should remove this function to crate rspack_util
-pub fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::Ordering {
-  compare_ids(&a.identifier(), &b.identifier())
 }
 
 // pub fn assign_names<T: Copy>(
@@ -234,9 +229,10 @@ pub fn assign_names_par<T: Copy + Send>(
       items.sort_unstable_by(&comparator);
       let mut i = 0;
       for item in items {
-        let formatted_name = format!("{name}{i}");
+        let mut formatted_name = format!("{name}{i}");
         while name_to_items_keys.contains(&formatted_name) && used_ids.contains(&formatted_name) {
           i += 1;
+          formatted_name = format!("{name}{i}");
         }
         assign_name(item, formatted_name.clone());
         used_ids.insert(formatted_name);
@@ -468,10 +464,7 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
   let mut next_id = 0;
   if !used_ids.is_empty() {
     for chunk in chunks {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get_mut(chunk)
-        .expect("Chunk not found");
+      let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
       if chunk.id.is_none() {
         while used_ids.contains(&next_id.to_string()) {
           next_id += 1;
@@ -483,10 +476,7 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
     }
   } else {
     for chunk in chunks {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get_mut(chunk)
-        .expect("Chunk not found");
+      let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
       if chunk.id.is_none() {
         chunk.id = Some(next_id.to_string());
         chunk.ids = vec![next_id.to_string()];
@@ -505,7 +495,7 @@ fn compare_chunks_by_modules(
   let a_modules = chunk_graph.get_ordered_chunk_modules(&a.ukey, module_graph);
   let b_modules = chunk_graph.get_ordered_chunk_modules(&b.ukey, module_graph);
 
-  a_modules
+  let eq = a_modules
     .into_iter()
     .zip_longest(b_modules)
     .find_map(|pair| match pair {
@@ -524,7 +514,15 @@ fn compare_chunks_by_modules(
       Left(_) => Some(Ordering::Greater),
       Right(_) => Some(Ordering::Less),
     })
-    .unwrap_or(Ordering::Equal)
+    .unwrap_or(Ordering::Equal);
+
+  // 2 chunks are exactly the same, we have to compare
+  // the ukey to get stable results
+  if matches!(eq, Ordering::Equal) {
+    return a.ukey.cmp(&b.ukey);
+  }
+
+  eq
 }
 
 pub fn compare_chunks_natural(

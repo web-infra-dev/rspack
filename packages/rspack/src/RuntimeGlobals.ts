@@ -3,10 +3,50 @@
  * https://github.com/webpack/webpack/blob/v5.88.2/lib/RuntimeGlobals.js
  *
  * MIT Licensed
- * Author Tobias Koppers @sokra
+ * Author Tobias Koppers \@sokra
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
+
+import { JsRuntimeGlobals } from "@rspack/binding";
+
+const REVERSE_RUNTIME_GLOBALS = new Map<string, string>();
+
+export function __from_binding_runtime_globals(
+	runtimeRequirements: JsRuntimeGlobals
+): Set<string> {
+	const res = new Set<string>();
+
+	for (let flag of runtimeRequirements.value) {
+		if (flag in RuntimeGlobals) {
+			res.add(RuntimeGlobals[flag as keyof typeof RuntimeGlobals]);
+		} else {
+			res.add(flag);
+		}
+	}
+
+	return res;
+}
+
+export function __to_binding_runtime_globals(
+	runtimeRequirements: Set<string>
+): JsRuntimeGlobals {
+	const res: JsRuntimeGlobals = {
+		value: []
+	};
+
+	for (let flag of Array.from(runtimeRequirements)) {
+		const item = REVERSE_RUNTIME_GLOBALS.get(flag);
+		if (typeof item === "string") {
+			res.value.push(item);
+		} else {
+			res.value.push(flag);
+		}
+	}
+
+	return res;
+}
+
 export const RuntimeGlobals = {
 	/**
 	 * the internal require function
@@ -165,7 +205,7 @@ export const RuntimeGlobals = {
 
 	/**
 	 * function to load a script tag.
-	 * Arguments: (url: string, done: (event) => void), key?: string | number, chunkId?: string | number) => void
+	 * Arguments: (url: string, done: (event) =\> void), key?: string | number, chunkId?: string | number) =\> void
 	 * done function is called when loading has finished or timeout occurred.
 	 * It will attach to existing script tags with data-webpack == uniqueName + ":" + key or src == url.
 	 */
@@ -174,20 +214,20 @@ export const RuntimeGlobals = {
 	/**
 	 * function to promote a string to a TrustedScript using webpack's Trusted
 	 * Types policy
-	 * Arguments: (script: string) => TrustedScript
+	 * Arguments: (script: string) =\> TrustedScript
 	 */
 	createScript: "__webpack_require__.ts",
 
 	/**
 	 * function to promote a string to a TrustedScriptURL using webpack's Trusted
 	 * Types policy
-	 * Arguments: (url: string) => TrustedScriptURL
+	 * Arguments: (url: string) =\> TrustedScriptURL
 	 */
 	createScriptUrl: "__webpack_require__.tu",
 
 	/**
 	 * function to return webpack's Trusted Types policy
-	 * Arguments: () => TrustedTypePolicy
+	 * Arguments: () =\> TrustedTypePolicy
 	 */
 	getTrustedTypesPolicy: "__webpack_require__.tt",
 
@@ -260,7 +300,7 @@ export const RuntimeGlobals = {
 
 	/**
 	 * method to startup an entrypoint with needed chunks.
-	 * Signature: (moduleId: Id, chunkIds: Id[]) => any.
+	 * Signature: (moduleId: Id, chunkIds: Id[]) =\> any.
 	 * Returns the exports of the module or a Promise
 	 */
 	startupEntrypoint: "__webpack_require__.X",
@@ -268,7 +308,7 @@ export const RuntimeGlobals = {
 	/**
 	 * register deferred code, which will run when certain
 	 * chunks are loaded.
-	 * Signature: (chunkIds: Id[], fn: () => any, priority: int >= 0 = 0) => any
+	 * Signature: (chunkIds: Id[], fn: () =\> any, priority: int \>= 0 = 0) =\> any
 	 * Returned value will be returned directly when all chunks are already loaded
 	 * When (priority & 1) it will wait for all other handlers with lower priority to
 	 * be executed before itself is executed
@@ -277,7 +317,7 @@ export const RuntimeGlobals = {
 
 	/**
 	 * method to install a chunk that was loaded somehow
-	 * Signature: ({ id, ids, modules, runtime }) => void
+	 * Signature: (\{ id, ids, modules, runtime \}) =\> void
 	 */
 	externalInstallChunk: "__webpack_require__.C",
 
@@ -382,9 +422,13 @@ export const RuntimeGlobals = {
 	 * If "hasAwaitAfterDependencies" is truthy, "handleDependencies()" must be called at the end of the body function.
 	 * Signature: function(
 	 * module: Module,
-	 * body: (handleDependencies: (deps: AsyncModulePromise[]) => Promise<any[]> & () => void,
+	 * body: (handleDependencies: (deps: AsyncModulePromise[]) =\> Promise\<any[]\> & () =\> void,
 	 * hasAwaitAfterDependencies?: boolean
-	 * ) => void
+	 * ) =\> void
 	 */
 	asyncModule: "__webpack_require__.a"
 } as const;
+
+for (let entry of Object.entries(RuntimeGlobals)) {
+	REVERSE_RUNTIME_GLOBALS.set(entry[1], entry[0]);
+}

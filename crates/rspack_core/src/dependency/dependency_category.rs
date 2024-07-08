@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
-#[derive(Default, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum DependencyCategory {
   #[default]
   Unknown,
@@ -10,9 +10,11 @@ pub enum DependencyCategory {
   Url,
   CssImport,
   CssCompose,
+  CssExport,
+  CssLocalIdent,
   Wasm,
   Worker,
-  Custom(Box<str>),
+  LoaderImport,
 }
 
 impl From<&str> for DependencyCategory {
@@ -23,7 +25,9 @@ impl From<&str> for DependencyCategory {
       "url" => Self::Url,
       "wasm" => Self::Wasm,
       "css-import" => Self::CssImport,
+      "css-export" => Self::CssExport,
       "css-compose" => Self::CssCompose,
+      "css-local-ident" => Self::CssLocalIdent,
       "worker" => Self::Worker,
       "unknown" => Self::Unknown,
       _ => Self::Custom(value.into()),
@@ -40,9 +44,11 @@ impl DependencyCategory {
       DependencyCategory::Url => "url",
       DependencyCategory::CssImport => "css-import",
       DependencyCategory::CssCompose => "css-compose",
+      DependencyCategory::CssExport => "css-export",
+      DependencyCategory::CssLocalIdent => "css-local-ident",
       DependencyCategory::Wasm => "wasm",
       DependencyCategory::Worker => "worker",
-      DependencyCategory::Custom(str) => str.as_ref(),
+      DependencyCategory::LoaderImport => "loader import",
     }
   }
 }

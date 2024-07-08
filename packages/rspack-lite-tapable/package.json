@@ -1,0 +1,37 @@
+{
+  "name": "@rspack/lite-tapable",
+  "version": "1.0.0-alpha.1",
+  "license": "MIT",
+  "description": "Lite weight tapable for Rspack",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b ./tsconfig.build.json",
+    "build:force": "tsc -b ./tsconfig.build.json --force",
+    "test": "jest --runInBand --colors",
+    "api-extractor": "api-extractor run --verbose",
+    "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "homepage": "https://rspack.dev",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/lite-tapable"
+  }
+}

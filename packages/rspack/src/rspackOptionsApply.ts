@@ -7,44 +7,84 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import {
-	RspackOptionsNormalized,
-	Compiler,
-	OptimizationRuntimeChunkNormalized,
-	RspackPluginFunction
-} from ".";
+import assert from "assert";
 import fs from "graceful-fs";
 
-import { ResolveSwcPlugin } from "./web/ResolveSwcPlugin";
-import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
-import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
-import { cleverMerge } from "./util/cleverMerge";
-import assert from "assert";
-import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
-import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 import {
+	Compiler,
+	OptimizationRuntimeChunkNormalized,
+	RspackOptionsNormalized,
+	RspackPluginFunction
+} from ".";
+import { Module } from "./Module";
+import {
+	APIPlugin,
 	ArrayPushCallbackChunkFormatPlugin,
+	AssetModulesPlugin,
+	AsyncWebAssemblyModulesPlugin,
+	BundlerInfoRspackPlugin,
+	ChunkPrefetchPreloadPlugin,
 	CommonJsChunkFormatPlugin,
+	CssModulesPlugin,
+	DataUriPlugin,
+	DefinePlugin,
+	DeterministicChunkIdsPlugin,
+	DeterministicModuleIdsPlugin,
 	ElectronTargetPlugin,
 	EnableChunkLoadingPlugin,
 	EnableLibraryPlugin,
 	EnableWasmLoadingPlugin,
+	EnsureChunkConditionsPlugin,
+	EvalDevToolModulePlugin,
+	EvalSourceMapDevToolPlugin,
 	ExternalsPlugin,
+	FileUriPlugin,
+	FlagDependencyExportsPlugin,
+	FlagDependencyUsagePlugin,
 	HttpExternalsRspackPlugin,
-	ModuleChunkFormatPlugin,
-	NodeTargetPlugin,
-	DefinePlugin,
+	InferAsyncModulesPlugin,
+	JavascriptModulesPlugin,
+	JsonModulesPlugin,
+	LazyCompilationPlugin,
+	MangleExportsPlugin,
 	MergeDuplicateChunksPlugin,
+	ModuleChunkFormatPlugin,
+	ModuleConcatenationPlugin,
+	NamedChunkIdsPlugin,
+	NamedModuleIdsPlugin,
+	NaturalChunkIdsPlugin,
+	NaturalModuleIdsPlugin,
+	NodeTargetPlugin,
+	RealContentHashPlugin,
+	RemoveEmptyChunksPlugin,
+	RuntimeChunkPlugin,
+	RuntimePlugin,
+	SideEffectsFlagPlugin,
+	SizeLimitsPlugin,
+	SourceMapDevToolPlugin,
 	SplitChunksPlugin,
-	OldSplitChunksPlugin
+	WarnCaseSensitiveModulesPlugin,
+	WorkerPlugin
 } from "./builtin-plugin";
-import { WorkerPlugin } from "./builtin-plugin/WorkerPlugin";
+import EntryOptionPlugin from "./lib/EntryOptionPlugin";
+import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
+import { DefaultStatsPresetPlugin } from "./stats/DefaultStatsPresetPlugin";
+import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
+import { assertNotNill } from "./util/assertNotNil";
+import { cleverMerge } from "./util/cleverMerge";
 
-export function optionsApply_compat(
-	compiler: Compiler,
-	options: RspackOptionsNormalized
-) {
-	if (compiler.parentCompilation === undefined) {
+export class RspackOptionsApply {
+	constructor() {}
+	process(options: RspackOptionsNormalized, compiler: Compiler) {
+		assert(
+			options.output.path,
+			"options.output.path should have value after `applyRspackOptionsDefaults`"
+		);
+		compiler.outputPath = options.output.path;
+		compiler.name = options.name;
+		compiler.outputFileSystem = fs;
+
 		if (options.externals) {
 			assert(
 				options.externalsType,
@@ -75,6 +115,9 @@ export function optionsApply_compat(
 		) {
 			new ElectronTargetPlugin().apply(compiler);
 		}
+		if (options.externalsPresets.nwjs) {
+			new ExternalsPlugin("node-commonjs", "nw.gui").apply(compiler);
+		}
 		if (
 			options.externalsPresets.web ||
 			options.externalsPresets.webAsync ||
@@ -85,6 +128,8 @@ export function optionsApply_compat(
 				!!options.externalsPresets.webAsync
 			).apply(compiler);
 		}
+
+		new ChunkPrefetchPreloadPlugin().apply(compiler);
 
 		if (typeof options.output.chunkFormat === "string") {
 			switch (options.output.chunkFormat) {
@@ -125,6 +170,124 @@ export function optionsApply_compat(
 			}
 		}
 
+		const runtimeChunk = options.optimization
+			.runtimeChunk as OptimizationRuntimeChunkNormalized;
+		if (runtimeChunk) {
+			new RuntimeChunkPlugin(runtimeChunk).apply(compiler);
+		}
+
+		if (options.devtool) {
+			if (options.devtool.includes("source-map")) {
+				const hidden = options.devtool.includes("hidden");
+				const inline = options.devtool.includes("inline");
+				const evalWrapped = options.devtool.includes("eval");
+				const cheap = options.devtool.includes("cheap");
+				const moduleMaps = options.devtool.includes("module");
+				const noSources = options.devtool.includes("nosources");
+				const Plugin = evalWrapped
+					? EvalSourceMapDevToolPlugin
+					: SourceMapDevToolPlugin;
+				new Plugin({
+					filename: inline ? null : options.output.sourceMapFilename,
+					moduleFilenameTemplate: options.output.devtoolModuleFilenameTemplate,
+					fallbackModuleFilenameTemplate:
+						options.output.devtoolFallbackModuleFilenameTemplate,
+					append: hidden ? false : undefined,
+					module: moduleMaps ? true : cheap ? false : true,
+					columns: cheap ? false : true,
+					noSources: noSources,
+					namespace: options.output.devtoolNamespace
+				}).apply(compiler);
+			} else if (options.devtool.includes("eval")) {
+				new EvalDevToolModulePlugin({
+					moduleFilenameTemplate: options.output.devtoolModuleFilenameTemplate,
+					namespace: options.output.devtoolNamespace
+				}).apply(compiler);
+			}
+		}
+
+		new JavascriptModulesPlugin().apply(compiler);
+		new JsonModulesPlugin().apply(compiler);
+		new AssetModulesPlugin().apply(compiler);
+		if (options.experiments.asyncWebAssembly) {
+			new AsyncWebAssemblyModulesPlugin().apply(compiler);
+		}
+		if (options.experiments.css) {
+			new CssModulesPlugin().apply(compiler);
+		}
+
+		new EntryOptionPlugin().apply(compiler);
+		assertNotNill(options.context);
+		compiler.hooks.entryOption.call(options.context, options.entry);
+
+		new RuntimePlugin().apply(compiler);
+
+		if (options.experiments.rspackFuture!.bundlerInfo) {
+			new BundlerInfoRspackPlugin(
+				options.experiments.rspackFuture!.bundlerInfo
+			).apply(compiler);
+		}
+
+		new InferAsyncModulesPlugin().apply(compiler);
+		new APIPlugin().apply(compiler);
+
+		new DataUriPlugin().apply(compiler);
+		new FileUriPlugin().apply(compiler);
+
+		new EnsureChunkConditionsPlugin().apply(compiler);
+		if (options.optimization.mergeDuplicateChunks) {
+			new MergeDuplicateChunksPlugin().apply(compiler);
+		}
+
+		if (options.optimization.sideEffects) {
+			new SideEffectsFlagPlugin(/* options.optimization.sideEffects === true */).apply(
+				compiler
+			);
+		}
+		if (options.optimization.providedExports) {
+			new FlagDependencyExportsPlugin().apply(compiler);
+		}
+		if (options.optimization.usedExports) {
+			new FlagDependencyUsagePlugin(
+				options.optimization.usedExports === "global"
+			).apply(compiler);
+		}
+		if (options.optimization.concatenateModules) {
+			new ModuleConcatenationPlugin().apply(compiler);
+		}
+		if (options.optimization.mangleExports) {
+			new MangleExportsPlugin(
+				options.optimization.mangleExports !== "size"
+			).apply(compiler);
+		}
+
+		if (options.experiments.lazyCompilation) {
+			const lazyOptions = options.experiments.lazyCompilation;
+
+			new LazyCompilationPlugin(
+				// this is only for test
+				// @ts-expect-error cacheable is hide
+				lazyOptions.cacheable ?? true,
+				lazyOptions.entries ?? true,
+				lazyOptions.imports ?? true,
+				typeof lazyOptions.test === "function"
+					? function (jsModule) {
+							return (lazyOptions.test as (jsModule: Module) => boolean)!.call(
+								lazyOptions,
+								new Module(jsModule)
+							);
+						}
+					: lazyOptions.test
+						? {
+								source: lazyOptions.test.source,
+								flags: lazyOptions.test.flags
+							}
+						: undefined,
+				// @ts-expect-error backend is hide
+				lazyOptions.backend
+			).apply(compiler);
+		}
+
 		if (
 			options.output.enabledLibraryTypes &&
 			options.output.enabledLibraryTypes.length > 0
@@ -133,47 +296,58 @@ export function optionsApply_compat(
 				new EnableLibraryPlugin(type).apply(compiler);
 			}
 		}
-
-		// TODO: change to new EntryOptionPlugin().apply(compiler);
-		EntryOptionPlugin.applyEntryOption(
-			compiler,
-			compiler.context,
-			options.entry
-		);
-
-		if (options.devServer?.hot) {
-			new compiler.webpack.HotModuleReplacementPlugin().apply(compiler);
+		if (options.optimization.splitChunks) {
+			new SplitChunksPlugin(options.optimization.splitChunks).apply(compiler);
 		}
-	}
-}
-
-export class RspackOptionsApply {
-	constructor() {}
-	process(options: RspackOptionsNormalized, compiler: Compiler) {
-		assert(
-			options.output.path,
-			"options.output.path should have value after `applyRspackOptionsDefaults`"
-		);
-		compiler.outputPath = options.output.path;
-		compiler.name = options.name;
-		compiler.outputFileSystem = fs;
-
-		const runtimeChunk = options.optimization
-			.runtimeChunk as OptimizationRuntimeChunkNormalized;
-		if (runtimeChunk) {
-			Object.entries(options.entry).forEach(([entryName, value]) => {
-				if (value.runtime === undefined) {
-					value.runtime = runtimeChunk.name({ name: entryName });
+		// TODO: inconsistent: the plugin need to be placed after SplitChunksPlugin
+		if (options.optimization.removeEmptyChunks) {
+			new RemoveEmptyChunksPlugin().apply(compiler);
+		}
+		if (options.optimization.realContentHash) {
+			new RealContentHashPlugin().apply(compiler);
+		}
+		const moduleIds = options.optimization.moduleIds;
+		if (moduleIds) {
+			switch (moduleIds) {
+				case "named": {
+					new NamedModuleIdsPlugin().apply(compiler);
+					break;
 				}
-			});
+				case "natural": {
+					new NaturalModuleIdsPlugin().apply(compiler);
+					break;
+				}
+				case "deterministic": {
+					new DeterministicModuleIdsPlugin().apply(compiler);
+					break;
+				}
+				default:
+					throw new Error(`moduleIds: ${moduleIds} is not implemented`);
+			}
 		}
-		// new EntryOptionPlugin().apply(compiler);
-		assert(
-			options.context,
-			"options.context should have value after `applyRspackOptionsDefaults`"
-		);
-		compiler.hooks.entryOption.call(options.context, options.entry);
-
+		const chunkIds = options.optimization.chunkIds;
+		if (chunkIds) {
+			switch (chunkIds) {
+				case "natural": {
+					new NaturalChunkIdsPlugin().apply(compiler);
+				}
+				case "named": {
+					new NamedChunkIdsPlugin().apply(compiler);
+					break;
+				}
+				case "deterministic": {
+					new DeterministicChunkIdsPlugin().apply(compiler);
+					break;
+				}
+				default:
+					throw new Error(`chunkIds: ${chunkIds} is not implemented`);
+			}
+		}
+		if (options.optimization.nodeEnv) {
+			new DefinePlugin({
+				"process.env.NODE_ENV": JSON.stringify(options.optimization.nodeEnv)
+			}).apply(compiler);
+		}
 		const { minimize, minimizer } = options.optimization;
 		if (minimize && minimizer) {
 			for (const item of minimizer) {
@@ -185,34 +359,12 @@ export class RspackOptionsApply {
 			}
 		}
 
-		if (options.optimization.mergeDuplicateChunks) {
-			new MergeDuplicateChunksPlugin().apply(compiler);
+		if (options.performance) {
+			new SizeLimitsPlugin(options.performance).apply(compiler);
 		}
 
-		if (options.builtins.devFriendlySplitChunks) {
-			options.optimization.splitChunks = undefined;
-		}
+		new WarnCaseSensitiveModulesPlugin().apply(compiler);
 
-		if (
-			options.optimization.splitChunks &&
-			options.experiments.newSplitChunks === false
-		) {
-			new OldSplitChunksPlugin(options.optimization.splitChunks).apply(
-				compiler
-			);
-		} else if (options.optimization.splitChunks) {
-			new SplitChunksPlugin(options.optimization.splitChunks).apply(compiler);
-		}
-
-		if (options.optimization.nodeEnv) {
-			new DefinePlugin({
-				"process.env.NODE_ENV": JSON.stringify(options.optimization.nodeEnv)
-			}).apply(compiler);
-		}
-		if (options.devServer?.hot) {
-			options.output.strictModuleErrorHandling = true;
-		}
-		new ResolveSwcPlugin().apply(compiler);
 		new WorkerPlugin(
 			options.output.workerChunkLoading!,
 			options.output.workerWasmLoading!,
@@ -221,6 +373,7 @@ export class RspackOptionsApply {
 		).apply(compiler);
 
 		new DefaultStatsFactoryPlugin().apply(compiler);
+		new DefaultStatsPresetPlugin().apply(compiler);
 		new DefaultStatsPrinterPlugin().apply(compiler);
 
 		if (options.ignoreWarnings && options.ignoreWarnings.length > 0) {

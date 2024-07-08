@@ -1,0 +1,42 @@
+# 命令行接口 (CLI)
+
+@rspack/cli 提供了 `serve` 和 `build` 两个常用的子命令来简化日常工作。如果你没有安装过 `@rspack/cli`，请先阅读[快速开始](/guide/start/quick-start)章节。
+
+:::warning 和 webpack-cli 的兼容性
+`@rspack/cli` 不计划和 `webpack-cli` 进行兼容，因此 `@rspack/cli` 和 `webpack-cli` 会有很多使用方式的差异。
+:::
+
+## Build
+
+运行 Rspack 构建命令，将会在 dist 目录下生成构建后的文件。
+
+```sh
+$ rspack build  # 默认读取 rspack.config.js 配置文件
+$ rspack build -c ./your.config.js
+```
+
+## Serve
+
+运行 Rspack 开发服务器命令，将会在本地启动一个开发服务器，监听文件变化并自动刷新浏览器。
+
+```sh
+$ rspack serve
+$ rspack serve -c ./your.config.js
+```
+
+## 参数
+
+默认情况下 Rspack 提供了一些常用的命令行参数，你可以通过 --help 查看所有的命令行参数。
+
+| 参数                  |                            |
+| --------------------- | -------------------------- |
+| -c, --config [value]  | 指定配置文件路径           |
+| --entry [value]       | 指定入口文件路径           |
+| -m, --mode [value]    | 指定构建模式               |
+| --devtool [value]     | 控制是否生成 sourcemap     |
+| --analyze             | 是否开启构建分析           |
+| --json [value]        | 输出打包信息为 JSON 文件   |
+| -w, --watch           | 监听文件变化               |
+| -h, --help            | 显示帮助信息               |
+| -v, --version         | 显示版本号                 |
+| --output-path [value] | 指定输出文件目录的绝对路径 |

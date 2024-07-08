@@ -1,10 +1,10 @@
+use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
-use std::{collections::hash_map::Entry, sync::atomic::AtomicU32};
 
 use serde::Serialize;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
-use crate::{BoxDependency, DependencyExtraMeta, ModuleGraph};
+use crate::ModuleGraph;
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct DependencyId(u32);
@@ -12,30 +12,19 @@ pub struct DependencyId(u32);
 pub static DEPENDENCY_ID: AtomicU32 = AtomicU32::new(0);
 
 impl DependencyId {
-  pub fn get_dependency<'a>(&self, mg: &'a ModuleGraph) -> &'a BoxDependency {
-    mg.dependency_by_id(self).expect("should have dependency")
-  }
-
   pub fn new() -> Self {
     Self(DEPENDENCY_ID.fetch_add(1, Relaxed))
   }
 
-  pub fn set_ids(&self, ids: Vec<JsWord>, mg: &mut ModuleGraph) {
-    match mg.dep_meta_map.entry(*self) {
-      Entry::Occupied(mut occ) => {
-        occ.get_mut().ids = ids;
-      }
-      Entry::Vacant(vac) => {
-        vac.insert(DependencyExtraMeta { ids });
-      }
-    };
+  pub fn set_ids(&self, ids: Vec<Atom>, mg: &mut ModuleGraph) {
+    mg.set_dep_meta(*self, ids);
   }
 
   /// # Panic
   /// This method will panic if one of following condition is true:
   /// * current dependency id is not belongs to `HarmonyImportSpecifierDependency` or  `HarmonyExportImportedSpecifierDependency`
   /// * current id is not in `ModuleGraph`
-  pub fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
+  pub fn get_ids(&self, mg: &ModuleGraph) -> Vec<Atom> {
     let dep = mg.dependency_by_id(self).expect("should have dep");
     dep.get_ids(mg)
   }

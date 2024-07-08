@@ -1,8 +1,7 @@
-import { diffLinesRaw, diffStringsUnified } from "jest-diff";
-import { IFormatCodeOptions, formatCode } from "./format-code";
-import { replaceRuntimeModuleName } from "./replace-runtime-module-name";
-import { parseModules } from "../helper";
 import fs from "fs-extra";
+import { diffLinesRaw, diffStringsUnified } from "jest-diff";
+
+import { parseModules } from "../helper";
 import {
 	ECompareResultType,
 	TCompareModules,
@@ -10,12 +9,16 @@ import {
 	TFileCompareResult,
 	TModuleCompareResult
 } from "../type";
+import { IFormatCodeOptions, formatCode } from "./format-code";
+import { replaceRuntimeModuleName } from "./replace-runtime-module-name";
 
 export interface ICompareOptions {
 	modules?: TCompareModules;
 	runtimeModules?: TCompareModules;
 	format: IFormatCodeOptions;
 	renameModule?: (name: string) => string;
+	bootstrap?: boolean;
+	detail?: boolean;
 }
 
 export function compareFile(
@@ -56,8 +59,12 @@ export function compareFile(
 	// result.lines = compareContentResult.lines;
 	result.type = ECompareResultType.Different;
 
-	const sourceModules = parseModules(sourceContent);
-	const distModules = parseModules(distContent);
+	const sourceModules = parseModules(sourceContent, {
+		bootstrap: compareOptions.bootstrap
+	});
+	const distModules = parseModules(distContent, {
+		bootstrap: compareOptions.bootstrap
+	});
 
 	for (let type of ["modules", "runtimeModules"]) {
 		const t = type as "modules" | "runtimeModules";
@@ -79,7 +86,7 @@ export function compareFile(
 			moduleList,
 			sourceModules[t],
 			distModules[t],
-			compareOptions.format
+			compareOptions
 		);
 	}
 	return result;
@@ -89,20 +96,20 @@ export function compareModules(
 	modules: string[],
 	sourceModules: Map<string, string>,
 	distModules: Map<string, string>,
-	formatOptions: IFormatCodeOptions
+	compareOptions: ICompareOptions
 ) {
 	const compareResults: TModuleCompareResult[] = [];
 	for (let name of modules) {
 		const renamed = replaceRuntimeModuleName(name);
 		const sourceContent =
 			sourceModules.has(renamed) &&
-			formatCode(name, sourceModules.get(renamed)!, formatOptions);
+			formatCode(name, sourceModules.get(renamed)!, compareOptions.format);
 		const distContent =
 			distModules.has(renamed) &&
-			formatCode(name, distModules.get(renamed)!, formatOptions);
+			formatCode(name, distModules.get(renamed)!, compareOptions.format);
 
 		compareResults.push({
-			...compareContent(sourceContent, distContent),
+			...compareContent(sourceContent, distContent, compareOptions),
 			name
 		});
 	}
@@ -111,7 +118,8 @@ export function compareModules(
 
 export function compareContent(
 	sourceContent: string | false,
-	distContent: string | false
+	distContent: string | false,
+	compareOptions: ICompareOptions
 ): TCompareResult {
 	if (sourceContent) {
 		if (distContent) {
@@ -128,10 +136,9 @@ export function compareContent(
 					}
 				};
 			} else {
-				const difference = diffStringsUnified(
-					sourceContent.trim(),
-					distContent.trim()
-				);
+				const difference = compareOptions.detail
+					? diffStringsUnified(sourceContent.trim(), distContent.trim())
+					: undefined;
 				const diffLines = diffLinesRaw(
 					sourceContent.trim().split("\n"),
 					distContent.trim().split("\n")

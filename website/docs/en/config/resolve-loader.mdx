@@ -1,0 +1,44 @@
+import { ApiMeta } from '../../../components/ApiMeta';
+
+# ResolveLoader
+
+<ApiMeta addedVersion="0.3.1" />
+
+This configuration item is consistent in type with [`resolve`](/config/resolve), but this setting only affects the resolution of [loaders](/guide/features/loader).
+
+- **Type:** Consistent with [`resolve`](/config/resolve)
+- **Default:**
+
+```js
+{
+  conditionNames: ["loader", "require", "node"],
+  exportsFields: ["exports"],
+  mainFields: ["loader", "main"],
+  extensions: [".js"],
+  mainFiles: ["index"]
+}
+```
+
+## Example
+
+For instance, if you are developing a loader and want to showcase its usage from a user's perspective in an example, you can write:
+
+```js title="rspack.config.js"
+module.exports = {
+  resolveLoader: {
+    alias: {
+      'amazing-loader': require.resolve('path-to-your-amazing-loader'),
+    },
+  },
+};
+```
+
+Then, in the example code, you can write:
+
+```js
+require('!!amazing-loader!./amazing-file.js');
+```
+
+::: info Inline Loaders
+The loader mentioned above uses the syntax of inline loaders. For details, please refer to [here](/api/loader-api/inline).
+:::

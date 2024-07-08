@@ -2,19 +2,19 @@ use rspack_core::{
   module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
   DependencyType, ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::Atom;
 
 #[derive(Debug, Clone)]
 pub struct ImportMetaHotAcceptDependency {
   id: DependencyId,
-  request: JsWord,
+  request: Atom,
   start: u32,
   end: u32,
   span: Option<ErrorSpan>,
 }
 
 impl ImportMetaHotAcceptDependency {
-  pub fn new(start: u32, end: u32, request: JsWord, span: Option<ErrorSpan>) -> Self {
+  pub fn new(start: u32, end: u32, request: Atom, span: Option<ErrorSpan>) -> Self {
     Self {
       start,
       end,
@@ -41,10 +41,6 @@ impl Dependency for ImportMetaHotAcceptDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "ImportMetaHotAcceptDependency"
-  }
 }
 
 impl ModuleDependency for ImportMetaHotAcceptDependency {
@@ -58,6 +54,10 @@ impl ModuleDependency for ImportMetaHotAcceptDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
+  }
+
+  fn weak(&self) -> bool {
+    true
   }
 }
 
@@ -74,11 +74,15 @@ impl DependencyTemplate for ImportMetaHotAcceptDependency {
         code_generatable_context.compilation,
         &self.id,
         &self.request,
-        false,
+        self.weak(),
       )
       .as_str(),
       None,
     );
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

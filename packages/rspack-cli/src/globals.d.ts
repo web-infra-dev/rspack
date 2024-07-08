@@ -1,6 +1,6 @@
 /*
  ** https://github.com/jorgebucaran/colorette/pull/96
- ** colorette is broken in moduileResolution:nodenext,even it's fixed it's never published
+ ** colorette is broken in moduleResolution:nodenext,even it's fixed it's never published
  */
 declare module "colorette" {
 	type Color = (text: string | number) => string;

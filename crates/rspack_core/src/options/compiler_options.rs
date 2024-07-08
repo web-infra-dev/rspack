@@ -1,7 +1,7 @@
 use crate::{
-  Builtins, CacheOptions, Context, DevServerOptions, Devtool, Experiments,
-  IncrementalRebuildMakeState, Mode, ModuleOptions, NodeOption, Optimization, OutputOptions,
-  Resolve, SnapshotOptions, StatsOptions, Target,
+  Builtins, CacheOptions, Context, DevServerOptions, Experiments, IncrementalRebuildMakeState,
+  Mode, ModuleOptions, NodeOption, Optimization, OutputOptions, Resolve, SnapshotOptions,
+  StatsOptions, Target,
 };
 
 #[derive(Debug)]
@@ -15,7 +15,6 @@ pub struct CompilerOptions {
   pub resolve: Resolve,
   pub resolve_loader: Resolve,
   pub module: ModuleOptions,
-  pub devtool: Devtool,
   pub stats: StatsOptions,
   pub snapshot: SnapshotOptions,
   pub cache: CacheOptions,
@@ -23,8 +22,12 @@ pub struct CompilerOptions {
   pub node: Option<NodeOption>,
   pub optimization: Optimization,
   pub profile: bool,
+  pub bail: bool,
   pub builtins: Builtins,
+  pub __references: References,
 }
+
+pub type References = serde_json::Map<String, serde_json::Value>;
 
 impl CompilerOptions {
   pub fn is_incremental_rebuild_make_enabled(&self) -> bool {
@@ -37,17 +40,5 @@ impl CompilerOptions {
 
   pub fn is_incremental_rebuild_emit_asset_enabled(&self) -> bool {
     self.experiments.incremental_rebuild.emit_asset
-  }
-
-  pub fn is_new_tree_shaking(&self) -> bool {
-    self.experiments.rspack_future.new_treeshaking
-  }
-
-  /// This controls whether we're using the old Rspack behavior to transform a module.
-  /// - `true`: use the old strategy, and transform the non web standard modules into a standardized one.
-  ///           `Rule.type` that are not supported by webpack is not usable.
-  /// - `false`: use the new strategy, only web-standard modules are supported.
-  pub fn should_transform_by_default(&self) -> bool {
-    !self.experiments.rspack_future.disable_transform_by_default
   }
 }

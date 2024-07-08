@@ -1,59 +1,66 @@
 const { version: rspackVersion, webpackVersion } = require("../package.json");
-export { webpackVersion as version, rspackVersion };
+export { rspackVersion, webpackVersion as version };
 
-export { Compiler } from "./Compiler";
-
-export { Compilation } from "./Compilation";
 export type {
 	Asset,
 	AssetInfo,
 	Assets,
-	LogEntry,
-	CompilationParams
+	CompilationParams,
+	LogEntry
 } from "./Compilation";
-
-export { MultiCompiler } from "./MultiCompiler";
+export { Compilation } from "./Compilation";
+export { Compiler } from "./Compiler";
 export type { MultiCompilerOptions, MultiRspackOptions } from "./MultiCompiler";
+export { MultiCompiler } from "./MultiCompiler";
 
 import { RspackOptionsApply } from "./rspackOptionsApply";
 export { RspackOptionsApply, RspackOptionsApply as WebpackOptionsApply };
 
+export type { Chunk } from "./Chunk";
+export type { ChunkGroup } from "./ChunkGroup";
+export type { Module } from "./Module";
+export { MultiStats } from "./MultiStats";
+export { NormalModule } from "./NormalModule";
+export type { NormalModuleFactory } from "./NormalModuleFactory";
 export { RuntimeGlobals } from "./RuntimeGlobals";
-
-export { Stats } from "./Stats";
 export type {
-	StatsCompilation,
 	StatsAsset,
 	StatsChunk,
+	StatsCompilation,
 	StatsError,
 	StatsModule,
 	StatsWarnings
 } from "./Stats";
+export { Stats } from "./Stats";
 
-export type { MultiStats } from "./MultiStats";
+// API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
+import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
+export { ModuleFilenameHelpers };
 
-export type { ChunkGroup } from "./ChunkGroup";
-
-export type { NormalModuleFactory } from "./NormalModuleFactory";
-
-export { NormalModule } from "./NormalModule";
-
-export { default as ModuleFilenameHelpers } from "./lib/ModuleFilenameHelpers";
-
-export { default as Template } from "./Template";
+// API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
+import Template = require("./Template");
+export { Template };
 
 export const WebpackError = Error;
 
 export type { Watching } from "./Watching";
 
-const sources = require("webpack-sources"); // use require to avoid wrong types, @types/webpack-sources is outdate
+import sources = require("webpack-sources");
 export { sources };
 
 import {
-	getNormalizedRspackOptions,
-	applyRspackOptionsDefaults
+	applyRspackOptionsDefaults,
+	getNormalizedRspackOptions
 } from "./config";
-export const config = {
+
+// Explicitly define this type to avoid type inference and type expansion.
+type Config = {
+	getNormalizedRspackOptions: typeof getNormalizedRspackOptions;
+	applyRspackOptionsDefaults: typeof applyRspackOptionsDefaults;
+	getNormalizedWebpackOptions: typeof getNormalizedRspackOptions;
+	applyWebpackOptionsDefaults: typeof applyRspackOptionsDefaults;
+};
+export const config: Config = {
 	getNormalizedRspackOptions,
 	applyRspackOptionsDefaults,
 	getNormalizedWebpackOptions: getNormalizedRspackOptions,
@@ -62,112 +69,158 @@ export const config = {
 
 export type * from "./config";
 
-import { createHash } from "./util/createHash";
 import { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
+import { createHash } from "./util/createHash";
 export const util = { createHash, cleverMerge };
 
-export {
-	registerGlobalTrace as experimental_registerGlobalTrace,
-	cleanupGlobalTrace as experimental_cleanupGlobalTrace
-} from "@rspack/binding";
+export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
+export { type OutputFileSystem } from "./util/fs";
 
 ///// Internal Plugins /////
-export { BannerPlugin } from "./builtin-plugin";
 export type { BannerPluginArgument } from "./builtin-plugin";
-
-export { ProvidePlugin } from "./builtin-plugin";
 export type { ProvidePluginOptions } from "./builtin-plugin";
-
-export { DefinePlugin } from "./builtin-plugin";
 export type { DefinePluginOptions } from "./builtin-plugin";
-
-export { ProgressPlugin } from "./builtin-plugin";
 export type { ProgressPluginArgument } from "./builtin-plugin";
-
-export { EntryPlugin } from "./builtin-plugin";
 export type { EntryOptions } from "./builtin-plugin";
-
+export { BannerPlugin } from "./builtin-plugin";
+export { IgnorePlugin, type IgnorePluginOptions } from "./builtin-plugin";
+export { ProvidePlugin } from "./builtin-plugin";
+export { DefinePlugin } from "./builtin-plugin";
+export { ProgressPlugin } from "./builtin-plugin";
+export { EntryPlugin } from "./builtin-plugin";
+export { DynamicEntryPlugin } from "./builtin-plugin";
 export { ExternalsPlugin } from "./builtin-plugin";
-
 export { HotModuleReplacementPlugin } from "./builtin-plugin";
-
-export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
-
-export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
-
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
+export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
+export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
+export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlugin";
 
-import NodeTemplatePlugin from "./node/NodeTemplatePlugin";
+import { FetchCompileAsyncWasmPlugin } from "./builtin-plugin";
+interface Web {
+	FetchCompileAsyncWasmPlugin: typeof FetchCompileAsyncWasmPlugin;
+}
+export const web: Web = {
+	FetchCompileAsyncWasmPlugin
+};
+
 import { NodeTargetPlugin } from "./builtin-plugin";
-export const node = { NodeTargetPlugin, NodeTemplatePlugin };
+import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
+import NodeTemplatePlugin from "./node/NodeTemplatePlugin";
+interface Node {
+	NodeTargetPlugin: typeof NodeTargetPlugin;
+	NodeTemplatePlugin: typeof NodeTemplatePlugin;
+	NodeEnvironmentPlugin: typeof NodeEnvironmentPlugin;
+}
+export const node: Node = {
+	NodeTargetPlugin,
+	NodeTemplatePlugin,
+	NodeEnvironmentPlugin
+};
 
 import { ElectronTargetPlugin } from "./builtin-plugin";
-export const electron = { ElectronTargetPlugin };
+interface Electron {
+	ElectronTargetPlugin: typeof ElectronTargetPlugin;
+}
+export const electron: Electron = { ElectronTargetPlugin };
 
 import { EnableLibraryPlugin } from "./builtin-plugin";
-export const library = { EnableLibraryPlugin };
+interface Library {
+	EnableLibraryPlugin: typeof EnableLibraryPlugin;
+}
+export const library: Library = { EnableLibraryPlugin };
 
 import { EnableWasmLoadingPlugin } from "./builtin-plugin";
-export const wasm = { EnableWasmLoadingPlugin };
+interface Wasm {
+	EnableWasmLoadingPlugin: typeof EnableWasmLoadingPlugin;
+}
+export const wasm: Wasm = { EnableWasmLoadingPlugin };
 
-import { EnableChunkLoadingPlugin } from "./builtin-plugin";
-export const javascript = { EnableChunkLoadingPlugin };
+import {
+	EnableChunkLoadingPlugin,
+	JavascriptModulesPlugin
+} from "./builtin-plugin";
+interface JavaScript {
+	EnableChunkLoadingPlugin: typeof EnableChunkLoadingPlugin;
+	JavascriptModulesPlugin: typeof JavascriptModulesPlugin;
+}
+export const javascript: JavaScript = {
+	EnableChunkLoadingPlugin,
+	JavascriptModulesPlugin
+};
 
 import { WebWorkerTemplatePlugin } from "./builtin-plugin";
-export const webworker = { WebWorkerTemplatePlugin };
+interface Webworker {
+	WebWorkerTemplatePlugin: typeof WebWorkerTemplatePlugin;
+}
+export const webworker: Webworker = { WebWorkerTemplatePlugin };
 
 import { LimitChunkCountPlugin } from "./builtin-plugin";
-export const optimize = { LimitChunkCountPlugin };
+import { RuntimeChunkPlugin } from "./builtin-plugin";
+import { SplitChunksPlugin } from "./builtin-plugin";
+interface Optimize {
+	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
+	RuntimeChunkPlugin: typeof RuntimeChunkPlugin;
+	SplitChunksPlugin: typeof SplitChunksPlugin;
+}
+export const optimize: Optimize = {
+	LimitChunkCountPlugin,
+	RuntimeChunkPlugin,
+	SplitChunksPlugin
+};
 
-import { ContainerPlugin } from "./container/ContainerPlugin";
-import { ContainerReferencePlugin } from "./container/ContainerReferencePlugin";
 import { ModuleFederationPlugin } from "./container/ModuleFederationPlugin";
 export type { ModuleFederationPluginOptions } from "./container/ModuleFederationPlugin";
+import { ModuleFederationPluginV1 } from "./container/ModuleFederationPluginV1";
+export type { ModuleFederationPluginV1Options } from "./container/ModuleFederationPluginV1";
+import { ContainerPlugin } from "./container/ContainerPlugin";
+import { ContainerReferencePlugin } from "./container/ContainerReferencePlugin";
 export type {
 	ContainerPluginOptions,
 	Exposes,
+	ExposesConfig,
 	ExposesItem,
 	ExposesItems,
-	ExposesObject,
-	ExposesConfig
+	ExposesObject
 } from "./container/ContainerPlugin";
 export type {
 	ContainerReferencePluginOptions,
 	Remotes,
+	RemotesConfig,
 	RemotesItem,
 	RemotesItems,
-	RemotesObject,
-	RemotesConfig
+	RemotesObject
 } from "./container/ContainerReferencePlugin";
 export const container = {
 	ContainerPlugin,
 	ContainerReferencePlugin,
-	ModuleFederationPlugin
+	ModuleFederationPlugin,
+	ModuleFederationPluginV1
 };
 
-import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";
 import { ConsumeSharedPlugin } from "./sharing/ConsumeSharedPlugin";
+import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";
 import { SharePlugin } from "./sharing/SharePlugin";
 export type {
-	ProvideSharedPluginOptions,
-	Provides,
-	ProvidesConfig,
-	ProvidesItem,
-	ProvidesObject
-} from "./sharing/ProvideSharedPlugin";
-export type {
-	ConsumeSharedPluginOptions,
 	Consumes,
 	ConsumesConfig,
+	ConsumeSharedPluginOptions,
 	ConsumesItem,
 	ConsumesObject
 } from "./sharing/ConsumeSharedPlugin";
 export type {
-	SharePluginOptions,
+	Provides,
+	ProvidesConfig,
+	ProvideSharedPluginOptions,
+	ProvidesItem,
+	ProvidesObject
+} from "./sharing/ProvideSharedPlugin";
+export type {
 	Shared,
 	SharedConfig,
 	SharedItem,
-	SharedObject
+	SharedObject,
+	SharePluginOptions
 } from "./sharing/SharePlugin";
 export const sharing = {
 	ProvideSharedPlugin,
@@ -176,13 +229,49 @@ export const sharing = {
 };
 
 ///// Rspack Postfixed Internal Plugins /////
-export { HtmlRspackPlugin } from "./builtin-plugin";
 export type { HtmlRspackPluginOptions } from "./builtin-plugin";
-
-export { SwcJsMinimizerRspackPlugin } from "./builtin-plugin";
 export type { SwcJsMinimizerRspackPluginOptions } from "./builtin-plugin";
-
-export { SwcCssMinimizerRspackPlugin } from "./builtin-plugin";
-
-export { CopyRspackPlugin } from "./builtin-plugin";
+export type { LightningCssMinimizerRspackPluginOptions } from "./builtin-plugin";
 export type { CopyRspackPluginOptions } from "./builtin-plugin";
+export type { SourceMapDevToolPluginOptions } from "./builtin-plugin";
+export type { EvalDevToolModulePluginOptions } from "./builtin-plugin";
+export type {
+	CssExtractRspackLoaderOptions,
+	CssExtractRspackPluginOptions
+} from "./builtin-plugin";
+export { HtmlRspackPlugin } from "./builtin-plugin";
+export { SwcJsMinimizerRspackPlugin } from "./builtin-plugin";
+export { SwcCssMinimizerRspackPlugin } from "./builtin-plugin";
+export { LightningCssMinimizerRspackPlugin } from "./builtin-plugin";
+export { CopyRspackPlugin } from "./builtin-plugin";
+export { SourceMapDevToolPlugin } from "./builtin-plugin";
+export { EvalSourceMapDevToolPlugin } from "./builtin-plugin";
+export { EvalDevToolModulePlugin } from "./builtin-plugin";
+export { CssExtractRspackPlugin } from "./builtin-plugin";
+
+///// Rspack Postfixed Internal Loaders /////
+export type {
+	SwcLoaderEnvConfig,
+	SwcLoaderEsParserConfig,
+	SwcLoaderJscConfig,
+	SwcLoaderModuleConfig,
+	SwcLoaderOptions,
+	SwcLoaderParserConfig,
+	SwcLoaderTransformConfig,
+	SwcLoaderTsParserConfig
+} from "./builtin-loader/swc/index";
+
+///// Experiments Stuff /////
+import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
+interface Experiments {
+	globalTrace: {
+		register: typeof registerGlobalTrace;
+		cleanup: typeof cleanupGlobalTrace;
+	};
+}
+export const experiments: Experiments = {
+	globalTrace: {
+		register: registerGlobalTrace,
+		cleanup: cleanupGlobalTrace
+	}
+};

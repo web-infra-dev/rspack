@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use itertools::Itertools;
 use regex::Regex;
 use rspack_core::Compilation;
-use swc_core::{common::DUMMY_SP, ecma::atoms::JsWord};
+use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
 use swc_html::ast::{Attribute, Child, Element, Namespace, Text};
 use swc_html::visit::{VisitMut, VisitMutWith};
 
@@ -138,15 +138,15 @@ impl VisitMut for AssetWriter<'_, '_> {
           if let Some(Child::Element(title_ele)) = title_ele {
             title_ele.children = vec![Child::Text(Text {
               span: DUMMY_SP,
-              data: JsWord::from(title.as_str()),
+              data: Atom::from(title.as_str()),
               raw: None,
             })];
           } else {
             n.children.push(Child::Element(Element {
-              tag_name: JsWord::from("title"),
+              tag_name: Atom::from("title"),
               children: vec![Child::Text(Text {
                 span: DUMMY_SP,
-                data: JsWord::from(title.as_str()),
+                data: Atom::from(title.as_str()),
                 raw: None,
               })],
               is_self_closing: false,
@@ -160,8 +160,14 @@ impl VisitMut for AssetWriter<'_, '_> {
 
         // add favicon
         if let Some(favicon) = &self.config.favicon {
+          let favicon = PathBuf::from(favicon)
+            .file_name()
+            .expect("favicon should have file name")
+            .to_string_lossy()
+            .to_string();
+
           let favicon_relative_path =
-            PathBuf::from(self.config.get_relative_path(self.compilation, favicon));
+            PathBuf::from(self.config.get_relative_path(self.compilation, &favicon));
 
           let mut favicon_path = PathBuf::from(self.config.get_public_path(
             self.compilation,
@@ -178,7 +184,7 @@ impl VisitMut for AssetWriter<'_, '_> {
           }
 
           n.children.push(Child::Element(Element {
-            tag_name: JsWord::from("link"),
+            tag_name: Atom::from("link"),
             children: vec![],
             is_self_closing: true,
             namespace: Namespace::HTML,
@@ -212,7 +218,7 @@ impl VisitMut for AssetWriter<'_, '_> {
           for key in meta.keys().sorted() {
             let value = meta.get(key).expect("should have value");
             let meta_ele = Element {
-              tag_name: JsWord::from("meta"),
+              tag_name: Atom::from("meta"),
               attributes: value
                 .iter()
                 .sorted()

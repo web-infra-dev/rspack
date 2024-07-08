@@ -4,7 +4,7 @@ use std::hash::Hash;
 use regex_syntax::hir::literal::ExtractKind;
 use regex_syntax::hir::{Hir, HirKind, Look};
 use regress::Match;
-use rspack_error::{internal_error, Error};
+use rspack_error::{error, Error};
 
 #[derive(Clone)]
 pub struct HashRegressRegex {
@@ -34,7 +34,7 @@ impl HashRegressRegex {
         expr: expr.to_string(),
         flags: flags.to_string(),
       }),
-      Err(err) => Err(internal_error!(
+      Err(err) => Err(error!(
         "Can't construct regex `/{expr}/{flags}`, original error message: {err}"
       )),
     }

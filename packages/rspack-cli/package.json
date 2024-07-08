@@ -1,17 +1,21 @@
 {
   "name": "@rspack/cli",
-  "version": "0.4.3",
+  "version": "1.0.0-alpha.1",
   "license": "MIT",
   "description": "CLI for rspack",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "bin": {
     "rspack": "./bin/rspack"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "rimraf dist/ && tsc -b ./tsconfig.build.json --force",
+    "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -b -w",
-    "test": "jest --runInBand"
+    "test": "cross-env jest --runInBand --colors"
   },
   "files": [
     "bin",
@@ -30,12 +34,12 @@
   "devDependencies": {
     "@rspack/core": "workspace:*",
     "@types/rechoir": "^0.6.1",
+    "@types/semver": "^7.5.6",
     "@types/webpack-bundle-analyzer": "^4.6.0",
     "concat-stream": "^2.0.0",
+    "cross-env": "^7.0.3",
     "execa": "^5.0.0",
-    "internal-ip": "6.2.0",
-    "source-map-support": "^0.5.19",
-    "ts-node": "10.9.1"
+    "internal-ip": "6.2.0"
   },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",

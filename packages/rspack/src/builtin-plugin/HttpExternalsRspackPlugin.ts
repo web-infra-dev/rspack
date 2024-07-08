@@ -1,5 +1,9 @@
-import { RawHttpExternalsRspackPluginOptions } from "@rspack/binding";
-import { BuiltinPluginName, create } from "./base";
+import {
+	BuiltinPluginName,
+	RawHttpExternalsRspackPluginOptions
+} from "@rspack/binding";
+
+import { create } from "./base";
 
 export const HttpExternalsRspackPlugin = create(
 	BuiltinPluginName.HttpExternalsRspackPlugin,

@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use anyhow::Context;
-use miette::{GraphicalReportHandler, GraphicalTheme, IntoDiagnostic};
+use miette::IntoDiagnostic;
 use termcolor::{Buffer, ColorSpec, StandardStreamLock, WriteColor};
 use termcolor::{ColorChoice, StandardStream};
 
@@ -157,14 +157,7 @@ fn emit_diagnostic<T: Write + WriteColor>(
   diagnostic: &Diagnostic,
   writer: &mut T,
 ) -> crate::Result<()> {
-  let h = GraphicalReportHandler::new().with_theme(if writer.supports_color() {
-    GraphicalTheme::unicode()
-  } else {
-    GraphicalTheme::unicode_nocolor()
-  });
-  let mut buf = String::new();
-  h.render_report(&mut buf, diagnostic.as_ref())
-    .into_diagnostic()?;
+  let buf = diagnostic.render_report(writer.supports_color())?;
   writer.write_all(buf.as_bytes()).into_diagnostic()?;
   // reset to original color after emitting a diagnostic, this avoids interference stdio of other procedure.
   writer.reset().into_diagnostic()?;

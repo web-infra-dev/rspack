@@ -1,0 +1,76 @@
+---
+date: 2023-03-06 21:37:00
+---
+
+# Rspack 正式发布了
+
+> 2023 年 3 月 6 日
+
+今天我们很高兴跟大家宣布 Rspack 正式发布了！Rspack 是由 ByteDance Web Infra 团队孵化的基于 Rust 语言开发的 Bundler，拥有高性能、兼容 Webpack 生态、定制性强等多种优点，它解决了我们在业务场景中遇到的非常多的问题，让很多开发者的体验有了质的提升。为了让更多的人可以参与到这样有趣的事情中，我们正式开放 Rspack 的源码，欢迎大家参与建设。
+
+## 为什么要做 Rspack？
+
+字节跳动内部存在非常多的巨型前端应用，它们有着非常复杂的构建配置，十几分钟甚至半小时的构建耗时，我们尝试了多种方法去优化这些项目的编译速度，但是社区内存在的方案都或多或少存在一些问题，在对这些问题总结后，我们理解到工程师对 Bundler 的诉求是：
+
+- 良好的 Dev 启动性能，`npm run dev` 是开发者每天需要运行很多次的命令，大型项目每次都需要等待 10 分钟，这对于工程师来说是非常痛苦的，所以优化 dev start 的时间是非常重要的。
+- 良好的 Build 性能，`npm run build` 是在 CI CD 环境中经常运行的指令，他决定了应用生产交付的效率，在生产环境中有些应用经常需要 20 ～ 30 分钟的构建时间，如果能缩短这里的耗时对开发链路也会非常有帮助。
+- 足够灵活的配置，用户工程的配置灵活多变，并没有做到完全的统一，在之前尝试将 Webpack 配置迁移到其他构建工具的过程中我们就遇到了非常多的问题，他们的配置都很难达到 Webpack 的灵活程度。
+- 生产环境的产物优化能力，在启动 Rspack 之前，我们实践了社区内的各种方案，但是他们都面临了生产环境一定程度负优化的情况，例如 拆包拆的不够精细等等。所以生产环境产物优化是我们不可舍弃的功能点。
+
+在明确这四点之后，我们调研了社区内的所有技术方案，发现并没有完全满足我们需求的，所以我们决定自研 Rspack。
+
+## 目前 Rspack 是什么阶段？
+
+到今天为止 Rspack 已经开发 11 个月左右的时间了，虽然还处于比较早期的阶段，但是在我们验证中， Rspack 可以给项目带来 5 ～ 10 倍的编译时间的提升，并且随着我们内置了越来越多的常见 features，性能还在逐步的提升中。
+
+目前 Rspack 已经完成了 Webpack Loader 架构的支持，你可以在 Rspack 中使用很多你之前见到的 Loader，如 `babel-loader` `less-loader` `svgr` 等等。我们长期的目标是完整支持 Loader，未来可以直接在 Rspack 中使用社区内的 `vue-loader`。
+
+当下 Rspack 对缓存的支持还比较简单，只有内存级别的缓存，未来我们会建设更强的缓存能力，包括可以写入硬盘的缓存，并且我们会把缓存做到可以跨设备共享和迁移，提升大型应用的缓存复用率。
+
+Rspack 作为一个较为底层的基础设施，需要通过和社区内的各种上层框架结合才能在开发中获得发挥作用，目前 Rspack 已经接入了字节内的各种研发框架，外部的合作将逐渐开始。
+
+## Acknowledgement
+
+Rspack 能在今天面世，离不开社区内各个项目的启发和支持，在这里对这些前辈表示致敬和感谢：
+
+- [webpack 团队和社区](https://webpack.js.org/) 创建了一个优秀的打包工具和丰富的生态。
+- [@sokra](https://github.com/sokra) 在 [webpack](https://github.com/webpack/webpack) 项目上的出色工作。
+- [@ScriptedAlchemy](https://github.com/ScriptedAlchemy) 创造了模块联邦，并帮助 Rspack 与社区建立联系。
+- [SWC](https://swc.rs/) 项目（由 [@kdy1](https://github.com/kdy1) 创建），为 Rspack 的代码解析、转换和压缩提供了支持。
+- [esbuild](https://github.com/evanw/esbuild) 项目（由 [@evanw](https://github.com/evanw) 创建），它启发了 Rspack 的并发架构。
+- [NAPI-RS](https://github.com/napi-rs/napi-rs) 项目（由 [@Brooooooklyn](https://github.com/Brooooooklyn) 创建），为 Rspack 的 node-binding 实现提供了支持。
+- [Parcel](https://github.com/parcel-bundler/parcel) 项目(由 [@devongovett](https://github.com/devongovett)创建)，它是 Rust Bundler 的先行探索者并启发了 Rspack 的增量构建架构.
+- [Vite](https://github.com/vitejs/vite) 由[尤雨溪](https://github.com/yyx990803)创建，它和 Rollup 社区的兼容性设计启发了 Rspack 和 webpack 社区的兼容设计。
+- [Rolldown](https://github.com/rolldown-rs/rolldown) 项目(由 [Rolldown 团队](https://github.com/sponsors/rolldown-rs)创建)，它探索了使用 Rust 构建高性能 Bundler + 兼容 Rollup API 的可能性，启发了 Rspack 的设计方向。
+- [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 项目（由 [@jantimon](https://github.com/jantimon) 创建）, Rspack 的 `@rspack/html-plugin` 是 [[html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 的一个 fork 来避免使用在 Rspack 中尚未支持的 webpack API。
+- [Turbopack](https://github.com/vercel/turbo) 项目，它启发了 Rspack 里基于 AST 的路径重写逻辑。
+
+## 未来计划
+
+### 完善基础能力
+
+Rspack 虽然目前提供的能力能够满足大多数的项目使用，但是相比 Webpack 提供的丰富能力仍然相差很多，我们在未来会根据社区反馈，丰富 Rspack 的基础能力，满足更多的构建场景需求。
+
+### 跟社区内的伙伴合作
+
+Rspack 作为一个底层依赖解决了我们自己在工作中遇到的很多问题，相信他也可以解决社区的问题。我们非常愿意给社区内的框架团队一些支持，让大家发挥出来 Rspack 真正的性能优势。如果你凑巧在开发一个前端框架，请联系我们。
+**同时我们也和 webpack 团队确立了合作关系**，Rspack 作为 webpack 通过 Rust 进行性能优化的一个尝试，未来我们会和 webpack 团队一起探索优化 webpack 的更多可能性。当 Rspack 达到一定的成熟度时，webpack 团队将尝试以实验特性的方式将 Rspack 集成到 webpack 中。
+
+### 提升插件能力
+
+目前 Rspack 已经基本支持了 Loader API，和较少的 Webpack Plugin API，有很多 API 因为会产生较大的性能问题影响，所以我们暂时没有暴露，我们同时也在探索更高性能的插件通信方案，另外一部分 API 是因为我们精力问题暂时没有完成，欢迎大家 PR。在未来，我们会考虑提供高性能的动态插件方案，这些插件可以在提供自由定制的功能的同时，带给开发者更好的开发体验。
+
+### 持续提升性能
+
+目前 Rspack 是以性能为核心卖点的项目，所以在未来我们会做很多的事情以保持这个特性，如完善性能观测实验室，做好性能防劣化的工作；在更多的场景中使用并发/多核友好的算法；研发可跨平台共享的缓存体系；优化内存占用和消耗等等。
+
+### 建设质量保障体系
+
+在保障性能的同时，我们也会努力去保障 Rspack 的质量，Webpack 已经积累了非常丰富的测试用例，未来 Rspack 会复用 Webpack 已有的测试用例来完善自己的逻辑。建设更加完善的 CI 体系，和社区项目共建 Ecosystem CI 体系，保障项目升级不对上游的项目造成 break，保障项目长期健康，并且在测试覆盖率上保障长期上升；
+
+根据我们过去使用 Webpack 的经验，升级构建工具是一件耗时耗力的操作，我们也要请大家帮助我们贡献更多的测试用例，Rspack 会在迭代中尽量保持兼容。
+
+## 试用
+
+- 快速开始：[rspack.dev](https://rspack.dev)
+- GitHub 仓库：[github.com/web-infra-dev/rspack](https://github.com/web-infra-dev/rspack)

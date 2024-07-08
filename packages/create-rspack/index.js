@@ -5,27 +5,36 @@ const fs = require("fs");
 const path = require("path");
 const prompts = require("prompts");
 const { formatTargetDir } = require("./utils");
+const { version } = require("./package.json");
 
 yargs(hideBin(process.argv))
 	.command("$0", "init rspack project", async argv => {
 		const { help } = argv.argv;
 		if (help) return;
 
+		const onCancel = () => {
+			console.log("Operation cancelled.");
+			process.exit(0);
+		};
+
 		const defaultProjectName = "rspack-project";
 		let template = "react";
 		let targetDir = defaultProjectName;
 		const promptProjectDir = async () =>
-			await prompts([
-				{
-					type: "text",
-					name: "projectDir",
-					initial: defaultProjectName,
-					message: "Project folder",
-					onState: state => {
-						targetDir = formatTargetDir(state.value) || defaultProjectName;
+			await prompts(
+				[
+					{
+						type: "text",
+						name: "projectDir",
+						initial: defaultProjectName,
+						message: "Project folder",
+						onState: state => {
+							targetDir = formatTargetDir(state.value) || defaultProjectName;
+						}
 					}
-				}
-			]);
+				],
+				{ onCancel }
+			);
 
 		await promptProjectDir();
 		let root = path.resolve(process.cwd(), targetDir);
@@ -38,21 +47,25 @@ yargs(hideBin(process.argv))
 		}
 
 		// choose template
-		await prompts([
-			{
-				type: "select",
-				name: "template",
-				message: "Project template",
-				choices: [
-					{ title: "react", value: "react" },
-					{ title: "react-ts", value: "react-ts" },
-					{ title: "vue", value: "vue" }
-				],
-				onState: state => {
-					template = state.value;
+		await prompts(
+			[
+				{
+					type: "select",
+					name: "template",
+					message: "Project template",
+					choices: [
+						{ title: "react", value: "react" },
+						{ title: "react-ts", value: "react-ts" },
+						{ title: "vue", value: "vue" },
+						{ title: "vue-ts", value: "vue-ts" }
+					],
+					onState: state => {
+						template = state.value;
+					}
 				}
-			}
-		]);
+			],
+			{ onCancel }
+		);
 
 		fs.mkdirSync(root, { recursive: true });
 		const srcFolder = path.resolve(__dirname, `template-${template}`);
@@ -73,6 +86,9 @@ function copyFolder(src, dst) {
 
 	fs.mkdirSync(dst, { recursive: true });
 	for (const file of fs.readdirSync(src)) {
+		if (file === "node_modules") {
+			continue;
+		}
 		const srcFile = path.resolve(src, file);
 		const dstFile = renameFiles[file]
 			? path.resolve(dst, renameFiles[file])
@@ -81,7 +97,27 @@ function copyFolder(src, dst) {
 		if (stat.isDirectory()) {
 			copyFolder(srcFile, dstFile);
 		} else {
-			fs.copyFileSync(srcFile, dstFile);
+			// use create-rspack version as @rspack/xxx version in template
+			if (file === "package.json") {
+				const pkg = require(srcFile);
+				if (pkg.dependencies) {
+					for (const key of Object.keys(pkg.dependencies)) {
+						if (key.startsWith("@rspack/")) {
+							pkg.dependencies[key] = version;
+						}
+					}
+				}
+				if (pkg.devDependencies) {
+					for (const key of Object.keys(pkg.devDependencies)) {
+						if (key.startsWith("@rspack/")) {
+							pkg.devDependencies[key] = version;
+						}
+					}
+				}
+				fs.writeFileSync(dstFile, JSON.stringify(pkg, null, 2), "utf-8");
+			} else {
+				fs.copyFileSync(srcFile, dstFile);
+			}
 		}
 	}
 }

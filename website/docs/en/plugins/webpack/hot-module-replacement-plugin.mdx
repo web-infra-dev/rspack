@@ -1,0 +1,28 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# HotModuleReplacementPlugin
+
+<ApiMeta addedVersion={'0.3.3'} />
+
+Enables Hot Module Replacement.
+
+:::warning
+HMR should **never** be used in production.
+:::
+
+Enabling HMR is straightforward and in most cases no options are necessary.
+
+```js
+new rspack.HotModuleReplacementPlugin({
+  // Options...
+});
+```
+
+## Options
+
+### strictModuleErrorHandling
+
+Handle error in module loading as per ECMAScript Modules spec at a performance cost.
+
+- **Type:** `boolean`
+- **Default:** `false`

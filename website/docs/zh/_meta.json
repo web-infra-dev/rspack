@@ -1,0 +1,37 @@
+[
+  {
+    "text": "指南",
+    "link": "/guide/start/introduction",
+    "activeMatch": "/guide"
+  },
+  {
+    "text": "配置",
+    "link": "/config/",
+    "activeMatch": "/config"
+  },
+  {
+    "text": "插件",
+    "link": "/plugins/",
+    "activeMatch": "(?!\\/config\\/).*\\/plugins\\/.*"
+  },
+  {
+    "text": "API",
+    "link": "/api/",
+    "activeMatch": "/api"
+  },
+  {
+    "text": "博客",
+    "link": "/blog/index",
+    "activeMatch": "/blog"
+  },
+  {
+    "text": "关于",
+    "link": "/misc/faq",
+    "activeMatch": "/misc"
+  },
+  {
+    "text": "贡献",
+    "link": "/contribute/index",
+    "activeMatch": "/contribute"
+  }
+]

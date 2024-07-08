@@ -1,0 +1,20 @@
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_plugin_lightning_css_minimizer"
+repository = "https://github.com/web-infra-dev/rspack"
+version    = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lightningcss     = { version = "1.0.0-alpha.57", features = ["sourcemap", "browserslist"] }
+once_cell        = { workspace = true }
+parcel_sourcemap = "2.1.1"
+rayon            = { workspace = true }
+regex            = { workspace = true }
+
+rspack_core  = { path = "../rspack_core" }
+rspack_error = { path = "../rspack_error" }
+rspack_hash  = { path = "../rspack_hash" }
+rspack_hook  = { path = "../rspack_hook" }

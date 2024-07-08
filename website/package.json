@@ -1,0 +1,46 @@
+{
+  "name": "rspack-website",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "rspress dev",
+    "build": "rspress build",
+    "preview": "rspress preview",
+    "check:format": "prettier . --write",
+    "check:format-ci": "prettier . --check",
+    "check:spell": "npx cspell",
+    "check:case": "npx case-police docs/**/*.{md,mdx}",
+    "check": "pnpm run check:format && pnpm run check:spell",
+    "check:ci": "pnpm run check:format-ci && pnpm run check:spell"
+  },
+  "license": "MIT",
+  "packageManager": "pnpm@9.3.0",
+  "dependencies": {
+    "axios": "^1.6.1",
+    "date-fns": "^2.29.3",
+    "framer-motion": "^10.0.0",
+    "markdown-to-jsx": "^7.2.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-intersection-observer": "^9.4.3",
+    "rsfamily-nav-icon": "^1.0.3",
+    "semver": "^7.5.4",
+    "tailwindcss": "^3.2.7"
+  },
+  "devDependencies": {
+    "@rspress/plugin-rss": "^1.25.2",
+    "@rspress/shared": "^1.25.2",
+    "@types/node": "^18.11.18",
+    "@types/react": "^18.0.27",
+    "@types/semver": "^7.5.2",
+    "case-police": "0.6.1",
+    "cspell": "^8.7.0",
+    "cspell-ban-words": "0.0.3",
+    "prettier": "3.2.5",
+    "rsbuild-plugin-google-analytics": "1.0.0",
+    "rsbuild-plugin-open-graph": "1.0.0",
+    "rspress": "^1.25.2",
+    "rspress-plugin-font-open-sans": "1.0.0",
+    "typescript": "^5.0.4"
+  }
+}

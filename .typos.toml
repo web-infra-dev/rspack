@@ -4,14 +4,25 @@
 
 [files]
 extend-exclude = [
-  "**/*.{css,map,json,txt,ts,tsx,js,snap,bak,diff,html}",
-  "webpack-examples",
-  "webpack-test",
-  "./examples",
+  "**/*.{css,map,json,txt,snap,bak,diff,html}",
+  "**/tests/**",
+  "**/mock/**",
+  "packages/rspack-test-tools",
+  "packages/rspack/src/util/hash",
+  "tests/**",
   "**/CHANGELOG.md",
   "GOVERNANCE.md",
   "pnpm-lock.yaml",
+  "scripts/test/diff.cjs",
+  "scripts/test/binary-path.cjs",
 ]
 
+[default.extend-identifiers]
+JSerFeng = "JSerFeng"
+
 [default.extend-words]
-Nd = "Nd"
+Nd       = "Nd"
+fo       = "fo"
+splitted = "splitted"
+ws       = "ws"
+Pn       = "Pn"

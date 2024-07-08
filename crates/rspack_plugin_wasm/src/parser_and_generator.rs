@@ -5,16 +5,18 @@ use indexmap::IndexMap;
 use rspack_core::rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
-  AssetInfo, BoxDependency, BuildMetaExportsType, Compilation, Filename, GenerateContext, Module,
-  ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
-  PathData, RuntimeGlobals, SourceType, UsedName,
+  AssetInfo, BoxDependency, BuildMetaExportsType, Compilation, FilenameTemplate, GenerateContext,
+  Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
+  ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
+  StaticExportsSpec, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
+use rspack_util::infallible::ResultInfallibleExt as _;
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
-use crate::dependency::{StaticExportsDependency, WasmImportDependency};
+use crate::dependency::WasmImportDependency;
 use crate::ModuleIdToFileName;
 
 #[derive(Debug)]
@@ -83,7 +85,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     }
 
     dependencies.push(Box::new(StaticExportsDependency::new(
-      exports.iter().cloned().map(Atom::from).collect::<Vec<_>>(),
+      StaticExportsSpec::Array(exports.iter().cloned().map(Atom::from).collect::<Vec<_>>()),
       false,
     )));
 
@@ -92,15 +94,16 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         dependencies,
         blocks: vec![],
         presentational_dependencies: vec![],
+        code_generation_dependencies: vec![],
         source,
-        analyze_result: Default::default(),
+        side_effects_bailout: None,
       }
       .with_diagnostic(diagnostic),
     )
   }
 
-  fn size(&self, module: &dyn Module, source_type: &SourceType) -> f64 {
-    match source_type {
+  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64 {
+    match source_type.unwrap_or(&SourceType::Wasm) {
       SourceType::JavaScript => {
         40.0
           + module
@@ -141,13 +144,14 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let runtime_requirements = &mut generate_context.runtime_requirements;
         runtime_requirements.insert(RuntimeGlobals::MODULE);
         runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
+        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
         runtime_requirements.insert(RuntimeGlobals::INSTANTIATE_WASM);
 
         let mut dep_modules = IndexMap::<ModuleIdentifier, (String, &str)>::new();
         let mut wasm_deps_by_request = IndexMap::<&str, Vec<(Identifier, String, String)>>::new();
         let mut promises: Vec<String> = vec![];
 
-        let module_graph = &compilation.module_graph;
+        let module_graph = &compilation.get_module_graph();
         let chunk_graph = &compilation.chunk_graph;
 
         module
@@ -278,21 +282,34 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       _ => Ok(source.clone()),
     }
   }
+
+  fn get_concatenation_bailout_reason(
+    &self,
+    _module: &dyn Module,
+    _mg: &rspack_core::ModuleGraph,
+    _cg: &rspack_core::ChunkGraph,
+  ) -> Option<String> {
+    Some(String::from(
+      "Module Concatenation is not implemented for AsyncWasmParserAndGenerator",
+    ))
+  }
 }
 
 fn render_wasm_name(
   compilation: &Compilation,
   normal_module: &NormalModule,
-  wasm_filename_template: &Filename,
+  wasm_filename_template: &FilenameTemplate,
   hash: &str,
 ) -> (String, AssetInfo) {
-  compilation.get_asset_path_with_info(
-    wasm_filename_template,
-    PathData::default()
-      .filename(&normal_module.resource_resolved_data().resource)
-      .content_hash(hash)
-      .hash(hash),
-  )
+  compilation
+    .get_asset_path_with_info(
+      wasm_filename_template,
+      PathData::default()
+        .filename(&normal_module.resource_resolved_data().resource)
+        .content_hash(hash)
+        .hash(hash),
+    )
+    .always_ok()
 }
 
 fn render_import_stmt(import_var: &str, module_id: &str) -> String {

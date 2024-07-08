@@ -10,8 +10,6 @@ var registeredStatusHandlers = [];
 var currentStatus = "idle";
 
 // while downloading
-// TODO: not needed in rspack temporary,
-// TODO: because we transfer all changed modules.
 var blockingPromises = 0;
 var blockingPromisesWaiting = [];
 
@@ -79,8 +77,8 @@ function createRequire(require, moduleId) {
 		}
 	}
 
-	fn.e = function (chunkId) {
-		return trackBlockingPromise(require.e(chunkId));
+	fn.e = function (chunkId, fetchPriority) {
+		return trackBlockingPromise(require.e(chunkId, fetchPriority));
 	};
 
 	return fn;
@@ -180,12 +178,12 @@ function createModuleHotObject(moduleId, me) {
 }
 
 function setStatus(newStatus) {
-	currentStatus = newStatus;
+	currentStatus = newStatus; $HOT_TEST_STATUS$
 	var results = [];
 	for (var i = 0; i < registeredStatusHandlers.length; i++)
 		results[i] = registeredStatusHandlers[i].call(null, newStatus);
 
-	return Promise.all(results);
+	return Promise.all(results).then(function () { });
 }
 
 function unblock() {
@@ -227,7 +225,7 @@ function waitForBlockingPromises(fn) {
 function hotCheck(applyOnUpdate) {
 	if (currentStatus !== "idle") {
 		throw new Error("check() is only allowed in idle status");
-	}
+	} $HOT_TEST_GLOBAL$
 	return setStatus("check")
 		.then(__webpack_require__.hmrM)
 		.then(function (update) {

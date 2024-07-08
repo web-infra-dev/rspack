@@ -1,21 +1,24 @@
+import path from "path";
+
+import { readConfigFile } from "..";
+import {
+	IFormatCodeOptions,
+	IFormatCodeReplacement,
+	compareFile,
+	replaceRuntimeModuleName
+} from "../compare";
+import { RspackDiffConfigPlugin, WebpackDiffConfigPlugin } from "../plugin";
 import {
 	ECompilerType,
 	ITestContext,
+	ITestEnv,
 	ITestProcessor,
 	TCompareModules,
 	TCompilerOptions,
 	TFileCompareResult,
 	TModuleCompareResult
 } from "../type";
-import path from "path";
-import { createModulePlaceholderPlugin } from "../webpack/module-placeholder-plugin";
-import {
-	IFormatCodeOptions,
-	compareFile,
-	replaceRuntimeModuleName
-} from "../compare";
-import { readConfigFile, runBuild } from "../helper";
-import deepmerge from "deepmerge";
+import { BasicProcessor } from "./basic";
 
 export interface IDiffProcessorOptions extends IFormatCodeOptions {
 	webpackPath: string;
@@ -23,6 +26,10 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
 	files?: string[];
 	modules?: TCompareModules;
 	runtimeModules?: TCompareModules;
+	bootstrap?: boolean;
+	detail?: boolean;
+	errors?: boolean;
+	replacements?: IFormatCodeReplacement[];
 	onCompareFile?: (file: string, result: TFileCompareResult) => void;
 	onCompareModules?: (file: string, results: TModuleCompareResult[]) => void;
 	onCompareRuntimeModules?: (
@@ -30,49 +37,67 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
 		results: TModuleCompareResult[]
 	) => void;
 }
-
 export class DiffProcessor implements ITestProcessor {
 	private hashes: string[] = [];
-	constructor(private options: IDiffProcessorOptions) {}
+	private webpack: BasicProcessor<ECompilerType.Webpack>;
+	private rspack: BasicProcessor<ECompilerType.Rspack>;
+	constructor(private options: IDiffProcessorOptions) {
+		this.webpack = new BasicProcessor<ECompilerType.Webpack>({
+			defaultOptions: context =>
+				this.getDefaultOptions(
+					ECompilerType.Webpack,
+					context.getSource(),
+					path.join(context.getDist(), ECompilerType.Webpack)
+				),
+			compilerType: ECompilerType.Webpack,
+			name: ECompilerType.Webpack,
+			configFiles: ["webpack.config.js", "rspack.config.js"],
+			runable: false
+		});
+
+		this.rspack = new BasicProcessor<ECompilerType.Rspack>({
+			defaultOptions: context =>
+				this.getDefaultOptions(
+					ECompilerType.Rspack,
+					context.getSource(),
+					path.join(context.getDist(), ECompilerType.Rspack)
+				),
+			compilerType: ECompilerType.Rspack,
+			name: ECompilerType.Rspack,
+			configFiles: ["rspack.config.js", "webpack.config.js"],
+			runable: false
+		});
+	}
 
 	async config(context: ITestContext) {
-		this.setCompilerOptions(
-			ECompilerType.Rspack,
-			["rspack.config.js", "webpack.config.js"],
-			context
-		);
-		this.setCompilerOptions(
-			ECompilerType.Webpack,
-			["webpack.config.js", "rspack.config.js"],
-			context
-		);
+		await this.webpack.config(context);
+		await this.rspack.config(context);
 	}
 	async compiler(context: ITestContext) {
-		const rspack = require(this.options.rspackPath).rspack;
-		context.compiler<ECompilerType.Rspack>(
-			options => rspack({ ...options }),
-			ECompilerType.Rspack
-		);
-		const webpack = require(this.options.webpackPath).webpack;
-		context.compiler<ECompilerType.Webpack>(
-			options => webpack({ ...options }),
-			ECompilerType.Webpack
-		);
+		await this.webpack.compiler(context);
+		await this.rspack.compiler(context);
 	}
 	async build(context: ITestContext) {
-		const rspackStats = await runBuild<ECompilerType.Rspack>(
-			context,
-			ECompilerType.Rspack
-		);
-		const webpackStats = await runBuild<ECompilerType.Webpack>(
-			context,
-			ECompilerType.Webpack
-		);
+		await this.webpack.build(context);
+		await this.rspack.build(context);
+	}
+	async check(env: ITestEnv, context: ITestContext) {
+		const webpackCompiler = context.getCompiler(ECompilerType.Webpack);
+		const webpackStats = webpackCompiler.getStats();
+		//TODO: handle chunk hash and content hash
+		webpackStats?.hash && this.hashes.push(webpackStats?.hash);
+		if (!this.options.errors) {
+			env.expect(webpackStats?.hasErrors()).toBe(false);
+		}
+
+		const rspackCompiler = context.getCompiler(ECompilerType.Rspack);
+		const rspackStats = rspackCompiler.getStats();
 		//TODO: handle chunk hash and content hash
 		rspackStats?.hash && this.hashes.push(rspackStats?.hash);
-		webpackStats?.hash && this.hashes.push(webpackStats?.hash);
-	}
-	async check(context: ITestContext) {
+		if (!this.options.errors) {
+			env.expect(rspackStats?.hasErrors()).toBe(false);
+		}
+
 		const dist = context.getDist();
 		for (let file of this.options.files!) {
 			const rspackDist = path.join(dist, ECompilerType.Rspack, file);
@@ -81,7 +106,9 @@ export class DiffProcessor implements ITestProcessor {
 				modules: this.options.modules,
 				runtimeModules: this.options.runtimeModules,
 				format: this.createFormatOptions(),
-				renameModule: replaceRuntimeModuleName
+				renameModule: replaceRuntimeModuleName,
+				bootstrap: this.options.bootstrap,
+				detail: this.options.detail
 			});
 			if (typeof this.options.onCompareFile === "function") {
 				this.options.onCompareFile(file, result);
@@ -104,95 +131,35 @@ export class DiffProcessor implements ITestProcessor {
 		}
 	}
 
-	private setCompilerOptions<T extends ECompilerType>(
-		type: T,
-		configFiles: string[],
-		context: ITestContext
-	) {
-		const source = context.getSource();
-		const dist = context.getDist();
-		context.options<T>(
-			options =>
-				this.setDefaultOptions<T>(options, type, source, path.join(dist, type)),
-			type
-		);
-		context.options<T>(
-			options => readConfigFile<T>(source, configFiles, options),
-			type
-		);
-	}
-
-	private setDefaultOptions<T extends ECompilerType>(
-		options: TCompilerOptions<T>,
+	private getDefaultOptions<T extends ECompilerType>(
 		type: T,
 		src: string,
 		dist: string
 	) {
-		let result = deepmerge<TCompilerOptions<T>>(options, {
+		return {
 			entry: path.join(src, "./src/index.js"),
 			context: src,
 			output: {
+				path: dist,
 				filename: "bundle.js",
 				chunkFilename: "[name].chunk.js"
 			},
-			mode: "development",
-			devtool: false,
-			optimization: {
-				chunkIds: "named",
-				moduleIds: "named"
-			}
-		});
-		if (type === ECompilerType.Webpack) {
-			result = deepmerge<TCompilerOptions<ECompilerType.Webpack>>(
-				result as TCompilerOptions<ECompilerType.Webpack>,
-				{
-					output: {
-						pathinfo: false,
-						environment: {
-							arrowFunction: false,
-							bigIntLiteral: false,
-							const: false,
-							destructuring: false,
-							dynamicImport: false,
-							dynamicImportInWorker: false,
-							forOf: false,
-							globalThis: false,
-							module: false,
-							optionalChaining: false,
-							templateLiteral: false
-						},
-						path: dist
-					},
-					optimization: {
-						mangleExports: false,
-						concatenateModules: false
-					},
-					plugins: [createModulePlaceholderPlugin(this.options.webpackPath)]
-				},
-				{
-					arrayMerge: (a, b) => [...a, ...b]
-				}
-			) as TCompilerOptions<T>;
-		}
-		if (type === ECompilerType.Rspack) {
-			result = deepmerge<TCompilerOptions<ECompilerType.Rspack>>(
-				result as TCompilerOptions<ECompilerType.Rspack>,
-				{
-					output: {
-						path: dist
-					},
-					optimization: {
-						mangleExports: false
-					},
-					experiments: {
-						rspackFuture: {
-							disableTransformByDefault: true
+			plugins: [
+				type === ECompilerType.Webpack && new WebpackDiffConfigPlugin(),
+				type === ECompilerType.Rspack && new RspackDiffConfigPlugin()
+			].filter(Boolean),
+			experiments:
+				type === ECompilerType.Rspack
+					? {
+							css: true,
+							rspackFuture: {
+								bundlerInfo: {
+									force: false
+								}
+							}
 						}
-					}
-				}
-			) as TCompilerOptions<T>;
-		}
-		return result;
+					: {}
+		} as TCompilerOptions<T>;
 	}
 
 	private createFormatOptions() {
@@ -201,13 +168,14 @@ export class DiffProcessor implements ITestProcessor {
 			ignoreModuleId: this.options.ignoreModuleId,
 			ignorePropertyQuotationMark: this.options.ignorePropertyQuotationMark,
 			ignoreBlockOnlyStatement: this.options.ignoreBlockOnlyStatement,
+			ignoreIfCertainCondition: this.options.ignoreIfCertainCondition,
 			ignoreSwcHelpersPath: this.options.ignoreSwcHelpersPath,
 			ignoreObjectPropertySequence: this.options.ignoreObjectPropertySequence,
 			ignoreCssFilePath: this.options.ignoreCssFilePath,
-			replacements: this.options.replacements || {}
+			replacements: this.options.replacements || []
 		};
 		for (let hash of this.hashes) {
-			formatOptions.replacements![hash] = "fullhash";
+			formatOptions.replacements!.push({ from: hash, to: "fullhash" });
 		}
 		return formatOptions;
 	}

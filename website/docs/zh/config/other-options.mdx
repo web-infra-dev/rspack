@@ -1,0 +1,79 @@
+import { ApiMeta } from '../../../components/ApiMeta';
+
+# 其他配置
+
+这里展示了 Rspack 支持的其余配置项。
+
+## bail
+
+<ApiMeta addedVersion="0.4.5" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+遇到第一个错误时退出。Rspack 在默认情况下会在命令行以及在 HMR 时的浏览器 console 中打印这些错误，并且继续编译。
+
+```js title="rspack.config.js"
+module.exports = {
+  bail: true,
+};
+```
+
+这会强制 Rspack 终止编译流程。
+
+## dependencies
+
+- **类型：** `string[]`
+- **默认值：** `undefined`
+
+定义当前配置依赖的所有相邻配置的 [name](#name)。依赖的配置需要先编译完成。
+
+在 watch 模式下，当以下情况发生时，依赖关系将使编译器无效：
+
+1. 依赖的配置已更改。
+2. 依赖的配置正在编译中或无效。
+
+请记住，当前配置在其依赖项完成之前不会编译。
+
+```js title="rspack.config.js"
+module.exports = [
+  {
+    name: 'client',
+    target: 'web',
+    // …
+  },
+  {
+    name: 'server',
+    target: 'node',
+    dependencies: ['client'],
+  },
+];
+```
+
+## ignoreWarnings
+
+- **类型：** `(RegExp | ((warning: Error, Compilation: Compilation) => boolean))[]`
+- **默认值：** `undefined`
+
+告知 Rspack 忽略特定的警告。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  ignoreWarnings: [/warning from compiler/, warning => true],
+};
+```
+
+## name
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+配置的名称。当加载多个配置时被使用。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  name: 'admin-app',
+};
+```

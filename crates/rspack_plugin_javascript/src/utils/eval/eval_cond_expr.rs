@@ -1,10 +1,11 @@
 use swc_core::ecma::ast::CondExpr;
 
 use super::BasicEvaluatedExpression;
-use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
+use crate::visitors::JavascriptParser;
 
+#[inline]
 pub fn eval_cond_expression(
-  scanner: &CommonJsImportDependencyScanner,
+  scanner: &mut JavascriptParser,
   cond: &CondExpr,
 ) -> Option<BasicEvaluatedExpression> {
   let condition = scanner.evaluate_expression(&cond.test);

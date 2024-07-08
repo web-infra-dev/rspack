@@ -1,22 +1,38 @@
-use async_trait::async_trait;
 use rspack_core::{
-  CompilationArgs, CompilationParams, DependencyType, Plugin, PluginCompilationHookOutput,
+  ApplyContext, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
+  DependencyType, PluginContext,
 };
+use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook};
 
-#[derive(Debug)]
+#[plugin]
+#[derive(Debug, Default)]
 pub struct WorkerPlugin;
 
-#[async_trait]
-impl Plugin for WorkerPlugin {
-  async fn compilation(
+#[plugin_hook(CompilerCompilation for WorkerPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(
+    DependencyType::NewWorker,
+    params.normal_module_factory.clone(),
+  );
+  Ok(())
+}
+
+impl rspack_core::Plugin for WorkerPlugin {
+  fn apply(
     &self,
-    args: CompilationArgs<'_>,
-    params: &CompilationParams,
-  ) -> PluginCompilationHookOutput {
-    args.compilation.set_dependency_factory(
-      DependencyType::NewWorker,
-      params.normal_module_factory.clone(),
-    );
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
     Ok(())
   }
 }

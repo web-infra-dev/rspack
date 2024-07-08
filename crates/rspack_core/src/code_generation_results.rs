@@ -7,12 +7,12 @@ use anymap::CloneAny;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_identifier::IdentifierMap;
 use rspack_sources::BoxSource;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  AssetInfo, ChunkInitFragments, ModuleIdentifier, RuntimeGlobals, RuntimeMode, RuntimeSpec,
-  RuntimeSpecMap, SourceType,
+  AssetInfo, ChunkInitFragments, ConcatenationScope, ModuleIdentifier, PublicPath, RuntimeGlobals,
+  RuntimeMode, RuntimeSpec, RuntimeSpecMap, SourceType,
 };
 
 #[derive(Clone, Debug)]
@@ -32,16 +32,24 @@ impl CodeGenerationDataUrl {
 
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataFilename {
-  inner: String,
+  filename: String,
+  public_path: PublicPath,
 }
 
 impl CodeGenerationDataFilename {
-  pub fn new(inner: String) -> Self {
-    Self { inner }
+  pub fn new(filename: String, public_path: PublicPath) -> Self {
+    Self {
+      filename,
+      public_path,
+    }
   }
 
-  pub fn inner(&self) -> &str {
-    &self.inner
+  pub fn filename(&self) -> &str {
+    &self.filename
+  }
+
+  pub fn public_path(&self) -> &PublicPath {
+    &self.public_path
   }
 }
 
@@ -56,6 +64,21 @@ impl CodeGenerationDataAssetInfo {
   }
 
   pub fn inner(&self) -> &AssetInfo {
+    &self.inner
+  }
+}
+
+#[derive(Clone, Debug)]
+pub struct CodeGenerationDataTopLevelDeclarations {
+  inner: FxHashSet<String>,
+}
+
+impl CodeGenerationDataTopLevelDeclarations {
+  pub fn new(inner: FxHashSet<String>) -> Self {
+    Self { inner }
+  }
+
+  pub fn inner(&self) -> &FxHashSet<String> {
     &self.inner
   }
 }
@@ -88,6 +111,7 @@ pub struct CodeGenerationResult {
   pub runtime_requirements: RuntimeGlobals,
   pub hash: Option<RspackHashDigest>,
   pub id: CodeGenResultId,
+  pub concatenation_scope: Option<ConcatenationScope>,
 }
 
 impl CodeGenerationResult {

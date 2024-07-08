@@ -5,16 +5,17 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
-#[derive(Debug, Eq)]
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct CreateFakeNamespaceObjectRuntimeModule {
   id: Identifier,
 }
 
 impl Default for CreateFakeNamespaceObjectRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/create_fake_namespace_object"),
-    }
+    Self::with_default(Identifier::from(
+      "webpack/runtime/create_fake_namespace_object",
+    ))
   }
 }
 
@@ -23,9 +24,7 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/create_fake_namespace_object.js")).boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(include_str!("runtime/create_fake_namespace_object.js")).boxed())
   }
 }
-
-impl_runtime_module!(CreateFakeNamespaceObjectRuntimeModule);

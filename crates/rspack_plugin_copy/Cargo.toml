@@ -5,15 +5,10 @@ name       = "rspack_plugin_copy"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dev-dependencies]
-rspack_testing = { path = "../rspack_testing" }
-testing_macros = { workspace = true }
-
 [dependencies]
-async-trait    = { workspace = true }
 dashmap        = { workspace = true }
+derivative     = { workspace = true }
+futures        = { workspace = true }
 glob           = { workspace = true }
 lazy_static    = "1.4.0"
 pathdiff       = { workspace = true }
@@ -22,7 +17,8 @@ rspack_core    = { path = "../rspack_core" }
 rspack_error   = { path = "../rspack_error" }
 rspack_futures = { path = "../rspack_futures" }
 rspack_hash    = { path = "../rspack_hash" }
+rspack_hook    = { path = "../rspack_hook" }
+rspack_util    = { path = "../rspack_util" }
 rustc-hash     = { workspace = true }
 sugar_path     = { workspace = true }
 tokio          = { workspace = true, features = ["fs"] }
-tracing        = { workspace = true }

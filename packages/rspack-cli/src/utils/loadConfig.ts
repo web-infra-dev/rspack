@@ -1,13 +1,14 @@
-import path from "path";
 import fs from "fs";
-import { RspackCLIOptions } from "../types";
-import { RspackOptions, MultiRspackOptions } from "@rspack/core";
-import findConfig from "./findConfig";
-import rechoir from "rechoir";
+import path from "path";
+import { MultiRspackOptions, RspackOptions } from "@rspack/core";
 import interpret from "interpret";
+import rechoir from "rechoir";
+
+import { RspackCLIOptions } from "../types";
+import crossImport from "./crossImport";
+import findConfig from "./findConfig";
 import isEsmFile from "./isEsmFile";
 import isTsFile from "./isTsFile";
-import crossImport from "./crossImport";
 
 interface RechoirError extends Error {
 	failures: RechoirError[];

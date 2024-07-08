@@ -1,7 +1,7 @@
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  get_chunk_from_ukey, AsContextDependency, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport, ModuleDependency,
+  ModuleGraph, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -50,8 +50,12 @@ impl Dependency for WorkerDependency {
     self.span
   }
 
-  fn dependency_debug_name(&self) -> &'static str {
-    "WorkerDependency"
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    vec![]
   }
 }
 
@@ -67,14 +71,6 @@ impl ModuleDependency for WorkerDependency {
   fn set_request(&mut self, request: String) {
     self.request = request;
   }
-
-  fn get_referenced_exports(
-    &self,
-    _module_graph: &ModuleGraph,
-    _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    vec![]
-  }
 }
 
 impl DependencyTemplate for WorkerDependency {
@@ -89,7 +85,7 @@ impl DependencyTemplate for WorkerDependency {
       ..
     } = code_generatable_context;
     let chunk_id = compilation
-      .module_graph
+      .get_module_graph()
       .get_parent_block(&self.id)
       .and_then(|block| {
         compilation
@@ -97,7 +93,7 @@ impl DependencyTemplate for WorkerDependency {
           .get_block_chunk_group(block, &compilation.chunk_group_by_ukey)
       })
       .map(|entrypoint| entrypoint.get_entry_point_chunk())
-      .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))
+      .and_then(|ukey| get_chunk_from_ukey(&ukey, &compilation.chunk_by_ukey))
       .and_then(|chunk| chunk.id.as_deref())
       .and_then(|chunk_id| serde_json::to_string(chunk_id).ok())
       .expect("failed to get json stringified chunk id");
@@ -124,6 +120,10 @@ impl DependencyTemplate for WorkerDependency {
       .as_str(),
       None,
     );
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

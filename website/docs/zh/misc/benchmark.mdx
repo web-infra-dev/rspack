@@ -1,0 +1,105 @@
+# 基准测试
+
+如果你想自己运行这个基准测试，请克隆 [web-infra-dev/bundler-benchmark](https://github.com/web-infra-dev/bundler-benchmark)，然后在根目录下使用命令:
+
+```bash
+./scripts/bench-all.sh ${platform} # `platform` 用于唯一地识别生成的基准数据。
+```
+
+## 基准测试用例
+
+### all
+
+这个项目由若干子项目 `atlaskit-editor`、`common-libs`、`common-libs-chunks`、`rome` 和 `esbuild-three` 组合而成, 共 50000 个模块。用于我们比较开发模式和生产模式的构建性能。
+
+以下是每个子项目的简单描述。
+
+**atlaskit-editor**
+
+使用 `@atlaskit/editor-core` 的基本 react 应用程序。
+
+**common-libs**
+
+一个使用了 JavaScript 生态中一些常用库的应用程序。
+
+**common-libs-chunks**
+
+与 `common-libs` 相同，但使用异步 `import()` 语法来强制构建工具生成多个 chunk。
+
+**esbuild-three**
+
+通过将 three.js 库重复 10 次来建立一个大型的 JavaScript 代码库。
+
+**rome**
+
+旧的 Rome 代码库（在他们使用 Rust 重写之前），近似于一个大型 TypeScript 代码库。
+
+#### 测量数据
+
+测试于 on Intel(R) Xeon(R) Platinum 8260 CPU @ 2.40GHz 32Core, 64GB of RAM
+| | Rspack | webpack(with swc) | webpack (with babel) |
+|------------------------|---------|-------------------|----------------------|
+| development cold start | 3.79s | 31.25s | 42.61s |
+| production cold start | 22.353s | 75.054s | 160.059s |
+
+### react-components-10000
+
+10000 个 react 组件（每个组件只有基本的骨架），用于测试构建工具的 devServer 的热模块替换性能。
+
+#### 测量数据
+
+测试于 Intel(R) Xeon(R) Platinum 8260 CPU @ 2.40GHz 32Core, 64GB of RAM
+| | rspack/root | rspack/leaf | webpack(with swc)/root | webpack (with swc)/leaf | webpack (with babel)/root | webpack (with babel)/leaf |
+|---------|-------------|-------------|------------------------|--------------------------|---------------------------|-------------------------|
+| 1 | 711ms | 562ms | 2023ms | 1534ms | 2081ms | 1644ms |
+| 2 | 507ms | 566ms | 1725ms | 1593ms | 1642ms | 1652ms |
+| 3 | 551ms | 592ms | 1602ms | 1454ms | 1786ms | 1595ms |
+| 4 | 525ms | 513ms | 1480ms | 1587ms | 1543ms | 1684ms |
+| 5 | 545ms | 571ms | 1517ms | 1470ms | 1658ms | 1603ms |
+| average | 567.8ms | 560.8ms | 1669.4ms | 1527.6ms | 1742ms | 1635.6ms |
+
+## 度量标准
+
+- 开发环境冷启动：在没有缓存的情况下，开发模式构建完成所需的时间。
+- 生产环境冷启动：在没有缓存的情况下，生产模式构建完成所需的时间。
+- 模块热更新：当更新应用于一个源文件时，开发服务器重建项目所需的时间。
+  **HMR 有两个子指标**：
+  - 叶子：更新一个没有依赖的 react 组件文件的时间
+  - 根：更新一个根 react 组件的时间，通常它被命名为 `App.tsx` 或 `index.tsx`。
+
+## 参与比较的构建工具
+
+- webpack + ts-loader (or babel-loader in react-components-10000) + terser-webpack-plugin
+
+- webpack + swc-loader + swc-minifier
+
+- Rspack（使用 SWC 作为 transpiler 和 SWC minifier）。
+
+在开发模式下，所有的配置都保持原样，除了依赖于测试目标的 loader。
+
+在生产模式下，我们将 `devtool` 设置为 `source-map` 并使用依赖于测试目标的 loader 和 minifier，其他配置保持不变。
+
+## 测量方法
+
+### 开发环境冷启动
+
+使用 `hyperfine` 预热后运行每个开发构建命令 10 次，得到平均时间并生成相应的 markdown 表格。
+
+### 生产环境冷启动
+
+使用 `hyperfine` 预热后运行每个生产构建命令 10 次，得到平均时间并生成相应的 markdown 表格。
+
+### 模块热更新
+
+HMR 基准测试相对复杂，因为它通常分四个阶段实现。
+
+1. devServer 监听文件变化并重建项目（通常是部分构建）。
+2. devServer 通过本地网络（通常是 websocket）将构建的差异发送到 HMR 客户端。
+3. HMR 客户端收到差异，并将差异应用到浏览器的运行时代码中。
+4. 浏览器重新渲染视图。
+
+有时从第二阶段到第四阶段需要大约一半的 HMR 时间。
+
+一些工具的 HMR benchmark 将整个 HMR 的时间作为度量时间，因为各个工具链在实现 HMR 各阶段时都可能不同，因此这样比较是没有问题的。
+
+但是由于我们和 webpack 在二到四阶段的实现基本一致，区别于 webpack，Rspack 使用更加细粒度的增量构建算法来加速第一阶段，为了更好展示该算法的效果，我们使用两个构建工具的重新构建时间作为度量时间。

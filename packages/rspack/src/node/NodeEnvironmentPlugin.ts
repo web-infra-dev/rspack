@@ -10,11 +10,12 @@
 // @ts-expect-error
 import CachedInputFileSystem from "enhanced-resolve/lib/CachedInputFileSystem";
 import fs from "graceful-fs";
+
+import type { Compiler } from "..";
+import type { InfrastructureLogging } from "../config";
 import createConsoleLogger from "../logging/createConsoleLogger";
 import NodeWatchFileSystem from "./NodeWatchFileSystem";
 import nodeConsole from "./nodeConsole";
-import type { InfrastructureLogging } from "../config";
-import type { Compiler } from "..";
 
 export interface NodeEnvironmentPluginOptions {
 	infrastructureLogging: InfrastructureLogging;
@@ -49,7 +50,7 @@ export default class NodeEnvironmentPlugin {
 		);
 		compiler.hooks.beforeRun.tap("NodeEnvironmentPlugin", compiler => {
 			if (compiler.inputFileSystem === inputFileSystem) {
-				(compiler as any).fsStartTime = Date.now();
+				compiler.fsStartTime = Date.now();
 				inputFileSystem.purge();
 			}
 		});

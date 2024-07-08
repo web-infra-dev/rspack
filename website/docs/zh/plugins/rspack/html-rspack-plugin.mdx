@@ -1,0 +1,258 @@
+import { Table } from '@builtIns';
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# HtmlRspackPlugin
+
+<ApiMeta addedVersion={'0.3.3'} specific={['Rspack']} />
+
+`rspack.HtmlRspackPlugin` 是使用 Rust 实现的高性能 HTML 插件，你可以使用它来为 Rspack 项目生成 HTML 文件。
+
+```js
+new rspack.HtmlRspackPlugin(options);
+```
+
+## 对比
+
+在使用 `rspack.HtmlRspackPlugin` 之前，请注意 `rspack.HtmlRspackPlugin` 和社区的 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 插件存在一些差异。
+
+### 性能
+
+由于 `rspack.HtmlRspackPlugin` 是基于 Rust 实现的，因此它的构建性能显著高于 html-webpack-plugin 插件，尤其是在构建大量 HTML 文件的场景下。
+
+### 功能
+
+`rspack.HtmlRspackPlugin` 的功能是 `html-webpack-plugin` 的子集。为了保证插件的性能，我们没有实现 html-webpack-plugin 提供的所有功能。
+
+如果它提供的配置项无法满足你的需求，你也可以直接使用社区的 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 插件。
+
+## 用法
+
+这个插件会为你生成一个 HTML 文件，该文件的 head 包含了所有 JS 产物对应的 `<script>` 标签。
+
+只需像这样，将插件添加到你的 Rspack 配置中：
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [new rspack.HtmlRspackPlugin()],
+};
+```
+
+这将生成一个包含以下内容的 `dist/index.html` 文件：
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>rspack</title>
+    <script src="main.js" defer></script>
+  </head>
+  <body></body>
+</html>
+```
+
+如果你的 Rspack 配置中有多个 entry points，它们的生成 `<script>` 标签都会被包含在这个 HTML 文件中。
+
+如果你的构建产物中有一些 CSS 资源，它们将被包含在 HTML head 的 `<link>` 标签中。
+
+## 选项
+
+你可以向 `rspack.HtmlRspackPlugin` 传递一些配置项，支持的选项如下：
+
+- **类型：**
+
+```ts
+type HtmlRspackPluginOptions = {
+  title?: string;
+  filename?: string;
+  template?: string;
+  templateContent?: string;
+  templateParameters?: Record<string, string>;
+  inject?: 'head' | 'body';
+  publicPath?: string;
+  scriptLoading?: 'blocking' | 'defer' | 'module';
+  chunks?: string[];
+  excludedChunks?: string[];
+  sri?: 'sha256' | 'sha384' | 'sha512';
+  minify?: boolean;
+  favicon?: string;
+  meta?: Record<string, string | Record<string, string>>;
+};
+```
+
+- **默认值：** `{}`
+
+<Table
+  header={[
+    {
+      name: '名称',
+      key: 'name',
+    },
+    {
+      name: '类型',
+      key: 'type',
+    },
+    {
+      name: '默认值',
+      key: 'default',
+    },
+    {
+      name: '描述',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`title`',
+      type: '`string|undefined`',
+      default: 'undefined',
+      description: '构建 HTML 的标题',
+    },
+    {
+      name: '`filename`',
+      type: '`string`',
+      default: "'index.html'",
+      description: '输出的文件名，可以指定子目录，例如 `pages/index.html`',
+    },
+    {
+      name: '`template`',
+      type: '`string|undefined`',
+      default: 'undefined',
+      description: '模版文件路径，支持 ejs',
+    },
+    {
+      name: '`templateContent`',
+      type: '`string|undefined`',
+      default: 'undefined',
+      description: '模版文件内容，优先级大于 template',
+    },
+    {
+      name: '`templateParameters`',
+      type: '`Record<string, string>`',
+      default: '{}',
+      description: '传递给模版的参数',
+    },
+    {
+      name: '`inject`',
+      type: "`'head'|'body'|undefined`",
+      default: 'undefined',
+      description: '产物注入位置',
+    },
+    {
+      name: '`publicPath`',
+      type: '`string`',
+      default: "''",
+      description: 'script 和 link 标签的 publicPath',
+    },
+    {
+      name: '`scriptLoading`',
+      type: "`'blocking'|'defer'|'module'`",
+      default: "'defer'",
+      description:
+        '现代浏览器支持使用 defer 来异步加载 js，设置为 module 则会添加 `type="module"` 同时使用 defer',
+    },
+    {
+      name: '`chunks`',
+      type: '`string[]|undefined`',
+      default: 'undefined',
+      description: '配置需要注入的 chunk，默认注入所有 chunk',
+    },
+    {
+      name: '`excludedChunks`',
+      type: '`string[]|undefined`',
+      default: 'undefined',
+      description: '配置需要跳过注入的 chunk',
+    },
+    {
+      name: '`sri`',
+      type: "`'sha256'|'sha384'|'sha512'|undefined`",
+      default: 'undefined',
+      description: 'sri hash 算法，默认不开启 sri',
+    },
+    {
+      name: '`minify`',
+      type: '`boolean`',
+      default: 'false',
+      description: '是否启用压缩',
+    },
+    {
+      name: '`favicon`',
+      type: '`string|undefined`',
+      default: 'undefined',
+      description: '配置 HTML 图标',
+    },
+    {
+      name: '`meta`',
+      type: '`Record<string, string|Record<string, string>>` ',
+      default: '{}',
+      description: '配置需要注入 HTML 的 meta',
+    },
+  ]}
+/>
+
+## 示例
+
+### 自定义 HTML 模板
+
+如果默认生成的 HTML 不符合你的需求，你可以使用自己的模板。
+
+最简单的方式是使用 `template` 选项，并传递一个自定义的 HTML 文件。`rspack.HtmlRspackPlugin` 将会自动将所有需要的 JS、CSS 和 favicon 文件注入到 HTML 中。
+
+- 创建 `index.html` 文件：
+
+```html title="index.html"
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>My HTML Template</title>
+  </head>
+  <body></body>
+</html>
+```
+
+- 设置 `template` 选项：
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      template: 'index.html',
+    }),
+  ],
+};
+```
+
+### 生成多个 HTML 文件
+
+如果你有多个 entry points，并希望为每个 entry 生成一个 HTML 文件，那么你可以注册多个 `rspack.HtmlRspackPlugin`：
+
+- 使用 `filename` 来为每个 HTML 文件指定名称。
+- 使用 `chunks` 来为每个 HTML 文件指定需要包含的 JS 产物。
+
+比如以下配置，会生成 foo.html 和 bar.html，其中 foo.html 仅会包含 foo.js 生成的 JS 产物。
+
+```js
+const rspack = require('@rspack/core');
+
+module.exports = {
+  entry: {
+    foo: './foo.js',
+    bar: './bar.js',
+  },
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      filename: 'foo.html',
+      chunks: ['foo'],
+    }),
+    new rspack.HtmlRspackPlugin({
+      filename: 'bar.html',
+      chunks: ['bar'],
+    }),
+  ],
+};
+```

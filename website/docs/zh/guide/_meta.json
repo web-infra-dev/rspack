@@ -1,0 +1,32 @@
+[
+  {
+    "type": "dir",
+    "name": "start",
+    "label": "开始"
+  },
+  {
+    "type": "dir",
+    "name": "features",
+    "label": "特性"
+  },
+  {
+    "type": "dir",
+    "name": "tech",
+    "label": "语言和框架"
+  },
+  {
+    "type": "dir",
+    "name": "optimization",
+    "label": "优化"
+  },
+  {
+    "type": "dir",
+    "name": "migration",
+    "label": "迁移"
+  },
+  {
+    "type": "dir",
+    "name": "compatibility",
+    "label": "兼容"
+  }
+]

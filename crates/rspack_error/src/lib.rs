@@ -5,6 +5,8 @@ mod catch_unwind;
 mod diagnostic;
 mod error;
 mod ext;
+pub(crate) mod graphical;
+pub(crate) mod miette_helpers;
 pub use catch_unwind::*;
 pub use diagnostic::*;
 pub use error::*;
@@ -18,7 +20,7 @@ pub use thiserror;
 
 pub type Error = miette::Error;
 
-pub type Result<T> = std::result::Result<T, miette::Error>;
+pub type Result<T, E = miette::Error> = std::result::Result<T, E>;
 
 /// A helper struct for change logic from
 /// return something to something with diagnostics array
@@ -43,6 +45,10 @@ impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
 
   pub fn split_into_parts(self) -> (T, Vec<Diagnostic>) {
     (self.inner, self.diagnostic)
+  }
+
+  pub fn get(&self) -> &T {
+    &self.inner
   }
 }
 
@@ -89,8 +95,9 @@ pub mod __private {
   pub use core::result::Result::Err;
 
   pub use miette::miette;
+  pub use miette::Severity;
 
-  pub use crate::diagnostic::Severity;
+  pub use crate::diagnostic::Severity as RspackSeverity;
+  pub use crate::error;
   pub use crate::error::InternalError;
-  pub use crate::internal_error;
 }

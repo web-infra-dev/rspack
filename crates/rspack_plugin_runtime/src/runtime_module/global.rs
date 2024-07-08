@@ -5,16 +5,15 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
-#[derive(Debug, Eq)]
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct GlobalRuntimeModule {
   id: Identifier,
 }
 
 impl Default for GlobalRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/global"),
-    }
+    Self::with_default(Identifier::from("webpack/runtime/global"))
   }
 }
 
@@ -23,9 +22,7 @@ impl RuntimeModule for GlobalRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/global.js")).boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(include_str!("runtime/global.js")).boxed())
   }
 }
-
-impl_runtime_module!(GlobalRuntimeModule);

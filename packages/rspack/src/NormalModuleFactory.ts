@@ -1,66 +1,41 @@
-import { AsyncSeriesBailHook, HookMap } from "tapable";
+import type * as binding from "@rspack/binding";
 
-type ResourceData = {
-	resource: string;
-	path: string;
-	query?: string;
-	fragment?: string;
-};
-// resource: uri,
-// resource_path: info.path,
-// resource_query: (!info.query.is_empty()).then_some(info.query),
-// resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
-type ResourceDataWithData = ResourceData & { data?: Record<string, any> };
-type ResolveData = {
-	context?: string;
-	request: string;
-	fileDependencies: string[];
-	missingDependencies: string[];
-	contextDependencies: string[];
+import * as liteTapable from "@rspack/lite-tapable";
+import { ResolveData, ResourceDataWithData } from "./Module";
 
-	// assertions: Record<string, any> | undefined;
-	// dependencies: ModuleDependency[];
-};
+export type NormalModuleCreateData =
+	binding.JsNormalModuleFactoryCreateModuleArgs & {
+		settings: {};
+	};
 
 export class NormalModuleFactory {
 	hooks: {
 		// TODO: second param resolveData
-		resolveForScheme: HookMap<
-			AsyncSeriesBailHook<[ResourceDataWithData], true | void>
+		resolveForScheme: liteTapable.HookMap<
+			liteTapable.AsyncSeriesBailHook<[ResourceDataWithData], true | void>
 		>;
-		beforeResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
-		afterResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
+		beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
+		factorize: liteTapable.AsyncSeriesBailHook<[ResolveData], void>;
+		resolve: liteTapable.AsyncSeriesBailHook<[ResolveData], void>;
+		afterResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
+		createModule: liteTapable.AsyncSeriesBailHook<
+			[NormalModuleCreateData, {}],
+			void
+		>;
 	};
 	constructor() {
 		this.hooks = {
-			// /** @type {AsyncSeriesBailHook<[ResolveData], Module | false | void>} */
-			// resolve: new AsyncSeriesBailHook(["resolveData"]),
-			// /** @type {HookMap<AsyncSeriesBailHook<[ResourceDataWithData, ResolveData], true | void>>} */
-			resolveForScheme: new HookMap(
-				() => new AsyncSeriesBailHook(["resourceData"])
+			resolveForScheme: new liteTapable.HookMap(
+				() => new liteTapable.AsyncSeriesBailHook(["resourceData"])
 			),
-			// /** @type {HookMap<AsyncSeriesBailHook<[ResourceDataWithData, ResolveData], true | void>>} */
-			// resolveInScheme: new HookMap(
-			// 	() => new AsyncSeriesBailHook(["resourceData", "resolveData"])
-			// ),
-			// /** @type {AsyncSeriesBailHook<[ResolveData], Module>} */
-			// factorize: new AsyncSeriesBailHook(["resolveData"]),
-			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
-			beforeResolve: new AsyncSeriesBailHook(["resolveData"]),
-			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
-			afterResolve: new AsyncSeriesBailHook(["resolveData"])
-			// /** @type {AsyncSeriesBailHook<[ResolveData["createData"], ResolveData], Module | void>} */
-			// createModule: new AsyncSeriesBailHook(["createData", "resolveData"]),
-			// /** @type {SyncWaterfallHook<[Module, ResolveData["createData"], ResolveData], Module>} */
-			// module: new SyncWaterfallHook(["module", "createData", "resolveData"]),
-			// createParser: new HookMap(() => new SyncBailHook(["parserOptions"])),
-			// parser: new HookMap(() => new SyncHook(["parser", "parserOptions"])),
-			// createGenerator: new HookMap(
-			// 	() => new SyncBailHook(["generatorOptions"])
-			// ),
-			// generator: new HookMap(
-			// 	() => new SyncHook(["generator", "generatorOptions"])
-			// )
+			beforeResolve: new liteTapable.AsyncSeriesBailHook(["resolveData"]),
+			factorize: new liteTapable.AsyncSeriesBailHook(["resolveData"]),
+			resolve: new liteTapable.AsyncSeriesBailHook(["resolveData"]),
+			afterResolve: new liteTapable.AsyncSeriesBailHook(["resolveData"]),
+			createModule: new liteTapable.AsyncSeriesBailHook([
+				"createData",
+				"resolveData"
+			])
 		};
 	}
 }

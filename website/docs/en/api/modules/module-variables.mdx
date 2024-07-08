@@ -1,0 +1,634 @@
+import WebpackLicense from '@components/webpack-license';
+import Columns from '@components/Columns';
+import { ApiMeta } from '@components/ApiMeta';
+
+<WebpackLicense from="https://webpack.docschina.org/api/module-variables/" />
+
+# Module Variables
+
+## CommonJs
+
+### module.loaded
+
+`false` means that the module is being executed, `true` the synchronous execution has been completed.
+
+### module.id
+
+Current module ID.
+
+```js title=src/main.js
+module.id === require.resolve('./src/main.js'); // true
+```
+
+### module.hot
+
+Indicates whether or not Hot Module Replacement is enabled and provides an interface to the process. See the [HMR API page](/api/hmr) for details.
+
+### global
+
+See [node.js global](https://nodejs.org/api/globals.html#globals_global) for details.
+
+Rspack will replace the global with a proxy object and handle compatibility issues in it.
+
+<Columns>
+```js title=Source
+global['property']
+```
+
+```js title=Compiled
+__webpack_require__.g['property'];
+
+// webpack/runtime/global
+__webpack_require__.g = (function () {
+  // compatibility code
+})();
+```
+
+</Columns>
+
+### \_\_filename
+
+Depends on the configuration [`node.__filename`](/config/node#node__filename).
+
+- `false`: undefined
+- `mock`: equal to `'/index.js'`
+- `true`: [NodeJs \_\_filename](https://nodejs.org/api/modules.html#__filename)
+
+If used inside an expression that is parsed by the Parser, the configuration option is treated as `true`.
+
+<Columns>
+```js title=Source
+__filename
+```
+
+```js title=Compiled
+'src/main.js';
+```
+
+</Columns>
+
+### \_\_dirname
+
+Depends on the configuration [`node.__dirname`](/config/node#node__dirname).
+
+- `false`: undefined
+- `mock`: equal to `'/index.js'`
+- `true`: [NodeJs \_\_dirname](https://nodejs.org/api/modules.html#__dirname)
+
+If used inside an expression that is parsed by the Parser, the configuration option is treated as `true`.
+
+<Columns>
+```js title=Source
+__dirname
+```
+
+```js title=Compiled
+'src';
+```
+
+</Columns>
+
+## import.meta（ESM）
+
+The `import.meta` exposes context-specific metadata to a JavaScript module, such as the URL of the module. It is only available in ESM.
+
+> Please note that Rspack does not support direct access to `import.meta`. Instead, you should access its properties or use destructuring assignment. E.g.,
+
+<Columns>
+```js title="Source"
+import.meta
+typeof import.meta
+```
+
+```js title="Compiled"
+{
+} // Warning: Direct access to import.meta is not supported (only property access or destructuring is supported)
+('object');
+```
+
+</Columns>
+
+### import.meta.url
+
+Returns the absolute `file:` URL of the module.
+
+<Columns>
+```js title=Source
+import.meta.url
+typeof import.meta.url
+```
+
+```js title=Compiled
+'file://project_root/src/main.js';
+'string';
+```
+
+</Columns>
+
+### import.meta.webpackContext
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+`import.meta.webpackContext` is a function specific to webpack that allows you to dynamically import a set of modules.
+
+You can use `import.meta.webpackContext` in your code, and Rspack will parse and reference the matching modules during the build process.
+
+:::tip
+The return value of `import.meta.webpackContext` is the same as [import.meta.webpackContext](/api/modules/module-variables#importmetawebpackcontext). We recommend using `import.meta.webpackContext`, which is more powerful.
+:::
+
+- **Type:**
+
+```ts
+function webpackContext(
+  /**
+   * A directory to search.
+   */
+  request: string,
+  options?: {
+    /**
+     * Whether subdirectories should be searched.
+     * @default true
+     */
+    recursive?: boolean;
+    /**
+     * A regular expression to match files.
+     * @default /^\.\/.*$/ (any file)
+     */
+    regExp?: RegExp;
+    /**
+     * Module loading mode.
+     * @default 'sync'
+     */
+    mode?: 'sync' | 'eager' | 'weak' | 'lazy' | 'lazy-once';
+    include?: RegExp;
+    exclude?: RegExp;
+    preload?: boolean | number;
+    prefetch?: boolean | number;
+    chunkName?: string;
+    exports?: string | string[][];
+  },
+): Context;
+```
+
+- **Example:**
+
+```js
+// Create a context, with files from the test directory that
+// can be required with a request ending with `.test.js`.
+const context = import.meta.webpackContext('./test', {
+  recursive: false,
+  regExp: /\.test\.js$/,
+});
+```
+
+```js
+// Create a context with all files in the parent folder and
+// descending folders ending with `.stories.js`.
+const context = import.meta.webpackContext('../', {
+  recursive: true,
+  regExp: /\.stories\.js$/,
+});
+```
+
+```js
+// If mode is set to 'lazy', the underlying modules will be loaded asynchronously
+const context = import.meta.webpackContext('./locales', {
+  recursive: true,
+  regExp: /\.json$/,
+  mode: 'lazy',
+});
+```
+
+> The first arguments passed to `import.meta.webpackContext()` must be literals.
+
+### context API
+
+The context returned by `import.meta.webpackContext()` is a function that takes a `request` argument (module path).
+
+This function has three properties: `resolve`, `keys`, and `id`.
+
+- `resolve` is a function and returns the module id of the parsed request.
+- `keys` is a function that returns an array of all possible requests that the context module can handle.
+- `id` is the module id of the context module. This may be useful for `module.hot.accept`.
+
+This can be useful if you want to require all files in a directory or matching a pattern.
+
+Consider a scenario where you have a folder structure like this:
+
+```
+src
+├── components
+│   ├── Button.js
+│   ├── Header.js
+│   └── Footer.js
+```
+
+You can use `import.meta.webpackContext()` to dynamically import all component files in the folder:
+
+```js
+const componentsContext = import.meta.webpackContext('./components', {
+  recursive: false,
+  regExp: /\.js$/,
+});
+
+componentsContext.keys().forEach(fileName => {
+  const componentModule = componentsContext(fileName);
+
+  // Here you can use your module, for example console.log
+  console.log(componentModule);
+});
+```
+
+`import.meta.webpackContext()` streamlines the process of module importation especially when you have a lot of files to manage. When using it, please avoid matching unnecessary files, as this might lead to significantly increased build time and output size.
+
+### import.meta.webpackHot
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+An alias for [`module.hot`](#modulehot), however `import.meta.webpackHot` can be used in strict ESM while `module.hot` can't.
+
+## Runtime
+
+### \_\_webpack_hash\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+It provides access to the hash of the compilation.
+
+<Columns>
+```js title=Source
+__webpack_hash__
+```
+
+```js title=Compiled
+__webpack_require__.h();
+
+// webpack/runtime/get_full_hash
+__webpack_require__.h = function () {
+  return '9210c6f859a51c6f9a62';
+};
+```
+
+</Columns>
+
+### \_\_webpack_runtime_id\_\_
+
+<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
+
+Access the runtime id of current entry.
+
+<Columns>
+```js title=Source
+__webpack_runtime_id__
+```
+
+```js title=Compiled
+__webpack_require__.j;
+
+// webpack/runtime/runtime_id
+__webpack_require__.j = '909';
+```
+
+</Columns>
+
+### \_\_webpack_public_path\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+Equals the configuration option's [`output.publicPath`](/config/output#outputpublicpath)。
+
+<Columns>
+```js title=Source
+__webpack_public_path__
+```
+
+```js title=Compiled
+__webpack_require__.p;
+
+// output.publicPath !== "auto"
+__webpack_require__.p = 'output.publicPath';
+// output.publicPath === "auto"，
+__webpack_require__.p = 'calculated from document/location';
+```
+
+</Columns>
+
+### \_\_webpack_base_uri\_\_
+
+<ApiMeta addedVersion="0.3.3" specific={['Rspack', 'Webpack']} />
+Get or change base URI at runtime.
+
+<Columns>
+```js title=Source
+__webpack_base_uri__
+```
+
+```js title=Compiled
+__webpack_require__.b;
+
+// chunk loading
+__webpack_require__.b = document.baseURI || self.location.href;
+```
+
+</Columns>
+
+### \_\_webpack_nonce\_\_
+
+<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
+
+Rspack is capable of adding a nonce to all scripts that it loads.
+To activate this feature, set a `__webpack_nonce__` variable and include it in your entry script.
+
+<Columns>
+```js title=Source
+__webpack_nonce__ = 'your_nonce_code';
+```
+
+```js title=Compiled
+__webpack_require__.nc = '2312312';
+
+// webpack/runtime/load_script
+if (__webpack_require__.nc) {
+  script.setAttribute('nonce', __webpack_require__.nc);
+}
+```
+
+</Columns>
+
+## Modules
+
+### \_\_webpack_modules\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+Access to the internal object of all modules.
+
+<Columns>
+```js title=Source
+__webpack_modules__
+```
+
+```js title=Compiled
+var __webpack_modules__ = {
+  'main.js': function () {
+    __webpack_require__.m;
+  },
+};
+__webpack_require__.m = __webpack_modules__;
+```
+
+</Columns>
+
+### \_\_webpack_module\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+It provides access to the the current `module`. `module` is not available in strict ESM.
+
+<Columns>
+```js title=Source
+__webpack_module__
+```
+
+```js title=Compiled
+"main.js": function(renamed_module) {
+  renamed_module
+}
+```
+
+</Columns>
+
+### \_\_webpack_module\_\_.id
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+It provides access to the ID of current module (`module.id`). `module` is not available in strict ESM.
+
+<Columns>
+```js title=Source
+__webpack_module__.id
+```
+
+```js title=Compiled
+"main.js": function(renamed_module) {
+  renamed_module.id
+}
+```
+
+</Columns>
+
+### \_\_webpack_require\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+The raw require function.
+This expression isn't parsed by the Parser for dependencies.
+
+<Columns>
+```js title=Source
+__webpack_require__('./dep.js')
+```
+
+```js title=Compiled
+"main.js": function(_, __, renamed_require) {
+  renamed_require('./dep.js')
+}
+```
+
+</Columns>
+
+### \_\_non_webpack_require\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+Generates a `require` function that is not parsed by webpack.
+Can be used to do cool stuff with a global require function if available.
+
+<Columns>
+```js title=Source
+__non_webpack_require__('outer.js')
+```
+
+```js title=Compiled
+"main.js": function(_, __, __webpack_require__) {
+  require('outer.js')
+}
+```
+
+</Columns>
+
+### \_\_webpack_is_included\_\_
+
+<ApiMeta addedVersion="0.4.5" specific={['Rspack', 'Webpack']} />
+
+Test whether or not the given module is bundled by webpack.
+
+<Columns>
+```js title=Source
+if (__webpack_is_included__('./dep.js')) {
+  // do something
+}
+```
+
+```js title=Compiled
+if (true) {
+  // do something
+}
+```
+
+</Columns>
+
+### \_\_resourceQuery
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+The resource query of the current module.
+If the following `require` call was made, then the query string would be available in `file.js`.
+
+```js
+require('file.js?test');
+```
+
+<Columns>
+```js title=Source
+__resourceQuery
+```
+
+```js title=Compiled
+'?test';
+```
+
+</Columns>
+
+## Chunks
+
+### \_\_webpack_chunkname\_\_
+
+<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
+
+Get current chunk name.
+
+<Columns>
+```js title=Source
+__webpack_chunkname__
+```
+
+```js title=Compiled
+__webpack_require__.cn;
+
+// webpack/runtime/chunk_name
+__webpack_require__.cn = 'main';
+```
+
+</Columns>
+
+### \_\_webpack_chunk_load\_\_
+
+The internal chunk loading function. Takes one argument:
+
+- `chunkId`: the id for the chunk to load.
+
+<Columns>
+```js title=Source
+__webpack_chunk_load__
+```
+
+```js title=Compiled
+__webpack_require__.e;
+
+// webpack/runtime/ensure_chunk
+__webpack_require__.e = function (chunkId) {
+  // return chunk loading promise
+};
+```
+
+</Columns>
+
+Example to load chunks from alternate public path when one failed:
+
+```js
+const originalLoad = __webpack_chunk_load__;
+const publicPaths = ['a', 'b', 'c'];
+__webpack_chunk_load__ = async id => {
+  let error;
+  for (const path of publicPaths) {
+    __webpack_public_path__ = path;
+    try {
+      return await originalLoad(id);
+    } catch (e) {
+      error = e;
+    }
+  }
+  throw error;
+};
+import('./module-a').then(moduleA => {
+  // now webpack will use the custom __webpack_chunk_load__ to load chunk
+});
+```
+
+## Module Federation
+
+### \_\_webpack_share_scopes\_\_
+
+<ApiMeta addedVersion="0.4.1" specific={['Rspack', 'Webpack']} />
+
+This object is used as a shared scope in the remote container and is filled with the provided modules from a host
+
+### \_\_webpack_init_sharing\_\_
+
+<ApiMeta addedVersion="0.4.1" specific={['Rspack', 'Webpack']} />
+
+This method is used to initialize modules of a shared scope in the host container.
+
+## System.js
+
+### \_\_system_context\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+Context from System.js when `output.libraryTarget="system"`
+
+## Rspack
+
+### \_\_rspack_version\_\_
+
+<ApiMeta addedVersion="0.5.2" specific={['Rspack']} />
+Current Rspack version, default to version in `@rspack/core/package.json`, can be
+modified through experiments.rspackFuture.bundlerInfo.version.
+
+<Columns>
+```js title=Source
+__rspack_version__
+```
+
+```js title=Compiled
+__webpack_require__.rv;
+
+// webpack/runtime/rspack_version
+__webpack_require__.rv = '0.7.4';
+```
+
+</Columns>
+
+### \_\_rspack_unique_id\_\_
+
+<ApiMeta addedVersion="1.0.0" specific={['Rspack']} />
+The ID of the current bundler, the value is `bundler={bundler}@{version}`: - `bundler`:
+Default to `"rspack"` and can be modified through `experiments.rspackFuture.bundlerInfo.bundler`.
+- `version`: Default to version in `@rspack/core/package.json` and can be modified
+through `experiments.rspackFuture.bundlerInfo.version`.{' '}
+
+<Columns>
+```js title=Source
+__rspack_unique_id__
+```
+
+```js title=Compiled
+__webpack_require__.ruid;
+
+// webpack/runtime/rspack_unique_id
+__webpack_require__.ruid = 'bundler=rspack@0.7.4';
+```
+
+</Columns>

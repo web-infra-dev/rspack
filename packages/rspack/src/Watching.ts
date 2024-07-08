@@ -7,12 +7,13 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import { Callback } from "tapable";
+import assert from "assert";
+import { Callback } from "@rspack/lite-tapable";
+
 import type { Compilation, Compiler } from ".";
 import { Stats } from ".";
 import { WatchOptions } from "./config";
 import { FileSystemInfoEntry, Watcher } from "./util/fs";
-import assert from "assert";
 
 export class Watching {
 	watcher?: Watcher;
@@ -75,7 +76,8 @@ export class Watching {
 		missing: Iterable<string>
 	) {
 		this.pausedWatcher = undefined;
-		this.watcher = this.compiler.watchFileSystem.watch(
+		// SAFETY: `watchFileSystem` is expected to be initialized.
+		this.watcher = this.compiler.watchFileSystem!.watch(
 			files,
 			dirs,
 			missing,
@@ -195,6 +197,10 @@ export class Watching {
 		this.#invalidate();
 	}
 
+	lazyCompilationInvalidate(files: Set<string>) {
+		this.#invalidate(new Map(), new Map(), files, new Set());
+	}
+
 	#invalidate(
 		fileTimeInfoEntries?: Map<string, FileSystemInfoEntry | "ignore">,
 		contextTimeInfoEntries?: Map<string, FileSystemInfoEntry | "ignore">,
@@ -270,20 +276,16 @@ export class Watching {
 			if (err) return this._done(err, null);
 
 			const canRebuild =
-				this.compiler.options.devServer &&
-				!this.#initial &&
-				(modifiedFiles?.size || deleteFiles?.size);
+				!this.#initial && (modifiedFiles?.size || deleteFiles?.size);
 
-			const onBuild = (err: Error | null) => {
+			const onCompile = (err: Error | null) => {
 				if (err) return this._done(err, null);
 				// if (this.invalid) return this._done(null);
-				this._done(null, this.compiler.compilation);
+				this._done(null, this.compiler._lastCompilation!);
 			};
 
-			if (canRebuild) {
-				this.compiler.rebuild(modifiedFiles, deleteFiles, onBuild as any);
-			} else {
-				this.compiler.build(onBuild);
+			this.compiler.compile(onCompile);
+			if (!canRebuild) {
 				this.#initial = false;
 			}
 		});

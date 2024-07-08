@@ -19,6 +19,9 @@ module.exports = {
 			__VUE_PROD_DEVTOOLS__: JSON.stringify(false)
 		})
 	],
+	resolve: {
+		extensions: ["...", ".ts", ".tsx", ".jsx"]
+	},
 	module: {
 		rules: [
 			{
@@ -41,12 +44,14 @@ module.exports = {
 			}
 		]
 	},
-	cache: false,
 	stats: "errors-warnings",
 	infrastructureLogging: {
 		debug: false
 	},
 	watchOptions: {
 		poll: 1000
+	},
+	experiments: {
+		css: true
 	}
 };

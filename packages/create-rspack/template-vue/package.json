@@ -1,22 +1,18 @@
 {
   "name": "rspack-vue-starter",
   "version": "1.0.0",
-  "description": "",
   "private": true,
-  "main": "index.js",
   "scripts": {
-    "dev": "rspack serve",
-    "build": "rspack build"
+    "dev": "cross-env NODE_ENV=development rspack serve",
+    "build": "cross-env NODE_ENV=production rspack build"
   },
   "dependencies": {
     "vue": "3.2.45"
   },
   "devDependencies": {
-    "@rspack/cli": "0.4.0",
-    "@rspack/core": "0.4.0",
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*",
+    "cross-env": "^7.0.3",
     "vue-loader": "^17.2.2"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  }
 }

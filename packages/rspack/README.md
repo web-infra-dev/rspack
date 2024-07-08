@@ -1,15 +1,15 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1610-dark.png">
-  <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1610.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://assets.rspack.dev/rspack/rspack-banner-plain-dark.png">
+  <img alt="Rspack Banner" src="https://assets.rspack.dev/rspack/rspack-banner-plain-light.png">
 </picture>
 
 # @rspack/core
 
-A Fast Rust-based Web Bundler.
+The fast Rust-based web bundler with webpack-compatible API.
 
 ## Documentation
 
-See [https://rspack.dev](https://rspack.dev) for details.
+See <https://rspack.dev> for details.
 
 ## License
 

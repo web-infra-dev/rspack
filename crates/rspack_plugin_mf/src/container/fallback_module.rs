@@ -3,18 +3,22 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_core::{
+  impl_module_meta_info, impl_source_map_config,
   rspack_sources::{RawSource, Source, SourceExt},
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult, ChunkUkey,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
-  Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
+  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_util::source_map::SourceMapKind;
 
 use super::fallback_item_dependency::FallbackItemDependency;
 use crate::utils::json_stringify;
 
+#[impl_source_map_config]
 #[derive(Debug)]
 pub struct FallbackModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -23,6 +27,9 @@ pub struct FallbackModule {
   readable_identifier: String,
   lib_ident: String,
   requests: Vec<String>,
+  factory_meta: Option<FactoryMeta>,
+  build_info: Option<BuildInfo>,
+  build_meta: Option<BuildMeta>,
 }
 
 impl FallbackModule {
@@ -42,6 +49,10 @@ impl FallbackModule {
       readable_identifier: identifier,
       lib_ident,
       requests,
+      factory_meta: None,
+      build_info: None,
+      build_meta: None,
+      source_map_kind: SourceMapKind::empty(),
     }
   }
 }
@@ -72,12 +83,18 @@ impl DependenciesBlock for FallbackModule {
 
 #[async_trait]
 impl Module for FallbackModule {
-  fn size(&self, _source_type: &SourceType) -> f64 {
+  impl_module_meta_info!();
+
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     self.requests.len() as f64 * 5.0 + 42.0
   }
 
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Fallback
+  }
+
+  fn get_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
   }
 
   fn source_types(&self) -> &[SourceType] {
@@ -103,7 +120,8 @@ impl Module for FallbackModule {
   async fn build(
     &mut self,
     build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+    _: Option<&Compilation>,
+  ) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
 
@@ -118,16 +136,13 @@ impl Module for FallbackModule {
       dependencies.push(Box::new(FallbackItemDependency::new(request.clone())))
     }
 
-    Ok(
-      BuildResult {
-        build_info,
-        build_meta: Default::default(),
-        dependencies,
-        blocks: Vec::new(),
-        analyze_result: Default::default(),
-      }
-      .with_empty_diagnostic(),
-    )
+    Ok(BuildResult {
+      build_info,
+      build_meta: Default::default(),
+      dependencies,
+      blocks: Vec::new(),
+      optimization_bailouts: vec![],
+    })
   }
 
   #[allow(clippy::unwrap_in_result)]
@@ -135,13 +150,16 @@ impl Module for FallbackModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
+    _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut codegen = CodeGenerationResult::default();
+    let module_graph = compilation.get_module_graph();
     codegen.runtime_requirements.insert(RuntimeGlobals::MODULE);
+    codegen.runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     let ids: Vec<_> = self
       .get_dependencies()
       .iter()
-      .filter_map(|dep| compilation.module_graph.get_module(dep))
+      .filter_map(|dep| module_graph.get_module_by_dependency_id(dep))
       .filter_map(|module| {
         compilation
           .chunk_graph
@@ -177,6 +195,8 @@ module.exports = loop();
     Ok(codegen)
   }
 }
+
+impl_empty_diagnosable_trait!(FallbackModule);
 
 impl Hash for FallbackModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

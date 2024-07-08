@@ -1,0 +1,15 @@
+ERROR in ./node_modules/some-module/a.ts
+  × Resolve error: Can't resolve './b.js' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-with-concatenate-conflict/node_modules/some-module'
+   ╭─[1:1]
+ 1 │ export * from "./b.js";
+   ·               ────────
+ 2 │ export * from "./c.js";
+   ╰────
+
+ERROR in ./node_modules/some-module/a.ts
+  × Resolve error: Can't resolve './c.js' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-with-concatenate-conflict/node_modules/some-module'
+   ╭─[1:1]
+ 1 │ export * from "./b.js";
+ 2 │ export * from "./c.js";
+   ·               ────────
+   ╰────

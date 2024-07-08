@@ -1,1 +1,0 @@
-Object(exports).x = "d";

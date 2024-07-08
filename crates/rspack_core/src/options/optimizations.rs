@@ -122,12 +122,12 @@ impl From<&str> for MangleExportsOption {
 #[derive(Debug)]
 pub struct Optimization {
   pub remove_available_modules: bool,
-  pub remove_empty_chunks: bool,
   pub side_effects: SideEffectOption,
   pub provided_exports: bool,
   pub used_exports: UsedExportsOption,
   pub inner_graph: bool,
   pub mangle_exports: MangleExportsOption,
+  pub concatenate_modules: bool,
 }
 
 pub static DEFAULT_DELIMITER: &str = "~";

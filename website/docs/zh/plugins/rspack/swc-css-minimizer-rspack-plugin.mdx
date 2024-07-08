@@ -1,0 +1,16 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# SwcCssMinimizerRspackPlugin
+
+<ApiMeta addedVersion={'0.3.3'} specific={['Rspack']} />
+
+此插件可以用来压缩 CSS 产物。参见 [optimization.minimizer](/config/optimization#optimizationminimizer)。
+
+```js
+module.exports = {
+  // ...
+  optimization: {
+    minimizer: [new rspack.SwcCssMinimizerRspackPlugin()],
+  },
+};
+```

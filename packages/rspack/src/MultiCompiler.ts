@@ -8,25 +8,15 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { Compiler, RspackOptions, Stats } from ".";
-import ResolverFactory from "./ResolverFactory";
-import { WatchFileSystem } from "./util/fs";
-import { Watching } from "./Watching";
-import {
-	AsyncSeriesHook,
-	Callback,
-	MultiHook,
-	SyncHook,
-	SyncBailHook
-} from "tapable";
-import MultiStats from "./MultiStats";
+import * as liteTapable from "@rspack/lite-tapable";
 import asyncLib from "neo-async";
-import ArrayQueue from "./util/ArrayQueue";
-import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
+import { Compiler, RspackOptions, Stats } from ".";
+import MultiStats from "./MultiStats";
 import MultiWatching from "./MultiWatching";
 import { WatchOptions } from "./config";
-
-type Any = any;
+import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
+import ArrayQueue from "./util/ArrayQueue";
+import { WatchFileSystem } from "./util/fs";
 
 interface Node<T> {
 	compiler: Compiler;
@@ -55,31 +45,22 @@ export type MultiRspackOptions = ReadonlyArray<RspackOptions> &
 	MultiCompilerOptions;
 
 export class MultiCompiler {
-	// @ts-expect-error
-	context: string;
 	compilers: Compiler[];
 	dependencies: WeakMap<Compiler, string[]>;
 	hooks: {
-		done: SyncHook<MultiStats>;
-		invalid: MultiHook<SyncHook<[string | null, number]>>;
-		run: MultiHook<AsyncSeriesHook<[Compiler]>>;
-		watchClose: SyncHook<Any>;
-		watchRun: MultiHook<Any>;
-		infrastructureLog: MultiHook<Any>;
+		done: liteTapable.SyncHook<MultiStats>;
+		invalid: liteTapable.MultiHook<
+			liteTapable.SyncHook<[string | null, number]>
+		>;
+		run: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
+		watchClose: liteTapable.SyncHook<[]>;
+		watchRun: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
+		infrastructureLog: liteTapable.MultiHook<
+			liteTapable.SyncBailHook<[string, string, any[]], true>
+		>;
 	};
-	// @ts-expect-error
-	name: string;
-	infrastructureLogger: Any;
-	_options: { parallelism?: number };
-	// @ts-expect-error
-	root: Compiler;
-	// @ts-expect-error
-	resolverFactory: ResolverFactory;
+	_options: MultiCompilerOptions;
 	running: boolean;
-	// @ts-expect-error
-	watching: Watching;
-	// @ts-expect-error
-	watchMode: boolean;
 
 	constructor(
 		compilers: Compiler[] | Record<string, Compiler>,
@@ -93,18 +74,12 @@ export class MultiCompiler {
 		}
 
 		this.hooks = {
-			/** @type {SyncHook<[MultiStats]>} */
-			done: new SyncHook(["stats"]),
-			/** @type {MultiHook<SyncHook<[string | null, number]>>} */
-			invalid: new MultiHook(compilers.map(c => c.hooks.invalid)),
-			/** @type {MultiHook<AsyncSeriesHook<[Compiler]>>} */
-			run: new MultiHook(compilers.map(c => c.hooks.run)),
-			/** @type {SyncHook<[]>} */
-			watchClose: new SyncHook([]),
-			/** @type {MultiHook<AsyncSeriesHook<[Compiler]>>} */
-			watchRun: new MultiHook(compilers.map(c => c.hooks.watchRun)),
-			/** @type {MultiHook<SyncBailHook<[string, string, any[]], true>>} */
-			infrastructureLog: new MultiHook(
+			done: new liteTapable.SyncHook(["stats"]),
+			invalid: new liteTapable.MultiHook(compilers.map(c => c.hooks.invalid)),
+			run: new liteTapable.MultiHook(compilers.map(c => c.hooks.run)),
+			watchClose: new liteTapable.SyncHook([]),
+			watchRun: new liteTapable.MultiHook(compilers.map(c => c.hooks.watchRun)),
+			infrastructureLog: new liteTapable.MultiHook(
 				compilers.map(c => c.hooks.infrastructureLog)
 			)
 		};
@@ -178,18 +153,12 @@ export class MultiCompiler {
 		throw new Error("Cannot read outputFileSystem of a MultiCompiler");
 	}
 
-	/**
-	 * @param {InputFileSystem} value the new input file system
-	 */
 	set inputFileSystem(value) {
 		for (const compiler of this.compilers) {
 			compiler.inputFileSystem = value;
 		}
 	}
 
-	/**
-	 * @param {OutputFileSystem} value the new output file system
-	 */
 	set outputFileSystem(value: typeof import("fs")) {
 		for (const compiler of this.compilers) {
 			compiler.outputFileSystem = value;
@@ -202,10 +171,7 @@ export class MultiCompiler {
 		}
 	}
 
-	/**
-	 * @param {IntermediateFileSystem} value the new intermediate file system
-	 */
-	set intermediateFileSystem(value: any) {
+	set intermediateFileSystem(value) {
 		for (const compiler of this.compilers) {
 			compiler.intermediateFileSystem = value;
 		}
@@ -216,19 +182,20 @@ export class MultiCompiler {
 	}
 
 	/**
-	 * @param {Compiler} compiler the child compiler
-	 * @param {string[]} dependencies its dependencies
-	 * @returns {void}
+	 * @param compiler - the child compiler
+	 * @param dependencies - its dependencies
 	 */
 	setDependencies(compiler: Compiler, dependencies: string[]) {
 		this.dependencies.set(compiler, dependencies);
 	}
 
 	/**
-	 * @param {Callback<MultiStats>} callback signals when the validation is complete
-	 * @returns {boolean} true if the dependencies are valid
+	 * @param callback - signals when the validation is complete
+	 * @returns true if the dependencies are valid
 	 */
-	validateDependencies(callback: Callback<Error, MultiStats>): boolean {
+	validateDependencies(
+		callback: liteTapable.Callback<Error, MultiStats>
+	): boolean {
 		const edges = new Set<{ source: Compiler; target: Compiler }>();
 		const missing: string[] = [];
 		const targetFound = (compiler: Compiler) => {
@@ -304,7 +271,7 @@ export class MultiCompiler {
 		setup: (
 			compiler?: Compiler,
 			idx?: number,
-			done?: Callback<Error, Stats>,
+			done?: liteTapable.Callback<Error, Stats>,
 			isBlocked?: () => boolean,
 			setChanged?: () => void,
 			setInvalid?: () => void
@@ -312,9 +279,9 @@ export class MultiCompiler {
 		run: (
 			compiler: Compiler,
 			res: SetupResult,
-			done: Callback<Error, Stats>
+			done: liteTapable.Callback<Error, Stats>
 		) => void,
-		callback: Callback<Error, MultiStats>
+		callback: liteTapable.Callback<Error, MultiStats>
 	): SetupResult[] {
 		/** @typedef {{ compiler: Compiler, setupResult: SetupResult, result: Stats, state: "pending" | "blocked" | "queued" | "starting" | "running" | "running-outdated" | "done", children: Node[], parents: Node[] }} Node */
 
@@ -498,13 +465,13 @@ export class MultiCompiler {
 	}
 
 	/**
-	 * @param {WatchOptions|WatchOptions[]} watchOptions the watcher's options
-	 * @param {Callback<MultiStats>} handler signals when the call finishes
-	 * @returns {MultiWatching} a compiler watcher
+	 * @param watchOptions - the watcher's options
+	 * @param handler - signals when the call finishes
+	 * @returns a compiler watcher
 	 */
 	watch(
 		watchOptions: WatchOptions,
-		handler: Callback<Error, MultiStats>
+		handler: liteTapable.Callback<Error, MultiStats>
 	): MultiWatching {
 		if (this.running) {
 			return handler(new ConcurrentCompilationError()) as never;
@@ -541,7 +508,7 @@ export class MultiCompiler {
 		return new MultiWatching([], this);
 	}
 
-	run(callback: Callback<Error, MultiStats>) {
+	run(callback: liteTapable.Callback<Error, MultiStats>) {
 		if (this.running) {
 			return callback(new ConcurrentCompilationError());
 		}
@@ -570,7 +537,7 @@ export class MultiCompiler {
 		}
 	}
 
-	close(callback: Callback<Error, void>) {
+	close(callback: liteTapable.Callback<Error, void>) {
 		asyncLib.each(
 			this.compilers,
 			(compiler, cb) => {

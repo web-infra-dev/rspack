@@ -1,6 +1,6 @@
 var installChunk = function (chunk) {
   var moreModules = chunk.modules, chunkIds = chunk.ids,
-      runtime = chunk.runtime;
+    runtime = chunk.runtime;
   for (var moduleId in moreModules) {
     if (__webpack_require__.o(moreModules, moduleId)) {
       __webpack_require__.m[moduleId] = moreModules[moduleId];
@@ -13,4 +13,5 @@ var installChunk = function (chunk) {
     }
     installedChunks[chunkIds[i]] = 0;
   }
+  $WITH_ON_CHUNK_LOADED$
 };

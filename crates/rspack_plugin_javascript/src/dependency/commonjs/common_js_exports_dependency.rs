@@ -7,7 +7,7 @@ use rspack_core::{
 };
 use swc_core::atoms::Atom;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum ExportsBase {
   Exports,
   ModuleExports,
@@ -18,26 +18,26 @@ pub enum ExportsBase {
 }
 
 impl ExportsBase {
-  pub fn is_exports(&self) -> bool {
+  pub const fn is_exports(&self) -> bool {
     matches!(self, Self::Exports | Self::DefinePropertyExports)
   }
 
-  pub fn is_module_exports(&self) -> bool {
+  pub const fn is_module_exports(&self) -> bool {
     matches!(
       self,
       Self::ModuleExports | Self::DefinePropertyModuleExports
     )
   }
 
-  pub fn is_this(&self) -> bool {
+  pub const fn is_this(&self) -> bool {
     matches!(self, Self::This | Self::DefinePropertyThis)
   }
 
-  pub fn is_expression(&self) -> bool {
+  pub const fn is_expression(&self) -> bool {
     matches!(self, Self::Exports | Self::ModuleExports | Self::This)
   }
 
-  pub fn is_define_property(&self) -> bool {
+  pub const fn is_define_property(&self) -> bool {
     matches!(
       self,
       Self::DefinePropertyExports | Self::DefinePropertyModuleExports | Self::DefinePropertyThis
@@ -72,10 +72,6 @@ impl CommonJsExportsDependency {
 }
 
 impl Dependency for CommonJsExportsDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "CommonJsExportsDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -118,23 +114,18 @@ impl DependencyTemplate for CommonJsExportsDependency {
       ..
     } = code_generatable_context;
 
-    let mgm = compilation
-      .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
+    let module_graph = compilation.get_module_graph();
+    let module = module_graph
+      .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 
-    let used = compilation
-      .module_graph
+    let used = module_graph
       .get_exports_info(&module.identifier())
       .id
-      .get_used_name(
-        &compilation.module_graph,
-        *runtime,
-        UsedName::Vec(self.names.clone()),
-      );
+      .get_used_name(&module_graph, *runtime, UsedName::Vec(self.names.clone()));
 
-    let exports_argument = mgm.get_exports_argument();
-    let module_argument = mgm.get_module_argument();
+    let exports_argument = module.get_exports_argument();
+    let module_argument = module.get_module_argument();
 
     let base = if self.base.is_exports() {
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
@@ -173,7 +164,7 @@ impl DependencyTemplate for CommonJsExportsDependency {
             "var __webpack_unused_export__;\n".to_string(),
             InitFragmentStage::StageConstants,
             0,
-            InitFragmentKey::unique(),
+            InitFragmentKey::CommonJsExports("__webpack_unused_export__".to_owned()),
             None,
           )
           .boxed(),
@@ -211,7 +202,7 @@ impl DependencyTemplate for CommonJsExportsDependency {
               "var __webpack_unused_export__;\n".to_string(),
               InitFragmentStage::StageConstants,
               0,
-              InitFragmentKey::unique(),
+              InitFragmentKey::CommonJsExports("__webpack_unused_export__".to_owned()),
               None,
             )
             .boxed(),
@@ -230,6 +221,10 @@ impl DependencyTemplate for CommonJsExportsDependency {
     } else {
       panic!("Unexpected base type");
     }
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 

@@ -4,17 +4,16 @@ on:
   issue_comment:
     types: [created]
 
-# cancel previous job runs for the same workflow + pr
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
 
 jobs:
   trigger:
     runs-on: ubuntu-latest
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '!bench')
     steps:
-      - uses: actions/github-script@v6
+      - uses: actions/github-script@v7
         with:
           script: |
             const user = context.payload.sender.login
@@ -50,7 +49,7 @@ jobs:
               })
               throw new Error('not allowed')
             }
-      - uses: actions/github-script@v6
+      - uses: actions/github-script@v7
         id: get-pr-data
         with:
           script: |
@@ -65,7 +64,7 @@ jobs:
               branchName: pr.head.ref,
               repo: pr.head.repo.full_name
             }
-      - uses: actions/github-script@v6
+      - uses: actions/github-script@v7
         id: trigger
         with:
           github-token: ${{ secrets.RSPACK_BOT_ACCESS_TOKEN }}

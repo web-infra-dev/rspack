@@ -1,0 +1,1028 @@
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/configuration/dev-server/" />
+
+# DevServer
+
+该选项用于配置 [`@rspack/dev-server`](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-dev-server) 的行为，用于快速开发应用程序。
+
+- **类型：** `object`
+
+:::tip
+如果你的应用未依赖 `@rspack/dev-server`，那么 devServer 配置将不起作用。
+
+例如，Rspack CLI 默认依赖 `@rspack/dev-server`，因此在使用 Rspack CLI 的项目里可以使用 devServer 配置。而 Rsbuild 自行实现了开发服务器，并提供了单独的 "server" 配置，所以 Rsbuild 项目不能使用 devServer 配置。
+:::
+
+## devServer.allowedHosts
+
+- **类型：** `'all' | 'auto' | string[]`
+- **默认值：** `'auto'`
+
+该选项允许你设置允许访问开发服务器的白名单。
+
+```js title="rspack.config.js"
+module.exports = {
+  // ...
+  devServer: {
+    allowedHosts: [
+      'host.com',
+      'subdomain.host.com',
+      'subdomain2.host.com',
+      'host2.com',
+    ],
+  },
+};
+```
+
+模仿 Django 的 `ALLOWED_HOSTS` 配置，以点（.）开头的值可用作子域名的通配符。`.host.com` 将会匹配 `host.com`、`www.host.com` 以及 `host.com` 的任何其他子域名。
+
+```js title="rspack.config.js"
+module.exports = {
+  // ...
+  devServer: {
+    // 这能达到和第一个示例相同的效果
+    // 额外的好处是如果新的子域名需要访问开发服务器
+    // 不需要更新你的配置
+    allowedHosts: ['.host.com', 'host2.com'],
+  },
+};
+```
+
+当设置为 `'all'` 时，此选项会绕过主机检查。**不建议这么做**，因为不进行主机检查的应用容易受到 DNS 重绑定攻击的威胁。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    allowedHosts: 'all',
+  },
+};
+```
+
+当设置为 `'auto'` 时，此选项总是允许 `localhost`、[`host`](#devserverhost) 和 [`client.webSocketURL.hostname`](#websocketurl)：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    allowedHosts: 'auto',
+  },
+};
+```
+
+## devServer.client
+
+- **类型：** `object`
+
+### logging
+
+- **类型：** `'log' | 'info' | 'warn' | 'error' | 'none' | 'verbose'`
+- **默认值：** `'info'`
+
+设置在浏览器中日志级别，例如，在重新加载之前、出现错误之前或启用热模块替换时。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      logging: 'info',
+    },
+  },
+};
+```
+
+### overlay
+
+- **类型：** `boolean | object`
+- **默认值：** `true`
+
+当编译器出现错误或警告时，在浏览器中显示一个全屏遮罩。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      overlay: true,
+    },
+  },
+};
+```
+
+你可以传入一个对象进行更细致的控制，该对象包含以下属性：
+
+| 属性          | 解释               |
+| ------------- | ------------------ |
+| errors        | 编译错误           |
+| runtimeErrors | 未处理的运行时错误 |
+| warnings      | 编译警告           |
+
+所有属性都是可选的，如果未提供，则默认为 `true`。
+
+例如，要禁用编译警告，可以提供以下配置：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      overlay: {
+        errors: true,
+        warnings: false,
+        runtimeErrors: true,
+      },
+    },
+  },
+};
+```
+
+要根据抛出的错误进行过滤，你可以传递一个接受 `error` 参数并返回布尔值的函数。
+
+例如，要忽略由 [`AbortController.abort()`](https://developer.mozilla.org/en-US/docs/Web/API/AbortController/abort) 抛出的错误：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      overlay: {
+        runtimeErrors: error => {
+          if (error instanceof DOMException && error.name === 'AbortError') {
+            return false;
+          }
+          return true;
+        },
+      },
+    },
+  },
+};
+```
+
+:::warning 警告
+在配置文件中，`runtimeErrors` 函数无法访问外部作用域中声明的变量。
+:::
+
+### progress
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+在浏览器中以百分比的形式打印编译进度。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      progress: true,
+    },
+  },
+};
+```
+
+### reconnect
+
+- **类型：** `boolean | number`
+- **默认值：** `true`
+
+客户端应尝试重新连接的次数。当设置为 `true` 时，将尝试无限次重连。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      reconnect: true,
+    },
+  },
+};
+```
+
+当设置为 `false` 时，将不进行尝试重新连接。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      reconnect: false,
+    },
+  },
+};
+```
+
+你也可以指定客户端应尝试重新连接的确切次数。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      reconnect: 5,
+    },
+  },
+};
+```
+
+### webSocketTransport
+
+- **类型：** `'ws' | 'sockjs'`
+- **默认值：** `ws`
+
+此选项允许我们为客户端单独选择当前的开发服务器传输模式，或提供自定义的客户端实现。这使得可以指定浏览器或其他客户端如何与开发服务器进行通信。
+
+:::tip 提示
+设置 [`webSocketServer`](#devserverwebsocketserver) 为 `'ws'` 或 `'sockjs'` 是将 `devServer.client.webSocketTransport` 和 `devServer.webSocketServer` 同时设置为给定值的快捷方式。
+:::
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      webSocketTransport: 'ws',
+    },
+    webSocketServer: 'ws',
+  },
+};
+```
+
+:::tip 提示
+当提供自定义的客户端和服务器实现时，请确保它们相互之间兼容，以便能够成功通信。
+:::
+
+要创建自定义客户端实现，请创建一个继承 `BaseClient` 的类。
+
+使用路径引用 `CustomClient.js`，一个自定义的 WebSocket 客户端实现，以及与之兼容的 `'ws'` 服务器：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      webSocketTransport: require.resolve('./CustomClient'),
+    },
+    webSocketServer: 'ws',
+  },
+};
+```
+
+使用自定义、兼容的 WebSocket 客户端和服务器实现：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      webSocketTransport: require.resolve('./CustomClient'),
+    },
+    webSocketServer: require.resolve('./CustomServer'),
+  },
+};
+```
+
+### webSocketURL
+
+- **类型：** `string | object`
+- **默认值：** `{}`
+
+此选项允许指定 WebSocket 服务器的 URL（在代理开发服务器时很有用，因为客户端脚本不知道要连接到哪里）。
+
+你还可以指定一个带有以下属性的对象：
+
+- `hostname`：告诉连接到开发服务器的客户端要使用的主机名。
+- `pathname`：告诉连接到开发服务器的客户端要使用的路径。
+- `password`：告诉连接到开发服务器的客户端要使用的密码进行认证。
+- `port`：告诉连接到开发服务器的客户端要使用的端口。
+- `protocol`：告诉连接到开发服务器的客户端要使用的协议。
+- `username`：告诉连接到开发服务器的客户端要使用的用户名进行认证。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    client: {
+      webSocketURL: {
+        hostname: '0.0.0.0',
+        pathname: '/ws',
+        password: 'dev-server',
+        port: 8080,
+        protocol: 'ws',
+        username: 'rspack',
+      },
+    },
+  },
+};
+```
+
+:::tip 提示
+要从浏览器获取`协议`/`主机名`/`端口`，请使用 `webSocketURL: 'auto://0.0.0.0:0/ws'`。
+:::
+
+## devServer.compress
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+启用 [gzip 压缩](https://betterexplained.com/articles/how-to-optimize-your-site-with-gzip-compression/)服务上的所有内容：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    compress: true,
+  },
+};
+```
+
+## devServer.devMiddleware
+
+- **类型：** `object`
+- **默认值：** `{}`
+
+提供选项给 [webpack-dev-middleware](https://github.com/webpack/webpack-dev-middleware)，它用于处理 Rspack 的静态资源。
+
+```ts
+module.exports = {
+  devServer: {
+    devMiddleware: {
+      index: true,
+      mimeTypes: { phtml: 'text/html' },
+      publicPath: '/publicPathForDevServe',
+      serverSideRender: true,
+      writeToDisk: true,
+    },
+  },
+};
+```
+
+## devServer.headers
+
+- **类型：** `array | function | object`
+- **默认值：** `undefined`
+
+为所有响应添加自定义 HTTP 头：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    headers: {
+      'X-Custom-Foo': 'bar',
+    },
+  },
+};
+```
+
+你也可以传递数组：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    headers: [
+      {
+        key: 'X-Custom',
+        value: 'foo',
+      },
+      {
+        key: 'Y-Custom',
+        value: 'bar',
+      },
+    ],
+  },
+};
+```
+
+你也可以传递方法：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    headers: () => {
+      return { 'X-Bar': ['key1=value1', 'key2=value2'] };
+    },
+  },
+};
+```
+
+## devServer.historyApiFallback
+
+- **类型：** `boolean | object`
+- **默认值：** `false`
+
+当使用 [HTML5 History API](https://developer.mozilla.org/en-US/docs/Web/API/History) 时，`index.html` 页面需要代替任何 `404` 响应被返回。通过将 `devServer.historyApiFallback` 设置为 `true` 来启用此功能：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    historyApiFallback: true,
+  },
+};
+```
+
+通过传入对象，可以使用如 `rewrites` 等选项进一步控制此行为：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    historyApiFallback: {
+      rewrites: [
+        { from: /^\/$/, to: '/views/landing.html' },
+        { from: /^\/subpage/, to: '/views/subpage.html' },
+        { from: /./, to: '/views/404.html' },
+      ],
+    },
+  },
+};
+```
+
+当在路径中使用点（Angular 中常见）时，可能需要使用 `disableDotRule`：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    historyApiFallback: {
+      disableDotRule: true,
+    },
+  },
+};
+```
+
+有关更多选项和信息，请查看 [connect-history-api-fallback](https://github.com/bripkens/connect-history-api-fallback) 文档。
+
+## devServer.host
+
+- **类型：** `'local-ip' | 'local-ipv4' | 'local-ipv6' | string`
+- **默认值：** `'local-ip'`
+
+指定要使用的主机名。如果你希望服务器可以从外部访问，请像这样设置：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    host: '0.0.0.0',
+  },
+};
+```
+
+### local-ip
+
+将 host 指定为 `local-ip` 会尝试将 host 选项解析为你的本地 `IPv4` 地址（如果可用），如果 `IPv4` 不可用，将尝试解析你的本地 `IPv6` 地址。
+
+### local-ipv4
+
+将 host 指定为 `local-ipv4` 会尝试将 host 选项解析为你的本地 `IPv4` 地址。
+
+### local-ipv6
+
+将 host 指定为 `local-ipv6` 会尝试将 host 选项解析为你的本地 `IPv6` 地址。
+
+## devServer.hot
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+开启热更新：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    hot: true,
+  },
+};
+```
+
+为了在构建失败的情况下启用热模块替换，同时不刷新页面作为备选方案，请使用 `hot: 'only'`：
+
+```javascript title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    hot: 'only',
+  },
+};
+```
+
+## devServer.liveReload
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+默认情况下，当检测到文件变化时，开发服务器会重新加载/刷新页面。必须禁用 [`devServer.hot`](#devserverhot) 选项或启用 [`devServer.watchFiles`](#devserverwatchfiles) 选项，`liveReload` 才会生效。通过将 `devServer.liveReload` 设置为 `false` 来禁用它：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    liveReload: false,
+  },
+};
+```
+
+:::tip 提示
+实时重新加载仅适用于与 web 相关的 [targets](/config/target)，如 `web`、`webworker`、`electron-renderer` 和 `node-webkit`。
+:::
+
+## devServer.magicHtml
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+路径是否和产物一一对应。
+
+## devServer.onListening
+
+- **类型：** `function (devServer)`
+
+提供在开发服务器开始在端口上监听连接时，执行自定义函数的能力：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    onListening: function (devServer) {
+      if (!devServer) {
+        throw new Error('@rspack/dev-server 未定义');
+      }
+
+      const port = devServer.server.address().port;
+      console.log('正在监听端口：', port);
+    },
+  },
+};
+```
+
+## devServer.open
+
+- **类型：** `boolean | string | object | [string, object]`
+- **默认值：** `true`
+
+告诉开发服务器启动之后打开浏览器。设置为 `true` 以打开默认浏览器。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    open: true,
+  },
+};
+```
+
+在浏览器中打开指定页面：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    open: ['/my-page'],
+  },
+};
+```
+
+在浏览器中打开多个指定页面：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    open: ['/my-page', '/another-page'],
+  },
+};
+```
+
+提供一个浏览器名称来替代默认的浏览器：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    open: {
+      app: {
+        name: 'google-chrome',
+      },
+    },
+  },
+};
+```
+
+所有可用的 [open](https://www.npmjs.com/package/open) 选项：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    open: {
+      target: ['first.html', 'http://localhost:8080/second.html'],
+      app: {
+        name: 'google-chrome',
+        arguments: ['--incognito', '--new-window'],
+      },
+    },
+  },
+};
+```
+
+:::tip 提示
+浏览器应用名称依赖于平台。在可复用的模块中不要硬编码它。例如，macOS 上是 `'Google Chrome'`，Linux 上是 `'google-chrome'`，而 Windows 上是 `'chrome'`。
+:::
+
+## devServer.port
+
+- **类型：** `'auto' | string | number`
+- **默认值：** `[]`
+
+指定要监听请求的端口号：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    port: 8080,
+  },
+};
+```
+
+`port` 选项不能为 `null` 或为空字符串，要自动使用空闲端口，请使用 `port: 'auto'`。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    port: 'auto',
+  },
+};
+```
+
+## devServer.proxy
+
+- **类型：** `object | [object, function]`
+
+当你有一个单独的 API 后端开发服务器，且希望在同一个域上发送 API 请求时，代理 URL 可能会很有用。
+
+开发服务器使用了强大的 [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware) 包。查看其[文档](https://github.com/chimurai/http-proxy-middleware#options)了解更多高级用法。
+请注意，`http-proxy-middleware` 的一些功能不需要 target 选项，例如其 `router` 功能，但你在这里的配置中仍然需要包含 `target` 选项，否则开发服务器不会将其传递给 `http-proxy-middleware`。
+
+如果你有一个运行在 `localhost:3000` 的后端，你可以使用以下配置来启用代理：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    proxy: [
+      {
+        context: ['/api'],
+        target: 'http://localhost:3000',
+      },
+    ],
+  },
+};
+```
+
+现在，对 `/api/users` 的请求将会代理到 `http://localhost:3000/api/users`。
+
+如果你不希望将 `/api` 传递，我们需要重写路径：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    proxy: [
+      {
+        context: ['/api'],
+        target: 'http://localhost:3000',
+        pathRewrite: { '^/api': '' },
+      },
+    ],
+  },
+};
+```
+
+默认情况下，带有无效证书的 HTTPS 后端服务器将不被接受。如果你愿意，可以像下面这样修改你的配置：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    proxy: [
+      {
+        context: ['/api'],
+        target: 'http://localhost:3000',
+        secure: false,
+      },
+    ],
+  },
+};
+```
+
+有时你不希望代理所有内容。可以根据函数的返回值来绕过代理。
+
+在该函数中，你可以访问请求、响应和代理选项。
+
+- 返回 `null` 或 `undefined` 继续使用代理处理请求。
+- 返回 `false` 对请求产生一个 404 错误。
+- 返回一个路径以从该路径服务内容，而不是继续代理请求。
+
+例如，对于浏览器请求，你希望服务一个 HTML 页面，但对于 API 请求，你希望将它代理。你可以这样做：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    proxy: [
+      {
+        context: ['/api'],
+        target: 'http://localhost:3000',
+        bypass: function (req, res, proxyOptions) {
+          if (req.headers.accept.indexOf('html') !== -1) {
+            console.log('Skipping proxy for browser request.');
+            return '/index.html';
+          }
+        },
+      },
+    ],
+  },
+};
+```
+
+如果你想要将多个、特定的路径代理到相同的目标，你可以使用一个或多个带有 `context` 属性的对象的数组：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    proxy: [
+      {
+        context: ['/auth', '/api'],
+        target: 'http://localhost:3000',
+      },
+    ],
+  },
+};
+```
+
+请注意，默认不会代理对根目录的请求。要启用根代理，应将 `devMiddleware.index` 选项指定为 falsy 值：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    devMiddleware: {
+      index: false, // 启用根代理
+    },
+    proxy: [
+      {
+        context: () => true,
+        target: 'http://localhost:1234',
+      },
+    ],
+  },
+};
+```
+
+在默认情况下会保留代理时的 host 头部的原始值，你可以将 `changeOrigin` 设置为 `true` 来改变这一行为。这在某些情况下很有用，例如使用[基于名称的虚拟主机](https://en.wikipedia.org/wiki/Virtual_hosting#Name-based)。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    proxy: [
+      {
+        context: ['/api'],
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    ],
+  },
+};
+```
+
+## devServer.server
+
+- **类型：** `'http' | 'https' | 'spdy' | string | object`
+- **默认值：** `'http'`
+
+用于设置服务器（默认为“http”）：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    server: 'http',
+  },
+};
+```
+
+使用自签名证书通过 `HTTPS` 提供服务：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    server: 'https',
+  },
+};
+```
+
+通过 [spdy](https://www.npmjs.com/package/spdy) 使用自签名证书提供 `HTTP/2` 服务：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    server: 'spdy',
+  },
+};
+```
+
+传递对象提供你自己的证书：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    server: {
+      type: 'https',
+      options: {
+        ca: './path/to/server.pem',
+        pfx: './path/to/server.pfx',
+        key: './path/to/server.key',
+        cert: './path/to/server.crt',
+        passphrase: '@rspack/dev-server',
+        requestCert: true,
+      },
+    },
+  },
+};
+```
+
+它还允许你设置其他 [TLS 选项](https://nodejs.org/api/tls.html#tls_tls_createsecurecontext_options)，如 `minVersion`，并且你可以直接传递相应文件的内容：
+
+```js title="rspack.config.js"
+const fs = require('fs');
+const path = require('path');
+
+module.exports = {
+  //...
+  devServer: {
+    server: {
+      type: 'https',
+      options: {
+        minVersion: 'TLSv1.1',
+        key: fs.readFileSync(path.join(__dirname, './server.key')),
+        pfx: fs.readFileSync(path.join(__dirname, './server.pfx')),
+        cert: fs.readFileSync(path.join(__dirname, './server.crt')),
+        ca: fs.readFileSync(path.join(__dirname, './ca.pem')),
+        passphrase: '@rspack/dev-server',
+        requestCert: true,
+      },
+    },
+  },
+};
+```
+
+## devServer.setupMiddlewares
+
+- **类型：** `function (middlewares, devServer)`
+
+提供执行自定义函数和应用自定义中间件的能力。
+
+```js title="rspack.config.js"
+module.exports = {
+  // ...
+  devServer: {
+    setupMiddlewares: (middlewares, devServer) => {
+      if (!devServer) {
+        throw new Error('@rspack/dev-server is not defined');
+      }
+
+      devServer.app.get('/setup-middleware/some/path', (_, response) => {
+        response.send('setup-middlewares option GET');
+      });
+
+      // Use the `unshift` method if you want to run a middleware before all other middlewares
+      // or when you are migrating from the `onBeforeSetupMiddleware` option
+      middlewares.unshift({
+        name: 'first-in-array',
+        // `path` is optional
+        path: '/foo/path',
+        middleware: (req, res) => {
+          res.send('Foo!');
+        },
+      });
+
+      // Use the `push` method if you want to run a middleware after all other middlewares
+      // or when you are migrating from the `onAfterSetupMiddleware` option
+      middlewares.push({
+        name: 'hello-world-test-one',
+        // `path` is optional
+        path: '/foo/bar',
+        middleware: (req, res) => {
+          res.send('Foo Bar!');
+        },
+      });
+
+      middlewares.push((req, res) => {
+        res.send('Hello World!');
+      });
+
+      return middlewares;
+    },
+  },
+};
+```
+
+## devServer.static
+
+- **类型：** `boolean | string | object | [string, object]`
+
+用于配置是否从一些目录（默认为 'public'）启用静态服务器。
+
+此选项允许配置从目录获取静态文件（默认是 'public' 目录）。要禁用请将其设置为 `false`：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    static: false,
+  },
+};
+```
+
+要监听单个目录：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    static: ['assets'],
+  },
+};
+```
+
+要监听多个静态目录：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    static: ['assets', 'css'],
+  },
+};
+```
+
+## devServer.watchFiles
+
+- **类型：** `string | object | [string, object]`
+
+该选项允许你配置一个列表监视文件变化，可以是通配符、目录和文件。例如：
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    watchFiles: ['src/**/*.php', 'public/**/*'],
+  },
+};
+```
+
+你还可以为文件监控配置更多选项。有关的选项，请参阅 [`chokidar`](https://github.com/paulmillr/chokidar) 文档。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    watchFiles: {
+      paths: ['src/**/*.php', 'public/**/*'],
+      options: {
+        usePolling: false,
+      },
+    },
+  },
+};
+```
+
+## devServer.webSocketServer
+
+- **类型：** `false | 'sockjs' | 'ws'`
+
+此选项允许我们选择当前的 web-socket 服务器或提供自定义的 web-socket 服务器实现。
+
+当前的默认模式是 `'ws'`。此模式在服务器端使用 [`ws`](https://www.npmjs.com/package/ws) 库，并在客户端使用原生 WebSockets。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  devServer: {
+    webSocketServer: 'ws',
+  },
+};
+```

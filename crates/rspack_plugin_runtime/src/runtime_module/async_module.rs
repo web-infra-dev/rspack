@@ -5,25 +5,23 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
-#[derive(Debug, Eq)]
+#[impl_runtime_module]
+#[derive(Debug)]
 pub struct AsyncRuntimeModule {
   id: Identifier,
 }
 impl Default for AsyncRuntimeModule {
   fn default() -> Self {
-    AsyncRuntimeModule {
-      id: Identifier::from("webpack/runtime/async_module"),
-    }
+    Self::with_default(Identifier::from("webpack/runtime/async_module"))
   }
 }
 
 impl RuntimeModule for AsyncRuntimeModule {
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/async_module.js")).boxed()
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    Ok(RawSource::from(include_str!("runtime/async_module.js")).boxed())
   }
 
   fn name(&self) -> Identifier {
     self.id
   }
 }
-impl_runtime_module!(AsyncRuntimeModule);

@@ -1,6 +1,5 @@
 import type {
 	JsAssetInfo,
-	JsLoaderContext,
 	RawModuleRuleUse,
 	RawOptions
 } from "@rspack/binding";
@@ -8,18 +7,21 @@ import { type ResolveRequest } from "enhanced-resolve";
 
 import { Compiler } from "../Compiler";
 import { Logger } from "../logging/Logger";
-import Hash from "../util/hash";
-import { Mode, Resolve, RuleSetUseItem, RuleSetLoaderWithOptions } from "./zod";
-import { parsePathQueryFragment } from "../loader-runner";
-import { deprecatedWarn, isNil, termlink } from "../util";
+import Hash = require("../util/hash");
+import { Compilation } from "../Compilation";
+import { Module } from "../Module";
+import { resolvePluginImport } from "../builtin-loader";
+import { LoaderObject, parsePathQueryFragment } from "../loader-runner";
+import { isNil } from "../util";
 import {
-	resolveEmotion,
-	resolvePluginImport,
-	resolveReact,
-	resolveRelay
-} from "../builtin-loader";
+	Mode,
+	Resolve,
+	RuleSetLoaderWithOptions,
+	RuleSetUseItem,
+	Target
+} from "./zod";
 
-const BUILTIN_LOADER_PREFIX = "builtin:";
+export const BUILTIN_LOADER_PREFIX = "builtin:";
 
 export interface ComposeJsUseOptions {
 	devtool: RawOptions["devtool"];
@@ -43,21 +45,6 @@ export interface AdditionalData {
 	[index: string]: any;
 }
 
-export interface LoaderObject {
-	request: string;
-	path: string;
-	query: string;
-	fragment: string;
-	options: object | string | undefined;
-	ident: string;
-	normal: Function | undefined;
-	pitch: Function | undefined;
-	raw: boolean | undefined;
-	data: object | undefined;
-	pitchExecuted: boolean;
-	normalExecuted: boolean;
-}
-
 export interface LoaderContext<OptionsType = {}> {
 	version: 2;
 	resource: string;
@@ -79,7 +66,7 @@ export interface LoaderContext<OptionsType = {}> {
 	cacheable(cacheable?: boolean): void;
 	sourceMap: boolean;
 	rootContext: string;
-	context: string;
+	context: string | null;
 	loaderIndex: number;
 	remainingRequest: string;
 	currentRequest: string;
@@ -105,6 +92,7 @@ export interface LoaderContext<OptionsType = {}> {
 	 */
 	loaders: LoaderObject[];
 	mode?: Mode;
+	target?: Target;
 	hot?: boolean;
 	/**
 	 * @param schema To provide the best performance, Rspack does not perform the schema validation. If your loader requires schema validation, please call scheme-utils or zod on your own.
@@ -140,6 +128,11 @@ export interface LoaderContext<OptionsType = {}> {
 	getContextDependencies(): string[];
 	getMissingDependencies(): string[];
 	addBuildDependency(file: string): void;
+	importModule(
+		request: string,
+		options: { publicPath?: string; baseUri?: string },
+		callback: (err?: Error, res?: any) => void
+	): void;
 	fs: any;
 	utils: {
 		absolutify: (context: string, request: string) => string;
@@ -149,32 +142,8 @@ export interface LoaderContext<OptionsType = {}> {
 	query: string | OptionsType;
 	data: unknown;
 	_compiler: Compiler;
-	_compilation: Compiler["compilation"];
-	/**
-	 * Internal field for interoperability.
-	 * Do not use this in anywhere else.
-	 *
-	 * @internal
-	 */
-	__internal__context: JsLoaderContext;
-	/**
-	 * Internal field for interoperability.
-	 * Do not use this in anywhere else.
-	 *
-	 * @internal
-	 */
-	__internal__pushNativeDiagnostics: (diagnostics: any) => void;
-}
-
-export interface LoaderResult {
-	cacheable: boolean;
-	content: string | Buffer;
-	sourceMap?: string | SourceMap;
-	additionalData?: AdditionalData;
-	fileDependencies: string[];
-	contextDependencies: string[];
-	missingDependencies: string[];
-	buildDependencies: string[];
+	_compilation: Compilation;
+	_module: Module;
 }
 
 export interface LoaderDefinitionFunction<
@@ -229,33 +198,11 @@ type GetLoaderOptions = (
 	options: ComposeJsUseOptions
 ) => RuleSetLoaderWithOptions["options"];
 
-const getSassLoaderOptions: GetLoaderOptions = o => {
-	(o ??= {} as any).__exePath = require.resolve(
-		`sass-embedded-${process.platform}-${
-			process.arch
-		}/dart-sass-embedded/dart-sass-embedded${
-			process.platform === "win32" ? ".bat" : ""
-		}`
-	);
-	return o;
-};
-
 const getSwcLoaderOptions: GetLoaderOptions = (o, options) => {
 	if (o && typeof o === "object" && o.rspackExperiments) {
 		let expr = o.rspackExperiments;
-		const contextPath = options.context!;
-		const production = options.mode === "production" || !options.mode;
-		if (expr.emotion) {
-			expr.emotion = resolveEmotion(expr.emotion, production);
-		}
-		if (expr.relay) {
-			expr.relay = resolveRelay(expr.relay, contextPath);
-		}
 		if (expr.import || expr.pluginImport) {
 			expr.import = resolvePluginImport(expr.import || expr.pluginImport);
-		}
-		if (expr.react) {
-			expr.react = resolveReact(expr.react);
 		}
 	}
 	return o;
@@ -266,16 +213,6 @@ function getBuiltinLoaderOptions(
 	o: RuleSetLoaderWithOptions["options"],
 	options: ComposeJsUseOptions
 ): RuleSetLoaderWithOptions["options"] {
-	if (identifier.startsWith(`${BUILTIN_LOADER_PREFIX}sass-loader`)) {
-		deprecatedWarn(
-			`'builtin:sass-loader' has been deprecated, please migrate to ${termlink(
-				"sass-loader",
-				"https://github.com/webpack-contrib/sass-loader"
-			)}`
-		);
-		return getSassLoaderOptions(o, options);
-	}
-
 	if (identifier.startsWith(`${BUILTIN_LOADER_PREFIX}swc-loader`)) {
 		return getSwcLoaderOptions(o, options);
 	}
@@ -293,17 +230,20 @@ function createRawModuleRuleUsesImpl(
 	}
 
 	return uses.map((use, index) => {
-		let o;
+		let o,
+			isBuiltin = false;
 		if (use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
 			o = getBuiltinLoaderOptions(use.loader, use.options, options);
 			o = isNil(o) ? undefined : typeof o === "string" ? o : JSON.stringify(o);
+			isBuiltin = true;
 		}
 
 		return {
 			loader: resolveStringifyLoaders(
 				use,
 				`${path}[${index}]`,
-				options.compiler
+				options.compiler,
+				isBuiltin
 			),
 			options: o
 		};
@@ -313,7 +253,8 @@ function createRawModuleRuleUsesImpl(
 function resolveStringifyLoaders(
 	use: RuleSetLoaderWithOptions,
 	path: string,
-	compiler: Compiler
+	compiler: Compiler,
+	isBuiltin: boolean
 ) {
 	const obj = parsePathQueryFragment(use.loader);
 	let ident: string | null = null;
@@ -329,7 +270,10 @@ function resolveStringifyLoaders(
 
 	if (use.options && typeof use.options === "object") {
 		if (!ident) ident = "[[missing ident]]";
-		compiler.ruleSet.references.set(ident, use.options);
+		compiler.__internal__ruleSet.references.set(ident, use.options);
+		if (isBuiltin) {
+			compiler.__internal__ruleSet.builtinReferences.set(ident, use.options);
+		}
 	}
 
 	return obj.path + obj.query + obj.fragment;

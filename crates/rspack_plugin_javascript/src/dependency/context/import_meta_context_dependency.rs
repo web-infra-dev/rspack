@@ -13,10 +13,17 @@ pub struct ImportMetaContextDependency {
   options: ContextOptions,
   span: Option<ErrorSpan>,
   resource_identifier: String,
+  optional: bool,
 }
 
 impl ImportMetaContextDependency {
-  pub fn new(start: u32, end: u32, options: ContextOptions, span: Option<ErrorSpan>) -> Self {
+  pub fn new(
+    start: u32,
+    end: u32,
+    options: ContextOptions,
+    span: Option<ErrorSpan>,
+    optional: bool,
+  ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
       start,
@@ -25,6 +32,7 @@ impl ImportMetaContextDependency {
       span,
       id: DependencyId::new(),
       resource_identifier,
+      optional,
     }
   }
 }
@@ -44,10 +52,6 @@ impl Dependency for ImportMetaContextDependency {
 
   fn span(&self) -> Option<ErrorSpan> {
     self.span
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "ImportMetaContextDependency"
   }
 }
 
@@ -71,6 +75,14 @@ impl ContextDependency for ImportMetaContextDependency {
   fn set_request(&mut self, request: String) {
     self.options.request = request;
   }
+
+  fn get_optional(&self) -> bool {
+    self.optional
+  }
+
+  fn type_prefix(&self) -> rspack_core::ContextTypePrefix {
+    rspack_core::ContextTypePrefix::Normal
+  }
 }
 
 impl DependencyTemplate for ImportMetaContextDependency {
@@ -79,22 +91,31 @@ impl DependencyTemplate for ImportMetaContextDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext { compilation, .. } = code_generatable_context;
+    let TemplateContext {
+      compilation,
+      runtime_requirements,
+      ..
+    } = code_generatable_context;
 
     let module_id = compilation
-      .module_graph
+      .get_module_graph()
       .module_graph_module_by_dependency_id(&self.id)
       .map(|m| m.id(&compilation.chunk_graph))
       .expect("should have dependency id");
 
-    let module_id_str = module_id_expr(&self.options.request, module_id);
+    let module_id_str = module_id_expr(&compilation.options, &self.options.request, module_id);
 
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     source.replace(
       self.start,
       self.end,
       format!("{}({module_id_str})", RuntimeGlobals::REQUIRE).as_str(),
       None,
     );
+  }
+
+  fn dependency_id(&self) -> Option<DependencyId> {
+    Some(self.id)
   }
 }
 
