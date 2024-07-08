@@ -30,13 +30,13 @@ impl From<&str> for DependencyCategory {
       "css-local-ident" => Self::CssLocalIdent,
       "worker" => Self::Worker,
       "unknown" => Self::Unknown,
-      _ => Self::Custom(value.into()),
+      _ => unimplemented!("DependencyCategory {}", value),
     }
   }
 }
 
 impl DependencyCategory {
-  pub fn as_str(&self) -> &str {
+  pub fn as_str(&self) -> &'static str {
     match self {
       DependencyCategory::Unknown => "unknown",
       DependencyCategory::Esm => "esm",

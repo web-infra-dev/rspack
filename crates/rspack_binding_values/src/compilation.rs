@@ -539,7 +539,7 @@ impl JsCompilation {
         .map(|category| DependencyCategory::from(category.as_str()))
         .unwrap_or(DependencyCategory::Unknown),
     };
-    let resolver = self.inner.resolver_factory.get(options);
+    let resolver = self.0.resolver_factory.get(options);
     JsResolver::new(resolver)
   }
 }

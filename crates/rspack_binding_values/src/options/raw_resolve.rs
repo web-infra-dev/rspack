@@ -170,8 +170,7 @@ impl TryFrom<RawResolveTsconfigOptions> for TsconfigOptions {
   }
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawResolveOptionsWithDependencyType {
   pub resolve: RawResolveOptions,

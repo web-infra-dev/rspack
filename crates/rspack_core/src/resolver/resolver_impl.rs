@@ -104,7 +104,6 @@ impl Resolver {
     options: Resolve,
     options_with_dependency_type: &ResolveOptionsWithDependencyType,
   ) -> Self {
-    let options = options.merge_by_dependency(&options_with_dependency_type.dependency_category);
     match self {
       Self::RspackResolver(resolver) => {
         let options = to_rspack_resolver_options(

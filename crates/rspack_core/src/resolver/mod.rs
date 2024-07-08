@@ -91,7 +91,7 @@ pub fn resolve_for_error_hints(
   let dep = ResolveOptionsWithDependencyType {
     resolve_options: args.resolve_options.clone(),
     resolve_to_context: args.resolve_to_context,
-    dependency_category: args.dependency_category.clone(),
+    dependency_category: *args.dependency_category,
   };
 
   let base_dir = args.context.clone();

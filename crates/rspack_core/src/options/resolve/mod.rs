@@ -148,12 +148,12 @@ macro_rules! impl_resolve_by_dependency {
 }
 
 impl Resolve {
-  pub fn merge_by_dependency(mut self, dependency_type: &DependencyCategory) -> Self {
+  pub fn merge_by_dependency(mut self, dependency_type: DependencyCategory) -> Self {
     let Some(mut by_dependency) = self.by_dependency.as_mut().map(std::mem::take) else {
       return self;
     };
     let Some(by_value) = by_dependency
-      .take(dependency_type)
+      .take(&dependency_type)
       .or_else(|| by_dependency.take_default())
     else {
       return self;
