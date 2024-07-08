@@ -1,4 +1,4 @@
-use rspack_swc_visitors::{ImportOptions, PreactOptions, RawImportOptions, RawPreactOptions};
+use rspack_swc_visitors::{ImportOptions, RawImportOptions};
 use serde::Deserialize;
 use swc_config::config_types::BoolConfig;
 use swc_core::base::config::{
@@ -10,13 +10,11 @@ use swc_core::base::config::{
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRspackExperiments {
   pub import: Option<Vec<RawImportOptions>>,
-  pub preact: Option<RawPreactOptions>,
 }
 
 #[derive(Default, Debug)]
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,
-  pub(crate) preact: Option<PreactOptions>,
 }
 
 impl From<RawRspackExperiments> for RspackExperiments {
@@ -25,7 +23,6 @@ impl From<RawRspackExperiments> for RspackExperiments {
       import: value
         .import
         .map(|i| i.into_iter().map(|v| v.into()).collect()),
-      preact: value.preact,
     }
   }
 }

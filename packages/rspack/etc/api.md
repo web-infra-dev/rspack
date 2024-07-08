@@ -8024,9 +8024,6 @@ export type Plugins = z.infer<typeof plugins>;
 const plugins: z.ZodArray<z.ZodUnion<[z.ZodType<RspackPluginInstance, z.ZodTypeDef, RspackPluginInstance>, z.ZodType<RspackPluginFunction, z.ZodTypeDef, RspackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">;
 
 // @public (undocumented)
-type PreactOptions = RawPreactOptions | boolean | undefined;
-
-// @public (undocumented)
 type PrintedElement = {
     element: string;
     content: string;
@@ -8116,11 +8113,6 @@ export type PublicPath = z.infer<typeof publicPath>;
 
 // @public (undocumented)
 const publicPath: z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodString]>;
-
-// @public (undocumented)
-type RawPreactOptions = {
-    library?: string;
-};
 
 // @public (undocumented)
 export type RawPublicPath = z.infer<typeof rawPublicPath>;
@@ -13153,7 +13145,6 @@ export type SwcLoaderOptions = {
     isModule?: boolean | "unknown";
     rspackExperiments?: {
         import?: PluginImportOptions;
-        preact?: PreactOptions;
     };
 };
 

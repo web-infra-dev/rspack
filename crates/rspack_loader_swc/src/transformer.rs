@@ -3,15 +3,13 @@ use std::sync::Arc;
 
 use either::Either;
 use rspack_core::CompilerOptions;
-use rspack_swc_visitors::PreactOptions;
 use swc_core::atoms::Atom;
 use swc_core::common::collections::AHashMap;
 use swc_core::common::BytePos;
-use swc_core::common::{chain, comments::Comments, Mark, SourceMap};
+use swc_core::common::{comments::Comments, Mark, SourceMap};
 use swc_core::ecma::ast::Ident;
 use swc_core::ecma::visit::{noop_visit_type, Visit};
 use swc_core::ecma::{transforms::base::pass::noop, visit::Fold};
-use xxhash_rust::xxh32::xxh32;
 
 use crate::options::RspackExperiments;
 
@@ -41,17 +39,12 @@ pub(crate) fn transform<'a>(
   _top_level_mark: Mark,
   _unresolved_mark: Mark,
   _cm: Arc<SourceMap>,
-  content: &'a String,
+  _content: &'a str,
   rspack_experiments: &'a RspackExperiments,
 ) -> impl Fold + 'a {
-  chain!(
-    either!(rspack_experiments.import, |options| {
-      rspack_swc_visitors::import(options)
-    }),
-    either!(rspack_experiments.preact, |options: &PreactOptions| {
-      rspack_swc_visitors::preact(options.clone(), xxh32(content.as_bytes(), 0).to_string())
-    }),
-  )
+  either!(rspack_experiments.import, |options| {
+    rspack_swc_visitors::import(options)
+  })
 }
 
 pub struct IdentCollector {

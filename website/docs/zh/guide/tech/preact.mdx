@@ -78,10 +78,16 @@ module.exports = {
 
 - 代码注入：指注入与 `@prefresh/core` 和 `@prefresh/utils` 交互的代码，都已集成在 [@rspack/plugin-preact-refresh](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-plugin-preact-refresh) 插件中，可通过该插件实现
 - 代码转换需要通过 loader 来完成：
-  - 使用 `builtin:swc-loader`
+  - 使用 `builtin:swc-loader` 或 [`swc-loader`](https://swc.rs/docs/usage/swc-loader)
     - 开启 `jsc.transform.react.refresh` 以支持通用的 react 转换
-    - 开启 `rspackExperiments.preact` 以支持 preact 特有的转换
+    - 在 `jsc.experimental.plugins` 中添加 [`@swc/plugin-prefresh`](https://github.com/swc-project/plugins/tree/main/packages/prefresh) 以支持 preact 特有的转换
   - 使用 `babel-loader` 并接入 prefresh 官方[babel 插件](https://github.com/preactjs/prefresh/tree/main/packages/babel)。
+
+:::warning
+在 1.0.0 以下版本, Rspack 不支持在 `swc-loader` 中使用 preact 特有转换。
+
+请使用 `builtin:swc-loader` 并在配置中添加 `rspackExperiments.preact: {}` 以开启 preact 特有转换。
+:::
 
 ```js title=rspack.config.js
 const PreactRefreshPlugin = require('@rspack/plugin-preact-refresh');
@@ -97,10 +103,17 @@ module.exports = {
         use: {
           loader: 'builtin:swc-loader',
           options: {
-            rspackExperiments: {
-              preact: {}, // 开启 preact 特有转换
-            },
             jsc: {
+              experimental: {
+                plugins: [
+                  [
+                    '@swc/plugin-prefresh', // 开启 preact 特有转换
+                    {
+                      library: ['preact-like-framework'], // 自定义的 preact 库名, 默认值为 `["preact", "preact/compat", "react"]`
+                    },
+                  ],
+                ],
+              },
               parser: {
                 syntax: 'ecmascript',
                 jsx: true,
