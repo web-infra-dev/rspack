@@ -3584,7 +3584,6 @@ dependencies = [
  "async-trait",
  "bitflags 2.5.0",
  "dashmap 5.5.3",
- "derivative",
  "glob-match",
  "indexmap 2.2.6",
  "indoc",

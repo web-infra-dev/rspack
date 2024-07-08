@@ -79,6 +79,7 @@ class Compiler {
 	#compilationParams?: CompilationParams;
 
 	#builtinPlugins: binding.BuiltinPlugin[];
+
 	#moduleExecutionResultsMap: Map<number, any>;
 
 	#nonSkippableRegisters: binding.RegisterJsTapKind[];
