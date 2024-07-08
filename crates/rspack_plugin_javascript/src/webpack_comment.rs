@@ -183,7 +183,6 @@ fn analyze_comments(
     for captures in WEBPACK_MAGIC_COMMENT_REGEXP.captures_iter(&comment.text) {
       if let Some(item_name_match) = captures.name("_0") {
         let item_name = item_name_match.as_str();
-
         match item_name {
           "webpackChunkName" => {
             if let Some(item_value_match) = captures
@@ -195,7 +194,7 @@ fn analyze_comments(
                 WebpackComment::ChunkName,
                 item_value_match.as_str().to_string(),
               );
-              return;
+              continue;
             }
             add_magic_comment_warning(
               source_file,
@@ -212,7 +211,7 @@ fn analyze_comments(
                 WebpackComment::Prefetch,
                 item_value_match.as_str().to_string(),
               );
-              return;
+              continue;
             }
             add_magic_comment_warning(
               source_file,
@@ -229,7 +228,7 @@ fn analyze_comments(
                 WebpackComment::Preload,
                 item_value_match.as_str().to_string(),
               );
-              return;
+              continue;
             }
             add_magic_comment_warning(
               source_file,
@@ -246,7 +245,7 @@ fn analyze_comments(
                 WebpackComment::Ignore,
                 item_value_match.as_str().to_string(),
               );
-              return;
+              continue;
             }
             add_magic_comment_warning(
               source_file,
@@ -264,7 +263,7 @@ fn analyze_comments(
               .or(captures.name("_3"))
             {
               result.insert(WebpackComment::Mode, item_value_match.as_str().to_string());
-              return;
+              continue;
             }
             add_magic_comment_warning(
               source_file,
@@ -284,7 +283,7 @@ fn analyze_comments(
               let priority = item_value_match.as_str();
               if priority == "low" || priority == "high" || priority == "auto" {
                 result.insert(WebpackComment::FetchPriority, priority.to_string());
-                return;
+                continue;
               }
             }
             add_magic_comment_warning(
@@ -303,7 +302,7 @@ fn analyze_comments(
                 if RspackRegex::with_flags(regexp, flags).is_ok() {
                   result.insert(WebpackComment::IncludeRegexp, regexp.to_string());
                   result.insert(WebpackComment::IncludeFlags, flags.to_string());
-                  return;
+                  continue;
                 }
               }
             }
@@ -323,7 +322,7 @@ fn analyze_comments(
                 if RspackRegex::with_flags(regexp, flags).is_ok() {
                   result.insert(WebpackComment::ExcludeRegexp, regexp.to_string());
                   result.insert(WebpackComment::ExcludeFlags, flags.to_string());
-                  return;
+                  continue;
                 }
               }
             }
