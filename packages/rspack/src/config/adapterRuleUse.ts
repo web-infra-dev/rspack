@@ -10,7 +10,7 @@ import { Logger } from "../logging/Logger";
 import Hash = require("../util/hash");
 import { Compilation } from "../Compilation";
 import { Module } from "../Module";
-import { resolvePluginImport, resolvePreact } from "../builtin-loader";
+import { resolvePluginImport } from "../builtin-loader";
 import { LoaderObject, parsePathQueryFragment } from "../loader-runner";
 import { isNil } from "../util";
 import {
@@ -203,9 +203,6 @@ const getSwcLoaderOptions: GetLoaderOptions = (o, options) => {
 		let expr = o.rspackExperiments;
 		if (expr.import || expr.pluginImport) {
 			expr.import = resolvePluginImport(expr.import || expr.pluginImport);
-		}
-		if (expr.preact) {
-			expr.preact = resolvePreact(expr.preact);
 		}
 	}
 	return o;

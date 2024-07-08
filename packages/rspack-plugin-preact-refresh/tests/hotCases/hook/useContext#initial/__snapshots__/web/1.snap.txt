@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 4938
+- Update: main.LAST_HASH.hot-update.js, size: 5180
 
 ## Manifest
 
@@ -47,7 +47,9 @@ __webpack_require__.d(__webpack_exports__, {
 var _s = $RefreshSig$();
 
 
-var Theme = (0,preact_compat__WEBPACK_IMPORTED_MODULE_1__.createContext)('blue');
+var Theme = Object.assign(preact_compat__WEBPACK_IMPORTED_MODULE_1__.createContext["9a7f9b58505c7bd5cea11ed614d1c628$Theme1"] || (preact_compat__WEBPACK_IMPORTED_MODULE_1__.createContext["9a7f9b58505c7bd5cea11ed614d1c628$Theme1"] = (0,preact_compat__WEBPACK_IMPORTED_MODULE_1__.createContext)('blue')), {
+    __: 'blue'
+});
 function Inner() {
     _s();
     var theme = (0,preact_hooks__WEBPACK_IMPORTED_MODULE_2__.useContext)(Theme);

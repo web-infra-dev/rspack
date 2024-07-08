@@ -78,10 +78,16 @@ The enabling of the [Preact Refresh](https://github.com/preactjs/prefresh) is di
 
 - Code injection: injects code that interacts with `@prefresh/core` and `@prefresh/utils`, which has been integrated in the [@rspack/plugin-preact-refresh](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-plugin-preact-refresh) plugin
 - Code transformation requires a loader
-  - Use `builtin:swc-loader`
+  - Use `builtin:swc-loader` or [`swc-loader`](https://swc.rs/docs/usage/swc-loader)
     - Enable `jsc.transform.react.refresh` to support common react transformation
-    - Enable `rspackExperiments.preact` to support the specific transformation of preact
+    - Add [`@swc/plugin-prefresh`](https://github.com/swc-project/plugins/tree/main/packages/prefresh) into `jsc.experimental.plugins` to support the specific transformation of preact
   - Use `babel-loader` and add official [babel plugin](https://github.com/preactjs/prefresh/tree/main/packages/babel) of prefresh.
+
+:::warning
+In versions below 1.0.0, Rspack did not support preact refresh with `swc-loader`.
+
+Please use `builtin:swc-loader` and enable preact specific transformation with `rspackExperiments.preact: {}`
+:::
 
 ```js title=rspack.config.js
 const PreactRefreshPlugin = require('@rspack/plugin-preact-refresh');
@@ -97,10 +103,17 @@ module.exports = {
         use: {
           loader: 'builtin:swc-loader',
           options: {
-            rspackExperiments: {
-              preact: {}, // enable preact specific transformation
-            },
             jsc: {
+              experimental: {
+                plugins: [
+                  [
+                    '@swc/plugin-prefresh', // enable prefresh specific transformation
+                    {
+                      library: ['preact-like-framework'], // the customizable preact name, default is `["preact", "preact/compat", "react"]`
+                    },
+                  ],
+                ],
+              },
               parser: {
                 syntax: 'ecmascript',
                 jsx: true,
