@@ -8,13 +8,11 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow        = "1.0.86"
+anyhow        = { workspace = true }
 async-trait   = { workspace = true }
-base64        = "0.22.1"
 futures       = { workspace = true }
-hex           = "0.4.3"
+hex           = { workspace = true }
 once_cell     = { workspace = true }
-openssl       = { version = "0.10", features = ["vendored"] }
 regex         = { workspace = true }
 reqwest       = "0.12.5"
 rspack_base64 = { path = "../rspack_base64" }
@@ -24,7 +22,7 @@ rspack_fs     = { path = "../rspack_fs" }
 rspack_hook   = { path = "../rspack_hook" }
 serde         = { workspace = true }
 serde_json    = { workspace = true }
-sha2          = "0.11.0-pre.3"
+sha2          = "0.10.8"
 tokio         = { workspace = true }
 url           = { workspace = true }
 urlencoding   = { workspace = true }
