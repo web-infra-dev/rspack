@@ -4134,7 +4134,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "base64 0.22.1",
- "bincode",
  "futures",
  "hex",
  "once_cell",
