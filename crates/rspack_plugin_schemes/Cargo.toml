@@ -14,6 +14,7 @@ base64        = "0.22.1"
 futures       = { workspace = true }
 hex           = "0.4.3"
 once_cell     = { workspace = true }
+openssl       = { version = "0.10", features = ["vendored"] }
 regex         = { workspace = true }
 reqwest       = "0.12.5"
 rspack_base64 = { path = "../rspack_base64" }
