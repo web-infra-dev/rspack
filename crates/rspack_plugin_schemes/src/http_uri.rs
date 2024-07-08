@@ -43,9 +43,9 @@ async fn resolve_for_scheme(
   &self,
   _data: &mut ModuleFactoryCreateData,
   resource_data: &mut ResourceData,
+  scheme: &Scheme,
 ) -> Result<Option<bool>> {
-  if resource_data.get_scheme().is_http() && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
-  {
+  if scheme.is_http() && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource) {
     return Ok(None);
   }
   Ok(None)
@@ -56,6 +56,7 @@ async fn resolve_in_scheme(
   &self,
   data: &mut ModuleFactoryCreateData,
   resource_data: &mut ResourceData,
+  _scheme: &Scheme,
 ) -> Result<Option<bool>> {
   if !matches!(get_scheme(data.context.as_str()), Scheme::Http) {
     return Ok(None);
