@@ -39,7 +39,7 @@ pub(crate) fn transform<'a>(
   _top_level_mark: Mark,
   _unresolved_mark: Mark,
   _cm: Arc<SourceMap>,
-  _content: &'a String,
+  _content: &'a str,
   rspack_experiments: &'a RspackExperiments,
 ) -> impl Fold + 'a {
   either!(rspack_experiments.import, |options| {
