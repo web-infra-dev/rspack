@@ -15,7 +15,8 @@ import {
 	type JsModule,
 	type JsPathData,
 	JsRspackSeverity,
-	type JsRuntimeModule
+	type JsRuntimeModule,
+	RawResolveOptionsWithDependencyType
 } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import { Source } from "webpack-sources";
@@ -48,6 +49,7 @@ import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
 import Hash = require("./util/hash");
 import { JsDiagnostic, RspackError } from "./RspackError";
+import { NativeResolverFactory } from "./NativeResolverFactory";
 export { type AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
@@ -196,6 +198,7 @@ export class Compilation {
 	compiler: Compiler;
 
 	resolverFactory: ResolverFactory;
+	nativeResolverFactory: NativeResolverFactory;
 	inputFileSystem: any;
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -321,6 +324,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
+		this.nativeResolverFactory = compiler.nativeResolverFactory;
 		this.inputFileSystem = compiler.inputFileSystem;
 		this.options = compiler.options;
 		this.outputOptions = compiler.options.output;

@@ -413,6 +413,7 @@ export class RspackOptionsApply {
 				resolveOptions.resolveToContext = true;
 				return resolveOptions;
 			});
+
 		compiler.hooks.afterResolvers.call(compiler);
 	}
 }

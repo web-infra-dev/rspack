@@ -62,6 +62,7 @@ import { checkVersion } from "./util/bindingVersionCheck";
 import { createHash } from "./util/createHash";
 import { OutputFileSystem, WatchFileSystem } from "./util/fs";
 import { makePathsRelative } from "./util/identifier";
+import { NativeResolverFactory } from "./NativeResolverFactory";
 
 export interface AssetEmittedInfo {
 	content: Buffer;
@@ -220,6 +221,7 @@ class Compiler {
 		this.records = {};
 
 		this.resolverFactory = new ResolverFactory();
+		this.nativeResolverFactory = new NativeResolverFactory();
 		this.options = options;
 		this.context = context;
 		this.cache = new Cache();

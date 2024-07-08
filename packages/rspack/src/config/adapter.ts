@@ -187,14 +187,9 @@ function getRawTsConfig(
 	};
 }
 
-function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
+export function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 	return {
-		preferRelative: resolve.preferRelative,
-		extensions: resolve.extensions,
-		mainFiles: resolve.mainFiles,
-		mainFields: resolve.mainFields,
-		browserField: resolve.browserField,
-		conditionNames: resolve.conditionNames,
+		...resolve,
 		alias: getRawAlias(resolve.alias),
 		fallback: getRawAlias(resolve.fallback),
 		extensionAlias: getRawExtensionAlias(resolve.extensionAlias) as Record<
