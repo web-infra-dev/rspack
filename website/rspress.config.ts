@@ -133,6 +133,18 @@ export default defineConfig({
     dev: {
       startUrl: true,
     },
+    html: {
+      tags: [
+        // for baidu SEO verification
+        {
+          tag: 'meta',
+          attrs: {
+            name: 'baidu-site-verification',
+            content: 'codeva-bE2dFTowhk',
+          },
+        },
+      ],
+    },
     output: {
       copy: {
         patterns: [
