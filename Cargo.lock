@@ -3284,7 +3284,6 @@ dependencies = [
  "swc_core",
  "tokio",
  "url",
- "xxhash-rust",
 ]
 
 [[package]]

@@ -36,4 +36,3 @@ swc_config               = { workspace = true }
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
 tokio                    = { workspace = true }
 url                      = "2.5.0"
-xxhash-rust              = { workspace = true, features = ["xxh32"] }
