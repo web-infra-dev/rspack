@@ -21,10 +21,15 @@ module.exports = {
 				use: {
 					loader: "builtin:swc-loader",
 					options: {
-						rspackExperiments: {
-							preact: {} // enable preact swc plugin
-						},
 						jsc: {
+							experimental: {
+								plugins: [
+									[
+										"@swc/plugin-prefresh", // enable prefresh specific transformation
+										{}
+									]
+								]
+							},
 							parser: {
 								syntax: "ecmascript",
 								jsx: true

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-preact-refresh",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "license": "MIT",
   "description": "Preact refresh plugin for rspack",
   "main": "dist/index.js",
@@ -40,6 +40,7 @@
     "@prefresh/utils": "^1.2.0",
     "@rspack/core": "workspace:*",
     "@rspack/test-tools": "workspace:*",
+    "@swc/plugin-prefresh": "^2.0.7",
     "preact": "^10.15.1"
   },
   "peerDependencies": {

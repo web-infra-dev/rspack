@@ -11,7 +11,7 @@ use std::sync::Arc;
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
+  AdditionalData, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
   JavascriptParserOptions, ModuleIdentifier, ResourceData,
 };
 use rspack_core::{CompilerOptions, JavascriptParserUrl, ModuleType, SpanExt};
@@ -20,21 +20,24 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::Atom;
 use swc_core::common::comments::Comments;
 use swc_core::common::util::take::Take;
-use swc_core::common::{BytePos, SourceFile, SourceMap, Span, Spanned};
+use swc_core::common::{BytePos, Mark, SourceFile, SourceMap, Span, Spanned};
 use swc_core::ecma::ast::{
-  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, MetaPropExpr, MetaPropKind, ObjectPat,
-  ObjectPatProp, OptCall, OptChainBase, OptChainExpr, Pat, Program, Stmt, ThisExpr,
+  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, ClassDecl, ClassExpr, MetaPropExpr,
+  MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr, Pat, Program, Stmt,
+  ThisExpr,
 };
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 use swc_core::ecma::utils::ExprFactory;
 
 use super::ExtraSpanInfo;
 use super::ImportMap;
+use crate::parser_plugin::InnerGraphState;
 use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::scope_info::{
   FreeName, ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoId,
 };
+use crate::BoxJavascriptParserPlugin;
 
 pub trait TagInfoData: Clone + Sized + 'static {
   fn into_any(data: Self) -> Box<dyn anymap::CloneAny>;
@@ -102,6 +105,21 @@ pub struct ExpressionExpressionInfo {
 pub enum ExportedVariableInfo {
   Name(String),
   VariableInfo(VariableInfoId),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ClassDeclOrExpr<'class> {
+  Decl(&'class ClassDecl),
+  Expr(&'class ClassExpr),
+}
+
+impl<'class> Spanned for ClassDeclOrExpr<'class> {
+  fn span(&self) -> Span {
+    match self {
+      ClassDeclOrExpr::Decl(decl) => decl.span(),
+      ClassDeclOrExpr::Expr(expr) => expr.span(),
+    }
+  }
 }
 
 fn object_and_members_to_name(
@@ -231,17 +249,19 @@ pub struct JavascriptParser<'parser> {
   pub(crate) source_file: &'parser SourceFile,
   pub(crate) errors: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
-  pub(crate) dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<BoxDependency>,
   pub(crate) presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
   pub(crate) blocks: Vec<AsyncDependenciesBlock>,
   // TODO: remove `import_map`
   pub(crate) import_map: ImportMap,
   // TODO: remove `rewrite_usage_span`
   pub(crate) rewrite_usage_span: FxHashMap<Span, ExtraSpanInfo>,
+  // TODO: remove `additional_data` once we have builtin:css-extract-loader
+  pub additional_data: AdditionalData,
   pub(crate) comments: Option<&'parser dyn Comments>,
   pub(crate) worker_index: u32,
   pub(crate) build_meta: &'parser mut BuildMeta,
-  pub(crate) build_info: &'parser mut BuildInfo,
+  pub build_info: &'parser mut BuildInfo,
   pub(crate) resource_data: &'parser ResourceData,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(crate) definitions_db: ScopeInfoDB,
@@ -271,6 +291,7 @@ pub struct JavascriptParser<'parser> {
   pub(super) definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) last_harmony_import_order: i32,
+  pub(crate) inner_graph: InnerGraphState,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -288,6 +309,9 @@ impl<'parser> JavascriptParser<'parser> {
     build_info: &'parser mut BuildInfo,
     semicolons: &'parser mut FxHashSet<BytePos>,
     path_ignored_spans: &'parser mut PathIgnoredSpans,
+    unresolved_mark: Mark,
+    parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
+    additional_data: AdditionalData,
   ) -> Self {
     let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(32);
     let errors = Vec::with_capacity(32);
@@ -354,9 +378,6 @@ impl<'parser> JavascriptParser<'parser> {
       if !compiler_options.builtins.provide.is_empty() {
         plugins.push(Box::<parser_plugin::ProviderPlugin>::default());
       }
-      if !compiler_options.builtins.define.is_empty() {
-        plugins.push(Box::<parser_plugin::DefinePlugin>::default());
-      }
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
       plugins.push(Box::new(parser_plugin::APIPlugin::new(
@@ -373,6 +394,13 @@ impl<'parser> JavascriptParser<'parser> {
         &javascript_options.worker,
       )));
     }
+
+    if compiler_options.optimization.inner_graph {
+      plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
+        unresolved_mark,
+      )));
+    }
+    plugins.append(parser_plugins);
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
     let mut db = ScopeInfoDB::new();
@@ -414,6 +442,8 @@ impl<'parser> JavascriptParser<'parser> {
       current_tag_info: None,
       prev_statement: None,
       path_ignored_spans,
+      inner_graph: InnerGraphState::new(),
+      additional_data,
     }
   }
 
@@ -456,6 +486,26 @@ impl<'parser> JavascriptParser<'parser> {
     Some(self.definitions_db.expect_get_variable(&id))
   }
 
+  pub fn get_tag_data(&mut self, name: &Atom, tag: &str) -> Option<Box<dyn anymap::CloneAny>> {
+    self
+      .get_variable_info(name)
+      .and_then(|variable_info| variable_info.tag_info)
+      .and_then(|tag_info_id| {
+        let mut tag_info = Some(self.definitions_db.expect_get_tag_info(&tag_info_id));
+
+        while let Some(cur_tag_info) = tag_info {
+          if cur_tag_info.tag == tag {
+            return cur_tag_info.data.clone();
+          }
+          tag_info = cur_tag_info
+            .next
+            .map(|tag_info_id| self.definitions_db.expect_get_tag_info(&tag_info_id))
+        }
+
+        None
+      })
+  }
+
   pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a str) -> Option<FreeInfo<'a>> {
     let Some(info) = self.get_variable_info(name) else {
       return Some(FreeInfo { name, info: None });
@@ -476,7 +526,7 @@ impl<'parser> JavascriptParser<'parser> {
     scope.variables()
   }
 
-  fn define_variable(&mut self, name: String) {
+  pub fn define_variable(&mut self, name: String) {
     let definitions = self.definitions;
     if let Some(variable_info) = self.get_variable_info(&name)
       && variable_info.tag_info.is_some()

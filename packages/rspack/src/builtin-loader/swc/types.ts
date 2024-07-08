@@ -3,7 +3,6 @@
  * license at https://github.com/swc-project/swc/blob/main/LICENSE
  */
 import type { PluginImportOptions } from "./pluginImport";
-import type { PreactOptions } from "./preact";
 import type { ReactOptions } from "./react";
 
 export type JscTarget =
@@ -476,6 +475,5 @@ export type SwcLoaderOptions = {
 	 */
 	rspackExperiments?: {
 		import?: PluginImportOptions;
-		preact?: PreactOptions;
 	};
 };

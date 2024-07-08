@@ -18,8 +18,8 @@ use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, Seq
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, YieldExpr};
 use swc_core::ecma::ast::{ThrowStmt, UnaryExpr, UpdateExpr};
 
-use super::TopLevelScope;
 use super::{AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName};
+use super::{ClassDeclOrExpr, TopLevelScope};
 use crate::parser_plugin::{is_logic_op, JavascriptParserPlugin};
 use crate::visitors::scope_info::{FreeName, VariableInfo};
 
@@ -45,7 +45,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.in_tagged_template_tag = old_in_tagged_template_tag;
   }
 
-  fn in_class_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
+  pub fn in_class_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
   where
     F: FnOnce(&mut Self),
     I: Iterator<Item = Cow<'a, Pat>>,
@@ -109,6 +109,17 @@ impl<'parser> JavascriptParser<'parser> {
     match statement {
       ModuleItem::ModuleDecl(m) => {
         self.statement_path.push(m.span().into());
+
+        if self
+          .plugin_drive
+          .clone()
+          .module_declaration(self, m)
+          .unwrap_or_default()
+        {
+          self.prev_statement = self.statement_path.pop();
+          return;
+        }
+
         match m {
           ModuleDecl::ExportDefaultDecl(decl) => {
             self.walk_export_default_declaration(decl);
@@ -131,21 +142,8 @@ impl<'parser> JavascriptParser<'parser> {
     // FIXME: delete `ExportDecl`
     self.plugin_drive.clone().export_decl(self, expr);
 
-    match &expr.decl {
-      Decl::Class(c) => {
-        // FIXME: webpack use `self.walk_statement` here
-        self.walk_class(Some(&c.ident), &c.class)
-      }
-      Decl::Fn(f) => {
-        // FIXME: webpack use `self.walk_statement` here
-        self.walk_function_declaration(f);
-      }
-      Decl::Var(decl) => self.walk_variable_declaration(decl),
-      Decl::Using(_) => (),
-      Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-        unreachable!()
-      }
-    }
+    let decl = Stmt::Decl(expr.decl.clone());
+    self.walk_statement(&decl);
   }
 
   fn walk_export_default_expr(&mut self, expr: &ExportDefaultExpr) {
@@ -156,19 +154,35 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_export_named_declaration(&mut self, decl: &NamedExport) {
     self.plugin_drive.clone().named_export(self, decl);
-    // self.walk_statement(decl)
   }
 
   fn walk_export_default_declaration(&mut self, decl: &ExportDefaultDecl) {
     self.plugin_drive.clone().export(self, decl);
+
     match &decl.decl {
       DefaultDecl::Class(c) => {
-        // FIXME: webpack use `self.walk_statement` here
-        self.walk_class(c.ident.as_ref(), &c.class)
+        if let Some(ident) = &c.ident {
+          let stmt = Stmt::Decl(Decl::Class(ClassDecl {
+            ident: ident.clone(),
+            declare: false,
+            class: c.class.clone(),
+          }));
+          self.walk_statement(&stmt);
+        } else {
+          self.walk_expression(&Expr::Class(c.clone()));
+        }
       }
       DefaultDecl::Fn(f) => {
-        // FIXME: webpack use `self.walk_statement` here
-        self.walk_function_expression(f)
+        if let Some(ident) = &f.ident {
+          let stmt = Stmt::Decl(Decl::Fn(FnDecl {
+            ident: ident.clone(),
+            declare: false,
+            function: f.function.clone(),
+          }));
+          self.walk_statement(&stmt);
+        } else {
+          self.walk_expression(&Expr::Fn(f.clone()))
+        }
       }
       DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
     }
@@ -184,7 +198,16 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_statement(&mut self, statement: &Stmt) {
     self.statement_path.push(statement.span().into());
-    // TODO: `self.hooks.statement.call`
+
+    if self
+      .plugin_drive
+      .clone()
+      .statement(self, statement)
+      .unwrap_or_default()
+    {
+      self.prev_statement = self.statement_path.pop();
+      return;
+    }
 
     match statement {
       Stmt::Block(stmt) => self.walk_block_statement(stmt),
@@ -535,18 +558,18 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_sequence_expression(&mut self, expr: &SeqExpr) {
     let exprs = expr.exprs.iter().map(|expr| &**expr);
-    if self.is_statement_level_expression(expr.span())
-      && let Some(old) = self.statement_path.pop()
-    {
-      for expr in exprs {
-        self.statement_path.push(expr.span().into());
-        self.walk_expression(expr);
-        self.statement_path.pop();
-      }
-      self.statement_path.push(old);
-    } else {
-      self.walk_expressions(exprs);
-    }
+    // if self.is_statement_level_expression(expr.span())
+    //   && let Some(old) = self.statement_path.pop()
+    // {
+    //   for expr in exprs {
+    //     self.statement_path.push(expr.span().into());
+    //     self.walk_expression(expr);
+    //     self.statement_path.pop();
+    //   }
+    //   self.statement_path.push(old);
+    // } else {
+    self.walk_expressions(exprs);
+    // }
   }
 
   fn walk_object_expression(&mut self, expr: &ObjectLit) {
@@ -678,7 +701,11 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_class_expression(&mut self, expr: &ClassExpr) {
-    self.walk_class(expr.ident.as_ref(), &expr.class);
+    self.walk_class(
+      expr.ident.as_ref(),
+      &expr.class,
+      ClassDeclOrExpr::Expr(expr),
+    );
   }
 
   fn walk_chain_expression(&mut self, expr: &OptChainExpr) {
@@ -1343,13 +1370,24 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_class_declaration(&mut self, decl: &ClassDecl) {
-    self.walk_class(Some(&decl.ident), &decl.class);
+    self.walk_class(Some(&decl.ident), &decl.class, ClassDeclOrExpr::Decl(decl));
   }
 
-  fn walk_class(&mut self, ident: Option<&Ident>, classy: &Class) {
+  fn walk_class(
+    &mut self,
+    ident: Option<&Ident>,
+    classy: &Class,
+    class_decl_or_expr: ClassDeclOrExpr,
+  ) {
     if let Some(super_class) = &classy.super_class {
-      // TODO: `hooks.class_extends_expression`
-      self.walk_expression(super_class);
+      if !self
+        .plugin_drive
+        .clone()
+        .class_extends_expression(self, super_class, class_decl_or_expr)
+        .unwrap_or_default()
+      {
+        self.walk_expression(super_class);
+      }
     }
 
     let scope_params = if let Some(pat) = ident.map(|ident| warp_ident_to_pat(ident.clone())) {
@@ -1360,7 +1398,15 @@ impl<'parser> JavascriptParser<'parser> {
 
     self.in_class_scope(true, scope_params.into_iter(), |this| {
       for class_element in &classy.body {
-        // TODO: `hooks.class_body_element`
+        if this
+          .plugin_drive
+          .clone()
+          .class_body_element(this, class_element, class_decl_or_expr)
+          .unwrap_or_default()
+        {
+          continue;
+        }
+
         match class_element {
           ClassMember::Constructor(ctor) => {
             if ctor.key.is_computed() {
@@ -1397,6 +1443,16 @@ impl<'parser> JavascriptParser<'parser> {
               // FIXME: webpack use `walk_expression` here
               this.walk_prop_name(&method.key);
             }
+
+            if this
+              .plugin_drive
+              .clone()
+              .class_body_value(this, class_element, method.span(), class_decl_or_expr)
+              .unwrap_or_default()
+            {
+              continue;
+            }
+
             let was_top_level = this.top_level_scope;
             this.top_level_scope = TopLevelScope::False;
             this.in_function_scope(
@@ -1407,6 +1463,14 @@ impl<'parser> JavascriptParser<'parser> {
             this.top_level_scope = was_top_level;
           }
           ClassMember::PrivateMethod(method) => {
+            if this
+              .plugin_drive
+              .clone()
+              .class_body_value(this, class_element, method.span(), class_decl_or_expr)
+              .unwrap_or_default()
+            {
+              continue;
+            }
             // method.key is always not computed in private method, so we don't need to walk it
             let was_top_level = this.top_level_scope;
             this.top_level_scope = TopLevelScope::False;
@@ -1422,7 +1486,13 @@ impl<'parser> JavascriptParser<'parser> {
               // FIXME: webpack use `walk_expression` here
               this.walk_prop_name(&prop.key);
             }
-            if let Some(value) = &prop.value {
+            if let Some(value) = &prop.value
+              && !this
+                .plugin_drive
+                .clone()
+                .class_body_value(this, class_element, value.span(), class_decl_or_expr)
+                .unwrap_or_default()
+            {
               let was_top_level = this.top_level_scope;
               this.top_level_scope = TopLevelScope::False;
               this.walk_expression(value);
@@ -1431,7 +1501,13 @@ impl<'parser> JavascriptParser<'parser> {
           }
           ClassMember::PrivateProp(prop) => {
             // prop.key is always not computed in private prop, so we don't need to walk it
-            if let Some(value) = &prop.value {
+            if let Some(value) = &prop.value
+              && !this
+                .plugin_drive
+                .clone()
+                .class_body_value(this, class_element, value.span(), class_decl_or_expr)
+                .unwrap_or_default()
+            {
               let was_top_level = this.top_level_scope;
               this.top_level_scope = TopLevelScope::False;
               this.walk_expression(value);

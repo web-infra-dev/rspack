@@ -2,8 +2,11 @@ use std::borrow::Cow;
 
 use rustc_hash::FxHashSet;
 use swc_core::common::Spanned;
-use swc_core::ecma::ast::FnDecl;
-use swc_core::ecma::ast::{AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt};
+use swc_core::ecma::ast::{
+  AssignExpr, BlockStmt, CatchClause, ClassDecl, Decl, DefaultDecl, DoWhileStmt, ExportDefaultDecl,
+  Expr, NamedExport,
+};
+use swc_core::ecma::ast::{ExportDecl, FnDecl};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, TryStmt, VarDecl, VarDeclKind, VarDeclarator};
@@ -38,6 +41,7 @@ impl<'parser> JavascriptParser<'parser> {
           self.prev_statement = self.statement_path.pop();
           return;
         }
+
         match decl {
           ModuleDecl::TsImportEquals(_)
           | ModuleDecl::TsExportAssignment(_)
@@ -46,11 +50,75 @@ impl<'parser> JavascriptParser<'parser> {
             self.is_esm = true;
           }
         };
+
+        match decl {
+          ModuleDecl::ExportDefaultDecl(decl) => {
+            self.pre_walk_export_default_declaration(decl);
+          }
+          ModuleDecl::ExportDecl(decl) => self.pre_walk_export_decl(decl),
+          ModuleDecl::ExportNamed(named) => self.pre_walk_export_named_declaration(named),
+          ModuleDecl::ExportDefaultExpr(_expr) => {
+            // TODO
+          }
+          ModuleDecl::ExportAll(_) | ModuleDecl::Import(_) => (),
+          ModuleDecl::TsImportEquals(_)
+          | ModuleDecl::TsExportAssignment(_)
+          | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
+        };
+
         self.prev_statement = self.statement_path.pop();
       }
       ModuleItem::Stmt(stmt) => self.pre_walk_statement(stmt),
     }
     self.prev_statement = self.statement_path.pop();
+  }
+
+  fn pre_walk_export_decl(&mut self, expr: &ExportDecl) {
+    // self.plugin_drive.clone().pre_export_decl(self, expr);
+
+    let decl = Stmt::Decl(expr.decl.clone());
+    self.pre_walk_statement(&decl);
+  }
+
+  fn pre_walk_export_named_declaration(&mut self, _named: &NamedExport) {}
+
+  fn pre_walk_export_default_declaration(&mut self, decl: &ExportDefaultDecl) {
+    match &decl.decl {
+      DefaultDecl::Class(c) => {
+        if let Some(ident) = &c.ident {
+          let stmt = Stmt::Decl(Decl::Class(ClassDecl {
+            ident: ident.clone(),
+            declare: false,
+            class: c.class.clone(),
+          }));
+          self.pre_walk_statement(&stmt);
+        } else {
+          self.pre_walk_expression(&Expr::Class(c.clone()));
+        }
+      }
+      DefaultDecl::Fn(f) => {
+        if let Some(ident) = &f.ident {
+          let stmt = Stmt::Decl(Decl::Fn(FnDecl {
+            ident: ident.clone(),
+            declare: false,
+            function: f.function.clone(),
+          }));
+          self.pre_walk_statement(&stmt);
+        } else {
+          self.pre_walk_expression(&Expr::Fn(f.clone()))
+        }
+      }
+      DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
+    }
+  }
+
+  fn pre_walk_expression(&mut self, _expr: &Expr) {}
+
+  pub fn pre_walk_export_declaration(&mut self, exp: &ExportDecl) {
+    // todo: move `hooks.export_decl.call` here
+    let decl = Stmt::Decl(exp.decl.clone());
+    self.pre_walk_statement(&decl);
+    self.block_pre_walk_statement(&decl);
   }
 
   pub fn pre_walk_statement(&mut self, statement: &Stmt) {

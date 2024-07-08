@@ -310,18 +310,27 @@ impl Plugin for JsPlugin {
       .render_manifest
       .tap(render_manifest::new(self));
 
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::JsAuto,
-      Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
-    );
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::JsEsm,
-      Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
-    );
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::JsDynamic,
-      Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
-    );
+    ctx
+      .context
+      .register_parser_and_generator_builder(ModuleType::JsAuto, {
+        Box::new(move |_, _| {
+          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+        })
+      });
+    ctx
+      .context
+      .register_parser_and_generator_builder(ModuleType::JsEsm, {
+        Box::new(move |_, _| {
+          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+        })
+      });
+    ctx
+      .context
+      .register_parser_and_generator_builder(ModuleType::JsDynamic, {
+        Box::new(move |_, _| {
+          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+        })
+      });
 
     Ok(())
   }

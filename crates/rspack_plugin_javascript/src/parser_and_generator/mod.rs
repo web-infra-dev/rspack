@@ -11,6 +11,7 @@ use rspack_core::{
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use swc_core::common::comments::Comments;
 use swc_core::common::input::SourceFileInput;
 use swc_core::common::{FileName, Span, SyntaxContext};
 use swc_core::ecma::ast;
@@ -18,16 +19,28 @@ use swc_core::ecma::parser::{lexer::Lexer, EsSyntax, Syntax};
 use swc_node_comments::SwcComments;
 
 use crate::dependency::HarmonyCompatibilityDependency;
-use crate::inner_graph_plugin::InnerGraphPlugin;
 use crate::visitors::{scan_dependencies, swc_visitor::resolver};
 use crate::visitors::{semicolon, PathIgnoredSpans, ScanDependenciesResult};
-use crate::{SideEffectsFlagPluginVisitor, SyntaxContextInfo};
+use crate::{BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 
-#[derive(Debug)]
-pub struct JavaScriptParserAndGenerator;
+#[derive(Default)]
+pub struct JavaScriptParserAndGenerator {
+  parser_plugins: Vec<BoxJavascriptParserPlugin>,
+}
 
-#[allow(unused)]
+impl std::fmt::Debug for JavaScriptParserAndGenerator {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("JavaScriptParserAndGenerator")
+      .field("parser_plugins", &"...")
+      .finish()
+  }
+}
+
 impl JavaScriptParserAndGenerator {
+  pub fn add_parser_plugin(&mut self, parser_plugin: BoxJavascriptParserPlugin) {
+    self.parser_plugins.push(parser_plugin);
+  }
+
   fn source_block(
     &self,
     compilation: &Compilation,
@@ -89,6 +102,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_identifier,
       loaders,
       module_parser_options,
+      additional_data,
       ..
     } = parse_context;
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
@@ -164,13 +178,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let mut path_ignored_spans = PathIgnoredSpans::default();
 
+    let unresolved_mark = ast.get_context().unresolved_mark;
+
     let ScanDependenciesResult {
-      mut dependencies,
+      dependencies,
       blocks,
       presentational_dependencies,
-      mut usage_span_record,
-      import_map,
       mut warning_diagnostics,
+      ..
     } = match ast.visit(|program, _| {
       scan_dependencies(
         cm.clone(),
@@ -185,6 +200,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         module_parser_options,
         &mut semicolons,
         &mut path_ignored_spans,
+        unresolved_mark,
+        &mut self.parser_plugins,
+        additional_data,
       )
     }) {
       Ok(result) => result,
@@ -201,7 +219,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
         let mut visitor = SideEffectsFlagPluginVisitor::new(
           SyntaxContextInfo::new(unresolved_ctxt),
-          program.comments.as_ref(),
+          program.comments.as_ref().map(|c| c as &dyn Comments),
         );
         program.visit_with(&mut visitor);
         build_meta.side_effect_free = Some(visitor.side_effects_item.is_none());
@@ -216,32 +234,32 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       });
     }
 
-    let inner_graph = if compiler_options.optimization.inner_graph {
-      ast.transform(|program, context| {
-        let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
-        let top_level_ctxt = SyntaxContext::empty().apply_mark(context.top_level_mark);
-        let mut plugin = InnerGraphPlugin::new(
-          &mut dependencies,
-          unresolved_ctxt,
-          top_level_ctxt,
-          &mut usage_span_record,
-          &import_map,
-          module_identifier,
-          program.comments.take(),
-          &path_ignored_spans,
-        );
-        plugin.enable();
-        program.visit_with(&mut plugin);
-        program.comments = plugin.comments.take();
-        Some(plugin)
-      })
-    } else {
-      None
-    };
+    // let inner_graph = if compiler_options.optimization.inner_graph {
+    //   ast.transform(|program, context| {
+    //     let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
+    //     let top_level_ctxt = SyntaxContext::empty().apply_mark(context.top_level_mark);
+    //     let mut plugin = InnerGraphPlugin::new(
+    //       &mut dependencies,
+    //       unresolved_ctxt,
+    //       top_level_ctxt,
+    //       &mut usage_span_record,
+    //       &import_map,
+    //       module_identifier,
+    //       program.comments.take(),
+    //       &path_ignored_spans,
+    //     );
+    //     plugin.enable();
+    //     // program.visit_with(&mut plugin);
+    //     program.comments = plugin.comments.take();
+    //     Some(plugin)
+    //   })
+    // } else {
+    //   None
+    // };
 
-    if let Some(mut inner_graph) = inner_graph {
-      inner_graph.infer_dependency_usage();
-    }
+    // if let Some(mut inner_graph) = inner_graph {
+    //   inner_graph.infer_dependency_usage();
+    // }
 
     Ok(
       ParseResult {

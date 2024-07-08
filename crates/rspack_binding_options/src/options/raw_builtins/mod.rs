@@ -17,7 +17,7 @@ mod raw_to_be_deprecated;
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
-use rspack_core::{BoxPlugin, Define, DefinePlugin, Plugin, PluginExt, Provide, ProvidePlugin};
+use rspack_core::{BoxPlugin, Plugin, PluginExt, Provide, ProvidePlugin};
 use rspack_error::Result;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
@@ -43,9 +43,9 @@ use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
-  api_plugin::APIPlugin, FlagDependencyExportsPlugin, FlagDependencyUsagePlugin,
-  InferAsyncModulesPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin,
-  SideEffectsFlagPlugin,
+  api_plugin::APIPlugin, define_plugin::DefinePlugin, FlagDependencyExportsPlugin,
+  FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin, MangleExportsPlugin,
+  ModuleConcatenationPlugin, SideEffectsFlagPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -191,7 +191,7 @@ impl BuiltinPlugin {
     match self.name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
-        let plugin = DefinePlugin::new(downcast_into::<Define>(self.options)?).boxed();
+        let plugin = DefinePlugin::new(downcast_into(self.options)?).boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::ProvidePlugin => {
