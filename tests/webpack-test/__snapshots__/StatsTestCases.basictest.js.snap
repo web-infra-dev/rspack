@@ -9,7 +9,7 @@ Entrypoint entry 9.65 KiB = entry.js
 runtime modules 6.94 KiB 9 modules
 cacheable modules 724 bytes
   ./entry.js 450 bytes [built] [code generated]
-  Xdir/import-context-filter/templates|lazy|/^\\\\.\\\\/.*$/|exclude: /\\\\.noimport\\\\.js$/|groupOptions: {}|namespace object 160 bytes [built] [code generated]
+  Xdir/import-context-filter/templates|lazy|/^\\\\.\\\\/.*$/|include: /\\\\.js$/|exclude: /\\\\.noimport\\\\.js$/|groupOptions: {}|namespace object 160 bytes [built] [code generated]
   ./templates/bar.js 38 bytes [built] [code generated]
   ./templates/baz.js 38 bytes [built] [code generated]
   ./templates/foo.js 38 bytes [built] [code generated]

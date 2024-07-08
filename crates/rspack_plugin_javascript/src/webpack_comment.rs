@@ -127,9 +127,10 @@ fn add_magic_comment_warning(
 // _4 for number
 // _5 for true/false
 // _6 for regexp
+// _7 for identifier
 // TODO: regexp/array
 static WEBPACK_MAGIC_COMMENT_REGEXP: Lazy<regex::Regex> = Lazy::new(|| {
-  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*("(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false)|(?P<_6>/([^,]+)/([dgimsuvy]*)))"#)
+  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*("(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false)|(?P<_6>/([^,]+)/([dgimsuvy]*))|(?P<_7>([^,]+)))"#)
     .expect("invalid regex")
 });
 
@@ -194,16 +195,16 @@ fn analyze_comments(
                 WebpackComment::ChunkName,
                 item_value_match.as_str().to_string(),
               );
-            } else {
-              add_magic_comment_warning(
-                source_file,
-                item_name,
-                "a string",
-                &captures,
-                warning_diagnostics,
-                error_span,
-              );
+              continue;
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              "a string",
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           "webpackPrefetch" => {
             if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
@@ -211,16 +212,16 @@ fn analyze_comments(
                 WebpackComment::Prefetch,
                 item_value_match.as_str().to_string(),
               );
-            } else {
-              add_magic_comment_warning(
-                source_file,
-                item_name,
-                "true or a number",
-                &captures,
-                warning_diagnostics,
-                error_span,
-              );
+              continue;
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              "true or a number",
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           "webpackPreload" => {
             if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
@@ -228,16 +229,16 @@ fn analyze_comments(
                 WebpackComment::Preload,
                 item_value_match.as_str().to_string(),
               );
-            } else {
-              add_magic_comment_warning(
-                source_file,
-                item_name,
-                "true or a number",
-                &captures,
-                warning_diagnostics,
-                error_span,
-              );
+              continue;
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              "true or a number",
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           "webpackIgnore" => {
             if let Some(item_value_match) = captures.name("_5") {
@@ -245,16 +246,16 @@ fn analyze_comments(
                 WebpackComment::Ignore,
                 item_value_match.as_str().to_string(),
               );
-            } else {
-              add_magic_comment_warning(
-                source_file,
-                item_name,
-                "true or false",
-                &captures,
-                warning_diagnostics,
-                error_span,
-              );
+              continue;
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              "true or false",
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           "webpackMode" => {
             if let Some(item_value_match) = captures
@@ -263,16 +264,16 @@ fn analyze_comments(
               .or(captures.name("_3"))
             {
               result.insert(WebpackComment::Mode, item_value_match.as_str().to_string());
-            } else {
-              add_magic_comment_warning(
-                source_file,
-                item_name,
-                "a string",
-                &captures,
-                warning_diagnostics,
-                error_span,
-              );
+              continue;
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              "a string",
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           "webpackFetchPriority" => {
             if let Some(item_value_match) = captures
@@ -283,18 +284,17 @@ fn analyze_comments(
               let priority = item_value_match.as_str();
               if priority == "low" || priority == "high" || priority == "auto" {
                 result.insert(WebpackComment::FetchPriority, priority.to_string());
-                return;
-              } else {
-                add_magic_comment_warning(
-                  source_file,
-                  item_name,
-                  r#""low", "high" or "auto""#,
-                  &captures,
-                  warning_diagnostics,
-                  error_span,
-                );
+                continue;
               }
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              r#""low", "high" or "auto""#,
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           "webpackInclude" => {
             if captures.name("_6").is_some() {
@@ -303,19 +303,18 @@ fn analyze_comments(
                 if RspackRegex::with_flags(regexp, flags).is_ok() {
                   result.insert(WebpackComment::IncludeRegexp, regexp.to_string());
                   result.insert(WebpackComment::IncludeFlags, flags.to_string());
-                  return;
-                } else {
-                  add_magic_comment_warning(
-                    source_file,
-                    item_name,
-                    r#"a regular expression"#,
-                    &captures,
-                    warning_diagnostics,
-                    error_span,
-                  );
+                  continue;
                 }
               }
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              r#"a regular expression"#,
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           "webpackExclude" => {
             if captures.name("_6").is_some() {
@@ -324,19 +323,18 @@ fn analyze_comments(
                 if RspackRegex::with_flags(regexp, flags).is_ok() {
                   result.insert(WebpackComment::ExcludeRegexp, regexp.to_string());
                   result.insert(WebpackComment::ExcludeFlags, flags.to_string());
-                  return;
-                } else {
-                  add_magic_comment_warning(
-                    source_file,
-                    item_name,
-                    r#"a regular expression"#,
-                    &captures,
-                    warning_diagnostics,
-                    error_span,
-                  );
+                  continue;
                 }
               }
             }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              r#"a regular expression"#,
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
           _ => {
             // TODO: other magic comment
