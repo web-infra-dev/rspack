@@ -54,6 +54,7 @@ pub struct TraceableError {
   label: SourceSpan,
   help: Option<String>,
   url: Option<String>,
+  hide_stack: Option<bool>,
 }
 
 impl Diagnostic for TraceableError {
@@ -115,6 +116,11 @@ impl TraceableError {
     self
   }
 
+  pub fn with_hide_stack(mut self, hide_stack: Option<bool>) -> Self {
+    self.hide_stack = hide_stack;
+    self
+  }
+
   pub fn from_source_file(
     source_file: &SourceFile,
     start: usize,
@@ -134,6 +140,7 @@ impl TraceableError {
       label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
       help: None,
       url: None,
+      hide_stack: None,
     }
   }
 
@@ -153,6 +160,7 @@ impl TraceableError {
       label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
       help: None,
       url: None,
+      hide_stack: None,
     }
   }
 
@@ -166,6 +174,7 @@ impl TraceableError {
       label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
       help: None,
       url: None,
+      hide_stack: None,
     }
   }
 
@@ -180,6 +189,10 @@ impl TraceableError {
     let start = if start >= file_src.len() { 0 } else { start };
     let end = if end >= file_src.len() { 0 } else { end };
     Ok(Self::from_file(file_src, start, end, title, message))
+  }
+
+  pub fn hide_stack(&self) -> Option<bool> {
+    self.hide_stack
   }
 }
 

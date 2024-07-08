@@ -484,6 +484,8 @@ export interface JsRspackError {
   message: string
   moduleIdentifier?: string
   file?: string
+  stack?: string
+  hideStack?: boolean
 }
 
 export enum JsRspackSeverity {
@@ -584,10 +586,17 @@ export interface JsStatsChunkGroupChildren {
 
 export interface JsStatsError {
   message: string
+  chunkName?: string
+  chunkEntry?: boolean
+  chunkInitial?: boolean
+  file?: string
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
-  file?: string
+  chunkId?: string
+  moduleTrace?: string
+  details?: string
+  stack?: string
 }
 
 export interface JsStatsGetAssets {

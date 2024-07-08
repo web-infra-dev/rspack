@@ -115,7 +115,8 @@ fn add_magic_comment_warning(
       source_file,
       span.into(),
     )
-    .with_severity(Severity::Warning),
+    .with_severity(Severity::Warning)
+    .with_hide_stack(Some(true)),
   ))
 }
 
