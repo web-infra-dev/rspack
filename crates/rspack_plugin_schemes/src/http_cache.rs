@@ -7,10 +7,7 @@ use rspack_error::{error, Result};
 use serde::{Deserialize, Serialize};
 use sha2::{digest::Digest, Sha512};
 
-use crate::{
-  http_uri::HttpUriPluginOptions,
-  lockfile::{Lockfile, LockfileEntry},
-};
+use crate::{http_uri::HttpUriPluginOptions, lockfile::LockfileEntry};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FetchResultMeta {
@@ -165,13 +162,13 @@ pub async fn read_from_cache(
   resource: &str,
   cache_location: &str,
 ) -> Result<Option<ContentFetchResult>, anyhow::Error> {
-  let cache_path = format!("{}/{}", cache_location, resource.replace("/", "_"));
+  let cache_path = format!("{}/{}", cache_location, resource.replace('/', "_"));
   if Path::new(&cache_path).exists() {
     let cached_content = fs::read_to_string(&cache_path)
       .context("Failed to read cached content")
       .map_err(|err| {
         error!("{}", err.to_string());
-        anyhow::Error::from(err)
+        err
       })?;
     // Deserialize cached_content to ContentFetchResult
     let deserialized_content: ContentFetchResult =
@@ -186,10 +183,10 @@ pub async fn write_to_cache(
   content: &ContentFetchResult,
   cache_location: &str,
 ) -> Result<(), anyhow::Error> {
-  let cache_path = format!("{}/{}", cache_location, resource.replace("/", "_"));
+  let cache_path = format!("{}/{}", cache_location, resource.replace('/', "_"));
   fs::create_dir_all(cache_location).context("Failed to create cache directory")?;
   let serialized_content = serde_json::to_string(content).context("Failed to serialize content")?;
-  fs::write(&cache_path, serialized_content).context("Failed to write to cache")
+  fs::write(cache_path, serialized_content).context("Failed to write to cache")
 }
 
 fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bool, bool, u64) {
@@ -214,7 +211,7 @@ fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bo
 
       (store_lock, store_cache, valid_until)
     })
-    .unwrap_or((true, true, request_time + 3600)) // Default values
+    .unwrap_or((true, true, request_time + 3600))
 }
 
 fn current_time() -> u64 {
@@ -229,5 +226,5 @@ fn compute_integrity(content: &[u8]) -> String {
   let mut hasher = Sha512::new();
   hasher.update(content);
   let digest = hasher.finalize();
-  format!("sha512-{}", encode_to_string(&digest))
+  format!("sha512-{}", encode_to_string(digest))
 }

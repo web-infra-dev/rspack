@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-use std::fs;
-use std::io::{self, Read, Write};
+use std::io::{self};
 use std::path::Path;
 
 use async_trait::async_trait;
@@ -35,21 +34,27 @@ impl Lockfile {
       return Err(format!("Unsupported lockfile version {}", data["version"]));
     }
     let mut lockfile = Lockfile::new();
-    for (key, value) in data.as_object().unwrap() {
+    for (key, value) in data.as_object().expect("Expected JSON object") {
       if key == "version" {
         continue;
       }
       let entry = if value.is_string() {
         LockfileEntry {
           resolved: key.clone(),
-          integrity: value.as_str().unwrap().to_string(),
+          integrity: value.as_str().expect("Expected string").to_string(),
           content_type: String::new(),
         }
       } else {
         LockfileEntry {
           resolved: key.clone(),
-          integrity: value["integrity"].as_str().unwrap().to_string(),
-          content_type: value["contentType"].as_str().unwrap().to_string(),
+          integrity: value["integrity"]
+            .as_str()
+            .expect("Expected integrity string")
+            .to_string(),
+          content_type: value["contentType"]
+            .as_str()
+            .expect("Expected contentType string")
+            .to_string(),
         }
       };
       lockfile.entries.insert(key.clone(), entry);
@@ -57,7 +62,7 @@ impl Lockfile {
     Ok(lockfile)
   }
 
-  pub fn to_string(&self) -> String {
+  pub fn to_json_string(&self) -> String {
     let mut entries: Vec<_> = self.entries.iter().collect();
     entries.sort_by(|a, b| a.0.cmp(b.0));
     let mut str = String::from("{\n");
@@ -90,27 +95,30 @@ impl LockfileAsync for Lockfile {
   }
 
   async fn write_to_file_async<P: AsRef<Path> + Send>(&self, path: P) -> io::Result<()> {
-    let content = self.to_string();
+    let content = self.to_json_string();
     async_fs::write(path, content).await
   }
 }
 
+#[derive(Debug)]
 pub struct LockfileCache {
   lockfile: Mutex<Option<Lockfile>>,
+  #[allow(dead_code)]
   snapshot: Mutex<Option<String>>, // Placeholder for the actual snapshot type
 }
 
 impl LockfileCache {
+  #[allow(dead_code)]
   pub fn new() -> Self {
     LockfileCache {
       lockfile: Mutex::new(None),
       snapshot: Mutex::new(None),
     }
   }
-
+  #[allow(dead_code)]
   pub async fn get_lockfile<P: AsRef<Path> + Send>(&self, path: P) -> io::Result<Lockfile> {
     let mut lockfile_guard = self.lockfile.lock().await;
-    let mut snapshot_guard = self.snapshot.lock().await;
+    let _snapshot_guard = self.snapshot.lock().await;
 
     if let Some(lockfile) = &*lockfile_guard {
       // Check snapshot validity here
@@ -120,11 +128,17 @@ impl LockfileCache {
 
     // Read lockfile from file
     let lockfile = Lockfile::read_from_file_async(path.as_ref()).await?;
-    // Create snapshot here and store it in snapshot_guard
+    // Create snapshot here and store it in _snapshot_guard
 
     *lockfile_guard = Some(lockfile.clone());
-    // Store the snapshot in snapshot_guard
+    // Store the snapshot in _snapshot_guard
 
     Ok(lockfile)
+  }
+}
+
+impl Default for LockfileCache {
+  fn default() -> Self {
+    Self::new()
   }
 }
