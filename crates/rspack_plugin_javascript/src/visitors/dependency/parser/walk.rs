@@ -535,18 +535,18 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_sequence_expression(&mut self, expr: &SeqExpr) {
     let exprs = expr.exprs.iter().map(|expr| &**expr);
-    if self.is_statement_level_expression(expr.span())
-      && let Some(old) = self.statement_path.pop()
-    {
-      for expr in exprs {
-        self.statement_path.push(expr.span().into());
-        self.walk_expression(expr);
-        self.statement_path.pop();
-      }
-      self.statement_path.push(old);
-    } else {
-      self.walk_expressions(exprs);
-    }
+    // if self.is_statement_level_expression(expr.span())
+    //   && let Some(old) = self.statement_path.pop()
+    // {
+    //   for expr in exprs {
+    //     self.statement_path.push(expr.span().into());
+    //     self.walk_expression(expr);
+    //     self.statement_path.pop();
+    //   }
+    //   self.statement_path.push(old);
+    // } else {
+    self.walk_expressions(exprs);
+    // }
   }
 
   fn walk_object_expression(&mut self, expr: &ObjectLit) {
