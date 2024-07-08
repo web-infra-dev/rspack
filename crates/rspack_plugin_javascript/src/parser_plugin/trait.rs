@@ -13,6 +13,10 @@ use crate::visitors::{ClassDeclOrExpr, ExportedVariableInfo, JavascriptParser};
 type KeepRight = bool;
 
 pub trait JavascriptParserPlugin {
+  fn name(&self) -> &'static str {
+    "unknown"
+  }
+
   /// Return:
   /// - `Some(true)` signifies the termination of the current
   /// statement's visit during the pre-walk phase.
@@ -378,4 +382,4 @@ pub trait JavascriptParserPlugin {
   }
 }
 
-pub type BoxJavascriptParserPlugin = Box<dyn JavascriptParserPlugin>;
+pub type BoxJavascriptParserPlugin = Box<dyn JavascriptParserPlugin + Send + Sync>;

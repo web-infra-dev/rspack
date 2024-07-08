@@ -1,0 +1,2 @@
+WARNING in ⚠ DefinePlugin:
+  │ Conflicting values for 'process.env.NODE_ENV' ('"production"' !== '"development"')

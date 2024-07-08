@@ -94,7 +94,9 @@ pub use resolver::*;
 pub mod concatenated_module;
 pub mod reserved_names;
 
-pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme, BUILTIN_LOADER_PREFIX};
+pub use rspack_loader_runner::{
+  get_scheme, AdditionalData, ResourceData, Scheme, BUILTIN_LOADER_PREFIX,
+};
 pub use rspack_macros::{impl_runtime_module, impl_source_map_config};
 pub use rspack_sources;
 

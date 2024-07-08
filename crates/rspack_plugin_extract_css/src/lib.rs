@@ -1,7 +1,7 @@
 #![feature(let_chains)]
 pub mod css_dependency;
 mod css_module;
-mod parser_and_generator;
-pub use parser_and_generator::{CssExtractJsonData, CssExtractJsonDataList};
+mod parser_plugin;
+pub use parser_plugin::{CssExtractJsonData, CssExtractJsonDataList};
 pub mod plugin;
 mod runtime;

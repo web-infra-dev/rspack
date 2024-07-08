@@ -1,9 +1,10 @@
+export { RspackBuiltinPlugin } from "./base";
+
 export * from "./APIPlugin";
 export * from "./ArrayPushCallbackChunkFormatPlugin";
 export * from "./AssetModulesPlugin";
 export * from "./AsyncWebAssemblyModulesPlugin";
 export * from "./BannerPlugin";
-export { RspackBuiltinPlugin } from "./base";
 export * from "./BundlerInfoRspackPlugin";
 export * from "./ChunkPrefetchPreloadPlugin";
 export * from "./CommonJsChunkFormatPlugin";

@@ -119,6 +119,8 @@ impl Default for CompilationId {
   }
 }
 
+type ValueCacheVersions = HashMap<String, String>;
+
 static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug)]
@@ -167,6 +169,8 @@ pub struct Compilation {
   pub context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+
+  pub value_cache_versions: ValueCacheVersions,
 
   import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
 
@@ -249,6 +253,8 @@ impl Compilation {
       context_dependencies: Default::default(),
       missing_dependencies: Default::default(),
       build_dependencies: Default::default(),
+
+      value_cache_versions: ValueCacheVersions::default(),
 
       import_var_map: DashMap::new(),
 

@@ -21,13 +21,26 @@ use swc_node_comments::SwcComments;
 use crate::dependency::HarmonyCompatibilityDependency;
 use crate::visitors::{scan_dependencies, swc_visitor::resolver};
 use crate::visitors::{semicolon, PathIgnoredSpans, ScanDependenciesResult};
-use crate::{SideEffectsFlagPluginVisitor, SyntaxContextInfo};
+use crate::{BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 
-#[derive(Debug)]
-pub struct JavaScriptParserAndGenerator;
+#[derive(Default)]
+pub struct JavaScriptParserAndGenerator {
+  parser_plugins: Vec<BoxJavascriptParserPlugin>,
+}
 
-#[allow(unused)]
+impl std::fmt::Debug for JavaScriptParserAndGenerator {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("JavaScriptParserAndGenerator")
+      .field("parser_plugins", &"...")
+      .finish()
+  }
+}
+
 impl JavaScriptParserAndGenerator {
+  pub fn add_parser_plugin(&mut self, parser_plugin: BoxJavascriptParserPlugin) {
+    self.parser_plugins.push(parser_plugin);
+  }
+
   fn source_block(
     &self,
     compilation: &Compilation,
@@ -89,6 +102,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_identifier,
       loaders,
       module_parser_options,
+      additional_data,
       ..
     } = parse_context;
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
@@ -187,6 +201,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         &mut semicolons,
         &mut path_ignored_spans,
         unresolved_mark,
+        &mut self.parser_plugins,
+        additional_data,
       )
     }) {
       Ok(result) => result,

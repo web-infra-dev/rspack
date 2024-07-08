@@ -11,7 +11,7 @@ use std::sync::Arc;
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
+  AdditionalData, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
   JavascriptParserOptions, ModuleIdentifier, ResourceData,
 };
 use rspack_core::{CompilerOptions, JavascriptParserUrl, ModuleType, SpanExt};
@@ -37,6 +37,7 @@ use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::scope_info::{
   FreeName, ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoId,
 };
+use crate::BoxJavascriptParserPlugin;
 
 pub trait TagInfoData: Clone + Sized + 'static {
   fn into_any(data: Self) -> Box<dyn anymap::CloneAny>;
@@ -248,17 +249,19 @@ pub struct JavascriptParser<'parser> {
   pub(crate) source_file: &'parser SourceFile,
   pub(crate) errors: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
-  pub(crate) dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<BoxDependency>,
   pub(crate) presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
   pub(crate) blocks: Vec<AsyncDependenciesBlock>,
   // TODO: remove `import_map`
   pub(crate) import_map: ImportMap,
   // TODO: remove `rewrite_usage_span`
   pub(crate) rewrite_usage_span: FxHashMap<Span, ExtraSpanInfo>,
+  // TODO: remove `additional_data` once we have builtin:css-extract-loader
+  pub additional_data: AdditionalData,
   pub(crate) comments: Option<&'parser dyn Comments>,
   pub(crate) worker_index: u32,
   pub(crate) build_meta: &'parser mut BuildMeta,
-  pub(crate) build_info: &'parser mut BuildInfo,
+  pub build_info: &'parser mut BuildInfo,
   pub(crate) resource_data: &'parser ResourceData,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(crate) definitions_db: ScopeInfoDB,
@@ -307,6 +310,8 @@ impl<'parser> JavascriptParser<'parser> {
     semicolons: &'parser mut FxHashSet<BytePos>,
     path_ignored_spans: &'parser mut PathIgnoredSpans,
     unresolved_mark: Mark,
+    parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
+    additional_data: AdditionalData,
   ) -> Self {
     let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(32);
     let errors = Vec::with_capacity(32);
@@ -373,9 +378,6 @@ impl<'parser> JavascriptParser<'parser> {
       if !compiler_options.builtins.provide.is_empty() {
         plugins.push(Box::<parser_plugin::ProviderPlugin>::default());
       }
-      if !compiler_options.builtins.define.is_empty() {
-        plugins.push(Box::<parser_plugin::DefinePlugin>::default());
-      }
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
       plugins.push(Box::new(parser_plugin::APIPlugin::new(
@@ -398,6 +400,7 @@ impl<'parser> JavascriptParser<'parser> {
         unresolved_mark,
       )));
     }
+    plugins.append(parser_plugins);
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
     let mut db = ScopeInfoDB::new();
@@ -440,6 +443,7 @@ impl<'parser> JavascriptParser<'parser> {
       prev_statement: None,
       path_ignored_spans,
       inner_graph: InnerGraphState::new(),
+      additional_data,
     }
   }
 
