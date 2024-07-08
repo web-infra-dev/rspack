@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
@@ -11,7 +9,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::http_cache::{fetch_content, FetchResultType};
-use crate::lockfile::LockfileEntry;
+use crate::lockfile::LockfileCache;
 
 static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
@@ -20,6 +18,7 @@ static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
 #[derive(Debug, Default)]
 pub struct HttpUriPlugin {
   options: HttpUriPluginOptions,
+  #[allow(dead_code)]
   lockfile_cache: LockfileCache,
 }
 
@@ -37,36 +36,6 @@ pub struct HttpUriPluginOptions {
   pub lockfile_location: Option<String>,
   pub proxy: Option<String>,
   pub upgrade: Option<bool>,
-}
-
-#[derive(Debug, Default)]
-pub struct LockfileCache {
-  lockfile: Lockfile,
-  snapshot: String, // Placeholder for the actual snapshot type
-}
-
-impl LockfileCache {
-  pub fn new() -> Self {
-    Self {
-      lockfile: Lockfile::default(), // Use the correct initializer
-      snapshot: String::new(),       // Initialize with default values
-    }
-  }
-}
-
-#[derive(Debug)]
-pub struct Lockfile {
-  pub version: u32,
-  pub entries: Vec<LockfileEntry>,
-}
-
-impl Default for Lockfile {
-  fn default() -> Self {
-    Lockfile {
-      version: 1,          // or the appropriate default value
-      entries: Vec::new(), // or the appropriate default value
-    }
-  }
 }
 
 #[plugin_hook(NormalModuleFactoryResolveForScheme for HttpUriPlugin)]
