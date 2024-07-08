@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 3810
+- Update: main.LAST_HASH.hot-update.js, size: 3983
 
 ## Manifest
 
@@ -38,6 +38,7 @@ __webpack_require__.d(__webpack_exports__, {
   App: function() { return App; }
 });
 /* harmony import */var react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react/jsx-dev-runtime */ "../../../../../../node_modules/preact/compat/jsx-dev-runtime.js");
+/* harmony import */var react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__);
 /* module decorator */ module = __webpack_require__.hmd(module);
 /* provided dependency */ var __prefresh_utils__ = __webpack_require__(/*! ../../../../client/prefresh.cjs */ "../../../../client/prefresh.cjs");
 
