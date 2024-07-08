@@ -11,7 +11,7 @@ use std::sync::Arc;
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
+  AdditionalData, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
   JavascriptParserOptions, ModuleIdentifier, ResourceData,
 };
 use rspack_core::{CompilerOptions, JavascriptParserUrl, ModuleType, SpanExt};
@@ -249,17 +249,19 @@ pub struct JavascriptParser<'parser> {
   pub(crate) source_file: &'parser SourceFile,
   pub(crate) errors: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
-  pub(crate) dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<BoxDependency>,
   pub(crate) presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
   pub(crate) blocks: Vec<AsyncDependenciesBlock>,
   // TODO: remove `import_map`
   pub(crate) import_map: ImportMap,
   // TODO: remove `rewrite_usage_span`
   pub(crate) rewrite_usage_span: FxHashMap<Span, ExtraSpanInfo>,
+  // TODO: remove `additional_data` once we have builtin:css-extract-loader
+  pub additional_data: AdditionalData,
   pub(crate) comments: Option<&'parser dyn Comments>,
   pub(crate) worker_index: u32,
   pub(crate) build_meta: &'parser mut BuildMeta,
-  pub(crate) build_info: &'parser mut BuildInfo,
+  pub build_info: &'parser mut BuildInfo,
   pub(crate) resource_data: &'parser ResourceData,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(crate) definitions_db: ScopeInfoDB,
@@ -309,6 +311,7 @@ impl<'parser> JavascriptParser<'parser> {
     path_ignored_spans: &'parser mut PathIgnoredSpans,
     unresolved_mark: Mark,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
+    additional_data: AdditionalData,
   ) -> Self {
     let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(32);
     let errors = Vec::with_capacity(32);
@@ -320,52 +323,52 @@ impl<'parser> JavascriptParser<'parser> {
     let rewrite_usage_span = FxHashMap::default();
 
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = Vec::with_capacity(32);
-    plugins.push(Arc::new(parser_plugin::InitializeEvaluating));
-    plugins.push(Arc::new(parser_plugin::JavascriptMetaInfoPlugin));
-    plugins.push(Arc::new(parser_plugin::CheckVarDeclaratorIdent));
-    plugins.push(Arc::new(parser_plugin::ConstPlugin));
-    plugins.push(Arc::new(parser_plugin::UseStrictPlugin));
-    plugins.push(Arc::new(
+    plugins.push(Box::new(parser_plugin::InitializeEvaluating));
+    plugins.push(Box::new(parser_plugin::JavascriptMetaInfoPlugin));
+    plugins.push(Box::new(parser_plugin::CheckVarDeclaratorIdent));
+    plugins.push(Box::new(parser_plugin::ConstPlugin));
+    plugins.push(Box::new(parser_plugin::UseStrictPlugin));
+    plugins.push(Box::new(
       parser_plugin::RequireContextDependencyParserPlugin,
     ));
-    plugins.push(Arc::new(parser_plugin::CompatibilityPlugin));
+    plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
-      plugins.push(Arc::new(parser_plugin::HarmonyTopLevelThisParserPlugin));
-      plugins.push(Arc::new(parser_plugin::HarmonyDetectionParserPlugin::new(
+      plugins.push(Box::new(parser_plugin::HarmonyTopLevelThisParserPlugin));
+      plugins.push(Box::new(parser_plugin::HarmonyDetectionParserPlugin::new(
         compiler_options.experiments.top_level_await,
       )));
-      plugins.push(Arc::new(
+      plugins.push(Box::new(
         parser_plugin::ImportMetaContextDependencyParserPlugin,
       ));
-      plugins.push(Arc::new(parser_plugin::ImportMetaPlugin));
-      plugins.push(Arc::new(parser_plugin::HarmonyImportDependencyParserPlugin));
-      plugins.push(Arc::new(parser_plugin::HarmonyExportDependencyParserPlugin));
+      plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
+      plugins.push(Box::new(parser_plugin::HarmonyImportDependencyParserPlugin));
+      plugins.push(Box::new(parser_plugin::HarmonyExportDependencyParserPlugin));
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
-      plugins.push(Arc::new(parser_plugin::CommonJsImportsParserPlugin));
-      plugins.push(Arc::new(parser_plugin::CommonJsPlugin));
-      plugins.push(Arc::new(parser_plugin::CommonJsExportsParserPlugin));
+      plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
+      plugins.push(Box::new(parser_plugin::CommonJsPlugin));
+      plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin));
       if compiler_options.node.is_some() {
-        plugins.push(Arc::new(parser_plugin::NodeStuffPlugin));
+        plugins.push(Box::new(parser_plugin::NodeStuffPlugin));
       }
     }
 
     if compiler_options.dev_server.hot {
       if module_type.is_js_auto() {
-        plugins.push(Arc::new(
+        plugins.push(Box::new(
           parser_plugin::hot_module_replacement::ModuleHotReplacementParserPlugin,
         ));
-        plugins.push(Arc::new(
+        plugins.push(Box::new(
           parser_plugin::hot_module_replacement::ImportMetaHotReplacementParserPlugin,
         ));
       } else if module_type.is_js_dynamic() {
-        plugins.push(Arc::new(
+        plugins.push(Box::new(
           parser_plugin::hot_module_replacement::ModuleHotReplacementParserPlugin,
         ));
       } else if module_type.is_js_esm() {
-        plugins.push(Arc::new(
+        plugins.push(Box::new(
           parser_plugin::hot_module_replacement::ImportMetaHotReplacementParserPlugin,
         ));
       }
@@ -373,21 +376,21 @@ impl<'parser> JavascriptParser<'parser> {
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       if !compiler_options.builtins.provide.is_empty() {
-        plugins.push(Arc::<parser_plugin::ProviderPlugin>::default());
+        plugins.push(Box::<parser_plugin::ProviderPlugin>::default());
       }
-      plugins.push(Arc::new(parser_plugin::WebpackIsIncludedPlugin));
-      plugins.push(Arc::new(parser_plugin::ExportsInfoApiPlugin));
-      plugins.push(Arc::new(parser_plugin::APIPlugin::new(
+      plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
+      plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
+      plugins.push(Box::new(parser_plugin::APIPlugin::new(
         compiler_options.output.module,
       )));
-      plugins.push(Arc::new(parser_plugin::ImportParserPlugin));
+      plugins.push(Box::new(parser_plugin::ImportParserPlugin));
       let parse_url = javascript_options.url;
       if !matches!(parse_url, JavascriptParserUrl::Disable) {
-        plugins.push(Arc::new(parser_plugin::URLPlugin {
+        plugins.push(Box::new(parser_plugin::URLPlugin {
           relative: matches!(parse_url, JavascriptParserUrl::Relative),
         }));
       }
-      plugins.push(Arc::new(parser_plugin::WorkerPlugin::new(
+      plugins.push(Box::new(parser_plugin::WorkerPlugin::new(
         &javascript_options.worker,
       )));
     }
@@ -440,6 +443,7 @@ impl<'parser> JavascriptParser<'parser> {
       prev_statement: None,
       path_ignored_spans,
       inner_graph: InnerGraphState::new(),
+      additional_data,
     }
   }
 

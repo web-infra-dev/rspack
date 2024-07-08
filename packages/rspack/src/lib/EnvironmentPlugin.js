@@ -5,7 +5,7 @@
 
 "use strict";
 
-import { DefinePlugin } from "../parser-plugin";
+import { DefinePlugin } from "../builtin-plugin";
 
 const WebpackError = require("./WebpackError");
 

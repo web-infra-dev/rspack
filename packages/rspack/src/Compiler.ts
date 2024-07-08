@@ -79,7 +79,6 @@ class Compiler {
 	#compilationParams?: CompilationParams;
 
 	#builtinPlugins: binding.BuiltinPlugin[];
-	#parserPlugins: binding.JsParserPlugin[];
 	#moduleExecutionResultsMap: Map<number, any>;
 
 	#nonSkippableRegisters: binding.RegisterJsTapKind[];
@@ -156,7 +155,6 @@ class Compiler {
 		this.#initial = true;
 
 		this.#builtinPlugins = [];
-		this.#parserPlugins = [];
 
 		this.#nonSkippableRegisters = [];
 		this.#moduleExecutionResultsMap = new Map();
@@ -262,14 +260,6 @@ class Compiler {
 	 */
 	get __internal__builtinPlugins() {
 		return this.#builtinPlugins;
-	}
-
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 * @internal
-	 */
-	get __internal__parserPlugins() {
-		return this.#parserPlugins;
 	}
 
 	/**
@@ -582,11 +572,6 @@ class Compiler {
 			...this.#builtinPlugins.filter(
 				plugin => plugin.canInherentFromParent === true
 			)
-		];
-
-		childCompiler.#parserPlugins = [
-			...childCompiler.#parserPlugins,
-			...this.#parserPlugins
 		];
 
 		for (const name in this.hooks) {
@@ -1201,7 +1186,6 @@ class Compiler {
 		this.#instance = new instanceBinding.Rspack(
 			rawOptions,
 			this.#builtinPlugins,
-			this.#parserPlugins,
 			this.#registers,
 			ThreadsafeWritableNodeFS.__to_binding(this.outputFileSystem!)
 		);
@@ -1314,10 +1298,6 @@ class Compiler {
 
 	__internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin) {
 		this.#builtinPlugins.push(plugin);
-	}
-
-	__internal__registerParserPlugin(plugin: binding.JsParserPlugin) {
-		this.#parserPlugins.push(plugin);
 	}
 
 	__internal__getModuleExecutionResult(id: number) {

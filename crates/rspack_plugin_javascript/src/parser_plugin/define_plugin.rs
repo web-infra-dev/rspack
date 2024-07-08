@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use once_cell::sync::OnceCell;
 use rspack_core::{
   ApplyContext, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
-  ConstDependency, Plugin, PluginContext, SpanExt,
+  ConstDependency, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, PluginContext, SpanExt,
 };
 use rspack_error::{
   miette::{self, Diagnostic},
@@ -13,7 +14,10 @@ use rspack_error::{
 use rspack_hook::{plugin, plugin_hook};
 use swc_core::common::Spanned;
 
-use crate::{parser_plugin::JavascriptParserPlugin, visitors::JavascriptParser};
+use crate::{
+  parser_and_generator::JavaScriptParserAndGenerator, parser_plugin::JavascriptParserPlugin,
+  visitors::JavascriptParser, BoxJavascriptParserPlugin,
+};
 
 type DefineValue = HashMap<String, String>;
 
@@ -79,6 +83,21 @@ async fn compilation(
   Ok(())
 }
 
+#[plugin_hook(NormalModuleFactoryParser for DefinePlugin)]
+fn nmf_parser(
+  &self,
+  module_type: &ModuleType,
+  parser: &mut dyn ParserAndGenerator,
+  _parser_options: Option<&ParserOptions>,
+) -> Result<()> {
+  if module_type.is_js_like()
+    && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
+  {
+    parser.add_parser_plugin(Box::new(self.clone()) as BoxJavascriptParserPlugin);
+  }
+  Ok(())
+}
+
 impl Plugin for DefinePlugin {
   fn name(&self) -> &'static str {
     "rspack.DefinePlugin"
@@ -94,6 +113,11 @@ impl Plugin for DefinePlugin {
       .compiler_hooks
       .compilation
       .tap(compilation::new(self));
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .parser
+      .tap(nmf_parser::new(self));
     Ok(())
   }
 }

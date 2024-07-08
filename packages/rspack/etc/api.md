@@ -31,8 +31,6 @@ import { JsCreateData } from '@rspack/binding';
 import { JsFactoryMeta } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import { JsModule } from '@rspack/binding';
-import { JsParserPlugin } from '@rspack/binding';
-import { JsParserPluginName } from '@rspack/binding';
 import { JsPathData } from '@rspack/binding';
 import { JsRuntimeModule } from '@rspack/binding';
 import { JsStats } from '@rspack/binding';
@@ -1120,13 +1118,9 @@ export class Compiler {
     // (undocumented)
     __internal__getModuleExecutionResult(id: number): any;
     // @internal
-    get __internal__parserPlugins(): binding.JsParserPlugin[];
-    // @internal
     __internal__rebuild(modifiedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>, callback?: (error: Error | null) => void): void;
     // (undocumented)
     __internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin): void;
-    // (undocumented)
-    __internal__registerParserPlugin(plugin: binding.JsParserPlugin): void;
     // @internal
     get __internal__ruleSet(): RuleSetCompiler;
     // (undocumented)
@@ -1668,9 +1662,10 @@ const cssParserOptions: z.ZodObject<{
 // @public (undocumented)
 export const DefinePlugin: {
     new (define: DefinePluginOptions): {
-        name: JsParserPluginName;
+        name: BuiltinPluginName;
         _options: Record<string, string>;
-        raw(): JsParserPlugin;
+        affectedHooks: "make" | "compile" | "emit" | "afterEmit" | "invalid" | "done" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
 };
@@ -8299,16 +8294,16 @@ declare namespace rspackExports {
         util,
         EntryOptionPlugin,
         OutputFileSystem,
-        DefinePluginOptions,
-        DefinePlugin,
         BannerPluginArgument,
         ProvidePluginOptions,
+        DefinePluginOptions,
         ProgressPluginArgument,
         EntryOptions,
         BannerPlugin,
         IgnorePlugin,
         IgnorePluginOptions,
         ProvidePlugin,
+        DefinePlugin,
         ProgressPlugin,
         EntryPlugin,
         DynamicEntryPlugin,

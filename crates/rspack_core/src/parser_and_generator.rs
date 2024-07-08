@@ -1,9 +1,11 @@
+use std::any::Any;
 use std::fmt::Debug;
 
 use derivative::Derivative;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
+use rspack_util::ext::AsAny;
 use rspack_util::source_map::SourceMapKind;
 use swc_core::common::Span;
 
@@ -80,7 +82,7 @@ pub struct GenerateContext<'a> {
   pub concatenation_scope: Option<&'a mut ConcatenationScope>,
 }
 
-pub trait ParserAndGenerator: Send + Sync + Debug {
+pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
   /// The source types that the generator can generate (the source types you can make requests for)
   fn source_types(&self) -> &[SourceType];
   /// Parse the source and return the dependencies and the ast or source
@@ -101,4 +103,18 @@ pub trait ParserAndGenerator: Send + Sync + Debug {
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<String>;
+}
+
+impl dyn ParserAndGenerator + '_ {
+  pub fn downcast_ref<D: Any>(&self) -> Option<&D> {
+    self.as_any().downcast_ref::<D>()
+  }
+
+  pub fn downcast_mut<D: Any>(&mut self) -> Option<&mut D> {
+    self.as_any_mut().downcast_mut::<D>()
+  }
+
+  pub fn is<D: Any>(&self) -> bool {
+    self.downcast_ref::<D>().is_some()
+  }
 }

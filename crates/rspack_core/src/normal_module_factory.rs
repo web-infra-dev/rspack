@@ -14,9 +14,9 @@ use crate::{
   stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerOptions, Context,
   DependencyCategory, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserOptions, RawModule, Resolve,
-  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
-  ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
+  RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  ResolverFactory, ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
@@ -26,6 +26,7 @@ define_hook!(NormalModuleFactoryResolveForScheme: AsyncSeriesBail(data: &mut Mod
 define_hook!(NormalModuleFactoryAfterResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> bool);
 define_hook!(NormalModuleFactoryCreateModule: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule);
 define_hook!(NormalModuleFactoryModule: AsyncSeries(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule));
+define_hook!(NormalModuleFactoryParser: SyncSeries(module_type: &ModuleType, parser: &mut dyn ParserAndGenerator, parser_options: Option<&ParserOptions>));
 define_hook!(NormalModuleFactoryResolveLoader: AsyncSeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader);
 
 pub enum NormalModuleFactoryResolveResult {
@@ -42,6 +43,7 @@ pub struct NormalModuleFactoryHooks {
   pub after_resolve: NormalModuleFactoryAfterResolveHook,
   pub create_module: NormalModuleFactoryCreateModuleHook,
   pub module: NormalModuleFactoryModuleHook,
+  pub parser: NormalModuleFactoryParserHook,
   /// Webpack resolves loaders in `NormalModuleFactory`,
   /// Rspack resolves it when normalizing configuration.
   /// So this hook is used to resolve inline loader (inline loader requests).
@@ -500,7 +502,7 @@ impl NormalModuleFactory {
         resolved_generator_options,
       );
     let resolved_side_effects = self.calculate_side_effects(&resolved_module_rules);
-    let resolved_parser_and_generator = self
+    let mut resolved_parser_and_generator = self
       .plugin_driver
       .registered_parser_and_generator_builder
       .get(&resolved_module_type)
@@ -513,6 +515,11 @@ impl NormalModuleFactory {
       resolved_parser_options.as_ref(),
       resolved_generator_options.as_ref(),
     );
+    self.plugin_driver.normal_module_factory_hooks.parser.call(
+      &resolved_module_type,
+      resolved_parser_and_generator.as_mut(),
+      resolved_parser_options.as_ref(),
+    )?;
 
     let mut create_data = {
       let mut create_data = NormalModuleCreateData {

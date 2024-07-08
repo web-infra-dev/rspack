@@ -1,9 +1,10 @@
+export { RspackBuiltinPlugin } from "./base";
+
 export * from "./APIPlugin";
 export * from "./ArrayPushCallbackChunkFormatPlugin";
 export * from "./AssetModulesPlugin";
 export * from "./AsyncWebAssemblyModulesPlugin";
 export * from "./BannerPlugin";
-export { RspackBuiltinPlugin } from "./base";
 export * from "./BundlerInfoRspackPlugin";
 export * from "./ChunkPrefetchPreloadPlugin";
 export * from "./CommonJsChunkFormatPlugin";
@@ -11,6 +12,7 @@ export * from "./CopyRspackPlugin";
 export * from "./css-extract";
 export * from "./CssModulesPlugin";
 export * from "./DataUriPlugin";
+export * from "./DefinePlugin";
 export * from "./DeterministicChunkIdsPlugin";
 export * from "./DeterministicModuleIdsPlugin";
 export * from "./DynamicEntryPlugin";

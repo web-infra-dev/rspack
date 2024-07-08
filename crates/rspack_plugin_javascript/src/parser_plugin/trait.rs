@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use swc_core::atoms::Atom;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{
@@ -384,4 +382,4 @@ pub trait JavascriptParserPlugin {
   }
 }
 
-pub type BoxJavascriptParserPlugin = Arc<dyn JavascriptParserPlugin + Send + Sync>;
+pub type BoxJavascriptParserPlugin = Box<dyn JavascriptParserPlugin + Send + Sync>;

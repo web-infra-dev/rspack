@@ -313,31 +313,22 @@ impl Plugin for JsPlugin {
     ctx
       .context
       .register_parser_and_generator_builder(ModuleType::JsAuto, {
-        let parser_plugins = self.parser_plugins.clone();
         Box::new(move |_, _| {
-          Box::new(JavaScriptParserAndGenerator::from_plugins(
-            parser_plugins.clone(),
-          )) as Box<dyn ParserAndGenerator>
+          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
         })
       });
     ctx
       .context
       .register_parser_and_generator_builder(ModuleType::JsEsm, {
-        let parser_plugins = self.parser_plugins.clone();
         Box::new(move |_, _| {
-          Box::new(JavaScriptParserAndGenerator::from_plugins(
-            parser_plugins.clone(),
-          )) as Box<dyn ParserAndGenerator>
+          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
         })
       });
     ctx
       .context
       .register_parser_and_generator_builder(ModuleType::JsDynamic, {
-        let parser_plugins = self.parser_plugins.clone();
         Box::new(move |_, _| {
-          Box::new(JavaScriptParserAndGenerator::from_plugins(
-            parser_plugins.clone(),
-          )) as Box<dyn ParserAndGenerator>
+          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
         })
       });
 

@@ -23,6 +23,7 @@ use crate::visitors::{scan_dependencies, swc_visitor::resolver};
 use crate::visitors::{semicolon, PathIgnoredSpans, ScanDependenciesResult};
 use crate::{BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 
+#[derive(Default)]
 pub struct JavaScriptParserAndGenerator {
   parser_plugins: Vec<BoxJavascriptParserPlugin>,
 }
@@ -35,10 +36,9 @@ impl std::fmt::Debug for JavaScriptParserAndGenerator {
   }
 }
 
-#[allow(unused)]
 impl JavaScriptParserAndGenerator {
-  pub fn from_plugins(parser_plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
-    Self { parser_plugins }
+  pub fn add_parser_plugin(&mut self, parser_plugin: BoxJavascriptParserPlugin) {
+    self.parser_plugins.push(parser_plugin);
   }
 
   fn source_block(
@@ -102,6 +102,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_identifier,
       loaders,
       module_parser_options,
+      additional_data,
       ..
     } = parse_context;
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
@@ -201,6 +202,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         &mut path_ignored_spans,
         unresolved_mark,
         &mut self.parser_plugins,
+        additional_data,
       )
     }) {
       Ok(result) => result,
