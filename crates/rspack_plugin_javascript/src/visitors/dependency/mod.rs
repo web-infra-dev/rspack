@@ -11,6 +11,7 @@ use rspack_core::{
 use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::{FxHashMap, FxHashSet};
+use swc_core::common::Mark;
 use swc_core::common::{comments::Comments, BytePos, SourceFile, SourceMap, Span};
 use swc_core::ecma::atoms::Atom;
 
@@ -18,7 +19,9 @@ pub use self::context_dependency_helper::{create_context_dependency, ContextModu
 pub use self::parser::{
   AllowedMemberTypes, CallExpressionInfo, CallHooksName, ExportedVariableInfo, PathIgnoredSpans,
 };
-pub use self::parser::{JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope};
+pub use self::parser::{
+  ClassDeclOrExpr, JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope,
+};
 pub use self::util::*;
 use crate::dependency::Specifier;
 
@@ -75,6 +78,7 @@ pub fn scan_dependencies(
   module_parser_options: Option<&ParserOptions>,
   semicolons: &mut FxHashSet<BytePos>,
   path_ignored_spans: &mut PathIgnoredSpans,
+  unresolved_mark: Mark,
 ) -> Result<ScanDependenciesResult, Vec<Box<dyn Diagnostic + Send + Sync>>> {
   let mut parser = JavascriptParser::new(
     source_map,
@@ -91,6 +95,7 @@ pub fn scan_dependencies(
     build_info,
     semicolons,
     path_ignored_spans,
+    unresolved_mark,
   );
 
   parser.walk_program(program.get_inner_program());

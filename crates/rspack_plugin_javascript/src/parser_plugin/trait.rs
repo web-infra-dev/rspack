@@ -1,14 +1,14 @@
 use swc_core::atoms::Atom;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{
-  AssignExpr, AwaitExpr, BinExpr, CallExpr, CondExpr, ExportAll, ExportDecl, ExportDefaultDecl,
-  ExportDefaultExpr, Expr, ForOfStmt, Ident, IfStmt, ImportDecl, MemberExpr, ModuleDecl,
-  NamedExport, OptChainExpr,
+  AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, ExportAll, ExportDecl,
+  ExportDefaultDecl, ExportDefaultExpr, Expr, ForOfStmt, Ident, IfStmt, ImportDecl, MemberExpr,
+  ModuleDecl, NamedExport, OptChainExpr,
 };
 use swc_core::ecma::ast::{NewExpr, Program, Stmt, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
 use crate::utils::eval::BasicEvaluatedExpression;
-use crate::visitors::{ExportedVariableInfo, JavascriptParser};
+use crate::visitors::{ClassDeclOrExpr, ExportedVariableInfo, JavascriptParser};
 
 type KeepRight = bool;
 
@@ -18,6 +18,10 @@ pub trait JavascriptParserPlugin {
   /// statement's visit during the pre-walk phase.
   /// - Other return values imply that the walk operation ought to continue
   fn pre_statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
+    None
+  }
+
+  fn pre_block_statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
     None
   }
 
@@ -36,6 +40,14 @@ pub trait JavascriptParserPlugin {
   }
 
   fn program(&self, _parser: &mut JavascriptParser, _ast: &Program) -> Option<bool> {
+    None
+  }
+
+  fn statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
+    None
+  }
+
+  fn module_declaration(&self, _parser: &mut JavascriptParser, _decl: &ModuleDecl) -> Option<bool> {
     None
   }
 
@@ -204,6 +216,34 @@ pub trait JavascriptParserPlugin {
   /// - `Some(true)` means only need walk `stmt.cons`;
   /// - `Some(false)` means only need walk `stmt.alt`;
   fn statement_if(&self, _parser: &mut JavascriptParser, _expr: &IfStmt) -> Option<bool> {
+    None
+  }
+
+  fn class_extends_expression(
+    &self,
+    _parser: &mut JavascriptParser,
+    _super_class: &Expr,
+    _class_decl_or_expr: ClassDeclOrExpr,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn class_body_element(
+    &self,
+    _parser: &mut JavascriptParser,
+    _element: &ClassMember,
+    _class_decl_or_expr: ClassDeclOrExpr,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn class_body_value(
+    &self,
+    _parser: &mut JavascriptParser,
+    _element: &swc_core::ecma::ast::ClassMember,
+    _expr_span: Span,
+    _class_decl_or_expr: ClassDeclOrExpr,
+  ) -> Option<bool> {
     None
   }
 

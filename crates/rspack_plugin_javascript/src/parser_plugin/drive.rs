@@ -1,14 +1,15 @@
 use swc_core::atoms::Atom;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{
-  BinExpr, CallExpr, Callee, CondExpr, ExportDecl, ExportDefaultDecl, Expr, OptChainExpr, UnaryExpr,
+  BinExpr, CallExpr, Callee, ClassMember, CondExpr, ExportDecl, ExportDefaultDecl, Expr,
+  OptChainExpr, UnaryExpr,
 };
 use swc_core::ecma::ast::{IfStmt, MemberExpr, Stmt, UnaryOp, VarDecl, VarDeclarator};
 
 use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
 use crate::parser_plugin::r#const::is_logic_op;
 use crate::utils::eval::BasicEvaluatedExpression;
-use crate::visitors::{ExportedVariableInfo, JavascriptParser};
+use crate::visitors::{ClassDeclOrExpr, ExportedVariableInfo, JavascriptParser};
 
 pub struct JavaScriptParserPluginDrive {
   plugins: Vec<BoxJavascriptParserPlugin>,
@@ -76,6 +77,21 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   ) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.pre_module_declaration(parser, decl);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn module_declaration(
+    &self,
+    parser: &mut JavascriptParser,
+    decl: &swc_core::ecma::ast::ModuleDecl,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.module_declaration(parser, decl);
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -256,6 +272,17 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
+  fn statement(&self, parser: &mut JavascriptParser, stmt: &Stmt) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.statement(parser, stmt);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
   fn statement_if(&self, parser: &mut JavascriptParser, expr: &IfStmt) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.statement_if(parser, expr);
@@ -307,6 +334,55 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   ) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.identifier(parser, expr, for_name);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn class_extends_expression(
+    &self,
+    parser: &mut JavascriptParser,
+    super_class: &Expr,
+    class_decl_or_expr: ClassDeclOrExpr,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.class_extends_expression(parser, super_class, class_decl_or_expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn class_body_element(
+    &self,
+    parser: &mut JavascriptParser,
+    member: &ClassMember,
+    class_decl_or_expr: ClassDeclOrExpr,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.class_body_element(parser, member, class_decl_or_expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn class_body_value(
+    &self,
+    parser: &mut JavascriptParser,
+    element: &swc_core::ecma::ast::ClassMember,
+    expr_span: Span,
+    class_decl_or_expr: ClassDeclOrExpr,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.class_body_value(parser, element, expr_span, class_decl_or_expr);
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -437,6 +513,17 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   fn pre_statement(&self, parser: &mut JavascriptParser, stmt: &Stmt) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.pre_statement(parser, stmt);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn pre_block_statement(&self, parser: &mut JavascriptParser, stmt: &Stmt) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.pre_block_statement(parser, stmt);
       // `SyncBailHook`
       if res.is_some() {
         return res;

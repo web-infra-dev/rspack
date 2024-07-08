@@ -20,16 +20,18 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::Atom;
 use swc_core::common::comments::Comments;
 use swc_core::common::util::take::Take;
-use swc_core::common::{BytePos, SourceFile, SourceMap, Span, Spanned};
+use swc_core::common::{BytePos, Mark, SourceFile, SourceMap, Span, Spanned};
 use swc_core::ecma::ast::{
-  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, MetaPropExpr, MetaPropKind, ObjectPat,
-  ObjectPatProp, OptCall, OptChainBase, OptChainExpr, Pat, Program, Stmt, ThisExpr,
+  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, ClassDecl, ClassExpr, MetaPropExpr,
+  MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr, Pat, Program, Stmt,
+  ThisExpr,
 };
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 use swc_core::ecma::utils::ExprFactory;
 
 use super::ExtraSpanInfo;
 use super::ImportMap;
+use crate::parser_plugin::InnerGraphState;
 use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::scope_info::{
@@ -102,6 +104,21 @@ pub struct ExpressionExpressionInfo {
 pub enum ExportedVariableInfo {
   Name(String),
   VariableInfo(VariableInfoId),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ClassDeclOrExpr<'class> {
+  Decl(&'class ClassDecl),
+  Expr(&'class ClassExpr),
+}
+
+impl<'class> Spanned for ClassDeclOrExpr<'class> {
+  fn span(&self) -> Span {
+    match self {
+      ClassDeclOrExpr::Decl(decl) => decl.span(),
+      ClassDeclOrExpr::Expr(expr) => expr.span(),
+    }
+  }
 }
 
 fn object_and_members_to_name(
@@ -271,6 +288,7 @@ pub struct JavascriptParser<'parser> {
   pub(super) definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) last_harmony_import_order: i32,
+  pub(crate) inner_graph: InnerGraphState,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -288,6 +306,7 @@ impl<'parser> JavascriptParser<'parser> {
     build_info: &'parser mut BuildInfo,
     semicolons: &'parser mut FxHashSet<BytePos>,
     path_ignored_spans: &'parser mut PathIgnoredSpans,
+    unresolved_mark: Mark,
   ) -> Self {
     let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(32);
     let errors = Vec::with_capacity(32);
@@ -374,6 +393,12 @@ impl<'parser> JavascriptParser<'parser> {
       )));
     }
 
+    if compiler_options.optimization.inner_graph {
+      plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
+        unresolved_mark,
+      )));
+    }
+
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
     let mut db = ScopeInfoDB::new();
 
@@ -414,6 +439,7 @@ impl<'parser> JavascriptParser<'parser> {
       current_tag_info: None,
       prev_statement: None,
       path_ignored_spans,
+      inner_graph: InnerGraphState::new(),
     }
   }
 
@@ -456,6 +482,26 @@ impl<'parser> JavascriptParser<'parser> {
     Some(self.definitions_db.expect_get_variable(&id))
   }
 
+  pub fn get_tag_data(&mut self, name: &Atom, tag: &str) -> Option<Box<dyn anymap::CloneAny>> {
+    self
+      .get_variable_info(name)
+      .and_then(|variable_info| variable_info.tag_info)
+      .and_then(|tag_info_id| {
+        let mut tag_info = Some(self.definitions_db.expect_get_tag_info(&tag_info_id));
+
+        while let Some(cur_tag_info) = tag_info {
+          if cur_tag_info.tag == tag {
+            return cur_tag_info.data.clone();
+          }
+          tag_info = cur_tag_info
+            .next
+            .map(|tag_info_id| self.definitions_db.expect_get_tag_info(&tag_info_id))
+        }
+
+        None
+      })
+  }
+
   pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a str) -> Option<FreeInfo<'a>> {
     let Some(info) = self.get_variable_info(name) else {
       return Some(FreeInfo { name, info: None });
@@ -476,7 +522,7 @@ impl<'parser> JavascriptParser<'parser> {
     scope.variables()
   }
 
-  fn define_variable(&mut self, name: String) {
+  pub fn define_variable(&mut self, name: String) {
     let definitions = self.definitions;
     if let Some(variable_info) = self.get_variable_info(&name)
       && variable_info.tag_info.is_some()
