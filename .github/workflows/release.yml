@@ -64,6 +64,7 @@ jobs:
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
+      profile: "release-prod"
 
   release:
     name: Release
