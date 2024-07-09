@@ -1,14 +1,13 @@
 import type * as binding from "@rspack/binding";
+import { Resolve, getRawResolve } from "./config";
 
 interface ResolveContext {}
 
 type ErrorWithDetail = Error & { details?: string };
 
-type ResolveOptionsWithDependencyType = Omit<
-	binding.RawResolveOptionsWithDependencyType,
-	"restrictions"
-> & {
-	restrictions?: (string | RegExp)[];
+type ResolveOptionsWithDependencyType = Resolve & {
+	dependencyCategory?: string;
+	resolveToContext?: boolean;
 };
 
 function isString(value: string | RegExp): value is string {
@@ -46,15 +45,23 @@ export class Resolver {
 	}
 
 	withOptions({
-		restrictions,
-		...rest
+		dependencyCategory,
+		resolveToContext,
+		...resolve
 	}: ResolveOptionsWithDependencyType): Resolver {
-		const bindingOptions: binding.RawResolveOptionsWithDependencyType = rest;
+		const rawResolve = getRawResolve(resolve);
+
 		// TODO: rspack_resolver is unimplemented regex
-		if (Array.isArray(restrictions)) {
-			bindingOptions.restrictions = restrictions.filter<string>(isString);
+		if (Array.isArray(rawResolve.restrictions)) {
+			rawResolve.restrictions =
+				rawResolve.restrictions.filter<string>(isString);
 		}
-		const binding = this.binding.withOptions(bindingOptions);
+
+		const binding = this.binding.withOptions({
+			dependencyCategory,
+			resolveToContext,
+			...rawResolve
+		});
 		return new Resolver(binding);
 	}
 }

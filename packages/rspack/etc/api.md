@@ -3762,6 +3762,9 @@ export function getRawLibrary(library: LibraryOptions): RawLibraryOptions;
 export const getRawOptions: (options: RspackOptionsNormalized, compiler: Compiler) => RawOptions;
 
 // @public (undocumented)
+export function getRawResolve(resolve: Resolve): RawOptions["resolve"];
+
+// @public (undocumented)
 export type GlobalObject = z.infer<typeof globalObject>;
 
 // @public (undocumented)
@@ -8206,8 +8209,9 @@ const resolveOptions: z.ZodType<ResolveOptions>;
 type ResolveOptionsWithDependencyType = binding.RawResolveOptionsWithDependencyType;
 
 // @public (undocumented)
-type ResolveOptionsWithDependencyType_2 = Omit<binding.RawResolveOptionsWithDependencyType, "restrictions"> & {
-    restrictions?: (string | RegExp)[];
+type ResolveOptionsWithDependencyType_2 = Resolve & {
+    dependencyCategory?: string;
+    resolveToContext?: boolean;
 };
 
 // @public (undocumented)
@@ -8220,7 +8224,7 @@ class Resolver {
     // (undocumented)
     resolveSync(context: object, path: string, request: string): string | false;
     // (undocumented)
-    withOptions({ restrictions, ...rest }: ResolveOptionsWithDependencyType_2): Resolver;
+    withOptions({ dependencyCategory, resolveToContext, ...resolve }: ResolveOptionsWithDependencyType_2): Resolver;
 }
 
 // @public (undocumented)
@@ -8428,6 +8432,7 @@ declare namespace rspackExports {
         SwcLoaderTransformConfig,
         SwcLoaderTsParserConfig,
         experiments,
+        getRawResolve,
         getRawLibrary,
         getRawChunkLoading,
         LoaderContext,
