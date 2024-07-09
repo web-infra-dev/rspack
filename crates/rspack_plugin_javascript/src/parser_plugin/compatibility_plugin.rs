@@ -95,6 +95,23 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         }),
       );
       return Some(true);
+    } else if for_name == RuntimeGlobals::REQUIRE.name() {
+      let low = ident.span().lo().0;
+      let hi = ident.span().hi().0;
+      parser.tag_variable(
+        ident.sym.to_string(),
+        NESTED_WEBPACK_IDENTIFIER_TAG,
+        Some(NestedRequireData {
+          name: format!("__nested_webpack_require_{low}_{hi}__"),
+          update: false,
+          loc: DependencyLocation::new(
+            ident.span().real_lo(),
+            ident.span().real_hi(),
+            Some(parser.source_map.clone()),
+          ),
+        }),
+      );
+      return Some(true);
     }
     None
   }
