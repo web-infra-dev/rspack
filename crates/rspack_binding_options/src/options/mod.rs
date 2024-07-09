@@ -108,7 +108,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
       dev_server: Default::default(),
       profile: value.profile,
       bail: value.bail,
-      builtins: Default::default(),
       __references: value.__references,
     })
   }

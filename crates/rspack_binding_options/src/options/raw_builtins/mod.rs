@@ -12,12 +12,11 @@ mod raw_progress;
 mod raw_runtime_chunk;
 mod raw_size_limits;
 mod raw_swc_js_minimizer;
-mod raw_to_be_deprecated;
 
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
-use rspack_core::{BoxPlugin, Plugin, PluginExt, Provide, ProvidePlugin};
+use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::Result;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
@@ -43,9 +42,9 @@ use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
-  api_plugin::APIPlugin, define_plugin::DefinePlugin, FlagDependencyExportsPlugin,
-  FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin, MangleExportsPlugin,
-  ModuleConcatenationPlugin, SideEffectsFlagPlugin,
+  api_plugin::APIPlugin, define_plugin::DefinePlugin, provide_plugin::ProvidePlugin,
+  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
+  MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -195,7 +194,7 @@ impl BuiltinPlugin {
         plugins.push(plugin);
       }
       BuiltinPluginName::ProvidePlugin => {
-        let plugin = ProvidePlugin::new(downcast_into::<Provide>(self.options)?).boxed();
+        let plugin = ProvidePlugin::new(downcast_into(self.options)?).boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::BannerPlugin => {
@@ -515,6 +514,3 @@ impl BuiltinPlugin {
 fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
   rspack_napi::downcast_into(o).into_rspack_result()
 }
-
-// TO BE DEPRECATED
-pub use raw_to_be_deprecated::RawBuiltins;

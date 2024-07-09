@@ -1,16 +1,24 @@
 use itertools::Itertools;
 use once_cell::sync::OnceCell;
-use rspack_core::SpanExt;
+use rspack_core::{
+  ApplyContext, CompilerOptions, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, Plugin, PluginContext, SpanExt,
+};
+use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook};
 use swc_core::{atoms::Atom, common::Spanned};
 
 use super::JavascriptParserPlugin;
-use crate::{dependency::ProvideDependency, visitors::JavascriptParser};
+use crate::{
+  dependency::ProvideDependency, parser_and_generator::JavaScriptParserAndGenerator,
+  visitors::JavascriptParser, BoxJavascriptParserPlugin,
+};
 
 const SOURCE_DOT: &str = r#"."#;
 const MODULE_DOT: &str = r#"_dot_"#;
 
-fn dep(parser: &JavascriptParser, name: &str, start: u32, end: u32) -> Option<ProvideDependency> {
-  if let Some(requests) = parser.compiler_options.builtins.provide.get(name) {
+fn dep(value: &ProvideValue, name: &str, start: u32, end: u32) -> Option<ProvideDependency> {
+  if let Some(requests) = value.get(name) {
     let name_identifier = if name.contains(SOURCE_DOT) {
       format!("__webpack_provide_{}", name.replace(SOURCE_DOT, MODULE_DOT))
     } else {
@@ -30,16 +38,25 @@ fn dep(parser: &JavascriptParser, name: &str, start: u32, end: u32) -> Option<Pr
   None
 }
 
-#[derive(Default)]
-pub struct ProviderPlugin {
+type ProvideValue = std::collections::HashMap<String, Vec<String>>;
+
+#[plugin]
+#[derive(Default, Debug, Clone)]
+pub struct ProvidePlugin {
+  provide: ProvideValue,
   cached_names: OnceCell<Vec<String>>,
 }
 
-impl JavascriptParserPlugin for ProviderPlugin {
-  fn can_rename(&self, parser: &mut JavascriptParser, str: &str) -> Option<bool> {
-    let names = self.cached_names.get_or_init(|| {
-      let names = parser.compiler_options.builtins.provide.keys();
-      names
+impl ProvidePlugin {
+  pub fn new(provide: ProvideValue) -> Self {
+    Self::new_inner(provide, OnceCell::new())
+  }
+
+  fn cached_names(&self) -> &Vec<String> {
+    self.cached_names.get_or_init(|| {
+      self
+        .provide
+        .keys()
         .flat_map(|name| {
           let splitted: Vec<&str> = name.split('.').collect();
           if !splitted.is_empty() {
@@ -51,13 +68,14 @@ impl JavascriptParserPlugin for ProviderPlugin {
           }
         })
         .collect::<Vec<_>>()
-    });
+    })
+  }
+}
 
-    if names.iter().any(|l| *l == str) {
-      return Some(true);
-    }
-
-    None
+impl JavascriptParserPlugin for ProvidePlugin {
+  fn can_rename(&self, _parser: &mut JavascriptParser, str: &str) -> Option<bool> {
+    let names = self.cached_names();
+    names.iter().any(|l| l.eq(str)).then_some(true)
   }
 
   fn call(
@@ -67,7 +85,7 @@ impl JavascriptParserPlugin for ProviderPlugin {
     for_name: &str,
   ) -> Option<bool> {
     dep(
-      parser,
+      &self.provide,
       for_name,
       expr.callee.span().real_lo(),
       expr.callee.span().real_hi(),
@@ -87,7 +105,7 @@ impl JavascriptParserPlugin for ProviderPlugin {
     for_name: &str,
   ) -> Option<bool> {
     dep(
-      parser,
+      &self.provide,
       for_name,
       expr.span().real_lo(),
       expr.span().real_hi(),
@@ -104,9 +122,49 @@ impl JavascriptParserPlugin for ProviderPlugin {
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
-    dep(parser, for_name, ident.span.real_lo(), ident.span.real_hi()).map(|dep| {
+    dep(
+      &self.provide,
+      for_name,
+      ident.span.real_lo(),
+      ident.span.real_hi(),
+    )
+    .map(|dep| {
       parser.dependencies.push(Box::new(dep));
       true
     })
+  }
+}
+
+#[plugin_hook(NormalModuleFactoryParser for ProvidePlugin)]
+fn nmf_parser(
+  &self,
+  module_type: &ModuleType,
+  parser: &mut dyn ParserAndGenerator,
+  _parser_options: Option<&ParserOptions>,
+) -> Result<()> {
+  if module_type.is_js_like()
+    && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
+  {
+    parser.add_parser_plugin(Box::new(self.clone()) as BoxJavascriptParserPlugin);
+  }
+  Ok(())
+}
+
+impl Plugin for ProvidePlugin {
+  fn name(&self) -> &'static str {
+    "rspack.ProvidePlugin"
+  }
+
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .parser
+      .tap(nmf_parser::new(self));
+    Ok(())
   }
 }

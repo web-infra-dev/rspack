@@ -24,6 +24,73 @@ use swc_core::{
 use crate::legacy_case::{identifier_to_legacy_kebab_case, identifier_to_legacy_snake_case};
 use crate::visit::IdentComponent;
 
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct RawStyleConfig {
+  pub style_library_directory: Option<String>,
+  pub custom: Option<String>,
+  pub css: Option<String>,
+  pub bool: Option<bool>,
+}
+
+impl From<RawStyleConfig> for StyleConfig {
+  fn from(raw_style_config: RawStyleConfig) -> Self {
+    if let Some(style_library_directory) = raw_style_config.style_library_directory {
+      Self::StyleLibraryDirectory(style_library_directory)
+    } else if let Some(custom) = raw_style_config.custom {
+      Self::Custom(CustomTransform::Tpl(custom))
+    } else if raw_style_config.css.is_some() {
+      Self::Css
+    } else if let Some(bool) = raw_style_config.bool {
+      Self::Bool(bool)
+    } else {
+      Self::None
+    }
+  }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct RawImportOptions {
+  pub library_name: String,
+  pub library_directory: Option<String>, // default to `lib`
+  pub custom_name: Option<String>,
+  pub custom_style_name: Option<String>, // If this is set, `style` option will be ignored
+  pub style: Option<RawStyleConfig>,
+  pub camel_to_dash_component_name: Option<bool>, // default to true
+  pub transform_to_default_import: Option<bool>,
+  pub ignore_es_component: Option<Vec<String>>,
+  pub ignore_style_component: Option<Vec<String>>,
+}
+
+impl From<RawImportOptions> for ImportOptions {
+  fn from(plugin_import: RawImportOptions) -> Self {
+    let RawImportOptions {
+      library_name,
+      library_directory,
+      custom_name,
+      custom_style_name,
+      style,
+      camel_to_dash_component_name,
+      transform_to_default_import,
+      ignore_es_component,
+      ignore_style_component,
+    } = plugin_import;
+
+    Self {
+      library_name,
+      library_directory,
+      custom_name: custom_name.map(CustomTransform::Tpl),
+      custom_style_name: custom_style_name.map(CustomTransform::Tpl),
+      style: style.map(Into::into),
+      camel_to_dash_component_name,
+      transform_to_default_import,
+      ignore_es_component,
+      ignore_style_component,
+    }
+  }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub enum StyleConfig {
   StyleLibraryDirectory(String),
@@ -60,7 +127,7 @@ impl Debug for CustomTransform {
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
-pub struct PluginImportConfig {
+pub struct ImportOptions {
   pub library_name: String,
   pub library_directory: Option<String>, // default to `lib`
   #[serde(skip)]
@@ -83,7 +150,7 @@ const CUSTOM_STYLE_NAME: &str = "CUSTOM_STYLE_NAME";
 /// Panic:
 ///
 /// Panics in sometimes if [swc_core::common::errors::HANDLER] is not provided.
-pub fn plugin_import(config: &Vec<PluginImportConfig>) -> impl Fold + '_ {
+pub fn plugin_import(config: &Vec<ImportOptions>) -> impl Fold + '_ {
   let mut renderer = handlebars::Handlebars::new();
 
   renderer.register_helper(
@@ -255,17 +322,13 @@ struct EsSpec {
 }
 
 pub struct ImportPlugin<'a> {
-  pub config: &'a Vec<PluginImportConfig>,
+  pub config: &'a Vec<ImportOptions>,
   pub renderer: handlebars::Handlebars<'a>,
 }
 
 impl<'a> ImportPlugin<'a> {
   // return (import_es, import_css)
-  fn transform(
-    &self,
-    name: String,
-    config: &PluginImportConfig,
-  ) -> (Option<String>, Option<String>) {
+  fn transform(&self, name: String, config: &ImportOptions) -> (Option<String>, Option<String>) {
     let should_ignore = &config
       .ignore_es_component
       .as_ref()

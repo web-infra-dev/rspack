@@ -33,22 +33,25 @@ impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
       if let Some(deps) = self.cache.get(additional_data) {
         deps.clone()
       } else {
-        let mut idx = 0;
         let deps = additional_data
           .0
           .iter()
+          .enumerate()
           .map(
-            |CssExtractJsonData {
-               identifier,
-               content,
-               context,
-               media,
-               supports,
-               source_map,
-               identifier_index,
-               ..
-             }| {
-              let dep = Box::new(CssDependency::new(
+            |(
+              index,
+              CssExtractJsonData {
+                identifier,
+                content,
+                context,
+                media,
+                supports,
+                source_map,
+                identifier_index,
+                ..
+              },
+            )| {
+              Box::new(CssDependency::new(
                 identifier.into(),
                 content.clone(),
                 context.clone(),
@@ -56,15 +59,13 @@ impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
                 supports.clone(),
                 source_map.clone(),
                 *identifier_index,
-                idx,
+                index as u32,
                 parser.build_info.cacheable,
                 parser.build_info.file_dependencies.clone(),
                 parser.build_info.context_dependencies.clone(),
                 parser.build_info.missing_dependencies.clone(),
                 parser.build_info.build_dependencies.clone(),
-              ));
-              idx += 1;
-              dep as BoxDependency
+              )) as BoxDependency
             },
           )
           .collect::<Vec<_>>();

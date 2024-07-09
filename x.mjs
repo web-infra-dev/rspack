@@ -77,6 +77,9 @@ buildCommand
 	.action(async function ({ a, b = a, j = a, r, f }) {
 		let mode = r ? "release" : "debug";
 		try {
+			if (b === undefined && j === undefined) {
+				b = j = true;
+			}
 			b && (await $`pnpm --filter @rspack/binding build:${mode}`);
 			j && (await $`pnpm --filter "@rspack/*" build ${f ? "--force" : ""}`);
 		} catch (e) {

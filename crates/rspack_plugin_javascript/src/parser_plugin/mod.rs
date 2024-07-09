@@ -19,7 +19,6 @@ mod initialize_evaluating;
 mod inner_graph;
 mod javascript_meta_info_plugin;
 mod node_stuff_plugin;
-mod provide_plugin;
 mod require_context_dependency_parser_plugin;
 mod r#trait;
 mod url_plugin;
@@ -28,6 +27,7 @@ mod webpack_included_plugin;
 mod worker_plugin;
 
 pub mod define_plugin;
+pub mod provide_plugin;
 
 pub(crate) use self::api_plugin::APIPlugin;
 pub(crate) use self::check_var_decl::CheckVarDeclaratorIdent;
@@ -49,7 +49,6 @@ pub(crate) use self::initialize_evaluating::InitializeEvaluating;
 pub(crate) use self::inner_graph::{plugin::*, state::InnerGraphState};
 pub(crate) use self::javascript_meta_info_plugin::JavascriptMetaInfoPlugin;
 pub(crate) use self::node_stuff_plugin::NodeStuffPlugin;
-pub(crate) use self::provide_plugin::ProviderPlugin;
 pub(crate) use self::r#const::{is_logic_op, ConstPlugin};
 pub use self::r#trait::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
 pub(crate) use self::require_context_dependency_parser_plugin::RequireContextDependencyParserPlugin;

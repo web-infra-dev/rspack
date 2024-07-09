@@ -15,8 +15,6 @@ mod resolve;
 pub use resolve::*;
 mod mode;
 pub use mode::*;
-mod builtins;
-pub use builtins::*;
 mod context;
 pub use context::*;
 mod plugins;
