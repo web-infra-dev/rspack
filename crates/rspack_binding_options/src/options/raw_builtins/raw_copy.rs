@@ -30,7 +30,7 @@ pub struct RawCopyPattern {
   pub from: String,
   #[derivative(Debug = "ignore")]
   #[napi(
-    ts_type = "string | ((pathData: { context: string; absoluteFilename?: string }) => string)"
+    ts_type = "string | ((pathData: { context: string; absoluteFilename?: string }) => string | Promise<string>)"
   )]
   pub to: Option<RawTo>,
   pub context: Option<String>,

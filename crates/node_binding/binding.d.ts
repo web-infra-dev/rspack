@@ -851,7 +851,7 @@ export interface RawCopyGlobOptions {
 
 export interface RawCopyPattern {
   from: string
-  to?: string | ((pathData: { context: string; absoluteFilename?: string }) => string)
+  to?: string | ((pathData: { context: string; absoluteFilename?: string }) => string | Promise<string>)
   context?: string
   toType?: string
   noErrorOnMissing: boolean
