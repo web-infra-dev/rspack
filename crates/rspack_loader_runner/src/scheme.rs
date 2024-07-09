@@ -6,6 +6,7 @@ pub enum Scheme {
   Data,
   File,
   Http,
+  Https,
   Custom(String),
 }
 
@@ -22,12 +23,12 @@ impl Scheme {
     matches!(self, Self::None)
   }
 
-  pub fn is_some(&self) -> bool {
-    !self.is_none()
-  }
-
   pub fn is_http(&self) -> bool {
     matches!(self, Self::Http)
+  }
+
+  pub fn is_https(&self) -> bool {
+    matches!(self, Self::Https)
   }
 }
 
@@ -40,6 +41,7 @@ impl From<&str> for Scheme {
       "data" => Self::Data,
       "file" => Self::File,
       "http" => Self::Http,
+      "https" => Self::Https,
       v => Self::Custom(v.to_string()),
     }
   }
@@ -55,6 +57,7 @@ impl fmt::Display for Scheme {
         Self::Data => "data",
         Self::File => "file",
         Self::Http => "http",
+        Self::Https => "https",
         Self::Custom(v) => v,
       }
     )
@@ -118,12 +121,7 @@ pub fn get_scheme(specifier: &str) -> Scheme {
     }
   }
 
-  let scheme_str = &specifier[..i].to_ascii_lowercase();
-  if scheme_str == "http" || scheme_str == "https" {
-    return Scheme::Http;
-  }
-
-  Scheme::from(scheme_str.as_str())
+  Scheme::from(specifier[..i].to_ascii_lowercase().as_str())
 }
 
 #[cfg(test)]
@@ -143,8 +141,7 @@ mod tests {
   #[test]
   fn http_for_http_url() {
     assert_eq!(get_scheme("http://localhost"), Scheme::Http);
-    assert_eq!(get_scheme("https://localhost"), Scheme::Http);
-    assert!(Scheme::Http.is_http());
+    assert_eq!(get_scheme("https://localhost"), Scheme::Https);
   }
 
   #[test]

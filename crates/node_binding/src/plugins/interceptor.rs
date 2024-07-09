@@ -50,6 +50,7 @@ use rspack_core::{
   NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
+  Scheme,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
@@ -1295,10 +1296,14 @@ impl NormalModuleFactoryResolveForScheme for NormalModuleFactoryResolveForScheme
     &self,
     _data: &mut ModuleFactoryCreateData,
     resource_data: &mut ResourceData,
+    scheme: &Scheme,
   ) -> rspack_error::Result<Option<bool>> {
     let (bail, new_resource_data) = self
       .function
-      .call_with_promise(resource_data.clone().into())
+      .call_with_promise(JsResolveForSchemeArgs {
+        resource_data: resource_data.clone().into(),
+        scheme: scheme.to_string(),
+      })
       .await?;
     resource_data.set_resource(new_resource_data.resource);
     resource_data.set_path(PathBuf::from(new_resource_data.path));
