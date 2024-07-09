@@ -57,7 +57,8 @@ impl JsRspackError {
   }
 
   pub fn into_diagnostic(self, severity: RspackSeverity) -> Diagnostic {
-    let message = if self.hide_stack.unwrap_or_default() {
+    let hide_stack = self.hide_stack.unwrap_or_default();
+    let message = if hide_stack {
       self.message
     } else {
       self.stack.clone().unwrap_or(self.message)

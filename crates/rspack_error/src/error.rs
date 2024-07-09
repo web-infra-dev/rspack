@@ -364,3 +364,9 @@ fn _assert() {
   _assert_send_sync::<InternalError>();
   _assert_send_sync::<DiagnosticError>();
 }
+
+/// (message, stack, backtrace, hide_stack)
+#[derive(Debug, Error, Diagnostic)]
+#[diagnostic()]
+#[error("{0}\n{2}")]
+pub struct NodeError(pub String, pub Option<String>, pub String, pub Option<bool>);

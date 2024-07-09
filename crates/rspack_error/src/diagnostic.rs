@@ -203,9 +203,10 @@ impl Diagnostic {
   pub fn details(&self) -> Option<String> {
     let hide_stack = self.hide_stack.unwrap_or_default();
     if hide_stack {
-      None
-    } else {
+      // TODO: generate detail content for typed error
       self.stack()
+    } else {
+      None
     }
   }
 }

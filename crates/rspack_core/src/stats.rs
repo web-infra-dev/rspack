@@ -554,7 +554,7 @@ impl Stats<'_> {
 
         let chunk = d
           .chunk()
-          .map(|c| ChunkUkey::from(c))
+          .map(ChunkUkey::from)
           .map(|key| self.compilation.chunk_by_ukey.expect_get(&key));
 
         StatsError {
@@ -595,7 +595,7 @@ impl Stats<'_> {
 
         let chunk = d
           .chunk()
-          .map(|c| ChunkUkey::from(c))
+          .map(ChunkUkey::from)
           .map(|key| self.compilation.chunk_by_ukey.expect_get(&key));
 
         StatsWarning {

@@ -11,7 +11,7 @@ use std::{
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
-use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, Result, Severity};
+use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, NodeError, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_hook::define_hook;
 use rspack_identifier::Identifiable;
@@ -402,9 +402,14 @@ impl Module for NormalModule {
     .await;
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
-      Err(e) => {
-        let e = ModuleBuildError(e).boxed();
-        let d = Diagnostic::from(e);
+      Err(r) => {
+        let node_error = r.downcast_ref::<NodeError>();
+        let stack = node_error.and_then(|e| e.1.clone());
+        let hide_stack = node_error.and_then(|e| e.3);
+        let e = ModuleBuildError(r).boxed();
+        let d = Diagnostic::from(e)
+          .with_stack(stack)
+          .with_hide_stack(hide_stack);
         self.source = NormalModuleSource::BuiltFailed(d.clone());
         self.add_diagnostic(d);
         let mut hasher = RspackHash::from(&build_context.compiler_options.output);

@@ -20,6 +20,7 @@ module.exports = {
 		Object {
 		  "errors": Array [
 		    Object {
+		      "details": "Error: test push\\n    at Object.fn (<cwd>packages/rspack-test-tools/tests/errorCases/error-test-push.js:10:19)\\n    at next (<cwd>packages/rspack-lite-tapable/dist/index.js:530:25)\\n    at AsyncSeriesHook.callAsyncStageRange (<cwd>packages/rspack-lite-tapable/dist/index.js:550:9)\\n    at AsyncSeriesHook.callAsync (<cwd>packages/rspack-lite-tapable/dist/index.js:88:21)\\n    at <cwd>packages/rspack/dist/Compiler.js:467:41\\n    at <cwd>packages/rspack/dist/Compiler.js:534:23",
 		      "message": "  × test push\\n",
 		      "stack": "Error: test push\\n    at Object.fn (<cwd>packages/rspack-test-tools/tests/errorCases/error-test-push.js:10:19)\\n    at next (<cwd>packages/rspack-lite-tapable/dist/index.js:530:25)\\n    at AsyncSeriesHook.callAsyncStageRange (<cwd>packages/rspack-lite-tapable/dist/index.js:550:9)\\n    at AsyncSeriesHook.callAsync (<cwd>packages/rspack-lite-tapable/dist/index.js:88:21)\\n    at <cwd>packages/rspack/dist/Compiler.js:467:41\\n    at <cwd>packages/rspack/dist/Compiler.js:534:23",
 		    },
