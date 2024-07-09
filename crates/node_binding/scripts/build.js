@@ -2,8 +2,8 @@ const { spawn } = require("child_process");
 
 const CARGO_SAFELY_EXIT_CODE = 0;
 
-// Faster release for CI testing with `thin` LTO
-let release = process.argv.includes("--release-production");
+// Faster release for CI & canary with `thin` LTO
+let release = process.argv.includes("--release");
 // Slower release for production with `fat` LTO
 let releaseProd = process.argv.includes("--release-prod");
 let watch = process.argv.includes("--watch");
