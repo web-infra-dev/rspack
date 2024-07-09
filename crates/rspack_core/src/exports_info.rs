@@ -1724,6 +1724,8 @@ impl ExportInfo {
     map
   }
 
+  /// Panics:
+  /// Panics if max target is not set before.
   fn get_max_target_readonly(&self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
     assert!(self.max_target_is_set);
     &self.max_target
