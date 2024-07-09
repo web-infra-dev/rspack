@@ -148,4 +148,26 @@ module.exports = {
 
 ## 常见问题
 
-- 使用后发现产物中存在未降级语法：添加 `builtin:swc-loader` 进行降级，具体需要包含 `@module-federation/runtime/rspack.js`。
+- 使用后发现产物中存在未降级语法
+
+  添加 `builtin:swc-loader` 进行降级，具体需要包含 `@module-federation/runtime/rspack.js`。示例如下：
+
+  ```js
+  module.exports = {
+    module: {
+      rules: [
+        {
+          include: '@module-federation/runtime/rspack.js',
+          use: {
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                target: 'es5',
+              },
+            },
+          },
+        },
+      ],
+    },
+  };
+  ```
