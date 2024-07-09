@@ -22,7 +22,7 @@ import {
 	getRawOptions
 } from "./config";
 import { rspack } from "./index";
-import ResolverFactory = require("./ResolverFactory");
+// import { ResolverFactory } from "./ResolverFactory";
 import { ThreadsafeWritableNodeFS } from "./FileSystem";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import Cache = require("./lib/Cache");
@@ -62,7 +62,6 @@ import { checkVersion } from "./util/bindingVersionCheck";
 import { createHash } from "./util/createHash";
 import { OutputFileSystem, WatchFileSystem } from "./util/fs";
 import { makePathsRelative } from "./util/identifier";
-import { NativeResolverFactory } from "./NativeResolverFactory";
 
 export interface AssetEmittedInfo {
 	content: Buffer;
@@ -128,8 +127,7 @@ class Compiler {
 
 	running: boolean;
 	idle: boolean;
-	resolverFactory: ResolverFactory;
-	nativeResolverFactory: NativeResolverFactory;
+	// resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
 	watching?: Watching;
 
@@ -220,8 +218,6 @@ class Compiler {
 
 		this.records = {};
 
-		this.resolverFactory = new ResolverFactory();
-		this.nativeResolverFactory = new NativeResolverFactory();
 		this.options = options;
 		this.context = context;
 		this.cache = new Cache();
@@ -538,7 +534,7 @@ class Compiler {
 		childCompiler.outputPath = this.outputPath;
 		childCompiler.inputFileSystem = this.inputFileSystem;
 		childCompiler.outputFileSystem = null;
-		childCompiler.resolverFactory = this.resolverFactory;
+		// childCompiler.resolverFactory = this.resolverFactory;
 		childCompiler.modifiedFiles = this.modifiedFiles;
 		childCompiler.removedFiles = this.removedFiles;
 		childCompiler.fileTimestamps = this.fileTimestamps;

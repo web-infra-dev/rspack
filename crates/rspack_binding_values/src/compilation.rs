@@ -8,7 +8,6 @@ use rspack_core::get_chunk_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::rspack_sources::SourceExt;
 use rspack_core::AssetInfo;
-use rspack_core::DependencyCategory;
 use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
@@ -16,9 +15,8 @@ use rspack_napi::NapiResultExt;
 
 use super::module::ToJsModule;
 use super::PathWithInfo;
-use crate::raw_resolve;
-use crate::resolver::JsResolver;
 use crate::utils::callbackify;
+use crate::JsResolverFactory;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
 use crate::{
@@ -522,25 +520,11 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn create_resolver(
-    &mut self,
-    options: raw_resolve::RawResolveOptionsWithDependencyType,
-  ) -> JsResolver {
-    let options = rspack_core::ResolveOptionsWithDependencyType {
-      resolve_options: Some(Box::new(
-        options
-          .resolve
-          .try_into()
-          .expect("the options of resolver is invalid"),
-      )),
-      resolve_to_context: options.resolve_to_context.unwrap_or_default(),
-      dependency_category: options
-        .dependency_category
-        .map(|category| DependencyCategory::from(category.as_str()))
-        .unwrap_or(DependencyCategory::Unknown),
-    };
-    let resolver = self.0.resolver_factory.get(options);
-    JsResolver::new(resolver)
+  pub fn get_resolver_factory(&self) -> JsResolverFactory {
+    JsResolverFactory::new(
+      self.0.resolver_factory.clone(),
+      self.0.loader_resolver_factory.clone(),
+    )
   }
 }
 

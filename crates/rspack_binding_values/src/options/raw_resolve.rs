@@ -1,7 +1,10 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use napi_derive::napi;
-use rspack_core::{Alias, AliasMap, ByDependency, Resolve, TsconfigOptions, TsconfigReferences};
+use rspack_core::{
+  Alias, AliasMap, ByDependency, DependencyCategory, Resolve, ResolveOptionsWithDependencyType,
+  TsconfigOptions, TsconfigReferences,
+};
 use rspack_error::error;
 
 pub type AliasValue = serde_json::Value;
@@ -173,7 +176,104 @@ impl TryFrom<RawResolveTsconfigOptions> for TsconfigOptions {
 #[derive(Debug)]
 #[napi(object)]
 pub struct RawResolveOptionsWithDependencyType {
-  pub resolve: RawResolveOptions,
+  pub prefer_relative: Option<bool>,
+  pub prefer_absolute: Option<bool>,
+  pub extensions: Option<Vec<String>>,
+  pub main_files: Option<Vec<String>>,
+  pub main_fields: Option<Vec<String>>,
+  pub condition_names: Option<Vec<String>>,
+  pub alias: Option<Vec<RawAliasOptionItem>>,
+  pub fallback: Option<Vec<RawAliasOptionItem>>,
+  pub symlinks: Option<bool>,
+  pub tsconfig: Option<RawResolveTsconfigOptions>,
+  pub modules: Option<Vec<String>>,
+  pub by_dependency: Option<HashMap<String, RawResolveOptions>>,
+  pub fully_specified: Option<bool>,
+  pub exports_fields: Option<Vec<String>>,
+  pub description_files: Option<Vec<String>>,
+  pub enforce_extension: Option<bool>,
+  pub imports_fields: Option<Vec<String>>,
+  #[napi(ts_type = "Record<string, Array<string>>")]
+  pub extension_alias: Option<HashMap<String, Vec<String>>>,
+  pub alias_fields: Option<Vec<String>>,
+  // TODO
+  // pub restrictions: Option<Vec<String>>,
+  pub roots: Option<Vec<String>>,
+
   pub dependency_category: Option<String>,
   pub resolve_to_context: Option<bool>,
+}
+
+pub fn normalize_raw_resolve_options_with_dependency_type(
+  raw: Option<RawResolveOptionsWithDependencyType>,
+  default_resolve_to_context: bool,
+) -> rspack_error::Result<ResolveOptionsWithDependencyType> {
+  match raw {
+    Some(raw) => {
+      let tsconfig = match raw.tsconfig {
+        Some(config) => Some(TsconfigOptions::try_from(config)?),
+        None => None,
+      };
+
+      let exports_fields = raw
+        .exports_fields
+        .map(|v| v.into_iter().map(|s| vec![s]).collect());
+
+      let extension_alias = raw.extension_alias.map(|v| v.into_iter().collect());
+
+      let alias_fields = raw
+        .alias_fields
+        .map(|v| v.into_iter().map(|s| vec![s]).collect());
+
+      let imports_fields = raw
+        .imports_fields
+        .map(|v| v.into_iter().map(|s| vec![s]).collect());
+
+      let by_dependency = raw
+        .by_dependency
+        .map(|i| {
+          i.into_iter()
+            .map(|(k, v)| Ok((k.into(), v.try_into()?)))
+            .collect::<rspack_error::Result<ByDependency>>()
+        })
+        .transpose()?;
+
+      let resolve_options = Resolve {
+        extensions: raw.extensions,
+        alias: normalize_alias(raw.alias)?,
+        prefer_relative: raw.prefer_relative,
+        prefer_absolute: raw.prefer_absolute,
+        symlinks: raw.symlinks,
+        main_files: raw.main_files,
+        main_fields: raw.main_fields,
+        condition_names: raw.condition_names,
+        tsconfig,
+        modules: raw.modules,
+        fallback: normalize_alias(raw.fallback)?,
+        fully_specified: raw.fully_specified,
+        exports_fields,
+        extension_alias,
+        alias_fields,
+        roots: raw.roots,
+        restrictions: None,
+        imports_fields,
+        by_dependency,
+        description_files: raw.description_files,
+        enforce_extension: raw.enforce_extension,
+      };
+      Ok(ResolveOptionsWithDependencyType {
+        resolve_options: Some(Box::new(resolve_options)),
+        resolve_to_context: raw.resolve_to_context.unwrap_or(default_resolve_to_context),
+        dependency_category: raw
+          .dependency_category
+          .map(|c| DependencyCategory::from(c.as_str()))
+          .unwrap_or(DependencyCategory::Unknown),
+      })
+    }
+    None => Ok(ResolveOptionsWithDependencyType {
+      resolve_options: None,
+      resolve_to_context: default_resolve_to_context,
+      dependency_category: DependencyCategory::Unknown,
+    }),
+  }
 }

@@ -58,11 +58,16 @@ export class JsCompilation {
   addBuildDependencies(deps: Array<string>): void
   rebuildModule(moduleIdentifiers: Array<string>, f: (...args: any[]) => any): void
   importModule(request: string, publicPath: string | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: (...args: any[]) => any): void
-  createResolver(options: RawResolveOptionsWithDependencyType): JsResolver
+  getResolverFactory(): JsResolverFactory
 }
 
 export class JsResolver {
-  resolve(path: string, request: string): string | false
+  resolveSync(path: string, request: string): string | false
+  withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
+}
+
+export class JsResolverFactory {
+  get(type: string, options?: RawResolveOptionsWithDependencyType): JsResolver
 }
 
 export class JsStats {
@@ -1382,7 +1387,26 @@ export interface RawResolveOptions {
 }
 
 export interface RawResolveOptionsWithDependencyType {
-  resolve: RawResolveOptions
+  preferRelative?: boolean
+  preferAbsolute?: boolean
+  extensions?: Array<string>
+  mainFiles?: Array<string>
+  mainFields?: Array<string>
+  conditionNames?: Array<string>
+  alias?: Array<RawAliasOptionItem>
+  fallback?: Array<RawAliasOptionItem>
+  symlinks?: boolean
+  tsconfig?: RawResolveTsconfigOptions
+  modules?: Array<string>
+  byDependency?: Record<string, RawResolveOptions>
+  fullySpecified?: boolean
+  exportsFields?: Array<string>
+  descriptionFiles?: Array<string>
+  enforceExtension?: boolean
+  importsFields?: Array<string>
+  extensionAlias?: Record<string, Array<string>>
+  aliasFields?: Array<string>
+  roots?: Array<string>
   dependencyCategory?: string
   resolveToContext?: boolean
 }

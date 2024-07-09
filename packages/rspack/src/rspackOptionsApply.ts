@@ -384,35 +384,21 @@ export class RspackOptionsApply {
 		if (!compiler.inputFileSystem) {
 			throw new Error("No input filesystem provided");
 		}
-		compiler.resolverFactory.hooks.resolveOptions
-			.for("normal")
-			.tap("RspackOptionsApply", resolveOptions => {
-				resolveOptions = cleverMerge(options.resolve, resolveOptions);
-				resolveOptions.fileSystem = compiler.inputFileSystem;
-				return resolveOptions;
-			});
-		compiler.resolverFactory.hooks.resolveOptions
-			.for("context")
-			.tap("RspackOptionsApply", resolveOptions => {
-				resolveOptions = cleverMerge(options.resolve, resolveOptions);
-				resolveOptions.fileSystem = compiler.inputFileSystem;
-				resolveOptions.resolveToContext = true;
-				return resolveOptions;
-			});
-
-		compiler.nativeResolverFactory.hooks.resolveOptions
-			.for("normal")
-			.tap("RspackOptionsApply", resolveOptions => {
-				// Don't need the `cleverMerge` native resolver options because this process has already been handled on the Rust side.
-				return resolveOptions;
-			});
-		compiler.nativeResolverFactory.hooks.resolveOptions
-			.for("context")
-			.tap("RspackOptionsApply", resolveOptions => {
-				// Don't need the `cleverMerge` native resolver options because this process has already been handled on the Rust side.
-				resolveOptions.resolveToContext = true;
-				return resolveOptions;
-			});
+		// compiler.resolverFactory.hooks.resolveOptions
+		// 	.for("normal")
+		// 	.tap("RspackOptionsApply", resolveOptions => {
+		// 		resolveOptions = cleverMerge(options.resolve, resolveOptions);
+		// 		resolveOptions.fileSystem = compiler.inputFileSystem;
+		// 		return resolveOptions;
+		// 	});
+		// compiler.resolverFactory.hooks.resolveOptions
+		// 	.for("context")
+		// 	.tap("RspackOptionsApply", resolveOptions => {
+		// 		resolveOptions = cleverMerge(options.resolve, resolveOptions);
+		// 		resolveOptions.fileSystem = compiler.inputFileSystem;
+		// 		resolveOptions.resolveToContext = true;
+		// 		return resolveOptions;
+		// 	});
 
 		compiler.hooks.afterResolvers.call(compiler);
 	}

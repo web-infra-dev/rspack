@@ -15,8 +15,7 @@ import {
 	type JsModule,
 	type JsPathData,
 	JsRspackSeverity,
-	type JsRuntimeModule,
-	RawResolveOptionsWithDependencyType
+	type JsRuntimeModule
 } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import { Source } from "webpack-sources";
@@ -29,7 +28,7 @@ import {
 	StatsOptions,
 	StatsValue
 } from "./config";
-import ResolverFactory = require("./ResolverFactory");
+import { ResolverFactory } from "./ResolverFactory";
 import { Chunk } from "./Chunk";
 import { ChunkGraph } from "./ChunkGraph";
 import { Compiler } from "./Compiler";
@@ -41,7 +40,6 @@ import { Stats, StatsAsset, StatsError, StatsModule } from "./Stats";
 import { LogType, Logger } from "./logging/Logger";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
-import { concatErrorMsgAndStack } from "./util";
 import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
 import MergeCaller from "./util/MergeCaller";
 import { createFakeCompilationDependencies } from "./util/fake";
@@ -49,7 +47,6 @@ import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
 import Hash = require("./util/hash");
 import { JsDiagnostic, RspackError } from "./RspackError";
-import { NativeResolverFactory } from "./NativeResolverFactory";
 export { type AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
@@ -197,8 +194,6 @@ export class Compilation {
 	endTime?: number;
 	compiler: Compiler;
 
-	resolverFactory: ResolverFactory;
-	nativeResolverFactory: NativeResolverFactory;
 	inputFileSystem: any;
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -323,8 +318,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			afterSeal: new liteTapable.AsyncSeriesHook([])
 		};
 		this.compiler = compiler;
-		this.resolverFactory = compiler.resolverFactory;
-		this.nativeResolverFactory = compiler.nativeResolverFactory;
 		this.inputFileSystem = compiler.inputFileSystem;
 		this.options = compiler.options;
 		this.outputOptions = compiler.options.output;
@@ -394,6 +387,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				}
 			}
 		} as Map<string, Readonly<Chunk>>;
+	}
+
+	get resolverFactory(): ResolverFactory {
+		return memoizeValue(() => {
+			const binding = this.__internal_get_resolver_factory();
+			return new ResolverFactory(binding);
+		});
 	}
 
 	#createCachedAssets() {
@@ -1060,10 +1060,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return this.#inner;
 	}
 
-	__internal_create_native_resolver(
-		options: RawResolveOptionsWithDependencyType
-	) {
-		return this.#inner.createResolver(options);
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal_get_resolver_factory(): binding.JsResolverFactory {
+		return this.#inner.getResolverFactory();
 	}
 
 	seal() {}
