@@ -29,6 +29,7 @@
     "lint:rs": "node ./scripts/check_rust_dependency.cjs",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
+    "build:binding:release-prod": "pnpm --filter @rspack/binding run build:release-prod",
     "prepare": "is-ci || husky",
     "test:diff": "pnpm --filter \"@rspack/*\" test:diff",
     "test:hot": "pnpm --filter \"@rspack/*\" test:hot",

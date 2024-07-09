@@ -82,3 +82,8 @@ lto       = "thin"
 opt-level = 3
 panic     = "abort"
 strip     = true
+
+[profile.release-prod]
+inherits = "release"
+# Performs “fat” LTO which attempts to perform optimizations across all crates within the dependency graph.
+lto = "fat"
