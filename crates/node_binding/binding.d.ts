@@ -63,7 +63,7 @@ export class JsCompilation {
 
 export class JsResolver {
   resolveSync(path: string, request: string): string | false
-  withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
+  withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): this
 }
 
 export class JsResolverFactory {

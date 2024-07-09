@@ -12,6 +12,7 @@ import * as liteTapable from "@rspack/lite-tapable";
 import type Watchpack from "watchpack";
 import { Compilation, CompilationParams } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
+import { ThreadsafeWritableNodeFS } from "./FileSystem";
 import { RuleSetCompiler } from "./RuleSetCompiler";
 import { Stats } from "./Stats";
 import {
@@ -21,9 +22,8 @@ import {
 	RspackPluginInstance,
 	getRawOptions
 } from "./config";
-import { rspack } from "./index";
-import { ThreadsafeWritableNodeFS } from "./FileSystem";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
+import { rspack } from "./index";
 import Cache = require("./lib/Cache");
 import CacheFacade = require("./lib/CacheFacade");
 import { Source } from "webpack-sources";

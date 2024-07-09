@@ -19,7 +19,16 @@ import {
 } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import { Source } from "webpack-sources";
+import { Chunk } from "./Chunk";
+import { ChunkGraph } from "./ChunkGraph";
+import { Compiler } from "./Compiler";
 import { ContextModuleFactory } from "./ContextModuleFactory";
+import { Entrypoint } from "./Entrypoint";
+import ErrorHelpers from "./ErrorHelpers";
+import { CodeGenerationResult, Module } from "./Module";
+import { NormalModuleFactory } from "./NormalModuleFactory";
+import { ResolverFactory } from "./ResolverFactory";
+import { Stats, StatsAsset, StatsError, StatsModule } from "./Stats";
 import {
 	Filename,
 	OutputNormalized,
@@ -28,15 +37,6 @@ import {
 	StatsOptions,
 	StatsValue
 } from "./config";
-import { ResolverFactory } from "./ResolverFactory";
-import { Chunk } from "./Chunk";
-import { ChunkGraph } from "./ChunkGraph";
-import { Compiler } from "./Compiler";
-import { Entrypoint } from "./Entrypoint";
-import ErrorHelpers from "./ErrorHelpers";
-import { CodeGenerationResult, Module } from "./Module";
-import { NormalModuleFactory } from "./NormalModuleFactory";
-import { Stats, StatsAsset, StatsError, StatsModule } from "./Stats";
 import { LogType, Logger } from "./logging/Logger";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";

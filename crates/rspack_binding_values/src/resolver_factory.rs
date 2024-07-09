@@ -33,23 +33,24 @@ impl JsResolverFactory {
     &self,
     r#type: String,
     raw: Option<RawResolveOptionsWithDependencyType>,
-  ) -> JsResolver {
-    match r#type.as_str() {
+  ) -> napi::Result<JsResolver> {
+    let (options, resolver_factory) = match r#type.as_str() {
       "normal" => {
-        let options = normalize_raw_resolve_options_with_dependency_type(raw, false).unwrap();
-        JsResolver::new(self.resolver_factory.clone(), options)
+        (normalize_raw_resolve_options_with_dependency_type(raw, false), self.resolver_factory.clone())
       }
       "loader" => {
-        let options = normalize_raw_resolve_options_with_dependency_type(raw, false).unwrap();
-        JsResolver::new(self.loader_resolver_factory.clone(), options)
+        (normalize_raw_resolve_options_with_dependency_type(raw, false), self.loader_resolver_factory.clone())
       }
       "context" => {
-        let options = normalize_raw_resolve_options_with_dependency_type(raw, true).unwrap();
-        JsResolver::new(self.resolver_factory.clone(), options)
+        (normalize_raw_resolve_options_with_dependency_type(raw, true), self.resolver_factory.clone())
       }
       _ => {
-        panic!("Invalid resolver type '{}' specified. Rspack only supports 'normal', 'context', and 'loader' types.", r#type)
+        return Err(napi::Error::from_reason(format!("Invalid resolver type '{}' specified. Rspack only supports 'normal', 'context', and 'loader' types.", r#type)))
       }
+    };
+    match options {
+      Ok(options) => Ok(JsResolver::new(resolver_factory, options)),
+      Err(e) => Err(napi::Error::from_reason(format!("{e}"))),
     }
   }
 }

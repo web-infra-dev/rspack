@@ -44,21 +44,27 @@ impl JsResolver {
   }
 
   #[napi]
-  pub fn with_options(&self, raw: Option<RawResolveOptionsWithDependencyType>) -> Self {
-    let mut options =
-      normalize_raw_resolve_options_with_dependency_type(raw, self.options.resolve_to_context)
-        .unwrap();
+  pub fn with_options(
+    &self,
+    raw: Option<RawResolveOptionsWithDependencyType>,
+  ) -> napi::Result<Self> {
+    let options =
+      normalize_raw_resolve_options_with_dependency_type(raw, self.options.resolve_to_context);
+    match options {
+      Ok(mut options) => {
+        options.resolve_options = match options.resolve_options.take() {
+          Some(resolve_options) => match &self.options.resolve_options {
+            Some(origin_resolve_options) => Some(Box::new(
+              resolve_options.merge(*origin_resolve_options.clone()),
+            )),
+            None => Some(resolve_options),
+          },
+          None => self.options.resolve_options.clone(),
+        };
 
-    options.resolve_options = match options.resolve_options.take() {
-      Some(resolve_options) => match &self.options.resolve_options {
-        Some(origin_resolve_options) => Some(Box::new(
-          resolve_options.merge(*origin_resolve_options.clone()),
-        )),
-        None => Some(resolve_options),
-      },
-      None => self.options.resolve_options.clone(),
-    };
-
-    Self::new(self.resolver_factory.clone(), options)
+        Ok(Self::new(self.resolver_factory.clone(), options))
+      }
+      Err(e) => Err(napi::Error::from_reason(format!("{e}"))),
+    }
   }
 }

@@ -59,7 +59,6 @@ import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
 import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
 import { registerGlobalTrace } from '@rspack/binding';
-import ResolverFactory = require('./ResolverFactory');
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import sources = require('../compiled/webpack-sources');
 import { SyncBailHook } from '@rspack/lite-tapable';
@@ -909,6 +908,8 @@ export class Compilation {
     // @internal
     __internal__setAssetSource(filename: string, source: Source): void;
     // @internal
+    __internal_get_resolver_factory(): binding.JsResolverFactory;
+    // @internal
     __internal_getInner(): binding.JsCompilation;
     get assets(): Record<string, Source>;
     // (undocumented)
@@ -1085,7 +1086,7 @@ export class Compilation {
     // (undocumented)
     renameAsset(filename: string, newFilename: string): void;
     // (undocumented)
-    resolverFactory: ResolverFactory;
+    get resolverFactory(): ResolverFactory;
     // (undocumented)
     seal(): void;
     // (undocumented)
@@ -1215,8 +1216,6 @@ export class Compiler {
     get recordsOutputPath(): never;
     // (undocumented)
     removedFiles?: ReadonlySet<string>;
-    // (undocumented)
-    resolverFactory: ResolverFactory;
     // (undocumented)
     root: Compiler;
     // (undocumented)
@@ -2837,6 +2836,11 @@ export class EnvironmentPlugin {
 }
 
 // @public (undocumented)
+type ErrorWithDetail = Error & {
+    details?: string;
+};
+
+// @public (undocumented)
 interface Es6Config extends BaseModuleConfig {
     // (undocumented)
     type: "es6";
@@ -3757,6 +3761,9 @@ export function getRawLibrary(library: LibraryOptions): RawLibraryOptions;
 
 // @public (undocumented)
 export const getRawOptions: (options: RspackOptionsNormalized, compiler: Compiler) => RawOptions;
+
+// @public (undocumented)
+export function getRawResolve(resolve: Resolve): RawOptions["resolve"];
 
 // @public (undocumented)
 export type GlobalObject = z.infer<typeof globalObject>;
@@ -8155,16 +8162,17 @@ export type RemotesObject = {
 };
 
 // @public (undocumented)
-export type Resolve = z.infer<typeof resolve>;
-
-// @public (undocumented)
-const resolve: z.ZodType<ResolveOptions, z.ZodTypeDef, ResolveOptions>;
+export type Resolve = z.infer<typeof resolveOptions>;
 
 // @public (undocumented)
 export type ResolveAlias = z.infer<typeof resolveAlias>;
 
 // @public (undocumented)
 const resolveAlias: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, "many">]>>;
+
+// @public (undocumented)
+interface ResolveContext {
+}
 
 // @public (undocumented)
 type ResolveData = {
@@ -8183,7 +8191,40 @@ export type ResolveOptions = z.infer<typeof baseResolveOptions> & {
 };
 
 // @public (undocumented)
+const resolveOptions: z.ZodType<ResolveOptions>;
+
+// @public (undocumented)
+type ResolveOptionsWithDependencyType = binding.RawResolveOptionsWithDependencyType;
+
+// @public (undocumented)
+type ResolveOptionsWithDependencyType_2 = Omit<binding.RawResolveOptionsWithDependencyType, "restrictions"> & {
+    restrictions?: (string | RegExp)[];
+};
+
+// @public (undocumented)
+class Resolver {
+    constructor(binding: binding.JsResolver);
+    // (undocumented)
+    binding: binding.JsResolver;
+    // (undocumented)
+    resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: (err: null | ErrorWithDetail, res?: string | false) => void): void;
+    // (undocumented)
+    resolveSync(context: object, path: string, request: string): string | false;
+    // (undocumented)
+    withOptions({ restrictions, ...rest }: ResolveOptionsWithDependencyType_2): Resolver;
+}
+
+// @public (undocumented)
 type ResolveRequest = BaseResolveRequest & Partial<ParsedIdentifier>;
+
+// @public (undocumented)
+class ResolverFactory {
+    constructor(binding: binding.JsResolverFactory);
+    // (undocumented)
+    binding: binding.JsResolverFactory;
+    // (undocumented)
+    get(type: string, resolveOptions?: ResolveOptionsWithDependencyType): Resolver;
+}
 
 // @public (undocumented)
 export type ResolveTsConfig = z.infer<typeof resolveTsConfig>;
@@ -8378,6 +8419,7 @@ declare namespace rspackExports {
         SwcLoaderTransformConfig,
         SwcLoaderTsParserConfig,
         experiments,
+        getRawResolve,
         getRawLibrary,
         getRawChunkLoading,
         LoaderContext,
