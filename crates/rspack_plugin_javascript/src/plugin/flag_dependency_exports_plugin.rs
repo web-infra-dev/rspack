@@ -323,6 +323,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
 
       // Recalculate target exportsInfo
       let mut mga = MutableModuleGraph::new(self.mg);
+      dbg!(&name, export_info_id, exports_info);
       let target = export_info_id.get_target(&mut mga, None);
 
       let mut target_exports_info: Option<ExportsInfoId> = None;

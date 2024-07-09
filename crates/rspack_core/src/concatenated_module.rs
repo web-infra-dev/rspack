@@ -2002,14 +2002,16 @@ impl ConcatenatedModule {
         }
       }
     }
-
     let exports_info = mg.get_exports_info(&info.id());
+    dbg!(&info.id(), exports_info.id);
+    dbg!(&export_name[0]);
     // webpack use get_exports_info here, https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L377-L377
     // But in our arch, there is no way to modify module graph during code_generation phase
     let export_info_id = exports_info
       .id
       .get_read_only_export_info(&export_name[0], mg)
       .id;
+    dbg!(&export_info_id);
 
     if already_visited.contains(&export_info_id) {
       return Binding::Raw(RawBinding {
