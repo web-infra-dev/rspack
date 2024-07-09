@@ -1293,11 +1293,17 @@ impl ExportInfoId {
     if !export_info.target_is_set || export_info.target.is_empty() {
       return FindTargetRetEnum::Undefined;
     }
-    let raw_target = export_info
-      .get_max_target_readonly()
-      .values()
-      .next()
-      .cloned();
+
+    let raw_target = if export_info.max_target_is_set {
+      export_info
+        .get_max_target_readonly()
+        .values()
+        .next()
+        .cloned()
+    } else {
+      export_info._get_max_target().values().next().cloned()
+    };
+
     let Some(raw_target) = raw_target else {
       return FindTargetRetEnum::Undefined;
     };
