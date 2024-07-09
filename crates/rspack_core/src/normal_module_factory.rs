@@ -14,18 +14,20 @@ use crate::{
   stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerOptions, Context,
   DependencyCategory, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserOptions, RawModule, Resolve,
-  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
-  ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
+  RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  ResolverFactory, ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
 define_hook!(NormalModuleFactoryFactorize: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> BoxModule);
 define_hook!(NormalModuleFactoryResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> NormalModuleFactoryResolveResult);
-define_hook!(NormalModuleFactoryResolveForScheme: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData) -> bool);
+define_hook!(NormalModuleFactoryResolveForScheme: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData, for_name: &Scheme) -> bool);
+define_hook!(NormalModuleFactoryResolveInScheme: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData, for_name: &Scheme) -> bool);
 define_hook!(NormalModuleFactoryAfterResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> bool);
 define_hook!(NormalModuleFactoryCreateModule: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule);
 define_hook!(NormalModuleFactoryModule: AsyncSeries(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule));
+define_hook!(NormalModuleFactoryParser: SyncSeries(module_type: &ModuleType, parser: &mut dyn ParserAndGenerator, parser_options: Option<&ParserOptions>));
 define_hook!(NormalModuleFactoryResolveLoader: AsyncSeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader);
 
 pub enum NormalModuleFactoryResolveResult {
@@ -39,9 +41,11 @@ pub struct NormalModuleFactoryHooks {
   pub factorize: NormalModuleFactoryFactorizeHook,
   pub resolve: NormalModuleFactoryResolveHook,
   pub resolve_for_scheme: NormalModuleFactoryResolveForSchemeHook,
+  pub resolve_in_scheme: NormalModuleFactoryResolveInSchemeHook,
   pub after_resolve: NormalModuleFactoryAfterResolveHook,
   pub create_module: NormalModuleFactoryCreateModuleHook,
   pub module: NormalModuleFactoryModuleHook,
+  pub parser: NormalModuleFactoryParserHook,
   /// Webpack resolves loaders in `NormalModuleFactory`,
   /// Rspack resolves it when normalizing configuration.
   /// So this hook is used to resolve inline loader (inline loader requests).
@@ -273,76 +277,93 @@ impl NormalModuleFactory {
       }
     }
 
-    let resource_data = if scheme.is_some() {
+    macro_rules! default_resolve {
+      () => {
+        // resource without scheme and without path
+        if unresolved_resource.is_empty() || unresolved_resource.starts_with(QUESTION_MARK) {
+          ResourceData::new(unresolved_resource.to_owned(), "".into())
+        } else {
+          // resource without scheme and with path
+          let resolve_args = ResolveArgs {
+            importer,
+            issuer: data.issuer.as_deref(),
+            context: if context_scheme != Scheme::None {
+              self.options.context.clone()
+            } else {
+              data.context.clone()
+            },
+            specifier: unresolved_resource,
+            dependency_type: dependency.dependency_type(),
+            dependency_category: dependency.category(),
+            span: dependency.source_span(),
+            // take the options is safe here, because it
+            // is not used in after_resolve hooks
+            resolve_options: data.resolve_options.take(),
+            resolve_to_context: false,
+            optional: dependency.get_optional(),
+            file_dependencies: &mut file_dependencies,
+            missing_dependencies: &mut missing_dependencies,
+          };
+
+          let resource_data = resolve(resolve_args, plugin_driver).await;
+
+          match resource_data {
+            Ok(ResolveResult::Resource(resource)) => {
+              let uri = resource.full_path().display().to_string();
+              ResourceData::new(uri, resource.path)
+                .query(resource.query)
+                .fragment(resource.fragment)
+                .description_optional(resource.description_data)
+            }
+            Ok(ResolveResult::Ignored) => {
+              let ident = format!("{}/{}", &data.context, unresolved_resource);
+              let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
+
+              let raw_module = RawModule::new(
+                "/* (ignored) */".to_owned(),
+                module_identifier,
+                format!("{ident} (ignored)"),
+                Default::default(),
+              )
+              .boxed();
+
+              return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
+            }
+            Err(err) => {
+              data.add_file_dependencies(file_dependencies);
+              data.add_missing_dependencies(missing_dependencies);
+              return Err(err);
+            }
+          }
+        }
+      };
+    }
+
+    let resource_data = if !scheme.is_none() {
       // resource with scheme
       let mut resource_data = ResourceData::new(unresolved_resource.to_owned(), "".into());
       plugin_driver
         .normal_module_factory_hooks
         .resolve_for_scheme
-        .call(data, &mut resource_data)
+        .call(data, &mut resource_data, &scheme)
         .await?;
       resource_data
-    } else {
-      // TODO: resource within scheme
-
-      // default resolve
-      // resource without scheme and with path
-      if unresolved_resource.is_empty() || unresolved_resource.starts_with(QUESTION_MARK) {
-        ResourceData::new(unresolved_resource.to_owned(), "".into())
+    } else if !context_scheme.is_none() {
+      // resource within scheme
+      let mut resource_data = ResourceData::new(unresolved_resource.to_owned(), "".into());
+      let mut mutable_data = data.clone();
+      let handled = plugin_driver
+        .normal_module_factory_hooks
+        .resolve_in_scheme
+        .call(&mut mutable_data, &mut resource_data, &context_scheme)
+        .await?;
+      if !handled.unwrap_or_default() {
+        default_resolve!()
       } else {
-        let resolve_args = ResolveArgs {
-          importer,
-          issuer: data.issuer.as_deref(),
-          context: if context_scheme != Scheme::None {
-            self.options.context.clone()
-          } else {
-            data.context.clone()
-          },
-          specifier: unresolved_resource,
-          dependency_type: dependency.dependency_type(),
-          dependency_category: dependency.category(),
-          span: dependency.source_span(),
-          // take the options is safe here, because it
-          // is not used in after_resolve hooks
-          resolve_options: data.resolve_options.take(),
-          resolve_to_context: false,
-          optional: dependency.get_optional(),
-          file_dependencies: &mut file_dependencies,
-          missing_dependencies: &mut missing_dependencies,
-        };
-
-        // default resolve
-        let resource_data = resolve(resolve_args, plugin_driver).await;
-
-        match resource_data {
-          Ok(ResolveResult::Resource(resource)) => {
-            let uri = resource.full_path().display().to_string();
-            ResourceData::new(uri, resource.path)
-              .query(resource.query)
-              .fragment(resource.fragment)
-              .description_optional(resource.description_data)
-          }
-          Ok(ResolveResult::Ignored) => {
-            let ident = format!("{}/{}", &data.context, unresolved_resource);
-            let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
-
-            let raw_module = RawModule::new(
-              "/* (ignored) */".to_owned(),
-              module_identifier,
-              format!("{ident} (ignored)"),
-              Default::default(),
-            )
-            .boxed();
-
-            return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
-          }
-          Err(err) => {
-            data.add_file_dependencies(file_dependencies);
-            data.add_missing_dependencies(missing_dependencies);
-            return Err(err);
-          }
-        }
+        resource_data
       }
+    } else {
+      default_resolve!()
     };
 
     let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data
@@ -500,7 +521,7 @@ impl NormalModuleFactory {
         resolved_generator_options,
       );
     let resolved_side_effects = self.calculate_side_effects(&resolved_module_rules);
-    let resolved_parser_and_generator = self
+    let mut resolved_parser_and_generator = self
       .plugin_driver
       .registered_parser_and_generator_builder
       .get(&resolved_module_type)
@@ -513,6 +534,11 @@ impl NormalModuleFactory {
       resolved_parser_options.as_ref(),
       resolved_generator_options.as_ref(),
     );
+    self.plugin_driver.normal_module_factory_hooks.parser.call(
+      &resolved_module_type,
+      resolved_parser_and_generator.as_mut(),
+      resolved_parser_options.as_ref(),
+    )?;
 
     let mut create_data = {
       let mut create_data = NormalModuleCreateData {

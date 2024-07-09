@@ -760,10 +760,6 @@ export interface RawBannerPluginOptions {
   exclude?: string | RegExp | (string | RegExp)[]
 }
 
-export interface RawBuiltins {
-  treeShaking: string
-}
-
 export interface RawBundlerInfoPluginOptions {
   version: string
   bundler: string
@@ -1307,18 +1303,6 @@ export interface RawPathData {
   url?: string
 }
 
-export interface RawPluginImportConfig {
-  libraryName: string
-  libraryDirectory?: string
-  customName?: string
-  customStyleName?: string
-  style?: RawStyleConfig
-  camelToDashComponentName?: boolean
-  transformToDefaultImport?: boolean
-  ignoreEsComponent?: Array<string>
-  ignoreStyleComponent?: Array<string>
-}
-
 export interface RawProgressPluginOptions {
   prefix: string
   profile: boolean
@@ -1333,18 +1317,6 @@ export interface RawProvideOptions {
   shareScope: string
   version?: string | false | undefined
   eager: boolean
-}
-
-export interface RawReactOptions {
-  runtime?: "automatic" | "classic"
-  importSource?: string
-  pragma?: string
-  pragmaFrag?: string
-  throwIfNamespace?: boolean
-  development?: boolean
-  useBuiltins?: boolean
-  useSpread?: boolean
-  refresh?: boolean
 }
 
 export interface RawRegex {
@@ -1497,13 +1469,6 @@ export interface RawSplitChunksOptions {
 
 export interface RawStatsOptions {
   colors: boolean
-}
-
-export interface RawStyleConfig {
-  styleLibraryDirectory?: string
-  custom?: string
-  css?: string
-  bool?: boolean
 }
 
 export interface RawSwcJsMinimizerRspackPluginOptions {

@@ -1,10 +1,10 @@
-use rspack_swc_visitors::{ImportOptions, RawImportOptions};
 use serde::Deserialize;
 use swc_config::config_types::BoolConfig;
 use swc_core::base::config::{
   Config, ErrorConfig, FileMatcher, InputSourceMap, IsModule, JscConfig, ModuleConfig, Options,
   SourceMapsConfig,
 };
+use swc_plugin_import::{ImportOptions, RawImportOptions};
 
 #[derive(Default, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", default)]

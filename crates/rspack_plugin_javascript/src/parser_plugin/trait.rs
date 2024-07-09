@@ -378,4 +378,4 @@ pub trait JavascriptParserPlugin {
   }
 }
 
-pub type BoxJavascriptParserPlugin = Box<dyn JavascriptParserPlugin>;
+pub type BoxJavascriptParserPlugin = Box<dyn JavascriptParserPlugin + Send + Sync>;

@@ -1,9 +1,4 @@
-use std::{
-  borrow::Cow,
-  cmp::max,
-  hash::Hash,
-  sync::{atomic::AtomicBool, Arc},
-};
+use std::{borrow::Cow, cmp::max, hash::Hash, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -12,19 +7,22 @@ use rspack_core::{
   ApplyContext, AssetInfo, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, Filename, Module,
-  ModuleGraph, ModuleIdentifier, ModuleType, PathData, Plugin, PluginContext, RenderManifestEntry,
-  RuntimeGlobals, SourceType,
+  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_javascript::{
+  parser_and_generator::JavaScriptParserAndGenerator, BoxJavascriptParserPlugin,
+};
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
 use rustc_hash::{FxHashMap, FxHashSet};
 use ustr::Ustr;
 
 use crate::{
   css_module::{CssModule, CssModuleFactory, DEPENDENCY_TYPE},
-  parser_and_generator::CssExtractParserAndGenerator,
+  parser_plugin::PluginCssExtractParserPlugin,
   runtime::CssLoadingRuntimeModule,
 };
 pub static PLUGIN_NAME: &str = "css-extract-rspack-plugin";
@@ -64,7 +62,6 @@ struct CssOrderConflicts {
 #[derive(Debug)]
 pub struct PluginCssExtract {
   pub(crate) options: Arc<CssExtractOptions>,
-  registered: AtomicBool,
 }
 
 impl Eq for PluginCssExtractInner {}
@@ -119,7 +116,7 @@ pub enum InsertType {
 
 impl PluginCssExtract {
   pub fn new(options: CssExtractOptions) -> Self {
-    Self::new_inner(Arc::new(options), false.into())
+    Self::new_inner(Arc::new(options))
   }
 
   // port from https://github.com/webpack-contrib/mini-css-extract-plugin/blob/d5e540baf8280442e523530ebbbe31c57a4c4336/src/index.js#L1127
@@ -435,28 +432,6 @@ async fn compilation(
   _params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(DEPENDENCY_TYPE.clone(), Arc::new(CssModuleFactory));
-
-  if !self
-    .registered
-    .swap(true, std::sync::atomic::Ordering::Relaxed)
-  {
-    let (_, parser_and_generator) = compilation
-      .plugin_driver
-      .registered_parser_and_generator_builder
-      .remove(&ModuleType::JsAuto)
-      .expect("No JavaScript parser registered");
-
-    compilation
-      .plugin_driver
-      .registered_parser_and_generator_builder
-      .insert(
-        ModuleType::JsAuto,
-        Box::new(move |parser_opt, generator_opt| {
-          let parser = parser_and_generator(parser_opt, generator_opt);
-          Box::new(CssExtractParserAndGenerator::new(parser))
-        }),
-      );
-  }
   Ok(())
 }
 
@@ -677,6 +652,23 @@ despite it was not able to fulfill desired ordering with these modules:\n{}",
   Ok(())
 }
 
+#[plugin_hook(NormalModuleFactoryParser for PluginCssExtract)]
+fn nmf_parser(
+  &self,
+  module_type: &ModuleType,
+  parser: &mut dyn ParserAndGenerator,
+  _parser_options: Option<&ParserOptions>,
+) -> Result<()> {
+  if module_type.is_js_like()
+    && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
+  {
+    parser.add_parser_plugin(
+      Box::<PluginCssExtractParserPlugin>::default() as BoxJavascriptParserPlugin
+    );
+  }
+  Ok(())
+}
+
 #[async_trait::async_trait]
 impl Plugin for PluginCssExtract {
   fn apply(
@@ -704,6 +696,12 @@ impl Plugin for PluginCssExtract {
       .compilation_hooks
       .render_manifest
       .tap(render_manifest::new(self));
+
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .parser
+      .tap(nmf_parser::new(self));
 
     Ok(())
   }

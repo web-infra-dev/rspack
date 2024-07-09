@@ -3,7 +3,7 @@ use regex::Regex;
 use rspack_core::{
   ApplyContext, CompilerOptions, Content, ModuleFactoryCreateData,
   NormalModuleFactoryResolveForScheme, NormalModuleReadResource, Plugin, PluginContext,
-  ResourceData,
+  ResourceData, Scheme,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -21,8 +21,9 @@ async fn resolve_for_scheme(
   &self,
   _data: &mut ModuleFactoryCreateData,
   resource_data: &mut ResourceData,
+  scheme: &Scheme,
 ) -> Result<Option<bool>> {
-  if resource_data.get_scheme().is_data()
+  if scheme.is_data()
     && let Some(captures) = URI_REGEX.captures(&resource_data.resource)
   {
     let mimetype = captures

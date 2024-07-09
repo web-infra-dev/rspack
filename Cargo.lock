@@ -3044,7 +3044,6 @@ dependencies = [
  "rspack_plugin_web_worker_template",
  "rspack_plugin_worker",
  "rspack_regex",
- "rspack_swc_visitors",
  "rustc-hash 1.1.0",
  "serde",
  "serde_json",
@@ -3109,7 +3108,6 @@ dependencies = [
  "rspack_regex",
  "rspack_resolver",
  "rspack_sources",
- "rspack_swc_visitors",
  "rspack_util",
  "rustc-hash 1.1.0",
  "serde",
@@ -3275,13 +3273,13 @@ dependencies = [
  "rspack_error",
  "rspack_loader_runner",
  "rspack_plugin_javascript",
- "rspack_swc_visitors",
  "rspack_util",
  "serde",
  "serde_json",
  "stacker",
  "swc_config",
  "swc_core",
+ "swc_plugin_import",
  "tokio",
  "url",
 ]
@@ -3516,6 +3514,7 @@ dependencies = [
  "rspack_hook",
  "rspack_identifier",
  "rspack_plugin_css",
+ "rspack_plugin_javascript",
  "rspack_plugin_runtime",
  "rspack_util",
  "rustc-hash 1.1.0",
@@ -3946,16 +3945,6 @@ dependencies = [
  "smallvec",
  "str_indices",
  "substring",
-]
-
-[[package]]
-name = "rspack_swc_visitors"
-version = "0.1.0"
-dependencies = [
- "rspack_error",
- "serde",
- "swc_core",
- "swc_plugin_import",
 ]
 
 [[package]]

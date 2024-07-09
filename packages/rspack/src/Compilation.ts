@@ -141,7 +141,8 @@ export type NormalizedStatsOptions = KnownNormalizedStatsOptions &
 
 export class Compilation {
 	#inner: JsCompilation;
-	#cachedAssets: Record<string, Source>;
+	#cachedAssets?: Record<string, Source>;
+	#cachedEntrypoints?: ReadonlyMap<string, Entrypoint>;
 
 	hooks: Readonly<{
 		processAssets: liteTapable.AsyncSeriesHook<Assets>;
@@ -223,7 +224,6 @@ export class Compilation {
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.#inner = inner;
-		this.#cachedAssets = this.#createCachedAssets();
 		this.#customModules = {};
 
 		const processAssetsHook = new liteTapable.AsyncSeriesHook<Assets>([
@@ -341,6 +341,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * Get a map of all assets.
 	 */
 	get assets(): Record<string, Source> {
+		if (!this.#cachedAssets) {
+			this.#cachedAssets = this.#createCachedAssets();
+		}
 		return this.#cachedAssets;
 	}
 
@@ -348,12 +351,15 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * Get a map of all entrypoints.
 	 */
 	get entrypoints(): ReadonlyMap<string, Entrypoint> {
-		return new Map(
-			Object.entries(this.#inner.entrypoints).map(([n, e]) => [
-				n,
-				Entrypoint.__from_binding(e, this.#inner)
-			])
-		);
+		if (!this.#cachedEntrypoints) {
+			this.#cachedEntrypoints = new Map(
+				Object.entries(this.#inner.entrypoints).map(([n, e]) => [
+					n,
+					Entrypoint.__from_binding(e, this.#inner)
+				])
+			);
+		}
+		return this.#cachedEntrypoints;
 	}
 
 	get modules(): ReadonlySet<Module> {

@@ -17,4 +17,5 @@ packages/rspack-plugin-mini-css-extract/test/cases/**/*
 
 crates/**/*
 target/**/*
-tests/**/*
+tests/**/*.*
+!tests/**/test.filter.js

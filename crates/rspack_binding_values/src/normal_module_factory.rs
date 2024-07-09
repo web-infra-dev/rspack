@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{NormalModuleCreateData, ResourceData};
+use rspack_core::NormalModuleCreateData;
 
 use crate::JsResourceData;
 
@@ -65,15 +65,6 @@ pub struct JsNormalModuleFactoryCreateModuleArgs {
   pub resource_resolve_data: JsResourceData,
   pub context: String,
   pub match_resource: Option<String>,
-}
-
-impl From<ResourceData> for JsResolveForSchemeArgs {
-  fn from(value: ResourceData) -> Self {
-    Self {
-      scheme: value.get_scheme().to_string(),
-      resource_data: value.into(),
-    }
-  }
 }
 
 impl From<&NormalModuleCreateData> for JsCreateData {

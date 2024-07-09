@@ -918,6 +918,7 @@ impl ModuleConcatenationPlugin {
         modules,
         Some(rspack_hash::HashFunction::MD4),
         config.runtime.clone(),
+        compilation,
       );
       new_module
         .build(
