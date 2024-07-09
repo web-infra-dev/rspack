@@ -6,7 +6,6 @@ import { Compilation, Compiler } from "..";
 import { Chunk } from "../Chunk";
 import { PathData } from "../Compilation";
 import { Module } from "../Module";
-import type { Builtins as BuiltinsType } from "../builtin-plugin";
 
 //#region Name
 const name = z.string();

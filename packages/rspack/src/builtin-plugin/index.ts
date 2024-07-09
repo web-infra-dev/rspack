@@ -64,34 +64,3 @@ export * from "./WarnCaseSensitiveModulesPlugin";
 export * from "./WebWorkerTemplatePlugin";
 export * from "./WorkerPlugin";
 export * from "./FetchCompileAsyncWasmPlugin";
-
-///// DEPRECATED /////
-import { RawBuiltins } from "@rspack/binding";
-
-import { RspackOptionsNormalized } from "..";
-
-function resolveTreeShaking(
-	treeShaking: Builtins["treeShaking"],
-	production: boolean
-): string {
-	return treeShaking !== undefined
-		? treeShaking.toString()
-		: production
-			? "true"
-			: "false";
-}
-
-export interface Builtins {
-	treeShaking?: boolean | "module";
-}
-
-export function deprecated_resolveBuiltins(
-	builtins: Builtins,
-	options: RspackOptionsNormalized
-): RawBuiltins {
-	const production = options.mode === "production" || !options.mode;
-
-	return {
-		treeShaking: resolveTreeShaking(builtins.treeShaking, production)
-	};
-}

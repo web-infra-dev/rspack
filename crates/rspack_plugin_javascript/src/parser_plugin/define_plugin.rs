@@ -149,10 +149,7 @@ const VALUE_DEP_PREFIX: &str = "webpack/DefinePlugin ";
 impl JavascriptParserPlugin for DefinePlugin {
   fn can_rename(&self, _: &mut JavascriptParser, str: &str) -> Option<bool> {
     let names = self.cached_names();
-    if names.iter().any(|l: &String| l.eq(str)) {
-      return Some(true);
-    }
-    None
+    names.iter().any(|l| l.eq(str)).then_some(true)
   }
 
   fn evaluate_identifier(

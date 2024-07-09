@@ -43,7 +43,7 @@ pub(crate) fn transform<'a>(
   rspack_experiments: &'a RspackExperiments,
 ) -> impl Fold + 'a {
   either!(rspack_experiments.import, |options| {
-    rspack_swc_visitors::import(options)
+    swc_plugin_import::plugin_import(options)
   })
 }
 
