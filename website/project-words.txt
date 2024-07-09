@@ -41,6 +41,7 @@ externalstypecommonjs
 faga295
 fargs
 feishu
+fi3ework
 fnames
 funs
 Hana
@@ -116,6 +117,7 @@ rome
 rsbuild
 Rsdoctor
 rsfamily
+Rslib
 rspack
 Rspack
 rspackplugin
