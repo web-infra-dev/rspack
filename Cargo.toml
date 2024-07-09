@@ -78,7 +78,7 @@ panic         = "abort"
 codegen-units = 1
 debug         = false
 # Performs “thin” LTO. This is similar to “fat”, but takes substantially less time to run while still achieving performance gains similar to “fat”.
-lto       = "thin"
+lto       = "fat"
 opt-level = 3
 panic     = "abort"
 strip     = true
