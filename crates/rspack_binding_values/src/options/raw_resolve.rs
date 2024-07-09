@@ -196,8 +196,7 @@ pub struct RawResolveOptionsWithDependencyType {
   #[napi(ts_type = "Record<string, Array<string>>")]
   pub extension_alias: Option<HashMap<String, Vec<String>>>,
   pub alias_fields: Option<Vec<String>>,
-  // TODO
-  // pub restrictions: Option<Vec<String>>,
+  pub restrictions: Option<Vec<String>>,
   pub roots: Option<Vec<String>>,
 
   pub dependency_category: Option<String>,
@@ -255,7 +254,7 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         extension_alias,
         alias_fields,
         roots: raw.roots,
-        restrictions: None,
+        restrictions: raw.restrictions,
         imports_fields,
         by_dependency,
         description_files: raw.description_files,

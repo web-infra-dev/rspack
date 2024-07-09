@@ -22,7 +22,6 @@ import {
 	getRawOptions
 } from "./config";
 import { rspack } from "./index";
-// import { ResolverFactory } from "./ResolverFactory";
 import { ThreadsafeWritableNodeFS } from "./FileSystem";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import Cache = require("./lib/Cache");
@@ -127,7 +126,6 @@ class Compiler {
 
 	running: boolean;
 	idle: boolean;
-	// resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
 	watching?: Watching;
 
@@ -534,7 +532,6 @@ class Compiler {
 		childCompiler.outputPath = this.outputPath;
 		childCompiler.inputFileSystem = this.inputFileSystem;
 		childCompiler.outputFileSystem = null;
-		// childCompiler.resolverFactory = this.resolverFactory;
 		childCompiler.modifiedFiles = this.modifiedFiles;
 		childCompiler.removedFiles = this.removedFiles;
 		childCompiler.fileTimestamps = this.fileTimestamps;

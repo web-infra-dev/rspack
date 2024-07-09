@@ -4,8 +4,16 @@ interface ResolveContext {}
 
 type ErrorWithDetail = Error & { details?: string };
 
-type ResolveOptionsWithDependencyType =
-	binding.RawResolveOptionsWithDependencyType;
+type ResolveOptionsWithDependencyType = Omit<
+	binding.RawResolveOptionsWithDependencyType,
+	"restrictions"
+> & {
+	restrictions?: (string | RegExp)[];
+};
+
+function isString(value: string | RegExp): value is string {
+	return typeof value === "string";
+}
 
 export class Resolver {
 	binding: binding.JsResolver;
@@ -37,8 +45,16 @@ export class Resolver {
 		}
 	}
 
-	withOptions(options: ResolveOptionsWithDependencyType): Resolver {
-		const binding = this.binding.withOptions(options);
+	withOptions({
+		restrictions,
+		...rest
+	}: ResolveOptionsWithDependencyType): Resolver {
+		const bindingOptions: binding.RawResolveOptionsWithDependencyType = rest;
+		// TODO: rspack_resolver is unimplemented regex
+		if (Array.isArray(restrictions)) {
+			bindingOptions.restrictions = restrictions.filter<string>(isString);
+		}
+		const binding = this.binding.withOptions(bindingOptions);
 		return new Resolver(binding);
 	}
 }

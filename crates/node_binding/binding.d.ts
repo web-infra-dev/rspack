@@ -1406,6 +1406,7 @@ export interface RawResolveOptionsWithDependencyType {
   importsFields?: Array<string>
   extensionAlias?: Record<string, Array<string>>
   aliasFields?: Array<string>
+  restrictions?: Array<string>
   roots?: Array<string>
   dependencyCategory?: string
   resolveToContext?: boolean

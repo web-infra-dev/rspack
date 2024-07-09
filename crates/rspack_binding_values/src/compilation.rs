@@ -77,7 +77,7 @@ impl JsCompilation {
     self
       .0
       .update_asset(&filename, |original_source, original_info| {
-        let new_source: Result<BoxSource> = try {
+        let new_source: napi::Result<BoxSource> = try {
           let new_source = match new_source_or_function {
             Either::A(new_source) => Into::<CompatSource>::into(new_source).boxed(),
             Either::B(new_source_fn) => {
