@@ -145,3 +145,29 @@ module.exports = {
 - singleton：确保共享模块在不同版本间只会被加载一次，遵守单例模式。这对于一些设计为单例运行的库（如 React）是很有必要的，因为这样可以避免由于实例化了多个库实例而导致的各种问题。
 - strictVersion：用来强化 `requiredVersion`。如果设置为 `true`，那么必须精确地匹配 `requiredVersion` 中规定的版本，否则共享模块会报错并且不会加载该模块。如果设置为 `false`，那么可以容忍不精确的匹配。
 - version：显式地设置共享模块的版本。默认会使用 `package.json` 中的版本。
+
+## 常见问题
+
+- 使用后发现产物中存在未降级语法
+
+  添加 `builtin:swc-loader` 进行降级，具体需要包含 `@module-federation/runtime/rspack.js`。示例如下：
+
+  ```js
+  module.exports = {
+    module: {
+      rules: [
+        {
+          include: '@module-federation/runtime/rspack.js',
+          use: {
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                target: 'es5',
+              },
+            },
+          },
+        },
+      ],
+    },
+  };
+  ```

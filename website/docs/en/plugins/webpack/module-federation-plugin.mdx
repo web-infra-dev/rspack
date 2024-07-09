@@ -145,3 +145,29 @@ The SharedConfig can include the following sub-options:
 - singleton: Ensure that shared modules are only loaded once between different versions, following the singleton pattern. This is necessary for libraries designed to run as singletons, such as React, as it can prevent various issues caused by instantiating multiple library instances.
 - strictVersion: Used to strengthen `requiredVersion`. If set to `true`, the shared module must match the version specified in requiredVersion exactly, otherwise an error will be reported and the module will not be loaded. If set to `false`, it can tolerate imprecise matching.
 - version: Explicitly set the version of the shared module. By default, the version in `package.json` will be used.
+
+## FAQ
+
+- Q: Found there is non-downgraded syntax in the output after usage
+
+  A: add `builtin:swc-loader` for downgrading, specifically it should include `@module-federation/runtime/rspack.js`, for example:
+
+  ```js
+  module.exports = {
+    module: {
+      rules: [
+        {
+          include: '@module-federation/runtime/rspack.js',
+          use: {
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                target: 'es5',
+              },
+            },
+          },
+        },
+      ],
+    },
+  };
+  ```
