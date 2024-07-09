@@ -193,6 +193,7 @@ export class Compilation {
 	startTime?: number;
 	endTime?: number;
 	compiler: Compiler;
+	resolverFactory: ResolverFactory;
 
 	inputFileSystem: any;
 	options: RspackOptionsNormalized;
@@ -318,6 +319,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			afterSeal: new liteTapable.AsyncSeriesHook([])
 		};
 		this.compiler = compiler;
+		this.resolverFactory = compiler.resolverFactory;
 		this.inputFileSystem = compiler.inputFileSystem;
 		this.options = compiler.options;
 		this.outputOptions = compiler.options.output;
@@ -387,13 +389,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				}
 			}
 		} as Map<string, Readonly<Chunk>>;
-	}
-
-	get resolverFactory(): ResolverFactory {
-		return memoizeValue(() => {
-			const binding = this.__internal_get_resolver_factory();
-			return new ResolverFactory(binding);
-		});
 	}
 
 	#createCachedAssets() {
@@ -1058,15 +1053,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	__internal_getInner() {
 		return this.#inner;
-	}
-
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal_get_resolver_factory(): binding.JsResolverFactory {
-		return this.#inner.getResolverFactory();
 	}
 
 	seal() {}

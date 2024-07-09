@@ -18,8 +18,10 @@ use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 mod compiler;
 mod panic;
 mod plugins;
+mod resolver_factory;
 
 use plugins::*;
+use resolver_factory::*;
 use rspack_binding_options::*;
 use rspack_binding_values::*;
 use rspack_tracing::chrome::FlushGuard;
@@ -40,6 +42,7 @@ impl Rspack {
     builtin_plugins: Vec<BuiltinPlugin>,
     register_js_taps: RegisterJsTaps,
     output_filesystem: ThreadsafeNodeFS,
+    mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
     tracing::info!("raw_options: {:#?}", &options);
 
@@ -51,17 +54,23 @@ impl Rspack {
         .map_err(|e| Error::from_reason(format!("{e}")))?;
     }
 
-    let compiler_options = options
+    let compiler_options: rspack_core::CompilerOptions = options
       .try_into()
       .map_err(|e| Error::from_reason(format!("{e}")))?;
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);
 
+    let resolver_factory =
+      (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
+    let loader_resolver_factory = (*resolver_factory_reference)
+      .get_loader_resolver_factory(compiler_options.resolve_loader.clone());
     let rspack = rspack_core::Compiler::new(
       compiler_options,
       plugins,
       AsyncNodeWritableFileSystem::new(output_filesystem)
         .map_err(|e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)))?,
+      resolver_factory,
+      loader_resolver_factory,
     );
 
     Ok(Self {

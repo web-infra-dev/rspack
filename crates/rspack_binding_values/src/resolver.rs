@@ -17,7 +17,7 @@ pub struct JsResolver {
 }
 
 impl JsResolver {
-  pub(crate) fn new(
+  pub fn new(
     resolver_factory: Arc<ResolverFactory>,
     options: ResolveOptionsWithDependencyType,
   ) -> Self {

@@ -16,7 +16,6 @@ use rspack_napi::NapiResultExt;
 use super::module::ToJsModule;
 use super::PathWithInfo;
 use crate::utils::callbackify;
-use crate::JsResolverFactory;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
 use crate::{
@@ -517,14 +516,6 @@ impl JsCompilation {
         Err(e) => Err(Error::new(napi::Status::GenericFailure, format!("{e}"))),
       }
     })
-  }
-
-  #[napi]
-  pub fn get_resolver_factory(&self) -> JsResolverFactory {
-    JsResolverFactory::new(
-      self.0.resolver_factory.clone(),
-      self.0.loader_resolver_factory.clone(),
-    )
   }
 }
 

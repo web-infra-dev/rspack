@@ -1,4 +1,4 @@
-import type * as binding from "@rspack/binding";
+import * as binding from "@rspack/binding";
 import { Resolver } from "./Resolver";
 
 type ResolveOptionsWithDependencyType =
@@ -7,8 +7,8 @@ type ResolveOptionsWithDependencyType =
 export class ResolverFactory {
 	binding: binding.JsResolverFactory;
 
-	constructor(binding: binding.JsResolverFactory) {
-		this.binding = binding;
+	constructor() {
+		this.binding = new binding.JsResolverFactory();
 	}
 
 	get(

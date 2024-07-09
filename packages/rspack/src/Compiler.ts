@@ -61,6 +61,7 @@ import { checkVersion } from "./util/bindingVersionCheck";
 import { createHash } from "./util/createHash";
 import { OutputFileSystem, WatchFileSystem } from "./util/fs";
 import { makePathsRelative } from "./util/identifier";
+import { ResolverFactory } from "./ResolverFactory";
 
 export interface AssetEmittedInfo {
 	content: Buffer;
@@ -126,6 +127,7 @@ class Compiler {
 
 	running: boolean;
 	idle: boolean;
+	resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
 	watching?: Watching;
 
@@ -217,6 +219,7 @@ class Compiler {
 		this.records = {};
 
 		this.options = options;
+		this.resolverFactory = new ResolverFactory();
 		this.context = context;
 		this.cache = new Cache();
 
@@ -1184,7 +1187,8 @@ class Compiler {
 			rawOptions,
 			this.#builtinPlugins,
 			this.#registers,
-			ThreadsafeWritableNodeFS.__to_binding(this.outputFileSystem!)
+			ThreadsafeWritableNodeFS.__to_binding(this.outputFileSystem!),
+			this.resolverFactory.binding
 		);
 
 		callback(null, this.#instance);
