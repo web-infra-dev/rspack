@@ -77,8 +77,13 @@ panic         = "abort"
 [profile.release]
 codegen-units = 1
 debug         = false
-# Performs “thin” LTO. This is similar to “fat”, but takes substantially less time to run while still achieving performance gains similar to “fat”.
+# Performs “fat” LTO which attempts to perform optimizations across all crates within the dependency graph.
 lto       = "fat"
 opt-level = 3
 panic     = "abort"
 strip     = true
+
+# Performs “thin” LTO. This is similar to “fat”, but takes substantially less time to run while still achieving performance gains similar to “fat”.
+[profile.release-thin]
+inherits = "release"
+lto      = "thin"
