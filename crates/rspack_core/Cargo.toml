@@ -51,6 +51,7 @@ swc_core = { workspace = true, features = [
   "__utils",
   "__ecma_transforms",
   "ecma_ast",
+  "ecma_parser",
   "ecma_codegen",
   "ecma_quote",
   "common_concurrent",
