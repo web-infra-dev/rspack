@@ -384,21 +384,7 @@ export class RspackOptionsApply {
 		if (!compiler.inputFileSystem) {
 			throw new Error("No input filesystem provided");
 		}
-		compiler.resolverFactory.hooks.resolveOptions
-			.for("normal")
-			.tap("RspackOptionsApply", resolveOptions => {
-				resolveOptions = cleverMerge(options.resolve, resolveOptions);
-				resolveOptions.fileSystem = compiler.inputFileSystem;
-				return resolveOptions;
-			});
-		compiler.resolverFactory.hooks.resolveOptions
-			.for("context")
-			.tap("RspackOptionsApply", resolveOptions => {
-				resolveOptions = cleverMerge(options.resolve, resolveOptions);
-				resolveOptions.fileSystem = compiler.inputFileSystem;
-				resolveOptions.resolveToContext = true;
-				return resolveOptions;
-			});
+
 		compiler.hooks.afterResolvers.call(compiler);
 	}
 }

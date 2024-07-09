@@ -12,6 +12,7 @@ import * as liteTapable from "@rspack/lite-tapable";
 import type Watchpack from "watchpack";
 import { Compilation, CompilationParams } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
+import { ThreadsafeWritableNodeFS } from "./FileSystem";
 import { RuleSetCompiler } from "./RuleSetCompiler";
 import { Stats } from "./Stats";
 import {
@@ -21,10 +22,8 @@ import {
 	RspackPluginInstance,
 	getRawOptions
 } from "./config";
-import { rspack } from "./index";
-import ResolverFactory = require("./ResolverFactory");
-import { ThreadsafeWritableNodeFS } from "./FileSystem";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
+import { rspack } from "./index";
 import Cache = require("./lib/Cache");
 import CacheFacade = require("./lib/CacheFacade");
 import { Source } from "webpack-sources";
@@ -42,6 +41,7 @@ import {
 	NormalModuleCreateData,
 	NormalModuleFactory
 } from "./NormalModuleFactory";
+import { ResolverFactory } from "./ResolverFactory";
 import {
 	RuntimeGlobals,
 	__from_binding_runtime_globals,
@@ -218,8 +218,8 @@ class Compiler {
 
 		this.records = {};
 
-		this.resolverFactory = new ResolverFactory();
 		this.options = options;
+		this.resolverFactory = new ResolverFactory();
 		this.context = context;
 		this.cache = new Cache();
 
@@ -535,7 +535,6 @@ class Compiler {
 		childCompiler.outputPath = this.outputPath;
 		childCompiler.inputFileSystem = this.inputFileSystem;
 		childCompiler.outputFileSystem = null;
-		childCompiler.resolverFactory = this.resolverFactory;
 		childCompiler.modifiedFiles = this.modifiedFiles;
 		childCompiler.removedFiles = this.removedFiles;
 		childCompiler.fileTimestamps = this.fileTimestamps;
@@ -1188,7 +1187,8 @@ class Compiler {
 			rawOptions,
 			this.#builtinPlugins,
 			this.#registers,
-			ThreadsafeWritableNodeFS.__to_binding(this.outputFileSystem!)
+			ThreadsafeWritableNodeFS.__to_binding(this.outputFileSystem!),
+			ResolverFactory.__to_binding(this.resolverFactory)
 		);
 
 		callback(null, this.#instance);

@@ -594,13 +594,13 @@ export async function runLoaders(
 		};
 	};
 
-	const resolver = compiler.resolverFactory.get("normal");
+	const resolver = compiler._lastCompilation!.resolverFactory.get("normal");
 	loaderContext.resolve = function resolve(context, request, callback) {
 		resolver.resolve({}, context, request, getResolveContext(), callback);
 	};
 	// @ts-expect-error TODO
 	loaderContext.getResolve = function getResolve(options) {
-		const child = options ? resolver.withOptions(options) : resolver;
+		const child = options ? resolver.withOptions(options as any) : resolver;
 		return (context, request, callback) => {
 			if (callback) {
 				child.resolve({}, context, request, getResolveContext(), callback);

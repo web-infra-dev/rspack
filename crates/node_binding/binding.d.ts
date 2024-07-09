@@ -60,6 +60,16 @@ export class JsCompilation {
   importModule(request: string, publicPath: string | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: (...args: any[]) => any): void
 }
 
+export class JsResolver {
+  resolveSync(path: string, request: string): string | false
+  withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): this
+}
+
+export class JsResolverFactory {
+  constructor()
+  get(type: string, options?: RawResolveOptionsWithDependencyType): JsResolver
+}
+
 export class JsStats {
   getAssets(): JsStatsGetAssets
   getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsModule>
@@ -73,7 +83,7 @@ export class JsStats {
 }
 
 export class Rspack {
-  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS)
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, resolverFactoryReference: JsResolverFactory)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -1346,6 +1356,32 @@ export interface RawResolveOptions {
   aliasFields?: Array<string>
   restrictions?: Array<string>
   roots?: Array<string>
+}
+
+export interface RawResolveOptionsWithDependencyType {
+  preferRelative?: boolean
+  preferAbsolute?: boolean
+  extensions?: Array<string>
+  mainFiles?: Array<string>
+  mainFields?: Array<string>
+  conditionNames?: Array<string>
+  alias?: Array<RawAliasOptionItem>
+  fallback?: Array<RawAliasOptionItem>
+  symlinks?: boolean
+  tsconfig?: RawResolveTsconfigOptions
+  modules?: Array<string>
+  byDependency?: Record<string, RawResolveOptions>
+  fullySpecified?: boolean
+  exportsFields?: Array<string>
+  descriptionFiles?: Array<string>
+  enforceExtension?: boolean
+  importsFields?: Array<string>
+  extensionAlias?: Record<string, Array<string>>
+  aliasFields?: Array<string>
+  restrictions?: Array<string>
+  roots?: Array<string>
+  dependencyCategory?: string
+  resolveToContext?: boolean
 }
 
 export interface RawResolveTsconfigOptions {

@@ -187,7 +187,7 @@ function getRawTsConfig(
 	};
 }
 
-function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
+export function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 	return {
 		...resolve,
 		alias: getRawAlias(resolve.alias),
