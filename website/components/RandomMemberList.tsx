@@ -40,42 +40,37 @@ const coreTeam: Member[] = [
   {
     id: 'zoolsher',
     avatar: 'https://avatars.githubusercontent.com/u/9161085?s=120&v=4',
-    x: 'https://twitter.com/zoolsher',
+    x: 'https://x.com/zoolsher',
     desc: 'Rspack contributor',
   },
   {
     id: 'hardfist',
     avatar: 'https://avatars.githubusercontent.com/u/8898718?s=120&v=4',
-    x: 'https://twitter.com/hardfist_1',
+    x: 'https://x.com/hardfist_1',
     desc: 'Rspack contributor',
   },
   {
     id: 'jkzing',
-    desc: 'Rspack contributor',
+    desc: 'Rspack / Vue contributor',
     avatar: 'https://avatars.githubusercontent.com/u/2851517?v=4',
   },
   {
     id: 'ahabhgk',
     avatar: 'https://avatars.githubusercontent.com/u/42857895?s=120&v=4',
-    x: 'https://twitter.com/ahabhgk',
-    desc: 'Rspack / Webpack contributor',
+    x: 'https://x.com/ahabhgk',
+    desc: 'Rspack / webpack contributor',
   },
   {
     id: 'bvanjoi',
     avatar: 'https://avatars.githubusercontent.com/u/30187863?s=120&v=4',
-    desc: 'Rspack / Rust contributor',
+    desc: 'Rspack / Rust language contributor',
   },
   {
     id: 'h-a-n-a',
     name: 'Hana',
     avatar: 'https://avatars.githubusercontent.com/u/10465670?s=120&v=4',
-    x: 'https://twitter.com/_h_ana___',
+    x: 'https://x.com/_h_ana___',
     desc: 'Rspack / NAPI contributor',
-  },
-  {
-    id: 'IWANABETHATGUY',
-    avatar: 'https://avatars.githubusercontent.com/u/17974631?s=120&v=4',
-    desc: 'Rspack contributor',
   },
   {
     id: 'jerrykingxyz',
@@ -85,13 +80,13 @@ const coreTeam: Member[] = [
   {
     id: 'chenjiahan',
     avatar: 'https://avatars.githubusercontent.com/u/7237365?s=120&v=4',
-    x: 'https://twitter.com/jait_chen',
-    desc: 'Rspack / Rsbuild / Rspress contributor',
+    x: 'https://x.com/jait_chen',
+    desc: 'Rspack / Rsbuild / Rspress contributor, project lead of Vant',
   },
   {
     id: 'JSerFeng',
     avatar: 'https://avatars.githubusercontent.com/u/57202839?s=120&v=4',
-    x: 'https://twitter.com/JSerFeng',
+    x: 'https://x.com/JSerFeng',
     desc: 'Rspack contributor',
   },
   {
@@ -102,13 +97,13 @@ const coreTeam: Member[] = [
   {
     id: 'sanyuan0704',
     avatar: 'https://avatars.githubusercontent.com/u/39261479?s=120&v=4',
-    x: 'https://twitter.com/sanyuan0704',
+    x: 'https://x.com/sanyuan0704',
     desc: 'Rspack / Rspress contributor',
   },
   {
     id: 'suxin2017',
     avatar: 'https://avatars.githubusercontent.com/u/28481035?v=4',
-    x: 'https://twitter.com/suxin2017',
+    x: 'https://x.com/suxin2017',
     desc: 'Rspack contributor',
   },
   {
@@ -120,19 +115,19 @@ const coreTeam: Member[] = [
     id: 'valorkin',
     avatar: 'https://avatars.githubusercontent.com/u/1107171?v=4',
     desc: 'Rspack contributor, CTO at ZephyrCloudIO',
-    x: 'https://twitter.com/valorkin',
+    x: 'https://x.com/valorkin',
   },
   {
     id: 'lingyucoder',
     avatar: 'https://avatars.githubusercontent.com/u/2663351?v=4',
-    x: 'https://twitter.com/lingyucoder',
+    x: 'https://x.com/lingyucoder',
     desc: 'Rspack contributor',
   },
   {
     id: 'ScriptedAlchemy',
     avatar: 'https://avatars.githubusercontent.com/u/25274700?v=4',
-    desc: 'Inventor of Module Federation, Rspack / Webpack contributor',
-    x: 'https://twitter.com/ScriptedAlchemy',
+    desc: 'Inventor of Module Federation, Rspack / webpack contributor',
+    x: 'https://x.com/ScriptedAlchemy',
   },
   {
     id: 'SyMind',
@@ -142,7 +137,30 @@ const coreTeam: Member[] = [
   {
     id: 'xc2',
     avatar: 'https://avatars.githubusercontent.com/u/18117084?v=4',
-    x: 'https://twitter.com/kfll',
+    x: 'https://x.com/kfll',
+    desc: 'Rspack / Rsbuild / Rspress contributor',
+  },
+  {
+    id: 'fi3ework',
+    avatar: 'https://avatars.githubusercontent.com/u/12322740?v=4',
+    desc: 'Rspack / Rslib / webpack contributor, creator of vite-plugin-checker',
+  },
+  {
+    id: 'easy1090',
+    avatar: 'https://avatars.githubusercontent.com/u/18437716?v=4',
+    x: 'https://x.com/yifan56737904',
+    desc: 'Rsdoctor contributor',
+  },
+  {
+    id: 'Timeless0911',
+    avatar: 'https://avatars.githubusercontent.com/u/50201324?v=4',
+    x: 'https://x.com/',
+    desc: 'Rspress / Rslib contributor',
+  },
+  {
+    id: 'SoonIter',
+    avatar: 'https://avatars.githubusercontent.com/u/79413249?v=4',
+    x: 'https://x.com/Soon_Iter',
     desc: 'Rspack / Rsbuild / Rspress contributor',
   },
 ];
@@ -189,7 +207,7 @@ export const RandomContributorsList = () => {
     {
       id: 'hyf0',
       avatar: 'https://avatars.githubusercontent.com/u/49502170?s=120&v=4',
-      x: 'https://twitter.com/_hyf0',
+      x: 'https://x.com/_hyf0',
       desc: 'Rspack / Rolldown contributor',
     },
     {
@@ -200,8 +218,13 @@ export const RandomContributorsList = () => {
     {
       id: 'Boshen',
       avatar: 'https://avatars.githubusercontent.com/u/1430279?s=120&v=4',
-      x: 'https://twitter.com/boshen_c',
+      x: 'https://x.com/boshen_c',
       desc: 'Rspack contributor / Creator of Oxc',
+    },
+    {
+      id: 'IWANABETHATGUY',
+      avatar: 'https://avatars.githubusercontent.com/u/17974631?s=120&v=4',
+      desc: 'Rspack / Rolldown contributor',
     },
   ];
 
