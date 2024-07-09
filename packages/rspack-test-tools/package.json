@@ -74,19 +74,26 @@
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/plugin-minify": "workspace:*",
+    "@swc/plugin-remove-console": "^2.0.7",
     "@types/jsdom": "^21.1.7",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
     "@types/webpack": "5.28.5",
     "@types/webpack-sources": "3.2.3",
     "core-js": "3.36.1",
+    "html-loader": "^5.0.0",
+    "html-webpack-plugin": "^5.5.0",
+    "less-loader": "^12.2.0",
     "monaco-editor": "0.47.0",
     "monaco-editor-webpack-plugin": "7.1.0",
     "normalize.css": "^8.0.0",
     "npm-run-all2": "^6.2.0",
     "react": "18.0.0",
     "react-dom": "18.0.0",
-    "react-refresh": "0.14.0"
+    "react-refresh": "0.14.0",
+    "sass-loader": "13.2.0",
+    "source-map-loader": "^5.0.0",
+    "wast-loader": "^1.12.1"
   },
   "peerDependencies": {
     "@rspack/core": ">=0.7.0"
