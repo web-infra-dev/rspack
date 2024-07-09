@@ -114,6 +114,9 @@ function copyFolder(src, dst) {
 						}
 					}
 				}
+				if (pkg.name) {
+					pkg.name = dst;
+				}
 				fs.writeFileSync(dstFile, JSON.stringify(pkg, null, 2), "utf-8");
 			} else {
 				fs.copyFileSync(srcFile, dstFile);
