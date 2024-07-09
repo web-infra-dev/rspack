@@ -57,15 +57,15 @@ tikv-jemallocator = { version = "=0.5.4", features = ["disable_initial_exec_tls"
 
 # Must be pinned with the same swc versions
 #rkyv                = { version = "=0.7.44" }                           # synced with swc wasm plugin
-styled_components   = { version = "=0.96.16" }
-swc_config          = { version = "=0.1.14" }
-swc_core            = { version = "0.93.0", default-features = false }
-swc_ecma_minifier   = { version = "0.195.0", default-features = false }
-swc_emotion         = { version = "=0.72.14" }
-swc_error_reporters = { version = "=0.17.20" }
-swc_html            = { version = "=0.140.0" }
-swc_html_minifier   = { version = "=0.137.0" }
-swc_node_comments   = { version = "=0.20.20" }
+styled_components   = { version = "0.96.18" }
+swc_config          = { version = "0.1.13" }
+swc_core            = { version = "0.96.9", default-features = false }
+swc_ecma_minifier   = { version = "0.197.3", default-features = false }
+swc_emotion         = { version = "0.72.16" }
+swc_error_reporters = { version = "=0.18.1" }
+swc_html            = { version = "=0.142.0" }
+swc_html_minifier   = { version = "=0.139.1" }
+swc_node_comments   = { version = "=0.21.0" }
 
 [profile.dev]
 codegen-units = 16
