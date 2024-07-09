@@ -4980,6 +4980,8 @@ export class Module {
     // (undocumented)
     resource?: Readonly<string>;
     // (undocumented)
+    type: string;
+    // (undocumented)
     userRequest?: Readonly<string>;
 }
 

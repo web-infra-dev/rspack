@@ -68,7 +68,12 @@ const loader: LoaderDefinition = function loader(content) {
 		this._compiler &&
 		this._compiler.options &&
 		this._compiler.options.experiments &&
-		this._compiler.options.experiments.css
+		this._compiler.options.experiments.css &&
+		this._module &&
+		(this._module.type === "css" ||
+			this._module.type === "css/auto" ||
+			this._module.type === "css/global" ||
+			this._module.type === "css/module")
 	) {
 		return content;
 	}
@@ -79,10 +84,15 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		this._compiler &&
 		this._compiler.options &&
 		this._compiler.options.experiments &&
-		this._compiler.options.experiments.css
+		this._compiler.options.experiments.css &&
+		this._module &&
+		(this._module.type === "css" ||
+			this._module.type === "css/auto" ||
+			this._module.type === "css/global" ||
+			this._module.type === "css/module")
 	) {
 		let e = new Error(
-			"You can't use `experiments.css` and `css-extract-rspack-plugin` together, please set `experiments.css` to `false`"
+			`use type 'css' and \`CssExtractRspackPlugin\` together, please set \`experiments.css\` to \`false\` or set \`{ type: "javascript/auto" }\` for rules with \`CssExtractRspackPlugin\` in your rspack config (now \`CssExtractRspackPlugin\` does nothing).`
 		);
 		e.stack = undefined;
 		this.emitWarning(e);
