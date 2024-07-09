@@ -41,6 +41,7 @@ import {
 	NormalModuleCreateData,
 	NormalModuleFactory
 } from "./NormalModuleFactory";
+import { ResolverFactory } from "./ResolverFactory";
 import {
 	RuntimeGlobals,
 	__from_binding_runtime_globals,
@@ -61,7 +62,6 @@ import { checkVersion } from "./util/bindingVersionCheck";
 import { createHash } from "./util/createHash";
 import { OutputFileSystem, WatchFileSystem } from "./util/fs";
 import { makePathsRelative } from "./util/identifier";
-import { ResolverFactory } from "./ResolverFactory";
 
 export interface AssetEmittedInfo {
 	content: Buffer;
@@ -1188,7 +1188,7 @@ class Compiler {
 			this.#builtinPlugins,
 			this.#registers,
 			ThreadsafeWritableNodeFS.__to_binding(this.outputFileSystem!),
-			this.resolverFactory.binding
+			ResolverFactory.__to_binding(this.resolverFactory)
 		);
 
 		callback(null, this.#instance);
