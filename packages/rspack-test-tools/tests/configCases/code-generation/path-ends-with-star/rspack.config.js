@@ -16,7 +16,9 @@ module.exports = {
 				const fs = require("fs");
 				const path = require("path");
 				const dir = path.resolve(__dirname, "star*");
-				fs.mkdirSync(dir);
+				if (!fs.existsSync(dir)) {
+					fs.mkdirSync(dir);
+				}
 				fs.writeFileSync(path.resolve(dir, "a.js"), "export const a = 1;");
 				// cleanup
 				compiler.hooks.done.tap("skipWindows", () => {
