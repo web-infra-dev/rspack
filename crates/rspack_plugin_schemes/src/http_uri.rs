@@ -58,6 +58,7 @@ async fn resolve_in_scheme(
   resource_data: &mut ResourceData,
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
+  dbg!(data.context.as_str());
   if !matches!(get_scheme(data.context.as_str()), Scheme::Http) {
     return Ok(None);
   }
