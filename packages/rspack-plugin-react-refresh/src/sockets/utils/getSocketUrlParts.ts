@@ -31,7 +31,7 @@ export default function getSocketUrlParts(
 	if (resourceQuery) {
 		const parsedQuery: ParsedQuery = {} as ParsedQuery;
 		const searchParams = new URLSearchParams(resourceQuery.slice(1));
-		searchParams.forEach(function (value, key) {
+		searchParams.forEach((value, key) => {
 			// @ts-expect-error -- ignore
 			parsedQuery[key] = value;
 		});

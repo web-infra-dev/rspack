@@ -39,7 +39,7 @@ async function calcPathInfo(
 }
 
 export const pathInfoFixtures: Fixtures<PathInfoFixtures> = {
-	pathInfo: async function ({}, use, { file, workerIndex }) {
+	pathInfo: async ({}, use, { file, workerIndex }) => {
 		let pathInfo: PathInfo = await calcPathInfo(file, String(workerIndex));
 		await use(pathInfo);
 		await fs.remove(pathInfo.tempProjectDir);

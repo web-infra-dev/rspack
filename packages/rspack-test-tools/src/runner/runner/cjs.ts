@@ -11,7 +11,7 @@ import type {
 } from "../type";
 import { BasicRunner } from "./basic";
 
-const define = function (...args: unknown[]) {
+const define = (...args: unknown[]) => {
 	const factory = args.pop() as () => {};
 	factory();
 };

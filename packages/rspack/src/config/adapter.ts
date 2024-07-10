@@ -483,7 +483,7 @@ const getRawModuleRule = (
 		delete rawModuleRule.resourceFragment;
 
 		rawModuleRule.rspackResource = getRawRuleSetCondition(
-			function (resourceQueryFragment) {
+			resourceQueryFragment => {
 				const { path, query, fragment } = parseResource(resourceQueryFragment);
 
 				if (rule.test && !tryMatch(path, rule.test)) {
