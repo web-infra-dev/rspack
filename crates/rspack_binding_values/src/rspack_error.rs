@@ -57,16 +57,10 @@ impl JsRspackError {
   }
 
   pub fn into_diagnostic(self, severity: RspackSeverity) -> Diagnostic {
-    let hide_stack = self.hide_stack.unwrap_or_default();
-    let message = if hide_stack {
-      self.message
-    } else {
-      self.stack.clone().unwrap_or(self.message)
-    };
     (match severity {
       RspackSeverity::Error => Diagnostic::error,
       RspackSeverity::Warn => Diagnostic::warn,
-    })(self.name, message)
+    })(self.name, self.message)
     .with_file(self.file.map(Into::into))
     .with_module_identifier(self.module_identifier.map(Into::into))
     .with_stack(self.stack)

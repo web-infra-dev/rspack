@@ -74,6 +74,10 @@ export function concatErrorMsgAndStack(
 	if (typeof err === "string") {
 		return new Error(err);
 	}
+	const hideStack = "hideStack" in err && err.hideStack;
+	if (!hideStack && "stack" in err) {
+		err.message = err.stack || err.message;
+	}
 	// maybe `null`, use `undefined` to compatible with `Option<String>`
 	err.stack = err.stack || undefined;
 	return err;
