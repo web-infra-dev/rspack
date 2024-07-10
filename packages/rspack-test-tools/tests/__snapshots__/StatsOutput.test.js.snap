@@ -2,9 +2,9 @@
 
 exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats for 1`] = `
 "PublicPath: auto
-asset bundle.js 2.3 KiB {909} [emitted] (name: main)
+asset bundle.js 2.27 KiB {909} [emitted] (name: main)
 asset 2710c5e36f8babb0a3a4.png 7 bytes {909} [emitted] [immutable] [from: raw.png] (name: main)
-Entrypoint main 2.3 KiB (7 bytes) = bundle.js 2.3 KiB (2710c5e36f8babb0a3a4.png 7 bytes)
+Entrypoint main 2.27 KiB (7 bytes) = bundle.js 2.27 KiB (2710c5e36f8babb0a3a4.png 7 bytes)
 chunk {909} (runtime: main) bundle.js (main) 7 bytes (asset) 159 bytes (javascript) 1.28 KiB (runtime) [entry] [rendered]
   > ./index main
   ./index.js + 1 modules [686] 117 bytes {909} [depth 0] [code generated]
@@ -77,8 +77,8 @@ Rspack compiled with 1 error"
 `;
 
 exports[`statsOutput statsOutput/concatenated-modules should print correct stats for 1`] = `
-"asset main.js 264 bytes [emitted] (name: main)
-Entrypoint main 264 bytes = main.js
+"asset main.js 234 bytes [emitted] (name: main)
+Entrypoint main 234 bytes = main.js
 orphan modules 141 bytes [orphan] 4 modules
 ./index.js + 3 modules 141 bytes [code generated]
 Rspack x.x.x compiled successfully in X s"
@@ -153,8 +153,8 @@ Rspack compiled with 2 errors"
 
 exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct stats for 1`] = `
 "1 chunks:
-  asset bundle1.js 3.57 KiB [emitted] (name: main)
-  Entrypoint main 3.57 KiB = bundle1.js
+  asset bundle1.js 3.54 KiB [emitted] (name: main)
+  Entrypoint main 3.54 KiB = bundle1.js
   chunk (runtime: main) bundle1.js (main) 219 bytes (javascript) 1.84 KiB (runtime) <{909}> >{909}< [entry] [rendered]
     dependent modules 96 bytes [dependent] 4 modules
     ./index.js 123 bytes [built] [code generated]
@@ -220,7 +220,7 @@ exports[`statsOutput statsOutput/minify-error should print correct stats for 1`]
  1 │ const a {}
    ·         ─
  2 │ (() => { // webpackBootstrap
- 3 │ var __webpack_exports__ = {};
+ 3 │ console.log(0);
    ╰────
 
 Rspack compiled with 1 error"
@@ -337,11 +337,11 @@ cacheable modules 293 KiB
   ./e.js 22 bytes [built] [code generated]
 
 ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
-  │   main.js (303.392 KiB)
+  │   main.js (303.362 KiB)
 
 
 ERROR in × entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (303.392 KiB)
+  │   main (303.362 KiB)
   │       main.js
 
 
@@ -387,8 +387,8 @@ exports[`statsOutput statsOutput/reasons should print correct stats for 1`] = `
 `;
 
 exports[`statsOutput statsOutput/resolve-overflow-error should print correct stats for 1`] = `
-"asset main.js 378 bytes [emitted] (name: main)
-Entrypoint main 378 bytes = main.js
+"asset main.js 348 bytes [emitted] (name: main)
+Entrypoint main 348 bytes = main.js
 ./index.js 51 bytes [built] [code generated] [1 error]
 
 ERROR in ./index.js
@@ -438,8 +438,8 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/side-effects-bailouts should print correct stats for 1`] = `
-"asset main.js 207 bytes {909} [emitted] (name: main)
-Entrypoint main 207 bytes = main.js
+"asset main.js 177 bytes {909} [emitted] (name: main)
+Entrypoint main 177 bytes = main.js
 chunk {909} (runtime: main) main.js (main) 91 bytes [entry] [rendered]
 orphan modules 91 bytes [orphan] 2 modules
 ./index.js + 1 modules [911] 91 bytes {909} [code generated]
@@ -459,8 +459,8 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/simple-module-source should print correct stats for 1`] = `
-"asset bundle.js 2.1 KiB [emitted] (name: main)
-Entrypoint main 2.1 KiB = bundle.js
+"asset bundle.js 2.07 KiB [emitted] (name: main)
+Entrypoint main 2.07 KiB = bundle.js
 runtime modules 706 bytes 3 modules
 orphan modules 1 bytes [orphan] 1 module
 cacheable modules 82 bytes
@@ -470,8 +470,8 @@ Rspack compiled successfully"
 `;
 
 exports[`statsOutput statsOutput/stats-hooks should print correct stats for 1`] = `
-"asset main.js 99 bytes [emitted111] (name: main) [testA: aaaaaa]
-Entrypoint main 99 bytes = main.js
+"asset main.js 69 bytes [emitted111] (name: main) [testA: aaaaaa]
+Entrypoint main 69 bytes = main.js
 ./index.js 26 bytes [built] [code generated]
 Rspack compiled successfully"
 `;

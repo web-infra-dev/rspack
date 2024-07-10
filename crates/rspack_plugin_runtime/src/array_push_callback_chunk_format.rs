@@ -52,6 +52,7 @@ fn additional_chunk_runtime_requirements(
     > 0
   {
     runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
+    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
   }
   runtime_requirements.insert(RuntimeGlobals::CHUNK_CALLBACK);

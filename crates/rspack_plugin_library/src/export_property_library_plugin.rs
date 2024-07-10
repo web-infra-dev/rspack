@@ -3,9 +3,10 @@ use std::hash::Hash;
 use rspack_core::{
   get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  ApplyContext, ChunkUkey, Compilation, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, CompilerOptions, EntryData, LibraryExport, LibraryOptions, LibraryType,
-  ModuleIdentifier, Plugin, PluginContext, UsageState,
+  ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationFinishModules, CompilationParams, CompilerCompilation, CompilerOptions, EntryData,
+  LibraryExport, LibraryOptions, LibraryType, ModuleIdentifier, Plugin, PluginContext,
+  RuntimeGlobals, UsageState,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -26,11 +27,12 @@ struct ExportPropertyLibraryPluginParsed<'a> {
 pub struct ExportPropertyLibraryPlugin {
   library_type: LibraryType,
   ns_object_used: bool,
+  runtime_exports_used: bool,
 }
 
 impl ExportPropertyLibraryPlugin {
-  pub fn new(library_type: LibraryType, ns_object_used: bool) -> Self {
-    Self::new_inner(library_type, ns_object_used)
+  pub fn new(library_type: LibraryType, ns_object_used: bool, runtime_exports_used: bool) -> Self {
+    Self::new_inner(library_type, ns_object_used, runtime_exports_used)
   }
 }
 
@@ -189,6 +191,31 @@ impl Plugin for ExportPropertyLibraryPlugin {
       .compilation_hooks
       .finish_modules
       .tap(finish_modules::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .additional_chunk_runtime_requirements
+      .tap(additional_chunk_runtime_requirements::new(self));
     Ok(())
   }
+}
+
+#[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for ExportPropertyLibraryPlugin)]
+fn additional_chunk_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  if self
+    .get_options_for_chunk(compilation, chunk_ukey)
+    .is_none()
+  {
+    return Ok(());
+  }
+
+  if self.runtime_exports_used {
+    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+  }
+  Ok(())
 }
