@@ -1,3 +1,1 @@
-import "./b.css";
-
-consol.log("b");
+require("./b.css");

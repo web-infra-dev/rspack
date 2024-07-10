@@ -11,8 +11,12 @@ module.exports = {
 	output: {
 		filename: "[name].js"
 	},
-	experiments: {
-		css: false
+	module: {
+		generator: {
+			"css/auto": {
+				exportsOnly: false
+			}
+		}
 	},
 	optimization: {
 		minimize: true,

@@ -11,11 +11,13 @@ mod raw_mf;
 mod raw_progress;
 mod raw_runtime_chunk;
 mod raw_size_limits;
+mod raw_swc_css_minimizer;
 mod raw_swc_js_minimizer;
 
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
+use raw_swc_css_minimizer::RawSwcCssMinimizerRspackPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::Result;
 use rspack_ids::{
@@ -447,7 +449,11 @@ impl BuiltinPlugin {
         plugins.push(plugin);
       }
       BuiltinPluginName::SwcCssMinimizerRspackPlugin => {
-        plugins.push(SwcCssMinimizerRspackPlugin::default().boxed())
+        let plugin = SwcCssMinimizerRspackPlugin::new(
+          downcast_into::<RawSwcCssMinimizerRspackPluginOptions>(self.options)?.try_into()?,
+        )
+        .boxed();
+        plugins.push(plugin);
       }
       BuiltinPluginName::LightningCssMinimizerRspackPlugin => plugins.push(
         LightningCssMinimizerRspackPlugin::new(

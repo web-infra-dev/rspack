@@ -49,6 +49,8 @@ import type { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
+import { RawSwcCssMinimizerRspackPluginOptions } from '@rspack/binding';
+import { RawSwcJsMinimizerRspackPluginOptions } from '@rspack/binding';
 import { registerGlobalTrace } from '@rspack/binding';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import sources = require('../compiled/webpack-sources');
@@ -13151,15 +13153,22 @@ const strictModuleExceptionHandling: z.ZodBoolean;
 export const SwcCssMinimizerRspackPlugin: {
     new (options?: SwcCssMinimizerRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
+<<<<<<< HEAD
         _args: [options?: any];
         affectedHooks: "done" | "compilation" | "failed" | "environment" | "emit" | "make" | "compile" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
+=======
+        _options: RawSwcCssMinimizerRspackPluginOptions;
+        affectedHooks: "make" | "compile" | "emit" | "afterEmit" | "invalid" | "done" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(): BuiltinPlugin;
+>>>>>>> 3e341df52 (pass options top minimizer)
         apply(compiler: Compiler_2): void;
     };
 };
 
 // @public (undocumented)
 type SwcCssMinimizerRspackPluginOptions = {
+    test?: MinifyConditions_2;
     exclude?: MinifyConditions_2;
     include?: MinifyConditions_2;
 };

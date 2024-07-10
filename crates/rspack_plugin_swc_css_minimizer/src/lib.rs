@@ -34,6 +34,12 @@ pub struct SwcCssMinimizerRspackPlugin {
   options: SwcCssMinimizerRspackPluginOptions,
 }
 
+impl SwcCssMinimizerRspackPlugin {
+  pub fn new(options: SwcCssMinimizerRspackPluginOptions) -> Self {
+    Self::new_inner(options)
+  }
+}
+
 #[plugin_hook(CompilationProcessAssets for SwcCssMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let minify_options = &self.options;
