@@ -4,7 +4,7 @@ import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
 import {
 	HookCasesContext,
 	HookTaskProcessor,
-	IHookProcessorOptions
+	type IHookProcessorOptions
 } from "../processor";
 import { BasicRunnerFactory } from "../runner";
 import { getSimpleProcessorRunner } from "../test/simple";

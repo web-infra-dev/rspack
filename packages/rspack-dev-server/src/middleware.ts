@@ -5,7 +5,7 @@ import { parse } from "url";
 import type { Compiler } from "@rspack/core";
 import type { RequestHandler, Response } from "express";
 import mime from "mime-types";
-import wdm from "webpack-dev-middleware";
+import type wdm from "webpack-dev-middleware";
 
 function etag(buf: any) {
 	const hash = crypto.createHash("sha256").update(buf).digest("hex");

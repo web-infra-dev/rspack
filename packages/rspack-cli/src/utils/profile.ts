@@ -34,7 +34,7 @@ The full syntax, remember update this when you change something in this file.
 import fs from "fs";
 import path from "path";
 import { URLSearchParams } from "url";
-import { type Compiler, RspackOptions, rspack } from "@rspack/core";
+import { type Compiler, type RspackOptions, rspack } from "@rspack/core";
 import inspector from "inspector";
 
 type JSCPUProfileOptionsOutput = string;

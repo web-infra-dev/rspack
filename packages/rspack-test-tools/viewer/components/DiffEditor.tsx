@@ -1,7 +1,7 @@
 import { DiffEditor as MonacoDiffEditor } from "@monaco-editor/react";
 import parserBabel from "prettier/parser-babel";
 import prettier from "prettier/standalone";
-import React from "react";
+import type React from "react";
 
 function formatCode(code: string): string {
 	const trimedCode = code

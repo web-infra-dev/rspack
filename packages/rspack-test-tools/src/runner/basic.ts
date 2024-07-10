@@ -1,12 +1,12 @@
 import {
-	ECompilerType,
+	type ECompilerType,
 	EDocumentType,
-	ITestContext,
-	ITestEnv,
-	ITestRunner,
-	TCompilerOptions,
-	TCompilerStatsCompilation,
-	TRunnerFactory
+	type ITestContext,
+	type ITestEnv,
+	type ITestRunner,
+	type TCompilerOptions,
+	type TCompilerStatsCompilation,
+	type TRunnerFactory
 } from "../type";
 import { EsmRunner } from "./runner/esm";
 import { WebRunner } from "./runner/web";

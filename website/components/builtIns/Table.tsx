@@ -1,5 +1,5 @@
 import Markdown from 'markdown-to-jsx';
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
   Table as ModernTable,
   Td as ModernTableData,

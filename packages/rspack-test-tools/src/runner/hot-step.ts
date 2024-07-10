@@ -1,19 +1,19 @@
-import { StatsCompilation } from "@rspack/core";
+import type { StatsCompilation } from "@rspack/core";
 
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import {
-	ECompilerType,
+	type ECompilerType,
 	EDocumentType,
-	ITestEnv,
-	ITestRunner,
-	TCompilerOptions,
-	TCompilerStats,
-	TCompilerStatsCompilation,
-	TUpdateOptions
+	type ITestEnv,
+	type ITestRunner,
+	type TCompilerOptions,
+	type TCompilerStats,
+	type TCompilerStatsCompilation,
+	type TUpdateOptions
 } from "../type";
 import { HotRunnerFactory } from "./hot";
 import { WebRunner } from "./runner/web";
-import { THotStepRuntimeData } from "./type";
+import type { THotStepRuntimeData } from "./type";
 
 declare var global: {
 	__CHANGED_FILES__: Map<string, number>;

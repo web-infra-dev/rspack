@@ -1,4 +1,4 @@
-import { EN_US } from './enUS';
+import type { EN_US } from './enUS';
 
 export const ZH_CN: Record<keyof typeof EN_US, string> = {
   coldStart: '冷启动（dev）',

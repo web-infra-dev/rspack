@@ -3,8 +3,8 @@ import { Chunk } from "@rspack/core";
 import fs from "fs-extra";
 
 import { escapeEOL, escapeSep, replacePaths } from "../helper";
-import { THotStepRuntimeData } from "../runner";
-import {
+import type { THotStepRuntimeData } from "../runner";
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
@@ -13,7 +13,7 @@ import {
 	TCompilerStatsCompilation,
 	TUpdateOptions
 } from "../type";
-import { HotProcessor, IHotProcessorOptions } from "./hot";
+import { HotProcessor, type IHotProcessorOptions } from "./hot";
 
 const NOOP_SET = new Set();
 

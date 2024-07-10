@@ -1,4 +1,7 @@
-import { BuiltinPluginName, RawHtmlRspackPluginOptions } from "@rspack/binding";
+import {
+	BuiltinPluginName,
+	type RawHtmlRspackPluginOptions
+} from "@rspack/binding";
 import { z } from "zod";
 
 import { validate } from "../util/validate";

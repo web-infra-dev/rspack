@@ -21,7 +21,7 @@ import {
 import { isNil } from "../util";
 import { assertNotNill } from "../util/assertNotNil";
 import { cleverMerge } from "../util/cleverMerge";
-import {
+import type {
 	EntryDescriptionNormalized,
 	EntryNormalized,
 	ExperimentsNormalized,

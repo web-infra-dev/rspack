@@ -1,8 +1,8 @@
 import * as fs from "fs";
-import { MultiStats, Stats } from "@rspack/core";
+import type { MultiStats, Stats } from "@rspack/core";
 
 import type { RspackCLI } from "../cli";
-import { RspackCommand } from "../types";
+import type { RspackCommand } from "../types";
 import {
 	commonOptions,
 	ensureEnvObject,

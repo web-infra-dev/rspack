@@ -4,8 +4,8 @@ import fs from "fs-extra";
 import {
 	ECompareResultType,
 	ECompilerType,
-	ITestReporter,
-	TModuleCompareResult
+	type ITestReporter,
+	type TModuleCompareResult
 } from "../type";
 
 export interface IDiffStatsReporterOptions {

@@ -1,8 +1,8 @@
 import path from "path";
 import vm from "vm";
 
-import { ECompilerType } from "../../type";
-import {
+import type { ECompilerType } from "../../type";
+import type {
 	IBasicGlobalContext,
 	IBasicModuleScope,
 	TBasicRunnerFile,

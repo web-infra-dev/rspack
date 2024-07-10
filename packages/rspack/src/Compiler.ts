@@ -10,35 +10,35 @@
 import * as binding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import type Watchpack from "watchpack";
-import { Compilation, CompilationParams } from "./Compilation";
+import { Compilation, type CompilationParams } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import { ThreadsafeWritableNodeFS } from "./FileSystem";
 import { RuleSetCompiler } from "./RuleSetCompiler";
 import { Stats } from "./Stats";
 import {
-	EntryNormalized,
-	OutputNormalized,
-	RspackOptionsNormalized,
-	RspackPluginInstance,
+	type EntryNormalized,
+	type OutputNormalized,
+	type RspackOptionsNormalized,
+	type RspackPluginInstance,
 	getRawOptions
 } from "./config";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { rspack } from "./index";
 import Cache = require("./lib/Cache");
 import CacheFacade = require("./lib/CacheFacade");
-import { Source } from "webpack-sources";
+import type { Source } from "webpack-sources";
 
 import { Chunk } from "./Chunk";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
-import { FileSystemInfoEntry } from "./FileSystemInfo";
+import type { FileSystemInfoEntry } from "./FileSystemInfo";
 import {
 	CodeGenerationResult,
-	ContextModuleFactoryAfterResolveResult,
+	type ContextModuleFactoryAfterResolveResult,
 	Module,
-	ResolveData
+	type ResolveData
 } from "./Module";
 import {
-	NormalModuleCreateData,
+	type NormalModuleCreateData,
 	NormalModuleFactory
 } from "./NormalModuleFactory";
 import { ResolverFactory } from "./ResolverFactory";
@@ -60,7 +60,7 @@ import { unsupported } from "./util";
 import { assertNotNill } from "./util/assertNotNil";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { createHash } from "./util/createHash";
-import { OutputFileSystem, WatchFileSystem } from "./util/fs";
+import type { OutputFileSystem, WatchFileSystem } from "./util/fs";
 import { makePathsRelative } from "./util/identifier";
 
 export interface AssetEmittedInfo {

@@ -1,10 +1,10 @@
-import {
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
 	TCompilerOptions
 } from "../type";
-import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
+import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 export interface IHashProcessorOptions<T extends ECompilerType>
 	extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {}

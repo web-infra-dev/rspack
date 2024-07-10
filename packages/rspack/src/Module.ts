@@ -1,13 +1,13 @@
-import {
+import type {
 	JsCodegenerationResult,
 	JsCodegenerationResults,
 	JsCreateData,
 	JsFactoryMeta,
 	JsModule
 } from "@rspack/binding";
-import { Source } from "webpack-sources";
+import type { Source } from "webpack-sources";
 
-import { Compilation } from "./Compilation";
+import type { Compilation } from "./Compilation";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {

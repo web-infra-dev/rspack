@@ -10,7 +10,7 @@
 import assert from "assert";
 import fs from "graceful-fs";
 
-import {
+import type {
 	Compiler,
 	OptimizationRuntimeChunkNormalized,
 	RspackOptionsNormalized,

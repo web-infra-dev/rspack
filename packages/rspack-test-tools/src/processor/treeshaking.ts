@@ -1,6 +1,6 @@
-import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
+import type { ECompilerType, ITestContext, TCompilerOptions } from "../type";
 import { BuiltinProcessor } from "./builtin";
-import { ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
+import { type ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
 export interface ITreeShakingProcessorOptions<T extends ECompilerType>
 	extends Omit<ISnapshotProcessorOptions<T>, "runable"> {}

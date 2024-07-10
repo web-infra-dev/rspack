@@ -1,4 +1,4 @@
-import * as binding from "@rspack/binding";
+import type * as binding from "@rspack/binding";
 import { concatErrorMsgAndStack } from "./util";
 
 export type RspackError = binding.JsRspackError;

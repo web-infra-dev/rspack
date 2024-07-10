@@ -3,8 +3,8 @@ import { fileURLToPath, pathToFileURL } from "url";
 import vm, { SourceTextModule } from "vm";
 
 import asModule from "../../helper/legacy/asModule";
-import { ECompilerType } from "../../type";
-import { EEsmMode, TRunnerRequirer } from "../type";
+import type { ECompilerType } from "../../type";
+import { EEsmMode, type TRunnerRequirer } from "../type";
 import { CommonJsRunner } from "./cjs";
 
 export class EsmRunner<

@@ -11,7 +11,7 @@
 import assert from "assert";
 import path from "path";
 
-import { WatchOptions } from "../config";
+import type { WatchOptions } from "../config";
 
 export interface Watcher {
 	close(): void; // closes the watcher and all underlying file watchers

@@ -2,8 +2,12 @@ import { rspack } from "@rspack/core";
 import fs from "fs-extra";
 import { merge } from "webpack-merge";
 
-import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
-import { ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
+import {
+	ECompilerType,
+	type ITestContext,
+	type TCompilerOptions
+} from "../type";
+import { type ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
 export interface IBuiltinProcessorOptions<T extends ECompilerType>
 	extends Omit<ISnapshotProcessorOptions<T>, "runable"> {}

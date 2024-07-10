@@ -1,5 +1,5 @@
 import type { JsRspackError, JsStatsError } from "@rspack/binding";
-import { LoaderObject } from "../loader-runner";
+import type { LoaderObject } from "../loader-runner";
 
 export function mapValues(
 	record: Record<string, string>,

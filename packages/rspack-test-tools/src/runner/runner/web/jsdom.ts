@@ -6,9 +6,9 @@ import { escapeSep } from "../../../helper";
 import EventSource from "../../../helper/legacy/EventSourceForNode";
 import createFakeWorker from "../../../helper/legacy/createFakeWorker";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
-import { ECompilerType } from "../../../type";
-import { TRunnerRequirer } from "../../type";
-import { IBasicRunnerOptions } from "../basic";
+import type { ECompilerType } from "../../../type";
+import type { TRunnerRequirer } from "../../type";
+import type { IBasicRunnerOptions } from "../basic";
 import { CommonJsRunner } from "../cjs";
 
 export class JSDOMWebRunner<

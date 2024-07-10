@@ -1,7 +1,7 @@
 import path from "path";
 
 import { TestCompilerManager } from "../compiler";
-import {
+import type {
 	ECompilerType,
 	ITestCompilerManager,
 	ITestContext,

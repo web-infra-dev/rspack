@@ -30,7 +30,10 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": false
+      "recommended": false,
+      "style": {
+        "useImportType": "warn"
+      }
     },
     "ignore": ["tests/**/*", "crates/**/*", "diff.bundle.js"]
   },

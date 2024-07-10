@@ -1,6 +1,6 @@
 import {
 	BuiltinPluginName,
-	RawBundlerInfoPluginOptions
+	type RawBundlerInfoPluginOptions
 } from "@rspack/binding";
 
 import { create } from "./base";

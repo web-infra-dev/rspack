@@ -1,6 +1,6 @@
 import {
 	BuiltinPluginName,
-	RawLimitChunkCountPluginOptions
+	type RawLimitChunkCountPluginOptions
 } from "@rspack/binding";
 
 import { create } from "./base";

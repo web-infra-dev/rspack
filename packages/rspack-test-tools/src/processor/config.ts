@@ -2,8 +2,8 @@ import fs from "fs";
 import path from "path";
 
 import { parseResource } from "../helper/legacy/parseResource";
-import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
-import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
+import type { ECompilerType, ITestContext, TCompilerOptions } from "../type";
+import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 export interface IConfigProcessorOptions<T extends ECompilerType>
 	extends IMultiTaskProcessorOptions<T> {}

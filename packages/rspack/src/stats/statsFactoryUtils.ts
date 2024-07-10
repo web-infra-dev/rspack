@@ -1,4 +1,4 @@
-import * as binding from "@rspack/binding";
+import type * as binding from "@rspack/binding";
 
 import type { Compilation, NormalizedStatsOptions } from "../Compilation";
 import {

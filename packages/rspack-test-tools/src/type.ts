@@ -1,7 +1,7 @@
 /// <reference types="../jest.d.ts" />
 
-import EventEmitter from "events";
-import {
+import type EventEmitter from "events";
+import type {
 	Compiler as RspackCompiler,
 	RspackOptions,
 	Stats as RspackStats,
@@ -14,7 +14,7 @@ import type {
 	StatsCompilation as WebpackStatsCompilation
 } from "webpack";
 
-import { IBasicModuleScope, TRunnerRequirer } from "./runner/type";
+import type { IBasicModuleScope, TRunnerRequirer } from "./runner/type";
 
 export interface ITestContext {
 	getSource(sub?: string): string;

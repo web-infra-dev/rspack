@@ -9,13 +9,13 @@
  */
 import * as util from "node:util";
 
-import { JsOriginRecord } from "@rspack/binding";
+import type { JsOriginRecord } from "@rspack/binding";
 import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { StatsOptions } from "../config";
 import {
 	LogType,
-	LogTypeEnum,
+	type LogTypeEnum,
 	getLogTypeBitFlag,
 	getLogTypesBitFlag
 } from "../logging/Logger";

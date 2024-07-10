@@ -1,4 +1,7 @@
-import { ISimpleProcessorOptions, SimpleTaskProcessor } from "../processor";
+import {
+	type ISimpleProcessorOptions,
+	SimpleTaskProcessor
+} from "../processor";
 import { getSimpleProcessorRunner } from "../test/simple";
 import { ECompilerType } from "../type";
 
