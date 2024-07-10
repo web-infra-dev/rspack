@@ -28,6 +28,9 @@ var loadStylesheet = function (chunkId, url, done, hmr, fetchPriority) {
 	if (!link) {
 		needAttach = true;
 		link = document.createElement("link");
+		if (__webpack_require__.nc) {
+			link.setAttribute("nonce", __webpack_require__.nc);
+		}
 		link.setAttribute("data-webpack", uniqueName + ":" + key);
 		if (fetchPriority) {
 			link.setAttribute("fetchpriority", fetchPriority);
