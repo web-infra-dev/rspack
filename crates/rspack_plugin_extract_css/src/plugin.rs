@@ -1,4 +1,4 @@
-use std::{borrow::Cow, cmp::max, hash::Hash, sync::Arc};
+use std::{borrow::Cow, cmp::max, hash::Hash, path::PathBuf, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -645,6 +645,8 @@ despite it was not able to fulfill desired ordering with these modules:\n{}",
             .join("\n")
         ),
       )
+      .with_file(Some(PathBuf::from(render_result.filename())))
+      .with_chunk(Some(chunk_ukey.as_usize()))
     }));
   }
   manifest.push(render_result);

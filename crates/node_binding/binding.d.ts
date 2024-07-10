@@ -3,8 +3,8 @@
 
 /* -- banner.d.ts -- */
 export type JsFilename =
-	| string
-	| ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
+  | string
+  | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
 
@@ -594,7 +594,6 @@ export interface JsStatsError {
   moduleName?: string
   moduleId?: string
   chunkId?: string
-  moduleTrace?: string
   details?: string
   stack?: string
 }
