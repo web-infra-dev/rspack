@@ -20,7 +20,7 @@ use swc_node_comments::SwcComments;
 
 use crate::dependency::HarmonyCompatibilityDependency;
 use crate::visitors::{scan_dependencies, swc_visitor::resolver};
-use crate::visitors::{semicolon, PathIgnoredSpans, ScanDependenciesResult};
+use crate::visitors::{semicolon, ScanDependenciesResult};
 use crate::{BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 
 #[derive(Default)]
@@ -176,8 +176,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       // dbg!(&semicolons);
     });
 
-    let mut path_ignored_spans = PathIgnoredSpans::default();
-
     let unresolved_mark = ast.get_context().unresolved_mark;
 
     let ScanDependenciesResult {
@@ -199,7 +197,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         module_identifier,
         module_parser_options,
         &mut semicolons,
-        &mut path_ignored_spans,
         unresolved_mark,
         &mut self.parser_plugins,
         additional_data,

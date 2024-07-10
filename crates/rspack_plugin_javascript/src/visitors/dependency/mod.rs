@@ -11,49 +11,23 @@ use rspack_core::{
 };
 use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 use swc_core::common::Mark;
-use swc_core::common::{comments::Comments, BytePos, SourceFile, SourceMap, Span};
+use swc_core::common::{comments::Comments, BytePos, SourceFile, SourceMap};
 use swc_core::ecma::atoms::Atom;
 
 pub use self::context_dependency_helper::{create_context_dependency, ContextModuleScanResult};
 pub use self::parser::{
-  AllowedMemberTypes, CallExpressionInfo, CallHooksName, ExportedVariableInfo, PathIgnoredSpans,
-};
-pub use self::parser::{
-  ClassDeclOrExpr, JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope,
+  estree::*, AllowedMemberTypes, CallExpressionInfo, CallHooksName, ExportedVariableInfo,
+  JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope,
 };
 pub use self::util::*;
-use crate::dependency::Specifier;
 use crate::BoxJavascriptParserPlugin;
-
-#[derive(Debug)]
-pub struct ImporterReferenceInfo {
-  pub request: Atom,
-  pub specifier: Specifier,
-  pub names: Option<Atom>,
-  pub source_order: i32,
-}
-
-impl ImporterReferenceInfo {
-  pub fn new(request: Atom, specifier: Specifier, names: Option<Atom>, source_order: i32) -> Self {
-    Self {
-      request,
-      specifier,
-      names,
-      source_order,
-    }
-  }
-}
-
-pub type ImportMap = FxHashMap<swc_core::ecma::ast::Id, ImporterReferenceInfo>;
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<AsyncDependenciesBlock>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
-  pub usage_span_record: FxHashMap<Span, ExtraSpanInfo>,
-  pub import_map: ImportMap,
   pub warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
 }
 
@@ -79,7 +53,6 @@ pub fn scan_dependencies(
   module_identifier: ModuleIdentifier,
   module_parser_options: Option<&ParserOptions>,
   semicolons: &mut FxHashSet<BytePos>,
-  path_ignored_spans: &mut PathIgnoredSpans,
   unresolved_mark: Mark,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   additional_data: AdditionalData,
@@ -98,7 +71,6 @@ pub fn scan_dependencies(
     build_meta,
     build_info,
     semicolons,
-    path_ignored_spans,
     unresolved_mark,
     parser_plugins,
     additional_data,
@@ -111,8 +83,6 @@ pub fn scan_dependencies(
       dependencies: parser.dependencies,
       blocks: parser.blocks,
       presentational_dependencies: parser.presentational_dependencies,
-      usage_span_record: parser.rewrite_usage_span,
-      import_map: parser.import_map,
       warning_diagnostics: parser.warning_diagnostics,
     })
   } else {

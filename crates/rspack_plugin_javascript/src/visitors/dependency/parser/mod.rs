@@ -1,11 +1,11 @@
 mod call_hooks_name;
+pub mod estree;
 mod walk;
 mod walk_block_pre;
 mod walk_pre;
 
 use std::borrow::Cow;
 use std::fmt::Display;
-use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -23,15 +23,13 @@ use swc_core::common::comments::Comments;
 use swc_core::common::util::take::Take;
 use swc_core::common::{BytePos, Mark, SourceFile, SourceMap, Span, Spanned};
 use swc_core::ecma::ast::{
-  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, ClassDecl, ClassExpr, MetaPropExpr,
+  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, ClassDecl, ClassExpr, Decl, MetaPropExpr,
   MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr, Pat, Program, Stmt,
   ThisExpr,
 };
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 use swc_core::ecma::utils::ExprFactory;
 
-use super::ExtraSpanInfo;
-use super::ImportMap;
 use crate::parser_plugin::InnerGraphState;
 use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
@@ -108,21 +106,6 @@ pub enum ExportedVariableInfo {
   VariableInfo(VariableInfoId),
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum ClassDeclOrExpr<'class> {
-  Decl(&'class ClassDecl),
-  Expr(&'class ClassExpr),
-}
-
-impl<'class> Spanned for ClassDeclOrExpr<'class> {
-  fn span(&self) -> Span {
-    match self {
-      ClassDeclOrExpr::Decl(decl) => decl.span(),
-      ClassDeclOrExpr::Expr(expr) => expr.span(),
-    }
-  }
-}
-
 fn object_and_members_to_name(
   object: impl AsRef<str>,
   members_reversed: &[impl AsRef<str>],
@@ -195,7 +178,7 @@ pub enum TopLevelScope {
   False,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct StatementPath {
   span: Span,
 }
@@ -218,33 +201,6 @@ impl From<Span> for StatementPath {
   }
 }
 
-/// TODO: align `InnerGraphPlugin` with webpack
-/// A struct includes paths that should not be visited in the `InnerGraphPlugin`
-/// to simulate the same behavior of `ConstPlugin`'s selective AST walking strategy.
-#[derive(Default, Debug)]
-pub struct PathIgnoredSpans(Vec<Span>);
-
-impl PathIgnoredSpans {
-  #[inline]
-  pub fn is_span_ignored(&self, span: Span) -> bool {
-    self.0.iter().any(|s| s.lo <= span.lo && s.hi >= span.hi)
-  }
-}
-
-impl Deref for PathIgnoredSpans {
-  type Target = Vec<Span>;
-
-  fn deref(&self) -> &Self::Target {
-    &self.0
-  }
-}
-
-impl DerefMut for PathIgnoredSpans {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.0
-  }
-}
-
 pub struct JavascriptParser<'parser> {
   pub(crate) source_map: Arc<SourceMap>,
   pub(crate) source_file: &'parser SourceFile,
@@ -253,10 +209,6 @@ pub struct JavascriptParser<'parser> {
   pub dependencies: Vec<BoxDependency>,
   pub(crate) presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
   pub(crate) blocks: Vec<AsyncDependenciesBlock>,
-  // TODO: remove `import_map`
-  pub(crate) import_map: ImportMap,
-  // TODO: remove `rewrite_usage_span`
-  pub(crate) rewrite_usage_span: FxHashMap<Span, ExtraSpanInfo>,
   // TODO: remove `additional_data` once we have builtin:css-extract-loader
   pub additional_data: AdditionalData,
   pub(crate) comments: Option<&'parser dyn Comments>,
@@ -282,9 +234,6 @@ pub struct JavascriptParser<'parser> {
   pub(crate) semicolons: &'parser mut FxHashSet<BytePos>,
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
-  // TODO: Used as a way to skip AST visits in `InnerGraphPlugin`,
-  // which does not follow ParserPlugin's AST skipping in const plugin.
-  pub(crate) path_ignored_spans: &'parser mut PathIgnoredSpans,
   pub(crate) current_tag_info: Option<TagInfoId>,
   // ===== scope info =======
   pub(crate) in_try: bool,
@@ -309,7 +258,6 @@ impl<'parser> JavascriptParser<'parser> {
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
     semicolons: &'parser mut FxHashSet<BytePos>,
-    path_ignored_spans: &'parser mut PathIgnoredSpans,
     unresolved_mark: Mark,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     additional_data: AdditionalData,
@@ -320,8 +268,6 @@ impl<'parser> JavascriptParser<'parser> {
     let blocks = Vec::with_capacity(256);
     let presentational_dependencies = Vec::with_capacity(256);
     let parser_exports_state: Option<bool> = None;
-    let import_map = FxHashMap::default();
-    let rewrite_usage_span = FxHashMap::default();
 
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = Vec::with_capacity(32);
     plugins.push(Box::new(parser_plugin::InitializeEvaluating));
@@ -431,15 +377,12 @@ impl<'parser> JavascriptParser<'parser> {
       enter_call: 0,
       worker_index: 0,
       module_identifier,
-      import_map,
-      rewrite_usage_span,
       member_expr_in_optional_chain: false,
       properties_in_destructuring: Default::default(),
       semicolons,
       statement_path: Default::default(),
       current_tag_info: None,
       prev_statement: None,
-      path_ignored_spans,
       inner_graph: InnerGraphState::new(),
       additional_data,
     }
@@ -871,6 +814,27 @@ impl<'parser> JavascriptParser<'parser> {
     };
     self.member_expr_in_optional_chain = member_expr_in_optional_chain;
     ret
+  }
+
+  fn enter_declaration<F>(&mut self, decl: &Decl, on_ident: F)
+  where
+    F: FnOnce(&mut Self, &Ident) + Copy,
+  {
+    match decl {
+      Decl::Class(c) => {
+        self.enter_ident(&c.ident, on_ident);
+      }
+      Decl::Fn(f) => {
+        self.enter_ident(&f.ident, on_ident);
+      }
+      Decl::Var(var) => {
+        for decl in &var.decls {
+          self.enter_pattern(Cow::Borrowed(&decl.name), on_ident);
+        }
+      }
+      Decl::Using(_) => (),
+      _ => unreachable!(),
+    }
   }
 
   pub fn walk_program(&mut self, ast: &Program) {

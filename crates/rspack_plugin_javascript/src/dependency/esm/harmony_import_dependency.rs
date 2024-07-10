@@ -40,32 +40,14 @@ pub fn get_import_emitted_runtime(
   }
 }
 
-#[derive(Debug, Clone)]
-pub enum Specifier {
-  Namespace(Atom),
-  Default(Atom),
-  Named(Atom, Option<Atom>),
-}
-
-impl Specifier {
-  pub fn name(&self) -> Atom {
-    let name = match self {
-      Specifier::Namespace(name) => name,
-      Specifier::Default(name) => name,
-      Specifier::Named(name, _) => name,
-    };
-    name.clone()
-  }
-}
-
 // HarmonyImportDependency is merged HarmonyImportSideEffectDependency.
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSideEffectDependency {
   pub request: Atom,
   pub source_order: i32,
   pub id: DependencyId,
-  pub span: Option<ErrorSpan>,
-  pub source_span: Option<ErrorSpan>,
+  pub span: ErrorSpan,
+  pub source_span: ErrorSpan,
   pub dependency_type: DependencyType,
   pub export_all: bool,
   resource_identifier: String,
@@ -75,8 +57,8 @@ impl HarmonyImportSideEffectDependency {
   pub fn new(
     request: Atom,
     source_order: i32,
-    span: Option<ErrorSpan>,
-    source_span: Option<ErrorSpan>,
+    span: ErrorSpan,
+    source_span: ErrorSpan,
     dependency_type: DependencyType,
     export_all: bool,
   ) -> Self {
@@ -395,7 +377,7 @@ impl Dependency for HarmonyImportSideEffectDependency {
   }
 
   fn span(&self) -> Option<ErrorSpan> {
-    self.span
+    Some(self.span)
   }
 
   fn source_order(&self) -> Option<i32> {
@@ -452,7 +434,7 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
   }
 
   fn source_span(&self) -> Option<ErrorSpan> {
-    self.source_span
+    Some(self.source_span)
   }
 
   fn set_request(&mut self, request: String) {

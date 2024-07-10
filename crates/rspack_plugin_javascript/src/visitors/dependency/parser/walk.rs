@@ -18,8 +18,11 @@ use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, Seq
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, YieldExpr};
 use swc_core::ecma::ast::{ThrowStmt, UnaryExpr, UpdateExpr};
 
-use super::{AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName};
-use super::{ClassDeclOrExpr, TopLevelScope};
+use super::estree::ClassDeclOrExpr;
+use super::{
+  AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName,
+  TopLevelScope,
+};
 use crate::parser_plugin::{is_logic_op, JavascriptParserPlugin};
 use crate::visitors::scope_info::{FreeName, VariableInfo};
 
@@ -336,15 +339,8 @@ impl<'parser> JavascriptParser<'parser> {
     if let Some(result) = self.plugin_drive.clone().statement_if(self, stmt) {
       if result {
         self.walk_nested_statement(&stmt.cons);
-        // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
-        self.path_ignored_spans.push(stmt.alt.span());
       } else if let Some(alt) = &stmt.alt {
         self.walk_nested_statement(alt);
-        // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
-        self.path_ignored_spans.push(stmt.cons.span());
-      } else {
-        // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
-        self.path_ignored_spans.push(stmt.cons.span());
       }
     } else {
       self.walk_expression(&stmt.test);
@@ -1069,17 +1065,13 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_binary_expression(&mut self, expr: &BinExpr) {
     if is_logic_op(expr.op) {
-      if let Some(keep_right) = self
+      if self
         .plugin_drive
         .clone()
         .expression_logical_operator(self, expr)
+        .unwrap_or_default()
       {
-        if keep_right {
-          self.walk_expression(&expr.right);
-        } else {
-          // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
-          self.path_ignored_spans.push(expr.right.span());
-        }
+        self.walk_expression(&expr.right);
       } else {
         self.walk_left_right_expression(expr)
       }

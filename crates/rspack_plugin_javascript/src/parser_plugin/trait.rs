@@ -1,14 +1,17 @@
 use swc_core::atoms::Atom;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{
-  AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, ExportAll, ExportDecl,
+  AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Decl, ExportAll, ExportDecl,
   ExportDefaultDecl, ExportDefaultExpr, Expr, ForOfStmt, Ident, IfStmt, ImportDecl, MemberExpr,
   ModuleDecl, NamedExport, OptChainExpr,
 };
 use swc_core::ecma::ast::{NewExpr, Program, Stmt, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
 use crate::utils::eval::BasicEvaluatedExpression;
-use crate::visitors::{ClassDeclOrExpr, ExportedVariableInfo, JavascriptParser};
+use crate::visitors::{
+  ClassDeclOrExpr, ExportAllDeclaration, ExportDefaultDeclaration, ExportDefaultExpression,
+  ExportImport, ExportLocal, ExportedVariableInfo, JavascriptParser,
+};
 
 type KeepRight = bool;
 
@@ -21,7 +24,7 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn pre_block_statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
+  fn block_pre_statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
     None
   }
 
@@ -330,6 +333,49 @@ pub trait JavascriptParserPlugin {
     _parser: &mut JavascriptParser,
     _statement: &ExportAll,
     _source: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn export_import_2(
+    &self,
+    _parser: &mut JavascriptParser,
+    _statement: ExportImport,
+    _source: &Atom,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn export_2(&self, _parser: &mut JavascriptParser, _statement: ExportLocal) -> Option<bool> {
+    None
+  }
+
+  fn export_import_specifier_2(
+    &self,
+    _parser: &mut JavascriptParser,
+    _statement: ExportImport,
+    _source: &Atom,
+    _local_id: Option<&Atom>,
+    _export_name: Option<&Atom>,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn export_specifier_2(
+    &self,
+    _parser: &mut JavascriptParser,
+    _statement: ExportLocal,
+    _local_id: &Atom,
+    _export_name: &Atom,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn export_expression_2(
+    &self,
+    _parser: &mut JavascriptParser,
+    _statement: ExportDefaultDeclaration,
+    _expr: ExportDefaultExpression,
   ) -> Option<bool> {
     None
   }
