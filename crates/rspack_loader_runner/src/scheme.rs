@@ -34,15 +34,18 @@ impl Scheme {
 
 impl From<&str> for Scheme {
   fn from(value: &str) -> Self {
-    match value {
-      "" => Self::None,
-      // To avoid conflict with builtin loader protocol
-      "builtin" => Self::None,
-      "data" => Self::Data,
-      "file" => Self::File,
-      "http" => Self::Http,
-      "https" => Self::Https,
-      v => Self::Custom(v.to_string()),
+    if value.is_empty() || value.eq_ignore_ascii_case("builtin") {
+      Self::None
+    } else if value.eq_ignore_ascii_case("data") {
+      Self::Data
+    } else if value.eq_ignore_ascii_case("file") {
+      Self::File
+    } else if value.eq_ignore_ascii_case("http") {
+      Self::Http
+    } else if value.eq_ignore_ascii_case("https") {
+      Self::Https
+    } else {
+      Self::Custom(value.to_string())
     }
   }
 }
@@ -121,7 +124,7 @@ pub fn get_scheme(specifier: &str) -> Scheme {
     }
   }
 
-  Scheme::from(specifier[..i].to_ascii_lowercase().as_str())
+  Scheme::from(&specifier[..i])
 }
 
 #[cfg(test)]
