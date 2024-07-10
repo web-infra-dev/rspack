@@ -293,6 +293,11 @@ const runSyncOrAsync = promisify(function runSyncOrAsync(
 			return;
 		}
 	} catch (e: unknown) {
+		// use string for napi getter
+		let err = e as Error;
+		if ("hideStack" in err && err.hideStack) {
+			err.hideStack = "true";
+		}
 		if (isError) throw e;
 		if (isDone) {
 			// loader is already "done", so we cannot use the callback function
@@ -621,7 +626,7 @@ export async function runLoaders(
 		error.message = `${error.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
-		hasStack && Error.captureStackTrace(error);
+		!hasStack && Error.captureStackTrace(error);
 		error = concatErrorMsgAndStack(error);
 		(error as RspackError).moduleIdentifier = this._module.identifier();
 		compiler._lastCompilation!.__internal__pushDiagnostic({

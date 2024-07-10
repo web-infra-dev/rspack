@@ -66,6 +66,9 @@ pub struct Diagnostic {
   inner: Arc<miette::Error>,
   module_identifier: Option<Identifier>,
   file: Option<PathBuf>,
+  hide_stack: Option<bool>,
+  chunk: Option<usize>,
+  stack: Option<String>,
 }
 
 impl From<Box<dyn miette::Diagnostic + Send + Sync>> for Diagnostic {
@@ -80,6 +83,9 @@ impl From<miette::Error> for Diagnostic {
       inner: Arc::new(value),
       module_identifier: None,
       file: None,
+      hide_stack: None,
+      chunk: None,
+      stack: None,
     }
   }
 }
@@ -103,6 +109,9 @@ impl Diagnostic {
       .into(),
       module_identifier: None,
       file: None,
+      hide_stack: None,
+      chunk: None,
+      stack: None,
     }
   }
 
@@ -116,6 +125,9 @@ impl Diagnostic {
       .into(),
       module_identifier: None,
       file: None,
+      hide_stack: None,
+      chunk: None,
+      stack: None,
     }
   }
 }
@@ -159,6 +171,43 @@ impl Diagnostic {
   pub fn with_file(mut self, file: Option<PathBuf>) -> Self {
     self.file = file;
     self
+  }
+
+  pub fn hide_stack(&self) -> Option<bool> {
+    self.hide_stack
+  }
+
+  pub fn with_hide_stack(mut self, hide_stack: Option<bool>) -> Self {
+    self.hide_stack = hide_stack;
+    self
+  }
+
+  pub fn chunk(&self) -> Option<usize> {
+    self.chunk
+  }
+
+  pub fn with_chunk(mut self, chunk: Option<usize>) -> Self {
+    self.chunk = chunk;
+    self
+  }
+
+  pub fn stack(&self) -> Option<String> {
+    self.stack.clone()
+  }
+
+  pub fn with_stack(mut self, stack: Option<String>) -> Self {
+    self.stack = stack;
+    self
+  }
+
+  pub fn details(&self) -> Option<String> {
+    let hide_stack = self.hide_stack.unwrap_or_default();
+    if hide_stack {
+      // TODO: generate detail content for typed error
+      self.stack()
+    } else {
+      None
+    }
   }
 }
 

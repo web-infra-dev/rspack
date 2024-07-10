@@ -10,7 +10,7 @@ module.exports = {
 						"test shift and unshift",
 						compilation => {
 							compilation.errors.shift();
-							compilation.errors.unshift("test unshift");
+							compilation.errors.unshift(new Error("test unshift"));
 						}
 					);
 				}
@@ -22,7 +22,8 @@ module.exports = {
 		Object {
 		  "errors": Array [
 		    Object {
-		      "message": "  × test unshift\\n",
+		      "message": "  × Error: test unshift\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n",
+		      "stack": "Error: test unshift\\n    at Object.fn (<cwd>packages/rspack-test-tools/tests/errorCases/error-test-shift.js:13:35)\\n    at next (<cwd>packages/rspack-lite-tapable/dist/index.js:530:25)\\n    at AsyncSeriesHook.callAsyncStageRange (<cwd>packages/rspack-lite-tapable/dist/index.js:550:9)\\n    at AsyncSeriesHook.callAsync (<cwd>packages/rspack-lite-tapable/dist/index.js:88:21)\\n    at <cwd>packages/rspack/dist/Compiler.js:466:41\\n    at <cwd>packages/rspack/dist/Compiler.js:533:23",
 		    },
 		  ],
 		  "warnings": Array [],
