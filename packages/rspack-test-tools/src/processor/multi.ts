@@ -1,7 +1,7 @@
 import { merge } from "webpack-merge";
 
 import { readConfigFile } from "../helper";
-import {
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestProcessor,

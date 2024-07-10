@@ -2,10 +2,10 @@ import path from "path";
 
 import {
 	DefaultsConfigProcessor,
-	IDefaultsConfigProcessorOptions
+	type IDefaultsConfigProcessorOptions
 } from "../processor";
 import { TestContext } from "../test/context";
-import { ECompilerType, ITestProcessor } from "../type";
+import { ECompilerType, type ITestProcessor } from "../type";
 
 export type TDefaultsCaseConfig = Omit<
 	IDefaultsConfigProcessorOptions<ECompilerType.Rspack>,

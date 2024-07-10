@@ -1,8 +1,8 @@
-import { Compiler, DevServer } from "@rspack/core";
+import type { Compiler, DevServer } from "@rspack/core";
 import type { RspackDevServer as RspackDevServerType } from "@rspack/dev-server";
 
 import type { RspackCLI } from "../cli";
-import { RspackCommand } from "../types";
+import type { RspackCommand } from "../types";
 import {
 	commonOptions,
 	ensureEnvObject,

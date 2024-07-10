@@ -13,30 +13,30 @@ import querystring from "node:querystring";
 import assert from "assert";
 import { promisify } from "util";
 import {
-	JsLoaderContext,
-	JsLoaderItem,
+	type JsLoaderContext,
+	type JsLoaderItem,
 	JsLoaderState,
 	JsRspackSeverity
 } from "@rspack/binding";
 import {
 	OriginalSource,
 	RawSource,
-	Source,
+	type Source,
 	SourceMapSource
 } from "webpack-sources";
 
-import { Compilation } from "../Compilation";
-import { Compiler } from "../Compiler";
+import type { Compilation } from "../Compilation";
+import type { Compiler } from "../Compiler";
 import { Module } from "../Module";
 import { NormalModule } from "../NormalModule";
 import {
 	JsDiagnostic,
 	NonErrorEmittedError,
-	RspackError
+	type RspackError
 } from "../RspackError";
 import {
 	BUILTIN_LOADER_PREFIX,
-	LoaderContext,
+	type LoaderContext,
 	isUseSimpleSourceMap,
 	isUseSourceMap
 } from "../config/adapterRuleUse";

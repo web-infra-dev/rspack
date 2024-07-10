@@ -4,12 +4,12 @@ import { diffLinesRaw, diffStringsUnified } from "jest-diff";
 import { parseModules } from "../helper";
 import {
 	ECompareResultType,
-	TCompareModules,
-	TCompareResult,
-	TFileCompareResult,
-	TModuleCompareResult
+	type TCompareModules,
+	type TCompareResult,
+	type TFileCompareResult,
+	type TModuleCompareResult
 } from "../type";
-import { IFormatCodeOptions, formatCode } from "./format-code";
+import { type IFormatCodeOptions, formatCode } from "./format-code";
 import { replaceRuntimeModuleName } from "./replace-runtime-module-name";
 
 export interface ICompareOptions {

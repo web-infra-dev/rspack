@@ -1,10 +1,10 @@
 import fs from "fs";
 import path from "path";
-import { MultiRspackOptions, RspackOptions } from "@rspack/core";
+import type { MultiRspackOptions, RspackOptions } from "@rspack/core";
 import interpret from "interpret";
 import rechoir from "rechoir";
 
-import { RspackCLIOptions } from "../types";
+import type { RspackCLIOptions } from "../types";
 import crossImport from "./crossImport";
 import findConfig from "./findConfig";
 import isEsmFile from "./isEsmFile";

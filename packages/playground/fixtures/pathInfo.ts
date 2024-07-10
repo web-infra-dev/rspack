@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs-extra";
-import { Fixtures } from "@playwright/test";
+import type { Fixtures } from "@playwright/test";
 
 type PathInfo = {
 	testFile: string;

@@ -1,7 +1,7 @@
 import util from "util";
-import { ThreadsafeNodeFS } from "@rspack/binding";
+import type { ThreadsafeNodeFS } from "@rspack/binding";
 
-import { OutputFileSystem, mkdirp, rmrf } from "./util/fs";
+import { type OutputFileSystem, mkdirp, rmrf } from "./util/fs";
 import { memoizeFn } from "./util/memoize";
 
 const NOOP_FILESYSTEM: ThreadsafeNodeFS = {

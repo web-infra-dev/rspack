@@ -1,4 +1,4 @@
-import { ITestContext, ITestEnv, ITestProcessor } from "../type";
+import type { ITestContext, ITestEnv, ITestProcessor } from "../type";
 import { TestContext } from "./context";
 
 const CONTEXT_MAP: Map<

@@ -1,7 +1,7 @@
 import type * as binding from "@rspack/binding";
 
 import * as liteTapable from "@rspack/lite-tapable";
-import { ResolveData, ResourceDataWithData } from "./Module";
+import type { ResolveData, ResourceDataWithData } from "./Module";
 
 export type NormalModuleCreateData =
 	binding.JsNormalModuleFactoryCreateModuleArgs & {

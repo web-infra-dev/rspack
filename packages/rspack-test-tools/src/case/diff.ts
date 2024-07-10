@@ -3,9 +3,9 @@ import fs from "fs-extra";
 import rimraf from "rimraf";
 
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
-import { DiffProcessor, IDiffProcessorOptions } from "../processor";
+import { DiffProcessor, type IDiffProcessorOptions } from "../processor";
 import { Tester } from "../test/tester";
-import { ECompareResultType, TModuleCompareResult } from "../type";
+import { ECompareResultType, type TModuleCompareResult } from "../type";
 
 export type TDiffCaseConfig = IDiffProcessorOptions;
 

@@ -12,7 +12,7 @@ import path from "node:path";
 import fs from "fs";
 import type { Server } from "http";
 import type { Socket } from "net";
-import { Compiler, MultiCompiler } from "@rspack/core";
+import { type Compiler, MultiCompiler } from "@rspack/core";
 import type { FSWatcher } from "chokidar";
 import rdm from "webpack-dev-middleware";
 import WebpackDevServer from "webpack-dev-server";

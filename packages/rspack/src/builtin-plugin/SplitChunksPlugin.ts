@@ -1,17 +1,17 @@
 import assert from "assert";
 import {
-	BuiltinPlugin,
+	type BuiltinPlugin,
 	BuiltinPluginName,
-	JsChunk,
-	JsModule,
-	RawCacheGroupOptions,
-	RawSplitChunksOptions
+	type JsChunk,
+	type JsModule,
+	type RawCacheGroupOptions,
+	type RawSplitChunksOptions
 } from "@rspack/binding";
 
 import { Chunk } from "../Chunk";
-import { Compiler } from "../Compiler";
+import type { Compiler } from "../Compiler";
 import { Module } from "../Module";
-import { type OptimizationSplitChunksOptions } from "../config/zod";
+import type { OptimizationSplitChunksOptions } from "../config/zod";
 import { JsSplitChunkSizes } from "../util/SplitChunkSize";
 import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 

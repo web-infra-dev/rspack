@@ -11,7 +11,7 @@
 import util from "util";
 import Watchpack from "watchpack";
 
-import { FileSystemInfoEntry, WatchFileSystem, Watcher } from "../util/fs";
+import type { FileSystemInfoEntry, WatchFileSystem, Watcher } from "../util/fs";
 
 export default class NodeWatchFileSystem implements WatchFileSystem {
 	inputFileSystem: any;

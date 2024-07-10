@@ -1,5 +1,5 @@
 import type * as binding from "@rspack/binding";
-import { Resolve, getRawResolve } from "./config";
+import { type Resolve, getRawResolve } from "./config";
 
 interface ResolveContext {}
 

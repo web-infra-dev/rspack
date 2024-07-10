@@ -3,13 +3,13 @@ import path from "path";
 
 import { escapeEOL } from "../helper";
 import { replacePaths } from "../helper/replace-paths";
-import {
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
 	TCompilerOptions
 } from "../type";
-import { BasicProcessor, IBasicProcessorOptions } from "./basic";
+import { BasicProcessor, type IBasicProcessorOptions } from "./basic";
 export interface IDiagnosticProcessorOptions<T extends ECompilerType>
 	extends Omit<IBasicProcessorOptions<T>, "runable"> {
 	snapshot: string;

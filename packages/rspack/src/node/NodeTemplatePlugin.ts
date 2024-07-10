@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { Compiler } from "../Compiler";
+import type { Compiler } from "../Compiler";
 import {
 	CommonJsChunkFormatPlugin,
 	EnableChunkLoadingPlugin

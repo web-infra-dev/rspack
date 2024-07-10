@@ -6,7 +6,7 @@ import {
 } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";
-import { Compilation } from "./Compilation";
+import type { Compilation } from "./Compilation";
 import { Module } from "./Module";
 
 export class ChunkGraph {

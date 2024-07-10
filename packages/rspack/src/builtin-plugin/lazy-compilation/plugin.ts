@@ -1,9 +1,9 @@
-import { JsModule, RawRegex } from "@rspack/binding";
+import type { JsModule, RawRegex } from "@rspack/binding";
 
 import type { Compiler } from "../..";
 import getBackend, {
 	dispose,
-	LazyCompilationDefaultBackendOptions,
+	type LazyCompilationDefaultBackendOptions,
 	moduleImpl
 } from "./backend";
 import { BuiltinLazyCompilationPlugin } from "./lazyCompilation";

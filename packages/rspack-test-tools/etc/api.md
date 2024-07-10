@@ -8,25 +8,25 @@
 /// <reference types="jest" />
 /// <reference types="node" />
 
-import { Compiler } from '@rspack/core';
-import { Compiler as Compiler_2 } from 'webpack';
+import type { Compiler } from '@rspack/core';
+import type { Compiler as Compiler_2 } from 'webpack';
 import type { Configuration } from 'webpack';
-import EventEmitter from 'events';
+import type EventEmitter from 'events';
 import { IBasicGlobalContext as IBasicGlobalContext_2 } from '../type';
 import { IBasicGlobalContext as IBasicGlobalContext_3 } from '../../type';
 import { IBasicModuleScope as IBasicModuleScope_2 } from '../../type';
 import { ITestCompilerManager as ITestCompilerManager_2 } from '../type';
-import { RspackOptions } from '@rspack/core';
-import { RspackOptionsNormalized } from '@rspack/core';
-import { RspackPluginInstance } from '@rspack/core';
-import { Stats } from '@rspack/core';
+import type { RspackOptions } from '@rspack/core';
+import type { RspackOptionsNormalized } from '@rspack/core';
+import type { RspackPluginInstance } from '@rspack/core';
+import type { Stats } from '@rspack/core';
 import type { Stats as Stats_2 } from 'webpack';
-import { StatsCompilation } from '@rspack/core';
+import type { StatsCompilation } from '@rspack/core';
 import type { StatsCompilation as StatsCompilation_2 } from 'webpack';
-import { StatsError } from '@rspack/core';
-import { StatsWarnings } from '@rspack/core';
+import type { StatsError } from '@rspack/core';
+import type { StatsWarnings } from '@rspack/core';
 import { TRunnerRequirer as TRunnerRequirer_2 } from '..';
-import { WebpackOptionsNormalized } from 'webpack';
+import type { WebpackOptionsNormalized } from 'webpack';
 
 // @public (undocumented)
 export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {

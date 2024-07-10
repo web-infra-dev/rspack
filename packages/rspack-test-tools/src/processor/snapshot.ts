@@ -1,13 +1,13 @@
 import path from "path";
-import { type Compiler as RspackCompiler } from "@rspack/core";
-import {
-	type Compilation as WebpackCompilation,
-	type Compiler as WebpackCompiler
+import type { Compiler as RspackCompiler } from "@rspack/core";
+import type {
+	Compilation as WebpackCompilation,
+	Compiler as WebpackCompiler
 } from "webpack";
 
 import { escapeEOL } from "../helper";
-import { ECompilerType, ITestContext, ITestEnv } from "../type";
-import { BasicProcessor, IBasicProcessorOptions } from "./basic";
+import type { ECompilerType, ITestContext, ITestEnv } from "../type";
+import { BasicProcessor, type IBasicProcessorOptions } from "./basic";
 
 export interface ISnapshotProcessorOptions<T extends ECompilerType>
 	extends IBasicProcessorOptions<T> {

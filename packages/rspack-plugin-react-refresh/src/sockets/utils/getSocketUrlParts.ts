@@ -1,5 +1,5 @@
 import getCurrentScriptSource from "./getCurrentScriptSource";
-import { WDSMetaObj } from "./getWDSMetadata";
+import type { WDSMetaObj } from "./getWDSMetadata";
 export interface SocketUrlParts {
 	auth?: string;
 	hostname: string;

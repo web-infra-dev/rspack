@@ -10,10 +10,10 @@
 
 import assert from "assert";
 
-import { Compiler, EntryDescriptionNormalized, EntryNormalized } from "..";
+import type { Compiler, EntryDescriptionNormalized, EntryNormalized } from "..";
 import {
 	DynamicEntryPlugin,
-	EntryOptions,
+	type EntryOptions,
 	EntryPlugin
 } from "../builtin-plugin";
 

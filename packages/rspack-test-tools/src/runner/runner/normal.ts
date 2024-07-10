@@ -1,7 +1,11 @@
 import { URL } from "url";
 
-import { ECompilerType } from "../../type";
-import { IBasicModuleScope, TBasicRunnerFile, TRunnerRequirer } from "../type";
+import type { ECompilerType } from "../../type";
+import type {
+	IBasicModuleScope,
+	TBasicRunnerFile,
+	TRunnerRequirer
+} from "../type";
 import { EsmRunner } from "./esm";
 
 export class NormalRunner<

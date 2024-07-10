@@ -2,12 +2,12 @@ import path from "path";
 import util from "util";
 import type { RspackPluginFunction, RspackPluginInstance } from "@rspack/core";
 import {
-	Compiler,
-	MultiCompiler,
-	MultiRspackOptions,
-	MultiStats,
-	RspackOptions,
-	Stats,
+	type Compiler,
+	type MultiCompiler,
+	type MultiRspackOptions,
+	type MultiStats,
+	type RspackOptions,
+	type Stats,
 	rspack
 } from "@rspack/core";
 import * as rspackCore from "@rspack/core";
@@ -18,14 +18,14 @@ import { hideBin } from "yargs/helpers";
 import { BuildCommand } from "./commands/build";
 import { PreviewCommand } from "./commands/preview";
 import { ServeCommand } from "./commands/serve";
-import {
+import type {
 	RspackBuildCLIOptions,
 	RspackCLIColors,
 	RspackCLILogger,
 	RspackCLIOptions
 } from "./types";
 import findConfig from "./utils/findConfig";
-import { LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig";
+import { type LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig";
 import { normalizeEnv } from "./utils/options";
 
 type Command = "serve" | "build";

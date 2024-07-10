@@ -1,4 +1,7 @@
-import { BuiltinPluginName, RawProgressPluginOptions } from "@rspack/binding";
+import {
+	BuiltinPluginName,
+	type RawProgressPluginOptions
+} from "@rspack/binding";
 
 import { create } from "./base";
 

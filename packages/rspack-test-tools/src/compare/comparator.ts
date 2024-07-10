@@ -1,9 +1,9 @@
 import path from "path";
 import deepmerge from "deepmerge";
 
-import { ITestReporter, TCompareModules } from "../type";
+import type { ITestReporter, TCompareModules } from "../type";
 import { compareFile } from "./compare";
-import { IFormatCodeOptions } from "./format-code";
+import type { IFormatCodeOptions } from "./format-code";
 import { replaceRuntimeModuleName } from "./replace-runtime-module-name";
 
 export interface IDiffComparatorOptions {

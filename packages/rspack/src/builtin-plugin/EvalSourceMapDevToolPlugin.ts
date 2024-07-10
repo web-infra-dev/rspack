@@ -1,9 +1,9 @@
 import {
 	BuiltinPluginName,
-	RawSourceMapDevToolPluginOptions
+	type RawSourceMapDevToolPluginOptions
 } from "@rspack/binding";
 
-import { SourceMapDevToolPluginOptions } from "./SourceMapDevToolPlugin";
+import type { SourceMapDevToolPluginOptions } from "./SourceMapDevToolPlugin";
 import { create } from "./base";
 
 export const EvalSourceMapDevToolPlugin = create(
