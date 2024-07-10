@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   fmt::Display,
   hash::{Hash, Hasher},
   sync::Arc,
@@ -109,14 +110,14 @@ impl AsyncDependenciesBlock {
     dependencies: Vec<BoxDependency>,
     request: Option<String>,
   ) -> Self {
-    let loc_str = loc.clone().map_or_else(
-      || "".to_string(),
-      |loc| format!("|loc={}:{}", loc.start(), loc.end()),
+    let loc_str: Cow<str> = loc.clone().map_or_else(
+      || "".into(),
+      |loc| format!("|loc={}:{}", loc.start(), loc.end()).into(),
     );
 
-    let modifier_str = modifier.map_or_else(
-      || "".to_string(),
-      |modifier| format!("|modifier={modifier}"),
+    let modifier_str: Cow<str> = modifier.map_or_else(
+      || "".into(),
+      |modifier| format!("|modifier={modifier}").into(),
     );
 
     Self {

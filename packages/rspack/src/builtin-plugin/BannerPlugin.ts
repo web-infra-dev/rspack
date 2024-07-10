@@ -1,7 +1,7 @@
 import {
 	BuiltinPluginName,
-	JsChunk,
-	RawBannerPluginOptions
+	type JsChunk,
+	type RawBannerPluginOptions
 } from "@rspack/binding";
 import { z } from "zod";
 

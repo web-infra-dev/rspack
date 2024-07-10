@@ -4,6 +4,7 @@ mod walk_block_pre;
 mod walk_pre;
 
 use std::borrow::Cow;
+use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -936,8 +937,12 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  pub fn evaluate(&mut self, source: String, title: String) -> Option<BasicEvaluatedExpression> {
-    eval::eval_source(self, source, title)
+  pub fn evaluate<T: Display>(
+    &mut self,
+    source: String,
+    error_title: T,
+  ) -> Option<BasicEvaluatedExpression> {
+    eval::eval_source(self, source, error_title)
   }
 
   // same as `JavascriptParser._initializeEvaluating` in webpack

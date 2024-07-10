@@ -1,10 +1,14 @@
-import { JsAssetInfo, JsModule, RawFuncUseCtx } from "@rspack/binding";
+import {
+	type JsAssetInfo,
+	JsModule,
+	type RawFuncUseCtx
+} from "@rspack/binding";
 import type * as webpackDevServer from "webpack-dev-server";
 import { z } from "zod";
 
-import { Compilation, Compiler } from "..";
+import type { Compilation, Compiler } from "..";
 import { Chunk } from "../Chunk";
-import { PathData } from "../Compilation";
+import type { PathData } from "../Compilation";
 import { Module } from "../Module";
 
 //#region Name

@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { useLang } from 'rspress/runtime';
 
 const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {

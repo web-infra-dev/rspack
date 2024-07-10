@@ -1,15 +1,15 @@
 import {
 	BuiltinPluginName,
-	RawEntryOptions,
-	RawEntryPluginOptions
+	type RawEntryOptions,
+	type RawEntryPluginOptions
 } from "@rspack/binding";
 
 import {
-	ChunkLoading,
-	EntryRuntime,
-	FilenameTemplate,
-	LibraryOptions,
-	PublicPath,
+	type ChunkLoading,
+	type EntryRuntime,
+	type FilenameTemplate,
+	type LibraryOptions,
+	type PublicPath,
 	getRawChunkLoading,
 	getRawLibrary
 } from "../config";

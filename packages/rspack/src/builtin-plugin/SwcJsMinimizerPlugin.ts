@@ -1,7 +1,7 @@
 import {
 	BuiltinPluginName,
-	RawExtractComments,
-	RawSwcJsMinimizerRspackPluginOptions
+	type RawExtractComments,
+	type RawSwcJsMinimizerRspackPluginOptions
 } from "@rspack/binding";
 
 import { create } from "./base";

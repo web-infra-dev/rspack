@@ -259,6 +259,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
         .with_severity(severity)
         .boxed(),
       )
+      .with_hide_stack(Some(true))
     } else {
       Diagnostic::from(
         MietteDiagnostic::new(message)
@@ -266,6 +267,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
           .with_severity(severity)
           .boxed(),
       )
+      .with_hide_stack(Some(true))
     };
     diagnostic = diagnostic.with_module_identifier(Some(*parent_module_identifier));
     diagnostic

@@ -9,19 +9,19 @@
  */
 import assert from "assert";
 import util from "util";
-import { Callback } from "@rspack/lite-tapable";
+import type { Callback } from "@rspack/lite-tapable";
 
 import { Compiler } from "./Compiler";
 import {
 	MultiCompiler,
-	MultiCompilerOptions,
-	MultiRspackOptions
+	type MultiCompilerOptions,
+	type MultiRspackOptions
 } from "./MultiCompiler";
 import MultiStats from "./MultiStats";
 import { Stats } from "./Stats";
 import {
-	RspackOptions,
-	RspackPluginFunction,
+	type RspackOptions,
+	type RspackPluginFunction,
 	applyRspackOptionsBaseDefaults,
 	applyRspackOptionsDefaults,
 	getNormalizedRspackOptions,

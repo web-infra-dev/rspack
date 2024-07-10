@@ -883,6 +883,7 @@ impl HarmonyExportImportedSpecifierDependency {
           .with_severity(severity)
           .boxed(),
         )
+        .with_hide_stack(Some(true))
       } else {
         Diagnostic::from(
           MietteDiagnostic::new(message)
@@ -890,6 +891,7 @@ impl HarmonyExportImportedSpecifierDependency {
             .with_severity(severity)
             .boxed(),
         )
+        .with_hide_stack(Some(true))
       };
       diagnostic = diagnostic.with_module_identifier(Some(*parent_module_identifier));
       diagnostic

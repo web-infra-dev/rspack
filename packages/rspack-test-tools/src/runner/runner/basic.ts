@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import {
+import type {
 	ECompilerType,
 	ITestEnv,
 	ITestRunner,
@@ -9,7 +9,7 @@ import {
 	TCompilerStatsCompilation,
 	TTestConfig
 } from "../../type";
-import {
+import type {
 	IBasicGlobalContext,
 	IBasicModuleScope,
 	TBasicRunnerFile,

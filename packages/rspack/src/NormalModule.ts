@@ -2,7 +2,7 @@ import util from "util";
 import * as liteTapable from "@rspack/lite-tapable";
 
 import { Compilation } from "./Compilation";
-import { LoaderContext } from "./config";
+import type { LoaderContext } from "./config";
 
 const compilationHooksMap = new WeakMap<
 	Compilation,

@@ -1,7 +1,7 @@
-import fs from "fs";
+import type fs from "fs";
 import { Volume, createFsFromVolume } from "memfs";
 
-import {
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,

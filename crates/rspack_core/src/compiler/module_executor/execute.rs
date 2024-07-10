@@ -90,10 +90,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
       }
     }
 
-    tracing::info!(
-      "modules: {:?}",
-      &modules.iter().map(|m| m.to_string()).collect::<Vec<_>>()
-    );
+    tracing::info!("modules: {:?}", &modules.iter().collect::<Vec<_>>());
 
     let mut chunk_graph = ChunkGraph::default();
 
@@ -191,10 +188,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     tracing::info!(
       "runtime modules: {:?}",
-      &runtime_modules
-        .iter()
-        .map(|m| m.to_string())
-        .collect::<Vec<_>>()
+      &runtime_modules.iter().collect::<Vec<_>>()
     );
 
     let mut runtime_module_size = HashMap::default();

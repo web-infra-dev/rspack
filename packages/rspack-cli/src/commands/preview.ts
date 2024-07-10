@@ -1,13 +1,13 @@
 import path from "path";
 import {
-	DevServer,
-	MultiRspackOptions,
-	RspackOptions,
+	type DevServer,
+	type MultiRspackOptions,
+	type RspackOptions,
 	rspack
 } from "@rspack/core";
 
 import type { RspackCLI } from "../cli";
-import { RspackCommand, RspackPreviewCLIOptions } from "../types";
+import type { RspackCommand, RspackPreviewCLIOptions } from "../types";
 import { previewOptions } from "../utils/options";
 
 const defaultRoot = "dist";

@@ -4,13 +4,13 @@ import fs from "fs-extra";
 
 import {
 	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITestRunner,
-	TCompilerOptions,
-	TUpdateOptions
+	type ITestContext,
+	type ITestEnv,
+	type ITestRunner,
+	type TCompilerOptions,
+	type TUpdateOptions
 } from "../type";
-import { BasicProcessor, IBasicProcessorOptions } from "./basic";
+import { BasicProcessor, type IBasicProcessorOptions } from "./basic";
 
 export interface IHotProcessorOptions<T extends ECompilerType>
 	extends Omit<IBasicProcessorOptions<T>, "runable"> {

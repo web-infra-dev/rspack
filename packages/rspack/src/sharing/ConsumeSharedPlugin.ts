@@ -1,10 +1,10 @@
 import {
-	BuiltinPlugin,
+	type BuiltinPlugin,
 	BuiltinPluginName,
-	RawConsumeSharedPluginOptions
+	type RawConsumeSharedPluginOptions
 } from "@rspack/binding";
 
-import { Compiler } from "../Compiler";
+import type { Compiler } from "../Compiler";
 import {
 	RspackBuiltinPlugin,
 	createBuiltinPlugin

@@ -1,4 +1,4 @@
-import { Compiler, WebpackOptionsNormalized } from "webpack";
+import type { Compiler, WebpackOptionsNormalized } from "webpack";
 
 import { WebpackModulePlaceholderPlugin } from "./webpack-module-placeholder-plugin";
 

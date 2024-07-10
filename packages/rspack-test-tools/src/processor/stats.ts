@@ -2,17 +2,17 @@
 
 import fs from "fs";
 import path from "path";
-import { Compiler, Stats } from "@rspack/core";
+import type { Compiler, Stats } from "@rspack/core";
 
 import { escapeEOL } from "../helper";
 import captureStdio from "../helper/legacy/captureStdio";
-import {
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
 	TCompilerOptions
 } from "../type";
-import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
+import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 export interface IStatsProcessorOptions<T extends ECompilerType>
 	extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {}
@@ -49,7 +49,7 @@ export class StatsProcessor<
 		compilers.forEach((c: Compiler) => {
 			const ifs = c.inputFileSystem;
 			c.inputFileSystem = Object.create(ifs);
-			c.inputFileSystem.readFile = function () {
+			c.inputFileSystem.readFile = () => {
 				const args = Array.prototype.slice.call(arguments);
 				const callback = args.pop();
 				ifs.readFile.apply(

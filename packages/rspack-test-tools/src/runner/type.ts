@@ -1,4 +1,4 @@
-import { ITestEnv } from "../type";
+import type { ITestEnv } from "../type";
 
 export type TRunnerRequirer = (
 	currentDirectory: string,

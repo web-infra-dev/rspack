@@ -1,6 +1,10 @@
-import { ECompilerType, EDocumentType, ITestRunner } from "../../type";
-import { BasicRunner, IBasicRunnerOptions } from "./basic";
-import { CommonJsRunner } from "./cjs";
+import {
+	type ECompilerType,
+	EDocumentType,
+	type ITestRunner
+} from "../../type";
+import type { BasicRunner, IBasicRunnerOptions } from "./basic";
+import type { CommonJsRunner } from "./cjs";
 import { FakeDocumentWebRunner } from "./web/fake";
 import { JSDOMWebRunner } from "./web/jsdom";
 

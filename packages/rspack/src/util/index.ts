@@ -1,5 +1,5 @@
 import type { JsRspackError, JsStatsError } from "@rspack/binding";
-import { LoaderObject } from "../loader-runner";
+import type { LoaderObject } from "../loader-runner";
 
 export function mapValues(
 	record: Record<string, string>,
@@ -74,10 +74,12 @@ export function concatErrorMsgAndStack(
 	if (typeof err === "string") {
 		return new Error(err);
 	}
-	if ("stack" in err) {
+	const hideStack = "hideStack" in err && err.hideStack;
+	if (!hideStack && "stack" in err) {
 		err.message = err.stack || err.message;
-		return err;
 	}
+	// maybe `null`, use `undefined` to compatible with `Option<String>`
+	err.stack = err.stack || undefined;
 	return err;
 }
 

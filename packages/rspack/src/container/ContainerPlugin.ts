@@ -1,18 +1,18 @@
 import {
-	BuiltinPlugin,
+	type BuiltinPlugin,
 	BuiltinPluginName,
-	RawContainerPluginOptions
+	type RawContainerPluginOptions
 } from "@rspack/binding";
 
-import { Compiler } from "../Compiler";
+import type { Compiler } from "../Compiler";
 import {
 	RspackBuiltinPlugin,
 	createBuiltinPlugin
 } from "../builtin-plugin/base";
 import {
-	EntryRuntime,
-	FilenameTemplate,
-	LibraryOptions,
+	type EntryRuntime,
+	type FilenameTemplate,
+	type LibraryOptions,
 	getRawLibrary
 } from "../config";
 import { parseOptions } from "../container/options";

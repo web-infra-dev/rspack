@@ -1,7 +1,7 @@
-import { BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
+import { type BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
 
-import { Compiler } from "../Compiler";
-import {
+import type { Compiler } from "../Compiler";
+import type {
 	ChunkLoading,
 	OutputModule,
 	WasmLoading,

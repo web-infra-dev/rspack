@@ -1,6 +1,6 @@
 import {
 	BuiltinPluginName,
-	RawSourceMapDevToolPluginOptions
+	type RawSourceMapDevToolPluginOptions
 } from "@rspack/binding";
 
 import { matchObject } from "../lib/ModuleFilenameHelpers";

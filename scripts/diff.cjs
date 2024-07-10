@@ -45,11 +45,11 @@ const OUTPUT_DIR = path.join(__dirname, '../diff_output');
         ignoreObjectPropertySequence: true,
         ignoreCssFilePath: true,
         detail: false,
-        onCompareModules: function (file, results) {
+        onCompareModules: (file, results) => {
           htmlReporter.increment(name, results);
           statsReporter.increment(name, results);
         },
-        onCompareRuntimeModules: function (file, results) {
+        onCompareRuntimeModules: (file, results) => {
           htmlReporter.increment(name, results);
           statsReporter.increment(name, results);
         },

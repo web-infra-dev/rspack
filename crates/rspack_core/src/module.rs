@@ -9,10 +9,10 @@ use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
+use rspack_util::atom::Atom;
 use rspack_util::ext::{AsAny, DynEq, DynHash};
 use rspack_util::source_map::ModuleSourceMapConfig;
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::ecma::atoms::Atom;
 
 use crate::concatenated_module::ConcatenatedModule;
 use crate::{
@@ -50,7 +50,7 @@ pub struct BuildInfo {
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
   pub json_data: Option<JsonValue>,
-  pub top_level_declarations: Option<HashSet<String>>,
+  pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
 }
 

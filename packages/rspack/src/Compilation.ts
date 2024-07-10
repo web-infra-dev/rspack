@@ -18,18 +18,23 @@ import {
 	type JsRuntimeModule
 } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
-import { Source } from "webpack-sources";
+import type { Source } from "webpack-sources";
 import { Chunk } from "./Chunk";
 import { ChunkGraph } from "./ChunkGraph";
-import { Compiler } from "./Compiler";
-import { ContextModuleFactory } from "./ContextModuleFactory";
+import type { Compiler } from "./Compiler";
+import type { ContextModuleFactory } from "./ContextModuleFactory";
 import { Entrypoint } from "./Entrypoint";
 import ErrorHelpers from "./ErrorHelpers";
-import { CodeGenerationResult, Module } from "./Module";
-import { NormalModuleFactory } from "./NormalModuleFactory";
-import { ResolverFactory } from "./ResolverFactory";
-import { Stats, StatsAsset, StatsError, StatsModule } from "./Stats";
+import { type CodeGenerationResult, Module } from "./Module";
+import type { NormalModuleFactory } from "./NormalModuleFactory";
+import type { ResolverFactory } from "./ResolverFactory";
 import {
+	Stats,
+	type StatsAsset,
+	type StatsError,
+	type StatsModule
+} from "./Stats";
+import type {
 	Filename,
 	OutputNormalized,
 	RspackOptionsNormalized,
@@ -46,7 +51,7 @@ import { createFakeCompilationDependencies } from "./util/fake";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
 import Hash = require("./util/hash");
-import { JsDiagnostic, RspackError } from "./RspackError";
+import { JsDiagnostic, type RspackError } from "./RspackError";
 export { type AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
@@ -948,12 +953,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	#rebuildModuleCaller = (function (compilation: Compilation) {
-		return new MergeCaller(
+	#rebuildModuleCaller = ((compilation: Compilation) =>
+		new MergeCaller(
 			(args: Array<[string, (err: Error, m: Module) => void]>) => {
 				compilation.#inner.rebuildModule(
 					args.map(item => item[0]),
-					function (err: Error, modules: JsModule[]) {
+					(err: Error, modules: JsModule[]) => {
 						for (const [id, callback] of args) {
 							const m = modules.find(item => item.moduleIdentifier === id);
 							if (m) {
@@ -966,8 +971,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				);
 			},
 			10
-		);
-	})(this);
+		))(this);
 
 	rebuildModule(m: Module, f: (err: Error, m: Module) => void) {
 		this.#rebuildModuleCaller.push([m.identifier(), f]);

@@ -18,7 +18,7 @@ use crate::{
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
   ExternalType, FactoryMeta, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions,
   Module, ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, Template, NAMESPACE_OBJECT_EXPORT,
+  StaticExportsDependency, StaticExportsSpec, NAMESPACE_OBJECT_EXPORT,
 };
 use crate::{ChunkGraph, ModuleGraph};
 
@@ -73,12 +73,12 @@ impl ExternalRequestValue {
   }
 }
 
-fn get_namespace_object_export(concatenation_scope: Option<&mut ConcatenationScope>) -> String {
+fn get_namespace_object_export(concatenation_scope: Option<&mut ConcatenationScope>) -> Cow<str> {
   if let Some(concatenation_scope) = concatenation_scope {
     concatenation_scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
-    format!("var {NAMESPACE_OBJECT_EXPORT}")
+    format!("var {NAMESPACE_OBJECT_EXPORT}").into()
   } else {
-    "module.exports".to_string()
+    "module.exports".into()
   }
 }
 
@@ -245,7 +245,7 @@ impl ExternalModule {
       ),
       "module" if let Some(request) = request => {
         if compilation.options.output.module {
-          let id = Template::to_identifier(&request.primary);
+          let id = to_identifier(&request.primary);
           chunk_init_fragments.push(
             NormalInitFragment::new(
               format!(

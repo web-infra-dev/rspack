@@ -1,13 +1,13 @@
 import fs from "fs";
 import path from "path";
 
-import {
+import type {
 	ECompilerType,
 	ITestContext,
 	TCompiler,
 	TCompilerOptions
 } from "../type";
-import { BasicProcessor, IBasicProcessorOptions } from "./basic";
+import { BasicProcessor, type IBasicProcessorOptions } from "./basic";
 
 export interface INormalProcessorOptions<T extends ECompilerType>
 	extends IBasicProcessorOptions<T> {

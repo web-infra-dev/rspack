@@ -311,12 +311,13 @@ pub fn expression_not_supported(
   (
     Box::new(
       create_traceable_error(
-        "Module parse failed".into(),
+        "Unsupported feature".into(),
         format!("{name} is not supported by Rspack."),
         file,
         expr.span().into(),
       )
-      .with_severity(Severity::Warning),
+      .with_severity(Severity::Warning)
+      .with_hide_stack(Some(true)),
     ),
     Box::new(ConstDependency::new(
       expr.span().real_lo(),

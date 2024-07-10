@@ -2,21 +2,21 @@ import path from "path";
 
 import { readConfigFile } from "..";
 import {
-	IFormatCodeOptions,
-	IFormatCodeReplacement,
+	type IFormatCodeOptions,
+	type IFormatCodeReplacement,
 	compareFile,
 	replaceRuntimeModuleName
 } from "../compare";
 import { RspackDiffConfigPlugin, WebpackDiffConfigPlugin } from "../plugin";
 import {
 	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITestProcessor,
-	TCompareModules,
-	TCompilerOptions,
-	TFileCompareResult,
-	TModuleCompareResult
+	type ITestContext,
+	type ITestEnv,
+	type ITestProcessor,
+	type TCompareModules,
+	type TCompilerOptions,
+	type TFileCompareResult,
+	type TModuleCompareResult
 } from "../type";
 import { BasicProcessor } from "./basic";
 

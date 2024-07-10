@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs-extra";
 
-import {
+import type {
 	ITestReporter,
 	TDiffStats,
 	TDiffStatsItem,
