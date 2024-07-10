@@ -79,6 +79,10 @@ impl Lockfile {
     str.push_str(&format!("  \"version\": {}\n}}\n", self.version));
     str
   }
+
+  pub fn get_entry(&self, resource: &str) -> Option<&LockfileEntry> {
+    self.entries.get(resource)
+  }
 }
 
 #[async_trait]
