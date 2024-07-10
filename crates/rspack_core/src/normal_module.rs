@@ -404,8 +404,8 @@ impl Module for NormalModule {
       Ok(r) => r.split_into_parts(),
       Err(r) => {
         let node_error = r.downcast_ref::<NodeError>();
-        let stack = node_error.and_then(|e| e.1.clone());
-        let hide_stack = node_error.and_then(|e| e.3);
+        let stack = node_error.and_then(|e| e.stack.clone());
+        let hide_stack = node_error.and_then(|e| e.hide_stack);
         let e = ModuleBuildError(r).boxed();
         let d = Diagnostic::from(e)
           .with_stack(stack)

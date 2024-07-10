@@ -15,12 +15,24 @@ pub trait NapiResultExt<T> {
 
 impl NapiErrorExt for Error {
   fn into_rspack_error(self) -> rspack_error::Error {
-    NodeError(self.reason, None, "".to_string(), None).into()
+    (NodeError {
+      reason: self.reason,
+      stack: None,
+      backtrace: "".to_string(),
+      hide_stack: None,
+    })
+    .into()
   }
   fn into_rspack_error_with_detail(self, env: &Env) -> rspack_error::Error {
     let (reason, stack, backtrace, hide_stack) =
       extract_stack_or_message_from_napi_error(env, self);
-    NodeError(reason, stack, backtrace.unwrap_or_default(), hide_stack).into()
+    (NodeError {
+      reason,
+      stack,
+      backtrace: backtrace.unwrap_or_default(),
+      hide_stack,
+    })
+    .into()
   }
 }
 
