@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::hash_map::Entry;
 use std::collections::BTreeMap;
@@ -10,11 +11,11 @@ use std::sync::Arc;
 use dashmap::DashMap;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
+use rspack_util::atom::Atom;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use serde::Serialize;
-use swc_core::ecma::atoms::Atom;
 
 use crate::property_access;
 use crate::BuildMetaExportsType;
@@ -866,25 +867,25 @@ impl ExportInfoId {
     Self(EXPORT_INFO_ID.fetch_add(1, Relaxed))
   }
 
-  pub fn get_provided_info(&self, mg: &ModuleGraph) -> String {
+  pub fn get_provided_info(&self, mg: &ModuleGraph) -> &'static str {
     let export_info = self.get_export_info(mg);
     match export_info.provided {
-      Some(ExportInfoProvided::False) => "not provided".to_string(),
-      Some(ExportInfoProvided::Null) => "maybe provided (runtime-defined)".to_string(),
-      Some(ExportInfoProvided::True) => "provided".to_string(),
-      None => "no provided info".to_string(),
+      Some(ExportInfoProvided::False) => "not provided",
+      Some(ExportInfoProvided::Null) => "maybe provided (runtime-defined)",
+      Some(ExportInfoProvided::True) => "provided",
+      None => "no provided info",
     }
   }
 
-  pub fn get_used_info(&self, mg: &ModuleGraph) -> String {
+  pub fn get_used_info(&self, mg: &ModuleGraph) -> Cow<str> {
     let export_info = self.get_export_info(mg);
     if let Some(global_used) = export_info.global_used {
       return match global_used {
-        UsageState::Unused => "unused".to_string(),
-        UsageState::NoInfo => "no usage info".to_string(),
-        UsageState::Unknown => "maybe used (runtime-defined)".to_string(),
-        UsageState::Used => "used".to_string(),
-        UsageState::OnlyPropertiesUsed => "only properties used".to_string(),
+        UsageState::Unused => "unused".into(),
+        UsageState::NoInfo => "no usage info".into(),
+        UsageState::Unknown => "maybe used (runtime-defined)".into(),
+        UsageState::Used => "used".into(),
+        UsageState::OnlyPropertiesUsed => "only properties used".into(),
       };
     } else if let Some(used_in_runtime) = &export_info.used_in_runtime {
       let mut map = HashMap::default();
@@ -910,14 +911,14 @@ impl ExportInfoId {
         .collect();
 
       if !specific_info.is_empty() {
-        return specific_info.join("; ");
+        return specific_info.join("; ").into();
       }
     }
 
     if export_info.has_use_in_runtime_info {
-      "unused".to_string()
+      "unused".into()
     } else {
-      "no usage info".to_string()
+      "no usage info".into()
     }
   }
   pub fn get_export_info<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportInfo {
@@ -1108,7 +1109,7 @@ impl ExportInfoId {
         .get_or_insert(HashMap::default());
       let mut changed = false;
       for k in runtime.iter() {
-        match used_in_runtime.entry(k.to_string()) {
+        match used_in_runtime.entry(k.clone()) {
           Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
             (new, _) if new == &UsageState::Unused => {
               occ.remove();
@@ -1207,7 +1208,7 @@ impl ExportInfoId {
       let mut changed = false;
 
       for k in runtime.iter() {
-        match used_in_runtime.entry(k.to_string()) {
+        match used_in_runtime.entry(k.clone()) {
           Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
             (new, old) if condition(old) && new == &UsageState::Unused => {
               occ.remove();
@@ -1405,7 +1406,7 @@ pub struct ExportInfo {
   pub has_use_in_runtime_info: bool,
   pub can_mangle_use: Option<bool>,
   pub global_used: Option<UsageState>,
-  pub used_in_runtime: Option<HashMap<String, UsageState>>,
+  pub used_in_runtime: Option<HashMap<Arc<str>, UsageState>>,
 }
 
 impl ExportsHash for ExportInfo {

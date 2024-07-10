@@ -9,6 +9,7 @@ use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_error::error;
 use rspack_macros::MergeFrom;
+use rspack_util::atom::Atom;
 use rspack_util::MergeFrom;
 
 use crate::{parse_resource, AssetInfo, PathData, ResourceParsedData};
@@ -37,7 +38,7 @@ static DATA_URI_REGEX: Lazy<Regex> =
 
 #[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord, MergeFrom)]
 enum FilenameKind<F> {
-  Template(String),
+  Template(Atom),
   Fn(F),
 }
 
@@ -133,14 +134,14 @@ impl LocalFilenameFn for Arc<dyn FilenameFn> {
 
 impl<F> From<String> for Filename<F> {
   fn from(value: String) -> Self {
-    Self(FilenameKind::Template(value))
+    Self(FilenameKind::Template(Atom::from(value)))
   }
 }
 impl<F> FromStr for Filename<F> {
   type Err = Infallible;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
-    Ok(Self(FilenameKind::Template(s.to_owned())))
+    Ok(Self(FilenameKind::Template(Atom::from(s))))
   }
 }
 
