@@ -481,7 +481,7 @@ impl JsCompilation {
           request,
           public_path,
           base_uri,
-          original_module_context.map(rspack_core::Context::new),
+          original_module_context.map(rspack_core::Context::from),
         )
         .await;
       match result {

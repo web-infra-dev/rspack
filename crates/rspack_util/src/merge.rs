@@ -1,3 +1,5 @@
+use crate::atom::Atom;
+
 pub trait MergeFrom: Clone {
   fn merge_from(self, other: &Self) -> Self;
 }
@@ -32,6 +34,7 @@ impl_merge_from!(i8, i16, i32, i64, i128);
 impl_merge_from!(u8, u16, u32, u64, u128);
 impl_merge_from!(bool);
 impl_merge_from!(String);
+impl_merge_from!(Atom);
 
 pub fn merge_from_optional_with<T: MergeFrom>(
   base: Option<T>,

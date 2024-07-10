@@ -173,11 +173,11 @@ impl NormalModuleSource {
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
-  fn create_id(module_type: &ModuleType, request: &str) -> String {
+  fn create_id<'request>(module_type: &ModuleType, request: &'request str) -> Cow<'request, str> {
     if *module_type == ModuleType::JsAuto {
-      request.to_string()
+      request.into()
     } else {
-      format!("{module_type}|{request}")
+      format!("{module_type}|{request}").into()
     }
   }
 
@@ -200,7 +200,7 @@ impl NormalModule {
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      id: ModuleIdentifier::from(id),
+      id: ModuleIdentifier::from(id.as_ref()),
       context: Box::new(get_context(&resource_data)),
       request,
       user_request,

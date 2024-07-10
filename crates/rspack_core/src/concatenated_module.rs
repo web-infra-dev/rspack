@@ -36,8 +36,8 @@ use crate::{
   define_es_module_flag_statement, filter_runtime, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, property_access, property_name,
   reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
-  subtract_runtime_condition, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
+  subtract_runtime_condition, to_identifier, AsyncDependenciesBlockIdentifier, BoxDependency,
+  BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
   ChunkInitFragments, CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationResult, Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionId,
   ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, DependencyType,
@@ -169,10 +169,10 @@ pub struct ConcatenatedModuleInfo {
   pub ast: Option<Ast>,
   pub source: Option<ReplaceSource<Arc<dyn Source>>>,
   pub internal_source: Option<Arc<dyn Source>>,
-  pub internal_names: HashMap<Atom, String>,
+  pub internal_names: HashMap<Atom, Atom>,
   pub export_map: Option<HashMap<Atom, String>>,
   pub raw_export_map: Option<HashMap<Atom, String>>,
-  pub namespace_object_name: Option<String>,
+  pub namespace_object_name: Option<Atom>,
   pub interop_namespace_object_used: bool,
   pub interop_namespace_object_name: Option<Atom>,
   pub interop_namespace_object2_used: bool,
@@ -686,8 +686,8 @@ impl Module for ConcatenatedModule {
       module_to_info_map.insert(id, module_info);
     }
 
-    let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string()));
-    let mut top_level_declarations: HashSet<String> = HashSet::default();
+    let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|s| Atom::new(*s)));
+    let mut top_level_declarations: HashSet<Atom> = HashSet::default();
 
     for module in modules_with_info.iter() {
       let ModuleInfoOrReference::Concatenated(m) = module else {
@@ -705,17 +705,17 @@ impl Module for ConcatenatedModule {
         for ident in collector.ids {
           if ident.id.span.ctxt == info.global_ctxt {
             info.global_scope_ident.push(ident.clone());
-            all_used_names.insert(ident.id.sym.to_string());
+            all_used_names.insert(ident.id.sym.clone());
           }
           if ident.is_class_expr_with_ident {
-            all_used_names.insert(ident.id.sym.to_string());
+            all_used_names.insert(ident.id.sym.clone());
             continue;
           }
           // deconflict naming from inner scope, the module level deconflict will be finished
           // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
           // during module eval phase.
           if ident.id.span.ctxt != info.module_ctxt {
-            all_used_names.insert(ident.id.sym.to_string());
+            all_used_names.insert(ident.id.sym.clone());
           }
           info.idents.push(ident);
         }
@@ -743,7 +743,7 @@ impl Module for ConcatenatedModule {
       let module = module_graph
         .module_by_identifier(&info.id())
         .expect("should have module identifier");
-      let readable_identifier = module.readable_identifier(&context).to_string();
+      let readable_identifier = module.readable_identifier(&context);
       let exports_type: Option<BuildMetaExportsType> =
         module.build_meta().map(|item| item.exports_type);
       let default_object: Option<BuildMetaDefaultObject> =
@@ -759,13 +759,13 @@ impl Module for ConcatenatedModule {
               continue;
             }
             // Check if the name is already used
-            if all_used_names.contains(name.as_str()) {
+            if all_used_names.contains(name) {
               // Find a new name and update references
               let new_name = find_new_name(name, &all_used_names, None, &readable_identifier);
               // dbg!(&name, &new_name);
               all_used_names.insert(new_name.clone());
               info.internal_names.insert(name.clone(), new_name.clone());
-              top_level_declarations.insert(new_name.as_str().into());
+              top_level_declarations.insert(new_name.clone());
 
               // Update source
               let source = info.source.as_mut().expect("should have source");
@@ -783,9 +783,9 @@ impl Module for ConcatenatedModule {
               }
             } else {
               // Handle the case when the name is not already used
-              all_used_names.insert(name.to_string());
-              info.internal_names.insert(name.clone(), name.to_string());
-              top_level_declarations.insert(name.to_string());
+              all_used_names.insert(name.clone());
+              info.internal_names.insert(name.clone(), name.clone());
+              top_level_declarations.insert(name.clone());
             }
           }
 
@@ -801,7 +801,6 @@ impl Module for ConcatenatedModule {
                 &readable_identifier,
               ))
             };
-
           if let Some(namespace_object_name) = namespace_object_name {
             all_used_names.insert(namespace_object_name.clone());
             info.namespace_object_name = Some(namespace_object_name.clone());
@@ -812,48 +811,48 @@ impl Module for ConcatenatedModule {
 
         // Handle external type
         ModuleInfo::External(info) => {
-          let external_name = find_new_name("", &all_used_names, None, &readable_identifier);
+          let external_name: Atom = find_new_name("", &all_used_names, None, &readable_identifier);
           all_used_names.insert(external_name.clone());
-          info.name = Some(external_name.as_str().into());
-          top_level_declarations.insert(external_name.as_str().into());
+          info.name = Some(external_name.clone());
+          top_level_declarations.insert(external_name.clone());
         }
       }
       // Handle additional logic based on module build meta
       if exports_type != Some(BuildMetaExportsType::Namespace) {
-        let external_name_interop = find_new_name(
+        let external_name_interop: Atom = find_new_name(
           "namespaceObject",
           &all_used_names,
           None,
           &readable_identifier,
         );
-        all_used_names.insert(external_name_interop.as_str().into());
-        info.set_interop_namespace_object_name(Some(external_name_interop.as_str().into()));
-        top_level_declarations.insert(external_name_interop.as_str().into());
+        all_used_names.insert(external_name_interop.clone());
+        info.set_interop_namespace_object_name(Some(external_name_interop.clone()));
+        top_level_declarations.insert(external_name_interop.clone());
       }
 
       if exports_type == Some(BuildMetaExportsType::Default)
         && !matches!(default_object, Some(BuildMetaDefaultObject::Redirect))
       {
-        let external_name_interop = find_new_name(
+        let external_name_interop: Atom = find_new_name(
           "namespaceObject2",
           &all_used_names,
           None,
           &readable_identifier,
         );
-        all_used_names.insert(external_name_interop.as_str().into());
-        info.set_interop_namespace_object2_name(Some(external_name_interop.as_str().into()));
-        top_level_declarations.insert(external_name_interop.as_str().into());
+        all_used_names.insert(external_name_interop.clone());
+        info.set_interop_namespace_object2_name(Some(external_name_interop.clone()));
+        top_level_declarations.insert(external_name_interop.clone());
       }
 
       if matches!(
         exports_type,
         Some(BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset)
       ) {
-        let external_name_interop =
+        let external_name_interop: Atom =
           find_new_name("default", &all_used_names, None, &readable_identifier);
         all_used_names.insert(external_name_interop.clone());
-        info.set_interop_default_access_name(Some(external_name_interop.as_str().into()));
-        top_level_declarations.insert(external_name_interop.as_str().into());
+        info.set_interop_default_access_name(Some(external_name_interop.clone()));
+        top_level_declarations.insert(external_name_interop.clone());
       }
     }
 
@@ -1092,7 +1091,7 @@ impl Module for ConcatenatedModule {
         let box_module = module_graph
           .module_by_identifier(module_info_id)
           .expect("should have box module");
-        let module_readable_identifier = box_module.readable_identifier(&context).to_string();
+        let module_readable_identifier = box_module.readable_identifier(&context);
         let strict_harmony_module = box_module
           .build_meta()
           .map(|meta| meta.strict_harmony_module)
@@ -1214,7 +1213,7 @@ impl Module for ConcatenatedModule {
       let box_module = module_graph
         .module_by_identifier(&info.id())
         .expect("should have box module");
-      let module_readable_identifier = box_module.readable_identifier(&context).to_string();
+      let module_readable_identifier = box_module.readable_identifier(&context);
 
       match info {
         ModuleInfo::Concatenated(info) => {
@@ -1265,7 +1264,7 @@ impl Module for ConcatenatedModule {
               .expect("should have module id")
           )));
 
-          name = info.name.as_ref().map(|atom| atom.to_string());
+          name = info.name.clone();
         }
       }
 
@@ -1713,7 +1712,7 @@ impl ConcatenatedModule {
       let source = inner
         .remove(&SourceType::JavaScript)
         .expect("should have javascript source");
-      let source_code = source.source().to_string();
+      let source_code = source.source();
 
       let cm: Arc<swc_core::common::SourceMap> = Default::default();
       let fm = cm.new_source_file(
@@ -1721,7 +1720,7 @@ impl ConcatenatedModule {
           "{}",
           self.readable_identifier(&compilation.options.context),
         )),
-        source_code,
+        source_code.into(),
       );
       let comments = SwcComments::default();
       let mut module_info = concatenation_scope.current_module;
@@ -2021,8 +2020,7 @@ impl ConcatenatedModule {
             raw_name: info
               .namespace_object_name
               .clone()
-              .expect("should have namespace_object_name")
-              .into(),
+              .expect("should have namespace_object_name"),
             ids: export_name.clone(),
             export_name,
             info_id: info.module,
@@ -2071,8 +2069,7 @@ impl ConcatenatedModule {
             raw_name: info
               .namespace_object_name
               .clone()
-              .expect("should have namespace_object_name")
-              .into(),
+              .expect("should have namespace_object_name"),
             ids: export_name.clone(),
             export_name,
             info_id: info.module,
@@ -2101,7 +2098,7 @@ impl ConcatenatedModule {
             });
           } else {
             return Binding::Raw(RawBinding {
-              raw_name: "/* unused export */ undefined".to_string().into(),
+              raw_name: "/* unused export */ undefined".into(),
               ids: export_name[1..].to_vec(),
               export_name,
               info_id: info.module,
@@ -2200,7 +2197,7 @@ impl ConcatenatedModule {
           let comment = if used_name == export_name {
             "".to_string()
           } else {
-            Template::to_normal_comment(&join_atom(export_name.iter(), ",").to_string())
+            Template::to_normal_comment(&join_atom(export_name.iter(), ","))
           };
           Binding::Raw(RawBinding {
             raw_name: format!(
@@ -2216,7 +2213,7 @@ impl ConcatenatedModule {
           })
         } else {
           Binding::Raw(RawBinding {
-            raw_name: "/* unused export */ undefined".to_string().into(),
+            raw_name: "/* unused export */ undefined".into(),
             ids: export_name[1..].to_vec(),
             export_name,
             info_id: info.module,
@@ -2276,25 +2273,26 @@ pub fn map_box_diagnostics_to_module_parse_diagnostics(
 
 pub fn find_new_name(
   old_name: &str,
-  used_names1: &HashSet<String>,
-  used_names2: Option<&HashSet<String>>,
+  used_names1: &HashSet<Atom>,
+  used_names2: Option<&HashSet<Atom>>,
   extra_info: &str,
-) -> String {
-  let mut name = old_name.to_string();
+) -> Atom {
+  let mut name = Cow::Borrowed(old_name);
 
   if name == DEFAULT_EXPORT {
-    name = String::new();
+    name = Cow::Borrowed("");
   }
   if name == NAMESPACE_OBJECT_EXPORT {
-    name = "namespaceObject".to_string();
+    name = Cow::Borrowed("namespaceObject");
   }
+
   // Remove uncool stuff
-  let extra_info = REGEX.replace_all(extra_info, "").to_string();
+  let extra_info = REGEX.replace_all(extra_info, "");
 
   let mut splitted_info: Vec<&str> = extra_info.split('/').collect();
   while let Some(info_part) = splitted_info.pop() {
-    name = format!("{}_{}", info_part, name);
-    let name_ident = Template::to_identifier(&name);
+    name = Cow::Owned(format!("{}_{}", info_part, name));
+    let name_ident = to_identifier(&name).into();
     if !used_names1.contains(&name_ident)
       && (used_names2.is_none()
         || !used_names2
@@ -2306,14 +2304,14 @@ pub fn find_new_name(
   }
 
   let mut i = 0;
-  let mut name_with_number = Template::to_identifier(&format!("{}_{}", name, i));
+  let mut name_with_number = to_identifier(&format!("{}_{}", name, i)).into();
   while used_names1.contains(&name_with_number)
     || used_names2
       .map(|map| map.contains(&name_with_number))
       .unwrap_or_default()
   {
     i += 1;
-    name_with_number = Template::to_identifier(&format!("{}_{}", name, i));
+    name_with_number = to_identifier(&format!("{}_{}", name, i)).into();
   }
 
   name_with_number

@@ -24,9 +24,15 @@ static IDENTIFIER_REGEXP: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"[^a-zA-Z0-9$]+").expect("should init regex"));
 
 #[inline]
-pub fn to_identifier(v: &str) -> String {
-  let id = IDENTIFIER_NAME_REPLACE_REGEX.replace_all(v, "_$1");
-  IDENTIFIER_REGEXP.replace_all(&id, "_").to_string()
+pub fn to_identifier(v: &str) -> Cow<str> {
+  // Avoid any unnecessary cost
+  match IDENTIFIER_NAME_REPLACE_REGEX.replace_all(v, "_$1") {
+    Cow::Borrowed(_) => IDENTIFIER_REGEXP.replace_all(v, "_"),
+    Cow::Owned(id) => match IDENTIFIER_REGEXP.replace_all(&id, "_") {
+      Cow::Borrowed(_unchanged) => Cow::Owned(id),
+      Cow::Owned(id) => Cow::Owned(id),
+    },
+  }
 }
 
 static PATH_QUERY_FRAGMENT_REGEXP: Lazy<Regex> = Lazy::new(|| {
