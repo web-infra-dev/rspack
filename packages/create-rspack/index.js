@@ -20,6 +20,7 @@ yargs(hideBin(process.argv))
 		const defaultProjectName = "rspack-project";
 		let template = "react";
 		let targetDir = defaultProjectName;
+
 		const promptProjectDir = async () =>
 			await prompts(
 				[
@@ -37,13 +38,13 @@ yargs(hideBin(process.argv))
 			);
 
 		await promptProjectDir();
-		let root = path.resolve(process.cwd(), targetDir);
+		let root = path.resolve(process.cwd(), getProjectDir(targetDir));
 		while (fs.existsSync(root)) {
 			console.log(
 				`${targetDir} is not empty, please choose another project name`
 			);
 			await promptProjectDir();
-			root = path.resolve(process.cwd(), targetDir);
+			root = path.resolve(process.cwd(), getProjectDir(targetDir));
 		}
 
 		// choose template
@@ -69,17 +70,17 @@ yargs(hideBin(process.argv))
 
 		fs.mkdirSync(root, { recursive: true });
 		const srcFolder = path.resolve(__dirname, `template-${template}`);
-		copyFolder(srcFolder, targetDir);
+		copyFolder(srcFolder, root, targetDir);
 		const pkgManager = getPkgManager();
 		console.log("\nDone. Now run:\n");
-		console.log(`cd ${targetDir}\n`);
+		console.log(`cd ${getProjectDir(targetDir)}\n`);
 		console.log(`${pkgManager} install\n`);
 		console.log(`${pkgManager} run dev\n`);
 	})
 	.help()
 	.parse();
 
-function copyFolder(src, dst) {
+function copyFolder(src, dst, targetDir) {
 	const renameFiles = {
 		_gitignore: ".gitignore"
 	};
@@ -95,7 +96,7 @@ function copyFolder(src, dst) {
 			: path.resolve(dst, file);
 		const stat = fs.statSync(srcFile);
 		if (stat.isDirectory()) {
-			copyFolder(srcFile, dstFile);
+			copyFolder(srcFile, dstFile, targetDir);
 		} else {
 			// use create-rspack version as @rspack/xxx version in template
 			if (file === "package.json") {
@@ -115,7 +116,7 @@ function copyFolder(src, dst) {
 					}
 				}
 				if (pkg.name) {
-					pkg.name = dst;
+					pkg.name = getPkgName(targetDir);
 				}
 				fs.writeFileSync(dstFile, JSON.stringify(pkg, null, 2), "utf-8");
 			} else {
@@ -124,6 +125,29 @@ function copyFolder(src, dst) {
 		}
 	}
 }
+
+function getPkgName(targetDir) {
+  const scopeMatch = matchScopedPackageName(targetDir);
+  if (scopeMatch) {
+    return targetDir; // Scoped package name
+  } else {
+    return path.basename(targetDir); // Use the base name of the target directory
+  }
+}
+
+function getProjectDir(targetDir) {
+  const scopeMatch = matchScopedPackageName(targetDir);
+  if (scopeMatch) {
+    return scopeMatch[1]; // Subdirectory project name for scoped packages
+  } else {
+    return targetDir;
+  }
+}
+
+function matchScopedPackageName(targetDir) {
+  return targetDir.match(/^@[^/]+\/(.+)/);
+}
+
 
 function getPkgManager() {
 	const ua = process.env.npm_config_user_agent;
