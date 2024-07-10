@@ -1,7 +1,8 @@
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
 use rspack_core::EsVersion;
 use rspack_error::{miette::Severity, TraceableError};
+use serde_json::json;
 use swc_core::{
   common::{FileName, Spanned},
   ecma::parser::{parse_file_as_expr, EsSyntax, Syntax},
@@ -11,10 +12,10 @@ use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;
 
 #[inline]
-pub fn eval_source(
+pub fn eval_source<T: Display>(
   parser: &mut JavascriptParser,
   source: String,
-  title: String,
+  error_title: T,
 ) -> Option<BasicEvaluatedExpression> {
   let cm: Arc<swc_core::common::SourceMap> = Default::default();
   let fm = cm.new_source_file(FileName::Anon, source.clone());
@@ -34,8 +35,8 @@ pub fn eval_source(
           &fm,
           span.lo.0.saturating_sub(1) as usize,
           span.hi.0.saturating_sub(1) as usize,
-          format!("{title} warning"),
-          format!("failed to parse {:?}", source),
+          format!("{error_title} warning"),
+          format!("failed to parse {}", json!(source)),
         )
         .with_severity(Severity::Warning),
       ));

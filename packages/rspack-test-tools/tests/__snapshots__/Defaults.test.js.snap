@@ -227,32 +227,12 @@ Object {
     "minimize": false,
     "minimizer": Array [
       SwcJsMinimizerRspackPlugin {
-        "_options": Object {
-          "compress": Object {
-            "passes": 1,
-          },
-          "exclude": undefined,
-          "extractComments": undefined,
-          "format": Object {
-            "comments": false,
-          },
-          "include": undefined,
-          "mangle": true,
-          "module": undefined,
-          "test": undefined,
-        },
+        "_args": Array [],
         "affectedHooks": "compilation",
         "name": "SwcJsMinimizerRspackPlugin",
       },
       LightningCssMinimizerRspackPlugin {
-        "_options": Object {
-          "browserslist": Array [
-            "defaults",
-          ],
-          "errorRecovery": true,
-          "removeUnusedLocalIdents": true,
-          "unusedSymbols": Array [],
-        },
+        "_args": Array [],
         "affectedHooks": undefined,
         "name": "LightningCssMinimizerRspackPlugin",
       },
