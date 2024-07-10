@@ -4,6 +4,7 @@ import { pluginRss } from '@rspress/plugin-rss';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
 import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
+import pluginSitemap from 'rspress-plugin-sitemap';
 import { defineConfig } from 'rspress/config';
 
 const PUBLISH_URL = 'https://rspack.dev';
@@ -28,6 +29,9 @@ export default defineConfig({
     cleanUrls: true,
   },
   plugins: [
+    pluginSitemap({
+      domain: PUBLISH_URL,
+    }),
     pluginFontOpenSans(),
     pluginRss({
       siteUrl: PUBLISH_URL,
