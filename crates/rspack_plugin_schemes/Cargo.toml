@@ -10,15 +10,12 @@ version    = "0.1.0"
 [dependencies]
 anyhow        = { workspace = true }
 async-trait   = { workspace = true }
-futures       = { workspace = true }
-hex           = { workspace = true }
 once_cell     = { workspace = true }
 regex         = { workspace = true }
 reqwest       = { version = "0.12.5", default_features = false, features = ["http2"] }
 rspack_base64 = { path = "../rspack_base64" }
 rspack_core   = { path = "../rspack_core" }
 rspack_error  = { path = "../rspack_error" }
-rspack_fs     = { path = "../rspack_fs" }
 rspack_hook   = { path = "../rspack_hook" }
 serde         = { workspace = true }
 serde_json    = { workspace = true }
