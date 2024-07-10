@@ -88,7 +88,7 @@ exports[`statsOutput statsOutput/css-concat-error should print correct stats for
 "asset main.js 49 bytes [emitted] (name: main)
 Entrypoint main 49 bytes = main.js
 
-ERROR in × Resolve error: Can't resolve './src' in 'Xdir/css-concat-error'
+ERROR in × Module not found: Can't resolve './src' in 'Xdir/css-concat-error'
 
 Rspack x.x.x compiled with 1 error in X s"
 `;
@@ -233,7 +233,7 @@ Chunk Group cimanyd 337 bytes = cimanyd.js"
 
 exports[`statsOutput statsOutput/nonexistent-import-source-error should print correct stats for 1`] = `
 "ERROR in ./index.js
-  × Resolve error: Can't resolve 'not-exist' in 'Xdir/nonexistent-import-source-error'
+  × Module not found: Can't resolve 'not-exist' in 'Xdir/nonexistent-import-source-error'
    ╭────
  1 │ import \\"not-exist\\";
    ·        ───────────
@@ -392,7 +392,7 @@ Entrypoint main 378 bytes = main.js
 ./index.js 51 bytes [built] [code generated] [1 error]
 
 ERROR in ./index.js
-  × Resolve error: Can't resolve 'cycle-alias/a' in 'Xdir/resolve-overflow-error'
+  × Module not found: Can't resolve 'cycle-alias/a' in 'Xdir/resolve-overflow-error'
    ╭─[1:1]
  1 │ import { a } from \\"cycle-alias/a\\";
    ·                   ───────────────
@@ -478,7 +478,7 @@ Rspack compiled successfully"
 
 exports[`statsOutput statsOutput/try-require-module should print correct stats for 1`] = `
 "WARNING in ./index.js
-  ⚠ Resolve error: Can't resolve './missing-module' in 'Xdir/try-require-module'
+  ⚠ Module not found: Can't resolve './missing-module' in 'Xdir/try-require-module'
    ╭─[1:1]
  1 │ try {
  2 │     require('./missing-module')
@@ -492,7 +492,7 @@ Rspack compiled with 1 warning"
 
 exports[`statsOutput statsOutput/try-require-resolve-module should print correct stats for 1`] = `
 "WARNING in ./index.js
-  ⚠ Resolve error: Can't resolve './missing-module' in 'Xdir/try-require-resolve-module'
+  ⚠ Module not found: Can't resolve './missing-module' in 'Xdir/try-require-resolve-module'
    ╭─[1:1]
  1 │ try {
  2 │     require.resolve('./missing-module')
@@ -506,7 +506,7 @@ Rspack compiled with 1 warning"
 
 exports[`statsOutput statsOutput/try-require-resolve-weak-module should print correct stats for 1`] = `
 "WARNING in ./index.js
-  ⚠ Resolve error: Can't resolve './missing-module' in 'Xdir/try-require-resolve-weak-module'
+  ⚠ Module not found: Can't resolve './missing-module' in 'Xdir/try-require-resolve-weak-module'
    ╭─[1:1]
  1 │ try {
  2 │     require.resolveWeak('./missing-module')

@@ -1,5 +1,5 @@
 WARNING in ./locale.js
-  ⚠ Resolve error: Can't resolve './locale' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/optional-context-dependency'
+  ⚠ Module not found: Can't resolve './locale' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/optional-context-dependency'
    ╭─[2:1]
  2 │   let locale;
  3 │   try {

@@ -146,7 +146,6 @@ e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where 
 The extension in the request is mandatory for it to be fully specified.
 Add the extension to the request.", suggestion, args.specifier));
       }
-      Err(_) => return None,
       _ => {}
     }
   }
@@ -181,7 +180,6 @@ which tries to resolve these kind of requests in the current directory too.",
           args.specifier
         ));
       }
-      Err(_) => return None,
       _ => {}
     }
   }
@@ -277,7 +275,7 @@ if its extension was not listed in the `resolve.extensions`. Here're some possib
 
           return Some(hint.join("\n"));
         }
-        Err(_) => return None,
+        _ => {}
       }
     }
   }

@@ -364,7 +364,7 @@ describe("Compiler", () => {
 			expect(err.toString()).toMatch(
 				// CHANGE: Error messages from Rspack differ from those in webpack
 				// "ModuleNotFoundError: Module not found: Error: Can't resolve './missing-file'"
-				"Error:   × Resolve error: Can't resolve './missing-file'"
+				"Error:   × Module not found: Can't resolve './missing-file'"
 			);
 		}
 	});

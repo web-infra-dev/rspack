@@ -1,4 +1,6 @@
+const { FilteredStatus } = require("../../../lib/util/filterUtil");
 
-module.exports = () => {return "https://github.com/web-infra-dev/rspack/issues/4306"}
-
-							
+module.exports = () => [
+	FilteredStatus.PARTIAL_PASS,
+	"support magic comment `webpackExports`"
+];

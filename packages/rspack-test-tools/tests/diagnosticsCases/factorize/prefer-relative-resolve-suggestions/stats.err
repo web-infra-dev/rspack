@@ -1,5 +1,5 @@
 ERROR in ./index.js
-  × Resolve error: Can't resolve 'foo.js' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/prefer-relative-resolve-suggestions'
+  × Module not found: Can't resolve 'foo.js' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/prefer-relative-resolve-suggestions'
    ╭────
  1 │ import "foo.js"
    ·        ────────
