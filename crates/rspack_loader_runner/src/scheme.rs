@@ -124,7 +124,7 @@ pub fn get_scheme(specifier: &str) -> Scheme {
     }
   }
 
-  Scheme::from(specifier)
+  Scheme::from(&specifier[..i])
 }
 
 #[cfg(test)]
