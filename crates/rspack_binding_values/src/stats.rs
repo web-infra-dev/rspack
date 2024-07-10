@@ -22,7 +22,6 @@ pub struct JsStatsError {
   pub module_name: Option<String>,
   pub module_id: Option<String>,
   pub chunk_id: Option<String>,
-  pub module_trace: Option<String>,
   pub details: Option<String>,
   pub stack: Option<String>,
 }
@@ -39,7 +38,6 @@ impl From<rspack_core::StatsError> for JsStatsError {
       chunk_entry: stats.chunk_entry,
       chunk_initial: stats.chunk_initial,
       chunk_id: stats.chunk_id,
-      module_trace: stats.module_trace,
       details: stats.details,
       stack: stats.stack,
     }

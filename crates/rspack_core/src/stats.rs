@@ -570,7 +570,6 @@ impl Stats<'_> {
           chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
           chunk_initial: chunk.map(|c| c.can_be_initial(&self.compilation.chunk_group_by_ukey)),
           chunk_id: chunk.and_then(|c| c.id.clone()),
-          module_trace: Default::default(),
           details: d.details(),
           stack: d.stack(),
         }
@@ -611,7 +610,6 @@ impl Stats<'_> {
           chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
           chunk_initial: chunk.map(|c| c.can_be_initial(&self.compilation.chunk_group_by_ukey)),
           chunk_id: chunk.and_then(|c| c.id.clone()),
-          module_trace: Default::default(),
           details: d.details(),
           stack: d.stack(),
         }
@@ -1154,7 +1152,6 @@ pub struct StatsError {
   pub chunk_entry: Option<bool>,
   pub chunk_initial: Option<bool>,
   pub chunk_id: Option<String>,
-  pub module_trace: Option<String>,
   pub details: Option<String>,
   pub stack: Option<String>,
 }
@@ -1171,7 +1168,6 @@ pub struct StatsWarning {
   pub chunk_entry: Option<bool>,
   pub chunk_initial: Option<bool>,
   pub chunk_id: Option<String>,
-  pub module_trace: Option<String>,
   pub details: Option<String>,
   pub stack: Option<String>,
 }
