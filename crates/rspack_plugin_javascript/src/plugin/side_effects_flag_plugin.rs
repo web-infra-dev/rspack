@@ -77,7 +77,7 @@ fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
   } else {
     String::from("**/") + trim_start
   };
-  glob_match::glob_match(&normalized_glob, string.trim_start_matches("./"))
+  fast_glob::glob_match_with_brace(&normalized_glob, string.trim_start_matches("./"))
 }
 
 pub struct SideEffectsFlagPluginVisitor<'a> {
@@ -933,6 +933,10 @@ mod test_side_effects {
     assert!(!get_side_effects_from_package_json_helper(
       vec!["./src/**/*.js", "./dirty.js"],
       "./clean.js"
+    ));
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./src/**/*/z.js"],
+      "./src/x/y/z.js"
     ));
   }
 }
