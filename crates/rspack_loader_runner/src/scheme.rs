@@ -34,7 +34,7 @@ impl Scheme {
 
 impl From<&str> for Scheme {
   fn from(value: &str) -> Self {
-    if value == "" || value.eq_ignore_ascii_case("builtin") {
+    if value.is_empty() || value.eq_ignore_ascii_case("builtin") {
       Self::None
     } else if value.eq_ignore_ascii_case("data") {
       Self::Data
