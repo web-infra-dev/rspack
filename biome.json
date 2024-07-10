@@ -32,8 +32,8 @@
     "rules": {
       "recommended": false,
       "style": {
-        "useImportType": "warn",
-        "useExportType": "warn"
+        "useImportType": "error",
+        "useExportType": "error"
       }
     },
     "ignore": ["tests/**/*", "crates/**/*", "diff.bundle.js"]
