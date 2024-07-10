@@ -1,6 +1,4 @@
 /**
  * format the targetDir
  */
-exports.formatTargetDir = function (targetDir) {
-	return targetDir.trim().replace(/\/+$/g, "");
-};
+exports.formatTargetDir = targetDir => targetDir.trim().replace(/\/+$/g, "");

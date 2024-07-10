@@ -56,7 +56,7 @@ function isMusl() {
 const BINDING_VERSION = require("@rspack/binding/package.json").version;
 const CORE_VERSION = require("../../package.json").version;
 
-const getAddonPlatformArchAbi = function () {
+const getAddonPlatformArchAbi = () => {
 	const { platform, arch } = process;
 	let binding = "";
 	binding += platform;

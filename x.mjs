@@ -27,7 +27,7 @@ program
 	.command("ready")
 	.alias("r")
 	.description("ready to create a pull request, build and run all tests")
-	.action(async function () {
+	.action(async () => {
 		await $`cargo check`;
 		await $`cargo lint`;
 		await $`cargo test`;
@@ -42,7 +42,7 @@ program
 	.command("install")
 	.alias("i")
 	.description("install all dependencies")
-	.action(async function () {
+	.action(async () => {
 		await $`pnpm install`;
 	});
 
@@ -52,7 +52,7 @@ let cleanCommand = program
 	.description("clean target/ directory");
 
 // x clean all
-cleanCommand.command("all").action(async function () {
+cleanCommand.command("all").action(async () => {
 	await $`./x clean rust`;
 });
 
@@ -60,7 +60,7 @@ cleanCommand.command("all").action(async function () {
 cleanCommand
 	.command("rust")
 	.description("clean target/ directory")
-	.action(async function () {
+	.action(async () => {
 		await $`cargo clean`;
 	});
 
@@ -74,7 +74,7 @@ buildCommand
 	.option("-j", "build js packages")
 	.option("-r", "release")
 	.option("-f", "force")
-	.action(async function ({ a, b = a, j = a, r, f }) {
+	.action(async ({ a, b = a, j = a, r, f }) => {
 		let mode = r ? "release" : "debug";
 		try {
 			if (b === undefined && j === undefined) {
@@ -92,7 +92,7 @@ watchCommand
 	.option("-b", "watch rust binding")
 	.option("-j", "watch js packages")
 	.option("-r", "release")
-	.action(async function ({ a, b = a, j = a, r }) {
+	.action(async ({ a, b = a, j = a, r }) => {
 		let mode = r ? "release" : "debug";
 		try {
 			b && (await $`pnpm --filter @rspack/binding watch:${mode}`);
@@ -106,7 +106,7 @@ watchCommand
 buildCommand
 	.command("binding")
 	.description("build rust binding")
-	.action(async function () {
+	.action(async () => {
 		await $`pnpm --filter @rspack/binding build:debug`;
 	});
 
@@ -114,7 +114,7 @@ buildCommand
 buildCommand
 	.command("js")
 	.description("build js packages")
-	.action(async function () {
+	.action(async () => {
 		await $`pnpm --filter "@rspack/*" build`;
 	});
 
@@ -125,7 +125,7 @@ const testCommand = program.command("test").alias("t").description("test");
 testCommand
 	.command("rust")
 	.description("run cargo tests")
-	.action(async function () {
+	.action(async () => {
 		await $`cargo test`;
 	});
 
@@ -133,7 +133,7 @@ testCommand
 testCommand
 	.command("unit")
 	.description("run all unit tests")
-	.action(async function () {
+	.action(async () => {
 		await $`./x build js`;
 		await $`pnpm --filter "@rspack/*" test`;
 	});
@@ -142,7 +142,7 @@ testCommand
 testCommand
 	.command("ci")
 	.description("run tests for ci")
-	.action(async function () {
+	.action(async () => {
 		await $`./x test unit`;
 	});
 
@@ -150,7 +150,7 @@ testCommand
 testCommand
 	.command("webpack")
 	.description("run webpack test suites")
-	.action(async function () {
+	.action(async () => {
 		await $`pnpm --filter "webpack-test" test`;
 	});
 
@@ -158,7 +158,7 @@ testCommand
 testCommand
 	.command("plugin")
 	.description("run plugin test suites")
-	.action(async function () {
+	.action(async () => {
 		await $`pnpm --filter "plugin-test" test`;
 	});
 
@@ -171,7 +171,7 @@ const extractorCommand = program
 extractorCommand
 	.command("update")
 	.description("update api extractor snapshots")
-	.action(async function () {
+	.action(async () => {
 		await $`pnpm -w build:js`;
 		await $`pnpm --filter '@rspack/*' api-extractor --local`;
 	});
@@ -179,7 +179,7 @@ extractorCommand
 extractorCommand
 	.command("ci")
 	.description("test api extractor snapshots")
-	.action(async function () {
+	.action(async () => {
 		try {
 			await $`pnpm --filter '@rspack/*' api-extractor:ci`;
 		} catch (e) {
@@ -202,7 +202,7 @@ const rspackCommand = program.command("rspack").alias("rs").description(`
 
 rspackCommand
 	.option("-d, --debug", "Launch debugger in VSCode")
-	.action(async function ({ debug }) {
+	.action(async ({ debug }) => {
 		if (!debug) {
 			await $`npx rspack ${getVariadicArgs()}`;
 			return;
@@ -215,7 +215,7 @@ program
 	.command("rspack-debug")
 	.alias("rsd")
 	.description("Alias for `x rspack --debug`")
-	.action(async function () {
+	.action(async () => {
 		await launchRspackCli(getVariadicArgs());
 	});
 
@@ -242,7 +242,7 @@ program
 	.command("jest-debug")
 	.alias("jd")
 	.description("Alias for `x jest --debug`")
-	.action(async function () {
+	.action(async () => {
 		await launchJestWithArgs(getVariadicArgs());
 	});
 

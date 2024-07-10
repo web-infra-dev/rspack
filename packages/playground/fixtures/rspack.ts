@@ -70,7 +70,7 @@ export const rspackFixtures = (
 			async ({ page, pathInfo, defaultRspackConfig }, use, { workerIndex }) => {
 				const { tempProjectDir } = pathInfo;
 				const port = 8000 + workerIndex;
-				const rspack = new Rspack(tempProjectDir, wds, function (config) {
+				const rspack = new Rspack(tempProjectDir, wds, config => {
 					// rewrite port
 					if (!config.devServer) {
 						config.devServer = {};

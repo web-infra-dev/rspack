@@ -45,9 +45,7 @@ export function createHookCase(
 			new HookTaskProcessor({
 				name,
 				compilerType: ECompilerType.Rspack,
-				findBundle: function () {
-					return ["main.js"];
-				},
+				findBundle: () => ["main.js"],
 				snapshot: path.join(src, "output.snap.txt"),
 				runable: true,
 				...caseConfig

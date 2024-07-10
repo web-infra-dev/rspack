@@ -17,7 +17,7 @@ export const fileActionFixtures: Fixtures<
 	{},
 	RspackFixtures
 > = {
-	fileAction: async function ({ rspack }, use) {
+	fileAction: async ({ rspack }, use) => {
 		// null means this file needs to be deleted
 		const fileOriginContent: Record<string, string | null> = {};
 

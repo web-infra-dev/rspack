@@ -20,7 +20,7 @@ export function getRspackMemoryAssets(
 	const publicPath = compiler.options.output.publicPath
 		? compiler.options.output.publicPath.replace(/\/$/, "") + "/"
 		: "/";
-	return function (req: IncomingMessage, res: Response, next: () => void) {
+	return (req: IncomingMessage, res: Response, next: () => void) => {
 		const { method, url } = req;
 		if (method !== "GET") {
 			return next();

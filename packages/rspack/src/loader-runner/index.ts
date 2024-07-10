@@ -77,14 +77,11 @@ function createLoaderObject(
 	};
 	Object.defineProperty(obj, "request", {
 		enumerable: true,
-		get: function () {
-			return (
-				obj.path.replace(/#/g, "\u200b#") +
-				obj.query.replace(/#/g, "\u200b#") +
-				obj.fragment
-			);
-		},
-		set: function (value) {
+		get: () =>
+			obj.path.replace(/#/g, "\u200b#") +
+			obj.query.replace(/#/g, "\u200b#") +
+			obj.fragment,
+		set: value => {
 			var splittedRequest = parseResourceWithoutFragment(value.request);
 			obj.path = splittedRequest.path;
 			obj.query = splittedRequest.query;
@@ -256,7 +253,7 @@ const runSyncOrAsync = promisify(function runSyncOrAsync(
 		isSync = false;
 		return innerCallback;
 	};
-	const innerCallback = (context.callback = function (err, ...args) {
+	const innerCallback = (context.callback = (err, ...args) => {
 		if (isDone) {
 			if (reportedError) return; // ignore
 			throw new Error("callback(): The callback was already called.");
@@ -287,7 +284,7 @@ const runSyncOrAsync = promisify(function runSyncOrAsync(
 				typeof result === "object" &&
 				typeof result.then === "function"
 			) {
-				result.then(function (r: unknown) {
+				result.then((r: unknown) => {
 					callback(null, [r]);
 				}, callback);
 				return;
@@ -483,7 +480,7 @@ export async function runLoaders(
 	};
 	Object.defineProperty(loaderContext, "resource", {
 		enumerable: true,
-		get: function () {
+		get: () => {
 			if (loaderContext.resourcePath === undefined) return undefined;
 			return (
 				loaderContext.resourcePath.replace(/#/g, "\u200b#") +
@@ -491,7 +488,7 @@ export async function runLoaders(
 				loaderContext.resourceFragment
 			);
 		},
-		set: function (value) {
+		set: value => {
 			const splittedResource = value && parsePathQueryFragment(value);
 			loaderContext.resourcePath = splittedResource
 				? splittedResource.path
@@ -506,18 +503,15 @@ export async function runLoaders(
 	});
 	Object.defineProperty(loaderContext, "request", {
 		enumerable: true,
-		get: function () {
-			return loaderContext.loaders
-				.map(function (o) {
-					return o.request;
-				})
+		get: () =>
+			loaderContext.loaders
+				.map(o => o.request)
 				.concat(loaderContext.resource || "")
-				.join("!");
-		}
+				.join("!")
 	});
 	Object.defineProperty(loaderContext, "remainingRequest", {
 		enumerable: true,
-		get: function () {
+		get: () => {
 			if (
 				loaderContext.loaderIndex >= loaderContext.loaders.length - 1 &&
 				!loaderContext.resource
@@ -525,39 +519,31 @@ export async function runLoaders(
 				return "";
 			return loaderContext.loaders
 				.slice(loaderContext.loaderIndex + 1)
-				.map(function (o) {
-					return o.request;
-				})
+				.map(o => o.request)
 				.concat(loaderContext.resource || "")
 				.join("!");
 		}
 	});
 	Object.defineProperty(loaderContext, "currentRequest", {
 		enumerable: true,
-		get: function () {
-			return loaderContext.loaders
+		get: () =>
+			loaderContext.loaders
 				.slice(loaderContext.loaderIndex)
-				.map(function (o) {
-					return o.request;
-				})
+				.map(o => o.request)
 				.concat(loaderContext.resource || "")
-				.join("!");
-		}
+				.join("!")
 	});
 	Object.defineProperty(loaderContext, "previousRequest", {
 		enumerable: true,
-		get: function () {
-			return loaderContext.loaders
+		get: () =>
+			loaderContext.loaders
 				.slice(0, loaderContext.loaderIndex)
-				.map(function (o) {
-					return o.request;
-				})
-				.join("!");
-		}
+				.map(o => o.request)
+				.join("!")
 	});
 	Object.defineProperty(loaderContext, "query", {
 		enumerable: true,
-		get: function () {
+		get: () => {
 			const entry = loaderContext.loaders[loaderContext.loaderIndex];
 			return entry.options && typeof entry.options === "object"
 				? entry.options
@@ -734,7 +720,7 @@ export async function runLoaders(
 		compiler._lastCompilation
 	);
 
-	loaderContext.getOptions = function () {
+	loaderContext.getOptions = () => {
 		const loader = getCurrentLoader(loaderContext);
 		let options = loader?.options;
 
@@ -815,9 +801,7 @@ export async function runLoaders(
 						currentLoaderObject.data
 					])) || [];
 
-				const hasArg = args.some(function (value) {
-					return value !== undefined;
-				});
+				const hasArg = args.some(value => value !== undefined);
 
 				if (hasArg) {
 					const [content, sourceMap, additionalData] = args;

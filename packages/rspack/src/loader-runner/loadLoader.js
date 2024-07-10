@@ -22,7 +22,7 @@ module.exports = function loadLoader(loader, callback) {
 			var modulePromise = eval(
 				"import(" + JSON.stringify(loaderUrl.toString()) + ")"
 			);
-			modulePromise.then(function (module) {
+			modulePromise.then(module => {
 				handleResult(loader, module, callback);
 			}, callback);
 			return;

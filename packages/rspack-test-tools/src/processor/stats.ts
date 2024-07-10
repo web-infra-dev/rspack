@@ -49,7 +49,7 @@ export class StatsProcessor<
 		compilers.forEach((c: Compiler) => {
 			const ifs = c.inputFileSystem;
 			c.inputFileSystem = Object.create(ifs);
-			c.inputFileSystem.readFile = function () {
+			c.inputFileSystem.readFile = () => {
 				const args = Array.prototype.slice.call(arguments);
 				const callback = args.pop();
 				ifs.readFile.apply(

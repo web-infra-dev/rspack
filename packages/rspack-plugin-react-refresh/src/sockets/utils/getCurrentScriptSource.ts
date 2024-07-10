@@ -12,9 +12,7 @@ export default function getCurrentScriptSource() {
 		// and finding the last one injected.
 		const scriptElementsWithSrc = Array.prototype.filter.call(
 			(document as Document).scripts || [],
-			function (elem) {
-				return elem.getAttribute("src");
-			}
+			elem => elem.getAttribute("src")
 		);
 		if (!scriptElementsWithSrc.length) return;
 		const currentScript =

@@ -953,12 +953,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	#rebuildModuleCaller = (function (compilation: Compilation) {
-		return new MergeCaller(
+	#rebuildModuleCaller = ((compilation: Compilation) =>
+		new MergeCaller(
 			(args: Array<[string, (err: Error, m: Module) => void]>) => {
 				compilation.#inner.rebuildModule(
 					args.map(item => item[0]),
-					function (err: Error, modules: JsModule[]) {
+					(err: Error, modules: JsModule[]) => {
 						for (const [id, callback] of args) {
 							const m = modules.find(item => item.moduleIdentifier === id);
 							if (m) {
@@ -971,8 +971,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				);
 			},
 			10
-		);
-	})(this);
+		))(this);
 
 	rebuildModule(m: Module, f: (err: Error, m: Module) => void) {
 		this.#rebuildModuleCaller.push([m.identifier(), f]);
