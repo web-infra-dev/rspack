@@ -7,5 +7,7 @@ pub mod rsc_visitor;
 pub mod sever_reference;
 pub use has_server_directive::*;
 pub mod constants;
+pub mod file;
 pub mod server_action;
 pub mod shared_data;
+pub use file::is_same_asset;

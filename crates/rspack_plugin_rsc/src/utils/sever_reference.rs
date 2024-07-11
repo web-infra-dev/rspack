@@ -12,7 +12,7 @@ use super::server_action::generate_action_id;
 use crate::utils::constants::RSC_SERVER_ACTION_ENTRY_RE;
 use crate::utils::decl::{ServerActionRef, ServerActions, ServerRef, ServerReferenceManifest};
 use crate::utils::shared_data::{SHARED_CLIENT_IMPORTS, SHARED_DATA, SHARED_SERVER_IMPORTS};
-use crate::utils::{has_client_directive, has_server_directive};
+use crate::utils::{has_client_directive, has_server_directive, is_same_asset};
 
 #[derive(Debug, Default, Clone)]
 pub struct RSCServerReferenceManifest {}
@@ -192,23 +192,16 @@ impl RSCServerReferenceManifest {
           .server_actions
           .insert(f.to_string(), mapping.clone());
       });
-    let mut prev_shim_server_manifest: HashMap<String, ServerActions> = HashMap::default();
-    prev_shim_server_manifest.insert(
-      String::from("serverActions"),
-      SHARED_DATA.lock().unwrap().server_actions.clone(),
-    );
     *SHARED_DATA.lock().unwrap() = server_manifest.clone();
-    // TODO: a better way to prevent write same content manifest?
     let mut shim_server_manifest: HashMap<String, ServerActions> = HashMap::default();
     shim_server_manifest.insert(
       String::from("serverActions"),
       server_manifest.server_actions,
     );
-    let old_content = to_string(&prev_shim_server_manifest).unwrap();
     let content = to_string(&shim_server_manifest);
     match content {
       Ok(content) => {
-        if !old_content.eq(&content) {
+        if !is_same_asset("server-reference-manifest.json", &content) {
           let asset = CompilationAsset {
             source: Some(RawSource::from(content).boxed()),
             info: AssetInfo {
