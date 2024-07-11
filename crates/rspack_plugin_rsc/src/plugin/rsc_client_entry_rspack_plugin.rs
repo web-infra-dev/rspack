@@ -18,7 +18,7 @@ use serde_json::to_string;
 use crate::utils::decl::{ClientImports, ReactRoute};
 use crate::utils::sever_reference::RSCServerReferenceManifest;
 use crate::utils::shared_data::{SHARED_CLIENT_IMPORTS, SHARED_SERVER_IMPORTS};
-use crate::utils::{has_client_directive, has_server_directive};
+use crate::utils::{has_client_directive, has_server_directive, is_same_asset};
 
 #[derive(Debug, Default, Clone)]
 pub struct RSCClientEntryRspackPluginOptions {
@@ -229,37 +229,46 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     // }
     // Make HMR friendly
     value.sort();
+    let output_file = format!("[{}]_client_imports.json", name);
     let content = to_string(&value);
+
     match content {
       Ok(content) => {
-        compilation.assets_mut().insert(
-          format!("[{}]_client_imports.json", name),
-          CompilationAsset {
-            source: Some(RawSource::from(content).boxed()),
-            info: AssetInfo {
-              immutable: false,
-              ..AssetInfo::default()
+        if !is_same_asset(&output_file, &content) {
+          compilation.assets_mut().insert(
+            output_file,
+            CompilationAsset {
+              source: Some(RawSource::from(content).boxed()),
+              info: AssetInfo {
+                immutable: false,
+                ..AssetInfo::default()
+              },
             },
-          },
-        );
+          );
+        }
       }
       Err(_) => (),
     }
   }
   for (name, value) in server_imports.iter_mut() {
+    // Make HMR friendly
+    value.sort();
+    let output_file = format!("[{}]_server_imports.json", name);
     let content = to_string(&value);
     match content {
       Ok(content) => {
-        compilation.assets_mut().insert(
-          format!("[{}]_server_imports.json", name),
-          CompilationAsset {
-            source: Some(RawSource::from(content).boxed()),
-            info: AssetInfo {
-              immutable: false,
-              ..AssetInfo::default()
+        if !is_same_asset(&output_file, &content) {
+          compilation.assets_mut().insert(
+            format!("[{}]_server_imports.json", name),
+            CompilationAsset {
+              source: Some(RawSource::from(content).boxed()),
+              info: AssetInfo {
+                immutable: false,
+                ..AssetInfo::default()
+              },
             },
-          },
-        );
+          );
+        }
       }
       Err(_) => (),
     }
