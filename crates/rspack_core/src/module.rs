@@ -318,11 +318,14 @@ pub trait Module:
     &self,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
-  ) -> Option<String> {
-    Some(format!(
-      "Module Concatenation is not implemented for {}",
-      self.module_type()
-    ))
+  ) -> Option<Cow<'static, str>> {
+    Some(
+      format!(
+        "Module Concatenation is not implemented for {}",
+        self.module_type()
+      )
+      .into(),
+    )
   }
 
   /// Resolve options matched by module rules.

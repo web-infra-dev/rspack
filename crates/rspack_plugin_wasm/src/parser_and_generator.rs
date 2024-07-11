@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
@@ -288,10 +289,8 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     _module: &dyn Module,
     _mg: &rspack_core::ModuleGraph,
     _cg: &rspack_core::ChunkGraph,
-  ) -> Option<String> {
-    Some(String::from(
-      "Module Concatenation is not implemented for AsyncWasmParserAndGenerator",
-    ))
+  ) -> Option<Cow<'static, str>> {
+    Some("Module Concatenation is not implemented for AsyncWasmParserAndGenerator".into())
   }
 }
 

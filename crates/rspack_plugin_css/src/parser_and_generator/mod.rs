@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -479,10 +481,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
     _module: &dyn rspack_core::Module,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
-  ) -> Option<String> {
-    Some(String::from(
-      "Module Concatenation is not implemented for CssParserAndGenerator",
-    ))
+  ) -> Option<Cow<'static, str>> {
+    Some("Module Concatenation is not implemented for CssParserAndGenerator".into())
   }
 }
 

@@ -349,14 +349,11 @@ impl Module for ExternalModule {
     &self,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
-  ) -> Option<String> {
+  ) -> Option<Cow<'static, str>> {
     match self.external_type.as_ref() {
       "amd" | "umd" | "amd-require" | "umd2" | "system" | "jsonp" => {
         // return `${this.externalType} externals can't be concatenated`;
-        Some(format!(
-          "{} externals can't be concatenated",
-          self.external_type
-        ))
+        Some(format!("{} externals can't be concatenated", self.external_type).into())
       }
       _ => None,
     }

@@ -1,4 +1,5 @@
 #![allow(clippy::only_used_in_recursion)]
+use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::VecDeque;
 use std::hash::Hasher;
@@ -98,7 +99,7 @@ impl ConcatConfiguration {
 #[plugin]
 #[derive(Debug, Default)]
 pub struct ModuleConcatenationPlugin {
-  bailout_reason_map: FxDashMap<ModuleIdentifier, String>,
+  bailout_reason_map: FxDashMap<ModuleIdentifier, Cow<'static, str>>,
 }
 
 impl ModuleConcatenationPlugin {
@@ -128,13 +129,18 @@ impl ModuleConcatenationPlugin {
     }
   }
 
-  fn set_bailout_reason(&self, module: &ModuleIdentifier, reason: String, mg: &mut ModuleGraph) {
+  fn set_bailout_reason(
+    &self,
+    module: &ModuleIdentifier,
+    reason: Cow<'static, str>,
+    mg: &mut ModuleGraph,
+  ) {
     self.set_inner_bailout_reason(module, reason.clone());
     mg.get_optimization_bailout_mut(module)
       .push(format_bailout_reason(&reason));
   }
 
-  fn set_inner_bailout_reason(&self, module: &ModuleIdentifier, reason: String) {
+  fn set_inner_bailout_reason(&self, module: &ModuleIdentifier, reason: Cow<'static, str>) {
     self.bailout_reason_map.insert(*module, reason);
   }
 
@@ -145,7 +151,7 @@ impl ModuleConcatenationPlugin {
     dashmap::mapref::one::Ref<
       '_,
       rspack_identifier::Identifier,
-      String,
+      Cow<'static, str>,
       std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
     >,
   > {
@@ -578,7 +584,7 @@ impl ModuleConcatenationPlugin {
           .is_async(&module_id)
           .expect("should have async result")
         {
-          bailout_reason.push("Module is async".to_string());
+          bailout_reason.push("Module is async".into());
           return (false, false, module_id, bailout_reason);
         }
 
@@ -587,11 +593,11 @@ impl ModuleConcatenationPlugin {
           .expect("should have build info")
           .strict
         {
-          bailout_reason.push("Module is not in strict mode".to_string());
+          bailout_reason.push("Module is not in strict mode".into());
           return (false, false, module_id, bailout_reason);
         }
         if number_of_module_chunks == 0 {
-          bailout_reason.push("Module is not in any chunk".to_string());
+          bailout_reason.push("Module is not in any chunk".into());
           return (false, false, module_id, bailout_reason);
         }
 
@@ -626,9 +632,10 @@ impl ModuleConcatenationPlugin {
           //   &mut module_graph,
           // );
 
-          bailout_reason.push(format!(
-            "Reexports in this module do not have a static target ({cur_bailout_reason})"
-          ));
+          bailout_reason.push(
+            format!("Reexports in this module do not have a static target ({cur_bailout_reason})")
+              .into(),
+          );
 
           return (false, false, module_id, bailout_reason);
         }
@@ -665,9 +672,8 @@ impl ModuleConcatenationPlugin {
           //   format!("List of module exports is dynamic ({bailout_reason})"),
           //   &mut module_graph,
           // );
-          bailout_reason.push(format!(
-            "List of module exports is dynamic ({cur_bailout_reason})"
-          ));
+          bailout_reason
+            .push(format!("List of module exports is dynamic ({cur_bailout_reason})").into());
           can_be_root = false;
         }
 
@@ -678,7 +684,7 @@ impl ModuleConcatenationPlugin {
           //   &mut module_graph,
           // );
           can_be_inner = false;
-          bailout_reason.push("Module is an entry point".to_string());
+          bailout_reason.push("Module is an entry point".into());
         }
         (can_be_root, can_be_inner, module_id, bailout_reason)
         // if can_be_root {

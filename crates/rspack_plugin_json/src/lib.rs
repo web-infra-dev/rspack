@@ -199,7 +199,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     _module: &dyn Module,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
-  ) -> Option<String> {
+  ) -> Option<Cow<'static, str>> {
     None
   }
 }
