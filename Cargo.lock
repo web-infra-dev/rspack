@@ -1084,9 +1084,9 @@ checksum = "4443176a9f2c162692bd3d352d745ef9413eec5782a80d8fd6f8a1ac692a07f7"
 
 [[package]]
 name = "fast-glob"
-version = "0.3.0"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "048c62105db2ac2d651145c1e828d14f726998c3041d24104ec0c34a44b7b899"
+checksum = "239ce881ea1fc42c19951979aa7fc75d740f6cd553101922b4d1f48d68429234"
 
 [[package]]
 name = "fastrand"
