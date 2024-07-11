@@ -1,4 +1,4 @@
-import { RawSplitChunkSizes } from "@rspack/binding";
+import type { RawSplitChunkSizes } from "@rspack/binding";
 
 class JsSplitChunkSizes {
 	static __to_binding(

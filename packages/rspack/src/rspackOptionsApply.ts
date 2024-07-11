@@ -10,7 +10,7 @@
 import assert from "assert";
 import fs from "graceful-fs";
 
-import {
+import type {
 	Compiler,
 	OptimizationRuntimeChunkNormalized,
 	RspackOptionsNormalized,
@@ -271,12 +271,11 @@ export class RspackOptionsApply {
 				lazyOptions.entries ?? true,
 				lazyOptions.imports ?? true,
 				typeof lazyOptions.test === "function"
-					? function (jsModule) {
-							return (lazyOptions.test as (jsModule: Module) => boolean)!.call(
+					? jsModule =>
+							(lazyOptions.test as (jsModule: Module) => boolean)!.call(
 								lazyOptions,
 								new Module(jsModule)
-							);
-						}
+							)
 					: lazyOptions.test
 						? {
 								source: lazyOptions.test.source,
@@ -384,21 +383,7 @@ export class RspackOptionsApply {
 		if (!compiler.inputFileSystem) {
 			throw new Error("No input filesystem provided");
 		}
-		compiler.resolverFactory.hooks.resolveOptions
-			.for("normal")
-			.tap("RspackOptionsApply", resolveOptions => {
-				resolveOptions = cleverMerge(options.resolve, resolveOptions);
-				resolveOptions.fileSystem = compiler.inputFileSystem;
-				return resolveOptions;
-			});
-		compiler.resolverFactory.hooks.resolveOptions
-			.for("context")
-			.tap("RspackOptionsApply", resolveOptions => {
-				resolveOptions = cleverMerge(options.resolve, resolveOptions);
-				resolveOptions.fileSystem = compiler.inputFileSystem;
-				resolveOptions.resolveToContext = true;
-				return resolveOptions;
-			});
+
 		compiler.hooks.afterResolvers.call(compiler);
 	}
 }

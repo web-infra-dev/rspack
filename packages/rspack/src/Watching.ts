@@ -8,12 +8,12 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import assert from "assert";
-import { Callback } from "@rspack/lite-tapable";
+import type { Callback } from "@rspack/lite-tapable";
 
 import type { Compilation, Compiler } from ".";
 import { Stats } from ".";
-import { WatchOptions } from "./config";
-import { FileSystemInfoEntry, Watcher } from "./util/fs";
+import type { WatchOptions } from "./config";
+import type { FileSystemInfoEntry, Watcher } from "./util/fs";
 
 export class Watching {
 	watcher?: Watcher;

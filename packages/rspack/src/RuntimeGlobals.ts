@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { JsRuntimeGlobals } from "@rspack/binding";
+import type { JsRuntimeGlobals } from "@rspack/binding";
 
 const REVERSE_RUNTIME_GLOBALS = new Map<string, string>();
 

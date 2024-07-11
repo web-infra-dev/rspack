@@ -1,14 +1,14 @@
-import { StatsCompilation } from "@rspack/core";
+import type { StatsCompilation } from "@rspack/core";
 
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import {
-	ECompilerType,
+	type ECompilerType,
 	EDocumentType,
-	ITestEnv,
-	ITestRunner,
-	TCompilerOptions,
-	TCompilerStatsCompilation,
-	TUpdateOptions
+	type ITestEnv,
+	type ITestRunner,
+	type TCompilerOptions,
+	type TCompilerStatsCompilation,
+	type TUpdateOptions
 } from "../type";
 import { BasicRunnerFactory } from "./basic";
 import { WebRunner } from "./runner/web";

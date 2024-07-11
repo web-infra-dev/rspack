@@ -29,11 +29,14 @@ impl From<JsRspackSeverity> for RspackSeverity {
 }
 
 #[napi(object)]
+#[derive(Debug)]
 pub struct JsRspackError {
   pub name: String,
   pub message: String,
   pub module_identifier: Option<String>,
   pub file: Option<String>,
+  pub stack: Option<String>,
+  pub hide_stack: Option<bool>,
 }
 
 impl JsRspackError {
@@ -48,6 +51,8 @@ impl JsRspackError {
       message: diagnostic.render_report(colored)?,
       module_identifier: diagnostic.module_identifier().map(|d| d.to_string()),
       file: diagnostic.file().map(|f| f.to_string_lossy().to_string()),
+      stack: diagnostic.stack(),
+      hide_stack: diagnostic.hide_stack(),
     })
   }
 
@@ -58,5 +63,7 @@ impl JsRspackError {
     })(self.name, self.message)
     .with_file(self.file.map(Into::into))
     .with_module_identifier(self.module_identifier.map(Into::into))
+    .with_stack(self.stack)
+    .with_hide_stack(self.hide_stack)
   }
 }

@@ -6,7 +6,7 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use num_bigint::BigUint;
 use rspack_database::{Database, Ukey};
-use rspack_error::{error, Error, Result};
+use rspack_error::{error, Diagnostic, Error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
@@ -515,12 +515,21 @@ impl<'me> CodeSplitter<'me> {
       let depend_on = &options.depend_on;
 
       if depend_on.is_some() && runtime.is_some() {
-        runtime_errors.push(Some(error!(
-          "Entrypoint '{name}' has 'dependOn' and 'runtime' specified. This is not valid.
+        runtime_errors.push((
+          Some(error!(
+            "Entrypoint '{name}' has 'dependOn' and 'runtime' specified. This is not valid.
 Entrypoints that depend on other entrypoints do not have their own runtime.
 They will use the runtime(s) from referenced entrypoints instead.
 Remove the 'runtime' option from the entrypoint."
-        )));
+          )),
+          self.compilation.entrypoints.get(name).map(|key| {
+            self
+              .compilation
+              .chunk_group_by_ukey
+              .expect_get(key)
+              .get_entry_point_chunk()
+          }),
+        ));
       }
 
       if let Some(depend_on) = &options.depend_on {
@@ -552,9 +561,12 @@ Remove the 'runtime' option from the entrypoint."
                 .expect_get(dependency_ukey)
                 .get_entry_point_chunk();
               if referenced_chunks.contains(&dependency_chunk_ukey) {
-                runtime_errors.push(Some(error!(
-                "Entrypoints '{name}' and '{dep}' use 'dependOn' to depend on each other in a circular way."
-              )));
+                runtime_errors.push((
+                  Some(error!(
+                    "Entrypoints '{name}' and '{dep}' use 'dependOn' to depend on each other in a circular way."
+                  )),
+                  Some(entry_point.get_entry_point_chunk())
+                ));
                 entry_point_runtime = Some(entry_point_chunk.ukey);
                 has_error = true;
                 break;
@@ -596,13 +608,16 @@ Remove the 'runtime' option from the entrypoint."
         let chunk = match self.compilation.named_chunks.get(runtime) {
           Some(ukey) => {
             if !runtime_chunks.contains(ukey) {
-              runtime_errors.push(Some(error!(
+              let entry_chunk = entry_point.get_entry_point_chunk();
+              runtime_errors.push((
+                Some(error!(
 "Entrypoint '{name}' has a 'runtime' option which points to another entrypoint named '{runtime}'.
 It's not valid to use other entrypoints as runtime chunk.
 Did you mean to use 'dependOn: \"{runtime}\"' instead to allow using entrypoint '{name}' within the runtime of entrypoint '{runtime}'? For this '{runtime}' must always be loaded when '{name}' is used.
 Or do you want to use the entrypoints '{name}' and '{runtime}' independently on the same page with a shared runtime? In this case give them both the same value for the 'runtime' option. It must be a name not already used by an entrypoint."
-              )));
-              let entry_chunk = entry_point.get_entry_point_chunk();
+                )),
+                Some(entry_chunk),
+              ));
               entry_point.set_runtime_chunk(entry_chunk);
               continue;
             }
@@ -629,8 +644,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
     }
 
-    for err in runtime_errors.into_iter().flatten() {
-      self.compilation.push_diagnostic(err.into());
+    for (err, chunk_ukey) in runtime_errors {
+      if let Some(err) = err {
+        self
+          .compilation
+          .push_diagnostic(Diagnostic::from(err).with_chunk(chunk_ukey.map(|x| x.as_usize())));
+      }
     }
 
     Ok(input_entrypoints_and_modules)

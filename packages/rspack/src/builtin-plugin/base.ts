@@ -1,6 +1,6 @@
-import * as binding from "@rspack/binding";
+import type * as binding from "@rspack/binding";
 
-import { Compiler, RspackPluginInstance } from "..";
+import type { Compiler, RspackPluginInstance } from "..";
 
 type AffectedHooks = keyof Compiler["hooks"];
 
@@ -49,23 +49,23 @@ export function createBuiltinPlugin<R>(
 
 export function create<T extends any[], R>(
 	name: binding.BuiltinPluginName,
-	resolve: (...args: T) => R,
+	resolve: (this: Compiler, ...args: T) => R,
 	// `affectedHooks` is used to inform `createChildCompile` about which builtin plugin can be reserved.
 	// However, this has a drawback as it doesn't represent the actual condition but merely serves as an indicator.
 	affectedHooks?: AffectedHooks
 ) {
 	class Plugin extends RspackBuiltinPlugin {
 		name = name;
-		_options: R;
+		_args: T;
 		affectedHooks = affectedHooks;
 
 		constructor(...args: T) {
 			super();
-			this._options = resolve(...args);
+			this._args = args;
 		}
 
-		raw(): binding.BuiltinPlugin {
-			return createBuiltinPlugin(name, this._options);
+		raw(compiler: Compiler): binding.BuiltinPlugin {
+			return createBuiltinPlugin(name, resolve.apply(compiler, this._args));
 		}
 	}
 

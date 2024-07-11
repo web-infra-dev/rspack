@@ -3,12 +3,12 @@ import merge from "webpack-merge";
 
 import {
 	ECompilerType,
-	ITestCompilerManager,
-	TCompiler,
-	TCompilerFactories,
-	TCompilerFactory,
-	TCompilerOptions,
-	TCompilerStats
+	type ITestCompilerManager,
+	type TCompiler,
+	type TCompilerFactories,
+	type TCompilerFactory,
+	type TCompilerOptions,
+	type TCompilerStats
 } from "./type";
 
 export const enum ECompilerEvent {

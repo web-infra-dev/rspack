@@ -70,15 +70,19 @@ where
   T: AsyncWritableFileSystem + Send + Sync,
 {
   #[instrument(skip_all)]
-  pub fn new(options: CompilerOptions, plugins: Vec<BoxPlugin>, output_filesystem: T) -> Self {
+  pub fn new(
+    options: CompilerOptions,
+    plugins: Vec<BoxPlugin>,
+    output_filesystem: T,
+    resolver_factory: Arc<ResolverFactory>,
+    loader_resolver_factory: Arc<ResolverFactory>,
+  ) -> Self {
     #[cfg(debug_assertions)]
     {
       if let Ok(mut debug_info) = crate::debug_info::DEBUG_INFO.lock() {
         debug_info.with_context(options.context.to_string());
       }
     }
-    let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
-    let loader_resolver_factory = Arc::new(ResolverFactory::new(options.resolve_loader.clone()));
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let old_cache = Arc::new(OldCache::new(options.clone()));
     let module_executor = ModuleExecutor::default();

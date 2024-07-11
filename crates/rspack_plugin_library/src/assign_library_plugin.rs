@@ -326,7 +326,7 @@ fn embed_in_runtime_bailout(
   if let Some(top_level_decls) = top_level_decls {
     let full_name = self.get_resolved_full_name(&options, compilation, chunk);
     if let Some(base) = full_name.first()
-      && top_level_decls.contains(base)
+      && top_level_decls.contains(&base.as_str().into())
     {
       return Ok(Some(format!(
         "it declares '{base}' on top-level, which conflicts with the current library output."

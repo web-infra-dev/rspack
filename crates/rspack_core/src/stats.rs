@@ -13,9 +13,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   get_chunk_from_ukey, get_chunk_group_from_ukey, BoxModule, BoxRuntimeModule, Chunk,
-  ChunkGroupOrderKey, ChunkGroupUkey, Compilation, ExecutedRuntimeModule, LogType, ModuleGraph,
-  ModuleIdentifier, ModuleType, OriginLocation, ProvidedExports, RuntimeSpec, SourceType,
-  UsedExports,
+  ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey, Compilation, ExecutedRuntimeModule, LogType,
+  ModuleGraph, ModuleIdentifier, ModuleType, OriginLocation, ProvidedExports, RuntimeSpec,
+  SourceType, UsedExports,
 };
 
 #[derive(Debug, Clone)]
@@ -557,6 +557,11 @@ impl Stats<'_> {
           })
           .unzip();
 
+        let chunk = d
+          .chunk()
+          .map(ChunkUkey::from)
+          .map(|key| self.compilation.chunk_by_ukey.expect_get(&key));
+
         StatsError {
           message: diagnostic_displayer
             .emit_diagnostic(d)
@@ -565,6 +570,13 @@ impl Stats<'_> {
           module_name,
           module_id: module_id.flatten(),
           file: d.file().map(ToOwned::to_owned),
+
+          chunk_name: chunk.and_then(|c| c.name.clone()),
+          chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
+          chunk_initial: chunk.map(|c| c.can_be_initial(&self.compilation.chunk_group_by_ukey)),
+          chunk_id: chunk.and_then(|c| c.id.clone()),
+          details: d.details(),
+          stack: d.stack(),
         }
       })
       .collect()
@@ -585,6 +597,11 @@ impl Stats<'_> {
           })
           .unzip();
 
+        let chunk = d
+          .chunk()
+          .map(ChunkUkey::from)
+          .map(|key| self.compilation.chunk_by_ukey.expect_get(&key));
+
         StatsWarning {
           message: diagnostic_displayer
             .emit_diagnostic(d)
@@ -593,6 +610,13 @@ impl Stats<'_> {
           module_name,
           module_id: module_id.flatten(),
           file: d.file().map(ToOwned::to_owned),
+
+          chunk_name: chunk.and_then(|c| c.name.clone()),
+          chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
+          chunk_initial: chunk.map(|c| c.can_be_initial(&self.compilation.chunk_group_by_ukey)),
+          chunk_id: chunk.and_then(|c| c.id.clone()),
+          details: d.details(),
+          stack: d.stack(),
         }
       })
       .collect()
@@ -1128,6 +1152,13 @@ pub struct StatsError {
   pub module_name: Option<String>,
   pub module_id: Option<String>,
   pub file: Option<PathBuf>,
+
+  pub chunk_name: Option<String>,
+  pub chunk_entry: Option<bool>,
+  pub chunk_initial: Option<bool>,
+  pub chunk_id: Option<String>,
+  pub details: Option<String>,
+  pub stack: Option<String>,
 }
 
 #[derive(Debug)]
@@ -1137,6 +1168,13 @@ pub struct StatsWarning {
   pub module_name: Option<String>,
   pub module_id: Option<String>,
   pub file: Option<PathBuf>,
+
+  pub chunk_name: Option<String>,
+  pub chunk_entry: Option<bool>,
+  pub chunk_initial: Option<bool>,
+  pub chunk_id: Option<String>,
+  pub details: Option<String>,
+  pub stack: Option<String>,
 }
 
 #[derive(Debug)]

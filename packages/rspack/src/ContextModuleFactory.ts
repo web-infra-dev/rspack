@@ -1,5 +1,5 @@
 import * as liteTapable from "@rspack/lite-tapable";
-import {
+import type {
 	ContextModuleFactoryAfterResolveResult,
 	ContextModuleFactoryBeforeResolveResult
 } from "./Module";

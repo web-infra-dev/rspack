@@ -1,7 +1,7 @@
 import {
 	BuiltinPluginName,
-	RawCopyPattern,
-	RawCopyRspackPluginOptions
+	type RawCopyPattern,
+	type RawCopyRspackPluginOptions
 } from "@rspack/binding";
 
 import { create } from "./base";

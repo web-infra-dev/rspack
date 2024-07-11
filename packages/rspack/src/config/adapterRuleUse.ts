@@ -3,17 +3,17 @@ import type {
 	RawModuleRuleUse,
 	RawOptions
 } from "@rspack/binding";
-import { ResolveRequest } from "enhanced-resolve";
+import type { ResolveRequest } from "enhanced-resolve";
 
-import { Compiler } from "../Compiler";
-import { Logger } from "../logging/Logger";
+import type { Compiler } from "../Compiler";
+import type { Logger } from "../logging/Logger";
 import Hash = require("../util/hash");
-import { Compilation } from "../Compilation";
-import { Module } from "../Module";
+import type { Compilation } from "../Compilation";
+import type { Module } from "../Module";
 import { resolvePluginImport } from "../builtin-loader";
-import { LoaderObject, parsePathQueryFragment } from "../loader-runner";
+import { type LoaderObject, parsePathQueryFragment } from "../loader-runner";
 import { isNil } from "../util";
-import {
+import type {
 	Mode,
 	Resolve,
 	RuleSetLoaderWithOptions,

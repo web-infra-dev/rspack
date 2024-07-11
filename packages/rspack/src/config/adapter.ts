@@ -25,55 +25,55 @@ import type {
 	RawRuleSetLogicalConditions
 } from "@rspack/binding";
 
-import { Compiler } from "../Compiler";
+import type { Compiler } from "../Compiler";
 import { normalizeStatsPreset } from "../Stats";
 import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
 import {
-	ComposeJsUseOptions,
-	LoaderContext,
-	LoaderDefinition,
-	LoaderDefinitionFunction,
+	type ComposeJsUseOptions,
+	type LoaderContext,
+	type LoaderDefinition,
+	type LoaderDefinitionFunction,
 	createRawModuleRuleUses
 } from "./adapterRuleUse";
-import {
+import type {
 	ExperimentsNormalized,
 	ModuleOptionsNormalized,
 	OutputNormalized,
 	RspackOptionsNormalized
 } from "./normalization";
 import {
-	AssetGeneratorDataUrl,
-	AssetGeneratorOptions,
-	AssetInlineGeneratorOptions,
-	AssetParserDataUrl,
-	AssetParserOptions,
-	AssetResourceGeneratorOptions,
-	ChunkLoading,
-	CrossOriginLoading,
-	CssAutoGeneratorOptions,
+	type AssetGeneratorDataUrl,
+	type AssetGeneratorOptions,
+	type AssetInlineGeneratorOptions,
+	type AssetParserDataUrl,
+	type AssetParserOptions,
+	type AssetResourceGeneratorOptions,
+	type ChunkLoading,
+	type CrossOriginLoading,
+	type CssAutoGeneratorOptions,
 	CssAutoParserOptions,
-	CssGeneratorOptions,
+	type CssGeneratorOptions,
 	CssModuleGeneratorOptions,
 	CssModuleParserOptions,
-	CssParserOptions,
+	type CssParserOptions,
 	EntryRuntime,
 	Environment,
-	GeneratorOptionsByModuleType,
-	JavascriptParserOptions,
-	LibraryName,
-	LibraryOptions,
-	Node,
-	Optimization,
-	ParserOptionsByModuleType,
-	Resolve,
-	RspackFutureOptions,
-	RuleSetCondition,
-	RuleSetLogicalConditions,
-	RuleSetRule,
-	SnapshotOptions,
-	StatsValue,
-	Target
+	type GeneratorOptionsByModuleType,
+	type JavascriptParserOptions,
+	type LibraryName,
+	type LibraryOptions,
+	type Node,
+	type Optimization,
+	type ParserOptionsByModuleType,
+	type Resolve,
+	type RspackFutureOptions,
+	type RuleSetCondition,
+	type RuleSetLogicalConditions,
+	type RuleSetRule,
+	type SnapshotOptions,
+	type StatsValue,
+	type Target
 } from "./zod";
 
 export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
@@ -187,7 +187,7 @@ function getRawTsConfig(
 	};
 }
 
-function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
+export function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 	return {
 		...resolve,
 		alias: getRawAlias(resolve.alias),
@@ -483,7 +483,7 @@ const getRawModuleRule = (
 		delete rawModuleRule.resourceFragment;
 
 		rawModuleRule.rspackResource = getRawRuleSetCondition(
-			function (resourceQueryFragment) {
+			resourceQueryFragment => {
 				const { path, query, fragment } = parseResource(resourceQueryFragment);
 
 				if (rule.test && !tryMatch(path, rule.test)) {

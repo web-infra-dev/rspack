@@ -14,10 +14,16 @@ use super::{JsCompilation, ToJsCompatSource};
 #[derive(Debug)]
 pub struct JsStatsError {
   pub message: String,
+  pub chunk_name: Option<String>,
+  pub chunk_entry: Option<bool>,
+  pub chunk_initial: Option<bool>,
+  pub file: Option<String>,
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
-  pub file: Option<String>,
+  pub chunk_id: Option<String>,
+  pub details: Option<String>,
+  pub stack: Option<String>,
 }
 
 impl From<rspack_core::StatsError> for JsStatsError {
@@ -28,6 +34,12 @@ impl From<rspack_core::StatsError> for JsStatsError {
       module_name: stats.module_name,
       module_id: stats.module_id,
       file: stats.file.map(|f| f.to_string_lossy().to_string()),
+      chunk_name: stats.chunk_name,
+      chunk_entry: stats.chunk_entry,
+      chunk_initial: stats.chunk_initial,
+      chunk_id: stats.chunk_id,
+      details: stats.details,
+      stack: stats.stack,
     }
   }
 }

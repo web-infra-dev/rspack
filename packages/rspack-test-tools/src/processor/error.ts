@@ -1,10 +1,10 @@
-import fs from "fs";
+import type fs from "fs";
 import path from "path";
-import { StatsError, StatsWarnings } from "@rspack/core";
+import type { StatsError, StatsWarnings } from "@rspack/core";
 import prettyFormat from "pretty-format";
 import merge from "webpack-merge";
 
-import {
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,

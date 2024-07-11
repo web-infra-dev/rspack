@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs-extra";
-import { Fixtures } from "@playwright/test";
+import type { Fixtures } from "@playwright/test";
 import type { RspackFixtures } from "./rspack";
 
 type FileAction = {
@@ -17,7 +17,7 @@ export const fileActionFixtures: Fixtures<
 	{},
 	RspackFixtures
 > = {
-	fileAction: async function ({ rspack }, use) {
+	fileAction: async ({ rspack }, use) => {
 		// null means this file needs to be deleted
 		const fileOriginContent: Record<string, string | null> = {};
 

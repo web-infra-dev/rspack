@@ -1,4 +1,4 @@
-import { z } from "zod";
+import type { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 
 export function validate<T extends z.ZodType>(opts: any, schema: T) {

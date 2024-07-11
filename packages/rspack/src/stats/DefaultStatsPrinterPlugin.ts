@@ -12,7 +12,7 @@ import type { Compiler } from "../Compiler";
 import { formatSize } from "../util/SizeFormatHelpers";
 import { compareIds } from "../util/comparators";
 import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
-import { StatsChunkGroup, StatsCompilation } from "./statsFactoryUtils";
+import type { StatsChunkGroup, StatsCompilation } from "./statsFactoryUtils";
 
 const DATA_URI_CONTENT_LENGTH = 16;
 

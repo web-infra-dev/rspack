@@ -1,4 +1,8 @@
-import { BuiltinPluginName, JsModule, RawRegex } from "@rspack/binding";
+import {
+	BuiltinPluginName,
+	type JsModule,
+	type RawRegex
+} from "@rspack/binding";
 
 import { create } from "../base";
 

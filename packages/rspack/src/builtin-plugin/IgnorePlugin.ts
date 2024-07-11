@@ -1,4 +1,7 @@
-import { BuiltinPluginName, RawIgnorePluginOptions } from "@rspack/binding";
+import {
+	BuiltinPluginName,
+	type RawIgnorePluginOptions
+} from "@rspack/binding";
 import { z } from "zod";
 
 import { validate } from "../util/validate";

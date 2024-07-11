@@ -9,8 +9,8 @@
  */
 import type * as binding from "@rspack/binding";
 
-import { Compilation } from "./Compilation";
-import { StatsOptions, StatsValue } from "./config";
+import type { Compilation } from "./Compilation";
+import type { StatsOptions, StatsValue } from "./config";
 import type { StatsCompilation } from "./stats/statsFactoryUtils";
 
 export type {

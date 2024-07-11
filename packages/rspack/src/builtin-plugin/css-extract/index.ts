@@ -1,6 +1,6 @@
 import type { RawCssExtractPluginOption } from "@rspack/binding";
 
-import { Compiler } from "../..";
+import type { Compiler } from "../..";
 import { MODULE_TYPE } from "./loader";
 
 export * from "./loader";

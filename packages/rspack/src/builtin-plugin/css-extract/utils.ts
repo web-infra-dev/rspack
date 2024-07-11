@@ -1,6 +1,6 @@
 import path from "path";
 
-import { LoaderContext } from "../..";
+import type { LoaderContext } from "../..";
 
 export function isAbsolutePath(str: string) {
 	return path.posix.isAbsolute(str) || path.win32.isAbsolute(str);

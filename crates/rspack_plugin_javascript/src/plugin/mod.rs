@@ -106,7 +106,7 @@ struct InlinedModuleInfo {
 struct RenameInfoPatch {
   inlined_modules_to_info: HashMap<Identifier, InlinedModuleInfo>,
   non_inlined_module_through_idents: Vec<ConcatenatedModuleIdent>,
-  all_used_names: HashSet<String>,
+  all_used_names: HashSet<Atom>,
 }
 
 #[plugin]
@@ -811,7 +811,7 @@ impl JsPlugin {
   ) -> Result<HashMap<Identifier, Arc<dyn Source>>> {
     let mut inlined_modules_to_info: HashMap<Identifier, InlinedModuleInfo> = HashMap::new();
     let mut non_inlined_module_through_idents: Vec<ConcatenatedModuleIdent> = Vec::new();
-    let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string()));
+    let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item)));
     let mut renamed_inline_modules: HashMap<Identifier, Arc<dyn Source>> = HashMap::new();
 
     // make patch in parallel iteration
@@ -822,7 +822,7 @@ impl JsPlugin {
           Ok(RenameInfoPatch {
             inlined_modules_to_info: HashMap::new(),
             non_inlined_module_through_idents: Vec::new(),
-            all_used_names: HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string())),
+            all_used_names: HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item))),
           })
         },
         |mut acc, m: &&BoxModule| {
@@ -861,7 +861,7 @@ impl JsPlugin {
                   if *hash_current == *hash_cache {
                     acc
                       .all_used_names
-                      .extend(idents_with_hash.value.iter().map(|v| v.id.sym.to_string()));
+                      .extend(idents_with_hash.value.iter().map(|v| v.id.sym.clone()));
                     acc
                       .non_inlined_module_through_idents
                       .extend(idents_with_hash.value.clone());
@@ -913,11 +913,11 @@ impl JsPlugin {
                         || ident.id.span.ctxt != module_ctxt
                         || ident.is_class_expr_with_ident
                       {
-                        acc.all_used_names.insert(ident.id.sym.to_string());
+                        acc.all_used_names.insert(ident.id.sym.clone());
                       }
 
                       if ident.id.span.ctxt == module_ctxt {
-                        acc.all_used_names.insert(ident.id.sym.to_string());
+                        acc.all_used_names.insert(ident.id.sym.clone());
                         module_scope_idents.push(Arc::new(ident));
                       }
                     }
@@ -945,7 +945,7 @@ impl JsPlugin {
 
                     for ident in collector.ids {
                       if ident.id.span.ctxt == global_ctxt {
-                        acc.all_used_names.insert(ident.clone().id.sym.to_string());
+                        acc.all_used_names.insert(ident.clone().id.sym.clone());
                         idents_vec.push(ident.clone());
                         acc.non_inlined_module_through_idents.push(ident);
                       }
@@ -975,7 +975,7 @@ impl JsPlugin {
           Ok(RenameInfoPatch {
             inlined_modules_to_info: HashMap::new(),
             non_inlined_module_through_idents: Vec::new(),
-            all_used_names: HashSet::from_iter(RESERVED_NAMES.iter().map(|item| item.to_string())),
+            all_used_names: HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item))),
           })
         },
         |acc, chunk| match acc {

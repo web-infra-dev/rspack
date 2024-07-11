@@ -1,6 +1,6 @@
 import {
 	BuiltinPluginName,
-	RawEvalDevToolModulePluginOptions
+	type RawEvalDevToolModulePluginOptions
 } from "@rspack/binding";
 
 import { create } from "./base";

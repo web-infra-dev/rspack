@@ -3,7 +3,7 @@ import path from "path";
 
 import { readConfigFile } from "../helper";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
-import {
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,

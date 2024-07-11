@@ -1,7 +1,7 @@
 import { ConfigProcessor } from "../processor/config";
 import { MultipleRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import { ECompilerType, TTestConfig } from "../type";
+import { ECompilerType, type TTestConfig } from "../type";
 
 export type TConfigCaseConfig = Omit<
 	TTestConfig<ECompilerType.Rspack>,

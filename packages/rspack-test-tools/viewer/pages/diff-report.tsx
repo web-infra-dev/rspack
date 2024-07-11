@@ -1,6 +1,7 @@
 import { Layout } from "@arco-design/web-react";
-import { TreeDataType } from "@arco-design/web-react/es/Tree/interface";
-import React, { useCallback, useEffect, useState } from "react";
+import type { TreeDataType } from "@arco-design/web-react/es/Tree/interface";
+import type React from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ECompareResultType } from "../../src/type";
 import { DiffEditor } from "../components/DiffEditor";
 import { TreeView } from "../components/TreeView";

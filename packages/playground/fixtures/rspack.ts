@@ -1,6 +1,6 @@
 import path from "path";
-import { Fixtures, PlaywrightTestArgs } from "@playwright/test";
-import { Compiler, Configuration, rspack } from "@rspack/core";
+import type { Fixtures, PlaywrightTestArgs } from "@playwright/test";
+import { type Compiler, type Configuration, rspack } from "@rspack/core";
 import { RspackDevServer } from "@rspack/dev-server";
 import WebpackDevServer from "webpack-dev-server";
 import type { PathInfoFixtures } from "./pathInfo";
@@ -70,7 +70,7 @@ export const rspackFixtures = (
 			async ({ page, pathInfo, defaultRspackConfig }, use, { workerIndex }) => {
 				const { tempProjectDir } = pathInfo;
 				const port = 8000 + workerIndex;
-				const rspack = new Rspack(tempProjectDir, wds, function (config) {
+				const rspack = new Rspack(tempProjectDir, wds, config => {
 					// rewrite port
 					if (!config.devServer) {
 						config.devServer = {};

@@ -192,6 +192,9 @@ var createStylesheet = function (
 	
 	linkTag.rel = "stylesheet";
 	linkTag.type="text/css";
+	if (__webpack_require__.nc) {
+		linkTag.nonce = __webpack_require__.nc;
+	}
 	var onLinkComplete = function (event) {
 		// avoid mem leaks.
 		linkTag.onerror = linkTag.onload = null;
@@ -222,17 +225,17 @@ var createStylesheet = function (
 }
 var findStylesheet = function (href, fullhref) {
 	var existingLinkTags = document.getElementsByTagName("link");
-	for(var i = 0; i < existingLinkTags.length; i++) {
+	for (var i = 0; i < existingLinkTags.length; i++) {
 		var tag = existingLinkTags[i];
 		var dataHref = tag.getAttribute("data-href") || tag.getAttribute("href");
-		if(tag.rel === "stylesheet" && (dataHref === href || dataHref === fullhref)) return tag;
+		if (tag.rel === "stylesheet" && (dataHref === href || dataHref === fullhref)) return tag;
 	}
 
 	var existingStyleTags = document.getElementsByTagName("style");
-	for(var i = 0; i < existingStyleTags.length; i++) {
+	for (var i = 0; i < existingStyleTags.length; i++) {
 		var tag = existingStyleTags[i];
 		var dataHref = tag.getAttribute("data-href");
-		if(dataHref === href || dataHref === fullhref) return tag;
+		if (dataHref === href || dataHref === fullhref) return tag;
 	}
 }
 
@@ -240,7 +243,7 @@ var loadStylesheet = function (chunkId) {
 	return new Promise(function (resolve, reject) {
 		var href = __webpack_require__.miniCssF(chunkId);
 		var fullhref = __webpack_require__.p + href;
-		if(findStylesheet(href, fullhref)) return resolve();
+		if (findStylesheet(href, fullhref)) return resolve();
 		createStylesheet(chunkId, fullhref, null, resolve, reject);
 	})
 }

@@ -7,6 +7,7 @@ use rspack_error::{
   thiserror::{self, Error},
   DiagnosticExt, Error, TraceableError,
 };
+use rspack_util::ext::AsAny;
 
 use crate::{BoxLoader, ErrorSpan};
 
@@ -153,6 +154,14 @@ pub fn map_box_diagnostics_to_module_parse_diagnostics(
 ) -> Vec<rspack_error::Diagnostic> {
   errors
     .into_iter()
-    .map(|e| rspack_error::miette::Error::new(ModuleParseError::new(e, loaders)).into())
+    .map(|e| {
+      let hide_stack = e
+        .as_any()
+        .downcast_ref::<TraceableError>()
+        .and_then(|e| e.hide_stack());
+      let diagnostic: rspack_error::Diagnostic =
+        rspack_error::miette::Error::new(ModuleParseError::new(e, loaders)).into();
+      diagnostic.with_hide_stack(hide_stack)
+    })
     .collect()
 }

@@ -1,4 +1,4 @@
-import yargs from "yargs";
+import type yargs from "yargs";
 export const commonOptions = (yargs: yargs.Argv) => {
 	return yargs
 		.options({

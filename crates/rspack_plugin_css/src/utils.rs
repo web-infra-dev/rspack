@@ -246,13 +246,13 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     let mut identifier = to_identifier(key);
     let mut i = 0;
     while used_identifiers.contains(&identifier) {
-      identifier = format!("{key}{i}");
+      identifier = Cow::Owned(format!("{key}{i}"));
       i += 1;
     }
     // TODO: conditional support `const or var` after we finished runtimeTemplate utils
     concate_source.add(RawSource::from(format!("var {identifier} = {content};\n")));
     used_identifiers.insert(identifier.clone());
-    scope.register_export(unescape(key).as_ref().into(), identifier);
+    scope.register_export(unescape(key).as_ref().into(), identifier.into_owned());
   }
   Ok(())
 }

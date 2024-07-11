@@ -25,7 +25,7 @@
     "format-ci:toml": "npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "format:toml": "npx @taplo/cli format '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "lint:js": "pnpm run lint-ci:js --write",
-    "lint-ci:js": "biome check",
+    "lint-ci:js": "biome check --diagnostic-level=warn",
     "lint:rs": "node ./scripts/check_rust_dependency.cjs",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
