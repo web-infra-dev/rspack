@@ -38,13 +38,15 @@ yargs(hideBin(process.argv))
 			);
 
 		await promptProjectDir();
-		let root = path.resolve(process.cwd(), getProjectDir(targetDir));
+		let projectDir = getProjectDir(targetDir);
+		let root = path.resolve(process.cwd(), projectDir);
 		while (fs.existsSync(root)) {
 			console.log(
 				`${targetDir} is not empty, please choose another project name`
 			);
 			await promptProjectDir();
-			root = path.resolve(process.cwd(), getProjectDir(targetDir));
+			projectDir = getProjectDir(targetDir);
+			root = path.resolve(process.cwd(), projectDir);
 		}
 
 		// choose template
@@ -73,7 +75,7 @@ yargs(hideBin(process.argv))
 		copyFolder(srcFolder, root, targetDir);
 		const pkgManager = getPkgManager();
 		console.log("\nDone. Now run:\n");
-		console.log(`cd ${getProjectDir(targetDir)}\n`);
+		console.log(`cd ${projectDir}\n`);
 		console.log(`${pkgManager} install\n`);
 		console.log(`${pkgManager} run dev\n`);
 	})
@@ -127,27 +129,24 @@ function copyFolder(src, dst, targetDir) {
 }
 
 function getPkgName(targetDir) {
-  const scopeMatch = matchScopedPackageName(targetDir);
-  if (scopeMatch) {
-    return targetDir; // Scoped package name
-  } else {
-    return path.basename(targetDir); // Use the base name of the target directory
-  }
+	const scopeMatch = matchScopedPackageName(targetDir);
+	if (scopeMatch) {
+		return targetDir; // Scoped package name
+	}
+	return path.basename(targetDir); // Use the base name of the target directory
 }
 
 function getProjectDir(targetDir) {
-  const scopeMatch = matchScopedPackageName(targetDir);
-  if (scopeMatch) {
-    return scopeMatch[1]; // Subdirectory project name for scoped packages
-  } else {
-    return targetDir;
-  }
+	const scopeMatch = matchScopedPackageName(targetDir);
+	if (scopeMatch) {
+		return scopeMatch[1]; // Subdirectory project name for scoped packages
+	}
+	return targetDir;
 }
 
 function matchScopedPackageName(targetDir) {
-  return targetDir.match(/^@[^/]+\/(.+)/);
+	return targetDir.match(/^@[^/]+\/(.+)/);
 }
-
 
 function getPkgManager() {
 	const ua = process.env.npm_config_user_agent;
