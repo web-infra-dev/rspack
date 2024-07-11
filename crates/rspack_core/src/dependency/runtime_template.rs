@@ -8,9 +8,9 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   compile_boolean_matcher_from_lists, contextify, property_access, to_comment, to_normal_comment,
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment,
-  PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  DependencyId, Environment, ExportsArgument, ExportsType, FakeNamespaceObjectMode,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleIdentifier,
+  NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
 };
 
 pub fn runtime_condition_expression(
@@ -704,12 +704,20 @@ fn weak_error(request: &str) -> String {
   format!("var e = new Error('Module is not available (weak dependency), request is {request}'); e.code = 'MODULE_NOT_FOUND'; throw e;")
 }
 
-pub fn returning_function(return_value: &str, args: &str) -> String {
-  format!("function({args}) {{ return {return_value}; }}")
+pub fn returning_function(environment: &Environment, return_value: &str, args: &str) -> String {
+  if environment.supports_arrow_function() {
+    format!("({args}) => ({return_value})")
+  } else {
+    format!("function({args}) {{ return {return_value}; }}")
+  }
 }
 
-pub fn basic_function(args: &str, body: &str) -> String {
-  format!("function({args}) {{\n{body}\n}}")
+pub fn basic_function(environment: &Environment, args: &str, body: &str) -> String {
+  if environment.supports_arrow_function() {
+    format!("({args}) => {{\n{body}\n}}")
+  } else {
+    format!("function({args}) {{\n{body}\n}}")
+  }
 }
 
 pub fn sync_module_factory(
@@ -719,10 +727,11 @@ pub fn sync_module_factory(
   runtime_requirements: &mut RuntimeGlobals,
 ) -> String {
   let factory = returning_function(
+    &compilation.options.output.environment,
     &module_raw(compilation, runtime_requirements, dep, request, false),
     "",
   );
-  returning_function(&factory, "")
+  returning_function(&compilation.options.output.environment, &factory, "")
 }
 
 pub fn async_module_factory(
@@ -738,14 +747,19 @@ pub fn async_module_factory(
   let dep = block.get_dependencies()[0];
   let ensure_chunk = block_promise(Some(block_id), runtime_requirements, compilation, "");
   let factory = returning_function(
+    &compilation.options.output.environment,
     &module_raw(compilation, runtime_requirements, &dep, request, false),
     "",
   );
   returning_function(
+    &compilation.options.output.environment,
     &if ensure_chunk.starts_with("Promise.resolve(") {
       factory
     } else {
-      format!("{ensure_chunk}.then({})", returning_function(&factory, ""))
+      format!(
+        "{ensure_chunk}.then({})",
+        returning_function(&compilation.options.output.environment, &factory, "")
+      )
     },
     "",
   )

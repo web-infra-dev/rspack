@@ -346,7 +346,7 @@ impl ContextModule {
       webpackEmptyAsyncContext.id = {id};
       module.exports = webpackEmptyAsyncContext;
       "#,
-      keys = returning_function("[]", ""),
+      keys = returning_function(&compilation.options.output.environment, "[]", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     })
     .boxed()
@@ -364,7 +364,7 @@ impl ContextModule {
       webpackEmptyContext.id = {id};
       module.exports = webpackEmptyContext;
       "#,
-      keys = returning_function("[]", ""),
+      keys = returning_function(&compilation.options.output.environment, "[]", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     })
     .boxed()
@@ -570,7 +570,7 @@ impl ContextModule {
       module.exports = webpackAsyncContext;
       "#,
       map = json_stringify(&map),
-      keys = returning_function("Object.keys(map)", ""),
+      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     }));
     source.boxed()
@@ -632,7 +632,7 @@ impl ContextModule {
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-      keys = returning_function("Object.keys(map)", ""),
+      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     };
     RawSource::from(source).boxed()
@@ -678,7 +678,7 @@ impl ContextModule {
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       module_factories = RuntimeGlobals::MODULE_FACTORIES,
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-      keys = returning_function("Object.keys(map)", ""),
+      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     };
     RawSource::from(source).boxed()
@@ -719,7 +719,7 @@ impl ContextModule {
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       module_factories = RuntimeGlobals::MODULE_FACTORIES,
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-      keys = returning_function("Object.keys(map)", ""),
+      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     };
     RawSource::from(source).boxed()
@@ -770,7 +770,7 @@ impl ContextModule {
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-      keys = returning_function("Object.keys(map)", ""),
+      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     };
     RawSource::from(source).boxed()

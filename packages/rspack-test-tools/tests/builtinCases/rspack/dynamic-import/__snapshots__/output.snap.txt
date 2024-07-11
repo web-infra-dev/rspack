@@ -58,7 +58,7 @@ function webpackAsyncContext(req) {
   });
 }
 
-webpackAsyncContext.keys = function() { return Object.keys(map); };
+webpackAsyncContext.keys = () => (Object.keys(map));
 webpackAsyncContext.id = "./child lazy recursive ^\\.\\/.*\\.js$";
 module.exports = webpackAsyncContext;
 

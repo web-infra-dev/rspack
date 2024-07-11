@@ -488,6 +488,7 @@ impl JsPlugin {
               "// the startup function\n{} = {};\n",
               RuntimeGlobals::STARTUP,
               basic_function(
+                &compilation.options.output.environment,
                 "",
                 &format!("{}\nreturn {}", buf2.join("\n"), RuntimeGlobals::EXPORTS)
               )
