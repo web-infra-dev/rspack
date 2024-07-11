@@ -1,3 +1,3 @@
-
-module.exports = () => {return false}
-		
+module.exports = () => {
+	return "Method RegExp.prototype.test called on incompatible receiver undefined";
+};
