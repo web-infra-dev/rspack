@@ -169,8 +169,40 @@ module.exports = {
       {
         test: /\.css$/i,
         use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+        type: 'javascript/auto',
       },
     ],
   },
 };
 ```
+
+:::info
+Please note when opening built-in CSS support. (`experiments.css`), Files ending with `.css` will be automatically treated as `css/auto` modules. If you want to use this plugin, make sure that the rule types with `CssExtractRspackPlugin.loader` set are all overridden by `javascript/auto` instead of the default `css/auto`.
+
+For example:
+
+```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [new rspack.CssExtractRspackPlugin({})],
+  module: {
+    rules: [
+      {
+        test: /src\/legacy-project\/.*\.css$/,
+        type: 'javascript/auto', // Cover the default css module type and treat it as a regular js file.
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+      },
+      {
+        test: /src\/new-project\/.*\.css$/,
+        type: 'css/auto', // Handle with built-in CSS
+      },
+    ],
+  },
+  experiments: {
+    css: true,
+  },
+};
+```
+
+:::

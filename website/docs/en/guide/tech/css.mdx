@@ -2,15 +2,31 @@ import { PackageManagerTabs } from '@theme';
 
 # CSS
 
-CSS is a first-class citizen with Rspack. Rspack has the ability to handle CSS out-of-box, so additional configuration isn't required.
+CSS is a first-class citizen with Rspack. Rspack has the ability to handle CSS out-of-box, just need to set `experiments.css` to `true`.
 
-By default, files ending in `*.css` are treated as CSS types. Files ending in `*.module.css` are treated as [CSS Modules](https://github.com/css-modules/css-modules) module types.
+By default, files ending in `*.css` are treated as `css/auto` module type, Files ending in `*.module.css` are treated as [CSS Modules](https://github.com/css-modules/css-modules).
 
-If you're migrating from webpack, you can remove the `css-loader` or `style-loader` components from your configuration to use Rspack's built-in CSS processing capabilities, as described in [migration guide](/guide/migration/webpack#removing-css-loader-and-style-loader-and-mini-css-extract-plugin).
+You can also customize which modules are CSS modules by configuring `type: 'css/auto'`.
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        type: 'css/auto', // 👈
+        use: ['less-loader'],
+      },
+    ],
+  },
+};
+```
+
+If you're migrating from webpack, see [migration guide](/guide/migration/webpack#removing-css-loader-and-style-loader-and-mini-css-extract-plugin).
 
 ## CSS Modules
 
-By default, Rspack treats files with a `*.module.css` extension as CSS Modules. You can import them into your JavaScript files, and then access each class defined in the CSS file as an export from the module.
+By default, Rspack treats files with a `*.module.css` extension as [CSS Modules](https://github.com/css-modules/css-modules). You can import them into your JavaScript files, and then access each class defined in the CSS file as an export from the module.
 
 ```css title="index.module.css"
 .red {
