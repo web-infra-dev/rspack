@@ -318,7 +318,7 @@ fn map_resolver_error(
 
   let importer = args.importer;
   if importer.is_none() {
-    return diagnostic!("Resolve error: Can't resolve '{request}' in '{context}'").boxed();
+    return diagnostic!("Module not found: Can't resolve '{request}' in '{context}'").boxed();
   }
 
   let span = args.span.unwrap_or_default();
@@ -326,7 +326,7 @@ fn map_resolver_error(
   TraceableError::from_empty_file(
     span.start as usize,
     span.end as usize,
-    "Resolve error".to_string(),
+    "Module not found".to_string(),
     message,
   )
   .with_help(if is_recursion {

@@ -117,27 +117,26 @@ pub fn resolve_for_error_hints(
       options
     });
     let resolver = plugin_driver.resolver_factory.get(dep);
-    match resolver.resolve(base_dir, args.specifier) {
-      Ok(ResolveResult::Resource(resource)) => {
-        let relative_path = resource.path.relative(args.context);
-        let suggestion = if let Some((_, [prefix])) = CURRENT_DIR_REGEX
-          .captures_iter(args.specifier)
-          .next()
-          .map(|c| c.extract())
-        {
-          // If the specifier is a relative path pointing to the current directory,
-          // we can suggest the path relative to the current directory.
-          format!("{}{}", prefix, relative_path.to_string_lossy())
-        } else if PARENT_PATH_REGEX.is_match(args.specifier) {
-          // If the specifier is a relative path to which the parent directory is,
-          // then we return the relative path directly.
-          relative_path.to_string_lossy().to_string()
-        } else {
-          // If the specifier is a package name like or some arbitrary alias,
-          // then we return the full path.
-          resource.path.to_string_lossy().to_string()
-        };
-        return Some(format!("Did you mean '{}'?
+    if let Ok(ResolveResult::Resource(resource)) = resolver.resolve(base_dir, args.specifier) {
+      let relative_path = resource.path.relative(args.context);
+      let suggestion = if let Some((_, [prefix])) = CURRENT_DIR_REGEX
+        .captures_iter(args.specifier)
+        .next()
+        .map(|c| c.extract())
+      {
+        // If the specifier is a relative path pointing to the current directory,
+        // we can suggest the path relative to the current directory.
+        format!("{}{}", prefix, relative_path.to_string_lossy())
+      } else if PARENT_PATH_REGEX.is_match(args.specifier) {
+        // If the specifier is a relative path to which the parent directory is,
+        // then we return the relative path directly.
+        relative_path.to_string_lossy().to_string()
+      } else {
+        // If the specifier is a package name like or some arbitrary alias,
+        // then we return the full path.
+        resource.path.to_string_lossy().to_string()
+      };
+      return Some(format!("Did you mean '{}'?
 
 The request '{}' failed to resolve only because it was resolved as fully specified,
 probably because the origin is strict EcmaScript Module,
@@ -145,9 +144,6 @@ e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where 
 
 The extension in the request is mandatory for it to be fully specified.
 Add the extension to the request.", suggestion, args.specifier));
-      }
-      Err(_) => return None,
-      _ => {}
     }
   }
 
@@ -168,9 +164,8 @@ Add the extension to the request.", suggestion, args.specifier));
     };
     let resolver = plugin_driver.resolver_factory.get(dep);
     let request = format!("./{}", args.specifier);
-    match resolver.resolve(base_dir, &request) {
-      Ok(ResolveResult::Resource(_)) => {
-        return Some(format!(
+    if resolver.resolve(base_dir, &request).is_ok() {
+      return Some(format!(
           "Did you mean './{}'?
 
 Requests that should resolve in the current directory need to start with './'.
@@ -180,9 +175,6 @@ If changing the source code is not an option, there is also a resolve options ca
 which tries to resolve these kind of requests in the current directory too.",
           args.specifier
         ));
-      }
-      Err(_) => return None,
-      _ => {}
     }
   }
 
@@ -213,71 +205,67 @@ which tries to resolve these kind of requests in the current directory too.",
         parent_path.expect("fail to get the parent path of the current resolved module");
 
       // read the files in the parent directory
-      let files = fs::read_dir(parent_path);
-      match files {
-        Ok(files) => {
-          let mut requested_names = vec![file_name
-            .to_str()
-            .map(|f| f.to_string())
-            .unwrap_or_default()];
-          if is_resolving_dir {
-            // The request maybe is like `./` or `./dir` to resolve the main file (e.g.: index) in directory
-            // So we need to check them.
-            let main_files = dep
-              .resolve_options
-              .as_deref()
-              .or(Some(&plugin_driver.options.resolve))
-              .and_then(|o| o.main_files.as_ref().cloned())
-              .unwrap_or_default();
+      if let Ok(files) = fs::read_dir(parent_path) {
+        let mut requested_names = vec![file_name
+          .to_str()
+          .map(|f| f.to_string())
+          .unwrap_or_default()];
+        if is_resolving_dir {
+          // The request maybe is like `./` or `./dir` to resolve the main file (e.g.: index) in directory
+          // So we need to check them.
+          let main_files = dep
+            .resolve_options
+            .as_deref()
+            .or(Some(&plugin_driver.options.resolve))
+            .and_then(|o| o.main_files.as_ref().cloned())
+            .unwrap_or_default();
 
-            requested_names.extend(main_files);
-          }
+          requested_names.extend(main_files);
+        }
 
-          let suggestions = files
-            .into_iter()
-            .filter_map(|file| {
-              file.ok().and_then(|file| {
-                file.path().file_stem().and_then(|file_stem| {
-                  if requested_names.contains(&file_stem.to_string_lossy().to_string()) {
-                    let mut suggestion = file.path().relative(&args.context);
+        let suggestions = files
+          .into_iter()
+          .filter_map(|file| {
+            file.ok().and_then(|file| {
+              file.path().file_stem().and_then(|file_stem| {
+                if requested_names.contains(&file_stem.to_string_lossy().to_string()) {
+                  let mut suggestion = file.path().relative(&args.context);
 
-                    if !suggestion.to_string_lossy().starts_with('.') {
-                      suggestion = PathBuf::from(format!("./{}", suggestion.to_string_lossy()));
-                    }
-                    Some(suggestion)
-                  } else {
-                    None
+                  if !suggestion.to_string_lossy().starts_with('.') {
+                    suggestion = PathBuf::from(format!("./{}", suggestion.to_string_lossy()));
                   }
-                })
+                  Some(suggestion)
+                } else {
+                  None
+                }
               })
             })
-            .collect::<Vec<_>>();
+          })
+          .collect::<Vec<_>>();
 
-          if suggestions.is_empty() {
-            return None;
-          }
+        if suggestions.is_empty() {
+          return None;
+        }
 
-          let mut hint: Vec<String> = vec![];
-          for suggestion in suggestions {
-            let suggestion_ext = suggestion
-              .extension()
-              .map(|e| e.to_string_lossy())
-              .unwrap_or_default();
-            let suggestion_path = suggestion.to_string_lossy();
-            let specifier = args.specifier;
+        let mut hint: Vec<String> = vec![];
+        for suggestion in suggestions {
+          let suggestion_ext = suggestion
+            .extension()
+            .map(|e| e.to_string_lossy())
+            .unwrap_or_default();
+          let suggestion_path = suggestion.to_string_lossy();
+          let specifier = args.specifier;
 
-            hint.push(format!(
+          hint.push(format!(
           "Found module '{suggestion_path}'. However, it's not possible to request this module without the extension 
 if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
 
 1. add the extension `\".{suggestion_ext}\"` to `resolve.extensions` in your rspack configuration
 2. use '{suggestion_path}' instead of '{specifier}'
 "));
-          }
-
-          return Some(hint.join("\n"));
         }
-        Err(_) => return None,
+
+        return Some(hint.join("\n"));
       }
     }
   }

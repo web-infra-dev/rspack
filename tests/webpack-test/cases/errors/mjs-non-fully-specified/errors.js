@@ -1,3 +1,3 @@
 module.exports = [
-	[/Can't resolve '.\/dependency'/, /Did you mean 'dependency\.js'\?/]
+	[/Can't resolve '.\/dependency'/, /Did you mean '.\/dependency\.js'\?/]
 ];
