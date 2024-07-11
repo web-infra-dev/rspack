@@ -383,7 +383,7 @@ const EXTRACT_ERROR: Record<
 	(
 		object: StatsError,
 		error: JsStatsError | JsStatsWarning,
-		conext: KnownStatsFactoryContext,
+		context: KnownStatsFactoryContext,
 		options: StatsOptions,
 		factory: StatsFactory
 	) => void
