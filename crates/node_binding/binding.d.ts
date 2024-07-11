@@ -428,6 +428,7 @@ export interface JsModule {
   userRequest?: string
   rawRequest?: string
   factoryMeta?: JsFactoryMeta
+  type: string
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {

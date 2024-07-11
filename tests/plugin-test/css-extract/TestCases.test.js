@@ -312,10 +312,13 @@ describe("TestCases", () => {
 							actualWarnings
 								.replace(/(\(from: .*\))?/g, "")
 								.replace(/\*\scss\s(.*)?!/g, "* css /path/to/loader.js!")
+								.replace(/\*\scss\s(.*)?!/g, "* css /path/to/loader.js!")
+								.replace(/│     at .*\n/g, "")
 								.trim()
 						).toBe(
 							expectedWarnings
 								.replace(/\*\scss\s(.*)?!/g, "* css /path/to/loader.js!")
+								.replace(/│     at .*\n/g, "")
 								.trim()
 						);
 					}

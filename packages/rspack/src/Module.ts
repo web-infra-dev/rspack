@@ -59,6 +59,7 @@ export class Module {
 	request?: Readonly<string>;
 	userRequest?: Readonly<string>;
 	rawRequest?: Readonly<string>;
+	type: string;
 
 	factoryMeta?: Readonly<JsFactoryMeta>;
 	/**
@@ -81,6 +82,7 @@ export class Module {
 
 	constructor(module: JsModule, compilation?: Compilation) {
 		this.#inner = module;
+		this.type = module.type;
 		this.context = module.context;
 		this.resource = module.resource;
 		this.request = module.request;

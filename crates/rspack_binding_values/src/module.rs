@@ -23,6 +23,7 @@ pub struct JsModule {
   pub user_request: Option<String>,
   pub raw_request: Option<String>,
   pub factory_meta: Option<JsFactoryMeta>,
+  pub r#type: String,
 }
 
 pub trait ToJsModule {
@@ -39,6 +40,7 @@ impl ToJsModule for dyn Module {
     let name_for_condition = || self.name_for_condition().map(|s| s.to_string());
     let module_identifier = || self.identifier().to_string();
     let context = || self.get_context().map(|c| c.to_string());
+    let module_type = || self.module_type().to_string();
 
     self
       .try_as_normal_module()
@@ -52,6 +54,7 @@ impl ToJsModule for dyn Module {
             .to_string_lossy()
             .to_string(),
         ),
+        r#type: normal_module.module_type().to_string(),
         module_identifier: module_identifier(),
         name_for_condition: name_for_condition(),
         request: Some(normal_module.request().to_string()),
@@ -66,6 +69,7 @@ impl ToJsModule for dyn Module {
       .or_else(|_| {
         self.try_as_raw_module().map(|_| JsModule {
           context: context(),
+          r#type: module_type(),
           original_source: original_source(),
           resource: None,
           module_identifier: module_identifier(),
@@ -80,6 +84,7 @@ impl ToJsModule for dyn Module {
         self.try_as_context_module().map(|_| JsModule {
           context: context(),
           original_source: original_source(),
+          r#type: module_type(),
           resource: None,
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
@@ -93,6 +98,7 @@ impl ToJsModule for dyn Module {
         self.try_as_external_module().map(|_| JsModule {
           context: context(),
           original_source: original_source(),
+          r#type: module_type(),
           resource: None,
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
@@ -119,6 +125,7 @@ impl ToJsModule for CompilerModuleContext {
       context: self.context.as_ref().map(|c| c.to_string()),
       module_identifier: self.module_identifier.to_string(),
       name_for_condition: self.name_for_condition.clone(),
+      r#type: self.r#type.to_string(),
       resource: self
         .resource
         .as_ref()
