@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use either::Either;
 use itertools::Itertools;
+use rayon::prelude::*;
 use rspack_error::emitter::{DiagnosticDisplay, DiagnosticDisplayer};
 use rspack_error::emitter::{StdioDiagnosticDisplay, StringDiagnosticDisplay};
 use rspack_error::Result;
@@ -166,6 +167,7 @@ impl Stats<'_> {
     let mut modules: Vec<StatsModule> = module_graph
       .modules()
       .values()
+      .par_bridge()
       .map(|module| {
         self.get_module(
           &module_graph,
@@ -180,21 +182,23 @@ impl Stats<'_> {
           None,
         )
       })
-      .chain(
-        self
-          .compilation
-          .runtime_modules
-          .iter()
-          .map(|(identifier, module)| {
-            self.get_runtime_module(identifier, module, reasons, module_assets)
-          }),
-      )
       .collect::<Result<_>>()?;
+
+    let runtime_modules = self
+      .compilation
+      .runtime_modules
+      .par_iter()
+      .map(|(identifier, module)| {
+        self.get_runtime_module(identifier, module, reasons, module_assets)
+      })
+      .collect::<Result<Vec<_>>>()?;
+    modules.extend(runtime_modules);
 
     if let Some(executor_module_graph) = &executor_module_graph {
       let executed_modules: Vec<StatsModule> = executor_module_graph
         .modules()
         .values()
+        .par_bridge()
         .map(|module| {
           self.get_module(
             executor_module_graph,
@@ -222,6 +226,7 @@ impl Stats<'_> {
     {
       let runtime_modules: Vec<StatsModule> = executed_runtime_modules
         .iter()
+        .par_bridge()
         .map(|item| {
           let (id, module) = item.pair();
           self.get_executed_runtime_module(id, module, reasons, module_assets)

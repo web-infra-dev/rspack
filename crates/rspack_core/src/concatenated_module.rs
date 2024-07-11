@@ -10,7 +10,6 @@ use dashmap::DashMap;
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
-// use rayon::prelude::*;
 use regex::Regex;
 use rspack_ast::javascript::Ast;
 use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableError};
