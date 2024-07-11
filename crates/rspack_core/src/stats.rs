@@ -259,6 +259,7 @@ impl Stats<'_> {
       .compilation
       .chunk_by_ukey
       .values()
+      .par_bridge()
       .map(|c| -> Result<_> {
         let mut files = Vec::from_iter(c.files.iter().cloned());
         files.sort_unstable();
