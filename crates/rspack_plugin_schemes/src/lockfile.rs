@@ -83,6 +83,10 @@ impl Lockfile {
   pub fn get_entry(&self, resource: &str) -> Option<&LockfileEntry> {
     self.entries.get(resource)
   }
+
+  pub fn entries_mut(&mut self) -> &mut HashMap<String, LockfileEntry> {
+    &mut self.entries
+  }
 }
 
 #[async_trait]
@@ -107,42 +111,66 @@ impl LockfileAsync for Lockfile {
 #[derive(Debug)]
 pub struct LockfileCache {
   lockfile: Mutex<Option<Lockfile>>,
-  #[allow(dead_code)]
-  snapshot: Mutex<Option<String>>, // Placeholder for the actual snapshot type
+  snapshot: Mutex<Option<String>>,
+  lockfile_location: Option<String>,
 }
 
 impl LockfileCache {
-  #[allow(dead_code)]
-  pub fn new() -> Self {
+  pub fn new(lockfile_location: Option<String>) -> Self {
     LockfileCache {
       lockfile: Mutex::new(None),
       snapshot: Mutex::new(None),
+      lockfile_location,
     }
   }
-  #[allow(dead_code)]
+
   pub async fn get_lockfile<P: AsRef<Path> + Send>(&self, path: P) -> io::Result<Lockfile> {
     let mut lockfile_guard = self.lockfile.lock().await;
-    let _snapshot_guard = self.snapshot.lock().await;
+    let mut snapshot_guard = self.snapshot.lock().await;
 
     if let Some(lockfile) = &*lockfile_guard {
-      // Check snapshot validity here
-      // If valid, return the cached lockfile
       return Ok((*lockfile).clone());
     }
 
-    // Read lockfile from file
-    let lockfile = Lockfile::read_from_file_async(path.as_ref()).await?;
-    // Create snapshot here and store it in _snapshot_guard
+    let lockfile_path = if let Some(snapshot) = &*snapshot_guard {
+      path.as_ref().join(snapshot)
+    } else {
+      path.as_ref().join("lockfile.json")
+    };
+
+    let lockfile = if lockfile_path.exists() {
+      Lockfile::read_from_file_async(&lockfile_path).await?
+    } else {
+      Lockfile::new()
+    };
 
     *lockfile_guard = Some(lockfile.clone());
-    // Store the snapshot in _snapshot_guard
+    *snapshot_guard = Some(lockfile_path.to_string_lossy().to_string());
 
     Ok(lockfile)
+  }
+
+  pub async fn save_lockfile(&self) -> io::Result<()> {
+    let lockfile_guard = self.lockfile.lock().await;
+    let snapshot_guard = self.snapshot.lock().await;
+    if let Some(lockfile) = &*lockfile_guard {
+      if let Some(lockfile_location) = &self.lockfile_location {
+        if let Some(snapshot) = &*snapshot_guard {
+          let path = Path::new(lockfile_location).join(snapshot);
+          lockfile.write_to_file_async(path).await?;
+        }
+      }
+    }
+    Ok(())
   }
 }
 
 impl Default for LockfileCache {
   fn default() -> Self {
-    Self::new()
+    LockfileCache {
+      lockfile: Mutex::new(Some(Lockfile::new())),
+      snapshot: Mutex::new(Some("lockfile.json".to_string())),
+      lockfile_location: None,
+    }
   }
 }

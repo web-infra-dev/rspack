@@ -24,7 +24,8 @@ pub struct HttpUriPlugin {
 
 impl HttpUriPlugin {
   pub fn new(options: HttpUriPluginOptions) -> Self {
-    Self::new_inner(options, LockfileCache::default())
+    let lockfile_cache = LockfileCache::new(options.lockfile_location.clone());
+    Self::new_inner(options, lockfile_cache)
   }
 }
 
@@ -45,10 +46,11 @@ async fn resolve_for_scheme(
   resource_data: &mut ResourceData,
   scheme: &Scheme,
 ) -> Result<Option<bool>> {
-  if scheme.is_http() && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource) {
-    return Ok(None);
-  }
-  Ok(None)
+  Ok(if scheme.is_http() || scheme.is_https() {
+    Some(true)
+  } else {
+    None
+  })
 }
 
 #[plugin_hook(NormalModuleFactoryResolveInScheme for HttpUriPlugin)]
@@ -58,8 +60,10 @@ async fn resolve_in_scheme(
   resource_data: &mut ResourceData,
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
-  dbg!(data.context.as_str());
-  if !matches!(get_scheme(data.context.as_str()), Scheme::Http) {
+  if !matches!(
+    get_scheme(data.context.as_str()),
+    Scheme::Http | Scheme::Https
+  ) {
     return Ok(None);
   }
 
@@ -73,29 +77,27 @@ async fn resolve_in_scheme(
     Ok(_) | Err(_) => resource_data.resource.clone(),
   };
 
-  resource_data.set_resource(
-    base_url
-      .join(&resource_url)
-      .map(|url| url.to_string())
-      .unwrap_or_else(|_| resource_data.resource.clone()),
-  );
+  let resource_set = base_url
+    .join(&resource_url)
+    .map(|url| url.to_string())
+    .unwrap_or_else(|_| resource_data.resource.clone());
 
-  Ok(None)
+  resource_data.set_resource(resource_set);
+
+  Ok(Some(true))
 }
 
 #[plugin_hook(NormalModuleReadResource for HttpUriPlugin)]
 async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
-  if resource_data.get_scheme().is_http() && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
+  if (resource_data.get_scheme().is_http() || resource_data.get_scheme().is_https())
+    && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
   {
     let fetch_result = fetch_content(&resource_data.resource, &self.options)
       .await
       .map_err(rspack_error::AnyhowError::from)?;
-    match fetch_result {
-      FetchResultType::Content(content_result) => {
-        let content = Content::from(content_result.content().clone());
-        return Ok(Some(content));
-      }
-      FetchResultType::Redirect(_) => return Ok(None),
+
+    if let FetchResultType::Content(content_result) = fetch_result {
+      return Ok(Some(Content::from(content_result.content().clone())));
     }
   }
   Ok(None)
