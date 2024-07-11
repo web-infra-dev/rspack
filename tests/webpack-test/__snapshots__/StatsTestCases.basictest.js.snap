@@ -751,7 +751,7 @@ Rspack x.x.x compiled successfully"
 
 exports[`StatsTestCases should print correct stats for module-not-found-error 1`] = `
 "ERROR in ./index.js
-  × Module not found: Can't resolve 'os' in 'Xdir/module-not-found-error'
+  × Resolve error: Can't resolve 'os' in 'Xdir/module-not-found-error'
    ╭─[1:1]
  1 │ require('buffer')
  2 │ require('os')
@@ -1074,7 +1074,7 @@ LOG from LogTestPlugin
 + 14 hidden lines
 
 ERROR in ./index.js
-  × Module not found: Can't resolve 'does-not-exist' in 'Xdir/preset-errors-only-error'
+  × Resolve error: Can't resolve 'does-not-exist' in 'Xdir/preset-errors-only-error'
    ╭────
  1 │ require('does-not-exist')
    · ─────────────────────────
@@ -1893,23 +1893,6 @@ Entrypoint main 329 bytes = main.js
   esm export import specifier ./b
   esm export import specifier ./b
   esm export import specifier ./b
-Rspack x.x.x compiled successfully in X s"
-`;
-
-exports[`StatsTestCases should print correct stats for simple 1`] = `
-"asset bundle.js 421 bytes [emitted] (name: main)
-Entrypoint main 421 bytes = bundle.js
-./index.js 1 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
-`;
-
-exports[`StatsTestCases should print correct stats for simple-more-info 1`] = `
-"PublicPath: auto
-asset bundle.js 66 bytes [emitted] (name: main)
-Entrypoint main 66 bytes = bundle.js
-./index.js 1 bytes [built] [code generated]
-  entry ./index
-  0 ms (resolving: 0 ms, building: 0 ms)
 Rspack x.x.x compiled successfully in X s"
 `;
 

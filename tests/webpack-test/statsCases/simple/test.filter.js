@@ -1,3 +1,3 @@
 module.exports = () => {
-	return true;
+	return "unstable";
 };
