@@ -50,10 +50,10 @@ module.exports = {
 		          "auxiliaryAssets": Array [
 		            Object {
 		              "name": "chunk.js.map",
-		              "size": 514,
+		              "size": 508,
 		            },
 		          ],
-		          "auxiliaryAssetsSize": 514,
+		          "auxiliaryAssetsSize": 508,
 		          "chunks": Array [
 		            "919",
 		          ],
@@ -81,10 +81,10 @@ module.exports = {
 		    "auxiliaryAssets": Array [
 		      Object {
 		        "name": "chunk.js.map",
-		        "size": 514,
+		        "size": 508,
 		      },
 		    ],
-		    "auxiliaryAssetsSize": 514,
+		    "auxiliaryAssetsSize": 508,
 		    "children": Object {
 		      "prefetch": Array [
 		        Object {
@@ -217,10 +217,10 @@ module.exports = {
 		          "auxiliaryAssets": Array [
 		            Object {
 		              "name": "chunk.js.map",
-		              "size": 514,
+		              "size": 508,
 		            },
 		          ],
-		          "auxiliaryAssetsSize": 514,
+		          "auxiliaryAssetsSize": 508,
 		          "chunks": Array [
 		            "919",
 		          ],

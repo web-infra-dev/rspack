@@ -1,10 +1,10 @@
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{
-  ClassDecl, ClassExpr, ExportDecl, ExportSpecifier, Expr, FnDecl, Ident, ImportDecl,
-  ImportSpecifier, ModuleExportName,
+  ClassDecl, ClassExpr, ExportSpecifier, Expr, FnDecl, ImportDecl, ImportSpecifier,
+  ModuleExportName,
 };
-use swc_core::ecma::ast::{Decl, DefaultDecl, ExportDefaultDecl, ExprStmt};
-use swc_core::ecma::ast::{ModuleDecl, ModuleItem, NamedExport, Stmt, VarDecl, VarDeclKind};
+use swc_core::ecma::ast::{Decl, DefaultDecl, ExprStmt};
+use swc_core::ecma::ast::{ModuleDecl, ModuleItem, Stmt, VarDecl, VarDeclKind};
 
 use super::estree::{
   ExportAllDeclaration, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport,
@@ -113,12 +113,12 @@ impl<'parser> JavascriptParser<'parser> {
       self
         .plugin_drive
         .clone()
-        .export_import_2(self, ExportImport::Named(export), source);
+        .export_import(self, ExportImport::Named(export), source);
     } else {
       self
         .plugin_drive
         .clone()
-        .export_2(self, ExportLocal::Named(export));
+        .export(self, ExportLocal::Named(export));
     }
     match export {
       ExportNamedDeclaration::Decl(decl) => {
@@ -129,7 +129,7 @@ impl<'parser> JavascriptParser<'parser> {
         self.prev_statement = prev;
         self.block_pre_walk_statement(&stmt);
         self.enter_declaration(&decl.decl, |parser, def| {
-          parser.plugin_drive.clone().export_specifier_2(
+          parser.plugin_drive.clone().export_specifier(
             parser,
             ExportLocal::Named(export),
             &def.sym,
@@ -149,7 +149,7 @@ impl<'parser> JavascriptParser<'parser> {
               },
             };
           if let Some(src) = &named.src {
-            self.plugin_drive.clone().export_import_specifier_2(
+            self.plugin_drive.clone().export_import_specifier(
               self,
               ExportImport::Named(export),
               &src.value,
@@ -157,7 +157,7 @@ impl<'parser> JavascriptParser<'parser> {
               Some(&exported_name),
             );
           } else {
-            self.plugin_drive.clone().export_specifier_2(
+            self.plugin_drive.clone().export_specifier(
               self,
               ExportLocal::Named(export),
               &local_id,
@@ -170,29 +170,44 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn block_pre_walk_export_default_declaration(&mut self, export: ExportDefaultDeclaration) {
-    // let prev = self.prev_statement;
+    self
+      .plugin_drive
+      .clone()
+      .export(self, ExportLocal::Default(export));
     match export {
       ExportDefaultDeclaration::Decl(decl) => {
         match &decl.decl {
           DefaultDecl::Class(c) => {
             if let Some(ident) = &c.ident {
-              // Expanded pre_walk_statement for class with ident
-              // TODO: call pre_statement hook
-              // Expanded block_pre_walk_statement for class with ident
-              // TODO: call block_pre_statement hook
-              self.define_variable(ident.sym.to_string());
-              self.plugin_drive.clone().export_specifier_2(
+              // TODO: remove clone
+              let stmt = &Stmt::Decl(Decl::Class(ClassDecl {
+                ident: ident.clone(),
+                declare: false,
+                class: c.class.clone(),
+              }));
+              let prev = self.prev_statement;
+              self.pre_walk_statement(stmt);
+              self.prev_statement = prev;
+              self.block_pre_walk_statement(stmt);
+              self.plugin_drive.clone().export_specifier(
                 self,
                 ExportLocal::Default(export),
                 &ident.sym,
                 &JS_DEFAULT_KEYWORD,
               );
             } else {
-              // Expanded pre_walk_statement for class without ident
-              // TODO: add call pre_statement hook here
-              // Expanded block_pre_walk_statement for class without ident
-              // TODO: call block_pre_statement hook
-              self.plugin_drive.clone().export_expression_2(
+              let stmt = &Stmt::Expr(ExprStmt {
+                span: c.span(),
+                expr: Box::new(Expr::Class(ClassExpr {
+                  ident: None,
+                  class: c.class.clone(),
+                })),
+              });
+              let prev = self.prev_statement;
+              self.pre_walk_statement(stmt);
+              self.prev_statement = prev;
+              self.block_pre_walk_statement(stmt);
+              self.plugin_drive.clone().export_expression(
                 self,
                 export,
                 ExportDefaultExpression::ClassDecl(c),
@@ -201,23 +216,31 @@ impl<'parser> JavascriptParser<'parser> {
           }
           DefaultDecl::Fn(f) => {
             if let Some(ident) = &f.ident {
-              // Expanded pre_walk_statement for function with ident
-              // TODO: call pre_statement hook
-              self.define_variable(ident.sym.to_string());
-              // Expanded block_pre_walk_statement for function with ident
-              // TODO: call block_pre_statement hook
-              self.plugin_drive.clone().export_specifier_2(
+              let stmt = &Stmt::Decl(Decl::Fn(FnDecl {
+                ident: ident.clone(),
+                declare: false,
+                function: f.function.clone(),
+              }));
+              let prev = self.prev_statement;
+              self.pre_walk_statement(stmt);
+              self.prev_statement = prev;
+              self.block_pre_walk_statement(stmt);
+              self.plugin_drive.clone().export_specifier(
                 self,
                 ExportLocal::Default(export),
                 &ident.sym,
                 &JS_DEFAULT_KEYWORD,
               );
             } else {
-              // Expanded pre_walk_statement for function without ident
-              // TODO: call pre_statement hook
-              // Expanded block_pre_walk_statement for function without ident
-              // TODO: call block_pre_statement hook
-              self.plugin_drive.clone().export_expression_2(
+              let stmt = &Stmt::Expr(ExprStmt {
+                span: f.span(),
+                expr: Box::new(Expr::Fn(f.clone())),
+              });
+              let prev = self.prev_statement;
+              self.pre_walk_statement(stmt);
+              self.prev_statement = prev;
+              self.block_pre_walk_statement(stmt);
+              self.plugin_drive.clone().export_expression(
                 self,
                 export,
                 ExportDefaultExpression::FnDecl(f),
@@ -232,8 +255,7 @@ impl<'parser> JavascriptParser<'parser> {
         // TODO: call pre_statement hook
         // Expanded pre_walk_statement for expression
         // TODO: call block_pre_statement hook
-        self.walk_expression(&expr.expr);
-        self.plugin_drive.clone().export_expression_2(
+        self.plugin_drive.clone().export_expression(
           self,
           export,
           ExportDefaultExpression::Expr(&expr.expr),
@@ -246,14 +268,11 @@ impl<'parser> JavascriptParser<'parser> {
     let exported_name = decl.exported_name();
     let decl = ExportImport::All(decl);
     let source = decl.source();
+    self.plugin_drive.clone().export_import(self, decl, source);
     self
       .plugin_drive
       .clone()
-      .export_import_2(self, decl, source);
-    self
-      .plugin_drive
-      .clone()
-      .export_import_specifier_2(self, decl, source, None, exported_name);
+      .export_import_specifier(self, decl, source, None, exported_name);
   }
 
   fn block_pre_walk_import_declaration(&mut self, decl: &ImportDecl) {

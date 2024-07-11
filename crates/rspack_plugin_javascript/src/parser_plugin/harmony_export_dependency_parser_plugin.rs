@@ -1,11 +1,6 @@
 use rspack_core::{BoxDependency, ConstDependency, DependencyLocation, DependencyType, SpanExt};
 use swc_core::atoms::Atom;
-use swc_core::common::{Span, Spanned};
-use swc_core::ecma::ast::{
-  ClassDecl, Decl, DefaultDecl, ExportAll, ExportDefaultDecl, ExportSpecifier, FnDecl, Ident,
-  ModuleExportName, NamedExport,
-};
-use swc_core::ecma::utils::{find_pat_ids, ExprFactory};
+use swc_core::common::Spanned;
 
 use super::harmony_import_dependency_parser_plugin::{HarmonySpecifierData, HARMONY_SPECIFIER_TAG};
 use super::{
@@ -25,7 +20,7 @@ use crate::visitors::{
 pub struct HarmonyExportDependencyParserPlugin;
 
 impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
-  fn export_2(&self, parser: &mut JavascriptParser, statement: ExportLocal) -> Option<bool> {
+  fn export(&self, parser: &mut JavascriptParser, statement: ExportLocal) -> Option<bool> {
     let span = statement.span();
     let dep = HarmonyExportHeaderDependency::new(
       statement.declaration_span().map(|span| {
@@ -45,7 +40,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
     Some(true)
   }
 
-  fn export_import_2(
+  fn export_import(
     &self,
     parser: &mut JavascriptParser,
     statement: ExportImport,
@@ -67,7 +62,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
     Some(true)
   }
 
-  fn export_specifier_2(
+  fn export_specifier(
     &self,
     parser: &mut JavascriptParser,
     statement: ExportLocal,
@@ -99,15 +94,15 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
       )) as BoxDependency
     } else {
       Box::new(HarmonyExportSpecifierDependency::new(
-        local_id.clone(),
         export_name.clone(),
+        local_id.clone(),
       ))
     };
     parser.dependencies.push(dep);
     Some(true)
   }
 
-  fn export_import_specifier_2(
+  fn export_import_specifier(
     &self,
     parser: &mut JavascriptParser,
     statement: ExportImport,
@@ -136,12 +131,14 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
         parser.javascript_options,
       ),
     );
-    parser.build_info.all_star_exports.push(dep.id);
+    if export_name.is_none() {
+      parser.build_info.all_star_exports.push(dep.id);
+    }
     parser.dependencies.push(Box::new(dep));
     Some(true)
   }
 
-  fn export_expression_2(
+  fn export_expression(
     &self,
     parser: &mut JavascriptParser,
     statement: ExportDefaultDeclaration,

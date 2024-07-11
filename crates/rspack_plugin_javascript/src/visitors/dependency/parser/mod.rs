@@ -23,9 +23,8 @@ use swc_core::common::comments::Comments;
 use swc_core::common::util::take::Take;
 use swc_core::common::{BytePos, Mark, SourceFile, SourceMap, Span, Spanned};
 use swc_core::ecma::ast::{
-  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, ClassDecl, ClassExpr, Decl, MetaPropExpr,
-  MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr, Pat, Program, Stmt,
-  ThisExpr,
+  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, Decl, MetaPropExpr, MetaPropKind,
+  ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr, Pat, Program, Stmt, ThisExpr,
 };
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 use swc_core::ecma::utils::ExprFactory;
@@ -836,6 +835,20 @@ impl<'parser> JavascriptParser<'parser> {
       _ => unreachable!(),
     }
   }
+
+  // fn enter_statement<H, F>(&mut self, statement: &Stmt, call_hook: H, on_statement: F)
+  // where
+  //   H: FnOnce(&mut Self, &Stmt) -> bool,
+  //   F: FnOnce(&mut Self, &Stmt),
+  // {
+  //   self.statement_path.push(statement.span().into());
+  //   if call_hook(self, statement) {
+  //     self.prev_statement = self.statement_path.pop();
+  //     return;
+  //   }
+  //   on_statement(self, statement);
+  //   self.prev_statement = self.statement_path.pop();
+  // }
 
   pub fn walk_program(&mut self, ast: &Program) {
     if self.plugin_drive.clone().program(self, ast).is_none() {
