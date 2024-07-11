@@ -360,7 +360,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     None
   }
 
-  fn pre_block_statement(
+  fn block_pre_statement(
     &self,
     parser: &mut crate::visitors::JavascriptParser,
     stmt: &Stmt,

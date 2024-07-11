@@ -2,36 +2,13 @@ use rspack_core::{ConstDependency, Dependency, DependencyType, SpanExt};
 use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{
-  AssignExpr, AssignOp, AssignTarget, AssignTargetPat, Callee, ImportSpecifier, MemberExpr,
-  ModuleExportName, OptChainBase,
+  AssignExpr, AssignOp, AssignTarget, AssignTargetPat, Callee, MemberExpr, OptChainBase,
 };
 use swc_core::ecma::ast::{Expr, Ident, ImportDecl};
 
 use super::{InnerGraphPlugin, JavascriptParserPlugin};
-use crate::dependency::{
-  HarmonyImportSideEffectDependency, HarmonyImportSpecifierDependency, Specifier,
-};
-use crate::visitors::ImporterReferenceInfo;
+use crate::dependency::{HarmonyImportSideEffectDependency, HarmonyImportSpecifierDependency};
 use crate::visitors::{collect_destructuring_assignment_properties, JavascriptParser, TagInfoData};
-
-pub(super) fn handle_harmony_import_side_effects_dep(
-  parser: &mut JavascriptParser,
-  request: Atom,
-  span: Span,
-  source_span: Span,
-  dep_type: DependencyType,
-  exports_all: bool,
-) {
-  let dependency = HarmonyImportSideEffectDependency::new(
-    request,
-    parser.last_harmony_import_order,
-    Some(span.into()),
-    Some(source_span.into()),
-    dep_type,
-    exports_all,
-  );
-  parser.dependencies.push(Box::new(dependency));
-}
 
 fn get_non_optional_part<'a>(members: &'a [Atom], members_optionals: &[bool]) -> &'a [Atom] {
   let mut i = 0;
@@ -86,72 +63,18 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     import_decl: &ImportDecl,
-    _source: &str,
+    source: &str,
   ) -> Option<bool> {
     parser.last_harmony_import_order += 1;
-    let mut specifiers = vec![];
-    import_decl.specifiers.iter().for_each(|s| match s {
-      ImportSpecifier::Named(n) => {
-        let specifier = Specifier::Named(
-          n.local.sym.clone(),
-          match &n.imported {
-            Some(ModuleExportName::Ident(ident)) => Some(ident.sym.clone()),
-            Some(ModuleExportName::Str(str)) => Some(str.value.clone()),
-            None => None,
-          },
-        );
-        parser.import_map.insert(
-          n.local.to_id(),
-          ImporterReferenceInfo::new(
-            import_decl.src.value.clone(),
-            specifier.clone(),
-            Some(match &n.imported {
-              Some(ModuleExportName::Ident(ident)) => ident.sym.clone(),
-              Some(ModuleExportName::Str(str)) => str.value.clone(),
-              None => n.local.sym.clone(),
-            }),
-            parser.last_harmony_import_order,
-          ),
-        );
-
-        specifiers.push(specifier);
-      }
-      ImportSpecifier::Default(d) => {
-        let specifier = Specifier::Default(d.local.sym.clone());
-        parser.import_map.insert(
-          d.local.to_id(),
-          ImporterReferenceInfo::new(
-            import_decl.src.value.clone(),
-            specifier.clone(),
-            Some("default".into()),
-            parser.last_harmony_import_order,
-          ),
-        );
-        specifiers.push(specifier);
-      }
-      ImportSpecifier::Namespace(n) => {
-        let specifier = Specifier::Namespace(n.local.sym.clone());
-        parser.import_map.insert(
-          n.local.to_id(),
-          ImporterReferenceInfo::new(
-            import_decl.src.value.clone(),
-            specifier.clone(),
-            None,
-            parser.last_harmony_import_order,
-          ),
-        );
-        specifiers.push(specifier);
-      }
-    });
-
-    handle_harmony_import_side_effects_dep(
-      parser,
-      import_decl.src.value.clone(),
-      import_decl.span,
-      import_decl.src.span,
+    let dependency = HarmonyImportSideEffectDependency::new(
+      source.into(),
+      parser.last_harmony_import_order,
+      import_decl.span.into(),
+      import_decl.src.span.into(),
       DependencyType::EsmImport,
       false,
     );
+    parser.dependencies.push(Box::new(dependency));
 
     parser
       .presentational_dependencies
@@ -376,8 +299,10 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     if let AssignTarget::Pat(AssignTargetPat::Object(object_pat)) = &assign_expr.left
       && assign_expr.op == AssignOp::Assign
       && let box Expr::Ident(ident) = &assign_expr.right
-      && let Some(reference) = parser.import_map.get(&ident.to_id())
-      && matches!(reference.specifier, Specifier::Namespace(_))
+      && let Some(settings) = parser.get_tag_data(&ident.sym, HARMONY_SPECIFIER_TAG)
+      && let settings = HarmonySpecifierData::downcast(settings)
+      // import namespace
+      && settings.ids.is_empty()
     {
       if let Some(value) = collect_destructuring_assignment_properties(object_pat) {
         parser

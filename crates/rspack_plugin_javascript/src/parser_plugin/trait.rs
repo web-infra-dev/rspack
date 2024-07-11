@@ -1,14 +1,16 @@
 use swc_core::atoms::Atom;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{
-  AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, ExportAll, ExportDecl,
-  ExportDefaultDecl, ExportDefaultExpr, Expr, ForOfStmt, Ident, IfStmt, ImportDecl, MemberExpr,
-  ModuleDecl, NamedExport, OptChainExpr,
+  AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Ident, IfStmt,
+  ImportDecl, MemberExpr, ModuleDecl, OptChainExpr,
 };
 use swc_core::ecma::ast::{NewExpr, Program, Stmt, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
 use crate::utils::eval::BasicEvaluatedExpression;
-use crate::visitors::{ClassDeclOrExpr, ExportedVariableInfo, JavascriptParser};
+use crate::visitors::{
+  ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
+  ExportedVariableInfo, JavascriptParser,
+};
 
 type KeepRight = bool;
 
@@ -21,7 +23,7 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn pre_block_statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
+  fn block_pre_statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
     None
   }
 
@@ -316,20 +318,45 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn named_export_import(
+  fn export_import(
     &self,
     _parser: &mut JavascriptParser,
-    _statement: &NamedExport,
-    _source: &str,
+    _statement: ExportImport,
+    _source: &Atom,
   ) -> Option<bool> {
     None
   }
 
-  fn all_export_import(
+  fn export(&self, _parser: &mut JavascriptParser, _statement: ExportLocal) -> Option<bool> {
+    None
+  }
+
+  fn export_import_specifier(
     &self,
     _parser: &mut JavascriptParser,
-    _statement: &ExportAll,
-    _source: &str,
+    _statement: ExportImport,
+    _source: &Atom,
+    _local_id: Option<&Atom>,
+    _export_name: Option<&Atom>,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn export_specifier(
+    &self,
+    _parser: &mut JavascriptParser,
+    _statement: ExportLocal,
+    _local_id: &Atom,
+    _export_name: &Atom,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn export_expression(
+    &self,
+    _parser: &mut JavascriptParser,
+    _statement: ExportDefaultDeclaration,
+    _expr: ExportDefaultExpression,
   ) -> Option<bool> {
     None
   }
@@ -347,29 +374,6 @@ pub trait JavascriptParserPlugin {
     _parser: &mut JavascriptParser,
     _expr: &CondExpr,
   ) -> Option<bool> {
-    None
-  }
-
-  fn export(&self, _parser: &mut JavascriptParser, _expr: &ExportDefaultDecl) -> Option<bool> {
-    None
-  }
-
-  // TODO: remove `export_default_expr`
-  fn export_default_expr(
-    &self,
-    _parser: &mut JavascriptParser,
-    _expr: &ExportDefaultExpr,
-  ) -> Option<bool> {
-    None
-  }
-
-  // TODO: remove `export_decl`
-  fn export_decl(&self, _parser: &mut JavascriptParser, _expr: &ExportDecl) -> Option<bool> {
-    None
-  }
-
-  // TODO: remove `named_export`
-  fn named_export(&self, _parser: &mut JavascriptParser, _expr: &NamedExport) -> Option<bool> {
     None
   }
 

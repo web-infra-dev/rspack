@@ -1,12 +1,18 @@
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{
-  ClassDecl, ClassExpr, ExportDecl, Expr, FnDecl, ImportDecl, ImportSpecifier, ModuleExportName,
+  ClassDecl, ClassExpr, ExportSpecifier, Expr, FnDecl, ImportDecl, ImportSpecifier,
+  ModuleExportName,
 };
-use swc_core::ecma::ast::{Decl, DefaultDecl, ExportAll, ExportDefaultDecl, ExprStmt};
-use swc_core::ecma::ast::{ModuleDecl, ModuleItem, NamedExport, Stmt, VarDecl, VarDeclKind};
+use swc_core::ecma::ast::{Decl, DefaultDecl, ExprStmt};
+use swc_core::ecma::ast::{ModuleDecl, ModuleItem, Stmt, VarDecl, VarDeclKind};
 
+use super::estree::{
+  ExportAllDeclaration, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport,
+  ExportLocal, ExportNamedDeclaration,
+};
 use super::JavascriptParser;
 use crate::parser_plugin::JavascriptParserPlugin;
+use crate::JS_DEFAULT_KEYWORD;
 
 impl<'parser> JavascriptParser<'parser> {
   pub fn block_pre_walk_module_declarations(&mut self, statements: &Vec<ModuleItem>) {
@@ -28,18 +34,27 @@ impl<'parser> JavascriptParser<'parser> {
         // TODO: `hooks.block_pre_statement.call`
         match decl {
           ModuleDecl::Import(decl) => self.block_pre_walk_import_declaration(decl),
-          ModuleDecl::ExportAll(decl) => self.block_pre_walk_export_all_declaration(decl),
+          ModuleDecl::ExportAll(decl) => {
+            self.block_pre_walk_export_all_declaration(ExportAllDeclaration::All(decl))
+          }
+          ModuleDecl::ExportNamed(decl) => {
+            if decl.specifiers.len() == 1
+              && matches!(decl.specifiers.first(), Some(ExportSpecifier::Namespace(_)))
+            {
+              self.block_pre_walk_export_all_declaration(ExportAllDeclaration::NamedAll(decl))
+            } else {
+              self.block_pre_walk_export_named_declaration(ExportNamedDeclaration::Specifiers(decl))
+            }
+          }
+          ModuleDecl::ExportDecl(decl) => {
+            self.block_pre_walk_export_named_declaration(ExportNamedDeclaration::Decl(decl))
+          }
           ModuleDecl::ExportDefaultDecl(decl) => {
-            self.block_pre_walk_export_default_declaration(decl)
+            self.block_pre_walk_export_default_declaration(ExportDefaultDeclaration::Decl(decl))
           }
-          ModuleDecl::ExportNamed(decl) => self.block_pre_walk_export_name_declaration(decl),
-          ModuleDecl::ExportDefaultExpr(default_expr) => {
-            self.block_pre_walk_expression_statement(&ExprStmt {
-              span: default_expr.span,
-              expr: default_expr.expr.clone(),
-            })
+          ModuleDecl::ExportDefaultExpr(expr) => {
+            self.block_pre_walk_export_default_declaration(ExportDefaultDeclaration::Expr(expr))
           }
-          ModuleDecl::ExportDecl(exp) => self.block_pre_walk_export_declaration(exp),
           ModuleDecl::TsImportEquals(_)
           | ModuleDecl::TsExportAssignment(_)
           | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
@@ -55,7 +70,7 @@ impl<'parser> JavascriptParser<'parser> {
     if self
       .plugin_drive
       .clone()
-      .pre_block_statement(self, stmt)
+      .block_pre_statement(self, stmt)
       .unwrap_or_default()
     {
       self.prev_statement = self.statement_path.pop();
@@ -89,108 +104,175 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn block_pre_walk_export_name_declaration(&mut self, decl: &NamedExport) {
-    if let Some(source) = &decl.src {
-      self
-        .plugin_drive
-        .clone()
-        .named_export_import(self, decl, source.value.as_str());
-    } else {
-      // TODO: `hooks.export.call`
-    }
-  }
-
-  fn block_pre_walk_export_declaration(&mut self, exp: &ExportDecl) {
-    // todo: move `hooks.export_decl.call` here
-    self.pre_walk_export_declaration(exp);
-  }
-
   fn block_pre_walk_class_declaration(&mut self, decl: &ClassDecl) {
     self.define_variable(decl.ident.sym.to_string())
   }
 
-  fn block_pre_walk_export_default_declaration(&mut self, decl: &ExportDefaultDecl) {
-    // FIXME: webpack use `self.pre_walk_statement(decl.decl)`
-    match &decl.decl {
-      DefaultDecl::Class(expr) => {
-        if let Some(ident) = &expr.ident {
-          self.define_variable(ident.sym.to_string());
-          self.pre_walk_statement(&Stmt::Decl(Decl::Class(ClassDecl {
-            ident: ident.clone(),
-            declare: false,
-            class: expr.class.clone(),
-          })));
-          self.block_pre_walk_statement(&Stmt::Decl(Decl::Class(ClassDecl {
-            ident: ident.clone(),
-            declare: false,
-            class: expr.class.clone(),
-          })));
-        } else {
-          self.pre_walk_statement(&Stmt::Expr(ExprStmt {
-            span: expr.span(),
-            expr: Box::new(Expr::Class(ClassExpr {
-              ident: None,
-              class: expr.class.clone(),
-            })),
-          }));
-          self.block_pre_walk_statement(&Stmt::Expr(ExprStmt {
-            span: expr.span(),
-            expr: Box::new(Expr::Class(ClassExpr {
-              ident: None,
-              class: expr.class.clone(),
-            })),
-          }));
-        }
-      }
-      DefaultDecl::Fn(expr) => {
-        if let Some(ident) = &expr.ident {
-          self.define_variable(ident.sym.to_string());
-          self.pre_walk_statement(&Stmt::Decl(Decl::Fn(FnDecl {
-            ident: ident.clone(),
-            declare: false,
-            function: expr.function.clone(),
-          })));
-          self.block_pre_walk_statement(&Stmt::Decl(Decl::Fn(FnDecl {
-            ident: ident.clone(),
-            declare: false,
-            function: expr.function.clone(),
-          })));
-        } else {
-          self.pre_walk_statement(&Stmt::Expr(ExprStmt {
-            span: expr.span(),
-            expr: Box::new(Expr::Fn(expr.clone())),
-          }));
-          self.block_pre_walk_statement(&Stmt::Expr(ExprStmt {
-            span: expr.span(),
-            expr: Box::new(Expr::Fn(expr.clone())),
-          }));
-        }
-      }
-      DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
+  fn block_pre_walk_export_named_declaration(&mut self, export: ExportNamedDeclaration) {
+    if let Some(source) = export.source() {
+      self
+        .plugin_drive
+        .clone()
+        .export_import(self, ExportImport::Named(export), source);
+    } else {
+      self
+        .plugin_drive
+        .clone()
+        .export(self, ExportLocal::Named(export));
     }
-
-    // FIXME: webpack use `self.block_pre_walk_statement(decl.decl)`
-    // match &decl.decl {
-    //   DefaultDecl::Class(expr) => {
-    //     if let Some(ident) = &expr.ident {
-    //       self.define_variable(ident.sym.to_string())
-    //     }
-    //   }
-    //   DefaultDecl::Fn(expr) => {
-    //     if let Some(ident) = &expr.ident {
-    //       self.define_variable(ident.sym.to_string())
-    //     }
-    //   }
-    //   DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
-    // }
+    match export {
+      ExportNamedDeclaration::Decl(decl) => {
+        let prev = self.prev_statement;
+        // TODO: remove the clone
+        let stmt = Stmt::Decl(decl.decl.clone());
+        self.pre_walk_statement(&stmt);
+        self.prev_statement = prev;
+        self.block_pre_walk_statement(&stmt);
+        self.enter_declaration(&decl.decl, |parser, def| {
+          parser.plugin_drive.clone().export_specifier(
+            parser,
+            ExportLocal::Named(export),
+            &def.sym,
+            &def.sym,
+          );
+        });
+      }
+      ExportNamedDeclaration::Specifiers(named) => {
+        for spec in named.specifiers.iter() {
+          let (local_id, exported_name) = match spec {
+              ExportSpecifier::Namespace(_) => unreachable!("should handle ExportSpecifier::Namespace by ExportAllOrNamedAll::NamedAll in block_pre_walk_export_all_declaration"),
+              ExportSpecifier::Default(s) => {
+                (JS_DEFAULT_KEYWORD.clone(), s.exported.sym.clone())
+              },
+              ExportSpecifier::Named(n) => {
+                (n.orig.atom().clone(), n.exported.as_ref().unwrap_or(&n.orig).atom().clone())
+              },
+            };
+          if let Some(src) = &named.src {
+            self.plugin_drive.clone().export_import_specifier(
+              self,
+              ExportImport::Named(export),
+              &src.value,
+              Some(&local_id),
+              Some(&exported_name),
+            );
+          } else {
+            self.plugin_drive.clone().export_specifier(
+              self,
+              ExportLocal::Named(export),
+              &local_id,
+              &exported_name,
+            );
+          }
+        }
+      }
+    }
   }
 
-  fn block_pre_walk_export_all_declaration(&mut self, decl: &ExportAll) {
+  fn block_pre_walk_export_default_declaration(&mut self, export: ExportDefaultDeclaration) {
     self
       .plugin_drive
       .clone()
-      .all_export_import(self, decl, decl.src.value.as_str());
-    // TODO: `hooks.export_import_specifier.call`
+      .export(self, ExportLocal::Default(export));
+    match export {
+      ExportDefaultDeclaration::Decl(decl) => {
+        match &decl.decl {
+          DefaultDecl::Class(c) => {
+            if let Some(ident) = &c.ident {
+              // TODO: remove clone
+              let stmt = &Stmt::Decl(Decl::Class(ClassDecl {
+                ident: ident.clone(),
+                declare: false,
+                class: c.class.clone(),
+              }));
+              let prev = self.prev_statement;
+              self.pre_walk_statement(stmt);
+              self.prev_statement = prev;
+              self.block_pre_walk_statement(stmt);
+              self.plugin_drive.clone().export_specifier(
+                self,
+                ExportLocal::Default(export),
+                &ident.sym,
+                &JS_DEFAULT_KEYWORD,
+              );
+            } else {
+              let stmt = &Stmt::Expr(ExprStmt {
+                span: c.span(),
+                expr: Box::new(Expr::Class(ClassExpr {
+                  ident: None,
+                  class: c.class.clone(),
+                })),
+              });
+              let prev = self.prev_statement;
+              self.pre_walk_statement(stmt);
+              self.prev_statement = prev;
+              self.block_pre_walk_statement(stmt);
+              self.plugin_drive.clone().export_expression(
+                self,
+                export,
+                ExportDefaultExpression::ClassDecl(c),
+              );
+            }
+          }
+          DefaultDecl::Fn(f) => {
+            if let Some(ident) = &f.ident {
+              let stmt = &Stmt::Decl(Decl::Fn(FnDecl {
+                ident: ident.clone(),
+                declare: false,
+                function: f.function.clone(),
+              }));
+              let prev = self.prev_statement;
+              self.pre_walk_statement(stmt);
+              self.prev_statement = prev;
+              self.block_pre_walk_statement(stmt);
+              self.plugin_drive.clone().export_specifier(
+                self,
+                ExportLocal::Default(export),
+                &ident.sym,
+                &JS_DEFAULT_KEYWORD,
+              );
+            } else {
+              let stmt = &Stmt::Expr(ExprStmt {
+                span: f.span(),
+                expr: Box::new(Expr::Fn(f.clone())),
+              });
+              let prev = self.prev_statement;
+              self.pre_walk_statement(stmt);
+              self.prev_statement = prev;
+              self.block_pre_walk_statement(stmt);
+              self.plugin_drive.clone().export_expression(
+                self,
+                export,
+                ExportDefaultExpression::FnDecl(f),
+              );
+            }
+          }
+          DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
+        };
+      }
+      ExportDefaultDeclaration::Expr(expr) => {
+        // Expanded pre_walk_statement for expression
+        // TODO: call pre_statement hook
+        // Expanded pre_walk_statement for expression
+        // TODO: call block_pre_statement hook
+        self.plugin_drive.clone().export_expression(
+          self,
+          export,
+          ExportDefaultExpression::Expr(&expr.expr),
+        );
+      }
+    }
+  }
+
+  fn block_pre_walk_export_all_declaration(&mut self, decl: ExportAllDeclaration) {
+    let exported_name = decl.exported_name();
+    let decl = ExportImport::All(decl);
+    let source = decl.source();
+    self.plugin_drive.clone().export_import(self, decl, source);
+    self
+      .plugin_drive
+      .clone()
+      .export_import_specifier(self, decl, source, None, exported_name);
   }
 
   fn block_pre_walk_import_declaration(&mut self, decl: &ImportDecl) {

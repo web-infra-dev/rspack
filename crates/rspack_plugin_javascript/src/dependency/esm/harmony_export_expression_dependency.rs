@@ -80,6 +80,7 @@ impl Dependency for HarmonyExportExpressionDependency {
 }
 
 impl AsModuleDependency for HarmonyExportExpressionDependency {}
+impl AsContextDependency for HarmonyExportExpressionDependency {}
 
 impl DependencyTemplate for HarmonyExportExpressionDependency {
   fn apply(
@@ -219,5 +220,3 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
     Some(self.id)
   }
 }
-
-impl AsContextDependency for HarmonyExportExpressionDependency {}

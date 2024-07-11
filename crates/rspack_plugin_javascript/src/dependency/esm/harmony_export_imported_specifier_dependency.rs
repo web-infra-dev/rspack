@@ -35,9 +35,7 @@ pub struct HarmonyExportImportedSpecifierDependency {
   pub id: DependencyId,
   pub source_order: i32,
   pub request: Atom,
-  pub ids: Vec<(Atom, Option<Atom>)>,
-  /// used for get_mode, legacy issue
-  pub mode_ids: Vec<(Atom, Option<Atom>)>,
+  pub ids: Vec<Atom>,
   pub name: Option<Atom>,
   resource_identifier: String,
   pub other_star_exports: Option<Vec<DependencyId>>,
@@ -51,8 +49,7 @@ impl HarmonyExportImportedSpecifierDependency {
   pub fn new(
     request: Atom,
     source_order: i32,
-    ids: Vec<(Atom, Option<Atom>)>,
-    mode_ids: Vec<(Atom, Option<Atom>)>,
+    ids: Vec<Atom>,
     name: Option<Atom>,
     export_all: bool,
     other_star_exports: Option<Vec<DependencyId>>,
@@ -63,7 +60,6 @@ impl HarmonyExportImportedSpecifierDependency {
     Self {
       id: DependencyId::new(),
       source_order,
-      mode_ids,
       name,
       request,
       ids,
@@ -1218,13 +1214,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
   fn get_ids(&self, mg: &ModuleGraph) -> Vec<Atom> {
     mg.get_dep_meta_if_existing(&self.id)
       .map(|meta| meta.ids.clone())
-      .unwrap_or_else(|| {
-        self
-          .mode_ids
-          .iter()
-          .map(|(id, orig)| orig.clone().unwrap_or(id.clone()))
-          .collect()
-      })
+      .unwrap_or_else(|| self.ids.clone())
   }
 
   fn resource_identifier(&self) -> Option<&str> {
