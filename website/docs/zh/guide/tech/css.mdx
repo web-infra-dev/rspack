@@ -2,15 +2,31 @@ import { PackageManagerTabs } from '@theme';
 
 # CSS
 
-CSS 是 Rspack 的一等公民，Rspack 内置了对 CSS 的处理能力，你无需额外的配置即可使用。
+CSS 是 Rspack 的一等公民，Rspack 内置了对 CSS 的处理能力，只需要配置 `experiments.css` 为 `true` 即可。
 
-我们默认会将 `*.css` 结尾的文件视为 CSS 模块类型，将 `*.module.css` 结尾的文件视为 [CSS Modules](https://github.com/css-modules/css-modules) 模块类型。
+我们默认会将 `*.css` 结尾的文件视为 `css/auto` 模块类型，将 `*.module.css` 结尾的文件视为 [CSS Modules](https://github.com/css-modules/css-modules)。
 
-如果你打算从 webpack 进行迁移，那么你可以去除配置中的 `css-loader` 或 `style-loader` 以使用 Rspack 内置的 CSS 处理能力，详情可以参考[迁移指南](/guide/migration/webpack#去除-css-loader-和-style-loader-和-mini-css-extract-plugin)。
+你也可以通过配置 `type: 'css/auto'` 自定义哪些模块为 `css` 模块。
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        type: 'css/auto', // 👈
+        use: ['less-loader'],
+      },
+    ],
+  },
+};
+```
+
+如果你打算从 webpack 进行迁移，详情可以参考[迁移指南](/guide/migration/webpack#去除-css-loader-和-style-loader-和-mini-css-extract-plugin)。
 
 ## CSS Modules
 
-Rspack 默认将扩展名为 `*.module.css` 的文件视为 CSS Modules，你可以在 JavaScript 文件中导入它，然后将 CSS 文件中定义的每个类作为模块的导出来访问。
+Rspack 默认将扩展名为 `*.module.css` 的文件视为 [CSS Modules](https://github.com/css-modules/css-modules)，你可以在 JavaScript 文件中导入它，然后将 CSS 文件中定义的每个类作为模块的导出来访问。
 
 ```css title="index.module.css"
 .red {

@@ -132,7 +132,8 @@ module.exports = {
 -          CssExtractWebpackPlugin.loader,
 +          rspack.CssExtractRspackPlugin.loader,
           "css-loader"
-        ]
+        ],
++        type: 'javascript/auto'
       }
     ]
   }

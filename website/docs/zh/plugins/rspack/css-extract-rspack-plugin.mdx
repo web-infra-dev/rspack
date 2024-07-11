@@ -165,8 +165,40 @@ module.exports = {
       {
         test: /\.css$/i,
         use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+        type: 'javascript/auto',
       },
     ],
   },
 };
 ```
+
+:::info
+请注意当打开内置 CSS 支持（`experiments.css`）时，`.css` 结尾的文件会默认视为 `css/auto` 模块，此时如果想要使用该插件，请确保设置了 `CssExtractRspackPlugin.loader` 的 rule 类型都用 `javascript/auto` 覆盖了默认的 `css/auto` 类型。
+
+例如
+
+```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [new rspack.CssExtractRspackPlugin({})],
+  module: {
+    rules: [
+      {
+        test: /src\/legacy-project\/.*\.css$/,
+        type: 'javascript/auto', // 覆盖默认的 css 模块类型，视为普通 js 文件
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+      },
+      {
+        test: /src\/new-project\/.*\.css$/,
+        type: 'css/auto', // 使用内置 css 处理
+      },
+    ],
+  },
+  experiments: {
+    css: true,
+  },
+};
+```
+
+:::
