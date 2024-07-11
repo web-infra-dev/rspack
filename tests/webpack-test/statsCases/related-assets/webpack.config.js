@@ -1,5 +1,4 @@
-const MCEP = require("mini-css-extract-plugin");
-const { Compilation } = require("@rspack/core");
+const { Compilation, CssExtractRspackPlugin } = require("@rspack/core");
 
 const compression = exts => compiler => {
 	compiler.hooks.thisCompilation.tap("Test", compilation => {
@@ -38,7 +37,7 @@ const base = name => ({
 			{
 				test: /\.css$/,
 				use: [
-					MCEP.loader,
+					CssExtractRspackPlugin.loader,
 					{
 						loader: "css-loader",
 						options: {
@@ -50,7 +49,7 @@ const base = name => ({
 		]
 	},
 	plugins: [
-		new MCEP({
+		new CssExtractRspackPlugin({
 			filename: `${name}-[name].css`
 		}),
 		compression([".br", ".gz"])

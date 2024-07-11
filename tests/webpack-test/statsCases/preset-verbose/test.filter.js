@@ -1,3 +1,3 @@
-
-module.exports = () => {return false}
-		
+module.exports = () => {
+	return "suport AMD require";
+};

@@ -1,3 +1,3 @@
-
-module.exports = () => {return false}
-		
+module.exports = () => {
+	return "support MinChunkSizePlugin";
+};
