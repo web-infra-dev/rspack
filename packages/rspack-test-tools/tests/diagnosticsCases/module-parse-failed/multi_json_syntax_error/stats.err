@@ -10,6 +10,7 @@ ERROR in ./a.json
       
   help: 
         You may need an appropriate loader to handle this file type.
+ @ ./a.json
 
 ERROR in ./b.json
   × Module parse failed:
@@ -21,3 +22,4 @@ ERROR in ./b.json
       
   help: 
         You may need an appropriate loader to handle this file type.
+ @ ./b.json

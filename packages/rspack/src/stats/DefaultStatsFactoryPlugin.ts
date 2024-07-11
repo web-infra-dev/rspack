@@ -9,7 +9,11 @@
  */
 import * as util from "node:util";
 
-import type { JsOriginRecord } from "@rspack/binding";
+import type {
+	JsOriginRecord,
+	JsStatsError,
+	JsStatsWarning
+} from "@rspack/binding";
 import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { StatsOptions } from "../config";
@@ -31,6 +35,7 @@ import type {
 	SimpleExtractors,
 	StatsAsset,
 	StatsChunk,
+	StatsError,
 	StatsProfile
 } from "./statsFactoryUtils";
 import {
@@ -63,8 +68,8 @@ const ITEM_NAMES: Record<string, string> = {
 	"module.issuerPath[]": "moduleIssuer",
 	"module.reasons[]": "moduleReason",
 	"module.modules[]": "module",
-	"module.children[]": "module"
-	// "moduleTrace[]": "moduleTraceItem",
+	"module.children[]": "module",
+	"moduleTrace[]": "moduleTraceItem"
 	// "moduleTraceItem.dependencies[]": "moduleTraceDependency"
 };
 
@@ -370,6 +375,45 @@ const SORTERS: Record<
 				compareSelect((origin: JsOriginRecord) => origin.request, compareIds)
 			);
 		}
+	}
+};
+
+const EXTRACT_ERROR: Record<
+	string,
+	(
+		object: StatsError,
+		error: JsStatsError | JsStatsWarning,
+		conext: KnownStatsFactoryContext,
+		options: StatsOptions,
+		factory: StatsFactory
+	) => void
+> = {
+	_: (object, error) => {
+		object.message = error.message;
+		object.chunkName = error.chunkName;
+		object.chunkEntry = error.chunkEntry;
+		object.chunkInitial = error.chunkInitial;
+		object.file = error.file;
+		object.moduleIdentifier = error.moduleIdentifier;
+		object.moduleName = error.moduleName;
+	},
+	ids: (object, error) => {
+		object.chunkId = error.chunkId;
+		object.moduleId = error.moduleId;
+	},
+	moduleTrace: (object, error, context, _, factory) => {
+		const { type } = context;
+		object.moduleTrace = factory.create(
+			`${type}.moduleTrace`,
+			error.moduleTrace,
+			context
+		);
+	},
+	errorDetails: (object, error) => {
+		object.details = error.details;
+	},
+	errorStack: (object, error) => {
+		object.stack = error.stack;
 	}
 };
 
@@ -950,6 +994,20 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		chunkOrigins: (object, chunk, context, options, factory) => {
 			object.origins = chunk.origins;
+		}
+	},
+	error: EXTRACT_ERROR,
+	warning: EXTRACT_ERROR,
+	moduleTraceItem: {
+		_: (object, { origin, module }, context, { requestShortener }, factory) => {
+			object.originIdentifier = origin.identifier;
+			object.originName = origin.name;
+			object.moduleIdentifier = module.identifier;
+			object.moduleName = module.name;
+		},
+		ids: (object, { origin, module }) => {
+			object.originId = origin.id;
+			object.moduleId = module.id;
 		}
 	}
 };

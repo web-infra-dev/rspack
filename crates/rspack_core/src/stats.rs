@@ -557,6 +557,7 @@ impl Stats<'_> {
           .map(ChunkUkey::from)
           .map(|key| self.compilation.chunk_by_ukey.expect_get(&key));
 
+        let module_trace = self.get_module_trace(module_identifier);
         StatsError {
           message: diagnostic_displayer
             .emit_diagnostic(d)
@@ -572,6 +573,7 @@ impl Stats<'_> {
           chunk_id: chunk.and_then(|c| c.id.clone()),
           details: d.details(),
           stack: d.stack(),
+          module_trace,
         }
       })
       .collect()
@@ -597,6 +599,8 @@ impl Stats<'_> {
           .map(ChunkUkey::from)
           .map(|key| self.compilation.chunk_by_ukey.expect_get(&key));
 
+        let module_trace = self.get_module_trace(module_identifier);
+
         StatsWarning {
           message: diagnostic_displayer
             .emit_diagnostic(d)
@@ -612,6 +616,7 @@ impl Stats<'_> {
           chunk_id: chunk.and_then(|c| c.id.clone()),
           details: d.details(),
           stack: d.stack(),
+          module_trace,
         }
       })
       .collect()
@@ -1128,6 +1133,61 @@ impl Stats<'_> {
     siblings.sort();
     (parents, children, siblings)
   }
+
+  fn get_module_trace(&self, module_identifier: Option<Identifier>) -> Vec<StatsModuleTrace> {
+    let module_graph = self.compilation.get_module_graph();
+    let mut module_trace = vec![];
+    let mut visited_modules = HashSet::<Identifier>::default();
+    let mut current_module_identifier = module_identifier;
+    while let Some(module_identifier) = current_module_identifier {
+      if visited_modules.contains(&module_identifier) {
+        break;
+      }
+      visited_modules.insert(module_identifier);
+      let Some(origin_module) = module_graph.get_issuer(&module_identifier) else {
+        break;
+      };
+      let Some(current_module) = module_graph.module_by_identifier(&module_identifier) else {
+        break;
+      };
+      let origin_stats_module = StatsErrorModuleTraceModule {
+        identifier: origin_module.identifier().to_string(),
+        name: Some(
+          origin_module
+            .readable_identifier(&self.compilation.options.context)
+            .to_string(),
+        ),
+        id: self
+          .compilation
+          .chunk_graph
+          .get_module_id(origin_module.identifier())
+          .to_owned(),
+      };
+
+      let current_stats_module = StatsErrorModuleTraceModule {
+        identifier: current_module.identifier().to_string(),
+        name: Some(
+          current_module
+            .readable_identifier(&self.compilation.options.context)
+            .to_string(),
+        ),
+        id: self
+          .compilation
+          .chunk_graph
+          .get_module_id(current_module.identifier())
+          .to_owned(),
+      };
+
+      module_trace.push(StatsModuleTrace {
+        origin: origin_stats_module,
+        module: current_stats_module,
+      });
+
+      current_module_identifier = Some(origin_module.identifier());
+    }
+
+    module_trace
+  }
 }
 
 fn get_stats_module_name_and_id(
@@ -1154,6 +1214,7 @@ pub struct StatsError {
   pub chunk_id: Option<String>,
   pub details: Option<String>,
   pub stack: Option<String>,
+  pub module_trace: Vec<StatsModuleTrace>,
 }
 
 #[derive(Debug)]
@@ -1170,6 +1231,20 @@ pub struct StatsWarning {
   pub chunk_id: Option<String>,
   pub details: Option<String>,
   pub stack: Option<String>,
+  pub module_trace: Vec<StatsModuleTrace>,
+}
+
+#[derive(Debug)]
+pub struct StatsModuleTrace {
+  pub origin: StatsErrorModuleTraceModule,
+  pub module: StatsErrorModuleTraceModule,
+}
+
+#[derive(Debug)]
+pub struct StatsErrorModuleTraceModule {
+  pub identifier: String,
+  pub name: Option<String>,
+  pub id: Option<String>,
 }
 
 #[derive(Debug)]

@@ -1,3 +1,3 @@
 module.exports = () => {
-	return "support moduleTrace";
+  return true;
 };

@@ -103,7 +103,7 @@ const NAMED_PRESETS: Record<string, StatsOptions> = {
 		errors: true,
 		errorsCount: true,
 		// errorsSpace: Infinity,
-		// moduleTrace: true,
+		moduleTrace: true,
 		logging: "error"
 	},
 	"errors-warnings": {

@@ -4,3 +4,5 @@ ERROR in ./node_modules/some-module/a.ts
  1 │ export * from "./b.js";
    ·               ────────
    ╰────
+ @ ./node_modules/some-module/a.ts
+ @ ./reexport.ts

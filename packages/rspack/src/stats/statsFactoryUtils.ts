@@ -58,6 +58,15 @@ export type StatsError = binding.JsStatsError & Record<string, any>;
 
 export type StatsWarnings = binding.JsStatsWarning & Record<string, any>;
 
+export type StatsModuleTraceItem = {
+	originIdentifier?: string;
+	originName?: string;
+	moduleIdentifier?: string;
+	moduleName?: string;
+	originId?: string;
+	moduleId?: string;
+};
+
 export type StatsModuleReason = binding.JsStatsModuleReason &
 	Record<string, any>;
 
@@ -165,8 +174,12 @@ export type SimpleExtractors = {
 	>;
 	chunk: ExtractorsByOption<binding.JsStatsChunk, KnownStatsChunk>;
 	// chunkOrigin: ExtractorsByOption<OriginRecord, StatsChunkOrigin>;
-	// error: ExtractorsByOption<binding.JsStatsError, StatsError>;
-	// warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;
+	error: ExtractorsByOption<binding.JsStatsError, StatsError>;
+	warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;
+	moduleTraceItem: ExtractorsByOption<
+		binding.JsStatsModuleTrace,
+		StatsModuleTraceItem
+	>;
 };
 
 export const uniqueArray = <T, I>(

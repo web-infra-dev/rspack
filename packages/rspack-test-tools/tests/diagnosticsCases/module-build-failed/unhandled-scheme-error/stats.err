@@ -3,9 +3,14 @@ ERROR in bar:baz
   ╰─▶   × Reading from "bar:baz" is not handled by plugins (Unhandled scheme).
         │ Rspack supports "data:" and "file:" URIs by default.
         │ You may need an additional plugin to handle "bar:" URIs.
+      
+ @ bar:baz
+ @ ./foo.css
 
 ERROR in foo:bar
   × Module build failed:
   ╰─▶   × Reading from "foo:bar" is not handled by plugins (Unhandled scheme).
         │ Rspack supports "data:" and "file:" URIs by default.
         │ You may need an additional plugin to handle "foo:" URIs.
+      
+ @ foo:bar

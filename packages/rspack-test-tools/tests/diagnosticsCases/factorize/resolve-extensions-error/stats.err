@@ -9,6 +9,8 @@ ERROR in ./err/index.js
         
         1. add the extension `".txt"` to `resolve.extensions` in your rspack configuration
         2. use '../a.txt' instead of '../a'
+        
+ @ ./err/index.js
 
 ERROR in ./index.js
   × Module not found: Can't resolve './test' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/resolve-extensions-error'

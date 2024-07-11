@@ -12,6 +12,8 @@ ERROR in ./b.css
       
   help: 
         You may need an appropriate loader to handle this file type.
+ @ ./b.css
+ @ ./index.css
 
 ERROR in ./c.css
   × Module parse failed:
@@ -27,6 +29,8 @@ ERROR in ./c.css
       
   help: 
         You may need an appropriate loader to handle this file type.
+ @ ./c.css
+ @ ./index.css
 
 ERROR in ./c.css
   × Module parse failed:
@@ -42,3 +46,5 @@ ERROR in ./c.css
       
   help: 
         You may need an appropriate loader to handle this file type.
+ @ ./c.css
+ @ ./index.css
