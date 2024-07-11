@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt::Debug;
 use std::path::PathBuf;
 
@@ -9,6 +10,7 @@ use rspack_error::emitter::{StdioDiagnosticDisplay, StringDiagnosticDisplay};
 use rspack_error::Result;
 use rspack_identifier::Identifier;
 use rspack_sources::Source;
+use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -577,7 +579,6 @@ impl Stats<'_> {
   }
 
   pub fn get_errors(&self) -> Vec<StatsError> {
-    let module_graph = self.compilation.get_module_graph();
     let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
     self
       .compilation
@@ -585,9 +586,12 @@ impl Stats<'_> {
       .map(|d| {
         let module_identifier = d.module_identifier();
         let (module_name, module_id) = module_identifier
-          .and_then(|identifier| {
-            let module = module_graph.module_by_identifier(&identifier)?;
-            Some(get_stats_module_name_and_id(module, self.compilation))
+          .as_ref()
+          .and_then(move |identifier| {
+            Some(get_stats_module_name_and_id(
+              self.compilation.module_by_identifier(identifier)?,
+              self.compilation,
+            ))
           })
           .unzip();
 
@@ -601,7 +605,7 @@ impl Stats<'_> {
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
-          module_identifier: module_identifier.map(|i| i.to_string()),
+          module_identifier: module_identifier.map(|i| i.as_str()),
           module_name,
           module_id: module_id.flatten(),
           file: d.file().map(ToOwned::to_owned),
@@ -619,7 +623,6 @@ impl Stats<'_> {
   }
 
   pub fn get_warnings(&self) -> Vec<StatsWarning> {
-    let module_graph = self.compilation.get_module_graph();
     let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
     self
       .compilation
@@ -627,9 +630,12 @@ impl Stats<'_> {
       .map(|d| {
         let module_identifier = d.module_identifier();
         let (module_name, module_id) = module_identifier
+          .as_ref()
           .and_then(|identifier| {
-            let module = module_graph.module_by_identifier(&identifier)?;
-            Some(get_stats_module_name_and_id(module, self.compilation))
+            Some(get_stats_module_name_and_id(
+              self.compilation.module_by_identifier(identifier)?,
+              self.compilation,
+            ))
           })
           .unzip();
 
@@ -644,7 +650,7 @@ impl Stats<'_> {
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
-          module_identifier: module_identifier.map(|i| i.to_string()),
+          module_identifier: module_identifier.map(|i| i.as_str()),
           module_name,
           module_id: module_id.flatten(),
           file: d.file().map(ToOwned::to_owned),
@@ -719,8 +725,7 @@ impl Stats<'_> {
       .map(|i| {
         if executed {
           (
-            i.readable_identifier(&self.compilation.options.context)
-              .to_string(),
+            i.readable_identifier(&self.compilation.options.context),
             None,
           )
         } else {
@@ -733,15 +738,14 @@ impl Stats<'_> {
     while let Some(i) = current_issuer {
       let (name, id) = if executed {
         (
-          i.readable_identifier(&self.compilation.options.context)
-            .to_string(),
+          i.readable_identifier(&self.compilation.options.context),
           None,
         )
       } else {
         get_stats_module_name_and_id(i, self.compilation)
       };
       issuer_path.push(StatsModuleIssuer {
-        identifier: i.identifier().to_string(),
+        identifier: i.identifier().as_str(),
         name,
         id,
       });
@@ -763,8 +767,7 @@ impl Stats<'_> {
               .map(|m| {
                 if executed {
                   (
-                    m.readable_identifier(&self.compilation.options.context)
-                      .to_string(),
+                    m.readable_identifier(&self.compilation.options.context),
                     None,
                   )
                 } else {
@@ -775,20 +778,14 @@ impl Stats<'_> {
             let dependency = module_graph.dependency_by_id(&connection.dependency_id);
             let (r#type, user_request) =
               if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
-                (
-                  Some(d.dependency_type().to_string()),
-                  Some(d.user_request().to_string()),
-                )
+                (Some(d.dependency_type().as_str()), Some(d.user_request()))
               } else if let Some(d) = dependency.and_then(|d| d.as_context_dependency()) {
-                (
-                  Some(d.dependency_type().to_string()),
-                  Some(d.request().to_string()),
-                )
+                (Some(d.dependency_type().as_str()), Some(d.request()))
               } else {
                 (None, None)
               };
             Some(StatsModuleReason {
-              module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
+              module_identifier: connection.original_module_identifier.map(|i| i.as_str()),
               module_name,
               module_id: module_id.and_then(|i| i),
               r#type,
@@ -876,7 +873,7 @@ impl Stats<'_> {
           .get_module_graph()
           .get_provided_exports(module.identifier())
         {
-          ProvidedExports::Vec(v) => Some(v.iter().map(|i| i.to_string()).collect_vec()),
+          ProvidedExports::Vec(v) => Some(v),
           _ => None,
         }
       } else {
@@ -898,9 +895,7 @@ impl Stats<'_> {
         .get_used_exports(&module.identifier(), None)
       {
         UsedExports::Null => Some(StatsUsedExports::Null),
-        UsedExports::Vec(v) => Some(StatsUsedExports::Vec(
-          v.iter().map(|i| i.to_string()).collect_vec(),
-        )),
+        UsedExports::Vec(v) => Some(StatsUsedExports::Vec(v)),
         UsedExports::Bool(b) => Some(StatsUsedExports::Bool(b)),
       }
     } else {
@@ -948,9 +943,7 @@ impl Stats<'_> {
       identifier,
       depth: module_graph.get_depth(&identifier),
       name_for_condition: module.name_for_condition().map(|n| n.to_string()),
-      name: module
-        .readable_identifier(&self.compilation.options.context)
-        .into(),
+      name: module.readable_identifier(&self.compilation.options.context),
       id: if executed {
         None
       } else {
@@ -958,12 +951,12 @@ impl Stats<'_> {
           .compilation
           .chunk_graph
           .get_module_id(identifier)
-          .clone()
+          .as_deref()
       },
       chunks,
       size: module.size(None, self.compilation),
       sizes,
-      issuer: issuer.map(|i| i.identifier().to_string()),
+      issuer: issuer.map(|i| i.identifier().as_str()),
       issuer_name,
       issuer_id: issuer_id.and_then(|i| i),
       issuer_path,
@@ -983,7 +976,7 @@ impl Stats<'_> {
       },
       provided_exports,
       used_exports,
-      optimization_bailout: mgm.optimization_bailout.clone(),
+      optimization_bailout: &mgm.optimization_bailout,
       pre_order_index: module_graph.get_pre_order_index(&identifier),
       post_order_index: module_graph.get_post_order_index(&identifier),
       built,
@@ -1015,8 +1008,8 @@ impl Stats<'_> {
       module_type: module.module_type,
       identifier: module.identifier,
       name_for_condition: module.name_for_condition.clone(),
-      name: module.name.clone(),
-      id: Some(String::new()),
+      name: module.name.clone().into(),
+      id: Some(""),
       chunks: vec![],
       size: module.size,
       sizes: vec![StatsSourceTypeSize {
@@ -1035,7 +1028,7 @@ impl Stats<'_> {
       orphan: true,
       provided_exports: Some(vec![]),
       used_exports: None,
-      optimization_bailout: vec![],
+      optimization_bailout: &[],
       pre_order_index: None,
       post_order_index: None,
       built,
@@ -1083,8 +1076,8 @@ impl Stats<'_> {
       module_type: *module.module_type(),
       identifier: module.identifier(),
       name_for_condition: module.name_for_condition().map(|n| n.to_string()),
-      name: module.name().to_string(),
-      id: Some(String::new()),
+      name: module.name().as_str().into(),
+      id: Some(""),
       chunks,
       size,
       sizes: vec![StatsSourceTypeSize {
@@ -1107,7 +1100,7 @@ impl Stats<'_> {
         == 0,
       provided_exports: Some(vec![]),
       used_exports: None,
-      optimization_bailout: vec![],
+      optimization_bailout: &[],
       pre_order_index: None,
       post_order_index: None,
       built,
@@ -1236,22 +1229,26 @@ impl Stats<'_> {
   }
 }
 
-fn get_stats_module_name_and_id(
-  module: &BoxModule,
-  compilation: &Compilation,
-) -> (String, Option<String>) {
+fn get_stats_module_name_and_id<'s, 'c>(
+  module: &'s BoxModule,
+  compilation: &'c Compilation,
+) -> (Cow<'s, str>, Option<&'c str>) {
   let identifier = module.identifier();
   let name = module.readable_identifier(&compilation.options.context);
-  let id = compilation.chunk_graph.get_module_id(identifier).to_owned();
-  (name.to_string(), id)
+  let id = compilation
+    .chunk_graph
+    .get_module_id(identifier)
+    .as_ref()
+    .map(|i| i.as_str());
+  (name, id)
 }
 
 #[derive(Debug)]
-pub struct StatsError {
+pub struct StatsError<'s> {
   pub message: String,
-  pub module_identifier: Option<String>,
-  pub module_name: Option<String>,
-  pub module_id: Option<String>,
+  pub module_identifier: Option<&'static str>,
+  pub module_name: Option<Cow<'s, str>>,
+  pub module_id: Option<&'s str>,
   pub file: Option<PathBuf>,
 
   pub chunk_name: Option<String>,
@@ -1264,11 +1261,11 @@ pub struct StatsError {
 }
 
 #[derive(Debug)]
-pub struct StatsWarning {
+pub struct StatsWarning<'s> {
   pub message: String,
-  pub module_identifier: Option<String>,
-  pub module_name: Option<String>,
-  pub module_id: Option<String>,
+  pub module_identifier: Option<&'static str>,
+  pub module_name: Option<Cow<'s, str>>,
+  pub module_id: Option<&'s str>,
   pub file: Option<PathBuf>,
 
   pub chunk_name: Option<String>,
@@ -1334,30 +1331,30 @@ pub struct StatsAssetInfoRelated {
 }
 
 #[derive(Debug)]
-pub struct StatsModule<'a> {
+pub struct StatsModule<'s> {
   pub r#type: &'static str,
   pub module_type: ModuleType,
   pub identifier: ModuleIdentifier,
-  pub name: String,
+  pub name: Cow<'s, str>,
   pub name_for_condition: Option<String>,
-  pub id: Option<String>,
+  pub id: Option<&'s str>,
   pub chunks: Vec<Option<String>>, // has id after the call of chunkIds hook
   pub size: f64,
   pub sizes: Vec<StatsSourceTypeSize>,
   pub dependent: Option<bool>,
-  pub issuer: Option<String>,
-  pub issuer_name: Option<String>,
-  pub issuer_id: Option<String>,
-  pub issuer_path: Vec<StatsModuleIssuer>,
-  pub reasons: Option<Vec<StatsModuleReason>>,
+  pub issuer: Option<&'static str>,
+  pub issuer_name: Option<Cow<'s, str>>,
+  pub issuer_id: Option<&'s str>,
+  pub issuer_path: Vec<StatsModuleIssuer<'s>>,
+  pub reasons: Option<Vec<StatsModuleReason<'s>>>,
   pub assets: Option<Vec<String>>,
-  pub modules: Option<Vec<StatsModule<'a>>>,
-  pub source: Option<&'a dyn Source>,
+  pub modules: Option<Vec<StatsModule<'s>>>,
+  pub source: Option<&'s dyn Source>,
   pub profile: Option<StatsModuleProfile>,
   pub orphan: bool,
-  pub provided_exports: Option<Vec<String>>,
+  pub provided_exports: Option<Vec<Atom>>,
   pub used_exports: Option<StatsUsedExports>,
-  pub optimization_bailout: Vec<String>,
+  pub optimization_bailout: &'s [String],
   pub depth: Option<usize>,
   pub pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
@@ -1374,7 +1371,7 @@ pub struct StatsModule<'a> {
 
 #[derive(Debug)]
 pub enum StatsUsedExports {
-  Vec(Vec<String>),
+  Vec(Vec<Atom>),
   Bool(bool),
   Null,
 }
@@ -1443,19 +1440,19 @@ pub struct StatsChunkGroupChildren {
 }
 
 #[derive(Debug)]
-pub struct StatsModuleIssuer {
-  pub identifier: String,
-  pub name: String,
-  pub id: Option<String>,
+pub struct StatsModuleIssuer<'s> {
+  pub identifier: &'static str,
+  pub name: Cow<'s, str>,
+  pub id: Option<&'s str>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct StatsModuleReason {
-  pub module_identifier: Option<String>,
-  pub module_name: Option<String>,
-  pub module_id: Option<String>,
-  pub r#type: Option<String>,
-  pub user_request: Option<String>,
+pub struct StatsModuleReason<'s> {
+  pub module_identifier: Option<&'static str>,
+  pub module_name: Option<Cow<'s, str>>,
+  pub module_id: Option<&'s str>,
+  pub r#type: Option<&'static str>,
+  pub user_request: Option<&'s str>,
 }
 
 #[derive(Debug)]
