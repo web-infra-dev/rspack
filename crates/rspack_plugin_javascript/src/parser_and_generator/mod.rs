@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::sync::Arc;
 
 use itertools::Itertools;
@@ -329,7 +330,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     module: &dyn rspack_core::Module,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
-  ) -> Option<String> {
+  ) -> Option<Cow<'static, str>> {
     // Only harmony modules are valid for optimization
     if module.build_meta().is_none()
       || module
@@ -337,7 +338,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .map(|meta| meta.exports_type != BuildMetaExportsType::Namespace)
         .unwrap_or_default()
     {
-      return Some(String::from("Module is not an ECMAScript module"));
+      return Some("Module is not an ECMAScript module".into());
     }
 
     if let Some(deps) = module.get_presentational_dependencies() {
@@ -348,16 +349,16 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .downcast_ref::<HarmonyCompatibilityDependency>()
           .is_some()
       }) {
-        return Some(String::from("Module is not an ECMAScript module"));
+        return Some("Module is not an ECMAScript module".into());
       }
     } else {
-      return Some(String::from("Module is not an ECMAScript module"));
+      return Some("Module is not an ECMAScript module".into());
     }
 
     if let Some(info) = module.build_info()
       && let Some(bailout) = info.module_concatenation_bailout.as_deref()
     {
-      return Some(format!("Module uses {bailout}",));
+      return Some(format!("Module uses {bailout}").into());
     }
     None
   }

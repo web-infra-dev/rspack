@@ -1,6 +1,6 @@
 #![feature(let_chains)]
 
-use std::hash::Hasher;
+use std::{borrow::Cow, hash::Hasher};
 
 use async_trait::async_trait;
 use rayon::prelude::*;
@@ -457,7 +457,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     _module: &dyn rspack_core::Module,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
-  ) -> Option<String> {
+  ) -> Option<Cow<'static, str>> {
     None
   }
 }

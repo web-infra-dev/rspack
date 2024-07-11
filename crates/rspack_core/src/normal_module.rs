@@ -689,7 +689,11 @@ impl Module for NormalModule {
     ConnectionState::Bool(true)
   }
 
-  fn get_concatenation_bailout_reason(&self, mg: &ModuleGraph, cg: &ChunkGraph) -> Option<String> {
+  fn get_concatenation_bailout_reason(
+    &self,
+    mg: &ModuleGraph,
+    cg: &ChunkGraph,
+  ) -> Option<Cow<'static, str>> {
     self
       .parser_and_generator
       .get_concatenation_bailout_reason(self, mg, cg)

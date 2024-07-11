@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::borrow::Cow;
 use std::fmt::Debug;
 
 use derivative::Derivative;
@@ -102,7 +103,7 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
     _module: &dyn Module,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
-  ) -> Option<String>;
+  ) -> Option<Cow<'static, str>>;
 }
 
 impl dyn ParserAndGenerator + '_ {
