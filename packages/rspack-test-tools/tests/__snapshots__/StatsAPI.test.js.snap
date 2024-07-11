@@ -268,7 +268,7 @@ Object {
         "related": Object {},
       },
       "name": "main.js",
-      "size": 471,
+      "size": 441,
       "type": "asset",
     },
   ],
@@ -607,10 +607,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 471,
+          "size": 441,
         },
       ],
-      "assetsSize": 471,
+      "assetsSize": 441,
       "auxiliaryAssets": Array [],
       "auxiliaryAssetsSize": 0,
       "children": Object {},
@@ -1262,10 +1262,10 @@ Object {
       "assets": Array [
         Object {
           "name": "main.js",
-          "size": 471,
+          "size": 441,
         },
       ],
-      "assetsSize": 471,
+      "assetsSize": 441,
       "auxiliaryAssets": Array [],
       "auxiliaryAssetsSize": 0,
       "children": Object {},

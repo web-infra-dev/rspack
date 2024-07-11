@@ -63,7 +63,7 @@ impl RuntimeModule for ExposeRuntimeModule {
     let Some(data) = self.find_expose_data(&chunk_ukey, compilation) else {
       return Ok(RawSource::from("").boxed());
     };
-    let module_map = data.module_map.render();
+    let module_map = data.module_map.render(compilation);
     let mut source = format!(
       r#"
 __webpack_require__.initializeExposesData = {{

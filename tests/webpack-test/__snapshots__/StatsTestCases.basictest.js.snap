@@ -1,11 +1,11 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`StatsTestCases should print correct stats for import-context-filter 1`] = `
-"asset entry.js 9.65 KiB [emitted] (name: entry)
+"asset entry.js 9.64 KiB [emitted] (name: entry)
 asset 228.js 426 bytes [emitted]
 asset 271.js 426 bytes [emitted]
 asset 536.js 426 bytes [emitted]
-Entrypoint entry 9.65 KiB = entry.js
+Entrypoint entry 9.64 KiB = entry.js
 runtime modules 6.94 KiB 9 modules
 cacheable modules 724 bytes
   ./entry.js 450 bytes [built] [code generated]

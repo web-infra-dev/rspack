@@ -200,15 +200,25 @@ impl Module for ContainerEntryModule {
       self,
       &mut code_generation_result.runtime_requirements,
     );
-    let module_map_str = module_map.render();
+    let module_map_str = module_map.render(compilation);
     let source = if self.enhanced {
       format!(
         r#"
 {}(exports, {{
-	get: () => (__webpack_require__.getContainer),
-	init: () => (__webpack_require__.initContainer)
+	get: {},
+	init: {}
 }});"#,
         RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+        returning_function(
+          &compilation.options.output.environment,
+          "__webpack_require__.getContainer",
+          ""
+        ),
+        returning_function(
+          &compilation.options.output.environment,
+          "__webpack_require__.initContainer",
+          ""
+        ),
       )
     } else {
       format!(
@@ -219,9 +229,7 @@ var get = function(module, getScope) {{
   getScope = (
     {has_own_property}(moduleMap, module)
       ? moduleMap[module]()
-      : Promise.resolve().then(() => {{
-        throw new Error('Module "' + module + '" does not exist in container.');
-      }})
+      : Promise.resolve().then({get_scope_reject})
   );
   {current_remote_get_scope} = undefined;
   return getScope;
@@ -235,8 +243,8 @@ var init = function(shareScope, initScope) {{
   return {initialize_sharing}(name, initScope);
 }}
 {define_property_getters}(exports, {{
-	get: () => (get),
-	init: () => (init)
+	get: {export_get},
+	init: {export_init}
 }});"#,
         current_remote_get_scope = RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
         has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
@@ -244,6 +252,13 @@ var init = function(shareScope, initScope) {{
         share_scope = json_stringify(&self.share_scope),
         initialize_sharing = RuntimeGlobals::INITIALIZE_SHARING,
         define_property_getters = RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+        get_scope_reject = basic_function(
+          &compilation.options.output.environment,
+          "",
+          r#"throw new Error('Module "' + module + '" does not exist in container.');"#
+        ),
+        export_get = returning_function(&compilation.options.output.environment, "get", ""),
+        export_init = returning_function(&compilation.options.output.environment, "init", ""),
       )
     };
     code_generation_result =
@@ -319,7 +334,9 @@ impl ExposeModuleMap {
       } else {
         let block_promise = block_promise(Some(block_id), runtime_requirements, compilation, "");
         let module_raw = returning_function(
+          &compilation.options.output.environment,
           &returning_function(
+            &compilation.options.output.environment,
             &modules_iter
               .map(|(_, _, request, dependency_id)| {
                 module_raw(
@@ -343,11 +360,17 @@ impl ExposeModuleMap {
     Self(module_map)
   }
 
-  pub fn render(&self) -> String {
+  pub fn render(&self, compilation: &Compilation) -> String {
     let module_map = self
       .0
       .iter()
-      .map(|(name, factory)| format!("{}: {},", json_stringify(name), basic_function("", factory)))
+      .map(|(name, factory)| {
+        format!(
+          "{}: {},",
+          json_stringify(name),
+          basic_function(&compilation.options.output.environment, "", factory)
+        )
+      })
       .collect::<Vec<_>>()
       .join("\n");
     format!(

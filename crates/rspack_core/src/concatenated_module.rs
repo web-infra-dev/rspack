@@ -1022,7 +1022,7 @@ impl Module for ConcatenatedModule {
         definitions.push(format!(
           "\n  {}: {}",
           property_name(key).expect("should convert to property_name"),
-          returning_function(value, "")
+          returning_function(&compilation.options.output.environment, value, "")
         ));
       }
 
@@ -1128,7 +1128,7 @@ impl Module for ConcatenatedModule {
             ns_obj.push(format!(
               "\n  {}: {}",
               property_name(&used_name).expect("should have property_name"),
-              returning_function(&final_name, "")
+              returning_function(&compilation.options.output.environment, &final_name, "")
             ));
           }
         }
