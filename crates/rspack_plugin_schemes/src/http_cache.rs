@@ -1,11 +1,12 @@
+use std::io::{Read, Write};
 use std::{collections::HashMap, fs, path::Path};
 
 use anyhow::{Context as AnyhowContext, Error as AnyhowError};
 use reqwest::Client;
 use rspack_base64::encode_to_string;
-use rspack_error::{error, Result};
+use rspack_error::Result;
 use serde::{Deserialize, Serialize};
-use sha2::{digest::Digest, Sha512};
+use sha2::{Digest, Sha512};
 
 use crate::{
   http_uri::HttpUriPluginOptions,
@@ -55,13 +56,14 @@ pub struct HttpCache {
 impl HttpCache {
   pub fn new(cache_location: Option<String>) -> Self {
     HttpCache {
-      cache_location,
-      lockfile_cache: LockfileCache::new(),
+      cache_location: cache_location.clone(),
+      lockfile_cache: LockfileCache::new(cache_location),
     }
   }
 
   pub async fn fetch_content(&self, url: &str, options: &HttpUriPluginOptions) -> FetchResult {
     let cached_result = self.read_from_cache(url).await?;
+
     let cached_result_clone = cached_result.clone();
     if let Some(cached) = cached_result {
       if cached.meta.valid_until >= current_time() {
@@ -118,21 +120,31 @@ impl HttpCache {
             },
             ..cached
           }));
+        } else {
+          return Ok(FetchResultType::Content(ContentFetchResult {
+            meta: FetchResultMeta {
+              fresh: true,
+              ..cached.meta
+            },
+            ..cached
+          }));
         }
       }
     }
 
     if let Some(location) = location {
-      return Ok(FetchResultType::Redirect(RedirectFetchResult {
-        location,
-        meta: FetchResultMeta {
-          fresh: true,
-          store_lock,
-          store_cache,
-          valid_until,
-          etag,
-        },
-      }));
+      if (300..=308).contains(&status.as_u16()) {
+        return Ok(FetchResultType::Redirect(RedirectFetchResult {
+          location,
+          meta: FetchResultMeta {
+            fresh: true,
+            store_lock,
+            store_cache,
+            valid_until,
+            etag,
+          },
+        }));
+      }
     }
 
     let content = response
@@ -179,19 +191,16 @@ impl HttpCache {
   ) -> Result<Option<ContentFetchResult>, anyhow::Error> {
     if let Some(cache_location) = &self.cache_location {
       let lockfile = self.lockfile_cache.get_lockfile(cache_location).await?;
-      if lockfile.get_entry(resource).is_some() {
-        let cache_path = format!("{}/{}", cache_location, resource.replace('/', "_"));
-        if Path::new(&cache_path).exists() {
-          let cached_content = fs::read_to_string(&cache_path)
-            .context("Failed to read cached content")
-            .map_err(|err| {
-              error!("{}", err.to_string());
-              err
-            })?;
-          let deserialized_content: ContentFetchResult = serde_json::from_str(&cached_content)
-            .context("Failed to deserialize cached content")?;
-          return Ok(Some(deserialized_content));
-        }
+      let cache_path = format!("{}/{}", cache_location, resource.replace('/', "_"));
+      if Path::new(&cache_path).exists() {
+        let mut file = fs::File::open(&cache_path).context("Failed to open cached content")?;
+        let mut cached_content = Vec::new();
+        file
+          .read_to_end(&mut cached_content)
+          .context("Failed to read cached content")?;
+        let deserialized_content: ContentFetchResult = serde_json::from_slice(&cached_content)
+          .context("Failed to deserialize cached content")?;
+        return Ok(Some(deserialized_content));
       }
     }
     Ok(None)
@@ -205,9 +214,12 @@ impl HttpCache {
     if let Some(cache_location) = &self.cache_location {
       fs::create_dir_all(cache_location).context("Failed to create cache directory")?;
       let serialized_content =
-        serde_json::to_string(content).context("Failed to serialize content")?;
+        serde_json::to_vec(content).context("Failed to serialize content")?;
       let cache_path = format!("{}/{}", cache_location, resource.replace('/', "_"));
-      fs::write(cache_path, serialized_content).context("Failed to write to cache")
+      let mut file = fs::File::create(&cache_path).context("Failed to create cache file")?;
+      file
+        .write_all(&serialized_content)
+        .context("Failed to write to cache")
     } else {
       Ok(())
     }
@@ -216,6 +228,7 @@ impl HttpCache {
 
 pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> FetchResult {
   let http_cache = HttpCache::new(options.cache_location.clone());
+
   http_cache.fetch_content(url, options).await
 }
 
