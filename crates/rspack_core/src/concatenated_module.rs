@@ -1014,8 +1014,6 @@ impl Module for ConcatenatedModule {
 
     // Define exports
     if !exports_map.is_empty() {
-      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-      runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
       let mut definitions = Vec::new();
       // dbg!(&exports_map);
       for (key, value) in exports_map.iter() {
@@ -1038,6 +1036,9 @@ impl Module for ConcatenatedModule {
         .call(&mut exports_final_names)?;
 
       if !matches!(should_skip_render_definitions, Some(true)) {
+        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+        runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+
         if should_add_harmony_flag {
           result.add(RawSource::from("// ESM COMPAT FLAG\n"));
           result.add(RawSource::from(define_es_module_flag_statement(

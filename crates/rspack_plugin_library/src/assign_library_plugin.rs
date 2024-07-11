@@ -5,9 +5,10 @@ use regex::Regex;
 use rspack_core::rspack_sources::SourceExt;
 use rspack_core::{
   get_entry_runtime, property_access, ApplyContext, BoxModule, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, CompilerOptions, EntryData, FilenameTemplate, LibraryExport, LibraryName,
-  LibraryNonUmdObject, ModuleIdentifier, UsageState,
+  CodeGenerationDataTopLevelDeclarations, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationFinishModules, CompilationParams, CompilerCompilation, CompilerOptions, EntryData,
+  FilenameTemplate, LibraryExport, LibraryName, LibraryNonUmdObject, ModuleIdentifier,
+  RuntimeGlobals, UsageState,
 };
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource},
@@ -442,8 +443,30 @@ impl Plugin for AssignLibraryPlugin {
       .compilation_hooks
       .finish_modules
       .tap(finish_modules::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .additional_chunk_runtime_requirements
+      .tap(additional_chunk_runtime_requirements::new(self));
     Ok(())
   }
+}
+
+#[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for AssignLibraryPlugin)]
+fn additional_chunk_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  if self
+    .get_options_for_chunk(compilation, chunk_ukey)?
+    .is_none()
+  {
+    return Ok(());
+  }
+  runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+  Ok(())
 }
 
 fn access_with_init(accessor: &[String], existing_length: usize, init_last: bool) -> String {

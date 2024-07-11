@@ -102,24 +102,30 @@ pub fn enable_library_plugin(library_type: String, plugins: &mut Vec<BoxPlugin>)
       .boxed(),
     ),
     "umd" | "umd2" => {
-      plugins.push(ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used).boxed());
+      plugins
+        .push(ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used, true).boxed());
       plugins.push(UmdLibraryPlugin::new("umd2" == library_type, library_type).boxed());
     }
     "amd" | "amd-require" => {
-      plugins.push(ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used).boxed());
+      plugins
+        .push(ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used, true).boxed());
       plugins.push(AmdLibraryPlugin::new("amd-require" == library_type, library_type).boxed());
     }
     "module" => {
-      plugins.push(ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used).boxed());
+      plugins
+        .push(ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used, true).boxed());
       plugins.push(ModuleLibraryPlugin::default().boxed());
     }
     "modern-module" => {
-      plugins.push(ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used).boxed());
+      plugins.push(
+        ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used, false).boxed(),
+      );
       plugins.push(ModernModuleLibraryPlugin::default().boxed());
     }
     "system" => {
       plugins.push(
-        ExportPropertyLibraryPlugin::new(library_type.clone(), library_type != "module").boxed(),
+        ExportPropertyLibraryPlugin::new(library_type.clone(), library_type != "module", true)
+          .boxed(),
       );
       plugins.push(SystemLibraryPlugin::default().boxed());
     }

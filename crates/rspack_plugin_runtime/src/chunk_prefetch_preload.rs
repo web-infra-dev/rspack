@@ -32,6 +32,7 @@ fn additional_chunk_runtime_requirements(
     {
       runtime_requirements.insert(RuntimeGlobals::PREFETCH_CHUNK);
       runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
+      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
       compilation.add_runtime_module(
         chunk_ukey,
         Box::new(ChunkPrefetchStartupRuntimeModule::new(startup_child_chunks)),

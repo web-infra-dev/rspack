@@ -657,10 +657,13 @@ impl JsPlugin {
         .last()
         .expect("should have last entry module");
       let mut startup_sources = ConcatSource::default();
-      startup_sources.add(RawSource::from(format!(
-        "var {} = {{}};\n",
-        RuntimeGlobals::EXPORTS
-      )));
+
+      if runtime_requirements.contains(RuntimeGlobals::EXPORTS) {
+        startup_sources.add(RawSource::from(format!(
+          "var {} = {{}};\n",
+          RuntimeGlobals::EXPORTS
+        )));
+      }
 
       let renamed_inline_modules = self.rename_inline_modules(
         &all_modules,

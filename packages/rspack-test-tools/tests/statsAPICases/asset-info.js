@@ -78,7 +78,7 @@ module.exports = {
 		      },
 		    },
 		    "name": "main.js",
-		    "size": 2455,
+		    "size": 2425,
 		    "type": "asset",
 		  },
 		]
