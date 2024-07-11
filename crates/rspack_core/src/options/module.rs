@@ -193,6 +193,22 @@ impl ExportPresenceMode {
   }
 }
 
+#[derive(Debug, Clone, Copy, MergeFrom)]
+pub enum OverrideStrict {
+  Strict,
+  NoneStrict,
+}
+
+impl From<&str> for OverrideStrict {
+  fn from(value: &str) -> Self {
+    match value {
+      "strict" => Self::Strict,
+      "non-strict" => Self::NoneStrict,
+      _ => unreachable!("parser.overrideStrict should be 'strict' or 'non-strict'"),
+    }
+  }
+}
+
 #[derive(Debug, Clone, MergeFrom)]
 pub struct JavascriptParserOptions {
   pub dynamic_import_mode: DynamicImportMode,
@@ -207,6 +223,7 @@ pub struct JavascriptParserOptions {
   pub reexport_exports_presence: Option<ExportPresenceMode>,
   pub strict_export_presence: bool,
   pub worker: Vec<String>,
+  pub override_strict: Option<OverrideStrict>,
 }
 
 #[derive(Debug, Clone, MergeFrom)]

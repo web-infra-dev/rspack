@@ -655,7 +655,8 @@ function getRawJavascriptParserOptions(
 				? "false"
 				: parser.reexportExportsPresence,
 		strictExportPresence: parser.strictExportPresence ?? false,
-		worker: getRawJavascriptParserOptionsWorker(parser.worker!)
+		worker: getRawJavascriptParserOptionsWorker(parser.worker!),
+		overrideStrict: parser.overrideStrict
 	};
 }
 
