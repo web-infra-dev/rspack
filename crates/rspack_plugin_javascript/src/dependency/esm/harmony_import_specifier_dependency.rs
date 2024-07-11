@@ -319,9 +319,8 @@ impl Dependency for HarmonyImportSpecifierDependency {
         return create_exports_object_referenced();
       }
       // remove last one
-      ids.shrink_to(ids.len() - 1);
+      ids.remove(ids.len() - 1);
     }
-
     self.get_referenced_exports_in_destructuring(Some(&ids))
   }
 }
