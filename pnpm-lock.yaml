@@ -641,6 +641,9 @@ importers:
       '@swc/plugin-remove-console':
         specifier: ^2.0.7
         version: 2.0.7
+      '@types/babel__generator':
+        specifier: 7.6.8
+        version: 7.6.8
       '@types/fs-extra':
         specifier: 11.0.4
         version: 11.0.4

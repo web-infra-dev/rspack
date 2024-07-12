@@ -81,6 +81,7 @@
     "@types/webpack": "5.28.5",
     "@types/webpack-sources": "3.2.3",
     "@types/fs-extra": "11.0.4",
+    "@types/babel__generator": "7.6.8",
     "core-js": "3.36.1",
     "html-loader": "^5.0.0",
     "html-webpack-plugin": "^5.5.0",
