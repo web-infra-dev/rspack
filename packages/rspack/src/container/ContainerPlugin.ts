@@ -17,7 +17,6 @@ import {
 } from "../config";
 import { parseOptions } from "../container/options";
 import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
-import { isNil } from "../util";
 
 export type ContainerPluginOptions = {
 	exposes: Exposes;

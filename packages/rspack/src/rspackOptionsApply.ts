@@ -72,7 +72,6 @@ import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPresetPlugin } from "./stats/DefaultStatsPresetPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { assertNotNill } from "./util/assertNotNil";
-import { cleverMerge } from "./util/cleverMerge";
 
 export class RspackOptionsApply {
 	constructor() {}

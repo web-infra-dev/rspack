@@ -29,11 +29,7 @@ import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { Module } from "../Module";
 import { NormalModule } from "../NormalModule";
-import {
-	JsDiagnostic,
-	NonErrorEmittedError,
-	type RspackError
-} from "../RspackError";
+import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import {
 	BUILTIN_LOADER_PREFIX,
 	type LoaderContext,

@@ -1,6 +1,5 @@
 import path from "path";
 
-import { readConfigFile } from "..";
 import {
 	type IFormatCodeOptions,
 	type IFormatCodeReplacement,
