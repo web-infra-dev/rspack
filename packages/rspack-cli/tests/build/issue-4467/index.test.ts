@@ -17,7 +17,7 @@ it("should not print the warning for child compiler", async () => {
 
 it("should print the warning for root compiler", async () => {
 	const cwd = path.resolve(__dirname, "./root");
-	const { exitCode, stderr } = await run(
+	const { exitCode } = await run(
 		cwd,
 		[],
 		{},
