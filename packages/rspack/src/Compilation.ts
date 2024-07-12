@@ -819,12 +819,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						);
 					}
 				}
-				let trace: string[];
+				let trace: string[] | undefined;
 				switch (type) {
 					case LogType.warn:
 					case LogType.error:
 					case LogType.trace:
-						trace = cutOffLoaderExecution(new Error("Trace").stack)
+						trace = cutOffLoaderExecution(new Error("Trace").stack!)
 							.split("\n")
 							.slice(3);
 						break;
@@ -833,7 +833,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					time: Date.now(),
 					type,
 					args,
-					// @ts-expect-error
 					trace
 				};
 				if (this.hooks.log.call(name, logEntry) === undefined) {
