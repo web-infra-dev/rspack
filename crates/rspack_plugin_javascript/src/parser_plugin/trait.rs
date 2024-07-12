@@ -4,12 +4,12 @@ use swc_core::ecma::ast::{
   AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Ident, IfStmt,
   ImportDecl, MemberExpr, ModuleDecl, OptChainExpr,
 };
-use swc_core::ecma::ast::{NewExpr, Program, Stmt, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
+use swc_core::ecma::ast::{NewExpr, Program, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
 use crate::utils::eval::BasicEvaluatedExpression;
 use crate::visitors::{
   ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
-  ExportedVariableInfo, JavascriptParser,
+  ExportedVariableInfo, JavascriptParser, Statement,
 };
 
 type KeepRight = bool;
@@ -19,11 +19,11 @@ pub trait JavascriptParserPlugin {
   /// - `Some(true)` signifies the termination of the current
   /// statement's visit during the pre-walk phase.
   /// - Other return values imply that the walk operation ought to continue
-  fn pre_statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
+  fn pre_statement(&self, _parser: &mut JavascriptParser, _stmt: Statement) -> Option<bool> {
     None
   }
 
-  fn block_pre_statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
+  fn block_pre_statement(&self, _parser: &mut JavascriptParser, _stmt: Statement) -> Option<bool> {
     None
   }
 
@@ -45,7 +45,7 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn statement(&self, _parser: &mut JavascriptParser, _stmt: &Stmt) -> Option<bool> {
+  fn statement(&self, _parser: &mut JavascriptParser, _stmt: Statement) -> Option<bool> {
     None
   }
 
@@ -57,8 +57,8 @@ pub trait JavascriptParserPlugin {
   /// `None` means continue this `ModuleDecl`
   /// Others means skip this.
   ///
-  /// This is similar `hooks.pre_statement` in webpack
-  fn pre_module_declaration(
+  /// This is similar `hooks.block_pre_statement` in webpack
+  fn block_pre_module_declaration(
     &self,
     _parser: &mut JavascriptParser,
     _decl: &ModuleDecl,
