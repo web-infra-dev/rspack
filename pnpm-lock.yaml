@@ -335,6 +335,9 @@ importers:
       '@swc/core':
         specifier: 1.4.0
         version: 1.4.0(@swc/helpers@0.5.8)
+      '@types/graceful-fs':
+        specifier: 4.1.9
+        version: 4.1.9
       '@types/neo-async':
         specifier: ^2.6.6
         version: 2.6.6

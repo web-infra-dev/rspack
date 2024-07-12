@@ -53,6 +53,7 @@
     "cross-env": "^7.0.3",
     "enhanced-resolve": "5.12.0",
     "graceful-fs": "4.2.10",
+    "@types/graceful-fs": "4.1.9",
     "json-parse-even-better-errors": "^3.0.0",
     "neo-async": "2.6.2",
     "prebundle": "^1.1.0",
