@@ -64,22 +64,53 @@ impl RSCClientEntryRspackPlugin {
     client_import: &str,
   ) {
     if let Some(name) = name {
-      if client_imports.get(name).is_none() {
-        client_imports.insert(String::from(name), IndexSet::default());
-      }
-      let named_client_imports = client_imports.get_mut(name).unwrap();
-      named_client_imports.insert(String::from(client_import));
+      let named_client_imports = client_imports
+        .entry(name.into())
+        .or_insert_with(IndexSet::default);
+      named_client_imports.insert(client_import.into());
     }
   }
   fn get_route_entry(&self, resource: &str) -> Option<&ReactRoute> {
     self.options.routes.iter().find(|&f| f.import == resource)
   }
-
+  fn is_visited(
+    &self,
+    visited_modules_by_entry: &mut HashMap<String, HashSet<String>>,
+    entry: &str,
+    route_entry: Option<&ReactRoute>,
+    resource_path: &str,
+  ) -> bool {
+    let entry_key = route_entry.map_or_else(
+      || entry.to_string(),
+      |route_entry| route_entry.import.clone(),
+    );
+    let visited_modules = visited_modules_by_entry.get(&entry_key);
+    visited_modules
+      .map(|f| f.contains(resource_path))
+      .unwrap_or(false)
+  }
+  fn mark_visited(
+    &self,
+    visited_modules_by_entry: &mut HashMap<String, HashSet<String>>,
+    entry: &str,
+    route_entry: Option<&ReactRoute>,
+    resource_path: &str,
+  ) {
+    let entry_key = route_entry.map_or_else(
+      || entry.to_string(),
+      |route_entry| route_entry.import.clone(),
+    );
+    let visited_modules = visited_modules_by_entry
+      .entry(entry_key)
+      .or_insert_with(HashSet::new);
+    visited_modules.insert(resource_path.into());
+  }
   fn filter_client_components(
     &self,
     compilation: &Compilation,
+    entry_name: &str,
     module: &Box<dyn Module>,
-    visited_modules: &mut HashSet<String>,
+    visited_modules: &mut HashMap<String, HashSet<String>>,
     client_imports: &mut HashMap<String, IndexSet<String>>,
     entry_client_imports: &mut IndexSet<String>,
     from_route: Option<&ReactRoute>,
@@ -98,10 +129,6 @@ impl RSCClientEntryRspackPlugin {
         ""
       };
       let resource_str = format!("{}{}", resource_path_str, resource_query_str);
-      if visited_modules.contains(&resource_str) {
-        return;
-      }
-      visited_modules.insert(String::from(&resource_str));
       let is_css = match module_type {
         ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto => true,
         // css asset type only working with experimental.css
@@ -119,6 +146,10 @@ impl RSCClientEntryRspackPlugin {
         Some(route) => Some(route),
         None => from_route,
       };
+      if self.is_visited(visited_modules, entry_name, route_entry, &resource_str) {
+        return;
+      }
+      self.mark_visited(visited_modules, entry_name, route_entry, &resource_str);
 
       if is_client_components || is_css {
         if let Some(route_entry) = route_entry {
@@ -138,6 +169,7 @@ impl RSCClientEntryRspackPlugin {
             .expect("should exist");
           self.filter_client_components(
             compilation,
+            entry_name,
             m,
             visited_modules,
             client_imports,
@@ -189,10 +221,10 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   // Client imports groupby entry or route chunkname
   let mut client_imports: ClientImports = HashMap::new();
   let mut server_imports: ClientImports = HashMap::new();
+  let mut visited_modules: HashMap<String, HashSet<String>> = HashMap::new();
   for (name, entry) in &compilation.entries {
     let mut entry_client_imports: IndexSet<String> = IndexSet::new();
     let mut entry_server_imports: IndexSet<String> = IndexSet::new();
-    let mut visited_modules: HashSet<String> = HashSet::new();
     let mut visited_modules_of_server_actions: HashSet<String> = HashSet::new();
     let mg = compilation.get_module_graph();
     let entry_module = mg
@@ -200,6 +232,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
       .expect("should exist");
     self.filter_client_components(
       compilation,
+      name,
       entry_module,
       &mut visited_modules,
       &mut client_imports,
