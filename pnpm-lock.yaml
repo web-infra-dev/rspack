@@ -581,7 +581,7 @@ importers:
         specifier: 4.3.0
         version: 4.3.0
       fs-extra:
-        specifier: ^11.1.1
+        specifier: 11.2.0
         version: 11.2.0
       glob:
         specifier: ^10.3.10
@@ -641,6 +641,9 @@ importers:
       '@swc/plugin-remove-console':
         specifier: ^2.0.7
         version: 2.0.7
+      '@types/fs-extra':
+        specifier: 11.0.4
+        version: 11.0.4
       '@types/jsdom':
         specifier: ^21.1.7
         version: 21.1.7
@@ -12720,7 +12723,7 @@ snapshots:
   '@types/fs-extra@11.0.4':
     dependencies:
       '@types/jsonfile': 6.1.4
-      '@types/node': 20.12.6
+      '@types/node': 20.12.7
 
   '@types/geojson@7946.0.8': {}
 
