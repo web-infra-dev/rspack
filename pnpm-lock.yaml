@@ -420,6 +420,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
+      '@types/interpret':
+        specifier: ^1.1.3
+        version: 1.1.3
       '@types/rechoir':
         specifier: ^0.6.1
         version: 0.6.4
