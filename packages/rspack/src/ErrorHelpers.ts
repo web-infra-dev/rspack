@@ -8,8 +8,6 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-"use strict";
-
 const loaderFlag = "LOADER_EXECUTION";
 
 const webpackOptionsFlag = "WEBPACK_OPTIONS";

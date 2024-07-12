@@ -24,7 +24,7 @@ import { ChunkGraph } from "./ChunkGraph";
 import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
 import { Entrypoint } from "./Entrypoint";
-import ErrorHelpers from "./ErrorHelpers";
+import { cutOffLoaderExecution } from "./ErrorHelpers";
 import { type CodeGenerationResult, Module } from "./Module";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
 import type { ResolverFactory } from "./ResolverFactory";
@@ -824,7 +824,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					case LogType.warn:
 					case LogType.error:
 					case LogType.trace:
-						trace = ErrorHelpers.cutOffLoaderExecution(new Error("Trace").stack)
+						trace = cutOffLoaderExecution(new Error("Trace").stack)
 							.split("\n")
 							.slice(3);
 						break;
