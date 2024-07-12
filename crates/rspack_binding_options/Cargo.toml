@@ -9,6 +9,9 @@ version    = "0.1.0"
 default = []
 plugin  = ["rspack_loader_swc/plugin"]
 
+[package.metadata.cargo-shear]
+ignored = ["tracing"]
+
 [dependencies]
 async-trait                           = { workspace = true }
 derivative                            = { workspace = true }
@@ -68,3 +71,4 @@ serde                                 = { workspace = true, features = ["derive"
 serde_json                            = { workspace = true }
 swc_core                              = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
 tokio                                 = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
+tracing                               = { workspace = true }

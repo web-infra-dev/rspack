@@ -13,8 +13,12 @@ once_cell        = { workspace = true }
 parcel_sourcemap = "2.1.1"
 rayon            = { workspace = true }
 regex            = { workspace = true }
+tracing          = { workspace = true }
 
 rspack_core  = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_hash  = { path = "../rspack_hash" }
 rspack_hook  = { path = "../rspack_hook" }
+
+[package.metadata.cargo-shear]
+ignored = ["tracing"]

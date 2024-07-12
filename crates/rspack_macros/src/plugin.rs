@@ -1,3 +1,4 @@
+use proc_macro2::Span;
 use quote::quote;
 use syn::{
   parse::{Parse, ParseStream, Parser},
@@ -99,6 +100,7 @@ pub struct HookArgs {
   trait_: syn::Path,
   name: syn::Ident,
   stage: Option<syn::Expr>,
+  tracing: Option<syn::LitBool>,
   generics: syn::Generics,
 }
 
@@ -107,25 +109,33 @@ impl Parse for HookArgs {
     let trait_ = input.parse::<syn::Path>()?;
     input.parse::<Token![for]>()?;
     let name = input.parse::<syn::Ident>()?;
+    let generics = input.parse::<syn::Generics>()?;
+
     let mut stage = None;
-    if input.peek(Token![,]) {
+    let mut tracing = None;
+
+    while input.peek(Token![,]) {
       input.parse::<Token![,]>()?;
       let ident = input.parse::<syn::Ident>()?;
+      input.parse::<Token![=]>()?;
+
       match ident.to_string().as_str() {
         "stage" => {
-          input.parse::<Token![=]>()?;
-          stage = Some(input.parse::<syn::Expr>()?);
+          stage = Some(input.parse()?);
         }
-        _ => return Err(input.error("expected \"stage\" or end of attribute")),
+        "tracing" => {
+          tracing = Some(input.parse()?);
+        }
+        _ => return Err(input.error("expected \"stage\" or \"tracing\" or end of attribute")),
       }
     }
 
-    let generics = input.parse::<syn::Generics>()?;
     Ok(Self {
       trait_,
       name,
       stage,
       generics,
+      tracing,
     })
   }
 }
@@ -136,6 +146,7 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
     trait_,
     stage,
     generics,
+    tracing,
   } = args;
   let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
   let syn::ItemFn {
@@ -160,6 +171,16 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
   sig.ident = syn::Ident::new("run", fn_ident.span());
 
   let inner_ident = plugin_inner_ident(&name);
+
+  let tracing_name = syn::LitStr::new(&format!("{}::{}", &name, &fn_ident), Span::call_site());
+  let tracing_annotation = tracing
+    .map(|bool_lit| bool_lit.value)
+    .unwrap_or(true)
+    .then(|| {
+      quote! {
+        #[tracing::instrument(name = #tracing_name, skip_all)]
+      }
+    });
 
   let stage_fn = stage.map(|stage| {
     quote! {
@@ -209,6 +230,7 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
 
     #attr
     impl #impl_generics #trait_ for #fn_ident #ty_generics #where_clause {
+      #tracing_annotation
       #sig {
         #call_real_fn
       }
