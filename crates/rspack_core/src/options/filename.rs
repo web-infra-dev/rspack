@@ -16,25 +16,25 @@ use rspack_util::MergeFrom;
 use crate::{parse_resource, AssetInfo, PathData, ResourceParsedData};
 
 pub static FILE_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new("[file]").expect("Should generate regex"));
+  Lazy::new(|| Regex::new(r"\[file\]").expect("Should generate regex"));
 pub static BASE_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new("[base]").expect("Should generate regex"));
+  Lazy::new(|| Regex::new(r"\[base\]").expect("Should generate regex"));
 pub static NAME_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new("[name]").expect("Should generate regex"));
+  Lazy::new(|| Regex::new(r"\[name\]").expect("Should generate regex"));
 pub static PATH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new("[path]").expect("Should generate regex"));
+  Lazy::new(|| Regex::new(r"\[path\]").expect("Should generate regex"));
 pub static EXT_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new("[ext]").expect("Should generate regex"));
+  Lazy::new(|| Regex::new(r"\[ext\]").expect("Should generate regex"));
 pub static QUERY_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new("[query]").expect("Should generate regex"));
+  Lazy::new(|| Regex::new(r"\[query\]").expect("Should generate regex"));
 pub static FRAGMENT_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new("[fragment]").expect("Should generate regex"));
+  Lazy::new(|| Regex::new(r"\[fragment\]").expect("Should generate regex"));
 pub static ID_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new("[id]").expect("Should generate regex"));
+  Lazy::new(|| Regex::new(r"\[id\]").expect("Should generate regex"));
 pub static RUNTIME_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new("[runtime]").expect("Should generate regex"));
+  Lazy::new(|| Regex::new(r"\[runtime\]").expect("Should generate regex"));
 pub static URL_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new("[url]").expect("Should generate regex"));
+  Lazy::new(|| Regex::new(r"\[url\]").expect("Should generate regex"));
 pub static HASH_PLACEHOLDER: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\[hash(:(\d*))?]").expect("Invalid regex"));
 pub static CHUNK_HASH_PLACEHOLDER: Lazy<Regex> =
@@ -194,8 +194,8 @@ impl<F: LocalFilenameFn> Filename<F> {
   }
 }
 
-fn render_template<'s>(
-  template: Cow<'s, str>,
+fn render_template(
+  template: Cow<str>,
   options: PathData,
   mut asset_info: Option<&mut AssetInfo>,
 ) -> String {
@@ -257,7 +257,7 @@ fn render_template<'s>(
           )
         })
         .map(|t| QUERY_PLACEHOLDER.replace(t, &query.unwrap_or_default()))
-        .map(|t| FRAGMENT_PLACEHOLDER.replace(&t, &fragment.unwrap_or_default()));
+        .map(|t| FRAGMENT_PLACEHOLDER.replace(t, &fragment.unwrap_or_default()));
     }
   }
   if let Some(content_hash) = options.content_hash {
