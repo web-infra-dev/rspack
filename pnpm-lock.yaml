@@ -341,6 +341,9 @@ importers:
       '@types/watchpack':
         specifier: ^2.4.0
         version: 2.4.4
+      '@types/webpack-sources':
+        specifier: 3.2.3
+        version: 3.2.3
       browserslist:
         specifier: ^4.21.3
         version: 4.23.0
@@ -914,8 +917,8 @@ importers:
         specifier: ^2.4.0
         version: 2.4.4
       '@types/webpack-sources':
-        specifier: 3.2.0
-        version: 3.2.0
+        specifier: 3.2.3
+        version: 3.2.3
       '@types/ws':
         specifier: 8.5.3
         version: 8.5.3
@@ -3541,9 +3544,6 @@ packages:
 
   '@types/webpack-bundle-analyzer@4.7.0':
     resolution: {integrity: sha512-c5i2ThslSNSG8W891BRvOd/RoCjI2zwph8maD22b1adtSns20j+0azDDMCK06DiVrzTgnwiDl5Ntmu1YRJw8Sg==}
-
-  '@types/webpack-sources@3.2.0':
-    resolution: {integrity: sha512-Ft7YH3lEVRQ6ls8k4Ff1oB4jN6oy/XmU6tQISKdhfh+1mR+viZFphS6WL0IrtDOzvefmJg5a0s7ZQoRXwqTEFg==}
 
   '@types/webpack-sources@3.2.3':
     resolution: {integrity: sha512-4nZOdMwSPHZ4pTEZzSp0AsTM4K7Qmu40UKW4tJDiOVs20UzYF9l+qUe4s0ftfN0pin06n+5cWWDJXH+sbhAiDw==}
@@ -12894,15 +12894,9 @@ snapshots:
       - uglify-js
       - webpack-cli
 
-  '@types/webpack-sources@3.2.0':
-    dependencies:
-      '@types/node': 20.12.7
-      '@types/source-list-map': 0.1.6
-      source-map: 0.7.4
-
   '@types/webpack-sources@3.2.3':
     dependencies:
-      '@types/node': 20.12.6
+      '@types/node': 20.12.7
       '@types/source-list-map': 0.1.6
       source-map: 0.7.4
 

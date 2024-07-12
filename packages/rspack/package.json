@@ -48,6 +48,7 @@
     "@swc/core": "1.4.0",
     "@types/neo-async": "^2.6.6",
     "@types/watchpack": "^2.4.0",
+    "@types/webpack-sources": "3.2.3",
     "browserslist": "^4.21.3",
     "cross-env": "^7.0.3",
     "enhanced-resolve": "5.12.0",
