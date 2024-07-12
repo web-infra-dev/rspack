@@ -14,4 +14,8 @@ rspack_identifier = { path = "../rspack_identifier" }
 rspack_macros     = { path = "../rspack_macros" }
 rspack_util       = { path = "../rspack_util" }
 tokio             = { workspace = true, features = ["macros"] }
+tracing           = { workspace = true }
 trybuild          = { version = "1.0.91", features = ["diff"] }
+
+[package.metadata.cargo-shear]
+ignored = ["tracing"]

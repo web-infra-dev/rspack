@@ -29,3 +29,7 @@ sugar_path        = { workspace = true }
 swc_core          = { workspace = true }
 swc_html          = { workspace = true }
 swc_html_minifier = { workspace = true }
+tracing           = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["tracing"]
