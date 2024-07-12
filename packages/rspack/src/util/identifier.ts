@@ -2,21 +2,22 @@
 	MIT License http://www.opensource.org/licenses/mit-license.php
 */
 
-"use strict";
-
-const path = require("path");
+import path from "path";
 
 const WINDOWS_ABS_PATH_REGEXP = /^[a-zA-Z]:[\\/]/;
 const SEGMENTS_SPLIT_REGEXP = /([|!])/;
 const WINDOWS_PATH_SEPARATOR_REGEXP = /\\/g;
 
-/**
- * @typedef {Object} MakeRelativePathsCache
- * @property {Map<string, Map<string, string>>=} relativePaths
- */
+interface ParsedResource {
+	resource: string;
+	path: string;
+	query: string;
+	fragment: string;
+}
 
-// @ts-expect-error
-const relativePathToRequest = relativePath => {
+type ParsedResourceWithoutFragment = Omit<ParsedResource, "fragment">;
+
+const relativePathToRequest = (relativePath: string) => {
 	if (relativePath === "") return "./.";
 	if (relativePath === "..") return "../.";
 	if (relativePath.startsWith("../")) return relativePath;
@@ -28,7 +29,10 @@ const relativePathToRequest = relativePath => {
  * @param {string} maybeAbsolutePath path to make relative
  * @returns {string} relative path in request style
  */
-const absoluteToRequest = (context, maybeAbsolutePath) => {
+const absoluteToRequest = (
+	context: string,
+	maybeAbsolutePath: string
+): string => {
 	if (maybeAbsolutePath[0] === "/") {
 		if (
 			maybeAbsolutePath.length > 1 &&
@@ -76,23 +80,22 @@ const absoluteToRequest = (context, maybeAbsolutePath) => {
  * @param {string} relativePath path
  * @returns {string} absolute path
  */
-const requestToAbsolute = (context, relativePath) => {
+const requestToAbsolute = (context: string, relativePath: string): string => {
 	if (relativePath.startsWith("./") || relativePath.startsWith("../"))
 		return path.join(context, relativePath);
 	return relativePath;
 };
 
-// @ts-expect-error
-const makeCacheable = realFn => {
-	/** @type {WeakMap<object, Map<string, ParsedResource>>} */
-	const cache = new WeakMap();
+const makeCacheable = (realFn: {
+	(str: string): ParsedResource;
+	(str: string): ParsedResourceWithoutFragment;
+}) => {
+	const cache: WeakMap<object, Map<string, ParsedResource>> = new WeakMap();
 
-	// @ts-expect-error
-	const getCache = associatedObjectForCache => {
+	const getCache = (associatedObjectForCache: object) => {
 		const entry = cache.get(associatedObjectForCache);
 		if (entry !== undefined) return entry;
-		/** @type {Map<string, ParsedResource>} */
-		const map = new Map();
+		const map: Map<string, ParsedResource> = new Map();
 		cache.set(associatedObjectForCache, map);
 		return map;
 	};
@@ -102,7 +105,10 @@ const makeCacheable = realFn => {
 	 * @param {Object=} associatedObjectForCache an object to which the cache will be attached
 	 * @returns {ParsedResource} parsed parts
 	 */
-	const fn = (str, associatedObjectForCache) => {
+	const fn = (
+		str: string,
+		associatedObjectForCache: object | undefined
+	): ParsedResource => {
 		if (!associatedObjectForCache) return realFn(str);
 		const cache = getCache(associatedObjectForCache);
 		const entry = cache.get(str);
@@ -112,11 +118,9 @@ const makeCacheable = realFn => {
 		return result;
 	};
 
-	// @ts-expect-error
-	fn.bindCache = associatedObjectForCache => {
+	fn.bindCache = (associatedObjectForCache: object) => {
 		const cache = getCache(associatedObjectForCache);
-		// @ts-expect-error
-		return str => {
+		return (str: string) => {
 			const entry = cache.get(str);
 			if (entry !== undefined) return entry;
 			const result = realFn(str);
@@ -128,10 +132,13 @@ const makeCacheable = realFn => {
 	return fn;
 };
 
-// @ts-expect-error
-const makeCacheableWithContext = fn => {
-	/** @type {WeakMap<object, Map<string, Map<string, string>>>} */
-	const cache = new WeakMap();
+const makeCacheableWithContext = (fn: {
+	(context: string, identifier: string): string;
+}) => {
+	const cache: WeakMap<
+		object,
+		Map<string, Map<string, string>>
+	> = new WeakMap();
 
 	/**
 	 * @param {string} context context used to create relative path
@@ -139,18 +146,23 @@ const makeCacheableWithContext = fn => {
 	 * @param {Object=} associatedObjectForCache an object to which the cache will be attached
 	 * @returns {string} the returned relative path
 	 */
-	const cachedFn = (context, identifier, associatedObjectForCache) => {
+	const cachedFn = (
+		context: string,
+		identifier: string,
+		associatedObjectForCache: object | undefined
+	): string => {
 		if (!associatedObjectForCache) return fn(context, identifier);
 
 		/** @type {Map<string, Map<string, string>> | undefined} */
-		let innerCache = cache.get(associatedObjectForCache);
+		let innerCache: Map<string, Map<string, string>> | undefined = cache.get(
+			associatedObjectForCache
+		);
 		if (innerCache === undefined) {
 			innerCache = new Map();
 			cache.set(associatedObjectForCache, innerCache);
 		}
 
-		/** @type {string | undefined} */
-		let cachedResult;
+		let cachedResult: string | undefined;
 		let innerSubCache = innerCache.get(context);
 		if (innerSubCache === undefined) {
 			innerCache.set(context, (innerSubCache = new Map()));
@@ -171,9 +183,10 @@ const makeCacheableWithContext = fn => {
 	 * @param {Object=} associatedObjectForCache an object to which the cache will be attached
 	 * @returns {function(string, string): string} cached function
 	 */
-	cachedFn.bindCache = associatedObjectForCache => {
-		/** @type {Map<string, Map<string, string>> | undefined} */
-		let innerCache;
+	cachedFn.bindCache = (
+		associatedObjectForCache: object | undefined
+	): ((arg0: string, arg1: string) => string) => {
+		let innerCache: Map<string, Map<string, string>> | undefined;
 		if (associatedObjectForCache) {
 			innerCache = cache.get(associatedObjectForCache);
 			if (innerCache === undefined) {
@@ -189,11 +202,10 @@ const makeCacheableWithContext = fn => {
 		 * @param {string} identifier identifier used to create relative path
 		 * @returns {string} the returned relative path
 		 */
-		const boundFn = (context, identifier) => {
-			/** @type {string | undefined} */
-			let cachedResult;
-			/** @type {Map<string, string> | undefined} */
-			let innerSubCache = innerCache && innerCache.get(context);
+		const boundFn = (context: string, identifier: string): string => {
+			let cachedResult: string | undefined;
+			let innerSubCache: Map<string, string> | undefined =
+				innerCache && innerCache.get(context);
 			if (innerSubCache === undefined) {
 				innerSubCache = new Map();
 				innerCache && innerCache.set(context, innerSubCache);
@@ -218,9 +230,11 @@ const makeCacheableWithContext = fn => {
 	 * @param {Object=} associatedObjectForCache an object to which the cache will be attached
 	 * @returns {function(string): string} cached function
 	 */
-	cachedFn.bindContextCache = (context, associatedObjectForCache) => {
-		/** @type {Map<string, string> | undefined} */
-		let innerSubCache;
+	cachedFn.bindContextCache = (
+		context: string,
+		associatedObjectForCache: object | undefined
+	): ((arg0: string) => string) => {
+		let innerSubCache: Map<string, string> | undefined;
 		if (associatedObjectForCache) {
 			let innerCache = cache.get(associatedObjectForCache);
 			if (innerCache === undefined) {
@@ -240,7 +254,7 @@ const makeCacheableWithContext = fn => {
 		 * @param {string} identifier identifier used to create relative path
 		 * @returns {string} the returned relative path
 		 */
-		const boundFn = identifier => {
+		const boundFn = (identifier: string): string => {
 			const cachedResult = innerSubCache && innerSubCache.get(identifier);
 			if (cachedResult !== undefined) {
 				return cachedResult;
@@ -263,14 +277,14 @@ const makeCacheableWithContext = fn => {
  * @param {string} identifier identifier for path
  * @returns {string} a converted relative path
  */
-const _makePathsRelative = (context, identifier) => {
+const _makePathsRelative = (context: string, identifier: string): string => {
 	return identifier
 		.split(SEGMENTS_SPLIT_REGEXP)
 		.map(str => absoluteToRequest(context, str))
 		.join("");
 };
 
-exports.makePathsRelative = makeCacheableWithContext(_makePathsRelative);
+export const makePathsRelative = makeCacheableWithContext(_makePathsRelative);
 
 /**
  *
@@ -278,87 +292,79 @@ exports.makePathsRelative = makeCacheableWithContext(_makePathsRelative);
  * @param {string} identifier identifier for path
  * @returns {string} a converted relative path
  */
-const _makePathsAbsolute = (context, identifier) => {
+const _makePathsAbsolute = (context: string, identifier: string): string => {
 	return identifier
 		.split(SEGMENTS_SPLIT_REGEXP)
 		.map(str => requestToAbsolute(context, str))
 		.join("");
 };
 
-exports.makePathsAbsolute = makeCacheableWithContext(_makePathsAbsolute);
+export const makePathsAbsolute = makeCacheableWithContext(_makePathsAbsolute);
 
 /**
  * @param {string} context absolute context path
  * @param {string} request any request string may containing absolute paths, query string, etc.
  * @returns {string} a new request string avoiding absolute paths when possible
  */
-const _contextify = (context, request) => {
+const _contextify = (context: string, request: string): string => {
 	return request
 		.split("!")
 		.map(r => absoluteToRequest(context, r))
 		.join("!");
 };
 
-const contextify = makeCacheableWithContext(_contextify);
-exports.contextify = contextify;
+export const contextify = makeCacheableWithContext(_contextify);
 
 /**
  * @param {string} context absolute context path
  * @param {string} request any request string
  * @returns {string} a new request string using absolute paths when possible
  */
-const _absolutify = (context, request) => {
+const _absolutify = (context: string, request: string): string => {
 	return request
 		.split("!")
 		.map(r => requestToAbsolute(context, r))
 		.join("!");
 };
 
-const absolutify = makeCacheableWithContext(_absolutify);
-exports.absolutify = absolutify;
+export const absolutify = makeCacheableWithContext(_absolutify);
 
 const PATH_QUERY_FRAGMENT_REGEXP =
 	/^((?:\u200b.|[^?#\u200b])*)(\?(?:\u200b.|[^#\u200b])*)?(#.*)?$/;
 const PATH_QUERY_REGEXP = /^((?:\u200b.|[^?\u200b])*)(\?.*)?$/;
 
-/** @typedef {{ resource: string, path: string, query: string, fragment: string }} ParsedResource */
-/** @typedef {{ resource: string, path: string, query: string }} ParsedResourceWithoutFragment */
-
 /**
  * @param {string} str the path with query and fragment
  * @returns {ParsedResource} parsed parts
  */
-const _parseResource = str => {
+const _parseResource = (str: string): ParsedResource => {
 	const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
 	return {
 		resource: str,
-		// @ts-expect-error
-		path: match[1].replace(/\u200b(.)/g, "$1"),
-		// @ts-expect-error
-		query: match[2] ? match[2].replace(/\u200b(.)/g, "$1") : "",
-		// @ts-expect-error
-		fragment: match[3] || ""
+		path: match![1].replace(/\u200b(.)/g, "$1"),
+		query: match![2] ? match![2].replace(/\u200b(.)/g, "$1") : "",
+		fragment: match![3] || ""
 	};
 };
-exports.parseResource = makeCacheable(_parseResource);
+export const parseResource = makeCacheable(_parseResource);
 
 /**
  * Parse resource, skips fragment part
  * @param {string} str the path with query and fragment
  * @returns {ParsedResourceWithoutFragment} parsed parts
  */
-const _parseResourceWithoutFragment = str => {
+const _parseResourceWithoutFragment = (
+	str: string
+): ParsedResourceWithoutFragment => {
 	const match = PATH_QUERY_REGEXP.exec(str);
 	return {
 		resource: str,
-		// @ts-expect-error
-		path: match[1].replace(/\u200b(.)/g, "$1"),
-		// @ts-expect-error
-		query: match[2] ? match[2].replace(/\u200b(.)/g, "$1") : ""
+		path: match![1].replace(/\u200b(.)/g, "$1"),
+		query: match![2] ? match![2].replace(/\u200b(.)/g, "$1") : ""
 	};
 };
-exports.parseResourceWithoutFragment = makeCacheable(
-	_parseResourceWithoutFragment
+export const parseResourceWithoutFragment = makeCacheable(
+	_parseResourceWithoutFragment as any
 );
 
 /**
@@ -367,7 +373,11 @@ exports.parseResourceWithoutFragment = makeCacheable(
  * @param {boolean} enforceRelative true returns ./ for empty paths
  * @returns {string} repeated ../ to leave the directory of the provided filename to be back on output dir
  */
-exports.getUndoPath = (filename, outputPath, enforceRelative) => {
+export const getUndoPath = (
+	filename: string,
+	outputPath: string,
+	enforceRelative: boolean
+): string => {
 	let depth = -1;
 	let append = "";
 	outputPath = outputPath.replace(/[\\/]$/, "");
