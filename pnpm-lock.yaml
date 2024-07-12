@@ -429,6 +429,9 @@ importers:
       '@types/webpack-bundle-analyzer':
         specifier: ^4.6.0
         version: 4.7.0(webpack-cli@5.1.4(webpack@5.92.0))
+      '@types/yargs':
+        specifier: 17.0.32
+        version: 17.0.32
       concat-stream:
         specifier: ^2.0.0
         version: 2.0.0
