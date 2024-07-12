@@ -11,7 +11,7 @@
   "devDependencies": {
     "@rspack/core": "workspace:*",
     "@rspack/plugin-minify": "workspace:^",
-    "css-loader": "6.11.0",
+    "css-loader": "^6.11.0",
     "jsdom": "^24.0.0",
     "del": "^6.0.0",
     "memfs": "4.7.7"
