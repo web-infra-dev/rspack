@@ -58,7 +58,7 @@ export const cutOffMessage = (stack: string, message: string) => {
 
 export const cleanUp = (stack: string, message: string): string => {
 	let str = stack;
-	str = cutOffLoaderExecution(stack);
+	str = cutOffLoaderExecution(str);
 	str = cutOffMessage(str, message);
 	return str;
 };
