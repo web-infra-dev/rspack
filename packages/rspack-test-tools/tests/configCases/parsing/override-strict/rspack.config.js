@@ -5,6 +5,9 @@ module.exports = [
 		entry: ["./strict"],
 		module: {
 			parser: {
+				javascript: {
+					overrideStrict: "strict"
+				},
 				'javascript/auto': {
 					overrideStrict: "strict"
 				}
@@ -16,6 +19,9 @@ module.exports = [
 		entry: ["./strict"],
 		module: {
 			parser: {
+				javascript: {
+					overrideStrict: "strict"
+				},
 				'javascript/auto': {
 					overrideStrict: "non-strict"
 				}
