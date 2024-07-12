@@ -17,7 +17,9 @@ export class WorkerPlugin extends RspackBuiltinPlugin {
 	constructor(
 		private chunkLoading: ChunkLoading,
 		private wasmLoading: WasmLoading,
+		// @ts-expect-error not implemented
 		private module: OutputModule,
+		// @ts-expect-error not implemented
 		private workerPublicPath: WorkerPublicPath
 	) {
 		super();

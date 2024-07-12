@@ -24,7 +24,7 @@ export class WatchRunnerFactory<
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {
-		const compiler = this.context.getCompiler<T>(this.name);
+		this.context.getCompiler<T>(this.name);
 		const stepName: string | void = this.context.getValue(
 			this.name,
 			"watchStepName"

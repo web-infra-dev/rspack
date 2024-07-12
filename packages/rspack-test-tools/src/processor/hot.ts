@@ -1,6 +1,5 @@
 import path from "path";
 import { rspack } from "@rspack/core";
-import fs from "fs-extra";
 
 import {
 	ECompilerType,

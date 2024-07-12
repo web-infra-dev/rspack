@@ -9,7 +9,6 @@
  */
 import path from "node:path";
 
-import fs from "fs";
 import type { Server } from "http";
 import type { Socket } from "net";
 import { type Compiler, MultiCompiler } from "@rspack/core";
