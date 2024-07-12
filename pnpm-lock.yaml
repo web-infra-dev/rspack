@@ -434,7 +434,7 @@ importers:
         version: 7.5.8
       '@types/webpack-bundle-analyzer':
         specifier: ^4.6.0
-        version: 4.7.0(webpack-cli@5.1.4(webpack@5.92.0))
+        version: 4.7.0(@swc/core@1.4.0)(webpack-cli@5.1.4(webpack@5.92.0))
       '@types/yargs':
         specifier: 17.0.32
         version: 17.0.32
@@ -450,6 +450,9 @@ importers:
       internal-ip:
         specifier: 6.2.0
         version: 6.2.0
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@swc/core@1.4.0)(@types/node@20.12.7)(typescript@5.4.2)
 
   packages/rspack-dev-server:
     dependencies:
@@ -1022,8 +1025,8 @@ importers:
         specifier: 5.16.1
         version: 5.16.1
       ts-node:
-        specifier: 10.9.1
-        version: 10.9.1(@swc/core@1.4.0(@swc/helpers@0.5.1))(@types/node@20.12.7)(typescript@4.9.5)
+        specifier: ^10.9.2
+        version: 10.9.2(@swc/core@1.4.0(@swc/helpers@0.5.1))(@types/node@20.12.7)(typescript@4.9.5)
       typescript:
         specifier: ^4.7.4
         version: 4.9.5
@@ -8703,20 +8706,6 @@ packages:
       esbuild:
         optional: true
 
-  ts-node@10.9.1:
-    resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
-    hasBin: true
-    peerDependencies:
-      '@swc/core': '>=1.2.50'
-      '@swc/wasm': '>=1.2.50'
-      '@types/node': '*'
-      typescript: '>=2.7'
-    peerDependenciesMeta:
-      '@swc/core':
-        optional: true
-      '@swc/wasm':
-        optional: true
-
   ts-node@10.9.2:
     resolution: {integrity: sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==}
     hasBin: true
@@ -12904,11 +12893,11 @@ snapshots:
       '@types/graceful-fs': 4.1.9
       '@types/node': 20.12.6
 
-  '@types/webpack-bundle-analyzer@4.7.0(webpack-cli@5.1.4(webpack@5.92.0))':
+  '@types/webpack-bundle-analyzer@4.7.0(@swc/core@1.4.0)(webpack-cli@5.1.4(webpack@5.92.0))':
     dependencies:
       '@types/node': 20.12.6
       tapable: 2.2.1
-      webpack: 5.92.0(webpack-cli@5.1.4(webpack@5.92.0))
+      webpack: 5.92.0(@swc/core@1.4.0)(webpack-cli@5.1.4(webpack@5.92.0))
     transitivePeerDependencies:
       - '@swc/core'
       - esbuild
@@ -19068,7 +19057,7 @@ snapshots:
       '@jest/types': 29.6.3
       babel-jest: 29.7.0(@babel/core@7.24.4)
 
-  ts-node@10.9.1(@swc/core@1.4.0(@swc/helpers@0.5.1))(@types/node@20.12.7)(typescript@4.9.5):
+  ts-node@10.9.2(@swc/core@1.4.0(@swc/helpers@0.5.1))(@types/node@20.12.7)(typescript@4.9.5):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.11
