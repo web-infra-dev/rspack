@@ -30,6 +30,7 @@ module.exports = {
 		    "chunkName": "b",
 		    "message": "  × Entrypoints 'b' and 'a' use 'dependOn' to depend on each other in a circular way.
 		",
+		    "moduleTrace": Array [],
 		  },
 		]
 	`);

@@ -152,8 +152,8 @@ function presetToOptions(name?: boolean | string): StatsOptions {
 				all: false,
 				errors: true,
 				errorsCount: true,
-				logging: "error"
-				// TODO: moduleTrace: true,
+				logging: "error",
+				moduleTrace: true
 			};
 		case "errors-warnings":
 			return {

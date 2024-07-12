@@ -8,6 +8,8 @@ WARNING in ./index.css
        3 │ .class {
          ╰────
         help: Remove '~' from the request.
+      
+ @ ./index.css
 
 WARNING in ./index.css
   ⚠ Module parse warning:
@@ -20,3 +22,5 @@ WARNING in ./index.css
        5 │ }
          ╰────
         help: Remove '~' from the request.
+      
+ @ ./index.css

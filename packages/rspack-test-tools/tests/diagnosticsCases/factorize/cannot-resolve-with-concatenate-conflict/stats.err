@@ -5,6 +5,8 @@ ERROR in ./node_modules/some-module/a.ts
    ·               ────────
  2 │ export * from "./c.js";
    ╰────
+ @ ./node_modules/some-module/a.ts
+ @ ./reexport.ts
 
 ERROR in ./node_modules/some-module/a.ts
   × Module not found: Can't resolve './c.js' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-with-concatenate-conflict/node_modules/some-module'
@@ -13,3 +15,5 @@ ERROR in ./node_modules/some-module/a.ts
  2 │ export * from "./c.js";
    ·               ────────
    ╰────
+ @ ./node_modules/some-module/a.ts
+ @ ./reexport.ts

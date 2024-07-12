@@ -13,3 +13,5 @@ WARNING in ./locale.js
         
         1. add the extension `".js"` to `resolve.extensions` in your rspack configuration
         2. use './locale.js' instead of './locale'
+        
+ @ ./locale.js

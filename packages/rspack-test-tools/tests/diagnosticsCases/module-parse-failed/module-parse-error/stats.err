@@ -8,6 +8,7 @@ ERROR in ./non-recoverable.js
       
   help: 
         You may need an appropriate loader to handle this file type.
+ @ ./non-recoverable.js
 
 ERROR in ./recoverable.js
   × Module parse failed:
@@ -19,3 +20,4 @@ ERROR in ./recoverable.js
       
   help: 
         You may need an appropriate loader to handle this file type.
+ @ ./recoverable.js

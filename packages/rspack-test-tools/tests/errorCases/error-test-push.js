@@ -19,6 +19,7 @@ module.exports = {
 		  "errors": Array [
 		    Object {
 		      "message": "  × Error: test push\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n",
+		      "moduleTrace": Array [],
 		      "stack": "Error: test push\\n    at Object.fn (<cwd>packages/rspack-test-tools/tests/errorCases/error-test-push.js:10:31)\\n    at next (<cwd>packages/rspack-lite-tapable/dist/index.js:530:25)\\n    at AsyncSeriesHook.callAsyncStageRange (<cwd>packages/rspack-lite-tapable/dist/index.js:550:9)\\n    at AsyncSeriesHook.callAsync (<cwd>packages/rspack-lite-tapable/dist/index.js:88:21)\\n    at <cwd>packages/rspack/dist/Compiler.js:466:41\\n    at <cwd>packages/rspack/dist/Compiler.js:533:23",
 		    },
 		    Object {
@@ -26,6 +27,7 @@ module.exports = {
 		      "moduleId": "./resolve-fail-esm/index.js",
 		      "moduleIdentifier": "javascript/esm|<cwd>packages/rspack-test-tools/tests/fixtures/errors/resolve-fail-esm/index.js",
 		      "moduleName": "./resolve-fail-esm/index.js",
+		      "moduleTrace": Array [],
 		    },
 		  ],
 		  "warnings": Array [],
