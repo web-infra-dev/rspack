@@ -3,15 +3,14 @@ import path from "path";
 import rimraf from "rimraf";
 
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
-import {
-	type ECompilerType,
-	EDocumentType,
-	type ITestContext,
-	type ITestEnv,
-	type ITestProcessor,
-	type ITester,
-	type TRunnerFactory,
-	type TTestConfig
+import type {
+	ECompilerType,
+	ITestContext,
+	ITestEnv,
+	ITestProcessor,
+	ITester,
+	TRunnerFactory,
+	TTestConfig
 } from "../type";
 import { Tester } from "./tester";
 

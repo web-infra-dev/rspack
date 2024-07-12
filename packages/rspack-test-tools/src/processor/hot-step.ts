@@ -1,5 +1,6 @@
+// this is required for global typing
+import "@rspack/core";
 import path from "path";
-import { Chunk } from "@rspack/core";
 import fs from "fs-extra";
 
 import { escapeEOL, escapeSep, replacePaths } from "../helper";
