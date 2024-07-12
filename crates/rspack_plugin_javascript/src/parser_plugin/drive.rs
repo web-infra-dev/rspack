@@ -3,14 +3,14 @@ use swc_core::common::Span;
 use swc_core::ecma::ast::{
   BinExpr, CallExpr, Callee, ClassMember, CondExpr, Expr, OptChainExpr, UnaryExpr,
 };
-use swc_core::ecma::ast::{IfStmt, MemberExpr, Stmt, UnaryOp, VarDecl, VarDeclarator};
+use swc_core::ecma::ast::{IfStmt, MemberExpr, UnaryOp, VarDecl, VarDeclarator};
 
 use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
 use crate::parser_plugin::r#const::is_logic_op;
 use crate::utils::eval::BasicEvaluatedExpression;
 use crate::visitors::{
   ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
-  ExportedVariableInfo, JavascriptParser,
+  ExportedVariableInfo, JavascriptParser, Statement,
 };
 
 pub struct JavaScriptParserPluginDrive {
@@ -72,13 +72,13 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn pre_module_declaration(
+  fn block_pre_module_declaration(
     &self,
     parser: &mut JavascriptParser,
     decl: &swc_core::ecma::ast::ModuleDecl,
   ) -> Option<bool> {
     for plugin in &self.plugins {
-      let res = plugin.pre_module_declaration(parser, decl);
+      let res = plugin.block_pre_module_declaration(parser, decl);
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -274,7 +274,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn statement(&self, parser: &mut JavascriptParser, stmt: &Stmt) -> Option<bool> {
+  fn statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.statement(parser, stmt);
       // `SyncBailHook`
@@ -512,7 +512,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn pre_statement(&self, parser: &mut JavascriptParser, stmt: &Stmt) -> Option<bool> {
+  fn pre_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.pre_statement(parser, stmt);
       // `SyncBailHook`
@@ -523,7 +523,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn block_pre_statement(&self, parser: &mut JavascriptParser, stmt: &Stmt) -> Option<bool> {
+  fn block_pre_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.block_pre_statement(parser, stmt);
       // `SyncBailHook`
