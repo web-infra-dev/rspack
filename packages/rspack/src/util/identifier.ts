@@ -86,29 +86,20 @@ const requestToAbsolute = (context: string, relativePath: string): string => {
 	return relativePath;
 };
 
-const makeCacheable = (realFn: {
-	(str: string): ParsedResource;
-	(str: string): ParsedResourceWithoutFragment;
-}) => {
-	const cache: WeakMap<object, Map<string, ParsedResource>> = new WeakMap();
+const makeCacheable = <T extends ParsedResourceWithoutFragment>(
+	realFn: (str: string) => T
+) => {
+	const cache: WeakMap<object, Map<string, T>> = new WeakMap();
 
 	const getCache = (associatedObjectForCache: object) => {
 		const entry = cache.get(associatedObjectForCache);
 		if (entry !== undefined) return entry;
-		const map: Map<string, ParsedResource> = new Map();
+		const map: Map<string, T> = new Map();
 		cache.set(associatedObjectForCache, map);
 		return map;
 	};
 
-	/**
-	 * @param {string} str the path with query and fragment
-	 * @param {Object=} associatedObjectForCache an object to which the cache will be attached
-	 * @returns {ParsedResource} parsed parts
-	 */
-	const fn = (
-		str: string,
-		associatedObjectForCache?: object
-	): ParsedResource => {
+	const fn = (str: string, associatedObjectForCache?: object): T => {
 		if (!associatedObjectForCache) return realFn(str);
 		const cache = getCache(associatedObjectForCache);
 		const entry = cache.get(str);
@@ -364,7 +355,7 @@ const _parseResourceWithoutFragment = (
 	};
 };
 export const parseResourceWithoutFragment = makeCacheable(
-	_parseResourceWithoutFragment as any
+	_parseResourceWithoutFragment
 );
 
 /**
