@@ -84,6 +84,7 @@
     "@types/babel__generator": "7.6.8",
     "@types/babel__traverse": "7.20.5",
     "core-js": "3.36.1",
+    "chalk": "^4.1.0",
     "html-loader": "^5.0.0",
     "html-webpack-plugin": "^5.5.0",
     "less-loader": "^12.2.0",
