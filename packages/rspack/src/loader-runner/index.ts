@@ -78,10 +78,10 @@ function createLoaderObject(
 			obj.query.replace(/#/g, "\u200b#") +
 			obj.fragment,
 		set: value => {
-			var splittedRequest = parseResourceWithoutFragment(value.request);
+			const splittedRequest = parseResourceWithoutFragment(value.request);
 			obj.path = splittedRequest.path;
 			obj.query = splittedRequest.query;
-			obj.fragment = splittedRequest.fragment || "";
+			obj.fragment = "";
 			obj.options =
 				obj.options === null
 					? splittedRequest.query
