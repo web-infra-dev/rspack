@@ -47,6 +47,9 @@ importers:
       jest:
         specifier: 29.7.0
         version: 29.7.0(@types/node@20.12.7)(ts-node@10.9.2(@types/node@20.12.7)(typescript@5.0.2))
+      jest-cli:
+        specifier: 29.7.0
+        version: 29.7.0(@types/node@20.12.7)(ts-node@10.9.2(@types/node@20.12.7)(typescript@5.0.2))
       jest-environment-node:
         specifier: 29.7.0
         version: 29.7.0
