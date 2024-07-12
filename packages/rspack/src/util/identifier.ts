@@ -107,7 +107,7 @@ const makeCacheable = (realFn: {
 	 */
 	const fn = (
 		str: string,
-		associatedObjectForCache: object | undefined
+		associatedObjectForCache?: object
 	): ParsedResource => {
 		if (!associatedObjectForCache) return realFn(str);
 		const cache = getCache(associatedObjectForCache);
