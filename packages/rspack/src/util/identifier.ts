@@ -196,10 +196,10 @@ const makeCacheableWithContext = (fn: {
 		const boundFn = (context: string, identifier: string): string => {
 			let cachedResult: string | undefined;
 			let innerSubCache: Map<string, string> | undefined =
-				innerCache && innerCache.get(context);
+				innerCache?.get(context);
 			if (innerSubCache === undefined) {
 				innerSubCache = new Map();
-				innerCache && innerCache.set(context, innerSubCache);
+				innerCache?.set(context, innerSubCache);
 			} else {
 				cachedResult = innerSubCache.get(identifier);
 			}
@@ -246,12 +246,12 @@ const makeCacheableWithContext = (fn: {
 		 * @returns {string} the returned relative path
 		 */
 		const boundFn = (identifier: string): string => {
-			const cachedResult = innerSubCache && innerSubCache.get(identifier);
+			const cachedResult = innerSubCache?.get(identifier);
 			if (cachedResult !== undefined) {
 				return cachedResult;
 			} else {
 				const result = fn(context, identifier);
-				innerSubCache && innerSubCache.set(identifier, result);
+				innerSubCache?.set(identifier, result);
 				return result;
 			}
 		};
