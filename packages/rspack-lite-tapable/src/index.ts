@@ -344,7 +344,7 @@ export class QueriedHook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 	tapsInRange: (FullTap & IfSet<AdditionalOptions>)[];
 
 	constructor(stageRange: StageRange, hook: HookBase<T, R, AdditionalOptions>) {
-		const tapsInRange = [];
+		const tapsInRange: typeof hook.taps = [];
 		const [from, to] = stageRange;
 		for (let tap of hook.taps) {
 			const stage = tap.stage ?? 0;

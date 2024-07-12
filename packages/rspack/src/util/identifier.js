@@ -142,12 +142,14 @@ const makeCacheableWithContext = fn => {
 	const cachedFn = (context, identifier, associatedObjectForCache) => {
 		if (!associatedObjectForCache) return fn(context, identifier);
 
+		/** @type {Map<string, Map<string, string>> | undefined} */
 		let innerCache = cache.get(associatedObjectForCache);
 		if (innerCache === undefined) {
 			innerCache = new Map();
 			cache.set(associatedObjectForCache, innerCache);
 		}
 
+		/** @type {string | undefined} */
 		let cachedResult;
 		let innerSubCache = innerCache.get(context);
 		if (innerSubCache === undefined) {
@@ -170,7 +172,7 @@ const makeCacheableWithContext = fn => {
 	 * @returns {function(string, string): string} cached function
 	 */
 	cachedFn.bindCache = associatedObjectForCache => {
-		// @ts-expect-error
+		/** @type {Map<string, Map<string, string>> | undefined} */
 		let innerCache;
 		if (associatedObjectForCache) {
 			innerCache = cache.get(associatedObjectForCache);
@@ -188,12 +190,13 @@ const makeCacheableWithContext = fn => {
 		 * @returns {string} the returned relative path
 		 */
 		const boundFn = (context, identifier) => {
+			/** @type {string | undefined} */
 			let cachedResult;
-			// @ts-expect-error
-			let innerSubCache = innerCache.get(context);
+			/** @type {Map<string, string> | undefined} */
+			let innerSubCache = innerCache && innerCache.get(context);
 			if (innerSubCache === undefined) {
-				// @ts-expect-error
-				innerCache.set(context, (innerSubCache = new Map()));
+				innerSubCache = new Map();
+				innerCache && innerCache.set(context, innerSubCache);
 			} else {
 				cachedResult = innerSubCache.get(identifier);
 			}
@@ -216,7 +219,7 @@ const makeCacheableWithContext = fn => {
 	 * @returns {function(string): string} cached function
 	 */
 	cachedFn.bindContextCache = (context, associatedObjectForCache) => {
-		// @ts-expect-error
+		/** @type {Map<string, string> | undefined} */
 		let innerSubCache;
 		if (associatedObjectForCache) {
 			let innerCache = cache.get(associatedObjectForCache);
@@ -238,14 +241,12 @@ const makeCacheableWithContext = fn => {
 		 * @returns {string} the returned relative path
 		 */
 		const boundFn = identifier => {
-			// @ts-expect-error
-			const cachedResult = innerSubCache.get(identifier);
+			const cachedResult = innerSubCache && innerSubCache.get(identifier);
 			if (cachedResult !== undefined) {
 				return cachedResult;
 			} else {
 				const result = fn(context, identifier);
-				// @ts-expect-error
-				innerSubCache.set(identifier, result);
+				innerSubCache && innerSubCache.set(identifier, result);
 				return result;
 			}
 		};
