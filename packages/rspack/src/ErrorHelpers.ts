@@ -67,5 +67,5 @@ export const cleanUpWebpackOptions = (stack: string, message: string) => {
 	let str = stack;
 	str = cutOffWebpackOptions(str);
 	str = cutOffMultilineMessage(str, message);
-	return stack;
+	return str;
 };
