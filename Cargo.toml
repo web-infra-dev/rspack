@@ -87,3 +87,8 @@ strip     = true
 inherits = "release"
 # Performs “fat” LTO which attempts to perform optimizations across all crates within the dependency graph.
 lto = "fat"
+
+[profile.release-debug]
+debug    = true
+inherits = "release"
+strip    = false

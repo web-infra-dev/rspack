@@ -6,6 +6,7 @@ const CARGO_SAFELY_EXIT_CODE = 0;
 let release = process.argv.includes("--release");
 // Slower release for production with `fat` LTO
 let releaseProd = process.argv.includes("--release-prod");
+let releaseDebug = process.argv.includes("--release-debug");
 let watch = process.argv.includes("--watch");
 
 build().then((value) => {
@@ -36,6 +37,9 @@ async function build() {
 		}
 		if (releaseProd) {
 			args.push('--profile release-prod');
+		}
+		if (releaseDebug) {
+			args.push('--profile release-debug');
 		}
 		if (watch) {
 			args.push("--watch");
