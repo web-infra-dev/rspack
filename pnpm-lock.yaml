@@ -286,6 +286,9 @@ importers:
       core-js:
         specifier: ^3.37
         version: 3.37.1
+      css-loader:
+        specifier: ^6.11.0
+        version: 6.11.0(@rspack/core@packages+rspack)(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
       fs-extra:
         specifier: 11.2.0
         version: 11.2.0
@@ -823,7 +826,7 @@ importers:
         specifier: ^4.1.2
         version: 4.13.3
       css-loader:
-        specifier: ^6.8.1
+        specifier: ^6.11.0
         version: 6.11.0(@rspack/core@packages+rspack)(webpack@5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack-cli@5.1.4(webpack@5.92.0)))
       html-webpack-plugin:
         specifier: ^5.5.0
