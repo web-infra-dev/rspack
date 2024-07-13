@@ -34,7 +34,6 @@ impl TryFrom<RawSwcCssMinimizerRspackPluginOptions> for SwcCssMinimizerRspackPlu
       test: into_condition(value.test),
       include: into_condition(value.include),
       exclude: into_condition(value.exclude),
-      ..Default::default()
     })
   }
 }
