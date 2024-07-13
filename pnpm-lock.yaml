@@ -674,15 +674,33 @@ importers:
       '@types/webpack-sources':
         specifier: 3.2.3
         version: 3.2.3
+      babel-loader:
+        specifier: ^9.1.3
+        version: 9.1.3(@babel/core@7.24.4)(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
+      babel-plugin-import:
+        specifier: ^1.13.5
+        version: 1.13.8
       chalk:
         specifier: ^4.1.0
         version: 4.1.2
+      coffee-loader:
+        specifier: ^1.0.0
+        version: 1.0.1(coffeescript@2.7.0)(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
+      coffeescript:
+        specifier: ^2.5.1
+        version: 2.7.0
+      copy-webpack-plugin:
+        specifier: '5'
+        version: 5.1.2(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
       core-js:
         specifier: 3.36.1
         version: 3.36.1
       css-loader:
         specifier: ^5.2.7
         version: 5.2.7(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
+      file-loader:
+        specifier: ^6.2.0
+        version: 6.2.0(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
       html-loader:
         specifier: ^5.0.0
         version: 5.0.0(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
@@ -704,6 +722,18 @@ importers:
       npm-run-all2:
         specifier: ^6.2.0
         version: 6.2.0
+      postcss-loader:
+        specifier: ^7.3.4
+        version: 7.3.4(postcss@8.4.38)(typescript@5.4.2)(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
+      postcss-pxtorem:
+        specifier: ^6.0.0
+        version: 6.1.0(postcss@8.4.38)
+      pug-loader:
+        specifier: ^2.4.0
+        version: 2.4.0(pug@2.0.4)
+      raw-loader:
+        specifier: ^4.0.2
+        version: 4.0.2(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
       react:
         specifier: 18.0.0
         version: 18.0.0
@@ -959,7 +989,7 @@ importers:
         specifier: ^8.12.0
         version: 8.12.0
       babel-loader:
-        specifier: ^9.1.0
+        specifier: ^9.1.3
         version: 9.1.3(@babel/core@7.24.4)(webpack@5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.1))(webpack-cli@5.1.4(webpack@5.92.0)))
       babel-plugin-import:
         specifier: ^1.13.5
@@ -14045,6 +14075,13 @@ snapshots:
       schema-utils: 3.3.0
       webpack: 5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.1))(webpack-cli@5.1.4(webpack@5.92.0))
 
+  coffee-loader@1.0.1(coffeescript@2.7.0)(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0))):
+    dependencies:
+      coffeescript: 2.7.0
+      loader-utils: 2.0.4
+      schema-utils: 3.3.0
+      webpack: 5.92.0(webpack-cli@5.1.4(webpack@5.92.0))
+
   coffeescript@2.7.0: {}
 
   collect-v8-coverage@1.0.2: {}
@@ -14227,6 +14264,22 @@ snapshots:
       schema-utils: 1.0.0
       serialize-javascript: 4.0.0
       webpack: 5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.1))(webpack-cli@5.1.4(webpack@5.92.0))
+      webpack-log: 2.0.0
+
+  copy-webpack-plugin@5.1.2(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0))):
+    dependencies:
+      cacache: 12.0.4
+      find-cache-dir: 2.1.0
+      glob-parent: 3.1.0
+      globby: 7.1.1
+      is-glob: 4.0.3
+      loader-utils: 1.4.2
+      minimatch: 3.1.2
+      normalize-path: 3.0.0
+      p-limit: 2.3.0
+      schema-utils: 1.0.0
+      serialize-javascript: 4.0.0
+      webpack: 5.92.0(webpack-cli@5.1.4(webpack@5.92.0))
       webpack-log: 2.0.0
 
   core-js-compat@3.37.1:
@@ -15231,6 +15284,12 @@ snapshots:
       loader-utils: 2.0.4
       schema-utils: 3.3.0
       webpack: 5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.1))(webpack-cli@5.1.4(webpack@5.92.0))
+
+  file-loader@6.2.0(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0))):
+    dependencies:
+      loader-utils: 2.0.4
+      schema-utils: 3.3.0
+      webpack: 5.92.0(webpack-cli@5.1.4(webpack@5.92.0))
 
   filename-reserved-regex@2.0.0: {}
 
@@ -17474,6 +17533,16 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
+  postcss-loader@7.3.4(postcss@8.4.38)(typescript@5.4.2)(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0))):
+    dependencies:
+      cosmiconfig: 8.3.6(typescript@5.4.2)
+      jiti: 1.21.0
+      postcss: 8.4.38
+      semver: 7.6.0
+      webpack: 5.92.0(webpack-cli@5.1.4(webpack@5.92.0))
+    transitivePeerDependencies:
+      - typescript
+
   postcss-loader@8.1.1(@rspack/core@packages+rspack)(postcss@8.4.38)(typescript@5.4.2)(webpack@5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack-cli@5.1.4(webpack@5.92.0))):
     dependencies:
       cosmiconfig: 9.0.0(typescript@5.4.2)
@@ -17791,6 +17860,12 @@ snapshots:
       loader-utils: 2.0.4
       schema-utils: 3.3.0
       webpack: 5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.1))(webpack-cli@5.1.4(webpack@5.92.0))
+
+  raw-loader@4.0.2(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0))):
+    dependencies:
+      loader-utils: 2.0.4
+      schema-utils: 3.3.0
+      webpack: 5.92.0(webpack-cli@5.1.4(webpack@5.92.0))
 
   rbush@2.0.2:
     dependencies:
