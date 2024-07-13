@@ -29,6 +29,7 @@ use swc_core::ecma::ast::{
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 use swc_core::ecma::utils::ExprFactory;
 
+use super::Statement;
 use crate::parser_plugin::InnerGraphState;
 use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
@@ -861,7 +862,7 @@ impl<'parser> JavascriptParser<'parser> {
           self.prev_statement = None;
           self.block_pre_walk_module_items(&m.body);
           self.prev_statement = None;
-          self.walk_module_declarations(&m.body);
+          self.walk_module_items(&m.body);
         }
         Program::Script(s) => {
           self.detect_mode(&s.body);

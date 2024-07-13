@@ -714,13 +714,6 @@ export interface JsTap {
   stage: number
 }
 
-export interface NodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-}
-
 export interface PathWithInfo {
   path: string
   info: JsAssetInfo
@@ -1598,13 +1591,5 @@ export interface RegisterJsTaps {
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>
   registerJavascriptModulesChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>
-}
-
-export interface ThreadsafeNodeFS {
-  writeFile: (name: string, content: Buffer) => Promise<void> | void
-  removeFile: (name: string) => Promise<void> | void
-  mkdir: (name: string) => Promise<void> | void
-  mkdirp: (name: string) => Promise<string | void> | string | void
-  removeDirAll: (name: string) => Promise<string | void> | string | void
 }
 

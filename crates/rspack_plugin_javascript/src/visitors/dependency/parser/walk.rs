@@ -102,13 +102,13 @@ impl<'parser> JavascriptParser<'parser> {
     self.in_tagged_template_tag = old_in_tagged_template_tag;
   }
 
-  pub fn walk_module_declarations(&mut self, statements: &Vec<ModuleItem>) {
+  pub fn walk_module_items(&mut self, statements: &Vec<ModuleItem>) {
     for statement in statements {
-      self.walk_module_declaration(statement);
+      self.walk_module_item(statement);
     }
   }
 
-  fn walk_module_declaration(&mut self, statement: &ModuleItem) {
+  fn walk_module_item(&mut self, statement: &ModuleItem) {
     match statement {
       ModuleItem::ModuleDecl(m) => {
         self.enter_statement(
@@ -124,8 +124,8 @@ impl<'parser> JavascriptParser<'parser> {
             ModuleDecl::ExportDefaultDecl(decl) => {
               parser.walk_export_default_declaration(decl);
             }
-            ModuleDecl::ExportDecl(decl) => parser.walk_export_decl(decl),
-            ModuleDecl::ExportDefaultExpr(expr) => parser.walk_export_default_expr(expr),
+            ModuleDecl::ExportDecl(decl) => parser.walk_statement((&decl.decl).into()),
+            ModuleDecl::ExportDefaultExpr(expr) => parser.walk_expression(&expr.expr),
             ModuleDecl::ExportAll(_) | ModuleDecl::ExportNamed(_) | ModuleDecl::Import(_) => (),
             ModuleDecl::TsImportEquals(_)
             | ModuleDecl::TsExportAssignment(_)
@@ -133,93 +133,41 @@ impl<'parser> JavascriptParser<'parser> {
           },
         );
       }
-      ModuleItem::Stmt(s) => self.walk_statement(s),
+      ModuleItem::Stmt(s) => self.walk_statement(s.into()),
     }
-  }
-
-  fn walk_export_decl(&mut self, decl: &ExportDecl) {
-    self.enter_statement(
-      &decl.decl,
-      |parser, decl| {
-        parser
-          .plugin_drive
-          .clone()
-          .statement(parser, Statement::ExportDecl(decl))
-          .unwrap_or_default()
-      },
-      |parser, decl| parser.walk_declaration(decl),
-    );
-  }
-
-  fn walk_export_default_expr(&mut self, expr: &ExportDefaultExpr) {
-    self.walk_expression(&expr.expr);
   }
 
   fn walk_export_default_declaration(&mut self, decl: &ExportDefaultDecl) {
     match &decl.decl {
-      DefaultDecl::Class(c) => {
-        let maybe_named_class_decl = MaybeNamedClassDecl {
-          span: c.span(),
-          ident: c.ident.as_ref(),
-          class: &c.class,
-        };
-        let stmt = Statement::ExportDefaultClass(maybe_named_class_decl);
-        self.enter_statement(
-          &decl.decl,
-          |parser, _| {
-            parser
-              .plugin_drive
-              .clone()
-              .statement(parser, stmt)
-              .unwrap_or_default()
-          },
-          |parser, _| parser.walk_class_declaration(maybe_named_class_decl),
-        );
-      }
-      DefaultDecl::Fn(f) => {
-        let maybe_named_fn_decl = MaybeNamedFunctionDecl {
-          span: f.span(),
-          ident: f.ident.as_ref(),
-          function: &f.function,
-        };
-        let stmt = Statement::ExportDefaultFn(maybe_named_fn_decl);
-        self.enter_statement(
-          &decl.decl,
-          |parser, _| {
-            parser
-              .plugin_drive
-              .clone()
-              .statement(parser, stmt)
-              .unwrap_or_default()
-          },
-          |parser, _| parser.walk_function_declaration(maybe_named_fn_decl),
-        );
-      }
+      DefaultDecl::Class(c) => self.walk_statement(Statement::Class(c.into())),
+      DefaultDecl::Fn(f) => self.walk_statement(Statement::Fn(f.into())),
       DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
     }
   }
 
   pub fn walk_statements(&mut self, statements: &Vec<Stmt>) {
     for statement in statements {
-      self.walk_statement(statement);
+      self.walk_statement(statement.into());
     }
   }
 
-  fn walk_statement(&mut self, statement: &Stmt) {
+  fn walk_statement(&mut self, statement: Statement) {
     self.enter_statement(
-      statement,
-      |parser, statement| {
+      &statement,
+      |parser, _| {
         parser
           .plugin_drive
           .clone()
-          .statement(parser, Statement::Stmt(statement))
+          .statement(parser, statement)
           .unwrap_or_default()
       },
-      |parser, statement| match statement {
-        Stmt::Block(stmt) => parser.walk_block_statement(stmt),
-        Stmt::Decl(stmt) => parser.walk_declaration(stmt),
-        Stmt::DoWhile(stmt) => parser.walk_do_while_statement(stmt),
-        Stmt::Expr(stmt) => {
+      |parser, _| match statement {
+        Statement::Block(stmt) => parser.walk_block_statement(stmt),
+        Statement::Class(decl) => parser.walk_class_declaration(decl.into()),
+        Statement::Fn(decl) => parser.walk_function_declaration(decl.into()),
+        Statement::Var(decl) => parser.walk_variable_declaration(decl),
+        Statement::DoWhile(stmt) => parser.walk_do_while_statement(stmt),
+        Statement::Expr(stmt) => {
           // This is a bit different with webpack, so we can easily implement is_statement_level_expression
           // we didn't use pre_statement here like usual, this is referenced from walk_sequence_expression, which did the similar
           let old = parser.statement_path.pop().expect("should in statement");
@@ -228,32 +176,20 @@ impl<'parser> JavascriptParser<'parser> {
           parser.statement_path.pop();
           parser.statement_path.push(old);
         }
-        Stmt::ForIn(stmt) => parser.walk_for_in_statement(stmt),
-        Stmt::ForOf(stmt) => parser.walk_for_of_statement(stmt),
-        Stmt::For(stmt) => parser.walk_for_statement(stmt),
-        Stmt::If(stmt) => parser.walk_if_statement(stmt),
-        Stmt::Labeled(stmt) => parser.walk_labeled_statement(stmt),
-        Stmt::Return(stmt) => parser.walk_return_statement(stmt),
-        Stmt::Switch(stmt) => parser.walk_switch_statement(stmt),
-        Stmt::Throw(stmt) => parser.walk_throw_stmt(stmt),
-        Stmt::Try(stmt) => parser.walk_try_statement(stmt),
-        Stmt::While(stmt) => parser.walk_while_statement(stmt),
-        Stmt::With(stmt) => parser.walk_with_statement(stmt),
+        Statement::ForIn(stmt) => parser.walk_for_in_statement(stmt),
+        Statement::ForOf(stmt) => parser.walk_for_of_statement(stmt),
+        Statement::For(stmt) => parser.walk_for_statement(stmt),
+        Statement::If(stmt) => parser.walk_if_statement(stmt),
+        Statement::Labeled(stmt) => parser.walk_labeled_statement(stmt),
+        Statement::Return(stmt) => parser.walk_return_statement(stmt),
+        Statement::Switch(stmt) => parser.walk_switch_statement(stmt),
+        Statement::Throw(stmt) => parser.walk_throw_stmt(stmt),
+        Statement::Try(stmt) => parser.walk_try_statement(stmt),
+        Statement::While(stmt) => parser.walk_while_statement(stmt),
+        Statement::With(stmt) => parser.walk_with_statement(stmt),
         _ => (),
       },
     );
-  }
-
-  fn walk_declaration(&mut self, decl: &Decl) {
-    match decl {
-      Decl::Class(decl) => self.walk_class_declaration(decl.into()),
-      Decl::Fn(decl) => self.walk_function_declaration(decl.into()),
-      Decl::Var(decl) => self.walk_variable_declaration(decl),
-      Decl::Using(_) => (),
-      Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-        unreachable!()
-      }
-    }
   }
 
   fn walk_with_statement(&mut self, stmt: &WithStmt) {
@@ -268,12 +204,10 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_try_statement(&mut self, stmt: &TryStmt) {
     if self.in_try {
-      // FIXME: webpack use `self.walk_statement(stmt.block)`
-      self.walk_block_statement(&stmt.block);
+      self.walk_statement(Statement::Block(&stmt.block));
     } else {
       self.in_try = true;
-      // FIXME: webpack use `self.walk_statement(stmt.block)`
-      self.walk_block_statement(&stmt.block);
+      self.walk_statement(Statement::Block(&stmt.block));
       self.in_try = false;
     }
 
@@ -282,8 +216,7 @@ impl<'parser> JavascriptParser<'parser> {
     }
 
     if let Some(finalizer) = &stmt.finalizer {
-      // FIXME: webpack use `self.walk_statement(finalizer)`
-      self.walk_block_statement(finalizer);
+      self.walk_statement(Statement::Block(finalizer));
     }
   }
 
@@ -298,8 +231,7 @@ impl<'parser> JavascriptParser<'parser> {
       let prev = this.prev_statement;
       this.block_pre_walk_statements(&catch_clause.body.stmts);
       this.prev_statement = prev;
-      // FIXME: webpack use `this.walk_statement(catch_clause.body)`
-      this.walk_block_statement(&catch_clause.body);
+      this.walk_statement(Statement::Block(&catch_clause.body));
     })
   }
 
@@ -560,18 +492,18 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_sequence_expression(&mut self, expr: &SeqExpr) {
     let exprs = expr.exprs.iter().map(|expr| &**expr);
-    // if self.is_statement_level_expression(expr.span())
-    //   && let Some(old) = self.statement_path.pop()
-    // {
-    //   for expr in exprs {
-    //     self.statement_path.push(expr.span().into());
-    //     self.walk_expression(expr);
-    //     self.statement_path.pop();
-    //   }
-    //   self.statement_path.push(old);
-    // } else {
-    self.walk_expressions(exprs);
-    // }
+    if self.is_statement_level_expression(expr.span())
+      && let Some(old) = self.statement_path.pop()
+    {
+      for expr in exprs {
+        self.statement_path.push(expr.span().into());
+        self.walk_expression(expr);
+        self.statement_path.pop();
+      }
+      self.statement_path.push(old);
+    } else {
+      self.walk_expressions(exprs);
+    }
   }
 
   fn walk_object_expression(&mut self, expr: &ObjectLit) {
@@ -589,7 +521,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_key_value_prop(&mut self, kv: &KeyValueProp) {
     if kv.key.is_computed() {
-      // FIXME: webpack use `walk_expression` here
+      // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_prop_name`
       self.walk_prop_name(&kv.key);
     }
     self.walk_expression(&kv.value);
@@ -893,22 +825,18 @@ impl<'parser> JavascriptParser<'parser> {
         if let Some(stmt) = &expr.function.body {
           parser.detect_mode(&stmt.stmts);
           let prev = parser.prev_statement;
-          // FIXME: webpack use `pre_walk_statement` here
-          parser.pre_walk_block_statement(stmt);
+          parser.pre_walk_statement(Statement::Block(stmt));
           parser.prev_statement = prev;
-          // FIXME: webpack use `walk_statement` here
-          parser.walk_block_statement(stmt);
+          parser.walk_statement(Statement::Block(stmt));
         }
       } else if let Some(expr) = expr.as_arrow() {
         match &*expr.body {
           BlockStmtOrExpr::BlockStmt(stmt) => {
             parser.detect_mode(&stmt.stmts);
             let prev = parser.prev_statement;
-            // FIXME: webpack use `pre_walk_statement` here
-            parser.pre_walk_block_statement(stmt);
+            parser.pre_walk_statement(Statement::Block(stmt));
             parser.prev_statement = prev;
-            // FIXME: webpack use `walk_statement` here
-            parser.walk_block_statement(stmt);
+            parser.walk_statement(Statement::Block(stmt));
           }
           BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
         }
@@ -1152,7 +1080,7 @@ impl<'parser> JavascriptParser<'parser> {
         Cow::Owned(warp_ident_to_pat(ident.clone())),
         |this, ident| {
           // TODO: if (!this.callHooksForName(this.hooks.assign, name, expression)) {
-          // FIXME: webpack use `self.walk_expression`
+          // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_identifier`
           this.walk_identifier(ident);
         },
       );
@@ -1188,11 +1116,9 @@ impl<'parser> JavascriptParser<'parser> {
         BlockStmtOrExpr::BlockStmt(stmt) => {
           this.detect_mode(&stmt.stmts);
           let prev = this.prev_statement;
-          // FIXME: webpack use `pre_walk_statement` here
-          this.pre_walk_block_statement(stmt);
+          this.pre_walk_statement(Statement::Block(stmt));
           this.prev_statement = prev;
-          // FIXME: webpack use `walk_statement` here
-          this.walk_block_statement(stmt);
+          this.walk_statement(Statement::Block(stmt));
         }
         BlockStmtOrExpr::Expr(expr) => this.walk_expression(expr),
       }
@@ -1219,7 +1145,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn walk_nested_statement(&mut self, stmt: &Stmt) {
     self.prev_statement = None;
-    self.walk_statement(stmt);
+    self.walk_statement(stmt.into());
   }
 
   fn walk_do_while_statement(&mut self, stmt: &DoWhileStmt) {
@@ -1260,11 +1186,9 @@ impl<'parser> JavascriptParser<'parser> {
     if let Some(body) = &f.body {
       self.detect_mode(&body.stmts);
       let prev = self.prev_statement;
-      // FIXME: webpack use `pre_walk_statement` here
-      self.pre_walk_block_statement(body);
+      self.pre_walk_statement(Statement::Block(body));
       self.prev_statement = prev;
-      // FIXME: webpack use `walk_statement` here
-      self.walk_block_statement(body);
+      self.walk_statement(Statement::Block(body));
     }
   }
 
@@ -1337,7 +1261,7 @@ impl<'parser> JavascriptParser<'parser> {
       match prop {
         ObjectPatProp::KeyValue(kv) => {
           if kv.key.is_computed() {
-            // FIXME: webpack use `walk_expression` here
+            // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_prop_name`
             self.walk_prop_name(&kv.key);
           }
           self.walk_pattern(&kv.value);
@@ -1404,7 +1328,7 @@ impl<'parser> JavascriptParser<'parser> {
         match class_element {
           ClassMember::Constructor(ctor) => {
             if ctor.key.is_computed() {
-              // FIXME: webpack use `walk_expression` here
+              // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_prop_name`
               this.walk_prop_name(&ctor.key);
             }
 
@@ -1434,7 +1358,7 @@ impl<'parser> JavascriptParser<'parser> {
           }
           ClassMember::Method(method) => {
             if method.key.is_computed() {
-              // FIXME: webpack use `walk_expression` here
+              // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_prop_name`
               this.walk_prop_name(&method.key);
             }
 
@@ -1477,7 +1401,7 @@ impl<'parser> JavascriptParser<'parser> {
           }
           ClassMember::ClassProp(prop) => {
             if prop.key.is_computed() {
-              // FIXME: webpack use `walk_expression` here
+              // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_prop_name`
               this.walk_prop_name(&prop.key);
             }
             if let Some(value) = &prop.value
