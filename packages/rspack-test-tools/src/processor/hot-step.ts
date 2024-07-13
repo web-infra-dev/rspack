@@ -1,8 +1,7 @@
-// this is required for global typing
-import "@rspack/core";
 import path from "path";
 import fs from "fs-extra";
 
+import type { Chunk } from "webpack";
 import { escapeEOL, escapeSep, replacePaths } from "../helper";
 import type { THotStepRuntimeData } from "../runner";
 import type {
@@ -96,10 +95,14 @@ export class HotSnapshotProcessor<
 					assets: true,
 					chunks: true
 				});
-				// @ts-expect-error: Some chunk fields are missing from rspack
-				let chunks = Array.from(stats?.compilation.chunks || NOOP_SET);
+
+				let chunks = Array.from(
+					// Some chunk fields are missing from rspack
+					(stats?.compilation.chunks as unknown as Chunk[]) || NOOP_SET
+				);
+
 				for (let entry of chunks.filter(i => i.hasRuntime())) {
-					if (!this.entries[entry.id!]) {
+					if (!this.entries[entry.id!] && entry.runtime) {
 						this.entries[entry.id!] =
 							// Webpack uses `string | SortableSet<string>` for `entry.runtime`
 							typeof entry.runtime === "string"
@@ -139,14 +142,20 @@ export class HotSnapshotProcessor<
 			return;
 		}
 		const statsJson = stats.toJson({ assets: true, chunks: true });
-		// @ts-expect-error: Some chunk fields are missing from rspack
-		let chunks = Array.from(stats?.compilation.chunks || NOOP_SET);
+
+		let chunks = Array.from(
+			// Some chunk fields are missing from rspack
+			(stats?.compilation.chunks as unknown as Chunk[]) || NOOP_SET
+		);
+
 		for (let entry of chunks.filter(i => i.hasRuntime())) {
-			this.entries[entry.id!] =
-				// Webpack uses `string | SortableSet<string>` for `entry.runtime`
-				typeof entry.runtime === "string"
-					? [entry.runtime]
-					: Array.from(entry.runtime);
+			if (entry.runtime) {
+				this.entries[entry.id!] =
+					// Webpack uses `string | SortableSet<string>` for `entry.runtime`
+					typeof entry.runtime === "string"
+						? [entry.runtime]
+						: Array.from(entry.runtime);
+			}
 		}
 		let matchFailed: Error | null = null;
 		try {
