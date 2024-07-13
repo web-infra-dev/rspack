@@ -363,7 +363,7 @@ pub enum Statement<'ast> {
   // which is represented by ClassExpr but it actually is a ClassDecl without ident
   Class(MaybeNamedClassDecl<'ast>),
   // FnDecl, don't put FnExpr into it, unless it's DefaultDecl::FnExpr
-  // which is represented by FnExpr but it actually is a FnExpr without ident
+  // which is represented by FnExpr but it actually is a FnDecl without ident
   Fn(MaybeNamedFunctionDecl<'ast>),
   Var(&'ast VarDecl),
   Using(&'ast UsingDecl),
