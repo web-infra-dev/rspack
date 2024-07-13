@@ -5,6 +5,8 @@
 
 module.exports = `WARNING in ./style.css
   ⚠ use type 'css' and \`CssExtractRspackPlugin\` together, please set \`experiments.css\` to \`false\` or set \`{ type: "javascript/auto" }\` for rules with \`CssExtractRspackPlugin\` in your rspack config (now \`CssExtractRspackPlugin\` does nothing). 
+ @ ./style.css
 
 WARNING in ./style.css
-  ⚠ ModuleWarning: You can't use \`experiments.css\` (\`experiments.futureDefaults\` enable built-in CSS support by default) and \`css-loader\` together, please set \`experiments.css\` to \`false\` or set \`{ type: "javascript/auto" }\` for rules with \`css-loader\` in your webpack config (now css-loader does nothing). `
+  ⚠ ModuleWarning: You can't use \`experiments.css\` (\`experiments.futureDefaults\` enable built-in CSS support by default) and \`css-loader\` together, please set \`experiments.css\` to \`false\` or set \`{ type: "javascript/auto" }\` for rules with \`css-loader\` in your webpack config (now css-loader does nothing). 
+                 @ ./style.css`;

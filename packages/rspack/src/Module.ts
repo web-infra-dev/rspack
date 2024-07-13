@@ -135,8 +135,5 @@ export class CodeGenerationResult {
 }
 
 export class CodeGenerationResults {
-	#inner: JsCodegenerationResults;
-	constructor(result: JsCodegenerationResults) {
-		this.#inner = result;
-	}
+	constructor(_result: JsCodegenerationResults) {}
 }

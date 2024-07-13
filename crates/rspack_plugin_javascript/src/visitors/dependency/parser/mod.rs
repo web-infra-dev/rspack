@@ -837,19 +837,20 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  // fn enter_statement<H, F>(&mut self, statement: &Stmt, call_hook: H, on_statement: F)
-  // where
-  //   H: FnOnce(&mut Self, &Stmt) -> bool,
-  //   F: FnOnce(&mut Self, &Stmt),
-  // {
-  //   self.statement_path.push(statement.span().into());
-  //   if call_hook(self, statement) {
-  //     self.prev_statement = self.statement_path.pop();
-  //     return;
-  //   }
-  //   on_statement(self, statement);
-  //   self.prev_statement = self.statement_path.pop();
-  // }
+  fn enter_statement<S, H, F>(&mut self, statement: &S, call_hook: H, on_statement: F)
+  where
+    S: Spanned,
+    H: FnOnce(&mut Self, &S) -> bool,
+    F: FnOnce(&mut Self, &S),
+  {
+    self.statement_path.push(statement.span().into());
+    if call_hook(self, statement) {
+      self.prev_statement = self.statement_path.pop();
+      return;
+    }
+    on_statement(self, statement);
+    self.prev_statement = self.statement_path.pop();
+  }
 
   pub fn walk_program(&mut self, ast: &Program) {
     if self.plugin_drive.clone().program(self, ast).is_none() {
@@ -857,9 +858,9 @@ impl<'parser> JavascriptParser<'parser> {
         Program::Module(m) => {
           self.set_strict(true);
           self.prev_statement = None;
-          self.pre_walk_module_declarations(&m.body);
+          self.pre_walk_module_items(&m.body);
           self.prev_statement = None;
-          self.block_pre_walk_module_declarations(&m.body);
+          self.block_pre_walk_module_items(&m.body);
           self.prev_statement = None;
           self.walk_module_declarations(&m.body);
         }

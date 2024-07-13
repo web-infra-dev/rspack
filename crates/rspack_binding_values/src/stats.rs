@@ -24,6 +24,7 @@ pub struct JsStatsError {
   pub chunk_id: Option<String>,
   pub details: Option<String>,
   pub stack: Option<String>,
+  pub module_trace: Vec<JsStatsModuleTrace>,
 }
 
 impl From<rspack_core::StatsError> for JsStatsError {
@@ -40,6 +41,11 @@ impl From<rspack_core::StatsError> for JsStatsError {
       chunk_id: stats.chunk_id,
       details: stats.details,
       stack: stats.stack,
+      module_trace: stats
+        .module_trace
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<_>>(),
     }
   }
 }
@@ -47,10 +53,17 @@ impl From<rspack_core::StatsError> for JsStatsError {
 #[napi(object)]
 pub struct JsStatsWarning {
   pub message: String,
+  pub chunk_name: Option<String>,
+  pub chunk_entry: Option<bool>,
+  pub chunk_initial: Option<bool>,
+  pub file: Option<String>,
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
-  pub file: Option<String>,
+  pub chunk_id: Option<String>,
+  pub details: Option<String>,
+  pub stack: Option<String>,
+  pub module_trace: Vec<JsStatsModuleTrace>,
 }
 
 impl From<rspack_core::StatsWarning> for JsStatsWarning {
@@ -61,6 +74,51 @@ impl From<rspack_core::StatsWarning> for JsStatsWarning {
       module_name: stats.module_name,
       module_id: stats.module_id,
       file: stats.file.map(|f| f.to_string_lossy().to_string()),
+      chunk_name: stats.chunk_name,
+      chunk_entry: stats.chunk_entry,
+      chunk_initial: stats.chunk_initial,
+      chunk_id: stats.chunk_id,
+      details: stats.details,
+      stack: stats.stack,
+      module_trace: stats
+        .module_trace
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<_>>(),
+    }
+  }
+}
+
+#[napi(object)]
+#[derive(Debug)]
+pub struct JsStatsModuleTrace {
+  pub origin: JsStatsModuleTraceModule,
+  pub module: JsStatsModuleTraceModule,
+}
+
+impl From<rspack_core::StatsModuleTrace> for JsStatsModuleTrace {
+  fn from(stats: rspack_core::StatsModuleTrace) -> Self {
+    Self {
+      origin: stats.origin.into(),
+      module: stats.module.into(),
+    }
+  }
+}
+
+#[napi(object)]
+#[derive(Debug)]
+pub struct JsStatsModuleTraceModule {
+  pub identifier: String,
+  pub name: Option<String>,
+  pub id: Option<String>,
+}
+
+impl From<rspack_core::StatsErrorModuleTraceModule> for JsStatsModuleTraceModule {
+  fn from(stats: rspack_core::StatsErrorModuleTraceModule) -> Self {
+    Self {
+      identifier: stats.identifier,
+      name: stats.name,
+      id: stats.id,
     }
   }
 }

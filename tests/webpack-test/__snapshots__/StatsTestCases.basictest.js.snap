@@ -545,6 +545,8 @@ WARNING in ./chunk.js
        3 │     import(/* webpackPrefetch: 0, webpackChunkName: \\"goingToCompileChunkName-b\\" */ \\"./chunk-b\\");
        4 │     import(/* webpack Prefetch: 0, webpackChunkName: \\"notGoingToCompile-c\\" */ \\"./chunk-c\\");
          ╰────
+      
+ @ ./chunk.js [52]
 
 WARNING in ./chunk.js
   ⚠ Module parse warning:
@@ -556,6 +558,8 @@ WARNING in ./chunk.js
          ·     ─────────────────────────────────────────────────────────────────────────────
        6 │ }
          ╰────
+      
+ @ ./chunk.js [52]
 
 Rspack x.x.x compiled with 2 warnings"
 `;
@@ -776,6 +780,82 @@ cacheable modules 110 bytes
 Rspack x.x.x compiled successfully in X s"
 `;
 
+exports[`StatsTestCases should print correct stats for module-trace-disabled-in-error 1`] = `
+"asset main.js 1.58 KiB [emitted] (name: main)
+Entrypoint main 1.58 KiB = main.js
+modules with errors 53 bytes [errors]
+  ./not-existing.js 26 bytes [built] [code generated] [1 error]
+  ./parse-error.js 27 bytes [built] [code generated] [1 error]
+./index.js 19 bytes [built] [code generated]
+./inner.js 53 bytes [built] [code generated]
+
+ERROR in ./not-existing.js
+  × Module not found: Can't resolve 'does-not-exist' in 'Xdir/module-trace-disabled-in-error'
+   ╭────
+ 1 │ require('does-not-exist')
+   · ─────────────────────────
+   ╰────
+ @ ./not-existing.js [195]
+ @ ./inner.js [587]
+
+ERROR in ./parse-error.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭─[1:1]
+       1 │ Here
+       2 │ could
+       3 │ be :)
+         ·     ─
+       4 │ your
+       5 │ code
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+ @ ./parse-error.js [636]
+ @ ./inner.js [587]
+
+Rspack x.x.x compiled with 2 errors in X s"
+`;
+
+exports[`StatsTestCases should print correct stats for module-trace-enabled-in-error 1`] = `
+"asset main.js 1.58 KiB [emitted] (name: main)
+Entrypoint main 1.58 KiB = main.js
+modules with errors 53 bytes [errors]
+  ./not-existing.js 26 bytes [built] [code generated] [1 error]
+  ./parse-error.js 27 bytes [built] [code generated] [1 error]
+./index.js 19 bytes [built] [code generated]
+./inner.js 53 bytes [built] [code generated]
+
+ERROR in ./not-existing.js
+  × Module not found: Can't resolve 'does-not-exist' in 'Xdir/module-trace-enabled-in-error'
+   ╭────
+ 1 │ require('does-not-exist')
+   · ─────────────────────────
+   ╰────
+ @ ./not-existing.js [195]
+ @ ./inner.js [587]
+
+ERROR in ./parse-error.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭─[1:1]
+       1 │ Here
+       2 │ could
+       3 │ be :)
+         ·     ─
+       4 │ your
+       5 │ code
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+ @ ./parse-error.js [636]
+ @ ./inner.js [587]
+
+Rspack x.x.x compiled with 2 errors in X s"
+`;
+
 exports[`StatsTestCases should print correct stats for named-chunk-groups 1`] = `
 "Chunk Group async-a 1 KiB = a-727.js 250 bytes a-async-a.js 778 bytes
 Chunk Group async-b 1 KiB = a-727.js 250 bytes a-async-b.js 778 bytes
@@ -877,6 +957,8 @@ ERROR in ./b.js
       
   help: 
         You may need an appropriate loader to handle this file type.
+ @ ./b.js [996]
+ @ ./a.js
 
 Rspack x.x.x compiled with 1 error"
 `;

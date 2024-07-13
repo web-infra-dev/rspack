@@ -17,3 +17,7 @@ rspack_error    = { path = "../rspack_error" }
 rspack_hook     = { path = "../rspack_hook" }
 rspack_regex    = { path = "../rspack_regex" }
 rspack_util     = { path = "../rspack_util" }
+tracing         = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["tracing"]

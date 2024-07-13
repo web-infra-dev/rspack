@@ -1,24 +1,20 @@
 use std::borrow::Cow;
 
 use rustc_hash::FxHashSet;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{
-  AssignExpr, BlockStmt, CatchClause, ClassDecl, Decl, DefaultDecl, DoWhileStmt, ExportDefaultDecl,
-  Expr, NamedExport,
-};
-use swc_core::ecma::ast::{ExportDecl, FnDecl};
+use swc_core::ecma::ast::{AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, TryStmt, VarDecl, VarDeclKind, VarDeclarator};
 
+use super::estree::{MaybeNamedFunctionDecl, Statement};
 use super::JavascriptParser;
 use crate::parser_plugin::JavascriptParserPlugin;
 use crate::utils::eval;
 
 impl<'parser> JavascriptParser<'parser> {
-  pub fn pre_walk_module_declarations(&mut self, statements: &Vec<ModuleItem>) {
+  pub fn pre_walk_module_items(&mut self, statements: &Vec<ModuleItem>) {
     for statement in statements {
-      self.pre_walk_module_declaration(statement);
+      self.pre_walk_module_item(statement);
     }
   }
 
@@ -28,20 +24,9 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn pre_walk_module_declaration(&mut self, statement: &ModuleItem) {
+  fn pre_walk_module_item(&mut self, statement: &ModuleItem) {
     match statement {
       ModuleItem::ModuleDecl(decl) => {
-        self.statement_path.push(decl.span().into());
-        if self
-          .plugin_drive
-          .clone()
-          .pre_module_declaration(self, decl)
-          .unwrap_or_default()
-        {
-          self.prev_statement = self.statement_path.pop();
-          return;
-        }
-
         match decl {
           ModuleDecl::TsImportEquals(_)
           | ModuleDecl::TsExportAssignment(_)
@@ -50,113 +35,50 @@ impl<'parser> JavascriptParser<'parser> {
             self.is_esm = true;
           }
         };
-
-        match decl {
-          ModuleDecl::ExportDefaultDecl(decl) => {
-            self.pre_walk_export_default_declaration(decl);
-          }
-          ModuleDecl::ExportDecl(decl) => self.pre_walk_export_decl(decl),
-          ModuleDecl::ExportNamed(named) => self.pre_walk_export_named_declaration(named),
-          ModuleDecl::ExportDefaultExpr(_expr) => {
-            // TODO
-          }
-          ModuleDecl::ExportAll(_) | ModuleDecl::Import(_) => (),
-          ModuleDecl::TsImportEquals(_)
-          | ModuleDecl::TsExportAssignment(_)
-          | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
-        };
-
-        self.prev_statement = self.statement_path.pop();
       }
       ModuleItem::Stmt(stmt) => self.pre_walk_statement(stmt),
     }
-    self.prev_statement = self.statement_path.pop();
-  }
-
-  fn pre_walk_export_decl(&mut self, expr: &ExportDecl) {
-    // self.plugin_drive.clone().pre_export_decl(self, expr);
-
-    let decl = Stmt::Decl(expr.decl.clone());
-    self.pre_walk_statement(&decl);
-  }
-
-  fn pre_walk_export_named_declaration(&mut self, _named: &NamedExport) {}
-
-  fn pre_walk_export_default_declaration(&mut self, decl: &ExportDefaultDecl) {
-    match &decl.decl {
-      DefaultDecl::Class(c) => {
-        if let Some(ident) = &c.ident {
-          let stmt = Stmt::Decl(Decl::Class(ClassDecl {
-            ident: ident.clone(),
-            declare: false,
-            class: c.class.clone(),
-          }));
-          self.pre_walk_statement(&stmt);
-        } else {
-          self.pre_walk_expression(&Expr::Class(c.clone()));
-        }
-      }
-      DefaultDecl::Fn(f) => {
-        if let Some(ident) = &f.ident {
-          let stmt = Stmt::Decl(Decl::Fn(FnDecl {
-            ident: ident.clone(),
-            declare: false,
-            function: f.function.clone(),
-          }));
-          self.pre_walk_statement(&stmt);
-        } else {
-          self.pre_walk_expression(&Expr::Fn(f.clone()))
-        }
-      }
-      DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
-    }
-  }
-
-  fn pre_walk_expression(&mut self, _expr: &Expr) {}
-
-  pub fn pre_walk_export_declaration(&mut self, exp: &ExportDecl) {
-    // todo: move `hooks.export_decl.call` here
-    let decl = Stmt::Decl(exp.decl.clone());
-    self.pre_walk_statement(&decl);
-    self.block_pre_walk_statement(&decl);
   }
 
   pub fn pre_walk_statement(&mut self, statement: &Stmt) {
-    self.statement_path.push(statement.span().into());
-    if self
-      .plugin_drive
-      .clone()
-      .pre_statement(self, statement)
-      .unwrap_or_default()
-    {
-      self.prev_statement = self.statement_path.pop();
-      return;
-    }
-
-    match statement {
-      Stmt::Block(stmt) => self.pre_walk_block_statement(stmt),
-      Stmt::DoWhile(stmt) => self.pre_walk_do_while_statement(stmt),
-      Stmt::ForIn(stmt) => self.pre_walk_for_in_statement(stmt),
-      Stmt::ForOf(stmt) => self.pre_walk_for_of_statement(stmt),
-      Stmt::For(stmt) => self.pre_walk_for_statement(stmt),
-      Stmt::Decl(decl) => match decl {
-        Decl::Fn(decl) => self.pre_walk_function_declaration(decl),
-        Decl::Var(decl) => self.pre_walk_variable_declaration(decl),
-        Decl::Class(_) | Decl::Using(_) => (),
-        Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-          unreachable!()
-        }
+    self.enter_statement(
+      statement,
+      |parser, statement| {
+        parser
+          .plugin_drive
+          .clone()
+          .pre_statement(parser, Statement::Stmt(statement))
+          .unwrap_or_default()
       },
-      Stmt::If(stmt) => self.pre_walk_if_statement(stmt),
-      Stmt::Labeled(stmt) => self.pre_walk_labeled_statement(stmt),
-      Stmt::Switch(stmt) => self.pre_walk_switch_statement(stmt),
-      Stmt::Try(stmt) => self.pre_walk_try_statement(stmt),
-      Stmt::While(stmt) => self.pre_walk_while_statement(stmt),
-      Stmt::With(stmt) => self.pre_walk_with_statement(stmt),
-      _ => (),
-    };
+      |parser, statement| {
+        match statement {
+          Stmt::Block(stmt) => parser.pre_walk_block_statement(stmt),
+          Stmt::DoWhile(stmt) => parser.pre_walk_do_while_statement(stmt),
+          Stmt::ForIn(stmt) => parser.pre_walk_for_in_statement(stmt),
+          Stmt::ForOf(stmt) => parser.pre_walk_for_of_statement(stmt),
+          Stmt::For(stmt) => parser.pre_walk_for_statement(stmt),
+          Stmt::Decl(decl) => parser.pre_walk_declaration(decl),
+          Stmt::If(stmt) => parser.pre_walk_if_statement(stmt),
+          Stmt::Labeled(stmt) => parser.pre_walk_labeled_statement(stmt),
+          Stmt::Switch(stmt) => parser.pre_walk_switch_statement(stmt),
+          Stmt::Try(stmt) => parser.pre_walk_try_statement(stmt),
+          Stmt::While(stmt) => parser.pre_walk_while_statement(stmt),
+          Stmt::With(stmt) => parser.pre_walk_with_statement(stmt),
+          _ => (),
+        };
+      },
+    );
+  }
 
-    self.prev_statement = self.statement_path.pop();
+  pub fn pre_walk_declaration(&mut self, decl: &Decl) {
+    match decl {
+      Decl::Fn(decl) => self.pre_walk_function_declaration(decl.into()),
+      Decl::Var(decl) => self.pre_walk_variable_declaration(decl),
+      Decl::Class(_) | Decl::Using(_) => (),
+      Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
+        unreachable!()
+      }
+    }
   }
 
   fn pre_walk_with_statement(&mut self, stmt: &WithStmt) {
@@ -205,8 +127,10 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn pre_walk_function_declaration(&mut self, decl: &FnDecl) {
-    self.define_variable(decl.ident.sym.to_string());
+  pub fn pre_walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
+    if let Some(ident) = &decl.ident {
+      self.define_variable(ident.sym.to_string());
+    }
   }
 
   fn pre_walk_for_statement(&mut self, stmt: &ForStmt) {

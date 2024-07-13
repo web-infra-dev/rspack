@@ -14,5 +14,8 @@ regex        = { workspace = true }
 rspack_core  = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_hook  = { path = "../rspack_hook" }
+swc_core     = { workspace = true, features = ["css_codegen", "css_parser", "css_minifier"] }
+tracing      = { workspace = true }
 
-swc_core = { workspace = true, features = ["css_codegen", "css_parser", "css_minifier"] }
+[package.metadata.cargo-shear]
+ignored = ["tracing"]

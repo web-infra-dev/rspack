@@ -6,7 +6,7 @@ use swc_core::{common::Spanned, ecma::ast::CallExpr};
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::CommonJsRequireContextDependency,
-  visitors::{expr_name, JavascriptParser, TagInfoData},
+  visitors::{expr_name, JavascriptParser, Statement, TagInfoData},
 };
 
 const NESTED_WEBPACK_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identifier__";
@@ -116,15 +116,14 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     None
   }
 
-  fn pre_statement(
-    &self,
-    parser: &mut JavascriptParser,
-    stmt: &swc_core::ecma::ast::Stmt,
-  ) -> Option<bool> {
-    let Some(fn_decl) = stmt.as_decl().and_then(|decl| decl.as_fn_decl()) else {
+  fn pre_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+    let Some(fn_decl) = stmt.as_function_decl() else {
       return None;
     };
-    let name = fn_decl.ident.sym.as_str();
+    let Some(ident) = fn_decl.ident else {
+      return None;
+    };
+    let name = ident.sym.as_str();
     if name != RuntimeGlobals::REQUIRE.name() {
       None
     } else {
@@ -134,8 +133,8 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         name: format!("__nested_webpack_require_{low}_{hi}__"),
         update: false,
         loc: DependencyLocation::new(
-          fn_decl.ident.span().real_lo(),
-          fn_decl.ident.span().real_hi(),
+          ident.span().real_lo(),
+          ident.span().real_hi(),
           Some(parser.source_map.clone()),
         ),
       };

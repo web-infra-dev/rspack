@@ -6,9 +6,9 @@ use swc_core::ecma::ast::{
   Param, SimpleAssignTarget,
 };
 use swc_core::ecma::ast::{BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause};
-use swc_core::ecma::ast::{Class, ClassDecl, ClassExpr, ClassMember, CondExpr, Decl, DefaultDecl};
+use swc_core::ecma::ast::{Class, ClassExpr, ClassMember, CondExpr, Decl, DefaultDecl};
 use swc_core::ecma::ast::{DoWhileStmt, ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr};
-use swc_core::ecma::ast::{ExprOrSpread, ExprStmt, FnDecl, MemberExpr, MemberProp, VarDeclOrExpr};
+use swc_core::ecma::ast::{ExprOrSpread, ExprStmt, MemberExpr, MemberProp, VarDeclOrExpr};
 use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValueProp};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
 use swc_core::ecma::ast::{MetaPropExpr, NewExpr, ObjectLit, OptCall};
@@ -18,7 +18,7 @@ use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, Seq
 use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, YieldExpr};
 use swc_core::ecma::ast::{ThrowStmt, UnaryExpr, UpdateExpr};
 
-use super::estree::ClassDeclOrExpr;
+use super::estree::{ClassDeclOrExpr, MaybeNamedClassDecl, MaybeNamedFunctionDecl, Statement};
 use super::{
   AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName,
   TopLevelScope,
@@ -111,38 +111,44 @@ impl<'parser> JavascriptParser<'parser> {
   fn walk_module_declaration(&mut self, statement: &ModuleItem) {
     match statement {
       ModuleItem::ModuleDecl(m) => {
-        self.statement_path.push(m.span().into());
-
-        if self
-          .plugin_drive
-          .clone()
-          .module_declaration(self, m)
-          .unwrap_or_default()
-        {
-          self.prev_statement = self.statement_path.pop();
-          return;
-        }
-
-        match m {
-          ModuleDecl::ExportDefaultDecl(decl) => {
-            self.walk_export_default_declaration(decl);
-          }
-          ModuleDecl::ExportDecl(decl) => self.walk_export_decl(decl),
-          ModuleDecl::ExportDefaultExpr(expr) => self.walk_export_default_expr(expr),
-          ModuleDecl::ExportAll(_) | ModuleDecl::ExportNamed(_) | ModuleDecl::Import(_) => (),
-          ModuleDecl::TsImportEquals(_)
-          | ModuleDecl::TsExportAssignment(_)
-          | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
-        }
-        self.prev_statement = self.statement_path.pop();
+        self.enter_statement(
+          m,
+          |parser, m| {
+            parser
+              .plugin_drive
+              .clone()
+              .module_declaration(parser, m)
+              .unwrap_or_default()
+          },
+          |parser, m| match m {
+            ModuleDecl::ExportDefaultDecl(decl) => {
+              parser.walk_export_default_declaration(decl);
+            }
+            ModuleDecl::ExportDecl(decl) => parser.walk_export_decl(decl),
+            ModuleDecl::ExportDefaultExpr(expr) => parser.walk_export_default_expr(expr),
+            ModuleDecl::ExportAll(_) | ModuleDecl::ExportNamed(_) | ModuleDecl::Import(_) => (),
+            ModuleDecl::TsImportEquals(_)
+            | ModuleDecl::TsExportAssignment(_)
+            | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
+          },
+        );
       }
       ModuleItem::Stmt(s) => self.walk_statement(s),
     }
   }
 
-  fn walk_export_decl(&mut self, expr: &ExportDecl) {
-    let decl = Stmt::Decl(expr.decl.clone());
-    self.walk_statement(&decl);
+  fn walk_export_decl(&mut self, decl: &ExportDecl) {
+    self.enter_statement(
+      &decl.decl,
+      |parser, decl| {
+        parser
+          .plugin_drive
+          .clone()
+          .statement(parser, Statement::ExportDecl(decl))
+          .unwrap_or_default()
+      },
+      |parser, decl| parser.walk_declaration(decl),
+    );
   }
 
   fn walk_export_default_expr(&mut self, expr: &ExportDefaultExpr) {
@@ -152,28 +158,42 @@ impl<'parser> JavascriptParser<'parser> {
   fn walk_export_default_declaration(&mut self, decl: &ExportDefaultDecl) {
     match &decl.decl {
       DefaultDecl::Class(c) => {
-        if let Some(ident) = &c.ident {
-          let stmt = Stmt::Decl(Decl::Class(ClassDecl {
-            ident: ident.clone(),
-            declare: false,
-            class: c.class.clone(),
-          }));
-          self.walk_statement(&stmt);
-        } else {
-          self.walk_expression(&Expr::Class(c.clone()));
-        }
+        let maybe_named_class_decl = MaybeNamedClassDecl {
+          span: c.span(),
+          ident: c.ident.as_ref(),
+          class: &c.class,
+        };
+        let stmt = Statement::ExportDefaultClass(maybe_named_class_decl);
+        self.enter_statement(
+          &decl.decl,
+          |parser, _| {
+            parser
+              .plugin_drive
+              .clone()
+              .statement(parser, stmt)
+              .unwrap_or_default()
+          },
+          |parser, _| parser.walk_class_declaration(maybe_named_class_decl),
+        );
       }
       DefaultDecl::Fn(f) => {
-        if let Some(ident) = &f.ident {
-          let stmt = Stmt::Decl(Decl::Fn(FnDecl {
-            ident: ident.clone(),
-            declare: false,
-            function: f.function.clone(),
-          }));
-          self.walk_statement(&stmt);
-        } else {
-          self.walk_expression(&Expr::Fn(f.clone()))
-        }
+        let maybe_named_fn_decl = MaybeNamedFunctionDecl {
+          span: f.span(),
+          ident: f.ident.as_ref(),
+          function: &f.function,
+        };
+        let stmt = Statement::ExportDefaultFn(maybe_named_fn_decl);
+        self.enter_statement(
+          &decl.decl,
+          |parser, _| {
+            parser
+              .plugin_drive
+              .clone()
+              .statement(parser, stmt)
+              .unwrap_or_default()
+          },
+          |parser, _| parser.walk_function_declaration(maybe_named_fn_decl),
+        );
       }
       DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
     }
@@ -186,54 +206,54 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_statement(&mut self, statement: &Stmt) {
-    self.statement_path.push(statement.span().into());
-
-    if self
-      .plugin_drive
-      .clone()
-      .statement(self, statement)
-      .unwrap_or_default()
-    {
-      self.prev_statement = self.statement_path.pop();
-      return;
-    }
-
-    match statement {
-      Stmt::Block(stmt) => self.walk_block_statement(stmt),
-      Stmt::Decl(stmt) => match stmt {
-        Decl::Class(decl) => self.walk_class_declaration(decl),
-        Decl::Fn(decl) => self.walk_function_declaration(decl),
-        Decl::Var(decl) => self.walk_variable_declaration(decl),
-        Decl::Using(_) => (),
-        Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-          unreachable!()
-        }
+    self.enter_statement(
+      statement,
+      |parser, statement| {
+        parser
+          .plugin_drive
+          .clone()
+          .statement(parser, Statement::Stmt(statement))
+          .unwrap_or_default()
       },
-      Stmt::DoWhile(stmt) => self.walk_do_while_statement(stmt),
-      Stmt::Expr(stmt) => {
-        // This is a bit different with webpack, so we can easily implement is_statement_level_expression
-        // we didn't use pre_statement here like usual, this is referenced from walk_sequence_expression, which did the similar
-        let old = self.statement_path.pop().expect("should in statement");
-        self.statement_path.push(stmt.expr.span().into());
-        self.walk_expression_statement(stmt);
-        self.statement_path.pop();
-        self.statement_path.push(old);
-      }
-      Stmt::ForIn(stmt) => self.walk_for_in_statement(stmt),
-      Stmt::ForOf(stmt) => self.walk_for_of_statement(stmt),
-      Stmt::For(stmt) => self.walk_for_statement(stmt),
-      Stmt::If(stmt) => self.walk_if_statement(stmt),
-      Stmt::Labeled(stmt) => self.walk_labeled_statement(stmt),
-      Stmt::Return(stmt) => self.walk_return_statement(stmt),
-      Stmt::Switch(stmt) => self.walk_switch_statement(stmt),
-      Stmt::Throw(stmt) => self.walk_throw_stmt(stmt),
-      Stmt::Try(stmt) => self.walk_try_statement(stmt),
-      Stmt::While(stmt) => self.walk_while_statement(stmt),
-      Stmt::With(stmt) => self.walk_with_statement(stmt),
-      _ => (),
-    }
+      |parser, statement| match statement {
+        Stmt::Block(stmt) => parser.walk_block_statement(stmt),
+        Stmt::Decl(stmt) => parser.walk_declaration(stmt),
+        Stmt::DoWhile(stmt) => parser.walk_do_while_statement(stmt),
+        Stmt::Expr(stmt) => {
+          // This is a bit different with webpack, so we can easily implement is_statement_level_expression
+          // we didn't use pre_statement here like usual, this is referenced from walk_sequence_expression, which did the similar
+          let old = parser.statement_path.pop().expect("should in statement");
+          parser.statement_path.push(stmt.expr.span().into());
+          parser.walk_expression_statement(stmt);
+          parser.statement_path.pop();
+          parser.statement_path.push(old);
+        }
+        Stmt::ForIn(stmt) => parser.walk_for_in_statement(stmt),
+        Stmt::ForOf(stmt) => parser.walk_for_of_statement(stmt),
+        Stmt::For(stmt) => parser.walk_for_statement(stmt),
+        Stmt::If(stmt) => parser.walk_if_statement(stmt),
+        Stmt::Labeled(stmt) => parser.walk_labeled_statement(stmt),
+        Stmt::Return(stmt) => parser.walk_return_statement(stmt),
+        Stmt::Switch(stmt) => parser.walk_switch_statement(stmt),
+        Stmt::Throw(stmt) => parser.walk_throw_stmt(stmt),
+        Stmt::Try(stmt) => parser.walk_try_statement(stmt),
+        Stmt::While(stmt) => parser.walk_while_statement(stmt),
+        Stmt::With(stmt) => parser.walk_with_statement(stmt),
+        _ => (),
+      },
+    );
+  }
 
-    self.prev_statement = self.statement_path.pop();
+  fn walk_declaration(&mut self, decl: &Decl) {
+    match decl {
+      Decl::Class(decl) => self.walk_class_declaration(decl.into()),
+      Decl::Fn(decl) => self.walk_function_declaration(decl.into()),
+      Decl::Var(decl) => self.walk_variable_declaration(decl),
+      Decl::Using(_) => (),
+      Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
+        unreachable!()
+      }
+    }
   }
 
   fn walk_with_statement(&mut self, stmt: &WithStmt) {
@@ -683,11 +703,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_class_expression(&mut self, expr: &ClassExpr) {
-    self.walk_class(
-      expr.ident.as_ref(),
-      &expr.class,
-      ClassDeclOrExpr::Expr(expr),
-    );
+    self.walk_class(&expr.class, ClassDeclOrExpr::Expr(expr));
   }
 
   fn walk_chain_expression(&mut self, expr: &OptChainExpr) {
@@ -804,6 +820,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_opt_call(&mut self, expr: &OptCall) {
+    // TODO: remove clone
     self.walk_call_expression(&CallExpr {
       span: expr.span,
       callee: Callee::Expr(expr.callee.clone()),
@@ -1219,7 +1236,7 @@ impl<'parser> JavascriptParser<'parser> {
     })
   }
 
-  fn walk_function_declaration(&mut self, decl: &FnDecl) {
+  fn walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
     let was_top_level = self.top_level_scope;
     self.top_level_scope = TopLevelScope::False;
     self.in_function_scope(
@@ -1230,7 +1247,7 @@ impl<'parser> JavascriptParser<'parser> {
         .iter()
         .map(|param| Cow::Borrowed(&param.pat)),
       |this| {
-        this.walk_function(&decl.function);
+        this.walk_function(decl.function);
       },
     );
     self.top_level_scope = was_top_level;
@@ -1348,16 +1365,11 @@ impl<'parser> JavascriptParser<'parser> {
       .for_each(|ele| self.walk_pattern(ele));
   }
 
-  fn walk_class_declaration(&mut self, decl: &ClassDecl) {
-    self.walk_class(Some(&decl.ident), &decl.class, ClassDeclOrExpr::Decl(decl));
+  fn walk_class_declaration(&mut self, decl: MaybeNamedClassDecl) {
+    self.walk_class(decl.class, ClassDeclOrExpr::Decl(decl));
   }
 
-  fn walk_class(
-    &mut self,
-    ident: Option<&Ident>,
-    classy: &Class,
-    class_decl_or_expr: ClassDeclOrExpr,
-  ) {
+  fn walk_class(&mut self, classy: &Class, class_decl_or_expr: ClassDeclOrExpr) {
     if let Some(super_class) = &classy.super_class {
       if !self
         .plugin_drive
@@ -1369,7 +1381,10 @@ impl<'parser> JavascriptParser<'parser> {
       }
     }
 
-    let scope_params = if let Some(pat) = ident.map(|ident| warp_ident_to_pat(ident.clone())) {
+    let scope_params = if let Some(pat) = class_decl_or_expr
+      .ident()
+      .map(|ident| warp_ident_to_pat(ident.clone()))
+    {
       vec![Cow::Owned(pat)]
     } else {
       vec![]

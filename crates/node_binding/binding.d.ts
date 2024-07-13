@@ -597,6 +597,7 @@ export interface JsStatsError {
   chunkId?: string
   details?: string
   stack?: string
+  moduleTrace: Array<JsStatsModuleTrace>
 }
 
 export interface JsStatsGetAssets {
@@ -673,6 +674,17 @@ export interface JsStatsModuleReason {
   userRequest?: string
 }
 
+export interface JsStatsModuleTrace {
+  origin: JsStatsModuleTraceModule
+  module: JsStatsModuleTraceModule
+}
+
+export interface JsStatsModuleTraceModule {
+  identifier: string
+  name?: string
+  id?: string
+}
+
 export interface JsStatsOptimizationBailout {
   inner: string
 }
@@ -684,10 +696,17 @@ export interface JsStatsSize {
 
 export interface JsStatsWarning {
   message: string
+  chunkName?: string
+  chunkEntry?: boolean
+  chunkInitial?: boolean
+  file?: string
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
-  file?: string
+  chunkId?: string
+  details?: string
+  stack?: string
+  moduleTrace: Array<JsStatsModuleTrace>
 }
 
 export interface JsTap {

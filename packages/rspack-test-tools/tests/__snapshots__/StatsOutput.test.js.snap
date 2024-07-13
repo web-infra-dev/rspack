@@ -302,6 +302,8 @@ exports[`statsOutput statsOutput/parse-error should print correct stats for 1`] 
       
   help: 
         You may need an appropriate loader to handle this file type.
+ @ ./b.js [996]
+ @ ./a.js
 
 Rspack compiled with 1 error"
 `;

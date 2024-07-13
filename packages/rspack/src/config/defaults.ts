@@ -15,7 +15,6 @@ import path from "path";
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
 import {
 	LightningCssMinimizerRspackPlugin,
-	SwcCssMinimizerRspackPlugin,
 	SwcJsMinimizerRspackPlugin
 } from "../builtin-plugin";
 import { isNil } from "../util";

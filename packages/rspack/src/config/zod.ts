@@ -1,8 +1,4 @@
-import {
-	type JsAssetInfo,
-	JsModule,
-	type RawFuncUseCtx
-} from "@rspack/binding";
+import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
 import type * as webpackDevServer from "webpack-dev-server";
 import { z } from "zod";
 

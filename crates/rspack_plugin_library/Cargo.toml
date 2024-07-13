@@ -18,3 +18,7 @@ rspack_identifier        = { path = "../rspack_identifier" }
 rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
 rspack_util              = { path = "../rspack_util" }
 serde_json               = { workspace = true }
+tracing                  = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["tracing"]

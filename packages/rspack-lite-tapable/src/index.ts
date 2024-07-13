@@ -344,7 +344,7 @@ export class QueriedHook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 	tapsInRange: (FullTap & IfSet<AdditionalOptions>)[];
 
 	constructor(stageRange: StageRange, hook: HookBase<T, R, AdditionalOptions>) {
-		const tapsInRange = [];
+		const tapsInRange: typeof hook.taps = [];
 		const [from, to] = stageRange;
 		for (let tap of hook.taps) {
 			const stage = tap.stage ?? 0;
@@ -627,7 +627,7 @@ export class AsyncParallelHook<
 		...args: Append<AsArray<T>, Callback<Error, void>>
 	) {
 		const {
-			stageRange: [from, to],
+			stageRange: [from],
 			tapsInRange
 		} = queried;
 		const argsWithoutCb = args.slice(0, args.length - 1) as AsArray<T>;
@@ -708,7 +708,7 @@ export class AsyncSeriesHook<
 		...args: Append<AsArray<T>, Callback<Error, void>>
 	) {
 		const {
-			stageRange: [from, to],
+			stageRange: [from],
 			tapsInRange
 		} = queried;
 		const argsWithoutCb = args.slice(0, args.length - 1) as AsArray<T>;
@@ -801,7 +801,7 @@ export class AsyncSeriesBailHook<
 		...args: Append<AsArray<T>, Callback<Error, R>>
 	) {
 		const {
-			stageRange: [from, to],
+			stageRange: [from],
 			tapsInRange
 		} = queried;
 		const argsWithoutCb = args.slice(0, args.length - 1) as AsArray<T>;
@@ -913,7 +913,7 @@ export class AsyncSeriesWaterfallHook<
 		...args: Append<AsArray<T>, Callback<Error, AsArray<T>[0]>>
 	) {
 		const {
-			stageRange: [from, to],
+			stageRange: [from],
 			tapsInRange
 		} = queried;
 		const argsWithoutCb = args.slice(0, args.length - 1) as AsArray<T>;
