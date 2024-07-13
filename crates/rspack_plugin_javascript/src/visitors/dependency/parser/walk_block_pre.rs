@@ -1,11 +1,10 @@
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{Decl, DefaultDecl, ExprStmt};
+use swc_core::ecma::ast::{DefaultDecl, ExprStmt};
 use swc_core::ecma::ast::{ExportSpecifier, ImportDecl, ImportSpecifier, ModuleExportName};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, Stmt, VarDecl, VarDeclKind};
 
 use super::estree::{
   ExportAllDeclaration, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport,
-  ExportLocal, ExportNamedDeclaration, MaybeNamedClassDecl, MaybeNamedFunctionDecl, Statement,
+  ExportLocal, ExportNamedDeclaration, MaybeNamedClassDecl, Statement,
 };
 use super::JavascriptParser;
 use crate::parser_plugin::JavascriptParserPlugin;
@@ -78,11 +77,11 @@ impl<'parser> JavascriptParser<'parser> {
         parser
           .plugin_drive
           .clone()
-          .block_pre_statement(parser, stmt.into())
+          .block_pre_statement(parser, stmt)
           .unwrap_or_default()
       },
       |parser, _| match stmt {
-        Statement::Class(decl) => parser.block_pre_walk_class_declaration(decl.into()),
+        Statement::Class(decl) => parser.block_pre_walk_class_declaration(decl),
         Statement::Var(decl) => parser.block_pre_walk_variable_declaration(decl),
         Statement::Expr(expr) => parser.block_pre_walk_expression_statement(expr),
         _ => (),
@@ -103,7 +102,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn block_pre_walk_class_declaration(&mut self, decl: MaybeNamedClassDecl) {
-    if let Some(ident) = decl.ident {
+    if let Some(ident) = decl.ident() {
       self.define_variable(ident.sym.to_string())
     }
   }

@@ -255,9 +255,9 @@ impl ExportLocal<'_> {
 
 #[derive(Debug, Clone, Copy)]
 pub struct MaybeNamedFunctionDecl<'ast> {
-  pub span: Span,
-  pub ident: Option<&'ast Ident>,
-  pub function: &'ast Function,
+  span: Span,
+  ident: Option<&'ast Ident>,
+  function: &'ast Function,
 }
 
 impl Spanned for MaybeNamedFunctionDecl<'_> {
@@ -286,11 +286,21 @@ impl<'ast> From<&'ast FnExpr> for MaybeNamedFunctionDecl<'ast> {
   }
 }
 
+impl MaybeNamedFunctionDecl<'_> {
+  pub fn ident(&self) -> Option<&Ident> {
+    self.ident
+  }
+
+  pub fn function(&self) -> &Function {
+    self.function
+  }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct MaybeNamedClassDecl<'ast> {
-  pub span: Span,
-  pub ident: Option<&'ast Ident>,
-  pub class: &'ast Class,
+  span: Span,
+  ident: Option<&'ast Ident>,
+  class: &'ast Class,
 }
 
 impl Spanned for MaybeNamedClassDecl<'_> {
@@ -316,6 +326,16 @@ impl<'ast> From<&'ast ClassExpr> for MaybeNamedClassDecl<'ast> {
       ident: value.ident.as_ref(),
       class: &value.class,
     }
+  }
+}
+
+impl MaybeNamedClassDecl<'_> {
+  pub fn ident(&self) -> Option<&Ident> {
+    self.ident
+  }
+
+  pub fn class(&self) -> &Class {
+    self.class
   }
 }
 

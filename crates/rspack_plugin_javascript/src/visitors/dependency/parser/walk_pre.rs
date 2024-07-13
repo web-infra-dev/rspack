@@ -57,7 +57,7 @@ impl<'parser> JavascriptParser<'parser> {
           Statement::ForIn(stmt) => parser.pre_walk_for_in_statement(stmt),
           Statement::ForOf(stmt) => parser.pre_walk_for_of_statement(stmt),
           Statement::For(stmt) => parser.pre_walk_for_statement(stmt),
-          Statement::Fn(stmt) => parser.pre_walk_function_declaration(stmt.into()),
+          Statement::Fn(stmt) => parser.pre_walk_function_declaration(stmt),
           Statement::Var(stmt) => parser.pre_walk_variable_declaration(stmt),
           Statement::If(stmt) => parser.pre_walk_if_statement(stmt),
           Statement::Labeled(stmt) => parser.pre_walk_labeled_statement(stmt),
@@ -126,7 +126,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn pre_walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
-    if let Some(ident) = &decl.ident {
+    if let Some(ident) = decl.ident() {
       self.define_variable(ident.sym.to_string());
     }
   }

@@ -6,8 +6,8 @@ use swc_core::ecma::ast::{
   Param, SimpleAssignTarget,
 };
 use swc_core::ecma::ast::{BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause};
-use swc_core::ecma::ast::{Class, ClassExpr, ClassMember, CondExpr, Decl, DefaultDecl};
-use swc_core::ecma::ast::{DoWhileStmt, ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr};
+use swc_core::ecma::ast::{Class, ClassExpr, ClassMember, CondExpr, DefaultDecl};
+use swc_core::ecma::ast::{DoWhileStmt, ExportDefaultDecl, Expr};
 use swc_core::ecma::ast::{ExprOrSpread, ExprStmt, MemberExpr, MemberProp, VarDeclOrExpr};
 use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValueProp};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
@@ -163,8 +163,8 @@ impl<'parser> JavascriptParser<'parser> {
       },
       |parser, _| match statement {
         Statement::Block(stmt) => parser.walk_block_statement(stmt),
-        Statement::Class(decl) => parser.walk_class_declaration(decl.into()),
-        Statement::Fn(decl) => parser.walk_function_declaration(decl.into()),
+        Statement::Class(decl) => parser.walk_class_declaration(decl),
+        Statement::Fn(decl) => parser.walk_function_declaration(decl),
         Statement::Var(decl) => parser.walk_variable_declaration(decl),
         Statement::DoWhile(stmt) => parser.walk_do_while_statement(stmt),
         Statement::Expr(stmt) => {
@@ -1168,12 +1168,12 @@ impl<'parser> JavascriptParser<'parser> {
     self.in_function_scope(
       true,
       decl
-        .function
+        .function()
         .params
         .iter()
         .map(|param| Cow::Borrowed(&param.pat)),
       |this| {
-        this.walk_function(decl.function);
+        this.walk_function(decl.function());
       },
     );
     self.top_level_scope = was_top_level;
@@ -1290,7 +1290,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn walk_class_declaration(&mut self, decl: MaybeNamedClassDecl) {
-    self.walk_class(decl.class, ClassDeclOrExpr::Decl(decl));
+    self.walk_class(decl.class(), ClassDeclOrExpr::Decl(decl));
   }
 
   fn walk_class(&mut self, classy: &Class, class_decl_or_expr: ClassDeclOrExpr) {

@@ -29,7 +29,6 @@ use swc_core::ecma::ast::{
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 use swc_core::ecma::utils::ExprFactory;
 
-use super::Statement;
 use crate::parser_plugin::InnerGraphState;
 use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
