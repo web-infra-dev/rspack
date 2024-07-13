@@ -4875,9 +4875,9 @@ export type LightningcssLoaderOptions = {
 
 // @public (undocumented)
 export const LightningCssMinimizerRspackPlugin: {
-    new (options?: Partial<RawLightningCssMinimizerRspackPluginOptions> | undefined): {
+    new (options?: LightningCssMinimizerRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
-        _args: [options?: Partial<RawLightningCssMinimizerRspackPluginOptions> | undefined];
+        _args: [options?: LightningCssMinimizerRspackPluginOptions | undefined];
         affectedHooks: "done" | "compilation" | "failed" | "environment" | "emit" | "make" | "compile" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
@@ -4885,7 +4885,11 @@ export const LightningCssMinimizerRspackPlugin: {
 };
 
 // @public (undocumented)
-export type LightningCssMinimizerRspackPluginOptions = Partial<RawLightningCssMinimizerRspackPluginOptions>;
+export type LightningCssMinimizerRspackPluginOptions = Partial<RawLightningCssMinimizerRspackPluginOptions> & {
+    test?: MinifyConditions_2;
+    exclude?: MinifyConditions_2;
+    include?: MinifyConditions_2;
+};
 
 // @public (undocumented)
 type LimitChunkCountOptions = {
