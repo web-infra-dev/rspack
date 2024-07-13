@@ -20,13 +20,6 @@ pub struct SwcCssMinimizerRspackPluginOptions {
   pub exclude: Option<SwcCssMinimizerRules>,
 }
 
-impl std::hash::Hash for SwcCssMinimizerRspackPluginOptions {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.test.hash(state);
-    self.include.hash(state);
-    self.exclude.hash(state);
-  }
-}
 
 #[plugin]
 #[derive(Debug, Default)]
