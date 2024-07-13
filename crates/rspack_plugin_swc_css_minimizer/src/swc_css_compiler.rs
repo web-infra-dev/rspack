@@ -12,8 +12,6 @@ use swc_core::css::minifier;
 use swc_core::css::parser::{lexer::Lexer, parser::ParserConfig};
 use swc_core::css::{ast::Stylesheet, parser::parser::Parser};
 
-use crate::SwcCssMinimizerRspackPluginOptions;
-
 #[derive(Default)]
 pub struct SwcCssCompiler {
   cm: Arc<swc_core::common::SourceMap>,
@@ -91,25 +89,6 @@ impl SwcCssCompiler {
       Ok(rspack_sources::RawSource::from(code).boxed())
     }
   }
-}
-
-pub fn match_object(obj: &SwcCssMinimizerRspackPluginOptions, str: &str) -> Result<bool> {
-  if let Some(condition) = &obj.test {
-    if !condition.try_match(str)? {
-      return Ok(false);
-    }
-  }
-  if let Some(condition) = &obj.include {
-    if !condition.try_match(str)? {
-      return Ok(false);
-    }
-  }
-  if let Some(condition) = &obj.exclude {
-    if condition.try_match(str)? {
-      return Ok(false);
-    }
-  }
-  Ok(true)
 }
 
 #[derive(Debug, Clone)]

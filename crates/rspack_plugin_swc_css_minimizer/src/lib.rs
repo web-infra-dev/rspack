@@ -8,7 +8,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
-use swc_css_compiler::{match_object, SwcCssCompiler, SwcCssSourceMapGenConfig};
+use swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig};
 
 static CSS_ASSET_REGEXP: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
@@ -139,4 +139,23 @@ impl SwcCssMinimizerRules {
       Self::Array(l) => try_any_sync(l, |i| i.try_match(data)),
     }
   }
+}
+
+pub fn match_object(obj: &SwcCssMinimizerRspackPluginOptions, str: &str) -> Result<bool> {
+  if let Some(condition) = &obj.test {
+    if !condition.try_match(str)? {
+      return Ok(false);
+    }
+  }
+  if let Some(condition) = &obj.include {
+    if !condition.try_match(str)? {
+      return Ok(false);
+    }
+  }
+  if let Some(condition) = &obj.exclude {
+    if condition.try_match(str)? {
+      return Ok(false);
+    }
+  }
+  Ok(true)
 }
