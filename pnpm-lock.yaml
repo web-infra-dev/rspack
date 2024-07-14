@@ -534,6 +534,9 @@ importers:
       '@rspack/test-tools':
         specifier: workspace:*
         version: link:../rspack-test-tools
+      '@swc/helpers':
+        specifier: 0.5.8
+        version: 0.5.8
       '@swc/plugin-prefresh':
         specifier: ^2.0.7
         version: 2.0.7
