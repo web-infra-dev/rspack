@@ -20,7 +20,6 @@ pub struct SwcCssMinimizerRspackPluginOptions {
   pub exclude: Option<SwcCssMinimizerRules>,
 }
 
-
 #[plugin]
 #[derive(Debug, Default)]
 pub struct SwcCssMinimizerRspackPlugin {
