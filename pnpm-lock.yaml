@@ -699,8 +699,8 @@ importers:
         specifier: 3.36.1
         version: 3.36.1
       css-loader:
-        specifier: ^5.2.7
-        version: 5.2.7(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
+        specifier: ^6.11.0
+        version: 6.11.0(@rspack/core@packages+rspack)(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
       file-loader:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
@@ -14414,20 +14414,6 @@ snapshots:
       schema-utils: 3.3.0
       semver: 7.6.0
       webpack: 5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.1))(webpack-cli@5.1.4(webpack@5.92.0))
-
-  css-loader@5.2.7(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0))):
-    dependencies:
-      icss-utils: 5.1.0(postcss@8.4.38)
-      loader-utils: 2.0.4
-      postcss: 8.4.38
-      postcss-modules-extract-imports: 3.1.0(postcss@8.4.38)
-      postcss-modules-local-by-default: 4.0.5(postcss@8.4.38)
-      postcss-modules-scope: 3.2.0(postcss@8.4.38)
-      postcss-modules-values: 4.0.0(postcss@8.4.38)
-      postcss-value-parser: 4.2.0
-      schema-utils: 3.3.0
-      semver: 7.6.0
-      webpack: 5.92.0(webpack-cli@5.1.4(webpack@5.92.0))
 
   css-loader@6.11.0(@rspack/core@packages+rspack)(webpack@5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack-cli@5.1.4(webpack@5.92.0))):
     dependencies:

@@ -23,7 +23,7 @@
 ### main.LAST_HASH.hot-update.js
 
 #### Changed Modules
-- ./change.css?5dec
+- ./change.css?a8a3
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
@@ -32,7 +32,7 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]('main', {
-"./change.css?5dec": (function (module, __webpack_exports__, __webpack_require__) {
+"./change.css?a8a3": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 

@@ -25,7 +25,7 @@
 #### Changed Modules
 - ../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js
 - ../../../../../rspack/dist/builtin-plugin/css-extract/hmr/normalize-url.js
-- ./index.css?4025
+- ./index.css?8047
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
@@ -302,7 +302,7 @@ module.exports = function (urlString) {
 
 
 }),
-"./index.css?4025": (function (module, __webpack_exports__, __webpack_require__) {
+"./index.css?8047": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
