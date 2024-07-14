@@ -5005,7 +5005,13 @@ const matchPart: (str: string, test: Matcher) => boolean;
 type MinifyCondition = string | RegExp;
 
 // @public (undocumented)
+type MinifyCondition_2 = string | RegExp;
+
+// @public (undocumented)
 type MinifyConditions = MinifyCondition | MinifyCondition[];
+
+// @public (undocumented)
+type MinifyConditions_2 = MinifyCondition_2 | MinifyCondition_2[];
 
 // @public (undocumented)
 export type Mode = z.infer<typeof mode>;
@@ -13143,13 +13149,20 @@ const strictModuleExceptionHandling: z.ZodBoolean;
 
 // @public (undocumented)
 export const SwcCssMinimizerRspackPlugin: {
-    new (options?: any): {
+    new (options?: SwcCssMinimizerRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
-        _args: [options?: any];
+        _args: [options?: SwcCssMinimizerRspackPluginOptions | undefined];
         affectedHooks: "done" | "compilation" | "failed" | "environment" | "emit" | "make" | "compile" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
+};
+
+// @public (undocumented)
+type SwcCssMinimizerRspackPluginOptions = {
+    test?: MinifyConditions_2;
+    exclude?: MinifyConditions_2;
+    include?: MinifyConditions_2;
 };
 
 // @public (undocumented)
