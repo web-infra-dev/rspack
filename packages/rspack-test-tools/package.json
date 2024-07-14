@@ -84,6 +84,7 @@
     "@types/fs-extra": "11.0.4",
     "@types/babel__generator": "7.6.8",
     "@types/babel__traverse": "7.20.5",
+    "acorn": "^8.11.3",
     "core-js": "3.36.1",
     "coffee-loader": "^1.0.0",
     "coffeescript": "^2.5.1",
@@ -111,6 +112,7 @@
     "sass-loader": "14.2.1",
     "style-loader": "^3.3.3",
     "source-map-loader": "^5.0.0",
+    "terser": "5.16.1",
     "wast-loader": "^1.12.1"
   },
   "peerDependencies": {
