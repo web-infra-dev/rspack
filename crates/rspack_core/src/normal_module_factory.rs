@@ -280,7 +280,7 @@ impl NormalModuleFactory {
     }
 
     let resource_data = if scheme.is_none() && context_scheme.is_none() {
-      // default resovle
+      // default resolve
       // resource without scheme and without path
       if unresolved_resource.is_empty() || unresolved_resource.starts_with(QUESTION_MARK) {
         ResourceData::new(unresolved_resource.to_owned()).path("".into())
