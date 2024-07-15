@@ -12,7 +12,7 @@ const deprecationTracking = require("./helpers/deprecationTracking");
 const captureStdio = require("./helpers/captureStdio");
 const asModule = require("./helpers/asModule");
 const filterInfraStructureErrors = require("./helpers/infrastructureLogErrors");
-const { normalizeFilteredTestName, FilteredStatus } = require("./lib/util/filterUtil")
+const { createFilteredDescribe } = require("./lib/util/filterUtil")
 
 const casesPath = path.join(__dirname, "cases");
 let categories = fs.readdirSync(casesPath);
@@ -61,19 +61,7 @@ const describeCases = config => {
 					.filter(test => {
 						const testDirectory = path.join(casesPath, category.name, test);
 						const filterPath = path.join(testDirectory, "test.filter.js");
-						if (fs.existsSync(filterPath)) {
-							let flag = require(filterPath)(config)
-							let shouldRun = flag === true || (Array.isArray(flag) && flag.includes(FilteredStatus.PARTIAL_PASS))
-							if (!shouldRun) {
-								// CHANGE: added custom filter for tracking alignment status
-								let filteredName = normalizeFilteredTestName(flag, test);
-								describe.skip(test, () => {
-									it(filteredName, () => { });
-								});
-								return false;
-							}
-						}
-						return true;
+						return createFilteredDescribe(test, filterPath, config);
 					})
 					.forEach(testName => {
 						let infraStructureLog = [];

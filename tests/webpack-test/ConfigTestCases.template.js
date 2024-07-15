@@ -18,7 +18,7 @@ const { parseResource } = require("./lib/util/identifier");
 const captureStdio = require("./helpers/captureStdio");
 const asModule = require("./helpers/asModule");
 const filterInfraStructureErrors = require("./helpers/infrastructureLogErrors");
-const { normalizeFilteredTestName, FilteredStatus } = require("./lib/util/filterUtil")
+const { createFilteredDescribe } = require("./lib/util/filterUtil")
 
 const casesPath = path.join(__dirname, "configCases");
 const categories = fs.readdirSync(casesPath).map(cat => {
@@ -73,17 +73,8 @@ const describeCases = config => {
 					describe(testName, function () {
 						const testDirectory = path.join(casesPath, category.name, testName);
 						const filterPath = path.join(testDirectory, "test.filter.js");
-						if (fs.existsSync(filterPath)) {
-							let flag = require(filterPath)()
-							let shouldRun = flag === true || (Array.isArray(flag) && flag.includes(FilteredStatus.PARTIAL_PASS))
-							if (!shouldRun) {
-								// CHANGE: added custom filter for tracking alignment status
-								let filteredName = normalizeFilteredTestName(flag, testName);
-								describe.skip(testName, () => {
-									it(filteredName, () => { });
-								});
-								return;
-							}
+						if (!createFilteredDescribe(testName, filterPath)) {
+							return;
 						}
 						const infraStructureLog = [];
 						const outBaseDir = path.join(__dirname, "js");

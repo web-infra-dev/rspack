@@ -6,7 +6,7 @@ const fs = require("graceful-fs");
 const rimraf = require("rimraf");
 const captureStdio = require("./helpers/captureStdio");
 const webpack = require("@rspack/core");
-const { normalizeFilteredTestName, FilteredStatus } = require('./lib/util/filterUtil')
+const { createFilteredDescribe } = require('./lib/util/filterUtil')
 
 /**
  * Escapes regular expression metacharacters
@@ -29,17 +29,7 @@ const tests = fs
 	.filter(testName => {
 		const testDirectory = path.join(base, testName);
 		const filterPath = path.join(testDirectory, "test.filter.js");
-		if (fs.existsSync(filterPath)) {
-			// CHANGE: added custom filter for tracking alignment status
-			let flag = require(filterPath)()
-			let shouldRun = flag === true || (Array.isArray(flag) && flag.includes(FilteredStatus.PARTIAL_PASS))
-			if (!shouldRun) {
-				let filteredName = normalizeFilteredTestName(flag, testName);
-				describe.skip(testName, () => it(filteredName, () => { }));
-				return false;
-			}
-		}
-		return true;
+		return createFilteredDescribe(testName, filterPath);
 	});
 
 describe("StatsTestCases", () => {
