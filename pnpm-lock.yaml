@@ -933,6 +933,9 @@ importers:
       del:
         specifier: ^6.0.0
         version: 6.1.1
+      file-loader:
+        specifier: ^6.2.0
+        version: 6.2.0(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
       jsdom:
         specifier: ^24.0.0
         version: 24.0.0
