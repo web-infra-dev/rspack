@@ -1,12 +1,22 @@
 # Benchmark
 
-To run this benchmark yourself, clone [web-infra-dev/bundler-benchmark](https://github.com/web-infra-dev/bundler-benchmark) and then use this command from the root:
+Rspack provides two benchmark repositories that you can clone and run locally:
+
+- [rspack-contrib/performance-compare](https://github.com/rspack-contrib/performance-compare): Performance comparison of Rspack, Rsbuild, webpack, Vite, and Farm with 1000 modules.
+
+```bash
+pnpm run benchmark
+```
+
+- [web-infra-dev/bundler-benchmark](https://github.com/web-infra-dev/bundler-benchmark): Performance comparison of Rspack and webpack with 50000 modules.
 
 ```bash
 ./scripts/bench-all.sh ${platform} # `platform` is used to uniquely identify the generated benchmark data.
 ```
 
 ## Benchmark case
+
+Here are introductions to some test cases for the `web-infra-dev/bundler-benchmark`.
 
 ### all
 

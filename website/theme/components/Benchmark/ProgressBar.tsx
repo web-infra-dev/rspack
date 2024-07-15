@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import styles from './index.module.scss';
+import styles from './ProgressBar.module.scss';
 
 export function formatTime(time: number, totalTime: number) {
   if (totalTime < 1000) {
@@ -10,46 +10,49 @@ export function formatTime(time: number, totalTime: number) {
   }
 }
 
-export function ProgressBar({ value, max }: { value: number; max: number }) {
+export function ProgressBar({
+  value,
+  max,
+  color,
+  desc,
+}: {
+  value: number;
+  max: number;
+  color: string;
+  desc: string;
+}) {
   const [elapsedTime, setElapsedTime] = useState(0);
   const TOTAL_TIME = value * 1000;
   const isMobile = window.innerWidth < 768;
-  const progressBarWidth = isMobile ? 80 : 50;
+  const progressBarWidth = isMobile ? 80 : 55;
   const variants = {
     initial: { width: 0 },
-    animate: { width: '100%' },
+    animate: { width: `${(value / max) * 100}%` },
   };
+
   const formattedTime = formatTime(elapsedTime, TOTAL_TIME);
   return (
     <div
-      className={`${styles['progress-bar-container']} flex justify-between items-center sm:pr-4`}
+      className={`${styles.container} flex items-center sm:pr-4`}
       style={{
         width: `${progressBarWidth}vw`,
       }}
     >
-      <div
-        className={`${styles['progress-bar-inner-container']} flex justify-between`}
-        style={{
-          width: `${(value / max) * 0.8 * progressBarWidth}vw`,
-        }}
-      >
+      <div className={`${styles['inner-container']} flex justify-between`}>
         <motion.div
-          className={styles['progress-bar']}
+          className={`${styles.bar} ${styles[color]}`}
           initial="initial"
           animate="animate"
           variants={variants}
           onUpdate={(latest: { width: string }) => {
             const width = parseFloat(latest.width);
-            setElapsedTime((width / 100) * TOTAL_TIME);
+            setElapsedTime(width * max * 10);
           }}
-          // 2x speed
-          transition={{ duration: value / 2, ease: 'linear' }}
+          transition={{ duration: value, ease: 'linear' }}
         />
       </div>
-      <div
-        className={`${styles['font-mono']} text-sm sm:text-base text-gray-400`}
-      >
-        {formattedTime}
+      <div className={styles.desc}>
+        <span className={styles.time}>{formattedTime}</span> {desc}
       </div>
     </div>
   );

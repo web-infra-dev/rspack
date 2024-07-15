@@ -1,5 +1,9 @@
 .clip {
-  background: -webkit-linear-gradient(120deg, var(--rp-c-brand) 30%, #f4f468);
+  background: linear-gradient(
+    120deg,
+    var(--rp-c-brand),
+    hsl(32.71deg 100% 70%)
+  );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: var(--rp-home-hero-name-color);

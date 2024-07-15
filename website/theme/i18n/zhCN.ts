@@ -3,9 +3,7 @@ import type { EN_US } from './enUS';
 export const ZH_CN: Record<keyof typeof EN_US, string> = {
   coldStart: '冷启动（dev）',
   coldBuild: '冷构建',
-  hmrRoot: '热更新（根模块变动）',
-  hmrLeaf: '热更新（叶子模块变动）',
-  moduleCount: '模块数量',
+  hmr: '热更新',
   guide: '指南',
   quickStart: '快速开始',
   features: '核心特性',
