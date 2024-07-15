@@ -65,7 +65,7 @@ function renderTestToMarkdown(testFullName) {
 		: decoded.status === FilteredStatus.NO_PLAN ? "⚫️"
 		: decoded.status === FilteredStatus.FAILED ? "🔴"
 		: decoded.status === FilteredStatus.PARTIAL_PASS ? "🟡"
-		: decoded.status === FilteredStatus.PARTIAL_PASS ? "🟢"
+		: decoded.status === FilteredStatus.PASS ? "🟢"
 		: "ERROR"
 		fullName = decoded.fullName;
 		extra = `: ${decoded.reason}`
