@@ -118,10 +118,9 @@ impl RSCClientReferenceManifest {
     shared_ssr_module_mapping: &HashMap<String, HashMap<String, ServerRef>>,
     ssr_module_mapping: &mut HashMap<String, HashMap<String, ServerRef>>,
   ) {
-    if ssr_module_mapping.get(module_id).is_none() {
-      ssr_module_mapping.insert(module_id.to_string(), HashMap::default());
-    }
-    let module_mapping = ssr_module_mapping.get_mut(module_id).unwrap();
+    let module_mapping = ssr_module_mapping
+      .entry(module_id.into())
+      .or_insert_with(HashMap::default);
     let shared_module_mapping = shared_ssr_module_mapping.get(ssr_module_id);
     match shared_module_mapping {
       Some(smm) => {
