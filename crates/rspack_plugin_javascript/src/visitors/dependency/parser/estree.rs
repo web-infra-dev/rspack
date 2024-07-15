@@ -4,8 +4,11 @@ use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
   ecma::ast::{
-    Class, ClassDecl, ClassExpr, Decl, ExportAll, ExportDecl, ExportDefaultDecl, ExportDefaultExpr,
-    Expr, FnDecl, FnExpr, Function, Ident, NamedExport, Stmt,
+    BlockStmt, BreakStmt, Class, ClassDecl, ClassExpr, ContinueStmt, DebuggerStmt, Decl,
+    DoWhileStmt, EmptyStmt, ExportAll, ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr,
+    ExprStmt, FnDecl, FnExpr, ForInStmt, ForOfStmt, ForStmt, Function, Ident, IfStmt, LabeledStmt,
+    NamedExport, ReturnStmt, Stmt, SwitchStmt, ThrowStmt, TryStmt, UsingDecl, VarDecl, WhileStmt,
+    WithStmt,
   },
 };
 
@@ -252,9 +255,9 @@ impl ExportLocal<'_> {
 
 #[derive(Debug, Clone, Copy)]
 pub struct MaybeNamedFunctionDecl<'ast> {
-  pub span: Span,
-  pub ident: Option<&'ast Ident>,
-  pub function: &'ast Function,
+  span: Span,
+  ident: Option<&'ast Ident>,
+  function: &'ast Function,
 }
 
 impl Spanned for MaybeNamedFunctionDecl<'_> {
@@ -273,11 +276,31 @@ impl<'ast> From<&'ast FnDecl> for MaybeNamedFunctionDecl<'ast> {
   }
 }
 
+impl<'ast> From<&'ast FnExpr> for MaybeNamedFunctionDecl<'ast> {
+  fn from(f: &'ast FnExpr) -> Self {
+    Self {
+      span: f.span(),
+      ident: f.ident.as_ref(),
+      function: &f.function,
+    }
+  }
+}
+
+impl MaybeNamedFunctionDecl<'_> {
+  pub fn ident(&self) -> Option<&Ident> {
+    self.ident
+  }
+
+  pub fn function(&self) -> &Function {
+    self.function
+  }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct MaybeNamedClassDecl<'ast> {
-  pub span: Span,
-  pub ident: Option<&'ast Ident>,
-  pub class: &'ast Class,
+  span: Span,
+  ident: Option<&'ast Ident>,
+  class: &'ast Class,
 }
 
 impl Spanned for MaybeNamedClassDecl<'_> {
@@ -296,21 +319,124 @@ impl<'ast> From<&'ast ClassDecl> for MaybeNamedClassDecl<'ast> {
   }
 }
 
+impl<'ast> From<&'ast ClassExpr> for MaybeNamedClassDecl<'ast> {
+  fn from(value: &'ast ClassExpr) -> Self {
+    Self {
+      span: value.span(),
+      ident: value.ident.as_ref(),
+      class: &value.class,
+    }
+  }
+}
+
+impl MaybeNamedClassDecl<'_> {
+  pub fn ident(&self) -> Option<&Ident> {
+    self.ident
+  }
+
+  pub fn class(&self) -> &Class {
+    self.class
+  }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum Statement<'ast> {
-  ExportDecl(&'ast Decl),
-  ExportDefaultClass(MaybeNamedClassDecl<'ast>),
-  ExportDefaultFn(MaybeNamedFunctionDecl<'ast>),
-  Stmt(&'ast Stmt),
+  Block(&'ast BlockStmt),
+  Empty(&'ast EmptyStmt),
+  Debugger(&'ast DebuggerStmt),
+  With(&'ast WithStmt),
+  Return(&'ast ReturnStmt),
+  Labeled(&'ast LabeledStmt),
+  Break(&'ast BreakStmt),
+  Continue(&'ast ContinueStmt),
+  If(&'ast IfStmt),
+  Switch(&'ast SwitchStmt),
+  Throw(&'ast ThrowStmt),
+  Try(&'ast TryStmt),
+  While(&'ast WhileStmt),
+  DoWhile(&'ast DoWhileStmt),
+  For(&'ast ForStmt),
+  ForIn(&'ast ForInStmt),
+  ForOf(&'ast ForOfStmt),
+  Expr(&'ast ExprStmt),
+  // ClassDecl, don't put ClassExpr into it, unless it's DefaultDecl::ClassExpr
+  // which is represented by ClassExpr but it actually is a ClassDecl without ident
+  Class(MaybeNamedClassDecl<'ast>),
+  // FnDecl, don't put FnExpr into it, unless it's DefaultDecl::FnExpr
+  // which is represented by FnExpr but it actually is a FnDecl without ident
+  Fn(MaybeNamedFunctionDecl<'ast>),
+  Var(&'ast VarDecl),
+  Using(&'ast UsingDecl),
 }
 
 impl Spanned for Statement<'_> {
   fn span(&self) -> Span {
+    use Statement::*;
     match self {
-      Self::ExportDecl(d) => d.span(),
-      Self::ExportDefaultClass(d) => d.span(),
-      Self::ExportDefaultFn(d) => d.span(),
-      Self::Stmt(s) => s.span(),
+      Block(d) => d.span(),
+      Empty(d) => d.span(),
+      Debugger(d) => d.span(),
+      With(d) => d.span(),
+      Return(d) => d.span(),
+      Labeled(d) => d.span(),
+      Break(d) => d.span(),
+      Continue(d) => d.span(),
+      If(d) => d.span(),
+      Switch(d) => d.span(),
+      Throw(d) => d.span(),
+      Try(d) => d.span(),
+      While(d) => d.span(),
+      DoWhile(d) => d.span(),
+      For(d) => d.span(),
+      ForIn(d) => d.span(),
+      ForOf(d) => d.span(),
+      Expr(d) => d.span(),
+      Class(d) => d.span(),
+      Fn(d) => d.span(),
+      Var(d) => d.span(),
+      Using(d) => d.span(),
+    }
+  }
+}
+
+impl<'ast> From<&'ast Stmt> for Statement<'ast> {
+  fn from(value: &'ast Stmt) -> Self {
+    use Statement::*;
+    match value {
+      Stmt::Block(d) => Block(d),
+      Stmt::Empty(d) => Empty(d),
+      Stmt::Debugger(d) => Debugger(d),
+      Stmt::With(d) => With(d),
+      Stmt::Return(d) => Return(d),
+      Stmt::Labeled(d) => Labeled(d),
+      Stmt::Break(d) => Break(d),
+      Stmt::Continue(d) => Continue(d),
+      Stmt::If(d) => If(d),
+      Stmt::Switch(d) => Switch(d),
+      Stmt::Throw(d) => Throw(d),
+      Stmt::Try(d) => Try(d),
+      Stmt::While(d) => While(d),
+      Stmt::DoWhile(d) => DoWhile(d),
+      Stmt::For(d) => For(d),
+      Stmt::ForIn(d) => ForIn(d),
+      Stmt::ForOf(d) => ForOf(d),
+      Stmt::Expr(d) => Expr(d),
+      Stmt::Decl(d) => d.into(),
+    }
+  }
+}
+
+impl<'ast> From<&'ast Decl> for Statement<'ast> {
+  fn from(value: &'ast Decl) -> Self {
+    use Statement::*;
+    match value {
+      Decl::Class(d) => Class(d.into()),
+      Decl::Fn(d) => Fn(d.into()),
+      Decl::Var(d) => Var(d),
+      Decl::Using(d) => Using(d),
+      Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
+        unreachable!()
+      }
     }
   }
 }
@@ -318,34 +444,14 @@ impl Spanned for Statement<'_> {
 impl<'ast> Statement<'ast> {
   pub fn as_function_decl(&self) -> Option<MaybeNamedFunctionDecl<'ast>> {
     match self {
-      Statement::ExportDefaultFn(decl) => Some(*decl),
-      Statement::ExportDecl(decl) => decl.as_fn_decl().map(|f| MaybeNamedFunctionDecl {
-        span: decl.span(),
-        function: &f.function,
-        ident: Some(&f.ident),
-      }),
-      Statement::Stmt(Stmt::Decl(decl)) => decl.as_fn_decl().map(|f| MaybeNamedFunctionDecl {
-        span: decl.span(),
-        function: &f.function,
-        ident: Some(&f.ident),
-      }),
+      Statement::Fn(f) => Some(*f),
       _ => None,
     }
   }
 
   pub fn as_class_decl(&self) -> Option<MaybeNamedClassDecl<'ast>> {
     match self {
-      Statement::ExportDefaultClass(decl) => Some(*decl),
-      Statement::ExportDecl(decl) => decl.as_class().map(|f| MaybeNamedClassDecl {
-        span: decl.span(),
-        class: &f.class,
-        ident: Some(&f.ident),
-      }),
-      Statement::Stmt(Stmt::Decl(decl)) => decl.as_class().map(|f| MaybeNamedClassDecl {
-        span: decl.span(),
-        class: &f.class,
-        ident: Some(&f.ident),
-      }),
+      Statement::Class(c) => Some(*c),
       _ => None,
     }
   }

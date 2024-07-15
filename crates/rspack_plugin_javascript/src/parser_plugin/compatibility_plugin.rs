@@ -120,7 +120,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     let Some(fn_decl) = stmt.as_function_decl() else {
       return None;
     };
-    let Some(ident) = fn_decl.ident else {
+    let Some(ident) = fn_decl.ident() else {
       return None;
     };
     let name = ident.sym.as_str();

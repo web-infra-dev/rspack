@@ -20,7 +20,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn pre_walk_statements(&mut self, statements: &Vec<Stmt>) {
     for statement in statements {
-      self.pre_walk_statement(statement)
+      self.pre_walk_statement(statement.into())
     }
   }
 
@@ -36,34 +36,35 @@ impl<'parser> JavascriptParser<'parser> {
           }
         };
       }
-      ModuleItem::Stmt(stmt) => self.pre_walk_statement(stmt),
+      ModuleItem::Stmt(stmt) => self.pre_walk_statement(stmt.into()),
     }
   }
 
-  pub fn pre_walk_statement(&mut self, statement: &Stmt) {
+  pub fn pre_walk_statement(&mut self, statement: Statement) {
     self.enter_statement(
-      statement,
-      |parser, statement| {
+      &statement,
+      |parser, _| {
         parser
           .plugin_drive
           .clone()
-          .pre_statement(parser, Statement::Stmt(statement))
+          .pre_statement(parser, statement)
           .unwrap_or_default()
       },
-      |parser, statement| {
+      |parser, _| {
         match statement {
-          Stmt::Block(stmt) => parser.pre_walk_block_statement(stmt),
-          Stmt::DoWhile(stmt) => parser.pre_walk_do_while_statement(stmt),
-          Stmt::ForIn(stmt) => parser.pre_walk_for_in_statement(stmt),
-          Stmt::ForOf(stmt) => parser.pre_walk_for_of_statement(stmt),
-          Stmt::For(stmt) => parser.pre_walk_for_statement(stmt),
-          Stmt::Decl(decl) => parser.pre_walk_declaration(decl),
-          Stmt::If(stmt) => parser.pre_walk_if_statement(stmt),
-          Stmt::Labeled(stmt) => parser.pre_walk_labeled_statement(stmt),
-          Stmt::Switch(stmt) => parser.pre_walk_switch_statement(stmt),
-          Stmt::Try(stmt) => parser.pre_walk_try_statement(stmt),
-          Stmt::While(stmt) => parser.pre_walk_while_statement(stmt),
-          Stmt::With(stmt) => parser.pre_walk_with_statement(stmt),
+          Statement::Block(stmt) => parser.pre_walk_block_statement(stmt),
+          Statement::DoWhile(stmt) => parser.pre_walk_do_while_statement(stmt),
+          Statement::ForIn(stmt) => parser.pre_walk_for_in_statement(stmt),
+          Statement::ForOf(stmt) => parser.pre_walk_for_of_statement(stmt),
+          Statement::For(stmt) => parser.pre_walk_for_statement(stmt),
+          Statement::Fn(stmt) => parser.pre_walk_function_declaration(stmt),
+          Statement::Var(stmt) => parser.pre_walk_variable_declaration(stmt),
+          Statement::If(stmt) => parser.pre_walk_if_statement(stmt),
+          Statement::Labeled(stmt) => parser.pre_walk_labeled_statement(stmt),
+          Statement::Switch(stmt) => parser.pre_walk_switch_statement(stmt),
+          Statement::Try(stmt) => parser.pre_walk_try_statement(stmt),
+          Statement::While(stmt) => parser.pre_walk_while_statement(stmt),
+          Statement::With(stmt) => parser.pre_walk_with_statement(stmt),
           _ => (),
         };
       },
@@ -82,27 +83,24 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn pre_walk_with_statement(&mut self, stmt: &WithStmt) {
-    self.pre_walk_statement(&stmt.body)
+    self.pre_walk_statement(stmt.body.as_ref().into())
   }
 
   fn pre_walk_while_statement(&mut self, stmt: &WhileStmt) {
-    self.pre_walk_statement(&stmt.body)
+    self.pre_walk_statement(stmt.body.as_ref().into())
   }
 
   fn pre_walk_catch_clause(&mut self, cache_clause: &CatchClause) {
-    // FIXME: webpack use `pre_walk_statement` here
-    self.pre_walk_block_statement(&cache_clause.body);
+    self.pre_walk_statement(Statement::Block(&cache_clause.body));
   }
 
   fn pre_walk_try_statement(&mut self, stmt: &TryStmt) {
-    // FIXME: webpack use `pre_walk_statement` here
-    self.pre_walk_block_statement(&stmt.block);
+    self.pre_walk_statement(Statement::Block(&stmt.block));
     if let Some(handler) = &stmt.handler {
       self.pre_walk_catch_clause(handler)
     }
     if let Some(finalizer) = &stmt.finalizer {
-      // FIXME: webpack use `pre_walk_statement` here
-      self.pre_walk_block_statement(finalizer)
+      self.pre_walk_statement(Statement::Block(finalizer));
     }
   }
 
@@ -117,28 +115,27 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn pre_walk_labeled_statement(&mut self, stmt: &LabeledStmt) {
-    self.pre_walk_statement(&stmt.body);
+    self.pre_walk_statement(stmt.body.as_ref().into());
   }
 
   fn pre_walk_if_statement(&mut self, stmt: &IfStmt) {
-    self.pre_walk_statement(&stmt.cons);
+    self.pre_walk_statement(stmt.cons.as_ref().into());
     if let Some(alter) = &stmt.alt {
-      self.pre_walk_statement(alter);
+      self.pre_walk_statement(alter.as_ref().into());
     }
   }
 
   pub fn pre_walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
-    if let Some(ident) = &decl.ident {
+    if let Some(ident) = decl.ident() {
       self.define_variable(ident.sym.to_string());
     }
   }
 
   fn pre_walk_for_statement(&mut self, stmt: &ForStmt) {
     if let Some(decl) = stmt.init.as_ref().and_then(|init| init.as_var_decl()) {
-      // FIXME: webpack use `pre_walk_statement` here
-      self.pre_walk_variable_declaration(decl)
+      self.pre_walk_statement(Statement::Var(decl))
     }
-    self.pre_walk_statement(&stmt.body);
+    self.pre_walk_statement(stmt.body.as_ref().into());
   }
 
   fn pre_walk_for_of_statement(&mut self, stmt: &ForOfStmt) {
@@ -151,7 +148,7 @@ impl<'parser> JavascriptParser<'parser> {
     if let Some(left) = stmt.left.as_var_decl() {
       self.pre_walk_variable_declaration(left)
     }
-    self.pre_walk_statement(&stmt.body)
+    self.pre_walk_statement(stmt.body.as_ref().into())
   }
 
   pub(super) fn pre_walk_block_statement(&mut self, stmt: &BlockStmt) {
@@ -159,14 +156,14 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn pre_walk_do_while_statement(&mut self, stmt: &DoWhileStmt) {
-    self.pre_walk_statement(&stmt.body);
+    self.pre_walk_statement(stmt.body.as_ref().into());
   }
 
   fn pre_walk_for_in_statement(&mut self, stmt: &ForInStmt) {
     if let Some(decl) = stmt.left.as_var_decl() {
       self.pre_walk_variable_declaration(decl);
     }
-    self.pre_walk_statement(&stmt.body);
+    self.pre_walk_statement(stmt.body.as_ref().into());
   }
 
   fn pre_walk_variable_declaration(&mut self, decl: &VarDecl) {

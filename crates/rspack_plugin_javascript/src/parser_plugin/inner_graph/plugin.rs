@@ -342,7 +342,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
       && let Some(fn_decl) = stmt.as_function_decl()
     {
       let name = &fn_decl
-        .ident
+        .ident()
         .map(|ident| ident.sym.clone())
         .unwrap_or_else(|| DEFAULT_STAR_JS_WORD.clone());
       let fn_variable = Self::tag_top_level_symbol(parser, name);
@@ -368,10 +368,10 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     }
 
     if let Some(class_decl) = stmt.as_class_decl()
-      && is_pure_class(class_decl.class, self.unresolved_context, parser.comments)
+      && is_pure_class(class_decl.class(), self.unresolved_context, parser.comments)
     {
       let name = &class_decl
-        .ident
+        .ident()
         .map(|ident| ident.sym.clone())
         .unwrap_or_else(|| DEFAULT_STAR_JS_WORD.clone());
       let class_variable = Self::tag_top_level_symbol(parser, name);

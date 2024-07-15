@@ -862,7 +862,7 @@ impl<'parser> JavascriptParser<'parser> {
           self.prev_statement = None;
           self.block_pre_walk_module_items(&m.body);
           self.prev_statement = None;
-          self.walk_module_declarations(&m.body);
+          self.walk_module_items(&m.body);
         }
         Program::Script(s) => {
           self.detect_mode(&s.body);
