@@ -54,6 +54,7 @@
   "devDependencies": {
     "@biomejs/biome": "1.8.0",
     "@microsoft/api-extractor": "^7.43.1",
+    "@microsoft/api-extractor-model": "^7.28.14",
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
