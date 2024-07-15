@@ -1,8 +1,11 @@
 import * as binding from "@rspack/binding";
 import { Resolver } from "./Resolver";
+import { type Resolve, getRawResolve } from "./config";
 
-type ResolveOptionsWithDependencyType =
-	binding.RawResolveOptionsWithDependencyType;
+type ResolveOptionsWithDependencyType = Resolve & {
+	dependencyCategory?: string;
+	resolveToContext?: boolean;
+};
 
 export class ResolverFactory {
 	#binding: binding.JsResolverFactory;
@@ -21,7 +24,14 @@ export class ResolverFactory {
 		type: string,
 		resolveOptions?: ResolveOptionsWithDependencyType
 	): Resolver {
-		const binding = this.#binding.get(type, resolveOptions);
+		const { dependencyCategory, resolveToContext, ...resolve } =
+			resolveOptions || {};
+
+		const binding = this.#binding.get(type, {
+			...getRawResolve(resolve),
+			dependencyCategory,
+			resolveToContext
+		});
 		return new Resolver(binding);
 	}
 }
