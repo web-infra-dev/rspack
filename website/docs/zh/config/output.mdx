@@ -505,7 +505,7 @@ Hash 的长度（`[hash]`、`[contenthash]` 或 `[chunkhash]`）可以使用 `[h
 
 如果使用函数来设置这个选项，函数将会接收一个包含上表中替换数据的对象。替换也会应用到返回的字符串中。传递的对象将具有这种类型：（属性取决于上下文）
 
-```javascript
+```ts
 type PathData = {
   hash: string;
   hashWithLength: (number) => string;
