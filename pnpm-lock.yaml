@@ -436,8 +436,8 @@ importers:
   packages/rspack-dev-server:
     dependencies:
       chokidar:
-        specifier: 3.5.3
-        version: 3.5.3
+        specifier: 3.6.0
+        version: 3.6.0
       connect-history-api-fallback:
         specifier: 2.0.0
         version: 2.0.0
@@ -926,8 +926,8 @@ importers:
         specifier: ^1.13.5
         version: 1.13.8
       chokidar:
-        specifier: 3.5.3
-        version: 3.5.3
+        specifier: 3.6.0
+        version: 3.6.0
       coffee-loader:
         specifier: ^1.0.0
         version: 1.0.1(coffeescript@2.7.0)(webpack@5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.1))(webpack-cli@5.1.4(webpack@5.92.0)))
@@ -4287,6 +4287,10 @@ packages:
 
   chokidar@3.5.3:
     resolution: {integrity: sha512-Dr3sfKRP6oTcjf2JmUmFJfeVMvXBdegxB0iVQ5eb2V10uFJUCAS8OByZdVAyVb8xXNz3GjjTgj9kLWsZTqE6kw==}
+    engines: {node: '>= 8.10.0'}
+
+  chokidar@3.6.0:
+    resolution: {integrity: sha512-7VT13fmjotKpGipCW9JEQAusEPE+Ei8nl6/g4FBAmIm0GOOLMua9NDDo/DWp0ZAxCr3cPq5ZpBqmPAQgDda2Pw==}
     engines: {node: '>= 8.10.0'}
 
   chownr@1.1.4:
@@ -13928,6 +13932,18 @@ snapshots:
     optionalDependencies:
       fsevents: 2.3.3
 
+  chokidar@3.6.0:
+    dependencies:
+      anymatch: 3.1.3
+      braces: 3.0.2
+      glob-parent: 5.1.2
+      is-binary-path: 2.1.0
+      is-glob: 4.0.3
+      normalize-path: 3.0.0
+      readdirp: 3.6.0
+    optionalDependencies:
+      fsevents: 2.3.3
+
   chownr@1.1.4: {}
 
   chrome-trace-event@1.0.3: {}
@@ -18266,7 +18282,7 @@ snapshots:
 
   sass@1.56.2:
     dependencies:
-      chokidar: 3.5.3
+      chokidar: 3.6.0
       immutable: 4.3.5
       source-map-js: 1.2.0
 
@@ -19564,7 +19580,7 @@ snapshots:
       '@types/ws': 8.5.10
       ansi-html-community: 0.0.8
       bonjour-service: 1.2.1
-      chokidar: 3.5.3
+      chokidar: 3.6.0
       colorette: 2.0.19
       compression: 1.7.4
       connect-history-api-fallback: 2.0.0
@@ -19605,7 +19621,7 @@ snapshots:
       '@types/ws': 8.5.10
       ansi-html-community: 0.0.8
       bonjour-service: 1.2.1
-      chokidar: 3.5.3
+      chokidar: 3.6.0
       colorette: 2.0.19
       compression: 1.7.4
       connect-history-api-fallback: 2.0.0
