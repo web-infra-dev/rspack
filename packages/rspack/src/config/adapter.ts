@@ -562,7 +562,14 @@ function getRawParserOptionsByModuleType(
 	parser: ParserOptionsByModuleType
 ): Record<string, RawParserOptions> {
 	return Object.fromEntries(
-		Object.entries(parser).map(([k, v]) => [k, getRawParserOptions(v, k)])
+		Object.entries(parser).reduce(
+			(acc, [k, v]) => {
+				const raw = getRawParserOptions(v, k);
+				if (raw) acc.push([k, raw]);
+				return acc;
+			},
+			[] as [string, RawParserOptions][]
+		)
 	);
 }
 
@@ -579,17 +586,15 @@ function getRawGeneratorOptionsByModuleType(
 function getRawParserOptions(
 	parser: { [k: string]: any },
 	type: string
-): RawParserOptions {
+): RawParserOptions | undefined {
 	if (type === "asset") {
 		return {
 			type: "asset",
 			asset: getRawAssetParserOptions(parser)
 		};
 	} else if (type === "javascript") {
-		return {
-			type: "javascript",
-			javascript: getRawJavascriptParserOptions(parser)
-		};
+		// Filter this out, since `parser["javascript"]` already merge into `parser["javascript/*"]` in default.ts
+		return;
 	} else if (type === "javascript/auto") {
 		return {
 			type: "javascript/auto",
