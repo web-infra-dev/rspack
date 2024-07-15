@@ -336,6 +336,7 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::WorkerPlugin::new(
         &javascript_options.worker,
       )));
+      plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
     }
 
     if compiler_options.optimization.inner_graph {
