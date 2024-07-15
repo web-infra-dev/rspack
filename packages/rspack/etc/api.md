@@ -8340,7 +8340,10 @@ export type ResolveOptions = z.infer<typeof baseResolveOptions> & {
 const resolveOptions: z.ZodType<ResolveOptions>;
 
 // @public (undocumented)
-type ResolveOptionsWithDependencyType = binding.RawResolveOptionsWithDependencyType;
+type ResolveOptionsWithDependencyType = Resolve & {
+    dependencyCategory?: string;
+    resolveToContext?: boolean;
+};
 
 // @public (undocumented)
 type ResolveOptionsWithDependencyType_2 = Resolve & {
