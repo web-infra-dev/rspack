@@ -754,6 +754,14 @@ Rspack x.x.x compiled successfully"
 
 exports[`StatsTestCases should print correct stats for module-not-found-error 1`] = `
 "ERROR in ./index.js
+  × Module not found: Can't resolve 'buffer' in 'Xdir/module-not-found-error'
+   ╭─[1:1]
+ 1 │ require('buffer')
+   · ─────────────────
+ 2 │ require('os')
+   ╰────
+
+ERROR in ./index.js
   × Module not found: Can't resolve 'os' in 'Xdir/module-not-found-error'
    ╭─[1:1]
  1 │ require('buffer')
@@ -761,7 +769,7 @@ exports[`StatsTestCases should print correct stats for module-not-found-error 1`
    · ─────────────
    ╰────
 
-Rspack compiled with 1 error"
+Rspack compiled with 2 errors"
 `;
 
 exports[`StatsTestCases should print correct stats for module-reasons 1`] = `
