@@ -251,6 +251,7 @@ const applyJavascriptParserOptionsDefaults = (
 		fallback?.strictExportPresence ?? false
 	);
 	D(parserOptions, "worker", fallback?.worker ?? ["..."]);
+	D(parserOptions, "overrideStrict", fallback?.overrideStrict ?? undefined);
 };
 
 const applyModuleDefaults = (
