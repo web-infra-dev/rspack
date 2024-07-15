@@ -925,7 +925,7 @@ The **return value of your entry point** will be assigned to `this` under the pr
 ```javascript
 this['MyLibrary'] = _entry_return_;
 
-// 在一个单独的脚本中
+// In a separate script
 this.MyLibrary.doSomething();
 MyLibrary.doSomething(); // 如果 `this` 为 window 对象
 ```
