@@ -18,7 +18,7 @@ const { parseResource } = require("./lib/util/identifier");
 const captureStdio = require("./helpers/captureStdio");
 const asModule = require("./helpers/asModule");
 const filterInfraStructureErrors = require("./helpers/infrastructureLogErrors");
-const { normalizeFilteredTestName } = require("./lib/util/filterUtil")
+const { normalizeFilteredTestName, FilteredStatus } = require("./lib/util/filterUtil")
 
 const casesPath = path.join(__dirname, "configCases");
 const categories = fs.readdirSync(casesPath).map(cat => {
@@ -75,7 +75,8 @@ const describeCases = config => {
 						const filterPath = path.join(testDirectory, "test.filter.js");
 						if (fs.existsSync(filterPath)) {
 							let flag = require(filterPath)()
-							if (flag !== true) {
+							let shouldRun = flag === true || (Array.isArray(flag) && flag.includes(FilteredStatus.PARTIAL_PASS))
+							if (!shouldRun) {
 								// CHANGE: added custom filter for tracking alignment status
 								let filteredName = normalizeFilteredTestName(flag, testName);
 								describe.skip(testName, () => {

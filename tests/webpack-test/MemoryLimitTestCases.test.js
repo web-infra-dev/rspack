@@ -6,7 +6,7 @@ const fs = require("graceful-fs");
 const rimraf = require("rimraf");
 const captureStdio = require("./helpers/captureStdio");
 const webpack = require("@rspack/core").rspack;
-const { normalizeFilteredTestName } = require("./lib/util/filterUtil")
+const { normalizeFilteredTestName, FilteredStatus } = require("./lib/util/filterUtil")
 
 const toMiB = bytes => `${Math.round(bytes / 1024 / 1024)}MiB`;
 const base = path.join(__dirname, "memoryLimitCases");
@@ -23,9 +23,10 @@ const tests = fs
 		const filterPath = path.join(testDirectory, "test.filter.js");
 		if (fs.existsSync(filterPath)) {
 			let flag = require(filterPath)()
-			if (flag !== true) {
+			let shouldRun = flag === true || (Array.isArray(flag) && flag.includes(FilteredStatus.PARTIAL_PASS))
+			if (!shouldRun) {
 				let filteredName = normalizeFilteredTestName(flag, relativePath);
-				describe.skip(relativePath, () => it(filteredName, () => {}));
+				describe.skip(relativePath, () => it(filteredName, () => { }));
 				return false;
 			}
 		}

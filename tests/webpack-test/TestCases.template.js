@@ -12,7 +12,7 @@ const deprecationTracking = require("./helpers/deprecationTracking");
 const captureStdio = require("./helpers/captureStdio");
 const asModule = require("./helpers/asModule");
 const filterInfraStructureErrors = require("./helpers/infrastructureLogErrors");
-const { normalizeFilteredTestName } = require("./lib/util/filterUtil")
+const { normalizeFilteredTestName, FilteredStatus } = require("./lib/util/filterUtil")
 
 const casesPath = path.join(__dirname, "cases");
 let categories = fs.readdirSync(casesPath);
@@ -63,7 +63,8 @@ const describeCases = config => {
 						const filterPath = path.join(testDirectory, "test.filter.js");
 						if (fs.existsSync(filterPath)) {
 							let flag = require(filterPath)(config)
-							if (flag !== true) {
+							let shouldRun = flag === true || (Array.isArray(flag) && flag.includes(FilteredStatus.PARTIAL_PASS))
+							if (!shouldRun) {
 								// CHANGE: added custom filter for tracking alignment status
 								let filteredName = normalizeFilteredTestName(flag, test);
 								describe.skip(test, () => {

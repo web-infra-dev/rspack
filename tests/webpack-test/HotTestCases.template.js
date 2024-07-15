@@ -8,7 +8,7 @@ const vm = require("vm");
 const rimraf = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
-const { normalizeFilteredTestName } = require("./lib/util/filterUtil");
+const { normalizeFilteredTestName, FilteredStatus } = require("./lib/util/filterUtil");
 
 const casesPath = path.join(__dirname, "hotCases");
 let categories = fs
@@ -33,7 +33,8 @@ const describeCases = config => {
 					// CHANGE: added custom filter for tracking alignment status
 					if (fs.existsSync(filterPath)) {
 						let flag = require(filterPath)(config)
-						if (flag !== true) {
+						let shouldRun = flag === true || (Array.isArray(flag) && flag.includes(FilteredStatus.PARTIAL_PASS))
+						if (!shouldRun) {
 							let filteredName = normalizeFilteredTestName(flag, testName);
 							describe.skip(testName, () => {
 								it(filteredName, () => { });

@@ -12,7 +12,7 @@ const { remove } = require("./helpers/remove");
 const prepareOptions = require("./helpers/prepareOptions");
 const deprecationTracking = require("./helpers/deprecationTracking");
 const FakeDocument = require("./helpers/FakeDocument");
-const { normalizeFilteredTestName } = require("./lib/util/filterUtil");
+const { normalizeFilteredTestName, FilteredStatus } = require("./lib/util/filterUtil");
 
 function copyDiff(src, dest, initial) {
 	if (!fs.existsSync(dest)) fs.mkdirSync(dest);
@@ -65,7 +65,8 @@ const describeCases = config => {
 						const filterPath = path.join(testDirectory, "test.filter.js");
 						if (fs.existsSync(filterPath)) {
 							let flag = require(filterPath)(config)
-							if (flag !== true) {
+							let shouldRun = flag === true || (Array.isArray(flag) && flag.includes(FilteredStatus.PARTIAL_PASS))
+							if (!shouldRun) {
 								let filteredName = normalizeFilteredTestName(flag, testName);
 								describe.skip(testName, () => {
 									it(filteredName, () => { });

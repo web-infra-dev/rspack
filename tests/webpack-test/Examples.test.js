@@ -4,7 +4,7 @@
 
 const path = require("path");
 const fs = require("graceful-fs");
-const { normalizeFilteredTestName } = require("./lib/util/filterUtil")
+const { normalizeFilteredTestName, FilteredStatus } = require("./lib/util/filterUtil")
 
 describe("Examples", () => {
 	const basePath = path.join(__dirname, "..", "webpack-examples");
@@ -15,10 +15,11 @@ describe("Examples", () => {
 		const relativePath = path.relative(basePath, examplePath);
 		if (fs.existsSync(filterPath)) {
 			let flag = require(filterPath)()
-			if (flag !== true) {
+			let shouldRun = flag === true || (Array.isArray(flag) && flag.includes(FilteredStatus.PARTIAL_PASS))
+			if (!shouldRun) {
 				let filteredName = normalizeFilteredTestName(flag, relativePath);
 				describe.skip(relativePath, () => {
-					it(filteredName, () => {});
+					it(filteredName, () => { });
 				});
 				return;
 			}
