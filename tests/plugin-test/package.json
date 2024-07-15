@@ -13,6 +13,7 @@
     "@rspack/plugin-minify": "workspace:^",
     "css-loader": "^6.11.0",
     "file-loader": "^6.2.0",
+    "sass-loader": "14.2.1",
     "jsdom": "^24.0.0",
     "del": "^6.0.0",
     "memfs": "4.7.7"
