@@ -138,8 +138,12 @@ impl NormalModuleFactory {
       .dependency
       .as_module_dependency()
       .expect("should be module dependency");
+    let dependency_type = *dependency.dependency_type();
+    let dependency_category = *dependency.category();
+    let dependency_source_span = dependency.source_span();
+    let dependency_optional = dependency.get_optional();
 
-    let importer = data.issuer_identifier.as_ref();
+    let importer = data.issuer_identifier.clone();
     let raw_request = dependency.request().to_owned();
 
     let mut file_dependencies = Default::default();
@@ -279,30 +283,53 @@ impl NormalModuleFactory {
       }
     }
 
-    let resource_data = if scheme.is_none() && context_scheme.is_none() {
-      // default resolve
+    let resource = unresolved_resource.to_owned();
+    let resource_data = if !scheme.is_none() {
+      // resource with scheme
+      let mut resource_data = ResourceData::new(resource);
+      plugin_driver
+        .normal_module_factory_hooks
+        .resolve_for_scheme
+        .call(data, &mut resource_data, &scheme)
+        .await?;
+      resource_data
+    } else if !context_scheme.is_none()
+      // resource within scheme
+      && let Some(resource_data) = {
+        let mut resource_data = ResourceData::new(resource.clone());
+        let handled = plugin_driver
+          .normal_module_factory_hooks
+          .resolve_in_scheme
+          .call(data, &mut resource_data, &context_scheme)
+          .await?
+          .unwrap_or_default();
+        handled.then_some(resource_data)
+      }
+    {
+      resource_data
+    } else {
       // resource without scheme and without path
-      if unresolved_resource.is_empty() || unresolved_resource.starts_with(QUESTION_MARK) {
-        ResourceData::new(unresolved_resource.to_owned()).path("".into())
+      if resource.is_empty() || resource.starts_with(QUESTION_MARK) {
+        ResourceData::new(resource.to_owned()).path("".into())
       } else {
         // resource without scheme and with path
         let resolve_args = ResolveArgs {
-          importer,
+          importer: importer.as_ref(),
           issuer: data.issuer.as_deref(),
           context: if context_scheme != Scheme::None {
             self.options.context.clone()
           } else {
             data.context.clone()
           },
-          specifier: unresolved_resource,
-          dependency_type: dependency.dependency_type(),
-          dependency_category: dependency.category(),
-          span: dependency.source_span(),
+          specifier: &resource,
+          dependency_type: &dependency_type,
+          dependency_category: &dependency_category,
+          span: dependency_source_span,
           // take the options is safe here, because it
           // is not used in after_resolve hooks
           resolve_options: data.resolve_options.take(),
           resolve_to_context: false,
-          optional: dependency.get_optional(),
+          optional: dependency_optional,
           file_dependencies: &mut file_dependencies,
           missing_dependencies: &mut missing_dependencies,
         };
@@ -319,7 +346,7 @@ impl NormalModuleFactory {
               .description_optional(resource.description_data)
           }
           Ok(ResolveResult::Ignored) => {
-            let ident = format!("{}/{}", &data.context, unresolved_resource);
+            let ident = format!("{}/{}", &data.context, resource);
             let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
             let raw_module = RawModule::new(
@@ -339,31 +366,6 @@ impl NormalModuleFactory {
           }
         }
       }
-    } else if !scheme.is_none() {
-      // resource with scheme
-      let mut resource_data = ResourceData::new(unresolved_resource.to_owned());
-      plugin_driver
-        .normal_module_factory_hooks
-        .resolve_for_scheme
-        .call(data, &mut resource_data, &scheme)
-        .await?;
-      resource_data
-    } else if !context_scheme.is_none()
-      // resource within scheme
-      && let Some(resource_data) = {
-        let mut resource_data = ResourceData::new(unresolved_resource.to_owned());
-        let handled = plugin_driver
-          .normal_module_factory_hooks
-          .resolve_in_scheme
-          .call(data, &mut resource_data, &context_scheme)
-          .await?
-          .unwrap_or_default();
-        handled.then_some(resource_data)
-      }
-    {
-      resource_data
-    } else {
-      unreachable!("should be default_resolve, resource_with_scheme, or resource_within_scheme")
     };
 
     let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data
