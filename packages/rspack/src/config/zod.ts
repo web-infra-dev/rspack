@@ -761,8 +761,8 @@ export type ModuleOptions = z.infer<typeof moduleOptions>;
 //#endregion
 
 //#region Target
-const allowTarget = z
-	.enum([
+const allowTarget = z.union([
+	z.enum([
 		"web",
 		"webworker",
 		"es3",
@@ -776,89 +776,61 @@ const allowTarget = z
 		"es2021",
 		"es2022",
 		"browserslist"
-	])
-	.or(z.literal("node"))
-	.or(z.literal("async-node"))
-	.or(
-		z.custom<`node${number}`>(
-			value => typeof value === "string" && /^node\d+$/.test(value)
-		)
+	]),
+	z.literal("node"),
+	z.literal("async-node"),
+	z.custom<`node${number}`>(
+		value => typeof value === "string" && /^node\d+$/.test(value)
+	),
+	z.custom<`async-node${number}`>(
+		value => typeof value === "string" && /^async-node\d+$/.test(value)
+	),
+	z.custom<`node${number}.${number}`>(
+		value => typeof value === "string" && /^node\d+\.\d+$/.test(value)
+	),
+	z.custom<`async-node${number}.${number}`>(
+		value => typeof value === "string" && /^async-node\d+\.\d+$/.test(value)
+	),
+	z.literal("electron-main"),
+	z.custom<`electron${number}-main`>(
+		value => typeof value === "string" && /^electron\d+-main$/.test(value)
+	),
+	z.custom<`electron${number}.${number}-main`>(
+		value => typeof value === "string" && /^electron\d+\.\d+-main$/.test(value)
+	),
+	z.literal("electron-renderer"),
+	z.custom<`electron${number}-renderer`>(
+		value => typeof value === "string" && /^electron\d+-renderer$/.test(value)
+	),
+	z.custom<`electron${number}.${number}-renderer`>(
+		value =>
+			typeof value === "string" && /^electron\d+\.\d+-renderer$/.test(value)
+	),
+	z.literal("electron-preload"),
+	z.custom<`electron${number}-preload`>(
+		value => typeof value === "string" && /^electron\d+-preload$/.test(value)
+	),
+	z.custom<`electron${number}.${number}-preload`>(
+		value =>
+			typeof value === "string" && /^electron\d+\.\d+-preload$/.test(value)
+	),
+	z.literal("nwjs"),
+	z.custom<`nwjs${number}`>(
+		value => typeof value === "string" && /^nwjs\d+$/.test(value)
+	),
+	z.custom<`nwjs${number}.${number}`>(
+		value => typeof value === "string" && /^nwjs\d+\.\d+$/.test(value)
+	),
+	z.literal("node-webkit"),
+	z.custom<`node-webkit${number}`>(
+		value => typeof value === "string" && /^node-webkit\d+$/.test(value)
+	),
+	z.custom<`node-webkit${number}.${number}`>(
+		value => typeof value === "string" && /^node-webkit\d+\.\d+$/.test(value)
 	)
-	.or(
-		z.custom<`async-node${number}`>(
-			value => typeof value === "string" && /^async-node\d+$/.test(value)
-		)
-	)
-	.or(
-		z.custom<`node${number}.${number}`>(
-			value => typeof value === "string" && /^node\d+\.\d+$/.test(value)
-		)
-	)
-	.or(
-		z.custom<`async-node${number}.${number}`>(
-			value => typeof value === "string" && /^async-node\d+\.\d+$/.test(value)
-		)
-	)
-	.or(z.literal("electron-main"))
-	.or(
-		z.custom<`electron${number}-main`>(
-			value => typeof value === "string" && /^electron\d+-main$/.test(value)
-		)
-	)
-	.or(
-		z.custom<`electron${number}.${number}-main`>(
-			value =>
-				typeof value === "string" && /^electron\d+\.\d+-main$/.test(value)
-		)
-	)
-	.or(z.literal("electron-renderer"))
-	.or(
-		z.custom<`electron${number}-renderer`>(
-			value => typeof value === "string" && /^electron\d+-renderer$/.test(value)
-		)
-	)
-	.or(
-		z.custom<`electron${number}.${number}-renderer`>(
-			value =>
-				typeof value === "string" && /^electron\d+\.\d+-renderer$/.test(value)
-		)
-	)
-	.or(z.literal("electron-preload"))
-	.or(
-		z.custom<`electron${number}-preload`>(
-			value => typeof value === "string" && /^electron\d+-preload$/.test(value)
-		)
-	)
-	.or(
-		z.custom<`electron${number}.${number}-preload`>(
-			value =>
-				typeof value === "string" && /^electron\d+\.\d+-preload$/.test(value)
-		)
-	)
-	.or(z.literal("nwjs"))
-	.or(
-		z.custom<`nwjs${number}`>(
-			value => typeof value === "string" && /^nwjs\d+$/.test(value)
-		)
-	)
-	.or(
-		z.custom<`nwjs${number}.${number}`>(
-			value => typeof value === "string" && /^nwjs\d+\.\d+$/.test(value)
-		)
-	)
-	.or(z.literal("node-webkit"))
-	.or(
-		z.custom<`node-webkit${number}`>(
-			value => typeof value === "string" && /^node-webkit\d+$/.test(value)
-		)
-	)
-	.or(
-		z.custom<`node-webkit${number}.${number}`>(
-			value => typeof value === "string" && /^node-webkit\d+\.\d+$/.test(value)
-		)
-	);
+]);
 
-const target = z.literal(false).or(allowTarget).or(allowTarget.array());
+const target = z.union([z.literal(false), allowTarget, allowTarget.array()]);
 export type Target = z.infer<typeof target>;
 //#endregion
 
