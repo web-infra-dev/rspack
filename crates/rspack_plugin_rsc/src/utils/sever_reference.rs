@@ -25,23 +25,17 @@ impl RSCServerReferenceManifest {
     chunks: &Vec<&String>,
     ssr_module_mapping: &mut HashMap<String, HashMap<String, ServerRef>>,
   ) {
-    if ssr_module_mapping.get(id).is_none() {
-      ssr_module_mapping.insert(id.to_string(), HashMap::default());
-    }
-    let module_mapping = ssr_module_mapping.get_mut(id);
-    match module_mapping {
-      Some(mm) => {
-        mm.insert(
-          name.to_string(),
-          ServerRef {
-            id: id.to_string(),
-            name: name.to_string(),
-            chunks: chunks.iter().map(|&chunk| chunk.to_string()).collect(),
-          },
-        );
-      }
-      None => (),
-    }
+    let module_mapping = ssr_module_mapping
+      .entry(id.into())
+      .or_insert_with(HashMap::default);
+    module_mapping.insert(
+      name.into(),
+      ServerRef {
+        id: id.to_string(),
+        name: name.to_string(),
+        chunks: chunks.iter().map(|&chunk| chunk.to_string()).collect(),
+      },
+    );
   }
   fn add_server_import_ref(
     &self,
