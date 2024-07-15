@@ -2158,9 +2158,9 @@ dependencies = [
 
 [[package]]
 name = "napi-sys"
-version = "2.3.0"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2503fa6af34dc83fb74888df8b22afe933b58d37daf7d80424b1c60c68196b8b"
+checksum = "427802e8ec3a734331fec1035594a210ce1ff4dc5bc1950530920ab717964ea3"
 dependencies = [
  "libloading",
 ]
@@ -3056,6 +3056,7 @@ dependencies = [
 name = "rspack_binding_values"
 version = "0.1.0"
 dependencies = [
+ "dashmap 5.5.3",
  "futures",
  "heck 0.5.0",
  "napi-derive",

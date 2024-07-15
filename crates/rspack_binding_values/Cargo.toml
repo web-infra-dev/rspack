@@ -18,3 +18,4 @@ rspack_regex = { path = "../rspack_regex" }
 rustc-hash   = { workspace = true }
 serde        = { workspace = true }
 serde_json   = { workspace = true }
+dashmap  = { workspace = true }

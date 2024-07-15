@@ -82,6 +82,67 @@ export class JsStats {
   getHash(): string | null
 }
 
+export class JsStatsChunk {
+  type: string
+  files: Array<string>
+  auxiliaryFiles: Array<string>
+  id?: string
+  idHints: Array<string>
+  hash?: string
+  entry: boolean
+  initial: boolean
+  names: Array<string>
+  size: number
+  parents?: Array<string>
+  children?: Array<string>
+  siblings?: Array<string>
+  childrenByOrder: Record<string, Array<string>>
+  runtime: Array<string>
+  reason?: string
+  rendered: boolean
+  get modules(): Array<JsStatsModule> | null
+  get sizes(): Array<JsStatsSize>
+  get origins(): Array<JsOriginRecord>
+}
+
+export class JsStatsModule {
+  type: string
+  moduleType: string
+  identifier: string
+  name: string
+  id?: string
+  chunks: Array<string | undefined | null>
+  size: number
+  depth?: number
+  dependent?: boolean
+  issuer?: string
+  issuerName?: string
+  issuerId?: string
+  nameForCondition?: string
+  assets?: Array<string>
+  source?: string | Buffer
+  orphan: boolean
+  providedExports?: Array<string>
+  usedExports?: string | Array<string>
+  optimizationBailout?: Array<string>
+  preOrderIndex?: number
+  postOrderIndex?: number
+  built: boolean
+  codeGenerated: boolean
+  buildTimeExecuted: boolean
+  cached: boolean
+  cacheable: boolean
+  optional: boolean
+  failed: boolean
+  errors: number
+  warnings: number
+  get modules(): Array<JsStatsModule> | null
+  get sizes(): Array<JsStatsSize>
+  get reasons(): Array<JsStatsModuleReason> | null
+  get issuerPath(): Array<JsStatsModuleIssuer>
+  get profile(): JsStatsModuleProfile | null
+}
+
 export class Rspack {
   constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, resolverFactoryReference: JsResolverFactory)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
@@ -542,29 +603,6 @@ export interface JsStatsAssetsByChunkName {
   files: Array<string>
 }
 
-export interface JsStatsChunk {
-  type: string
-  files: Array<string>
-  auxiliaryFiles: Array<string>
-  id?: string
-  idHints: Array<string>
-  hash?: string
-  entry: boolean
-  initial: boolean
-  names: Array<string>
-  size: number
-  modules?: Array<JsStatsModule>
-  parents?: Array<string>
-  children?: Array<string>
-  siblings?: Array<string>
-  childrenByOrder: Record<string, Array<string>>
-  runtime: Array<string>
-  sizes: Array<JsStatsSize>
-  reason?: string
-  rendered: boolean
-  origins: Array<JsOriginRecord>
-}
-
 export interface JsStatsChunkGroup {
   name: string
   chunks: Array<string | undefined | null>
@@ -615,44 +653,6 @@ export interface JsStatsLogging {
 export interface JsStatsMillisecond {
   secs: number
   subsecMillis: number
-}
-
-export interface JsStatsModule {
-  type: string
-  moduleType: string
-  identifier: string
-  name: string
-  id?: string
-  chunks: Array<string | undefined | null>
-  size: number
-  sizes: Array<JsStatsSize>
-  depth?: number
-  dependent?: boolean
-  issuer?: string
-  issuerName?: string
-  issuerId?: string
-  issuerPath: Array<JsStatsModuleIssuer>
-  modules?: Array<JsStatsModule>
-  nameForCondition?: string
-  reasons?: Array<JsStatsModuleReason>
-  assets?: Array<string>
-  source?: string | Buffer
-  profile?: JsStatsModuleProfile
-  orphan: boolean
-  providedExports?: Array<string>
-  usedExports?: string | Array<string>
-  optimizationBailout?: Array<string>
-  preOrderIndex?: number
-  postOrderIndex?: number
-  built: boolean
-  codeGenerated: boolean
-  buildTimeExecuted: boolean
-  cached: boolean
-  cacheable: boolean
-  optional: boolean
-  failed: boolean
-  errors: number
-  warnings: number
 }
 
 export interface JsStatsModuleIssuer {
