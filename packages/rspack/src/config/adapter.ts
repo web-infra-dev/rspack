@@ -570,7 +570,9 @@ function getRawGeneratorOptionsByModuleType(
 	parser: GeneratorOptionsByModuleType
 ): Record<string, RawGeneratorOptions> {
 	return Object.fromEntries(
-		Object.entries(parser).map(([k, v]) => [k, getRawGeneratorOptions(v, k)])
+		Object.entries(parser)
+			.map(([k, v]) => [k, getRawGeneratorOptions(v, k)])
+			.filter(([k, v]) => v !== undefined)
 	);
 }
 
@@ -706,7 +708,7 @@ function getRawCssParserOptions(
 function getRawGeneratorOptions(
 	generator: { [k: string]: any },
 	type: string
-): RawGeneratorOptions {
+): RawGeneratorOptions | undefined {
 	if (type === "asset") {
 		return {
 			type: "asset",
@@ -747,6 +749,18 @@ function getRawGeneratorOptions(
 			cssModule: getRawCssAutoOrModuleGeneratorOptions(generator)
 		};
 	}
+
+	if (
+		[
+			"javascript",
+			"javascript/auto",
+			"javascript/dynamic",
+			"javascript/esm"
+		].includes(type)
+	) {
+		return undefined;
+	}
+
 	throw new Error(`unreachable: unknow module type: ${type}`);
 }
 
