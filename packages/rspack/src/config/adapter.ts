@@ -562,14 +562,9 @@ function getRawParserOptionsByModuleType(
 	parser: ParserOptionsByModuleType
 ): Record<string, RawParserOptions> {
 	return Object.fromEntries(
-		Object.entries(parser).reduce(
-			(acc, [k, v]) => {
-				const raw = getRawParserOptions(v, k);
-				if (raw) acc.push([k, raw]);
-				return acc;
-			},
-			[] as [string, RawParserOptions][]
-		)
+		Object.entries(parser)
+			.map(([k, v]) => [k, getRawParserOptions(v, k)])
+			.filter(([k, v]) => v !== undefined)
 	);
 }
 
