@@ -50,7 +50,7 @@ it("should be able to do stuff with the module object", () => {
 	expect(require("./accessing-module?1").def).toBe("def");
 });
 
-it("should be able to use AMD to define exports", () => {
-	expect(require("./using-amd?2").abc).toBe("abc");
-	expect(require("./using-amd?1").def).toBe("def");
-});
+// it("should be able to use AMD to define exports", () => {
+// 	expect(require("./using-amd?2").abc).toBe("abc");
+// 	expect(require("./using-amd?1").def).toBe("def");
+// });

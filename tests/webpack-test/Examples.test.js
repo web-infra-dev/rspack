@@ -4,7 +4,7 @@
 
 const path = require("path");
 const fs = require("graceful-fs");
-const { normalizeFilteredTestName } = require("./lib/util/filterUtil")
+const { createFilteredDescribe } = require("./lib/util/filterUtil")
 
 describe("Examples", () => {
 	const basePath = path.join(__dirname, "..", "webpack-examples");
@@ -13,15 +13,8 @@ describe("Examples", () => {
 	examples.forEach(examplePath => {
 		const filterPath = path.join(examplePath, "test.filter.js");
 		const relativePath = path.relative(basePath, examplePath);
-		if (fs.existsSync(filterPath)) {
-			let flag = require(filterPath)()
-			if (flag !== true) {
-				let filteredName = normalizeFilteredTestName(flag, relativePath);
-				describe.skip(relativePath, () => {
-					it(filteredName, () => {});
-				});
-				return;
-			}
+		if (!createFilteredDescribe(relativePath, filterPath)) {
+			return;
 		}
 		it(
 			"should compile " + relativePath,

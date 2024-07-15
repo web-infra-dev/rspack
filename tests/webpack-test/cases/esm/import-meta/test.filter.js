@@ -1,4 +1,4 @@
-const { FilteredStatus } = require("../../../lib/util/filterUtil")
+const { FilteredStatus } = require("../../../lib/util/filterUtil");
 
 /*
 const supportsRequireInModule = require("../../../helpers/supportsRequireInModule");
@@ -8,6 +8,10 @@ module.exports = config => {
 };
 
 */
-module.exports = () => {return [FilteredStatus.PARTIAL_PASS, "https://github.com/web-infra-dev/rspack/issues/4350"]}
-
-							
+module.exports = () => {
+	return [
+		FilteredStatus.PARTIAL_PASS,
+		"compile type evaluation typeof",
+		"https://github.com/web-infra-dev/rspack/issues/4350"
+	];
+};
