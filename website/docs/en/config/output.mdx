@@ -1107,7 +1107,7 @@ This will expose your library as an AMD module.
 
 AMD modules require that the entry chunk (e.g. the first script loaded by the `<script>` tag) be defined with specific properties, such as to `define` and `require` which is typically provided by RequireJS or any compatible loaders (such as almond). Otherwise, loading the resulting AMD bundle directly will result in an error like `define is not defined`.
 
-With the following configuration...
+With the following configuration:
 
 ```js title="rspack.config.js"
 module.exports = {
