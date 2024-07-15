@@ -135,7 +135,7 @@ impl Stats<'_> {
       }
     }
     let assets_by_chunk_name = assets_by_chunk_name
-      .into_iter()
+      .into_par_iter()
       .map(|(name, mut files)| {
         files.sort_unstable();
         StatsAssetsByChunkName { name, files }
@@ -254,21 +254,27 @@ impl Stats<'_> {
   ) -> Result<T> {
     let module_graph = self.compilation.get_module_graph();
     let chunk_graph = &self.compilation.chunk_graph;
+    let context = &self.compilation.options.context;
+    let chunk_group_by_ukey = &self.compilation.chunk_group_by_ukey;
+
+    let orders = [ChunkGroupOrderKey::Prefetch, ChunkGroupOrderKey::Preload];
+
     let mut chunks: Vec<StatsChunk> = self
       .compilation
       .chunk_by_ukey
       .values()
       .par_bridge()
       .map(|c| -> Result<_> {
-        let mut files = Vec::from_iter(c.files.iter().cloned());
-        files.sort_unstable();
+        let files: Vec<_> = {
+          let mut vec = c.files.iter().cloned().collect::<Vec<_>>();
+          vec.sort_unstable();
+          vec
+        };
 
-        let root_modules = HashSet::from_iter(
-          chunk_graph
-            .get_chunk_root_modules(&c.ukey, &module_graph)
-            .iter()
-            .copied(),
-        );
+        let root_modules = chunk_graph
+          .get_chunk_root_modules(&c.ukey, &module_graph)
+          .into_iter()
+          .collect::<HashSet<Identifier>>();
 
         let mut auxiliary_files = Vec::from_iter(c.auxiliary_files.iter().cloned());
         auxiliary_files.sort_unstable();
@@ -300,39 +306,33 @@ impl Stats<'_> {
         } else {
           None
         };
-        let (parents, children, siblings) = if let Some((parents, children, siblings)) =
-          chunk_relations.then(|| self.get_chunk_relations(c))
-        {
-          (Some(parents), Some(children), Some(siblings))
-        } else {
-          (None, None, None)
-        };
 
-        let orders = vec![ChunkGroupOrderKey::Prefetch, ChunkGroupOrderKey::Preload];
+        let (parents, children, siblings) = chunk_relations
+          .then(|| self.get_chunk_relations(c))
+          .map_or((None, None, None), |(parents, children, siblings)| {
+            (Some(parents), Some(children), Some(siblings))
+          });
+
         let mut children_by_order = HashMap::<ChunkGroupOrderKey, Vec<String>>::default();
-
-        for order in orders {
-          if let Some(order_chlidren) = c.get_child_ids_by_order(&order, self.compilation) {
-            children_by_order.insert(order, order_chlidren);
+        for order in &orders {
+          if let Some(order_chlidren) = c.get_child_ids_by_order(order, self.compilation) {
+            children_by_order.insert(order.clone(), order_chlidren);
           }
         }
-
-        let chunk_graph = &self.compilation.chunk_graph;
-        let module_graph = &self.compilation.get_module_graph();
-        let context = &self.compilation.options.context;
-        let chunk_group_by_ukey = &self.compilation.chunk_group_by_ukey;
 
         let origins = c
           .groups
           .iter()
           .sorted()
+          .par_bridge()
           .flat_map(|ukey| {
             let chunk_group = chunk_group_by_ukey.expect_get(ukey);
-            chunk_group.origins().iter().map(|origin| {
+            chunk_group.origins().par_iter().map(|origin| {
               let module_identifier = origin
                 .module_id
                 .map(|id| id.to_string())
                 .unwrap_or_default();
+
               let module_name = origin
                 .module_id
                 .map(|identifier| {
