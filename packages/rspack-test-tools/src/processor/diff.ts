@@ -98,7 +98,7 @@ export class DiffProcessor implements ITestProcessor {
 		}
 
 		const dist = context.getDist();
-		for (let file of this.options.files!) {
+		for (const file of this.options.files!) {
 			const rspackDist = path.join(dist, ECompilerType.Rspack, file);
 			const webpackDist = path.join(dist, ECompilerType.Webpack, file);
 			const result = compareFile(rspackDist, webpackDist, {
@@ -173,7 +173,7 @@ export class DiffProcessor implements ITestProcessor {
 			ignoreCssFilePath: this.options.ignoreCssFilePath,
 			replacements: this.options.replacements || []
 		};
-		for (let hash of this.hashes) {
+		for (const hash of this.hashes) {
 			formatOptions.replacements!.push({ from: hash, to: "fullhash" });
 		}
 		return formatOptions;

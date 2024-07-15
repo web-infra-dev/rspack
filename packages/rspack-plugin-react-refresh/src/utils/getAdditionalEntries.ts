@@ -14,7 +14,7 @@ export function getAdditionalEntries({
 	options: NormalizedPluginOptions;
 }): AdditionalEntries {
 	/** @type {Record<string, string | number>} */
-	let resourceQuery: Record<string, string | number> = {};
+	const resourceQuery: Record<string, string | number> = {};
 
 	if (devServer) {
 		const { client, https, http2, sockHost, sockPath, sockPort } = devServer;

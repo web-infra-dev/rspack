@@ -85,7 +85,7 @@ export class MultiCompiler {
 		};
 		this.compilers = compilers;
 		this._options = {
-			parallelism: options?.parallelism || Infinity
+			parallelism: options?.parallelism || Number.POSITIVE_INFINITY
 		};
 		this.dependencies = new WeakMap();
 		this.running = false;

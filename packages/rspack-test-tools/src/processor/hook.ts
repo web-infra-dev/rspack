@@ -102,11 +102,11 @@ export class HookCasesContext extends TestContext {
 	 */
 	snapped(cb: (...args: unknown[]) => Promise<unknown>, prefix = "") {
 		// eslint-disable-next-line
-		let context = this;
+		const context = this;
 		return function SNAPPED_HOOK(this: any, ...args: unknown[]) {
-			let group = prefix ? prefix : context.count++;
+			const group = prefix ? prefix : context.count++;
 			context._addSnapshot(args, "input", group);
-			let output = cb.apply(this, args);
+			const output = cb.apply(this, args);
 			if (output && typeof output.then === "function") {
 				let resolve;
 				context.promises.push(new Promise(r => (resolve = r)));
@@ -157,11 +157,11 @@ export class HookCasesContext extends TestContext {
 		await Promise.allSettled(this.promises);
 		if (!this.snapshotsList.length) return;
 
-		let snapshots = this.snapshotsList.reduce((acc, group, index) => {
-			let block = this.snapshots[group || index].reduce(
+		const snapshots = this.snapshotsList.reduce((acc, group, index) => {
+			const block = this.snapshots[group || index].reduce(
 				(acc, [content, name]) => {
 					name = `## ${name || `test: ${index}`}\n\n`;
-					let block = "```javascript\n" + content + "\n```\n";
+					const block = "```javascript\n" + content + "\n```\n";
 					return (acc += name + block + "\n");
 				},
 				""

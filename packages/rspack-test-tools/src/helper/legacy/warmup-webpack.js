@@ -2,7 +2,7 @@
 describe("warmup", () => {
 	it("should warmup webpack", done => {
 		let webpack = require("@rspack/core");
-		let END = new Error("end warmup");
+		const END = new Error("end warmup");
 		webpack(
 			{
 				entry: "data:text/javascript,import 'data:text/javascript,'",

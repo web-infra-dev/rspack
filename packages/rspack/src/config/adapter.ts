@@ -390,7 +390,7 @@ const getRawModuleRule = (
 	}
 	let funcUse: undefined | ((rawContext: RawFuncUseCtx) => RawModuleRuleUse[]);
 	if (typeof rule.use === "function") {
-		let use = rule.use;
+		const use = rule.use;
 		funcUse = (rawContext: RawFuncUseCtx) => {
 			const context = {
 				...rawContext,
@@ -402,7 +402,7 @@ const getRawModuleRule = (
 		};
 	}
 
-	let rawModuleRule: RawModuleRule = {
+	const rawModuleRule: RawModuleRule = {
 		test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
 		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
 		exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,

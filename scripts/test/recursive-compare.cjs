@@ -12,20 +12,20 @@ async function _recursiveCompareBase(
 ) {
 	const a = fs.readdirSync(baseA);
 	const b = fs.readdirSync(baseB);
-	let set = new Set(intersection(a, b));
+	const set = new Set(intersection(a, b));
 	await Promise.all(
 		Array.from(set).map(async item => {
-			let nextA = path.join(baseA, item);
-			let nextB = path.join(baseB, item);
-			let fileA = fs.lstatSync(nextA).isFile();
-			let fileB = fs.lstatSync(nextB).isFile();
-			let p = path.relative(rootA, nextA);
+			const nextA = path.join(baseA, item);
+			const nextB = path.join(baseB, item);
+			const fileA = fs.lstatSync(nextA).isFile();
+			const fileB = fs.lstatSync(nextB).isFile();
+			const p = path.relative(rootA, nextA);
 
 			if (fileA && fileB) {
-				let a = fs.readFileSync(nextA);
-				let b = fs.readFileSync(nextB);
+				const a = fs.readFileSync(nextA);
+				const b = fs.readFileSync(nextB);
 
-				let r = await onCompare(p, a, b);
+				const r = await onCompare(p, a, b);
 				if (r) {
 					identical.add(p);
 				} else {
@@ -83,13 +83,13 @@ async function recursiveCompareStrict(baseA, baseB, onCompare) {
 	return (
 		await Promise.all(
 			a.map(async item => {
-				let nextA = path.join(baseA, item);
-				let nextB = path.join(baseB, item);
-				let fileA = fs.lstatSync(nextA).isFile();
-				let fileB = fs.lstatSync(nextB).isFile();
+				const nextA = path.join(baseA, item);
+				const nextB = path.join(baseB, item);
+				const fileA = fs.lstatSync(nextA).isFile();
+				const fileB = fs.lstatSync(nextB).isFile();
 				if (fileA && fileB) {
-					let a = fs.readFileSync(nextA);
-					let b = fs.readFileSync(nextB);
+					const a = fs.readFileSync(nextA);
+					const b = fs.readFileSync(nextB);
 					return onCompare(nextA, a, b);
 				} else if (fileA || fileB) {
 					return false;

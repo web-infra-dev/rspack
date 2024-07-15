@@ -24,7 +24,7 @@ export default function getSocketUrlParts(
 	}
 
 	/** @type {SocketUrlParts} */
-	let urlParts: SocketUrlParts = {} as SocketUrlParts;
+	const urlParts: SocketUrlParts = {} as SocketUrlParts;
 
 	// If the resource query is available,
 	// parse it and ignore everything we received from the script host.

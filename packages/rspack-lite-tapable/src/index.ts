@@ -327,8 +327,8 @@ export class HookBase<T, R, AdditionalOptions = UnsetAdditionalOptions>
 }
 
 export type StageRange = readonly [number, number];
-export const minStage = -Infinity;
-export const maxStage = Infinity;
+export const minStage = Number.NEGATIVE_INFINITY;
+export const maxStage = Number.POSITIVE_INFINITY;
 const allStageRange = [minStage, maxStage] as const;
 const i32MIN = -(2 ** 31);
 const i32MAX = 2 ** 31 - 1;
@@ -346,7 +346,7 @@ export class QueriedHook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
 	constructor(stageRange: StageRange, hook: HookBase<T, R, AdditionalOptions>) {
 		const tapsInRange: typeof hook.taps = [];
 		const [from, to] = stageRange;
-		for (let tap of hook.taps) {
+		for (const tap of hook.taps) {
 			const stage = tap.stage ?? 0;
 			if (from <= stage && stage < to) {
 				tapsInRange.push(tap);
@@ -417,7 +417,7 @@ export class SyncHook<
 		if (from === minStage) {
 			this._runCallInterceptors(...args2);
 		}
-		for (let tap of tapsInRange) {
+		for (const tap of tapsInRange) {
 			this._runTapInterceptors(tap);
 			try {
 				tap.fn(...args2);
@@ -485,7 +485,7 @@ export class SyncBailHook<
 		if (from === minStage) {
 			this._runCallInterceptors(...args2);
 		}
-		for (let tap of tapsInRange) {
+		for (const tap of tapsInRange) {
 			this._runTapInterceptors(tap);
 			let r = undefined;
 			try {
@@ -566,7 +566,7 @@ export class SyncWaterfallHook<
 		if (from === minStage) {
 			this._runCallInterceptors(...args2);
 		}
-		for (let tap of tapsInRange) {
+		for (const tap of tapsInRange) {
 			this._runTapInterceptors(tap);
 			try {
 				const r = tap.fn(...args2);
@@ -646,7 +646,7 @@ export class AsyncParallelHook<
 		};
 		if (tapsInRange.length === 0) return done();
 		let counter = tapsInRange.length;
-		for (let tap of tapsInRange) {
+		for (const tap of tapsInRange) {
 			this._runTapInterceptors(tap);
 			if (tap.type === "promise") {
 				const promise = tap.fn(...args2);

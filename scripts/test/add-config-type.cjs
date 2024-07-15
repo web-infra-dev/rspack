@@ -48,7 +48,7 @@ for (const { root, match, comment } of [{
   comment: `/** @type {import("@rspack/core").Configuration} */`
 }]) {
   const files = glob.sync(match, { cwd: root });
-  for (let file of files) {
+  for (const file of files) {
     const absolutePath = path.resolve(root, file);
     let content = fs.readFileSync(absolutePath, 'utf-8');
     if (content.includes("@type")) {

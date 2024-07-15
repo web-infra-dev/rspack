@@ -633,7 +633,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			});
 			const limited = spaceLimited(
 				groupedAssets,
-				options.assetsSpace || Infinity
+				options.assetsSpace || Number.POSITIVE_INFINITY
 			);
 
 			// object.filteredAssets = limited.filteredChildren;

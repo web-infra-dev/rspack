@@ -66,7 +66,7 @@ export function compareFile(
 		bootstrap: compareOptions.bootstrap
 	});
 
-	for (let type of ["modules", "runtimeModules"]) {
+	for (const type of ["modules", "runtimeModules"]) {
 		const t = type as "modules" | "runtimeModules";
 		let moduleList: string[] = [];
 		if (compareOptions[t] === true) {
@@ -99,7 +99,7 @@ export function compareModules(
 	compareOptions: ICompareOptions
 ) {
 	const compareResults: TModuleCompareResult[] = [];
-	for (let name of modules) {
+	for (const name of modules) {
 		const renamed = replaceRuntimeModuleName(name);
 		const sourceContent =
 			sourceModules.has(renamed) &&

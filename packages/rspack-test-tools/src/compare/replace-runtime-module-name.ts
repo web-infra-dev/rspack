@@ -73,7 +73,7 @@ const RUNTIME_MODULE_PARAM_REGEX = {
 };
 
 export function replaceRuntimeModuleName(raw: string) {
-	for (let [rspackName, webpackName] of Object.entries(
+	for (const [rspackName, webpackName] of Object.entries(
 		RUNTIME_MODULE_NAME_MAPPING
 	)) {
 		if (

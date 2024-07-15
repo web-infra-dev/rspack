@@ -141,7 +141,7 @@ export class BuiltinProcessor<
 				defaultOptions as TCompilerOptions<ECompilerType.Rspack>;
 			const testConfigFile = context.getSource("rspack.config.js");
 			if (fs.existsSync(testConfigFile)) {
-				let caseOptions = require(testConfigFile);
+				const caseOptions = require(testConfigFile);
 				if (caseOptions.entry) {
 					delete rspackDefaultOptions.entry;
 				}
@@ -166,7 +166,7 @@ export class BuiltinProcessor<
 			const htmlOptions = (rspackDefaultOptions as any).builtins?.html;
 			if (htmlOptions) {
 				if (Array.isArray(htmlOptions)) {
-					for (let item of htmlOptions) {
+					for (const item of htmlOptions) {
 						rspackDefaultOptions.plugins!.push(
 							new rspack.HtmlRspackPlugin(item)
 						);

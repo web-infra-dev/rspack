@@ -92,7 +92,7 @@ export class MultiTaskProcessor<T extends ECompilerType>
 				)
 			: [{}];
 
-		for (let [index, options] of caseOptions.entries()) {
+		for (const [index, options] of caseOptions.entries()) {
 			const compilerOptions = merge(
 				typeof this._multiOptions.defaultOptions === "function"
 					? this._multiOptions.defaultOptions!(index, context)

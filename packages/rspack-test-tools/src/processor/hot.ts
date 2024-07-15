@@ -49,8 +49,8 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 		this: HotProcessor<T>,
 		context: ITestContext
 	): string[] {
-		let files: string[] = [];
-		let prefiles: string[] = [];
+		const files: string[] = [];
+		const prefiles: string[] = [];
 		const compiler = context.getCompiler(this._hotOptions.name);
 		if (!compiler) throw new Error("Compiler should exists when find bundle");
 		const stats = compiler.getStats();

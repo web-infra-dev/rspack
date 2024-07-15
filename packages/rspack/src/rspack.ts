@@ -104,7 +104,7 @@ function rspack(
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
 	try {
-		for (let o of asArray(options)) {
+		for (const o of asArray(options)) {
 			validate(o, rspackOptions);
 		}
 	} catch (e) {

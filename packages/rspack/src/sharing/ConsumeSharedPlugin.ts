@@ -46,7 +46,7 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 				(item, key) => {
 					if (Array.isArray(item))
 						throw new Error("Unexpected array in options");
-					let result =
+					const result =
 						item === key || !isRequiredVersion(item)
 							? // item is a request/key
 								{
