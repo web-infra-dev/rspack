@@ -150,6 +150,7 @@ Object {
       "chunks": Array [
         "909",
       ],
+      "filteredAssets": 0,
       "name": "main",
     },
   },
@@ -236,6 +237,7 @@ Object {
       "chunks": Array [
         "909",
       ],
+      "filteredAssets": 0,
       "name": "main",
     },
   },
@@ -617,6 +619,7 @@ Object {
       "chunks": Array [
         "909",
       ],
+      "filteredAssets": 0,
       "name": "main",
     },
   },
@@ -1272,6 +1275,7 @@ Object {
       "chunks": Array [
         "909",
       ],
+      "filteredAssets": 0,
       "name": "main",
     },
   },
@@ -1734,6 +1738,7 @@ exports.c = require(\\"./c?c=3\\");
       "chunks": Array [
         "909",
       ],
+      "filteredAssets": 0,
       "name": "main",
     },
   },
@@ -2024,6 +2029,7 @@ exports.c = require(\\"./c?c=3\\");
       "chunks": Array [
         "909",
       ],
+      "filteredAssets": 0,
       "name": "main",
     },
   },
