@@ -1,11 +1,10 @@
 use std::{
-  borrow::Cow,
   fmt,
   ops::Deref,
   path::{Path, PathBuf},
 };
 
-use rspack_loader_runner::{get_scheme, ResourceData};
+use rspack_loader_runner::ResourceData;
 use rspack_util::atom::Atom;
 
 use crate::{contextify, parse_resource};
