@@ -45,7 +45,7 @@
     "@types/ws": "8.5.10"
   },
   "dependencies": {
-    "chokidar": "3.5.3",
+    "chokidar": "3.6.0",
     "connect-history-api-fallback": "2.0.0",
     "express": "4.19.2",
     "http-proxy-middleware": "2.0.6",
