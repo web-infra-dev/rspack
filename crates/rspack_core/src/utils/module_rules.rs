@@ -37,19 +37,20 @@ pub async fn module_rule_matcher<'a>(
 
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
+  let resource_path = || {
+    resource_data
+      .resource_path
+      .as_deref()
+      .map(|p| p.to_string_lossy().to_string())
+      .unwrap_or_default()
+  };
   if let Some(test_rule) = &module_rule.test
-    && !test_rule
-      .try_match(&Value::String(
-        resource_data.resource_path.to_string_lossy().to_string(),
-      ))
-      .await?
+    && !test_rule.try_match(&Value::String(resource_path())).await?
   {
     return Ok(false);
   } else if let Some(resource_rule) = &module_rule.resource
     && !resource_rule
-      .try_match(&Value::String(
-        resource_data.resource_path.to_string_lossy().to_string(),
-      ))
+      .try_match(&Value::String(resource_path()))
       .await?
   {
     return Ok(false);
@@ -57,9 +58,7 @@ pub async fn module_rule_matcher<'a>(
 
   if let Some(include_rule) = &module_rule.include
     && !include_rule
-      .try_match(&Value::String(
-        resource_data.resource_path.to_string_lossy().to_string(),
-      ))
+      .try_match(&Value::String(resource_path()))
       .await?
   {
     return Ok(false);
@@ -67,9 +66,7 @@ pub async fn module_rule_matcher<'a>(
 
   if let Some(exclude_rule) = &module_rule.exclude
     && exclude_rule
-      .try_match(&Value::String(
-        resource_data.resource_path.to_string_lossy().to_string(),
-      ))
+      .try_match(&Value::String(resource_path()))
       .await?
   {
     return Ok(false);

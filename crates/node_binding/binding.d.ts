@@ -473,7 +473,7 @@ export interface JsResourceData {
   /** Resource with absolute path, query and fragment */
   resource: string
   /** Absolute resource path only */
-  path: string
+  path?: string
   /** Resource query with `?` prefix */
   query?: string
   /** Resource fragment with `#` prefix */

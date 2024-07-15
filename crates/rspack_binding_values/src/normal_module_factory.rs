@@ -72,11 +72,7 @@ impl From<&NormalModuleCreateData> for JsCreateData {
     Self {
       request: value.request.to_owned(),
       user_request: value.user_request.to_owned(),
-      resource: value
-        .resource_resolve_data
-        .resource_path
-        .to_string_lossy()
-        .to_string(),
+      resource: value.resource_resolve_data.resource.to_owned(),
     }
   }
 }

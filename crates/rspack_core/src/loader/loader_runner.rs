@@ -11,7 +11,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct CompilerModuleContext {
   pub context: Option<Box<Context>>,
-  pub resource: Option<ResourceData>,
+  pub resource_data: Option<ResourceData>,
   pub r#type: ModuleType,
   pub module_identifier: ModuleIdentifier,
   pub name_for_condition: Option<String>,
@@ -27,7 +27,8 @@ impl CompilerModuleContext {
     Self {
       context: module.get_context(),
       r#type: *module.module_type(),
-      resource: normal_module.map(|normal_module| normal_module.resource_resolved_data().clone()),
+      resource_data: normal_module
+        .map(|normal_module| normal_module.resource_resolved_data().clone()),
       module_identifier: module.identifier(),
       name_for_condition: module.name_for_condition().map(|s| s.to_string()),
       request: normal_module.map(|normal_module| normal_module.request().to_owned()),

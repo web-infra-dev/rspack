@@ -36,17 +36,13 @@ async fn process_resource<Context: Send>(
 
   let resource_data = &loader_context.resource_data;
   if loader_context.content.is_none() {
-    if !resource_data.resource_path.to_string_lossy().is_empty() {
-      let result = tokio::fs::read(&loader_context.resource_data.resource_path)
-        .await
-        .map_err(|e| {
-          let r = loader_context
-            .resource_data
-            .resource_path
-            .to_string_lossy()
-            .to_string();
-          error!("{e}, failed to read {r}")
-        })?;
+    if let Some(resource_path) = resource_data.resource_path.as_deref()
+      && !resource_path.to_string_lossy().is_empty()
+    {
+      let result = tokio::fs::read(resource_path).await.map_err(|e| {
+        let r = resource_path.to_string_lossy().to_string();
+        error!("{e}, failed to read {r}")
+      })?;
       loader_context.content = Some(Content::from(result));
     } else if !resource_data.get_scheme().is_none() {
       let resource = &resource_data.resource;
@@ -70,8 +66,10 @@ async fn create_loader_context<Context: 'static>(
   additional_data: AdditionalData,
 ) -> Result<LoaderContext<Context>> {
   let mut file_dependencies: HashSet<PathBuf> = Default::default();
-  if resource_data.resource_path.is_absolute() {
-    file_dependencies.insert(resource_data.resource_path.clone());
+  if let Some(resource_path) = &resource_data.resource_path
+    && resource_path.is_absolute()
+  {
+    file_dependencies.insert(resource_path.clone());
   }
 
   let mut loader_context = LoaderContext {

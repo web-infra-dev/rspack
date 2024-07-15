@@ -44,7 +44,10 @@ impl SwcLoader {
   }
 
   fn loader_impl(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    let resource_path = loader_context.resource_path().to_path_buf();
+    let resource_path = loader_context
+      .resource_path()
+      .map(|p| p.to_path_buf())
+      .unwrap_or_default();
     let Some(content) = std::mem::take(&mut loader_context.content) else {
       return Ok(());
     };

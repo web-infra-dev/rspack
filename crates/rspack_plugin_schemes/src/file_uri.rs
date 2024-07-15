@@ -24,15 +24,13 @@ async fn normal_module_factory_resolve_for_scheme(
       .map_err(|_| error!("Failed to get file path of {url}"))?;
     let query = url.query().map(|q| format!("?{q}"));
     let fragment = url.fragment().map(|f| format!("#{f}"));
-    let new_resource_data = ResourceData::new(
-      format!(
-        "{}{}{}",
-        path.to_string_lossy(),
-        query.as_deref().unwrap_or(""),
-        fragment.as_deref().unwrap_or("")
-      ),
-      path,
-    )
+    let new_resource_data = ResourceData::new(format!(
+      "{}{}{}",
+      path.to_string_lossy(),
+      query.as_deref().unwrap_or(""),
+      fragment.as_deref().unwrap_or("")
+    ))
+    .path(path)
     .query_optional(query)
     .fragment_optional(fragment);
     *resource_data = new_resource_data;

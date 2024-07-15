@@ -32,8 +32,8 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           parser
             .resource_data
             .resource_path
-            .parent()
-            .expect("TODO:")
+            .as_deref()?
+            .parent()?
             .relative(&parser.compiler_options.context)
             .to_string_lossy()
             .to_string(),
@@ -59,6 +59,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           parser
             .resource_data
             .resource_path
+            .as_deref()?
             .relative(&parser.compiler_options.context)
             .to_string_lossy()
             .to_string(),

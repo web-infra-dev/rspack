@@ -47,13 +47,7 @@ impl ToJsModule for dyn Module {
       .map(|normal_module| JsModule {
         context: context(),
         original_source: original_source(),
-        resource: Some(
-          normal_module
-            .resource_resolved_data()
-            .resource_path
-            .to_string_lossy()
-            .to_string(),
-        ),
+        resource: Some(normal_module.resource_resolved_data().resource.to_string()),
         r#type: normal_module.module_type().to_string(),
         module_identifier: module_identifier(),
         name_for_condition: name_for_condition(),
@@ -126,10 +120,7 @@ impl ToJsModule for CompilerModuleContext {
       module_identifier: self.module_identifier.to_string(),
       name_for_condition: self.name_for_condition.clone(),
       r#type: self.r#type.to_string(),
-      resource: self
-        .resource
-        .as_ref()
-        .map(|r| r.resource_path.to_string_lossy().to_string()),
+      resource: self.resource_data.as_ref().map(|r| r.resource.to_string()),
       original_source: None,
       request: self.request.clone(),
       user_request: self.user_request.clone(),
