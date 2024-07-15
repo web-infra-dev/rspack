@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 5489
+- Update: main.LAST_HASH.hot-update.js, size: 5764
 
 ## Manifest
 
@@ -37,10 +37,11 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   App: function() { return App; }
 });
-/* harmony import */var react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react/jsx-dev-runtime */ "../../../../../../node_modules/preact/compat/jsx-dev-runtime.js");
-/* harmony import */var preact_compat__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! preact/compat */ "../../../../../../node_modules/preact/compat/dist/compat.js");
+/* harmony import */var react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react/jsx-dev-runtime */ "../../../../../../node_modules/.pnpm/preact@10.22.0/node_modules/preact/compat/jsx-dev-runtime.js");
+/* harmony import */var react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */var preact_compat__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! preact/compat */ "../../../../../../node_modules/.pnpm/preact@10.22.0/node_modules/preact/compat/dist/compat.js");
 /* harmony import */var preact_compat__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(preact_compat__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */var preact_hooks__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! preact/hooks */ "../../../../../../node_modules/preact/hooks/dist/hooks.js");
+/* harmony import */var preact_hooks__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! preact/hooks */ "../../../../../../node_modules/.pnpm/preact@10.22.0/node_modules/preact/hooks/dist/hooks.js");
 /* module decorator */ module = __webpack_require__.hmd(module);
 /* provided dependency */ var __prefresh_utils__ = __webpack_require__(/*! ../../../../client/prefresh.cjs */ "../../../../client/prefresh.cjs");
 

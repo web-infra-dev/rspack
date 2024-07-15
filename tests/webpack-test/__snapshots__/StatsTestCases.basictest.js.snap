@@ -279,12 +279,11 @@ Rspack x.x.x compiled <CLR=32,BOLD>successfully</CLR> in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for common-libs 1`] = `
-"asset react.js 4.71 KiB [emitted] (name: react)
-Entrypoint react 4.71 KiB = react.js
+"asset react.js 3.76 KiB [emitted] (name: react)
+Entrypoint react 3.76 KiB = react.js
 ./react.js 74 bytes [built] [code generated]
-../../../../node_modules/react/index.js 190 bytes [built] [code generated]
-../../../../node_modules/react/cjs/react.production.min.js 6.3 KiB [built] [code generated]
-../../../../node_modules/object-assign/index.js 2.06 KiB [built] [code generated]
+../../../../node_modules/.pnpm/react@18.3.1/node_modules/react/index.js 190 bytes [built] [code generated]
+../../../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.production.min.js 6.77 KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -755,6 +754,14 @@ Rspack x.x.x compiled successfully"
 
 exports[`StatsTestCases should print correct stats for module-not-found-error 1`] = `
 "ERROR in ./index.js
+  × Module not found: Can't resolve 'buffer' in 'Xdir/module-not-found-error'
+   ╭─[1:1]
+ 1 │ require('buffer')
+   · ─────────────────
+ 2 │ require('os')
+   ╰────
+
+ERROR in ./index.js
   × Module not found: Can't resolve 'os' in 'Xdir/module-not-found-error'
    ╭─[1:1]
  1 │ require('buffer')
@@ -762,7 +769,7 @@ exports[`StatsTestCases should print correct stats for module-not-found-error 1`
    · ─────────────
    ╰────
 
-Rspack compiled with 1 error"
+Rspack compiled with 2 errors"
 `;
 
 exports[`StatsTestCases should print correct stats for module-reasons 1`] = `
