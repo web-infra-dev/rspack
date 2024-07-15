@@ -11,8 +11,8 @@ The following options are now supported:
 | options                      | description                                                                                                                                                                                                                                   |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `'web'`                      | Compile as available in the browser environment (default)                                                                                                                                                                                     |
-| `'webworker'`                | Compile as WebWorker                                                                                                                                                                                                                          |
-| `'browserslist'`             | Infer the ECMAScript version based on the configured browserslist (default if browserslist config is available)                                                                                                                               |
+| `'webworker'`                | Compile as Web Worker                                                                                                                                                                                                                          |
+| `'browserslist'`             | Infer the ES-features version based on the configured browserslist (default if browserslist config is available)                                                                                                                               |
 | `'node[[X].Y]'`              | Compile as available for Node.js environments                                                                                                                                                                                                 |
 | `'async-node[[X].Y]'`        | Compile for usage in a Node.js-like environment (uses fs and vm to load chunks asynchronously)                                                                                                                                                |
 | `'esX'`                      | Compile Rspack runtime to the corresponding ECMAScript version. Currently supports `es3`, `es5`, `es2015`, `es2016`, `es2017`, `es2018`, `es2019`, `es2020`, `es2021`, `es2022` (es5 is used by default)                                      |
@@ -65,7 +65,7 @@ If a project has a browserslist config, then Rspack will use it for:
 - Infer an environment (e.g: `last 2 node versions` the same as `target: "node"` with some [`output.environment`](/config/output#outputenvironment) settings).
 
 :::tip What is Browserslist
-[Browserslist](https://browsersl.ist/) can specify which browsers your web application can run in, it provides a configuration for specifying browsers range. Browserslist has become a standard in the industry, it is used by libraries such as Autoprefixer, Babel, ESLint, PostCSS, SWC and Webpack.
+[Browserslist](https://browsersl.ist/) can specify which browsers your web application can run in, it provides a configuration for specifying browsers range. Browserslist has become a standard in the industry, it is used by libraries such as Autoprefixer, Babel, ESLint, PostCSS, SWC and webpack.
 :::
 
 Supported browserslist values:
