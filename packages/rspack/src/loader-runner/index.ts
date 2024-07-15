@@ -290,7 +290,7 @@ const runSyncOrAsync = promisify(function runSyncOrAsync(
 		}
 	} catch (e: unknown) {
 		// use string for napi getter
-		let err = e as Error;
+		const err = e as Error;
 		if ("hideStack" in err && err.hideStack) {
 			err.hideStack = "true";
 		}
@@ -617,7 +617,7 @@ export async function runLoaders(
 		if (!(error instanceof Error)) {
 			error = new NonErrorEmittedError(error);
 		}
-		let hasStack = !!error.stack;
+		const hasStack = !!error.stack;
 		error.name = "ModuleError";
 		error.message = `${error.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
@@ -634,7 +634,7 @@ export async function runLoaders(
 		if (!(warning instanceof Error)) {
 			warning = new NonErrorEmittedError(warning);
 		}
-		let hasStack = !!warning.stack;
+		const hasStack = !!warning.stack;
 		warning.name = "ModuleWarning";
 		warning.message = `${warning.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
@@ -834,7 +834,7 @@ export async function runLoaders(
 				const fn = currentLoaderObject.normal;
 				currentLoaderObject.normalExecuted = true;
 				if (!fn) continue;
-				let args = [content, sourceMap, additionalData];
+				const args = [content, sourceMap, additionalData];
 				convertArgs(args, !!currentLoaderObject.raw);
 				[content, sourceMap, additionalData] =
 					(await runSyncOrAsync(fn, loaderContext, args)) || [];

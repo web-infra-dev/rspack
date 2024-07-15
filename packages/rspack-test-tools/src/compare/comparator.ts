@@ -20,7 +20,7 @@ export interface IDiffComparatorOptions {
 export class DiffComparator {
 	constructor(private options: IDiffComparatorOptions) {}
 	async compare() {
-		for (let file of this.options.files!) {
+		for (const file of this.options.files!) {
 			try {
 				const result = compareFile(
 					path.join(this.options.rspackDist, file),
@@ -46,15 +46,15 @@ export class DiffComparator {
 						bootstrap: this.options.bootstrap
 					}
 				);
-				for (let reporter of this.options.reporters) {
+				for (const reporter of this.options.reporters) {
 					reporter.increment(file, result.modules["modules"] || []);
 				}
-				for (let reporter of this.options.reporters) {
+				for (const reporter of this.options.reporters) {
 					reporter.increment(file, result.modules["runtimeModules"] || []);
 				}
 			} catch (e) {
 				console.error(e);
-				for (let reporter of this.options.reporters) {
+				for (const reporter of this.options.reporters) {
 					reporter.failure(file);
 				}
 			}

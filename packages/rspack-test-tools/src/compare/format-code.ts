@@ -163,7 +163,7 @@ export function formatCode(
 		},
 		ObjectExpression(path) {
 			if (options.ignoreObjectPropertySequence) {
-				let result = [];
+				const result = [];
 				let safe = [];
 				while (path.node.properties.length || safe.length) {
 					const cur = path.node.properties.shift()!;
@@ -210,7 +210,7 @@ export function formatCode(
 	}
 
 	if (options.replacements) {
-		for (let { from, to } of options.replacements) {
+		for (const { from, to } of options.replacements) {
 			result = result.replaceAll(from, to);
 		}
 	}

@@ -171,7 +171,7 @@ function checkConfigsDocumentationCoverage() {
 			} else if (zod instanceof ZodOptional) {
 				visit(zod.unwrap(), path);
 			} else if (zod instanceof ZodUnion) {
-				for (let schema of zod.options) {
+				for (const schema of zod.options) {
 					visit(schema, path);
 				}
 			}

@@ -17,7 +17,7 @@ export function __from_binding_runtime_globals(
 ): Set<string> {
 	const res = new Set<string>();
 
-	for (let flag of runtimeRequirements.value) {
+	for (const flag of runtimeRequirements.value) {
 		if (flag in RuntimeGlobals) {
 			res.add(RuntimeGlobals[flag as keyof typeof RuntimeGlobals]);
 		} else {
@@ -35,7 +35,7 @@ export function __to_binding_runtime_globals(
 		value: []
 	};
 
-	for (let flag of Array.from(runtimeRequirements)) {
+	for (const flag of Array.from(runtimeRequirements)) {
 		const item = REVERSE_RUNTIME_GLOBALS.get(flag);
 		if (typeof item === "string") {
 			res.value.push(item);
@@ -429,6 +429,6 @@ export const RuntimeGlobals = {
 	asyncModule: "__webpack_require__.a"
 } as const;
 
-for (let entry of Object.entries(RuntimeGlobals)) {
+for (const entry of Object.entries(RuntimeGlobals)) {
 	REVERSE_RUNTIME_GLOBALS.set(entry[1], entry[0]);
 }

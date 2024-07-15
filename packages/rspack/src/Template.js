@@ -276,8 +276,8 @@ class Template {
 	 * or false if not every module has a number based id
 	 */
 	static getModulesArrayBounds(modules) {
-		let maxId = -Infinity;
-		let minId = Infinity;
+		let maxId = Number.NEGATIVE_INFINITY;
+		let minId = Number.POSITIVE_INFINITY;
 		for (const module of modules) {
 			const moduleId = module.id;
 			if (typeof moduleId !== "number") return false;

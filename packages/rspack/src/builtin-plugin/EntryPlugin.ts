@@ -34,7 +34,7 @@ export const EntryPlugin = create(
 		entry: string,
 		options: EntryOptions | string = ""
 	): RawEntryPluginOptions => {
-		let entryOptions =
+		const entryOptions =
 			typeof options === "string" ? { name: options } : options;
 		return {
 			context,

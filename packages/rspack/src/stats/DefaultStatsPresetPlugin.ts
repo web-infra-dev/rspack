@@ -50,7 +50,7 @@ const NAMED_PRESETS: Record<string, StatsOptions> = {
 		// exclude: false,
 		// errorsSpace: Infinity,
 		// warningsSpace: Infinity,
-		modulesSpace: Infinity,
+		modulesSpace: Number.POSITIVE_INFINITY,
 		// chunkModulesSpace: Infinity,
 		// assetsSpace: Infinity,
 		// reasonsSpace: Infinity,
@@ -167,7 +167,8 @@ const DEFAULTS: StatsDefault = {
 	chunkGroups: OFF_FOR_TO_STRING,
 	chunkGroupAuxiliary: OFF_FOR_TO_STRING,
 	chunkGroupChildren: OFF_FOR_TO_STRING,
-	chunkGroupMaxAssets: (o, { forToString }) => (forToString ? 5 : Infinity),
+	chunkGroupMaxAssets: (o, { forToString }) =>
+		forToString ? 5 : Number.POSITIVE_INFINITY,
 	chunks: OFF_FOR_TO_STRING,
 	chunkRelations: OFF_FOR_TO_STRING,
 	chunkModules: ({ all, modules }) => {
@@ -192,16 +193,20 @@ const DEFAULTS: StatsDefault = {
 	groupModulesByAttributes: ON_FOR_TO_STRING,
 	groupModulesByPath: ON_FOR_TO_STRING,
 	groupModulesByExtension: ON_FOR_TO_STRING,
-	modulesSpace: (o, { forToString }) => (forToString ? 15 : Infinity),
-	chunkModulesSpace: (o, { forToString }) => (forToString ? 10 : Infinity),
-	nestedModulesSpace: (o, { forToString }) => (forToString ? 10 : Infinity),
+	modulesSpace: (o, { forToString }) =>
+		forToString ? 15 : Number.POSITIVE_INFINITY,
+	chunkModulesSpace: (o, { forToString }) =>
+		forToString ? 10 : Number.POSITIVE_INFINITY,
+	nestedModulesSpace: (o, { forToString }) =>
+		forToString ? 10 : Number.POSITIVE_INFINITY,
 	relatedAssets: OFF_FOR_TO_STRING,
 	groupAssetsByEmitStatus: ON_FOR_TO_STRING,
 	groupAssetsByInfo: ON_FOR_TO_STRING,
 	groupAssetsByPath: ON_FOR_TO_STRING,
 	groupAssetsByExtension: ON_FOR_TO_STRING,
 	groupAssetsByChunk: ON_FOR_TO_STRING,
-	assetsSpace: (o, { forToString }) => (forToString ? 15 : Infinity),
+	assetsSpace: (o, { forToString }) =>
+		forToString ? 15 : Number.POSITIVE_INFINITY,
 	orphanModules: OFF_FOR_TO_STRING,
 	runtimeModules: ({ all, runtime }, { forToString }) =>
 		runtime !== undefined
@@ -215,7 +220,8 @@ const DEFAULTS: StatsDefault = {
 	depth: OFF_FOR_TO_STRING,
 	// cachedAssets: OFF_FOR_TO_STRING,
 	reasons: OFF_FOR_TO_STRING,
-	reasonsSpace: (o, { forToString }) => (forToString ? 15 : Infinity),
+	reasonsSpace: (o, { forToString }) =>
+		forToString ? 15 : Number.POSITIVE_INFINITY,
 	groupReasonsByOrigin: ON_FOR_TO_STRING,
 	usedExports: OFF_FOR_TO_STRING,
 	providedExports: OFF_FOR_TO_STRING,

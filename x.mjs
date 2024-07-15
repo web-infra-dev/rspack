@@ -47,7 +47,7 @@ program
 	});
 
 // x clean
-let cleanCommand = program
+const cleanCommand = program
 	.command("clean")
 	.description("clean target/ directory");
 
@@ -75,7 +75,7 @@ buildCommand
 	.option("-r", "release")
 	.option("-f", "force")
 	.action(async ({ a, b = a, j = a, r, f }) => {
-		let mode = r ? "release" : "debug";
+		const mode = r ? "release" : "debug";
 		try {
 			if (b === undefined && j === undefined) {
 				b = j = true;
@@ -93,7 +93,7 @@ watchCommand
 	.option("-j", "watch js packages")
 	.option("-r", "release")
 	.action(async ({ a, b = a, j = a, r }) => {
-		let mode = r ? "release" : "debug";
+		const mode = r ? "release" : "debug";
 		try {
 			b && (await $`pnpm --filter @rspack/binding watch:${mode}`);
 			j && (await $`pnpm --filter "@rspack/*" watch`);
@@ -274,6 +274,6 @@ program.parse(argv, { from: "user" });
 
 // Get args after `--`
 function getVariadicArgs() {
-	let idx = argv.findIndex(c => c === "--");
+	const idx = argv.findIndex(c => c === "--");
 	return idx === -1 ? [] : argv.slice(idx + 1);
 }

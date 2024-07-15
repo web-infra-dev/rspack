@@ -272,8 +272,8 @@ export const SwcJsMinimizerRspackPlugin = create(
 		options?: SwcJsMinimizerRspackPluginOptions
 	): RawSwcJsMinimizerRspackPluginOptions => {
 		let compress = options?.compress ?? true;
-		let mangle = options?.mangle ?? true;
-		let format = {
+		const mangle = options?.mangle ?? true;
+		const format = {
 			comments: false, // terser and swc use different default value: 'some'
 			...options?.format
 		};

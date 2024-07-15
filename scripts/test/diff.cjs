@@ -59,8 +59,8 @@ async function main() {
 
 	// 1. Track tasks that have different content but share the same test name.
 	if (difference.size > 0) {
-		let excludeList = require("./diff-exclude.cjs");
-		let retained = retain(each(not(matchedInAny(excludeList))))(difference);
+		const excludeList = require("./diff-exclude.cjs");
+		const retained = retain(each(not(matchedInAny(excludeList))))(difference);
 		if (retained.length > 0) {
 			errored = true;
 			console.log(
@@ -84,7 +84,7 @@ This would cause misunderstandings between those tests. This file can be removed
 
 	// 2. Calculate cases that can be safely removed from cases in rspack.
 	{
-		let maybeIdentical = unify(
+		const maybeIdentical = unify(
 			retain(each(matchedWith(/^[^\/]*Cases/)))(identical).map(item => {
 				item = item.split("/").slice(0, 3).join("/");
 				if (path.extname(item)) {

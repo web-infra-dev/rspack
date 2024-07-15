@@ -6,7 +6,7 @@ export type DefinePluginOptions = Record<string, CodeValue>;
 export const DefinePlugin = create(
 	BuiltinPluginName.DefinePlugin,
 	function (define: DefinePluginOptions): NormalizedCodeValue {
-		let supportsBigIntLiteral =
+		const supportsBigIntLiteral =
 			this.options.output.environment?.bigIntLiteral ?? false;
 		return normalizeValue(define, supportsBigIntLiteral);
 	},
@@ -41,7 +41,7 @@ const normalizeValue = (
 		} else if (define instanceof RegExp) {
 			return normalizePrimitive(define);
 		} else if (define && typeof define === "object") {
-			let keys = Object.keys(define);
+			const keys = Object.keys(define);
 			return Object.fromEntries(keys.map(k => [k, normalizeObject(define[k])]));
 		} else {
 			return normalizePrimitive(define);

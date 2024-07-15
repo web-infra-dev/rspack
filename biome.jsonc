@@ -38,6 +38,9 @@
 				"useArrowFunction": "error"
 			},
 			"style": {
+				"noNonNullAssertion": "off",
+				"useNumberNamespace": "error",
+				"useConst": "error",
 				"useImportType": "error",
 				"useExportType": "error"
 			}

@@ -92,19 +92,19 @@ const bindings = fs
 	.filter(item => item.isDirectory())
 	.map(item => path.join(ARTIFACTS, item.name));
 
-let optionalDependencies = {};
+const optionalDependencies = {};
 
 for (const binding of bindings) {
 	// bindings-x86_64-unknown-linux-musl
-	let files = fs.readdirSync(binding);
+	const files = fs.readdirSync(binding);
 	assert(files.length === 1, `Expected only one file in ${binding}`);
 
 	// rspack.linux-x64-musl.node
-	let file = files[0];
+	const file = files[0];
 	assert(path.extname(file) === ".node", `Expected .node file in ${binding}`);
-	let binary = fs.readFileSync(path.join(binding, file));
+	const binary = fs.readFileSync(path.join(binding, file));
 
-	let name = path.basename(binding);
+	const name = path.basename(binding);
 	assert(name.startsWith("bindings-"));
 
 	// x86_64-unknown-linux-musl
@@ -202,11 +202,11 @@ fs.readdirSync(NPM, {
 		}
 	});
 
-let bindingJsonPath = path.resolve(
+const bindingJsonPath = path.resolve(
 	__dirname,
 	"../crates/node_binding/package.json"
 );
-let bindingJson = require(bindingJsonPath);
+const bindingJson = require(bindingJsonPath);
 
 // The original `optionalDependencies` field in `package.json` is used to publish locally, so we have to override it for CI.
 bindingJson.optionalDependencies = optionalDependencies;

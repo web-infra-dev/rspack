@@ -96,12 +96,12 @@ export class HotSnapshotProcessor<
 					chunks: true
 				});
 
-				let chunks = Array.from(
+				const chunks = Array.from(
 					// Some chunk fields are missing from rspack
 					(stats?.compilation.chunks as unknown as Chunk[]) || NOOP_SET
 				);
 
-				for (let entry of chunks.filter(i => i.hasRuntime())) {
+				for (const entry of chunks.filter(i => i.hasRuntime())) {
 					if (!this.entries[entry.id!] && entry.runtime) {
 						this.entries[entry.id!] =
 							// Webpack uses `string | SortableSet<string>` for `entry.runtime`
@@ -143,12 +143,12 @@ export class HotSnapshotProcessor<
 		}
 		const statsJson = stats.toJson({ assets: true, chunks: true });
 
-		let chunks = Array.from(
+		const chunks = Array.from(
 			// Some chunk fields are missing from rspack
 			(stats?.compilation.chunks as unknown as Chunk[]) || NOOP_SET
 		);
 
-		for (let entry of chunks.filter(i => i.hasRuntime())) {
+		for (const entry of chunks.filter(i => i.hasRuntime())) {
 			if (entry.runtime) {
 				this.entries[entry.id!] =
 					// Webpack uses `string | SortableSet<string>` for `entry.runtime`
@@ -208,13 +208,13 @@ export class HotSnapshotProcessor<
 		// TODO: find a better way
 		// replace [runtime] to [runtime of id] to prevent worker hash
 		const runtimes: Record<string, string> = {};
-		for (let [id, runtime] of Object.entries(this.entries)) {
+		for (const [id, runtime] of Object.entries(this.entries)) {
 			if (typeof runtime === "string") {
 				if (runtime !== id) {
 					runtimes[runtime] = `[runtime of ${id}]`;
 				}
 			} else if (Array.isArray(runtime)) {
-				for (let r of runtime) {
+				for (const r of runtime) {
 					if (r !== id) {
 						runtimes[r] = `[runtime of ${id}]`;
 					}
@@ -223,7 +223,7 @@ export class HotSnapshotProcessor<
 		}
 
 		const replaceContent = (str: string) => {
-			for (let [raw, replacement] of Object.entries(hashes)) {
+			for (const [raw, replacement] of Object.entries(hashes)) {
 				str = str.split(raw).join(replacement);
 			}
 			// handle timestamp in css-extract
@@ -232,7 +232,7 @@ export class HotSnapshotProcessor<
 		};
 
 		const replaceFileName = (str: string) => {
-			for (let [raw, replacement] of Object.entries({
+			for (const [raw, replacement] of Object.entries({
 				...hashes,
 				...runtimes
 			})) {
@@ -254,7 +254,7 @@ export class HotSnapshotProcessor<
 						compilerOptions
 					);
 					const runtime: string[] = [];
-					for (let i of content.matchAll(
+					for (const i of content.matchAll(
 						/\/\/ (webpack\/runtime\/[\w_-]+)\s*\n/g
 					)) {
 						runtime.push(i[1]);
@@ -294,14 +294,14 @@ export class HotSnapshotProcessor<
 			runtime.javascript.updatedRuntime.sort();
 			runtime.javascript.acceptedModules.sort();
 			runtime.javascript.disposedModules.sort();
-			for (let value of Object.values(
+			for (const value of Object.values(
 				runtime.javascript.outdatedDependencies
 			)) {
 				value.sort();
 			}
 		}
 
-		let content = `
+		const content = `
 # ${title}
 
 ## Changed Files

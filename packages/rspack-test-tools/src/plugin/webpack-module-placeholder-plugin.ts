@@ -32,7 +32,7 @@ function createRenderRuntimeModulesFn(Template) {
 				runtimeSource = codeGenResult.sources.get("runtime");
 			}
 			if (runtimeSource) {
-				let identifier = module.identifier();
+				const identifier = module.identifier();
 				source.add(Template.toNormalComment(`start::${identifier}`) + "\n");
 				if (!module.shouldIsolate()) {
 					source.add(runtimeSource);

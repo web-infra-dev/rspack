@@ -45,7 +45,7 @@ export function ProgressBar({
           animate="animate"
           variants={variants}
           onUpdate={(latest: { width: string }) => {
-            const width = parseFloat(latest.width);
+            const width = Number.parseFloat(latest.width);
             setElapsedTime(width * max * 10);
           }}
           transition={{ duration: value, ease: 'linear' }}

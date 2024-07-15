@@ -35,7 +35,7 @@ export class DiffHtmlReporter implements ITestReporter<TModuleCompareResult[]> {
 		}
 		const ignore = this.options.ignore || DEFAULT_IGNORE;
 		const current = this.results.get(id)!;
-		for (let i of data) {
+		for (const i of data) {
 			if (!ignore.test(i.name)) {
 				current.push({
 					name: i.name,
@@ -48,13 +48,13 @@ export class DiffHtmlReporter implements ITestReporter<TModuleCompareResult[]> {
 	}
 	async output() {
 		fs.ensureDirSync(this.options.dist);
-		for (let viewerFile of fs
+		for (const viewerFile of fs
 			.readdirSync(VIEWER_DIR)
 			.filter(file => file.startsWith("diff"))) {
 			const sourceFile = path.join(VIEWER_DIR, viewerFile);
 			if (path.extname(viewerFile) === ".html") {
 				const template = fs.readFileSync(sourceFile, "utf-8");
-				for (let [id, items] of this.results.entries()) {
+				for (const [id, items] of this.results.entries()) {
 					const data: TDiffStats = {
 						root: id,
 						data: items

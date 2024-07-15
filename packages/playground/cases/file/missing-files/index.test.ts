@@ -4,7 +4,7 @@ test("missing files should be able to recover if being added back", async ({
 	page,
 	fileAction
 }) => {
-	let overlay = page.frameLocator("#webpack-dev-server-client-overlay");
+	const overlay = page.frameLocator("#webpack-dev-server-client-overlay");
 	await expect(
 		overlay.getByText("Can't resolve './missing-file-1'")
 	).toBeVisible();

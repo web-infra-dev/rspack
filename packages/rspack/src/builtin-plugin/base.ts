@@ -29,7 +29,7 @@ export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 
 	affectedHooks?: AffectedHooks;
 	apply(compiler: Compiler) {
-		let raw = this.raw(compiler);
+		const raw = this.raw(compiler);
 		if (raw) {
 			raw.canInherentFromParent = canInherentFromParent(this.affectedHooks);
 			compiler.__internal__registerBuiltinPlugin(raw);

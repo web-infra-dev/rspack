@@ -145,7 +145,8 @@ export class JSDOMWebRunner<
 		const requireCache = Object.create(null);
 
 		return (currentDirectory, modulePath, context = {}) => {
-			let file = context["file"] || this.getFile(modulePath, currentDirectory);
+			const file =
+				context["file"] || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}

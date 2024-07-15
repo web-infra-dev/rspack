@@ -129,7 +129,7 @@ export function normalizeStatsPreset(options?: StatsValue): StatsOptions {
 		return presetToOptions(options);
 	else if (!options) return {};
 	else {
-		let obj = { ...presetToOptions(options.preset), ...options };
+		const obj = { ...presetToOptions(options.preset), ...options };
 		delete obj.preset;
 		return obj;
 	}
@@ -145,7 +145,7 @@ function presetToOptions(name?: boolean | string): StatsOptions {
 		case "verbose":
 			return {
 				all: true,
-				modulesSpace: Infinity
+				modulesSpace: Number.POSITIVE_INFINITY
 			};
 		case "errors-only":
 			return {

@@ -18,7 +18,7 @@ export default async function checkSourceMap(
 	const path = require("path");
 
 	const sources = JSON.parse(outCodeMap).sources;
-	for (let source of sources) {
+	for (const source of sources) {
 		if (sources.filter(s => s === source).length > 1) {
 			throw new Error(
 				`Duplicate source ${JSON.stringify(source)} found in source map`

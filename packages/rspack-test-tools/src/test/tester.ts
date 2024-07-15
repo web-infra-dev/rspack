@@ -19,7 +19,7 @@ export class Tester implements ITester {
 		this.step = 0;
 		this.total = config.steps?.length || 0;
 		if (config.contextValue) {
-			for (let [key, value] of Array.from(
+			for (const [key, value] of Array.from(
 				Object.entries(config.contextValue)
 			)) {
 				this.context.setValue(config.name, key, value);
@@ -30,7 +30,7 @@ export class Tester implements ITester {
 		return this.context;
 	}
 	async prepare() {
-		for (let i of this.steps) {
+		for (const i of this.steps) {
 			if (typeof i.beforeAll === "function") {
 				await i.beforeAll(this.context);
 			}
@@ -72,7 +72,7 @@ export class Tester implements ITester {
 	}
 
 	async resume() {
-		for (let i of this.steps) {
+		for (const i of this.steps) {
 			if (typeof i.afterAll === "function") {
 				await i.afterAll(this.context);
 			}
@@ -84,7 +84,7 @@ export class Tester implements ITester {
 		methods: Array<"before" | "config" | "compiler" | "build" | "after">,
 		force: boolean = false
 	) {
-		for (let i of methods) {
+		for (const i of methods) {
 			if (!force && this.context.hasError()) return;
 			if (typeof step[i] === "function") {
 				try {
@@ -101,7 +101,7 @@ export class Tester implements ITester {
 		env: ITestEnv,
 		methods: Array<"run" | "check">
 	) {
-		for (let i of methods) {
+		for (const i of methods) {
 			if (typeof step[i] === "function") {
 				await step[i]!(env, this.context);
 			}

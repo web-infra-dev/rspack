@@ -132,7 +132,8 @@ export class FakeDocumentWebRunner<
 			if (Array.isArray(modulePath)) {
 				throw new Error("Array module path is not supported in hot cases");
 			}
-			let file = context["file"] || this.getFile(modulePath, currentDirectory);
+			const file =
+				context["file"] || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}

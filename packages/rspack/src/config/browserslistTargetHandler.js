@@ -94,7 +94,7 @@ const resolve = browsers => {
 			const [parsedMajor, parserMinor] =
 				// safari TP supports all features for normal safari
 				parsedVersion === "TP"
-					? [Infinity, Infinity]
+					? [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY]
 					: parsedVersion.includes("-")
 						? parsedVersion.split("-")[0].split(".")
 						: parsedVersion.split(".");

@@ -96,7 +96,7 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 			return;
 		}
 
-		for (let bundle of bundles!) {
+		for (const bundle of bundles!) {
 			const runnerFactory = context.getRunnerFactory(this._options.name);
 			if (!runnerFactory) {
 				throw new Error(`Test case ${this._options.name} is not runable`);

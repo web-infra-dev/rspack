@@ -46,8 +46,8 @@ export class RspackCLI {
 		process.env.RSPACK_CONFIG_VALIDATE = "loose";
 		process.env.WATCHPACK_WATCHER_LIMIT =
 			process.env.WATCHPACK_WATCHER_LIMIT || "20";
-		let nodeEnv = process?.env?.NODE_ENV;
-		let rspackCommandDefaultEnv =
+		const nodeEnv = process?.env?.NODE_ENV;
+		const rspackCommandDefaultEnv =
 			rspackCommand === "build" ? "production" : "development";
 		if (typeof options.nodeEnv === "string") {
 			process.env.NODE_ENV = nodeEnv || options.nodeEnv;
@@ -182,7 +182,7 @@ export class RspackCLI {
 				item.devtool = isBuild ? "source-map" : "cheap-module-source-map";
 			}
 			if (isServe) {
-				let installed = (item.plugins ||= []).find(
+				const installed = (item.plugins ||= []).find(
 					item => item instanceof rspackCore.ProgressPlugin
 				);
 				if (!installed) {

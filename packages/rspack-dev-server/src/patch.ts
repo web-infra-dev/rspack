@@ -20,7 +20,7 @@ function applyDevServerPatch() {
 		// @ts-expect-error
 		...args
 	) {
-		let stats = args[1];
+		const stats = args[1];
 
 		if (!stats) {
 			return;
