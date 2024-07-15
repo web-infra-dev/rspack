@@ -1,9 +1,7 @@
 export const EN_US = {
   coldStart: 'Cold Start',
   coldBuild: 'Cold Build',
-  hmrRoot: 'HMR (Root Changed)',
-  hmrLeaf: 'HMR (Leaf Changed)',
-  moduleCount: 'Module Count',
+  hmr: 'HMR',
   guide: 'Guide',
   quickStart: 'Quick Start',
   features: 'Features',

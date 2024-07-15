@@ -1,91 +1,42 @@
 import { motion } from 'framer-motion';
-import { useState } from 'react';
 import { useInView } from 'react-intersection-observer';
-import { Tab, Tabs } from 'rspress/theme';
 import { useI18n } from '../../i18n';
 import { ProgressBar } from './ProgressBar';
 import styles from './index.module.scss';
 
-// 场景条件
-// 冷启动/热更新
+// Benchmark data for different cases
+// Unit: second
+// From: https://github.com/rspack-contrib/performance-compare
 const BENCHMARK_DATA = {
-  coldStart: [
-    {
-      name: 'Rspack',
-      // 单位为 s
-      time: 3.79,
-    },
-    {
-      name: 'Webpack (with SWC)',
-      time: 31.25,
-    },
-    {
-      name: 'Webpack (with babel)',
-      time: 42.61,
-    },
-  ],
-  hmrRoot: [
-    {
-      name: 'Rspack',
-      time: 0.57,
-    },
-    {
-      name: 'Webpack (with SWC)',
-      time: 1.67,
-    },
-    {
-      name: 'Webpack (with babel)',
-      time: 1.74,
-    },
-  ],
-  hmrLeaf: [
-    {
-      name: 'Rspack',
-      time: 0.56,
-    },
-    {
-      name: 'Webpack (with SWC)',
-      time: 1.53,
-    },
-    {
-      name: 'Webpack (with babel)',
-      time: 1.63,
-    },
-  ],
-  coldBuild: [
-    {
-      name: 'Rspack',
-      time: 22.35,
-    },
-    {
-      name: 'Webpack (with SWC)',
-      time: 75.05,
-    },
-    {
-      name: 'Webpack (with babel + terser)',
-      time: 160.06,
-    },
-  ],
+  rspack: {
+    label: 'Rspack',
+    coldStart: 0.49,
+    coldBuild: 0.36,
+    hmr: 0.09,
+  },
+  webpackSwc: {
+    label: 'webpack + SWC',
+    coldStart: 2.4,
+    coldBuild: 2.12,
+    hmr: 0.22,
+  },
+  webpackBabel: {
+    label: 'webpack + Babel',
+    coldStart: 5.13,
+    coldBuild: 6.47,
+    hmr: 0.22,
+  },
 };
-
-const MODULE_COUNT_MAP = {
-  coldStart: '50,000',
-  hmrRoot: '10,000',
-  hmrLeaf: '10,000',
-  coldBuild: '50,000',
-};
+const maxTime = 6.47;
 
 export function Benchmark() {
   const t = useI18n();
-  const SCENE = ['coldStart', 'hmrRoot', 'hmrLeaf', 'coldBuild'];
-  const [activeScene, setActiveScene] =
-    useState<keyof typeof BENCHMARK_DATA>('coldStart');
   const { ref, inView } = useInView();
   const variants = {
     initial: { y: 50, opacity: 0 },
     animate: { y: 0, opacity: 1, transition: { duration: 0.5 } },
   };
-  const performanceInfoList = BENCHMARK_DATA[activeScene];
+
   return (
     <motion.div
       ref={ref}
@@ -93,7 +44,7 @@ export function Benchmark() {
       animate={inView ? 'animate' : 'initial'}
       variants={variants}
       transition={{ duration: 1 }}
-      className="relative flex flex-col justify-center pt-20 pb-10 mt-15 h-auto"
+      className="relative flex flex-col justify-center pt-24 pb-10 mt-15 h-auto"
     >
       {inView && (
         <>
@@ -101,72 +52,54 @@ export function Benchmark() {
             <h2 className={`${styles.title} font-bold text-2xl sm:text-4xl`}>
               {t('benchmarkTitle')}
             </h2>
-            <p className="mt-6 mb-3 mx-6 text-center sm:text-lg text-gray-500 max-w-3xl">
+            <p
+              className={`${styles.desc} mt-8 mb-5 mx-6 text-center sm:text-lg max-w-3xl`}
+            >
               {t('benchmarkDesc')}
             </p>
           </div>
           <div className="flex flex-col items-center my-4 z-1">
-            <Tabs
-              values={SCENE.map(item => ({
-                label: t(item as keyof typeof BENCHMARK_DATA),
-              }))}
-              onChange={index =>
-                setActiveScene(SCENE[index] as keyof typeof BENCHMARK_DATA)
-              }
-            >
-              {SCENE.map(scene => (
-                <Tab key={scene}>
-                  {performanceInfoList.map(info => (
-                    <div
-                      key={info.name}
-                      className="flex flex-center justify-start m-4 flex-col sm:flex-row"
-                    >
-                      {inView && (
-                        <>
-                          <p
-                            className="mr-2 mb-2 w-20 text-center text-gray-400"
-                            style={{ minWidth: '180px' }}
-                          >
-                            {info.name}
-                          </p>
-                          <ProgressBar
-                            value={info.time}
-                            max={Math.max(
-                              ...performanceInfoList.map(info => info.time),
-                            )}
-                          />
-                        </>
-                      )}
+            {Object.values(BENCHMARK_DATA).map(item => (
+              <div
+                key={item.label}
+                className={`${styles.item} flex flex-center justify-start m-5`}
+              >
+                {inView && (
+                  <>
+                    <p className={styles.progressName}>{item.label}</p>
+                    <div>
+                      <ProgressBar
+                        value={item.coldStart}
+                        max={maxTime}
+                        color="cyan"
+                        desc="dev"
+                      />
+                      <ProgressBar
+                        value={item.coldBuild}
+                        max={maxTime}
+                        color="blue"
+                        desc="build"
+                      />
+                      <ProgressBar
+                        value={item.hmr}
+                        max={maxTime}
+                        color="cyan"
+                        desc="HMR"
+                      />
                     </div>
-                  ))}
-                </Tab>
-              ))}
-            </Tabs>
+                  </>
+                )}
+              </div>
+            ))}
             <div>
-              <p className="font-medium my-2 text-center text-lg text-gray-500">
-                <span className=" font-normal">{t('moduleCount')}:</span>{' '}
-                {MODULE_COUNT_MAP[activeScene]}
-              </p>
               <a
                 href="misc/benchmark.html"
-                className="hover:text-brand transition-colors duration-300 text-14px font-medium text-gray-500 p-3"
+                target="_blank"
+                className={`${styles['bottom-link']} hover:text-brand transition-colors duration-300 font-medium p-2`}
               >
                 👉 {t('benchmarkDetail')}
               </a>
             </div>
-            {/* <div className="flex flex-center">
-      <p className="mr-2 font-medium">{t('moduleCount')}</p>
-      <MenuGroup defaultLabel={activeLevel.toString()}>
-        {LEVEL.map((level) => (
-          <div
-            key={level}
-            className="text-sm py-1 px-3 cursor-pointer hover:bg-mute hover:text-brand rounded-md"
-          >
-            <span>{level}</span>
-          </div>
-        ))}
-      </MenuGroup>
-    </div> */}
           </div>
         </>
       )}
