@@ -4,11 +4,15 @@ import { Tabs, Tab, PackageManagerTabs } from '@theme';
 
 通过本章节来了解如何快速上手并使用 Rspack。
 
-## 使用脚手架快速创建
+- [创建新项目](#创建新项目)：使用 CLI 创建一个全新的 Rspack 或 Rsbuild 项目。
+- [从现有项目迁移](#从现有项目迁移)：从一个基于 webpack 的项目迁移到 Rspack。
+- [社区生态](#社区生态)：发现 Rspack 社区生态中的项目。
+
+## 创建新项目
 
 ### 使用 Rsbuild
 
-Rsbuild 是基于 Rspack 的新一代构建工具，由 Rspack 团队开发，它提供开箱即用的构建能力，能够显著提升开发体验、降低上手门槛。
+Rsbuild 是由 Rspack 驱动的高性能构建工具，由 Rspack 团队开发。它默认包含了一套精心设计的构建配置，提供开箱即用的开发体验，并能够充分发挥出 Rspack 的性能优势。
 
 我们推荐使用 [Rsbuild](https://rsbuild.dev/) 来创建新项目，执行如下命令即可：
 
@@ -32,17 +36,45 @@ Rspack CLI 是对标 Webpack CLI 的工具，提供基础的 `serve` 和 `build`
 
 - [Rsbuild codesandbox 示例](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
 
+## 手动安装
+
+首先创建一个项目目录，并生成一个 npm `package.json` 文件：
+
+```bash
+mkdir rspack-demo
+cd rspack-demo
+npm init -y
+```
+
+然后安装 `@rspack/core` 和 `@rspack/cli` 为 dev 依赖：
+
+<PackageManagerTabs command="add @rspack/core @rspack/cli -D" />
+
+更新构建脚本以使用 Rspack CLI：
+
+```js title="package.json"
+{
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "rspack build"
+  }
+}
+```
+
+查看 [配置 Rspack](/config/index) 来了解如何配置 Rspack。
+
 ## 从现有项目迁移
 
 如果你需要从一个现有项目迁移迁移到 Rspack 或 Rsbuild，可以参考以下指南：
 
 - [从 Webpack 迁移到 Rspack](/guide/migration/webpack)
 - [从 Webpack 迁移到 Rsbuild](https://rsbuild.dev/zh/guide/migration/webpack)
-- [从 Vue CLI 迁移到 Rsbuild](https://rsbuild.dev/zh/guide/migration/vue-cli)
 - [从 Create React App 迁移到 Rsbuild](https://rsbuild.dev/zh/guide/migration/cra)
+- [从 Vue CLI 迁移到 Rsbuild](https://rsbuild.dev/zh/guide/migration/vue-cli)
+- [从 Vite 迁移到 Rsbuild](https://rsbuild.dev/zh/guide/migration/vite)
 - [从 Storybook 迁移](/guide/migration/storybook)
 
-## 社区工具链
+## 社区生态
 
 社区中已经有一些基于 Rspack 的工具链：
 
@@ -50,6 +82,8 @@ Rspack CLI 是对标 Webpack CLI 的工具，提供基础的 `serve` 和 `build`
 - 如果你需要分析构建过程和构建产物，你可以尝试 [Rsdoctor](https://rsdoctor.dev)。
 - 如果你需要一个 React 全栈框架来构建 Web 应用，你可以尝试 [Modern.js](https://modernjs.dev/)。
 - 如果你需要在 Monorepo 中使用 Rspack，打造快速、可扩展的构建系统，你可以尝试 [Nx](https://nx.dev)。
+
+> 访问 [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack) 来发现更多 Rspack 生态中的项目。
 
 ### Rspress
 
@@ -105,4 +139,4 @@ pnpm create nx-workspace myrspackapp --preset=@nx/rspack  --pm=pnpm
 
 创建成功后，你可以直接用 `npm start` 来启动开发服务器。你也可以运行 `npm run build` 来为生产环境构建应用程序、运行 `npm run test` 来运行单元测试。
 
-你可以在 [https://nx.dev](https://nx.dev) 了解更多关于 Nx 的信息。
+> 你可以在 [https://nx.dev](https://nx.dev) 了解更多关于 Nx 的信息。

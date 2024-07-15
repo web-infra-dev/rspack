@@ -4,11 +4,15 @@ import { Tabs, Tab, PackageManagerTabs } from '@theme';
 
 Get up to speed quickly with a new Rspack based project.
 
-## Creating project using scaffolding
+- [Create a new project](#create-a-new-project): Use the CLI to create a brand-new Rspack or Rsbuild project.
+- [Migrating from existing projects](#migrating-from-existing-projects): Migrate from a webpack-based project to Rspack.
+- [Community ecosystem](#community-ecosystem): Discover projects within the Rspack community ecosystem.
+
+## Create a new project
 
 ### Using Rsbuild
 
-Rsbuild is a new generation build tool based on Rspack and developed by the Rspack team. It provides out-of-the-box build capabilities that can significantly improve the development experience and lower the barrier to get started.
+Rsbuild is a high-performance build tool powered by Rspack and developed by the Rspack team. It provides a set of thoughtfully designed default build configs, offering an out-of-the-box development experience and can fully unleash the performance advantages of Rspack.
 
 We recommend using [Rsbuild](https://rsbuild.dev/) to create new projects, simply run the following command:
 
@@ -32,17 +36,47 @@ We provide an online example based on Rsbuild. The example gives an intuitive fe
 
 - [Rsbuild codesandbox example](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
 
+## Manual installation
+
+Start by creating a project directory and generating an npm `package.json':
+
+```bash
+mkdir rspack-demo
+cd rspack-demo
+npm init -y
+```
+
+Then installing `@rspack/core` and `@rspack/cli` as dev dependencies:
+
+<PackageManagerTabs command="add @rspack/core @rspack/cli -D" />
+
+Update your build scripts to use Rspack CLI:
+
+```js title="package.json"
+{
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "rspack build"
+  }
+}
+```
+
+See [Configure Rspack](/config/index) to learn about how to configure Rspack.
+
 ## Migrating from existing projects
 
 If you need to migrate from an existing project to Rspack or Rsbuild, you can refer to the following guides:
 
 - [Migrating from Webpack to Rspack](/guide/migration/webpack)
 - [Migrating from Webpack to Rsbuild](https://rsbuild.dev/guide/migration/webpack)
-- [Migrating from Vue CLI to Rsbuild](https://rsbuild.dev/guide/migration/vue-cli)
 - [Migrating from Create React App to Rsbuild](https://rsbuild.dev/guide/migration/cra)
+- [Migrating from Vue CLI to Rsbuild](https://rsbuild.dev/guide/migration/vue-cli)
+- [Migrating from Vite to Rsbuild](https://rsbuild.dev/guide/migration/vite)
 - [Migrating from Storybook](/guide/migration/storybook)
 
-## Community toolchain
+> Visit [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack) to discover more projects within the Rspack ecosystem.
+
+## Community ecosystem
 
 There are already some Rspack-based toolchains in the community:
 
@@ -105,45 +139,4 @@ The pre-configured setup is already ready to work with Rspack, TypeScript, TSX a
 
 Once created you can simply `npm start` (or `pnpm start` or `yarn start`) to start the development server. You can also run `npm run build` (or `pnpm run build` or `yarn run build`) to build the application for production and similarly run `npm run test` (or `pnpm run test` or `yarn run test`) to run the unit tests.
 
-You can learn more about Nx at [https://nx.dev](https://nx.dev).
-
-## Manual installation
-
-### Installation
-
-We'll start by creating a project directory, generating an NPM `package.json`, and then installing `@rspack/cli` locally:
-
-<Tabs values={[{ label: 'npm' }, { label: 'yarn' }, { label: 'pnpm' }]}>
-  <Tab>
-
-```sh
-mkdir rspack-demo
-cd rspack-demo
-npm init -y
-npm install -D @rspack/cli
-```
-
-  </Tab>
-
-  <Tab>
-
-```sh
-mkdir rspack-demo
-cd rspack-demo
-npm init -y
-yarn add -D @rspack/cli
-```
-
-  </Tab>
-
-  <Tab>
-
-```sh
-mkdir rspack-demo
-cd rspack-demo
-npm init -y
-pnpm install -D @rspack/cli
-```
-
-  </Tab>
-</Tabs>
+> You can learn more about Nx at [https://nx.dev](https://nx.dev).
