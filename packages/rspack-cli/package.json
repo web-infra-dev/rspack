@@ -29,7 +29,7 @@
     "directory": "packages/rspack-cli"
   },
   "peerDependencies": {
-    "@rspack/core": ">=0.4.0"
+    "@rspack/core": ">=1.0.0"
   },
   "devDependencies": {
     "@rspack/core": "workspace:*",
