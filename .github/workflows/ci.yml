@@ -174,7 +174,7 @@ jobs:
 
       - name: Lint js
         if: steps.changes.outputs.src == 'true'
-        run: pnpm run lint:js
+        run: pnpm run lint-ci:js
       - name: Prettier
         if: steps.changes.outputs.src == 'true'
         run: pnpm run format-ci:js

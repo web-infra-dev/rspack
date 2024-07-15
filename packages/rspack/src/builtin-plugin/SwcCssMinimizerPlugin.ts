@@ -1,6 +1,6 @@
 import {
 	BuiltinPluginName,
-	RawSwcCssMinimizerRspackPluginOptions
+	type RawSwcCssMinimizerRspackPluginOptions
 } from "@rspack/binding";
 
 import { create } from "./base";
