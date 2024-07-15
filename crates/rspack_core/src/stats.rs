@@ -324,10 +324,9 @@ impl Stats<'_> {
           .groups
           .iter()
           .sorted()
-          .par_bridge()
           .flat_map(|ukey| {
             let chunk_group = chunk_group_by_ukey.expect_get(ukey);
-            chunk_group.origins().par_iter().map(|origin| {
+            chunk_group.origins().iter().map(|origin| {
               let module_identifier = origin
                 .module_id
                 .map(|id| id.to_string())
