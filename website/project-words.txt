@@ -103,8 +103,10 @@ outputdevtoolfallbackmodulefilenametemplate
 outputdevtoolmodulefilenametemplate
 outputdevtoolnamespace
 outputenabledwasmloadingtypes
+outputiife
 outputlibraryamdcontainer
 outputlibraryumdnameddefine
+outputwasmloading
 perfetto
 pmmmwh
 proxied
