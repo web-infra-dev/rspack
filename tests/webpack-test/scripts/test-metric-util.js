@@ -24,7 +24,7 @@ function extractTestMetric(jsonObj) {
 		"Total passedCases": fullPass + partialPass * 0.5,
 		"Total passedTests": passedTests,
 		"Total willNotSupportCase": noPlan,
-		"Tests Compatibility": `${((passedTests / totalTests) * 100).toFixed(3)}% `,
+		"Tests Compatibility": `${((passedTests / totalTests) * 100).toFixed(3)}%`,
 	};
 }
 
@@ -62,10 +62,11 @@ function renderTestToMarkdown(testFullName) {
 	let extra = "";
 	if (decoded !== null) {
 		icon = decoded.status === FilteredStatus.TODO ? "⚪️"
-			: decoded.status === FilteredStatus.NO_PLAN ? "⚫️"
-				: decoded.status === FilteredStatus.FAILED ? "🔴"
-					: decoded.status === FilteredStatus.PARTIAL_PASS ? "🟡"
-						: "ERROR"
+		: decoded.status === FilteredStatus.NO_PLAN ? "⚫️"
+		: decoded.status === FilteredStatus.FAILED ? "🔴"
+		: decoded.status === FilteredStatus.PARTIAL_PASS ? "🟡"
+		: decoded.status === FilteredStatus.PARTIAL_PASS ? "🟢"
+		: "ERROR"
 		fullName = decoded.fullName;
 		extra = `: ${decoded.reason}`
 	}
