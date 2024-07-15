@@ -18,6 +18,15 @@ use crate::{
   SourceType, UsedExports,
 };
 
+fn get_asset_size(file: &str, compilation: &Compilation) -> f64 {
+  compilation
+    .assets()
+    .get(file)
+    .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
+    .get_source()
+    .map_or(-1f64, |s| s.size() as f64)
+}
+
 #[derive(Debug, Clone)]
 pub struct Stats<'compilation> {
   pub compilation: &'compilation Compilation,
@@ -425,47 +434,40 @@ impl Stats<'_> {
     let chunks: Vec<Option<String>> = cg
       .chunks
       .iter()
-      .map(|c| self.compilation.chunk_by_ukey.expect_get(c))
-      .map(|c| c.id.clone())
+      .map(|c| self.compilation.chunk_by_ukey.expect_get(c).id.clone())
       .collect();
-    let (assets, auxiliary_assets) =
-      cg.chunks
-        .iter()
-        .fold((Vec::new(), Vec::new()), |(mut acc, mut aacc), c| {
-          let chunk = self.compilation.chunk_by_ukey.expect_get(c);
-          for file in &chunk.files {
-            acc.push(StatsChunkGroupAsset {
-              name: file.clone(),
-              size: self
-                .compilation
-                .assets()
-                .get(file)
-                .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
-                .get_source()
-                .map_or(-1f64, |s| s.size() as f64),
-            });
-          }
-          if chunk_group_auxiliary {
-            for file in &chunk.auxiliary_files {
-              aacc.push(StatsChunkGroupAsset {
-                name: file.clone(),
-                size: self
-                  .compilation
-                  .assets()
-                  .get(file)
-                  .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
-                  .get_source()
-                  .map_or(-1f64, |s| s.size() as f64),
-              });
-            }
-          }
 
-          (acc, aacc)
-        });
+    let assets = cg
+      .chunks
+      .par_iter()
+      .map(|c| {
+        let chunk = self.compilation.chunk_by_ukey.expect_get(c);
+        chunk.files.par_iter().map(|file| StatsChunkGroupAsset {
+          name: file.clone(),
+          size: get_asset_size(file, self.compilation),
+        })
+      })
+      .flatten()
+      .collect::<Vec<_>>();
+
+    let auxiliary_assets = cg
+      .chunks
+      .par_iter()
+      .map(|c| {
+        let chunk = self.compilation.chunk_by_ukey.expect_get(c);
+        chunk
+          .auxiliary_files
+          .par_iter()
+          .map(|file| StatsChunkGroupAsset {
+            name: file.clone(),
+            size: get_asset_size(file, self.compilation),
+          })
+      })
+      .flatten()
+      .collect::<Vec<_>>();
 
     let children = chunk_group_children.then(|| {
       let ordered_children = cg.get_children_by_orders(self.compilation);
-
       StatsChunkGroupChildren {
         preload: ordered_children
           .get(&ChunkGroupOrderKey::Preload)
