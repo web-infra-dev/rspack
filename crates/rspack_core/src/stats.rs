@@ -57,45 +57,44 @@ impl Stats<'_> {
       }
     }
 
-    let mut assets: HashMap<&String, StatsAsset> = HashMap::from_iter(
-      self
-        .compilation
-        .assets()
-        .iter()
-        .filter_map(|(name, asset)| {
-          asset.get_source().map(|source| {
-            let mut related = vec![];
-            if let Some(source_map) = &asset.info.related.source_map {
-              related.push(StatsAssetInfoRelated {
-                name: "sourceMap".into(),
-                value: [source_map.clone()].into(),
-              })
-            }
-            (
-              name,
-              StatsAsset {
-                r#type: "asset",
-                name: name.clone(),
-                size: source.size() as f64,
-                chunks: Vec::new(),
-                chunk_names: Vec::new(),
-                info: StatsAssetInfo {
-                  related,
-                  chunk_hash: asset.info.chunk_hash.iter().cloned().collect_vec(),
-                  content_hash: asset.info.content_hash.iter().cloned().collect_vec(),
-                  minimized: asset.info.minimized,
-                  immutable: asset.info.immutable,
-                  javascript_module: asset.info.javascript_module,
-                  development: asset.info.development,
-                  hot_module_replacement: asset.info.hot_module_replacement,
-                  source_filename: asset.info.source_filename.clone(),
-                },
-                emitted: self.compilation.emitted_assets.contains(name),
+    let mut assets: HashMap<&String, StatsAsset> = self
+      .compilation
+      .assets()
+      .par_iter()
+      .filter_map(|(name, asset)| {
+        asset.get_source().map(|source| {
+          let mut related = vec![];
+          if let Some(source_map) = &asset.info.related.source_map {
+            related.push(StatsAssetInfoRelated {
+              name: "sourceMap".into(),
+              value: [source_map.clone()].into(),
+            })
+          }
+          (
+            name,
+            StatsAsset {
+              r#type: "asset",
+              name: name.clone(),
+              size: source.size() as f64,
+              chunks: Vec::new(),
+              chunk_names: Vec::new(),
+              info: StatsAssetInfo {
+                related,
+                chunk_hash: asset.info.chunk_hash.iter().cloned().collect_vec(),
+                content_hash: asset.info.content_hash.iter().cloned().collect_vec(),
+                minimized: asset.info.minimized,
+                immutable: asset.info.immutable,
+                javascript_module: asset.info.javascript_module,
+                development: asset.info.development,
+                hot_module_replacement: asset.info.hot_module_replacement,
+                source_filename: asset.info.source_filename.clone(),
               },
-            )
-          })
-        }),
-    );
+              emitted: self.compilation.emitted_assets.contains(name),
+            },
+          )
+        })
+      })
+      .collect::<HashMap<_, _>>();
     for asset in self.compilation.assets().values() {
       if let Some(source_map) = &asset.get_info().related.source_map {
         assets.remove(source_map);
@@ -472,7 +471,7 @@ impl Stats<'_> {
         preload: ordered_children
           .get(&ChunkGroupOrderKey::Preload)
           .expect("should have preload chunk groups")
-          .iter()
+          .par_iter()
           .map(|ukey| {
             let cg = self.compilation.chunk_group_by_ukey.expect_get(ukey);
             self.get_chunk_group(
@@ -482,11 +481,11 @@ impl Stats<'_> {
               false,
             )
           })
-          .collect_vec(),
+          .collect::<Vec<_>>(),
         prefetch: ordered_children
           .get(&ChunkGroupOrderKey::Prefetch)
           .expect("should have prefetch chunk groups")
-          .iter()
+          .par_iter()
           .map(|ukey| {
             let cg = self.compilation.chunk_group_by_ukey.expect_get(ukey);
             self.get_chunk_group(
@@ -496,7 +495,7 @@ impl Stats<'_> {
               false,
             )
           })
-          .collect_vec(),
+          .collect::<Vec<_>>(),
       }
     });
     StatsChunkGroup {
@@ -519,7 +518,7 @@ impl Stats<'_> {
     self
       .compilation
       .entrypoints
-      .iter()
+      .par_iter()
       .map(|(name, ukey)| {
         self.get_chunk_group(name, ukey, chunk_group_auxiliary, chunk_group_children)
       })
@@ -534,7 +533,7 @@ impl Stats<'_> {
     let mut named_chunk_groups: Vec<StatsChunkGroup> = self
       .compilation
       .named_chunk_groups
-      .iter()
+      .par_iter()
       .map(|(name, ukey)| {
         self.get_chunk_group(name, ukey, chunk_group_auxiliary, chunk_group_children)
       })
@@ -798,7 +797,7 @@ impl Stats<'_> {
         };
         let mut modules: Vec<StatsModule> = module
           .get_modules()
-          .iter()
+          .par_iter()
           .filter_map(|m| module_graph.module_by_identifier(&m.id))
           .map(|module| {
             self.get_module(
