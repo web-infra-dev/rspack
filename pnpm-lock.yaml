@@ -1044,6 +1044,9 @@ importers:
       tapable:
         specifier: 2.2.1
         version: 2.2.1
+      wast-loader:
+        specifier: ^1.12.1
+        version: 1.12.1
       watchpack:
         specifier: ^2.4.0
         version: 2.4.1
@@ -1132,6 +1135,12 @@ importers:
       raw-loader:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.1))(webpack-cli@5.1.4(webpack@5.92.0)))
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
       react-relay:
         specifier: ^14.1.0
         version: 14.1.0(react@18.3.1)
