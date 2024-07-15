@@ -67,15 +67,15 @@ export class BuiltinProcessor<
 					},
 					{
 						test: /\.mjs$/,
-						type: "js/esm"
+						type: "javascript/esm"
 					},
 					{
 						test: /\.cjs$/,
-						type: "js/dynamic"
+						type: "javascript/dynamic"
 					},
 					{
 						test: /\.js$/,
-						type: "js/auto"
+						type: "javascript/auto"
 					},
 					{
 						test: /\.css$/,

@@ -10,7 +10,7 @@ module.exports = {
 		rules: [
       {
         test: resolve("app.jsx"),
-        type: "js"
+        type: "javascript/auto"
       },
       {
         test: resolve("app.tsx"),
