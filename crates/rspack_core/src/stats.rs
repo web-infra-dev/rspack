@@ -1082,16 +1082,22 @@ impl Stats<'_> {
       dependent: Some(false),
     })
   }
+
   fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
+    let compilation = &self.compilation;
+    let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
+    let chunk_by_ukey = &compilation.chunk_by_ukey;
+
     let mut parents = HashSet::default();
     let mut children = HashSet::default();
     let mut siblings = HashSet::default();
+
     for cg in &chunk.groups {
-      if let Some(cg) = get_chunk_group_from_ukey(cg, &self.compilation.chunk_group_by_ukey) {
+      if let Some(cg) = get_chunk_group_from_ukey(cg, chunk_group_by_ukey) {
         for p in &cg.parents {
-          if let Some(pg) = get_chunk_group_from_ukey(p, &self.compilation.chunk_group_by_ukey) {
+          if let Some(pg) = get_chunk_group_from_ukey(p, chunk_group_by_ukey) {
             for c in &pg.chunks {
-              if let Some(c) = get_chunk_from_ukey(c, &self.compilation.chunk_by_ukey)
+              if let Some(c) = get_chunk_from_ukey(c, chunk_by_ukey)
                 && let Some(id) = &c.id
               {
                 parents.insert(id.to_string());
@@ -1099,12 +1105,11 @@ impl Stats<'_> {
             }
           }
         }
-      }
-      if let Some(cg) = get_chunk_group_from_ukey(cg, &self.compilation.chunk_group_by_ukey) {
+
         for p in &cg.children {
-          if let Some(pg) = get_chunk_group_from_ukey(p, &self.compilation.chunk_group_by_ukey) {
+          if let Some(pg) = get_chunk_group_from_ukey(p, chunk_group_by_ukey) {
             for c in &pg.chunks {
-              if let Some(c) = get_chunk_from_ukey(c, &self.compilation.chunk_by_ukey)
+              if let Some(c) = get_chunk_from_ukey(c, chunk_by_ukey)
                 && let Some(id) = &c.id
               {
                 children.insert(id.to_string());
@@ -1112,10 +1117,9 @@ impl Stats<'_> {
             }
           }
         }
-      }
-      if let Some(cg) = get_chunk_group_from_ukey(cg, &self.compilation.chunk_group_by_ukey) {
+
         for c in &cg.chunks {
-          if let Some(c) = get_chunk_from_ukey(c, &self.compilation.chunk_by_ukey)
+          if let Some(c) = get_chunk_from_ukey(c, chunk_by_ukey)
             && c.id != chunk.id
             && let Some(id) = &c.id
           {
@@ -1124,12 +1128,15 @@ impl Stats<'_> {
         }
       }
     }
+
     let mut parents = Vec::from_iter(parents);
     let mut children = Vec::from_iter(children);
     let mut siblings = Vec::from_iter(siblings);
+
     parents.sort();
     children.sort();
     siblings.sort();
+
     (parents, children, siblings)
   }
 }
