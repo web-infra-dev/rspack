@@ -15,8 +15,8 @@ use rspack_core::{
   DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions,
   GeneratorOptionsByModuleType, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
-  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions,
-  ParserOptionsByModuleType,
+  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, OverrideStrict,
+  ParserOptions, ParserOptionsByModuleType,
 };
 use rspack_error::error;
 use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
@@ -283,6 +283,7 @@ pub struct RawJavascriptParserOptions {
   pub reexport_exports_presence: Option<String>,
   pub strict_export_presence: bool,
   pub worker: Vec<String>,
+  pub override_strict: Option<String>,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
@@ -308,6 +309,9 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
         .map(|e| ExportPresenceMode::from(e.as_str())),
       strict_export_presence: value.strict_export_presence,
       worker: value.worker,
+      override_strict: value
+        .override_strict
+        .map(|e| OverrideStrict::from(e.as_str())),
     }
   }
 }

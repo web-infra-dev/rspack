@@ -10,7 +10,22 @@ This plugin can be used to compress CSS assets. See [optimization.minimizer](/co
 module.exports = {
   // ...
   optimization: {
-    minimizer: [new rspack.SwcCssMinimizerRspackPlugin()],
+    minimizer: [new rspack.SwcCssMinimizerRspackPlugin(options)],
   },
 };
 ```
+
+- options
+
+  - **Type:**
+
+  ```ts
+  type SwcCssMinimizerRspackPluginOptions = {
+    test?: MinifyConditions;
+    exclude?: MinifyConditions;
+    include?: MinifyConditions;
+  };
+
+  type MinifyCondition = string | RegExp;
+  type MinifyConditions = MinifyCondition | MinifyCondition[];
+  ```

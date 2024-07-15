@@ -4180,6 +4180,7 @@ const javascriptParserOptions: z.ZodObject<{
     reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
     strictExportPresence: z.ZodOptional<z.ZodBoolean>;
     worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+    overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
 }, "strict", z.ZodTypeAny, {
     dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
     dynamicImportPreload?: number | boolean | undefined;
@@ -4193,6 +4194,7 @@ const javascriptParserOptions: z.ZodObject<{
     reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
     strictExportPresence?: boolean | undefined;
     worker?: boolean | string[] | undefined;
+    overrideStrict?: "strict" | "non-strict" | undefined;
 }, {
     dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
     dynamicImportPreload?: number | boolean | undefined;
@@ -4206,6 +4208,7 @@ const javascriptParserOptions: z.ZodObject<{
     reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
     strictExportPresence?: boolean | undefined;
     worker?: boolean | string[] | undefined;
+    overrideStrict?: "strict" | "non-strict" | undefined;
 }>;
 
 // @public (undocumented)
@@ -5005,7 +5008,13 @@ const matchPart: (str: string, test: Matcher) => boolean;
 type MinifyCondition = string | RegExp;
 
 // @public (undocumented)
+type MinifyCondition_2 = string | RegExp;
+
+// @public (undocumented)
 type MinifyConditions = MinifyCondition | MinifyCondition[];
+
+// @public (undocumented)
+type MinifyConditions_2 = MinifyCondition_2 | MinifyCondition_2[];
 
 // @public (undocumented)
 export type Mode = z.infer<typeof mode>;
@@ -5156,6 +5165,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
             strictExportPresence: z.ZodOptional<z.ZodBoolean>;
             worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+            overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
         }, "strict", z.ZodTypeAny, {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
@@ -5169,6 +5179,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         }, {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
@@ -5182,6 +5193,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         }>>;
         "javascript/auto": z.ZodOptional<z.ZodObject<{
             dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -5196,6 +5208,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
             strictExportPresence: z.ZodOptional<z.ZodBoolean>;
             worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+            overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
         }, "strict", z.ZodTypeAny, {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
@@ -5209,6 +5222,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         }, {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
@@ -5222,6 +5236,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         }>>;
         "javascript/dynamic": z.ZodOptional<z.ZodObject<{
             dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -5236,6 +5251,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
             strictExportPresence: z.ZodOptional<z.ZodBoolean>;
             worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+            overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
         }, "strict", z.ZodTypeAny, {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
@@ -5249,6 +5265,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         }, {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
@@ -5262,6 +5279,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         }>>;
         "javascript/esm": z.ZodOptional<z.ZodObject<{
             dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -5276,6 +5294,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
             strictExportPresence: z.ZodOptional<z.ZodBoolean>;
             worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+            overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
         }, "strict", z.ZodTypeAny, {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
@@ -5289,6 +5308,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         }, {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
@@ -5302,6 +5322,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         }>>;
     }, "strict", z.ZodTypeAny, {
         asset?: {
@@ -5331,6 +5352,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
         "javascript/auto"?: {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5345,6 +5367,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
         "javascript/dynamic"?: {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5359,6 +5382,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
         "javascript/esm"?: {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5373,6 +5397,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
     }, {
         asset?: {
@@ -5402,6 +5427,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
         "javascript/auto"?: {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5416,6 +5442,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
         "javascript/dynamic"?: {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5430,6 +5457,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
         "javascript/esm"?: {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5444,6 +5472,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
     }>, z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>>]>>;
     generator: z.ZodOptional<z.ZodUnion<[z.ZodObject<{
@@ -5704,6 +5733,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
         "javascript/auto"?: {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5718,6 +5748,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
         "javascript/dynamic"?: {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5732,6 +5763,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
         "javascript/esm"?: {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5746,6 +5778,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
     } | Record<string, Record<string, any>> | undefined;
     generator?: Record<string, Record<string, any>> | {
@@ -5824,6 +5857,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
         "javascript/auto"?: {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5838,6 +5872,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
         "javascript/dynamic"?: {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5852,6 +5887,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
         "javascript/esm"?: {
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -5866,6 +5902,7 @@ const moduleOptions: z.ZodObject<{
             reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
+            overrideStrict?: "strict" | "non-strict" | undefined;
         } | undefined;
     } | Record<string, Record<string, any>> | undefined;
     generator?: Record<string, Record<string, any>> | {
@@ -7371,6 +7408,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+        overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
     }, "strict", z.ZodTypeAny, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7384,6 +7422,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7397,6 +7436,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }>>;
     "javascript/auto": z.ZodOptional<z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -7411,6 +7451,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+        overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
     }, "strict", z.ZodTypeAny, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7424,6 +7465,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7437,6 +7479,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }>>;
     "javascript/dynamic": z.ZodOptional<z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -7451,6 +7494,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+        overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
     }, "strict", z.ZodTypeAny, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7464,6 +7508,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7477,6 +7522,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }>>;
     "javascript/esm": z.ZodOptional<z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -7491,6 +7537,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+        overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
     }, "strict", z.ZodTypeAny, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7504,6 +7551,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7517,6 +7565,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }>>;
 }, "strict", z.ZodTypeAny, {
     asset?: {
@@ -7546,6 +7595,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
     "javascript/auto"?: {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7560,6 +7610,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
     "javascript/dynamic"?: {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7574,6 +7625,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
     "javascript/esm"?: {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7588,6 +7640,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
 }, {
     asset?: {
@@ -7617,6 +7670,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
     "javascript/auto"?: {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7631,6 +7685,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
     "javascript/dynamic"?: {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7645,6 +7700,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
     "javascript/esm"?: {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7659,6 +7715,7 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
 }>, z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>>]>;
 
@@ -7718,6 +7775,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+        overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
     }, "strict", z.ZodTypeAny, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7731,6 +7789,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7744,6 +7803,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }>>;
     "javascript/auto": z.ZodOptional<z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -7758,6 +7818,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+        overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
     }, "strict", z.ZodTypeAny, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7771,6 +7832,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7784,6 +7846,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }>>;
     "javascript/dynamic": z.ZodOptional<z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -7798,6 +7861,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+        overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
     }, "strict", z.ZodTypeAny, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7811,6 +7875,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7824,6 +7889,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }>>;
     "javascript/esm": z.ZodOptional<z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -7838,6 +7904,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+        overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
     }, "strict", z.ZodTypeAny, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7851,6 +7918,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }, {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
@@ -7864,6 +7932,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     }>>;
 }, "strict", z.ZodTypeAny, {
     asset?: {
@@ -7893,6 +7962,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
     "javascript/auto"?: {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7907,6 +7977,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
     "javascript/dynamic"?: {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7921,6 +7992,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
     "javascript/esm"?: {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7935,6 +8007,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
 }, {
     asset?: {
@@ -7964,6 +8037,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
     "javascript/auto"?: {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7978,6 +8052,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
     "javascript/dynamic"?: {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -7992,6 +8067,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
     "javascript/esm"?: {
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -8006,6 +8082,7 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
+        overrideStrict?: "strict" | "non-strict" | undefined;
     } | undefined;
 }>;
 
@@ -10298,6 +10375,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
                 strictExportPresence: z.ZodOptional<z.ZodBoolean>;
                 worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+                overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
             }, "strict", z.ZodTypeAny, {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
@@ -10311,6 +10389,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             }, {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
@@ -10324,6 +10403,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             }>>;
             "javascript/auto": z.ZodOptional<z.ZodObject<{
                 dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -10338,6 +10418,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
                 strictExportPresence: z.ZodOptional<z.ZodBoolean>;
                 worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+                overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
             }, "strict", z.ZodTypeAny, {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
@@ -10351,6 +10432,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             }, {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
@@ -10364,6 +10446,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             }>>;
             "javascript/dynamic": z.ZodOptional<z.ZodObject<{
                 dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -10378,6 +10461,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
                 strictExportPresence: z.ZodOptional<z.ZodBoolean>;
                 worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+                overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
             }, "strict", z.ZodTypeAny, {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
@@ -10391,6 +10475,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             }, {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
@@ -10404,6 +10489,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             }>>;
             "javascript/esm": z.ZodOptional<z.ZodObject<{
                 dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -10418,6 +10504,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
                 strictExportPresence: z.ZodOptional<z.ZodBoolean>;
                 worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
+                overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
             }, "strict", z.ZodTypeAny, {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
@@ -10431,6 +10518,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             }, {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
@@ -10444,6 +10532,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             }>>;
         }, "strict", z.ZodTypeAny, {
             asset?: {
@@ -10473,6 +10562,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/auto"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -10487,6 +10577,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/dynamic"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -10501,6 +10592,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/esm"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -10515,6 +10607,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
         }, {
             asset?: {
@@ -10544,6 +10637,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/auto"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -10558,6 +10652,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/dynamic"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -10572,6 +10667,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/esm"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -10586,6 +10682,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
         }>, z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>>]>>;
         generator: z.ZodOptional<z.ZodUnion<[z.ZodObject<{
@@ -10846,6 +10943,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/auto"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -10860,6 +10958,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/dynamic"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -10874,6 +10973,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/esm"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -10888,6 +10988,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
         generator?: Record<string, Record<string, any>> | {
@@ -10966,6 +11067,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/auto"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -10980,6 +11082,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/dynamic"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -10994,6 +11097,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/esm"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -11008,6 +11112,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
         generator?: Record<string, Record<string, any>> | {
@@ -11497,6 +11602,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/auto"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -11511,6 +11617,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/dynamic"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -11525,6 +11632,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/esm"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -11539,6 +11647,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
         generator?: Record<string, Record<string, any>> | {
@@ -12018,6 +12127,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/auto"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -12032,6 +12142,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/dynamic"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -12046,6 +12157,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
             "javascript/esm"?: {
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
@@ -12060,6 +12172,7 @@ export const rspackOptions: z.ZodObject<{
                 reexportExportsPresence?: false | "error" | "auto" | "warn" | undefined;
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
+                overrideStrict?: "strict" | "non-strict" | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
         generator?: Record<string, Record<string, any>> | {
@@ -13143,13 +13256,20 @@ const strictModuleExceptionHandling: z.ZodBoolean;
 
 // @public (undocumented)
 export const SwcCssMinimizerRspackPlugin: {
-    new (options?: any): {
+    new (options?: SwcCssMinimizerRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
-        _args: [options?: any];
+        _args: [options?: SwcCssMinimizerRspackPluginOptions | undefined];
         affectedHooks: "done" | "compilation" | "failed" | "environment" | "emit" | "make" | "compile" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
+};
+
+// @public (undocumented)
+type SwcCssMinimizerRspackPluginOptions = {
+    test?: MinifyConditions_2;
+    exclude?: MinifyConditions_2;
+    include?: MinifyConditions_2;
 };
 
 // @public (undocumented)

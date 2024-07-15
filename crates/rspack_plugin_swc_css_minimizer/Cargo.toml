@@ -16,6 +16,8 @@ rspack_error = { path = "../rspack_error" }
 rspack_hook  = { path = "../rspack_hook" }
 swc_core     = { workspace = true, features = ["css_codegen", "css_parser", "css_minifier"] }
 tracing      = { workspace = true }
+rspack_regex = { path = "../rspack_regex" }
+rspack_util  = { path = "../rspack_util" }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

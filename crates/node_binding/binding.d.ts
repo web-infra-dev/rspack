@@ -1106,6 +1106,7 @@ export interface RawJavascriptParserOptions {
   reexportExportsPresence?: string
   strictExportPresence: boolean
   worker: Array<string>
+  overrideStrict?: string
 }
 
 export interface RawLazyCompilationOption {
@@ -1497,6 +1498,12 @@ export interface RawSplitChunksOptions {
 
 export interface RawStatsOptions {
   colors: boolean
+}
+
+export interface RawSwcCssMinimizerRspackPluginOptions {
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
 }
 
 export interface RawSwcJsMinimizerRspackPluginOptions {

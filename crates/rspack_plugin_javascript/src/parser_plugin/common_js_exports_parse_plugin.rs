@@ -499,41 +499,42 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         && parser.is_exports_or_module_exports_or_this_expr(expr)
         && let Some(arg2) = call_expr.args.get(2)
       {
-        parser.enable();
-
-        if let Some(ExprOrSpread {
+        let Some(ExprOrSpread {
           expr: box Expr::Lit(Lit::Str(str)),
           ..
         }) = call_expr.args.get(1)
-        {
-          // Object.defineProperty(exports, "__esModule", { value: true });
-          // Object.defineProperty(module.exports, "__esModule", { value: true });
-          // Object.defineProperty(this, "__esModule", { value: true });
-          if str.value == "__esModule" {
-            parser.check_namespace(
-              parser.statement_path.len() == 1,
-              get_value_of_property_description(arg2),
-            );
-          }
+        else {
+          return None;
+        };
 
-          let base = if parser.is_exports_expr(&**expr) {
-            ExportsBase::DefinePropertyExports
-          } else if expr_matcher::is_module_exports(&**expr) {
-            ExportsBase::DefinePropertyModuleExports
-          } else if parser.is_top_level_this_expr(&**expr) {
-            ExportsBase::DefinePropertyThis
-          } else {
-            panic!("Unexpected expr type");
-          };
-          parser
-            .dependencies
-            .push(Box::new(CommonJsExportsDependency::new(
-              (call_expr.span.real_lo(), call_expr.span.real_hi()),
-              Some((arg2.span().real_lo(), arg2.span().real_hi())),
-              base,
-              vec![str.value.clone()],
-            )));
+        parser.enable();
+        // Object.defineProperty(exports, "__esModule", { value: true });
+        // Object.defineProperty(module.exports, "__esModule", { value: true });
+        // Object.defineProperty(this, "__esModule", { value: true });
+        if str.value == "__esModule" {
+          parser.check_namespace(
+            parser.statement_path.len() == 1,
+            get_value_of_property_description(arg2),
+          );
         }
+
+        let base = if parser.is_exports_expr(&**expr) {
+          ExportsBase::DefinePropertyExports
+        } else if expr_matcher::is_module_exports(&**expr) {
+          ExportsBase::DefinePropertyModuleExports
+        } else if parser.is_top_level_this_expr(&**expr) {
+          ExportsBase::DefinePropertyThis
+        } else {
+          panic!("Unexpected expr type");
+        };
+        parser
+          .dependencies
+          .push(Box::new(CommonJsExportsDependency::new(
+            (call_expr.span.real_lo(), call_expr.span.real_hi()),
+            Some((arg2.span().real_lo(), arg2.span().real_hi())),
+            base,
+            vec![str.value.clone()],
+          )));
 
         parser.walk_expression(&arg2.expr);
         Some(true)
