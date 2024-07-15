@@ -75,7 +75,7 @@ module.exports = {
 - **类型：** `false | 'array-push' | 'commonjs' | 'module' | string`
 - **默认值：** 根据 [`target`](/config/target) 和 [`output.module`](#outputmodule) 的配置推断
 
-chunk 产物的格式，一般来说，target 为 web 或 Webworker 时会使用 `'array-push'` 格式；为 ESM 时会使用 `'module'` 格式；为 node.js 时会使用 `'commonjs'` 格式，插件可能会添加其他格式。
+chunk 产物的格式，一般来说，target 为 web 或 webworker'时会使用 `'array-push'` 格式；为 ESM 时会使用 `'module'` 格式；为 node.js 时会使用 `'commonjs'` 格式，插件可能会添加其他格式。
 
 :::tip
 这个选项的默认值取决于 [`target`](/config/target) 和 [`output.module`](#outputmodule) 设置。要了解更多详情，请在 Rspack [默认设置中](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts)搜索 `"chunkFormat"`。
