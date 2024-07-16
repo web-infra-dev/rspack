@@ -165,7 +165,7 @@ pub struct RawOutputOptions {
   pub pathinfo: Either<bool, String>,
   pub clean: bool,
   pub public_path: String,
-  pub asset_module_filename: String,
+  pub asset_module_filename: JsFilename,
   pub wasm_loading: String,
   pub enabled_wasm_loading_types: Vec<String>,
   pub webassembly_module_filename: String,

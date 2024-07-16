@@ -12,7 +12,7 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 ## output.assetModuleFilename
 
 - **类型：** `string`
-- **默认值：** `'[hash][ext][query]'`
+- **默认值：** `'[hash][ext][query]' | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)`
 
 与 [`output.filename`](#outputfilename) 类似，但适用于[资源模块](/guide/features/asset-module)。
 

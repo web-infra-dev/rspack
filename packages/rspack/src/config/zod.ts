@@ -202,7 +202,7 @@ export type Path = z.infer<typeof path>;
 const pathinfo = z.boolean().or(z.literal("verbose"));
 export type Pathinfo = z.infer<typeof pathinfo>;
 
-const assetModuleFilename = z.string();
+const assetModuleFilename = filename;
 export type AssetModuleFilename = z.infer<typeof assetModuleFilename>;
 
 const webassemblyModuleFilename = z.string();

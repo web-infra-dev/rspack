@@ -1280,7 +1280,7 @@ export interface RawOutputOptions {
   pathinfo: boolean | "verbose"
   clean: boolean
   publicPath: string
-  assetModuleFilename: string
+  assetModuleFilename: JsFilename
   wasmLoading: string
   enabledWasmLoadingTypes: Array<string>
   webassemblyModuleFilename: string

@@ -267,7 +267,7 @@ const assetInlineGeneratorOptions: z.ZodObject<{
 export type AssetModuleFilename = z.infer<typeof assetModuleFilename>;
 
 // @public (undocumented)
-const assetModuleFilename: z.ZodString;
+const assetModuleFilename: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>;
 
 // @public (undocumented)
 export type AssetParserDataUrl = z.infer<typeof assetParserDataUrl>;
@@ -6848,7 +6848,7 @@ const output: z.ZodObject<{
     hotUpdateMainFilename: z.ZodOptional<z.ZodString>;
     hotUpdateChunkFilename: z.ZodOptional<z.ZodString>;
     hotUpdateGlobal: z.ZodOptional<z.ZodString>;
-    assetModuleFilename: z.ZodOptional<z.ZodString>;
+    assetModuleFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
     uniqueName: z.ZodOptional<z.ZodString>;
     chunkLoadingGlobal: z.ZodOptional<z.ZodString>;
     enabledLibraryTypes: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>, "many">>;
@@ -7041,7 +7041,7 @@ const output: z.ZodObject<{
     hotUpdateMainFilename?: string | undefined;
     hotUpdateChunkFilename?: string | undefined;
     hotUpdateGlobal?: string | undefined;
-    assetModuleFilename?: string | undefined;
+    assetModuleFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     uniqueName?: string | undefined;
     chunkLoadingGlobal?: string | undefined;
     enabledLibraryTypes?: string[] | undefined;
@@ -7132,7 +7132,7 @@ const output: z.ZodObject<{
     hotUpdateMainFilename?: string | undefined;
     hotUpdateChunkFilename?: string | undefined;
     hotUpdateGlobal?: string | undefined;
-    assetModuleFilename?: string | undefined;
+    assetModuleFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     uniqueName?: string | undefined;
     chunkLoadingGlobal?: string | undefined;
     enabledLibraryTypes?: string[] | undefined;
@@ -9193,7 +9193,7 @@ export const rspackOptions: z.ZodObject<{
         hotUpdateMainFilename: z.ZodOptional<z.ZodString>;
         hotUpdateChunkFilename: z.ZodOptional<z.ZodString>;
         hotUpdateGlobal: z.ZodOptional<z.ZodString>;
-        assetModuleFilename: z.ZodOptional<z.ZodString>;
+        assetModuleFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         uniqueName: z.ZodOptional<z.ZodString>;
         chunkLoadingGlobal: z.ZodOptional<z.ZodString>;
         enabledLibraryTypes: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>, "many">>;
@@ -9386,7 +9386,7 @@ export const rspackOptions: z.ZodObject<{
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
-        assetModuleFilename?: string | undefined;
+        assetModuleFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         uniqueName?: string | undefined;
         chunkLoadingGlobal?: string | undefined;
         enabledLibraryTypes?: string[] | undefined;
@@ -9477,7 +9477,7 @@ export const rspackOptions: z.ZodObject<{
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
-        assetModuleFilename?: string | undefined;
+        assetModuleFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         uniqueName?: string | undefined;
         chunkLoadingGlobal?: string | undefined;
         enabledLibraryTypes?: string[] | undefined;
@@ -11280,7 +11280,7 @@ export const rspackOptions: z.ZodObject<{
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
-        assetModuleFilename?: string | undefined;
+        assetModuleFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         uniqueName?: string | undefined;
         chunkLoadingGlobal?: string | undefined;
         enabledLibraryTypes?: string[] | undefined;
@@ -11805,7 +11805,7 @@ export const rspackOptions: z.ZodObject<{
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
-        assetModuleFilename?: string | undefined;
+        assetModuleFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         uniqueName?: string | undefined;
         chunkLoadingGlobal?: string | undefined;
         enabledLibraryTypes?: string[] | undefined;
