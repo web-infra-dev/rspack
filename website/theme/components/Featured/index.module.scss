@@ -56,6 +56,27 @@
         hsla(0, 0%, 100%, 0.16) 406.65deg
       )
       border-box !important;
+  transition: transform 0.15s ease-out;
+
+  &:hover {
+    background:
+      linear-gradient(var(--rp-c-bg), var(--rp-c-bg)) padding-box,
+      conic-gradient(
+          from 120deg at 50% 50%,
+          rgba(120, 162, 243, 1) -4.74deg,
+          rgba(120, 162, 243, 0.3) 46.65deg,
+          rgba(120, 162, 243, 0.3) 65.18deg,
+          rgba(120, 162, 243, 0.3) 126.05deg,
+          rgba(120, 162, 243, 0.3) 142.43deg,
+          rgba(120, 162, 243, 0.6) 163.82deg,
+          hsla(0, 0%, 100%, 0.3) 192.78deg,
+          hsla(0, 0%, 100%, 0.6) 305.58deg,
+          rgba(120, 162, 243, 1) 355.26deg,
+          rgba(120, 162, 243, 0.3) 406.65deg
+        )
+        border-box !important;
+    transform: scale(1.01);
+  }
 }
 
 .card-title {
