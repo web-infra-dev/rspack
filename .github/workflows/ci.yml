@@ -35,6 +35,7 @@ jobs:
     name: Check Source Changed
     outputs:
       changed: ${{ steps.filter.outputs.changed == 'true' }}
+      document_changed: ${{ steps.document_filter.outputs.changed == 'true' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -46,6 +47,13 @@ jobs:
               - "!**/*.md"
               - "!**/*.mdx"
               - "!website/**"
+      - uses: dorny/paths-filter@v3
+        id: document_filter
+        with:
+          predicate-quantifier: "every"
+          filters: |
+            changed:
+              - "website/**"
 
   test-linux:
     name: Test Linux
@@ -183,6 +191,7 @@ jobs:
     name: Lint and format website
     runs-on: ubuntu-latest
     needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.document_changed == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -193,6 +202,7 @@ jobs:
         run: |
           cd website
           pnpm install
+          npx @biomejs/biome check --diagnostic-level=warn
           pnpm run check:ci
 
   rust_changes:
