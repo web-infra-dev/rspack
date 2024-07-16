@@ -1,4 +1,4 @@
-// Jest Snapshot v1, <https://goo.gl/fbAQLP>
+// Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`StatsTestCases should print correct stats for asset 1`] = `
 "asset 89a353e9c515885abd8e.png 14.6 KiB [emitted] [immutable] [from: images/file.png] (name: main)
@@ -235,7 +235,7 @@ Entrypoint parent 36 bytes = parent.js
   asset child.js 36 bytes [emitted] (name: child)
   Entrypoint child 36 bytes = child.js
   ./child.js 1 bytes [built] [code generated]
-
+    
   Child TestApplyEntryOptionPlugin compiled successfully
 Rspack x.x.x compiled successfully in X s"
 `;
@@ -265,12 +265,10 @@ Rspack x.x.x compiled <CLR=32,BOLD>successfully</CLR> in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for common-libs 1`] = `
-"asset react.js 4.71 KiB [emitted] (name: react)
-modules by path ../../../../node_modules/react/ 6.48 KiB
-  ../../../../node_modules/react/index.js 190 bytes [built] [code generated]
-  ../../../../node_modules/react/cjs/react.production.min.js 6.3 KiB [built] [code generated]
+"asset react.js 3.76 KiB [emitted] (name: react)
 ./react.js 74 bytes [built] [code generated]
-../../../../node_modules/object-assign/index.js 2.06 KiB [built] [code generated]
+../../../../node_modules/.pnpm/react@18.3.1/node_modules/react/index.js 190 bytes [built] [code generated]
+../../../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.production.min.js 6.77 KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -513,25 +511,25 @@ WARNING in ./chunk.js
   ╰─▶   ⚠ Magic comments parse failed: \`webpackChunkName\` expected a string, but received: notGoingToCompileChunkName .
          ╭─[1:1]
        1 │ export default function() {
-       2 │     import(/*webpackPrefetch: true, webpackChunkName: notGoingToCompileChunkName */ \\"./chunk-a\\");
+       2 │     import(/* webpackPrefetch: true, webpackChunkName: notGoingToCompileChunkName */ \\"./chunk-a\\");
          ·     ─────────────────────────────────────────────────────────────────────────────────────────────
        3 │     import(/* webpackPrefetch: 0, webpackChunkName: \\"goingToCompileChunkName-b\\" */ \\"./chunk-b\\");
-       4 │     import(/* webpack Prefetch: 0, webpackChunkName: \\"notGoingToCompile-c\\"*/ \\"./chunk-c\\");
+       4 │     import(/* webpack Prefetch: 0, webpackChunkName: \\"notGoingToCompile-c\\" */ \\"./chunk-c\\");
          ╰────
-
+      
  @ ./chunk.js [52]
 
 WARNING in ./chunk.js
   ⚠ Module parse warning:
   ╰─▶   ⚠ Magic comments parse failed: \`webpackPrefetch\` expected true or a number, but received: nope .
          ╭─[3:1]
-       3 │     import(/*webpackPrefetch: 0, webpackChunkName: \\"goingToCompileChunkName-b\\" */ \\"./chunk-b\\");
+       3 │     import(/* webpackPrefetch: 0, webpackChunkName: \\"goingToCompileChunkName-b\\" */ \\"./chunk-b\\");
        4 │     import(/* webpack Prefetch: 0, webpackChunkName: \\"notGoingToCompile-c\\" */ \\"./chunk-c\\");
-       5 │     import(/* webpackPrefetch: nope */ /* webpackChunkName: \\"yep\\"*/ \\"./chunk-d\\");
+       5 │     import(/* webpackPrefetch: nope */ /* webpackChunkName: \\"yep\\" */ \\"./chunk-d\\");
          ·     ─────────────────────────────────────────────────────────────────────────────
        6 │ }
          ╰────
-
+      
  @ ./chunk.js [52]
 
 Rspack x.x.x compiled with 2 warnings"
@@ -596,7 +594,6 @@ exports[`StatsTestCases should print correct stats for max-modules 1`] = `
 ./c.js?6 33 bytes [built] [code generated]
 ./c.js?7 33 bytes [built] [code generated]
 ./c.js?8 33 bytes [built] [code generated]
-
 + 12 modules
 Rspack x.x.x compiled successfully in X s"
 `;
@@ -617,7 +614,6 @@ exports[`StatsTestCases should print correct stats for max-modules-default 1`] =
 ./c.js?1 33 bytes [built] [code generated]
 ./c.js?2 33 bytes [built] [code generated]
 ./c.js?3 33 bytes [built] [code generated]
-
 + 17 modules
 Rspack x.x.x compiled successfully in X s"
 `;
@@ -781,8 +777,8 @@ ERROR in ./parse-error.js
        4 │ your
        5 │ code
          ╰────
-
-  help:
+      
+  help: 
         You may need an appropriate loader to handle this file type.
  @ ./parse-error.js [636]
  @ ./inner.js [587]
@@ -818,8 +814,8 @@ ERROR in ./parse-error.js
        4 │ your
        5 │ code
          ╰────
-
-  help:
+      
+  help: 
         You may need an appropriate loader to handle this file type.
  @ ./parse-error.js [636]
  @ ./inner.js [587]
@@ -923,8 +919,8 @@ ERROR in ./b.js
        7 │ error
        8 │ in
          ╰────
-
-  help:
+      
+  help: 
         You may need an appropriate loader to handle this file type.
  @ ./b.js [996]
  @ ./a.js
@@ -944,7 +940,7 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
   │       warning.pro-web.js
 
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  │ For more info visit <https://www.rspack.dev/guide/optimization/code-splitting>
+  │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
 
 Rspack x.x.x compiled with 3 warnings in X s
 
@@ -959,7 +955,7 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
   │       warning.pro-webworker.js
 
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  │ For more info visit <https://www.rspack.dev/guide/optimization/code-splitting>
+  │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
 
 Rspack x.x.x compiled with 3 warnings in X s
 
@@ -990,7 +986,7 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
   │       warning.pro-node-with-hints-set.js
 
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  │ For more info visit <https://www.rspack.dev/guide/optimization/code-splitting>
+  │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
 
 Rspack x.x.x compiled with 3 warnings in X s"
 `;
@@ -1020,7 +1016,7 @@ Entrypoint <CLR=BOLD>sec</CLR> 1.01 KiB = <CLR=32,BOLD>sec.js</CLR>
 
 <CLR=33,BOLD>WARNING</CLR> in <CLR=33>⚠<CLR=0> Rspack performance recommendations:
   <CLR=33>│<CLR=0> You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  <CLR=33>│<CLR=0> For more info visit <https://www.rspack.dev/guide/optimization/code-splitting>
+  <CLR=33>│<CLR=0> For more info visit https://www.rspack.dev/guide/optimization/code-splitting
 <CLR=0>
 
 Rspack x.x.x compiled with <CLR=33,BOLD>3 warnings</CLR> in X s"
@@ -1051,7 +1047,7 @@ Entrypoint <CLR=BOLD>sec</CLR> 294 KiB = <CLR=32,BOLD>sec.js</CLR>
 
 <CLR=31,BOLD>ERROR</CLR> in <CLR=31>×<CLR=0> Rspack performance recommendations:
   <CLR=31>│<CLR=0> You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  <CLR=31>│<CLR=0> For more info visit <https://www.rspack.dev/guide/optimization/code-splitting>
+  <CLR=31>│<CLR=0> For more info visit https://www.rspack.dev/guide/optimization/code-splitting
 <CLR=0>
 
 Rspack x.x.x compiled with <CLR=31,BOLD>3 errors</CLR> in X s"
@@ -1115,7 +1111,6 @@ exports[`StatsTestCases should print correct stats for preset-errors-only-error 
 "<e> [LogTestPlugin] Error
 LOG from LogTestPlugin
 <e> Error
-
 + 14 hidden lines
 
 ERROR in ./index.js
@@ -1134,7 +1129,6 @@ exports[`StatsTestCases should print correct stats for preset-errors-warnings 1`
 LOG from LogTestPlugin
 <e> Error
 <w> Warning
-
 + 13 hidden lines
 
 Rspack compiled successfully"
@@ -1181,7 +1175,7 @@ exports[`StatsTestCases should print correct stats for related-assets 1`] = `
   assets by path *.br 13.5 KiB
     asset default-main.js.br 11.5 KiB [emitted]
     + 7 assets
-  assets by path*.gz 13.5 KiB
+  assets by path *.gz 13.5 KiB
     asset default-main.js.gz 11.5 KiB [emitted]
     asset default-main.js.map.gz 670 bytes [emitted]
     + 6 assets
@@ -1198,7 +1192,7 @@ relatedAssets:
   assets by path *.br 13.6 KiB
     asset relatedAssets-main.js.br 11.6 KiB [emitted]
     + 7 assets
-  assets by path*.gz 13.6 KiB
+  assets by path *.gz 13.6 KiB
     asset relatedAssets-main.js.gz 11.6 KiB [emitted]
     asset relatedAssets-main.js.map.gz 676 bytes [emitted]
     + 6 assets
@@ -1231,14 +1225,14 @@ exclude2:
     assets by path *.br 13.6 KiB
       asset exclude2-main.js.br 11.5 KiB [emitted]
       + 7 assets
-    assets by path*.gz 13.6 KiB
+    assets by path *.gz 13.6 KiB
       asset exclude2-main.js.gz 11.5 KiB [emitted]
       asset exclude2-main.js.map.gz 671 bytes [emitted]
       + 6 assets
     assets by path *.js 12.2 KiB
       asset exclude2-main.js 11.5 KiB [emitted] (name: main)
       asset exclude2-chunk_js.js 626 bytes [emitted]
-    assets by path*.css 144 bytes
+    assets by path *.css 144 bytes
       asset exclude2-chunk_js.css 74 bytes [emitted]
       asset exclude2-main.css 70 bytes [emitted] (name: main)
 
@@ -1249,7 +1243,7 @@ exclude3:
       assets by path *.map 842 bytes 2 assets
       asset exclude3-main.js 11.5 KiB [emitted] (name: main)
       asset exclude3-main.css 70 bytes [emitted] (name: main)
-    assets by path*.br 12.4 KiB
+    assets by path *.br 12.4 KiB
       asset exclude3-main.js.br 11.5 KiB [emitted]
       asset exclude3-main.js.map.br 671 bytes [emitted]
       + 2 assets
