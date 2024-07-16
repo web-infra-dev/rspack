@@ -187,6 +187,8 @@ pub struct RawOutputOptions {
   pub iife: bool,
   pub module: bool,
   pub chunk_loading: String,
+  pub chunk_load_timeout: u32,
+  pub charset: bool,
   pub enabled_chunk_loading_types: Option<Vec<String>>,
   pub trusted_types: Option<RawTrustedTypes>,
   pub source_map_filename: String,
@@ -250,6 +252,8 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       worker_public_path: value.worker_public_path,
       script_type: value.script_type,
       environment: value.environment.into(),
+      charset: value.charset,
+      chunk_load_timeout: value.chunk_load_timeout,
     })
   }
 }

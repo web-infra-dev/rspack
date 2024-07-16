@@ -1302,6 +1302,8 @@ export interface RawOutputOptions {
   iife: boolean
   module: boolean
   chunkLoading: string
+  chunkLoadTimeout: number
+  charset: boolean
   enabledChunkLoadingTypes?: Array<string>
   trustedTypes?: RawTrustedTypes
   sourceMapFilename: string

@@ -52,7 +52,7 @@ var loadStylesheet = function (chunkId, url, done, hmr, fetchPriority) {
 	if (link.getAttribute(loadingAttribute)) {
 		var timeout = setTimeout(
 			onLinkComplete.bind(null, undefined, { type: "timeout", target: link }),
-			120000
+			__CHUNK_LOAD_TIMEOUT_PLACEHOLDER__
 		);
 		link.onerror = onLinkComplete.bind(null, link.onerror);
 		link.onload = onLinkComplete.bind(null, link.onload);

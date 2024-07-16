@@ -38,6 +38,8 @@ pub struct OutputOptions {
   pub unique_name: String,
   pub chunk_loading: ChunkLoading,
   pub chunk_loading_global: String,
+  pub chunk_load_timeout: u32,
+  pub charset: bool,
   pub filename: Filename,
   pub chunk_filename: Filename,
   pub cross_origin_loading: CrossOriginLoading,
