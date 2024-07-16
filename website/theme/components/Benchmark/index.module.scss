@@ -19,17 +19,18 @@
 
 .progress-name {
   color: var(--rp-c-text-1);
+  font-size: 17px;
   font-weight: 600;
-  min-width: 160px;
+  min-width: 170px;
 }
 
-@media screen and (min-width: 540px) {
+@media screen and (min-width: 1060px) {
   .item {
     flex-direction: row;
   }
 }
 
-@media screen and (max-width: 541px) {
+@media screen and (max-width: 1061px) {
   .item {
     flex-direction: column;
     align-items: flex-start;

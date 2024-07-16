@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { useI18n } from '../../i18n';
 import { ProgressBar } from './ProgressBar';
@@ -32,24 +31,18 @@ const maxTime = 6.47;
 export function Benchmark() {
   const t = useI18n();
   const { ref, inView } = useInView();
-  const variants = {
-    initial: { y: 50, opacity: 0 },
-    animate: { y: 0, opacity: 1, transition: { duration: 0.5 } },
-  };
 
   return (
-    <motion.div
+    <div
       ref={ref}
-      initial={{ opacity: 0, y: 50 }}
-      animate={inView ? 'animate' : 'initial'}
-      variants={variants}
-      transition={{ duration: 1 }}
-      className="relative flex flex-col justify-center pt-24 pb-10 mt-15 h-auto"
+      className="relative flex flex-col justify-center pt-24 pb-10 mt-18 h-auto"
     >
       {inView && (
         <>
           <div className="flex flex-center flex-col">
-            <h2 className={`${styles.title} font-bold text-4xl mt-16`}>
+            <h2
+              className={`${styles.title} font-bold text-3xl sm:text-5xl mt-16`}
+            >
               {t('benchmarkTitle')}
             </h2>
             <p
@@ -103,6 +96,6 @@ export function Benchmark() {
           </div>
         </>
       )}
-    </motion.div>
+    </div>
   );
 }

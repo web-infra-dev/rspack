@@ -1,0 +1,71 @@
+.title {
+  color: var(--rp-c-text-1);
+}
+
+.desc {
+  color: var(--rp-c-text-2);
+}
+
+.list {
+  columns: 1;
+  max-width: 72rem;
+  text-align: left;
+  margin-top: 32px;
+  padding: 0 32px;
+}
+
+@media (min-width: 768px) {
+  .list {
+    columns: 2;
+    min-width: 648px;
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .list {
+    columns: 3;
+    min-width: 904px;
+    max-width: 72rem;
+    gap: 20px;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 140px;
+  padding: 4px 24px;
+  border: 1px solid rgba(133, 139, 152, 0.2);
+  margin-bottom: 24px;
+  border-radius: 12px;
+  background:
+    linear-gradient(var(--rp-c-bg), var(--rp-c-bg)) padding-box,
+    conic-gradient(
+        from 120deg at 50% 50%,
+        rgba(120, 162, 243, 0.35) -4.74deg,
+        hsla(0, 0%, 100%, 0.16) 46.65deg,
+        hsla(0, 0%, 100%, 0.16) 65.18deg,
+        hsla(0, 0%, 100%, 0.16) 126.05deg,
+        rgba(120, 162, 243, 0.1) 142.43deg,
+        rgba(120, 162, 243, 0.2) 163.82deg,
+        hsla(0, 0%, 100%, 0.1) 192.78deg,
+        hsla(0, 0%, 100%, 0.2) 305.58deg,
+        rgba(120, 162, 243, 0.35) 355.26deg,
+        hsla(0, 0%, 100%, 0.16) 406.65deg
+      )
+      border-box !important;
+}
+
+.card-title {
+  font-weight: 600;
+  font-size: 20px;
+  margin: 0 0 12px;
+}
+
+.card-desc {
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: var(--rp-c-text-2);
+}
