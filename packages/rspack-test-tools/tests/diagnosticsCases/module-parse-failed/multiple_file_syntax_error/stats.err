@@ -5,7 +5,7 @@ ERROR in ./a.js
        4 │     d = 10
        5 │     g = CONST
        6 │ }
-         · ▲
+         · ─
          ╰────
       
   help: 
@@ -34,7 +34,7 @@ ERROR in ./b.js
        4 │     d = 10
        5 │     g = CONST
        6 │ }
-         · ▲
+         · ─
          ╰────
       
   help: 
@@ -63,7 +63,7 @@ ERROR in ./c.js
        4 │     d = 10
        5 │     g = CONST
        6 │ }
-         · ▲
+         · ─
          ╰────
       
   help: 
@@ -92,7 +92,7 @@ ERROR in ./d.js
        4 │     d = 10
        5 │     g = CONST
        6 │ }
-         · ▲
+         · ─
          ╰────
       
   help: 
@@ -121,7 +121,7 @@ ERROR in ./e.js
        4 │     d = 10
        5 │     g = CONST
        6 │ }
-         · ▲
+         · ─
          ╰────
       
   help: 
@@ -150,7 +150,7 @@ ERROR in ./f.js
        4 │     d = 10
        5 │     g = CONST
        6 │ }
-         · ▲
+         · ─
          ╰────
       
   help: 
@@ -179,7 +179,7 @@ ERROR in ./g.js
        4 │     d = 10
        5 │     g = CONST
        6 │ }
-         · ▲
+         · ─
          ╰────
       
   help: 
