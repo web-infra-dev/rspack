@@ -23,8 +23,6 @@ export function ProgressBar({
 }) {
   const [elapsedTime, setElapsedTime] = useState(0);
   const TOTAL_TIME = value * 1000;
-  const isSmallScreen = window.innerWidth < 1060;
-  const progressBarWidth = isSmallScreen ? 80 : 60;
   const variants = {
     initial: { width: 0 },
     animate: { width: `${(value / max) * 100}%` },
@@ -32,12 +30,7 @@ export function ProgressBar({
 
   const formattedTime = formatTime(elapsedTime, TOTAL_TIME);
   return (
-    <div
-      className={`${styles.container} flex items-center sm:pr-4`}
-      style={{
-        width: `${progressBarWidth}vw`,
-      }}
-    >
+    <div className={`${styles.container} flex items-center sm:pr-4`}>
       <div className={`${styles['inner-container']} flex justify-between`}>
         <motion.div
           className={`${styles.bar} ${styles[color]}`}

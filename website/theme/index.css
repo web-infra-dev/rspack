@@ -8,6 +8,7 @@ summary {
   --rp-c-brand-darker: #c26c1d;
   --rp-c-brand-light: #f2a65a;
   --rp-c-brand-lighter: #f2a65a;
+  --rp-c-link: var(--rp-c-brand);
   --rp-c-brand-tint: rgba(250, 192, 61, 0.15);
   --rp-code-title-bg: rgba(250, 192, 61, 0.15);
   --rp-code-block-bg: rgba(214, 188, 70, 0.05);

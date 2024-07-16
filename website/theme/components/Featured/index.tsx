@@ -86,7 +86,7 @@ export function Featured() {
           <div className={styles.list}>
             {features.map(feature => {
               return (
-                <a href={feature.link}>
+                <a href={feature.link} key={feature.title}>
                   <div className={styles.card}>
                     <div className={styles.cardTitle}>{feature.title}</div>
                     <div className={styles.cardDesc}>{feature.desc}</div>

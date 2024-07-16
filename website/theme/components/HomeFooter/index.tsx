@@ -1,6 +1,7 @@
 import { useLang } from 'rspress/runtime';
 import { Link } from 'rspress/theme';
 import { useI18n } from '../../i18n/index';
+import styles from './index.module.scss';
 
 function useFooterData() {
   const t = useI18n();
@@ -110,7 +111,9 @@ export function HomeFooter() {
               {item.items.map(subItem => (
                 <li key={subItem.title}>
                   <Link href={subItem.link}>
-                    <span className="font-normal">{subItem.title}</span>
+                    <span className={`font-normal ${styles.text}`}>
+                      {subItem.title}
+                    </span>
                   </Link>
                 </li>
               ))}

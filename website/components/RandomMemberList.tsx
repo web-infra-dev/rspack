@@ -1,4 +1,3 @@
-import { NoSSR } from 'rspress/runtime';
 import style from './RandomMemberList.module.scss';
 
 interface Member {
@@ -168,37 +167,35 @@ const coreTeam: Member[] = [
 export const RandomMemberList = ({ list = coreTeam }: { list: Member[] }) => {
   const randomList = list.sort(() => Math.random() - 0.5);
   return (
-    <NoSSR>
-      <div className={style.wrapper}>
-        {randomList.map(item => (
-          <div className={style.card} key={item.id}>
-            <img className={style.avatar} src={item.avatar} alt="avatar" />
-            <div className={style.name}>{item.name || item.id}</div>
-            <div className={style.desc}>{item.desc}</div>
-            <div className={style.icons}>
+    <div className={style.wrapper}>
+      {randomList.map(item => (
+        <div className={style.card} key={item.id}>
+          <img className={style.avatar} src={item.avatar} alt="avatar" />
+          <div className={style.name}>{item.name || item.id}</div>
+          <div className={style.desc}>{item.desc}</div>
+          <div className={style.icons}>
+            <a
+              className={style.icon}
+              href={`https://github.com/${item.id}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {GitHubSVG}
+            </a>
+            {item.x ? (
               <a
                 className={style.icon}
-                href={`https://github.com/${item.id}`}
+                href={item.x}
                 target="_blank"
                 rel="noreferrer"
               >
-                {GitHubSVG}
+                {TwitterSVG}
               </a>
-              {item.x ? (
-                <a
-                  className={style.icon}
-                  href={item.x}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {TwitterSVG}
-                </a>
-              ) : null}
-            </div>
+            ) : null}
           </div>
-        ))}
-      </div>
-    </NoSSR>
+        </div>
+      ))}
+    </div>
   );
 };
 
