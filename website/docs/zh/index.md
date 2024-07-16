@@ -10,7 +10,7 @@ hero:
     Web 打包工具
   tagline: 使用兼容 API 无缝替换 webpack
   image:
-    src: /logo.png
+    src: https://assets.rspack.dev/rspack/rspack-logo.svg
     alt: logo
   actions:
     - theme: brand
