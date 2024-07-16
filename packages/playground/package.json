@@ -11,10 +11,6 @@
     "url": "https://github.com/web-infra-dev/rspack",
     "directory": "packages/playground"
   },
-  "dependencies": {
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
-  },
   "devDependencies": {
     "@babel/core": "^7.22.20",
     "@babel/preset-react": "^7.22.15",

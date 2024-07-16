@@ -260,13 +260,6 @@ importers:
         version: 17.4.2(vue@3.4.21(typescript@5.4.2))(webpack@5.92.0(@swc/core@1.4.0)(webpack-cli@5.1.4(webpack@5.92.0)))
 
   packages/playground:
-    dependencies:
-      react:
-        specifier: 18.3.1
-        version: 18.3.1
-      react-dom:
-        specifier: 18.3.1
-        version: 18.3.1(react@18.3.1)
     devDependencies:
       '@babel/core':
         specifier: ^7.22.20
@@ -310,6 +303,12 @@ importers:
       postcss-loader:
         specifier: ^8.0.0
         version: 8.1.1(@rspack/core@packages+rspack)(postcss@8.4.38)(typescript@5.4.2)(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
       react-refresh:
         specifier: 0.14.0
         version: 0.14.0
