@@ -18,7 +18,7 @@ import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } f
 import { EventEmitter } from 'node:events';
 import { ExternalObject } from '@rspack/binding';
 import fs from 'graceful-fs';
-import { fs as fs_2 } from 'fs';
+import { fs as fs_2 } from 'node:fs';
 import Hash_2 = require('./util/hash');
 import Hash_3 = require('../util/hash');
 import { HookMap } from '@rspack/lite-tapable';
