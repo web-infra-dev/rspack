@@ -71,7 +71,7 @@ export type StatsModuleTraceItem = {
 	moduleId?: string;
 };
 
-export type StatsModuleReason = binding.JsStatsModuleReason &
+export type StatsModuleReason = Writable<binding.JsStatsModuleReason> &
 	Record<string, any>;
 
 export type KnownStatsCompilation = {

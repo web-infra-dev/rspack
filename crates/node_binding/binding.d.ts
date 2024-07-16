@@ -137,10 +137,18 @@ export class JsStatsModule {
   get errors(): number
   get warnings(): number
   get sizes(): Array<JsStatsSize>
-  get reasons(): Array<JsStatsModuleReason> | undefined
   get issuerPath(): Array<JsStatsModuleIssuer>
   get profile(): JsStatsModuleProfile | undefined
   get modules(): Array<JsStatsModule> | null
+  get reasons(): Array<JsStatsModuleReason> | null
+}
+
+export class JsStatsModuleReason {
+  get moduleIdentifier(): string | undefined
+  get moduleName(): string | undefined
+  get moduleId(): string | undefined
+  get type(): string | undefined
+  get userRequest(): string | undefined
 }
 
 export class JsStatsSize {
@@ -669,14 +677,6 @@ export interface JsStatsModuleIssuer {
 export interface JsStatsModuleProfile {
   factory: JsStatsMillisecond
   building: JsStatsMillisecond
-}
-
-export interface JsStatsModuleReason {
-  moduleIdentifier?: string
-  moduleName?: string
-  moduleId?: string
-  type?: string
-  userRequest?: string
 }
 
 export interface JsStatsModuleTrace {
