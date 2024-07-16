@@ -9,7 +9,7 @@
     "x": "zx x.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
-    "check-dependency-version": "check-dependency-version-consistency . --dep-type devDependencies",
+    "check-dependency-version": "check-dependency-version-consistency . --ignore-dep typescript --ignore-dep @napi-rs/cli --ignore-dep chalk --ignore-dep postcss-loader --ignore-package webpack-test --ignore-package webpack-examples --dep-type devDependencies",
     "build:js": "pnpm --filter \"@rspack/core\" build:force && pnpm --filter \"@rspack/*\" --filter \"!@rspack/core\" build",
     "build:cli:debug": "npm run build:binding:debug && npm run build:js",
     "build:cli:release": "npm run build:binding:release && npm run build:js",
@@ -77,7 +77,7 @@
     "rimraf": "3.0.2",
     "ts-jest": "29.1.2",
     "typescript": "5.0.2",
-    "webpack": "5.92.0",
+    "webpack": "^5.92.0",
     "webpack-cli": "5.1.4"
   },
   "packageManager": "pnpm@9.3.0"
