@@ -143,7 +143,7 @@ impl NormalModuleFactory {
     let dependency_source_span = dependency.source_span();
     let dependency_optional = dependency.get_optional();
 
-    let importer = data.issuer_identifier.clone();
+    let importer = data.issuer_identifier;
     let raw_request = dependency.request().to_owned();
 
     let mut file_dependencies = Default::default();
