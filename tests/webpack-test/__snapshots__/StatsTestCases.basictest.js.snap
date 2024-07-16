@@ -4,19 +4,21 @@ exports[`StatsTestCases should print correct stats for asset 1`] = `
 "asset 89a353e9c515885abd8e.png 14.6 KiB [emitted] [immutable] [from: images/file.png] (name: main)
 asset bundle.js 12.7 KiB [emitted] (name: main)
 asset static/file.html 12 bytes [emitted] [from: static/file.html] (name: main)
-Entrypoint main 12.7 KiB = bundle.js
 runtime modules 1.28 KiB 2 modules
-asset modules 14.6 KiB (asset) 9.12 KiB (javascript)
-  ./images/file.png 14.6 KiB (asset) 42 bytes (javascript) [built] [code generated]
-  ./images/fileXsvg 915 bytes [built] [code generated]
-  ./images/file.jpg 7.92 KiB [built] [code generated]
+modules by path ./ 14.6 KiB (asset) 9.34 KiB (javascript)
+  modules by path ./images/ 14.6 KiB (asset) 8.86 KiB (javascript)
+    ./images/file.png 14.6 KiB (asset) 42 bytes (javascript) [built] [code generated]
+    ./images/fileXsvg 915 bytes [built] [code generated]
+    ./images/file.jpg 7.92 KiB [built] [code generated]
+  modules by path ./*.js 415 bytes
+    ./index.js 402 bytes [built] [code generated]
+    ./aXsource.js 13 bytes [built] [code generated]
   ./static/file.html 12 bytes (asset) 42 bytes (javascript) [built] [code generated]
+  ./a.css 41.4 bytes [built] [code generated]
+modules by mime type text/plain 172 bytes
   data:text/plain;base64,szsaAAdsadasdfaf.. 72.2 bytes [built] [code generated]
   data:text/plain,asd= 41.4 bytes [built] [code generated]
   data:text/plain,XXXXXXXXXXXXXXX.. 58.8 bytes [built] [code generated]
-  ./a.css 41.4 bytes [built] [code generated]
-  ./aXsource.js 13 bytes [built] [code generated]
-./index.js 402 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -24,7 +26,6 @@ exports[`StatsTestCases should print correct stats for asset-concat 1`] = `
 "asset 89a353e9c515885abd8e.png 14.6 KiB [emitted] [immutable] [from: images/file.png] (name: main)
 asset bundle.js 12 KiB [emitted] (name: main)
 asset static/file.html 12 bytes [emitted] [from: static/file.html] (name: main)
-Entrypoint main 12 KiB = bundle.js
 orphan modules 9.43 KiB [orphan] 8 modules
 runtime modules 1.28 KiB 2 modules
 cacheable modules 9.59 KiB (javascript) 14.6 KiB (asset)
@@ -36,10 +37,6 @@ Rspack x.x.x compiled successfully in X s"
 
 exports[`StatsTestCases should print correct stats for async-commons-chunk-auto 1`] = `
 "disabled:
-  Entrypoint main 8.78 KiB = disabled/main.js
-  Entrypoint a 8.65 KiB = disabled/a.js
-  Entrypoint b 196 bytes = disabled/b.js
-  Entrypoint c 196 bytes = disabled/c.js
   chunk (runtime: main) disabled/async-c.js (async-c) 196 bytes [rendered]
     > ./c [10] ./index.js 3:0-47
     dependent modules 80 bytes [dependent] 4 modules
@@ -71,10 +68,6 @@ exports[`StatsTestCases should print correct stats for async-commons-chunk-auto 
   disabled (Rspack x.x.x) compiled successfully
 
 default:
-  Entrypoint main 9.16 KiB = default/main.js
-  Entrypoint a 8.72 KiB = default/a.js
-  Entrypoint b 196 bytes = default/b.js
-  Entrypoint c 196 bytes = default/c.js
   chunk (runtime: main) default/async-c.js (async-c) 116 bytes [rendered]
     > ./c [10] ./index.js 3:0-47
     ./c.js 116 bytes [built] [code generated]
@@ -125,10 +118,6 @@ default:
   default (Rspack x.x.x) compiled successfully
 
 vendors:
-  Entrypoint main 8.78 KiB = vendors/main.js
-  Entrypoint a 8.64 KiB = vendors/a.js
-  Entrypoint b 196 bytes = vendors/b.js
-  Entrypoint c 196 bytes = vendors/c.js
   chunk (runtime: main) vendors/async-c.js (async-c) 196 bytes [rendered]
     > ./c [10] ./index.js 3:0-47
     dependent modules 80 bytes [dependent] 4 modules
@@ -252,8 +241,7 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for circular-correctness 1`] = `
-"Entrypoint main 9.8 KiB = bundle.js
-chunk (runtime: main) 74.bundle.js (a) 49 bytes <{76}> <{909}> >{76}< [rendered]
+"chunk (runtime: main) 74.bundle.js (a) 49 bytes <{76}> <{909}> >{76}< [rendered]
   ./module-a.js 49 bytes [built] [code generated]
 chunk (runtime: main) 751.bundle.js (b) 49 bytes <{76}> <{909}> >{76}< [rendered]
   ./module-b.js 49 bytes [built] [code generated]
@@ -266,21 +254,18 @@ Rspack x.x.x compiled successfully"
 
 exports[`StatsTestCases should print correct stats for color-disabled 1`] = `
 "asset main.js 36 bytes [emitted] (name: main)
-Entrypoint main 36 bytes = main.js
 ./index.js 1 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for color-enabled 1`] = `
 "asset <CLR=32,BOLD>main.js</CLR> 36 bytes <CLR=32,BOLD>[emitted]</CLR> (name: main)
-Entrypoint <CLR=BOLD>main</CLR> 36 bytes = <CLR=32,BOLD>main.js</CLR>
 <CLR=BOLD>./index.js</CLR> 1 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 Rspack x.x.x compiled <CLR=32,BOLD>successfully</CLR> in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for common-libs 1`] = `
 "asset react.js 3.76 KiB [emitted] (name: react)
-Entrypoint react 3.76 KiB = react.js
 ./react.js 74 bytes [built] [code generated]
 ../../../../node_modules/.pnpm/react@18.3.1/node_modules/react/index.js 190 bytes [built] [code generated]
 ../../../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.production.min.js 6.77 KiB [built] [code generated]
@@ -292,26 +277,24 @@ exports[`StatsTestCases should print correct stats for commons-chunk-min-size-In
 asset vendor-1.js 242 bytes [emitted] (name: vendor-1)
 Entrypoint entry-1 4.63 KiB = vendor-1.js 242 bytes entry-1.js 4.39 KiB
 runtime modules 2.58 KiB 3 modules
-cacheable modules 277 bytes
-  ./entry-1.js 145 bytes [built] [code generated]
+modules by path ./modules/*.js 132 bytes
   ./modules/a.js 22 bytes [built] [code generated]
   ./modules/b.js 22 bytes [built] [code generated]
   ./modules/c.js 22 bytes [built] [code generated]
   ./modules/d.js 22 bytes [built] [code generated]
   ./modules/e.js 22 bytes [built] [code generated]
   ./modules/f.js 22 bytes [built] [code generated]
+./entry-1.js 145 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for commons-plugin-issue-4980 1`] = `
 "asset app.a0eb2e6ed70cc52bcbd6-1.js 52 bytes [emitted] [immutable] (name: app)
-Entrypoint app 52 bytes = app.a0eb2e6ed70cc52bcbd6-1.js
 orphan modules 205 bytes [orphan] 3 modules
 ./entry-1.js 67 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
 asset app.3c507db620931e296fff-2.js 52 bytes [emitted] [immutable] (name: app)
-Entrypoint app 52 bytes = app.3c507db620931e296fff-2.js
 orphan modules 212 bytes [orphan] 3 modules
 ./entry-2.js 67 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
@@ -343,7 +326,6 @@ exports[`StatsTestCases should print correct stats for concat-and-sideeffects 1`
 
 exports[`StatsTestCases should print correct stats for custom-terser 1`] = `
 "asset bundle.js 630 bytes [emitted] [minimized] (name: main)
-Entrypoint main 630 bytes = bundle.js
 ./index.js 128 bytes [built] [code generated]
   [no exports]
   [no exports used]
@@ -354,30 +336,25 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for exclude-with-loader 1`] = `
-"asset bundle.js 4.2 KiB [emitted] (name: main)
-asset a61a88ff.json 34 bytes [emitted] [immutable] (name: main)
-Entrypoint main 4.2 KiB = bundle.js
+"hidden assets 34 bytes 1 asset
+asset bundle.js 4.2 KiB [emitted] (name: main)
 runtime modules 1.94 KiB 5 modules
-cacheable modules 218 bytes
+hidden modules 99 bytes 2 modules
+cacheable modules 119 bytes
   ./index.js 77 bytes [built] [code generated]
   ./a.txt 42 bytes [built] [code generated]
-  ./exclude/b.txt 42 bytes [built] [code generated]
-  ./exclude/c.json 57 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for external 1`] = `
 "asset main.js 891 bytes [emitted] (name: main)
-Entrypoint main 891 bytes = main.js
 ./index.js 17 bytes [built] [code generated]
 external \\"test\\" 42 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for graph-correctness-entries 1`] = `
-"Entrypoint e1 9.72 KiB = e1.js
-Entrypoint e2 9.72 KiB = e2.js
-chunk (runtime: e1) e1.js (e1) 49 bytes (javascript) 8.15 KiB (runtime) >{74}< [entry] [rendered]
+"chunk (runtime: e1) e1.js (e1) 49 bytes (javascript) 8.15 KiB (runtime) >{74}< [entry] [rendered]
   ./e1.js 49 bytes [built] [code generated]
     entry ./e1
 chunk (runtime: e1, e2) a.js (a) 49 bytes <{605}> <{76}> >{751}< [rendered]
@@ -398,9 +375,7 @@ Rspack x.x.x compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for graph-correctness-modules 1`] = `
-"Entrypoint e1 10.6 KiB = e1.js
-Entrypoint e2 10.6 KiB = e2.js
-chunk (runtime: e1) e1.js (e1) 119 bytes (javascript) 8.46 KiB (runtime) >{74}< >{984}< [entry] [rendered]
+"chunk (runtime: e1) e1.js (e1) 119 bytes (javascript) 8.46 KiB (runtime) >{74}< >{984}< [entry] [rendered]
   ./e1.js 70 bytes [built] [code generated]
     entry ./e1
   ./module-x.js 49 bytes [dependent] [built] [code generated]
@@ -471,7 +446,6 @@ chunk (runtime: main) trees.js (trees) 215 bytes [rendered]
 
 exports[`StatsTestCases should print correct stats for ignore-warnings 1`] = `
 "asset main.js 1.83 KiB [emitted] (name: main)
-Entrypoint main 1.83 KiB = main.js
 orphan modules 794 bytes [orphan] 10 modules
 ./index.js + 9 modules 794 bytes [code generated]
 Rspack x.x.x compiled successfully in X s"
@@ -487,14 +461,14 @@ exports[`StatsTestCases should print correct stats for import-context-filter 1`]
 asset 228.js 426 bytes [emitted]
 asset 271.js 426 bytes [emitted]
 asset 536.js 426 bytes [emitted]
-Entrypoint entry 9.64 KiB = entry.js
 runtime modules 6.94 KiB 9 modules
 cacheable modules 724 bytes
+  modules by path ./templates/*.js 114 bytes
+    ./templates/bar.js 38 bytes [built] [code generated]
+    ./templates/baz.js 38 bytes [built] [code generated]
+    ./templates/foo.js 38 bytes [built] [code generated]
   ./entry.js 450 bytes [built] [code generated]
   Xdir/import-context-filter/templates|lazy|/^\\\\.\\\\/.*$/|include: /\\\\.js$/|exclude: /\\\\.noimport\\\\.js$/|groupOptions: {}|namespace object 160 bytes [built] [code generated]
-  ./templates/bar.js 38 bytes [built] [code generated]
-  ./templates/baz.js 38 bytes [built] [code generated]
-  ./templates/foo.js 38 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
@@ -502,7 +476,6 @@ exports[`StatsTestCases should print correct stats for import-weak 1`] = `
 "asset entry.js 9.89 KiB [emitted] (name: entry)
 asset 332.js 285 bytes [emitted]
 asset 313.js 130 bytes [emitted]
-Entrypoint entry 9.89 KiB = entry.js
 runtime modules 8.11 KiB 10 modules
 cacheable modules 179 bytes
   ./entry.js 120 bytes [built] [code generated]
@@ -515,7 +488,6 @@ exports[`StatsTestCases should print correct stats for import-weak-parser-option
 "asset entry.js 9.89 KiB [emitted] (name: entry)
 asset 332.js 285 bytes [emitted]
 asset 313.js 130 bytes [emitted]
-Entrypoint entry 9.89 KiB = entry.js
 runtime modules 8.11 KiB 10 modules
 cacheable modules 153 bytes
   ./entry.js 94 bytes [built] [code generated]
@@ -597,14 +569,12 @@ Rspack x.x.x compiled successfully in X s"
 exports[`StatsTestCases should print correct stats for logging-debug 1`] = `
 "<i> <CLR=32,BOLD>[LogTestPlugin] Info</CLR>
 asset <CLR=32,BOLD>main.js</CLR> 36 bytes <CLR=32,BOLD>[emitted]</CLR> (name: main)
-Entrypoint <CLR=BOLD>main</CLR> 36 bytes = <CLR=32,BOLD>main.js</CLR>
 <CLR=BOLD>./index.js</CLR> 1 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 Rspack x.x.x compiled <CLR=32,BOLD>successfully</CLR> in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for max-modules 1`] = `
 "asset main.js 4.63 KiB [emitted] (name: main)
-Entrypoint main 4.63 KiB = main.js
 ./index.js 181 bytes [built] [code generated]
 ./a.js?1 33 bytes [built] [code generated]
 ./a.js?2 33 bytes [built] [code generated]
@@ -630,7 +600,6 @@ Rspack x.x.x compiled successfully in X s"
 
 exports[`StatsTestCases should print correct stats for max-modules-default 1`] = `
 "asset main.js 4.63 KiB [emitted] (name: main)
-Entrypoint main 4.63 KiB = main.js
 ./index.js 181 bytes [built] [code generated]
 ./a.js?1 33 bytes [built] [code generated]
 ./a.js?2 33 bytes [built] [code generated]
@@ -685,9 +654,6 @@ asset 637.js 780 bytes [emitted]
 asset 263.js 512 bytes [emitted]
 asset 400.js 512 bytes [emitted]
 asset 806.js 512 bytes [emitted]
-Entrypoint e1 9.58 KiB = e1.js
-Entrypoint e2 9.58 KiB = e2.js
-Entrypoint e3 9.58 KiB = e3.js
 chunk (runtime: e1, e2) 106.js 81 bytes [rendered]
   ./async3.js 61 bytes [built] [code generated]
   ./h.js 20 bytes [dependent] [built] [code generated]
@@ -725,9 +691,6 @@ asset e3.js 9.43 KiB [emitted] (name: e3)
 asset async1.js 892 bytes [emitted] (name: async1)
 asset async2.js 891 bytes [emitted] (name: async2)
 asset async3.js 891 bytes [emitted] (name: async3)
-Entrypoint e1 9.44 KiB = e1.js
-Entrypoint e2 9.44 KiB = e2.js
-Entrypoint e3 9.43 KiB = e3.js
 chunk (runtime: e1, e2, e3) async3.js (async3) 135 bytes [rendered]
   ./async3.js 115 bytes [built] [code generated]
   ./h.js 20 bytes [dependent] [built] [code generated]
@@ -774,7 +737,6 @@ Rspack compiled with 2 errors"
 
 exports[`StatsTestCases should print correct stats for module-reasons 1`] = `
 "asset main.js 1.09 KiB [emitted] (name: main)
-Entrypoint main 1.09 KiB = main.js
 orphan modules 102 bytes [orphan] 3 modules
 cacheable modules 110 bytes
   ./index.js + 2 modules 102 bytes [code generated]
@@ -789,7 +751,6 @@ Rspack x.x.x compiled successfully in X s"
 
 exports[`StatsTestCases should print correct stats for module-trace-disabled-in-error 1`] = `
 "asset main.js 1.58 KiB [emitted] (name: main)
-Entrypoint main 1.58 KiB = main.js
 modules with errors 53 bytes [errors]
   ./not-existing.js 26 bytes [built] [code generated] [1 error]
   ./parse-error.js 27 bytes [built] [code generated] [1 error]
@@ -827,7 +788,6 @@ Rspack x.x.x compiled with 2 errors in X s"
 
 exports[`StatsTestCases should print correct stats for module-trace-enabled-in-error 1`] = `
 "asset main.js 1.58 KiB [emitted] (name: main)
-Entrypoint main 1.58 KiB = main.js
 modules with errors 53 bytes [errors]
   ./not-existing.js 26 bytes [built] [code generated] [1 error]
   ./parse-error.js 27 bytes [built] [code generated] [1 error]
@@ -933,7 +893,6 @@ Rspack x.x.x compiled successfully in X s"
 exports[`StatsTestCases should print correct stats for output-module 1`] = `
 "asset main.mjs 8.24 KiB [emitted] [javascript module] (name: main)
 asset 8.mjs 329 bytes [emitted] [javascript module]
-Entrypoint main 8.24 KiB = main.mjs
 runtime modules 6.48 KiB 9 modules
 orphan modules 225 bytes [orphan] 2 modules
 cacheable modules 263 bytes
@@ -944,7 +903,6 @@ Rspack x.x.x compiled successfully in X s"
 
 exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 "asset main.js 1.41 KiB [emitted] (name: main)
-Entrypoint main 1.41 KiB = main.js
 orphan modules 30 bytes [orphan] 2 modules
 cacheable modules 85 bytes
   ./index.js + 1 modules 30 bytes [code generated]
@@ -972,7 +930,6 @@ Rspack x.x.x compiled with 1 error"
 
 exports[`StatsTestCases should print correct stats for performance-different-mode-and-target 1`] = `
 "asset warning.pro-web.js 294 KiB [emitted] (name: main)
-Entrypoint main 294 KiB = warning.pro-web.js
 ./index.js 293 KiB [built] [code generated]
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
@@ -988,7 +945,6 @@ WARNING in ⚠ Rspack performance recommendations:You can limit the size of your
 Rspack x.x.x compiled with 3 warnings in X s
 
 asset warning.pro-webworker.js 294 KiB [emitted] (name: main)
-Entrypoint main 294 KiB = warning.pro-webworker.js
 ./index.js 293 KiB [built] [code generated]
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
@@ -1004,27 +960,22 @@ WARNING in ⚠ Rspack performance recommendations:You can limit the size of your
 Rspack x.x.x compiled with 3 warnings in X s
 
 asset no-warning.pro-node.js 294 KiB [emitted] (name: main)
-Entrypoint main 294 KiB = no-warning.pro-node.js
 ./index.js 293 KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
 asset no-warning.dev-web.js 1.72 MiB [emitted] (name: main)
-Entrypoint main 1.72 MiB = no-warning.dev-web.js
 ./index.js 293 KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
 asset no-warning.dev-node.js 1.72 MiB [emitted] (name: main)
-Entrypoint main 1.72 MiB = no-warning.dev-node.js
 ./index.js 293 KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
 asset no-warning.dev-web-with-limit-set.js 1.72 MiB [emitted] (name: main)
-Entrypoint main 1.72 MiB = no-warning.dev-web-with-limit-set.js
 ./index.js 293 KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
 asset warning.pro-node-with-hints-set.js 294 KiB [emitted] (name: main)
-Entrypoint main 294 KiB = warning.pro-node-with-hints-set.js
 ./index.js 293 KiB [built] [code generated]
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
@@ -1226,16 +1177,16 @@ exports[`StatsTestCases should print correct stats for related-assets 1`] = `
     + 7 assets
   assets by path *.gz 13.5 KiB
     asset default-main.js.gz 11.5 KiB [emitted]
-    + 7 assets
-  assets by path *.map 1.26 KiB
-    asset default-main.js.map 670 bytes [emitted] (name: main)
-    + 3 assets
-  assets by path *.js 12.2 KiB
+    asset default-main.js.map.gz 670 bytes [emitted]
+    + 6 assets
+  assets by chunk 12.4 KiB (name: main)
+    assets by path *.map 840 bytes 2 assets
     asset default-main.js 11.5 KiB [emitted] (name: main)
-    asset default-chunk_js.js 625 bytes [emitted]
-  assets by path *.css 142 bytes
-    asset default-chunk_js.css 73 bytes [emitted]
     asset default-main.css 69 bytes [emitted] (name: main)
+  asset default-chunk_js.js 625 bytes [emitted]
+  asset default-chunk_js.js.map 268 bytes [emitted]
+  asset default-chunk_js.css.map 180 bytes [emitted]
+  asset default-chunk_js.css 73 bytes [emitted]
 
 relatedAssets:
   assets by path *.br 13.6 KiB
@@ -1243,72 +1194,68 @@ relatedAssets:
     + 7 assets
   assets by path *.gz 13.6 KiB
     asset relatedAssets-main.js.gz 11.6 KiB [emitted]
-    + 7 assets
-  assets by path *.map 1.28 KiB
-    asset relatedAssets-main.js.map 676 bytes [emitted] (name: main)
-    + 3 assets
-  assets by path *.js 12.2 KiB
+    asset relatedAssets-main.js.map.gz 676 bytes [emitted]
+    + 6 assets
+  assets by chunk 12.5 KiB (name: main)
+    assets by path *.map 852 bytes 2 assets
     asset relatedAssets-main.js 11.6 KiB [emitted] (name: main)
-    asset relatedAssets-chunk_js.js 631 bytes [emitted]
-  assets by path *.css 154 bytes
-    asset relatedAssets-chunk_js.css 79 bytes [emitted]
     asset relatedAssets-main.css 75 bytes [emitted] (name: main)
+  asset relatedAssets-chunk_js.js 631 bytes [emitted]
+  asset relatedAssets-chunk_js.js.map 274 bytes [emitted]
+  asset relatedAssets-chunk_js.css.map 186 bytes [emitted]
+  asset relatedAssets-chunk_js.css 79 bytes [emitted]
 
 exclude1:
-  assets by path *.br 13.6 KiB
-    asset exclude1-main.js.br 11.5 KiB [emitted]
-    + 7 assets
-  assets by path *.gz 13.6 KiB
-    asset exclude1-main.js.gz 11.5 KiB [emitted]
-    + 7 assets
-  assets by path *.map 1.26 KiB
-    asset exclude1-main.js.map 671 bytes [emitted] (name: main)
-    + 3 assets
-  assets by path *.js 12.2 KiB
-    asset exclude1-main.js 11.5 KiB [emitted] (name: main)
+  hidden assets 27.1 KiB 16 assets
+  assets by status 13.6 KiB [emitted]
+    assets by chunk 12.4 KiB (name: main)
+      assets by path *.map 842 bytes
+        asset exclude1-main.js.map 671 bytes [emitted] (name: main)
+        asset exclude1-main.css.map 171 bytes [emitted] (name: main)
+      asset exclude1-main.js 11.5 KiB [emitted] (name: main)
+      asset exclude1-main.css 70 bytes [emitted] (name: main)
     asset exclude1-chunk_js.js 626 bytes [emitted]
-  assets by path *.css 144 bytes
+    asset exclude1-chunk_js.js.map 269 bytes [emitted]
+    asset exclude1-chunk_js.css.map 181 bytes [emitted]
     asset exclude1-chunk_js.css 74 bytes [emitted]
-    asset exclude1-main.css 70 bytes [emitted] (name: main)
 
 exclude2:
-  assets by path *.br 13.6 KiB
-    asset exclude2-main.js.br 11.5 KiB [emitted]
-    + 7 assets
-  assets by path *.gz 13.6 KiB
-    asset exclude2-main.js.gz 11.5 KiB [emitted]
-    + 7 assets
-  assets by path *.map 1.26 KiB
-    asset exclude2-main.js.map 671 bytes [emitted] (name: main)
-    + 3 assets
-  assets by path *.js 12.2 KiB
-    asset exclude2-main.js 11.5 KiB [emitted] (name: main)
-    asset exclude2-chunk_js.js 626 bytes [emitted]
-  assets by path *.css 144 bytes
-    asset exclude2-chunk_js.css 74 bytes [emitted]
-    asset exclude2-main.css 70 bytes [emitted] (name: main)
+  hidden assets 1.26 KiB 4 assets
+  assets by status 39.4 KiB [emitted]
+    assets by path *.br 13.6 KiB
+      asset exclude2-main.js.br 11.5 KiB [emitted]
+      + 7 assets
+    assets by path *.gz 13.6 KiB
+      asset exclude2-main.js.gz 11.5 KiB [emitted]
+      asset exclude2-main.js.map.gz 671 bytes [emitted]
+      + 6 assets
+    assets by path *.js 12.2 KiB
+      asset exclude2-main.js 11.5 KiB [emitted] (name: main)
+      asset exclude2-chunk_js.js 626 bytes [emitted]
+    assets by path *.css 144 bytes
+      asset exclude2-chunk_js.css 74 bytes [emitted]
+      asset exclude2-main.css 70 bytes [emitted] (name: main)
 
 exclude3:
-  assets by path *.br 13.6 KiB
-    asset exclude3-main.js.br 11.5 KiB [emitted]
-    + 7 assets
-  assets by path *.gz 13.6 KiB
-    asset exclude3-main.js.gz 11.5 KiB [emitted]
-    + 7 assets
-  assets by path *.map 1.26 KiB
-    asset exclude3-main.js.map 671 bytes [emitted] (name: main)
-    + 3 assets
-  assets by path *.js 12.2 KiB
-    asset exclude3-main.js 11.5 KiB [emitted] (name: main)
-    asset exclude3-chunk_js.js 626 bytes [emitted]
-  assets by path *.css 144 bytes
-    asset exclude3-chunk_js.css 74 bytes [emitted]
-    asset exclude3-main.css 70 bytes [emitted] (name: main)"
+  hidden assets 3.37 KiB 12 assets
+  assets by status 37.3 KiB [emitted]
+    assets by chunk 12.4 KiB (name: main)
+      assets by path *.map 842 bytes 2 assets
+      asset exclude3-main.js 11.5 KiB [emitted] (name: main)
+      asset exclude3-main.css 70 bytes [emitted] (name: main)
+    assets by path *.br 12.4 KiB
+      asset exclude3-main.js.br 11.5 KiB [emitted]
+      asset exclude3-main.js.map.br 671 bytes [emitted]
+      + 2 assets
+    assets by path *.gz 12.4 KiB
+      asset exclude3-main.js.gz 11.5 KiB [emitted]
+      asset exclude3-main.js.map.gz 671 bytes [emitted]
+      asset exclude3-main.css.map.gz 171 bytes [emitted]
+      asset exclude3-main.css.gz 70 bytes [emitted]"
 `;
 
 exports[`StatsTestCases should print correct stats for reverse-sort-modules 1`] = `
 "asset main.js 4.63 KiB [emitted] (name: main)
-Entrypoint main 4.63 KiB = main.js
 ./index.js 181 bytes [built] [code generated]
 ./c.js?9 33 bytes [built] [code generated]
 ./c.js?8 33 bytes [built] [code generated]
@@ -1371,9 +1318,6 @@ exports[`StatsTestCases should print correct stats for runtime-specific-used-exp
   asset production-dy_js.js 925 bytes [emitted]
   asset production-dz_js.js 925 bytes [emitted]
   asset production-c.js 45 bytes [emitted] (name: c)
-  Entrypoint a 10.3 KiB = production-a.js
-  Entrypoint b 10.3 KiB = production-b.js
-  Entrypoint c 45 bytes = production-c.js
   chunk (runtime: a) production-a.js (a) 605 bytes (javascript) 6.94 KiB (runtime) [entry] [rendered]
     ./a.js 261 bytes [built] [code generated]
       [no exports used]
@@ -1451,9 +1395,6 @@ development:
   asset development-dy_js.js 1.18 KiB [emitted]
   asset development-dz_js.js 1.18 KiB [emitted]
   asset development-c.js 419 bytes [emitted] (name: c)
-  Entrypoint a 12 KiB = development-a.js
-  Entrypoint b 12 KiB = development-b.js
-  Entrypoint c 419 bytes = development-c.js
   chunk (runtime: a) development-a.js (a) 605 bytes (javascript) 6.95 KiB (runtime) [entry] [rendered]
     ./a.js 261 bytes [built] [code generated]
       [used exports unknown]
@@ -1535,9 +1476,6 @@ global:
   asset global-dy_js.js 956 bytes [emitted]
   asset global-dz_js.js 956 bytes [emitted]
   asset global-c.js 45 bytes [emitted] (name: c)
-  Entrypoint a 10.4 KiB = global-a.js
-  Entrypoint b 10.4 KiB = global-b.js
-  Entrypoint c 45 bytes = global-c.js
   chunk (runtime: a) global-a.js (a) 605 bytes (javascript) 6.94 KiB (runtime) [entry] [rendered]
     ./a.js 261 bytes [built] [code generated]
       [no exports used]
@@ -1605,9 +1543,7 @@ global:
 `;
 
 exports[`StatsTestCases should print correct stats for scope-hoisting-multi 1`] = `
-"Entrypoint first 8.78 KiB = a-first.js
-Entrypoint second 8.78 KiB = a-second.js
-runtime modules 14 KiB 18 modules
+"runtime modules 14 KiB 18 modules
 orphan modules 118 bytes [orphan] 4 modules
 cacheable modules 726 bytes
   ./first.js 236 bytes [built] [code generated]
@@ -1619,8 +1555,6 @@ cacheable modules 726 bytes
   ./common_lazy_shared.js 25 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
-Entrypoint first 8.78 KiB = b-first.js
-Entrypoint second 8.78 KiB = b-second.js
 runtime modules 14 KiB 18 modules
 cacheable modules 1.05 KiB
   built modules 844 bytes [built]
@@ -1650,39 +1584,37 @@ Rspack x.x.x compiled successfully in X s"
 exports[`StatsTestCases should print correct stats for side-effects-issue-7428 1`] = `
 "asset main.js 9.67 KiB [emitted] (name: main)
 asset 0.js 586 bytes [emitted]
-Entrypoint main 9.67 KiB = main.js
 runtime modules 6.94 KiB 9 modules
 cacheable modules 967 bytes
-  orphan modules 459 bytes [orphan]
+  modules by path ./components/src/ 501 bytes
+    orphan modules 315 bytes [orphan]
+      modules by path ./components/src/CompAB/*.js 164 bytes 2 modules
+      modules by path ./components/src/CompC/*.js 67 bytes 2 modules
+      ./components/src/index.js 84 bytes [orphan] [built]
+        [module unused]
+        esm import ./components
+        esm import specifier ./components
+        esm import specifier ./components
+        esm import specifier ./components
+        esm import ./components
+    code generated modules 186 bytes [code generated]
+      ./components/src/CompAB/CompA.js 89 bytes [built] [code generated]
+        [only some exports used: default]
+        esm export ./CompA
+        esm export import specifier ./CompA
+        esm export import specifier ./CompAB
+        esm import specifier ./components
+        esm import specifier ./components
+      ./components/src/CompAB/utils.js 97 bytes [built] [code generated]
+        esm import ./utils
+        esm import specifier ./utils
+        esm import ./utils
+        esm import specifier ./utils
+        esm import ./utils
+        esm import specifier ./utils
+  modules by path ./*.js 466 bytes
     ./main.js 144 bytes [orphan] [built]
       [no exports used]
-    ./components/src/index.js 84 bytes [orphan] [built]
-      [module unused]
-      esm import ./components
-      esm import specifier ./components
-      esm import specifier ./components
-      esm import specifier ./components
-      esm import ./components
-    ./components/src/CompAB/CompB.js 77 bytes [orphan] [built]
-      [only some exports used: default]
-      esm export ./CompB
-      esm export import specifier ./CompB
-      esm export import specifier ./CompAB
-      esm import specifier ./components
-    ./components/src/CompC/index.js 34 bytes [orphan] [built]
-      [module unused]
-      esm export ./CompC
-      esm export import specifier ./CompC
-    ./components/src/CompAB/index.js 87 bytes [orphan] [built]
-      [module unused]
-      esm export ./CompAB
-      esm export import specifier ./CompAB
-      esm export import specifier ./CompAB
-    ./components/src/CompC/CompC.js 33 bytes [orphan] [built]
-      [module unused]
-      esm export ./CompC
-      esm export import specifier ./CompC
-  code generated modules 508 bytes [code generated]
     ./main.js + 1 modules 221 bytes [code generated]
       [no exports used]
       entry ./main.js
@@ -1694,71 +1626,58 @@ cacheable modules 967 bytes
       |   esm export import specifier ./CompB
       |   esm export import specifier ./CompAB
       |   esm import specifier ./components
-    ./components/src/CompAB/CompA.js 89 bytes [built] [code generated]
-      [only some exports used: default]
-      esm export ./CompA
-      esm export import specifier ./CompA
-      esm export import specifier ./CompAB
-      esm import specifier ./components
-      esm import specifier ./components
     ./foo.js 101 bytes [built] [code generated]
       import() ./foo
-    ./components/src/CompAB/utils.js 97 bytes [built] [code generated]
-      esm import ./utils
-      esm import specifier ./utils
-      esm import ./utils
-      esm import specifier ./utils
-      esm import ./utils
-      esm import specifier ./utils
 Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for side-effects-simple-unused 1`] = `
 "asset main.js 299 bytes [emitted] (name: main)
-Entrypoint main 299 bytes = main.js
-./index.js 55 bytes [orphan] [built]
-  [no exports used]
-./index.js + 2 modules 158 bytes [code generated]
-  [no exports used]
-  entry ./index
-  | ./index.js 55 bytes [orphan] [built]
-  |   [no exports used]
-  | ./node_modules/pmodule/index.js 75 bytes [orphan] [built]
-  |   [only some exports used: default]
-  |   esm import pmodule
-  |   esm import specifier pmodule
-  |   esm import specifier pmodule
-  | ./node_modules/pmodule/c.js 28 bytes [orphan] [built]
-  |   [only some exports used: z]
-  |   esm import specifier pmodule
-  |   esm export ./c
-  |   esm export import specifier ./c
-./node_modules/pmodule/index.js 75 bytes [orphan] [built]
-  [only some exports used: default]
-  esm import pmodule
-  esm import specifier pmodule
-  esm import specifier pmodule
-./node_modules/pmodule/c.js 28 bytes [orphan] [built]
-  [only some exports used: z]
-  esm import specifier pmodule
-  esm export ./c
-  esm export import specifier ./c
-./node_modules/pmodule/a.js 60 bytes [orphan] [built]
-  [module unused]
-  esm export ./a
-  esm export import specifier ./a
-  esm export ./a
-  esm export import specifier ./a
-./node_modules/pmodule/b.js 69 bytes [orphan] [built]
-  [module unused]
-  esm export ./b
-  esm export import specifier ./b
-  esm export import specifier ./b
-  esm export import specifier ./b
-  esm export ./b
-  esm export import specifier ./b
-  esm export import specifier ./b
-  esm export import specifier ./b
+modules by path ./node_modules/pmodule/*.js 232 bytes
+  ./node_modules/pmodule/index.js 75 bytes [orphan] [built]
+    [only some exports used: default]
+    esm import pmodule
+    esm import specifier pmodule
+    esm import specifier pmodule
+  ./node_modules/pmodule/c.js 28 bytes [orphan] [built]
+    [only some exports used: z]
+    esm import specifier pmodule
+    esm export ./c
+    esm export import specifier ./c
+  ./node_modules/pmodule/a.js 60 bytes [orphan] [built]
+    [module unused]
+    esm export ./a
+    esm export import specifier ./a
+    esm export ./a
+    esm export import specifier ./a
+  ./node_modules/pmodule/b.js 69 bytes [orphan] [built]
+    [module unused]
+    esm export ./b
+    esm export import specifier ./b
+    esm export import specifier ./b
+    esm export import specifier ./b
+    esm export ./b
+    esm export import specifier ./b
+    esm export import specifier ./b
+    esm export import specifier ./b
+modules by path ./*.js 213 bytes
+  ./index.js 55 bytes [orphan] [built]
+    [no exports used]
+  ./index.js + 2 modules 158 bytes [code generated]
+    [no exports used]
+    entry ./index
+    | ./index.js 55 bytes [orphan] [built]
+    |   [no exports used]
+    | ./node_modules/pmodule/index.js 75 bytes [orphan] [built]
+    |   [only some exports used: default]
+    |   esm import pmodule
+    |   esm import specifier pmodule
+    |   esm import specifier pmodule
+    | ./node_modules/pmodule/c.js 28 bytes [orphan] [built]
+    |   [only some exports used: z]
+    |   esm import specifier pmodule
+    |   esm export ./c
+    |   esm export import specifier ./c
 Rspack x.x.x compiled successfully in X s"
 `;
 

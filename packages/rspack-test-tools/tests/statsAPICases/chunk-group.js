@@ -64,6 +64,7 @@ module.exports = {
 		    "chunks": Array [
 		      "909",
 		    ],
+		    "filteredAssets": 0,
 		    "name": "main",
 		  },
 		}
@@ -139,6 +140,7 @@ module.exports = {
 		    "chunks": Array [
 		      "919",
 		    ],
+		    "filteredAssets": 0,
 		    "name": "chunk",
 		  },
 		  "chunk-a": Object {
@@ -155,6 +157,7 @@ module.exports = {
 		    "chunks": Array [
 		      "807",
 		    ],
+		    "filteredAssets": 0,
 		    "name": "chunk-a",
 		  },
 		  "chunk-b": Object {
@@ -171,6 +174,7 @@ module.exports = {
 		    "chunks": Array [
 		      "805",
 		    ],
+		    "filteredAssets": 0,
 		    "name": "chunk-b",
 		  },
 		  "chunk-c": Object {
@@ -187,6 +191,7 @@ module.exports = {
 		    "chunks": Array [
 		      "212",
 		    ],
+		    "filteredAssets": 0,
 		    "name": "chunk-c",
 		  },
 		  "main": Object {
@@ -231,6 +236,7 @@ module.exports = {
 		    "chunks": Array [
 		      "909",
 		    ],
+		    "filteredAssets": 0,
 		    "name": "main",
 		  },
 		}

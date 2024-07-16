@@ -32,6 +32,7 @@ module.exports = {
 		    "chunks": Array [
 		      null,
 		    ],
+		    "filteredAssets": 0,
 		    "name": "main",
 		  },
 		}
