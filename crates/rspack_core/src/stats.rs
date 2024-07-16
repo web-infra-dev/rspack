@@ -54,6 +54,8 @@ impl<'compilation> Stats<'compilation> {
 impl Stats<'_> {
   pub fn get_assets(&self) -> (Vec<StatsAsset>, Vec<StatsAssetsByChunkName>) {
     let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::default();
+    let mut compilation_file_to_auxiliary_chunks: HashMap<&String, Vec<&Chunk>> =
+      HashMap::default();
     for chunk in self.compilation.chunk_by_ukey.values() {
       for file in &chunk.files {
         let chunks = compilation_file_to_chunks.entry(file).or_default();
@@ -61,8 +63,10 @@ impl Stats<'_> {
       }
 
       for file in &chunk.auxiliary_files {
-        let chunks = compilation_file_to_chunks.entry(file).or_default();
-        chunks.push(chunk);
+        let auxiliary_chunks = compilation_file_to_auxiliary_chunks
+          .entry(file)
+          .or_default();
+        auxiliary_chunks.push(chunk);
       }
     }
 
@@ -87,6 +91,10 @@ impl Stats<'_> {
               size: source.size() as f64,
               chunks: Vec::new(),
               chunk_names: Vec::new(),
+              chunk_id_hints: Vec::new(),
+              auxiliary_chunks: Vec::new(),
+              auxiliary_chunk_id_hints: Vec::new(),
+              auxiliary_chunk_names: Vec::new(),
               info: StatsAssetInfo {
                 related,
                 chunk_hash: asset.info.chunk_hash.iter().cloned().collect_vec(),
@@ -118,6 +126,29 @@ impl Stats<'_> {
           .filter_map(|chunk| chunk.name.clone())
           .collect();
         asset.chunk_names.sort_unstable();
+        asset.chunk_id_hints = chunks
+          .iter()
+          .flat_map(|chunk| chunk.id_name_hints.iter().cloned().collect_vec())
+          .collect_vec();
+        asset.chunk_id_hints.sort_unstable();
+      }
+
+      if let Some(auxiliary_chunks) = compilation_file_to_auxiliary_chunks.get(name) {
+        asset.auxiliary_chunks = auxiliary_chunks
+          .iter()
+          .map(|chunk| chunk.id.clone())
+          .collect();
+        asset.auxiliary_chunks.sort_unstable();
+        asset.auxiliary_chunk_names = auxiliary_chunks
+          .iter()
+          .filter_map(|chunk| chunk.name.clone())
+          .collect();
+        asset.auxiliary_chunk_names.sort_unstable();
+        asset.auxiliary_chunk_id_hints = auxiliary_chunks
+          .iter()
+          .flat_map(|chunk| chunk.id_name_hints.iter().cloned().collect_vec())
+          .collect_vec();
+        asset.auxiliary_chunk_id_hints.sort_unstable();
       }
     }
     let mut assets: Vec<StatsAsset> = assets.into_values().collect();
@@ -1267,8 +1298,12 @@ pub struct StatsAsset {
   pub size: f64,
   pub chunks: Vec<Option<String>>,
   pub chunk_names: Vec<String>,
+  pub chunk_id_hints: Vec<String>,
   pub info: StatsAssetInfo,
   pub emitted: bool,
+  pub auxiliary_chunk_names: Vec<String>,
+  pub auxiliary_chunk_id_hints: Vec<String>,
+  pub auxiliary_chunks: Vec<Option<String>>,
 }
 
 #[derive(Debug)]

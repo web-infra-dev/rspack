@@ -1,9 +1,9 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`StatsTestCases should print correct stats for asset 1`] = `
-"asset 89a353e9c515885abd8e.png 14.6 KiB [emitted] [immutable] [from: images/file.png] (name: main)
+"asset 89a353e9c515885abd8e.png 14.6 KiB [emitted] [immutable] [from: images/file.png] (auxiliary name: main)
 asset bundle.js 12.7 KiB [emitted] (name: main)
-asset static/file.html 12 bytes [emitted] [from: static/file.html] (name: main)
+asset static/file.html 12 bytes [emitted] [from: static/file.html] (auxiliary name: main)
 runtime modules 1.28 KiB 2 modules
 modules by path ./ 14.6 KiB (asset) 9.34 KiB (javascript)
   modules by path ./images/ 14.6 KiB (asset) 8.86 KiB (javascript)
@@ -23,9 +23,9 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for asset-concat 1`] = `
-"asset 89a353e9c515885abd8e.png 14.6 KiB [emitted] [immutable] [from: images/file.png] (name: main)
+"asset 89a353e9c515885abd8e.png 14.6 KiB [emitted] [immutable] [from: images/file.png] (auxiliary name: main)
 asset bundle.js 12 KiB [emitted] (name: main)
-asset static/file.html 12 bytes [emitted] [from: static/file.html] (name: main)
+asset static/file.html 12 bytes [emitted] [from: static/file.html] (auxiliary name: main)
 orphan modules 9.43 KiB [orphan] 8 modules
 runtime modules 1.28 KiB 2 modules
 cacheable modules 9.59 KiB (javascript) 14.6 KiB (asset)
@@ -274,7 +274,7 @@ Rspack x.x.x compiled successfully in X s"
 
 exports[`StatsTestCases should print correct stats for commons-chunk-min-size-Infinity 1`] = `
 "asset entry-1.js 4.39 KiB [emitted] (name: entry-1)
-asset vendor-1.js 242 bytes [emitted] (name: vendor-1)
+asset vendor-1.js 242 bytes [emitted] (name: vendor-1) (id hint: vendor-1)
 Entrypoint entry-1 4.63 KiB = vendor-1.js 242 bytes entry-1.js 4.39 KiB
 runtime modules 2.58 KiB 3 modules
 modules by path ./modules/*.js 132 bytes
@@ -537,15 +537,15 @@ Rspack x.x.x compiled with 2 warnings"
 
 exports[`StatsTestCases should print correct stats for issue-7577 1`] = `
 "asset a-runtime~main-6f980b3fe4e873c8018a.js 3.69 KiB [emitted] [immutable] (name: runtime~main)
-asset a-main-74eb98039f994af619b3.js 323 bytes [emitted] [immutable] (name: main)
+asset a-main-74eb98039f994af619b3.js 323 bytes [emitted] [immutable] (name: main) (id hint: all)
 Entrypoint main 4 KiB = a-runtime~main-6f980b3fe4e873c8018a.js 3.69 KiB a-main-74eb98039f994af619b3.js 323 bytes
 runtime modules 2.59 KiB 3 modules
 ./a.js 18 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
 asset b-runtime~main-841c6f8661ffb8487676.js 4.39 KiB [emitted] [immutable] (name: runtime~main)
-asset b-main-7a912c9e72d35b5ccb33.js 779 bytes [emitted] [immutable] (name: main)
-asset b-vendors-node_modules_vendor_js-97d43f84c65cc0e25938.js 173 bytes [emitted] [immutable]
+asset b-main-7a912c9e72d35b5ccb33.js 779 bytes [emitted] [immutable] (name: main) (id hint: all)
+asset b-vendors-node_modules_vendor_js-97d43f84c65cc0e25938.js 173 bytes [emitted] [immutable] (id hint: vendors)
 Entrypoint main 5.32 KiB = b-runtime~main-841c6f8661ffb8487676.js 4.39 KiB b-vendors-node_modules_vendor_js-97d43f84c65cc0e25938.js 173 bytes b-main-7a912c9e72d35b5ccb33.js 779 bytes
 runtime modules 3.17 KiB 5 modules
 cacheable modules 40 bytes
@@ -553,10 +553,11 @@ cacheable modules 40 bytes
   ./node_modules/vendor.js 23 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
+assets by chunk 1.29 KiB (id hint: all)
+  asset c-main-badd31d63df8ff8ef439.js 833 bytes [emitted] [immutable] (name: main) (id hint: all)
+  asset c-all-b_js-a364a38577953cc2ab7c.js 488 bytes [emitted] [immutable] (id hint: all)
 asset c-runtime~main-758a5f5cc29c2a3b8870.js 10.8 KiB [emitted] [immutable] (name: runtime~main)
-asset c-main-badd31d63df8ff8ef439.js 833 bytes [emitted] [immutable] (name: main)
-asset c-all-b_js-a364a38577953cc2ab7c.js 488 bytes [emitted] [immutable]
-asset c-vendors-node_modules_vendor_js-97d43f84c65cc0e25938.js 173 bytes [emitted] [immutable]
+asset c-vendors-node_modules_vendor_js-97d43f84c65cc0e25938.js 173 bytes [emitted] [immutable] (id hint: vendors)
 Entrypoint main 11.6 KiB = c-runtime~main-758a5f5cc29c2a3b8870.js 10.8 KiB c-main-badd31d63df8ff8ef439.js 833 bytes
 runtime modules 9.38 KiB 13 modules
 cacheable modules 101 bytes
@@ -879,7 +880,7 @@ Rspack x.x.x compiled successfully"
 
 exports[`StatsTestCases should print correct stats for named-chunks-plugin 1`] = `
 "asset entry.js 4.27 KiB [emitted] (name: entry)
-asset vendor.js 211 bytes [emitted] (name: vendor)
+asset vendor.js 211 bytes [emitted] (name: vendor) (id hint: vendor)
 Entrypoint entry 4.48 KiB = vendor.js 211 bytes entry.js 4.27 KiB
 runtime modules 2.58 KiB 3 modules
 cacheable modules 138 bytes
@@ -1177,16 +1178,16 @@ exports[`StatsTestCases should print correct stats for related-assets 1`] = `
     + 7 assets
   assets by path *.gz 13.5 KiB
     asset default-main.js.gz 11.5 KiB [emitted]
-    asset default-main.js.map.gz 670 bytes [emitted]
-    + 6 assets
-  assets by chunk 12.4 KiB (name: main)
-    assets by path *.map 840 bytes 2 assets
+    + 7 assets
+  assets by path *.map 1.26 KiB
+    assets by chunk 840 bytes (auxiliary name: main) 2 assets
+    + 2 assets
+  assets by path *.js 12.2 KiB
     asset default-main.js 11.5 KiB [emitted] (name: main)
+    asset default-chunk_js.js 625 bytes [emitted]
+  assets by path *.css 142 bytes
+    asset default-chunk_js.css 73 bytes [emitted]
     asset default-main.css 69 bytes [emitted] (name: main)
-  asset default-chunk_js.js 625 bytes [emitted]
-  asset default-chunk_js.js.map 268 bytes [emitted]
-  asset default-chunk_js.css.map 180 bytes [emitted]
-  asset default-chunk_js.css 73 bytes [emitted]
 
 relatedAssets:
   assets by path *.br 13.6 KiB
@@ -1194,30 +1195,32 @@ relatedAssets:
     + 7 assets
   assets by path *.gz 13.6 KiB
     asset relatedAssets-main.js.gz 11.6 KiB [emitted]
-    asset relatedAssets-main.js.map.gz 676 bytes [emitted]
-    + 6 assets
-  assets by chunk 12.5 KiB (name: main)
-    assets by path *.map 852 bytes 2 assets
+    + 7 assets
+  assets by path *.map 1.28 KiB
+    assets by chunk 852 bytes (auxiliary name: main) 2 assets
+    + 2 assets
+  assets by path *.js 12.2 KiB
     asset relatedAssets-main.js 11.6 KiB [emitted] (name: main)
+    asset relatedAssets-chunk_js.js 631 bytes [emitted]
+  assets by path *.css 154 bytes
+    asset relatedAssets-chunk_js.css 79 bytes [emitted]
     asset relatedAssets-main.css 75 bytes [emitted] (name: main)
-  asset relatedAssets-chunk_js.js 631 bytes [emitted]
-  asset relatedAssets-chunk_js.js.map 274 bytes [emitted]
-  asset relatedAssets-chunk_js.css.map 186 bytes [emitted]
-  asset relatedAssets-chunk_js.css 79 bytes [emitted]
 
 exclude1:
   hidden assets 27.1 KiB 16 assets
   assets by status 13.6 KiB [emitted]
-    assets by chunk 12.4 KiB (name: main)
-      assets by path *.map 842 bytes
-        asset exclude1-main.js.map 671 bytes [emitted] (name: main)
-        asset exclude1-main.css.map 171 bytes [emitted] (name: main)
+    assets by path *.map 1.26 KiB
+      assets by chunk 842 bytes (auxiliary name: main)
+        asset exclude1-main.js.map 671 bytes [emitted] (auxiliary name: main)
+        asset exclude1-main.css.map 171 bytes [emitted] (auxiliary name: main)
+      asset exclude1-chunk_js.js.map 269 bytes [emitted]
+      asset exclude1-chunk_js.css.map 181 bytes [emitted]
+    assets by path *.js 12.2 KiB
       asset exclude1-main.js 11.5 KiB [emitted] (name: main)
+      asset exclude1-chunk_js.js 626 bytes [emitted]
+    assets by path *.css 144 bytes
+      asset exclude1-chunk_js.css 74 bytes [emitted]
       asset exclude1-main.css 70 bytes [emitted] (name: main)
-    asset exclude1-chunk_js.js 626 bytes [emitted]
-    asset exclude1-chunk_js.js.map 269 bytes [emitted]
-    asset exclude1-chunk_js.css.map 181 bytes [emitted]
-    asset exclude1-chunk_js.css 74 bytes [emitted]
 
 exclude2:
   hidden assets 1.26 KiB 4 assets
@@ -1239,19 +1242,19 @@ exclude2:
 exclude3:
   hidden assets 3.37 KiB 12 assets
   assets by status 37.3 KiB [emitted]
-    assets by chunk 12.4 KiB (name: main)
-      assets by path *.map 842 bytes 2 assets
-      asset exclude3-main.js 11.5 KiB [emitted] (name: main)
-      asset exclude3-main.css 70 bytes [emitted] (name: main)
     assets by path *.br 12.4 KiB
       asset exclude3-main.js.br 11.5 KiB [emitted]
-      asset exclude3-main.js.map.br 671 bytes [emitted]
-      + 2 assets
+      + 3 assets
     assets by path *.gz 12.4 KiB
       asset exclude3-main.js.gz 11.5 KiB [emitted]
       asset exclude3-main.js.map.gz 671 bytes [emitted]
-      asset exclude3-main.css.map.gz 171 bytes [emitted]
-      asset exclude3-main.css.gz 70 bytes [emitted]"
+      + 2 assets
+    assets by chunk 11.6 KiB (name: main)
+      asset exclude3-main.js 11.5 KiB [emitted] (name: main)
+      asset exclude3-main.css 70 bytes [emitted] (name: main)
+    assets by path *.map 842 bytes
+      asset exclude3-main.js.map 671 bytes [emitted] (auxiliary name: main)
+      asset exclude3-main.css.map 171 bytes [emitted] (auxiliary name: main)"
 `;
 
 exports[`StatsTestCases should print correct stats for reverse-sort-modules 1`] = `
@@ -2281,7 +2284,7 @@ exports[`StatsTestCases should print correct stats for split-chunks-runtime-spec
   asset used-exports-c.js 4.67 KiB [emitted] (name: c)
   asset used-exports-b.js 4.67 KiB [emitted] (name: b)
   asset used-exports-a.js 4.67 KiB [emitted] (name: a)
-  asset used-exports-572.js 533 bytes [emitted]
+  asset used-exports-572.js 533 bytes [emitted] (id hint: )
   Entrypoint a 5.19 KiB = used-exports-572.js 533 bytes used-exports-a.js 4.67 KiB
   Entrypoint b 5.19 KiB = used-exports-572.js 533 bytes used-exports-b.js 4.67 KiB
   Entrypoint c 5.2 KiB = used-exports-572.js 533 bytes used-exports-c.js 4.67 KiB
@@ -2299,7 +2302,7 @@ no-used-exports:
   asset no-used-exports-c.js 4.67 KiB [emitted] (name: c)
   asset no-used-exports-b.js 4.67 KiB [emitted] (name: b)
   asset no-used-exports-a.js 4.67 KiB [emitted] (name: a)
-  asset no-used-exports-572.js 533 bytes [emitted]
+  asset no-used-exports-572.js 533 bytes [emitted] (id hint: )
   Entrypoint a 5.19 KiB = no-used-exports-572.js 533 bytes no-used-exports-a.js 4.67 KiB
   Entrypoint b 5.19 KiB = no-used-exports-572.js 533 bytes no-used-exports-b.js 4.67 KiB
   Entrypoint c 5.2 KiB = no-used-exports-572.js 533 bytes no-used-exports-c.js 4.67 KiB
@@ -2317,7 +2320,7 @@ global:
   asset global-c.js 4.6 KiB [emitted] (name: c)
   asset global-b.js 4.6 KiB [emitted] (name: b)
   asset global-a.js 4.6 KiB [emitted] (name: a)
-  asset global-572.js 353 bytes [emitted]
+  asset global-572.js 353 bytes [emitted] (id hint: )
   Entrypoint a 4.94 KiB = global-572.js 353 bytes global-a.js 4.6 KiB
   Entrypoint b 4.94 KiB = global-572.js 353 bytes global-b.js 4.6 KiB
   Entrypoint c 4.95 KiB = global-572.js 353 bytes global-c.js 4.6 KiB
