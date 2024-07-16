@@ -2284,7 +2284,7 @@ exports[`StatsTestCases should print correct stats for split-chunks-runtime-spec
   asset used-exports-c.js 4.67 KiB [emitted] (name: c)
   asset used-exports-b.js 4.67 KiB [emitted] (name: b)
   asset used-exports-a.js 4.67 KiB [emitted] (name: a)
-  asset used-exports-572.js 533 bytes [emitted] (id hint: )
+  asset used-exports-572.js 533 bytes [emitted]
   Entrypoint a 5.19 KiB = used-exports-572.js 533 bytes used-exports-a.js 4.67 KiB
   Entrypoint b 5.19 KiB = used-exports-572.js 533 bytes used-exports-b.js 4.67 KiB
   Entrypoint c 5.2 KiB = used-exports-572.js 533 bytes used-exports-c.js 4.67 KiB
@@ -2302,7 +2302,7 @@ no-used-exports:
   asset no-used-exports-c.js 4.67 KiB [emitted] (name: c)
   asset no-used-exports-b.js 4.67 KiB [emitted] (name: b)
   asset no-used-exports-a.js 4.67 KiB [emitted] (name: a)
-  asset no-used-exports-572.js 533 bytes [emitted] (id hint: )
+  asset no-used-exports-572.js 533 bytes [emitted]
   Entrypoint a 5.19 KiB = no-used-exports-572.js 533 bytes no-used-exports-a.js 4.67 KiB
   Entrypoint b 5.19 KiB = no-used-exports-572.js 533 bytes no-used-exports-b.js 4.67 KiB
   Entrypoint c 5.2 KiB = no-used-exports-572.js 533 bytes no-used-exports-c.js 4.67 KiB
@@ -2320,7 +2320,7 @@ global:
   asset global-c.js 4.6 KiB [emitted] (name: c)
   asset global-b.js 4.6 KiB [emitted] (name: b)
   asset global-a.js 4.6 KiB [emitted] (name: a)
-  asset global-572.js 353 bytes [emitted] (id hint: )
+  asset global-572.js 353 bytes [emitted]
   Entrypoint a 4.94 KiB = global-572.js 353 bytes global-a.js 4.6 KiB
   Entrypoint b 4.94 KiB = global-572.js 353 bytes global-b.js 4.6 KiB
   Entrypoint c 4.95 KiB = global-572.js 353 bytes global-c.js 4.6 KiB

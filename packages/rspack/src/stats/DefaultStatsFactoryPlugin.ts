@@ -997,9 +997,15 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	asset$visible: {
 		_: (object, asset) => {
 			object.chunkNames = asset.chunkNames;
-			object.chunkIdHints = asset.chunkIdHints;
+			const chunkIdHints = asset.chunkIdHints.filter(Boolean);
+			if (chunkIdHints.length > 0) {
+				object.chunkIdHints = chunkIdHints;
+			}
 			object.auxiliaryChunkNames = asset.auxiliaryChunkNames;
-			object.auxiliaryChunkIdHints = asset.auxiliaryChunkIdHints;
+			const auxiliaryChunkIdHints = asset.auxiliaryChunkIdHints.filter(Boolean);
+			if (auxiliaryChunkIdHints.length > 0) {
+				object.auxiliaryChunkIdHints = auxiliaryChunkIdHints;
+			}
 		},
 		relatedAssets: (object, asset, context, options, factory) => {
 			const { type } = context;
