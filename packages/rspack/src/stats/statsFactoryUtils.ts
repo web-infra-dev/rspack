@@ -154,13 +154,13 @@ export type SimpleExtractors = {
 	compilation: ExtractorsByOption<Compilation, StatsCompilation>;
 	asset$visible: ExtractorsByOption<PreprocessedAsset, StatsAsset>;
 	asset: ExtractorsByOption<PreprocessedAsset, StatsAsset>;
-	// chunkGroup: ExtractorsByOption<
-	// 	{
-	// 		name: string;
-	// 		chunkGroup: binding.JsChunkGroup;
-	// 	},
-	// 	StatsChunkGroup
-	// >;
+	chunkGroup: ExtractorsByOption<
+		{
+			name: string;
+			chunkGroup: binding.JsStatsChunkGroup;
+		},
+		StatsChunkGroup
+	>;
 	module: ExtractorsByOption<binding.JsStatsModule, StatsModule>;
 	module$visible: ExtractorsByOption<binding.JsStatsModule, StatsModule>;
 	moduleIssuer: ExtractorsByOption<

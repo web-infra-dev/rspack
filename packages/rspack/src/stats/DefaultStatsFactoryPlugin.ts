@@ -14,6 +14,7 @@ import type {
 	JsStatsError,
 	JsStatsWarning
 } from "@rspack/binding";
+import type { Chunk } from "../Chunk";
 import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { StatsOptions } from "../config";
@@ -24,12 +25,11 @@ import {
 	getLogTypesBitFlag
 } from "../logging/Logger";
 import { compareIds as _compareIds, compareSelect } from "../util/comparators";
-import { makePathsRelative } from "../util/identifier";
+import { makePathsRelative, parseResource } from "../util/identifier";
 import type { GroupConfig } from "../util/smartGrouping";
 import type { KnownStatsFactoryContext, StatsFactory } from "./StatsFactory";
 import type {
 	KnownStatsAsset,
-	KnownStatsChunkGroup,
 	KnownStatsLoggingEntry,
 	KnownStatsModule,
 	SimpleExtractors,
@@ -42,6 +42,7 @@ import {
 	assetGroup,
 	countWithChildren,
 	iterateConfig,
+	mergeToObject,
 	moduleGroup,
 	resolveStatsMillisecond,
 	sortByField,
@@ -73,18 +74,18 @@ const ITEM_NAMES: Record<string, string> = {
 	// "moduleTraceItem.dependencies[]": "moduleTraceDependency"
 };
 
-// const MERGER: Record<
-// 	string,
-// 	(
-// 		items: {
-// 			[key: string]: any;
-// 			name: string;
-// 		}[]
-// 	) => any
-// > = {
-// 	"compilation.entrypoints": mergeToObject,
-// 	"compilation.namedChunkGroups": mergeToObject
-// };
+const MERGER: Record<
+	string,
+	(
+		items: {
+			[key: string]: any;
+			name: string;
+		}[]
+	) => any
+> = {
+	"compilation.entrypoints": mergeToObject,
+	"compilation.namedChunkGroups": mergeToObject
+};
 
 const ASSETS_GROUPERS: Record<
 	string,
@@ -179,12 +180,75 @@ const ASSETS_GROUPERS: Record<
 				}
 			});
 		}
+	},
+	groupAssetsByInfo: groupConfigs => {
+		const groupByAssetInfoFlag = (name: keyof KnownStatsAsset["info"]) => {
+			groupConfigs.push({
+				getKeys: asset => {
+					return asset.info && asset.info[name] ? ["1"] : undefined;
+				},
+				// @ts-expect-error
+				createGroup: (key, children: KnownStatsAsset[]) => {
+					return {
+						type: "assets by info",
+						info: {
+							[name]: !!key
+						},
+						children,
+						...assetGroup(children)
+					};
+				}
+			});
+		};
+		groupByAssetInfoFlag("immutable");
+		groupByAssetInfoFlag("development");
+		groupByAssetInfoFlag("hotModuleReplacement");
+	},
+	groupAssetsByChunk: groupConfigs => {
+		const groupByNames = (name: keyof Pick<KnownStatsAsset, "chunkNames">) => {
+			groupConfigs.push({
+				getKeys: asset => {
+					return asset[name];
+				},
+				// @ts-expect-error
+				createGroup: (key, children: KnownStatsAsset[]) => {
+					return {
+						type: "assets by chunk",
+						[name]: [key],
+						children,
+						...assetGroup(children)
+					};
+				}
+			});
+		};
+		groupByNames("chunkNames");
+		// groupByNames("auxiliaryChunkNames");
+		// groupByNames("chunkIdHints");
+		// groupByNames("auxiliaryChunkIdHints");
+	},
+	excludeAssets: (groupConfigs, context, { excludeAssets }) => {
+		groupConfigs.push({
+			getKeys: asset => {
+				const ident = asset.name;
+				const excluded = excludeAssets.some(fn => fn(ident, asset));
+				if (excluded) return ["excluded"];
+			},
+			getOptions: () => ({
+				groupChildren: false,
+				force: true
+			}),
+			// @ts-expect-error
+			createGroup: (key, children: KnownStatsAsset[], assets) => ({
+				type: "hidden assets",
+				filteredChildren: assets.length,
+				...assetGroup(children)
+			})
+		});
 	}
-	// not support groupAssetsByInfo / groupAssetsByChunk / excludeAssets
 };
 
 const MODULES_GROUPERS = (
-	_type: "module" | "chunk" | "root-of-chunk" | "nested"
+	type: "module" | "chunk" | "root-of-chunk" | "nested"
 ): Record<
 	string,
 	(
@@ -223,7 +287,9 @@ const MODULES_GROUPERS = (
 		const {
 			groupModulesByCacheStatus,
 			groupModulesByAttributes,
-			groupModulesByType
+			groupModulesByType,
+			groupModulesByPath,
+			groupModulesByExtension
 		} = options;
 		if (groupModulesByAttributes) {
 			groupByFlag("errors", "modules with errors");
@@ -274,9 +340,75 @@ const MODULES_GROUPERS = (
 				}
 			});
 		}
-		// not support groupModulesByLayer / groupModulesByPath / groupModulesByExtension
+		// not support groupModulesByLayer
+		if (groupModulesByPath || groupModulesByExtension) {
+			groupConfigs.push({
+				getKeys: module => {
+					if (!module.name) return;
+					const resource = parseResource(module.name.split("!").pop()).path;
+					const dataUrl = /^data:[^,;]+/.exec(resource);
+					if (dataUrl) return [dataUrl[0]];
+					const extensionMatch =
+						groupModulesByExtension && GROUP_EXTENSION_REGEXP.exec(resource);
+					const extension = extensionMatch ? extensionMatch[1] : "";
+					const pathMatch =
+						groupModulesByPath && GROUP_PATH_REGEXP.exec(resource);
+					const path = pathMatch ? pathMatch[1].split(/[/\\]/) : [];
+					const keys = [];
+					if (groupModulesByPath) {
+						if (extension)
+							keys.push(
+								path.length
+									? `${path.join("/")}/*${extension}`
+									: `*${extension}`
+							);
+						while (path.length > 0) {
+							keys.push(path.join("/") + "/");
+							path.pop();
+						}
+					} else {
+						if (extension) keys.push(`*${extension}`);
+					}
+					return keys;
+				},
+				// @ts-expect-error
+				createGroup: (key, children: KnownStatsModule[], modules) => {
+					const isDataUrl = key.startsWith("data:");
+					return {
+						type: isDataUrl
+							? "modules by mime type"
+							: groupModulesByPath
+								? "modules by path"
+								: "modules by extension",
+						name: isDataUrl ? key.slice(/* 'data:'.length */ 5) : key,
+						children,
+						...moduleGroup(children)
+					};
+				}
+			});
+		}
+	},
+	excludeModules: (groupConfigs, context, { excludeModules }) => {
+		groupConfigs.push({
+			getKeys: module => {
+				const name = module.name;
+				if (name) {
+					const excluded = excludeModules.some(fn => fn(name, module, type));
+					if (excluded) return ["1"];
+				}
+			},
+			getOptions: () => ({
+				groupChildren: false,
+				force: true
+			}),
+			// @ts-expect-error
+			createGroup: (key, children: KnownStatsModule[], modules) => ({
+				type: "hidden modules",
+				filteredChildren: children.length,
+				...moduleGroup(children)
+			})
+		});
 	}
-	// not support excludeModules
 });
 
 const RESULT_GROUPERS: Record<
@@ -689,26 +821,47 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			{ chunkGroupAuxiliary, chunkGroupChildren },
-			_factory
+			{ entrypoints, chunkGroups, chunkGroupAuxiliary, chunkGroupChildren },
+			factory
 		) => {
-			// const { type } = context;
+			const { type } = context;
 			const array = context
 				.getInner(compilation)
-				.getEntrypoints(chunkGroupAuxiliary, chunkGroupChildren);
+				.getEntrypoints(chunkGroupAuxiliary, chunkGroupChildren)
+				.map(entrypoint => ({
+					name: entrypoint.name,
+					chunkGroup: entrypoint
+				}));
 
-			// object.entrypoints = factory.create(
-			// 	`${type}.entrypoints`,
-			// 	array,
-			// 	context
-			// );
+			const chunks = Array.from(compilation.chunks).reduce<
+				Record<string, Chunk>
+			>((res, chunk) => {
+				res[chunk.id!] = chunk;
+				return res;
+			}, {});
 
-			object.entrypoints = array.reduce<Record<string, KnownStatsChunkGroup>>(
-				(acc, cur) => {
-					acc[cur.name] = cur;
-					return acc;
-				},
-				{}
+			if (entrypoints === "auto" && !chunkGroups) {
+				if (array.length > 5) return;
+				if (
+					!chunkGroupChildren &&
+					array.every(({ chunkGroup }) => {
+						if (chunkGroup.chunks.length !== 1) return false;
+						const chunk = chunks[chunkGroup.chunks[0]!];
+						return (
+							chunk &&
+							chunk.files.size === 1 &&
+							(!chunkGroupAuxiliary || chunk.auxiliaryFiles.size === 0)
+						);
+					})
+				) {
+					return;
+				}
+			}
+
+			object.entrypoints = factory.create(
+				`${type}.entrypoints`,
+				array,
+				context
 			);
 		},
 		chunkGroups: (
@@ -718,21 +871,20 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			{ chunkGroupAuxiliary, chunkGroupChildren },
 			factory
 		) => {
-			// const { type } = context;
+			const { type } = context;
 			const namedChunkGroups = context
 				.getInner(compilation)
-				.getNamedChunkGroups(chunkGroupAuxiliary, chunkGroupChildren);
-			// object.namedChunkGroups = factory.create(
-			// 	`${type}.namedChunkGroups`,
-			// 	namedChunkGroups,
-			// 	context
-			// );
-			object.namedChunkGroups = namedChunkGroups.reduce<
-				Record<string, KnownStatsChunkGroup>
-			>((acc, cur) => {
-				acc[cur.name] = cur;
-				return acc;
-			}, {});
+				.getNamedChunkGroups(chunkGroupAuxiliary, chunkGroupChildren)
+				.map(cg => ({
+					name: cg.name,
+					chunkGroup: cg
+				}));
+
+			object.namedChunkGroups = factory.create(
+				`${type}.namedChunkGroups`,
+				namedChunkGroups,
+				context
+			);
 		},
 		errors: (
 			object,
@@ -790,6 +942,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 					asset.info.related.map(i => [i.name, i.value])
 				)
 			};
+			// - comparedForEmit
+			// - cached
 			Object.assign(
 				object,
 				factory.create(`${context.type}$visible`, asset, context)
@@ -799,9 +953,36 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	asset$visible: {
 		_: (object, asset) => {
 			object.chunkNames = asset.chunkNames;
+			// - chunkIdHints
+			// - auxiliaryChunkNames
+			// - auxiliaryChunkIdHints
+			// - filteredRelated
 		},
+		// relatedAssets
 		ids: (object, asset) => {
 			object.chunks = asset.chunks;
+			// - auxiliaryChunks
+		}
+	},
+	chunkGroup: {
+		_: (
+			object,
+			{ name, chunkGroup },
+			_context: KnownStatsFactoryContext,
+			{ chunkGroupMaxAssets }
+		) => {
+			object.name = name;
+			object.chunks = chunkGroup.chunks;
+			object.assets = chunkGroup.assets;
+			object.filteredAssets =
+				chunkGroup.assets.length <= chunkGroupMaxAssets
+					? 0
+					: chunkGroup.assets.length;
+			object.assetsSize = chunkGroup.assetsSize;
+			object.auxiliaryAssets = chunkGroup.auxiliaryAssets;
+			object.auxiliaryAssetsSize = chunkGroup.auxiliaryAssetsSize;
+			object.children = chunkGroup.children;
+			// - childAssets
 		}
 	},
 	module: {
@@ -876,6 +1057,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				module.reasons,
 				context
 			);
+			// object.filteredReasons
 		},
 		source: (object, module) => {
 			object.source = module.source;
@@ -996,6 +1178,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.origins = chunk.origins;
 		}
 	},
+	// chunkOrigin
 	error: EXTRACT_ERROR,
 	warning: EXTRACT_ERROR,
 	moduleTraceItem: {
@@ -1010,6 +1193,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.moduleId = module.id;
 		}
 	}
+	// moduleTraceDependency
 };
 
 /**
@@ -1071,10 +1255,10 @@ export class DefaultStatsFactoryPlugin {
 							.for(key)
 							.tap("DefaultStatsFactoryPlugin", () => itemName);
 					}
-					// for (const key of Object.keys(MERGER)) {
-					// 	const merger = MERGER[key];
-					// 	stats.hooks.merge.for(key).tap("DefaultStatsFactoryPlugin", merger);
-					// }
+					for (const key of Object.keys(MERGER)) {
+						const merger = MERGER[key];
+						stats.hooks.merge.for(key).tap("DefaultStatsFactoryPlugin", merger);
+					}
 				}
 			);
 		});
