@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
-use dashmap::DashMap;
 use napi::bindgen_prelude::Reference;
 use napi::Env;
 use napi_derive::napi;
-use rspack_core::{ModuleIdentifier, Stats, StatsChunk, StatsModule, StatsUsedExports};
-use rspack_macros::generate_getters;
+use rspack_core::{Stats, StatsChunk, StatsModule, StatsUsedExports};
+use rspack_macros::getters;
 use rspack_napi::napi::bindgen_prelude::Buffer;
 use rspack_napi::napi::{
   bindgen_prelude::{Result, SharedReference},
@@ -327,7 +326,7 @@ type JsStatsModuleSource = Either<String, Buffer>;
 type JsStatsUsedExports = Either<String, Vec<String>>;
 
 #[napi]
-#[generate_getters]
+#[getters]
 pub struct JsStatsModule {
   r#type: String,
   module_type: String,
@@ -438,7 +437,7 @@ impl From<rspack_core::StatsModuleIssuer> for JsStatsModuleIssuer {
 }
 
 #[derive(Clone)]
-#[napi(object)]
+#[napi]
 pub struct JsStatsModuleReason {
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
@@ -471,14 +470,14 @@ pub struct JsOriginRecord {
 }
 
 #[derive(Clone)]
-#[napi(object)]
+#[napi]
 pub struct JsStatsSize {
   pub source_type: String,
   pub size: f64,
 }
 
 #[napi]
-#[generate_getters]
+#[getters]
 pub struct JsStatsChunk {
   r#type: String,
   files: Vec<String>,
@@ -605,15 +604,11 @@ impl From<rspack_core::StatsAssetsByChunkName> for JsStatsAssetsByChunkName {
 #[napi]
 pub struct JsStats {
   inner: SharedReference<JsCompilation, Stats<'static>>,
-  module_references: DashMap<ModuleIdentifier, Reference<JsStatsModule>>,
 }
 
 impl JsStats {
   pub fn new(inner: SharedReference<JsCompilation, Stats<'static>>) -> Self {
-    Self {
-      inner,
-      module_references: DashMap::default(),
-    }
+    Self { inner }
   }
 }
 
@@ -629,109 +624,95 @@ impl JsStats {
     env: Env,
     stats_module: StatsModule,
   ) -> Result<Reference<JsStatsModule>> {
-    let mut reference = match self.module_references.entry(stats_module.identifier) {
-      dashmap::mapref::entry::Entry::Occupied(entry) => entry.get().clone(env),
-      dashmap::mapref::entry::Entry::Vacant(entry) => {
-        let source = stats_module
-          .source
-          .map(|source| {
-            source.to_js_compat_source().map(|js_compat_source| {
-              if js_compat_source.is_raw && js_compat_source.is_buffer {
-                JsStatsModuleSource::B(js_compat_source.source)
-              } else {
-                let s = String::from_utf8_lossy(js_compat_source.source.as_ref()).to_string();
-                JsStatsModuleSource::A(s)
-              }
-            })
-          })
-          .transpose()
-          .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    let source = stats_module
+      .source
+      .map(|source| {
+        source.to_js_compat_source().map(|js_compat_source| {
+          if js_compat_source.is_raw && js_compat_source.is_buffer {
+            JsStatsModuleSource::B(js_compat_source.source)
+          } else {
+            let s = String::from_utf8_lossy(js_compat_source.source.as_ref()).to_string();
+            JsStatsModuleSource::A(s)
+          }
+        })
+      })
+      .transpose()
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
-        let mut sizes = stats_module
-          .sizes
-          .into_iter()
-          .map(|s| JsStatsSize {
-            source_type: s.source_type.to_string(),
-            size: s.size,
-          })
-          .collect::<Vec<_>>();
-        sizes.sort_by(|a, b| a.source_type.cmp(&b.source_type));
+    let mut sizes = stats_module
+      .sizes
+      .into_iter()
+      .map(|s| JsStatsSize {
+        source_type: s.source_type.to_string(),
+        size: s.size,
+      })
+      .collect::<Vec<_>>();
+    sizes.sort_by(|a, b| a.source_type.cmp(&b.source_type));
 
-        let module = JsStatsModule {
-          r#type: stats_module.r#type.to_string(),
-          name: stats_module.name,
-          size: stats_module.size,
-          sizes,
-          depth: stats_module.depth.map(|d| d as u32),
-          chunks: stats_module.chunks,
-          module_type: stats_module.module_type.as_str().to_string(),
-          identifier: stats_module.identifier.to_string(),
-          id: stats_module.id,
-          dependent: stats_module.dependent,
-          issuer: stats_module.issuer,
-          issuer_name: stats_module.issuer_name,
-          issuer_id: stats_module.issuer_id,
-          name_for_condition: stats_module.name_for_condition,
-          issuer_path: stats_module
-            .issuer_path
-            .into_iter()
-            .map(Into::into)
-            .collect(),
-          reasons: stats_module
-            .reasons
-            .map(|i| i.into_iter().map(Into::into).collect()),
-          assets: stats_module.assets,
-          source,
-          profile: stats_module.profile.map(|p| p.into()),
-          orphan: stats_module.orphan,
-          provided_exports: stats_module.provided_exports,
-          used_exports: stats_module
-            .used_exports
-            .map(|used_exports| match used_exports {
-              StatsUsedExports::Bool(b) => JsStatsUsedExports::A(b.to_string()),
-              StatsUsedExports::Vec(v) => JsStatsUsedExports::B(v),
-              StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
-            }),
-          optimization_bailout: Some(stats_module.optimization_bailout),
-          modules: None,
-          pre_order_index: stats_module.pre_order_index,
-          post_order_index: stats_module.post_order_index,
-          built: stats_module.built,
-          code_generated: stats_module.code_generated,
-          build_time_executed: stats_module.build_time_executed,
-          cached: stats_module.cached,
-          cacheable: stats_module.cacheable,
-          optional: stats_module.optional,
-          failed: stats_module.failed,
-          errors: stats_module.errors,
-          warnings: stats_module.warnings,
-        };
+    let modules: Option<Vec<Reference<JsStatsModule>>> = stats_module
+      .modules
+      .map(|modules| -> Result<_> {
+        let mut res = Vec::with_capacity(modules.len());
+        for module in modules {
+          let reference = self.convert_to_js_stats_module_reference(env, module)?;
+          res.push(reference);
+        }
+        Ok(res)
+      })
+      .transpose()
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
-        let reference = JsStatsModule::into_reference(module, env)?;
-        entry.insert(reference.clone(env)?);
-        Ok(reference)
-      }
+    let module = JsStatsModule {
+      r#type: stats_module.r#type.to_string(),
+      name: stats_module.name,
+      size: stats_module.size,
+      sizes,
+      depth: stats_module.depth.map(|d| d as u32),
+      chunks: stats_module.chunks,
+      module_type: stats_module.module_type.as_str().to_string(),
+      identifier: stats_module.identifier.to_string(),
+      id: stats_module.id,
+      dependent: stats_module.dependent,
+      issuer: stats_module.issuer,
+      issuer_name: stats_module.issuer_name,
+      issuer_id: stats_module.issuer_id,
+      name_for_condition: stats_module.name_for_condition,
+      issuer_path: stats_module
+        .issuer_path
+        .into_iter()
+        .map(Into::into)
+        .collect(),
+      reasons: stats_module
+        .reasons
+        .map(|i| i.into_iter().map(Into::into).collect()),
+      assets: stats_module.assets,
+      source,
+      profile: stats_module.profile.map(|p| p.into()),
+      orphan: stats_module.orphan,
+      provided_exports: stats_module.provided_exports,
+      used_exports: stats_module
+        .used_exports
+        .map(|used_exports| match used_exports {
+          StatsUsedExports::Bool(b) => JsStatsUsedExports::A(b.to_string()),
+          StatsUsedExports::Vec(v) => JsStatsUsedExports::B(v),
+          StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
+        }),
+      optimization_bailout: Some(stats_module.optimization_bailout),
+      modules,
+      pre_order_index: stats_module.pre_order_index,
+      post_order_index: stats_module.post_order_index,
+      built: stats_module.built,
+      code_generated: stats_module.code_generated,
+      build_time_executed: stats_module.build_time_executed,
+      cached: stats_module.cached,
+      cacheable: stats_module.cacheable,
+      optional: stats_module.optional,
+      failed: stats_module.failed,
+      errors: stats_module.errors,
+      warnings: stats_module.warnings,
     };
 
-    if let Ok(r) = &mut reference {
-      if stats_module.modules.is_some() && r.modules.is_none() {
-        let modules: Option<Vec<Reference<JsStatsModule>>> = stats_module
-          .modules
-          .map(|modules| -> Result<_> {
-            let mut res = Vec::with_capacity(modules.len());
-            for module in modules {
-              let reference = self.convert_to_js_stats_module_reference(env, module)?;
-              res.push(reference);
-            }
-            Ok(res)
-          })
-          .transpose()
-          .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-        r.modules = modules;
-      }
-    }
-
-    reference
+    JsStatsModule::into_reference(module, env)
   }
 
   fn convert_to_js_stats_chunk(&self, env: Env, stats: StatsChunk) -> Result<JsStatsChunk> {

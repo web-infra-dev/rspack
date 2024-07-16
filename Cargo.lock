@@ -3056,7 +3056,6 @@ dependencies = [
 name = "rspack_binding_values"
 version = "0.1.0"
 dependencies = [
- "dashmap 5.5.3",
  "futures",
  "heck 0.5.0",
  "napi-derive",

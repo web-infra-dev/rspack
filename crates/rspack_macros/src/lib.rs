@@ -64,9 +64,9 @@ pub fn merge_from_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStr
 }
 
 #[proc_macro_attribute]
-pub fn generate_getters(
+pub fn getters(
   args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-  napi::generate_getters(args, tokens)
+  napi::getters(args, tokens)
 }

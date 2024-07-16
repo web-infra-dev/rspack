@@ -10,7 +10,7 @@ fn rm_raw_prefix(s: String) -> String {
   }
 }
 
-pub fn generate_getters(
+pub fn getters(
   _args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
