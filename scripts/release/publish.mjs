@@ -14,7 +14,7 @@ export async function publish_handler(mode, options) {
 	if (fs.existsSync(npmrcPath)) {
 		console.info("Found existing .npmrc file");
 	} else {
-		console.info(`No .npmrc file found, creating one`);
+		console.info("No .npmrc file found, creating one");
 
 		fs.writeFileSync(
 			npmrcPath,

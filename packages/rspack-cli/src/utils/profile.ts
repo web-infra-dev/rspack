@@ -68,16 +68,16 @@ const defaultOutputDirname = path.resolve(
 );
 const defaultJSCPUProfileOutput = path.join(
 	defaultOutputDirname,
-	`./jscpuprofile.json`
+	"./jscpuprofile.json"
 );
 const defaultRustTraceChromeOutput = path.join(
 	defaultOutputDirname,
-	`./trace.json`
+	"./trace.json"
 );
-const defaultRustTraceLoggerOutput = `stdout`;
+const defaultRustTraceLoggerOutput = "stdout";
 const defaultRustTraceFilter = "trace";
 const defaultRustTraceLayer = "chrome";
-const defaultLoggingOutput = path.join(defaultOutputDirname, `./logging.json`);
+const defaultLoggingOutput = path.join(defaultOutputDirname, "./logging.json");
 
 function resolveProfile(value: string): ProfileOptions {
 	if (value.toUpperCase() === "ALL") {

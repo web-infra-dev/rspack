@@ -38,6 +38,7 @@
 				"useArrowFunction": "error"
 			},
 			"style": {
+				"noUnusedTemplateLiteral": "error",
 				"noNonNullAssertion": "off",
 				"useNumberNamespace": "error",
 				"useConst": "error",
