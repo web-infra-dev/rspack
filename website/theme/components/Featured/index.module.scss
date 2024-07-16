@@ -56,9 +56,12 @@
         hsla(0, 0%, 100%, 0.16) 406.65deg
       )
       border-box !important;
-  transition: transform 0.15s ease-out;
+  transition:
+    border-color,
+    transform 0.15s ease-out;
 
   &:hover {
+    border: 1px solid rgba(133, 139, 152, 0.4);
     background:
       linear-gradient(var(--rp-c-bg), var(--rp-c-bg)) padding-box,
       conic-gradient(

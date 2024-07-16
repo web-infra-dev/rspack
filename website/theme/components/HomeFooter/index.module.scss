@@ -1,0 +1,9 @@
+.text {
+  color: var(--rp-c-text-2);
+  transition: color 0.2s ease-out;
+
+  &:hover {
+    color: var(--rp-c-link);
+    text-decoration: underline;
+  }
+}
