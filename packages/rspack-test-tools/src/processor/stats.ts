@@ -1,7 +1,7 @@
 /* eslint-disable no-control-regex */
 
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import type { Compiler, Stats } from "@rspack/core";
 
 import { escapeEOL } from "../helper";

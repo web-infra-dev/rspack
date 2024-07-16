@@ -39,6 +39,7 @@
 			},
 			"style": {
 				"noUnusedTemplateLiteral": "error",
+				"useNodejsImportProtocol": "error",
 				"noNonNullAssertion": "off",
 				"useNumberNamespace": "error",
 				"useConst": "error",

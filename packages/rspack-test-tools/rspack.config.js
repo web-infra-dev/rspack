@@ -1,5 +1,5 @@
 const rspack = require("@rspack/core");
-const path = require("path");
+const path = require("node:path");
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
 
 const prod = process.env.NODE_ENV === "production";

@@ -1,7 +1,7 @@
-import crypto from "crypto";
-import type { IncomingMessage } from "http";
-import { extname } from "path";
-import { parse } from "url";
+import crypto from "node:crypto";
+import type { IncomingMessage } from "node:http";
+import { extname } from "node:path";
+import { parse } from "node:url";
 import type { Compiler } from "@rspack/core";
 import type { RequestHandler, Response } from "express";
 import mime from "mime-types";

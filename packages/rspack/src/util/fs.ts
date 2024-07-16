@@ -8,8 +8,8 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import assert from "assert";
-import path from "path";
+import assert from "node:assert";
+import path from "node:path";
 
 import type { WatchOptions } from "../config";
 

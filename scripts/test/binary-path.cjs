@@ -6,7 +6,7 @@
  * Author Sindre Sorhus @sindresorhus
  */
 
-const path = require("path");
+const path = require("node:path");
 
 const BINARY_EXT = [
 	"3dm",

@@ -1,4 +1,4 @@
-const path = require("path");
+const path = require("node:path");
 
 const root = path.resolve(__dirname, "../../");
 /** @type {import('jest').Config} */

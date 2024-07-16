@@ -1,5 +1,5 @@
 // Setup everything before pnpm install
-import { spawnSync } from "child_process";
+import { spawnSync } from "node:child_process";
 
 /**
  *

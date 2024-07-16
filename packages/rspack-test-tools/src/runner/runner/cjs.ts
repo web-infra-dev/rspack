@@ -1,5 +1,5 @@
-import path from "path";
-import vm from "vm";
+import path from "node:path";
+import vm from "node:vm";
 
 import type { ECompilerType } from "../../type";
 import type {

@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 import deepmerge from "deepmerge";
 
 import type { ITestReporter, TCompareModules } from "../type";

@@ -2,7 +2,7 @@
 	MIT License http://www.opensource.org/licenses/mit-license.php
 */
 
-import path from "path";
+import path from "node:path";
 
 const WINDOWS_ABS_PATH_REGEXP = /^[a-zA-Z]:[\\/]/;
 const SEGMENTS_SPLIT_REGEXP = /([|!])/;

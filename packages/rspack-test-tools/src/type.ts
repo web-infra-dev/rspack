@@ -1,6 +1,6 @@
 /// <reference types="../jest.d.ts" />
 
-import type EventEmitter from "events";
+import type EventEmitter from "node:events";
 import type {
 	Compiler as RspackCompiler,
 	RspackOptions,

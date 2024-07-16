@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import assert from "assert";
+import assert from "node:assert";
 import fs from "graceful-fs";
 
 import type {

@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 
 import { NormalProcessor } from "../processor/normal";
 import { NormalRunnerFactory } from "../runner";

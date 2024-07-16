@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-const path = require("path");
+const path = require("node:path");
 
 module.exports = (env, { outputDirectory }) =>
 	class Worker {
@@ -61,7 +61,7 @@ self.postMessage = data => {
 };
 require(${JSON.stringify(path.resolve(outputDirectory, file))});
 `;
-			this.worker = new (require("worker_threads").Worker)(workerBootstrap, {
+			this.worker = new (require("node:worker_threads").Worker)(workerBootstrap, {
 				eval: true
 			});
 

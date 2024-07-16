@@ -1,5 +1,5 @@
-import path from "path";
-import util from "util";
+import path from "node:path";
+import util from "node:util";
 import type { RspackPluginFunction, RspackPluginInstance } from "@rspack/core";
 import {
 	type Compiler,

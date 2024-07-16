@@ -16,7 +16,7 @@ var url;
 module.exports = function loadLoader(loader, callback) {
 	if (loader.type === "module") {
 		try {
-			if (url === undefined) url = require("url");
+			if (url === undefined) url = require("node:url");
 			var loaderUrl = url.pathToFileURL(loader.path);
 			/** @type {Promise<any>} */
 			var modulePromise = eval(

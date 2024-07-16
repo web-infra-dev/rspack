@@ -1,4 +1,4 @@
-import util from "util";
+import util from "node:util";
 import * as liteTapable from "@rspack/lite-tapable";
 
 import { Compilation } from "./Compilation";

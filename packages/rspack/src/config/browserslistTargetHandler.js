@@ -11,7 +11,7 @@
 "use strict";
 
 const browserslist = require("browserslist");
-const path = require("path");
+const path = require("node:path");
 
 /** @typedef {import("./target").ApiTargetProperties} ApiTargetProperties */
 /** @typedef {import("./target").EcmaTargetProperties} EcmaTargetProperties */

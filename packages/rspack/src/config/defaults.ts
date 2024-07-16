@@ -8,9 +8,9 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import assert from "assert";
-import fs from "fs";
-import path from "path";
+import assert from "node:assert";
+import fs from "node:fs";
+import path from "node:path";
 
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
 import {
