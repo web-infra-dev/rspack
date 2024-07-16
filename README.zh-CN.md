@@ -30,7 +30,7 @@ Rspack 是一个基于 Rust 编写的高性能 JavaScript 打包工具，它提�
 
 ## 快速上手
 
-- [快速上手](https://rspack.dev/zh/guide/start/quick-start)
+请阅读[快速上手](https://rspack.dev/zh/guide/start/quick-start)。
 
 ## 参与贡献
 

@@ -30,7 +30,7 @@ Read [Introduction](https://rspack.dev/guide/start/introduction) for details.
 
 ## Getting Started
 
-- [Quick Start](https://rspack.dev/guide/start/quick-start)
+See [Quick Start](https://rspack.dev/guide/start/quick-start).
 
 ## Contribution
 
@@ -62,7 +62,7 @@ Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and R
 
 ## Benchmark
 
-See [Benchmark](https://web-infra-dev.github.io/rspack-ecosystem-benchmark/)
+See [Benchmark](https://web-infra-dev.github.io/rspack-ecosystem-benchmark/).
 
 ## Credits
 

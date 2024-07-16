@@ -1,6 +1,6 @@
-import { NoSSR } from 'rspress/runtime';
 import { HomeLayout as BasicHomeLayout } from 'rspress/theme';
 import { Benchmark } from '../components/Benchmark';
+import { Featured } from '../components/Featured';
 import { HomeFooter } from '../components/HomeFooter/index';
 
 export function HomeLayout() {
@@ -8,9 +8,8 @@ export function HomeLayout() {
     <BasicHomeLayout
       afterFeatures={
         <>
-          <NoSSR>
-            <Benchmark />
-          </NoSSR>
+          <Benchmark />
+          <Featured />
           <HomeFooter />
         </>
       }
