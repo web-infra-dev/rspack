@@ -128,14 +128,15 @@ export default defineConfig({
       }),
     ],
     source: {
+      preEntry: ['./theme/tailwind.css'],
       alias: {
         '@builtIns': path.join(__dirname, 'components', 'builtIns'),
         '@components': path.join(__dirname, 'components'),
         '@hooks': path.join(__dirname, 'hooks'),
       },
     },
-    dev: {
-      startUrl: true,
+    server: {
+      open: true,
     },
     html: {
       tags: [

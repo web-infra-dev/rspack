@@ -49,11 +49,11 @@ export function Benchmark() {
       {inView && (
         <>
           <div className="flex flex-center flex-col">
-            <h2 className={`${styles.title} font-bold text-2xl sm:text-4xl`}>
+            <h2 className={`${styles.title} font-bold text-4xl mt-16`}>
               {t('benchmarkTitle')}
             </h2>
             <p
-              className={`${styles.desc} mt-8 mb-5 mx-6 text-center sm:text-lg max-w-3xl`}
+              className={`${styles.desc} mt-8 mb-5 mx-6 text-center text-lg max-w-3xl`}
             >
               {t('benchmarkDesc')}
             </p>

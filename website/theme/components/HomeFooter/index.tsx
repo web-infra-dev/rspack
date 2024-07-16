@@ -99,10 +99,10 @@ export function HomeFooter() {
   const footerData = useFooterData();
   return (
     <div
-      className="flex flex-col border-t items-center mt-12"
+      className="flex flex-col border-t items-center mt-24 hidden sm:flex"
       style={{ borderColor: 'var(--rp-c-divider-light)' }}
     >
-      <div className="pt-8 pb-4 w-full justify-around max-w-6xl hidden sm:flex">
+      <div className="pt-12 pb-4 w-full justify-around max-w-6xl flex">
         {footerData.map(item => (
           <div key={item.title} className="flex flex-col items-start">
             <h2 className="font-bold my-4 text-lg">{item.title}</h2>
@@ -117,11 +117,6 @@ export function HomeFooter() {
             </ul>
           </div>
         ))}
-      </div>
-      <div className="flex flex-center">
-        <h2 className="font-normal text-sm text-gray-400 dark:text-light-600 pt-6 pb-10">
-          © 2022-present ByteDance Inc. All Rights Reserved.
-        </h2>
       </div>
     </div>
   );

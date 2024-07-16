@@ -10,9 +10,9 @@ export const EN_US = {
   cli: 'CLI',
   ecosystem: 'Ecosystem',
   community: 'Community',
-  benchmarkTitle: 'Build Performance',
+  benchmarkTitle: 'Lightning Fast',
   benchmarkDesc:
-    'Combining TypeScript and Rust with a parallelized architecture to bring you the ultimate developer experience.',
+    'Combining Rust and TypeScript with a parallelized architecture to bring you the ultimate developer experience.',
   benchmarkDetail: 'See benchmark details',
   recruit: 'The Rspack team is hiring. Come and join us!',
 } as const;
