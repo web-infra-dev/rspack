@@ -1,8 +1,8 @@
 import { useInView } from 'react-intersection-observer';
+import { NoSSR } from 'rspress/runtime';
 import { useI18n } from '../../i18n';
 import { ProgressBar } from './ProgressBar';
 import styles from './index.module.scss';
-import { NoSSR } from 'rspress/runtime';
 
 // Benchmark data for different cases
 // Unit: second
