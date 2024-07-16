@@ -220,9 +220,9 @@ impl BasicEvaluatedExpression {
 
   pub fn as_number(&self) -> Option<f64> {
     if self.is_bool() {
-      Some(if self.bool() { 1 as f64 } else { 0 as f64 })
+      Some(if self.bool() { 1_f64 } else { 0_f64 })
     } else if self.is_null() {
-      Some(0 as f64)
+      Some(0_f64)
     } else if self.is_string() {
       self.string().parse::<f64>().ok()
     } else if self.is_number() {
@@ -234,9 +234,9 @@ impl BasicEvaluatedExpression {
 
   pub fn as_int(&self) -> Option<i32> {
     if self.is_bool() {
-      Some(if self.bool() { 1 as i32 } else { 0 as i32 })
+      Some(if self.bool() { 1_i32 } else { 0_i32 })
     } else if self.is_null() {
-      Some(0 as i32)
+      Some(0_i32)
     } else if self.is_string() {
       self.string().parse::<i32>().ok()
     } else if self.is_number() {

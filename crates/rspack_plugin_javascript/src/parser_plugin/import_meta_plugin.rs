@@ -55,7 +55,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression> {
     if ident == expr_name::IMPORT_META_WEBPACK {
-      Some(eval::evaluate_to_number(5 as f64, start, end))
+      Some(eval::evaluate_to_number(5_f64, start, end))
     } else {
       None
     }
@@ -162,7 +162,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         .push(Box::new(ConstDependency::new(
           member_expr.span().real_lo(),
           member_expr.span().real_hi(),
-          format!("5").into(),
+          "5".to_string().into(),
           None,
         )));
       Some(true)
