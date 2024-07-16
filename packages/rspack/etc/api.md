@@ -5204,10 +5204,16 @@ type MinifyCondition = string | RegExp;
 type MinifyCondition_2 = string | RegExp;
 
 // @public (undocumented)
+type MinifyCondition_3 = string | RegExp;
+
+// @public (undocumented)
 type MinifyConditions = MinifyCondition | MinifyCondition[];
 
 // @public (undocumented)
 type MinifyConditions_2 = MinifyCondition_2 | MinifyCondition_2[];
+
+// @public (undocumented)
+type MinifyConditions_3 = MinifyCondition_3 | MinifyCondition_3[];
 
 // @public (undocumented)
 export type Mode = z.infer<typeof mode>;
@@ -13581,9 +13587,9 @@ export const SwcCssMinimizerRspackPlugin: {
 
 // @public (undocumented)
 type SwcCssMinimizerRspackPluginOptions = {
-    test?: MinifyConditions_2;
-    exclude?: MinifyConditions_2;
-    include?: MinifyConditions_2;
+    test?: MinifyConditions_3;
+    exclude?: MinifyConditions_3;
+    include?: MinifyConditions_3;
 };
 
 // @public (undocumented)
