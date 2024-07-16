@@ -117,40 +117,40 @@ impl Stats<'_> {
         assets.remove(source_map);
       }
     }
-    for (name, asset) in &mut assets {
+    assets.par_iter_mut().for_each(|(name, asset)| {
       if let Some(chunks) = compilation_file_to_chunks.get(name) {
-        asset.chunks = chunks.iter().map(|chunk| chunk.id.clone()).collect();
+        asset.chunks = chunks.par_iter().map(|chunk| chunk.id.clone()).collect();
         asset.chunks.sort_unstable();
         asset.chunk_names = chunks
-          .iter()
+          .par_iter()
           .filter_map(|chunk| chunk.name.clone())
-          .collect();
+          .collect::<Vec<_>>();
         asset.chunk_names.sort_unstable();
         asset.chunk_id_hints = chunks
-          .iter()
+          .par_iter()
           .flat_map(|chunk| chunk.id_name_hints.iter().cloned().collect_vec())
-          .collect_vec();
+          .collect::<Vec<_>>();
         asset.chunk_id_hints.sort_unstable();
       }
 
       if let Some(auxiliary_chunks) = compilation_file_to_auxiliary_chunks.get(name) {
         asset.auxiliary_chunks = auxiliary_chunks
-          .iter()
+          .par_iter()
           .map(|chunk| chunk.id.clone())
           .collect();
         asset.auxiliary_chunks.sort_unstable();
         asset.auxiliary_chunk_names = auxiliary_chunks
-          .iter()
+          .par_iter()
           .filter_map(|chunk| chunk.name.clone())
-          .collect();
+          .collect::<Vec<_>>();
         asset.auxiliary_chunk_names.sort_unstable();
         asset.auxiliary_chunk_id_hints = auxiliary_chunks
-          .iter()
+          .par_iter()
           .flat_map(|chunk| chunk.id_name_hints.iter().cloned().collect_vec())
-          .collect_vec();
+          .collect::<Vec<_>>();
         asset.auxiliary_chunk_id_hints.sort_unstable();
       }
-    }
+    });
     let mut assets: Vec<StatsAsset> = assets.into_values().collect();
     assets.sort_unstable_by(|a, b| {
       if b.size == a.size {
