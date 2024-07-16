@@ -2,6 +2,7 @@ import { useInView } from 'react-intersection-observer';
 import { useI18n } from '../../i18n';
 import { ProgressBar } from './ProgressBar';
 import styles from './index.module.scss';
+import { NoSSR } from 'rspress/runtime';
 
 // Benchmark data for different cases
 // Unit: second
@@ -37,20 +38,18 @@ export function Benchmark() {
       ref={ref}
       className="relative flex flex-col justify-center pt-24 pb-10 mt-18 h-auto"
     >
+      <div className="flex flex-center flex-col">
+        <h2 className={`${styles.title} font-bold text-3xl sm:text-5xl mt-16`}>
+          {t('benchmarkTitle')}
+        </h2>
+        <p
+          className={`${styles.desc} mt-8 mb-5 mx-6 text-center text-lg max-w-3xl`}
+        >
+          {t('benchmarkDesc')}
+        </p>
+      </div>
       {inView && (
-        <>
-          <div className="flex flex-center flex-col">
-            <h2
-              className={`${styles.title} font-bold text-3xl sm:text-5xl mt-16`}
-            >
-              {t('benchmarkTitle')}
-            </h2>
-            <p
-              className={`${styles.desc} mt-8 mb-5 mx-6 text-center text-lg max-w-3xl`}
-            >
-              {t('benchmarkDesc')}
-            </p>
-          </div>
+        <NoSSR>
           <div className="flex flex-col items-center my-4 z-1">
             {Object.values(BENCHMARK_DATA).map(item => (
               <div
@@ -94,7 +93,7 @@ export function Benchmark() {
               </a>
             </div>
           </div>
-        </>
+        </NoSSR>
       )}
     </div>
   );
