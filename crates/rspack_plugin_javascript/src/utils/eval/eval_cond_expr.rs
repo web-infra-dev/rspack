@@ -1,3 +1,4 @@
+use rspack_core::SpanExt;
 use swc_core::ecma::ast::CondExpr;
 
 use super::BasicEvaluatedExpression;
@@ -37,6 +38,6 @@ pub fn eval_cond_expression(
       res.add_options(vec![alt])
     }
   }
-  res.set_range(cond.span.lo.0, cond.span.hi.0);
+  res.set_range(cond.span.real_lo(), cond.span.hi.0);
   Some(res)
 }
