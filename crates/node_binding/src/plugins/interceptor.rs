@@ -1306,7 +1306,7 @@ impl NormalModuleFactoryResolveForScheme for NormalModuleFactoryResolveForScheme
       })
       .await?;
     resource_data.set_resource(new_resource_data.resource);
-    resource_data.set_path(PathBuf::from(new_resource_data.path));
+    resource_data.set_path_optional(new_resource_data.path.map(PathBuf::from));
     resource_data.set_query_optional(new_resource_data.query);
     resource_data.set_fragment_optional(new_resource_data.fragment);
     Ok(bail)
@@ -1355,11 +1355,7 @@ impl NormalModuleFactoryAfterResolve for NormalModuleFactoryAfterResolveTap {
         create_data: Some(JsCreateData {
           request: create_data.request.to_owned(),
           user_request: create_data.user_request.to_owned(),
-          resource: create_data
-            .resource_resolve_data
-            .resource_path
-            .to_string_lossy()
-            .to_string(),
+          resource: create_data.resource_resolve_data.resource.to_owned(),
         }),
       })
       .await
@@ -1368,8 +1364,12 @@ impl NormalModuleFactoryAfterResolve for NormalModuleFactoryAfterResolveTap {
         if let Some(resolve_data) = resolve_data {
           fn override_resource(origin_data: &ResourceData, new_resource: String) -> ResourceData {
             let mut resource_data = origin_data.clone();
-            let origin_resource_path = origin_data.resource_path.to_string_lossy().to_string();
-            resource_data.resource_path = new_resource.clone().into();
+            let origin_resource_path = origin_data
+              .resource_path
+              .as_ref()
+              .map(|p| p.to_string_lossy().to_string())
+              .unwrap_or_default();
+            resource_data.resource_path = Some(new_resource.clone().into());
             resource_data.resource = resource_data
               .resource
               .replace(&origin_resource_path, &new_resource);

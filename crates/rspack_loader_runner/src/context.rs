@@ -105,8 +105,8 @@ impl<Context> LoaderContext<Context> {
 
   /// The resource part of the request.
   /// E.g. /abc/resource.js
-  pub fn resource_path(&self) -> &Path {
-    &self.resource_data.resource_path
+  pub fn resource_path(&self) -> Option<&Path> {
+    self.resource_data.resource_path.as_deref()
   }
 
   /// The query of the request

@@ -19,7 +19,7 @@ use crate::css_dependency::CssDependency;
 use crate::plugin::{MODULE_TYPE, SOURCE_TYPE};
 
 pub(crate) static DEPENDENCY_TYPE: Lazy<DependencyType> =
-  Lazy::new(|| DependencyType::Custom("mini-extract-dep".into()));
+  Lazy::new(|| DependencyType::Custom("mini-extract-dep"));
 
 #[impl_source_map_config]
 #[derive(Debug)]

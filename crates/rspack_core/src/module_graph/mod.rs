@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 
 use rspack_error::Result;
@@ -835,22 +834,6 @@ impl<'a> ModuleGraph<'a> {
     } else {
       panic!("can not find module in active_partial")
     }
-  }
-
-  /// Aggregate function which combine `get_normal_module_by_identifier`, `as_normal_module`, `get_resource_resolved_data`
-  pub fn normal_module_source_path_by_identifier(
-    &self,
-    identifier: &ModuleIdentifier,
-  ) -> Option<Cow<str>> {
-    self
-      .module_by_identifier(identifier)
-      .and_then(|module| module.as_normal_module())
-      .map(|module| {
-        module
-          .resource_resolved_data()
-          .resource_path
-          .to_string_lossy()
-      })
   }
 
   pub fn connection_id_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&ConnectionId> {

@@ -118,7 +118,11 @@ impl AssetParserAndGenerator {
     source: &BoxSource,
   ) -> Option<String> {
     let func_args = AssetGeneratorDataUrlFnArgs {
-      filename: resource_data.resource_path.to_string_lossy().to_string(),
+      filename: resource_data
+        .resource_path
+        .as_deref()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_default(),
       content: source.source().into_owned().to_string(),
     };
 
@@ -143,15 +147,18 @@ impl AssetParserAndGenerator {
     {
       return Ok(format!("{mimetype}{parameters}"));
     }
-    mime_guess::MimeGuess::from_path(&resource_data.resource_path)
-      .first_raw()
-      .map(ToOwned::to_owned)
-      .ok_or_else(|| {
-        error!(
-          "failed to guess mime type of {:?}",
-          resource_data.resource_path
-        )
-      })
+    if let Some(resource_path) = &resource_data.resource_path {
+      return mime_guess::MimeGuess::from_path(resource_path)
+        .first_raw()
+        .map(ToOwned::to_owned)
+        .ok_or_else(|| {
+          error!(
+            "DataUrl can't be generated automatically, because there is no mimetype for \"{ext:?}\" in mimetype database. Either pass a mimetype via \"generator.mimetype\" or use type: \"asset/resource\" to create a resource file instead of a DataUrl",
+            ext = resource_path.extension()
+          )
+        });
+    }
+    Err(error!("DataUrl can't be generated automatically. Either pass a mimetype via \"generator.mimetype\" or use type: \"asset/resource\" to create a resource file instead of a DataUrl"))
   }
 
   fn get_encoding(
