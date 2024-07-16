@@ -96,7 +96,7 @@ pub fn create_context_dependency(
     }
 
     // Webpack will walk only the expression parts of the template string
-    // but we walk the whole tempate string, which allows us don't need to implement
+    // but we walk the whole template string, which allows us don't need to implement
     // setExpression for BasicEvaluatedExpression (will introduce lots of lifetime)
     // This may have slight performance difference in some cases
     parser.walk_expression(expr);
