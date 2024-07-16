@@ -143,6 +143,11 @@ export class JsStatsModule {
   get modules(): Array<JsStatsModule> | null
 }
 
+export class JsStatsSize {
+  sourceType: string
+  size: number
+}
+
 export class Rspack {
   constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, resolverFactoryReference: JsResolverFactory)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
@@ -687,11 +692,6 @@ export interface JsStatsModuleTraceModule {
 
 export interface JsStatsOptimizationBailout {
   inner: string
-}
-
-export interface JsStatsSize {
-  sourceType: string
-  size: number
 }
 
 export interface JsStatsWarning {
