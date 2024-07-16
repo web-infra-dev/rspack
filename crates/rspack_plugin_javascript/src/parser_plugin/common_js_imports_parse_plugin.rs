@@ -112,6 +112,7 @@ impl CommonJsImportsParserPlugin {
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
     param.is_string().then(|| {
+      dbg!(param.string().to_string(), param.range());
       let dep = CommonJsRequireDependency::new(
         param.string().to_string(),
         Some(span.into()),
