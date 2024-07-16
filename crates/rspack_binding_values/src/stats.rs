@@ -5,6 +5,7 @@ use napi::bindgen_prelude::Reference;
 use napi::Env;
 use napi_derive::napi;
 use rspack_core::{ModuleIdentifier, Stats, StatsChunk, StatsModule, StatsUsedExports};
+use rspack_macros::generate_getters;
 use rspack_napi::napi::bindgen_prelude::Buffer;
 use rspack_napi::napi::{
   bindgen_prelude::{Result, SharedReference},
@@ -326,42 +327,48 @@ type JsStatsModuleSource = Either<String, Buffer>;
 type JsStatsUsedExports = Either<String, Vec<String>>;
 
 #[napi]
+#[generate_getters]
 pub struct JsStatsModule {
-  pub r#type: String,
-  pub module_type: String,
-  pub identifier: String,
-  pub name: String,
-  pub id: Option<String>,
-  pub chunks: Vec<Option<String>>,
-  pub size: f64,
-  pub depth: Option<u32>,
-  pub dependent: Option<bool>,
-  pub issuer: Option<String>,
-  pub issuer_name: Option<String>,
-  pub issuer_id: Option<String>,
-  pub name_for_condition: Option<String>,
-  pub assets: Option<Vec<String>>,
-  pub source: Option<Either<String, Buffer>>,
-  pub orphan: bool,
-  pub provided_exports: Option<Vec<String>>,
-  pub used_exports: Option<Either<String, Vec<String>>>,
-  pub optimization_bailout: Option<Vec<String>>,
-  pub pre_order_index: Option<u32>,
-  pub post_order_index: Option<u32>,
-  pub built: bool,
-  pub code_generated: bool,
-  pub build_time_executed: bool,
-  pub cached: bool,
-  pub cacheable: bool,
-  pub optional: bool,
-  pub failed: bool,
-  pub errors: u32,
-  pub warnings: u32,
+  r#type: String,
+  module_type: String,
+  identifier: String,
+  name: String,
+  id: Option<String>,
+  chunks: Vec<Option<String>>,
+  size: f64,
+  depth: Option<u32>,
+  dependent: Option<bool>,
+  issuer: Option<String>,
+  issuer_name: Option<String>,
+  issuer_id: Option<String>,
+  name_for_condition: Option<String>,
+  assets: Option<Vec<String>>,
+  source: Option<Either<String, Buffer>>,
+  orphan: bool,
+  provided_exports: Option<Vec<String>>,
+  used_exports: Option<Either<String, Vec<String>>>,
+  optimization_bailout: Option<Vec<String>>,
+  pre_order_index: Option<u32>,
+  post_order_index: Option<u32>,
+  built: bool,
+  code_generated: bool,
+  build_time_executed: bool,
+  cached: bool,
+  cacheable: bool,
+  optional: bool,
+  failed: bool,
+  errors: u32,
+  warnings: u32,
 
+  #[skip_getter]
   sizes: Vec<JsStatsSize>,
+  #[skip_getter]
   reasons: Option<Vec<JsStatsModuleReason>>,
+  #[skip_getter]
   modules: Option<Vec<Reference<JsStatsModule>>>,
+  #[skip_getter]
   issuer_path: Vec<JsStatsModuleIssuer>,
+  #[skip_getter]
   profile: Option<JsStatsModuleProfile>,
 }
 
@@ -650,15 +657,12 @@ pub struct JsStatsGetAssets {
 }
 
 impl JsStats {
-  fn into_js_stats_module_reference(
+  fn convert_to_js_stats_module_reference(
     &self,
-    stats_module: StatsModule,
     env: Env,
+    stats_module: StatsModule,
   ) -> Result<Reference<JsStatsModule>> {
-    let mut reference = match self
-      .module_references
-      .entry(stats_module.identifier.clone())
-    {
+    let mut reference = match self.module_references.entry(stats_module.identifier) {
       dashmap::mapref::entry::Entry::Occupied(entry) => entry.get().clone(env),
       dashmap::mapref::entry::Entry::Vacant(entry) => {
         let source = stats_module
@@ -685,6 +689,7 @@ impl JsStats {
           })
           .collect::<Vec<_>>();
         sizes.sort_by(|a, b| a.source_type.cmp(&b.source_type));
+
         let module = JsStatsModule {
           r#type: stats_module.r#type.to_string(),
           name: stats_module.name,
@@ -734,6 +739,7 @@ impl JsStats {
           errors: stats_module.errors,
           warnings: stats_module.warnings,
         };
+
         let reference = JsStatsModule::into_reference(module, env)?;
         entry.insert(reference.clone(env)?);
         Ok(reference)
@@ -747,7 +753,7 @@ impl JsStats {
           .map(|modules| -> Result<_> {
             let mut res = Vec::with_capacity(modules.len());
             for module in modules {
-              let reference = self.into_js_stats_module_reference(module, env)?;
+              let reference = self.convert_to_js_stats_module_reference(env, module)?;
               res.push(reference);
             }
             Ok(res)
@@ -761,7 +767,7 @@ impl JsStats {
     reference
   }
 
-  fn into_js_stats_chunk(&self, stats: StatsChunk, env: Env) -> Result<JsStatsChunk> {
+  fn convert_to_js_stats_chunk(&self, env: Env, stats: StatsChunk) -> Result<JsStatsChunk> {
     let mut runtime = stats
       .runtime
       .iter()
@@ -792,7 +798,7 @@ impl JsStats {
         .modules
         .map(|i| {
           i.into_iter()
-            .map(|m| self.into_js_stats_module_reference(m, env))
+            .map(|m| self.convert_to_js_stats_module_reference(env, m))
             .collect::<Result<_>>()
         })
         .transpose()?,
@@ -839,6 +845,7 @@ impl JsStats {
     }
   }
 
+  #[allow(clippy::too_many_arguments)]
   #[napi]
   pub fn get_modules(
     &self,
@@ -862,7 +869,7 @@ impl JsStats {
         |res| {
           res
             .into_iter()
-            .map(|stats_module| self.into_js_stats_module_reference(stats_module, env))
+            .map(|stats_module| self.convert_to_js_stats_module_reference(env, stats_module))
             .collect()
         },
       )
@@ -897,7 +904,7 @@ impl JsStats {
         |res| {
           res
             .into_iter()
-            .map(|stats_chunk| self.into_js_stats_chunk(stats_chunk, env))
+            .map(|stats_chunk| self.convert_to_js_stats_chunk(env, stats_chunk))
             .collect()
         },
       )

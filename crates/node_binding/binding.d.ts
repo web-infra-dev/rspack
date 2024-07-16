@@ -106,36 +106,36 @@ export class JsStatsChunk {
 }
 
 export class JsStatsModule {
-  type: string
-  moduleType: string
-  identifier: string
-  name: string
-  id?: string
-  chunks: Array<string | undefined | null>
-  size: number
-  depth?: number
-  dependent?: boolean
-  issuer?: string
-  issuerName?: string
-  issuerId?: string
-  nameForCondition?: string
-  assets?: Array<string>
-  source?: string | Buffer
-  orphan: boolean
-  providedExports?: Array<string>
-  usedExports?: string | Array<string>
-  optimizationBailout?: Array<string>
-  preOrderIndex?: number
-  postOrderIndex?: number
-  built: boolean
-  codeGenerated: boolean
-  buildTimeExecuted: boolean
-  cached: boolean
-  cacheable: boolean
-  optional: boolean
-  failed: boolean
-  errors: number
-  warnings: number
+  get type(): string
+  get moduleType(): string
+  get identifier(): string
+  get name(): string
+  get id(): string | undefined
+  get chunks(): Array<string | undefined | null>
+  get size(): number
+  get depth(): number | undefined
+  get dependent(): boolean | undefined
+  get issuer(): string | undefined
+  get issuerName(): string | undefined
+  get issuerId(): string | undefined
+  get nameForCondition(): string | undefined
+  get assets(): Array<string> | undefined
+  get source(): string | Buffer | undefined
+  get orphan(): boolean
+  get providedExports(): Array<string> | undefined
+  get usedExports(): string | Array<string> | undefined
+  get optimizationBailout(): Array<string> | undefined
+  get preOrderIndex(): number | undefined
+  get postOrderIndex(): number | undefined
+  get built(): boolean
+  get codeGenerated(): boolean
+  get buildTimeExecuted(): boolean
+  get cached(): boolean
+  get cacheable(): boolean
+  get optional(): boolean
+  get failed(): boolean
+  get errors(): number
+  get warnings(): number
   get modules(): Array<JsStatsModule> | null
   get sizes(): Array<JsStatsSize>
   get reasons(): Array<JsStatsModuleReason> | null
