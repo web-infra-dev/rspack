@@ -343,6 +343,7 @@ pub fn normalize_url(s: &str) -> String {
   result.to_string()
 }
 
+#[allow(clippy::rc_buffer)]
 pub fn css_parsing_traceable_error(
   source_code: Arc<String>,
   start: css_module_lexer::Pos,

@@ -7,6 +7,7 @@ use thiserror::Error;
 
 use crate::RspackSeverity;
 
+#[allow(clippy::rc_buffer)]
 static EMPTY_STRING: Lazy<Arc<String>> = Lazy::new(|| Arc::new("".to_string()));
 
 #[derive(Debug, Error)]
@@ -51,6 +52,7 @@ pub struct TraceableError {
   kind: DiagnosticKind,
   message: String,
   severity: Severity,
+  #[allow(clippy::rc_buffer)]
   src: Arc<String>,
   label: SourceSpan,
   help: Option<String>,
