@@ -19,7 +19,7 @@ use swc_core::ecma::atoms::Atom;
 pub use self::context_dependency_helper::{create_context_dependency, ContextModuleScanResult};
 pub use self::parser::{
   estree::*, AllowedMemberTypes, CallExpressionInfo, CallHooksName, ExportedVariableInfo,
-  JavascriptParser, MemberExpressionInfo, TagInfoData, TopLevelScope,
+  JavascriptParser, MemberExpressionInfo, RootName, TagInfoData, TopLevelScope,
 };
 pub use self::util::*;
 use crate::BoxJavascriptParserPlugin;

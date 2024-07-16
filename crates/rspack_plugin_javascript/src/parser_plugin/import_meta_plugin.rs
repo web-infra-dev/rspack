@@ -1,23 +1,66 @@
 use rspack_core::{ConstDependency, SpanExt};
 use rspack_error::miette::Severity;
 use swc_core::common::{Span, Spanned};
+use swc_core::ecma::ast::MemberProp;
 use url::Url;
 
 use super::JavascriptParserPlugin;
-use crate::visitors::create_traceable_error;
+use crate::utils::eval;
 use crate::visitors::expr_name;
 use crate::visitors::ExportedVariableInfo;
 use crate::visitors::JavascriptParser;
+use crate::visitors::{create_traceable_error, RootName};
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/ImportMetaPlugin.js
 // TODO:
-// - scan `import.meta.webpack`
 // - scan `import.meta.url.indexOf("index.js")`
 // - evaluate expression. eg `import.meta.env && import.meta.env.xx` should be `false`
-// - add warning for `import.meta`
 pub struct ImportMetaPlugin;
 
 impl JavascriptParserPlugin for ImportMetaPlugin {
+  fn evaluate_typeof(
+    &self,
+    _parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::UnaryExpr,
+    for_name: &str,
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+    let mut evaluated = None;
+    if for_name == expr_name::IMPORT_META {
+      evaluated = Some("object".to_string());
+    } else if for_name == expr_name::IMPORT_META_URL {
+      evaluated = Some("string".to_string());
+    } else if for_name == expr_name::IMPORT_META_WEBPACK {
+      evaluated = Some("number".to_string())
+    } else if let Some(member_expr) = expr.arg.as_member()
+      && let Some(meta_expr) = member_expr.obj.as_meta_prop()
+      && meta_expr
+        .get_root_name()
+        .is_some_and(|name| name == expr_name::IMPORT_META)
+      && (match &member_expr.prop {
+        MemberProp::Ident(_) => true,
+        MemberProp::Computed(computed) => computed.expr.is_lit(),
+        _ => false,
+      })
+    {
+      evaluated = Some("undefined".to_string())
+    }
+    evaluated.map(|e| eval::evaluate_to_string(e, expr.span.real_lo(), expr.span.real_hi()))
+  }
+
+  fn evaluate_identifier(
+    &self,
+    _parser: &mut JavascriptParser,
+    ident: &str,
+    start: u32,
+    end: u32,
+  ) -> Option<eval::BasicEvaluatedExpression> {
+    if ident == expr_name::IMPORT_META_WEBPACK {
+      Some(eval::evaluate_to_number(5 as f64, start, end))
+    } else {
+      None
+    }
+  }
+
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser,
@@ -41,6 +84,16 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
           unary_expr.span().real_lo(),
           unary_expr.span().real_hi(),
           "'string'".into(),
+          None,
+        )));
+      Some(true)
+    } else if for_name == expr_name::IMPORT_META_WEBPACK {
+      parser
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          unary_expr.span().real_lo(),
+          unary_expr.span().real_hi(),
+          "'number'".into(),
           None,
         )));
       Some(true)
@@ -99,6 +152,17 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
           member_expr.span().real_lo(),
           member_expr.span().real_hi(),
           format!("'{url}'").into(),
+          None,
+        )));
+      Some(true)
+    } else if for_name == expr_name::IMPORT_META_WEBPACK {
+      // import.meta.webpack
+      parser
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          member_expr.span().real_lo(),
+          member_expr.span().real_hi(),
+          format!("5").into(),
           None,
         )));
       Some(true)

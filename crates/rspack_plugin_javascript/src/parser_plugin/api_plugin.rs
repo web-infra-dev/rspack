@@ -57,6 +57,7 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
     WEBPACK_CHUNK_NAME => Some("string"),
     WEBPACK_RUNTIME_ID => None,
     RSPACK_VERSION => Some("string"),
+    RSPACK_UNIQUE_ID => Some("string"),
     _ => None,
   }
 }
