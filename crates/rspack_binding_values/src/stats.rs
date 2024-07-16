@@ -359,17 +359,12 @@ pub struct JsStatsModule {
   failed: bool,
   errors: u32,
   warnings: u32,
-
-  #[skip_getter]
   sizes: Vec<JsStatsSize>,
-  #[skip_getter]
   reasons: Option<Vec<JsStatsModuleReason>>,
+  issuer_path: Vec<JsStatsModuleIssuer>,
+  profile: Option<JsStatsModuleProfile>,
   #[skip_getter]
   modules: Option<Vec<Reference<JsStatsModule>>>,
-  #[skip_getter]
-  issuer_path: Vec<JsStatsModuleIssuer>,
-  #[skip_getter]
-  profile: Option<JsStatsModuleProfile>,
 }
 
 #[napi]
@@ -389,26 +384,6 @@ impl JsStatsModule {
       }
       None => Ok(None),
     }
-  }
-
-  #[napi(getter)]
-  pub fn sizes(&self) -> Vec<JsStatsSize> {
-    self.sizes.clone()
-  }
-
-  #[napi(getter)]
-  pub fn reasons(&self) -> Option<Vec<JsStatsModuleReason>> {
-    self.reasons.clone()
-  }
-
-  #[napi(getter)]
-  pub fn issuer_path(&self) -> Vec<JsStatsModuleIssuer> {
-    self.issuer_path.clone()
-  }
-
-  #[napi(getter)]
-  pub fn profile(&self) -> Option<JsStatsModuleProfile> {
-    self.profile.clone()
   }
 }
 
@@ -503,26 +478,28 @@ pub struct JsStatsSize {
 }
 
 #[napi]
+#[generate_getters]
 pub struct JsStatsChunk {
-  pub r#type: String,
-  pub files: Vec<String>,
-  pub auxiliary_files: Vec<String>,
-  pub id: Option<String>,
-  pub id_hints: Vec<String>,
-  pub hash: Option<String>,
-  pub entry: bool,
-  pub initial: bool,
-  pub names: Vec<String>,
-  pub size: f64,
-  pub parents: Option<Vec<String>>,
-  pub children: Option<Vec<String>>,
-  pub siblings: Option<Vec<String>>,
-  pub children_by_order: HashMap<String, Vec<String>>,
-  pub runtime: Vec<String>,
-  pub reason: Option<String>,
-  pub rendered: bool,
+  r#type: String,
+  files: Vec<String>,
+  auxiliary_files: Vec<String>,
+  id: Option<String>,
+  id_hints: Vec<String>,
+  hash: Option<String>,
+  entry: bool,
+  initial: bool,
+  names: Vec<String>,
+  size: f64,
+  parents: Option<Vec<String>>,
+  children: Option<Vec<String>>,
+  siblings: Option<Vec<String>>,
+  children_by_order: HashMap<String, Vec<String>>,
+  runtime: Vec<String>,
+  reason: Option<String>,
+  rendered: bool,
   sizes: Vec<JsStatsSize>,
   origins: Vec<JsOriginRecord>,
+  #[skip_getter]
   modules: Option<Vec<Reference<JsStatsModule>>>,
 }
 
@@ -543,16 +520,6 @@ impl JsStatsChunk {
       }
       None => Ok(None),
     }
-  }
-
-  #[napi(getter)]
-  pub fn sizes(&self) -> Vec<JsStatsSize> {
-    self.sizes.clone()
-  }
-
-  #[napi(getter)]
-  pub fn origins(&self) -> Vec<JsOriginRecord> {
-    self.origins.clone()
   }
 }
 

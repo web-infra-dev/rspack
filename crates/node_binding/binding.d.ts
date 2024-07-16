@@ -83,26 +83,26 @@ export class JsStats {
 }
 
 export class JsStatsChunk {
-  type: string
-  files: Array<string>
-  auxiliaryFiles: Array<string>
-  id?: string
-  idHints: Array<string>
-  hash?: string
-  entry: boolean
-  initial: boolean
-  names: Array<string>
-  size: number
-  parents?: Array<string>
-  children?: Array<string>
-  siblings?: Array<string>
-  childrenByOrder: Record<string, Array<string>>
-  runtime: Array<string>
-  reason?: string
-  rendered: boolean
-  get modules(): Array<JsStatsModule> | null
+  get type(): string
+  get files(): Array<string>
+  get auxiliaryFiles(): Array<string>
+  get id(): string | undefined
+  get idHints(): Array<string>
+  get hash(): string | undefined
+  get entry(): boolean
+  get initial(): boolean
+  get names(): Array<string>
+  get size(): number
+  get parents(): Array<string> | undefined
+  get children(): Array<string> | undefined
+  get siblings(): Array<string> | undefined
+  get childrenByOrder(): Record<string, Array<string>>
+  get runtime(): Array<string>
+  get reason(): string | undefined
+  get rendered(): boolean
   get sizes(): Array<JsStatsSize>
   get origins(): Array<JsOriginRecord>
+  get modules(): Array<JsStatsModule> | null
 }
 
 export class JsStatsModule {
@@ -136,11 +136,11 @@ export class JsStatsModule {
   get failed(): boolean
   get errors(): number
   get warnings(): number
-  get modules(): Array<JsStatsModule> | null
   get sizes(): Array<JsStatsSize>
-  get reasons(): Array<JsStatsModuleReason> | null
+  get reasons(): Array<JsStatsModuleReason> | undefined
   get issuerPath(): Array<JsStatsModuleIssuer>
-  get profile(): JsStatsModuleProfile | null
+  get profile(): JsStatsModuleProfile | undefined
+  get modules(): Array<JsStatsModule> | null
 }
 
 export class Rspack {
