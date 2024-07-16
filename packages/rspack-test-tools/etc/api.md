@@ -11,7 +11,7 @@
 import type { Compiler } from '@rspack/core';
 import type { Compiler as Compiler_2 } from 'webpack';
 import type { Configuration } from 'webpack';
-import type EventEmitter from 'events';
+import type EventEmitter from 'node:events';
 import { IBasicGlobalContext as IBasicGlobalContext_2 } from '../type';
 import { IBasicGlobalContext as IBasicGlobalContext_3 } from '../../type';
 import { IBasicModuleScope as IBasicModuleScope_2 } from '../../type';
