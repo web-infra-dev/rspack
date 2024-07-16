@@ -210,14 +210,14 @@ fn render_template(
       )
       .map(|exts| exts[0]);
       t = t
-        .map(|t| FILE_PLACEHOLDER.replace(t, ""))
-        .map(|t| QUERY_PLACEHOLDER.replace(t, ""))
-        .map(|t| FRAGMENT_PLACEHOLDER.replace(t, ""))
-        .map(|t| PATH_PLACEHOLDER.replace(t, ""))
-        .map(|t| BASE_PLACEHOLDER.replace(t, ""))
-        .map(|t| NAME_PLACEHOLDER.replace(t, ""))
+        .map(|t| FILE_PLACEHOLDER.replace_all(t, ""))
+        .map(|t| QUERY_PLACEHOLDER.replace_all(t, ""))
+        .map(|t| FRAGMENT_PLACEHOLDER.replace_all(t, ""))
+        .map(|t| PATH_PLACEHOLDER.replace_all(t, ""))
+        .map(|t| BASE_PLACEHOLDER.replace_all(t, ""))
+        .map(|t| NAME_PLACEHOLDER.replace_all(t, ""))
         .map(|t| {
-          EXT_PLACEHOLDER.replace(t, &ext.map(|ext| format!(".{}", ext)).unwrap_or_default())
+          EXT_PLACEHOLDER.replace_all(t, &ext.map(|ext| format!(".{}", ext)).unwrap_or_default())
         });
     } else if let Some(ResourceParsedData {
       path: file,
@@ -226,9 +226,9 @@ fn render_template(
     }) = parse_resource(filename)
     {
       t = t
-        .map(|t| FILE_PLACEHOLDER.replace(t, file.to_string_lossy()))
+        .map(|t| FILE_PLACEHOLDER.replace_all(t, file.to_string_lossy()))
         .map(|t| {
-          EXT_PLACEHOLDER.replace(
+          EXT_PLACEHOLDER.replace_all(
             t,
             file
               .extension()
@@ -238,14 +238,14 @@ fn render_template(
         });
 
       if let Some(base) = file.file_name().map(|p| p.to_string_lossy()) {
-        t = t.map(|t| BASE_PLACEHOLDER.replace(t, &base));
+        t = t.map(|t| BASE_PLACEHOLDER.replace_all(t, &base));
       }
       if let Some(name) = file.file_stem().map(|p| p.to_string_lossy()) {
-        t = t.map(|t| NAME_PLACEHOLDER.replace(t, &name));
+        t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, &name));
       }
       t = t
         .map(|t| {
-          PATH_PLACEHOLDER.replace(
+          PATH_PLACEHOLDER.replace_all(
             t,
             &file
               .parent()
@@ -256,8 +256,8 @@ fn render_template(
               .unwrap_or_default(),
           )
         })
-        .map(|t| QUERY_PLACEHOLDER.replace(t, &query.unwrap_or_default()))
-        .map(|t| FRAGMENT_PLACEHOLDER.replace(t, &fragment.unwrap_or_default()));
+        .map(|t| QUERY_PLACEHOLDER.replace_all(t, &query.unwrap_or_default()))
+        .map(|t| FRAGMENT_PLACEHOLDER.replace_all(t, &fragment.unwrap_or_default()));
     }
   }
   if let Some(content_hash) = options.content_hash {
@@ -292,12 +292,12 @@ fn render_template(
   }
   if let Some(chunk) = options.chunk {
     if let Some(id) = &options.id {
-      t = t.map(|t| ID_PLACEHOLDER.replace(t, *id));
+      t = t.map(|t| ID_PLACEHOLDER.replace_all(t, *id));
     } else if let Some(id) = &chunk.id {
-      t = t.map(|t| ID_PLACEHOLDER.replace(t, id));
+      t = t.map(|t| ID_PLACEHOLDER.replace_all(t, id));
     }
     if let Some(name) = chunk.name_for_filename_template() {
-      t = t.map(|t| NAME_PLACEHOLDER.replace(t, name));
+      t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, name));
     }
     if let Some(d) = chunk.rendered_hash.as_ref() {
       t = t.map(|t| {
@@ -315,17 +315,17 @@ fn render_template(
   }
 
   if let Some(id) = &options.id {
-    t = t.map(|t| ID_PLACEHOLDER.replace(t, *id));
+    t = t.map(|t| ID_PLACEHOLDER.replace_all(t, *id));
   } else if let Some(module) = options.module {
     if let Some(chunk_graph) = options.chunk_graph {
       if let Some(id) = chunk_graph.get_module_id(module.identifier()) {
-        t = t.map(|t| ID_PLACEHOLDER.replace(t, id));
+        t = t.map(|t| ID_PLACEHOLDER.replace_all(t, id));
       }
     }
   }
-  t = t.map(|t| RUNTIME_PLACEHOLDER.replace(t, options.runtime.unwrap_or("_")));
+  t = t.map(|t| RUNTIME_PLACEHOLDER.replace_all(t, options.runtime.unwrap_or("_")));
   if let Some(url) = options.url {
-    t = t.map(|t| URL_PLACEHOLDER.replace(t, url));
+    t = t.map(|t| URL_PLACEHOLDER.replace_all(t, url));
   }
   t.into_owned()
 }
