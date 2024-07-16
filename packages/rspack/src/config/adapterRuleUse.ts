@@ -11,6 +11,7 @@ import Hash = require("../util/hash");
 import type { Compilation } from "../Compilation";
 import type { Module } from "../Module";
 import { resolvePluginImport } from "../builtin-loader";
+import { browserslistToTargets } from "../builtin-loader/lightningcss";
 import { type LoaderObject, parsePathQueryFragment } from "../loader-runner";
 import { isNil } from "../util";
 import type {
@@ -20,6 +21,7 @@ import type {
 	RuleSetUseItem,
 	Target
 } from "./zod";
+import browserslist = require("browserslist");
 
 export const BUILTIN_LOADER_PREFIX = "builtin:";
 
@@ -198,11 +200,28 @@ type GetLoaderOptions = (
 	options: ComposeJsUseOptions
 ) => RuleSetLoaderWithOptions["options"];
 
-const getSwcLoaderOptions: GetLoaderOptions = (o, options) => {
+const getSwcLoaderOptions: GetLoaderOptions = (o, _) => {
 	if (o && typeof o === "object" && o.rspackExperiments) {
 		const expr = o.rspackExperiments;
 		if (expr.import || expr.pluginImport) {
 			expr.import = resolvePluginImport(expr.import || expr.pluginImport);
+		}
+	}
+	return o;
+};
+
+const getLightningcssLoaderOptions: GetLoaderOptions = (o, _) => {
+	if (o && typeof o === "object") {
+		if (o.unusedSymbols) {
+			o.unusedSymbols = [...o.unusedSymbols];
+		}
+
+		if (o.targets && typeof o.targets === "string") {
+			o.targets = browserslistToTargets(browserslist(o.targets));
+		}
+
+		if (o.targets && Array.isArray(o.targets)) {
+			o.targets = browserslistToTargets(o.targets);
 		}
 	}
 	return o;
@@ -215,6 +234,10 @@ function getBuiltinLoaderOptions(
 ): RuleSetLoaderWithOptions["options"] {
 	if (identifier.startsWith(`${BUILTIN_LOADER_PREFIX}swc-loader`)) {
 		return getSwcLoaderOptions(o, options);
+	}
+
+	if (identifier.startsWith(`${BUILTIN_LOADER_PREFIX}lightningcss-loader`)) {
+		return getLightningcssLoaderOptions(o, options);
 	}
 
 	return o;
