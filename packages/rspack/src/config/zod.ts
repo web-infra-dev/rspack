@@ -1014,12 +1014,19 @@ export type CacheOptions = z.infer<typeof cacheOptions>;
 //#endregion
 
 //#region Stats
+const statsPresets = z.enum([
+	"normal",
+	"none",
+	"verbose",
+	"errors-only",
+	"errors-warnings",
+	"minimal",
+	"detailed",
+	"summary"
+]);
 const statsOptions = z.strictObject({
 	all: z.boolean().optional(),
-	preset: z
-		.boolean()
-		.or(z.enum(["normal", "none", "verbose", "errors-only", "errors-warnings"]))
-		.optional(),
+	preset: z.boolean().or(statsPresets).optional(),
 	assets: z.boolean().optional(),
 	chunks: z.boolean().optional(),
 	modules: z.boolean().optional(),
@@ -1116,10 +1123,7 @@ const statsOptions = z.strictObject({
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 
-const statsValue = z
-	.enum(["none", "errors-only", "errors-warnings", "normal", "verbose"])
-	.or(z.boolean())
-	.or(statsOptions);
+const statsValue = z.boolean().or(statsPresets).or(statsOptions);
 export type StatsValue = z.infer<typeof statsValue>;
 //#endregion
 

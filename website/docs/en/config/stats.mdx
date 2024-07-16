@@ -25,13 +25,16 @@ Generate packaging information that can be used to analyze module dependencies a
 
 ## Stats Presets
 
-| Preset              | Description                                       |
-| ------------------- | ------------------------------------------------- |
-| `'normal'` (`true`) | Output by default value of stats options          |
-| `'none'` (`false`)  | Output nothing                                    |
-| `'verbose'`         | Output everything                                 |
-| `'errors-only'`     | Output only error-related information             |
-| `'errors-warnings'` | Output only error and warning related information |
+| Preset              | Description                                                    |
+| ------------------- | -------------------------------------------------------------- |
+| `'normal'` (`true`) | Output by default value of stats options                       |
+| `'none'` (`false`)  | Output nothing                                                 |
+| `'verbose'`         | Output everything                                              |
+| `'errors-only'`     | Output only error-related information                          |
+| `'errors-warnings'` | Output only error and warning related information              |
+| `'minimal'`         | Only output when errors or new compilation happen              |
+| `'detailed'`        | Output everything except `chunkModules` and `chunkRootModules` |
+| `'summary'`         | Output only the summary information                            |
 
 ## Stats Options
 
