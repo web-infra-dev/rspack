@@ -15,7 +15,7 @@ try {
 	}
 } catch (oldErr) {
 	const err = new Error(
-		`Make sure you are in workspace root to run this script`
+		"Make sure you are in workspace root to run this script"
 	);
 	// @ts-expect-error error.cause is introduced in ES2022, ignore here
 	err.cause = oldErr;

@@ -69,7 +69,7 @@ export function formatCode(
 			}
 			if (options.ignoreSwcHelpersPath) {
 				if (SWC_HELPER_PATH_REG.test(path.node.name)) {
-					path.node.name = `$$SWC_HELPERS$$`;
+					path.node.name = "$$SWC_HELPERS$$";
 				}
 			}
 		},

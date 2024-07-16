@@ -26,7 +26,7 @@ self.importScripts = url => {
 	${
 		options.type === "module"
 			? `throw new Error("importScripts is not supported in module workers")`
-			: `require(urlToPath(url))`
+			: "require(urlToPath(url))"
 	};
 };
 self.fetch = async url => {

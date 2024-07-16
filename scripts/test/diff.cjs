@@ -117,7 +117,7 @@ This would cause misunderstandings between those tests. This file can be removed
 			);
 			console.log(
 				suggestion(
-					`Remove the test cases from rspack and TURN ON webpack test case to suppress this warning.`
+					"Remove the test cases from rspack and TURN ON webpack test case to suppress this warning."
 				)
 			);
 		}

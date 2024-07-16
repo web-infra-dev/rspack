@@ -171,7 +171,7 @@ function checkCompareResults(
 					.map(i => i.name)
 			).toEqual([]);
 		});
-		it(`all modules should be the same`, () => {
+		it("all modules should be the same", () => {
 			for (const result of getResults().filter(
 				i => i.type === ECompareResultType.Different
 			)) {
