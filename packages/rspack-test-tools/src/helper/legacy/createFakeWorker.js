@@ -61,9 +61,12 @@ self.postMessage = data => {
 };
 require(${JSON.stringify(path.resolve(outputDirectory, file))});
 `;
-			this.worker = new (require("node:worker_threads").Worker)(workerBootstrap, {
-				eval: true
-			});
+			this.worker = new (require("node:worker_threads").Worker)(
+				workerBootstrap,
+				{
+					eval: true
+				}
+			);
 
 			this._onmessage = undefined;
 		}
