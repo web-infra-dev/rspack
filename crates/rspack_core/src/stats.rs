@@ -22,9 +22,8 @@ fn get_asset_size(file: &str, compilation: &Compilation) -> f64 {
   compilation
     .assets()
     .get(file)
-    .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
-    .get_source()
-    .map_or(-1f64, |s| s.size() as f64)
+    .and_then(|asset| asset.get_source().map(|s| s.size() as f64))
+    .unwrap_or(-1f64)
 }
 
 #[derive(Debug, Clone)]
@@ -481,21 +480,24 @@ impl Stats<'_> {
       .flatten()
       .collect::<Vec<_>>();
 
-    let auxiliary_assets = cg
-      .chunks
-      .par_iter()
-      .map(|c| {
-        let chunk = self.compilation.chunk_by_ukey.expect_get(c);
-        chunk
-          .auxiliary_files
-          .par_iter()
-          .map(|file| StatsChunkGroupAsset {
-            name: file.clone(),
-            size: get_asset_size(file, self.compilation),
-          })
-      })
-      .flatten()
-      .collect::<Vec<_>>();
+    let auxiliary_assets = if chunk_group_auxiliary {
+      cg.chunks
+        .par_iter()
+        .map(|c| {
+          let chunk = self.compilation.chunk_by_ukey.expect_get(c);
+          chunk
+            .auxiliary_files
+            .par_iter()
+            .map(|file| StatsChunkGroupAsset {
+              name: file.clone(),
+              size: get_asset_size(file, self.compilation),
+            })
+        })
+        .flatten()
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
 
     let children = chunk_group_children.then(|| {
       let ordered_children = cg.get_children_by_orders(self.compilation);
