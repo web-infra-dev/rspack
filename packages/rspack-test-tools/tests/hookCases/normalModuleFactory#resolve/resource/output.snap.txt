@@ -1,12 +1,12 @@
 ```js title=main.js
 (() => { // webpackBootstrap
 var __webpack_modules__ = ({
-"./a.js": (function (module) {
+"../../normalModuleFactory​#resolve/resource/a.js": (function (module) {
 module.exports = "a";
 
 
 }),
-"./b.js": (function (module) {
+"../../normalModuleFactory​#resolve/resource/b.js": (function (module) {
 module.exports = "c";
 
 
@@ -75,16 +75,16 @@ __webpack_require__.o = function (obj, prop) {
 (() => {
 "use strict";
 
-// EXTERNAL MODULE: ./a.js
-let a_ = __webpack_require__("./a.js");
+// EXTERNAL MODULE: ../../normalModuleFactory​#resolve/resource/a.js
+let a_ = __webpack_require__("../../normalModuleFactory​#resolve/resource/a.js");
 let a_default = /*#__PURE__*/__webpack_require__.n(a_);
-// EXTERNAL MODULE: ./b.js
-let b_ = __webpack_require__("./b.js");
+// EXTERNAL MODULE: ../../normalModuleFactory​#resolve/resource/b.js
+let b_ = __webpack_require__("../../normalModuleFactory​#resolve/resource/b.js");
 let b_default = /*#__PURE__*/__webpack_require__.n(b_);
 ;// CONCATENATED MODULE: external "fs"
 var external_fs_namespaceObject = require("fs");
 let external_fs_default = /*#__PURE__*/__webpack_require__.n(external_fs_namespaceObject);
-;// CONCATENATED MODULE: ./resource.js
+;// CONCATENATED MODULE: ../../normalModuleFactory​#resolve/resource/resource.js
 
 
 
@@ -93,7 +93,7 @@ it("should modify resource by resolve hook", () => {
 	expect((a_default())).toBe("a");
 	expect((b_default())).toBe("c");
 	const ext = ".js";
-	expect(external_fs_default().readFileSync(__filename, "utf-8")).toContain("./b" + ext);
+	expect(external_fs_default().readFileSync(__filename, "utf-8")).toContain("resource/b" + ext);
 });
 
 })();

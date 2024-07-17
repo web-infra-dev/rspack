@@ -8,9 +8,9 @@ it("should remove duplicate request modules generate by after resolve hook", () 
 	expect(b).toBe("c");
 	expect(c).toBe("c");
 	const ext = ".js";
-	expect(fs.readFileSync(__filename, "utf-8")).not.toContain("./b" + ext);
-	expect(fs.readFileSync(__filename, "utf-8")).toContain("./c" + ext);
+	expect(fs.readFileSync(__filename, "utf-8")).not.toContain("duplicate/b" + ext);
+	expect(fs.readFileSync(__filename, "utf-8")).toContain("duplicate/c" + ext);
 	expect(
-		fs.readFileSync(__filename, "utf-8").split("./c" + ext).length - 1
+		fs.readFileSync(__filename, "utf-8").split("duplicate/c" + ext).length - 1
 	).toBe(2);
 });

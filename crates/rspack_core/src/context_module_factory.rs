@@ -191,7 +191,7 @@ impl ContextModuleFactory {
             })?;
           match resolve_result {
             ResolveResult::Resource(resource) => {
-              let resource = resource.full_path().to_string_lossy().to_string();
+              let resource = resource.full_path();
               loader_result.push(resource);
             }
             ResolveResult::Ignored => {

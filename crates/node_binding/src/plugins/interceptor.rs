@@ -22,9 +22,9 @@ use rspack_binding_values::{
   ToJsCompatSource, ToJsModule,
 };
 use rspack_core::{
-  rspack_sources::SourceExt, AfterResolveData, AfterResolveResult, AssetEmittedInfo,
-  BeforeResolveData, BeforeResolveResult, BoxModule, Chunk, ChunkUkey, CodeGenerationResults,
-  Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  parse_resource, rspack_sources::SourceExt, AfterResolveData, AfterResolveResult,
+  AssetEmittedInfo, BeforeResolveData, BeforeResolveResult, BoxModule, Chunk, ChunkUkey,
+  CodeGenerationResults, Compilation, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
   CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
   CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
@@ -1362,29 +1362,23 @@ impl NormalModuleFactoryAfterResolve for NormalModuleFactoryAfterResolveTap {
     {
       Ok((ret, resolve_data)) => {
         if let Some(resolve_data) = resolve_data {
-          fn override_resource(origin_data: &ResourceData, new_resource: String) -> ResourceData {
-            let mut resource_data = origin_data.clone();
-            let origin_resource_path = origin_data
-              .resource_path
-              .as_ref()
-              .map(|p| p.to_string_lossy().to_string())
-              .unwrap_or_default();
-            resource_data.resource_path = Some(new_resource.clone().into());
-            resource_data.resource = resource_data
-              .resource
-              .replace(&origin_resource_path, &new_resource);
-
-            resource_data
+          fn update_resource_data(old_resource_data: &mut ResourceData, new_resource: String) {
+            if old_resource_data.resource_path.is_some()
+              && let Some(parsed) = parse_resource(&new_resource)
+            {
+              old_resource_data.set_path(parsed.path);
+              old_resource_data.set_query_optional(parsed.query);
+              old_resource_data.set_fragment_optional(parsed.fragment);
+            }
+            old_resource_data.set_resource(new_resource);
           }
 
-          let request = resolve_data.request;
-          let user_request = resolve_data.user_request;
-          let resource =
-            override_resource(&create_data.resource_resolve_data, resolve_data.resource);
-
-          create_data.request = request;
-          create_data.user_request = user_request;
-          create_data.resource_resolve_data = resource;
+          create_data.request = resolve_data.request;
+          create_data.user_request = resolve_data.user_request;
+          update_resource_data(
+            &mut create_data.resource_resolve_data,
+            resolve_data.resource,
+          );
         }
 
         Ok(ret)
