@@ -288,7 +288,7 @@ function _setTags(colors) {
 		var color = _styles[code];
 		var oriColor = colors[color] || "000";
 		_openTags[code] = "color:#" + oriColor;
-		code = parseInt(code);
+		code = Number.parseInt(code);
 		_openTags[(code + 10).toString()] = "background:#" + oriColor;
 	}
 }

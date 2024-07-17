@@ -108,7 +108,7 @@ pub struct ResourceData {
   /// Resource with absolute path, query and fragment
   pub resource: String,
   /// Absolute resource path only
-  pub resource_path: PathBuf,
+  pub resource_path: Option<PathBuf>,
   /// Resource query with `?` prefix
   pub resource_query: Option<String>,
   /// Resource fragment with `#` prefix
@@ -122,10 +122,10 @@ pub struct ResourceData {
 }
 
 impl ResourceData {
-  pub fn new(resource: String, path: PathBuf) -> Self {
+  pub fn new(resource: String) -> Self {
     Self {
       resource,
-      resource_path: path,
+      resource_path: None,
       resource_query: None,
       resource_fragment: None,
       resource_description: None,
@@ -145,7 +145,16 @@ impl ResourceData {
     self.resource = v;
   }
 
+  pub fn path(mut self, v: PathBuf) -> Self {
+    self.resource_path = Some(v);
+    self
+  }
+
   pub fn set_path(&mut self, v: PathBuf) {
+    self.resource_path = Some(v);
+  }
+
+  pub fn set_path_optional(&mut self, v: Option<PathBuf>) {
     self.resource_path = v;
   }
 

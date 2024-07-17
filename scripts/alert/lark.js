@@ -11,8 +11,8 @@ if (!TITLE || !DESCRIPTION) {
 	throw new Error("please input title and description");
 }
 
-if(!LARK_WEBHOOK_URL) {
-	console.log('missing LARK_WEBHOOK_URL, will exit');
+if (!LARK_WEBHOOK_URL) {
+	console.log("missing LARK_WEBHOOK_URL, will exit");
 	process.exit(0);
 }
 

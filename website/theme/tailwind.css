@@ -1,0 +1,4 @@
+/* It seems tailwind have style `display: list-style` by default */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

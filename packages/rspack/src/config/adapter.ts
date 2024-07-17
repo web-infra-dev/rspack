@@ -390,7 +390,7 @@ const getRawModuleRule = (
 	}
 	let funcUse: undefined | ((rawContext: RawFuncUseCtx) => RawModuleRuleUse[]);
 	if (typeof rule.use === "function") {
-		let use = rule.use;
+		const use = rule.use;
 		funcUse = (rawContext: RawFuncUseCtx) => {
 			const context = {
 				...rawContext,
@@ -402,7 +402,7 @@ const getRawModuleRule = (
 		};
 	}
 
-	let rawModuleRule: RawModuleRule = {
+	const rawModuleRule: RawModuleRule = {
 		test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
 		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
 		exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
@@ -562,7 +562,9 @@ function getRawParserOptionsByModuleType(
 	parser: ParserOptionsByModuleType
 ): Record<string, RawParserOptions> {
 	return Object.fromEntries(
-		Object.entries(parser).map(([k, v]) => [k, getRawParserOptions(v, k)])
+		Object.entries(parser)
+			.map(([k, v]) => [k, getRawParserOptions(v, k)])
+			.filter(([k, v]) => v !== undefined)
 	);
 }
 
@@ -570,24 +572,24 @@ function getRawGeneratorOptionsByModuleType(
 	parser: GeneratorOptionsByModuleType
 ): Record<string, RawGeneratorOptions> {
 	return Object.fromEntries(
-		Object.entries(parser).map(([k, v]) => [k, getRawGeneratorOptions(v, k)])
+		Object.entries(parser)
+			.map(([k, v]) => [k, getRawGeneratorOptions(v, k)])
+			.filter(([k, v]) => v !== undefined)
 	);
 }
 
 function getRawParserOptions(
 	parser: { [k: string]: any },
 	type: string
-): RawParserOptions {
+): RawParserOptions | undefined {
 	if (type === "asset") {
 		return {
 			type: "asset",
 			asset: getRawAssetParserOptions(parser)
 		};
 	} else if (type === "javascript") {
-		return {
-			type: "javascript",
-			javascript: getRawJavascriptParserOptions(parser)
-		};
+		// Filter this out, since `parser["javascript"]` already merge into `parser["javascript/*"]` in default.ts
+		return;
 	} else if (type === "javascript/auto") {
 		return {
 			type: "javascript/auto",
@@ -706,7 +708,7 @@ function getRawCssParserOptions(
 function getRawGeneratorOptions(
 	generator: { [k: string]: any },
 	type: string
-): RawGeneratorOptions {
+): RawGeneratorOptions | undefined {
 	if (type === "asset") {
 		return {
 			type: "asset",
@@ -747,6 +749,18 @@ function getRawGeneratorOptions(
 			cssModule: getRawCssAutoOrModuleGeneratorOptions(generator)
 		};
 	}
+
+	if (
+		[
+			"javascript",
+			"javascript/auto",
+			"javascript/dynamic",
+			"javascript/esm"
+		].includes(type)
+	) {
+		return undefined;
+	}
+
 	throw new Error(`unreachable: unknow module type: ${type}`);
 }
 

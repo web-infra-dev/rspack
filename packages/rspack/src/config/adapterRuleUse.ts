@@ -200,7 +200,7 @@ type GetLoaderOptions = (
 
 const getSwcLoaderOptions: GetLoaderOptions = (o, options) => {
 	if (o && typeof o === "object" && o.rspackExperiments) {
-		let expr = o.rspackExperiments;
+		const expr = o.rspackExperiments;
 		if (expr.import || expr.pluginImport) {
 			expr.import = resolvePluginImport(expr.import || expr.pluginImport);
 		}

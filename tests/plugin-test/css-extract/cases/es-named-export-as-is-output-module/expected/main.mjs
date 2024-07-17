@@ -1,5 +1,5 @@
 var __webpack_modules__ = ({
-"./style.css?9f36": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./style.css?9a87": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "a-class": function() { return _1; },
@@ -72,7 +72,7 @@ __webpack_require__.r = function(exports) {
 /************************************************************************/
 var __webpack_exports__ = {};
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?9f36");
+/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?9a87");
 
 
 // eslint-disable-next-line no-console

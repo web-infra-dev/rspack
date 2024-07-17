@@ -15,7 +15,7 @@ export class EsmRunner<
 		this.requirers.set("cjs", this.getRequire());
 		this.requirers.set("esm", this.createEsmRequirer());
 		this.requirers.set("entry", (currentDirectory, modulePath, context) => {
-			let file = this.getFile(modulePath, currentDirectory);
+			const file = this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
@@ -50,7 +50,8 @@ export class EsmRunner<
 				);
 			}
 			const _require = this.getRequire();
-			let file = context["file"] || this.getFile(modulePath, currentDirectory);
+			const file =
+				context["file"] || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}

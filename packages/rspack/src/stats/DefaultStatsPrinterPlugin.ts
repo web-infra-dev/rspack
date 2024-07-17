@@ -129,7 +129,7 @@ const SIMPLE_PRINTERS: Record<
 		} else if (errorsCount === 0 && warningsCount === 0) {
 			statusMessage = `compiled ${green("successfully")}`;
 		} else {
-			statusMessage = `compiled`;
+			statusMessage = "compiled";
 		}
 		if (
 			builtAtMessage ||

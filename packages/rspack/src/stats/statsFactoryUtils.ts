@@ -18,15 +18,11 @@ export type KnownStatsChunk = Omit<Writable<binding.JsStatsChunk>, "sizes"> & {
 	sizes: Record<string, number>;
 };
 
-export type KnownStatsAssetInfo = Omit<binding.JsStatsAssetInfo, "related"> & {
-	related: Record<string, string[]>;
-};
+export type KnownStatsAssetInfo = Omit<binding.JsStatsAssetInfo, "related">;
 
 export type StatsChunkGroup = binding.JsStatsChunkGroup & Record<string, any>;
 
-export type KnownStatsAsset = Omit<binding.JsStatsAsset, "info"> & {
-	info: KnownStatsAssetInfo;
-};
+export type KnownStatsAsset = Omit<binding.JsStatsAsset, "info">;
 
 export type StatsAsset = KnownStatsAsset & Record<string, any>;
 
@@ -148,7 +144,7 @@ type ExtractorsByOption<T, O> = {
 	) => void;
 };
 
-type PreprocessedAsset = StatsAsset & {
+export type PreprocessedAsset = StatsAsset & {
 	type: string;
 	related: PreprocessedAsset[];
 	info: binding.JsStatsAssetInfo;
@@ -158,13 +154,13 @@ export type SimpleExtractors = {
 	compilation: ExtractorsByOption<Compilation, StatsCompilation>;
 	asset$visible: ExtractorsByOption<PreprocessedAsset, StatsAsset>;
 	asset: ExtractorsByOption<PreprocessedAsset, StatsAsset>;
-	// chunkGroup: ExtractorsByOption<
-	// 	{
-	// 		name: string;
-	// 		chunkGroup: binding.JsChunkGroup;
-	// 	},
-	// 	StatsChunkGroup
-	// >;
+	chunkGroup: ExtractorsByOption<
+		{
+			name: string;
+			chunkGroup: binding.JsStatsChunkGroup;
+		},
+		StatsChunkGroup
+	>;
 	module: ExtractorsByOption<binding.JsStatsModule, StatsModule>;
 	module$visible: ExtractorsByOption<binding.JsStatsModule, StatsModule>;
 	moduleIssuer: ExtractorsByOption<

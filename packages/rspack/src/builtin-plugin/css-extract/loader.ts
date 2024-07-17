@@ -91,7 +91,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 			this._module.type === "css/global" ||
 			this._module.type === "css/module")
 	) {
-		let e = new Error(
+		const e = new Error(
 			`use type 'css' and \`CssExtractRspackPlugin\` together, please set \`experiments.css\` to \`false\` or set \`{ type: "javascript/auto" }\` for rules with \`CssExtractRspackPlugin\` in your rspack config (now \`CssExtractRspackPlugin\` does nothing).`
 		);
 		e.stack = undefined;
@@ -180,8 +180,8 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 
 				dependencies = exports
 					.map(([id, content, media, sourceMap, supports, layer]) => {
-						let identifier = id;
-						let context = this.rootContext;
+						const identifier = id;
+						const context = this.rootContext;
 
 						const count = identifierCountMap.get(identifier) || 0;
 

@@ -1,6 +1,9 @@
-use swc_core::atoms::Atom;
+use swc_core::{
+  atoms::Atom,
+  ecma::ast::{Expr, MemberExpr, OptChainExpr},
+};
 
-use super::{ExportedVariableInfo, JavascriptParser};
+use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
 use crate::visitors::scope_info::{FreeName, VariableInfoId};
 
 /// callHooksForName/callHooksForInfo in webpack
@@ -60,6 +63,49 @@ impl CallHooksName for ExportedVariableInfo {
     match self {
       ExportedVariableInfo::Name(n) => n.call_hooks_name(parser, hooks_call),
       ExportedVariableInfo::VariableInfo(v) => call_hooks_info(*v, parser, hooks_call),
+    }
+  }
+}
+
+impl CallHooksName for MemberExpr {
+  fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
+  where
+    F: Fn(&mut JavascriptParser, &str) -> Option<T>,
+  {
+    let Some(MemberExpressionInfo::Expression(expr_name)) =
+      parser.get_member_expression_info(self, AllowedMemberTypes::Expression)
+    else {
+      return None;
+    };
+
+    let members = expr_name.members;
+    if members.is_empty() {
+      expr_name.root_info.call_hooks_name(parser, hook_call)
+    } else {
+      expr_name.name.call_hooks_name(parser, hook_call)
+    }
+  }
+}
+
+impl CallHooksName for OptChainExpr {
+  fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
+  where
+    F: Fn(&mut JavascriptParser, &str) -> Option<T>,
+  {
+    let Some(MemberExpressionInfo::Expression(expr_name)) = parser
+      .get_member_expression_info_from_expr(
+        &Expr::OptChain(self.to_owned()),
+        AllowedMemberTypes::Expression,
+      )
+    else {
+      return None;
+    };
+
+    let members = expr_name.members;
+    if members.is_empty() {
+      expr_name.root_info.call_hooks_name(parser, hook_call)
+    } else {
+      expr_name.name.call_hooks_name(parser, hook_call)
     }
   }
 }

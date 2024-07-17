@@ -171,7 +171,7 @@ function checkConfigsDocumentationCoverage() {
 			} else if (zod instanceof ZodOptional) {
 				visit(zod.unwrap(), path);
 			} else if (zod instanceof ZodUnion) {
-				for (let schema of zod.options) {
+				for (const schema of zod.options) {
 					visit(schema, path);
 				}
 			}
@@ -198,7 +198,11 @@ function checkConfigsDocumentationCoverage() {
 							break;
 						}
 					}
-					const title = line.substring(level).trim().split(' ')[0].replace(/\\/g, '');
+					const title = line
+						.substring(level)
+						.trim()
+						.split(" ")[0]
+						.replace(/\\/g, "");
 					section = {
 						title: title.includes(".") ? title : toCamelCase(title),
 						level,
@@ -262,6 +266,10 @@ function checkConfigsDocumentationCoverage() {
 			"output.workerWasmLoading",
 			"output.workerPublicPath",
 			"output.strictModuleExceptionHandling",
+			"output.auxiliaryComment.amd",
+			"output.auxiliaryComment.commonjs",
+			"output.auxiliaryComment.commonjs2",
+			"output.auxiliaryComment.root",
 
 			"stats",
 

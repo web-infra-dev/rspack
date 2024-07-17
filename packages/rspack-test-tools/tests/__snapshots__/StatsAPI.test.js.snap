@@ -4,6 +4,10 @@ exports[`statsAPI statsAPI/basic should have stats 1`] = `
 Object {
   "assets": Array [
     Object {
+      "auxiliaryChunkIdHints": Array [],
+      "auxiliaryChunkNames": Array [],
+      "auxiliaryChunks": Array [],
+      "chunkIdHints": Array [],
       "chunkNames": Array [
         "main",
       ],
@@ -11,6 +15,7 @@ Object {
         "909",
       ],
       "emitted": true,
+      "filteredRelated": 0,
       "info": Object {
         "chunkHash": Array [],
         "contentHash": Array [],
@@ -22,6 +27,7 @@ Object {
         "related": Object {},
       },
       "name": "main.js",
+      "related": Array [],
       "size": 207,
       "type": "asset",
     },
@@ -150,12 +156,14 @@ Object {
       "chunks": Array [
         "909",
       ],
+      "filteredAssets": 0,
       "name": "main",
     },
   },
   "env": undefined,
   "errors": Array [],
   "errorsCount": 0,
+  "filteredAssets": undefined,
   "filteredModules": undefined,
   "hash": "c54fcee237a48276e019",
   "modules": Array [
@@ -236,6 +244,7 @@ Object {
       "chunks": Array [
         "909",
       ],
+      "filteredAssets": 0,
       "name": "main",
     },
   },
@@ -250,6 +259,10 @@ exports[`statsAPI statsAPI/exports should have usedExports and providedExports s
 Object {
   "assets": Array [
     Object {
+      "auxiliaryChunkIdHints": Array [],
+      "auxiliaryChunkNames": Array [],
+      "auxiliaryChunks": Array [],
+      "chunkIdHints": Array [],
       "chunkNames": Array [
         "main",
       ],
@@ -257,6 +270,7 @@ Object {
         "909",
       ],
       "emitted": true,
+      "filteredRelated": 0,
       "info": Object {
         "chunkHash": Array [],
         "contentHash": Array [],
@@ -268,6 +282,7 @@ Object {
         "related": Object {},
       },
       "name": "main.js",
+      "related": Array [],
       "size": 441,
       "type": "asset",
     },
@@ -617,11 +632,13 @@ Object {
       "chunks": Array [
         "909",
       ],
+      "filteredAssets": 0,
       "name": "main",
     },
   },
   "errors": Array [],
   "errorsCount": 0,
+  "filteredAssets": undefined,
   "filteredModules": undefined,
   "hash": "c361435884d1304f092d",
   "modules": Array [
@@ -1272,6 +1289,7 @@ Object {
       "chunks": Array [
         "909",
       ],
+      "filteredAssets": 0,
       "name": "main",
     },
   },
@@ -1286,6 +1304,10 @@ exports[`statsAPI statsAPI/ids should have ids when ids is true 1`] = `
 Object {
   "assets": Array [
     Object {
+      "auxiliaryChunkIdHints": Array [],
+      "auxiliaryChunkNames": Array [],
+      "auxiliaryChunks": Array [],
+      "chunkIdHints": Array [],
       "chunkNames": Array [
         "main",
       ],
@@ -1340,6 +1362,7 @@ Object {
       "type": "chunk",
     },
   ],
+  "filteredAssets": undefined,
   "filteredModules": undefined,
   "modules": Array [
     Object {
@@ -1384,6 +1407,10 @@ exports[`statsAPI statsAPI/with-query should output stats with query 1`] = `
 Object {
   "assets": Array [
     Object {
+      "auxiliaryChunkIdHints": Array [],
+      "auxiliaryChunkNames": Array [],
+      "auxiliaryChunks": Array [],
+      "chunkIdHints": Array [],
       "chunkNames": Array [
         "main",
       ],
@@ -1391,6 +1418,7 @@ Object {
         "909",
       ],
       "emitted": true,
+      "filteredRelated": 0,
       "info": Object {
         "chunkHash": Array [],
         "contentHash": Array [],
@@ -1402,6 +1430,7 @@ Object {
         "related": Object {},
       },
       "name": "main.js",
+      "related": Array [],
       "size": 346,
       "type": "asset",
     },
@@ -1734,12 +1763,14 @@ exports.c = require(\\"./c?c=3\\");
       "chunks": Array [
         "909",
       ],
+      "filteredAssets": 0,
       "name": "main",
     },
   },
   "env": undefined,
   "errors": Array [],
   "errorsCount": 0,
+  "filteredAssets": undefined,
   "filteredModules": undefined,
   "hash": "38e04132ef7ebc852f6a",
   "modules": Array [
@@ -2024,6 +2055,7 @@ exports.c = require(\\"./c?c=3\\");
       "chunks": Array [
         "909",
       ],
+      "filteredAssets": 0,
       "name": "main",
     },
   },

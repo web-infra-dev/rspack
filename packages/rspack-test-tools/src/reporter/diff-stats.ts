@@ -51,7 +51,7 @@ export class DiffStatsReporter
 		}
 		const current = this.summary.get(id)!;
 
-		for (let item of data) {
+		for (const item of data) {
 			if (item.type === ECompareResultType.Missing) continue;
 			const moduleType: TModuleTypeId = item.name.startsWith("webpack/runtime")
 				? "runtime"
@@ -88,10 +88,10 @@ export class DiffStatsReporter
 	}
 	async output() {
 		const chunks: string[] = [];
-		for (let [id, summary] of this.summary.entries()) {
+		for (const [id, summary] of this.summary.entries()) {
 			chunks.push(this.stringifySummary(id, summary));
 		}
-		for (let id of this.failed.values()) {
+		for (const id of this.failed.values()) {
 			chunks.push(`### ${id}\n\n> Failed\n\n`);
 		}
 		const output = [
@@ -104,14 +104,14 @@ export class DiffStatsReporter
 	}
 	private stringifySummary(id: string, summary: TCaseSummary) {
 		let output = `### ${id}\n\n`;
-		for (let moduleType of ["runtime", "normal"] as TModuleTypeId[]) {
+		for (const moduleType of ["runtime", "normal"] as TModuleTypeId[]) {
 			const csv: string[] = [];
 			csv.push(
 				`${
 					moduleType.charAt(0).toUpperCase() + moduleType.slice(1)
 				} Modules,Rspack Only,Common,Webpack Only,Common Percent`
 			);
-			for (let dimen of [
+			for (const dimen of [
 				"modules",
 				"lines",
 				"lines-in-common"
@@ -143,14 +143,14 @@ export class DiffStatsReporter
 		return output;
 	}
 	private createSummary(): TCaseSummary {
-		let result: Partial<TCaseSummary> = {};
-		for (let i of [
+		const result: Partial<TCaseSummary> = {};
+		for (const i of [
 			ECompilerType.Rspack,
 			ECompilerType.Webpack,
 			"common"
 		] as TCompilerTypeId[]) {
-			for (let j of ["runtime", "normal"] as TModuleTypeId[]) {
-				for (let k of [
+			for (const j of ["runtime", "normal"] as TModuleTypeId[]) {
+				for (const k of [
 					"modules",
 					"lines",
 					"lines-in-common"

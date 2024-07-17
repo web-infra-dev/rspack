@@ -20,7 +20,7 @@ export interface ApiMetaProps {
 }
 
 export function ApiMeta(props: ApiMetaProps) {
-  let lang = useLang();
+  const lang = useLang();
   const href = `/${lang}/misc/planning/future`;
   const tagStyle = props.inline ? styles.tagInline : styles.tag;
   const wrapperStyle = props.inline ? styles.wrapperInline : styles.wrapper;

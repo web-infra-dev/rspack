@@ -218,16 +218,16 @@ This test uses `rspack-test-tools/tests/fixtures` as the source code for the bui
 
 ```js {8-11} title="{case}.js"
 type TStatsAPICaseConfig = {
-  description: string; // Case description
-  options?: (context: ITestContext) => TCompilerOptions<T>; // Case build configuration
-  build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>; // Case build method
-  check?: (stats: TCompilerStats<T>, compiler: TCompiler<T>) => Promise<void>; // Function to check the stats for the case
-}
+  description: string, // Case description
+  options?: (context: ITestContext) => TCompilerOptions<T>, // Case build configuration
+  build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>, // Case build method
+  check?: (stats: TCompilerStats<T>, compiler: TCompiler<T>) => Promise<void>, // Function to check the stats for the case
+};
 
 /** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
   // ...
-}
+};
 ```
 
 ## Diagnostic
@@ -254,7 +254,7 @@ This test case is similar to a typical rspack project, but it will add a `test.c
 
 ```javascript {5-8} title="test.config.js"
 type THashCaseConfig = {
-  validate?: (stats: TCompilerStats<T>) => void;
+  validate?: (stats: TCompilerStats<T>) => void,
 };
 
 /** @type {import('../..').THashCaseConfig} */
@@ -280,7 +280,11 @@ interface TCompilerCaseConfig {
   options?: (context: ITestContext) => TCompilerOptions<T>; // Test case build configuration
   compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>; // How the compiler is created for the test case
   build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>; // Build method for the test case
-  check?: (context: ITestContext, compiler: TCompiler<T>, stats: TCompilerStats<T>) => Promise<void>; // Check function for the test case
+  check?: (
+    context: ITestContext,
+    compiler: TCompiler<T>,
+    stats: TCompilerStats<T>,
+  ) => Promise<void>; // Check function for the test case
 }
 
 /** @type {import('../..').TCompilerCaseConfig} */
@@ -307,7 +311,10 @@ interface TDefaultsCaseConfig {
   description: string; // Description of the test case
   cwd?: string; // process.cwd for generating the build configuration of the test case, default is the `rspack-test-tools` directory
   options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>; // Test case build configuration
-  diff: (diff: jest.JestMatchers<Diff>, defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>) => Promise<void>; // Differences from the default configuration
+  diff: (
+    diff: jest.JestMatchers<Diff>,
+    defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>,
+  ) => Promise<void>; // Differences from the default configuration
 }
 
 /** @type {import('../..').TDefaultsCaseConfig} */
@@ -332,7 +339,10 @@ This test uses `rspack-test-tools/tests/fixtures` as the source code for the bui
 ```javascript {8-11} title="{case}.js"
 interface TErrorCaseConfig {
   description: string; // Description of the test case
-  options?: (options: TCompilerOptions<T>, context: ITestContext) => TCompilerOptions<T>; // Test case configuration
+  options?: (
+    options: TCompilerOptions<T>,
+    context: ITestContext,
+  ) => TCompilerOptions<T>; // Test case configuration
   build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>; // Test case build method
   check?: (stats: TStatsDiagnostics) => Promise<void>; // Function to check the test case
 }
@@ -359,7 +369,10 @@ This test uses `rspack-test-tools/tests/fixtures` as the source code for the bui
 ```javascript {8-11} title="{case}/test.js"
 interface THookCaseConfig {
   description: string; // Description of the test case
-  options?: (options: TCompilerOptions<T>, context: ITestContext) => TCompilerOptions<T>; // Test case configuration
+  options?: (
+    options: TCompilerOptions<T>,
+    context: ITestContext,
+  ) => TCompilerOptions<T>; // Test case configuration
   compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>; // Callback after creating the compiler instance
   check?: (context: ITestContext) => Promise<void>; // Callback after the build is completed
 }

@@ -264,9 +264,9 @@ impl From<&str> for ModuleType {
     match value {
       "mjs" => Self::JsEsm,
       "cjs" => Self::JsDynamic,
-      "js" | "javascript" | "js/auto" | "javascript/auto" => Self::JsAuto,
-      "js/dynamic" | "javascript/dynamic" => Self::JsDynamic,
-      "js/esm" | "javascript/esm" => Self::JsEsm,
+      "javascript/auto" => Self::JsAuto,
+      "javascript/dynamic" => Self::JsDynamic,
+      "javascript/esm" => Self::JsEsm,
 
       "css" => Self::Css,
       "css/module" => Self::CssModule,

@@ -50,7 +50,7 @@ RSPACK_PROFILE=TRACE=layer=logger rspack build
 
 ### Nodejs Profiling
 
-如果我们发现性能瓶颈在JS端（比如js loader），那么我们需要进一步分析 js 端，可以使用 Nodejs Profiling 来分析。例如
+如果我们发现性能瓶颈在 JS 端（比如 js loader），那么我们需要进一步分析 js 端，可以使用 Nodejs Profiling 来分析。例如
 
 ```bash
 node --cpu-prof {rspack_bin_path} -c rspack.config.js

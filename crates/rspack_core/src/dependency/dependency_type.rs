@@ -5,7 +5,7 @@ use crate::ContextTypePrefix;
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
-#[derive(Default, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum DependencyType {
   #[default]
   Unknown,
@@ -96,7 +96,7 @@ pub enum DependencyType {
   LoaderImport,
   LazyImport,
   ModuleDecorator,
-  Custom(Box<str>), // TODO it will increase large layout size
+  Custom(&'static str),
 }
 
 impl DependencyType {

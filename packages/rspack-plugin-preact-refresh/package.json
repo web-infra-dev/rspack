@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-preact-refresh",
-  "version": "1.0.0-alpha.3",
+  "version": "1.0.0-alpha.4",
   "license": "MIT",
   "description": "Preact refresh plugin for rspack",
   "main": "dist/index.js",
@@ -17,7 +17,7 @@
     "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -b -w",
     "test": "cross-env RSPACK_HOT_TEST=true jest --runInBand -u --colors",
-    "api-extractor": "api-extractor run --verbose", 
+    "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },
   "files": [
@@ -41,6 +41,7 @@
     "@rspack/core": "workspace:*",
     "@rspack/test-tools": "workspace:*",
     "@swc/plugin-prefresh": "^2.0.7",
+    "@swc/helpers": "0.5.8",
     "preact": "^10.15.1"
   },
   "peerDependencies": {

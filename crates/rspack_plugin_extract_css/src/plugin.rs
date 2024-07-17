@@ -431,7 +431,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  compilation.set_dependency_factory(DEPENDENCY_TYPE.clone(), Arc::new(CssModuleFactory));
+  compilation.set_dependency_factory(*DEPENDENCY_TYPE, Arc::new(CssModuleFactory));
   Ok(())
 }
 

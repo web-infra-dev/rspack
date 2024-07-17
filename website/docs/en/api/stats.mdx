@@ -68,10 +68,18 @@ type StatsAsset = {
   size: number;
   // Indicates whether or not the asset made it to the `output` directory
   emitted: boolean;
-  // The chunk IDs this asset contains
+  // The chunk IDs this asset related
   chunks: Array<string | undefined | null>;
-  // The chunks this asset contains
+  // The chunks this asset related
   chunkNames: Array<string>;
+  // The chunk idHints this asset related
+  chunkIdHints: Array<string>;
+  // The chunk IDs this auxiliary asset related
+  auxiliaryChunks: Array<string | undefined | null>;
+  // The chunks this auxiliary asset related
+  auxiliaryChunkNames: Array<string>;
+  // The chunk idHints this auxiliary asset related
+  auxiliaryChunkIdHints: Array<string>;
   info: {
     // whether the asset is minimized
     minimized: boolean;
@@ -89,9 +97,9 @@ type StatsAsset = {
     chunkHash: Array<string>;
     // the value(s) of the content hash used for this asset
     contentHash: Array<string>;
-    // object of pointers to other assets, keyed by type of relation (only points from parent to child)
-    related: Record<string | string[]>;
   };
+  // related assets, like source-map
+  related: StatsAsset[];
 };
 ```
 
@@ -296,11 +304,42 @@ Each error or warning object represents an error/warning threw during the build 
 type StatsError = {
   // Visual message of the error/warning
   message: string;
+  // Related source file
+  file?: string;
+  // Detail info of the error/warning
+  details?: string;
+  // Stack info of the error/warning
+  stack?: string;
+
   // Unique identifier of the module where the error/warning occurs
   moduleIdentifier?: string;
   // Relative path of the module where the error/warning occurs
   moduleName?: string;
   // ID of the module where the error/warning occurs
   moduleId?: string;
+  // Module import trace from entry module
+  moduleTrace: Array<{
+    // parent module
+    origin: {
+      identifier: string;
+      name?: string;
+      id?: string;
+    };
+    // imported module
+    module: {
+      identifier: string;
+      name?: string;
+      id?: string;
+    };
+  }>;
+
+  // ID of the related chunk
+  chunkId?: string;
+  // Name of the related chunk
+  chunkName?: string;
+  // Whether the related chunk is an entry chunk
+  chunkEntry?: boolean;
+  // Whether the related chunk is an initial chunk
+  chunkInitial?: boolean;
 };
 ```

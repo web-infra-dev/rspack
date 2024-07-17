@@ -1,8 +1,3 @@
-/* It seems tailwind have style `display: list-style` by default */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 summary {
   display: block;
 }
@@ -13,16 +8,26 @@ summary {
   --rp-c-brand-darker: #c26c1d;
   --rp-c-brand-light: #f2a65a;
   --rp-c-brand-lighter: #f2a65a;
+  --rp-c-link: var(--rp-c-brand);
   --rp-c-brand-tint: rgba(250, 192, 61, 0.15);
   --rp-code-title-bg: rgba(250, 192, 61, 0.15);
   --rp-code-block-bg: rgba(214, 188, 70, 0.05);
   --rp-custom-block-info-bg: rgba(250, 192, 61, 0.05);
   --rp-custom-block-info-border: rgba(250, 192, 61, 0.5);
+  --rp-home-hero-name-background: linear-gradient(
+    120deg,
+    var(--rp-c-brand),
+    hsl(32.71deg 100% 70%)
+  );
 }
 
 .dark {
   --rp-code-title-bg: rgba(128, 128, 128, 0.2);
   --rp-code-block-bg: #242424;
+}
+
+.rspress-home-hero-text {
+  max-width: none;
 }
 
 button:focus,

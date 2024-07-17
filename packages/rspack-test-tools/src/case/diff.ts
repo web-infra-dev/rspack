@@ -65,7 +65,7 @@ export function createDiffCase(name: string, src: string, dist: string) {
 				compareMap.clear();
 				await tester.check(env);
 			});
-			for (let file of caseConfig.files!) {
+			for (const file of caseConfig.files!) {
 				describe(`Comparing "${file}"`, () => {
 					let moduleResults: TModuleCompareResult[] = [];
 					let runtimeResults: TModuleCompareResult[] = [];
@@ -137,7 +137,7 @@ function createDiffProcessor(config: IDiffProcessorOptions) {
 
 function checkBundleFiles(name: string, dist: string, files: string[]) {
 	describe(`Checking ${name} dist files`, () => {
-		for (let file of files) {
+		for (const file of files) {
 			it(`${name}: ${file} should be generated`, () => {
 				expect(fs.existsSync(path.join(dist, file))).toBeTruthy();
 			});
@@ -171,8 +171,8 @@ function checkCompareResults(
 					.map(i => i.name)
 			).toEqual([]);
 		});
-		it(`all modules should be the same`, () => {
-			for (let result of getResults().filter(
+		it("all modules should be the same", () => {
+			for (const result of getResults().filter(
 				i => i.type === ECompareResultType.Different
 			)) {
 				console.log(`${result.name}:\n${result.detail}`);

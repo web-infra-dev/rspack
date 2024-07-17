@@ -36,7 +36,7 @@ export default class FakeDocument {
 
 	_onElementRemoved(element) {
 		const type = element._type;
-		let list = this._elementsByTagName.get(type);
+		const list = this._elementsByTagName.get(type);
 		const idx = list.indexOf(element);
 		list.splice(idx, 1);
 	}

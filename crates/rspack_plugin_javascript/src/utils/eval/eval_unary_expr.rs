@@ -4,7 +4,7 @@ use swc_core::ecma::ast::{Lit, UnaryExpr, UnaryOp};
 
 use super::BasicEvaluatedExpression;
 use crate::parser_plugin::JavascriptParserPlugin;
-use crate::visitors::{CallHooksName, JavascriptParser};
+use crate::visitors::{CallHooksName, JavascriptParser, RootName};
 
 #[inline]
 fn eval_typeof(
@@ -21,9 +21,41 @@ fn eval_typeof(
     })
   {
     return Some(res);
+  } else if let Some(meta_prop) = expr.arg.as_meta_prop()
+    && let Some(res) = meta_prop.get_root_name().and_then(|name| {
+      name.call_hooks_name(parser, |parser, for_name| {
+        parser
+          .plugin_drive
+          .clone()
+          .evaluate_typeof(parser, expr, for_name)
+      })
+    })
+  {
+    return Some(res);
+  } else if let Some(member_expr) = expr.arg.as_member()
+    && let Some(res) = member_expr.call_hooks_name(parser, |parser, for_name| {
+      parser
+        .plugin_drive
+        .clone()
+        .evaluate_typeof(parser, expr, for_name)
+    })
+  {
+    return Some(res);
+  } else if let Some(chain_expr) = expr.arg.as_opt_chain()
+    && let Some(res) = chain_expr.call_hooks_name(parser, |parser, for_name| {
+      parser
+        .plugin_drive
+        .clone()
+        .evaluate_typeof(parser, expr, for_name)
+    })
+  {
+    return Some(res);
+  } else if expr.arg.as_fn_expr().is_some() {
+    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi.0);
+    res.set_string("function".to_string());
+    return Some(res);
   }
 
-  // TODO: if let `MetaProperty`, `MemberExpression` ...
   let arg = parser.evaluate_expression(&expr.arg);
   if arg.is_unknown() {
     let arg = expr.arg.unwrap_parens();

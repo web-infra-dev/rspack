@@ -6,6 +6,7 @@ use regex::Regex;
 use rspack_core::parse_resource;
 use rspack_error::Severity;
 use rspack_util::json_stringify;
+use swc_core::ecma::ast::Expr;
 
 use super::create_traceable_error;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
@@ -15,6 +16,7 @@ const DEFAULT_WRAPPED_CONTEXT_REGEXP: &str = ".*";
 
 pub fn create_context_dependency(
   param: &BasicEvaluatedExpression,
+  expr: &Expr,
   parser: &mut crate::visitors::JavascriptParser,
 ) -> ContextModuleScanResult {
   if param.is_template_string() {
@@ -93,6 +95,12 @@ pub fn create_context_dependency(
       ));
     }
 
+    // Webpack will walk only the expression parts of the template string
+    // but we walk the whole template string, which allows us don't need to implement
+    // setExpression for BasicEvaluatedExpression (will introduce lots of lifetime)
+    // This may have slight performance difference in some cases
+    parser.walk_expression(expr);
+
     ContextModuleScanResult {
       context,
       reg,
@@ -161,6 +169,12 @@ pub fn create_context_dependency(
       ));
     }
 
+    // Webpack will walk only the dynamic parts of evaluated expression
+    // but we walk the whole expression, which allows us don't need to implement
+    // setExpression for BasicEvaluatedExpression (will introduce lots of lifetime)
+    // This may have slight performance difference in some cases
+    parser.walk_expression(expr);
+
     ContextModuleScanResult {
       context,
       reg,
@@ -168,7 +182,6 @@ pub fn create_context_dependency(
       fragment,
       replaces,
     }
-    // TODO: handle `param.wrappedInnerExpressions`
   } else {
     if parser.javascript_options.expr_context_critical {
       let range = param.range();
@@ -182,6 +195,9 @@ pub fn create_context_dependency(
         .with_severity(Severity::Warn),
       ));
     }
+
+    parser.walk_expression(expr);
+
     ContextModuleScanResult {
       context: String::from("."),
       reg: String::new(),

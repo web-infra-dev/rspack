@@ -30,7 +30,7 @@ export default class ExecuteModulePlugin {
 							context.__webpack_require__
 						);
 					} catch (e: any) {
-						let err = e instanceof Error ? e : new Error(e);
+						const err = e instanceof Error ? e : new Error(e);
 
 						err.stack += printGeneratedCodeForStack(moduleObject.id, source);
 						throw err;

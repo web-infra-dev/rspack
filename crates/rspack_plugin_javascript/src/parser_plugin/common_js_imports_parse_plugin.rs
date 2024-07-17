@@ -19,12 +19,13 @@ use crate::visitors::{extract_require_call_info, is_require_call_start};
 fn create_commonjs_require_context_dependency(
   parser: &mut JavascriptParser,
   param: &BasicEvaluatedExpression,
+  expr: &Expr,
   callee_start: u32,
   callee_end: u32,
   args_end: u32,
   span: Option<ErrorSpan>,
 ) -> CommonJsRequireContextDependency {
-  let result = create_context_dependency(param, parser);
+  let result = create_context_dependency(param, expr, parser);
   let options = ContextOptions {
     mode: ContextMode::Sync,
     recursive: true,
@@ -136,14 +137,13 @@ impl CommonJsImportsParserPlugin {
     let dep = create_commonjs_require_context_dependency(
       parser,
       param,
+      argument_expr,
       call_expr.callee.span().real_lo(),
       call_expr.callee.span().real_hi(),
       call_expr.span.real_hi(),
       Some(call_expr.span.into()),
     );
     parser.dependencies.push(Box::new(dep));
-    // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
-    parser.walk_expression(argument_expr);
     Some(true)
   }
 

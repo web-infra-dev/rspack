@@ -66,10 +66,22 @@ type StatsAsset = {
   name: string;
   // 产物的文件大小（单位为字节）
   size: number;
-  // 产物文件包含的 chunk 的 ID 列表
+  // 产物文件是否生成到 `output` 目录中
+  emitted: boolean;
+  // 产物文件关联的 chunk 的 ID 列表
   chunks: Array<string | undefined | null>;
-  // 产物文件包含的 chunk 的名称列表
+  // 产物文件关联的 chunk 的名称列表
   chunkNames: Array<string>;
+  // 产物文件关联的 chunk 的 idHint 列表
+  chunkIdHInts: Array<string>;
+  // 作为附属产物文件关联的 chunk 的 ID 列表
+  auxiliaryChunks: Array<string | undefined | null>;
+  // 作为附属产物文件关联的 chunk 的名称列表
+  auxiliaryChunkNames: Array<string>;
+  // 作为附属产物文件关联的 chunk 的 idHint 列表
+  auxiliaryChunkIdHints: Array<string>;
+
+  // 产物的信息
   info: {
     // 该产物是否经过代码压缩
     minimized: boolean;
@@ -88,11 +100,9 @@ type StatsAsset = {
     chunkHash: Array<string>;
     // 产物的内容哈希值
     contentHash: Array<string>;
-    // 相关联的产物，如 source-map
-    related: Record<string | string[]>;
   };
-  // 产物文件是否生成到 `output` 目录中
-  emitted: boolean;
+  // 相关联的产物，如 source-map
+  related: StatsAsset[];
 };
 ```
 
@@ -296,11 +306,29 @@ type StatsChunkGroup = {
 type StatsError = {
   // 错误/警告的可视化提示信息
   message: string;
+  // 相关资源文件
+  file?: string;
+  // 错误/警告的明细信息
+  details?: string;
+  // 错误/警告的栈信息
+  stack?: string;
+
   // 发生错误/警告的模块唯一标识
   moduleIdentifier?: string;
   // 发生错误/警告的模块相对路径
   moduleName?: string;
   // 发生错误/警告的模块 ID
   moduleId?: string;
+  // 错误/警告的模块引用路径
+  moduleTrace: Array<JsStatsModuleTrace>;
+
+  // 若在 chunk 生成时错误/警告，关联的 chunk 名称
+  chunkName?: string;
+  // 若在 chunk 生成时错误/警告，关联的 chunk 是否为 entry
+  chunkEntry?: boolean;
+  // 若在 chunk 生成时错误/警告，关联的 chunk 是否为 initial
+  chunkInitial?: boolean;
+  // 若在 chunk 生成时错误/警告，关联的 chunk 是否为 initial
+  chunkId?: string;
 };
 ```

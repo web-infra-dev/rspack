@@ -1,7 +1,7 @@
 (() => { // webpackBootstrap
 "use strict";
 var __webpack_modules__ = ({
-"./style.css?10d9": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./style.css?54f4": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
@@ -283,10 +283,10 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(
 /************************************************************************/
 var __webpack_exports__ = {};
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?10d9");
+/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?54f4");
 
 
-__webpack_require__.e(/* import() | async */ "async").then(__webpack_require__.bind(__webpack_require__, "./async.css?3f51"));
+__webpack_require__.e(/* import() | async */ "async").then(__webpack_require__.bind(__webpack_require__, "./async.css?3883"));
 
 })()
 ;

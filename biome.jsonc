@@ -38,6 +38,10 @@
 				"useArrowFunction": "error"
 			},
 			"style": {
+				"noUnusedTemplateLiteral": "error",
+				"noNonNullAssertion": "off",
+				"useNumberNamespace": "error",
+				"useConst": "error",
 				"useImportType": "error",
 				"useExportType": "error"
 			}

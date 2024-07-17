@@ -547,7 +547,7 @@ export interface JsResourceData {
   /** Resource with absolute path, query and fragment */
   resource: string
   /** Absolute resource path only */
-  path: string
+  path?: string
   /** Resource query with `?` prefix */
   query?: string
   /** Resource fragment with `#` prefix */
@@ -587,11 +587,15 @@ export interface JsRuntimeModuleArg {
 export interface JsStatsAsset {
   type: string
   name: string
-  size: number
-  chunks: Array<string | undefined | null>
-  chunkNames: Array<string>
   info: JsStatsAssetInfo
+  size: number
   emitted: boolean
+  chunkNames: Array<string>
+  chunkIdHints: Array<string>
+  chunks: Array<string | undefined | null>
+  auxiliaryChunkNames: Array<string>
+  auxiliaryChunkIdHints: Array<string>
+  auxiliaryChunks: Array<string | undefined | null>
 }
 
 export interface JsStatsAssetInfo {

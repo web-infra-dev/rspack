@@ -218,6 +218,34 @@ impl BasicEvaluatedExpression {
     }
   }
 
+  pub fn as_number(&self) -> Option<f64> {
+    if self.is_bool() {
+      Some(if self.bool() { 1_f64 } else { 0_f64 })
+    } else if self.is_null() {
+      Some(0_f64)
+    } else if self.is_string() {
+      self.string().parse::<f64>().ok()
+    } else if self.is_number() {
+      Some(self.number())
+    } else {
+      None
+    }
+  }
+
+  pub fn as_int(&self) -> Option<i32> {
+    if self.is_bool() {
+      Some(if self.bool() { 1_i32 } else { 0_i32 })
+    } else if self.is_null() {
+      Some(0_i32)
+    } else if self.is_string() {
+      self.string().parse::<i32>().ok()
+    } else if self.is_number() {
+      Some(self.number() as i32)
+    } else {
+      None
+    }
+  }
+
   pub fn as_string(&self) -> Option<std::string::String> {
     if self.is_bool() {
       Some(self.bool().to_string())
@@ -410,7 +438,7 @@ impl BasicEvaluatedExpression {
   pub fn set_bool(&mut self, boolean: Boolean) {
     self.ty = Ty::Boolean;
     self.boolean = Some(boolean);
-    self.side_effects = true
+    self.side_effects = false
   }
 
   pub fn set_range(&mut self, start: u32, end: u32) {
@@ -555,6 +583,12 @@ impl BasicEvaluatedExpression {
 pub fn evaluate_to_string(value: String, start: u32, end: u32) -> BasicEvaluatedExpression {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
   eval.set_string(value);
+  eval
+}
+
+pub fn evaluate_to_number(value: f64, start: u32, end: u32) -> BasicEvaluatedExpression {
+  let mut eval = BasicEvaluatedExpression::with_range(start, end);
+  eval.set_number(value);
   eval
 }
 

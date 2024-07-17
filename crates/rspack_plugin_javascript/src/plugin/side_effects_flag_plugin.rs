@@ -77,7 +77,7 @@ fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
   } else {
     String::from("**/") + trim_start
   };
-  glob_match::glob_match(&normalized_glob, string.trim_start_matches("./"))
+  fast_glob::glob_match_with_brace(&normalized_glob, string.trim_start_matches("./"))
 }
 
 pub struct SideEffectsFlagPluginVisitor<'a> {
@@ -636,7 +636,9 @@ async fn nmf_module(
     return Ok(());
   }
   let resource_data = &create_data.resource_resolve_data;
-  let resource_path = &resource_data.resource_path;
+  let Some(resource_path) = &resource_data.resource_path else {
+    return Ok(());
+  };
   let Some(description) = resource_data.resource_description.as_ref() else {
     return Ok(());
   };
@@ -933,6 +935,10 @@ mod test_side_effects {
     assert!(!get_side_effects_from_package_json_helper(
       vec!["./src/**/*.js", "./dirty.js"],
       "./clean.js"
+    ));
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./src/**/*/z.js"],
+      "./src/x/y/z.js"
     ));
   }
 }

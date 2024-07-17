@@ -1,6 +1,7 @@
 import { useLang } from 'rspress/runtime';
 import { Link } from 'rspress/theme';
 import { useI18n } from '../../i18n/index';
+import styles from './index.module.scss';
 
 function useFooterData() {
   const t = useI18n();
@@ -99,10 +100,10 @@ export function HomeFooter() {
   const footerData = useFooterData();
   return (
     <div
-      className="flex flex-col border-t items-center mt-12"
+      className="flex flex-col border-t items-center mt-24 hidden sm:flex"
       style={{ borderColor: 'var(--rp-c-divider-light)' }}
     >
-      <div className="pt-8 pb-4 w-full justify-around max-w-6xl hidden sm:flex">
+      <div className="pt-12 pb-4 w-full justify-around max-w-6xl flex">
         {footerData.map(item => (
           <div key={item.title} className="flex flex-col items-start">
             <h2 className="font-bold my-4 text-lg">{item.title}</h2>
@@ -110,18 +111,15 @@ export function HomeFooter() {
               {item.items.map(subItem => (
                 <li key={subItem.title}>
                   <Link href={subItem.link}>
-                    <span className="font-normal">{subItem.title}</span>
+                    <span className={`font-normal ${styles.text}`}>
+                      {subItem.title}
+                    </span>
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
         ))}
-      </div>
-      <div className="flex flex-center">
-        <h2 className="font-normal text-sm text-gray-400 dark:text-light-600 pt-6 pb-10">
-          © 2022-present ByteDance Inc. All Rights Reserved.
-        </h2>
       </div>
     </div>
   );

@@ -54,7 +54,7 @@ export function describeByWalk(
 						path.join(testId, caseName).split(".").shift()!
 					);
 					describeFn(name, () => {
-						let source = path.join(sourceBase, caseName);
+						const source = path.join(sourceBase, caseName);
 						let dist = "";
 						if (absoluteDist) {
 							dist = path.join(distBase, caseName);

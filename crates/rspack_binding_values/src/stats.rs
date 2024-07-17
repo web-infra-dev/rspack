@@ -251,11 +251,15 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
 pub struct JsStatsAsset {
   pub r#type: &'static str,
   pub name: String,
-  pub size: f64,
-  pub chunks: Vec<Option<String>>,
-  pub chunk_names: Vec<String>,
   pub info: JsStatsAssetInfo,
+  pub size: f64,
   pub emitted: bool,
+  pub chunk_names: Vec<String>,
+  pub chunk_id_hints: Vec<String>,
+  pub chunks: Vec<Option<String>>,
+  pub auxiliary_chunk_names: Vec<String>,
+  pub auxiliary_chunk_id_hints: Vec<String>,
+  pub auxiliary_chunks: Vec<Option<String>>,
 }
 
 impl From<rspack_core::StatsAsset> for JsStatsAsset {
@@ -268,6 +272,10 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
       chunk_names: stats.chunk_names,
       info: stats.info.into(),
       emitted: stats.emitted,
+      chunk_id_hints: stats.chunk_id_hints,
+      auxiliary_chunk_id_hints: stats.auxiliary_chunk_id_hints,
+      auxiliary_chunks: stats.auxiliary_chunks,
+      auxiliary_chunk_names: stats.auxiliary_chunk_names,
     }
   }
 }

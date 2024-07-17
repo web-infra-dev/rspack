@@ -8,7 +8,7 @@ module.exports = {
 			{
 				test: /\.css$/,
 				use: [CssExtractRspackPlugin.loader, "css-loader"],
-				type: 'javascript'
+				type: 'javascript/auto'
 			}
 		]
 	},
