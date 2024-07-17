@@ -57,7 +57,7 @@ const isValidId = (id: any) => {
 	return typeof id === "number" || id;
 };
 
-const moreCount = (list: any[] | undefined, count: Number) => {
+const moreCount = (list: any[] | null | undefined, count: Number) => {
 	return list && list.length > 0 ? `+ ${count}` : `${count}`;
 };
 

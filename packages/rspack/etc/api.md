@@ -4326,7 +4326,7 @@ interface KnownNormalizedStatsOptions {
 type KnownStatsAsset = Omit<binding.JsStatsAsset, "info">;
 
 // @public (undocumented)
-type KnownStatsChunk = Omit<binding.JsStatsChunk, "sizes"> & {
+type KnownStatsChunk = Omit<Writable<binding.JsStatsChunk>, "sizes"> & {
     sizes: Record<string, number>;
 };
 
@@ -4383,7 +4383,7 @@ type KnownStatsLoggingEntry = {
 };
 
 // @public (undocumented)
-type KnownStatsModule = Omit<binding.JsStatsModule, "usedExports" | "providedExports" | "optimizationBailout" | "sizes"> & {
+type KnownStatsModule = Omit<Writable<binding.JsStatsModule>, "usedExports" | "providedExports" | "optimizationBailout" | "sizes"> & {
     profile?: StatsProfile;
     usedExports?: null | string[] | boolean;
     providedExports?: null | string[];
@@ -12762,7 +12762,7 @@ type StatsLoggingEntry = KnownStatsLoggingEntry & Record<string, any>;
 export type StatsModule = KnownStatsModule & Record<string, any>;
 
 // @public (undocumented)
-type StatsModuleReason = binding.JsStatsModuleReason & Record<string, any>;
+type StatsModuleReason = Writable<binding.JsStatsModuleReason> & Record<string, any>;
 
 // @public (undocumented)
 export type StatsOptions = z.infer<typeof statsOptions>;
@@ -13906,6 +13906,11 @@ export type WorkerPublicPath = z.infer<typeof workerPublicPath>;
 
 // @public (undocumented)
 const workerPublicPath: z.ZodString;
+
+// @public (undocumented)
+type Writable<T> = {
+    -readonly [K in keyof T]: T[K];
+};
 
 // @public (undocumented)
 namespace z {
