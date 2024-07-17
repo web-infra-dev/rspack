@@ -1136,14 +1136,14 @@ Rspack compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for preset-minimal-simple 1`] = `
-"asset main.js 36 bytes [emitted] (name: main)
+"1 asset
 1 module
 Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for preset-mixed-array 1`] = `
 "minimal:
-  asset minimal.js 44 bytes [emitted] (name: main)
+  1 asset
   1 module
   minimal (Rspack x.x.x) compiled successfully in X s
 
