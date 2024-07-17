@@ -107,6 +107,7 @@ Inline comments to make features work. By adding comments to the import, we can 
 import(
   /* webpackChunkName: "my-chunk-name" */
   /* webpackMode: "lazy" */
+  /* webpackExports: ["default", "named"] */
   /* webpackFetchPriority: "high" */
   'module'
 );
@@ -199,6 +200,14 @@ A regular expression that will be matched against during import resolution. Any 
 :::info
 Note that `webpackInclude` and `webpackExclude` options do not interfere with the prefix. eg: `./locale`.
 :::
+
+##### webpackExports
+
+<ApiMeta addedVersion="1.0.0" />
+
+- **Type:**: `string | string[]`
+
+Tells webpack to only bundle the specified exports of a dynamically `import()`ed module. It can decrease the output size of a chunk.
 
 ## CommonJS
 
