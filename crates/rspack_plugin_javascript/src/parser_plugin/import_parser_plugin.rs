@@ -5,6 +5,7 @@ use rspack_core::{ChunkGroupOptions, DynamicImportFetchPriority};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Callee};
+use swc_core::ecma::atoms::Atom;
 
 use super::JavascriptParserPlugin;
 use crate::dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency};
@@ -70,6 +71,11 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .or(dynamic_import_fetch_priority);
     let include = magic_comment_options.get_webpack_include();
     let exclude = magic_comment_options.get_webpack_exclude();
+    let exports = magic_comment_options.get_webpack_exports().map(|x| {
+      x.iter()
+        .map(|name| Atom::from(name.to_owned()))
+        .collect::<Vec<_>>()
+    });
 
     let param = parser.evaluate_expression(dyn_imported.expr.as_ref());
 
@@ -81,8 +87,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           node.span.real_hi(),
           param.string().as_str().into(),
           Some(span),
-          // TODO scan dynamic import referenced exports
-          None,
+          exports,
         );
         parser.dependencies.push(Box::new(dep));
         return Some(true);
@@ -92,8 +97,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         node.span.real_hi(),
         param.string().as_str().into(),
         Some(span),
-        // TODO scan dynamic import referenced exports
-        None,
+        exports,
       ));
       let mut block = AsyncDependenciesBlock::new(
         *parser.module_identifier,

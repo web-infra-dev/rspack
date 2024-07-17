@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Captures;
 use rspack_error::miette::{Diagnostic, Severity};
@@ -20,6 +21,7 @@ pub enum WebpackComment {
   ExcludeRegexp,
   ExcludeFlags,
   Mode,
+  Exports,
 }
 
 #[derive(Debug)]
@@ -95,6 +97,13 @@ impl WebpackCommentMap {
       })
     })
   }
+
+  pub fn get_webpack_exports(&self) -> Option<Vec<String>> {
+    self
+      .0
+      .get(&WebpackComment::Exports)
+      .map(|expr| expr.split(',').map(|x| x.to_owned()).collect_vec())
+  }
 }
 
 fn add_magic_comment_warning(
@@ -128,12 +137,15 @@ fn add_magic_comment_warning(
 // _4 for number
 // _5 for true/false
 // _6 for regexp
-// _7 for identifier
-// TODO: regexp/array
+// _7 for array
+// _8 for identifier
 static WEBPACK_MAGIC_COMMENT_REGEXP: Lazy<regex::Regex> = Lazy::new(|| {
-  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*("(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false)|(?P<_6>/([^,]+)/([dgimsuvy]*))|(?P<_7>([^,]+)))"#)
+  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*("(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false)|(?P<_6>/([^,]+)/([dgimsuvy]*))|\[(?P<_7>[^\]]+)|(?P<_8>([^,]+)))"#)
     .expect("invalid regex")
 });
+
+static WEBAPCK_EXPORT_NAME_REGEXP: Lazy<regex::Regex> =
+  Lazy::new(|| regex::Regex::new(r#"^["`'](\w+)["`']$"#).expect("invalid regex"));
 
 pub fn try_extract_webpack_magic_comment(
   source_file: &SourceFile,
@@ -337,9 +349,43 @@ fn analyze_comments(
               error_span,
             );
           }
-          _ => {
-            // TODO: other magic comment
+          "webpackExports" => {
+            if let Some(item_value_match) = captures
+              .name("_1")
+              .or(captures.name("_2"))
+              .or(captures.name("_3"))
+            {
+              result.insert(
+                WebpackComment::Exports,
+                item_value_match.as_str().trim().to_string(),
+              );
+              return;
+            } else if let Some(item_value_match) = captures.name("_7") {
+              if let Some(exports) =
+                item_value_match
+                  .as_str()
+                  .split(',')
+                  .try_fold("".to_string(), |acc, item| {
+                    WEBAPCK_EXPORT_NAME_REGEXP
+                      .captures(item.trim())
+                      .and_then(|matched| matched.get(1).map(|x| x.as_str()))
+                      .map(|name| format!("{acc},{name}"))
+                  })
+              {
+                result.insert(WebpackComment::Exports, exports);
+                return;
+              }
+            }
+            add_magic_comment_warning(
+              source_file,
+              item_name,
+              r#"a string or an array of strings"#,
+              &captures,
+              warning_diagnostics,
+              error_span,
+            );
           }
+          _ => {}
         }
       }
     }
