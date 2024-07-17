@@ -11,8 +11,8 @@ The top-level output key contains a set of options instructing Rspack on how and
 
 ## output.assetModuleFilename
 
-- **Type:** `string`
-- **Default:** `'[hash][ext][query]' | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)`
+- **Type:** `string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)`
+- **Default:** `'[hash][ext][query]'`
 
 The same as [`output.filename`](#outputfilename) but for [Asset Modules](/guide/features/asset-module).
 
