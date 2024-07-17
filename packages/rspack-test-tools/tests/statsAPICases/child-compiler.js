@@ -49,6 +49,9 @@ module.exports = {
 		Object {
 		  "assets": Array [
 		    Object {
+		      "auxiliaryChunkIdHints": Array [],
+		      "auxiliaryChunkNames": Array [],
+		      "chunkIdHints": Array [],
 		      "chunkNames": Array [],
 		      "emitted": true,
 		      "info": Object {
@@ -65,6 +68,9 @@ module.exports = {
 		      "type": "asset",
 		    },
 		    Object {
+		      "auxiliaryChunkIdHints": Array [],
+		      "auxiliaryChunkNames": Array [],
+		      "chunkIdHints": Array [],
 		      "chunkNames": Array [
 		        "main",
 		      ],
@@ -93,6 +99,9 @@ module.exports = {
 		    Object {
 		      "assets": Array [
 		        Object {
+		          "auxiliaryChunkIdHints": Array [],
+		          "auxiliaryChunkNames": Array [],
+		          "chunkIdHints": Array [],
 		          "chunkNames": Array [
 		            "TestChild",
 		          ],
@@ -118,9 +127,11 @@ module.exports = {
 		        ],
 		      },
 		      "children": Array [],
+		      "filteredAssets": undefined,
 		      "name": "TestChild",
 		    },
 		  ],
+		  "filteredAssets": undefined,
 		}
 	`);
 	}

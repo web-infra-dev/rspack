@@ -11,6 +11,7 @@ import * as util from "node:util";
 
 import type {
 	JsOriginRecord,
+	JsStatsAssetInfo,
 	JsStatsError,
 	JsStatsWarning
 } from "@rspack/binding";
@@ -32,6 +33,7 @@ import type {
 	KnownStatsAsset,
 	KnownStatsLoggingEntry,
 	KnownStatsModule,
+	PreprocessedAsset,
 	SimpleExtractors,
 	StatsAsset,
 	StatsChunk,
@@ -182,7 +184,7 @@ const ASSETS_GROUPERS: Record<
 		}
 	},
 	groupAssetsByInfo: groupConfigs => {
-		const groupByAssetInfoFlag = (name: keyof KnownStatsAsset["info"]) => {
+		const groupByAssetInfoFlag = (name: keyof JsStatsAssetInfo) => {
 			groupConfigs.push({
 				getKeys: asset => {
 					return asset.info && asset.info[name] ? ["1"] : undefined;
@@ -205,7 +207,15 @@ const ASSETS_GROUPERS: Record<
 		groupByAssetInfoFlag("hotModuleReplacement");
 	},
 	groupAssetsByChunk: groupConfigs => {
-		const groupByNames = (name: keyof Pick<KnownStatsAsset, "chunkNames">) => {
+		const groupByNames = (
+			name: keyof Pick<
+				KnownStatsAsset,
+				| "chunkNames"
+				| "chunkIdHints"
+				| "auxiliaryChunkNames"
+				| "auxiliaryChunkIdHints"
+			>
+		) => {
 			groupConfigs.push({
 				getKeys: asset => {
 					return asset[name];
@@ -222,9 +232,9 @@ const ASSETS_GROUPERS: Record<
 			});
 		};
 		groupByNames("chunkNames");
-		// groupByNames("auxiliaryChunkNames");
-		// groupByNames("chunkIdHints");
-		// groupByNames("auxiliaryChunkIdHints");
+		groupByNames("auxiliaryChunkNames");
+		groupByNames("chunkIdHints");
+		groupByNames("auxiliaryChunkIdHints");
 	},
 	excludeAssets: (groupConfigs, context, { excludeAssets }) => {
 		groupConfigs.push({
@@ -748,9 +758,41 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			options,
 			factory
 		) => {
-			const { assets, assetsByChunkName } = context
+			const { assets: compilationAssets, assetsByChunkName } = context
 				.getInner(compilation)
 				.getAssets();
+
+			const assetMap: Map<String, PreprocessedAsset> = new Map();
+			const assets = new Set();
+
+			for (const asset of compilationAssets) {
+				const item: PreprocessedAsset = {
+					...asset,
+					type: "asset",
+					related: []
+				};
+				assets.add(item);
+				assetMap.set(asset.name, item);
+			}
+
+			for (const item of assetMap.values()) {
+				const related = item.info.related;
+				if (!related) continue;
+				for (const { name: type, value: relatedEntry } of related) {
+					const deps = Array.isArray(relatedEntry)
+						? relatedEntry
+						: [relatedEntry];
+					for (const dep of deps) {
+						const depItem = assetMap.get(dep);
+						if (!depItem) continue;
+						assets.delete(depItem);
+						depItem.type = type;
+						item.related = item.related || [];
+						item.related.push(depItem);
+					}
+				}
+			}
+
 			object.assetsByChunkName = assetsByChunkName.reduce<
 				Record<string, string[]>
 			>((acc, cur) => {
@@ -758,19 +800,21 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				return acc;
 			}, {});
 
-			const groupedAssets = factory.create(`${context.type}.assets`, assets, {
-				...context
-				// compilationFileToChunks
-				// compilationAuxiliaryFileToChunks
-			});
+			const groupedAssets = factory.create(
+				`${context.type}.assets`,
+				Array.from(assets),
+				{
+					...context
+					// compilationFileToChunks
+					// compilationAuxiliaryFileToChunks
+				}
+			);
 			const limited = spaceLimited(
 				groupedAssets,
 				options.assetsSpace || Number.POSITIVE_INFINITY
 			);
-
-			// object.filteredAssets = limited.filteredChildren;
-			// const limited = spaceLimited(groupedAssets, options.assetsSpace);
 			object.assets = limited.children;
+			object.filteredAssets = limited.filteredChildren;
 		},
 		chunks: (
 			object,
@@ -953,15 +997,25 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	asset$visible: {
 		_: (object, asset) => {
 			object.chunkNames = asset.chunkNames;
-			// - chunkIdHints
-			// - auxiliaryChunkNames
-			// - auxiliaryChunkIdHints
-			// - filteredRelated
+			object.chunkIdHints = asset.chunkIdHints.filter(Boolean);
+			object.auxiliaryChunkNames = asset.auxiliaryChunkNames;
+			object.auxiliaryChunkIdHints =
+				asset.auxiliaryChunkIdHints.filter(Boolean);
 		},
-		// relatedAssets
+		relatedAssets: (object, asset, context, options, factory) => {
+			const { type } = context;
+			object.related = factory.create(
+				`${type.slice(0, -8)}.related`,
+				asset.related,
+				context
+			);
+			object.filteredRelated = asset.related
+				? asset.related.length - object.related.length
+				: undefined;
+		},
 		ids: (object, asset) => {
 			object.chunks = asset.chunks;
-			// - auxiliaryChunks
+			object.auxiliaryChunks = asset.auxiliaryChunks;
 		}
 	},
 	chunkGroup: {

@@ -32,13 +32,18 @@ module.exports = {
 		expect(stats?.toJson(statsOptions).assets).toMatchInlineSnapshot(`
 		Array [
 		  Object {
-		    "chunkNames": Array [
+		    "auxiliaryChunkIdHints": Array [],
+		    "auxiliaryChunkNames": Array [
 		      "main",
 		    ],
-		    "chunks": Array [
+		    "auxiliaryChunks": Array [
 		      "909",
 		    ],
+		    "chunkIdHints": Array [],
+		    "chunkNames": Array [],
+		    "chunks": Array [],
 		    "emitted": true,
+		    "filteredRelated": 0,
 		    "info": Object {
 		      "chunkHash": Array [],
 		      "contentHash": Array [
@@ -52,10 +57,15 @@ module.exports = {
 		      "sourceFilename": "fixtures/asset/image.png",
 		    },
 		    "name": "89a353e9c515885abd8e.png",
+		    "related": Array [],
 		    "size": 14910,
 		    "type": "asset",
 		  },
 		  Object {
+		    "auxiliaryChunkIdHints": Array [],
+		    "auxiliaryChunkNames": Array [],
+		    "auxiliaryChunks": Array [],
+		    "chunkIdHints": Array [],
 		    "chunkNames": Array [
 		      "main",
 		    ],
@@ -63,6 +73,7 @@ module.exports = {
 		      "909",
 		    ],
 		    "emitted": true,
+		    "filteredRelated": 0,
 		    "info": Object {
 		      "chunkHash": Array [],
 		      "contentHash": Array [],
@@ -78,6 +89,7 @@ module.exports = {
 		      },
 		    },
 		    "name": "main.js",
+		    "related": Array [],
 		    "size": 2425,
 		    "type": "asset",
 		  },
