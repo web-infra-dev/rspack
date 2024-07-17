@@ -22,6 +22,7 @@ const WEBPACK_NONCE: &str = "__webpack_nonce__";
 const WEBPACK_CHUNK_NAME: &str = "__webpack_chunkname__";
 const WEBPACK_RUNTIME_ID: &str = "__webpack_runtime_id__";
 const WEBPACK_REQUIRE: &str = RuntimeGlobals::REQUIRE.name();
+const WEBPACK_GET_SCRIPT_FILENAME: &str = "__webpack_get_script_filename__";
 const RSPACK_VERSION: &str = "__rspack_version__";
 const RSPACK_UNIQUE_ID: &str = "__rspack_unique_id__";
 
@@ -56,6 +57,7 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
     WEBPACK_NONCE => Some("string"),
     WEBPACK_CHUNK_NAME => Some("string"),
     WEBPACK_RUNTIME_ID => None,
+    WEBPACK_GET_SCRIPT_FILENAME => Some("function"),
     RSPACK_VERSION => Some("string"),
     RSPACK_UNIQUE_ID => Some("string"),
     _ => None,
@@ -236,6 +238,17 @@ impl JavascriptParserPlugin for APIPlugin {
             ident.span.real_hi(),
             RuntimeGlobals::RUNTIME_ID.name().into(),
             Some(RuntimeGlobals::RUNTIME_ID),
+          )));
+        Some(true)
+      }
+      WEBPACK_GET_SCRIPT_FILENAME => {
+        parser
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME.name().into(),
+            Some(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
           )));
         Some(true)
       }
