@@ -30,7 +30,7 @@ it("should return correct import.meta.url", () => {
 	expect(import.meta.url).toBe(url);
 	expect(import.meta["url"]).toBe(url);
 	expect("my" + import.meta.url).toBe("my" + url);
-	// if (import.meta.url.indexOf("index.js") === -1) require("fail");
+	if (import.meta.url.indexOf("index.js") === -1) require("fail");
 });
 
 it("should return correct import.meta.webpack", () => {

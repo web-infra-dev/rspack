@@ -49,13 +49,16 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 
   fn evaluate_identifier(
     &self,
-    _parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser,
     ident: &str,
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression> {
     if ident == expr_name::IMPORT_META_WEBPACK {
       Some(eval::evaluate_to_number(5_f64, start, end))
+    } else if ident == expr_name::IMPORT_META_URL {
+      let url = Url::from_file_path(&parser.resource_data.resource).expect("should be a path");
+      Some(eval::evaluate_to_string(url.to_string(), start, end))
     } else {
       None
     }
