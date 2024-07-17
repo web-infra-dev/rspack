@@ -22,9 +22,8 @@ fn get_asset_size(file: &str, compilation: &Compilation) -> f64 {
   compilation
     .assets()
     .get(file)
-    .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
-    .get_source()
-    .map_or(-1f64, |s| s.size() as f64)
+    .and_then(|asset| asset.get_source().map(|s| s.size() as f64))
+    .unwrap_or(-1f64)
 }
 
 #[derive(Debug, Clone)]
