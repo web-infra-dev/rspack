@@ -481,21 +481,24 @@ impl Stats<'_> {
       .flatten()
       .collect::<Vec<_>>();
 
-    let auxiliary_assets = cg
-      .chunks
-      .par_iter()
-      .map(|c| {
-        let chunk = self.compilation.chunk_by_ukey.expect_get(c);
-        chunk
-          .auxiliary_files
-          .par_iter()
-          .map(|file| StatsChunkGroupAsset {
-            name: file.clone(),
-            size: get_asset_size(file, self.compilation),
-          })
-      })
-      .flatten()
-      .collect::<Vec<_>>();
+    let auxiliary_assets = if chunk_group_auxiliary {
+      cg.chunks
+        .par_iter()
+        .map(|c| {
+          let chunk = self.compilation.chunk_by_ukey.expect_get(c);
+          chunk
+            .auxiliary_files
+            .par_iter()
+            .map(|file| StatsChunkGroupAsset {
+              name: file.clone(),
+              size: get_asset_size(file, self.compilation),
+            })
+        })
+        .flatten()
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
 
     let children = chunk_group_children.then(|| {
       let ordered_children = cg.get_children_by_orders(self.compilation);
