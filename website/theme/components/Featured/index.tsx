@@ -68,7 +68,7 @@ export function Featured() {
   ];
 
   return (
-    <div className="relative flex flex-center flex-col justify-center pt-24 pb-10 mt-10 h-auto">
+    <div className="relative flex flex-center flex-col justify-center pt-10 pb-10 mt-10 h-auto">
       {
         <>
           <div className="flex flex-center flex-col">

@@ -14,9 +14,6 @@ importers:
       date-fns:
         specifier: ^2.29.3
         version: 2.30.0
-      framer-motion:
-        specifier: ^10.0.0
-        version: 10.18.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       markdown-to-jsx:
         specifier: ^7.2.1
         version: 7.4.3(react@18.2.0)
@@ -29,9 +26,9 @@ importers:
       react-intersection-observer:
         specifier: ^9.4.3
         version: 9.13.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
-      rsfamily-nav-icon:
-        specifier: ^1.0.3
-        version: 1.0.3
+      rsfamily-doc-ui:
+        specifier: ^1.0.2
+        version: 1.0.2(@emotion/is-prop-valid@0.8.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       semver:
         specifier: ^7.5.4
         version: 7.6.0
@@ -405,25 +402,21 @@ packages:
     resolution: {integrity: sha512-a3F6rjsegVnaNUz9EbE8ojj/puBcMvjLTz94sv8W+KVlKrefOLOHFRqUh1ZQd50+X8wlYKh9YrtXqVm/BiprnQ==}
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   '@rspack/binding-linux-arm64-musl@1.0.0-alpha.2':
     resolution: {integrity: sha512-jdXTZDI4i1WVVlTfUb2y5OfVyB13nPWIONhkLxHuetIJURoLJVUEqqigEB5Xa9TM1LaZi8rhxs62+Cou4gUZ+A==}
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   '@rspack/binding-linux-x64-gnu@1.0.0-alpha.2':
     resolution: {integrity: sha512-dA+DVgN5dt1h+toOjEwQhRFhaoBpOsui50cXOZ99TvP5h99g52Dk4in5VG3W7jWYpvfMAQWISjGW+9znwzpWXQ==}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   '@rspack/binding-linux-x64-musl@1.0.0-alpha.2':
     resolution: {integrity: sha512-SoGloDsN/D/aN8d72iMsXJJC/pOj06McVnPodLpNzcRy+kMFo+N+BzTtziXYKjxqQFHtXd3MvuJMLjJDh+jSQw==}
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   '@rspack/binding-win32-arm64-msvc@1.0.0-alpha.2':
     resolution: {integrity: sha512-2SYQQc/Oo31lwMJhFMjAwl3Fbr2Esy0p8O7Gnlo1wkttNCWa4UEBoyhL6sh0is4rcLYj9OcI9mLBXYSnISEtTQ==}
@@ -1199,12 +1192,15 @@ packages:
     resolution: {integrity: sha512-buewHzMvYL29jdeQTVILecSaZKnt/RJWjoZCF5OW60Z67/GmSLBkOFM7qh1PI3zFNtJbaZL5eQu1vLfazOwj4g==}
     engines: {node: '>=12.20.0'}
 
-  framer-motion@10.18.0:
-    resolution: {integrity: sha512-oGlDh1Q1XqYPksuTD/usb0I70hq95OUzmL9+6Zd+Hs4XV0oaISBa/UUMSjYiq6m8EUF32132mOJ8xVZS+I0S6w==}
+  framer-motion@11.3.4:
+    resolution: {integrity: sha512-LC+luwNmz4zEg0AU0rol3yLUFKSJ9GDmIyvigXBAwEbUBG59EWmcRQ2Xh+0py7IkmvWxFUH0TN42v1Dda8xgUg==}
     peerDependencies:
+      '@emotion/is-prop-valid': '*'
       react: ^18.0.0
       react-dom: ^18.0.0
     peerDependenciesMeta:
+      '@emotion/is-prop-valid':
+        optional: true
       react:
         optional: true
       react-dom:
@@ -2112,8 +2108,8 @@ packages:
       '@rsbuild/core':
         optional: true
 
-  rsfamily-nav-icon@1.0.3:
-    resolution: {integrity: sha512-ZbSASDPb30II7x0NWlA9BNP6EA3+lvAVui9ahAT3vomqlP5Pt3cu1eSVaXApIv2gu0EFTC1TOQL4kKdK+8pXbA==}
+  rsfamily-doc-ui@1.0.2:
+    resolution: {integrity: sha512-Q2Hhq3yIajUdu1Bh/GE7H8qbUOphDIJhgjlbTVpDGT4EUE4fAAc7hDWkUghSk9XOBbL2X4a6WXbGRYQFaorhrg==}
 
   rslog@1.2.1:
     resolution: {integrity: sha512-XDMoa858LLZnf4i2kUwyjBQGplXaoSoIfMQf9iji2ano5t1OfSiJsSYpHeOH26DJEc5hdje/4K3wiT6TWL3cRA==}
@@ -3832,7 +3828,7 @@ snapshots:
     dependencies:
       fetch-blob: 3.2.0
 
-  framer-motion@10.18.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+  framer-motion@11.3.4(@emotion/is-prop-valid@0.8.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
       tslib: 2.6.2
     optionalDependencies:
@@ -5042,7 +5038,13 @@ snapshots:
     optionalDependencies:
       '@rsbuild/core': 1.0.0-alpha.6
 
-  rsfamily-nav-icon@1.0.3: {}
+  rsfamily-doc-ui@1.0.2(@emotion/is-prop-valid@0.8.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+    dependencies:
+      framer-motion: 11.3.4(@emotion/is-prop-valid@0.8.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+    transitivePeerDependencies:
+      - '@emotion/is-prop-valid'
+      - react
+      - react-dom
 
   rslog@1.2.1: {}
 
