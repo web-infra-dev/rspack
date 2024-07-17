@@ -327,6 +327,7 @@ type JsStatsUsedExports = Either<String, Vec<String>>;
 
 #[napi]
 #[getters]
+#[derive(Clone)]
 pub struct JsStatsModule {
   r#type: String,
   module_type: String,
@@ -361,10 +362,8 @@ pub struct JsStatsModule {
   sizes: Vec<JsStatsSize>,
   issuer_path: Vec<JsStatsModuleIssuer>,
   profile: Option<JsStatsModuleProfile>,
-  #[skip_getter]
-  reasons: Option<Vec<Reference<JsStatsModuleReason>>>,
-  #[skip_getter]
-  modules: Option<Vec<Reference<JsStatsModule>>>,
+  reasons: Option<Vec<JsStatsModuleReason>>,
+  modules: Option<Vec<JsStatsModule>>,
 }
 
 fn to_js_stats_module(env: Env, stats_module: StatsModule) -> Result<JsStatsModule> {
@@ -393,12 +392,12 @@ fn to_js_stats_module(env: Env, stats_module: StatsModule) -> Result<JsStatsModu
     .collect::<Vec<_>>();
   sizes.sort_by(|a, b| a.source_type.cmp(&b.source_type));
 
-  let modules: Option<Vec<Reference<JsStatsModule>>> = stats_module
+  let modules: Option<Vec<JsStatsModule>> = stats_module
     .modules
     .map(|modules| -> Result<_> {
       let mut res = Vec::with_capacity(modules.len());
       for module in modules {
-        let reference = to_js_stats_module_reference(env, module)?;
+        let reference = to_js_stats_module(env, module)?;
         res.push(reference);
       }
       Ok(res)
@@ -410,11 +409,8 @@ fn to_js_stats_module(env: Env, stats_module: StatsModule) -> Result<JsStatsModu
     Some(reasons) => {
       let js_reasons = reasons
         .into_iter()
-        .map(|reason| {
-          let js_reason = JsStatsModuleReason::from(reason);
-          JsStatsModuleReason::into_reference(js_reason, env)
-        })
-        .collect::<Result<Vec<_>>>()?;
+        .map(JsStatsModuleReason::from)
+        .collect::<Vec<_>>();
       Some(js_reasons)
     }
     None => None,
@@ -477,44 +473,6 @@ fn to_js_stats_module_reference(
   let module = to_js_stats_module(env, stats_module)?;
   JsStatsModule::into_reference(module, env)
 }
-
-#[napi]
-impl JsStatsModule {
-  #[napi(getter)]
-  pub fn modules(&self, env: Env) -> Result<Option<Vec<Reference<JsStatsModule>>>> {
-    match &self.modules {
-      Some(modules) => {
-        let references = modules
-          .iter()
-          .map(|r| r.clone(env))
-          .collect::<Result<Vec<_>>>();
-        match references {
-          Ok(refs) => Ok(Some(refs)),
-          Err(e) => Err(e),
-        }
-      }
-      None => Ok(None),
-    }
-  }
-
-  #[napi(getter)]
-  pub fn reasons(&self, env: Env) -> Result<Option<Vec<Reference<JsStatsModuleReason>>>> {
-    match &self.reasons {
-      Some(reasons) => {
-        let references = reasons
-          .iter()
-          .map(|r| r.clone(env))
-          .collect::<Result<Vec<_>>>();
-        match references {
-          Ok(refs) => Ok(Some(refs)),
-          Err(e) => Err(e),
-        }
-      }
-      None => Ok(None),
-    }
-  }
-}
-
 #[derive(Clone)]
 #[napi(object)]
 pub struct JsStatsModuleProfile {
@@ -567,6 +525,7 @@ impl From<rspack_core::StatsModuleIssuer> for JsStatsModuleIssuer {
 
 #[napi]
 #[getters]
+#[derive(Clone)]
 pub struct JsStatsModuleReason {
   module_identifier: Option<String>,
   module_name: Option<String>,

@@ -139,8 +139,8 @@ export class JsStatsModule {
   get sizes(): Array<JsStatsSize>
   get issuerPath(): Array<JsStatsModuleIssuer>
   get profile(): JsStatsModuleProfile | undefined
-  get modules(): Array<JsStatsModule> | null
-  get reasons(): Array<JsStatsModuleReason> | null
+  get reasons(): Array<JsStatsModuleReason> | undefined
+  get modules(): Array<JsStatsModule> | undefined
 }
 
 export class JsStatsModuleReason {
