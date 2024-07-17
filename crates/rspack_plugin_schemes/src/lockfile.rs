@@ -13,7 +13,7 @@ pub struct LockfileEntry {
   pub resolved: String,
   pub integrity: String,
   pub content_type: String,
-  pub valid_until: u64, // This is now in microseconds
+  pub valid_until: u64,
   pub etag: Option<String>,
 }
 
@@ -53,7 +53,6 @@ impl Lockfile {
             etag: None,
           }
         } else {
-          dbg!(value);
           LockfileEntry {
             resolved: key.clone(),
             integrity: value
@@ -69,8 +68,7 @@ impl Lockfile {
             valid_until: value
               .get("valid_until")
               .and_then(|v| v.as_u64())
-              .unwrap_or(0)
-              * 1_000_000, // Convert seconds to microseconds
+              .unwrap_or(0),
             etag: value.get("etag").and_then(|v| v.as_str()).map(String::from),
           }
         };
@@ -95,10 +93,6 @@ impl Lockfile {
 
   pub fn entries_mut(&mut self) -> &mut HashMap<String, LockfileEntry> {
     &mut self.entries
-  }
-
-  pub fn entries(&self) -> &HashMap<String, LockfileEntry> {
-    &self.entries
   }
 }
 
@@ -139,22 +133,14 @@ impl LockfileCache {
     let mut lockfile = self.lockfile.lock().await;
 
     if let Some(lockfile_path) = &self.lockfile_path {
-      dbg!("Attempting to read lockfile from: {:?}", lockfile_path);
       if lockfile_path.exists() {
         match Lockfile::read_from_file_async(lockfile_path).await {
           Ok(lf) => {
-            dbg!("Successfully read lockfile");
             *lockfile = lf;
           }
-          Err(e) => {
-            dbg!("Error reading lockfile: {:?}", e);
-          }
+          Err(_) => {}
         }
-      } else {
-        dbg!("Lockfile does not exist, using empty lockfile");
       }
-    } else {
-      dbg!("No lockfile path specified, using empty lockfile");
     }
 
     Ok(self.lockfile.clone())
@@ -163,23 +149,17 @@ impl LockfileCache {
   pub async fn save_lockfile(&self) -> io::Result<()> {
     let lockfile = self.lockfile.lock().await;
 
-    dbg!(lockfile.entries());
     if let Some(lockfile_path) = &self.lockfile_path {
-      // Ensure the directory exists before writing the file
       if let Some(parent) = lockfile_path.parent() {
         async_fs::create_dir_all(parent).await?;
       }
       let content = lockfile.to_json_string();
-      dbg!(&content);
       async_fs::write(lockfile_path, &content).await?;
-      dbg!(lockfile_path);
-    } else {
-      dbg!("No lockfile path specified, skipping save");
     }
+
     Ok(())
   }
 }
-
 impl Default for LockfileCache {
   fn default() -> Self {
     LockfileCache {
