@@ -382,6 +382,8 @@ const output = z.strictObject({
 	devtoolModuleFilenameTemplate: devtoolModuleFilenameTemplate.optional(),
 	devtoolFallbackModuleFilenameTemplate:
 		devtoolFallbackModuleFilenameTemplate.optional(),
+	chunkLoadTimeout: z.number().optional(),
+	charset: z.boolean().optional(),
 	environment: environment.optional()
 });
 export type Output = z.infer<typeof output>;

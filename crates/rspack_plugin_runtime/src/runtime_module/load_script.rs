@@ -76,6 +76,12 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       ))
     };
 
+    let script_charset = if compilation.options.output.charset {
+      "script.charset = 'utf-8';".to_string()
+    } else {
+      "".to_string()
+    };
+
     Ok(RawSource::from(
       include_str!("runtime/load_script.js")
         .replace(
@@ -84,6 +90,9 @@ impl RuntimeModule for LoadScriptRuntimeModule {
         )
         .replace("$URL$", &url)
         .replace("$SCRIPT_TYPE$", &script_type)
+        .replace("$SCRIPT_CHARSET$", &script_charset)
+        .replace("$CHUNK_LOAD_TIMEOUT$", &compilation.options.output.chunk_load_timeout.to_string())
+        .replace("$CHUNK_LOAD_TIMEOUT_IN_SECONDS$", &compilation.options.output.chunk_load_timeout.saturating_div(1000).to_string())
         .replace(
           "$UNIQUE_GET_ATTRIBUTE$",
           match unique_prefix {

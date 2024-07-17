@@ -28,8 +28,9 @@ module.exports = {
 		+     "global": false,
 		@@ ... @@
 		-     "chunkFormat": "array-push",
-		-     "chunkLoading": "jsonp",
 		+     "chunkFormat": "commonjs",
+		@@ ... @@
+		-     "chunkLoading": "jsonp",
 		+     "chunkLoading": "require",
 		@@ ... @@
 		-       "jsonp",

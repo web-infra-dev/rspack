@@ -206,6 +206,8 @@ export const getNormalizedRspackOptions = (
 				devtoolModuleFilenameTemplate: output.devtoolModuleFilenameTemplate,
 				devtoolFallbackModuleFilenameTemplate:
 					output.devtoolFallbackModuleFilenameTemplate,
+				chunkLoadTimeout: output.chunkLoadTimeout,
+				charset: output.charset,
 				environment: cloneObject(output.environment)
 			};
 		}),
@@ -490,6 +492,8 @@ export interface OutputNormalized {
 	devtoolModuleFilenameTemplate?: DevtoolModuleFilenameTemplate;
 	devtoolFallbackModuleFilenameTemplate?: DevtoolFallbackModuleFilenameTemplate;
 	environment?: Environment;
+	charset?: boolean;
+	chunkLoadTimeout?: number;
 }
 
 export interface ModuleOptionsNormalized {

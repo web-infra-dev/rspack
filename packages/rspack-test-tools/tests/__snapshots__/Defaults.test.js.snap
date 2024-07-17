@@ -281,8 +281,10 @@ Object {
   "output": Object {
     "assetModuleFilename": "[hash][ext][query]",
     "asyncChunks": true,
+    "charset": true,
     "chunkFilename": "[name].js",
     "chunkFormat": "array-push",
+    "chunkLoadTimeout": 120000,
     "chunkLoading": "jsonp",
     "chunkLoadingGlobal": "webpackChunk_rspack_test_tools",
     "clean": false,

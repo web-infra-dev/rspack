@@ -6975,6 +6975,8 @@ const output: z.ZodObject<{
     devtoolNamespace: z.ZodOptional<z.ZodString>;
     devtoolModuleFilenameTemplate: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodAny], null>, z.ZodAny>]>>;
     devtoolFallbackModuleFilenameTemplate: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodAny], null>, z.ZodAny>]>>;
+    chunkLoadTimeout: z.ZodOptional<z.ZodNumber>;
+    charset: z.ZodOptional<z.ZodBoolean>;
     environment: z.ZodOptional<z.ZodObject<{
         arrowFunction: z.ZodOptional<z.ZodBoolean>;
         asyncFunction: z.ZodOptional<z.ZodBoolean>;
@@ -7096,6 +7098,8 @@ const output: z.ZodObject<{
     devtoolNamespace?: string | undefined;
     devtoolModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
     devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
+    chunkLoadTimeout?: number | undefined;
+    charset?: boolean | undefined;
     environment?: {
         arrowFunction?: boolean | undefined;
         asyncFunction?: boolean | undefined;
@@ -7187,6 +7191,8 @@ const output: z.ZodObject<{
     devtoolNamespace?: string | undefined;
     devtoolModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
     devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
+    chunkLoadTimeout?: number | undefined;
+    charset?: boolean | undefined;
     environment?: {
         arrowFunction?: boolean | undefined;
         asyncFunction?: boolean | undefined;
@@ -7244,6 +7250,8 @@ export interface OutputNormalized {
     // (undocumented)
     asyncChunks?: boolean;
     // (undocumented)
+    charset?: boolean;
+    // (undocumented)
     chunkFilename?: ChunkFilename;
     // (undocumented)
     chunkFormat?: string | false;
@@ -7251,6 +7259,8 @@ export interface OutputNormalized {
     chunkLoading?: string | false;
     // (undocumented)
     chunkLoadingGlobal?: ChunkLoadingGlobal;
+    // (undocumented)
+    chunkLoadTimeout?: number;
     // (undocumented)
     clean?: Clean;
     // (undocumented)
@@ -9320,6 +9330,8 @@ export const rspackOptions: z.ZodObject<{
         devtoolNamespace: z.ZodOptional<z.ZodString>;
         devtoolModuleFilenameTemplate: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodAny], null>, z.ZodAny>]>>;
         devtoolFallbackModuleFilenameTemplate: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodAny], null>, z.ZodAny>]>>;
+        chunkLoadTimeout: z.ZodOptional<z.ZodNumber>;
+        charset: z.ZodOptional<z.ZodBoolean>;
         environment: z.ZodOptional<z.ZodObject<{
             arrowFunction: z.ZodOptional<z.ZodBoolean>;
             asyncFunction: z.ZodOptional<z.ZodBoolean>;
@@ -9441,6 +9453,8 @@ export const rspackOptions: z.ZodObject<{
         devtoolNamespace?: string | undefined;
         devtoolModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
         devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
+        chunkLoadTimeout?: number | undefined;
+        charset?: boolean | undefined;
         environment?: {
             arrowFunction?: boolean | undefined;
             asyncFunction?: boolean | undefined;
@@ -9532,6 +9546,8 @@ export const rspackOptions: z.ZodObject<{
         devtoolNamespace?: string | undefined;
         devtoolModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
         devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
+        chunkLoadTimeout?: number | undefined;
+        charset?: boolean | undefined;
         environment?: {
             arrowFunction?: boolean | undefined;
             asyncFunction?: boolean | undefined;
@@ -11335,6 +11351,8 @@ export const rspackOptions: z.ZodObject<{
         devtoolNamespace?: string | undefined;
         devtoolModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
         devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
+        chunkLoadTimeout?: number | undefined;
+        charset?: boolean | undefined;
         environment?: {
             arrowFunction?: boolean | undefined;
             asyncFunction?: boolean | undefined;
@@ -11860,6 +11878,8 @@ export const rspackOptions: z.ZodObject<{
         devtoolNamespace?: string | undefined;
         devtoolModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
         devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
+        chunkLoadTimeout?: number | undefined;
+        charset?: boolean | undefined;
         environment?: {
             arrowFunction?: boolean | undefined;
             asyncFunction?: boolean | undefined;
