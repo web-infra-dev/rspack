@@ -14,6 +14,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::Result;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
 use super::LoaderContext;
 
@@ -197,18 +198,24 @@ impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
     }
   }
 }
-struct ResourceParsedData {
+
+#[derive(Debug)]
+pub struct ResourceParsedData {
   pub path: PathBuf,
   pub query: Option<String>,
   pub fragment: Option<String>,
 }
 
-fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
+pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
   let groups = PATH_QUERY_FRAGMENT_REGEXP.captures(resource)?;
 
   Some(ResourceParsedData {
-    path: groups.get(1)?.as_str().into(),
-    query: groups.get(2).map(|q| q.as_str().to_owned()),
+    path: strip_zero_width_space_for_fragment(groups.get(1)?.as_str())
+      .into_owned()
+      .into(),
+    query: groups
+      .get(2)
+      .map(|q| strip_zero_width_space_for_fragment(q.as_str()).into_owned()),
     fragment: groups.get(3).map(|q| q.as_str().to_owned()),
   })
 }

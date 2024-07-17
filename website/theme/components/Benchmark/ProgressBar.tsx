@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import styles from './ProgressBar.module.scss';
 import { useInView } from 'react-intersection-observer';
+import styles from './ProgressBar.module.scss';
 
 export function formatTime(time: number, totalTime: number) {
   if (totalTime < 1000) {

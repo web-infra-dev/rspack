@@ -6,5 +6,5 @@ it("should modify request by after resolve hook", () => {
 	expect(a).toBe("a");
 	expect(b).toBe("b");
 	const ext = ".js";
-	expect(fs.readFileSync(__filename, "utf-8")).toContain("./c" + ext);
+	expect(fs.readFileSync(__filename, "utf-8")).toContain("request/c" + ext);
 });
