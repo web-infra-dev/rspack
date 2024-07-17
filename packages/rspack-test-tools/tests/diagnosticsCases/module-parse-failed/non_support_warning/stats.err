@@ -3,5 +3,5 @@ WARNING in ./index.js
   ╰─▶   ⚠ Unsupported feature: require.include() is not supported by Rspack.
          ╭────
        1 │ require.include("aaa")
-         · ▲
+         · ──────────────────────
          ╰────
