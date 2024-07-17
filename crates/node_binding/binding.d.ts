@@ -102,7 +102,7 @@ export class JsStatsChunk {
   get rendered(): boolean
   get sizes(): Array<JsStatsSize>
   get origins(): Array<JsOriginRecord>
-  get modules(): Array<JsStatsModule> | null
+  get modules(): Array<JsStatsModule> | undefined
 }
 
 export class JsStatsModule {
