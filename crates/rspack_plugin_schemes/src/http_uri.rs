@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
@@ -9,7 +11,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::http_cache::{fetch_content, FetchResultType};
-use crate::lockfile::LockfileCache;
+use crate::lockfile::LockfileCache; // Added this import
 
 static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
@@ -19,13 +21,14 @@ static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
 pub struct HttpUriPlugin {
   options: HttpUriPluginOptions,
   #[allow(dead_code)]
-  lockfile_cache: LockfileCache,
+  cache: LockfileCache,
 }
 
 impl HttpUriPlugin {
   pub fn new(options: HttpUriPluginOptions) -> Self {
-    let lockfile_cache = LockfileCache::new(options.lockfile_location.clone());
-    Self::new_inner(options, lockfile_cache)
+    let lockfile_path = options.lockfile_location.as_ref().map(PathBuf::from);
+    let cache = LockfileCache::new(lockfile_path);
+    Self::new_inner(options, cache)
   }
 }
 
@@ -43,7 +46,7 @@ pub struct HttpUriPluginOptions {
 async fn resolve_for_scheme(
   &self,
   _data: &mut ModuleFactoryCreateData,
-  resource_data: &mut ResourceData,
+  _resource_data: &mut ResourceData,
   scheme: &Scheme,
 ) -> Result<Option<bool>> {
   Ok(if scheme.is_http() || scheme.is_https() {
