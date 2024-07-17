@@ -1,6 +1,6 @@
 // @ts-nocheck
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const getPropertyValue = function (property) {
 	return this[property];

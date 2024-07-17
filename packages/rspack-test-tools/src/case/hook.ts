@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
 import {

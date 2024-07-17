@@ -9,8 +9,8 @@
  */
 import path from "node:path";
 
-import type { Server } from "http";
-import type { Socket } from "net";
+import type { Server } from "node:http";
+import type { Socket } from "node:net";
 import { type Compiler, MultiCompiler } from "@rspack/core";
 import type { FSWatcher } from "chokidar";
 import rdm from "webpack-dev-middleware";

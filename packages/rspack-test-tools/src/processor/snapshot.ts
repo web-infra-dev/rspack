@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 import type { Compiler as RspackCompiler } from "@rspack/core";
 import type {
 	Compilation as WebpackCompilation,

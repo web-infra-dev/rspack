@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const prompts = require("prompts");
 const { formatTargetDir } = require("./utils");
 const { version } = require("./package.json");

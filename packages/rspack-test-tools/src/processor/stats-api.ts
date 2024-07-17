@@ -1,4 +1,4 @@
-import type fs from "fs";
+import type fs from "node:fs";
 import { Volume, createFsFromVolume } from "memfs";
 
 import type {

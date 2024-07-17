@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import assert from "assert";
+import assert from "node:assert";
 
 import type { Compiler, EntryDescriptionNormalized, EntryNormalized } from "..";
 import {

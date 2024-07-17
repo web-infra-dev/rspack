@@ -10,8 +10,8 @@ import { Compiler } from '@rspack/core';
 import { DevServer as Configuration } from '@rspack/core';
 import type { FSWatcher } from 'chokidar';
 import { MultiCompiler } from '@rspack/core';
-import type { Server } from 'http';
-import type { Socket } from 'net';
+import type { Server } from 'node:http';
+import type { Socket } from 'node:net';
 import WebpackDevServer from 'webpack-dev-server';
 
 export { Configuration }

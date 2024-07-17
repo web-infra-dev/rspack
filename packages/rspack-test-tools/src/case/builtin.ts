@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 
 import { BuiltinProcessor, type IBuiltinProcessorOptions } from "../processor";
 import { BasicCaseCreator } from "../test/creator";

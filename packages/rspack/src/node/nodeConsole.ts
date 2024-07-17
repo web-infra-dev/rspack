@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import * as util from "util";
+import * as util from "node:util";
 import { truncateArgs } from "../logging/truncateArgs";
 
 // @ts-expect-error

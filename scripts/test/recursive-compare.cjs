@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const { intersection, retain, each, includedIn, not } = require("./math.cjs");
 
 async function _recursiveCompareBase(
