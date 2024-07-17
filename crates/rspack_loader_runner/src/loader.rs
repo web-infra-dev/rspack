@@ -285,7 +285,7 @@ pub(crate) mod test {
     let c1 = Arc::new(PosixNonLenBlankUnicode) as Arc<dyn Loader<()>>;
     let l: LoaderItem<()> = c1.into();
     assert_eq!(l.path, PathBuf::from("/a/b/c.js"));
-    assert_eq!(l.query, Some("?{\"c\": \"\u{200b}#foo\"}".into()));
+    assert_eq!(l.query, Some("?{\"c\": \"#foo\"}".into()));
     assert_eq!(l.fragment, None);
   }
 
@@ -294,7 +294,7 @@ pub(crate) mod test {
     let c1 = Arc::new(WinNonLenBlankUnicode) as Arc<dyn Loader<()>>;
     let l: LoaderItem<()> = c1.into();
     assert_eq!(l.path, PathBuf::from(r#"\a\b\c.js"#));
-    assert_eq!(l.query, Some("?{\"c\": \"\u{200b}#foo\"}".into()));
+    assert_eq!(l.query, Some("?{\"c\": \"#foo\"}".into()));
     assert_eq!(l.fragment, None);
   }
 }
