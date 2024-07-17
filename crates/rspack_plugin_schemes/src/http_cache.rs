@@ -152,7 +152,7 @@ impl HttpCache {
     let integrity = compute_integrity(&content);
     let entry = LockfileEntry {
       resolved: url.to_string(),
-      integrity: integrity.clone(), // Clone here
+      integrity: integrity.clone(),
       content_type: headers
         .get("content-type")
         .and_then(|v| v.to_str().ok())
@@ -192,7 +192,7 @@ impl HttpCache {
         lockfile
           .entries_mut()
           .insert(url.to_string(), entry.clone());
-        drop(lockfile); // Release the lock before saving
+        drop(lockfile);
         self.lockfile_cache.save_lockfile().await?;
       }
     }
@@ -210,7 +210,7 @@ impl HttpCache {
       let cache_path = format!("{}/{}", cache_location, resource.replace('/', "_"));
 
       if let Some(entry) = lockfile.get_entry(resource) {
-        let current_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros() as u64;
+        let current_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
         let is_valid = entry.valid_until > current_time;
 
         if is_valid && Path::new(&cache_path).exists() {
@@ -258,7 +258,6 @@ pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> FetchRe
 }
 
 fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bool, bool, u64) {
-  dbg!(cache_control, request_time);
   let result = cache_control
     .as_ref()
     .map(|header| {
@@ -269,22 +268,19 @@ fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bo
           Some((parts.next()?.trim(), parts.next()?.trim()))
         })
         .collect();
-      dbg!(&pairs);
 
       let store_lock = !pairs.contains_key("no-store");
       let store_cache = !pairs.contains_key("no-cache");
       let valid_until = pairs
         .get("max-age")
         .and_then(|&max_age| max_age.parse::<u64>().ok())
-        .map(|seconds| request_time + seconds * 1_000_000) // Convert seconds to microseconds
-        .unwrap_or(request_time + 3_600_000_000); // Default to 1 hour in microseconds
+        .map(|seconds| request_time + seconds)
+        .unwrap_or(request_time + 3600); // Default to 1 hour in seconds
 
-      dbg!(store_lock, store_cache, valid_until);
       (store_lock, store_cache, valid_until)
     })
-    .unwrap_or((true, true, request_time + 3_600_000_000)); // Default to 1 hour in microseconds
+    .unwrap_or((true, true, request_time + 3600)); // Default to 1 hour in seconds
 
-  dbg!(&result);
   result
 }
 
@@ -292,7 +288,7 @@ fn current_time() -> u64 {
   SystemTime::now()
     .duration_since(UNIX_EPOCH)
     .expect("Time went backwards")
-    .as_micros() as u64
+    .as_secs()
 }
 
 fn compute_integrity(content: &[u8]) -> String {
