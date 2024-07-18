@@ -422,8 +422,8 @@ importers:
         specifier: ^0.8.0
         version: 0.8.0
       semver:
-        specifier: 6.3.1
-        version: 6.3.1
+        specifier: ^7.6.2
+        version: 7.6.2
       webpack-bundle-analyzer:
         specifier: 4.6.1
         version: 4.6.1
@@ -601,7 +601,7 @@ importers:
         specifier: 4.3.0
         version: 4.3.0
       fs-extra:
-        specifier: 11.2.0
+        specifier: ^11.2.0
         version: 11.2.0
       glob:
         specifier: ^10.3.10
@@ -616,7 +616,7 @@ importers:
         specifier: 29.7.0
         version: 29.7.0
       jsdom:
-        specifier: 24.0.0
+        specifier: ^24.0.0
         version: 24.0.0
       memfs:
         specifier: 4.8.1
@@ -16552,7 +16552,7 @@ snapshots:
       jest-util: 29.7.0
       natural-compare: 1.4.0
       pretty-format: 29.7.0
-      semver: 7.6.0
+      semver: 7.6.2
     transitivePeerDependencies:
       - supports-color
 
@@ -17616,7 +17616,7 @@ snapshots:
       cosmiconfig: 8.3.6(typescript@4.9.5)
       jiti: 1.21.0
       postcss: 8.4.38
-      semver: 7.6.0
+      semver: 7.6.2
       webpack: 5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.1))(webpack-cli@5.1.4(webpack@5.92.0))
     transitivePeerDependencies:
       - typescript
