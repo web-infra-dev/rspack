@@ -41,5 +41,8 @@ export const EN_US = {
     'Run multiple builds in parallel for different build targets or environments.',
   featureJavaScriptApi:
     'Provides programmatic access to the build API to customize the build processes.',
+  toolStackTitle: 'Tool Stack',
+  toolStackDesc:
+    'High-performance tool stack built around Rspack to boost modern web development',
   recruit: 'The Rspack team is hiring. Come and join us!',
 } as const;
