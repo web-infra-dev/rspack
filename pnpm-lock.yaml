@@ -330,10 +330,6 @@ importers:
 
   packages/rspack:
     dependencies:
-      '@swc/helpers':
-        specifier: '>=0.5.1'
-        version: 0.5.8
-    devDependencies:
       '@module-federation/runtime-tools':
         specifier: 0.2.3
         version: 0.2.3
@@ -343,6 +339,13 @@ importers:
       '@rspack/lite-tapable':
         specifier: workspace:*
         version: link:../rspack-lite-tapable
+      '@swc/helpers':
+        specifier: '>=0.5.1'
+        version: 0.5.8
+      caniuse-lite:
+        specifier: ^1.0.30001616
+        version: 1.0.30001616
+    devDependencies:
       '@swc/core':
         specifier: 1.4.0
         version: 1.4.0(@swc/helpers@0.5.8)
@@ -361,9 +364,6 @@ importers:
       browserslist:
         specifier: ^4.21.3
         version: 4.23.0
-      caniuse-lite:
-        specifier: ^1.0.30001616
-        version: 1.0.30001616
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
