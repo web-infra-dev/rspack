@@ -743,8 +743,8 @@ importers:
         specifier: ^6.2.0
         version: 6.2.0
       postcss-loader:
-        specifier: ^7.3.4
-        version: 7.3.4(postcss@8.4.38)(typescript@5.4.2)(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
+        specifier: ^8.0.0
+        version: 8.1.1(@rspack/core@packages+rspack)(postcss@8.4.38)(typescript@5.4.2)(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
       postcss-pxtorem:
         specifier: ^6.0.0
         version: 6.1.0(postcss@8.4.38)
@@ -17618,16 +17618,6 @@ snapshots:
       postcss: 8.4.38
       semver: 7.6.0
       webpack: 5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.1))(webpack-cli@5.1.4(webpack@5.92.0))
-    transitivePeerDependencies:
-      - typescript
-
-  postcss-loader@7.3.4(postcss@8.4.38)(typescript@5.4.2)(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0))):
-    dependencies:
-      cosmiconfig: 8.3.6(typescript@5.4.2)
-      jiti: 1.21.0
-      postcss: 8.4.38
-      semver: 7.6.0
-      webpack: 5.92.0(webpack-cli@5.1.4(webpack@5.92.0))
     transitivePeerDependencies:
       - typescript
 
