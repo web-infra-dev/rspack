@@ -288,8 +288,8 @@ pub struct JsStatsAssetInfo {
   pub source_filename: Option<String>,
   pub immutable: bool,
   pub javascript_module: Option<bool>,
-  pub chunk_hash: Vec<String>,
-  pub content_hash: Vec<String>,
+  pub chunkhash: Vec<String>,
+  pub contenthash: Vec<String>,
   pub related: Vec<JsStatsAssetInfoRelated>,
 }
 
@@ -302,8 +302,8 @@ impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
       source_filename: stats.source_filename,
       immutable: stats.immutable,
       javascript_module: stats.javascript_module,
-      chunk_hash: stats.chunk_hash,
-      content_hash: stats.content_hash,
+      chunkhash: stats.chunk_hash,
+      contenthash: stats.content_hash,
       related: stats
         .related
         .into_iter()

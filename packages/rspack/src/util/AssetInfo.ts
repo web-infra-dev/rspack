@@ -11,8 +11,8 @@ class JsAssetInfo {
 			development,
 			hotModuleReplacement,
 			related,
-			chunkHash,
-			contentHash,
+			chunkhash,
+			contenthash,
 			javascriptModule,
 			sourceFilename,
 			extras
@@ -24,8 +24,8 @@ class JsAssetInfo {
 			development,
 			hotModuleReplacement,
 			related,
-			chunkHash,
-			contentHash,
+			chunkhash,
+			contenthash,
 			javascriptModule,
 			sourceFilename
 		};
@@ -38,8 +38,8 @@ class JsAssetInfo {
 			development = false,
 			hotModuleReplacement = false,
 			related = {},
-			chunkHash = [],
-			contentHash = [],
+			chunkhash = [],
+			contenthash = [],
 			javascriptModule,
 			sourceFilename,
 			...extras
@@ -51,8 +51,8 @@ class JsAssetInfo {
 			development,
 			hotModuleReplacement,
 			related,
-			chunkHash,
-			contentHash,
+			chunkhash,
+			contenthash,
 			extras
 		};
 	}

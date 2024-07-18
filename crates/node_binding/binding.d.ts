@@ -313,12 +313,12 @@ export interface JsAssetInfo {
    * the value(s) of the full hash used for this asset
    * the value(s) of the chunk hash used for this asset
    */
-  chunkHash: Array<string>
+  chunkhash: Array<string>
   /**
    * the value(s) of the module hash used for this asset
    * the value(s) of the content hash used for this asset
    */
-  contentHash: Array<string>
+  contenthash: Array<string>
   sourceFilename?: string
   /**
    * size in bytes, only set after asset has been emitted
@@ -609,8 +609,8 @@ export interface JsStatsAssetInfo {
   sourceFilename?: string
   immutable: boolean
   javascriptModule?: boolean
-  chunkHash: Array<string>
-  contentHash: Array<string>
+  chunkhash: Array<string>
+  contenthash: Array<string>
   related: Array<JsStatsAssetInfoRelated>
 }
 
