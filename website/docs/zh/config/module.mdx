@@ -483,7 +483,7 @@ module.exports = {
 
 #### module.generator.asset.publicPath
 
-- **类型：** `string`
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** `undefined`
 
 覆盖 [`output.publicPath`](/config/output#outputpublicpath)，仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。

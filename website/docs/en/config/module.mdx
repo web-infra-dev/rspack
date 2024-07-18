@@ -483,7 +483,7 @@ module.exports = {
 
 #### module.generator.asset.publicPath
 
-- **Type:** `string`
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `undefined`
 
 Override [`output.publicPath`](/config/output#outputpublicpath), only for modules with module type `'asset'` or `'asset/resource'`.

@@ -154,7 +154,10 @@ Whether to create a load-on-demand asynchronous chunk for this entry.
 - **Type:**
 
   ```ts
-  type PublicPath = 'auto' | string;
+  type PublicPath =
+    | 'auto'
+    | string
+    | ((pathData: PathData, assetInfo?: AssetInfo) => string);
   ```
 
 - **Default:** `undefined`
