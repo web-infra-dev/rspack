@@ -5,7 +5,7 @@ use napi::{
   bindgen_prelude::{FromNapiValue, ToNapiValue, ValidateNapiValue},
   Either, JsFunction,
 };
-use rspack_core::{AssetInfo, LocalFilenameFn, PathData};
+use rspack_core::{AssetInfo, LocalFilenameFn, PathData, PublicPath};
 use rspack_core::{Filename, FilenameFn};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use serde::Deserialize;
@@ -40,6 +40,17 @@ impl From<JsFilename> for Filename {
       Either::B(theadsafe_filename_fn) => {
         Filename::from_fn(Arc::new(ThreadSafeFilenameFn(theadsafe_filename_fn)))
       }
+    }
+  }
+}
+
+impl From<JsFilename> for PublicPath {
+  fn from(value: JsFilename) -> Self {
+    match value.0 {
+      Either::A(template) => template.into(),
+      Either::B(theadsafe_filename_fn) => PublicPath::Filename(Filename::from_fn(Arc::new(
+        ThreadSafeFilenameFn(theadsafe_filename_fn),
+      ))),
     }
   }
 }

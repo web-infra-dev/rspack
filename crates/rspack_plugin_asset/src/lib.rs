@@ -393,6 +393,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             .module_generator_options
             .and_then(|x| x.asset_public_path())
           {
+            // FIXME(xc2): webpack render asset_public_path differently with output.public_path. See @{https://github.com/webpack/webpack/blob/a642809846deefdb9db05214718af5ab78c0ab94/lib/asset/AssetGenerator.js#L326-L358}
             let public_path = public_path.render(compilation, &filename);
             serde_json::to_string(&format!("{public_path}{filename}"))
               .map_err(|e| error!(e.to_string()))?

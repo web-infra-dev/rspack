@@ -1,11 +1,12 @@
 use napi::Either;
 use napi_derive::napi;
+use rspack_binding_values::JsFilename;
 use rspack_core::{EntryOptions, EntryRuntime};
 
 use crate::RawLibraryOptions;
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawEntryPluginOptions {
   pub context: String,
   pub entry: String,
@@ -28,14 +29,15 @@ impl From<RawEntryRuntimeWrapper> for EntryRuntime {
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawEntryOptions {
   pub name: Option<String>,
   #[napi(ts_type = "false | string")]
   pub runtime: Option<RawEntryRuntime>,
   pub chunk_loading: Option<String>,
   pub async_chunks: Option<bool>,
-  pub public_path: Option<String>,
+  #[napi(ts_type = "\"auto\" | JsFilename")]
+  pub public_path: Option<JsFilename>,
   pub base_uri: Option<String>,
   pub filename: Option<String>,
   pub library: Option<RawLibraryOptions>,

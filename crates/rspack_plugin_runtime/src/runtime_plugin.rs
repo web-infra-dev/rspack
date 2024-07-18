@@ -298,21 +298,18 @@ fn runtime_requirements_in_tree(
       {
         compilation.add_runtime_module(chunk_ukey, BaseUriRuntimeModule::default().boxed())?;
       }
-      RuntimeGlobals::PUBLIC_PATH => {
-        match &public_path {
-          // TODO string publicPath support [hash] placeholder
-          PublicPath::String(str) => {
-            compilation.add_runtime_module(
-              chunk_ukey,
-              PublicPathRuntimeModule::new(str.as_str().into()).boxed(),
-            )?;
-          }
-          PublicPath::Auto => {
-            compilation
-              .add_runtime_module(chunk_ukey, AutoPublicPathRuntimeModule::default().boxed())?;
-          }
+      RuntimeGlobals::PUBLIC_PATH => match &public_path {
+        PublicPath::Filename(filename) => {
+          compilation.add_runtime_module(
+            chunk_ukey,
+            PublicPathRuntimeModule::new(Box::new(filename.clone())).boxed(),
+          )?;
         }
-      }
+        PublicPath::Auto => {
+          compilation
+            .add_runtime_module(chunk_ukey, AutoPublicPathRuntimeModule::default().boxed())?;
+        }
+      },
       RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME => {
         compilation.add_runtime_module(
           chunk_ukey,

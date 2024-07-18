@@ -164,7 +164,8 @@ pub struct RawOutputOptions {
   #[napi(ts_type = "boolean | \"verbose\"")]
   pub pathinfo: Either<bool, String>,
   pub clean: bool,
-  pub public_path: String,
+  #[napi(ts_type = "\"auto\" | JsFilename")]
+  pub public_path: JsFilename,
   pub asset_module_filename: JsFilename,
   pub wasm_loading: String,
   pub enabled_wasm_loading_types: Vec<String>,

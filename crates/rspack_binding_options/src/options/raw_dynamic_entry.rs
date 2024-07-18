@@ -5,7 +5,7 @@ use rspack_plugin_dynamic_entry::{DynamicEntryPluginOptions, EntryDynamicResult}
 use crate::RawEntryOptions;
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawEntryDynamicResult {
   pub import: Vec<String>,
   pub options: RawEntryOptions,

@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import type { LoaderContext, LoaderDefinition } from "../..";
+import type { Filename, LoaderContext, LoaderDefinition } from "../..";
 import { CssExtractRspackPlugin } from "./index";
 import schema from "./loader-options.json";
 import { stringifyLocal, stringifyRequest } from "./utils";
@@ -120,7 +120,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		publicPath = AUTO_PUBLIC_PATH;
 	}
 
-	let publicPathForExtract: string | undefined;
+	let publicPathForExtract: Filename | undefined;
 
 	if (typeof publicPath === "string") {
 		const isAbsolutePublicPath = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/.test(publicPath);
@@ -290,7 +290,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 	this.importModule(
 		`${this.resourcePath}.webpack[javascript/auto]!=!!!${request}`,
 		{
-			publicPath: /** @type {string} */ publicPathForExtract,
+			publicPath: /** @type {Filename} */ publicPathForExtract,
 			baseUri: `${BASE_URI}/`
 		},
 		(error, exports) => {

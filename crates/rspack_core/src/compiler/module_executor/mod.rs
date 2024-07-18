@@ -23,7 +23,7 @@ use self::{
 use super::make::{repair::MakeTaskContext, update_module_graph, MakeArtifact, MakeParam};
 use crate::{
   task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context, Dependency,
-  DependencyId, LoaderImportDependency,
+  DependencyId, LoaderImportDependency, PublicPath,
 };
 
 #[derive(Debug, Default)]
@@ -153,7 +153,7 @@ impl ModuleExecutor {
   pub async fn import_module(
     &self,
     request: String,
-    public_path: Option<String>,
+    public_path: Option<PublicPath>,
     base_uri: Option<String>,
     original_module_context: Option<Context>,
     original_module_identifier: Option<Identifier>,

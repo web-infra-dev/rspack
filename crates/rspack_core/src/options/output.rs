@@ -253,17 +253,29 @@ impl<'a> PathData<'a> {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, MergeFrom)]
 pub enum PublicPath {
-  // TODO: should be RawPublicPath(Filename)
-  String(String),
+  Filename(Filename),
   Auto,
 }
 
 impl PublicPath {
   pub fn render(&self, compilation: &Compilation, filename: &str) -> String {
     match self {
-      Self::String(s) => Self::ensure_ends_with_slash(s.to_string()),
+      Self::Filename(f) => {
+        PublicPath::ensure_ends_with_slash(Self::render_filename(compilation, f))
+      }
       Self::Auto => Self::render_auto_public_path(compilation, filename),
     }
+  }
+
+  pub fn render_filename(compilation: &Compilation, template: &Filename) -> String {
+    let (filename, _) = compilation
+      .get_asset_path_with_info(
+        template,
+        // @{link https://github.com/webpack/webpack/blob/a642809846deefdb9db05214718af5ab78c0ab94/lib/runtime/PublicPathRuntimeModule.js#L30-L32}
+        PathData::default().hash(compilation.get_hash().unwrap_or("XXXX")),
+      )
+      .expect("failed to render public");
+    filename
   }
 
   pub fn ensure_ends_with_slash(public_path: String) -> String {
@@ -301,7 +313,7 @@ impl FromStr for PublicPath {
     if s.eq("auto") {
       Ok(PublicPath::Auto)
     } else {
-      Ok(PublicPath::String(s.to_string()))
+      Ok(PublicPath::Filename(Filename::from_str(s)?))
     }
   }
 }
@@ -309,9 +321,9 @@ impl FromStr for PublicPath {
 impl From<String> for PublicPath {
   fn from(value: String) -> Self {
     if value == "auto" {
-      Self::Auto
+      PublicPath::Auto
     } else {
-      Self::String(value)
+      PublicPath::Filename(value.into())
     }
   }
 }
