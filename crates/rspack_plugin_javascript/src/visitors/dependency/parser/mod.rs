@@ -414,17 +414,17 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn get_mut_variable_info(&mut self, name: &str) -> Option<&mut VariableInfo> {
-    let Some(id) = self.definitions_db.get(&self.definitions, name) else {
+    let Some(id) = self.definitions_db.get(self.definitions, name) else {
       return None;
     };
-    Some(self.definitions_db.expect_get_mut_variable(&id))
+    Some(self.definitions_db.expect_get_mut_variable(id))
   }
 
   pub fn get_variable_info(&mut self, name: &str) -> Option<&VariableInfo> {
-    let Some(id) = self.definitions_db.get(&self.definitions, name) else {
+    let Some(id) = self.definitions_db.get(self.definitions, name) else {
       return None;
     };
-    Some(self.definitions_db.expect_get_variable(&id))
+    Some(self.definitions_db.expect_get_variable(id))
   }
 
   pub fn get_tag_data(&mut self, name: &Atom, tag: &str) -> Option<Box<dyn anymap::CloneAny>> {
@@ -432,7 +432,7 @@ impl<'parser> JavascriptParser<'parser> {
       .get_variable_info(name)
       .and_then(|variable_info| variable_info.tag_info)
       .and_then(|tag_info_id| {
-        let mut tag_info = Some(self.definitions_db.expect_get_tag_info(&tag_info_id));
+        let mut tag_info = Some(self.definitions_db.expect_get_tag_info(tag_info_id));
 
         while let Some(cur_tag_info) = tag_info {
           if cur_tag_info.tag == tag {
@@ -440,7 +440,7 @@ impl<'parser> JavascriptParser<'parser> {
           }
           tag_info = cur_tag_info
             .next
-            .map(|tag_info_id| self.definitions_db.expect_get_tag_info(&tag_info_id))
+            .map(|tag_info_id| self.definitions_db.expect_get_tag_info(tag_info_id))
         }
 
         None
@@ -463,7 +463,7 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn get_all_variables_from_current_scope(
     &self,
   ) -> impl Iterator<Item = (&str, &VariableInfoId)> {
-    let scope = self.definitions_db.expect_get_scope(&self.definitions);
+    let scope = self.definitions_db.expect_get_scope(self.definitions);
     scope.variables()
   }
 
@@ -505,8 +505,8 @@ impl<'parser> JavascriptParser<'parser> {
     data: Option<Data>,
   ) {
     let data = data.map(|data| TagInfoData::into_any(data));
-    let new_info = if let Some(old_info_id) = self.definitions_db.get(&self.definitions, &name) {
-      let old_info = self.definitions_db.expect_get_variable(&old_info_id);
+    let new_info = if let Some(old_info_id) = self.definitions_db.get(self.definitions, &name) {
+      let old_info = self.definitions_db.expect_get_variable(old_info_id);
       if let Some(old_tag_info) = old_info.tag_info {
         let declared_scope = old_info.declared_scope;
         // FIXME: remove `.clone`
@@ -879,7 +879,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn set_strict(&mut self, value: bool) {
-    let current_scope = self.definitions_db.expect_get_mut_scope(&self.definitions);
+    let current_scope = self.definitions_db.expect_get_mut_scope(self.definitions);
     current_scope.is_strict = value;
   }
 
@@ -898,13 +898,13 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn is_strict(&mut self) -> bool {
-    let scope = self.definitions_db.expect_get_scope(&self.definitions);
+    let scope = self.definitions_db.expect_get_scope(self.definitions);
     scope.is_strict
   }
 
   // TODO: remove
   pub fn is_unresolved_ident(&mut self, str: &str) -> bool {
-    self.definitions_db.get(&self.definitions, str).is_none()
+    self.definitions_db.get(self.definitions, str).is_none()
   }
 }
 

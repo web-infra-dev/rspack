@@ -40,7 +40,7 @@ impl<'parser> JavascriptParser<'parser> {
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
 
     self.in_tagged_template_tag = false;
-    self.definitions = self.definitions_db.create_child(&old_definitions);
+    self.definitions = self.definitions_db.create_child(old_definitions);
     f(self);
 
     self.definitions = old_definitions;
@@ -60,7 +60,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     self.in_try = false;
     self.in_tagged_template_tag = false;
-    self.definitions = self.definitions_db.create_child(&old_definitions);
+    self.definitions = self.definitions_db.create_child(old_definitions);
 
     if has_this {
       self.undefined_variable("this".to_string());
@@ -87,7 +87,7 @@ impl<'parser> JavascriptParser<'parser> {
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
 
-    self.definitions = self.definitions_db.create_child(&old_definitions);
+    self.definitions = self.definitions_db.create_child(old_definitions);
     self.in_tagged_template_tag = false;
     if has_this {
       self.undefined_variable("this".to_string());
