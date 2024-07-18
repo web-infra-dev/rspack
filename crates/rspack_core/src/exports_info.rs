@@ -1918,9 +1918,9 @@ pub fn get_dependency_used_by_exports_condition(
       Some(DependencyCondition::Fn(Arc::new(
         move |_, runtime, module_graph: &ModuleGraph| {
           let module_identifier = module_graph
-            .parent_module_by_dependency_id(&dependency_id)
+            .get_parent_module(&dependency_id)
             .expect("should have parent module");
-          let exports_info = module_graph.get_exports_info(&module_identifier);
+          let exports_info = module_graph.get_exports_info(module_identifier);
           for export_name in used_by_exports.iter() {
             if exports_info.get_used(UsedName::Str(export_name.clone()), runtime, module_graph)
               != UsageState::Unused

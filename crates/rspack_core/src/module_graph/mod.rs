@@ -905,15 +905,6 @@ impl<'a> ModuleGraph<'a> {
       })
   }
 
-  pub fn parent_module_by_dependency_id(
-    &self,
-    dependency_id: &DependencyId,
-  ) -> Option<ModuleIdentifier> {
-    self
-      .connection_by_dependency(dependency_id)
-      .and_then(|c| c.original_module_identifier)
-  }
-
   pub fn connection_by_connection_id(
     &self,
     connection_id: &ConnectionId,
