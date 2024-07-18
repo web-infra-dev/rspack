@@ -38,7 +38,8 @@
   "devDependencies": {
     "@rspack/core": "workspace:*",
     "@rspack/plugin-react-refresh": "workspace:*",
-    "react-refresh": "^0.14.0"
+    "react-refresh": "^0.14.0",
+    "typescript": "5.5.3"
   },
   "dependencies": {
     "error-stack-parser": "^2.0.6",

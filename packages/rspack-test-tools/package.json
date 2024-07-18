@@ -113,6 +113,7 @@
     "style-loader": "^3.3.3",
     "source-map-loader": "^5.0.0",
     "terser": "5.27.2",
+    "typescript": "5.5.3",
     "wast-loader": "^1.12.1"
   },
   "peerDependencies": {
