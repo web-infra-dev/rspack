@@ -13,6 +13,7 @@ import type {
 	JsOriginRecord,
 	JsStatsAssetInfo,
 	JsStatsError,
+	JsStatsModule,
 	JsStatsWarning
 } from "@rspack/binding";
 import type { Chunk } from "../Chunk";
@@ -25,7 +26,12 @@ import {
 	getLogTypeBitFlag,
 	getLogTypesBitFlag
 } from "../logging/Logger";
-import { compareIds as _compareIds, compareSelect } from "../util/comparators";
+import {
+	type Comparator,
+	compareIds as _compareIds,
+	compareNumbers,
+	compareSelect
+} from "../util/comparators";
 import { makePathsRelative, parseResource } from "../util/identifier";
 import type { GroupConfig } from "../util/smartGrouping";
 import type { KnownStatsFactoryContext, StatsFactory } from "./StatsFactory";
@@ -488,6 +494,28 @@ const RESULT_SORTERS: Record<
 	"asset.related": ASSET_SORTERS
 };
 
+const MODULES_SORTER: Record<
+	string,
+	(comparators: Function[], context: KnownStatsFactoryContext) => void
+> = {
+	_: comparators => {
+		comparators.push(
+			compareSelect(
+				(m: JsStatsModule) => m.depth,
+				compareNumbers as Comparator
+			),
+			compareSelect(
+				(m: JsStatsModule) => m.preOrderIndex,
+				compareNumbers as Comparator
+			),
+			compareSelect(
+				(m: JsStatsModule) => m.identifier,
+				compareIds as Comparator
+			)
+		);
+	}
+};
+
 const SORTERS: Record<
 	string,
 	Record<
@@ -500,10 +528,10 @@ const SORTERS: Record<
 			comparators.push(compareSelect((c: StatsChunk) => c.id, compareIds));
 		}
 	},
-	// "compilation.modules": MODULES_SORTER,
-	// "chunk.rootModules": MODULES_SORTER,
-	// "chunk.modules": MODULES_SORTER,
-	// "module.modules": MODULES_SORTER,
+	"compilation.modules": MODULES_SORTER,
+	"chunk.rootModules": MODULES_SORTER,
+	"chunk.modules": MODULES_SORTER,
+	"module.modules": MODULES_SORTER,
 	// not support module.reasons (missing Module.identifier())
 	"chunk.origins": {
 		_: comparators => {
@@ -1052,9 +1080,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.moduleType = module.moduleType;
 			// TODO: object.layer = module.layer;
 			object.size = module.size;
-			object.sizes = Object.fromEntries(
-				module.sizes.map(({ sourceType, size }) => [sourceType, size])
-			);
+			const sizes = module.sizes.map(({ sourceType, size }) => [
+				sourceType,
+				size
+			]);
+			sizes.sort((a, b) => -compareIds(a, b));
+			object.sizes = Object.fromEntries(sizes);
 			object.built = module.built;
 			object.codeGenerated = module.codeGenerated;
 			object.buildTimeExecuted = module.buildTimeExecuted;
