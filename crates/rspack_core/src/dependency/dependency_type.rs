@@ -141,7 +141,7 @@ impl DependencyType {
       DependencyType::WasmExportImported => "wasm export imported",
       DependencyType::StaticExports => "static exports",
       DependencyType::LoaderImport => "loader import",
-      DependencyType::Custom(ty) => *ty,
+      DependencyType::Custom(ty) => ty,
       DependencyType::ExportInfoApi => "export info api",
       // TODO: mode
       DependencyType::ImportMetaContext => "import.meta context",
