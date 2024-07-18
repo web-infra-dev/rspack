@@ -64,11 +64,11 @@ importers:
         specifier: 3.2.5
         version: 3.2.5
       rsbuild-plugin-google-analytics:
-        specifier: 1.0.0
-        version: 1.0.0(@rsbuild/core@1.0.0-alpha.9)
+        specifier: 1.0.1
+        version: 1.0.1(@rsbuild/core@1.0.0-alpha.9)
       rsbuild-plugin-open-graph:
-        specifier: 1.0.0
-        version: 1.0.0(@rsbuild/core@1.0.0-alpha.9)
+        specifier: 1.0.1
+        version: 1.0.1(@rsbuild/core@1.0.0-alpha.9)
       rspress:
         specifier: ^1.26.1
         version: 1.26.2(webpack@5.91.0)
@@ -2076,18 +2076,18 @@ packages:
     resolution: {integrity: sha512-U9nH88a3fc/ekCF1l0/UP1IosiuIjyTh7hBvXVMHYgVcfGvt897Xguj2UOLDeI5BG2m7/uwyaLVT6fbtCwTyzw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
 
-  rsbuild-plugin-google-analytics@1.0.0:
-    resolution: {integrity: sha512-Z2hVetWq48QT+X/HMmtp+YTxzPw+ujt/KUrbQXn98LmUDYqJyGSCBAjit8atAoRiThUSKlkG+NU3+zkFvKoLdA==}
+  rsbuild-plugin-google-analytics@1.0.1:
+    resolution: {integrity: sha512-l4LiloIJ23HVswNTeySsIi6Mx9EYvu2HVm8PaCdkEle6UCY7Kkqz0OM28RW1qo27k4xVyYncxQGtBWRay3oM1g==}
     peerDependencies:
-      '@rsbuild/core': 0.x
+      '@rsbuild/core': 0.x || 1.x
     peerDependenciesMeta:
       '@rsbuild/core':
         optional: true
 
-  rsbuild-plugin-open-graph@1.0.0:
-    resolution: {integrity: sha512-SuN9w2FH2v9Mp9/jBowH/RvR74i5A1KzM8+3JrCwCpsuny2HQ3iZqVETgDJ0VIcXqLHUxPnI0aGMgbAcqmlzcg==}
+  rsbuild-plugin-open-graph@1.0.1:
+    resolution: {integrity: sha512-E+Pkbqq24/FVyrFPIUZ7T9W1PVHlPRlVNZG9AZ4xE29GHee4UcDkp0XXmh9GmAl2Fp0l7XTxk9RqztfuM4heUg==}
     peerDependencies:
-      '@rsbuild/core': 0.x
+      '@rsbuild/core': 0.x || 1.x
     peerDependenciesMeta:
       '@rsbuild/core':
         optional: true
@@ -4997,11 +4997,11 @@ snapshots:
 
   reusify@1.0.4: {}
 
-  rsbuild-plugin-google-analytics@1.0.0(@rsbuild/core@1.0.0-alpha.9):
+  rsbuild-plugin-google-analytics@1.0.1(@rsbuild/core@1.0.0-alpha.9):
     optionalDependencies:
       '@rsbuild/core': 1.0.0-alpha.9
 
-  rsbuild-plugin-open-graph@1.0.0(@rsbuild/core@1.0.0-alpha.9):
+  rsbuild-plugin-open-graph@1.0.1(@rsbuild/core@1.0.0-alpha.9):
     optionalDependencies:
       '@rsbuild/core': 1.0.0-alpha.9
 
