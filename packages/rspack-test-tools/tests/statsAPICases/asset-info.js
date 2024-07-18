@@ -45,8 +45,8 @@ module.exports = {
 		    "emitted": true,
 		    "filteredRelated": 0,
 		    "info": Object {
-		      "chunkHash": Array [],
-		      "contentHash": Array [
+		      "chunkhash": Array [],
+		      "contenthash": Array [
 		        "89a353e9c515885abd8e",
 		      ],
 		      "development": false,
@@ -75,8 +75,8 @@ module.exports = {
 		    "emitted": true,
 		    "filteredRelated": 0,
 		    "info": Object {
-		      "chunkHash": Array [],
-		      "contentHash": Array [],
+		      "chunkhash": Array [],
+		      "contenthash": Array [],
 		      "development": false,
 		      "hotModuleReplacement": false,
 		      "immutable": false,
