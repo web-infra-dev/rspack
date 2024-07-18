@@ -10,8 +10,8 @@ use rspack_core::{
   BuildMetaExportsType, ChunkGraph, ChunkUkey, CodeGenerationDataAssetInfo,
   CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilationRenderManifest,
   CompilerOptions, GenerateContext, Module, ModuleGraph, NormalModule, ParseContext,
-  ParserAndGenerator, PathData, Plugin, RenderManifestEntry, ResourceData, RuntimeGlobals,
-  SourceType, NAMESPACE_OBJECT_EXPORT,
+  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, ResourceData,
+  RuntimeGlobals, SourceType, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{error, Diagnostic, IntoTWithDiagnosticArray, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -393,8 +393,21 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             .module_generator_options
             .and_then(|x| x.asset_public_path())
           {
-            // FIXME(xc2): webpack render asset_public_path differently with output.public_path. See @{https://github.com/webpack/webpack/blob/a642809846deefdb9db05214718af5ab78c0ab94/lib/asset/AssetGenerator.js#L326-L358}
-            let public_path = public_path.render(compilation, &filename);
+            let public_path = match public_path {
+              PublicPath::Filename(template) => {
+                let (public_path, _) = compilation.get_asset_path_with_info(
+                  template,
+                  PathData::default()
+                    .module(module)
+                    .chunk_graph(&generate_context.compilation.chunk_graph)
+                    .content_hash(contenthash)
+                    .hash(contenthash)
+                    .filename(&filename),
+                )?;
+                PublicPath::ensure_ends_with_slash(public_path)
+              }
+              PublicPath::Auto => public_path.render(compilation, &filename),
+            };
             serde_json::to_string(&format!("{public_path}{filename}"))
               .map_err(|e| error!(e.to_string()))?
           } else {

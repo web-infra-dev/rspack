@@ -260,9 +260,7 @@ pub enum PublicPath {
 impl PublicPath {
   pub fn render(&self, compilation: &Compilation, filename: &str) -> String {
     match self {
-      Self::Filename(f) => {
-        PublicPath::ensure_ends_with_slash(Self::render_filename(compilation, f))
-      }
+      Self::Filename(f) => Self::ensure_ends_with_slash(Self::render_filename(compilation, f)),
       Self::Auto => Self::render_auto_public_path(compilation, filename),
     }
   }
@@ -311,9 +309,9 @@ impl FromStr for PublicPath {
   type Err = ParseError;
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     if s.eq("auto") {
-      Ok(PublicPath::Auto)
+      Ok(Self::Auto)
     } else {
-      Ok(PublicPath::Filename(Filename::from_str(s)?))
+      Ok(Self::Filename(Filename::from_str(s)?))
     }
   }
 }
@@ -321,9 +319,9 @@ impl FromStr for PublicPath {
 impl From<String> for PublicPath {
   fn from(value: String) -> Self {
     if value == "auto" {
-      PublicPath::Auto
+      Self::Auto
     } else {
-      PublicPath::Filename(value.into())
+      Self::Filename(value.into())
     }
   }
 }
