@@ -1,5 +1,5 @@
 use rspack_core::{
-  impl_runtime_module,
+  has_hash_placeholder, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Compilation, Filename, PublicPath, RuntimeModule,
 };
@@ -22,12 +22,19 @@ impl RuntimeModule for PublicPathRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
+  fn cacheable(&self) -> bool {
+    if let Some(template) = self.public_path.template() {
+      !has_hash_placeholder(template)
+    } else {
+      false
+    }
+  }
 
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
       RawSource::from(include_str!("runtime/public_path.js").replace(
         "__PUBLIC_PATH_PLACEHOLDER__",
-        &PublicPath::render_filename(_compilation, &self.public_path),
+        &PublicPath::render_filename(compilation, &self.public_path),
       ))
       .boxed(),
     )

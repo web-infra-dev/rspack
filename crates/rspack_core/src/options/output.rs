@@ -266,14 +266,13 @@ impl PublicPath {
   }
 
   pub fn render_filename(compilation: &Compilation, template: &Filename) -> String {
-    let (filename, _) = compilation
-      .get_asset_path_with_info(
+    compilation
+      .get_path(
         template,
         // @{link https://github.com/webpack/webpack/blob/a642809846deefdb9db05214718af5ab78c0ab94/lib/runtime/PublicPathRuntimeModule.js#L30-L32}
         PathData::default().hash(compilation.get_hash().unwrap_or("XXXX")),
       )
-      .expect("failed to render public");
-    filename
+      .expect("failed to render public")
   }
 
   pub fn ensure_ends_with_slash(public_path: String) -> String {
