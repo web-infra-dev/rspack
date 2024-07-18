@@ -905,6 +905,8 @@ export class Compilation {
     // @internal
     __internal__deleteAssetSource(filename: string): void;
     // @internal
+    __internal__emit_asset_from_loader(filename: string, source: Source, assetInfo: AssetInfo, module: string): void;
+    // @internal
     __internal__getAssetFilenames(): string[];
     // @internal
     __internal__getAssetSource(filename: string): Source | void;

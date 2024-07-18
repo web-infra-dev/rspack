@@ -34,6 +34,7 @@ pub struct ModuleExecutor {
   event_sender: Option<UnboundedSender<Event>>,
   stop_receiver: Option<oneshot::Receiver<MakeArtifact>>,
   assets: DashMap<String, CompilationAsset>,
+  module_assets: DashMap<DependencyId, DashSet<String>>,
   code_generated_modules: DashSet<Identifier>,
   pub executed_runtime_modules: DashMap<Identifier, ExecutedRuntimeModule>,
 }
@@ -104,6 +105,22 @@ impl ModuleExecutor {
       panic!("receive make artifact failed");
     }
 
+    let module_assets = std::mem::take(&mut self.module_assets);
+    for (dep_id, files) in module_assets {
+      if let Some(entry_module_identifier) = compilation
+        .get_module_graph()
+        .module_identifier_by_dependency_id(&dep_id)
+      {
+        let assets = compilation
+          .module_assets
+          .entry(*entry_module_identifier)
+          .or_default();
+        for file in files {
+          assets.insert(file);
+        }
+      }
+    }
+
     let assets = std::mem::take(&mut self.assets);
     for (filename, asset) in assets {
       compilation.emit_asset(filename, asset);
@@ -167,7 +184,8 @@ impl ModuleExecutor {
       rx.await.expect("should receiver success");
 
     for (key, value) in assets {
-      self.assets.insert(key, value);
+      self.assets.insert(key.clone(), value);
+      self.module_assets.entry(dep_id).or_default().insert(key);
     }
 
     for id in code_generated_modules {

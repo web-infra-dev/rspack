@@ -683,7 +683,12 @@ export async function runLoaders(
 		}
 		assetFilenames.push(name),
 			// @ts-expect-error
-			compiler._lastCompilation.emitAsset(name, source, assetInfo);
+			compiler._lastCompilation.__internal__emit_asset_from_loader(
+				name,
+				source,
+				assetInfo,
+				context._moduleIdentifier
+			);
 	};
 	loaderContext.fs = compiler.inputFileSystem;
 

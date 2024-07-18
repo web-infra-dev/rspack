@@ -227,6 +227,23 @@ impl JsCompilation {
   }
 
   #[napi]
+  pub fn emit_asset_from_loader(
+    &mut self,
+    filename: String,
+    source: JsCompatSource,
+    asset_info: JsAssetInfo,
+    module: String,
+  ) {
+    self.emit_asset(filename.clone(), source, asset_info);
+    self
+      .0
+      .module_assets
+      .entry(ModuleIdentifier::from(module))
+      .or_default()
+      .insert(filename);
+  }
+
+  #[napi]
   pub fn emit_asset(&mut self, filename: String, source: JsCompatSource, asset_info: JsAssetInfo) {
     let compat_source: CompatSource = source.into();
 

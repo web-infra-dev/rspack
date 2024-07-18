@@ -60,6 +60,7 @@ module.exports = {
 		        "development": false,
 		        "hotModuleReplacement": false,
 		        "immutable": false,
+		        "javascriptModule": false,
 		        "minimized": true,
 		        "related": Object {},
 		      },
