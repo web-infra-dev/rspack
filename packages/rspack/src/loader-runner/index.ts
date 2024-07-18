@@ -685,7 +685,9 @@ export async function runLoaders(
 			// @ts-expect-error
 			compiler._lastCompilation.__internal__emit_asset_from_loader(
 				name,
+				// @ts-expect-error
 				source,
+				// @ts-expect-error
 				assetInfo,
 				context._moduleIdentifier
 			);
