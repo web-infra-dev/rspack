@@ -184,7 +184,7 @@ describe("StatsTestCases", () => {
 					actual = actual
 						.replace(/\u001b\[[0-9;]*m/g, "")
 						// CHANGE: The time unit display in Rspack is second
-						.replace(/[.0-9]+(\s?s)/g, "X$1");
+						.replace(/\d+([.\d]+)(\s?s)/g, "X$1");
 				} else {
 					actual = stderr.toStringRaw() + actual;
 					actual = actual
@@ -208,7 +208,9 @@ describe("StatsTestCases", () => {
 					.replace(/, additional resolving: X ms/g, "")
 					.replace(/Unexpected identifier '.+?'/g, "Unexpected identifier");
 				expect(actual).toMatchSnapshot();
-				if (testConfig.validate) testConfig.validate(stats, stderr.toString());
+				// CHANGE: check actual snapshot
+				// if (testConfig.validate) testConfig.validate(stats, stderr.toString());
+				if (testConfig.validate) testConfig.validate(stats, stderr.toString(), actual);
 				done();
 			});
 		});

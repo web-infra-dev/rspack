@@ -7,6 +7,8 @@ const hashedFiles = {
 	"file.png": a => a.name.endsWith(".png")
 };
 
+const diffStats = require("../../helpers/diffStats");
+
 module.exports = {
 	validate(stats) {
 		for (let i = 0; i < 4; i += 2) {
@@ -38,5 +40,10 @@ module.exports = {
 				expect(asset.name.slice(0, 20)).toBe(hash);
 			}
 		}
+
+		expect(diffStats(actual, path.basename(__dirname)))
+			.toMatchInlineSnapshot(`
+			
+		`);
 	}
 };

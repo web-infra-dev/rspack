@@ -5,21 +5,21 @@ exports[`StatsTestCases should print correct stats for asset 1`] = `
 asset bundle.js 12.7 KiB [emitted] (name: main)
 asset static/file.html 12 bytes [emitted] [from: static/file.html] (auxiliary name: main)
 runtime modules 1.28 KiB 2 modules
-modules by path ./ 14.6 KiB (asset) 9.34 KiB (javascript)
-  modules by path ./images/ 14.6 KiB (asset) 8.86 KiB (javascript)
-    ./images/file.png 14.6 KiB (asset) 42 bytes (javascript) [built] [code generated]
-    ./images/fileXsvg 915 bytes [built] [code generated]
+modules by path ./ 9.34 KiB (javascript) 14.6 KiB (asset)
+  modules by path ./images/ 8.86 KiB (javascript) 14.6 KiB (asset)
+    ./images/file.png 42 bytes (javascript) 14.6 KiB (asset) [built] [code generated]
+    ./images/file.svg 915 bytes [built] [code generated]
     ./images/file.jpg 7.92 KiB [built] [code generated]
   modules by path ./*.js 415 bytes
     ./index.js 402 bytes [built] [code generated]
-    ./aXsource.js 13 bytes [built] [code generated]
-  ./static/file.html 12 bytes (asset) 42 bytes (javascript) [built] [code generated]
+    ./a.source.js 13 bytes [built] [code generated]
+  ./static/file.html 42 bytes (javascript) 12 bytes (asset) [built] [code generated]
   ./a.css 41.4 bytes [built] [code generated]
 modules by mime type text/plain 172 bytes
   data:text/plain;base64,szsaAAdsadasdfaf.. 72.2 bytes [built] [code generated]
   data:text/plain,asd= 41.4 bytes [built] [code generated]
   data:text/plain,XXXXXXXXXXXXXXX.. 58.8 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for asset-concat 1`] = `
@@ -30,9 +30,9 @@ orphan modules 9.43 KiB [orphan] 8 modules
 runtime modules 1.28 KiB 2 modules
 cacheable modules 9.59 KiB (javascript) 14.6 KiB (asset)
   ./index.js + 9 modules 9.51 KiB [code generated]
-  ./images/file.png 14.6 KiB (asset) 42 bytes (javascript) [built] [code generated]
-  ./static/file.html 12 bytes (asset) 42 bytes (javascript) [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+  ./images/file.png 42 bytes (javascript) 14.6 KiB (asset) [built] [code generated]
+  ./static/file.html 42 bytes (javascript) 12 bytes (asset) [built] [code generated]
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for async-commons-chunk-auto 1`] = `
@@ -237,7 +237,7 @@ Entrypoint parent 36 bytes = parent.js
   ./child.js 1 bytes [built] [code generated]
     
   Child TestApplyEntryOptionPlugin compiled successfully
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for circular-correctness 1`] = `
@@ -269,7 +269,7 @@ exports[`StatsTestCases should print correct stats for common-libs 1`] = `
 ./react.js 74 bytes [built] [code generated]
 ../../../../node_modules/.pnpm/react@18.3.1/node_modules/react/index.js 190 bytes [built] [code generated]
 ../../../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.production.min.js 6.77 KiB [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for commons-chunk-min-size-Infinity 1`] = `
@@ -285,19 +285,19 @@ modules by path ./modules/*.js 132 bytes
   ./modules/e.js 22 bytes [built] [code generated]
   ./modules/f.js 22 bytes [built] [code generated]
 ./entry-1.js 145 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for commons-plugin-issue-4980 1`] = `
 "asset app.a0eb2e6ed70cc52bcbd6-1.js 52 bytes [emitted] [immutable] (name: app)
 orphan modules 205 bytes [orphan] 3 modules
 ./entry-1.js 67 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s
+Rspack x.x.x compiled successfully in X.23
 
 asset app.3c507db620931e296fff-2.js 52 bytes [emitted] [immutable] (name: app)
 orphan modules 212 bytes [orphan] 3 modules
 ./entry-2.js 67 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for concat-and-sideeffects 1`] = `
@@ -310,14 +310,14 @@ exports[`StatsTestCases should print correct stats for concat-and-sideeffects 1`
   |   ModuleConcatenation bailout: Module is an entry point
   | ./node_modules/pmodule/a.js 49 bytes [orphan] [built]
   | ./node_modules/pmodule/aa.js 24 bytes [orphan] [built]
+./node_modules/pmodule/a.js 49 bytes [orphan] [built]
 ./node_modules/pmodule/index.js 63 bytes [orphan] [built]
   ModuleConcatenation bailout: Module is not in any chunk
-./node_modules/pmodule/a.js 49 bytes [orphan] [built]
+./node_modules/pmodule/aa.js 24 bytes [orphan] [built]
 ./node_modules/pmodule/b.js 49 bytes [orphan] [built]
   ModuleConcatenation bailout: Module is not in any chunk
 ./node_modules/pmodule/c.js 49 bytes [orphan] [built]
   ModuleConcatenation bailout: Module is not in any chunk
-./node_modules/pmodule/aa.js 24 bytes [orphan] [built]
 ./node_modules/pmodule/bb.js 24 bytes [orphan] [built]
   ModuleConcatenation bailout: Module is not in any chunk
 ./node_modules/pmodule/cc.js 24 bytes [orphan] [built]
@@ -332,7 +332,7 @@ exports[`StatsTestCases should print correct stats for custom-terser 1`] = `
 ./a.js 49 bytes [built] [code generated]
   [no exports]
   [used exports unknown]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for exclude-with-loader 1`] = `
@@ -343,14 +343,14 @@ hidden modules 99 bytes 2 modules
 cacheable modules 119 bytes
   ./index.js 77 bytes [built] [code generated]
   ./a.txt 42 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for external 1`] = `
 "asset main.js 891 bytes [emitted] (name: main)
 ./index.js 17 bytes [built] [code generated]
 external \\"test\\" 42 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for graph-correctness-entries 1`] = `
@@ -448,7 +448,7 @@ exports[`StatsTestCases should print correct stats for ignore-warnings 1`] = `
 "asset main.js 1.83 KiB [emitted] (name: main)
 orphan modules 794 bytes [orphan] 10 modules
 ./index.js + 9 modules 794 bytes [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for immutable 1`] = `
@@ -469,7 +469,7 @@ cacheable modules 724 bytes
     ./templates/foo.js 38 bytes [built] [code generated]
   ./entry.js 450 bytes [built] [code generated]
   Xdir/import-context-filter/templates|lazy|/^\\\\.\\\\/.*$/|include: /\\\\.js$/|exclude: /\\\\.noimport\\\\.js$/|groupOptions: {}|namespace object 160 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for import-weak 1`] = `
@@ -481,7 +481,7 @@ cacheable modules 179 bytes
   ./entry.js 120 bytes [built] [code generated]
   ./modules/a.js 37 bytes [built] [code generated]
   ./modules/b.js 22 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for import-weak-parser-option 1`] = `
@@ -493,7 +493,7 @@ cacheable modules 153 bytes
   ./entry.js 94 bytes [built] [code generated]
   ./modules/a.js 37 bytes [built] [code generated]
   ./modules/b.js 22 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for import-with-invalid-options-comments 1`] = `
@@ -541,7 +541,7 @@ asset a-main-74eb98039f994af619b3.js 323 bytes [emitted] [immutable] (name: main
 Entrypoint main 4 KiB = a-runtime~main-6f980b3fe4e873c8018a.js 3.69 KiB a-main-74eb98039f994af619b3.js 323 bytes
 runtime modules 2.59 KiB 3 modules
 ./a.js 18 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s
+Rspack x.x.x compiled successfully in X.23
 
 asset b-runtime~main-841c6f8661ffb8487676.js 4.39 KiB [emitted] [immutable] (name: runtime~main)
 asset b-main-7a912c9e72d35b5ccb33.js 779 bytes [emitted] [immutable] (name: main) (id hint: all)
@@ -551,7 +551,7 @@ runtime modules 3.17 KiB 5 modules
 cacheable modules 40 bytes
   ./b.js 17 bytes [built] [code generated]
   ./node_modules/vendor.js 23 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s
+Rspack x.x.x compiled successfully in X.23
 
 assets by chunk 1.29 KiB (id hint: all)
   asset c-main-badd31d63df8ff8ef439.js 833 bytes [emitted] [immutable] (name: main) (id hint: all)
@@ -564,7 +564,7 @@ cacheable modules 101 bytes
   ./c.js 61 bytes [built] [code generated]
   ./b.js 17 bytes [built] [code generated]
   ./node_modules/vendor.js 23 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for logging-debug 1`] = `
@@ -596,7 +596,7 @@ exports[`StatsTestCases should print correct stats for max-modules 1`] = `
 ./c.js?7 33 bytes [built] [code generated]
 ./c.js?8 33 bytes [built] [code generated]
 + 12 modules
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for max-modules-default 1`] = `
@@ -616,7 +616,7 @@ exports[`StatsTestCases should print correct stats for max-modules-default 1`] =
 ./c.js?2 33 bytes [built] [code generated]
 ./c.js?3 33 bytes [built] [code generated]
 + 17 modules
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for module-assets 1`] = `
@@ -642,7 +642,7 @@ modules with assets 136 bytes
   ./index.js 82 bytes [built] [code generated]
   ./node_modules/a/index.js 36 bytes [built] [code generated]
   ./node_modules/b/index.js 18 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for module-deduplication 1`] = `
@@ -747,7 +747,7 @@ cacheable modules 110 bytes
     cjs require ./c
     cjs require ./c
     cjs require ./c
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for module-trace-disabled-in-error 1`] = `
@@ -784,7 +784,7 @@ ERROR in ./parse-error.js
  @ ./parse-error.js [636]
  @ ./inner.js [587]
 
-Rspack x.x.x compiled with 2 errors in X s"
+Rspack x.x.x compiled with 2 errors in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for module-trace-enabled-in-error 1`] = `
@@ -821,7 +821,7 @@ ERROR in ./parse-error.js
  @ ./parse-error.js [636]
  @ ./inner.js [587]
 
-Rspack x.x.x compiled with 2 errors in X s"
+Rspack x.x.x compiled with 2 errors in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for named-chunk-groups 1`] = `
@@ -888,7 +888,7 @@ cacheable modules 138 bytes
   ./modules/a.js 22 bytes [built] [code generated]
   ./modules/b.js 22 bytes [built] [code generated]
   ./modules/c.js 22 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for output-module 1`] = `
@@ -899,7 +899,7 @@ orphan modules 225 bytes [orphan] 2 modules
 cacheable modules 263 bytes
   ./index.js + 1 modules 225 bytes [code generated]
   ./chunk.js 38 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error 1`] = `
@@ -943,7 +943,7 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
   │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
 
-Rspack x.x.x compiled with 3 warnings in X s
+Rspack x.x.x compiled with 3 warnings in X.23
 
 asset warning.pro-webworker.js 294 KiB [emitted] (name: main)
 ./index.js 293 KiB [built] [code generated]
@@ -958,23 +958,23 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
   │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
 
-Rspack x.x.x compiled with 3 warnings in X s
+Rspack x.x.x compiled with 3 warnings in X.23
 
 asset no-warning.pro-node.js 294 KiB [emitted] (name: main)
 ./index.js 293 KiB [built] [code generated]
-Rspack x.x.x compiled successfully in X s
+Rspack x.x.x compiled successfully in X.23
 
 asset no-warning.dev-web.js 1.72 MiB [emitted] (name: main)
 ./index.js 293 KiB [built] [code generated]
-Rspack x.x.x compiled successfully in X s
+Rspack x.x.x compiled successfully in X.23
 
 asset no-warning.dev-node.js 1.72 MiB [emitted] (name: main)
 ./index.js 293 KiB [built] [code generated]
-Rspack x.x.x compiled successfully in X s
+Rspack x.x.x compiled successfully in X.23
 
 asset no-warning.dev-web-with-limit-set.js 1.72 MiB [emitted] (name: main)
 ./index.js 293 KiB [built] [code generated]
-Rspack x.x.x compiled successfully in X s
+Rspack x.x.x compiled successfully in X.23
 
 asset warning.pro-node-with-hints-set.js 294 KiB [emitted] (name: main)
 ./index.js 293 KiB [built] [code generated]
@@ -989,7 +989,7 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
   │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
 
-Rspack x.x.x compiled with 3 warnings in X s"
+Rspack x.x.x compiled with 3 warnings in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for performance-no-async-chunks-shown 1`] = `
@@ -1138,14 +1138,14 @@ Rspack compiled successfully"
 exports[`StatsTestCases should print correct stats for preset-minimal-simple 1`] = `
 "1 asset
 1 module
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for preset-mixed-array 1`] = `
 "minimal:
   1 asset
   1 module
-  minimal (Rspack x.x.x) compiled successfully in X s
+  minimal (Rspack x.x.x) compiled successfully in X.23
 
 verbose:
   Entrypoint main 44 bytes = verbose.js
@@ -1290,7 +1290,7 @@ exports[`StatsTestCases should print correct stats for reverse-sort-modules 1`] 
 ./a.js?2 33 bytes [built] [code generated]
 ./a.js?10 33 bytes [built] [code generated]
 ./a.js?1 33 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for runtime-chunk 1`] = `
@@ -1388,7 +1388,7 @@ exports[`StatsTestCases should print correct stats for runtime-specific-used-exp
     ./module.js?chunk 122 bytes [built] [code generated]
       [only some exports used: identity, w, x, y, z]
     ./dx.js 46 bytes [built] [code generated]
-  production (Rspack x.x.x) compiled successfully in X s
+  production (Rspack x.x.x) compiled successfully in X.23
 
 development:
   asset development-a.js 12 KiB [emitted] (name: a)
@@ -1469,7 +1469,7 @@ development:
       [used exports unknown]
     ./dx.js 46 bytes [built] [code generated]
       [used exports unknown]
-  development (Rspack x.x.x) compiled successfully in X s
+  development (Rspack x.x.x) compiled successfully in X.23
 
 global:
   asset global-a.js 10.4 KiB [emitted] (name: a)
@@ -1542,7 +1542,7 @@ global:
     ./module.js?chunk 122 bytes [built] [code generated]
       [only some exports used: identity, w, x, y, z]
     ./dx.js 46 bytes [built] [code generated]
-  global (Rspack x.x.x) compiled successfully in X s"
+  global (Rspack x.x.x) compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for scope-hoisting-multi 1`] = `
@@ -1556,17 +1556,15 @@ cacheable modules 726 bytes
   ./lazy_second.js 91 bytes [built] [code generated]
   ./common_lazy.js 25 bytes [built] [code generated]
   ./common_lazy_shared.js 25 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s
+Rspack x.x.x compiled successfully in X.23
 
 runtime modules 14 KiB 18 modules
 cacheable modules 1.05 KiB
   built modules 844 bytes [built]
     orphan modules 325 bytes [orphan]
+      ./lazy_first.js 91 bytes [orphan] [built]
+      ./lazy_second.js 91 bytes [orphan] [built]
       ./common.js 37 bytes [orphan] [built]
-        ModuleConcatenation bailout: Module is not in any chunk
-      ./vendor.js 25 bytes [orphan] [built]
-        ModuleConcatenation bailout: Module is not in any chunk
-      ./common2.js 25 bytes [orphan] [built]
         ModuleConcatenation bailout: Module is not in any chunk
       + 4 modules
     code generated modules 519 bytes [code generated]
@@ -1581,7 +1579,7 @@ cacheable modules 1.05 KiB
       ./common_lazy_shared.js 25 bytes [built] [code generated]
   ./lazy_first.js + 1 modules 116 bytes [code generated]
   ./lazy_second.js + 1 modules 116 bytes [code generated]
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for side-effects-issue-7428 1`] = `
@@ -1631,7 +1629,7 @@ cacheable modules 967 bytes
       |   esm import specifier ./components
     ./foo.js 101 bytes [built] [code generated]
       import() ./foo
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for side-effects-simple-unused 1`] = `
@@ -1681,7 +1679,7 @@ modules by path ./*.js 213 bytes
     |   esm import specifier pmodule
     |   esm export ./c
     |   esm export import specifier ./c
-Rspack x.x.x compiled successfully in X s"
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for split-chunks 1`] = `
@@ -2296,7 +2294,7 @@ exports[`StatsTestCases should print correct stats for split-chunks-runtime-spec
     ./b.js 54 bytes [built] [code generated]
   chunk (runtime: c) used-exports-c.js (c) 59 bytes (javascript) 2.89 KiB (runtime) [entry] [rendered]
     ./c.js 59 bytes [built] [code generated]
-  used-exports (Rspack x.x.x) compiled successfully in X s
+  used-exports (Rspack x.x.x) compiled successfully in X.23
 
 no-used-exports:
   asset no-used-exports-c.js 4.67 KiB [emitted] (name: c)
@@ -2314,7 +2312,7 @@ no-used-exports:
     ./b.js 54 bytes [built] [code generated]
   chunk (runtime: c) no-used-exports-c.js (c) 59 bytes (javascript) 2.89 KiB (runtime) [entry] [rendered]
     ./c.js 59 bytes [built] [code generated]
-  no-used-exports (Rspack x.x.x) compiled successfully in X s
+  no-used-exports (Rspack x.x.x) compiled successfully in X.23
 
 global:
   asset global-c.js 4.6 KiB [emitted] (name: c)
@@ -2332,5 +2330,5 @@ global:
     ./b.js 54 bytes [built] [code generated]
   chunk (runtime: c) global-c.js (c) 59 bytes (javascript) 2.86 KiB (runtime) [entry] [rendered]
     ./c.js 59 bytes [built] [code generated]
-  global (Rspack x.x.x) compiled successfully in X s"
+  global (Rspack x.x.x) compiled successfully in X.23"
 `;
