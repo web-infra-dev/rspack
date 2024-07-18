@@ -108,7 +108,7 @@
     "npm-run-all2": "^6.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-refresh": "0.14.0",
+    "react-refresh": "^0.14.0",
     "sass-loader": "14.2.1",
     "style-loader": "^3.3.3",
     "source-map-loader": "^5.0.0",

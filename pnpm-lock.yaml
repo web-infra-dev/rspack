@@ -160,7 +160,7 @@ importers:
         specifier: ^7.0.3
         version: 7.0.3
       react-refresh:
-        specifier: 0.14.0
+        specifier: ^0.14.0
         version: 0.14.0
 
   packages/create-rspack/template-react-ts:
@@ -191,7 +191,7 @@ importers:
         specifier: ^7.0.3
         version: 7.0.3
       react-refresh:
-        specifier: 0.14.0
+        specifier: ^0.14.0
         version: 0.14.0
       ts-node:
         specifier: ^10.9.2
@@ -310,7 +310,7 @@ importers:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
       react-refresh:
-        specifier: 0.14.0
+        specifier: ^0.14.0
         version: 0.14.0
       tailwindcss:
         specifier: ^3.3.0
@@ -568,7 +568,7 @@ importers:
         specifier: workspace:*
         version: 'link:'
       react-refresh:
-        specifier: 0.14.0
+        specifier: ^0.14.0
         version: 0.14.0
 
   packages/rspack-test-tools:
@@ -761,7 +761,7 @@ importers:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
       react-refresh:
-        specifier: 0.14.0
+        specifier: ^0.14.0
         version: 0.14.0
       sass-loader:
         specifier: 14.2.1
@@ -918,7 +918,7 @@ importers:
         specifier: ^8.0.0
         version: 8.1.1(@rspack/core@packages+rspack)(postcss@8.4.38)(typescript@5.4.2)(webpack@5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack-cli@5.1.4(webpack@5.92.0)))
       react-refresh:
-        specifier: 0.14.0
+        specifier: ^0.14.0
         version: 0.14.0
       serve:
         specifier: 14.2.1
@@ -1059,7 +1059,7 @@ importers:
         specifier: 2.2.1
         version: 2.2.1
       wast-loader:
-        specifier: ^1.12.1
+        specifier: 1.12.1
         version: 1.12.1
       watchpack:
         specifier: ^2.4.0
