@@ -15,11 +15,11 @@ chunk {909} (runtime: main) bundle.js (main) 7 bytes (asset) 159 bytes (javascri
     |   [no exports]
     |   [no exports used]
     |   ModuleConcatenation bailout: Module is an entry point
-    | ./raw.png [193] 7 bytes (asset) 42 bytes (javascript) {909} [depth 1] [built] [code generated]
+    | ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
     |   [no exports]
     |   [no exports used]
     |   esm import ./raw.png
-  ./raw.png [193] 7 bytes (asset) 42 bytes (javascript) {909} [depth 1] [built] [code generated]
+  ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
     [no exports]
     [no exports used]
     esm import ./raw.png
@@ -43,19 +43,19 @@ modules by path ./ 235 bytes (javascript) 7 bytes (asset)
       |   [no exports]
       |   [no exports used]
       |   ModuleConcatenation bailout: Module is an entry point
-      | ./raw.png [193] 7 bytes (asset) 42 bytes (javascript) {909} [depth 1] [built] [code generated]
+      | ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
       |   [no exports]
       |   [no exports used]
       |   esm import ./raw.png
-    ./raw.png [193] 7 bytes (asset) 42 bytes (javascript) {909} [depth 1] [built] [code generated]
+    ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
       [no exports]
       [no exports used]
       esm import ./raw.png
 runtime modules 1.28 KiB
-  webpack/runtime/global 223 bytes {909} [code generated]
+  webpack/runtime/auto_public_path 1.06 KiB {909} [code generated]
     [no exports]
     [used exports unknown]
-  webpack/runtime/auto_public_path 1.06 KiB {909} [code generated]
+  webpack/runtime/global 223 bytes {909} [code generated]
     [no exports]
     [used exports unknown]
   
@@ -409,10 +409,10 @@ Rspack x.x.x compiled with 1 error in X s"
 `;
 
 exports[`statsOutput statsOutput/runtime-modules should print correct stats for 1`] = `
-"webpack/runtime/has_own_property 107 bytes [code generated]
-webpack/runtime/make_namespace_object 280 bytes [code generated]
+"./index.js 19 bytes [built] [code generated]
 webpack/runtime/define_property_getters 290 bytes [code generated]
-./index.js 19 bytes [built] [code generated]"
+webpack/runtime/has_own_property 107 bytes [code generated]
+webpack/runtime/make_namespace_object 280 bytes [code generated]"
 `;
 
 exports[`statsOutput statsOutput/runtime-specific-exports should print correct stats for 1`] = `
