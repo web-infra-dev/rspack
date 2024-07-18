@@ -11,7 +11,7 @@ The top-level output key contains a set of options instructing Rspack on how and
 
 ## output.assetModuleFilename
 
-- **Type:** `string`
+- **Type:** `string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)`
 - **Default:** `'[hash][ext][query]'`
 
 The same as [`output.filename`](#outputfilename) but for [Asset Modules](/guide/features/asset-module).
@@ -35,6 +35,17 @@ The name of the file to be output by the Asset module. This value can be overrid
 - **Default:** `true`
 
 Create async chunks that are loaded on demand.
+
+## output.charset
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Add `charset="utf-8"` to the HTML `<script>` tag.
+
+:::tip
+Although the `charset` attribute for `<script>` tag was [deprecated](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#Charset), rspack still adds it by default for compatibility with non-modern browsers.
+:::
 
 ## output.chunkFilename
 
@@ -87,6 +98,23 @@ The default value of this option depends on the [`target`](/config/target) and [
 module.exports = {
   output: {
     chunkFormat: 'commonjs',
+  },
+};
+```
+
+## output.chunkLoadTimeout
+
+- **Type:** `number`
+- **Default:** `120000`
+
+The Number of milliseconds before chunk request timed out.
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    //...
+    chunkLoadTimeout: 30000, // 30 seconds before chunk request timed out.
   },
 };
 ```

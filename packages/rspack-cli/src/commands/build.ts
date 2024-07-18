@@ -1,4 +1,4 @@
-import * as fs from "fs";
+import * as fs from "node:fs";
 import type { MultiStats, Stats } from "@rspack/core";
 
 import type { RspackCLI } from "../cli";

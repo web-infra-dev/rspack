@@ -1,4 +1,4 @@
-import util from "util";
+import util from "node:util";
 import type { ThreadsafeNodeFS } from "@rspack/binding";
 
 import { type OutputFileSystem, mkdirp, rmrf } from "./util/fs";

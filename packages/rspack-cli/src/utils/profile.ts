@@ -31,11 +31,11 @@ The full syntax, remember update this when you change something in this file.
 
 */
 
-import fs from "fs";
-import path from "path";
-import { URLSearchParams } from "url";
+import fs from "node:fs";
+import inspector from "node:inspector";
+import path from "node:path";
+import { URLSearchParams } from "node:url";
 import { type Compiler, type RspackOptions, rspack } from "@rspack/core";
-import inspector from "inspector";
 
 type JSCPUProfileOptionsOutput = string;
 type JSCPUProfileOptions = {

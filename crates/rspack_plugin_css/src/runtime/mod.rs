@@ -94,12 +94,15 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         "".to_string()
       };
 
+      let chunk_load_timeout = compilation.options.output.chunk_load_timeout.to_string();
+
       source.add(RawSource::from(
         include_str!("./css_loading.js")
           .replace(
             "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
             &cross_origin_content,
           )
+          .replace("__CHUNK_LOAD_TIMEOUT_PLACEHOLDER__", &chunk_load_timeout)
           .replace("__UNIQUE_NAME__", unique_name),
       ));
 

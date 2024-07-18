@@ -1,4 +1,4 @@
-import { URL } from "url";
+import { URL } from "node:url";
 
 import type { ECompilerType } from "../../type";
 import type {

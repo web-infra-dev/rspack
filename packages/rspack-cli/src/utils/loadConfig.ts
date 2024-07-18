@@ -1,5 +1,5 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import type { MultiRspackOptions, RspackOptions } from "@rspack/core";
 import interpret from "interpret";
 import rechoir from "rechoir";

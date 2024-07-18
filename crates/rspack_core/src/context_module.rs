@@ -20,6 +20,7 @@ use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_util::{fx_hash::FxIndexMap, json_stringify, source_map::SourceMapKind};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
+use swc_core::atoms::Atom;
 
 use crate::{
   block_promise, contextify, get_exports_type_with_strict, impl_module_meta_info,
@@ -141,6 +142,7 @@ pub struct ContextOptions {
   pub replaces: Vec<(String, u32, u32)>,
   pub start: u32,
   pub end: u32,
+  pub referenced_exports: Option<Vec<Atom>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -1074,7 +1076,7 @@ impl ContextModule {
             context: options.resource.clone().into(),
             options: options.context_options.clone(),
             resource_identifier: format!("context{}|{}", &options.resource, path.to_string_lossy()),
-            referenced_exports: None,
+            referenced_exports: options.context_options.referenced_exports.clone(),
             dependency_type: DependencyType::ContextElement(options.type_prefix),
           });
         })
@@ -1217,6 +1219,14 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
     id += "|exclude: ";
     id += &exclude.to_source_string();
   }
+  if let Some(exports) = &options.context_options.referenced_exports {
+    id += "|referencedExports: ";
+    id += &format!(
+      "[{}]",
+      exports.iter().map(|x| format!(r#""{x}""#)).join(",")
+    );
+  }
+
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {
     if let Some(chunk_name) = &group.name {
       id += "|chunkName: ";

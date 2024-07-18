@@ -5,7 +5,7 @@ use derivative::Derivative;
 use napi::bindgen_prelude::Either3;
 use napi::Either;
 use napi_derive::napi;
-use rspack_binding_values::RawRegex;
+use rspack_binding_values::{JsFilename, RawRegex};
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
@@ -483,7 +483,7 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
 #[napi(object, object_to_js = false)]
 pub struct RawAssetGeneratorOptions {
   pub emit: Option<bool>,
-  pub filename: Option<String>,
+  pub filename: Option<JsFilename>,
   pub public_path: Option<String>,
   #[derivative(Debug = "ignore")]
   #[napi(
@@ -527,10 +527,10 @@ impl From<RawAssetInlineGeneratorOptions> for AssetInlineGeneratorOptions {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawAssetResourceGeneratorOptions {
   pub emit: Option<bool>,
-  pub filename: Option<String>,
+  pub filename: Option<JsFilename>,
   pub public_path: Option<String>,
 }
 

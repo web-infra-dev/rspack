@@ -337,14 +337,11 @@ impl NormalModuleFactory {
         let resource_data = resolve(resolve_args, plugin_driver).await;
 
         match resource_data {
-          Ok(ResolveResult::Resource(resource)) => {
-            let uri = resource.full_path().display().to_string();
-            ResourceData::new(uri)
-              .path(resource.path)
-              .query(resource.query)
-              .fragment(resource.fragment)
-              .description_optional(resource.description_data)
-          }
+          Ok(ResolveResult::Resource(resource)) => ResourceData::new(resource.full_path())
+            .path(resource.path)
+            .query(resource.query)
+            .fragment(resource.fragment)
+            .description_optional(resource.description_data),
           Ok(ResolveResult::Ignored) => {
             let ident = format!("{}/{}", &data.context, resource);
             let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-react-refresh",
-  "version": "1.0.0-alpha.4",
+  "version": "1.0.0-alpha.5",
   "license": "MIT",
   "description": "React refresh plugin for rspack",
   "main": "dist/index.js",
@@ -38,7 +38,7 @@
   "devDependencies": {
     "@rspack/core": "workspace:*",
     "@rspack/plugin-react-refresh": "workspace:*",
-    "react-refresh": "0.14.0"
+    "react-refresh": "^0.14.0"
   },
   "dependencies": {
     "error-stack-parser": "^2.0.6",

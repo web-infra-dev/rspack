@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import util from "util";
+import util from "node:util";
 import Watchpack from "watchpack";
 
 import type { FileSystemInfoEntry, WatchFileSystem, Watcher } from "../util/fs";

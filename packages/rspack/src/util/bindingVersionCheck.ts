@@ -1,5 +1,5 @@
-import { readFileSync, readdirSync } from "fs";
-import path from "path";
+import { readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
 
 const NodePlatformArchToAbi: Record<
 	string,
@@ -38,7 +38,7 @@ function isMusl() {
 	// For Node 10
 	if (!process.report || typeof process.report.getReport !== "function") {
 		try {
-			const lddPath = require("child_process")
+			const lddPath = require("node:child_process")
 				.execSync("which ldd")
 				.toString()
 				.trim();

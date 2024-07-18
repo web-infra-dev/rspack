@@ -121,6 +121,31 @@ pub fn eval_unary_expression(
       eval.set_side_effects(arg.could_have_side_effects());
       Some(eval)
     }
+    UnaryOp::Tilde => {
+      let arg = scanner.evaluate_expression(&expr.arg);
+      let Some(number) = arg.as_int() else {
+        return None;
+      };
+      let mut eval = BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0);
+      eval.set_number(!number as f64);
+      eval.set_side_effects(arg.could_have_side_effects());
+      Some(eval)
+    }
+    UnaryOp::Minus | UnaryOp::Plus => {
+      let arg = scanner.evaluate_expression(&expr.arg);
+      let Some(number) = arg.as_number() else {
+        return None;
+      };
+      let res = match &expr.op {
+        UnaryOp::Minus => -number,
+        UnaryOp::Plus => number,
+        _ => unreachable!(),
+      };
+      let mut eval = BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0);
+      eval.set_number(res);
+      eval.set_side_effects(arg.could_have_side_effects());
+      Some(eval)
+    }
     _ => None,
   }
 }

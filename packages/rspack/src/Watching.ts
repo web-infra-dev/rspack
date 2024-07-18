@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import assert from "assert";
+import assert from "node:assert";
 import type { Callback } from "@rspack/lite-tapable";
 
 import type { Compilation, Compiler } from ".";

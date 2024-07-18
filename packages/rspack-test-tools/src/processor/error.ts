@@ -1,5 +1,5 @@
-import type fs from "fs";
-import path from "path";
+import type fs from "node:fs";
+import path from "node:path";
 import type { StatsError, StatsWarnings } from "@rspack/core";
 import prettyFormat from "pretty-format";
 import merge from "webpack-merge";

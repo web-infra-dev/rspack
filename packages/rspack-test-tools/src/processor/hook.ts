@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 import { Compilation, Compiler, sources } from "@rspack/core";
 import { getSerializers } from "jest-snapshot";
 import {

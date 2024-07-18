@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 
 import FakeDocument from "../../helper/legacy/FakeDocument";
 import type { ECompilerType } from "../../type";

@@ -296,9 +296,9 @@ impl Dependency for HarmonyImportSpecifierDependency {
       && id == "default"
     {
       let parent_module = module_graph
-        .parent_module_by_dependency_id(&self.id)
+        .get_parent_module(&self.id)
         .expect("should have parent module");
-      let exports_type = get_exports_type(module_graph, &self.id, &parent_module);
+      let exports_type = get_exports_type(module_graph, &self.id, parent_module);
       match exports_type {
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
           if ids.len() == 1 {

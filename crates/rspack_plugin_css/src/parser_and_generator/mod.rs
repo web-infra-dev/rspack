@@ -1,7 +1,7 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use indexmap::{IndexMap, IndexSet};
-use once_cell::sync::Lazy;
+use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
@@ -110,6 +110,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let source_code = source.source();
     let resource_path = &resource_data.resource_path;
+    let cached_source_code = OnceCell::new();
+    let get_source_code = || {
+      let s = cached_source_code.get_or_init(|| Arc::new(source_code.to_string()));
+      s.clone()
+    };
 
     let mode = match module_type {
       ModuleType::CssModule => css_module_lexer::Mode::Local,
@@ -141,7 +146,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let request = replace_module_request_prefix(
             request,
             &mut diagnostics,
-            &source_code,
+            get_source_code,
             range.start,
             range.end,
           );
@@ -169,7 +174,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let request = replace_module_request_prefix(
             request,
             &mut diagnostics,
-            &source_code,
+            get_source_code,
             range.start,
             range.end,
           );
@@ -321,7 +326,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     for warning in warnings {
       let range = warning.range();
       let error = css_parsing_traceable_error(
-        source_code.clone(),
+        get_source_code(),
         range.start,
         range.end,
         warning.to_string(),

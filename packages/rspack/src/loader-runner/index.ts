@@ -10,8 +10,8 @@
 
 import querystring from "node:querystring";
 
-import assert from "assert";
-import { promisify } from "util";
+import assert from "node:assert";
+import { promisify } from "node:util";
 import {
 	type JsLoaderContext,
 	type JsLoaderItem,

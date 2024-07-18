@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "1.0.0-alpha.4",
+  "version": "1.0.0-alpha.5",
   "license": "MIT",
   "description": "CLI for rspack",
   "publishConfig": {
@@ -51,7 +51,7 @@
     "exit-hook": "^3.2.0",
     "interpret": "^3.1.1",
     "rechoir": "^0.8.0",
-    "semver": "6.3.1",
+    "semver": "^7.6.2",
     "webpack-bundle-analyzer": "4.6.1",
     "yargs": "17.6.2"
   }

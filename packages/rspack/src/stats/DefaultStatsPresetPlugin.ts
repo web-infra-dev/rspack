@@ -52,7 +52,7 @@ const NAMED_PRESETS: Record<string, StatsOptions> = {
 		// warningsSpace: Infinity,
 		modulesSpace: Number.POSITIVE_INFINITY,
 		// chunkModulesSpace: Infinity,
-		// assetsSpace: Infinity,
+		assetsSpace: Number.POSITIVE_INFINITY,
 		// reasonsSpace: Infinity,
 		children: true
 	},
@@ -78,8 +78,8 @@ const NAMED_PRESETS: Record<string, StatsOptions> = {
 		// exclude: false,
 		// errorsSpace: 1000,
 		// warningsSpace: 1000,
-		modulesSpace: 1000
-		// assetsSpace: 1000,
+		modulesSpace: 1000,
+		assetsSpace: 1000
 		// reasonsSpace: 1000
 	},
 	minimal: {
@@ -91,7 +91,7 @@ const NAMED_PRESETS: Record<string, StatsOptions> = {
 		// warningsSpace: 0,
 		modulesSpace: 0,
 		assets: true,
-		// assetsSpace: 0,
+		assetsSpace: 0,
 		errors: true,
 		errorsCount: true,
 		warnings: true,

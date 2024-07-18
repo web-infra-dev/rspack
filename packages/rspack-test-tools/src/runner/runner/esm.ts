@@ -1,6 +1,6 @@
-import path from "path";
-import { fileURLToPath, pathToFileURL } from "url";
-import vm, { SourceTextModule } from "vm";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import vm, { SourceTextModule } from "node:vm";
 
 import asModule from "../../helper/legacy/asModule";
 import type { ECompilerType } from "../../type";

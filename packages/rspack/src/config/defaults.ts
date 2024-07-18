@@ -8,9 +8,9 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import assert from "assert";
-import fs from "fs";
-import path from "path";
+import assert from "node:assert";
+import fs from "node:fs";
+import path from "node:path";
 
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
 import {
@@ -719,6 +719,8 @@ const applyOutputDefaults = (
 	D(output, "workerPublicPath", "");
 	D(output, "sourceMapFilename", "[file].map[query]");
 	F(output, "scriptType", () => (output.module ? "module" : false));
+	D(output, "charset", true);
+	D(output, "chunkLoadTimeout", 120000);
 
 	const { trustedTypes } = output;
 	if (trustedTypes) {

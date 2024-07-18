@@ -40,7 +40,7 @@ pub struct DependencyParents {
 #[derive(Debug, Default)]
 pub struct ModuleGraphPartial {
   /// Module indexed by `ModuleIdentifier`.
-  modules: IdentifierMap<Option<BoxModule>>,
+  pub(crate) modules: IdentifierMap<Option<BoxModule>>,
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: HashMap<DependencyId, Option<BoxDependency>>,
@@ -903,15 +903,6 @@ impl<'a> ModuleGraph<'a> {
           .filter_map(|dep_id| self.connection_id_by_dependency_id(dep_id))
           .collect()
       })
-  }
-
-  pub fn parent_module_by_dependency_id(
-    &self,
-    dependency_id: &DependencyId,
-  ) -> Option<ModuleIdentifier> {
-    self
-      .connection_by_dependency(dependency_id)
-      .and_then(|c| c.original_module_identifier)
   }
 
   pub fn connection_by_connection_id(

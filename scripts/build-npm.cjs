@@ -1,7 +1,7 @@
 // @ts-nocheck
-const path = require("path");
-const fs = require("fs");
-const assert = require("assert");
+const path = require("node:path");
+const fs = require("node:fs");
+const assert = require("node:assert");
 
 // Generates binding packages based on artifacts.
 // Note: it's dedicated to work with pnpm workspaces.

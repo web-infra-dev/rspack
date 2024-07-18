@@ -5,7 +5,7 @@
 
 "use strict";
 
-const path = require("path");
+const path = require("node:path");
 
 const WINDOWS_ABS_PATH_REGEXP = /^[a-zA-Z]:[\\/]/;
 const SEGMENTS_SPLIT_REGEXP = /([|!])/;

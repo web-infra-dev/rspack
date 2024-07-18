@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "node:fs";
 import type { Compiler, RspackPluginInstance } from "@rspack/core";
 
 export interface IPreactRefreshRspackPluginOptions {

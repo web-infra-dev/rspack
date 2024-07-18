@@ -14,7 +14,7 @@ module.exports = {
 	plugins: [
 		new CssExtractRspackPlugin({
 			filename: "[name].css",
-			chunkFilename: ({ chunk }) => `${chunk.id}.${chunk.name}.css`
+			chunkFilename: ({ chunk }) => `expected.${chunk.name}.css`
 		})
 	]
 };

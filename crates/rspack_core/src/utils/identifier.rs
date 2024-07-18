@@ -1,7 +1,4 @@
-use std::{
-  borrow::Cow,
-  path::{Path, PathBuf},
-};
+use std::{borrow::Cow, path::Path};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -33,28 +30,6 @@ pub fn to_identifier(v: &str) -> Cow<str> {
       Cow::Owned(id) => Cow::Owned(id),
     },
   }
-}
-
-static PATH_QUERY_FRAGMENT_REGEXP: Lazy<Regex> = Lazy::new(|| {
-  Regex::new("^((?:\u{200b}.|[^?#\u{200b}])*)(\\?(?:\u{200b}.|[^#\u{200b}])*)?(#.*)?$")
-    .expect("Failed to initialize `PATH_QUERY_FRAGMENT_REGEXP`")
-});
-
-#[derive(Debug)]
-pub struct ResourceParsedData {
-  pub path: PathBuf,
-  pub query: Option<String>,
-  pub fragment: Option<String>,
-}
-
-pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
-  let groups = PATH_QUERY_FRAGMENT_REGEXP.captures(resource)?;
-
-  Some(ResourceParsedData {
-    path: groups.get(1)?.as_str().into(),
-    query: groups.get(2).map(|q| q.as_str().to_owned()),
-    fragment: groups.get(3).map(|q| q.as_str().to_owned()),
-  })
 }
 
 pub fn stringify_loaders_and_resource<'a>(

@@ -11,7 +11,7 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 ## output.assetModuleFilename
 
-- **类型：** `string`
+- **类型：** `string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)`
 - **默认值：** `'[hash][ext][query]'`
 
 与 [`output.filename`](#outputfilename) 类似，但适用于[资源模块](/guide/features/asset-module)。
@@ -35,6 +35,17 @@ Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename
 - **默认值：** `true`
 
 是否创建按需加载的异步 chunk。
+
+## output.charset
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+为 `<script>` 标签添加 `charset="utf-8"` 属性。
+
+:::tip
+尽管 `<script>` 标签的 `charset` 属性已被标记为[已废弃的](https://developer.mozilla.org/zh-CN/docs/Web/HTML/Element/script#Charset)， 为了兼容旧浏览器，在默认情况下 rspack 依然会添加该属性。
+:::
 
 ## output.chunkFilename
 
@@ -85,6 +96,23 @@ chunk 产物的格式，一般来说，target 为 web 或 webworker'时会使用
 module.exports = {
   output: {
     chunkFormat: 'commonjs',
+  },
+};
+```
+
+## output.chunkLoadTimeout
+
+- **类型：** `number`
+- **默认值：** `120000`
+
+Chunk 加载的超时时间（毫秒）。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    //...
+    chunkLoadTimeout: 30000, // Chunk 加载会在 30 秒后超时
   },
 };
 ```

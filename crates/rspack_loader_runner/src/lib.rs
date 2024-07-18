@@ -10,7 +10,7 @@ mod scheme;
 
 pub use content::{AdditionalData, Content, DescriptionData, ResourceData};
 pub use context::{LoaderContext, State};
-pub use loader::{DisplayWithSuffix, Loader, LoaderItem};
+pub use loader::{parse_resource, DisplayWithSuffix, Loader, LoaderItem, ResourceParsedData};
 pub use plugin::LoaderRunnerPlugin;
 pub use rspack_identifier::{Identifiable, Identifier};
 pub use runner::run_loaders;

@@ -198,6 +198,14 @@ import(
 请注意，`webpackInclude` 和 `webpackExclude` 选项不会影响前缀。例如：`./locale`。
 :::
 
+##### webpackExports
+
+<ApiMeta addedVersion="1.0.0" />
+
+- **Type:**: `string | string[]`
+
+使 Rspack 在处理该动态 `import()` 模块时仅打包指定的导出。这样可以降低 chunk 的产物体积。
+
 ## CommonJS
 
 Rspack 也支持 `CommonJS` 语法，可以使用 `require` 和 `module.exports` 语法。

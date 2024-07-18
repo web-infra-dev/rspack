@@ -113,3 +113,16 @@ pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
     .collect::<Vec<String>>()
     .join("")
 }
+
+static ZERO_WIDTH_SPACE: Lazy<Regex> =
+  Lazy::new(|| Regex::new("\u{200b}(.)").expect("invalid regex"));
+
+static FRAGMENT: Lazy<Regex> = Lazy::new(|| Regex::new("#").expect("invalid regex"));
+
+pub fn strip_zero_width_space_for_fragment(s: &str) -> Cow<str> {
+  ZERO_WIDTH_SPACE.replace_all(s, "$1")
+}
+
+pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<str> {
+  FRAGMENT.replace_all(s, "\u{200b}#")
+}

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-server",
-  "version": "1.0.0-alpha.4",
+  "version": "1.0.0-alpha.5",
   "license": "MIT",
   "description": "Development server for rspack",
   "main": "./dist/index.js",
@@ -52,7 +52,7 @@
     "mime-types": "2.1.35",
     "webpack-dev-middleware": "6.1.2",
     "webpack-dev-server": "4.13.1",
-    "ws": "8.8.1"
+    "ws": "^8.16.0"
   },
   "peerDependencies": {
     "@rspack/core": "*"

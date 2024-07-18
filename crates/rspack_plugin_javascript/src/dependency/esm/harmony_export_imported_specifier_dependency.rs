@@ -74,8 +74,8 @@ impl HarmonyExportImportedSpecifierDependency {
   // Because it is shared by multiply HarmonyExportImportedSpecifierDependency, so put it to `BuildInfo`
   pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<Atom> {
     let build_info = module_graph
-      .parent_module_by_dependency_id(&self.id)
-      .and_then(|ident| module_graph.module_by_identifier(&ident))
+      .get_parent_module(&self.id)
+      .and_then(|ident| module_graph.module_by_identifier(ident))
       .expect("should have mgm")
       .build_info()
       .expect("should have build info");
@@ -88,8 +88,8 @@ impl HarmonyExportImportedSpecifierDependency {
     module_graph: &'a ModuleGraph,
   ) -> Option<&'a Vec<DependencyId>> {
     let module = module_graph
-      .parent_module_by_dependency_id(&self.id)
-      .and_then(|ident| module_graph.module_by_identifier(&ident));
+      .get_parent_module(&self.id)
+      .and_then(|ident| module_graph.module_by_identifier(ident));
 
     if let Some(module) = module {
       let build_info = module.build_info().expect("should have build info");
@@ -100,8 +100,7 @@ impl HarmonyExportImportedSpecifierDependency {
   }
 
   // TODO cache get_mode result
-  #[allow(unused)]
-  pub fn get_mode(
+  fn get_mode(
     &self,
     name: Option<Atom>,
     module_graph: &ModuleGraph,
@@ -117,9 +116,9 @@ impl HarmonyExportImportedSpecifierDependency {
     };
 
     let parent_module = module_graph
-      .parent_module_by_dependency_id(id)
+      .get_parent_module(id)
       .expect("should have parent module");
-    let exports_info = module_graph.get_exports_info(&parent_module);
+    let exports_info = module_graph.get_exports_info(parent_module);
 
     let is_name_unused = if let Some(ref name) = name {
       exports_info.get_used(UsedName::Str(name.clone()), runtime, module_graph)
@@ -132,7 +131,7 @@ impl HarmonyExportImportedSpecifierDependency {
       mode.name = Some("*".into());
       return mode;
     }
-    let imported_exports_type = get_exports_type(module_graph, id, &parent_module);
+    let imported_exports_type = get_exports_type(module_graph, id, parent_module);
     let ids = self.get_ids(module_graph);
 
     // Special handling for reexporting the default export
@@ -293,9 +292,9 @@ impl HarmonyExportImportedSpecifierDependency {
       .unwrap_or_else(|| {
         // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L425
         let parent_module = module_graph
-          .parent_module_by_dependency_id(&self.id)
+          .get_parent_module(&self.id)
           .expect("should have parent module");
-        module_graph.get_exports_info(&parent_module).id
+        module_graph.get_exports_info(parent_module).id
       })
       .get_exports_info(module_graph);
 

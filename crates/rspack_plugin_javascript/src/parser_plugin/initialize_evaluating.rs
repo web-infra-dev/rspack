@@ -6,6 +6,8 @@ use crate::utils::eval::BasicEvaluatedExpression;
 const SLICE_METHOD_NAME: &str = "slice";
 const REPLACE_METHOD_NAME: &str = "replace";
 const CONCAT_METHOD_NAME: &str = "concat";
+const INDEXOF_METHOD_NAME: &str = "indexOf";
+// TODO: substr, substring
 
 pub struct InitializeEvaluating;
 
@@ -17,7 +19,36 @@ impl JavascriptParserPlugin for InitializeEvaluating {
     expr: &swc_core::ecma::ast::CallExpr,
     param: &BasicEvaluatedExpression,
   ) -> Option<BasicEvaluatedExpression> {
-    if property == SLICE_METHOD_NAME
+    if property == INDEXOF_METHOD_NAME && param.is_string() {
+      let arg1 = (!expr.args.is_empty()).then_some(true).and_then(|_| {
+        if expr.args[0].spread.is_some() {
+          return None;
+        }
+        let arg = parser.evaluate_expression(&expr.args[0].expr);
+        arg.is_string().then_some(arg)
+      });
+
+      let arg2 = (expr.args.len() >= 2).then_some(true).and_then(|_| {
+        if expr.args[1].spread.is_some() {
+          return None;
+        }
+        let arg = parser.evaluate_expression(&expr.args[1].expr);
+        arg.is_number().then_some(arg)
+      });
+
+      if let Some(result) = arg1.map(|arg1| {
+        mock_javascript_indexof(
+          param.string().as_str(),
+          arg1.string().as_str(),
+          arg2.map(|a| a.number()),
+        )
+      }) {
+        let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        res.set_number(result as f64);
+        res.set_side_effects(param.could_have_side_effects());
+        return Some(res);
+      }
+    } else if property == SLICE_METHOD_NAME
       && param.is_string()
       && expr.args.len() == 1
       && expr.args[0].spread.is_none()
@@ -212,4 +243,58 @@ fn test_mock_javascript_slice() {
   assert_eq!(mock_javascript_slice("123", -1.), "3".to_string());
   assert_eq!(mock_javascript_slice("123", -2.2), "23".to_string());
   assert_eq!(mock_javascript_slice("123", -3.), "123".to_string());
+}
+
+fn mock_javascript_indexof(str: &str, sub: &str, start: Option<f64>) -> i32 {
+  let mut start_pos = start.unwrap_or_default().trunc() as i32;
+  if start_pos < 0 {
+    start_pos = 0_i32;
+  }
+  if start_pos >= str.len() as i32 {
+    return -1_i32;
+  }
+
+  if let Some(pos) = str[(start_pos as usize)..].find(sub) {
+    (pos as i32) + start_pos
+  } else {
+    -1_i32
+  }
+}
+
+#[test]
+fn test_mock_javascript_indexof() {
+  assert_eq!(mock_javascript_indexof("abcdefg", "cde", None), 2_i32);
+  assert_eq!(mock_javascript_indexof("abcdefg", "ccc", None), -1_i32);
+  assert_eq!(mock_javascript_indexof("abcdefg", "abcdefg", None), 0_i32);
+
+  assert_eq!(
+    mock_javascript_indexof("abcdefg", "cde", Some(1_f64)),
+    2_i32
+  );
+  assert_eq!(
+    mock_javascript_indexof("abcdefg", "cde", Some(1.1_f64)),
+    2_i32
+  );
+  assert_eq!(
+    mock_javascript_indexof("abcdefg", "cde", Some(3_f64)),
+    -1_i32
+  );
+  assert_eq!(
+    mock_javascript_indexof("abcdefg", "cde", Some(3.3_f64)),
+    -1_i32
+  );
+  assert_eq!(
+    mock_javascript_indexof("abcdefg", "cde", Some(2.9_f64)),
+    2_i32
+  );
+
+  assert_eq!(
+    mock_javascript_indexof("abcdefg", "cde", Some(7_f64)),
+    -1_i32
+  );
+
+  assert_eq!(
+    mock_javascript_indexof("abcdefg", "cde", Some(-1_f64)),
+    2_i32
+  );
 }

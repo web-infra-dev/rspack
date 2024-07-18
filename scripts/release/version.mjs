@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 import { findWorkspacePackagesNoCheck } from "@pnpm/find-workspace-packages";
 import semver from "semver";
 

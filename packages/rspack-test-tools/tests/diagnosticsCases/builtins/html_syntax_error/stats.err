@@ -9,5 +9,5 @@ ERROR in × HTML parsing error: Stray end tag "something"
    ╭─[1:1]
  1 │ <head>
  2 │   </something>
-   ·   ▲
+   ·   ────────────
    ╰────

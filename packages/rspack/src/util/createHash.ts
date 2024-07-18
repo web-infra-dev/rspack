@@ -165,10 +165,10 @@ export const createHash = algorithm => {
 			}
 			return new BatchedHash(createMd4());
 		case "native-md4":
-			if (crypto === undefined) crypto = require("crypto");
+			if (crypto === undefined) crypto = require("node:crypto");
 			return new BulkUpdateDecorator(() => crypto.createHash("md4"), "md4");
 		default:
-			if (crypto === undefined) crypto = require("crypto");
+			if (crypto === undefined) crypto = require("node:crypto");
 			return new BulkUpdateDecorator(
 				() => crypto.createHash(algorithm),
 				algorithm

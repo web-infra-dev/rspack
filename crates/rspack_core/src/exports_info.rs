@@ -740,11 +740,17 @@ impl ExportsInfo {
       }
       UsedName::Vec(value) => {
         if value.is_empty() {
-          let other_export_info = module_graph.get_export_info_by_id(&self.other_exports_info);
-          return other_export_info.get_used(runtime);
+          return self
+            .other_exports_info
+            .get_export_info(module_graph)
+            .get_used(runtime);
         }
         let info = self.id.get_read_only_export_info(&value[0], module_graph);
-        if let Some(exports_info) = info.get_exports_info(module_graph) {
+        if let Some(exports_info) = info
+          .exports_info
+          .map(|id| id.get_exports_info(module_graph))
+          && value.len() > 1
+        {
           return exports_info.get_used(
             UsedName::Vec(value.iter().skip(1).cloned().collect::<Vec<_>>()),
             runtime,
@@ -1918,9 +1924,9 @@ pub fn get_dependency_used_by_exports_condition(
       Some(DependencyCondition::Fn(Arc::new(
         move |_, runtime, module_graph: &ModuleGraph| {
           let module_identifier = module_graph
-            .parent_module_by_dependency_id(&dependency_id)
+            .get_parent_module(&dependency_id)
             .expect("should have parent module");
-          let exports_info = module_graph.get_exports_info(&module_identifier);
+          let exports_info = module_graph.get_exports_info(module_identifier);
           for export_name in used_by_exports.iter() {
             if exports_info.get_used(UsedName::Str(export_name.clone()), runtime, module_graph)
               != UsageState::Unused

@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::fmt::Write;
 use std::hash::Hasher;
+use std::sync::Arc;
 
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::{IndexMap, IndexSet};
@@ -342,15 +343,16 @@ pub fn normalize_url(s: &str) -> String {
   result.to_string()
 }
 
+#[allow(clippy::rc_buffer)]
 pub fn css_parsing_traceable_error(
-  source_code: impl Into<String>,
+  source_code: Arc<String>,
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
   message: impl Into<String>,
   severity: RspackSeverity,
 ) -> TraceableError {
-  TraceableError::from_file(
-    source_code.into(),
+  TraceableError::from_arc_string(
+    source_code,
     start as usize,
     end as usize,
     match severity {
@@ -365,14 +367,14 @@ pub fn css_parsing_traceable_error(
 pub fn replace_module_request_prefix<'s>(
   specifier: &'s str,
   diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-  source_code: &str,
+  source_code: impl Fn() -> Arc<String>,
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
 ) -> &'s str {
   if let Some(specifier) = specifier.strip_prefix('~') {
     diagnostics.push(
       css_parsing_traceable_error(
-        source_code,
+        source_code(),
         start,
         end,
         "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),

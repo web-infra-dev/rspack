@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 import type { Fixtures, PlaywrightTestArgs } from "@playwright/test";
 import { type Compiler, type Configuration, rspack } from "@rspack/core";
 import { RspackDevServer } from "@rspack/dev-server";

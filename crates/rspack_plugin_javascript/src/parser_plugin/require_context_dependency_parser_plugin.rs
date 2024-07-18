@@ -92,6 +92,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
             replaces: Vec::new(),
             start: expr.span().real_lo(),
             end: expr.span().real_hi(),
+            referenced_exports: None,
           },
           Some(expr.span.into()),
           parser.in_try,

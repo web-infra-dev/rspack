@@ -6,6 +6,7 @@
     "dev": "rspress dev",
     "build": "rspress build",
     "preview": "rspress preview",
+    "sort-projects-words": "node ./sortProjectWords.js",
     "check:format": "prettier . --write",
     "check:format-ci": "prettier . --check",
     "check:spell": "npx cspell",

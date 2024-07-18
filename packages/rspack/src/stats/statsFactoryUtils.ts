@@ -8,9 +8,13 @@ import {
 } from "../util/comparators";
 import type { StatsFactory, StatsFactoryContext } from "./StatsFactory";
 
+type Writable<T> = {
+	-readonly [K in keyof T]: T[K];
+};
+
 export type KnownStatsChunkGroup = binding.JsStatsChunkGroup;
 
-export type KnownStatsChunk = Omit<binding.JsStatsChunk, "sizes"> & {
+export type KnownStatsChunk = Omit<Writable<binding.JsStatsChunk>, "sizes"> & {
 	sizes: Record<string, number>;
 };
 
@@ -25,7 +29,7 @@ export type StatsAsset = KnownStatsAsset & Record<string, any>;
 export type StatsChunk = KnownStatsChunk & Record<string, any>;
 
 export type KnownStatsModule = Omit<
-	binding.JsStatsModule,
+	Writable<binding.JsStatsModule>,
 	"usedExports" | "providedExports" | "optimizationBailout" | "sizes"
 > & {
 	profile?: StatsProfile;
@@ -63,7 +67,7 @@ export type StatsModuleTraceItem = {
 	moduleId?: string;
 };
 
-export type StatsModuleReason = binding.JsStatsModuleReason &
+export type StatsModuleReason = Writable<binding.JsStatsModuleReason> &
 	Record<string, any>;
 
 export type KnownStatsCompilation = {

@@ -291,6 +291,26 @@ impl Compilation {
     }
   }
 
+  // FIXME: find a better way to do this.
+  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
+    if let Some(other_module_graph) = &self.other_module_graph
+      && let Some(module) = other_module_graph.modules.get(identifier)
+    {
+      return module.as_ref();
+    };
+
+    if let Some(module) = self
+      .make_artifact
+      .get_module_graph_partial()
+      .modules
+      .get(identifier)
+    {
+      return module.as_ref();
+    }
+
+    None
+  }
+
   pub fn get_module_graph_mut(&mut self) -> ModuleGraph {
     if let Some(other) = &mut self.other_module_graph {
       ModuleGraph::new(

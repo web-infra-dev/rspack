@@ -1,4 +1,4 @@
-import assert from "assert";
+import assert from "node:assert";
 import type {
 	RawAssetGeneratorOptions,
 	RawAssetInlineGeneratorOptions,
@@ -251,6 +251,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 			workerWasmLoading === false ? "false" : workerWasmLoading,
 		workerPublicPath: output.workerPublicPath!,
 		scriptType: output.scriptType === false ? "false" : output.scriptType!,
+		charset: output.charset!,
+		chunkLoadTimeout: output.chunkLoadTimeout!,
 		environment: output.environment!
 	};
 }

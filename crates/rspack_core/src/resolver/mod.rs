@@ -8,6 +8,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{Error, MietteExt};
 use rspack_loader_runner::DescriptionData;
+use rspack_util::identifier::insert_zero_width_space_for_fragment;
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 
@@ -76,11 +77,12 @@ impl Eq for Resource {}
 
 impl Resource {
   /// Get the full path with query and fragment attached.
-  pub fn full_path(&self) -> PathBuf {
-    let mut buf = format!("{}", self.path.display());
-    buf.push_str(&self.query);
+  pub fn full_path(&self) -> String {
+    let mut buf =
+      insert_zero_width_space_for_fragment(&self.path.display().to_string()).into_owned();
+    buf.push_str(&insert_zero_width_space_for_fragment(&self.query));
     buf.push_str(&self.fragment);
-    PathBuf::from(buf)
+    buf
   }
 }
 

@@ -15,7 +15,7 @@ export default async function checkSourceMap(
 	};
 
 	const sourceMap = require("source-map");
-	const path = require("path");
+	const path = require("node:path");
 
 	const sources = JSON.parse(outCodeMap).sources;
 	for (const source of sources) {

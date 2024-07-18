@@ -17,10 +17,15 @@ pub enum ExternalItemValue {
 
 pub type ExternalItemObject = HashMap<String, ExternalItemValue>;
 
+pub struct ContextInfo {
+  pub issuer: String,
+}
+
 pub struct ExternalItemFnCtx {
   pub request: String,
   pub context: String,
   pub dependency_type: String,
+  pub context_info: ContextInfo,
 }
 
 pub struct ExternalItemFnResult {

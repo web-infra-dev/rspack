@@ -202,7 +202,7 @@ export type Path = z.infer<typeof path>;
 const pathinfo = z.boolean().or(z.literal("verbose"));
 export type Pathinfo = z.infer<typeof pathinfo>;
 
-const assetModuleFilename = z.string();
+const assetModuleFilename = filename;
 export type AssetModuleFilename = z.infer<typeof assetModuleFilename>;
 
 const webassemblyModuleFilename = z.string();
@@ -382,6 +382,8 @@ const output = z.strictObject({
 	devtoolModuleFilenameTemplate: devtoolModuleFilenameTemplate.optional(),
 	devtoolFallbackModuleFilenameTemplate:
 		devtoolFallbackModuleFilenameTemplate.optional(),
+	chunkLoadTimeout: z.number().optional(),
+	charset: z.boolean().optional(),
 	environment: environment.optional()
 });
 export type Output = z.infer<typeof output>;
@@ -661,7 +663,7 @@ export type AssetInlineGeneratorOptions = z.infer<
 
 const assetResourceGeneratorOptions = z.strictObject({
 	emit: z.boolean().optional(),
-	filename: filenameTemplate.optional(),
+	filename: filename.optional(),
 	publicPath: publicPath.optional()
 });
 export type AssetResourceGeneratorOptions = z.infer<
@@ -877,7 +879,12 @@ export type ExternalItemObjectUnknown = z.infer<
 const externalItemFunctionData = z.strictObject({
 	context: z.string().optional(),
 	dependencyType: z.string().optional(),
-	request: z.string().optional()
+	request: z.string().optional(),
+	contextInfo: z
+		.strictObject({
+			issuer: z.string()
+		})
+		.optional()
 });
 export type ExternalItemFunctionData = z.infer<typeof externalItemFunctionData>;
 
@@ -1014,12 +1021,19 @@ export type CacheOptions = z.infer<typeof cacheOptions>;
 //#endregion
 
 //#region Stats
+const statsPresets = z.enum([
+	"normal",
+	"none",
+	"verbose",
+	"errors-only",
+	"errors-warnings",
+	"minimal",
+	"detailed",
+	"summary"
+]);
 const statsOptions = z.strictObject({
 	all: z.boolean().optional(),
-	preset: z
-		.boolean()
-		.or(z.enum(["normal", "none", "verbose", "errors-only", "errors-warnings"]))
-		.optional(),
+	preset: z.boolean().or(statsPresets).optional(),
 	assets: z.boolean().optional(),
 	chunks: z.boolean().optional(),
 	modules: z.boolean().optional(),
@@ -1116,10 +1130,7 @@ const statsOptions = z.strictObject({
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 
-const statsValue = z
-	.enum(["none", "errors-only", "errors-warnings", "normal", "verbose"])
-	.or(z.boolean())
-	.or(statsOptions);
+const statsValue = z.boolean().or(statsPresets).or(statsOptions);
 export type StatsValue = z.infer<typeof statsValue>;
 //#endregion
 

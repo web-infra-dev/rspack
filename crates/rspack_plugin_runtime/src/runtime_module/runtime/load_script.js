@@ -22,8 +22,8 @@ __webpack_require__.l = function (url, done, key, chunkId$FETCH_PRIORITY$) {
 		needAttach = true;
 		script = document.createElement('script');
 		$SCRIPT_TYPE$
-		script.charset = 'utf-8';
-		script.timeout = 120;
+		$SCRIPT_CHARSET$
+		script.timeout = $CHUNK_LOAD_TIMEOUT_IN_SECONDS$;
 		if (__webpack_require__.nc) {
 			script.setAttribute("nonce", __webpack_require__.nc);
 		}
@@ -51,7 +51,7 @@ __webpack_require__.l = function (url, done, key, chunkId$FETCH_PRIORITY$) {
 			type: 'timeout',
 			target: script
 		}),
-		120000
+		$CHUNK_LOAD_TIMEOUT$
 	);
 	script.onerror = onScriptComplete.bind(null, script.onerror);
 	script.onload = onScriptComplete.bind(null, script.onload);
