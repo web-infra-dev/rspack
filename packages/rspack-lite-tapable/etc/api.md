@@ -43,7 +43,7 @@ export class AsyncSeriesHook<T, AdditionalOptions = UnsetAdditionalOptions> exte
 
 // @public (undocumented)
 export class AsyncSeriesWaterfallHook<T, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, AsArray<T>[0], AdditionalOptions> {
-    constructor(args?: FixedSizeArray<AsArray<T>["length"], string>, name?: string);
+    constructor(args?: ArgumentNames<AsArray<T>>, name?: string);
     // (undocumented)
     callAsyncStageRange(queried: QueriedHook<T, AsArray<T>[0], AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, AsArray<T>[0]>>): void;
 }
@@ -103,7 +103,7 @@ export interface Hook<T = any, R = any, AdditionalOptions = UnsetAdditionalOptio
 
 // @public (undocumented)
 export class HookBase<T, R, AdditionalOptions = UnsetAdditionalOptions> implements Hook<T, R, AdditionalOptions> {
-    constructor(args?: FixedSizeArray<AsArray<T>["length"], string>, name?: string);
+    constructor(args?: ArgumentNames<AsArray<T>>, name?: string);
     // (undocumented)
     args: ArgumentNames<AsArray<T>>;
     // (undocumented)
@@ -318,7 +318,7 @@ export class SyncHook<T, R = void, AdditionalOptions = UnsetAdditionalOptions> e
 
 // @public (undocumented)
 export class SyncWaterfallHook<T, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, AsArray<T>[0], AdditionalOptions> {
-    constructor(args?: FixedSizeArray<AsArray<T>["length"], string>, name?: string);
+    constructor(args?: ArgumentNames<AsArray<T>>, name?: string);
     // (undocumented)
     call(...args: AsArray<T>): AsArray<T>[0];
     // (undocumented)

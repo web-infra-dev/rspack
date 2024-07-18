@@ -122,7 +122,6 @@
         "@playwright/test",
         "react",
         "react-dom",
-        "typescript",
         "pnpm"
       ]
     },

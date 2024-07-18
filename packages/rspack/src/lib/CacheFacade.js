@@ -59,6 +59,7 @@ class MultiItemCache {
 	getPromise() {
 		// @ts-expect-error
 		const next = i => {
+			// @ts-expect-error
 			return this._items[i].getPromise().then(result => {
 				if (result !== undefined) return result;
 				if (++i < this._items.length) return next(i);

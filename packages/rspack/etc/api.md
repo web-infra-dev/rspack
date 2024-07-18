@@ -13,7 +13,8 @@ import Cache_2 = require('./lib/Cache');
 import CacheFacade = require('./lib/CacheFacade');
 import type { Callback } from '@rspack/lite-tapable';
 import { cleanupGlobalTrace } from '@rspack/binding';
-import { Compiler as Compiler_2 } from '../Compiler';
+import { Compiler as Compiler_2 } from '..';
+import { Compiler as Compiler_5 } from '../Compiler';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
@@ -1258,10 +1259,10 @@ export class Compiler {
 type Compiler_3 = any;
 
 // @public (undocumented)
-type Compiler_4 = Compiler_2;
+type Compiler_4 = Compiler_5;
 
 // @public (undocumented)
-type Compiler_5 = any;
+type Compiler_6 = any;
 
 // @public (undocumented)
 type Config = {
@@ -4994,7 +4995,7 @@ type LoaderOptionsPluginOptions = any;
 // @public
 export class LoaderTargetPlugin {
     constructor(target: string);
-    apply(compiler: Compiler_5): void;
+    apply(compiler: Compiler_6): void;
     // (undocumented)
     target: string;
 }
@@ -6284,13 +6285,9 @@ type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, k
 export class NormalModule {
     // (undocumented)
     static getCompilationHooks(compilation: Compilation): {
-        loader: liteTapable.SyncHook<[LoaderContext<{}>], void, {
-            _UnsetAdditionalOptions: true;
-        }>;
+        loader: liteTapable.SyncHook<[LoaderContext]>;
         readResourceForScheme: any;
-        readResource: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[LoaderContext<{}>], string | Buffer, {
-            _UnsetAdditionalOptions: true;
-        }>>;
+        readResource: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>>;
     };
 }
 
@@ -13824,7 +13821,7 @@ const uniqueName: z.ZodString;
 // @public (undocumented)
 export const util: {
     createHash: (algorithm: any) => any;
-    cleverMerge: <T, O>(first: T, second: O) => T | O | (T & O);
+    cleverMerge: <T, O>(first: T, second: O) => (T & O) | T | O;
 };
 
 // @public (undocumented)

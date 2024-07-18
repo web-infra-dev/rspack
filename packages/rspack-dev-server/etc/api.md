@@ -4,8 +4,6 @@
 
 ```ts
 
-/// <reference types="node" />
-
 import { Compiler } from '@rspack/core';
 import { DevServer as Configuration } from '@rspack/core';
 import type { FSWatcher } from 'chokidar';
