@@ -64,10 +64,17 @@ impl From<RawExternalItemFnResult> for ExternalItemFnResult {
 
 #[derive(Debug, Clone)]
 #[napi(object)]
+pub struct ContextInfo {
+  pub issuer: String,
+}
+
+#[derive(Debug, Clone)]
+#[napi(object)]
 pub struct RawExternalItemFnCtx {
   pub request: String,
   pub context: String,
   pub dependency_type: String,
+  pub context_info: ContextInfo,
 }
 
 impl From<ExternalItemFnCtx> for RawExternalItemFnCtx {
@@ -76,6 +83,9 @@ impl From<ExternalItemFnCtx> for RawExternalItemFnCtx {
       request: value.request,
       dependency_type: value.dependency_type,
       context: value.context,
+      context_info: ContextInfo {
+        issuer: value.context_info.issuer,
+      },
     }
   }
 }

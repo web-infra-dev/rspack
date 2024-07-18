@@ -270,6 +270,10 @@ export enum BuiltinPluginName {
 
 export function cleanupGlobalTrace(): void
 
+export interface ContextInfo {
+  issuer: string
+}
+
 export interface JsAdditionalTreeRuntimeRequirementsArg {
   chunk: JsChunk
   runtimeRequirements: JsRuntimeGlobals
@@ -1000,6 +1004,7 @@ export interface RawExternalItemFnCtx {
   request: string
   context: string
   dependencyType: string
+  contextInfo: ContextInfo
 }
 
 export interface RawExternalItemFnResult {
