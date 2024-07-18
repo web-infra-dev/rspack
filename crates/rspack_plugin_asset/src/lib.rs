@@ -395,7 +395,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           {
             let public_path = match public_path {
               PublicPath::Filename(template) => {
-                let (public_path, _) = compilation.get_asset_path_with_info(
+                let (public_path, another_asset_info) = compilation.get_asset_path_with_info(
                   template,
                   PathData::default()
                     .module(module)
@@ -404,6 +404,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
                     .hash(contenthash)
                     .filename(&filename),
                 )?;
+                asset_info.merge_another(&another_asset_info);
                 PublicPath::ensure_ends_with_slash(public_path)
               }
               PublicPath::Auto => public_path.render(compilation, &filename),
