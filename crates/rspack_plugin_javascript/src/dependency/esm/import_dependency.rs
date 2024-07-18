@@ -87,7 +87,7 @@ impl DependencyTemplate for ImportDependency {
         &self.id,
         block,
         &self.request,
-        self.dependency_type().as_str().as_ref(),
+        self.dependency_type().as_str(),
         false,
       )
       .as_str(),

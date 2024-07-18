@@ -118,6 +118,7 @@ export class JsStatsModule {
   get issuer(): string | undefined
   get issuerName(): string | undefined
   get issuerId(): string | undefined
+  get issuerPath(): Array<JsStatsModuleIssuer>
   get nameForCondition(): string | undefined
   get assets(): Array<string> | undefined
   get source(): string | Buffer | undefined
@@ -137,7 +138,6 @@ export class JsStatsModule {
   get errors(): number
   get warnings(): number
   get sizes(): Array<JsStatsSize>
-  get issuerPath(): Array<JsStatsModuleIssuer>
   get profile(): JsStatsModuleProfile | undefined
   get reasons(): Array<JsStatsModuleReason> | undefined
   get modules(): Array<JsStatsModule> | undefined

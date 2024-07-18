@@ -223,7 +223,7 @@ impl ModuleType {
     self.is_asset_like() || self.is_wasm_like()
   }
 
-  pub fn as_str(&self) -> &str {
+  pub fn as_str(&self) -> &'static str {
     match self {
       ModuleType::JsAuto => "javascript/auto",
       ModuleType::JsEsm => "javascript/esm",
@@ -249,7 +249,7 @@ impl ModuleType {
       ModuleType::ConsumeShared => "consume-shared-module",
       ModuleType::SelfReference => "self-reference-module",
 
-      ModuleType::Custom(custom) => custom,
+      ModuleType::Custom(custom) => custom.as_str(),
     }
   }
 }

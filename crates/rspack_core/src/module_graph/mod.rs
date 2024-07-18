@@ -40,7 +40,7 @@ pub struct DependencyParents {
 #[derive(Debug, Default)]
 pub struct ModuleGraphPartial {
   /// Module indexed by `ModuleIdentifier`.
-  modules: IdentifierMap<Option<BoxModule>>,
+  pub(crate) modules: IdentifierMap<Option<BoxModule>>,
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: HashMap<DependencyId, Option<BoxDependency>>,

@@ -1,1 +1,1 @@
-pub type RawMode = String;
+pub type RawMode = &'static str;
