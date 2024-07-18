@@ -3,9 +3,10 @@ use std::fmt::Debug;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, BoxModule, CompilerOptions, ExternalItem, ExternalItemFnCtx, ExternalItemValue,
-  ExternalModule, ExternalRequest, ExternalRequestValue, ExternalType, ModuleDependency, ModuleExt,
-  ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin, PluginContext,
+  ApplyContext, BoxModule, CompilerOptions, ContextInfo, ExternalItem, ExternalItemFnCtx,
+  ExternalItemValue, ExternalModule, ExternalRequest, ExternalRequestValue, ExternalType,
+  ModuleDependency, ModuleExt, ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin,
+  PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -153,6 +154,12 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
           context: context.to_string(),
           request: request.to_string(),
           dependency_type: dependency.category().to_string(),
+          context_info: ContextInfo {
+            issuer: data
+              .issuer
+              .clone()
+              .map_or("".to_string(), |i| i.to_string()),
+          },
         })
         .await?;
         if let Some(r) = result.result {

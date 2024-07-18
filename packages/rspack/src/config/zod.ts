@@ -879,7 +879,12 @@ export type ExternalItemObjectUnknown = z.infer<
 const externalItemFunctionData = z.strictObject({
 	context: z.string().optional(),
 	dependencyType: z.string().optional(),
-	request: z.string().optional()
+	request: z.string().optional(),
+	contextInfo: z
+		.strictObject({
+			issuer: z.string()
+		})
+		.optional()
 });
 export type ExternalItemFunctionData = z.infer<typeof externalItemFunctionData>;
 
