@@ -494,6 +494,42 @@ __resourceQuery
 
 </Columns>
 
+### \_\_webpack_exports_info\_\_
+
+<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+
+在模块中通过 `__webpack_exports_info__` 可以读取如下导出信息：
+
+- `__webpack_exports_info__` 始终为 `true`
+- 当导出未被引用时 `__webpack_exports_info__.<exportName>.used` 为 `false`，否则为 `true`
+- `__webpack_exports_info__.<exportName>.useInfo` 值如下：
+  - `false`：导出未被引用
+  - `true`：导出被引用
+  - `null`：导出是否被引用依赖运行时条件判断
+  - `undefined`：无法判断导出的引用情况
+- `__webpack_exports_info__.<exportName>.provideInfo` 值如下：
+  - `false`：导出未被提供
+  - `true`：导出被提供
+  - `null`：导出是否被提供依赖运行时条件判断
+  - `undefined`：无法判断导出的提供情况
+- 支持访问导出的多级子属性：如 `__webpack_exports_info__.<exportName>.<exportProperty1>.<exportProperty2>.used`
+- 通过 `__webpack_exports_info__.<exportName>.canMangle` 判断导出是否可被重命名
+
+<Columns>
+```js title=源码
+if (__webpack_exports_info__.someUsedExport.used) { }
+if (__webpack_exports_info__.someUnusedExport.used) { }
+```
+
+```js title=产物
+if (true) {
+}
+if (false) {
+}
+```
+
+</Columns>
+
 ## Chunks
 
 ### \_\_webpack_chunkname\_\_

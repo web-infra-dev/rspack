@@ -1,6 +1,7 @@
+use itertools::Itertools;
 use swc_core::ecma::atoms::Atom;
 
-use crate::{AsContextDependency, AsDependencyTemplate, Context};
+use crate::{create_exports_object_referenced, AsContextDependency, AsDependencyTemplate, Context};
 use crate::{ContextMode, ContextOptions, Dependency};
 use crate::{DependencyCategory, DependencyId, DependencyType};
 use crate::{ExtendedReferencedExport, ModuleDependency};
@@ -47,9 +48,14 @@ impl Dependency for ContextElementDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_exports) = &self.referenced_exports {
-      vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
+      referenced_exports
+        .iter()
+        .map(|export| {
+          ExtendedReferencedExport::Export(ReferencedExport::new(vec![export.clone()], false))
+        })
+        .collect_vec()
     } else {
-      vec![ExtendedReferencedExport::Array(vec![])]
+      create_exports_object_referenced()
     }
   }
 }
