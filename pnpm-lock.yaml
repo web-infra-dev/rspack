@@ -1059,7 +1059,7 @@ importers:
         specifier: 2.2.1
         version: 2.2.1
       wast-loader:
-        specifier: 1.12.1
+        specifier: ^1.12.1
         version: 1.12.1
       watchpack:
         specifier: ^2.4.0

@@ -66,7 +66,7 @@
     "react-refresh": "0.14.0",
     "tapable": "2.2.1",
     "watchpack": "^2.4.0",
-    "wast-loader": "1.12.1",
+    "wast-loader": "^1.12.1",
     "webpack-sources": "3.2.3"
   }
 }
