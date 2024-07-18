@@ -1,6 +1,6 @@
-use rspack_core::{module_id_expr, module_raw, AsModuleDependency, ContextDependency};
+use rspack_core::{module_raw, AsModuleDependency, ContextDependency};
 use rspack_core::{ContextOptions, Dependency, DependencyCategory, DependencyId};
-use rspack_core::{DependencyTemplate, DependencyType, ErrorSpan, RuntimeGlobals};
+use rspack_core::{DependencyTemplate, DependencyType, ErrorSpan};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
 
 use super::create_resource_identifier_for_context_dependency;
