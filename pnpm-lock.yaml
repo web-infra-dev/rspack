@@ -218,7 +218,7 @@ importers:
   packages/create-rspack/template-vue:
     dependencies:
       vue:
-        specifier: 3.4.21
+        specifier: ^3.4.21
         version: 3.4.21(typescript@5.4.2)
     devDependencies:
       '@rspack/cli':
@@ -237,7 +237,7 @@ importers:
   packages/create-rspack/template-vue-ts:
     dependencies:
       vue:
-        specifier: 3.4.21
+        specifier: ^3.4.21
         version: 3.4.21(typescript@5.4.2)
     devDependencies:
       '@rspack/cli':
@@ -316,7 +316,7 @@ importers:
         specifier: ^3.3.0
         version: 3.4.3(ts-node@10.9.2(@types/node@20.12.7)(typescript@5.4.2))
       vue:
-        specifier: 3.4.21
+        specifier: ^3.4.21
         version: 3.4.21(typescript@5.4.2)
       vue-loader:
         specifier: ^17.3.1
