@@ -4,6 +4,12 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    react:
+      specifier: 18.0.0
+      version: 18.0.0
+
 importers:
 
   .:
@@ -132,11 +138,11 @@ importers:
   packages/create-rspack/template-react:
     dependencies:
       react:
-        specifier: ^18.2.0
-        version: 18.2.0
+        specifier: catalog:default
+        version: 18.0.0
       react-dom:
         specifier: ^18.2.0
-        version: 18.2.0(react@18.2.0)
+        version: 18.2.0(react@18.0.0)
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
@@ -163,11 +169,11 @@ importers:
   packages/create-rspack/template-react-ts:
     dependencies:
       react:
-        specifier: ^18.2.0
-        version: 18.2.0
+        specifier: catalog:default
+        version: 18.0.0
       react-dom:
         specifier: ^18.2.0
-        version: 18.2.0(react@18.2.0)
+        version: 18.2.0(react@18.0.0)
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
@@ -7910,10 +7916,6 @@ packages:
 
   react@18.0.0:
     resolution: {integrity: sha512-x+VL6wbT4JRVPm7EGxXhZ8w8LTROaxPXOqhlGyVSrv0sB1jkyFGgXxJ8LVoPRLvPR6/CIZGFmfzqUa2NYeMr2A==}
-    engines: {node: '>=0.10.0'}
-
-  react@18.2.0:
-    resolution: {integrity: sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ==}
     engines: {node: '>=0.10.0'}
 
   react@18.3.1:
@@ -18087,10 +18089,10 @@ snapshots:
       react: 18.0.0
       scheduler: 0.21.0
 
-  react-dom@18.2.0(react@18.2.0):
+  react-dom@18.2.0(react@18.0.0):
     dependencies:
       loose-envify: 1.4.0
-      react: 18.2.0
+      react: 18.0.0
       scheduler: 0.23.0
 
   react-dom@18.3.1(react@18.3.1):
@@ -18215,10 +18217,6 @@ snapshots:
       object-assign: 4.1.1
 
   react@18.0.0:
-    dependencies:
-      loose-envify: 1.4.0
-
-  react@18.2.0:
     dependencies:
       loose-envify: 1.4.0
 

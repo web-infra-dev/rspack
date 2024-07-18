@@ -7,7 +7,7 @@
     "build": "cross-env NODE_ENV=production rspack build"
   },
   "dependencies": {
-    "react": "^18.2.0",
+    "react": "catalog:default",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
