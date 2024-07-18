@@ -156,6 +156,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             replaces,
             start: node.span().real_lo(),
             end: node.span().real_hi(),
+            referenced_exports: exports,
           },
           Some(node.span.into()),
           parser.in_try,

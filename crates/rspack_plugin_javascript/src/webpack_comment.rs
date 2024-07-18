@@ -99,10 +99,18 @@ impl WebpackCommentMap {
   }
 
   pub fn get_webpack_exports(&self) -> Option<Vec<String>> {
-    self
-      .0
-      .get(&WebpackComment::Exports)
-      .map(|expr| expr.split(',').map(|x| x.to_owned()).collect_vec())
+    self.0.get(&WebpackComment::Exports).map(|expr| {
+      expr
+        .split(',')
+        .filter_map(|x| {
+          if x.is_empty() {
+            None
+          } else {
+            Some(x.to_owned())
+          }
+        })
+        .collect_vec()
+    })
   }
 }
 

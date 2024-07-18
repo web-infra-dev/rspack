@@ -73,6 +73,7 @@ fn create_import_meta_context_dependency(
       replaces: Vec::new(),
       start: node.span().real_lo(),
       end: node.span().real_hi(),
+      referenced_exports: None,
     }
   } else {
     ContextOptions {
@@ -89,6 +90,7 @@ fn create_import_meta_context_dependency(
       replaces: Vec::new(),
       start: node.span().real_lo(),
       end: node.span().real_hi(),
+      referenced_exports: None,
     }
   };
   Some(ImportMetaContextDependency::new(

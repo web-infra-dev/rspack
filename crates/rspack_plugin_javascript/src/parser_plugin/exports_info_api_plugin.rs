@@ -1,7 +1,7 @@
 use rspack_core::{extract_member_expression_chain, ConstDependency, SpanExt};
 
 use super::JavascriptParserPlugin;
-use crate::{dependency::ExportInfoApiDependency, visitors::JavascriptParser};
+use crate::{dependency::ExportInfoDependency, visitors::JavascriptParser};
 
 const WEBPACK_EXPORTS_INFO: &str = "__webpack_exports_info__";
 
@@ -21,9 +21,9 @@ impl JavascriptParserPlugin for ExportsInfoApiPlugin {
       && parser.is_unresolved_ident(WEBPACK_EXPORTS_INFO)
     {
       let len = member_chain.len();
-      if len >= 3 {
+      if len >= 2 {
         let prop = member_chain[len - 1].0.clone();
-        let dep = Box::new(ExportInfoApiDependency::new(
+        let dep = Box::new(ExportInfoDependency::new(
           member_expr.span.real_lo(),
           member_expr.span.real_hi(),
           member_chain
@@ -37,7 +37,6 @@ impl JavascriptParserPlugin for ExportsInfoApiPlugin {
         parser.presentational_dependencies.push(dep);
         Some(true)
       } else {
-        // TODO: support other __webpack_exports_info__
         None
       }
     } else {
