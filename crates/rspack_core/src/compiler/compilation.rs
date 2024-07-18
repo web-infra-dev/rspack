@@ -852,6 +852,16 @@ impl Compilation {
   #[instrument(name = "compilation::create_module_assets", skip_all)]
   async fn create_module_assets(&mut self, _plugin_driver: SharedPluginDriver) {
     let mut temp = vec![];
+    for (module_identifier, module) in self.get_module_graph().modules() {
+      if let Some(build_info) = module.build_info() {
+        for asset in build_info.asset_filenames.iter() {
+          for chunk in self.chunk_graph.get_module_chunks(module_identifier).iter() {
+            temp.push((*chunk, asset.clone()))
+          }
+          // already emitted asset by loader, so no need to re emit here
+        }
+      }
+    }
 
     for (module_identifier, assets) in self.module_assets.iter() {
       // assets of executed modules are not in this compilation
