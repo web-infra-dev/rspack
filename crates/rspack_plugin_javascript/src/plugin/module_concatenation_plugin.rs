@@ -5,9 +5,7 @@ use std::collections::VecDeque;
 use std::hash::Hasher;
 
 use rayon::prelude::*;
-use rspack_collections::{
-  IdentifierDashMap, IdentifierIndexSet, IdentifierLinkedSet, IdentifierMap, IdentifierSet,
-};
+use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
@@ -36,13 +34,13 @@ enum Warning {
 struct ConcatConfiguration {
   pub root_module: ModuleIdentifier,
   runtime: Option<RuntimeSpec>,
-  modules: IdentifierLinkedSet,
+  modules: IdentifierIndexSet,
   warnings: IdentifierMap<Warning>,
 }
 
 impl ConcatConfiguration {
   fn new(root_module: ModuleIdentifier, runtime: Option<RuntimeSpec>) -> Self {
-    let mut modules = IdentifierLinkedSet::default();
+    let mut modules = IdentifierIndexSet::default();
     modules.insert(root_module);
 
     ConcatConfiguration {
@@ -75,7 +73,7 @@ impl ConcatConfiguration {
     sorted_warnings.into_iter().collect()
   }
 
-  fn get_modules(&self) -> &IdentifierLinkedSet {
+  fn get_modules(&self) -> &IdentifierIndexSet {
     &self.modules
   }
 
@@ -86,12 +84,8 @@ impl ConcatConfiguration {
   fn rollback(&mut self, snapshot: usize) {
     let modules = &mut self.modules;
     let len = modules.len();
-    let mut i = 0;
-    while i < len {
-      if i >= snapshot {
-        modules.pop_back();
-      }
-      i += 1;
+    for _ in snapshot..len {
+      modules.pop();
     }
   }
 }
@@ -899,7 +893,7 @@ impl ModuleConcatenationPlugin {
         build_meta: box_module.build_meta().cloned(),
       };
       let modules = modules_set
-        .iter()
+        .par_iter()
         .map(|id| {
           let module = module_graph
             .module_by_identifier(id)
