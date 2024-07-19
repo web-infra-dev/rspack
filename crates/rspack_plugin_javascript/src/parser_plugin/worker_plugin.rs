@@ -304,7 +304,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
     }
     let tag_info = parser
       .definitions_db
-      .expect_get_tag_info(&parser.current_tag_info?);
+      .expect_get_tag_info(parser.current_tag_info?);
     let data = WorkerSpecifierData::downcast(tag_info.data.clone()?);
     if let Some(value) = self.pattern_syntax.get(data.key.as_str())
       && value.contains(&members.iter().map(|id| id.as_str()).join("."))
@@ -331,7 +331,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
     if for_name == HARMONY_SPECIFIER_TAG {
       let tag_info = parser
         .definitions_db
-        .expect_get_tag_info(&parser.current_tag_info?);
+        .expect_get_tag_info(parser.current_tag_info?);
       let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
       let ids = settings.ids.iter().map(|id| id.as_str()).join(".");
       if self
@@ -371,7 +371,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
     if for_name == HARMONY_SPECIFIER_TAG {
       let tag_info = parser
         .definitions_db
-        .expect_get_tag_info(&parser.current_tag_info?);
+        .expect_get_tag_info(parser.current_tag_info?);
       let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
       let ids = settings.ids.iter().map(|id| id.as_str()).join(".");
       if self

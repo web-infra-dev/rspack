@@ -124,7 +124,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     }
     let tag_info = parser
       .definitions_db
-      .expect_get_tag_info(&parser.current_tag_info?);
+      .expect_get_tag_info(parser.current_tag_info?);
     let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
 
     let dep = HarmonyImportSpecifierDependency::new(
@@ -178,7 +178,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     }
     let tag_info = parser
       .definitions_db
-      .expect_get_tag_info(&parser.current_tag_info?);
+      .expect_get_tag_info(parser.current_tag_info?);
     let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
 
     let non_optional_members = get_non_optional_part(members, members_optionals);
@@ -243,7 +243,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     }
     let tag_info = parser
       .definitions_db
-      .expect_get_tag_info(&parser.current_tag_info?);
+      .expect_get_tag_info(parser.current_tag_info?);
     let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
 
     let non_optional_members = get_non_optional_part(members, members_optionals);

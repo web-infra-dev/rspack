@@ -86,7 +86,7 @@ impl InnerGraphPlugin {
     }
 
     if let Some(tag_info) = parser.current_tag_info {
-      let tag_info = parser.definitions_db.expect_get_tag_info(&tag_info);
+      let tag_info = parser.definitions_db.expect_get_tag_info(tag_info);
       let symbol = TopLevelSymbol::downcast(tag_info.data.clone().expect("should have data"));
       let usage = parser.inner_graph.get_top_level_symbol();
       parser.inner_graph.add_usage(
@@ -295,7 +295,7 @@ impl InnerGraphPlugin {
     let existing = parser.get_variable_info(name);
     if let Some(existing) = existing
       && let Some(tag_info) = existing.tag_info
-      && let tag_info = parser.definitions_db.expect_get_mut_tag_info(&tag_info)
+      && let tag_info = parser.definitions_db.expect_get_mut_tag_info(tag_info)
       && tag_info.tag == TOP_LEVEL_SYMBOL
       && let Some(tag_data) = tag_info.data.clone()
     {

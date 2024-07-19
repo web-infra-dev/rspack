@@ -58,8 +58,25 @@ impl From<Identifier> for Ustr {
   }
 }
 
+impl Identifier {
+  /// Convert [Identifier] to [String]
+  ///
+  /// Shadowed the [fmt::Display] to specialize `to_string`,
+  /// like how other structs are shadowed in the standard library.
+  /// See: https://github.com/rust-lang/rust/pull/32586
+  ///
+  /// Consistency:
+  /// The result of `to_string` should be the same as the result of [fmt::Display::fmt].
+  #[allow(clippy::inherent_to_string_shadow_display)]
+  pub fn to_string(&self) -> String {
+    self.0.to_owned()
+  }
+}
+
 impl fmt::Display for Identifier {
+  /// Consistency:
+  /// The result of `to_string` should be the same as the result of [fmt::Display::fmt].
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.0.as_str())
+    write!(f, "{}", self.to_string())
   }
 }

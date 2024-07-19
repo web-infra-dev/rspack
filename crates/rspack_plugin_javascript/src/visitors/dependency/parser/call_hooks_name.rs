@@ -118,12 +118,12 @@ fn call_hooks_info<F, T>(
 where
   F: Fn(&mut JavascriptParser, &str) -> Option<T>,
 {
-  let info = parser.definitions_db.expect_get_variable(&id);
+  let info = parser.definitions_db.expect_get_variable(id);
   let mut next_tag_info = info.tag_info;
 
   while let Some(tag_info_id) = next_tag_info {
     parser.current_tag_info = Some(tag_info_id);
-    let tag_info = parser.definitions_db.expect_get_tag_info(&tag_info_id);
+    let tag_info = parser.definitions_db.expect_get_tag_info(tag_info_id);
     let tag = tag_info.tag.to_string();
     let next = tag_info.next;
     let result = hook_call(parser, &tag);
@@ -134,7 +134,7 @@ where
     next_tag_info = next;
   }
 
-  let info = parser.definitions_db.expect_get_variable(&id);
+  let info = parser.definitions_db.expect_get_variable(id);
   if let Some(FreeName::String(free_name)) = &info.free_name {
     let result = hook_call(parser, &free_name.to_string());
     if result.is_some() {

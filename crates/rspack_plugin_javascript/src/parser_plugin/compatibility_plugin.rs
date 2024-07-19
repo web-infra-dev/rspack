@@ -154,7 +154,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     }
     let tag_info = parser
       .definitions_db
-      .expect_get_mut_tag_info(&parser.current_tag_info?);
+      .expect_get_mut_tag_info(parser.current_tag_info?);
 
     let mut nested_require_data = NestedRequireData::downcast(tag_info.data.take()?);
     let mut deps = Vec::with_capacity(2);
