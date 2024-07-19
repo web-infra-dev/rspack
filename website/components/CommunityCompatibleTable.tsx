@@ -6,11 +6,11 @@ import S from './PluginSupportStatusTable.module.scss';
 import * as i18n from './i18n';
 
 export enum CompatibleStatus {
-  NotCompatible,
-  PartiallyCompatible,
-  Alternative,
-  Compatible,
-  Included,
+  NotCompatible = 0,
+  PartiallyCompatible = 1,
+  Alternative = 2,
+  Compatible = 3,
+  Included = 4,
 }
 
 const SUPPORT_STATUS_LOCALIZED = {

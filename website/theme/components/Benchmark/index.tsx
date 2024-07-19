@@ -100,6 +100,7 @@ export function Benchmark() {
           href="misc/benchmark.html"
           target="_blank"
           className={`${styles.bottomLink} hover:text-brand transition-colors duration-300 font-medium p-2`}
+          rel="noreferrer"
         >
           👉 {t('benchmarkDetail')}
         </a>
