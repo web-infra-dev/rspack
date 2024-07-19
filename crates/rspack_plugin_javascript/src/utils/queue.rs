@@ -2,12 +2,12 @@ use std::{collections::VecDeque, hash::Hash};
 
 use rustc_hash::FxHashSet as HashSet;
 
-pub(crate) struct Queue<T> {
+pub(crate) struct Queue<T: Hash + PartialEq + Eq + Clone> {
   q: VecDeque<T>,
   set: HashSet<T>,
 }
 
-impl<T: Hash + PartialEq + Eq + Copy + Clone> Queue<T> {
+impl<T: Hash + PartialEq + Eq + Clone> Queue<T> {
   pub(crate) fn new() -> Self {
     Self {
       q: VecDeque::default(),
@@ -17,7 +17,7 @@ impl<T: Hash + PartialEq + Eq + Copy + Clone> Queue<T> {
 
   pub(crate) fn enqueue(&mut self, item: T) {
     if !self.set.contains(&item) {
-      self.q.push_back(item);
+      self.q.push_back(item.clone());
       self.set.insert(item);
     }
   }

@@ -45,7 +45,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         .exports_info_module_map
         .insert(mgm.exports, mgm.module_identifier);
     }
-    let mut q = VecDeque::new();
+    let mut q = Queue::new();
     let mg = &mut module_graph;
     // debug_exports_info!(mg);
     for exports_info_id in self.exports_info_module_map.keys() {
@@ -80,7 +80,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
     self.compilation.entries = entries;
 
-    while let Some((module_id, runtime)) = q.pop_front() {
+    while let Some((module_id, runtime)) = q.dequeue() {
       self.process_module(
         ModuleOrAsyncDependenciesBlock::Module(module_id),
         runtime,
@@ -95,7 +95,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     block_id: ModuleOrAsyncDependenciesBlock,
     runtime: Option<RuntimeSpec>,
     force_side_effects: bool,
-    q: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
+    q: &mut Queue<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
     #[derive(Debug, Clone)]
     enum ProcessModuleReferencedExports {
@@ -104,9 +104,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
 
     let mut map: IdentifierMap<ProcessModuleReferencedExports> = IdentifierMap::default();
-    let mut queue = Queue::new();
-    queue.enqueue(block_id);
-    while let Some(module_id) = queue.dequeue() {
+    let mut queue = VecDeque::new();
+    queue.push_back(block_id);
+    while let Some(module_id) = queue.pop_front() {
       let module_graph = self.compilation.get_module_graph();
       // dbg!(&module_id);
       let (blocks, dependencies) = match module_id {
@@ -140,7 +140,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             q,
           )
         } else {
-          queue.enqueue(ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(
+          queue.push_back(ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(
             block_id,
           ));
         }
@@ -278,7 +278,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     &mut self,
     dep: DependencyId,
     runtime: Option<RuntimeSpec>,
-    queue: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
+    queue: &mut Queue<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
     if let Some(module) = self
       .compilation
@@ -295,7 +295,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     used_exports: Vec<ExtendedReferencedExport>,
     runtime: Option<RuntimeSpec>,
     force_side_effects: bool,
-    queue: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
+    queue: &mut Queue<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
     let mut module_graph = self.compilation.get_module_graph_mut();
     let mgm = module_graph
@@ -313,7 +313,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       if need_insert {
         let flag = mgm_exports_info_id.set_used_without_info(&mut module_graph, runtime.as_ref());
         if flag {
-          queue.push_back((module_id, None));
+          queue.enqueue((module_id, None));
         }
         return;
       }
@@ -328,7 +328,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             mgm_exports_info_id.set_used_in_unknown_way(&mut module_graph, runtime.as_ref());
 
           if flag {
-            queue.push_back((module_id, runtime.clone()));
+            queue.enqueue((module_id, runtime.clone()));
           }
         } else {
           let mut current_exports_info_id = mgm_exports_info_id;
@@ -363,7 +363,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                       .cloned()
                   };
                   if let Some(current_module) = current_module {
-                    queue.push_back((current_module, runtime.clone()));
+                    queue.enqueue((current_module, runtime.clone()));
                   }
                 }
                 current_exports_info_id = nested_info;
@@ -391,7 +391,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                   .cloned()
               };
               if let Some(current_module) = current_module {
-                queue.push_back((current_module, runtime.clone()));
+                queue.enqueue((current_module, runtime.clone()));
               }
             }
             break;
@@ -410,7 +410,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       let changed_flag =
         mgm_exports_info_id.set_used_for_side_effects_only(&mut module_graph, runtime.as_ref());
       if changed_flag {
-        queue.push_back((module_id, runtime));
+        queue.enqueue((module_id, runtime));
       }
     }
   }
