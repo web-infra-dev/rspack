@@ -816,10 +816,11 @@ impl Stats<'_> {
       None
     } else {
       module_assets.then(|| {
-        let mut assets: Vec<_> = module
-          .build_info()
-          .as_ref()
-          .map(|info| info.asset_filenames.iter().map(|i| i.to_string()).collect())
+        let mut assets = self
+          .compilation
+          .module_assets
+          .get(&identifier)
+          .map(|files| files.iter().map(|i| i.to_string()).collect_vec())
           .unwrap_or_default();
         assets.sort();
         assets

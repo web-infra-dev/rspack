@@ -478,7 +478,6 @@ export interface JsLoaderContext {
   contextDependencies: Array<string>
   missingDependencies: Array<string>
   buildDependencies: Array<string>
-  assetFilenames: Array<string>
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>

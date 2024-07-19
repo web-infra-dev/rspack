@@ -230,8 +230,6 @@ impl Task<MakeTaskContext> for ExecuteTask {
         &id,
       );
 
-    let mut collected_assets: HashSet<String> = Default::default();
-
     let module_graph = compilation.get_module_graph();
     let mut execute_result = match exports {
       Ok(_) => {
@@ -242,10 +240,6 @@ impl Task<MakeTaskContext> for ExecuteTask {
           },
           |mut res, m| {
             let module = module_graph.module_by_identifier(m).expect("unreachable");
-            if let Some(module_assets) = module.build_info().map(|x| x.asset_filenames.clone()) {
-              collected_assets.extend(module_assets);
-            }
-
             let build_info = &module.build_info();
             if let Some(info) = build_info {
               res
@@ -292,9 +286,15 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     let assets = std::mem::take(compilation.assets_mut());
     let code_generated_modules = std::mem::take(&mut compilation.code_generated_modules);
+    let module_assets = std::mem::take(&mut compilation.module_assets);
     if let Ok(ref mut result) = execute_result {
       result.assets = assets.keys().cloned().collect::<HashSet<_>>();
-      result.assets.extend(collected_assets);
+      result.assets.extend(
+        module_assets
+          .values()
+          .flat_map(|m| m.iter().map(|i| i.to_owned()).collect_vec())
+          .collect::<HashSet<String>>(),
+      );
     }
     let executed_runtime_modules = runtime_modules
       .iter()

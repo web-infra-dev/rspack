@@ -483,7 +483,7 @@ impl JsCompilation {
     request: String,
     public_path: Option<String>,
     base_uri: Option<String>,
-    _original_module: Option<String>,
+    original_module: Option<String>,
     original_module_context: Option<String>,
     callback: JsFunction,
   ) -> Result<()> {
@@ -499,6 +499,7 @@ impl JsCompilation {
           public_path,
           base_uri,
           original_module_context.map(rspack_core::Context::from),
+          original_module.map(ModuleIdentifier::from),
         )
         .await;
       match result {

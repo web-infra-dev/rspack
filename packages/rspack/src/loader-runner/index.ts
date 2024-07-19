@@ -359,7 +359,6 @@ export async function runLoaders(
 	const contextDependencies = context.contextDependencies;
 	const missingDependencies = context.missingDependencies;
 	const buildDependencies = context.buildDependencies;
-	const assetFilenames = context.assetFilenames;
 
 	/// Construct `loaderContext`
 	const loaderContext = {} as LoaderContext;
@@ -434,7 +433,6 @@ export async function runLoaders(
 								if (res.cacheable === false) {
 									this.cacheable(false);
 								}
-								assetFilenames.push(...res.assets);
 
 								resolve(compiler.__internal__getModuleExecutionResult(res.id));
 							}
@@ -469,7 +467,6 @@ export async function runLoaders(
 						if (res.cacheable === false) {
 							this.cacheable(false);
 						}
-						assetFilenames.push(...res.assets);
 
 						callback(
 							undefined,
@@ -681,16 +678,15 @@ export async function runLoaders(
 				content
 			);
 		}
-		assetFilenames.push(name),
+		// @ts-expect-error
+		compiler._lastCompilation.__internal__emit_asset_from_loader(
+			name,
 			// @ts-expect-error
-			compiler._lastCompilation.__internal__emit_asset_from_loader(
-				name,
-				// @ts-expect-error
-				source,
-				// @ts-expect-error
-				assetInfo,
-				context._moduleIdentifier
-			);
+			source,
+			// @ts-expect-error
+			assetInfo,
+			context._moduleIdentifier
+		);
 	};
 	loaderContext.fs = compiler.inputFileSystem;
 
