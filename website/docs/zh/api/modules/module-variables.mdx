@@ -596,6 +596,39 @@ import('./module-a').then(moduleA => {
 });
 ```
 
+### \_\_webpack_get_script_filename\_\_
+
+<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+
+通过 chunk 的 id 获取 chunk 的文件名。
+
+<Columns>
+```js title=源码
+__webpack_get_script_filename__
+```
+
+```js title=产物
+__webpack_require__.u;
+
+// webpack/runtime/get_chunk_filename
+__webpack_require__.u = function (chunkId) {
+  // ...
+};
+```
+
+</Columns>
+
+可以通过赋值来在运行时修改它的行为。比如以下示例，在最终加载 chunk 的路径后增加特定后缀。
+
+```js
+const oldFn = __webpack_get_script_filename__;
+
+__webpack_get_script_filename__ = chunkId => {
+  const filename = oldFn(chunkId);
+  return filename + '.changed';
+};
+```
+
 ## Module Federation
 
 ### \_\_webpack_share_scopes\_\_

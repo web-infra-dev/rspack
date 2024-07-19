@@ -561,6 +561,8 @@ __webpack_require__.cn = 'main';
 
 ### \_\_webpack_chunk_load\_\_
 
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 The internal chunk loading function. Takes one argument:
 
 - `chunkId`: the id for the chunk to load.
@@ -601,6 +603,39 @@ __webpack_chunk_load__ = async id => {
 import('./module-a').then(moduleA => {
   // now webpack will use the custom __webpack_chunk_load__ to load chunk
 });
+```
+
+### \_\_webpack_get_script_filename\_\_
+
+<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+
+It provides filename of the chunk by its id.
+
+<Columns>
+```js title=Source
+__webpack_get_script_filename__
+```
+
+```js title=Compiled
+__webpack_require__.u;
+
+// webpack/runtime/get_chunk_filename
+__webpack_require__.u = function (chunkId) {
+  // ...
+};
+```
+
+</Columns>
+
+It is assignable, which allows changing the filename used by the runtime. For example, it can be used to determine the final path when loading chunks.
+
+```js
+const oldFn = __webpack_get_script_filename__;
+
+__webpack_get_script_filename__ = chunkId => {
+  const filename = oldFn(chunkId);
+  return filename + '.changed';
+};
 ```
 
 ## Module Federation
