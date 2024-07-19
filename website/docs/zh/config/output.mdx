@@ -710,6 +710,22 @@ module.exports = {
 };
 ```
 
+## output.importMetaName
+
+- **Type:** `string`
+- **Default:** `'import.meta'`
+
+内部 `import.meta` 对象的名字，可将其换成 polyfill 的对象。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  output: {
+    importMetaName: 'pseudoImport.meta',
+  },
+};
+```
+
 ## output.library
 
 输出一个库，为你的入口做导出。

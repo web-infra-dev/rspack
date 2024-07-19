@@ -252,6 +252,7 @@ const applyJavascriptParserOptionsDefaults = (
 	);
 	D(parserOptions, "worker", fallback?.worker ?? ["..."]);
 	D(parserOptions, "overrideStrict", fallback?.overrideStrict ?? undefined);
+	D(parserOptions, "importMeta", fallback?.importMeta ?? true);
 };
 
 const applyModuleDefaults = (
@@ -713,6 +714,7 @@ const applyOutputDefaults = (
 		return "self";
 	});
 	D(output, "importFunctionName", "import");
+	D(output, "importMetaName", "import.meta");
 	// IGNORE(output.clean): The default value of `output.clean` in webpack is undefined, but it has the same effect as false.
 	F(output, "clean", () => !!output.clean);
 	D(output, "crossOriginLoading", false);

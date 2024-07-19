@@ -44,7 +44,7 @@ pub(crate) use self::harmony_import_dependency_parser_plugin::HarmonyImportDepen
 pub(crate) use self::harmony_top_level_this_plugin::HarmonyTopLevelThisParserPlugin;
 pub(crate) use self::hot_module_replacement_plugin::hot_module_replacement;
 pub(crate) use self::import_meta_context_dependency_parser_plugin::ImportMetaContextDependencyParserPlugin;
-pub(crate) use self::import_meta_plugin::ImportMetaPlugin;
+pub(crate) use self::import_meta_plugin::{ImportMetaDisabledPlugin, ImportMetaPlugin};
 pub(crate) use self::import_parser_plugin::ImportParserPlugin;
 pub(crate) use self::initialize_evaluating::InitializeEvaluating;
 pub(crate) use self::inner_graph::{plugin::*, state::InnerGraphState};

@@ -40,8 +40,9 @@ impl ModuleChunkLoadingRuntimeModule {
       .and_then(|base_uri| serde_json::to_string(base_uri).ok())
       .unwrap_or_else(|| {
         format!(
-          "new URL({}, import.meta.url);",
-          serde_json::to_string(root_output_dir).expect("should able to be serde_json::to_string")
+          "new URL({}, {}.url);",
+          serde_json::to_string(root_output_dir).expect("should able to be serde_json::to_string"),
+          compilation.options.output.import_meta_name
         )
       });
     RawSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed()

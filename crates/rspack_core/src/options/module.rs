@@ -224,6 +224,7 @@ pub struct JavascriptParserOptions {
   pub strict_export_presence: bool,
   pub worker: Vec<String>,
   pub override_strict: Option<OverrideStrict>,
+  pub import_meta: bool,
 }
 
 #[derive(Debug, Clone, MergeFrom)]

@@ -1116,6 +1116,7 @@ export interface RawJavascriptParserOptions {
   strictExportPresence: boolean
   worker: Array<string>
   overrideStrict?: string
+  importMeta: boolean
 }
 
 export interface RawLazyCompilationOption {
@@ -1308,6 +1309,7 @@ export interface RawOutputOptions {
   enabledLibraryTypes?: Array<string>
   globalObject: string
   importFunctionName: string
+  importMetaName: string
   iife: boolean
   module: boolean
   chunkLoading: string

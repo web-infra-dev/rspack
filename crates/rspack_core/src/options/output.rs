@@ -53,6 +53,7 @@ pub struct OutputOptions {
   pub strict_module_error_handling: bool,
   pub global_object: String,
   pub import_function_name: String,
+  pub import_meta_name: String,
   pub iife: bool,
   pub module: bool,
   pub trusted_types: Option<TrustedTypes>,

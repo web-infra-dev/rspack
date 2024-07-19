@@ -264,6 +264,9 @@ export type EnabledWasmLoadingTypes = z.infer<typeof enabledWasmLoadingTypes>;
 const importFunctionName = z.string();
 export type ImportFunctionName = z.infer<typeof importFunctionName>;
 
+const importMetaName = z.string();
+export type ImportMetaName = z.infer<typeof importMetaName>;
+
 const iife = z.boolean();
 export type Iife = z.infer<typeof iife>;
 
@@ -357,6 +360,7 @@ const output = z.strictObject({
 	strictModuleErrorHandling: strictModuleErrorHandling.optional(),
 	globalObject: globalObject.optional(),
 	importFunctionName: importFunctionName.optional(),
+	importMetaName: importMetaName.optional(),
 	iife: iife.optional(),
 	wasmLoading: wasmLoading.optional(),
 	enabledWasmLoadingTypes: enabledWasmLoadingTypes.optional(),
@@ -586,6 +590,7 @@ const javascriptParserOptions = z.strictObject({
 	dynamicImportPreload: dynamicImportPreload.optional(),
 	dynamicImportPrefetch: dynamicImportPrefetch.optional(),
 	dynamicImportFetchPriority: dynamicImportFetchPriority.optional(),
+	importMeta: z.boolean().optional(),
 	url: javascriptParserUrl.optional(),
 	exprContextCritical: exprContextCritical.optional(),
 	wrappedContextCritical: wrappedContextCritical.optional(),
