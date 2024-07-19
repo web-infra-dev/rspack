@@ -3,18 +3,15 @@
 	Author Tobias Koppers @sokra
 */
 
-"use strict";
-
-const NormalModule = require("../NormalModule");
-
-// /** @typedef {import("./Compiler")} Compiler */
-/** @typedef {any} Compiler */
+import type { Compilation } from '../Compilation';
+import type { Target } from '../config';
+import type { Compiler } from '../Compiler';
+import { NormalModule } from '../NormalModule'
 
 class LoaderTargetPlugin {
-	/**
-	 * @param {string} target the target
-	 */
-	constructor(target) {
+	target: Target;
+
+	constructor(target: Target) {
 		this.target = target;
 	}
 
@@ -23,15 +20,12 @@ class LoaderTargetPlugin {
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
-	apply(compiler) {
-		// @ts-expect-error
-		compiler.hooks.compilation.tap("LoaderTargetPlugin", compilation => {
-			// @ts-expect-error
+	apply(compiler: Compiler): void {
+		compiler.hooks.compilation.tap("LoaderTargetPlugin", (compilation: Compilation) => {
 			NormalModule.getCompilationHooks(compilation).loader.tap(
 				"LoaderTargetPlugin",
-				// @ts-expect-error
 				loaderContext => {
-					loaderContext.target = this.target;
+					loaderContext.target = this.target as Target;
 				}
 			);
 		});
