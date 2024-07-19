@@ -402,7 +402,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
                     .chunk_graph(&generate_context.compilation.chunk_graph)
                     .content_hash(contenthash)
                     .hash(contenthash)
-                    .filename(&filename),
+                    .filename(&source_file_name),
                 )?;
                 asset_info.merge_another(&another_asset_info);
                 PublicPath::ensure_ends_with_slash(public_path)
