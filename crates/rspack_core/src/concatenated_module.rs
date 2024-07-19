@@ -407,7 +407,7 @@ impl ConcatenatedModule {
   ) -> String {
     let mut identifiers = vec![];
     for m in modules {
-      identifiers.push(m.shorten_id.clone());
+      identifiers.push(m.shorten_id.as_str());
     }
     identifiers.sort();
     let mut hash = RspackHash::new(&hash_function.unwrap_or(HashFunction::MD4));
@@ -426,8 +426,8 @@ impl ConcatenatedModule {
     self.id
   }
 
-  pub fn get_modules(&self) -> Vec<ConcatenatedInnerModule> {
-    self.modules.clone()
+  pub fn get_modules(&self) -> &[ConcatenatedInnerModule] {
+    self.modules.as_slice()
   }
 }
 
@@ -584,9 +584,7 @@ impl Module for ConcatenatedModule {
       }
       let mut diagnostics_guard = self.diagnostics.lock().expect("should have diagnostics");
       // populate diagnostic
-      for d in module.get_diagnostics() {
-        diagnostics_guard.push(d.clone());
-      }
+      diagnostics_guard.extend(module.get_diagnostics());
 
       // release guard ASAP
       drop(diagnostics_guard);
