@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use rustc_hash::FxHashSet;
+use swc_core::common::Spanned;
 use swc_core::ecma::ast::{AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt};
 use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
@@ -193,9 +194,15 @@ impl<'parser> JavascriptParser<'parser> {
     for prop in &obj_pat.props {
       match prop {
         ObjectPatProp::KeyValue(prop) => {
-          let name = eval::eval_prop_name(&prop.key);
-          if let Some(id) = name.and_then(|id| id.as_string()) {
-            keys.insert(id);
+          if let Some(ident_key) = prop.key.as_ident() {
+            keys.insert(ident_key.sym.to_string());
+          } else {
+            let name = eval::eval_prop_name(&prop.key);
+            if let Some(id) = name.and_then(|id| id.as_string()) {
+              keys.insert(id);
+            } else {
+              return None;
+            }
           }
         }
         ObjectPatProp::Assign(prop) => {
@@ -208,29 +215,66 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn pre_walk_variable_declarator(&mut self, declarator: &VarDeclarator) {
+    if self.destructuring_assignment_properties.is_none() {
+      return;
+    }
+
     let Some(init) = declarator.init.as_ref() else {
       return;
     };
     let Some(obj_pat) = declarator.name.as_object() else {
       return;
     };
-    let keys = self._pre_walk_object_pattern(obj_pat);
-    if keys.is_none() {
+    let Some(keys) = self._pre_walk_object_pattern(obj_pat) else {
       return;
+    };
+
+    let destructuring_assignment_properties = self
+      .destructuring_assignment_properties
+      .as_mut()
+      .unwrap_or_else(|| unreachable!());
+
+    if let Some(await_expr) = declarator
+      .init
+      .as_ref()
+      .and_then(|decl| decl.as_await_expr())
+    {
+      destructuring_assignment_properties.insert(await_expr.arg.span(), keys);
+    } else {
+      destructuring_assignment_properties.insert(declarator.init.span(), keys);
     }
+
     if let Some(assign) = init.as_assign() {
       self.pre_walk_assignment_expression(assign);
     }
   }
 
   pub(super) fn pre_walk_assignment_expression(&mut self, assign: &AssignExpr) {
+    if self.destructuring_assignment_properties.is_none() {
+      return;
+    }
     let Some(left) = assign.left.as_pat().and_then(|pat| pat.as_object()) else {
       return;
     };
-    let keys = self._pre_walk_object_pattern(left);
-    if keys.is_none() {
+    let Some(mut keys) = self._pre_walk_object_pattern(left) else {
       return;
+    };
+
+    let destructuring_assignment_properties = self
+      .destructuring_assignment_properties
+      .as_mut()
+      .unwrap_or_else(|| unreachable!());
+
+    if let Some(set) = destructuring_assignment_properties.remove(&assign.span()) {
+      keys.extend(set);
     }
+
+    if let Some(await_expr) = assign.right.as_await_expr() {
+      destructuring_assignment_properties.insert(await_expr.arg.span(), keys);
+    } else {
+      destructuring_assignment_properties.insert(assign.right.span(), keys);
+    }
+
     if let Some(right) = assign.right.as_assign() {
       self.pre_walk_assignment_expression(right)
     }
