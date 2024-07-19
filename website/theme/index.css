@@ -14,6 +14,7 @@ summary {
   --rp-code-block-bg: rgba(214, 188, 70, 0.05);
   --rp-custom-block-info-bg: rgba(250, 192, 61, 0.05);
   --rp-custom-block-info-border: rgba(250, 192, 61, 0.5);
+  --rp-home-hero-image-width: 300px;
   --rp-home-hero-name-background: linear-gradient(
     120deg,
     var(--rp-c-brand),
