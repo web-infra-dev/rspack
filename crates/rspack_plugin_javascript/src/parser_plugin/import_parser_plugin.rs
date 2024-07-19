@@ -1,8 +1,10 @@
+use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, DependencyLocation, DynamicImportMode, ErrorSpan, GroupOptions,
 };
 use rspack_core::{ChunkGroupOptions, DynamicImportFetchPriority};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
+use rspack_error::miette::Severity;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Callee};
 use swc_core::ecma::atoms::Atom;
@@ -10,8 +12,8 @@ use swc_core::ecma::atoms::Atom;
 use super::JavascriptParserPlugin;
 use crate::dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency};
 use crate::visitors::{
-  context_reg_exp, create_context_dependency, parse_order_string, ContextModuleScanResult,
-  JavascriptParser,
+  context_reg_exp, create_context_dependency, create_traceable_error, parse_order_string,
+  ContextModuleScanResult, JavascriptParser,
 };
 use crate::webpack_comment::try_extract_webpack_magic_comment;
 
@@ -71,11 +73,35 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .or(dynamic_import_fetch_priority);
     let include = magic_comment_options.get_webpack_include();
     let exclude = magic_comment_options.get_webpack_exclude();
-    let exports = magic_comment_options.get_webpack_exports().map(|x| {
+    let mut exports = magic_comment_options.get_webpack_exports().map(|x| {
       x.iter()
         .map(|name| Atom::from(name.to_owned()))
         .collect::<Vec<_>>()
     });
+
+    if let Some(referenced_properties_in_destructuring) =
+      parser.destructuring_assignment_properties_for(&node.span())
+    {
+      if exports.is_some() {
+        parser.warning_diagnostics.push(Box::new(
+          create_traceable_error(
+            "Magic comments parse failed".into(),
+            "`webpackExports` could not be used with destructuring assignment.".into(),
+            parser.source_file,
+            node.span().into(),
+          )
+          .with_severity(Severity::Warning)
+          .with_hide_stack(Some(true)),
+        ));
+      }
+      exports = Some(
+        referenced_properties_in_destructuring
+          .iter()
+          .cloned()
+          .map(Atom::from)
+          .collect_vec(),
+      );
+    }
 
     let param = parser.evaluate_expression(dyn_imported.expr.as_ref());
 

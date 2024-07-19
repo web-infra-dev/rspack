@@ -892,9 +892,9 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for output-module 1`] = `
-"asset main.mjs 8.24 KiB [emitted] [javascript module] (name: main)
-asset 8.mjs 329 bytes [emitted] [javascript module]
-runtime modules 6.48 KiB 9 modules
+"asset main.mjs 7.91 KiB [emitted] [javascript module] (name: main)
+asset 8.mjs 285 bytes [emitted] [javascript module]
+runtime modules 6.2 KiB 8 modules
 orphan modules 225 bytes [orphan] 2 modules
 cacheable modules 263 bytes
   ./index.js + 1 modules 225 bytes [code generated]
