@@ -14,7 +14,7 @@ use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
 
 use super::module::ToJsModule;
-use super::PathWithInfo;
+use super::{JsFilename, PathWithInfo};
 use crate::utils::callbackify;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
@@ -481,7 +481,7 @@ impl JsCompilation {
     &'static self,
     env: Env,
     request: String,
-    public_path: Option<String>,
+    public_path: Option<JsFilename>,
     base_uri: Option<String>,
     original_module: Option<String>,
     original_module_context: Option<String>,
@@ -496,7 +496,7 @@ impl JsCompilation {
       let result = module_executor
         .import_module(
           request,
-          public_path,
+          public_path.map(|p| p.into()),
           base_uri,
           original_module_context.map(rspack_core::Context::from),
           original_module.map(ModuleIdentifier::from),

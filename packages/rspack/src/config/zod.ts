@@ -7,6 +7,17 @@ import { Chunk } from "../Chunk";
 import type { PathData } from "../Compilation";
 import { Module } from "../Module";
 
+const filenameTemplate = z.string();
+export type FilenameTemplate = z.infer<typeof filenameTemplate>;
+
+const filename = filenameTemplate.or(
+	z
+		.function()
+		.args(z.custom<PathData>(), z.custom<JsAssetInfo>().optional())
+		.returns(z.string())
+);
+export type Filename = z.infer<typeof filename>;
+
 //#region Name
 const name = z.string();
 export type Name = z.infer<typeof name>;
@@ -40,10 +51,7 @@ export type Falsy = z.infer<typeof falsy>;
 //#endregion
 
 //#region Entry
-const rawPublicPath = z.string();
-export type RawPublicPath = z.infer<typeof rawPublicPath>;
-
-const publicPath = z.literal("auto").or(rawPublicPath);
+const publicPath = z.literal("auto").or(filename);
 export type PublicPath = z.infer<typeof publicPath>;
 
 const baseUri = z.string();
@@ -142,17 +150,6 @@ export type LibraryOptions = z.infer<typeof libraryOptions>;
 
 const library = libraryName.or(libraryOptions).optional();
 export type Library = z.infer<typeof library>;
-
-const filenameTemplate = z.string();
-export type FilenameTemplate = z.infer<typeof filenameTemplate>;
-
-const filename = filenameTemplate.or(
-	z
-		.function()
-		.args(z.custom<PathData>(), z.custom<JsAssetInfo>().optional())
-		.returns(z.string())
-);
-export type Filename = z.infer<typeof filename>;
 
 const entryFilename = filenameTemplate;
 export type EntryFilename = z.infer<typeof entryFilename>;

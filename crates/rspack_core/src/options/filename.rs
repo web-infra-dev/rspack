@@ -1,9 +1,9 @@
 use std::fmt::Debug;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::{borrow::Cow, convert::Infallible};
+use std::{borrow::Cow, convert::Infallible, ptr};
 
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
@@ -65,6 +65,27 @@ pub struct Filename<F = Arc<dyn FilenameFn>>(FilenameKind<F>);
 impl<F> Filename<F> {
   pub fn from_fn(f: F) -> Self {
     Self(FilenameKind::Fn(f))
+  }
+}
+
+impl Hash for dyn FilenameFn + '_ {
+  fn hash<H: Hasher>(&self, _: &mut H) {}
+}
+impl PartialEq for dyn FilenameFn + '_ {
+  fn eq(&self, other: &Self) -> bool {
+    ptr::eq(self, other)
+  }
+}
+impl Eq for dyn FilenameFn + '_ {}
+
+impl PartialOrd for dyn FilenameFn + '_ {
+  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    Some(self.cmp(other))
+  }
+}
+impl Ord for dyn FilenameFn + '_ {
+  fn cmp(&self, _: &Self) -> std::cmp::Ordering {
+    std::cmp::Ordering::Equal
   }
 }
 

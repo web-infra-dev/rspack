@@ -14,7 +14,7 @@ use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationResult, CompilationAsset, CompilationAssets, DependencyId, EntryOptions,
-  Entrypoint, ModuleType, RuntimeSpec, SourceType,
+  Entrypoint, ModuleType, PublicPath, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -45,7 +45,7 @@ pub struct ExecuteModuleResult {
 #[derive(Debug)]
 pub struct ExecuteTask {
   pub entry_dep_id: DependencyId,
-  pub public_path: Option<String>,
+  pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
   pub result_sender: Sender<(
     Result<ExecuteModuleResult>,
@@ -113,7 +113,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
         runtime: Some("runtime".into()),
         chunk_loading: Some(crate::ChunkLoading::Disable),
         async_chunks: None,
-        public_path: public_path.map(crate::PublicPath::String),
+        public_path,
         base_uri,
         filename: None,
         library: None,

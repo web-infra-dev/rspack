@@ -484,7 +484,8 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
 pub struct RawAssetGeneratorOptions {
   pub emit: Option<bool>,
   pub filename: Option<JsFilename>,
-  pub public_path: Option<String>,
+  #[napi(ts_type = "\"auto\" | JsFilename")]
+  pub public_path: Option<JsFilename>,
   #[derivative(Debug = "ignore")]
   #[napi(
     ts_type = "RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)"
@@ -531,7 +532,8 @@ impl From<RawAssetInlineGeneratorOptions> for AssetInlineGeneratorOptions {
 pub struct RawAssetResourceGeneratorOptions {
   pub emit: Option<bool>,
   pub filename: Option<JsFilename>,
-  pub public_path: Option<String>,
+  #[napi(ts_type = "\"auto\" | JsFilename")]
+  pub public_path: Option<JsFilename>,
 }
 
 impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {

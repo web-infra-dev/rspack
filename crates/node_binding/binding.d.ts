@@ -58,7 +58,7 @@ export class JsCompilation {
   addMissingDependencies(deps: Array<string>): void
   addBuildDependencies(deps: Array<string>): void
   rebuildModule(moduleIdentifiers: Array<string>, f: (...args: any[]) => any): void
-  importModule(request: string, publicPath: string | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: (...args: any[]) => any): void
+  importModule(request: string, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: (...args: any[]) => any): void
 }
 
 export class JsResolver {
@@ -752,7 +752,7 @@ export interface RawAssetGeneratorDataUrlOptions {
 export interface RawAssetGeneratorOptions {
   emit?: boolean
   filename?: JsFilename
-  publicPath?: string
+  publicPath?: "auto" | JsFilename
   dataUrl?: RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)
 }
 
@@ -776,7 +776,7 @@ export interface RawAssetParserOptions {
 export interface RawAssetResourceGeneratorOptions {
   emit?: boolean
   filename?: JsFilename
-  publicPath?: string
+  publicPath?: "auto" | JsFilename
 }
 
 export interface RawBannerContentFnCtx {
@@ -965,7 +965,7 @@ export interface RawEntryOptions {
   runtime?: false | string
   chunkLoading?: string
   asyncChunks?: boolean
-  publicPath?: string
+  publicPath?: "auto" | JsFilename
   baseUri?: string
   filename?: string
   library?: RawLibraryOptions
@@ -1288,7 +1288,7 @@ export interface RawOutputOptions {
   path: string
   pathinfo: boolean | "verbose"
   clean: boolean
-  publicPath: string
+  publicPath: "auto" | JsFilename
   assetModuleFilename: JsFilename
   wasmLoading: string
   enabledWasmLoadingTypes: Array<string>

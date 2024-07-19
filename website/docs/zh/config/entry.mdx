@@ -154,7 +154,10 @@ module.exports = {
 - **类型：**
 
   ```ts
-  type PublicPath = 'auto' | string;
+  type PublicPath =
+    | 'auto'
+    | string
+    | ((pathData: PathData, assetInfo?: AssetInfo) => string);
   ```
 
 - **默认值：** `undefined`

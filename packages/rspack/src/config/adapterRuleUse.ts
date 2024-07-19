@@ -15,6 +15,7 @@ import { type LoaderObject, parsePathQueryFragment } from "../loader-runner";
 import { isNil } from "../util";
 import type {
 	Mode,
+	PublicPath,
 	Resolve,
 	RuleSetLoaderWithOptions,
 	RuleSetUseItem,
@@ -130,7 +131,7 @@ export interface LoaderContext<OptionsType = {}> {
 	addBuildDependency(file: string): void;
 	importModule(
 		request: string,
-		options: { publicPath?: string; baseUri?: string },
+		options: { publicPath?: PublicPath; baseUri?: string },
 		callback: (err?: Error, res?: any) => void
 	): void;
 	fs: any;

@@ -1551,8 +1551,8 @@ It also adds some info about tree shaking to the generated bundle.
 
 ## output.publicPath
 
-- **Type:** `string`
-- **Default:** targets 为 `'web'` 或 `'webworker'` 时为 `'auto'`
+- **Type:** `'auto' | string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)`
+- **Default:** `'auto'` when `targets` is `'web'` or `'webworker'`. `undefined` otherwise
 
 This option determines the URL prefix of the referenced resource, such as: image, file, etc.
 

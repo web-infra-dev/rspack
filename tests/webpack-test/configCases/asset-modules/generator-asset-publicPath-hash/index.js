@@ -6,7 +6,9 @@ it("should import asset with module.generator.asset.publicPath", () => {
 		a => a.info.sourceFilename === "../_images/file.png"
 	).info;
 	expect(assetInfo.immutable).toBe(true);
-	expect(assetInfo.contenthash.length).toBe(2);
-	expect(assetInfo.contenthash[0].length).toBe(10);
-	expect(assetInfo.contenthash[1].length).toBe(20);
+	/** @NOTICE rspack's hash list is unordered */
+	const contentHashLenList = assetInfo.contenthash.map(v => v.length).sort();
+	expect(contentHashLenList.length).toBe(2);
+	expect(contentHashLenList[0]).toBe(10);
+	expect(contentHashLenList[1]).toBe(20);
 });
