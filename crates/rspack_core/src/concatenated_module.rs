@@ -556,7 +556,6 @@ impl Module for ConcatenatedModule {
       context_dependencies: Default::default(),
       missing_dependencies: Default::default(),
       build_dependencies: Default::default(),
-      asset_filenames: Default::default(),
       harmony_named_exports: Default::default(),
       all_star_exports: Default::default(),
       need_create_require: Default::default(),
@@ -608,10 +607,6 @@ impl Module for ConcatenatedModule {
       // populate diagnostic
       for d in module.get_diagnostics() {
         diagnostics_guard.push(d.clone());
-      }
-      // populate assets
-      for asset in &cur_build_info.asset_filenames {
-        build_info.asset_filenames.insert(asset.clone());
       }
 
       // release guard ASAP

@@ -34,7 +34,9 @@ pub struct ModuleExecutor {
   event_sender: Option<UnboundedSender<Event>>,
   stop_receiver: Option<oneshot::Receiver<MakeArtifact>>,
   assets: DashMap<String, CompilationAsset>,
+  module_assets: DashMap<Identifier, DashSet<String>>,
   code_generated_modules: DashSet<Identifier>,
+  module_code_generated_modules: DashMap<Identifier, DashSet<Identifier>>,
   pub executed_runtime_modules: DashMap<Identifier, ExecutedRuntimeModule>,
 }
 
@@ -104,6 +106,30 @@ impl ModuleExecutor {
       panic!("receive make artifact failed");
     }
 
+    let module_assets = std::mem::take(&mut self.module_assets);
+    for (original_module_identifier, files) in module_assets {
+      let assets = compilation
+        .module_assets
+        .entry(original_module_identifier)
+        .or_default();
+      for file in files {
+        assets.insert(file);
+      }
+    }
+
+    let module_code_generation_modules = std::mem::take(&mut self.module_code_generated_modules);
+    for (original_module_identifier, code_generation_modules) in module_code_generation_modules {
+      for module_identifier in code_generation_modules {
+        if let Some(module_assets) = compilation.module_assets.remove(&module_identifier) {
+          compilation
+            .module_assets
+            .entry(original_module_identifier)
+            .or_default()
+            .extend(module_assets);
+        }
+      }
+    }
+
     let assets = std::mem::take(&mut self.assets);
     for (filename, asset) in assets {
       compilation.emit_asset(filename, asset);
@@ -130,6 +156,7 @@ impl ModuleExecutor {
     public_path: Option<String>,
     base_uri: Option<String>,
     original_module_context: Option<Context>,
+    original_module_identifier: Option<Identifier>,
   ) -> Result<ExecuteModuleResult> {
     let sender = self
       .event_sender
@@ -166,12 +193,29 @@ impl ModuleExecutor {
     let (execute_result, assets, code_generated_modules, executed_runtime_modules) =
       rx.await.expect("should receiver success");
 
+    if let Ok(execute_result) = &execute_result
+      && let Some(original_module_identifier) = original_module_identifier
+    {
+      self
+        .module_assets
+        .entry(original_module_identifier)
+        .or_default()
+        .extend(execute_result.assets.clone());
+    }
+
     for (key, value) in assets {
-      self.assets.insert(key, value);
+      self.assets.insert(key.clone(), value);
     }
 
     for id in code_generated_modules {
       self.code_generated_modules.insert(id);
+      if let Some(original_module_identifier) = original_module_identifier {
+        self
+          .module_code_generated_modules
+          .entry(original_module_identifier)
+          .or_default()
+          .insert(id);
+      }
     }
 
     for runtime_module in executed_runtime_modules {

@@ -53,7 +53,9 @@ class JsAssetInfo {
 			related,
 			chunkhash,
 			contenthash,
-			extras
+			extras,
+			javascriptModule,
+			sourceFilename
 		};
 	}
 }

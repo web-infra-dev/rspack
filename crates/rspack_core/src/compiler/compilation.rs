@@ -147,6 +147,7 @@ pub struct Compilation {
   pub entrypoints: IndexMap<String, ChunkGroupUkey>,
   pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
+  pub module_assets: IdentifierMap<HashSet<String>>,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
@@ -231,6 +232,7 @@ impl Compilation {
       entrypoints: Default::default(),
       async_entrypoints: Default::default(),
       assets: Default::default(),
+      module_assets: Default::default(),
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
       logging: Default::default(),
@@ -850,13 +852,21 @@ impl Compilation {
   #[instrument(name = "compilation::create_module_assets", skip_all)]
   async fn create_module_assets(&mut self, _plugin_driver: SharedPluginDriver) {
     let mut temp = vec![];
-    for (module_identifier, module) in self.get_module_graph().modules() {
-      if let Some(build_info) = module.build_info() {
-        for asset in build_info.asset_filenames.iter() {
-          for chunk in self.chunk_graph.get_module_chunks(module_identifier).iter() {
+    for (module_identifier, assets) in self.module_assets.iter() {
+      // assets of executed modules are not in this compilation
+      if self
+        .chunk_graph
+        .chunk_graph_module_by_module_identifier
+        .contains_key(module_identifier)
+      {
+        for chunk in self
+          .chunk_graph
+          .get_module_chunks(*module_identifier)
+          .iter()
+        {
+          for asset in assets {
             temp.push((*chunk, asset.clone()))
           }
-          // already emitted asset by loader, so no need to re emit here
         }
       }
     }

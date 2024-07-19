@@ -80,7 +80,6 @@ pub(crate) fn merge_loader_context(
     .map(|s| rspack_core::rspack_sources::SourceMap::from_slice(s))
     .transpose()
     .map_err(|e| error!(e.to_string()))?;
-  to.asset_filenames = from.asset_filenames.into_iter().collect();
 
   // update loader status
   to.loader_items = to

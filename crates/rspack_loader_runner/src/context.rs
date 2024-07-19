@@ -51,7 +51,6 @@ pub struct LoaderContext<Context: 'static> {
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
-  pub asset_filenames: HashSet<String>,
 
   pub diagnostics: Vec<Diagnostic>,
 

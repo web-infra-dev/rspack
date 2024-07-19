@@ -625,8 +625,8 @@ exports[`StatsTestCases should print correct stats for module-assets 1`] = `
   asset b.js 226 bytes [emitted] (name: b)
   asset a.js 225 bytes [emitted] (name: a)
 assets by path *.png 42 KiB
-  asset 1.png 21 KiB [emitted]
-  asset 2.png 21 KiB [emitted]
+  asset 1.png 21 KiB [emitted] [from: node_modules/a/1.png]
+  asset 2.png 21 KiB [emitted] [from: node_modules/a/2.png]
 Entrypoint main 8.25 KiB = main.js
 Chunk Group a 225 bytes = a.js
 Chunk Group b 226 bytes = b.js

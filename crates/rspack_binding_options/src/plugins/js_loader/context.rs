@@ -72,7 +72,6 @@ pub struct JsLoaderContext {
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
   pub build_dependencies: Vec<String>,
-  pub asset_filenames: Vec<String>,
 
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
@@ -131,7 +130,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .iter()
         .map(|i| i.to_string_lossy().to_string())
         .collect(),
-      asset_filenames: cx.asset_filenames.iter().map(|i| i.to_owned()).collect(),
 
       loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,
