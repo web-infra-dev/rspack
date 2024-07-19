@@ -3,37 +3,37 @@
 	Author Jarid Margolin @jaridmargolin
 */
 
-"use strict";
+import util from "node:util";
+import type { Chunk, Module } from "../exports";
 
-const inspect = require("node:util").inspect.custom;
+const inspect = util.inspect.custom;
 
-// /** @typedef {import("./Chunk")} Chunk */
-// /** @typedef {import("./Dependency").DependencyLocation} DependencyLocation */
-// /** @typedef {import("./Module")} Module */
-/** @typedef {any} Chunk */
-/** @typedef {any} DependencyLocation */
-/** @typedef {any} Module */
+type DependencyLocation = any;
 
 class WebpackError extends Error {
+	module: Module | undefined;
+	details: string | undefined;
+	loc: DependencyLocation | undefined;
+	hideStack: boolean | undefined;
+	chunk: Chunk | undefined;
+	file: string | undefined;
 	/**
 	 * Creates an instance of WebpackError.
 	 * @param {string=} message error message
 	 */
-	constructor(message) {
+	constructor(message: string) {
 		super(message);
-		// @ts-expect-error
+
 		this.details = undefined;
-		/** @type {Module} */
+
 		this.module = undefined;
-		/** @type {DependencyLocation} */
+
 		this.loc = undefined;
-		/** @type {boolean} */
-		// @ts-expect-error
+
 		this.hideStack = undefined;
-		/** @type {Chunk} */
+
 		this.chunk = undefined;
-		/** @type {string} */
-		// @ts-expect-error
+
 		this.file = undefined;
 	}
 
@@ -62,4 +62,4 @@ class WebpackError extends Error {
 
 // makeSerializable(WebpackError, "webpack/lib/WebpackError");
 
-module.exports = WebpackError;
+export { WebpackError };
