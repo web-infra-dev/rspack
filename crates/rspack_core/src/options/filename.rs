@@ -3,7 +3,7 @@ use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::{borrow::Cow, convert::Infallible};
+use std::{borrow::Cow, convert::Infallible, ptr};
 
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
@@ -72,8 +72,8 @@ impl Hash for dyn FilenameFn + '_ {
   fn hash<H: Hasher>(&self, _: &mut H) {}
 }
 impl PartialEq for dyn FilenameFn + '_ {
-  fn eq(&self, _: &Self) -> bool {
-    false
+  fn eq(&self, other: &Self) -> bool {
+    ptr::eq(self, other)
   }
 }
 impl Eq for dyn FilenameFn + '_ {}
