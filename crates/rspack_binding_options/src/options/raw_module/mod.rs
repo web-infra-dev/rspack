@@ -47,28 +47,25 @@ impl Debug for RawModuleRuleUse {
   }
 }
 
-#[napi(object, object_to_js = false)]
-pub struct RawRuleSetCondition {
-  #[napi(ts_type = r#""string" | "regexp" | "logical" | "array" | "function""#)]
-  pub r#type: String,
-  pub string_matcher: Option<String>,
-  pub regexp_matcher: Option<RawRegex>,
-  pub logical_matcher: Option<Vec<RawRuleSetLogicalConditions>>,
-  pub array_matcher: Option<Vec<RawRuleSetCondition>>,
+#[rspack_napi_macros::tagged_union]
+pub enum RawRuleSetCondition {
+  string(String),
+  regexp(RawRegex),
+  logical(Vec<RawRuleSetLogicalConditions>),
+  array(Vec<RawRuleSetCondition>),
   #[napi(ts_type = r#"(value: string) => boolean"#)]
-  pub func_matcher: Option<ThreadsafeFunction<serde_json::Value, bool>>,
+  func(ThreadsafeFunction<serde_json::Value, bool>),
 }
 
 impl Debug for RawRuleSetCondition {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RawRuleSetCondition")
-      .field("r#type", &self.r#type)
-      .field("string_matcher", &self.string_matcher)
-      .field("regexp_matcher", &self.regexp_matcher)
-      .field("logical_matcher", &self.logical_matcher)
-      .field("array_matcher", &self.array_matcher)
-      .field("func_matcher", &"...")
-      .finish()
+    match self {
+      RawRuleSetCondition::string(s) => write!(f, "RawRuleSetCondition::string({:?})", s),
+      RawRuleSetCondition::regexp(r) => write!(f, "RawRuleSetCondition::regexp({:?})", r),
+      RawRuleSetCondition::logical(l) => write!(f, "RawRuleSetCondition::logical({:?})", l),
+      RawRuleSetCondition::array(a) => write!(f, "RawRuleSetCondition::array({:?})", a),
+      RawRuleSetCondition::func(_) => write!(f, "RawRuleSetCondition::func(...)"),
+    }
   }
 }
 
@@ -110,62 +107,31 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
   type Error = rspack_error::Error;
 
   fn try_from(x: RawRuleSetCondition) -> rspack_error::Result<Self> {
-    let result = match x.r#type.as_str() {
-      "string" => Self::String(x.string_matcher.ok_or_else(|| {
-        error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
-      })?),
-      "regexp" => {
-        let reg_matcher = x.regexp_matcher.as_ref().ok_or_else(|| {
-          error!(
-            "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\""
-          )
-        })?;
-        let reg = rspack_regex::RspackRegex::with_flags(&reg_matcher.source, &reg_matcher.flags)?;
+    let result = match x {
+      RawRuleSetCondition::string(s) => Self::String(s),
+      RawRuleSetCondition::regexp(r) => {
+        let reg = rspack_regex::RspackRegex::with_flags(&r.source, &r.flags)?;
         Self::Regexp(reg)
-      },
-      "logical" => {
-        let mut logical_matcher = x.logical_matcher.ok_or_else(|| {
-          error!(
-            "should have a logical_matcher when RawRuleSetCondition.type is \"logical\""
-          )
+      }
+      RawRuleSetCondition::logical(mut l) => {
+        let l = l.get_mut(0).ok_or_else(|| {
+          error!("TODO: use Box after https://github.com/napi-rs/napi-rs/issues/1500 landed")
         })?;
-        let logical_matcher = logical_matcher.get_mut(0).ok_or_else(|| {
-          error!(
-            "TODO: use Box after https://github.com/napi-rs/napi-rs/issues/1500 landed"
-          )
-        })?;
-        let logical_matcher = std::mem::take(logical_matcher);
+        let l = std::mem::take(l);
         Self::Logical(Box::new(rspack_core::RuleSetLogicalConditions::try_from(
-          logical_matcher,
+          l,
         )?))
       }
-      "array" => Self::Array(
-        x.array_matcher
-          .ok_or_else(|| {
-            error!(
-              "should have a array_matcher when RawRuleSetCondition.type is \"array\""
-            )
-          })?
-          .into_iter()
+      RawRuleSetCondition::array(a) => Self::Array(
+        a.into_iter()
           .map(|i| i.try_into())
           .collect::<rspack_error::Result<Vec<_>>>()?,
       ),
-      "function" => {
-        let func_matcher = x.func_matcher.ok_or_else(|| {
-          error!(
-            "should have a func_matcher when RawRuleSetCondition.type is \"function\""
-          )
-        })?;
-        Self::Func(Box::new(move|data: &serde_json::Value| {
-          let data = data.clone();
-          let func_matcher = func_matcher.clone();
-          Box::pin(async move { func_matcher.call(data).await })
-        }))
-      }
-      _ => panic!(
-        "Failed to resolve the condition type {}. Expected type is `string`, `regexp`, `array`, `logical` or `function`.",
-        x.r#type
-      ),
+      RawRuleSetCondition::func(f) => Self::Func(Box::new(move |data| {
+        let data = data.to_value();
+        let f = f.clone();
+        Box::pin(async move { f.call(data).await })
+      })),
     };
 
     Ok(result)

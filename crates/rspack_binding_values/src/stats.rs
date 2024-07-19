@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use napi_derive::napi;
 use rspack_core::{Stats, StatsChunk, StatsModule, StatsUsedExports};
-use rspack_macros::getters;
 use rspack_napi::napi::bindgen_prelude::Buffer;
 use rspack_napi::napi::{
   bindgen_prelude::{Result, SharedReference},
@@ -332,7 +331,7 @@ type JsStatsModuleSource = Either<String, Buffer>;
 type JsStatsUsedExports = Either<String, Vec<String>>;
 
 #[napi]
-#[getters]
+#[rspack_napi_macros::getters]
 #[derive(Clone)]
 pub struct JsStatsModule {
   r#type: &'static str,
@@ -527,7 +526,7 @@ impl From<rspack_core::StatsModuleIssuer<'_>> for JsStatsModuleIssuer {
 }
 
 #[napi]
-#[getters]
+#[rspack_napi_macros::getters]
 #[derive(Clone)]
 pub struct JsStatsModuleReason {
   module_identifier: Option<&'static str>,
@@ -568,7 +567,7 @@ pub struct JsStatsSize {
 }
 
 #[napi]
-#[getters]
+#[rspack_napi_macros::getters]
 pub struct JsStatsChunk {
   r#type: String,
   files: Vec<String>,

@@ -2,7 +2,6 @@
 
 mod hook;
 mod merge;
-mod napi;
 mod plugin;
 mod runtime_module;
 mod source_map_config;
@@ -61,12 +60,4 @@ pub fn merge_from_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStr
     syn::Result::Err(err) => err.to_compile_error(),
   }
   .into()
-}
-
-#[proc_macro_attribute]
-pub fn getters(
-  args: proc_macro::TokenStream,
-  tokens: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-  napi::getters(args, tokens)
 }
