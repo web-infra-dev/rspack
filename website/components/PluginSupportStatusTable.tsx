@@ -4,9 +4,9 @@ import { useLang } from 'rspress/runtime';
 import S from './PluginSupportStatusTable.module.scss';
 
 enum SupportStatus {
-  NotSupported,
-  PartiallySupported,
-  FullySupported,
+  NotSupported = 0,
+  PartiallySupported = 1,
+  FullySupported = 2,
 }
 
 const SUPPORT_STATUS_LOCALIZED = {

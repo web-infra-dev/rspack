@@ -207,7 +207,6 @@ jobs:
         run: |
           cd website
           pnpm install
-          npx @biomejs/biome check --diagnostic-level=warn
           pnpm run check:ci
 
   rust_changes:

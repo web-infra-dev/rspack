@@ -7,12 +7,14 @@
     "build": "rspress build",
     "preview": "rspress preview",
     "sort-projects-words": "node ./sortProjectWords.js",
+    "check:lint": "biome check --diagnostic-level=warn --write",
+    "check:lint-ci": "biome check --diagnostic-level=warn",
     "check:format": "prettier . --write",
     "check:format-ci": "prettier . --check",
     "check:spell": "npx cspell",
     "check:case": "npx case-police docs/**/*.{md,mdx}",
-    "check": "pnpm run check:format && pnpm run check:spell",
-    "check:ci": "pnpm run check:format-ci && pnpm run check:spell"
+    "check": "pnpm run check:lint && pnpm run check:format && pnpm run check:spell",
+    "check:ci": "pnpm run check:lint-ci && pnpm run check:format-ci && pnpm run check:spell"
   },
   "license": "MIT",
   "packageManager": "pnpm@9.3.0",
@@ -28,6 +30,7 @@
     "tailwindcss": "^3.2.7"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.8.0",
     "@rspress/plugin-rss": "^1.26.1",
     "@rspress/shared": "^1.26.1",
     "@types/node": "^18.11.18",
