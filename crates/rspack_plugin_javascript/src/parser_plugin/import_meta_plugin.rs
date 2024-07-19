@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, SpanExt};
+use rspack_core::{property_access, ConstDependency, SpanExt};
 use rspack_error::miette::Severity;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::MemberProp;
@@ -11,11 +11,27 @@ use crate::visitors::ExportedVariableInfo;
 use crate::visitors::JavascriptParser;
 use crate::visitors::{create_traceable_error, RootName};
 
-// Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/ImportMetaPlugin.js
-// TODO:
-// - scan `import.meta.url.indexOf("index.js")`
-// - evaluate expression. eg `import.meta.env && import.meta.env.xx` should be `false`
 pub struct ImportMetaPlugin;
+
+impl ImportMetaPlugin {
+  fn import_meta_url(&self, parser: &JavascriptParser) -> String {
+    Url::from_file_path(&parser.resource_data.resource)
+      .expect("should be a path")
+      .to_string()
+  }
+
+  fn import_meta_webpack_version(&self) -> String {
+    "5".to_string()
+  }
+
+  fn import_meta_unknown_property(&self, members: &Vec<String>) -> String {
+    format!(
+      r#"/* unsupported import.meta.{} */ undefined{}"#,
+      members.join("."),
+      property_access(members, 1)
+    )
+  }
+}
 
 impl JavascriptParserPlugin for ImportMetaPlugin {
   fn evaluate_typeof(
@@ -57,8 +73,11 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     if ident == expr_name::IMPORT_META_WEBPACK {
       Some(eval::evaluate_to_number(5_f64, start, end))
     } else if ident == expr_name::IMPORT_META_URL {
-      let url = Url::from_file_path(&parser.resource_data.resource).expect("should be a path");
-      Some(eval::evaluate_to_string(url.to_string(), start, end))
+      Some(eval::evaluate_to_string(
+        self.import_meta_url(parser),
+        start,
+        end,
+      ))
     } else {
       None
     }
@@ -112,29 +131,60 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     span: Span,
   ) -> Option<bool> {
     if root_name == expr_name::IMPORT_META {
-      // import.meta
-      // warn when access import.meta directly
-      parser.warning_diagnostics.push(Box::new(create_traceable_error(
+      if let Some(referenced_properties_in_destructuring) =
+        parser.destructuring_assignment_properties_for(&span)
+      {
+        let mut content = vec![];
+        for prop in referenced_properties_in_destructuring {
+          if prop == "url" {
+            content.push(format!(r#"url: "{}""#, self.import_meta_url(parser)))
+          } else if prop == "webpack" {
+            content.push(format!(
+              r#"webpack: {}"#,
+              self.import_meta_webpack_version()
+            ));
+          } else {
+            content.push(format!(
+              r#"[{}]: {}"#,
+              serde_json::to_string(&prop).expect("json stringify failed"),
+              self.import_meta_unknown_property(&vec![prop])
+            ));
+          }
+        }
+        parser
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            span.real_lo(),
+            span.real_hi(),
+            format!("({{{}}})", content.join(",")).into(),
+            None,
+          )));
+        Some(true)
+      } else {
+        // import.meta
+        // warn when access import.meta directly
+        parser.warning_diagnostics.push(Box::new(create_traceable_error(
       "Critical dependency".into(),
       "Accessing import.meta directly is unsupported (only property access or destructuring is supported)".into(),
       parser.source_file,
       span.into()
     ).with_severity(Severity::Warning)));
 
-      let content = if parser.is_asi_position(span.lo()) {
-        ";({})"
-      } else {
-        "({})"
-      };
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          span.real_lo(),
-          span.real_hi(),
-          content.into(),
-          None,
-        )));
-      Some(true)
+        let content = if parser.is_asi_position(span.lo()) {
+          ";({})"
+        } else {
+          "({})"
+        };
+        parser
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            span.real_lo(),
+            span.real_hi(),
+            content.into(),
+            None,
+          )));
+        Some(true)
+      }
     } else {
       None
     }
@@ -148,13 +198,12 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
   ) -> Option<bool> {
     if for_name == expr_name::IMPORT_META_URL {
       // import.meta.url
-      let url = Url::from_file_path(&parser.resource_data.resource).expect("should be a path");
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
           member_expr.span().real_lo(),
           member_expr.span().real_hi(),
-          format!("'{url}'").into(),
+          format!("'{}'", self.import_meta_url(parser)).into(),
           None,
         )));
       Some(true)
@@ -165,7 +214,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         .push(Box::new(ConstDependency::new(
           member_expr.span().real_lo(),
           member_expr.span().real_hi(),
-          "5".to_string().into(),
+          self.import_meta_webpack_version().into(),
           None,
         )));
       Some(true)

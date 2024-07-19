@@ -230,6 +230,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) member_expr_in_optional_chain: bool,
   // TODO: delete `properties_in_destructuring`
   pub(crate) properties_in_destructuring: FxHashMap<Atom, FxHashSet<Atom>>,
+  pub(crate) destructuring_assignment_properties: Option<FxHashMap<Span, FxHashSet<String>>>,
   pub(crate) semicolons: &'parser mut FxHashSet<BytePos>,
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
@@ -379,6 +380,7 @@ impl<'parser> JavascriptParser<'parser> {
       module_identifier,
       member_expr_in_optional_chain: false,
       properties_in_destructuring: Default::default(),
+      destructuring_assignment_properties: None,
       semicolons,
       statement_path: Default::default(),
       current_tag_info: None,
@@ -854,6 +856,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn walk_program(&mut self, ast: &Program) {
     if self.plugin_drive.clone().program(self, ast).is_none() {
+      self.destructuring_assignment_properties = Some(FxHashMap::default());
       match ast {
         Program::Module(m) => {
           self.set_strict(true);
@@ -874,6 +877,7 @@ impl<'parser> JavascriptParser<'parser> {
           self.walk_statements(&s.body);
         }
       };
+      self.destructuring_assignment_properties = None;
     }
     self.plugin_drive.clone().finish(self);
   }
@@ -905,6 +909,13 @@ impl<'parser> JavascriptParser<'parser> {
   // TODO: remove
   pub fn is_unresolved_ident(&mut self, str: &str) -> bool {
     self.definitions_db.get(self.definitions, str).is_none()
+  }
+
+  pub fn destructuring_assignment_properties_for(&self, span: &Span) -> Option<FxHashSet<String>> {
+    self
+      .destructuring_assignment_properties
+      .as_ref()
+      .and_then(|x| x.get(span).cloned())
   }
 }
 
