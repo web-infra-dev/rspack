@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use rspack_core::{property_access, ConstDependency, SpanExt};
 use rspack_error::miette::Severity;
 use swc_core::common::{Span, Spanned};
@@ -6,10 +7,10 @@ use url::Url;
 
 use super::JavascriptParserPlugin;
 use crate::utils::eval;
-use crate::visitors::expr_name;
-use crate::visitors::ExportedVariableInfo;
 use crate::visitors::JavascriptParser;
 use crate::visitors::{create_traceable_error, RootName};
+use crate::visitors::{expr_name, AllowedMemberTypes};
+use crate::visitors::{ExportedVariableInfo, MemberExpressionInfo};
 
 pub struct ImportMetaPlugin;
 
@@ -232,12 +233,25 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     match root_info {
       ExportedVariableInfo::Name(root) => {
         if root == expr_name::IMPORT_META {
+          let members = parser
+            .get_member_expression_info(expr, AllowedMemberTypes::Expression)
+            .and_then(|info| match info {
+              MemberExpressionInfo::Expression(res) => Some(res.members),
+              _ => None,
+            });
           parser
             .presentational_dependencies
             .push(Box::new(ConstDependency::new(
               expr.span().real_lo(),
               expr.span().real_hi(),
-              "undefined".into(),
+              members
+                .map(|members| {
+                  self.import_meta_unknown_property(
+                    &members.iter().map(|x| x.to_string()).collect_vec(),
+                  )
+                })
+                .unwrap_or("undefined".to_string())
+                .into(),
               None,
             )));
           return Some(true);
