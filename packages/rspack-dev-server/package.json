@@ -36,6 +36,7 @@
     "directory": "packages/rspack-dev-server"
   },
   "devDependencies": {
+    "typescript": "5.0.2",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "workspace:*",
     "@rspack/plugin-react-refresh": "workspace:*",

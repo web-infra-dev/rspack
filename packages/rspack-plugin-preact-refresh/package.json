@@ -42,7 +42,8 @@
     "@rspack/test-tools": "workspace:*",
     "@swc/plugin-prefresh": "^2.0.7",
     "@swc/helpers": "0.5.8",
-    "preact": "^10.15.1"
+    "preact": "^10.15.1",
+    "typescript": "5.0.2"
   },
   "peerDependencies": {
     "@prefresh/core": "^1.5.0",

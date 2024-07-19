@@ -57,6 +57,7 @@
     "json-parse-even-better-errors": "^3.0.0",
     "neo-async": "2.6.2",
     "prebundle": "^1.1.0",
+    "typescript": "5.0.2",
     "tsc-alias": "^1.8.8",
     "watchpack": "^2.4.0",
     "webpack-sources": "3.2.3",
