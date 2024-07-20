@@ -1,5 +1,3 @@
-/* eslint-disable */
-// @ts-nocheck
 /**
  * The following code is modified based on
  * https://github.com/mahdyar/ansi-html-community/blob/b86cc3f1fa1d118477877352f0eafe1a70fd20ab/index.js
@@ -13,13 +11,22 @@
  */
 "use strict";
 
-module.exports = ansiHTML;
+interface AnsiHtmlTags {
+	open: typeof _openTags;
+	close: typeof _closeTags;
+}
+
+type Option<T> = T | null | undefined;
+
+type Match = {
+	advance: (n: number) => void;
+} & Array<string>;
 
 // Reference to https://github.com/sindresorhus/ansi-regex
 var _regANSI =
 	/(?:(?:\u001b\[)|\u009b)(?:(?:[0-9]{1,3})?(?:(?:;[0-9]{0,3})*)?[A-M|f-m])|\u001b[A-M]/;
 
-var _defColors = {
+var _defColors: Record<string, string | Array<string>> = {
 	reset: ["fff", "000"], // [FOREGROUND_COLOR, BACKGROUND_COLOR]
 	black: "000",
 	red: "ff0000",
@@ -31,7 +38,7 @@ var _defColors = {
 	lightgrey: "f0f0f0",
 	darkgrey: "888"
 };
-var _styles = {
+var _styles: Record<string, string> = {
 	30: "black",
 	31: "red",
 	32: "green",
@@ -42,18 +49,18 @@ var _styles = {
 	37: "lightgrey"
 };
 
-var _colorMode = {
+var _colorMode: Record<string, string> = {
 	2: "rgb"
 };
 
-var _openTags = {
+var _openTags: Record<string, string | ((m: Match) => Option<string>)> = {
 	1: "font-weight:bold", // bold
 	2: "opacity:0.5", // dim
 	3: "<i>", // italic
 	4: "<u>", // underscore
 	8: "display:none", // hidden
 	9: "<del>", // delete
-	38: match => {
+	38: (match: Match) => {
 		// color
 		var mode = _colorMode[match[0]];
 		if (mode === "rgb") {
@@ -65,7 +72,7 @@ var _openTags = {
 			return "color: rgb(" + r + "," + g + "," + b + ")";
 		}
 	},
-	48: match => {
+	48: (match: Match) => {
 		// background color
 		var mode = _colorMode[match[0]];
 		if (mode === "rgb") {
@@ -79,17 +86,20 @@ var _openTags = {
 	}
 };
 
-var _openTagToCloseTag = {
+var _openTagToCloseTag: Record<string, string> = {
 	3: "23",
 	4: "24",
 	9: "29"
 };
 
-var _closeTags = {
+var _closeTags: Record<
+	string,
+	string | ((ansiCodes: Option<Array<string>>) => string)
+> = {
 	0: ansiCodes => {
 		if (!ansiCodes) return "</span>";
 		if (!ansiCodes.length) return "";
-		var code,
+		var code: Option<string>,
 			ret = "";
 		while ((code = ansiCodes.pop())) {
 			var closeTag = _openTagToCloseTag[code];
@@ -112,10 +122,8 @@ var _closeTags = {
 
 /**
  * Normalize ';<seq>' | '<seq>' -> '<seq>'
- * @param {string | null} seq
- * @returns {null | string}
  */
-function normalizeSeq(seq) {
+function normalizeSeq(seq: Option<string>): Option<string> {
 	if (seq === null || seq === undefined) return null;
 	if (seq.startsWith(";")) {
 		return seq.slice(1);
@@ -125,22 +133,21 @@ function normalizeSeq(seq) {
 
 /**
  * Converts text with ANSI color codes to HTML markup.
- * @param {String} text
- * @returns {*}
  */
-function ansiHTML(text) {
+export default function ansiHTML(text: string) {
 	// Returns the text if the string has no ANSI escape code.
 	if (!_regANSI.test(text)) {
 		return text;
 	}
 
 	// Cache opened sequence.
-	var ansiCodes = [];
+	var ansiCodes: string[] = [];
 	// Replace with markup.
+	//@ts-ignore
 	var ret = text.replace(/\033\[(?:[0-9]{1,3})?(?:(?:;[0-9]{0,3})*)?m/g, m => {
-		var match = m.match(/(;?\d+)/g).map(normalizeSeq);
+		var match = m.match(/(;?\d+)/g)?.map(normalizeSeq) as unknown as Match;
 		Object.defineProperty(match, "advance", {
-			value: function (count) {
+			value: function (count: number) {
 				this.splice(0, count);
 			}
 		});
@@ -152,16 +159,18 @@ function ansiHTML(text) {
 		}
 		return rep;
 
-		function applySeq(seq) {
+		function applySeq(seq: string) {
 			var other = _openTags[seq];
 			if (
 				other &&
-				(other = typeof other === "function" ? other(match) : other)
+				(other = typeof other === "function" ? (other(match) as string) : other)
 			) {
 				// If reset signal is encountered, we have to reset everything.
 				var ret = "";
 				if (seq === "0") {
-					ret += _closeTags[seq](ansiCodes);
+					ret += (
+						_closeTags[seq] as (ansiCodes: Option<Array<string>>) => string
+					)(ansiCodes);
 				}
 				// If current sequence has been opened, close it.
 				if (!!~ansiCodes.indexOf(seq)) {
@@ -199,12 +208,12 @@ function ansiHTML(text) {
  * Customize colors.
  * @param {Object} colors reference to _defColors
  */
-ansiHTML.setColors = colors => {
+ansiHTML.setColors = (colors: typeof _defColors) => {
 	if (typeof colors !== "object") {
 		throw new Error("`colors` parameter must be an Object.");
 	}
 
-	var _finalColors = {};
+	var _finalColors: typeof _defColors = {};
 	for (var key in _defColors) {
 		var hex = colors.hasOwnProperty(key) ? colors[key] : null;
 		if (!hex) {
@@ -257,7 +266,7 @@ ansiHTML.reset = () => {
  * Expose tags, including open and close.
  * @type {Object}
  */
-ansiHTML.tags = {};
+ansiHTML.tags = {} as AnsiHtmlTags;
 
 if (Object.defineProperty) {
 	Object.defineProperty(ansiHTML.tags, "open", {
@@ -271,7 +280,7 @@ if (Object.defineProperty) {
 	ansiHTML.tags.close = _closeTags;
 }
 
-function _setTags(colors) {
+function _setTags(colors: typeof _defColors) {
 	// reset all
 	_openTags["0"] =
 		"font-weight:normal;opacity:1;color:#" +
@@ -288,8 +297,8 @@ function _setTags(colors) {
 		var color = _styles[code];
 		var oriColor = colors[color] || "000";
 		_openTags[code] = "color:#" + oriColor;
-		code = Number.parseInt(code);
-		_openTags[(code + 10).toString()] = "background:#" + oriColor;
+		const codeInt = Number.parseInt(code);
+		_openTags[(codeInt + 10).toString()] = "background:#" + oriColor;
 	}
 }
 
