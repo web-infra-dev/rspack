@@ -18,21 +18,15 @@ const noDocument = typeof document === "undefined";
 
 const { forEach } = Array.prototype;
 
-/**
- * @param {function} fn
- * @param {number} time
- * @returns {(function(): void)|*}
- */
 function debounce<T extends (...args: any[]) => any>(
 	fn: T,
 	time: number
 ): DebouncedFunction<T> {
-	let timeout = 0;
+	let timeout: NodeJS.Timeout | number = 0;
 
 	return function () {
 		// @ts-ignore
 		const self = this;
-		// eslint-disable-next-line prefer-rest-params
 		const args = arguments;
 
 		const functionCall = function functionCall() {
@@ -41,17 +35,12 @@ function debounce<T extends (...args: any[]) => any>(
 
 		clearTimeout(timeout);
 
-		// @ts-ignore
 		timeout = setTimeout(functionCall, time);
 	};
 }
 
 function noop() {}
 
-/**
- * @param {TODO} moduleId
- * @returns {TODO}
- */
 function getCurrentScriptUrl(moduleId: string) {
 	let src = srcByModuleId[moduleId];
 
@@ -96,21 +85,16 @@ function getCurrentScriptUrl(moduleId: string) {
 	};
 }
 
-/**
- * @param {TODO} el
- * @param {string} [url]
- */
 function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 	if (!url) {
 		if (!el.href) {
 			return;
 		}
 
-		// eslint-disable-next-line
 		url = el.href.split("?")[0];
 	}
 
-	if (!isUrlRequest(/** @type {string} */ url)) {
+	if (!isUrlRequest(url)) {
 		return;
 	}
 
@@ -124,7 +108,6 @@ function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 		return;
 	}
 
-	// eslint-disable-next-line no-param-reassign
 	el.visited = true;
 
 	const newEl = el.cloneNode() as Node & Record<string, any>;
@@ -158,37 +141,21 @@ function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 	}
 }
 
-/**
- * @param {string} href
- * @param {TODO} src
- * @returns {TODO}
- */
 function getReloadUrl(href: string, src: Array<string>): string {
 	let ret: string;
 
-	// eslint-disable-next-line no-param-reassign
 	href = normalizeUrl(href);
 
-	src.some(
-		/**
-		 * @param {string} url
-		 */
-		// eslint-disable-next-line array-callback-return
-		url => {
-			if (href.indexOf(src as unknown as string) > -1) {
-				ret = url;
-			}
+	src.some(url => {
+		if (href.indexOf(src as unknown as string) > -1) {
+			ret = url;
 		}
-	);
+	});
 
 	//@ts-expect-error
 	return ret;
 }
 
-/**
- * @param {string} [src]
- * @returns {boolean}
- */
 function reloadStyle(src: Option<Array<string>>): boolean {
 	if (!src) {
 		return false;
