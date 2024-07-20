@@ -1,4 +1,3 @@
-// @ts-ignore
 import ansiHTML from "../src/ansiHTML";
 
 describe("ansi-html", () => {

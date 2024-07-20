@@ -143,7 +143,7 @@ export default function ansiHTML(text: string) {
 	// Cache opened sequence.
 	var ansiCodes: string[] = [];
 	// Replace with markup.
-	//@ts-ignore
+	//@ts-ignore TS1487 error
 	var ret = text.replace(/\033\[(?:[0-9]{1,3})?(?:(?:;[0-9]{0,3})*)?m/g, m => {
 		var match = m.match(/(;?\d+)/g)?.map(normalizeSeq) as unknown as Match;
 		Object.defineProperty(match, "advance", {
