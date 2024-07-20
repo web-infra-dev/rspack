@@ -563,20 +563,23 @@ impl Module for ConcatenatedModule {
       }
 
       // populate dependencies
-      for dep_id in module.get_dependencies() {
-        let dep = module_graph
-          .dependency_by_id(dep_id)
-          .expect("should have dependency");
-        let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
-        if !is_harmony_dep_like(dep)
-          || !self
-            .modules
-            .iter()
-            .any(|item| Some(&item.id) == module_id_of_dep)
-        {
-          self.dependencies.push(*dep_id);
-        }
-      }
+      self
+        .dependencies
+        .par_extend(module.get_dependencies().par_iter().filter_map(|dep_id| {
+          let dep = module_graph
+            .dependency_by_id(dep_id)
+            .expect("should have dependency");
+          let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
+          if !is_harmony_dep_like(dep)
+            || !self
+              .modules
+              .iter()
+              .any(|item| Some(&item.id) == module_id_of_dep)
+          {
+            return Some(dep_id);
+          }
+          None
+        }));
 
       // populate blocks
       for b in module.get_blocks() {
