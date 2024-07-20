@@ -1,12 +1,6 @@
-/* eslint-disable */
-
-/**
- * @param {string[]} pathComponents
- * @returns {string}
- */
-function normalizeUrl(pathComponents) {
+function normalizeUrl(pathComponents: string[]): string {
 	return pathComponents
-		.reduce(function (accumulator, item) {
+		.reduce(function (accumulator: string[], item) {
 			switch (item) {
 				case "..":
 					accumulator.pop();
@@ -18,15 +12,11 @@ function normalizeUrl(pathComponents) {
 			}
 
 			return accumulator;
-		}, /** @type {string[]} */ ([]))
+		}, [])
 		.join("/");
 }
 
-/**
- * @param {string} urlString
- * @returns {string}
- */
-module.exports = function (urlString) {
+export default function (urlString: string): string {
 	urlString = urlString.trim();
 
 	if (/^data:/i.test(urlString)) {
@@ -43,4 +33,4 @@ module.exports = function (urlString) {
 	var path = normalizeUrl(components);
 
 	return protocol + host + path;
-};
+}

@@ -5,11 +5,14 @@
   func-names
 */
 
-/** @typedef {any} TODO */
+import normalizeUrl from "./normalize-url";
 
-const normalizeUrl = require("./normalize-url");
+type Option<T> = T | null | undefined;
+type DebouncedFunction<T extends (...args: any[]) => any> = (
+	...args: Parameters<T>
+) => void;
 
-const srcByModuleId = Object.create(null);
+const srcByModuleId: Record<string, any> = Object.create(null);
 
 const noDocument = typeof document === "undefined";
 
@@ -20,7 +23,10 @@ const { forEach } = Array.prototype;
  * @param {number} time
  * @returns {(function(): void)|*}
  */
-function debounce(fn, time) {
+function debounce<T extends (...args: any[]) => any>(
+	fn: T,
+	time: number
+): DebouncedFunction<T> {
 	let timeout = 0;
 
 	return function () {
@@ -30,7 +36,7 @@ function debounce(fn, time) {
 		const args = arguments;
 
 		const functionCall = function functionCall() {
-			return fn.apply(self, args);
+			return fn.apply(self, args as unknown as Parameters<T>);
 		};
 
 		clearTimeout(timeout);
@@ -46,12 +52,12 @@ function noop() {}
  * @param {TODO} moduleId
  * @returns {TODO}
  */
-function getCurrentScriptUrl(moduleId) {
+function getCurrentScriptUrl(moduleId: string) {
 	let src = srcByModuleId[moduleId];
 
 	if (!src) {
 		if (document.currentScript) {
-			({ src } = /** @type {HTMLScriptElement} */ (document.currentScript));
+			({ src } = document.currentScript as HTMLScriptElement);
 		} else {
 			const scripts = document.getElementsByTagName("script");
 			const lastScriptTag = scripts[scripts.length - 1];
@@ -64,11 +70,7 @@ function getCurrentScriptUrl(moduleId) {
 		srcByModuleId[moduleId] = src;
 	}
 
-	/**
-	 * @param {string} fileMap
-	 * @returns {null | string[]}
-	 */
-	return function (fileMap) {
+	return function (fileMap: string): Option<Array<string>> {
 		if (!src) {
 			return null;
 		}
@@ -98,7 +100,7 @@ function getCurrentScriptUrl(moduleId) {
  * @param {TODO} el
  * @param {string} [url]
  */
-function updateCss(el, url) {
+function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 	if (!url) {
 		if (!el.href) {
 			return;
@@ -108,7 +110,7 @@ function updateCss(el, url) {
 		url = el.href.split("?")[0];
 	}
 
-	if (!isUrlRequest(/** @type {string} */ (url))) {
+	if (!isUrlRequest(/** @type {string} */ url)) {
 		return;
 	}
 
@@ -125,7 +127,7 @@ function updateCss(el, url) {
 	// eslint-disable-next-line no-param-reassign
 	el.visited = true;
 
-	const newEl = el.cloneNode();
+	const newEl = el.cloneNode() as Node & Record<string, any>;
 
 	newEl.isLoaded = false;
 
@@ -135,7 +137,7 @@ function updateCss(el, url) {
 		}
 
 		newEl.isLoaded = true;
-		el.parentNode.removeChild(el);
+		el.parentNode?.removeChild(el);
 	});
 
 	newEl.addEventListener("error", () => {
@@ -144,15 +146,15 @@ function updateCss(el, url) {
 		}
 
 		newEl.isLoaded = true;
-		el.parentNode.removeChild(el);
+		el.parentNode?.removeChild(el);
 	});
 
 	newEl.href = `${url}?${Date.now()}`;
 
 	if (el.nextSibling) {
-		el.parentNode.insertBefore(newEl, el.nextSibling);
+		el.parentNode?.insertBefore(newEl, el.nextSibling);
 	} else {
-		el.parentNode.appendChild(newEl);
+		el.parentNode?.appendChild(newEl);
 	}
 }
 
@@ -161,8 +163,8 @@ function updateCss(el, url) {
  * @param {TODO} src
  * @returns {TODO}
  */
-function getReloadUrl(href, src) {
-	let ret;
+function getReloadUrl(href: string, src: Array<string>): string {
+	let ret: string;
 
 	// eslint-disable-next-line no-param-reassign
 	href = normalizeUrl(href);
@@ -173,12 +175,13 @@ function getReloadUrl(href, src) {
 		 */
 		// eslint-disable-next-line array-callback-return
 		url => {
-			if (href.indexOf(src) > -1) {
+			if (href.indexOf(src as unknown as string) > -1) {
 				ret = url;
 			}
 		}
 	);
 
+	//@ts-expect-error
 	return ret;
 }
 
@@ -186,7 +189,7 @@ function getReloadUrl(href, src) {
  * @param {string} [src]
  * @returns {boolean}
  */
-function reloadStyle(src) {
+function reloadStyle(src: Option<Array<string>>): boolean {
 	if (!src) {
 		return false;
 	}
@@ -231,11 +234,7 @@ function reloadAll() {
 	});
 }
 
-/**
- * @param {string} url
- * @returns {boolean}
- */
-function isUrlRequest(url) {
+function isUrlRequest(url: string): boolean {
 	// An URL is not an request if
 
 	// It is not http or https
@@ -251,7 +250,7 @@ function isUrlRequest(url) {
  * @param {TODO} options
  * @returns {TODO}
  */
-module.exports = function (moduleId, options) {
+export default function (moduleId: string, options: Record<string, any>) {
 	if (noDocument) {
 		console.log("no window.document found, will not HMR CSS");
 
@@ -273,7 +272,7 @@ module.exports = function (moduleId, options) {
 		}
 
 		if (reloaded) {
-			console.log("[HMR] css reload %s", src.join(" "));
+			console.log("[HMR] css reload %s", src?.join(" "));
 		} else {
 			console.log("[HMR] Reload all css");
 
@@ -282,4 +281,4 @@ module.exports = function (moduleId, options) {
 	}
 
 	return debounce(update, 50);
-};
+}
