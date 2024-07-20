@@ -245,12 +245,7 @@ function isUrlRequest(url: string): boolean {
 	return true;
 }
 
-/**
- * @param {TODO} moduleId
- * @param {TODO} options
- * @returns {TODO}
- */
-export default function (moduleId: string, options: Record<string, any>) {
+module.exports = function (moduleId: string, options: Record<string, any>) {
 	if (noDocument) {
 		console.log("no window.document found, will not HMR CSS");
 
@@ -281,4 +276,4 @@ export default function (moduleId: string, options: Record<string, any>) {
 	}
 
 	return debounce(update, 50);
-}
+};
