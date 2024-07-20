@@ -1,5 +1,5 @@
 // @ts-ignore
-import ansiHTML = require("../src/ansiHTML");
+import ansiHTML from "../src/ansiHTML";
 
 describe("ansi-html", () => {
 	it("should transform 24-bit rgb ansi colors", () => {
