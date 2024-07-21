@@ -219,7 +219,7 @@ impl ModuleConcatenationPlugin {
     let module = module_graph
       .module_by_identifier(module_id)
       .expect("should have module");
-    let module_readable_identifier = module.readable_identifier(&options.context).to_string();
+    let module_readable_identifier = module.readable_identifier(&options.context);
 
     if !possible_modules.contains(module_id) {
       statistics.invalid_module += 1;
