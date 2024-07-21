@@ -3,10 +3,8 @@
   "compilerOptions": {
     "allowJs": true,
     "checkJs": false,
-    "rootDir": "."
+    "rootDir": "../"
   },
-  "include": [
-    "."
-  ],
+  "include": ["src", "tests"],
   "references": []
 }
