@@ -8,7 +8,6 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 
-"use strict";
 
 class LoadingLoaderError extends Error {
 	constructor(message: string) {
