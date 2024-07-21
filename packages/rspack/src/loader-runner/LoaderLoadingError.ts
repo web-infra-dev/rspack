@@ -11,14 +11,11 @@
 "use strict";
 
 class LoadingLoaderError extends Error {
-	/**
-	 * @param {string=} message
-	 */
-	constructor(message) {
+	constructor(message: string) {
 		super(message);
 		this.name = "LoaderRunnerError";
 		Error.captureStackTrace(this, this.constructor);
 	}
 }
 
-module.exports = LoadingLoaderError;
+export default LoadingLoaderError;

@@ -8,21 +8,31 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 
-var LoaderLoadingError = require("./LoaderLoadingError");
-/** @type {undefined | import('node:url')} */
-var url;
+import type Url from "node:url";
+import type { LoaderObject } from ".";
 
-// @ts-expect-error
-module.exports = function loadLoader(loader, callback) {
+type ModuleObject = {
+	default?: Function;
+	pitch?: Function;
+	raw?: boolean;
+};
+type LoaderModule = ModuleObject | Function;
+
+import LoaderLoadingError from "./LoaderLoadingError";
+var url: undefined | typeof Url = undefined;
+
+export default function loadLoader(
+	loader: LoaderObject,
+	callback: (err: unknown) => void
+): void {
 	if (loader.type === "module") {
 		try {
 			if (url === undefined) url = require("node:url");
-			var loaderUrl = url.pathToFileURL(loader.path);
-			/** @type {Promise<any>} */
+			var loaderUrl = url!.pathToFileURL(loader.path);
 			var modulePromise = eval(
 				"import(" + JSON.stringify(loaderUrl.toString()) + ")"
 			);
-			modulePromise.then(module => {
+			modulePromise.then((module: LoaderModule) => {
 				handleResult(loader, module, callback);
 			}, callback);
 			return;
@@ -37,11 +47,10 @@ module.exports = function loadLoader(loader, callback) {
 			// limit has been reached. give it a chance to recover.
 			// @ts-expect-error
 			if (e instanceof Error && e.code === "EMFILE") {
-				// @ts-expect-error
 				var retry = loadLoader.bind(null, loader, callback);
 				if (typeof setImmediate === "function") {
 					// node >= 0.9.0
-					return setImmediate(retry);
+					return void setImmediate(retry);
 				} else {
 					// node < 0.9.0
 					return process.nextTick(retry);
@@ -51,10 +60,13 @@ module.exports = function loadLoader(loader, callback) {
 		}
 		return handleResult(loader, module, callback);
 	}
-};
+}
 
-// @ts-expect-error
-function handleResult(loader, module, callback) {
+function handleResult(
+	loader: LoaderObject,
+	module: LoaderModule,
+	callback: (err?: unknown) => void
+): void {
 	if (typeof module !== "function" && typeof module !== "object") {
 		return callback(
 			new LoaderLoadingError(
@@ -65,8 +77,8 @@ function handleResult(loader, module, callback) {
 		);
 	}
 	loader.normal = typeof module === "function" ? module : module.default;
-	loader.pitch = module.pitch;
-	loader.raw = module.raw;
+	loader.pitch = (module as ModuleObject).pitch;
+	loader.raw = (module as ModuleObject).raw;
 	if (
 		typeof loader.normal !== "function" &&
 		typeof loader.pitch !== "function"
