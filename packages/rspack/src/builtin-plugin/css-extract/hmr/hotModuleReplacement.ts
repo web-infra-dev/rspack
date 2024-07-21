@@ -142,7 +142,7 @@ function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 }
 
 function getReloadUrl(href: string, src: Array<string>): string {
-	let ret: string;
+	let ret = "";
 
 	href = normalizeUrlFn(href);
 
@@ -152,7 +152,6 @@ function getReloadUrl(href: string, src: Array<string>): string {
 		}
 	});
 
-	//@ts-expect-error
 	return ret;
 }
 
