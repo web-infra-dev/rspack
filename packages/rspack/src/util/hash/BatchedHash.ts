@@ -7,15 +7,15 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
+import Hash from ".";
+import { MAX_SHORT_STRING } from "./wasm-hash";
 
-"use strict";
+export default class BatchedHash extends Hash {
+	string: string | undefined;
+	encoding: string | undefined;
+	hash: Hash;
 
-const Hash = require(".");
-const MAX_SHORT_STRING = require("./wasm-hash").MAX_SHORT_STRING;
-
-class BatchedHash extends Hash {
-	// @ts-expect-error
-	constructor(hash) {
+	constructor(hash: Hash) {
 		super();
 		this.string = undefined;
 		this.encoding = undefined;
@@ -24,11 +24,11 @@ class BatchedHash extends Hash {
 
 	/**
 	 * Update hash {@link https://nodejs.org/api/crypto.html#crypto_hash_update_data_inputencoding}
-	 * @param {string|Buffer} data data
-	 * @param {string=} inputEncoding data encoding
-	 * @returns {this} updated hash
+	 * @param data data
+	 * @param inputEncoding data encoding
+	 * @returns updated hash
 	 */
-	update(data, inputEncoding) {
+	update(data: string | Buffer, inputEncoding?: string) {
 		if (this.string !== undefined) {
 			if (
 				typeof data === "string" &&
@@ -60,15 +60,13 @@ class BatchedHash extends Hash {
 
 	/**
 	 * Calculates the digest {@link https://nodejs.org/api/crypto.html#crypto_hash_digest_encoding}
-	 * @param {string=} encoding encoding of the return value
-	 * @returns {string|Buffer} digest
+	 * @param encoding encoding of the return value
+	 * @returns digest
 	 */
-	digest(encoding) {
+	digest(encoding?: string): string | Buffer {
 		if (this.string !== undefined) {
 			this.hash.update(this.string, this.encoding);
 		}
 		return this.hash.digest(encoding);
 	}
 }
-
-module.exports = BatchedHash;

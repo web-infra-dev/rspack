@@ -712,7 +712,7 @@ export async function runLoaders(
 		},
 		createHash: type => {
 			return createHash(
-				type || compiler._lastCompilation!.outputOptions.hashFunction
+				type || compiler._lastCompilation!.outputOptions.hashFunction!
 			);
 		}
 	};

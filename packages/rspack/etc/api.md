@@ -14,13 +14,12 @@ import CacheFacade = require('./lib/CacheFacade');
 import type { Callback } from '@rspack/lite-tapable';
 import { cleanupGlobalTrace } from '@rspack/binding';
 import { Compiler as Compiler_2 } from '../Compiler';
+import { default as default_2 } from './util/hash';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
 import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
-import Hash_2 = require('./util/hash');
-import Hash_3 = require('../util/hash');
 import { HookMap } from '@rspack/lite-tapable';
 import type { JsAssetInfo } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
@@ -1118,7 +1117,7 @@ export class Compilation {
 
 // @public (undocumented)
 type CompilationHooks = {
-    chunkHash: liteTapable.SyncHook<[Chunk, Hash_3]>;
+    chunkHash: liteTapable.SyncHook<[Chunk, Hash_2]>;
 };
 
 // @public (undocumented)
@@ -3953,6 +3952,12 @@ class Hash {
 }
 
 // @public (undocumented)
+class Hash_2 {
+    digest(encoding?: string): string | Buffer;
+    update(data: string | Buffer, inputEncoding?: string): this;
+}
+
+// @public (undocumented)
 export type HashDigest = z.infer<typeof hashDigest>;
 
 // @public (undocumented)
@@ -4924,7 +4929,7 @@ export interface LoaderContext<OptionsType = {}> {
     utils: {
         absolutify: (context: string, request: string) => string;
         contextify: (context: string, request: string) => string;
-        createHash: (algorithm?: string) => Hash_3;
+        createHash: (algorithm?: string) => Hash_2;
     };
     // (undocumented)
     version: 2;
@@ -13818,8 +13823,8 @@ const uniqueName: z.ZodString;
 
 // @public (undocumented)
 export const util: {
-    createHash: (algorithm: any) => any;
-    cleverMerge: <T, O>(first: T, second: O) => T | O | (T & O);
+    createHash: (algorithm: "debug" | "md4" | "xxhash64" | (string & {}) | "native-md4" | (new () => default_2)) => default_2;
+    cleverMerge: <First, Second>(first: First, second: Second) => First | Second | (First & Second);
 };
 
 // @public (undocumented)

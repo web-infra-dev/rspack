@@ -28,6 +28,7 @@ import { cutOffLoaderExecution } from "./ErrorHelpers";
 import { type CodeGenerationResult, Module } from "./Module";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
 import type { ResolverFactory } from "./ResolverFactory";
+import { JsDiagnostic, type RspackError } from "./RspackError";
 import {
 	Stats,
 	type StatsAsset,
@@ -48,10 +49,9 @@ import { StatsPrinter } from "./stats/StatsPrinter";
 import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
 import MergeCaller from "./util/MergeCaller";
 import { createFakeCompilationDependencies } from "./util/fake";
+import type Hash from "./util/hash";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
-import Hash = require("./util/hash");
-import { JsDiagnostic, type RspackError } from "./RspackError";
 export { type AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;

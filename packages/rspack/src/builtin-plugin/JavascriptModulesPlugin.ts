@@ -1,10 +1,10 @@
 import { type BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
 
 import * as liteTapable from "@rspack/lite-tapable";
-import { Compilation } from "../Compilation";
-import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
-import Hash = require("../util/hash");
 import type { Chunk } from "../Chunk";
+import { Compilation } from "../Compilation";
+import type Hash from "../util/hash";
+import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
 export type CompilationHooks = {
 	chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
