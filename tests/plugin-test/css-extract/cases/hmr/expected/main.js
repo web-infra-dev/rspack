@@ -104,14 +104,13 @@ function updateCss(el, url) {
     }
 }
 function getReloadUrl(href, src) {
-    let ret;
+    let ret = "";
     href = normalizeUrlFn(href);
     src.some(url => {
         if (href.indexOf(src) > -1) {
             ret = url;
         }
     });
-    //@ts-expect-error
     return ret;
 }
 function reloadStyle(src) {
