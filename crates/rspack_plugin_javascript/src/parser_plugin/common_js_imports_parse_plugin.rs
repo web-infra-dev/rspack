@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use rspack_core::{ConstDependency, ContextMode, DependencyCategory, ErrorSpan, SpanExt};
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::Severity;
@@ -88,15 +87,15 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
 
-    let Some((members, first_arg, loc)) = extract_require_call_info(&expr) else {
+    let Some((members, first_arg, loc)) = extract_require_call_info(parser, mem_expr) else {
       return None;
     };
 
     let param = parser.evaluate_expression(&first_arg.expr);
     param.is_string().then(|| {
       CommonJsFullRequireDependency::new(
-        param.string().to_string(),
-        members.iter().map(|i| i.to_owned()).collect_vec(),
+        param.string().to_owned(),
+        members,
         loc,
         Some(mem_expr.span.into()),
         is_call,

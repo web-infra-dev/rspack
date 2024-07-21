@@ -1,6 +1,6 @@
 use rspack_core::{
-  extract_member_expression_chain, BuildMetaDefaultObject, BuildMetaExportsType,
-  ExpressionInfoKind, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
+  BuildMetaDefaultObject, BuildMetaExportsType, RuntimeGlobals, RuntimeRequirementsDependency,
+  SpanExt,
 };
 use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
@@ -15,12 +15,15 @@ use crate::dependency::{CommonJsExportRequireDependency, CommonJsExportsDependen
 use crate::dependency::{CommonJsSelfReferenceDependency, ExportsBase, ModuleDecoratorDependency};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::expr_like::ExprLike;
-use crate::visitors::{expr_matcher, JavascriptParser, TopLevelScope};
+use crate::visitors::{
+  expr_matcher, AllowedMemberTypes, JavascriptParser, MemberExpressionInfo, TopLevelScope,
+};
 
 const MODULE_NAME: &str = "module";
 const EXPORTS_NAME: &str = "exports";
 
 fn get_member_expression_info<E: ExprLike>(
+  parser: &mut JavascriptParser,
   expr: &E,
   is_module_exports_start: Option<bool>,
 ) -> Option<Vec<Atom>> {
@@ -29,19 +32,22 @@ fn get_member_expression_info<E: ExprLike>(
     None => is_module_exports_member_expr_start(expr),
   };
   expr.as_member().and_then(|expr: &MemberExpr| {
-    let expression_info = extract_member_expression_chain(expr);
-    if matches!(
-      expression_info.kind(),
-      ExpressionInfoKind::MemberExpression(_)
-    ) {
+    let Some(members) = parser
+      .get_member_expression_info(expr, AllowedMemberTypes::Expression)
+      .and_then(|info| match info {
+        MemberExpressionInfo::Call(_) => None,
+        MemberExpressionInfo::Expression(info) => Some(info.members),
+      })
+      .map(|members| {
+        members
+          .iter()
+          .skip(if is_module_exports_start { 1 } else { 0 })
+          .map(|n| n.to_owned())
+          .collect::<Vec<_>>()
+      })
+    else {
       return None;
-    }
-    let members = expression_info
-      .members()
-      .iter()
-      .skip(if is_module_exports_start { 2 } else { 1 })
-      .map(|n| n.0.to_owned())
-      .collect::<Vec<_>>();
+    };
     match expr.obj {
       box Expr::Call(_) => Some(members),
       box Expr::Ident(_) => Some(members),
@@ -328,7 +334,9 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
       let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
-      if let Some(remaining) = get_member_expression_info(expr, Some(is_module_exports_start)) {
+      if let Some(remaining) =
+        get_member_expression_info(parser, expr, Some(is_module_exports_start))
+      {
         if remaining.is_empty() {
           parser.bailout();
         }
@@ -370,7 +378,8 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
       let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
-      let Some(remaining) = get_member_expression_info(left_expr, Some(is_module_exports_start))
+      let Some(remaining) =
+        get_member_expression_info(parser, left_expr, Some(is_module_exports_start))
       else {
         return None;
       };
@@ -464,7 +473,8 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     } else if let Callee::Expr(expr) = &call_expr.callee {
       let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
         let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
-        if let Some(remaining) = get_member_expression_info(&**expr, Some(is_module_exports_start))
+        if let Some(remaining) =
+          get_member_expression_info(parser, &**expr, Some(is_module_exports_start))
         {
           // exports()
           // module.exports()

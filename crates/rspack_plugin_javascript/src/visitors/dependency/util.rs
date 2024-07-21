@@ -1,6 +1,4 @@
-use itertools::Itertools;
-use rspack_core::extract_member_expression_chain;
-use rspack_core::{ConstDependency, DependencyLocation, ErrorSpan, ExpressionInfoKind, SpanExt};
+use rspack_core::{ConstDependency, DependencyLocation, ErrorSpan, SpanExt};
 use rspack_error::miette::diagnostic;
 use rspack_error::{miette::Severity, DiagnosticKind, TraceableError};
 use rspack_regex::RspackRegex;
@@ -9,7 +7,7 @@ use swc_core::common::{SourceFile, Spanned};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::Atom;
 
-use super::JavascriptParser;
+use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
 
 pub fn collect_destructuring_assignment_properties(
   object_pat: &ObjectPat,
@@ -242,44 +240,37 @@ pub fn parse_order_string(x: &str) -> Option<u32> {
 }
 
 pub fn extract_require_call_info(
-  expr: &Expr,
+  parser: &mut JavascriptParser,
+  expr: &MemberExpr,
 ) -> Option<(Vec<Atom>, ExprOrSpread, DependencyLocation)> {
-  let member_info = extract_member_expression_chain(expr);
-  let root_members = match member_info.kind() {
-    ExpressionInfoKind::CallExpression(info) => info
-      .root_members()
-      .iter()
-      .map(|n| n.0.to_owned())
-      .collect_vec(),
-    ExpressionInfoKind::MemberExpression(_) => vec![],
-    ExpressionInfoKind::Expression => vec![],
-  };
-  let args = match member_info.kind() {
-    ExpressionInfoKind::CallExpression(info) => {
-      info.args().iter().map(|i| i.to_owned()).collect_vec()
-    }
-    ExpressionInfoKind::MemberExpression(_) => vec![],
-    ExpressionInfoKind::Expression => vec![],
+  let Some((members, args, root)) = parser
+    .get_member_expression_info(expr, AllowedMemberTypes::CallExpression)
+    .and_then(|info| match info {
+      MemberExpressionInfo::Call(info) => Some((info.members, info.call.args, info.root_info)),
+      MemberExpressionInfo::Expression(_) => None,
+    })
+  else {
+    // not require() call
+    return None;
   };
 
-  let members = member_info
-    .members()
-    .iter()
-    .map(|n| n.0.to_owned())
-    .collect_vec();
-
-  let Some(fist_arg) = args.first() else {
+  // call require() with no param
+  let Some(first_arg) = args.first() else {
     return None;
   };
 
   let loc = DependencyLocation::new(expr.span().real_lo(), expr.span().real_hi(), None);
 
-  if (root_members.len() == 1 && root_members.first().is_some_and(|f| f == "require"))
-    || (root_members.len() == 2
-      && root_members.first().is_some_and(|f| f == "module")
-      && root_members.get(1).is_some_and(|f| f == "require"))
-  {
-    Some((members, fist_arg.to_owned(), loc))
+  if let ExportedVariableInfo::Name(root) = root {
+    if root == "module" && members.first().is_some_and(|m| m == "require") {
+      // module.require().x.x
+      Some((members[1..].to_vec(), first_arg.to_owned(), loc))
+    } else if root == "require" {
+      // require().x.x
+      Some((members, first_arg.to_owned(), loc))
+    } else {
+      None
+    }
   } else {
     None
   }
