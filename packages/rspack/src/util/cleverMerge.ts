@@ -7,20 +7,55 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
+type Obj = Record<PropertyKey, any>;
 
-"use strict";
+type Info = Map<any, ObjectParsedPropertyEntry>;
 
-/** @type {WeakMap<object, WeakMap<object, object>>} */
-const mergeCache = new WeakMap();
-/** @type {WeakMap<object, Map<string, Map<string|number|boolean, object>>>} */
-const setPropertyCache = new WeakMap();
-const DELETE = Symbol("DELETE");
+type FunctionWithDynamicInfo = ((...args: any[]) => any) & {
+	[DYNAMIC_INFO]?: [FunctionWithDynamicInfo, Obj];
+};
+
+type DynamicInfo = {
+	byProperty: string;
+	fn: FunctionWithDynamicInfo;
+};
+
+type ParsedObject = {
+	/**
+	 * static properties (key is property name)
+	 */
+	static: Map<string, ObjectParsedPropertyEntry>;
+	/**
+	 * dynamic part
+	 */
+	dynamic: DynamicInfo | undefined;
+};
+
+type ObjectParsedPropertyEntry = {
+	/**
+	 * base value
+	 */
+	base: any;
+	/**
+	 * the name of the selector property
+	 */
+	byProperty: string | undefined;
+	/**
+	 * value depending on selector property, merged with base
+	 */
+	byValues: Map<string, any>;
+};
+
+const mergeCache = new WeakMap<Obj, WeakMap<Obj, Obj>>();
+const setPropertyCache = new WeakMap<
+	Obj,
+	Map<string, Map<string | number | boolean, Obj>>
+>();
+export const DELETE = Symbol("DELETE");
 const DYNAMIC_INFO = Symbol("cleverMerge dynamic info");
 
 /**
  * Merges two given objects and caches the result to avoid computation if same objects passed as arguments again.
- * @template T
- * @template O
  * @example
  * // performs cleverMerge(first, second), stores the result in WeakMap and returns result
  * cachedCleverMerge({a: 1}, {a: 2})
@@ -28,11 +63,14 @@ const DYNAMIC_INFO = Symbol("cleverMerge dynamic info");
  *  // when same arguments passed, gets the result from WeakMap and returns it.
  * cachedCleverMerge({a: 1}, {a: 2})
  * {a: 2}
- * @param {T} first first object
- * @param {O} second second object
- * @returns {T & O | T | O} merged object of first and second object
+ * @param first first object
+ * @param second second object
+ * @returns  merged object of first and second object
  */
-const cachedCleverMerge = (first, second) => {
+export const cachedCleverMerge = <First, Second>(
+	first: First,
+	second: Second
+): First | Second | (First & Second) => {
 	if (second === undefined) return first;
 	if (first === undefined) return second;
 	if (typeof second !== "object" || second === null) return second;
@@ -44,22 +82,24 @@ const cachedCleverMerge = (first, second) => {
 		mergeCache.set(first, innerCache);
 	}
 	const prevMerge = innerCache.get(second);
-	// @ts-expect-error
+
 	if (prevMerge !== undefined) return prevMerge;
 	const newMerge = _cleverMerge(first, second, true);
 	innerCache.set(second, newMerge);
-	// @ts-expect-error
 	return newMerge;
 };
 
 /**
- * @template T
- * @param {Partial<T>} obj object
- * @param {string} property property
- * @param {string|number|boolean} value assignment value
- * @returns {T} new object
+ * @param obj object
+ * @param property property
+ * @param value assignment value
+ * @returns new object
  */
-const cachedSetProperty = (obj, property, value) => {
+export const cachedSetProperty = (
+	obj: Obj,
+	property: string,
+	value: string | number | boolean
+) => {
 	let mapByProperty = setPropertyCache.get(obj);
 
 	if (mapByProperty === undefined) {
@@ -76,7 +116,6 @@ const cachedSetProperty = (obj, property, value) => {
 
 	let result = mapByValue.get(value);
 
-	// @ts-expect-error
 	if (result) return result;
 
 	result = {
@@ -85,31 +124,16 @@ const cachedSetProperty = (obj, property, value) => {
 	};
 	mapByValue.set(value, result);
 
-	// @ts-expect-error
 	return result;
 };
 
-/**
- * @typedef {Object} ObjectParsedPropertyEntry
- * @property {any | undefined} base base value
- * @property {string | undefined} byProperty the name of the selector property
- * @property {Map<string, any>} byValues value depending on selector property, merged with base
- */
+const parseCache = new WeakMap<Obj, ParsedObject>();
 
 /**
- * @typedef {Object} ParsedObject
- * @property {Map<string, ObjectParsedPropertyEntry>} static static properties (key is property name)
- * @property {{ byProperty: string, fn: Function } | undefined} dynamic dynamic part
+ * @param obj the object
+ * @returns parsed object
  */
-
-/** @type {WeakMap<object, ParsedObject>} */
-const parseCache = new WeakMap();
-
-/**
- * @param {object} obj the object
- * @returns {ParsedObject} parsed object
- */
-const cachedParseObject = obj => {
+const cachedParseObject = (obj: Obj) => {
 	const entry = parseCache.get(obj);
 	if (entry !== undefined) return entry;
 	const result = parseObject(obj);
@@ -121,17 +145,16 @@ const cachedParseObject = obj => {
  * @param {object} obj the object
  * @returns {ParsedObject} parsed object
  */
-const parseObject = obj => {
-	const info = new Map();
-	let dynamicInfo;
-	// @ts-expect-error
-	const getInfo = p => {
+const parseObject = (obj: Obj): ParsedObject => {
+	const info: Info = new Map();
+	let dynamicInfo: DynamicInfo | undefined;
+	const getInfo = (p: any) => {
 		const entry = info.get(p);
 		if (entry !== undefined) return entry;
 		const newEntry = {
 			base: undefined,
 			byProperty: undefined,
-			byValues: undefined
+			byValues: new Map()
 		};
 		info.set(p, newEntry);
 		return newEntry;
@@ -139,7 +162,6 @@ const parseObject = obj => {
 	for (const key of Object.keys(obj)) {
 		if (key.startsWith("by")) {
 			const byProperty = key;
-			// @ts-expect-error
 			const byObj = obj[byProperty];
 			if (typeof byObj === "object") {
 				for (const byValue of Object.keys(byObj)) {
@@ -148,7 +170,6 @@ const parseObject = obj => {
 						const entry = getInfo(key);
 						if (entry.byProperty === undefined) {
 							entry.byProperty = byProperty;
-							entry.byValues = new Map();
 						} else if (entry.byProperty !== byProperty) {
 							throw new Error(
 								`${byProperty} and ${entry.byProperty} for a single property is not supported`
@@ -176,12 +197,10 @@ const parseObject = obj => {
 				}
 			} else {
 				const entry = getInfo(key);
-				// @ts-expect-error
 				entry.base = obj[key];
 			}
 		} else {
 			const entry = getInfo(key);
-			// @ts-expect-error
 			entry.base = obj[key];
 		}
 	}
@@ -192,16 +211,15 @@ const parseObject = obj => {
 };
 
 /**
- * @param {Map<string, ObjectParsedPropertyEntry>} info static properties (key is property name)
- * @param {{ byProperty: string, fn: Function } | undefined} dynamicInfo dynamic part
- * @returns {object} the object
+ * @param info static properties (key is property name)
+ * @param dynamicInfo dynamic part
+ * @returns the object
  */
-const serializeObject = (info, dynamicInfo) => {
-	const obj = {};
+const serializeObject = (info: Info, dynamicInfo: DynamicInfo | undefined) => {
+	const obj: Obj = {};
 	// Setup byProperty structure
 	for (const entry of info.values()) {
 		if (entry.byProperty !== undefined) {
-			// @ts-expect-error
 			const byObj = (obj[entry.byProperty] = obj[entry.byProperty] || {});
 			for (const byValue of entry.byValues.keys()) {
 				byObj[byValue] = byObj[byValue] || {};
@@ -210,12 +228,10 @@ const serializeObject = (info, dynamicInfo) => {
 	}
 	for (const [key, entry] of info) {
 		if (entry.base !== undefined) {
-			// @ts-expect-error
 			obj[key] = entry.base;
 		}
 		// Fill byProperty structure
 		if (entry.byProperty !== undefined) {
-			// @ts-expect-error
 			const byObj = (obj[entry.byProperty] = obj[entry.byProperty] || {});
 			for (const byValue of Object.keys(byObj)) {
 				const value = getFromByValues(entry.byValues, byValue);
@@ -224,7 +240,6 @@ const serializeObject = (info, dynamicInfo) => {
 		}
 	}
 	if (dynamicInfo !== undefined) {
-		// @ts-expect-error
 		obj[dynamicInfo.byProperty] = dynamicInfo.fn;
 	}
 	return obj;
@@ -237,10 +252,10 @@ const VALUE_TYPE_OBJECT = 3;
 const VALUE_TYPE_DELETE = 4;
 
 /**
- * @param {any} value a single value
+ * @param value a single value
  * @returns {VALUE_TYPE_UNDEFINED | VALUE_TYPE_ATOM | VALUE_TYPE_ARRAY_EXTEND | VALUE_TYPE_OBJECT | VALUE_TYPE_DELETE} value type
  */
-const getValueType = value => {
+const getValueType = (value: any) => {
 	if (value === undefined) {
 		return VALUE_TYPE_UNDEFINED;
 	} else if (value === DELETE) {
@@ -262,30 +277,34 @@ const getValueType = value => {
  * Merges two objects. Objects are deeply clever merged.
  * Arrays might reference the old value with "...".
  * Non-object values take preference over object values.
- * @template T
- * @template O
- * @param {T} first first object
- * @param {O} second second object
- * @returns {T & O | T | O} merged object of first and second object
+ * @param first first object
+ * @param second second object
+ * @returns merged object of first and second object
  */
-const cleverMerge = (first, second) => {
+export const cleverMerge = <First, Second>(
+	first: First,
+	second: Second
+): First | Second | (First & Second) => {
 	if (second === undefined) return first;
 	if (first === undefined) return second;
 	if (typeof second !== "object" || second === null) return second;
 	if (typeof first !== "object" || first === null) return first;
 
-	// @ts-expect-error
 	return _cleverMerge(first, second, false);
 };
 
 /**
  * Merges two objects. Objects are deeply clever merged.
- * @param {object} first first object
- * @param {object} second second object
- * @param {boolean} internalCaching should parsing of objects and nested merges be cached
- * @returns {object} merged object of first and second object
+ * @param first first object
+ * @param second second object
+ * @param internalCaching should parsing of objects and nested merges be cached
+ * @returns merged object of first and second object
  */
-const _cleverMerge = (first, second, internalCaching = false) => {
+const _cleverMerge = <First extends Obj, Second extends Obj>(
+	first: First,
+	second: Second,
+	internalCaching = false
+): First & Second => {
 	const firstObject = internalCaching
 		? cachedParseObject(first)
 		: parseObject(first);
@@ -294,7 +313,6 @@ const _cleverMerge = (first, second, internalCaching = false) => {
 	// If the first argument has a dynamic part we modify the dynamic part to merge the second argument
 	if (firstDynamicInfo !== undefined) {
 		let { byProperty, fn } = firstDynamicInfo;
-		// @ts-expect-error
 		const fnInfo = fn[DYNAMIC_INFO];
 		if (fnInfo) {
 			second = internalCaching
@@ -302,14 +320,14 @@ const _cleverMerge = (first, second, internalCaching = false) => {
 				: cleverMerge(fnInfo[1], second);
 			fn = fnInfo[0];
 		}
-		// @ts-expect-error
-		const newFn = (...args) => {
+
+		const newFn: FunctionWithDynamicInfo = (...args: any[]) => {
 			const fnResult = fn(...args);
 			return internalCaching
 				? cachedCleverMerge(fnResult, second)
 				: cleverMerge(fnResult, second);
 		};
-		// @ts-expect-error
+
 		newFn[DYNAMIC_INFO] = [fn, second];
 		return serializeObject(firstObject.static, { byProperty, fn: newFn });
 	}
@@ -319,8 +337,7 @@ const _cleverMerge = (first, second, internalCaching = false) => {
 		? cachedParseObject(second)
 		: parseObject(second);
 	const { static: secondInfo, dynamic: secondDynamicInfo } = secondObject;
-	/** @type {Map<string, ObjectParsedPropertyEntry>} */
-	const resultInfo = new Map();
+	const resultInfo = new Map<string, ObjectParsedPropertyEntry>();
 	for (const [key, firstEntry] of firstInfo) {
 		const secondEntry = secondInfo.get(key);
 		const entry =
@@ -338,12 +355,16 @@ const _cleverMerge = (first, second, internalCaching = false) => {
 };
 
 /**
- * @param {ObjectParsedPropertyEntry} firstEntry a
- * @param {ObjectParsedPropertyEntry} secondEntry b
- * @param {boolean} internalCaching should parsing of objects and nested merges be cached
- * @returns {ObjectParsedPropertyEntry} new entry
+ * @param firstEntry a
+ * @param secondEntry b
+ * @param internalCaching should parsing of objects and nested merges be cached
+ * @returns new entry
  */
-const mergeEntries = (firstEntry, secondEntry, internalCaching) => {
+const mergeEntries = (
+	firstEntry: ObjectParsedPropertyEntry,
+	secondEntry: ObjectParsedPropertyEntry,
+	internalCaching: boolean
+): ObjectParsedPropertyEntry => {
 	switch (getValueType(secondEntry.base)) {
 		case VALUE_TYPE_ATOM:
 		case VALUE_TYPE_DELETE:
@@ -450,11 +471,11 @@ const mergeEntries = (firstEntry, secondEntry, internalCaching) => {
 };
 
 /**
- * @param {Map<string, any>} byValues all values
- * @param {string} key value of the selector
- * @returns {any | undefined} value
+ * @param byValues all values
+ * @param key value of the selector
+ * @returns value
  */
-const getFromByValues = (byValues, key) => {
+const getFromByValues = (byValues: Obj, key: string) => {
 	if (key !== "default" && byValues.has(key)) {
 		return byValues.get(key);
 	}
@@ -462,12 +483,12 @@ const getFromByValues = (byValues, key) => {
 };
 
 /**
- * @param {any} a value
- * @param {any} b value
- * @param {boolean} internalCaching should parsing of objects and nested merges be cached
- * @returns {any} value
+ * @param a value
+ * @param b value
+ * @param internalCaching should parsing of objects and nested merges be cached
+ * @returns value
  */
-const mergeSingleValue = (a, b, internalCaching) => {
+const mergeSingleValue = (a: any, b: any, internalCaching: boolean) => {
 	const bType = getValueType(b);
 	const aType = getValueType(a);
 	switch (bType) {
@@ -494,8 +515,7 @@ const mergeSingleValue = (a, b, internalCaching) => {
 				case VALUE_TYPE_UNDEFINED:
 					return b;
 				case VALUE_TYPE_DELETE:
-					// @ts-expect-error
-					return b.filter(item => item !== "...");
+					return b.filter((item: string) => item !== "...");
 				case VALUE_TYPE_ARRAY_EXTEND: {
 					const newArray = [];
 					for (const item of b) {
@@ -510,8 +530,7 @@ const mergeSingleValue = (a, b, internalCaching) => {
 					return newArray;
 				}
 				case VALUE_TYPE_OBJECT:
-					// @ts-expect-error
-					return b.map(item => (item === "..." ? a : item));
+					return b.map((item: string) => (item === "..." ? a : item));
 				default:
 					throw new Error("Not implemented");
 			}
@@ -521,15 +540,12 @@ const mergeSingleValue = (a, b, internalCaching) => {
 };
 
 /**
- * @template T
- * @param {T} obj the object
- * @returns {T} the object without operations like "..." or DELETE
+ * @param obj the object
+ * @returns the object without operations like "..." or DELETE
  */
-const removeOperations = obj => {
-	const newObj = /** @type {T} */ ({});
-	// @ts-expect-error
+export const removeOperations = <O extends Obj>(obj: O): O => {
+	const newObj: Obj = {};
 	for (const key of Object.keys(obj)) {
-		// @ts-expect-error
 		const value = obj[key];
 		const type = getValueType(value);
 		switch (type) {
@@ -537,15 +553,12 @@ const removeOperations = obj => {
 			case VALUE_TYPE_DELETE:
 				break;
 			case VALUE_TYPE_OBJECT:
-				// @ts-expect-error
 				newObj[key] = removeOperations(value);
 				break;
 			case VALUE_TYPE_ARRAY_EXTEND:
-				// @ts-expect-error
-				newObj[key] = value.filter(i => i !== "...");
+				newObj[key] = (value as string[]).filter(i => i !== "...");
 				break;
 			default:
-				// @ts-expect-error
 				newObj[key] = value;
 				break;
 		}
@@ -554,30 +567,30 @@ const removeOperations = obj => {
 };
 
 /**
- * @template T
- * @template {string} P
- * @param {T} obj the object
- * @param {P} byProperty the by description
- * @param  {...any} values values
- * @returns {Omit<T, P>|undefined} object with merged byProperty
+ * @param obj the object
+ * @param byProperty the by description
+ * @param values values
+ * @returns object with merged byProperty
  */
-const resolveByProperty = (obj, byProperty, ...values) => {
-	if (typeof obj !== "object" || obj === null || !(byProperty in obj)) {
+export const resolveByProperty = <O extends Obj | null, P extends PropertyKey>(
+	obj: O,
+	byProperty: P,
+	...values: any[]
+): Omit<O, P> | undefined => {
+	if (!isPropertyInObject(obj, byProperty)) {
 		return obj;
 	}
-	const { [byProperty]: _byValue, ..._remaining } = /** @type {object} */ (obj);
-	const remaining = /** @type {T} */ (_remaining);
-	const byValue = /** @type {Record<string, T> | function(...any[]): T} */ (
-		_byValue
-	);
+	const { [byProperty]: _byValue, ..._remaining } = obj;
+	const remaining = _remaining;
+	const byValue = _byValue;
 	if (typeof byValue === "object") {
-		const key = values[0];
+		const key = values[0] as PropertyKey;
 		if (key in byValue) {
-			return cachedCleverMerge(remaining, byValue[key]);
+			return cachedCleverMerge(remaining, byValue[key as keyof typeof byValue]);
 		} else if ("default" in byValue) {
 			return cachedCleverMerge(remaining, byValue.default);
 		} else {
-			return /** @type {T} */ (remaining);
+			return remaining;
 		}
 	} else if (typeof byValue === "function") {
 		const result = byValue.apply(null, values);
@@ -588,9 +601,9 @@ const resolveByProperty = (obj, byProperty, ...values) => {
 	}
 };
 
-exports.cachedSetProperty = cachedSetProperty;
-exports.cachedCleverMerge = cachedCleverMerge;
-exports.cleverMerge = cleverMerge;
-exports.resolveByProperty = resolveByProperty;
-exports.removeOperations = removeOperations;
-exports.DELETE = DELETE;
+function isPropertyInObject<
+	O extends Obj | undefined | null,
+	P extends PropertyKey
+>(obj: O, property: P): obj is NonNullable<O> & Record<P, any> {
+	return typeof obj === "object" && obj !== null && property in obj;
+}

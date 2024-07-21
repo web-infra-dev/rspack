@@ -8,9 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-"use strict";
-
-const create = require("./wasm-hash");
+import create from "./wasm-hash";
 
 //#region wasm code: xxhash64 (../../../assembly/hash/xxhash64.asm.ts) --initialMemory 1
 const xxhash64 = new WebAssembly.Module(
@@ -22,4 +20,4 @@ const xxhash64 = new WebAssembly.Module(
 );
 //#endregion
 
-module.exports = create.bind(null, xxhash64, [], 32, 16);
+export default create.bind(null, xxhash64, [], 32, 16);

@@ -976,6 +976,9 @@ class Compiler {
 				binding.RegisterJsTapKind.CompilationChunkHash,
 				() => this.#compilation!.hooks.chunkHash,
 				queried => (chunk: binding.JsChunk) => {
+					if (!this.options.output.hashFunction) {
+						throw new Error("'output.hashFunction' cannot be undefined");
+					}
 					const hash = createHash(this.options.output.hashFunction);
 					queried.call(Chunk.__from_binding(chunk, this.#compilation!), hash);
 					const digestResult = hash.digest(this.options.output.hashDigest);
@@ -1175,6 +1178,9 @@ class Compiler {
 					JavascriptModulesPlugin.getCompilationHooks(this.#compilation!)
 						.chunkHash,
 				queried => (chunk: binding.JsChunk) => {
+					if (!this.options.output.hashFunction) {
+						throw new Error("'output.hashFunction' cannot be undefined");
+					}
 					const hash = createHash(this.options.output.hashFunction);
 					queried.call(Chunk.__from_binding(chunk, this.#compilation!), hash);
 					const digestResult = hash.digest(this.options.output.hashDigest);

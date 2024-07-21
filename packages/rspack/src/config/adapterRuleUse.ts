@@ -5,14 +5,14 @@ import type {
 } from "@rspack/binding";
 import type { ResolveRequest } from "enhanced-resolve";
 
-import type { Compiler } from "../Compiler";
-import type { Logger } from "../logging/Logger";
-import Hash = require("../util/hash");
 import type { Compilation } from "../Compilation";
+import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
 import { resolvePluginImport } from "../builtin-loader";
 import { type LoaderObject, parsePathQueryFragment } from "../loader-runner";
+import type { Logger } from "../logging/Logger";
 import { isNil } from "../util";
+import type Hash from "../util/hash";
 import type {
 	Mode,
 	PublicPath,

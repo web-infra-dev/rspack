@@ -8,24 +8,42 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-"use strict";
-
 // 65536 is the size of a wasm memory page
 // 64 is the maximum chunk size for every possible wasm hash implementation
 // 4 is the maximum number of bytes per char for string encoding (max is utf-8)
 // ~3 makes sure that it's always a block of 4 chars, so avoid partially encoded bytes for base64
-const MAX_SHORT_STRING = Math.floor((65536 - 64) / 4) & ~3;
+export const MAX_SHORT_STRING = Math.floor((65536 - 64) / 4) & ~3;
+
+type Exports = WebAssembly.Instance["exports"] & {
+	init: () => void;
+	update: (b: number) => void;
+	memory: WebAssembly.Memory;
+	final: (b: number) => void;
+};
 
 class WasmHash {
+	exports: Exports;
+	instancesPool: WebAssembly.Instance[];
+	buffered: number;
+	mem: Buffer;
+	chunkSize: number;
+	digestSize: number;
+
 	/**
-	 * @param {WebAssembly.Instance} instance wasm instance
-	 * @param {WebAssembly.Instance[]} instancesPool pool of instances
-	 * @param {number} chunkSize size of data chunks passed to wasm
-	 * @param {number} digestSize size of digest returned by wasm
+	 * @param instance wasm instance
+	 * @param instancesPool pool of instances
+	 * @param chunkSize size of data chunks passed to wasm
+	 * @param digestSize size of digest returned by wasm
 	 */
-	constructor(instance, instancesPool, chunkSize, digestSize) {
-		const exports = /** @type {any} */ (instance.exports);
+	constructor(
+		instance: WebAssembly.Instance,
+		instancesPool: WebAssembly.Instance[],
+		chunkSize: number,
+		digestSize: number
+	) {
+		const exports = instance.exports as Exports;
 		exports.init();
+
 		this.exports = exports;
 		this.mem = Buffer.from(exports.memory.buffer, 0, 65536);
 		this.buffered = 0;
@@ -40,11 +58,11 @@ class WasmHash {
 	}
 
 	/**
-	 * @param {Buffer | string} data data
-	 * @param {BufferEncoding=} encoding encoding
-	 * @returns {this} itself
+	 * @param data data
+	 * @param encoding encoding
+	 * @returns itself
 	 */
-	update(data, encoding) {
+	update(data: Buffer | string, encoding?: BufferEncoding): this {
 		if (typeof data === "string") {
 			while (data.length > MAX_SHORT_STRING) {
 				this._updateWithShortString(data.slice(0, MAX_SHORT_STRING), encoding);
@@ -62,7 +80,7 @@ class WasmHash {
 	 * @param {BufferEncoding=} encoding encoding
 	 * @returns {void}
 	 */
-	_updateWithShortString(data, encoding) {
+	_updateWithShortString(data: string, encoding?: BufferEncoding): void {
 		const { exports, buffered, mem, chunkSize } = this;
 		let endPos;
 		if (data.length < 70) {
@@ -105,10 +123,10 @@ class WasmHash {
 	}
 
 	/**
-	 * @param {Buffer} data data
-	 * @returns {void}
+	 * @param data data
+	 * @returns
 	 */
-	_updateWithBuffer(data) {
+	_updateWithBuffer(data: Buffer): void {
 		const { exports, buffered, mem } = this;
 		const length = data.length;
 		if (buffered + length < this.chunkSize) {
@@ -138,8 +156,7 @@ class WasmHash {
 		}
 	}
 
-	// @ts-expect-error
-	digest(type) {
+	digest(type: BufferEncoding) {
 		const { exports, buffered, mem, digestSize } = this;
 		exports.final(buffered);
 		this.instancesPool.push(this);
@@ -150,10 +167,14 @@ class WasmHash {
 	}
 }
 
-// @ts-expect-error
-const create = (wasmModule, instancesPool, chunkSize, digestSize) => {
+const create = (
+	wasmModule: WebAssembly.Module,
+	instancesPool: WasmHash[],
+	chunkSize: number,
+	digestSize: number
+): WasmHash => {
 	if (instancesPool.length > 0) {
-		const old = instancesPool.pop();
+		const old = instancesPool.pop() as WasmHash;
 		old.reset();
 		return old;
 	} else {
@@ -166,5 +187,4 @@ const create = (wasmModule, instancesPool, chunkSize, digestSize) => {
 	}
 };
 
-module.exports = create;
-module.exports.MAX_SHORT_STRING = MAX_SHORT_STRING;
+export default create;
