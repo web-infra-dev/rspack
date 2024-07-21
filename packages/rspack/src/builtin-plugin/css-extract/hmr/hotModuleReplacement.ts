@@ -5,7 +5,7 @@
   func-names
 */
 
-import normalizeUrl from "./normalize-url";
+const normalizeUrlFn = require("./normalize-url");
 
 type Option<T> = T | null | undefined;
 type DebouncedFunction<T extends (...args: any[]) => any> = (
@@ -78,7 +78,7 @@ function getCurrentScriptUrl(moduleId: string) {
 		return fileMap.split(",").map(mapRule => {
 			const reg = new RegExp(`${filename}\\.js$`, "g");
 
-			return normalizeUrl(
+			return normalizeUrlFn(
 				src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`)
 			);
 		});
@@ -144,7 +144,7 @@ function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 function getReloadUrl(href: string, src: Array<string>): string {
 	let ret: string;
 
-	href = normalizeUrl(href);
+	href = normalizeUrlFn(href);
 
 	src.some(url => {
 		if (href.indexOf(src as unknown as string) > -1) {

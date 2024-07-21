@@ -16,7 +16,7 @@ function normalizeUrl(pathComponents: string[]): string {
 		.join("/");
 }
 
-export default function (urlString: string): string {
+module.exports = function (urlString: string): string {
 	urlString = urlString.trim();
 
 	if (/^data:/i.test(urlString)) {
@@ -33,4 +33,4 @@ export default function (urlString: string): string {
 	var path = normalizeUrl(components);
 
 	return protocol + host + path;
-}
+};
