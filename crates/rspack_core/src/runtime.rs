@@ -94,7 +94,13 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
     return false;
   }
 
-  a.iter().zip(b.iter()).all(|(a, b)| a == b)
+  for a in a.iter() {
+    if !b.contains(a) {
+      return false;
+    }
+  }
+
+  true
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
