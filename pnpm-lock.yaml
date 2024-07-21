@@ -480,10 +480,10 @@ importers:
   packages/rspack-dev-server:
     dependencies:
       chokidar:
-        specifier: 3.6.0
+        specifier: ^3.6.0
         version: 3.6.0
       connect-history-api-fallback:
-        specifier: 2.0.0
+        specifier: ^2.0.0
         version: 2.0.0
       express:
         specifier: ^4.17.3
