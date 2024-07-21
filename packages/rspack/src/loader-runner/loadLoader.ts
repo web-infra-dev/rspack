@@ -45,8 +45,10 @@ export default function loadLoader(
 		} catch (e) {
 			// it is possible for node to choke on a require if the FD descriptor
 			// limit has been reached. give it a chance to recover.
-			// @ts-expect-error
-			if (e instanceof Error && e.code === "EMFILE") {
+			if (
+				e instanceof Error &&
+				(e as NodeJS.ErrnoException).code === "EMFILE"
+			) {
 				var retry = loadLoader.bind(null, loader, callback);
 				if (typeof setImmediate === "function") {
 					// node >= 0.9.0
