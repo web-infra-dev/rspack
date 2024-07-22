@@ -763,13 +763,14 @@ impl ModuleConcatenationPlugin {
         candidates.push_back(import);
       }
 
+      let mut import_candidates = IdentifierSet::default();
       while let Some(imp) = candidates.pop_front() {
         if candidates_visited.contains(&imp) {
           continue;
         } else {
           candidates_visited.insert(imp);
         }
-        let mut import_candidates = IdentifierSet::default();
+        import_candidates.clear();
         match Self::try_to_add(
           compilation,
           &mut current_configuration,
