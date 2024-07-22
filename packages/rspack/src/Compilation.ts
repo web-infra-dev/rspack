@@ -71,6 +71,11 @@ export interface LogEntry {
 	trace?: string[];
 }
 
+export type RuntimeModule = liteTapable.SyncHook<
+	[JsRuntimeModule, Chunk],
+	void
+>;
+
 export interface CompilationParams {
 	normalModuleFactory: NormalModuleFactory;
 	contextModuleFactory: ContextModuleFactory;
@@ -191,7 +196,7 @@ export class Compilation {
 			[Chunk, Set<string>],
 			void
 		>;
-		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
+		runtimeModule: RuntimeModule;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 	}>;
 	name?: string;

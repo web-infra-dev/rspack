@@ -53,7 +53,7 @@ import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import sources = require('../compiled/webpack-sources');
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
-import Template = require('./Template');
+import { Template } from "./Template";
 import type * as webpackDevServer from 'webpack-dev-server';
 
 // @public (undocumented)

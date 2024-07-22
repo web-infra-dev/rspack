@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
+import { Template } from "../Template";
 import {
 	LightningCssMinimizerRspackPlugin,
 	SwcJsMinimizerRspackPlugin
@@ -48,7 +49,6 @@ import type {
 	RuleSetRules,
 	SnapshotOptions
 } from "./zod";
-import Template = require("../Template");
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
@@ -589,9 +589,7 @@ const applyOutputDefaults = (
 	);
 	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
 
-	const uniqueNameId = Template.toIdentifier(
-		/** @type {NonNullable<Output["uniqueName"]>} */ output.uniqueName
-	);
+	const uniqueNameId = Template.toIdentifier(output.uniqueName);
 	F(output, "hotUpdateGlobal", () => "webpackHotUpdate" + uniqueNameId);
 	F(output, "chunkLoadingGlobal", () => "webpackChunk" + uniqueNameId);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
