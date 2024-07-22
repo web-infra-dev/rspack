@@ -101,12 +101,7 @@ const MATCH_PADDED_HYPHENS_REPLACE_REGEX = /^-|-$/g;
  */
 
 class Template {
-	/**
-	 *
-	 * @param {Function} fn a runtime function (.runtime.js) "template"
-	 * @returns {string} the updated and normalized function string
-	 */
-	static getFunctionContent(fn) {
+	static getFunctionContent(fn: Function): string {
 		return fn
 			.toString()
 			.replace(FUNCTION_CONTENT_REGEX, "")
@@ -114,32 +109,19 @@ class Template {
 			.replace(LINE_SEPARATOR_REGEX, "\n");
 	}
 
-	/**
-	 * @param {any} str the string converted to identifier
-	 * @returns {string} created identifier
-	 */
-	static toIdentifier(str) {
+	static toIdentifier(str: any): string {
 		if (typeof str !== "string") return "";
 		return str
 			.replace(IDENTIFIER_NAME_REPLACE_REGEX, "_$1")
 			.replace(IDENTIFIER_ALPHA_NUMERIC_NAME_REPLACE_REGEX, "_");
 	}
-	/**
-	 *
-	 * @param {string} str string to be converted to commented in bundle code
-	 * @returns {string} returns a commented version of string
-	 */
-	static toComment(str) {
+
+	static toComment(str: string): string {
 		if (!str) return "";
 		return `/*! ${str.replace(COMMENT_END_REGEX, "* /")} */`;
 	}
 
-	/**
-	 *
-	 * @param {string} str string to be converted to "normal comment"
-	 * @returns {string} returns a commented version of string
-	 */
-	static toNormalComment(str) {
+	static toNormalComment(str: string): string {
 		if (!str) return "";
 		return `/* ${str.replace(COMMENT_END_REGEX, "* /")} */`;
 	}
@@ -148,7 +130,7 @@ class Template {
 	 * @param {string} str string path to be normalized
 	 * @returns {string} normalized bundle-safe path
 	 */
-	static toPath(str) {
+	static toPath(str: string): string {
 		if (typeof str !== "string") return "";
 		return str
 			.replace(PATH_NAME_NORMALIZE_REPLACE_REGEX, "-")
