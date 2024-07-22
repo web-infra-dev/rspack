@@ -44,11 +44,11 @@ export function Table(props: TableProps) {
   const { body = [], tableStyle, header = [] } = props;
   // Support markdown syntax in table cell
   const compiledValue = body.map((item: any) => {
-    Object.keys(item).forEach(key => {
+    for (const key of Object.keys(item)) {
       if (typeof item[key] === 'string') {
         item[key] = <Markdown>{item[key]}</Markdown>;
       }
-    });
+    }
     return item;
   });
 

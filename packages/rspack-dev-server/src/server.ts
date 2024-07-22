@@ -109,7 +109,7 @@ export class RspackDevServer extends WebpackDevServer {
 				? this.compiler.compilers
 				: [this.compiler];
 
-		compilers.forEach(compiler => {
+		for (const compiler of compilers) {
 			const mode = compiler.options.mode || process.env.NODE_ENV;
 			if (this.options.hot) {
 				if (mode === "production") {
@@ -140,15 +140,15 @@ export class RspackDevServer extends WebpackDevServer {
 					...compiler.options.resolve.alias
 				};
 			}
-		});
+		}
 
 		if (this.options.webSocketServer) {
-			compilers.forEach(compiler => {
+			for (const compiler of compilers) {
 				this.addAdditionalEntries(compiler);
 				new compiler.webpack.ProvidePlugin({
 					__webpack_dev_server_client__: this.getClientTransport()
 				}).apply(compiler);
-			});
+			}
 		}
 
 		// @ts-expect-error: `setupHooks` is private function in base class.
@@ -173,7 +173,7 @@ export class RspackDevServer extends WebpackDevServer {
 
 			let needForceShutdown = false;
 
-			signals.forEach(signal => {
+			for (const signal of signals) {
 				const listener = () => {
 					if (needForceShutdown) {
 						process.exit();
@@ -200,15 +200,15 @@ export class RspackDevServer extends WebpackDevServer {
 				this.listeners.push({ name: signal, listener });
 
 				process.on(signal, listener);
-			});
+			}
 		}
 
 		// Proxy WebSocket without the initial http request
 		// https://github.com/chimurai/http-proxy-middleware#external-websocket-upgrade
 		// @ts-expect-error: `webSocketProxies` is private function in base class.
-		this.webSocketProxies.forEach(webSocketProxy => {
+		for (const webSocketProxy of this.webSocketProxies) {
 			this.server.on("upgrade", webSocketProxy.upgrade);
-		}, this);
+		}
 	}
 
 	private override setupDevMiddleware() {
@@ -218,7 +218,7 @@ export class RspackDevServer extends WebpackDevServer {
 
 	private override setupMiddlewares() {
 		const middlewares: WebpackDevServer.Middleware[] = [];
-		middlewares.forEach(middleware => {
+		for (const middleware of middlewares) {
 			if (typeof middleware === "function") {
 				// @ts-expect-error
 				this.app.use(middleware);
@@ -229,7 +229,7 @@ export class RspackDevServer extends WebpackDevServer {
 				// @ts-expect-error
 				this.app.use(middleware.middleware);
 			}
-		});
+		}
 
 		// @ts-expect-error
 		super.setupMiddlewares();

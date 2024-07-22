@@ -46,10 +46,10 @@ export class StatsProcessor<
 		await super.compiler(context);
 		const instance = this.getCompiler(context).getCompiler()! as any;
 		const compilers = instance.compilers ? instance.compilers : [instance];
-		compilers.forEach((c: Compiler) => {
-			const ifs = c.inputFileSystem;
-			c.inputFileSystem = Object.create(ifs);
-			c.inputFileSystem.readFile = () => {
+		for (const compiler of compilers) {
+			const ifs = compiler.inputFileSystem;
+			compiler.inputFileSystem = Object.create(ifs);
+			compiler.inputFileSystem.readFile = () => {
 				const args = Array.prototype.slice.call(arguments);
 				const callback = args.pop();
 				ifs.readFile.apply(
@@ -66,7 +66,7 @@ export class StatsProcessor<
 			};
 
 			// CHANGE: The checkConstraints() function is currently not implemented in rspack
-			// c.hooks.compilation.tap("StatsTestCasesTest", compilation => {
+			// compiler.hooks.compilation.tap("StatsTestCasesTest", compilation => {
 			// 	[
 			// 		"optimize",
 			// 		"optimizeModules",
@@ -80,7 +80,7 @@ export class StatsProcessor<
 			// 		);
 			// 	});
 			// });
-		});
+		}
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {

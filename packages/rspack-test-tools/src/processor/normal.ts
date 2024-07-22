@@ -132,18 +132,20 @@ export class NormalProcessor<
 				.concat(testConfig.plugins || [])
 				.concat(function (this: TCompiler<T>) {
 					this.hooks.compilation.tap("TestCasesTest", compilation => {
-						[
+						const hooks: never[] = [
 							// CHANGE: the follwing hooks are not supported yet, so comment it out
 							// "optimize",
 							// "optimizeModules",
 							// "optimizeChunks",
 							// "afterOptimizeTree",
 							// "afterOptimizeAssets"
-						].forEach(hook => {
+						];
+
+						for (const hook of hooks) {
 							(compilation.hooks[hook] as any).tap("TestCasesTest", () =>
 								(compilation as any).checkConstraints()
 							);
-						});
+						}
 					});
 				}),
 			experiments: {
