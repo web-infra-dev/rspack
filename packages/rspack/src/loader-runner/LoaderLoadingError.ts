@@ -8,7 +8,6 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 
-
 class LoadingLoaderError extends Error {
 	constructor(message: string) {
 		super(message);
