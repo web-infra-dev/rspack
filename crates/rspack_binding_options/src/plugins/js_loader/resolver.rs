@@ -7,6 +7,7 @@ use rspack_core::{
 use rspack_error::{error, Result};
 use rspack_hook::plugin_hook;
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_loader_lightningcss::LIGHTNINGCSS_LOADER_IDENTIFIER;
 use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
@@ -35,6 +36,17 @@ pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
       .with_identifier(builtin.into()),
     );
   }
+
+  if builtin.starts_with(LIGHTNINGCSS_LOADER_IDENTIFIER) {
+    let config = serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
+      panic!("Could not parse builtin:lightningcss-loader options:{options:?},error: {e:?}")
+    });
+    // TODO: builtin-loader supports function
+    return Arc::new(rspack_loader_lightningcss::LightningCssLoader::new(
+      None, config,
+    ));
+  }
+
   if builtin.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
     return Arc::new(
       rspack_loader_react_refresh::ReactRefreshLoader::default().with_identifier(builtin.into()),

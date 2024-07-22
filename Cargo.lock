@@ -1834,6 +1834,7 @@ dependencies = [
  "getrandom",
  "itertools 0.10.5",
  "lazy_static",
+ "lightningcss-derive",
  "parcel_selectors",
  "parcel_sourcemap",
  "paste",
@@ -1841,6 +1842,18 @@ dependencies = [
  "rayon",
  "serde",
  "smallvec",
+ "static-self",
+]
+
+[[package]]
+name = "lightningcss-derive"
+version = "1.0.0-alpha.42"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f02a09f0b79d31f1ee13ea55e2f7021037c6b72e0a3ab6c1cb0e9bd7ac8a295"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -2340,6 +2353,7 @@ dependencies = [
  "phf_codegen",
  "precomputed-hash",
  "smallvec",
+ "static-self",
 ]
 
 [[package]]
@@ -3002,6 +3016,7 @@ dependencies = [
  "rspack_hook",
  "rspack_identifier",
  "rspack_ids",
+ "rspack_loader_lightningcss",
  "rspack_loader_preact_refresh",
  "rspack_loader_react_refresh",
  "rspack_loader_runner",
@@ -3223,6 +3238,21 @@ dependencies = [
  "rspack_hook",
  "rspack_util",
  "tracing",
+]
+
+[[package]]
+name = "rspack_loader_lightningcss"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "derivative",
+ "lightningcss",
+ "parcel_sourcemap",
+ "rspack_core",
+ "rspack_error",
+ "rspack_loader_runner",
+ "serde",
+ "tokio",
 ]
 
 [[package]]
@@ -4455,6 +4485,27 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.63",
+]
+
+[[package]]
+name = "static-self"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "253e76c8c993a7b1b201b0539228b334582153cd4364292822d2c30776d469c7"
+dependencies = [
+ "smallvec",
+ "static-self-derive",
+]
+
+[[package]]
+name = "static-self-derive"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5268c96d4b907c558a9a52d8492522d6c7b559651a5e1d8f2d551e461b9425d5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]

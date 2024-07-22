@@ -745,6 +745,9 @@ export type BaseUri = z.infer<typeof baseUri>;
 const baseUri: z.ZodString;
 
 // @public (undocumented)
+function browserslistToTargets(browserslist: string[]): Record<string, number>;
+
+// @public (undocumented)
 type CacheHookMap = Map<string, SyncBailHook<[any[], StatsFactoryContext], any>[]>;
 
 // @public (undocumented)
@@ -1784,6 +1787,11 @@ class DirectoryWatcher extends EventEmitter {
     watchers: {
         [path: string]: Watcher_2[];
     };
+}
+
+// @public (undocumented)
+interface Drafts {
+    customMedia?: boolean;
 }
 
 // @public (undocumented)
@@ -3379,6 +3387,58 @@ export type Falsy = z.infer<typeof falsy>;
 const falsy: z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>;
 
 // @public (undocumented)
+enum Features {
+    // (undocumented)
+    ClampFunction = 512,
+    // (undocumented)
+    Color = 64512,
+    // (undocumented)
+    ColorFunction = 1024,
+    // (undocumented)
+    CustomMediaQueries = 256,
+    // (undocumented)
+    DirSelector = 4,
+    // (undocumented)
+    DoublePositionGradients = 131072,
+    // (undocumented)
+    Empty = 0,
+    // (undocumented)
+    FontFamilySystemUi = 65536,
+    // (undocumented)
+    HexAlphaColors = 16384,
+    // (undocumented)
+    IsSelector = 16,
+    // (undocumented)
+    LabColors = 4096,
+    // (undocumented)
+    LangSelectorList = 8,
+    // (undocumented)
+    LogicalProperties = 524288,
+    // (undocumented)
+    MediaIntervalSyntax = 64,
+    // (undocumented)
+    MediaQueries = 448,
+    // (undocumented)
+    MediaRangeSyntax = 128,
+    // (undocumented)
+    Nesting = 1,
+    // (undocumented)
+    NotSelectorList = 2,
+    // (undocumented)
+    OklabColors = 2048,
+    // (undocumented)
+    P3Colors = 8192,
+    // (undocumented)
+    Selectors = 31,
+    // (undocumented)
+    SpaceSeparatedColorNotation = 32768,
+    // (undocumented)
+    TextDecorationThicknessPercent = 32,
+    // (undocumented)
+    VendorPrefixes = 262144
+}
+
+// @public (undocumented)
 const FetchCompileAsyncWasmPlugin: {
     new (): {
         name: BuiltinPluginName;
@@ -4798,6 +4858,31 @@ export type LibraryType = z.infer<typeof libraryType>;
 
 // @public (undocumented)
 const libraryType: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
+
+declare namespace lightningcss {
+    export {
+        browserslistToTargets,
+        Features,
+        Targets,
+        Drafts,
+        NonStandard,
+        PseudoClasses,
+        LightningcssLoaderOptions as LoaderOptions
+    }
+}
+export { lightningcss }
+
+// @public (undocumented)
+export type LightningcssLoaderOptions = {
+    errorRecovery?: boolean;
+    targets?: Targets | string[] | string;
+    include?: Features;
+    exclude?: Features;
+    draft?: Drafts;
+    nonStandard?: NonStandard;
+    pseudoClasses?: PseudoClasses;
+    unusedSymbols?: string[];
+};
 
 // @public (undocumented)
 export const LightningCssMinimizerRspackPlugin: {
@@ -6277,6 +6362,11 @@ class NodeTemplatePlugin {
 type NodeTemplatePluginOptions = {
     asyncChunkLoading?: boolean;
 };
+
+// @public (undocumented)
+interface NonStandard {
+    deepSelectorCombinator?: boolean;
+}
 
 // @public (undocumented)
 export type NoParseOption = z.infer<typeof noParseOption>;
@@ -8369,6 +8459,20 @@ export type ProvidesObject = {
 };
 
 // @public (undocumented)
+interface PseudoClasses {
+    // (undocumented)
+    active?: string;
+    // (undocumented)
+    focus?: string;
+    // (undocumented)
+    focusVisible?: string;
+    // (undocumented)
+    focusWithin?: string;
+    // (undocumented)
+    hover?: string;
+}
+
+// @public (undocumented)
 export type PublicPath = z.infer<typeof publicPath>;
 
 // @public (undocumented)
@@ -8687,6 +8791,8 @@ declare namespace rspackExports {
         SwcLoaderParserConfig,
         SwcLoaderTransformConfig,
         SwcLoaderTsParserConfig,
+        LightningcssLoaderOptions,
+        lightningcss,
         experiments,
         getRawResolve,
         getRawLibrary,
@@ -13627,6 +13733,28 @@ export type Target = z.infer<typeof target>;
 
 // @public (undocumented)
 const target: z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["web", "webworker", "es3", "es5", "es2015", "es2016", "es2017", "es2018", "es2019", "es2020", "es2021", "es2022", "browserslist"]>, z.ZodLiteral<"node">, z.ZodLiteral<"async-node">, z.ZodType<`node${number}`, z.ZodTypeDef, `node${number}`>, z.ZodType<`async-node${number}`, z.ZodTypeDef, `async-node${number}`>, z.ZodType<`node${number}.${number}`, z.ZodTypeDef, `node${number}.${number}`>, z.ZodType<`async-node${number}.${number}`, z.ZodTypeDef, `async-node${number}.${number}`>, z.ZodLiteral<"electron-main">, z.ZodType<`electron${number}-main`, z.ZodTypeDef, `electron${number}-main`>, z.ZodType<`electron${number}.${number}-main`, z.ZodTypeDef, `electron${number}.${number}-main`>, z.ZodLiteral<"electron-renderer">, z.ZodType<`electron${number}-renderer`, z.ZodTypeDef, `electron${number}-renderer`>, z.ZodType<`electron${number}.${number}-renderer`, z.ZodTypeDef, `electron${number}.${number}-renderer`>, z.ZodLiteral<"electron-preload">, z.ZodType<`electron${number}-preload`, z.ZodTypeDef, `electron${number}-preload`>, z.ZodType<`electron${number}.${number}-preload`, z.ZodTypeDef, `electron${number}.${number}-preload`>, z.ZodLiteral<"nwjs">, z.ZodType<`nwjs${number}`, z.ZodTypeDef, `nwjs${number}`>, z.ZodType<`nwjs${number}.${number}`, z.ZodTypeDef, `nwjs${number}.${number}`>, z.ZodLiteral<"node-webkit">, z.ZodType<`node-webkit${number}`, z.ZodTypeDef, `node-webkit${number}`>, z.ZodType<`node-webkit${number}.${number}`, z.ZodTypeDef, `node-webkit${number}.${number}`>]>, z.ZodArray<z.ZodUnion<[z.ZodEnum<["web", "webworker", "es3", "es5", "es2015", "es2016", "es2017", "es2018", "es2019", "es2020", "es2021", "es2022", "browserslist"]>, z.ZodLiteral<"node">, z.ZodLiteral<"async-node">, z.ZodType<`node${number}`, z.ZodTypeDef, `node${number}`>, z.ZodType<`async-node${number}`, z.ZodTypeDef, `async-node${number}`>, z.ZodType<`node${number}.${number}`, z.ZodTypeDef, `node${number}.${number}`>, z.ZodType<`async-node${number}.${number}`, z.ZodTypeDef, `async-node${number}.${number}`>, z.ZodLiteral<"electron-main">, z.ZodType<`electron${number}-main`, z.ZodTypeDef, `electron${number}-main`>, z.ZodType<`electron${number}.${number}-main`, z.ZodTypeDef, `electron${number}.${number}-main`>, z.ZodLiteral<"electron-renderer">, z.ZodType<`electron${number}-renderer`, z.ZodTypeDef, `electron${number}-renderer`>, z.ZodType<`electron${number}.${number}-renderer`, z.ZodTypeDef, `electron${number}.${number}-renderer`>, z.ZodLiteral<"electron-preload">, z.ZodType<`electron${number}-preload`, z.ZodTypeDef, `electron${number}-preload`>, z.ZodType<`electron${number}.${number}-preload`, z.ZodTypeDef, `electron${number}.${number}-preload`>, z.ZodLiteral<"nwjs">, z.ZodType<`nwjs${number}`, z.ZodTypeDef, `nwjs${number}`>, z.ZodType<`nwjs${number}.${number}`, z.ZodTypeDef, `nwjs${number}.${number}`>, z.ZodLiteral<"node-webkit">, z.ZodType<`node-webkit${number}`, z.ZodTypeDef, `node-webkit${number}`>, z.ZodType<`node-webkit${number}.${number}`, z.ZodTypeDef, `node-webkit${number}.${number}`>]>, "many">]>;
+
+// @public (undocumented)
+interface Targets {
+    // (undocumented)
+    android?: number;
+    // (undocumented)
+    chrome?: number;
+    // (undocumented)
+    edge?: number;
+    // (undocumented)
+    firefox?: number;
+    // (undocumented)
+    ie?: number;
+    // (undocumented)
+    ios_saf?: number;
+    // (undocumented)
+    opera?: number;
+    // (undocumented)
+    safari?: number;
+    // (undocumented)
+    samsung?: number;
+}
 
 export { Template }
 
