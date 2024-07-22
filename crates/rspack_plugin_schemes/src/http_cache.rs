@@ -1,13 +1,15 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
 use reqwest::Client;
 use rspack_base64::encode_to_string;
+use rspack_fs::AsyncFileSystem;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
-use tokio::fs;
+use tokio::sync::Mutex;
 
 use crate::{
   http_uri::HttpUriPluginOptions,
@@ -50,15 +52,21 @@ pub enum FetchResultType {
 pub struct HttpCache {
   cache_location: Option<PathBuf>,
   lockfile_cache: LockfileCache,
+  filesystem: Arc<dyn AsyncFileSystem>,
 }
 
 impl HttpCache {
-  pub fn new(cache_location: Option<String>, lockfile_location: Option<String>) -> Self {
+  pub fn new(
+    cache_location: Option<String>,
+    lockfile_location: Option<String>,
+    filesystem: Arc<dyn AsyncFileSystem>,
+  ) -> Self {
     let cache_location = cache_location.map(PathBuf::from);
     let lockfile_path = lockfile_location.map(PathBuf::from);
     HttpCache {
       cache_location,
-      lockfile_cache: LockfileCache::new(lockfile_path),
+      lockfile_cache: LockfileCache::new(lockfile_path, filesystem),
+      filesystem,
     }
   }
 
@@ -200,7 +208,6 @@ impl HttpCache {
 
     Ok(FetchResultType::Content(result))
   }
-
   async fn read_from_cache(&self, resource: &str) -> Result<Option<ContentFetchResult>> {
     if let Some(cache_location) = &self.cache_location {
       let lockfile = self.lockfile_cache.get_lockfile().await?;
@@ -211,10 +218,12 @@ impl HttpCache {
         let current_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
         let is_valid = entry.valid_until > current_time;
 
-        if is_valid && cache_path.exists() {
-          let cached_content = fs::read(&cache_path)
+        if is_valid && self.filesystem.read(&cache_path).await.is_ok() {
+          let cached_content = self
+            .filesystem
+            .read(&cache_path)
             .await
-            .context("Failed to read cached content")?;
+            .map_err(|e| anyhow::anyhow!("Failed to read cached content: {:?}", e))?;
 
           let result = ContentFetchResult {
             entry: entry.clone(),
@@ -236,13 +245,17 @@ impl HttpCache {
 
   async fn write_to_cache(&self, resource: &str, content: &[u8]) -> Result<()> {
     if let Some(cache_location) = &self.cache_location {
-      fs::create_dir_all(cache_location)
+      self
+        .filesystem
+        .create_dir_all(cache_location)
         .await
-        .context("Failed to create cache directory")?;
+        .map_err(|e| anyhow::anyhow!("Failed to create cache directory: {:?}", e))?;
       let cache_path = cache_location.join(resource.replace('/', "_"));
-      fs::write(&cache_path, content)
+      self
+        .filesystem
+        .write(&cache_path, content)
         .await
-        .context("Failed to write to cache")?;
+        .map_err(|e| anyhow::anyhow!("Failed to write to cache: {:?}", e))?;
     }
     Ok(())
   }
@@ -252,6 +265,7 @@ pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> Result<
   let http_cache = HttpCache::new(
     options.cache_location.clone(),
     options.lockfile_location.clone(),
+    Arc::new(*options.filesystem),
   );
 
   http_cache.fetch_content(url, options).await

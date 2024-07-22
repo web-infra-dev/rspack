@@ -6,6 +6,7 @@ use rspack_core::{
   NormalModuleReadResource, Plugin, PluginContext, ResourceData, Scheme,
 };
 use rspack_error::Result;
+use rspack_fs::{AsyncFileSystem, AsyncReadableFileSystem};
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::http_cache::{fetch_content, FetchResultType};
@@ -25,7 +26,7 @@ impl HttpUriPlugin {
   }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct HttpUriPluginOptions {
   pub allowed_uris: HttpUriOptionsAllowedUris,
   pub cache_location: Option<String>,
@@ -33,6 +34,7 @@ pub struct HttpUriPluginOptions {
   pub lockfile_location: Option<String>,
   pub proxy: Option<String>,
   pub upgrade: Option<bool>,
+  pub filesystem: Box<dyn AsyncFileSystem>,
 }
 
 #[plugin_hook(NormalModuleFactoryResolveForScheme for HttpUriPlugin)]
@@ -128,6 +130,5 @@ impl Plugin for HttpUriPlugin {
     Ok(())
   }
 }
-
 #[derive(Debug, Default)]
 pub struct HttpUriOptionsAllowedUris;
