@@ -13,7 +13,6 @@ napi-derive        = { workspace = true }
 once_cell          = { workspace = true }
 rspack_core        = { path = "../rspack_core" }
 rspack_error       = { path = "../rspack_error" }
-rspack_macros      = { path = "../rspack_macros" }
 rspack_napi        = { path = "../rspack_napi" }
 rspack_napi_macros = { path = "../rspack_napi_macros" }
 rspack_regex       = { path = "../rspack_regex" }

@@ -3064,7 +3064,6 @@ dependencies = [
  "once_cell",
  "rspack_core",
  "rspack_error",
- "rspack_macros",
  "rspack_napi",
  "rspack_napi_macros",
  "rspack_regex",
