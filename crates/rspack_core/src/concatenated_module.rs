@@ -871,7 +871,7 @@ impl Module for ConcatenatedModule {
       {
         let final_name = Self::get_final_name(
           &compilation.get_module_graph(),
-          &referenced_info_id,
+          referenced_info_id,
           export_name,
           &mut module_to_info_map,
           runtime,
