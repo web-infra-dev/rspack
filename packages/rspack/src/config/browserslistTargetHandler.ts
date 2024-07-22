@@ -8,31 +8,32 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-"use strict";
-
-const browserslist = require("browserslist");
-const path = require("node:path");
-
-/** @typedef {import("./target").ApiTargetProperties} ApiTargetProperties */
-/** @typedef {import("./target").EcmaTargetProperties} EcmaTargetProperties */
-/** @typedef {import("./target").PlatformTargetProperties} PlatformTargetProperties */
+import path from "node:path";
+import browserslist from "browserslist";
+import type {
+	ApiTargetProperties,
+	EcmaTargetProperties,
+	PlatformTargetProperties
+} from "./target";
 
 // [[C:]/path/to/config][:env]
 const inputRx = /^(?:((?:[A-Z]:)?[/\\].*?))?(?::(.+?))?$/i;
 
-/**
- * @typedef {Object} BrowserslistHandlerConfig
- * @property {string=} configPath
- * @property {string=} env
- * @property {string=} query
- */
+type BrowserslistHandlerConfig = {
+	configPath?: string;
+	env?: string;
+	query?: string;
+};
 
 /**
- * @param {string | null | undefined} input input string
- * @param {string} context the context directory
- * @returns {BrowserslistHandlerConfig} config
+ * @param input input string
+ * @param context the context directory
+ * @returns config
  */
-const parse = (input, context) => {
+const parse = (
+	input: string | null | undefined,
+	context: string
+): BrowserslistHandlerConfig => {
 	if (!input) {
 		return {};
 	}
@@ -52,11 +53,14 @@ const parse = (input, context) => {
 };
 
 /**
- * @param {string | null | undefined} input input string
- * @param {string} context the context directory
- * @returns {string[] | undefined} selected browsers
+ * @param input input string
+ * @param context the context directory
+ * @returns selected browsers
  */
-const load = (input, context) => {
+export const load = (
+	input: string | null | undefined,
+	context: string
+): string[] | undefined => {
 	const { configPath, env, query } = parse(input, context);
 
 	// if a query is specified, then use it, else
@@ -76,16 +80,20 @@ const load = (input, context) => {
 };
 
 /**
- * @param {string[]} browsers supported browsers list
- * @returns {EcmaTargetProperties & PlatformTargetProperties & ApiTargetProperties} target properties
+ * @param browsers supported browsers list
+ * @returns target properties
  */
-const resolve = browsers => {
+export const resolve = (
+	browsers: string[]
+): EcmaTargetProperties & PlatformTargetProperties & ApiTargetProperties => {
 	/**
 	 * Checks all against a version number
-	 * @param {Record<string, number | [number, number]>} versions first supported version
-	 * @returns {boolean} true if supports
+	 * @param versions first supported version
+	 * @returns true if supports
 	 */
-	const rawChecker = versions => {
+	const rawChecker = (
+		versions: Record<string, number | [number, number]>
+	): boolean => {
 		return browsers.every(v => {
 			const [name, parsedVersion] = v.split(" ");
 			if (!name) return false;
@@ -357,9 +365,4 @@ const resolve = browsers => {
 			}),
 		require: nodeProperty
 	};
-};
-
-module.exports = {
-	resolve,
-	load
 };
