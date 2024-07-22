@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
@@ -11,7 +9,6 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::http_cache::{fetch_content, FetchResultType};
-use crate::lockfile::LockfileCache; // Added this import
 
 static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
@@ -20,15 +17,11 @@ static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
 #[derive(Debug, Default)]
 pub struct HttpUriPlugin {
   options: HttpUriPluginOptions,
-  #[allow(dead_code)]
-  cache: LockfileCache,
 }
 
 impl HttpUriPlugin {
   pub fn new(options: HttpUriPluginOptions) -> Self {
-    let lockfile_path = options.lockfile_location.as_ref().map(PathBuf::from);
-    let cache = LockfileCache::new(lockfile_path);
-    Self::new_inner(options, cache)
+    Self::new_inner(options)
   }
 }
 
@@ -100,7 +93,7 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
       .map_err(rspack_error::AnyhowError::from)?;
 
     if let FetchResultType::Content(content_result) = fetch_result {
-      return Ok(Some(Content::from(content_result.content().clone())));
+      return Ok(Some(Content::from(content_result.content().to_vec())));
     }
   }
   Ok(None)
