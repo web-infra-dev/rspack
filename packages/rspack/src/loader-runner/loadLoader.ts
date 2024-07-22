@@ -10,15 +10,17 @@
 
 import type Url from "node:url";
 import type { LoaderObject } from ".";
+import type { LoaderDefinitionFunction } from "../config";
+import type { PitchLoaderDefinitionFunction } from "../config/adapterRuleUse";
+import LoaderLoadingError from "./LoaderLoadingError";
 
 type ModuleObject = {
-	default?: Function;
-	pitch?: Function;
+	default?: LoaderDefinitionFunction;
+	pitch?: PitchLoaderDefinitionFunction;
 	raw?: boolean;
 };
 type LoaderModule = ModuleObject | Function;
 
-import LoaderLoadingError from "./LoaderLoadingError";
 var url: undefined | typeof Url = undefined;
 
 export default function loadLoader(
