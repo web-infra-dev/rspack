@@ -551,6 +551,11 @@ impl Module for ConcatenatedModule {
     build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
 
     let module_graph = compilation.get_module_graph();
+    let modules = self
+      .modules
+      .iter()
+      .map(|item| Some(&item.id))
+      .collect::<HashSet<_>>();
     for m in self.modules.iter() {
       let module = module_graph
         .module_by_identifier(&m.id)
@@ -563,23 +568,15 @@ impl Module for ConcatenatedModule {
       }
 
       // populate dependencies
-      self
-        .dependencies
-        .par_extend(module.get_dependencies().par_iter().filter_map(|dep_id| {
-          let dep = module_graph
-            .dependency_by_id(dep_id)
-            .expect("should have dependency");
-          let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
-          if !is_harmony_dep_like(dep)
-            || !self
-              .modules
-              .iter()
-              .any(|item| Some(&item.id) == module_id_of_dep)
-          {
-            return Some(dep_id);
-          }
-          None
-        }));
+      for dep_id in module.get_dependencies().iter() {
+        let dep = module_graph
+          .dependency_by_id(dep_id)
+          .expect("should have dependency");
+        let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
+        if !is_harmony_dep_like(dep) || !modules.contains(&module_id_of_dep) {
+          self.dependencies.push(*dep_id);
+        }
+      }
 
       // populate blocks
       for b in module.get_blocks() {

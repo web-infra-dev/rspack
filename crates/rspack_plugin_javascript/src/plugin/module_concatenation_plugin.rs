@@ -893,7 +893,7 @@ impl ModuleConcatenationPlugin {
         build_meta: box_module.build_meta().cloned(),
       };
       let modules = modules_set
-        .par_iter()
+        .iter()
         .map(|id| {
           let module = module_graph
             .module_by_identifier(id)
