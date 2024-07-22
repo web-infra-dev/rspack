@@ -39,11 +39,11 @@ export function describeByWalk(
 				const p = path.join(sourceBase, dirname, folder);
 				if (type === "file" && currentLevel === 1) {
 					return isFile(p);
-				} else if (type === "directory" || currentLevel > 1) {
-					return isDirectory(p);
-				} else {
-					return false;
 				}
+				if (type === "directory" || currentLevel > 1) {
+					return isDirectory(p);
+				}
+				return false;
 			})
 			.map(folder => {
 				const caseName = path.join(dirname, folder);

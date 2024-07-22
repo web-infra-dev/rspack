@@ -85,7 +85,6 @@ async function getPreviewConfig(
 
 	if (Array.isArray(item)) {
 		return Promise.all(item.map(internalPreviewConfig));
-	} else {
-		return internalPreviewConfig(item as RspackOptions);
 	}
+	return internalPreviewConfig(item as RspackOptions);
 }

@@ -55,10 +55,9 @@ export default function loadLoader(
 				if (typeof setImmediate === "function") {
 					// node >= 0.9.0
 					return void setImmediate(retry);
-				} else {
-					// node < 0.9.0
-					return process.nextTick(retry);
 				}
+				// node < 0.9.0
+				return process.nextTick(retry);
 			}
 			return callback(e);
 		}

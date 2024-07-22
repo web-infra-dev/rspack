@@ -194,14 +194,13 @@ export class StatsPrinter {
 	): string {
 		if (this._inPrint) {
 			return this._print(type, object, baseContext);
-		} else {
-			try {
-				this._inPrint = true;
-				return this._print(type, object, baseContext);
-			} finally {
-				this._levelHookCache.clear();
-				this._inPrint = false;
-			}
+		}
+		try {
+			this._inPrint = true;
+			return this._print(type, object, baseContext);
+		} finally {
+			this._levelHookCache.clear();
+			this._inPrint = false;
 		}
 	}
 

@@ -163,11 +163,10 @@ const makeCacheableWithContext = (fn: {
 
 		if (cachedResult !== undefined) {
 			return cachedResult;
-		} else {
-			const result = fn(context, identifier);
-			innerSubCache.set(identifier, result);
-			return result;
 		}
+		const result = fn(context, identifier);
+		innerSubCache.set(identifier, result);
+		return result;
 	};
 
 	/**
@@ -206,11 +205,10 @@ const makeCacheableWithContext = (fn: {
 
 			if (cachedResult !== undefined) {
 				return cachedResult;
-			} else {
-				const result = fn(context, identifier);
-				innerSubCache.set(identifier, result);
-				return result;
 			}
+			const result = fn(context, identifier);
+			innerSubCache.set(identifier, result);
+			return result;
 		};
 
 		return boundFn;
@@ -249,11 +247,10 @@ const makeCacheableWithContext = (fn: {
 			const cachedResult = innerSubCache?.get(identifier);
 			if (cachedResult !== undefined) {
 				return cachedResult;
-			} else {
-				const result = fn(context, identifier);
-				innerSubCache?.set(identifier, result);
-				return result;
 			}
+			const result = fn(context, identifier);
+			innerSubCache?.set(identifier, result);
+			return result;
 		};
 
 		return boundFn;

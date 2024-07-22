@@ -17,7 +17,8 @@ export function isNil(value: unknown): value is null | undefined {
 export const toBuffer = (bufLike: string | Buffer): Buffer => {
 	if (Buffer.isBuffer(bufLike)) {
 		return bufLike;
-	} else if (typeof bufLike === "string") {
+	}
+	if (typeof bufLike === "string") {
 		return Buffer.from(bufLike);
 	}
 

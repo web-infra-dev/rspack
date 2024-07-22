@@ -333,7 +333,8 @@ const MODULES_GROUPERS = (
 					if (!module.moduleType) return;
 					if (groupModulesByType) {
 						return [module.moduleType.split("/", 1)[0]];
-					} else if (module.moduleType === "runtime") {
+					}
+					if (module.moduleType === "runtime") {
 						return ["runtime"];
 					}
 				},

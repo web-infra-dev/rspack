@@ -30,7 +30,8 @@ const process = <T, N>(
 	};
 	if (!options) {
 		return;
-	} else if (Array.isArray(options)) {
+	}
+	if (Array.isArray(options)) {
 		array(options);
 	} else if (typeof options === "object") {
 		object(options);

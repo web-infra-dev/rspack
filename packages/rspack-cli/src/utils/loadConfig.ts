@@ -37,9 +37,8 @@ const registerLoader = (configPath: string) => {
 		if (failures) {
 			const messages = failures.map(failure => failure.error.message);
 			throw new Error(`${messages.join("\n")}`);
-		} else {
-			throw error;
 		}
+		throw error;
 	}
 };
 
@@ -63,13 +62,11 @@ export async function loadRspackConfig(
 		}
 		isTsFile(configPath) && registerLoader(configPath);
 		return crossImport(configPath, cwd);
-	} else {
-		const defaultConfig = findConfig(path.resolve(cwd, DEFAULT_CONFIG_NAME));
-		if (defaultConfig) {
-			isTsFile(defaultConfig) && registerLoader(defaultConfig);
-			return crossImport(defaultConfig, cwd);
-		} else {
-			return {};
-		}
 	}
+	const defaultConfig = findConfig(path.resolve(cwd, DEFAULT_CONFIG_NAME));
+	if (defaultConfig) {
+		isTsFile(defaultConfig) && registerLoader(defaultConfig);
+		return crossImport(defaultConfig, cwd);
+	}
+	return {};
 }

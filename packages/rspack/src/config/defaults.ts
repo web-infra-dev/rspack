@@ -518,9 +518,11 @@ const applyOutputDefaults = (
 				: library;
 		if (Array.isArray(libraryName)) {
 			return libraryName.join(".");
-		} else if (typeof libraryName === "object") {
+		}
+		if (typeof libraryName === "object") {
 			return getLibraryName(libraryName.root);
-		} else if (typeof libraryName === "string") {
+		}
+		if (typeof libraryName === "string") {
 			return libraryName;
 		}
 		return "";
@@ -623,18 +625,17 @@ const applyOutputDefaults = (
 						"JSONP Array push can be chosen when 'document' is available.\n" +
 						helpMessage
 				);
-			} else {
-				if (tp.document) return "array-push";
-				if (tp.require) return "commonjs";
-				if (tp.nodeBuiltins) return "commonjs";
-				if (tp.importScripts) return "array-push";
-				throw new Error(
-					"For the selected environment is no default script chunk format available:\n" +
-						"JSONP Array push can be chosen when 'document' or 'importScripts' is available.\n" +
-						"CommonJs exports can be chosen when 'require' or node builtins are available.\n" +
-						helpMessage
-				);
 			}
+			if (tp.document) return "array-push";
+			if (tp.require) return "commonjs";
+			if (tp.nodeBuiltins) return "commonjs";
+			if (tp.importScripts) return "array-push";
+			throw new Error(
+				"For the selected environment is no default script chunk format available:\n" +
+					"JSONP Array push can be chosen when 'document' or 'importScripts' is available.\n" +
+					"CommonJs exports can be chosen when 'require' or node builtins are available.\n" +
+					helpMessage
+			);
 		}
 		throw new Error(
 			"Chunk format can't be selected by default when no target is specified"

@@ -46,6 +46,7 @@
 			"style": {
 				"noUnusedTemplateLiteral": "error",
 				"useNodejsImportProtocol": "error",
+				"noUselessElse": "error",
 				"noNonNullAssertion": "off",
 				"useNumberNamespace": "error",
 				"useConst": "error",
@@ -61,6 +62,7 @@
 		"ignore": [
 			"tests/**/*",
 			"crates/**/*",
+			"website/doc_build",
 			"packages/rspack-test-tools/template",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",

@@ -188,7 +188,8 @@ export default function ansiHTML(text: string) {
 			var ct = _closeTags[seq];
 			if (typeof ct === "function") {
 				return ct(ansiCodes);
-			} else if (ct) {
+			}
+			if (ct) {
 				// Pop sequence
 				ansiCodes.pop();
 				return ct;

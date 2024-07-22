@@ -68,8 +68,7 @@ export class BasicRunnerFactory<T extends ECompilerType>
 					this.context.getValue(this.name, "documentType") ||
 					EDocumentType.JSDOM
 			});
-		} else {
-			return new EsmRunner<T>(runnerOptions);
 		}
+		return new EsmRunner<T>(runnerOptions);
 	}
 }

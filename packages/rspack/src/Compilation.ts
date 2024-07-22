@@ -518,11 +518,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			}
 			this.hooks.statsNormalize.call(options, context);
 			return options as NormalizedStatsOptions;
-		} else {
-			const options: Partial<NormalizedStatsOptions> = {};
-			this.hooks.statsNormalize.call(options, context);
-			return options as NormalizedStatsOptions;
 		}
+		const options: Partial<NormalizedStatsOptions> = {};
+		this.hooks.statsNormalize.call(options, context);
+		return options as NormalizedStatsOptions;
 	}
 
 	createStatsFactory(options: StatsOptions) {
@@ -928,36 +927,33 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 							}
 							return `${name}/${childName}`;
 						});
-					} else {
-						return this.getLogger(() => {
-							if (typeof name === "function") {
-								name = name();
-								if (!name) {
-									throw new TypeError(
-										"Compilation.getLogger(name) called with a function not returning a name"
-									);
-								}
-							}
-							return `${name}/${childName}`;
-						});
 					}
-				} else {
-					if (typeof childName === "function") {
-						return this.getLogger(() => {
-							if (typeof childName === "function") {
-								childName = childName();
-								if (!childName) {
-									throw new TypeError(
-										"Logger.getChildLogger(name) called with a function not returning a name"
-									);
-								}
+					return this.getLogger(() => {
+						if (typeof name === "function") {
+							name = name();
+							if (!name) {
+								throw new TypeError(
+									"Compilation.getLogger(name) called with a function not returning a name"
+								);
 							}
-							return `${name}/${childName}`;
-						});
-					} else {
-						return this.getLogger(`${name}/${childName}`);
-					}
+						}
+						return `${name}/${childName}`;
+					});
 				}
+				if (typeof childName === "function") {
+					return this.getLogger(() => {
+						if (typeof childName === "function") {
+							childName = childName();
+							if (!childName) {
+								throw new TypeError(
+									"Logger.getChildLogger(name) called with a function not returning a name"
+								);
+							}
+						}
+						return `${name}/${childName}`;
+					});
+				}
+				return this.getLogger(`${name}/${childName}`);
 			}
 		);
 	}
