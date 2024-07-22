@@ -119,7 +119,7 @@ for (const binding of bindings) {
 		platformArchABI
 	} = parseTriple(name.slice(9));
 	assert(
-		file.split(".")[1] == platformArchABI,
+		file.split(".")[1] === platformArchABI,
 		`Binding is not matched with triple (expected: rspack.${platformArchABI}.node, got: ${file})`
 	);
 
