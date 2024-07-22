@@ -50,20 +50,22 @@ impl From<&str> for Scheme {
   }
 }
 
+impl Scheme {
+  pub fn as_str(&self) -> &str {
+    match self {
+      Self::None => "",
+      Self::Data => "data",
+      Self::File => "file",
+      Self::Http => "http",
+      Self::Https => "https",
+      Self::Custom(v) => v,
+    }
+  }
+}
+
 impl fmt::Display for Scheme {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(
-      f,
-      "{}",
-      match self {
-        Self::None => "",
-        Self::Data => "data",
-        Self::File => "file",
-        Self::Http => "http",
-        Self::Https => "https",
-        Self::Custom(v) => v,
-      }
-    )
+    write!(f, "{}", self.as_str())
   }
 }
 

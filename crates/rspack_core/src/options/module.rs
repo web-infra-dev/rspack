@@ -505,7 +505,7 @@ impl Default for CssExportsConvention {
 pub type DescriptionData = HashMap<String, RuleSetCondition>;
 
 pub type RuleSetConditionFnMatcher =
-  Box<dyn Fn(&serde_json::Value) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+  Box<dyn Fn(DataRef) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
 
 pub enum RuleSetCondition {
   String(String),
@@ -527,9 +527,47 @@ impl fmt::Debug for RuleSetCondition {
   }
 }
 
+#[derive(Copy, Clone)]
+pub enum DataRef<'a> {
+  Str(&'a str),
+  Value(&'a serde_json::Value),
+}
+
+impl<'s> From<&'s str> for DataRef<'s> {
+  fn from(value: &'s str) -> Self {
+    Self::Str(value)
+  }
+}
+
+impl<'s> From<&'s serde_json::Value> for DataRef<'s> {
+  fn from(value: &'s serde_json::Value) -> Self {
+    Self::Value(value)
+  }
+}
+
+impl DataRef<'_> {
+  fn as_str(&self) -> Option<&str> {
+    match self {
+      Self::Str(s) => Some(s),
+      Self::Value(v) => v.as_str(),
+    }
+  }
+
+  pub fn to_value(&self) -> serde_json::Value {
+    match self {
+      Self::Str(s) => serde_json::Value::String((*s).to_owned()),
+      Self::Value(v) => (*v).to_owned(),
+    }
+  }
+}
+
 impl RuleSetCondition {
   #[async_recursion]
-  pub async fn try_match(&self, data: &serde_json::Value) -> Result<bool> {
+  pub async fn try_match(
+    &self,
+    data: impl Into<DataRef<'async_recursion>> + Send + Sync + Copy + 'async_recursion,
+  ) -> Result<bool> {
+    let data: DataRef = data.into();
     match self {
       Self::String(s) => Ok(
         data
@@ -554,7 +592,10 @@ pub struct RuleSetLogicalConditions {
 
 impl RuleSetLogicalConditions {
   #[async_recursion]
-  pub async fn try_match(&self, data: &serde_json::Value) -> Result<bool> {
+  pub async fn try_match(
+    &self,
+    data: impl Into<DataRef<'async_recursion>> + Send + Sync + Copy + 'async_recursion,
+  ) -> Result<bool> {
     if let Some(and) = &self.and
       && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await?
     {

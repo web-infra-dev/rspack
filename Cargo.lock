@@ -3008,6 +3008,7 @@ dependencies = [
  "rspack_loader_swc",
  "rspack_loader_testing",
  "rspack_napi",
+ "rspack_napi_macros",
  "rspack_plugin_asset",
  "rspack_plugin_banner",
  "rspack_plugin_copy",
@@ -3063,8 +3064,8 @@ dependencies = [
  "once_cell",
  "rspack_core",
  "rspack_error",
- "rspack_macros",
  "rspack_napi",
+ "rspack_napi_macros",
  "rspack_regex",
  "rustc-hash 1.1.0",
  "serde",
@@ -3332,6 +3333,15 @@ dependencies = [
  "rspack_error",
  "rspack_regex",
  "tokio",
+]
+
+[[package]]
+name = "rspack_napi_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.63",
 ]
 
 [[package]]

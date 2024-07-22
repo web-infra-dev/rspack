@@ -1435,12 +1435,20 @@ export interface RawRspackFuture {
 }
 
 export interface RawRuleSetCondition {
-  type: "string" | "regexp" | "logical" | "array" | "function"
-  stringMatcher?: string
-  regexpMatcher?: RawRegex
-  logicalMatcher?: Array<RawRuleSetLogicalConditions>
-  arrayMatcher?: Array<RawRuleSetCondition>
-  funcMatcher?: (value: string) => boolean
+  type: RawRuleSetConditionType
+  string?: string
+  regexp?: RawRegex
+  logical?: Array<RawRuleSetLogicalConditions>
+  array?: Array<RawRuleSetCondition>
+  func?: (value: string) => boolean
+}
+
+export enum RawRuleSetConditionType {
+  string = 'string',
+  regexp = 'regexp',
+  logical = 'logical',
+  array = 'array',
+  func = 'func'
 }
 
 export interface RawRuleSetLogicalConditions {

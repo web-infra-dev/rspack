@@ -1,7 +1,6 @@
 use async_recursion::async_recursion;
 use rspack_error::Result;
 use rspack_loader_runner::ResourceData;
-use serde_json::Value;
 
 use crate::{DependencyCategory, ModuleRule};
 
@@ -28,9 +27,7 @@ pub async fn module_rule_matcher<'a>(
   matched_rules: &mut Vec<&'a ModuleRule>,
 ) -> Result<bool> {
   if let Some(test_rule) = &module_rule.rspack_resource
-    && !test_rule
-      .try_match(&Value::String(resource_data.resource.to_string()))
-      .await?
+    && !test_rule.try_match(resource_data.resource.as_str()).await?
   {
     return Ok(false);
   }
@@ -41,41 +38,37 @@ pub async fn module_rule_matcher<'a>(
     resource_data
       .resource_path
       .as_deref()
-      .map(|p| p.to_string_lossy().to_string())
+      .map(|p| p.to_string_lossy().into_owned())
       .unwrap_or_default()
   };
   if let Some(test_rule) = &module_rule.test
-    && !test_rule.try_match(&Value::String(resource_path())).await?
+    && !test_rule.try_match(resource_path().as_str()).await?
   {
     return Ok(false);
   } else if let Some(resource_rule) = &module_rule.resource
-    && !resource_rule
-      .try_match(&Value::String(resource_path()))
-      .await?
+    && !resource_rule.try_match(resource_path().as_str()).await?
   {
     return Ok(false);
   }
 
   if let Some(include_rule) = &module_rule.include
-    && !include_rule
-      .try_match(&Value::String(resource_path()))
-      .await?
+    && !include_rule.try_match(resource_path().as_str()).await?
   {
     return Ok(false);
   }
 
   if let Some(exclude_rule) = &module_rule.exclude
-    && exclude_rule
-      .try_match(&Value::String(resource_path()))
-      .await?
+    && exclude_rule.try_match(resource_path().as_str()).await?
   {
     return Ok(false);
   }
 
   if let Some(resource_query_rule) = &module_rule.resource_query {
     if let Some(resource_query) = &resource_data.resource_query {
-      let resource_query = Value::String(resource_query.to_string());
-      if !resource_query_rule.try_match(&resource_query).await? {
+      if !resource_query_rule
+        .try_match(resource_query.as_str())
+        .await?
+      {
         return Ok(false);
       }
     } else {
@@ -85,9 +78,8 @@ pub async fn module_rule_matcher<'a>(
 
   if let Some(resource_fragment_condition) = &module_rule.resource_fragment {
     if let Some(resource_fragment) = &resource_data.resource_fragment {
-      let resource_fragment = Value::String(resource_fragment.to_string());
       if !resource_fragment_condition
-        .try_match(&resource_fragment)
+        .try_match(resource_fragment.as_str())
         .await?
       {
         return Ok(false);
@@ -99,8 +91,7 @@ pub async fn module_rule_matcher<'a>(
 
   if let Some(mimetype_condition) = &module_rule.mimetype {
     if let Some(mimetype) = &resource_data.mimetype {
-      let mimetype = Value::String(mimetype.to_string());
-      if !mimetype_condition.try_match(&mimetype).await? {
+      if !mimetype_condition.try_match(mimetype.as_str()).await? {
         return Ok(false);
       }
     } else {
@@ -113,25 +104,20 @@ pub async fn module_rule_matcher<'a>(
     if scheme.is_none() {
       return Ok(false);
     }
-    let scheme = Value::String(scheme.to_string());
-    if !scheme_condition.try_match(&scheme).await? {
+    if !scheme_condition.try_match(scheme.as_str()).await? {
       return Ok(false);
     }
   }
 
   if let Some(issuer_rule) = &module_rule.issuer
     && let Some(issuer) = issuer
-    && !issuer_rule
-      .try_match(&Value::String(issuer.to_string()))
-      .await?
+    && !issuer_rule.try_match(issuer).await?
   {
     return Ok(false);
   }
 
   if let Some(dependency_rule) = &module_rule.dependency
-    && !dependency_rule
-      .try_match(&Value::String(dependency.to_string()))
-      .await?
+    && !dependency_rule.try_match(dependency.as_str()).await?
   {
     return Ok(false);
   }

@@ -1,28 +1,29 @@
 import assert from "node:assert";
-import type {
-	RawAssetGeneratorOptions,
-	RawAssetInlineGeneratorOptions,
-	RawAssetParserDataUrl,
-	RawAssetParserOptions,
-	RawAssetResourceGeneratorOptions,
-	RawCssAutoGeneratorOptions,
-	RawCssAutoParserOptions,
-	RawCssGeneratorOptions,
-	RawCssModuleGeneratorOptions,
-	RawCssModuleParserOptions,
-	RawCssParserOptions,
-	RawFuncUseCtx,
-	RawGeneratorOptions,
-	RawJavascriptParserOptions,
-	RawLibraryName,
-	RawLibraryOptions,
-	RawModuleRule,
-	RawModuleRuleUse,
-	RawOptions,
-	RawParserOptions,
-	RawRspackFuture,
-	RawRuleSetCondition,
-	RawRuleSetLogicalConditions
+import {
+	type RawAssetGeneratorOptions,
+	type RawAssetInlineGeneratorOptions,
+	type RawAssetParserDataUrl,
+	type RawAssetParserOptions,
+	type RawAssetResourceGeneratorOptions,
+	type RawCssAutoGeneratorOptions,
+	type RawCssAutoParserOptions,
+	type RawCssGeneratorOptions,
+	type RawCssModuleGeneratorOptions,
+	type RawCssModuleParserOptions,
+	type RawCssParserOptions,
+	type RawFuncUseCtx,
+	type RawGeneratorOptions,
+	type RawJavascriptParserOptions,
+	type RawLibraryName,
+	type RawLibraryOptions,
+	type RawModuleRule,
+	type RawModuleRuleUse,
+	type RawOptions,
+	type RawParserOptions,
+	type RawRspackFuture,
+	type RawRuleSetCondition,
+	RawRuleSetConditionType,
+	type RawRuleSetLogicalConditions
 } from "@rspack/binding";
 
 import type { Compiler } from "../Compiler";
@@ -512,14 +513,14 @@ function getRawRuleSetCondition(
 ): RawRuleSetCondition {
 	if (typeof condition === "string") {
 		return {
-			type: "string",
-			stringMatcher: condition
+			type: RawRuleSetConditionType.string,
+			string: condition
 		};
 	}
 	if (condition instanceof RegExp) {
 		return {
-			type: "regexp",
-			regexpMatcher: {
+			type: RawRuleSetConditionType.regexp,
+			regexp: {
 				source: condition.source,
 				flags: condition.flags
 			}
@@ -527,20 +528,20 @@ function getRawRuleSetCondition(
 	}
 	if (typeof condition === "function") {
 		return {
-			type: "function",
-			funcMatcher: condition
+			type: RawRuleSetConditionType.func,
+			func: condition
 		};
 	}
 	if (Array.isArray(condition)) {
 		return {
-			type: "array",
-			arrayMatcher: condition.map(i => getRawRuleSetCondition(i))
+			type: RawRuleSetConditionType.array,
+			array: condition.map(i => getRawRuleSetCondition(i))
 		};
 	}
 	if (typeof condition === "object" && condition !== null) {
 		return {
-			type: "logical",
-			logicalMatcher: [getRawRuleSetLogicalConditions(condition)]
+			type: RawRuleSetConditionType.logical,
+			logical: [getRawRuleSetLogicalConditions(condition)]
 		};
 	}
 	throw new Error(
