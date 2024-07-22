@@ -28,7 +28,6 @@ mod source;
 pub mod task_loop;
 mod template;
 mod to_path;
-mod visitor;
 pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
@@ -47,7 +46,6 @@ pub use self::runtime::*;
 pub use self::source::*;
 pub use self::template::*;
 pub use self::to_path::to_path;
-pub use self::visitor::*;
 
 pub fn parse_to_url(url: &str) -> url::Url {
   if !url.contains(':') {
