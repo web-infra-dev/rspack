@@ -16,9 +16,9 @@ export type TBasicRunnerFile = {
 };
 
 export enum EEsmMode {
-	Unknown,
-	Evaluated,
-	Unlinked
+	Unknown = 0,
+	Evaluated = 1,
+	Unlinked = 2
 }
 
 export interface IBasicModuleScope extends ITestEnv {
