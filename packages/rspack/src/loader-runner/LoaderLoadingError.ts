@@ -8,17 +8,12 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 
-"use strict";
-
 class LoadingLoaderError extends Error {
-	/**
-	 * @param {string=} message
-	 */
-	constructor(message) {
+	constructor(message: string) {
 		super(message);
 		this.name = "LoaderRunnerError";
 		Error.captureStackTrace(this, this.constructor);
 	}
 }
 
-module.exports = LoadingLoaderError;
+export default LoadingLoaderError;
