@@ -49,7 +49,8 @@
 				"useConst": "error",
 				"useImportType": "error",
 				"useExportType": "error",
-				"useEnumInitializers": "error"
+				"useEnumInitializers": "error",
+				"useSelfClosingElements": "error"
 			}
 		},
 		"ignore": [
