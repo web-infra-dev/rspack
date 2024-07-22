@@ -374,7 +374,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	/**
 	 * Get the named chunk groups.
 	 *
-	 * Note: This is a proxy for webpack internal API, only method `get` and `keys` is supported now.
+	 * Note: This is a proxy for webpack internal API, only method `get` and `keys` are supported now.
 	 */
 	get namedChunkGroups(): ReadonlyMap<string, Readonly<ChunkGroup>> {
 		return {
