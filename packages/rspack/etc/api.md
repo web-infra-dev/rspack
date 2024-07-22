@@ -931,6 +931,8 @@ export class Compilation {
     // (undocumented)
     chunkGraph: ChunkGraph;
     // (undocumented)
+    get chunkGroups(): ReadonlyArray<ChunkGroup>;
+    // (undocumented)
     get chunks(): ReadonlySet<Chunk>;
     // (undocumented)
     compiler: Compiler;
@@ -1049,6 +1051,7 @@ export class Compilation {
     get modules(): ReadonlySet<Module>;
     // (undocumented)
     name?: string;
+    get namedChunkGroups(): ReadonlyMap<string, Readonly<ChunkGroup>>;
     get namedChunks(): ReadonlyMap<string, Readonly<Chunk>>;
     // (undocumented)
     options: RspackOptionsNormalized;

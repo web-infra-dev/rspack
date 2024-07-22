@@ -155,7 +155,7 @@ pub struct Compilation {
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
-  pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
+  pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 
   pub code_generation_results: CodeGenerationResults,
   pub built_modules: IdentifierSet,
