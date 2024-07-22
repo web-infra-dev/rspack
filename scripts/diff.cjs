@@ -9,7 +9,7 @@ const rimraf = require("rimraf");
 const path = require("node:path");
 const fs = require("fs-extra");
 
-process.env["RSPACK_DIFF"] = "true"; // enable rspack diff injection
+process.env.RSPACK_DIFF = "true"; // enable rspack diff injection
 
 const CASE_DIR = path.resolve(__dirname, "../tests/diff-test");
 const OUTPUT_DIR = path.join(__dirname, "../diff_output");

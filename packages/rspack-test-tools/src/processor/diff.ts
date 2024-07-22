@@ -114,17 +114,17 @@ export class DiffProcessor implements ITestProcessor {
 			}
 			if (
 				typeof this.options.onCompareModules === "function" &&
-				result.modules["modules"]
+				result.modules.modules
 			) {
-				this.options.onCompareModules(file, result.modules["modules"]);
+				this.options.onCompareModules(file, result.modules.modules);
 			}
 			if (
 				typeof this.options.onCompareRuntimeModules === "function" &&
-				result.modules["runtimeModules"]
+				result.modules.runtimeModules
 			) {
 				this.options.onCompareRuntimeModules(
 					file,
-					result.modules["runtimeModules"]
+					result.modules.runtimeModules
 				);
 			}
 		}

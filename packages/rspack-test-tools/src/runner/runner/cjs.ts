@@ -49,7 +49,7 @@ export class CommonJsRunner<
 			...this._options.env
 		};
 		if (this._options.stats) {
-			baseModuleScope["__STATS__"] = this._options.stats;
+			baseModuleScope.__STATS__ = this._options.stats;
 		}
 		return baseModuleScope;
 	}
@@ -98,8 +98,7 @@ export class CommonJsRunner<
 		const requireCache = Object.create(null);
 
 		return (currentDirectory, modulePath, context = {}) => {
-			const file =
-				context["file"] || this.getFile(modulePath, currentDirectory);
+			const file = context.file || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}

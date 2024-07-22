@@ -27,7 +27,7 @@ export class WatchRunner<
 
 	protected createGlobalContext() {
 		const globalContext = super.createGlobalContext();
-		globalContext["document"] = this.document;
+		globalContext.document = this.document;
 		return globalContext;
 	}
 
@@ -37,10 +37,10 @@ export class WatchRunner<
 		file: TBasicRunnerFile
 	): IBasicModuleScope {
 		const moduleScope = super.createModuleScope(requireFn, m, file);
-		moduleScope["__dirname"] = path.dirname(file.path);
-		moduleScope["document"] = this.globalContext!["document"];
-		moduleScope["STATE"] = this.state;
-		moduleScope["WATCH_STEP"] = this._watchOptions.stepName;
+		moduleScope.__dirname = path.dirname(file.path);
+		moduleScope.document = this.globalContext!.document;
+		moduleScope.STATE = this.state;
+		moduleScope.WATCH_STEP = this._watchOptions.stepName;
 		return moduleScope;
 	}
 }

@@ -60,7 +60,7 @@ export class JSDOMWebRunner<
     `);
 
 		const vmContext = this.dom.getInternalVMContext();
-		vmContext["global"] = {};
+		vmContext.global = {};
 	}
 
 	run(file: string) {
@@ -102,15 +102,15 @@ export class JSDOMWebRunner<
 
 	protected createBaseModuleScope() {
 		const moduleScope = super.createBaseModuleScope();
-		moduleScope["EventSource"] = EventSource;
-		moduleScope["Worker"] = createFakeWorker(this._options.env, {
+		moduleScope.EventSource = EventSource;
+		moduleScope.Worker = createFakeWorker(this._options.env, {
 			outputDirectory: this._options.dist
 		});
 		const urlToPath = (url: string) => {
 			if (url.startsWith("https://test.cases/path/")) url = url.slice(24);
 			return path.resolve(this._webOptions.dist, `./${url}`);
 		};
-		moduleScope["fetch"] = async (url: string) => {
+		moduleScope.fetch = async (url: string) => {
 			try {
 				const buffer: Buffer = await new Promise((resolve, reject) =>
 					fs.readFile(urlToPath(url), (err, b) =>
@@ -132,12 +132,12 @@ export class JSDOMWebRunner<
 				throw err;
 			}
 		};
-		moduleScope["URL"] = URL;
-		moduleScope["importScripts"] = (url: string) => {
+		moduleScope.URL = URL;
+		moduleScope.importScripts = (url: string) => {
 			this._options.env.expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 			this.requirers.get("entry")!(this._options.dist, urlToRelativePath(url));
 		};
-		moduleScope["STATS"] = moduleScope.__STATS__;
+		moduleScope.STATS = moduleScope.__STATS__;
 		return moduleScope;
 	}
 
@@ -145,8 +145,7 @@ export class JSDOMWebRunner<
 		const requireCache = Object.create(null);
 
 		return (currentDirectory, modulePath, context = {}) => {
-			const file =
-				context["file"] || this.getFile(modulePath, currentDirectory);
+			const file = context.file || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
