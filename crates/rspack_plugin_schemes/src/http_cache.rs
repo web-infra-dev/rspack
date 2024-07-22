@@ -1,15 +1,13 @@
-use std::io::Read;
-use std::path::Path;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::{collections::HashMap, fs};
 
-use anyhow::{Context as AnyhowContext, Error as AnyhowError};
+use anyhow::{Context, Result};
 use reqwest::Client;
 use rspack_base64::encode_to_string;
-use rspack_error::Result;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
+use tokio::fs;
 
 use crate::{
   http_uri::HttpUriPluginOptions,
@@ -33,7 +31,7 @@ pub struct ContentFetchResult {
 }
 
 impl ContentFetchResult {
-  pub fn content(&self) -> &Vec<u8> {
+  pub fn content(&self) -> &[u8] {
     &self.content
   }
 }
@@ -49,15 +47,14 @@ pub enum FetchResultType {
   Redirect(RedirectFetchResult),
 }
 
-type FetchResult = Result<FetchResultType, AnyhowError>;
-
 pub struct HttpCache {
-  cache_location: Option<String>,
+  cache_location: Option<PathBuf>,
   lockfile_cache: LockfileCache,
 }
 
 impl HttpCache {
   pub fn new(cache_location: Option<String>, lockfile_location: Option<String>) -> Self {
+    let cache_location = cache_location.map(PathBuf::from);
     let lockfile_path = lockfile_location.map(PathBuf::from);
     HttpCache {
       cache_location,
@@ -65,7 +62,11 @@ impl HttpCache {
     }
   }
 
-  pub async fn fetch_content(&self, url: &str, _options: &HttpUriPluginOptions) -> FetchResult {
+  pub async fn fetch_content(
+    &self,
+    url: &str,
+    _options: &HttpUriPluginOptions,
+  ) -> Result<FetchResultType> {
     let cached_result = self.read_from_cache(url).await?;
 
     if let Some(ref cached) = cached_result {
@@ -81,7 +82,7 @@ impl HttpCache {
     &self,
     url: &str,
     cached_result: Option<ContentFetchResult>,
-  ) -> FetchResult {
+  ) -> Result<FetchResultType> {
     let client = Client::new();
     let request_time = current_time();
     let mut request = client.get(url);
@@ -110,7 +111,7 @@ impl HttpCache {
 
     let (store_lock, store_cache, valid_until) = parse_cache_control(&cache_control, request_time);
 
-    if status == 304 {
+    if status == reqwest::StatusCode::NOT_MODIFIED {
       if let Some(cached) = cached_result {
         let new_valid_until = valid_until.max(cached.meta.valid_until);
         return Ok(FetchResultType::Content(ContentFetchResult {
@@ -127,7 +128,7 @@ impl HttpCache {
     }
 
     if let Some(location) = location {
-      if (300..=308).contains(&status.as_u16()) {
+      if status.is_redirection() {
         return Ok(FetchResultType::Redirect(RedirectFetchResult {
           location,
           meta: FetchResultMeta {
@@ -188,11 +189,11 @@ impl HttpCache {
           self.write_to_cache(url, &result.content).await?;
         }
         let lockfile = self.lockfile_cache.get_lockfile().await?;
-        let mut lockfile = lockfile.lock().await;
         lockfile
+          .lock()
+          .await
           .entries_mut()
-          .insert(url.to_string(), entry.clone());
-        drop(lockfile);
+          .insert(url.to_string(), entry);
         self.lockfile_cache.save_lockfile().await?;
       }
     }
@@ -200,24 +201,19 @@ impl HttpCache {
     Ok(FetchResultType::Content(result))
   }
 
-  async fn read_from_cache(
-    &self,
-    resource: &str,
-  ) -> Result<Option<ContentFetchResult>, anyhow::Error> {
+  async fn read_from_cache(&self, resource: &str) -> Result<Option<ContentFetchResult>> {
     if let Some(cache_location) = &self.cache_location {
       let lockfile = self.lockfile_cache.get_lockfile().await?;
       let lockfile = lockfile.lock().await;
-      let cache_path = format!("{}/{}", cache_location, resource.replace('/', "_"));
+      let cache_path = cache_location.join(resource.replace('/', "_"));
 
       if let Some(entry) = lockfile.get_entry(resource) {
         let current_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
         let is_valid = entry.valid_until > current_time;
 
-        if is_valid && Path::new(&cache_path).exists() {
-          let mut file = fs::File::open(&cache_path).context("Failed to open cached content")?;
-          let mut cached_content = Vec::new();
-          file
-            .read_to_end(&mut cached_content)
+        if is_valid && cache_path.exists() {
+          let cached_content = fs::read(&cache_path)
+            .await
             .context("Failed to read cached content")?;
 
           let result = ContentFetchResult {
@@ -238,17 +234,21 @@ impl HttpCache {
     Ok(None)
   }
 
-  async fn write_to_cache(&self, resource: &str, content: &[u8]) -> Result<(), anyhow::Error> {
+  async fn write_to_cache(&self, resource: &str, content: &[u8]) -> Result<()> {
     if let Some(cache_location) = &self.cache_location {
-      fs::create_dir_all(cache_location).context("Failed to create cache directory")?;
-      let cache_path = format!("{}/{}", cache_location, resource.replace('/', "_"));
-      fs::write(&cache_path, content).context("Failed to write to cache")?;
+      fs::create_dir_all(cache_location)
+        .await
+        .context("Failed to create cache directory")?;
+      let cache_path = cache_location.join(resource.replace('/', "_"));
+      fs::write(&cache_path, content)
+        .await
+        .context("Failed to write to cache")?;
     }
     Ok(())
   }
 }
 
-pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> FetchResult {
+pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> Result<FetchResultType> {
   let http_cache = HttpCache::new(
     options.cache_location.clone(),
     options.lockfile_location.clone(),
@@ -258,37 +258,42 @@ pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> FetchRe
 }
 
 fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bool, bool, u64) {
-  let result = cache_control
+  cache_control
     .as_ref()
     .map(|header| {
       let pairs: HashMap<_, _> = header
         .split(',')
         .filter_map(|part| {
           let mut parts = part.splitn(2, '=');
-          Some((parts.next()?.trim(), parts.next()?.trim()))
+          Some((
+            parts.next()?.trim().to_lowercase(),
+            parts.next().map(|v| v.trim().to_string()),
+          ))
         })
         .collect();
 
-      let store_lock = !pairs.contains_key("no-store");
+      let store_lock = !pairs.contains_key("no-cache");
       let store_cache = !pairs.contains_key("no-cache");
-      let valid_until = pairs
-        .get("max-age")
-        .and_then(|&max_age| max_age.parse::<u64>().ok())
-        .map(|seconds| request_time + seconds)
-        .unwrap_or(request_time + 3600); // Default to 1 hour in seconds
+      let valid_until = if pairs.contains_key("must-revalidate") {
+        0
+      } else {
+        pairs
+          .get("max-age")
+          .and_then(|max_age| max_age.as_ref().and_then(|v| v.parse::<u64>().ok()))
+          .map(|seconds| request_time + seconds * 1000)
+          .unwrap_or(request_time)
+      };
 
       (store_lock, store_cache, valid_until)
     })
-    .unwrap_or((true, true, request_time + 3600)); // Default to 1 hour in seconds
-
-  result
+    .unwrap_or((true, true, request_time))
 }
 
 fn current_time() -> u64 {
   SystemTime::now()
     .duration_since(UNIX_EPOCH)
     .expect("Time went backwards")
-    .as_secs()
+    .as_millis() as u64
 }
 
 fn compute_integrity(content: &[u8]) -> String {
