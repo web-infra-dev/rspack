@@ -1,7 +1,7 @@
 (() => { // webpackBootstrap
 "use strict";
 var __webpack_modules__ = ({
-"../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js": (function (module, __unused_webpack_exports, __webpack_require__) {
+"../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js": (function (module) {
 
 /* eslint-env browser */
 /*
@@ -9,7 +9,31 @@ var __webpack_modules__ = ({
   no-console,
   func-names
 */
-const normalizeUrlFn = __webpack_require__(/*! ./normalize-url */ "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/normalize-url.js");
+function normalizeUrl(urlString) {
+    urlString = urlString.trim();
+    if (/^data:/i.test(urlString)) {
+        return urlString;
+    }
+    var protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
+    var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
+    var host = components[0].toLowerCase().replace(/\.$/, "");
+    components[0] = "";
+    var path = components
+        .reduce(function (accumulator, item) {
+        switch (item) {
+            case "..":
+                accumulator.pop();
+                break;
+            case ".":
+                break;
+            default:
+                accumulator.push(item);
+        }
+        return accumulator;
+    }, [])
+        .join("/");
+    return protocol + host + path;
+}
 const srcByModuleId = Object.create(null);
 const noDocument = typeof document === "undefined";
 const { forEach } = Array.prototype;
@@ -56,7 +80,7 @@ function getCurrentScriptUrl(moduleId) {
         }
         return fileMap.split(",").map(mapRule => {
             const reg = new RegExp(`${filename}\\.js$`, "g");
-            return normalizeUrlFn(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
+            return normalizeUrl(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
         });
     };
 }
@@ -105,7 +129,7 @@ function updateCss(el, url) {
 }
 function getReloadUrl(href, src) {
     let ret = "";
-    href = normalizeUrlFn(href);
+    href = normalizeUrl(href);
     src.some(url => {
         if (href.indexOf(src) > -1) {
             ret = url;
@@ -177,39 +201,6 @@ module.exports = function (moduleId, options) {
         }
     }
     return debounce(update, 50);
-};
-
-
-}),
-"../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/normalize-url.js": (function (module) {
-
-function normalizeUrl(pathComponents) {
-    return pathComponents
-        .reduce(function (accumulator, item) {
-        switch (item) {
-            case "..":
-                accumulator.pop();
-                break;
-            case ".":
-                break;
-            default:
-                accumulator.push(item);
-        }
-        return accumulator;
-    }, [])
-        .join("/");
-}
-module.exports = function (urlString) {
-    urlString = urlString.trim();
-    if (/^data:/i.test(urlString)) {
-        return urlString;
-    }
-    var protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
-    var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
-    var host = components[0].toLowerCase().replace(/\.$/, "");
-    components[0] = "";
-    var path = normalizeUrl(components);
-    return protocol + host + path;
 };
 
 

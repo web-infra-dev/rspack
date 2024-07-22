@@ -1,21 +1,3 @@
-function normalizeUrl(pathComponents: string[]): string {
-	return pathComponents
-		.reduce(function (accumulator: string[], item) {
-			switch (item) {
-				case "..":
-					accumulator.pop();
-					break;
-				case ".":
-					break;
-				default:
-					accumulator.push(item);
-			}
-
-			return accumulator;
-		}, [])
-		.join("/");
-}
-
 module.exports = function (urlString: string): string {
 	urlString = urlString.trim();
 
@@ -30,7 +12,21 @@ module.exports = function (urlString: string): string {
 
 	components[0] = "";
 
-	var path = normalizeUrl(components);
+	var path = components
+		.reduce(function (accumulator: string[], item) {
+			switch (item) {
+				case "..":
+					accumulator.pop();
+					break;
+				case ".":
+					break;
+				default:
+					accumulator.push(item);
+			}
+
+			return accumulator;
+		}, [])
+		.join("/");
 
 	return protocol + host + path;
 };

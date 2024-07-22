@@ -5,7 +5,38 @@
   func-names
 */
 
-const normalizeUrlFn = require("./normalize-url");
+function normalizeUrl(urlString: string): string {
+	urlString = urlString.trim();
+
+	if (/^data:/i.test(urlString)) {
+		return urlString;
+	}
+
+	var protocol =
+		urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
+	var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
+	var host = components[0].toLowerCase().replace(/\.$/, "");
+
+	components[0] = "";
+
+	var path = components
+		.reduce(function (accumulator: string[], item) {
+			switch (item) {
+				case "..":
+					accumulator.pop();
+					break;
+				case ".":
+					break;
+				default:
+					accumulator.push(item);
+			}
+
+			return accumulator;
+		}, [])
+		.join("/");
+
+	return protocol + host + path;
+}
 
 type Option<T> = T | null | undefined;
 type DebouncedFunction<T extends (...args: any[]) => any> = (
@@ -78,7 +109,7 @@ function getCurrentScriptUrl(moduleId: string) {
 		return fileMap.split(",").map(mapRule => {
 			const reg = new RegExp(`${filename}\\.js$`, "g");
 
-			return normalizeUrlFn(
+			return normalizeUrl(
 				src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`)
 			);
 		});
@@ -144,7 +175,7 @@ function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 function getReloadUrl(href: string, src: Array<string>): string {
 	let ret = "";
 
-	href = normalizeUrlFn(href);
+	href = normalizeUrl(href);
 
 	src.some(url => {
 		if (href.indexOf(src as unknown as string) > -1) {
