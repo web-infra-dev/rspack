@@ -88,20 +88,23 @@ const { Features } = rspack.lightningcss;
 The `targets` can be directly written as a `browserslist` query string, the result of a `browserslist` query, or the `targets` of lightningcss, for example:
 
 ```js
-const options: LightningcssLoaderOptions = {
-  targets: '> 0.2%'
-}
+/** @type {import('@rspack/core').LightningcssLoaderOptions} */
+const options = {
+  targets: '> 0.2%',
+};
 // or
 const browserslist = require('browserslist');
 
-const options: LightningcssLoaderOptions = {
-  targets: browserslist('> 0.2%')
+/** @type {import('@rspack/core').LightningcssLoaderOptions} */
+const options = {
+  targets: browserslist('> 0.2%'),
 };
 // or
 const rspack = require('@rspack/core');
 const browserslist = require('browserslist');
 
-const options: LightningcssLoaderOptions = {
-  targets: rspack.lightningcss.browserslistToTargets(browserslist('> 0.2%'))
+/** @type {import('@rspack/core').LightningcssLoaderOptions} */
+const options = {
+  targets: rspack.lightningcss.browserslistToTargets(browserslist('> 0.2%')),
 };
 ```

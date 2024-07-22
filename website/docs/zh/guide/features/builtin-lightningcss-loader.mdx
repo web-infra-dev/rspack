@@ -66,7 +66,7 @@ module.exports = {
 下面是 `builtin:lightningcss-loader` 支持的配置。详细的解释请查看 [lightningcss 文档](https://lightningcss.dev/transpilation.html)
 
 ```ts
-export type LightningcssLoaderOptions = {
+type LightningcssLoaderOptions = {
   errorRecovery?: boolean;
   targets?: Targets | string[] | string;
   include?: Features;
@@ -87,21 +87,24 @@ const { Features } = rspack.lightningcss;
 
 其中 `targets` 可以直接写 `browserslist` 查询字符串，`browserslist` 查询结果，或是 lightningcss 的 `targets`，例如
 
-```ts
-const options: LightningcssLoaderOptions = {
-  targets: '> 0.2%'
-}
+```js
+/** @type {import('@rspack/core').LightningcssLoaderOptions} */
+const options = {
+  targets: '> 0.2%',
+};
 // or
 const browserslist = require('browserslist');
 
-const options: LightningcssLoaderOptions = {
-  targets: browserslist('> 0.2%')
+/** @type {import('@rspack/core').LightningcssLoaderOptions} */
+const options = {
+  targets: browserslist('> 0.2%'),
 };
 // or
 const rspack = require('@rspack/core');
 const browserslist = require('browserslist');
 
-const options: LightningcssLoaderOptions = {
-  targets: rspack.lightningcss.browserslistToTargets(browserslist('> 0.2%'))
+/** @type {import('@rspack/core').LightningcssLoaderOptions} */
+const options = {
+  targets: rspack.lightningcss.browserslistToTargets(browserslist('> 0.2%')),
 };
 ```

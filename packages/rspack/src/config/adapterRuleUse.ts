@@ -212,10 +212,6 @@ const getSwcLoaderOptions: GetLoaderOptions = (o, _) => {
 
 const getLightningcssLoaderOptions: GetLoaderOptions = (o, _) => {
 	if (o && typeof o === "object") {
-		if (o.unusedSymbols) {
-			o.unusedSymbols = [...o.unusedSymbols];
-		}
-
 		if (o.targets && typeof o.targets === "string") {
 			o.targets = browserslistToTargets(browserslist(o.targets));
 		}

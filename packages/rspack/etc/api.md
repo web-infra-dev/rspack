@@ -4759,7 +4759,7 @@ export type LightningcssLoaderOptions = {
     draft?: Drafts;
     nonStandard?: NonStandard;
     pseudoClasses?: PseudoClasses;
-    unusedSymbols?: Set<String>;
+    unusedSymbols?: string[];
 };
 
 // @public (undocumented)

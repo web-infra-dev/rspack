@@ -149,5 +149,5 @@ export type LoaderOptions = {
 	draft?: Drafts;
 	nonStandard?: NonStandard;
 	pseudoClasses?: PseudoClasses;
-	unusedSymbols?: Set<String>;
+	unusedSymbols?: string[];
 };
