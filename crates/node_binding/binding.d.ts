@@ -29,6 +29,8 @@ export class JsCompilation {
   getChunks(): Array<JsChunk>
   getNamedChunkKeys(): Array<string>
   getNamedChunk(name: string): JsChunk | null
+  getNamedChunkGroupKeys(): Array<string>
+  getNamedChunkGroup(name: string): JsChunkGroup | null
   setAssetSource(name: string, source: JsCompatSource): void
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
@@ -38,6 +40,7 @@ export class JsCompilation {
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
   get entrypoints(): Record<string, JsChunkGroup>
+  get chunkGroups(): Array<JsChunkGroup>
   get hash(): string | null
   getFileDependencies(): Array<string>
   getContextDependencies(): Array<string>
