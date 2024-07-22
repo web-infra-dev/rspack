@@ -7,104 +7,129 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
+import { memoize } from "../util/memoize";
+import * as browserslistTargetHandler from "./browserslistTargetHandler";
 
-"use strict";
-
-const { memoize } = require("../util/memoize");
-
-const getBrowserslistTargetHandler = memoize(() =>
-	require("./browserslistTargetHandler")
-);
+const getBrowserslistTargetHandler = memoize(() => browserslistTargetHandler);
 
 /**
- * @param {string} context the context directory
- * @returns {"browserslist" | "web"} default target
+ * @param context the context directory
+ * @returns default target
  */
-const getDefaultTarget = context => {
+export const getDefaultTarget = (context: string): "browserslist" | "web" => {
 	const browsers = getBrowserslistTargetHandler().load(null, context);
 	return browsers ? "browserslist" : "web";
 };
 
-/**
- * @typedef {Object} PlatformTargetProperties
- * @property {boolean | null} web web platform, importing of http(s) and std: is available
- * @property {boolean | null} browser browser platform, running in a normal web browser
- * @property {boolean | null} webworker (Web)Worker platform, running in a web/shared/service worker
- * @property {boolean | null} node node platform, require of node built-in modules is available
- * @property {boolean | null} nwjs nwjs platform, require of legacy nw.gui is available
- * @property {boolean | null} electron electron platform, require of some electron built-in modules is available
- */
+export type PlatformTargetProperties = {
+	/** web platform, importing of http(s) and std: is available */
+	web: boolean | null;
+	/** browser platform, running in a normal web browser */
+	browser: boolean | null;
+	/** (Web)Worker platform, running in a web/shared/service worker */
+	webworker: boolean | null;
+	/** node platform, require of node built-in modules is available */
+	node: boolean | null;
+	/** nwjs platform, require of legacy nw.gui is available */
+	nwjs: boolean | null;
+	/** electron platform, require of some electron built-in modules is available */
+	electron: boolean | null;
+};
+
+export type ElectronContextTargetProperties = {
+	/**  in main context */
+	electronMain: boolean | null;
+	/**  in preload context */
+	electronPreload: boolean | null;
+	/**  in renderer context with node integration */
+	electronRenderer: boolean | null;
+};
+
+export type ApiTargetProperties = {
+	/**  has require function available */
+	require: boolean | null;
+	/**  has node.js built-in modules available */
+	nodeBuiltins: boolean | null;
+	/**  node.js allows to use `node:` prefix for core modules */
+	nodePrefixForCoreModules: boolean | null;
+	/**  has document available (allows script tags) */
+	document: boolean | null;
+	/**  has importScripts available */
+	importScripts: boolean | null;
+	/**  has importScripts available when creating a worker */
+	importScriptsInWorker: boolean | null;
+	/**  has fetch function available for WebAssembly */
+	fetchWasm: boolean | null;
+	/**  has global variable available */
+	global: boolean | null;
+};
+
+export type EcmaTargetProperties = {
+	/**  has globalThis variable available */
+	globalThis: boolean | null;
+	/**  big int literal syntax is available */
+	bigIntLiteral: boolean | null;
+	/**  const and let variable declarations are available */
+	const: boolean | null;
+	/**  arrow functions are available */
+	arrowFunction: boolean | null;
+	/**  for of iteration is available */
+	forOf: boolean | null;
+	/**  destructuring is available */
+	destructuring: boolean | null;
+	/**  async import() is available */
+	dynamicImport: boolean | null;
+	/**  async import() is available when creating a worker */
+	dynamicImportInWorker: boolean | null;
+	/**  ESM syntax is available (when in module) */
+	module: boolean | null;
+	/**  optional chaining is available */
+	optionalChaining: boolean | null;
+	/**  template literal is available */
+	templateLiteral: boolean | null;
+	/**  async functions and await are available */
+	asyncFunction: boolean | null;
+};
+
+// type TargetProperties =
+// 	| PlatformTargetProperties
+// 	| ApiTargetProperties
+// 	| EcmaTargetProperties
+// 	| (PlatformTargetProperties & ApiTargetProperties)
+// 	| (PlatformTargetProperties & EcmaTargetProperties)
+// 	| (ApiTargetProperties & EcmaTargetProperties);
+
+type Never<T> = { [P in keyof T]?: never };
+type Mix<A, B> = (A & Never<B>) | (Never<A> & B) | (A & B);
+
+type TargetProperties = Mix<
+	Mix<PlatformTargetProperties, ElectronContextTargetProperties>,
+	Mix<ApiTargetProperties, EcmaTargetProperties>
+>;
 
 /**
- * @typedef {Object} ElectronContextTargetProperties
- * @property {boolean | null} electronMain in main context
- * @property {boolean | null} electronPreload in preload context
- * @property {boolean | null} electronRenderer in renderer context with node integration
+ * @param major major version
+ * @param minor minor version
+ * @returns check if version is greater or equal
  */
-
-/**
- * @typedef {Object} ApiTargetProperties
- * @property {boolean | null} require has require function available
- * @property {boolean | null} nodeBuiltins has node.js built-in modules available
- * @property {boolean | null} nodePrefixForCoreModules node.js allows to use `node:` prefix for core modules
- * @property {boolean | null} document has document available (allows script tags)
- * @property {boolean | null} importScripts has importScripts available
- * @property {boolean | null} importScriptsInWorker has importScripts available when creating a worker
- * @property {boolean | null} fetchWasm has fetch function available for WebAssembly
- * @property {boolean | null} global has global variable available
- */
-
-/**
- * @typedef {Object} EcmaTargetProperties
- * @property {boolean | null} globalThis has globalThis variable available
- * @property {boolean | null} bigIntLiteral big int literal syntax is available
- * @property {boolean | null} const const and let variable declarations are available
- * @property {boolean | null} arrowFunction arrow functions are available
- * @property {boolean | null} forOf for of iteration is available
- * @property {boolean | null} destructuring destructuring is available
- * @property {boolean | null} dynamicImport async import() is available
- * @property {boolean | null} dynamicImportInWorker async import() is available when creating a worker
- * @property {boolean | null} module ESM syntax is available (when in module)
- * @property {boolean | null} optionalChaining optional chaining is available
- * @property {boolean | null} templateLiteral template literal is available
- * @property {boolean | null} asyncFunction async functions and await are available
- */
-
-///** @typedef {PlatformTargetProperties | ApiTargetProperties | EcmaTargetProperties | PlatformTargetProperties & ApiTargetProperties | PlatformTargetProperties & EcmaTargetProperties | ApiTargetProperties & EcmaTargetProperties} TargetProperties */
-
-/**
- * @template T
- * @typedef {{ [P in keyof T]?: never }} Never<T>
- */
-
-/**
- * @template A
- * @template B
- * @typedef {(A & Never<B>) | (Never<A> & B) | (A & B)} Mix<A, B>
- */
-
-/** @typedef {Mix<Mix<PlatformTargetProperties, ElectronContextTargetProperties>, Mix<ApiTargetProperties, EcmaTargetProperties>>} TargetProperties */
-
-/**
- * @param {string} major major version
- * @param {string | undefined} minor minor version
- * @returns {(vMajor: number, vMinor?: number) => boolean | undefined} check if version is greater or equal
- */
-const versionDependent = (major, minor) => {
+const versionDependent = (
+	major: string,
+	minor: string | undefined
+): ((vMajor: number, vMinor?: number) => boolean | undefined) => {
 	if (!major) {
-		return () => /** @type {undefined} */ (undefined);
+		return () => undefined;
 	}
-	/** @type {number} */
 	const nMajor = +major;
-	/** @type {number} */
 	const nMinor = minor ? +minor : 0;
+
 	return (vMajor, vMinor = 0) => {
 		return nMajor > vMajor || (nMajor === vMajor && nMinor >= vMinor);
 	};
 };
 
-/** @type {[string, string, RegExp, (...args: string[]) => Partial<TargetProperties>][]} */
-const TARGETS = [
+const TARGETS: Array<
+	[string, string, RegExp, (...args: string[]) => Partial<TargetProperties>]
+> = [
 	[
 		"browserslist / browserslist:env / browserslist:query / browserslist:path-to-config / browserslist:path-to-config:env",
 		"Resolve features from browserslist. Will resolve browserslist config automatically. Only browser or node queries are supported (electron is not supported). Examples: 'browserslist:modern' to use 'modern' environment from browserslist config",
@@ -321,17 +346,20 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
 ];
 
 /**
- * @param {string} target the target
- * @param {string} context the context directory
- * @returns {TargetProperties} target properties
+ * @param target the target
+ * @param context the context directory
+ * @returns target properties
  */
-const getTargetProperties = (target, context) => {
+export const getTargetProperties = (
+	target: string,
+	context: string
+): TargetProperties => {
 	for (const [, , regExp, handler] of TARGETS) {
 		const match = regExp.exec(target);
 		if (match) {
 			const [, ...args] = match;
 			const result = handler(...args, context);
-			if (result) return /** @type {TargetProperties} */ (result);
+			if (result) return result as TargetProperties;
 		}
 	}
 	throw new Error(
@@ -341,20 +369,17 @@ const getTargetProperties = (target, context) => {
 	);
 };
 
-/**
- * @param {TargetProperties[]} targetProperties array of target properties
- * @returns {TargetProperties} merged target properties
- */
-const mergeTargetProperties = targetProperties => {
-	/** @type {Set<keyof TargetProperties>} */
-	const keys = new Set();
+const mergeTargetProperties = (
+	targetProperties: TargetProperties[]
+): TargetProperties => {
+	const keys = new Set<keyof TargetProperties>();
 	for (const tp of targetProperties) {
-		for (const key of Object.keys(tp)) {
-			keys.add(/** @type {keyof TargetProperties} */ (key));
+		for (const key of Object.keys(tp) as Array<keyof TargetProperties>) {
+			keys.add(key);
 		}
 	}
-	/** @type {Object} */
-	const result = {};
+
+	const result: Partial<TargetProperties> = {};
 	for (const key of keys) {
 		let hasTrue = false;
 		let hasFalse = false;
@@ -369,24 +394,18 @@ const mergeTargetProperties = targetProperties => {
 					break;
 			}
 		}
-		if (hasTrue || hasFalse)
-			/** @type {TargetProperties} */
-			(result)[key] = hasFalse && hasTrue ? null : hasTrue ? true : false;
+		if (hasTrue || hasFalse) result[key] = hasFalse && hasTrue ? null : hasTrue;
 	}
-	return /** @type {TargetProperties} */ (result);
+	return result as TargetProperties;
 };
 
 /**
- * @param {string[]} targets the targets
- * @param {string} context the context directory
- * @returns {TargetProperties} target properties
+ * @param targets the targets
+ * @param context the context directory
+ * @returns target properties
  */
-const getTargetsProperties = (targets, context) => {
+export const getTargetsProperties = (targets: string[], context: string) => {
 	return mergeTargetProperties(
 		targets.map(t => getTargetProperties(t, context))
 	);
 };
-
-exports.getDefaultTarget = getDefaultTarget;
-exports.getTargetProperties = getTargetProperties;
-exports.getTargetsProperties = getTargetsProperties;
