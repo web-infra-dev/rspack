@@ -1,5 +1,5 @@
-use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use rspack_collections::{UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   get_chunk_from_ukey, get_js_chunk_filename_template, stringify_map, Chunk, ChunkKind,
   ChunkLoading, ChunkUkey, Compilation, PathData, SourceType,
@@ -166,8 +166,8 @@ pub fn unquoted_stringify(chunk: &Chunk, str: &String) -> String {
 
 pub fn stringify_dynamic_chunk_map<F>(
   f: F,
-  chunks: &IndexSet<&ChunkUkey>,
-  chunk_map: &IndexMap<&ChunkUkey, &Chunk>,
+  chunks: &UkeyIndexSet<&ChunkUkey>,
+  chunk_map: &UkeyIndexMap<&ChunkUkey, &Chunk>,
 ) -> String
 where
   F: Fn(&Chunk) -> Option<String>,

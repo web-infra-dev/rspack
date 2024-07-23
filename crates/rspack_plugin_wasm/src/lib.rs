@@ -19,6 +19,6 @@ pub type ModuleIdToFileName = std::sync::Arc<
   dashmap::DashMap<
     rspack_core::ModuleIdentifier,
     (String, AssetInfo),
-    std::hash::BuildHasherDefault<rspack_identifier::IdentifierHasher>,
+    std::hash::BuildHasherDefault<rspack_collections::IdentifierHasher>,
   >,
 >;

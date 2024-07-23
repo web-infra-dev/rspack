@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use rspack_collections::Identifier;
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -8,7 +9,6 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_identifier::Identifier;
 use rspack_plugin_runtime::chunk_has_js;
 
 #[impl_runtime_module]

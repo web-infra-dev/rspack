@@ -1,9 +1,9 @@
 use std::{any::Any, fmt::Debug};
 
 use dyn_clone::{clone_trait_object, DynClone};
+use rspack_collections::IdentifierSet;
 use rspack_error::Diagnostic;
 use rspack_util::ext::AsAny;
-use rustc_hash::FxHashSet as HashSet;
 use swc_core::{common::Span, ecma::atoms::Atom};
 
 use super::dependency_template::AsDependencyTemplate;
@@ -14,7 +14,7 @@ use crate::create_exports_object_referenced;
 use crate::AsContextDependency;
 use crate::ExtendedReferencedExport;
 use crate::RuntimeSpec;
-use crate::{ConnectionState, Context, ErrorSpan, ModuleGraph, ModuleIdentifier, UsedByExports};
+use crate::{ConnectionState, Context, ErrorSpan, ModuleGraph, UsedByExports};
 
 pub trait Dependency:
   AsDependencyTemplate
@@ -49,7 +49,7 @@ pub trait Dependency:
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
+    _module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     ConnectionState::Bool(true)
   }

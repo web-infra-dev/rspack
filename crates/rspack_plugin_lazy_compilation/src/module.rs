@@ -1,5 +1,6 @@
 use std::{hash::Hash, path::PathBuf, sync::Arc};
 
+use rspack_collections::Identifiable;
 use rspack_core::{
   impl_module_meta_info, module_namespace_promise,
   rspack_sources::{RawSource, Source},
@@ -10,7 +11,6 @@ use rspack_core::{
   TemplateContext,
 };
 use rspack_error::{Diagnosable, Diagnostic, Result};
-use rspack_identifier::Identifiable;
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use rustc_hash::FxHashSet;
@@ -304,7 +304,7 @@ impl Module for LazyCompilationProxyModule {
 }
 
 impl Identifiable for LazyCompilationProxyModule {
-  fn identifier(&self) -> rspack_identifier::Identifier {
+  fn identifier(&self) -> rspack_collections::Identifier {
     self.identifier
   }
 }

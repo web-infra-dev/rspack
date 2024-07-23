@@ -1,11 +1,11 @@
-use rustc_hash::FxHashMap as HashMap;
+use rspack_collections::IdentifierMap;
 
 use super::super::MakeArtifact;
 use crate::{ModuleIdentifier, ModuleIssuer};
 
 #[derive(Debug, Default)]
 pub struct FixIssuers {
-  origin_module_issuers: HashMap<ModuleIdentifier, ModuleIssuer>,
+  origin_module_issuers: IdentifierMap<ModuleIssuer>,
 }
 
 impl FixIssuers {

@@ -19,7 +19,7 @@ pub use fake_namespace_object::*;
 pub use template::Template;
 mod module_profile;
 pub use module_profile::*;
-use rspack_database::Database;
+use rspack_collections::Database;
 pub mod external_module;
 pub use external_module::*;
 mod logger;

@@ -1,5 +1,5 @@
+use rspack_collections::Identifier;
 use rspack_error::Result;
-use rspack_identifier::Identifier;
 
 use crate::{get_runtime_key, RuntimeSpec, RuntimeSpecSet};
 use crate::{old_cache::storage, BoxModule, CodeGenerationResult, Compilation, NormalModuleSource};

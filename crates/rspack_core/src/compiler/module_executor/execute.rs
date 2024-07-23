@@ -2,8 +2,8 @@ use std::{iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
 use rayon::prelude::*;
+use rspack_collections::{Identifier, IdentifierSet};
 use rspack_error::Result;
-use rspack_identifier::{Identifier, IdentifierSet};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::{runtime::Handle, sync::oneshot::Sender};

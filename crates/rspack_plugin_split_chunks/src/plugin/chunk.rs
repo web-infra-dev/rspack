@@ -1,5 +1,5 @@
+use rspack_collections::UkeySet;
 use rspack_core::{Chunk, ChunkUkey, Compilation};
-use rustc_hash::FxHashSet;
 
 use crate::module_group::ModuleGroup;
 use crate::SplitChunksPlugin;
@@ -33,7 +33,7 @@ impl SplitChunksPlugin {
     module_group: &mut ModuleGroup,
   ) -> Option<ChunkUkey> {
     let candidates = module_group.chunks.iter().filter_map(|chunk| {
-      let chunk = chunk.as_ref(&compilation.chunk_by_ukey);
+      let chunk = compilation.chunk_by_ukey.expect_get(chunk);
 
       if compilation
         .chunk_graph
@@ -152,7 +152,7 @@ impl SplitChunksPlugin {
     &self,
     item: &ModuleGroup,
     new_chunk: ChunkUkey,
-    original_chunks: &FxHashSet<ChunkUkey>,
+    original_chunks: &UkeySet<ChunkUkey>,
     compilation: &mut Compilation,
   ) {
     for module_identifier in &item.modules {
@@ -180,7 +180,7 @@ impl SplitChunksPlugin {
   pub(crate) fn split_from_original_chunks(
     &self,
     _item: &ModuleGroup,
-    original_chunks: &FxHashSet<ChunkUkey>,
+    original_chunks: &UkeySet<ChunkUkey>,
     new_chunk: ChunkUkey,
     compilation: &mut Compilation,
   ) {

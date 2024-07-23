@@ -21,6 +21,7 @@ use rspack_binding_values::{
   JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
   ToJsCompatSource, ToJsModule,
 };
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   parse_resource, rspack_sources::SourceExt, AfterResolveData, AfterResolveResult,
   AssetEmittedInfo, BeforeResolveData, BeforeResolveResult, BoxModule, Chunk, ChunkUkey,
@@ -54,7 +55,6 @@ use rspack_core::{
 };
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
-use rspack_identifier::IdentifierSet;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JavascriptModulesChunkHashHook};
 

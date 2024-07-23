@@ -2,10 +2,10 @@
 mod impl_plugin_for_css_plugin;
 use std::cmp::{self, Reverse};
 
+use rspack_collections::IdentifierSet;
 use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, SourceType};
 use rspack_core::{ChunkUkey, ModuleIdentifier};
 use rspack_hook::plugin;
-use rspack_identifier::IdentifierSet;
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -98,7 +98,7 @@ impl CssPlugin {
     let mut modules_by_chunk_group = chunk
       .groups
       .iter()
-      .map(|group| group.as_ref(&compilation.chunk_group_by_ukey))
+      .map(|group| compilation.chunk_group_by_ukey.expect_get(group))
       .map(|chunk_group| {
         let mut indexed_modules = modules_list
           .clone()

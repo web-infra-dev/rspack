@@ -1,8 +1,8 @@
 use std::collections::hash_map::Entry;
 
+use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
-use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 

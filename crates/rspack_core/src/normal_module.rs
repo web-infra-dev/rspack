@@ -11,10 +11,10 @@ use std::{
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
+use rspack_collections::{Identifiable, IdentifierSet};
 use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, NodeError, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_hook::define_hook;
-use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, AdditionalData, Content, LoaderContext, ResourceData};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{
@@ -22,7 +22,6 @@ use rspack_sources::{
   SourceMapSource, WithoutOriginalOptions,
 };
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
-use rustc_hash::FxHashSet as HashSet;
 use rustc_hash::FxHasher;
 use serde_json::json;
 
@@ -654,7 +653,7 @@ impl Module for NormalModule {
   fn get_side_effects_connection_state(
     &self,
     module_graph: &ModuleGraph,
-    module_chain: &mut HashSet<ModuleIdentifier>,
+    module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     if let Some(side_effect_free) = self.factory_meta().and_then(|m| m.side_effect_free) {
       return ConnectionState::Bool(!side_effect_free);

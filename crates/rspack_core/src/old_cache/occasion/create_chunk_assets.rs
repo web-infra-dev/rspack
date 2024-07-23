@@ -1,6 +1,6 @@
 use futures::Future;
+use rspack_collections::Identifier;
 use rspack_error::Result;
-use rspack_identifier::Identifier;
 
 use crate::{old_cache::storage, Chunk, Compilation, NormalModuleSource, RenderManifestEntry};
 

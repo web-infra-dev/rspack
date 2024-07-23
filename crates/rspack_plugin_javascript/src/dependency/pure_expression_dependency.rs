@@ -1,9 +1,10 @@
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   filter_runtime, runtime_condition_expression, AsContextDependency, AsModuleDependency,
   ConnectionState, Dependency, DependencyId, DependencyTemplate, ModuleGraph, ModuleIdentifier,
   TemplateContext, TemplateReplaceSource, UsageState, UsedByExports, UsedName,
 };
-use rustc_hash::FxHashSet as HashSet;
+
 #[derive(Debug, Clone)]
 pub struct PureExpressionDependency {
   pub start: u32,
@@ -37,7 +38,7 @@ impl Dependency for PureExpressionDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
+    _module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     ConnectionState::Bool(false)
   }

@@ -2,6 +2,7 @@ use std::hash::Hash;
 use std::path::PathBuf;
 
 use once_cell::sync::Lazy;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::rspack_sources::Source;
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config, AsyncDependenciesBlockIdentifier, BuildContext,
@@ -12,7 +13,6 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_identifier::{Identifiable, Identifier};
 use rustc_hash::FxHashSet;
 
 use crate::css_dependency::CssDependency;
@@ -187,7 +187,7 @@ impl Module for CssModule {
 }
 
 impl Identifiable for CssModule {
-  fn identifier(&self) -> rspack_identifier::Identifier {
+  fn identifier(&self) -> rspack_collections::Identifier {
     self.identifier__
   }
 }

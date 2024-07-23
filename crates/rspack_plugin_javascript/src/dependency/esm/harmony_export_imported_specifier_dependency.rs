@@ -2,6 +2,7 @@ use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 
 use indexmap::{IndexMap, IndexSet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, get_exports_type,
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
@@ -1205,7 +1206,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
+    _module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     ConnectionState::Bool(false)
   }

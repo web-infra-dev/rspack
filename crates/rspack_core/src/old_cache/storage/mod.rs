@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use rspack_identifier::Identifier;
+use rspack_collections::Identifier;
 
 use crate::CacheOptions;
 

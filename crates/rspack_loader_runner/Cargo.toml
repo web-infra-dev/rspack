@@ -12,10 +12,10 @@ derivative  = { workspace = true }
 rustc-hash  = { workspace = true }
 tokio       = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot", "fs"] }
 
-once_cell         = { workspace = true }
-regex             = { workspace = true }
-rspack_error      = { path = "../rspack_error" }
-rspack_identifier = { path = "../rspack_identifier" }
-rspack_sources    = { workspace = true }
-rspack_util       = { path = "../rspack_util" }
-serde_json        = { workspace = true }
+once_cell          = { workspace = true }
+regex              = { workspace = true }
+rspack_collections = { path = "../rspack_collections" }
+rspack_error       = { path = "../rspack_error" }
+rspack_sources     = { workspace = true }
+rspack_util        = { path = "../rspack_util" }
+serde_json         = { workspace = true }

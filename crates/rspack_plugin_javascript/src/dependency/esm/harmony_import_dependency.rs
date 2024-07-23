@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use dashmap::DashMap;
 use once_cell::sync::Lazy;
+use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
   AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
@@ -14,7 +14,6 @@ use rspack_core::{ModuleGraph, RuntimeSpec};
 use rspack_error::miette::{MietteDiagnostic, Severity};
 use rspack_error::DiagnosticExt;
 use rspack_error::{Diagnostic, TraceableError};
-use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
@@ -23,9 +22,8 @@ use super::create_resource_identifier_for_esm_dependency;
 // Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/HarmonyImportDependency.js#L361-L365
 // This map is used to save the runtime conditions of modules and used by HarmonyAcceptDependency in hot module replacement.
 // It can not be saved in TemplateContext because only dependencies of rebuild modules will be templated again.
-static IMPORT_EMITTED_MAP: Lazy<
-  DashMap<ModuleIdentifier, FxHashMap<ModuleIdentifier, RuntimeCondition>>,
-> = Lazy::new(Default::default);
+static IMPORT_EMITTED_MAP: Lazy<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
+  Lazy::new(Default::default);
 
 pub fn get_import_emitted_runtime(
   module: &ModuleIdentifier,
@@ -395,7 +393,7 @@ impl Dependency for HarmonyImportSideEffectDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     module_graph: &ModuleGraph,
-    module_chain: &mut HashSet<ModuleIdentifier>,
+    module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     if let Some(module) = module_graph
       .module_identifier_by_dependency_id(&self.id)
@@ -447,7 +445,7 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
       move |con, _, module_graph: &ModuleGraph| {
         let id = *con.module_identifier();
         if let Some(module) = module_graph.module_by_identifier(&id) {
-          module.get_side_effects_connection_state(module_graph, &mut HashSet::default())
+          module.get_side_effects_connection_state(module_graph, &mut IdentifierSet::default())
         } else {
           ConnectionState::Bool(true)
         }
