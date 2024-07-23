@@ -47,7 +47,15 @@ it("should not parse when logical or with `unknown || true has side effects`", f
 
 it("nested `unknown || true = unknown truthy`", function () {
 	var unknown1 = "";
-	var unknown2 = "1"
-	const x = ((unknown1 || "1") !== "1" || unknown2 !== "2") ? "yes" : "no";
-	expect(x).toBe("yes")
+	var unknown2 = "1";
+	const x = (unknown1 || "1") !== "1" || unknown2 !== "2" ? "yes" : "no";
+	expect(x).toBe("yes");
+});
+
+it("logical or: `truthy || any` should be truthy", function () {
+	expect("foobar" || undefined || undefined).toBe("foobar");
+});
+
+it("logical and: `falsy && any` should be falsy", function () {
+	expect(undefined && "foo" && "bar").toBe(undefined);
 });
