@@ -1,19 +1,20 @@
-use std::io::Read;
-use std::path::Path;
-use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
-use std::{collections::HashMap, fs};
+use std::{
+  collections::HashMap,
+  fs,
+  path::Path,
+  sync::{Arc, Mutex},
+};
 
 use anyhow::{Context as AnyhowContext, Error as AnyhowError};
 use reqwest::Client;
 use rspack_base64::encode_to_string;
-use rspack_error::Result;
+use rspack_error::{error, Result};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 
 use crate::{
   http_uri::HttpUriPluginOptions,
-  lockfile::{LockfileCache, LockfileEntry},
+  lockfile::{Lockfile, LockfileEntry},
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -51,214 +52,160 @@ pub enum FetchResultType {
 
 type FetchResult = Result<FetchResultType, AnyhowError>;
 
-pub struct HttpCache {
-  cache_location: Option<String>,
-  lockfile_cache: LockfileCache,
+pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> FetchResult {
+  let cache_location = options.cache_location.as_deref().unwrap_or("");
+  let cached_result = read_from_cache(url, cache_location).await?;
+  let cached_result_clone = cached_result.clone();
+  if let Some(cached) = cached_result {
+    if cached.meta.valid_until >= current_time() {
+      return Ok(FetchResultType::Content(cached));
+    }
+  }
+  fetch_content_raw(url, cached_result_clone, cache_location).await
 }
 
-impl HttpCache {
-  pub fn new(cache_location: Option<String>, lockfile_location: Option<String>) -> Self {
-    let lockfile_path = lockfile_location.map(PathBuf::from);
-    HttpCache {
-      cache_location,
-      lockfile_cache: LockfileCache::new(lockfile_path),
+async fn fetch_content_raw(
+  url: &str,
+  cached_result: Option<ContentFetchResult>,
+  cache_location: &str,
+) -> FetchResult {
+  let client = Client::new();
+  let request_time = current_time();
+  let mut request = client.get(url);
+
+  if let Some(cached) = &cached_result {
+    if let Some(etag) = &cached.meta.etag {
+      request = request.header("If-None-Match", etag);
     }
   }
 
-  pub async fn fetch_content(&self, url: &str, _options: &HttpUriPluginOptions) -> FetchResult {
-    let cached_result = self.read_from_cache(url).await?;
+  let response = request.send().await.context("Failed to send request")?;
+  let status = response.status();
+  let headers = response.headers().clone();
+  let etag = headers
+    .get("etag")
+    .and_then(|v| v.to_str().ok())
+    .map(String::from);
+  let location = headers
+    .get("location")
+    .and_then(|v| v.to_str().ok())
+    .map(String::from);
+  let cache_control = headers
+    .get("cache-control")
+    .and_then(|v| v.to_str().ok())
+    .map(String::from);
 
-    if let Some(ref cached) = cached_result {
-      if cached.meta.fresh {
-        return Ok(FetchResultType::Content(cached.clone()));
-      }
-    }
+  let (store_lock, store_cache, valid_until) = parse_cache_control(&cache_control, request_time);
 
-    self.fetch_content_raw(url, cached_result).await
-  }
-
-  async fn fetch_content_raw(
-    &self,
-    url: &str,
-    cached_result: Option<ContentFetchResult>,
-  ) -> FetchResult {
-    let client = Client::new();
-    let request_time = current_time();
-    let mut request = client.get(url);
-
-    if let Some(cached) = &cached_result {
-      if let Some(etag) = &cached.meta.etag {
-        request = request.header("If-None-Match", etag);
-      }
-    }
-
-    let response = request.send().await.context("Failed to send request")?;
-    let status = response.status();
-    let headers = response.headers().clone();
-    let etag = headers
-      .get("etag")
-      .and_then(|v| v.to_str().ok())
-      .map(String::from);
-    let location = headers
-      .get("location")
-      .and_then(|v| v.to_str().ok())
-      .map(String::from);
-    let cache_control = headers
-      .get("cache-control")
-      .and_then(|v| v.to_str().ok())
-      .map(String::from);
-
-    let (store_lock, store_cache, valid_until) = parse_cache_control(&cache_control, request_time);
-
-    if status == 304 {
-      if let Some(cached) = cached_result {
-        let new_valid_until = valid_until.max(cached.meta.valid_until);
+  if status == 304 {
+    if let Some(cached) = cached_result {
+      if cached.meta.valid_until < valid_until
+        || cached.meta.store_lock != store_lock
+        || cached.meta.store_cache != store_cache
+        || cached.meta.etag != etag
+      {
         return Ok(FetchResultType::Content(ContentFetchResult {
           meta: FetchResultMeta {
             fresh: true,
-            store_lock,
-            store_cache,
-            valid_until: new_valid_until,
-            etag: etag.or(cached.meta.etag),
+            ..cached.meta
           },
           ..cached
         }));
       }
     }
+  }
 
-    if let Some(location) = location {
-      if (300..=308).contains(&status.as_u16()) {
-        return Ok(FetchResultType::Redirect(RedirectFetchResult {
-          location,
-          meta: FetchResultMeta {
-            fresh: true,
-            store_lock,
-            store_cache,
-            valid_until,
-            etag,
-          },
-        }));
-      }
-    }
-
-    let content = response
-      .bytes()
-      .await
-      .context("Failed to read response bytes")?;
-    if !status.is_success() {
-      return Err(anyhow::anyhow!("Request failed with status: {}", status));
-    }
-
-    let integrity = compute_integrity(&content);
-    let entry = LockfileEntry {
-      resolved: url.to_string(),
-      integrity: integrity.clone(),
-      content_type: headers
-        .get("content-type")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("")
-        .to_string(),
-      valid_until,
-      etag: etag.clone(),
-    };
-
-    let result = ContentFetchResult {
-      entry: entry.clone(),
-      content: content.to_vec(),
+  if let Some(location) = location {
+    return Ok(FetchResultType::Redirect(RedirectFetchResult {
+      location,
       meta: FetchResultMeta {
         fresh: true,
         store_lock,
         store_cache,
         valid_until,
-        etag: etag.clone(),
+        etag,
       },
-    };
-
-    if store_cache || store_lock {
-      let should_update = cached_result
-        .map(|cached| {
-          valid_until > cached.meta.valid_until
-            || etag != cached.meta.etag
-            || integrity != cached.entry.integrity
-        })
-        .unwrap_or(true);
-
-      if should_update {
-        if store_cache {
-          self.write_to_cache(url, &result.content).await?;
-        }
-        let lockfile = self.lockfile_cache.get_lockfile().await?;
-        let mut lockfile = lockfile.lock().await;
-        lockfile
-          .entries_mut()
-          .insert(url.to_string(), entry.clone());
-        drop(lockfile);
-        self.lockfile_cache.save_lockfile().await?;
-      }
-    }
-
-    Ok(FetchResultType::Content(result))
+    }));
   }
 
-  async fn read_from_cache(
-    &self,
-    resource: &str,
-  ) -> Result<Option<ContentFetchResult>, anyhow::Error> {
-    if let Some(cache_location) = &self.cache_location {
-      let lockfile = self.lockfile_cache.get_lockfile().await?;
-      let lockfile = lockfile.lock().await;
-      let cache_path = format!("{}/{}", cache_location, resource.replace('/', "_"));
-
-      if let Some(entry) = lockfile.get_entry(resource) {
-        let current_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-        let is_valid = entry.valid_until > current_time;
-
-        if is_valid && Path::new(&cache_path).exists() {
-          let mut file = fs::File::open(&cache_path).context("Failed to open cached content")?;
-          let mut cached_content = Vec::new();
-          file
-            .read_to_end(&mut cached_content)
-            .context("Failed to read cached content")?;
-
-          let result = ContentFetchResult {
-            entry: entry.clone(),
-            content: cached_content,
-            meta: FetchResultMeta {
-              fresh: true,
-              store_cache: false,
-              store_lock: false,
-              valid_until: entry.valid_until,
-              etag: entry.etag.clone(),
-            },
-          };
-          return Ok(Some(result));
-        }
-      }
-    }
-    Ok(None)
+  let content = response
+    .bytes()
+    .await
+    .context("Failed to read response bytes")?;
+  if !status.is_success() {
+    return Err(anyhow::anyhow!("Request failed with status: {}", status));
   }
 
-  async fn write_to_cache(&self, resource: &str, content: &[u8]) -> Result<(), anyhow::Error> {
-    if let Some(cache_location) = &self.cache_location {
-      fs::create_dir_all(cache_location).context("Failed to create cache directory")?;
-      let cache_path = format!("{}/{}", cache_location, resource.replace('/', "_"));
-      fs::write(&cache_path, content).context("Failed to write to cache")?;
-    }
-    Ok(())
+  let entry = LockfileEntry {
+    resolved: url.to_string(),
+    content_type: headers
+      .get("content-type")
+      .and_then(|v| v.to_str().ok())
+      .unwrap_or("")
+      .to_string(),
+  };
+
+  let result = ContentFetchResult {
+    entry: entry.clone(),
+    content: content.to_vec(),
+    meta: FetchResultMeta {
+      fresh: true,
+      store_lock,
+      store_cache,
+      valid_until,
+      etag,
+    },
+  };
+
+  if store_cache {
+    write_to_cache(url, &result, cache_location).await?;
   }
+
+  Ok(FetchResultType::Content(result))
 }
 
-pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> FetchResult {
-  let http_cache = HttpCache::new(
-    options.cache_location.clone(),
-    options.lockfile_location.clone(),
-  );
+pub async fn read_from_cache(
+  resource: &str,
+  cache_location: &str,
+) -> Result<Option<ContentFetchResult>, anyhow::Error> {
+  let cache_path = format!("{}/{}", cache_location, resource.replace("/", "_"));
+  if Path::new(&cache_path).exists() {
+    let cached_content = fs::read(&cache_path)
+      .context("Failed to read cached content")
+      .map_err(|err| {
+        error!("{}", err.to_string());
+        anyhow::Error::from(err)
+      })?;
+    return Ok(Some(ContentFetchResult {
+      entry: LockfileEntry {
+        resolved: resource.to_string(),
+        content_type: String::new(),
+      },
+      content: cached_content,
+      meta: FetchResultMeta {
+        store_cache: true,
+        store_lock: true,
+        valid_until: u64::MAX,
+        etag: None,
+        fresh: true,
+      },
+    }));
+  }
+  Ok(None)
+}
 
-  http_cache.fetch_content(url, options).await
+pub async fn write_to_cache(
+  resource: &str,
+  content: &ContentFetchResult,
+  cache_location: &str,
+) -> Result<(), anyhow::Error> {
+  let cache_path = format!("{}/{}", cache_location, resource.replace("/", "_"));
+  fs::create_dir_all(cache_location).context("Failed to create cache directory")?;
+  fs::write(&cache_path, &content.content).context("Failed to write to cache")
 }
 
 fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bool, bool, u64) {
-  let result = cache_control
+  cache_control
     .as_ref()
     .map(|header| {
       let pairs: HashMap<_, _> = header
@@ -274,17 +221,16 @@ fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bo
       let valid_until = pairs
         .get("max-age")
         .and_then(|&max_age| max_age.parse::<u64>().ok())
-        .map(|seconds| request_time + seconds)
-        .unwrap_or(request_time + 3600); // Default to 1 hour in seconds
+        .map(|seconds| request_time + seconds * 1000)
+        .unwrap_or(0);
 
       (store_lock, store_cache, valid_until)
     })
-    .unwrap_or((true, true, request_time + 3600)); // Default to 1 hour in seconds
-
-  result
+    .unwrap_or((true, true, request_time + 3600)) // Default values
 }
 
 fn current_time() -> u64 {
+  use std::time::{SystemTime, UNIX_EPOCH};
   SystemTime::now()
     .duration_since(UNIX_EPOCH)
     .expect("Time went backwards")
@@ -295,5 +241,5 @@ fn compute_integrity(content: &[u8]) -> String {
   let mut hasher = Sha512::new();
   hasher.update(content);
   let digest = hasher.finalize();
-  format!("sha512-{}", encode_to_string(digest))
+  format!("sha512-{}", encode_to_string(&digest))
 }

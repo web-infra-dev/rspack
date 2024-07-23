@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use std::io;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::fs;
+use std::io::{self, Read, Write};
+use std::path::Path;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -13,8 +13,6 @@ pub struct LockfileEntry {
   pub resolved: String,
   pub integrity: String,
   pub content_type: String,
-  pub valid_until: u64,
-  pub etag: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -33,66 +31,48 @@ impl Lockfile {
 
   pub fn parse(content: &str) -> Result<Self, String> {
     let data: serde_json::Value = serde_json::from_str(content).map_err(|e| e.to_string())?;
-
-    let version = data.get("version").and_then(|v| v.as_u64()).unwrap_or(1);
-
-    if version != 1 {
-      return Err(format!("Unsupported lockfile version {}", version));
+    if data["version"] != 1 {
+      return Err(format!("Unsupported lockfile version {}", data["version"]));
     }
-
     let mut lockfile = Lockfile::new();
-
-    if let Some(entries) = data.get("entries").and_then(|e| e.as_object()) {
-      for (key, value) in entries {
-        let entry = if value.is_string() {
-          LockfileEntry {
-            resolved: key.clone(),
-            integrity: value.as_str().expect("Expected string").to_string(),
-            content_type: String::new(),
-            valid_until: 0,
-            etag: None,
-          }
-        } else {
-          LockfileEntry {
-            resolved: key.clone(),
-            integrity: value
-              .get("integrity")
-              .and_then(|v| v.as_str())
-              .unwrap_or("")
-              .to_string(),
-            content_type: value
-              .get("content_type")
-              .and_then(|v| v.as_str())
-              .unwrap_or("")
-              .to_string(),
-            valid_until: value
-              .get("valid_until")
-              .and_then(|v| v.as_u64())
-              .unwrap_or(0),
-            etag: value.get("etag").and_then(|v| v.as_str()).map(String::from),
-          }
-        };
-        lockfile.entries.insert(key.clone(), entry);
+    for (key, value) in data.as_object().unwrap() {
+      if key == "version" {
+        continue;
       }
+      let entry = if value.is_string() {
+        LockfileEntry {
+          resolved: key.clone(),
+          integrity: value.as_str().unwrap().to_string(),
+          content_type: String::new(),
+        }
+      } else {
+        LockfileEntry {
+          resolved: key.clone(),
+          integrity: value["integrity"].as_str().unwrap().to_string(),
+          content_type: value["contentType"].as_str().unwrap().to_string(),
+        }
+      };
+      lockfile.entries.insert(key.clone(), entry);
     }
-
     Ok(lockfile)
   }
 
-  pub fn to_json_string(&self) -> String {
-    let json = serde_json::json!({
-        "version": self.version,
-        "entries": self.entries
-    });
-    serde_json::to_string_pretty(&json).unwrap()
-  }
-
-  pub fn get_entry(&self, resource: &str) -> Option<&LockfileEntry> {
-    self.entries.get(resource)
-  }
-
-  pub fn entries_mut(&mut self) -> &mut HashMap<String, LockfileEntry> {
-    &mut self.entries
+  pub fn to_string(&self) -> String {
+    let mut entries: Vec<_> = self.entries.iter().collect();
+    entries.sort_by(|a, b| a.0.cmp(b.0));
+    let mut str = String::from("{\n");
+    for (key, entry) in entries {
+      if entry.content_type.is_empty() {
+        str.push_str(&format!("  \"{}\": \"{}\",\n", key, entry.integrity));
+      } else {
+        str.push_str(&format!(
+          "  \"{}\": {{ \"resolved\": \"{}\", \"integrity\": \"{}\", \"contentType\": \"{}\" }},\n",
+          key, entry.resolved, entry.integrity, entry.content_type
+        ));
+      }
+    }
+    str.push_str(&format!("  \"version\": {}\n}}\n", self.version));
+    str
   }
 }
 
@@ -110,61 +90,41 @@ impl LockfileAsync for Lockfile {
   }
 
   async fn write_to_file_async<P: AsRef<Path> + Send>(&self, path: P) -> io::Result<()> {
-    let content = self.to_json_string();
+    let content = self.to_string();
     async_fs::write(path, content).await
   }
 }
 
-#[derive(Debug)]
 pub struct LockfileCache {
-  lockfile: Arc<Mutex<Lockfile>>,
-  lockfile_path: Option<PathBuf>,
+  lockfile: Mutex<Option<Lockfile>>,
+  snapshot: Mutex<Option<String>>, // Placeholder for the actual snapshot type
 }
 
 impl LockfileCache {
-  pub fn new(lockfile_path: Option<PathBuf>) -> Self {
+  pub fn new() -> Self {
     LockfileCache {
-      lockfile: Arc::new(Mutex::new(Lockfile::new())),
-      lockfile_path,
+      lockfile: Mutex::new(None),
+      snapshot: Mutex::new(None),
     }
   }
 
-  pub async fn get_lockfile(&self) -> io::Result<Arc<Mutex<Lockfile>>> {
-    let mut lockfile = self.lockfile.lock().await;
+  pub async fn get_lockfile<P: AsRef<Path> + Send>(&self, path: P) -> io::Result<Lockfile> {
+    let mut lockfile_guard = self.lockfile.lock().await;
+    let mut snapshot_guard = self.snapshot.lock().await;
 
-    if let Some(lockfile_path) = &self.lockfile_path {
-      if lockfile_path.exists() {
-        match Lockfile::read_from_file_async(lockfile_path).await {
-          Ok(lf) => {
-            *lockfile = lf;
-          }
-          Err(_) => {}
-        }
-      }
+    if let Some(lockfile) = &*lockfile_guard {
+      // Check snapshot validity here
+      // If valid, return the cached lockfile
+      return Ok((*lockfile).clone());
     }
 
-    Ok(self.lockfile.clone())
-  }
+    // Read lockfile from file
+    let lockfile = Lockfile::read_from_file_async(path.as_ref()).await?;
+    // Create snapshot here and store it in snapshot_guard
 
-  pub async fn save_lockfile(&self) -> io::Result<()> {
-    let lockfile = self.lockfile.lock().await;
+    *lockfile_guard = Some(lockfile.clone());
+    // Store the snapshot in snapshot_guard
 
-    if let Some(lockfile_path) = &self.lockfile_path {
-      if let Some(parent) = lockfile_path.parent() {
-        async_fs::create_dir_all(parent).await?;
-      }
-      let content = lockfile.to_json_string();
-      async_fs::write(lockfile_path, &content).await?;
-    }
-
-    Ok(())
-  }
-}
-impl Default for LockfileCache {
-  fn default() -> Self {
-    LockfileCache {
-      lockfile: Arc::new(Mutex::new(Lockfile::new())),
-      lockfile_path: None,
-    }
+    Ok(lockfile)
   }
 }
