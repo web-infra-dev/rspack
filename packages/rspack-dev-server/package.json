@@ -20,7 +20,7 @@
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -w -b ./tsconfig.build.json",
-    "test": "rimraf .test-temp && jest --runInBand --colors",
+    "test": "rimraf .test-temp && cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --colors",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },
@@ -46,13 +46,13 @@
     "@types/ws": "8.5.10"
   },
   "dependencies": {
-    "chokidar": "3.6.0",
-    "connect-history-api-fallback": "2.0.0",
-    "express": "4.19.2",
-    "http-proxy-middleware": "2.0.6",
-    "mime-types": "2.1.35",
-    "webpack-dev-middleware": "6.1.2",
-    "webpack-dev-server": "4.13.1",
+    "chokidar": "^3.6.0",
+    "connect-history-api-fallback": "^2.0.0",
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^2.0.6",
+    "mime-types": "^2.1.35",
+    "webpack-dev-middleware": "^7.3.0",
+    "webpack-dev-server": "^5.0.4",
     "ws": "^8.16.0"
   },
   "peerDependencies": {
