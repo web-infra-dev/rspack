@@ -640,8 +640,13 @@ impl Pattern {
   /// Return if the given `str` matches this `Pattern` using the specified
   /// match options.
   pub fn matches_with(&self, str: &str, options: MatchOptions) -> bool {
-    // TODO: support options
-    fast_glob::glob_match_with_brace(&self.original, str)
+    if !options.case_sensitive {
+      let original = self.original.to_lowercase();
+      let str = str.to_lowercase();
+      fast_glob::glob_match_with_brace(&original, &str)
+    } else {
+      fast_glob::glob_match_with_brace(&self.original, &str)
+    }
   }
 
   /// Return if the given `Path`, when converted to a `str`, matches this
@@ -1039,30 +1044,30 @@ mod test {
   //     assert!(pat.matches_with("AbCdEfG", options));
   // }
 
-  // #[test]
-  // fn test_pattern_matches_case_insensitive_range() {
-  //     let pat_within = Pattern::new("[a]").unwrap();
-  //     let pat_except = Pattern::new("[!a]").unwrap();
+  #[test]
+  fn test_pattern_matches_case_insensitive_range() {
+    let pat_within = Pattern::new("[a]").unwrap();
+    let pat_except = Pattern::new("[!a]").unwrap();
 
-  //     let options_case_insensitive = MatchOptions {
-  //         case_sensitive: false,
-  //         require_literal_separator: false,
-  //         require_literal_leading_dot: false,
-  //     };
-  //     let options_case_sensitive = MatchOptions {
-  //         case_sensitive: true,
-  //         require_literal_separator: false,
-  //         require_literal_leading_dot: false,
-  //     };
+    let options_case_insensitive = MatchOptions {
+      case_sensitive: false,
+      require_literal_separator: false,
+      require_literal_leading_dot: false,
+    };
+    let options_case_sensitive = MatchOptions {
+      case_sensitive: true,
+      require_literal_separator: false,
+      require_literal_leading_dot: false,
+    };
 
-  //     assert!(pat_within.matches_with("a", options_case_insensitive));
-  //     assert!(pat_within.matches_with("A", options_case_insensitive));
-  //     assert!(!pat_within.matches_with("A", options_case_sensitive));
+    assert!(pat_within.matches_with("a", options_case_insensitive));
+    assert!(pat_within.matches_with("A", options_case_insensitive));
+    assert!(!pat_within.matches_with("A", options_case_sensitive));
 
-  //     assert!(!pat_except.matches_with("a", options_case_insensitive));
-  //     assert!(!pat_except.matches_with("A", options_case_insensitive));
-  //     assert!(pat_except.matches_with("A", options_case_sensitive));
-  // }
+    assert!(!pat_except.matches_with("a", options_case_insensitive));
+    assert!(!pat_except.matches_with("A", options_case_insensitive));
+    assert!(pat_except.matches_with("A", options_case_sensitive));
+  }
 
   #[test]
   fn test_pattern_matches_require_literal_separator() {
@@ -1106,76 +1111,76 @@ mod test {
 
   #[test]
   // fn test_pattern_matches_require_literal_leading_dot() {
-  //     let options_require_literal_leading_dot = MatchOptions {
-  //         case_sensitive: true,
-  //         require_literal_separator: false,
-  //         require_literal_leading_dot: true,
-  //     };
-  //     let options_not_require_literal_leading_dot = MatchOptions {
-  //         case_sensitive: true,
-  //         require_literal_separator: false,
-  //         require_literal_leading_dot: false,
-  //     };
+  //   let options_require_literal_leading_dot = MatchOptions {
+  //     case_sensitive: true,
+  //     require_literal_separator: false,
+  //     require_literal_leading_dot: true,
+  //   };
+  //   let options_not_require_literal_leading_dot = MatchOptions {
+  //     case_sensitive: true,
+  //     require_literal_separator: false,
+  //     require_literal_leading_dot: false,
+  //   };
 
-  //     let f = |options| {
-  //         Pattern::new("*.txt")
-  //             .unwrap()
-  //             .matches_with(".hello.txt", options)
-  //     };
-  //     assert!(f(options_not_require_literal_leading_dot));
-  //     assert!(!f(options_require_literal_leading_dot));
+  //   let f = |options| {
+  //     Pattern::new("*.txt")
+  //       .unwrap()
+  //       .matches_with(".hello.txt", options)
+  //   };
+  //   assert!(f(options_not_require_literal_leading_dot));
+  //   assert!(!f(options_require_literal_leading_dot));
 
-  //     let f = |options| {
-  //         Pattern::new(".*.*")
-  //             .unwrap()
-  //             .matches_with(".hello.txt", options)
-  //     };
-  //     assert!(f(options_not_require_literal_leading_dot));
-  //     assert!(f(options_require_literal_leading_dot));
+  //   let f = |options| {
+  //     Pattern::new(".*.*")
+  //       .unwrap()
+  //       .matches_with(".hello.txt", options)
+  //   };
+  //   assert!(f(options_not_require_literal_leading_dot));
+  //   assert!(f(options_require_literal_leading_dot));
 
-  //     let f = |options| {
-  //         Pattern::new("aaa/bbb/*")
-  //             .unwrap()
-  //             .matches_with("aaa/bbb/.ccc", options)
-  //     };
-  //     assert!(f(options_not_require_literal_leading_dot));
-  //     assert!(!f(options_require_literal_leading_dot));
+  //   let f = |options| {
+  //     Pattern::new("aaa/bbb/*")
+  //       .unwrap()
+  //       .matches_with("aaa/bbb/.ccc", options)
+  //   };
+  //   assert!(f(options_not_require_literal_leading_dot));
+  //   assert!(!f(options_require_literal_leading_dot));
 
-  //     let f = |options| {
-  //         Pattern::new("aaa/bbb/*")
-  //             .unwrap()
-  //             .matches_with("aaa/bbb/c.c.c.", options)
-  //     };
-  //     assert!(f(options_not_require_literal_leading_dot));
-  //     assert!(f(options_require_literal_leading_dot));
+  //   let f = |options| {
+  //     Pattern::new("aaa/bbb/*")
+  //       .unwrap()
+  //       .matches_with("aaa/bbb/c.c.c.", options)
+  //   };
+  //   assert!(f(options_not_require_literal_leading_dot));
+  //   assert!(f(options_require_literal_leading_dot));
 
-  //     let f = |options| {
-  //         Pattern::new("aaa/bbb/.*")
-  //             .unwrap()
-  //             .matches_with("aaa/bbb/.ccc", options)
-  //     };
-  //     assert!(f(options_not_require_literal_leading_dot));
-  //     assert!(f(options_require_literal_leading_dot));
+  //   let f = |options| {
+  //     Pattern::new("aaa/bbb/.*")
+  //       .unwrap()
+  //       .matches_with("aaa/bbb/.ccc", options)
+  //   };
+  //   assert!(f(options_not_require_literal_leading_dot));
+  //   assert!(f(options_require_literal_leading_dot));
 
-  //     let f = |options| {
-  //         Pattern::new("aaa/?bbb")
-  //             .unwrap()
-  //             .matches_with("aaa/.bbb", options)
-  //     };
-  //     assert!(f(options_not_require_literal_leading_dot));
-  //     assert!(!f(options_require_literal_leading_dot));
+  //   let f = |options| {
+  //     Pattern::new("aaa/?bbb")
+  //       .unwrap()
+  //       .matches_with("aaa/.bbb", options)
+  //   };
+  //   assert!(f(options_not_require_literal_leading_dot));
+  //   assert!(!f(options_require_literal_leading_dot));
 
-  //     let f = |options| {
-  //         Pattern::new("aaa/[.]bbb")
-  //             .unwrap()
-  //             .matches_with("aaa/.bbb", options)
-  //     };
-  //     assert!(f(options_not_require_literal_leading_dot));
-  //     assert!(!f(options_require_literal_leading_dot));
+  //   let f = |options| {
+  //     Pattern::new("aaa/[.]bbb")
+  //       .unwrap()
+  //       .matches_with("aaa/.bbb", options)
+  //   };
+  //   assert!(f(options_not_require_literal_leading_dot));
+  //   assert!(!f(options_require_literal_leading_dot));
 
-  //     let f = |options| Pattern::new("**/*").unwrap().matches_with(".bbb", options);
-  //     assert!(f(options_not_require_literal_leading_dot));
-  //     assert!(!f(options_require_literal_leading_dot));
+  //   let f = |options| Pattern::new("**/*").unwrap().matches_with(".bbb", options);
+  //   assert!(f(options_not_require_literal_leading_dot));
+  //   assert!(!f(options_require_literal_leading_dot));
   // }
   #[test]
   fn test_matches_path() {
