@@ -47,10 +47,10 @@ export class DiffComparator {
 					}
 				);
 				for (const reporter of this.options.reporters) {
-					reporter.increment(file, result.modules["modules"] || []);
+					reporter.increment(file, result.modules.modules || []);
 				}
 				for (const reporter of this.options.reporters) {
-					reporter.increment(file, result.modules["runtimeModules"] || []);
+					reporter.increment(file, result.modules.runtimeModules || []);
 				}
 			} catch (e) {
 				console.error(e);

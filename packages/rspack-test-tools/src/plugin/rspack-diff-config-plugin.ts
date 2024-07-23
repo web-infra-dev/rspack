@@ -14,7 +14,7 @@ export class RspackDiffConfigPlugin implements RspackPluginInstance {
 			options: RspackOptionsNormalized
 		) => RspackOptionsNormalized
 	) {
-		process.env["RSPACK_DIFF"] = "true"; // enable rspack diff
+		process.env.RSPACK_DIFF = "true"; // enable rspack diff
 	}
 
 	apply(compiler: Compiler) {

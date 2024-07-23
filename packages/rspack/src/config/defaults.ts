@@ -319,11 +319,11 @@ const applyModuleDefaults = (
 		F(module.generator, "css", () => ({}));
 		assertNotNill(module.generator.css);
 		D(
-			module.generator["css"],
+			module.generator.css,
 			"exportsOnly",
 			!targetProperties || !targetProperties.document
 		);
-		D(module.generator["css"], "esModule", true);
+		D(module.generator.css, "esModule", true);
 
 		F(module.generator, "css/auto", () => ({}));
 		assertNotNill(module.generator["css/auto"]);

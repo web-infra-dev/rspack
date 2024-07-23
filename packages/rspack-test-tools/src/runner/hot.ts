@@ -44,7 +44,7 @@ export class HotRunnerFactory<
 			hotUpdateContext.updateIndex++;
 			// TODO: find a better way to collect changed files from fake-update-loader
 			const changedFiles = new Map();
-			global["__CHANGED_FILES__"] = changedFiles;
+			global.__CHANGED_FILES__ = changedFiles;
 			compiler
 				.build()
 				.then(stats => {
@@ -102,7 +102,7 @@ export class HotRunnerFactory<
 					if (typeof testConfig.moduleScope === "function") {
 						ms = testConfig.moduleScope(ms);
 					}
-					ms["NEXT"] = next;
+					ms.NEXT = next;
 					return ms;
 				}
 			},
