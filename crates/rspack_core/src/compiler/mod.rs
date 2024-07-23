@@ -245,7 +245,7 @@ where
           .filter_map(|(filename, _version)| {
             if !assets.contains_key(filename) {
               let file_path = Path::new(&self.options.output.path).join(filename);
-              Some(self.output_filesystem.remove_file(file_path))
+              Some(self.output_filesystem.remove_file(&file_path))
             } else {
               None
             }
@@ -319,7 +319,7 @@ where
 
       self
         .output_filesystem
-        .write(&file_path, source.buffer())
+        .write(&file_path, source.buffer().as_ref())
         .await?;
 
       self.compilation.emitted_assets.insert(filename.to_string());
