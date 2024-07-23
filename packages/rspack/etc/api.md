@@ -53,7 +53,6 @@ import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import sources = require('../compiled/webpack-sources');
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
-import Template = require('./Template');
 import type * as webpackDevServer from 'webpack-dev-server';
 
 // @public (undocumented)
@@ -1033,7 +1032,7 @@ export class Compilation {
         Chunk,
         Set<string>
         ], void>;
-        runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
+        runtimeModule: RuntimeModule;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
     }>;
     // (undocumented)
@@ -12838,6 +12837,12 @@ export const RuntimeGlobals: {
 };
 
 // @public (undocumented)
+type RuntimeModule = liteTapable.SyncHook<[
+JsRuntimeModule,
+Chunk
+], void>;
+
+// @public (undocumented)
 type RuntimePlugins = string[];
 
 // @public (undocumented)
@@ -13748,7 +13753,33 @@ interface Targets {
     samsung?: number;
 }
 
-export { Template }
+// @public
+export class Template {
+    // (undocumented)
+    static asString(str: string | string[]): string;
+    // (undocumented)
+    static getFunctionContent(fn: Function): string;
+    // (undocumented)
+    static getModulesArrayBounds(modules: {
+        id: string | number;
+    }[]): [number, number] | false;
+    // (undocumented)
+    static indent(s: string | string[]): string;
+    // (undocumented)
+    static numberToIdentifier(n: number): string;
+    // (undocumented)
+    static numberToIdentifierContinuation(n: number): string;
+    // (undocumented)
+    static prefix(s: string | string[], prefix: string): string;
+    // (undocumented)
+    static toComment(str: string): string;
+    // (undocumented)
+    static toIdentifier(str: any): string;
+    // (undocumented)
+    static toNormalComment(str: string): string;
+    // (undocumented)
+    static toPath(str: string): string;
+}
 
 // @public (undocumented)
 interface TerserCompressOptions {
