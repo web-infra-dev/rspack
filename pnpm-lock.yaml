@@ -525,6 +525,9 @@ importers:
       '@types/ws':
         specifier: 8.5.10
         version: 8.5.10
+      jest-serializer-path:
+        specifier: 0.1.15
+        version: 0.1.15
       typescript:
         specifier: 5.0.2
         version: 5.0.2
