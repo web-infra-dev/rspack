@@ -9,13 +9,13 @@ version    = "0.1.0"
 dashmap        = { workspace = true }
 derivative     = { workspace = true }
 futures        = { workspace = true }
-glob           = { workspace = true }
 lazy_static    = "1.4.0"
 pathdiff       = { workspace = true }
 regex          = { workspace = true }
 rspack_core    = { path = "../rspack_core" }
 rspack_error   = { path = "../rspack_error" }
 rspack_futures = { path = "../rspack_futures" }
+rspack_glob    = { path = "../rspack_glob" }
 rspack_hash    = { path = "../rspack_hash" }
 rspack_hook    = { path = "../rspack_hook" }
 rspack_util    = { path = "../rspack_util" }
