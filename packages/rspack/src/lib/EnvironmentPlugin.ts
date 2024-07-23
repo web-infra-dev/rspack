@@ -8,40 +8,35 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-"use strict";
-
 import { DefinePlugin } from "../builtin-plugin";
+import WebpackError from "./WebpackError";
 
-const WebpackError = require("./WebpackError");
+import type { Compiler } from "../Compiler";
 
-// /** @typedef {import("./Compiler")} Compiler */
-// /** @typedef {import("./DefinePlugin").CodeValue} CodeValue */
-/** @typedef {any} Compiler */
-/** @typedef {any} CodeValue */
+// Waiting to adapt > import("./DefinePlugin").CodeValue
+type CodeValue = any;
 
 class EnvironmentPlugin {
-	// @ts-expect-error
-	constructor(...keys) {
-		if (keys.length === 1 && Array.isArray(keys[0])) {
-			this.keys = keys[0];
-			this.defaultValues = {};
-		} else if (keys.length === 1 && keys[0] && typeof keys[0] === "object") {
-			this.keys = Object.keys(keys[0]);
-			this.defaultValues = keys[0];
-		} else {
+	keys: string[];
+	defaultValues: Record<string, string>;
+
+	constructor(keys: string[] | Record<string, string>) {
+		if (Array.isArray(keys)) {
 			this.keys = keys;
 			this.defaultValues = {};
+		} else {
+			this.keys = Object.keys(keys);
+			this.defaultValues = keys;
 		}
 	}
 
 	/**
 	 * Apply the plugin
-	 * @param {Compiler} compiler the compiler instance
-	 * @returns {void}
+	 * @param compiler the compiler instance
+	 * @returns
 	 */
-	apply(compiler) {
-		/** @type {Record<string, CodeValue>} */
-		const definitions = {};
+	apply(compiler: Compiler) {
+		const definitions: Record<string, CodeValue> = {};
 		for (const key of this.keys) {
 			const value =
 				process.env[key] !== undefined
@@ -49,7 +44,6 @@ class EnvironmentPlugin {
 					: this.defaultValues[key];
 
 			if (value === undefined) {
-				// @ts-expect-error
 				compiler.hooks.thisCompilation.tap("EnvironmentPlugin", compilation => {
 					const error = new WebpackError(
 						`EnvironmentPlugin - ${key} environment variable is undefined.\n\n` +

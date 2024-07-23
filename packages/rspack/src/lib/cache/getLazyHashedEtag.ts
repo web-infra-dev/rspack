@@ -11,9 +11,9 @@
 import { createHash } from "../../util/createHash";
 import type Hash from "../../util/hash";
 
-type HashConstructor = typeof Hash;
+export type HashConstructor = typeof Hash;
 
-interface HashableObject {
+export interface HashableObject {
 	updateHash(hash: Hash): void;
 }
 

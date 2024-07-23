@@ -8,18 +8,15 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-"use strict";
-
-// /** @typedef {import("./Dependency").DependencyLocation} DependencyLocation */
-// /** @typedef {import("./Dependency").SourcePosition} SourcePosition */
-/** @typedef {any} DependencyLocation */
-/** @typedef {any} SourcePosition */
+// Waiting to adapt
+type DependencyLocation = any;
+type SourcePosition = any;
 
 /**
- * @param {SourcePosition} pos position
- * @returns {string} formatted position
+ * @param pos position
+ * @returns formatted position
  */
-const formatPosition = pos => {
+const formatPosition = (pos: SourcePosition): string => {
 	if (pos && typeof pos === "object") {
 		if ("line" in pos && "column" in pos) {
 			return `${pos.line}:${pos.column}`;
@@ -32,10 +29,10 @@ const formatPosition = pos => {
 };
 
 /**
- * @param {DependencyLocation} loc location
- * @returns {string} formatted location
+ * @param loc location
+ * @returns formatted location
  */
-const formatLocation = loc => {
+const formatLocation = (loc: DependencyLocation): string => {
 	if (loc && typeof loc === "object") {
 		if ("start" in loc && loc.start && "end" in loc && loc.end) {
 			if (
@@ -73,4 +70,4 @@ const formatLocation = loc => {
 	return "";
 };
 
-module.exports = formatLocation;
+export default formatLocation;

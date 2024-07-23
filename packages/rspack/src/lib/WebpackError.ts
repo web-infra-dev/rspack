@@ -9,9 +9,11 @@
  */
 
 import { inspect } from "node:util";
-import { Chunk } from "./Chunk";
-import { Module } from "./Module";
-import { DependencyLocation } from "./Dependency";
+import type { Chunk } from "../Chunk";
+import type { Module } from "../Module";
+
+// Waiting to adapt
+type DependencyLocation = any;
 
 export class WebpackError extends Error {
 	loc?: DependencyLocation;
@@ -24,6 +26,7 @@ export class WebpackError extends Error {
 	/**
 	 * Creates an instance of WebpackError.
 	 * @param message error message
+	 * @returns
 	 */
 	constructor(message?: string) {
 		super(message);

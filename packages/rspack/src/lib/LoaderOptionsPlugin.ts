@@ -8,35 +8,36 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-"use strict";
+import { NormalModule } from "../NormalModule";
+import * as ModuleFilenameHelpers from "./ModuleFilenameHelpers";
 
-const ModuleFilenameHelpers = require("./ModuleFilenameHelpers");
-const { NormalModule } = require("../NormalModule");
+import type { Compiler } from "../Compiler";
+import type { MatchObject } from "./ModuleFilenameHelpers";
 
-// /** @typedef {import("../declarations/plugins/LoaderOptionsPlugin").LoaderOptionsPluginOptions} LoaderOptionsPluginOptions */
-/** @typedef {import("../Compiler").Compiler} Compiler */
-/** @typedef {any} LoaderOptionsPluginOptions */
+type LoaderOptionsPluginOptions = any;
 
-class LoaderOptionsPlugin {
+export class LoaderOptionsPlugin {
+	options: MatchObject;
+
 	/**
-	 * @param {LoaderOptionsPluginOptions} options options object
+	 * @param options options object
 	 */
-	constructor(options = {}) {
+	constructor(options: LoaderOptionsPluginOptions = {}) {
 		if (typeof options !== "object") options = {};
 		if (!options.test) {
 			options.test = {
 				test: () => true
-			};
+			} as any;
 		}
 		this.options = options;
 	}
 
 	/**
 	 * Apply the plugin
-	 * @param {Compiler} compiler the compiler instance
-	 * @returns {void}
+	 * @param compiler the compiler instance
+	 * @returns
 	 */
-	apply(compiler) {
+	apply(compiler: Compiler): void {
 		const options = this.options;
 		compiler.hooks.compilation.tap("LoaderOptionsPlugin", compilation => {
 			NormalModule.getCompilationHooks(compilation).loader.tap(
@@ -49,8 +50,7 @@ class LoaderOptionsPlugin {
 							if (key === "include" || key === "exclude" || key === "test") {
 								continue;
 							}
-							// @ts-expect-error
-							context[key] = options[key];
+							(context as any)[key] = options[key as keyof MatchObject];
 						}
 					}
 				}
@@ -58,5 +58,3 @@ class LoaderOptionsPlugin {
 		});
 	}
 }
-
-export { LoaderOptionsPlugin };

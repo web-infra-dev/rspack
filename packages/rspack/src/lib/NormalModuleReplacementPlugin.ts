@@ -17,14 +17,20 @@ type ModuleReplacer = (createData: ResolveData) => void;
 
 export class NormalModuleReplacementPlugin {
 	/**
-	 * @param {RegExp} resourceRegExp the resource matcher
-	 * @param {string|ModuleReplacer} newResource the resource replacement
+	 * Create an instance of the plugin
+	 * @param resourceRegExp the resource matcher
+	 * @param newResource the resource replacement
 	 */
 	constructor(
 		public readonly resourceRegExp: RegExp,
 		public readonly newResource: string | ModuleReplacer
 	) {}
 
+	/**
+	 * Apply the plugin
+	 * @param compiler the compiler instance
+	 * @returns
+	 */
 	apply(compiler: Compiler) {
 		const { resourceRegExp, newResource } = this;
 

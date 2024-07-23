@@ -39,7 +39,7 @@ export const matchPart = (str: string, test: Matcher) => {
 	return asRegExp(test).test(str);
 };
 
-interface MatchObject {
+export interface MatchObject {
 	test?: Matcher;
 	include?: Matcher;
 	exclude?: Matcher;

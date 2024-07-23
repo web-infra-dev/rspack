@@ -10,11 +10,11 @@
 
 import assert from "node:assert";
 
+import type { Compiler, EntryDescriptionNormalized, EntryNormalized } from "..";
 import { DynamicEntryPlugin, EntryPlugin } from "../builtin-plugin";
 import type { EntryOptions } from "../builtin-plugin";
-import type { Compiler, EntryDescriptionNormalized, EntryNormalized } from "..";
 
-export default class EntryOptionPlugin {
+export class EntryOptionPlugin {
 	/**
 	 * @param compiler the compiler instance one is tapping into
 	 * @returns
@@ -102,3 +102,5 @@ export default class EntryOptionPlugin {
 		return options;
 	}
 }
+
+export default EntryOptionPlugin;

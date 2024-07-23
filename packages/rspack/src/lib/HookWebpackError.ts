@@ -8,8 +8,8 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import WebpackError from "./WebpackError";
 import type { Callback } from "@rspack/lite-tapable";
+import WebpackError from "./WebpackError";
 
 export class HookWebpackError extends WebpackError {
 	hook: string;

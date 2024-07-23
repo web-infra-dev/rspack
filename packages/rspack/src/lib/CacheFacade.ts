@@ -9,17 +9,15 @@
  */
 
 import asyncLib from "neo-async";
-import { mergeEtags } from "./cache/mergeEtags.js";
 import { getter as getLazyHashedEtag } from "./cache/getLazyHashedEtag.js";
+import { mergeEtags } from "./cache/mergeEtags.js";
 
-/**
- * @template T
- * @template Z
- * @param {T[]} array array
- * @param {(arg0: T, arg1: (err?: null|Error, result?: null|Z) => void , arg2: number) => void} iterator iterator
- * @param {(err?: null|Error, result?: null|Z, i?: number) => void} callback callback after all items are iterated
- * @returns {void}
- */
+import type { Cache, CallbackCache, Etag } from "./Cache";
+import type {
+	HashConstructor,
+	HashableObject
+} from "./cache/getLazyHashedEtag";
+
 function forEachBail<T, Z>(
 	array: T[],
 	iterator: (
@@ -55,69 +53,55 @@ function forEachBail<T, Z>(
 	while (next());
 }
 
-/** @typedef {import("./Cache")} Cache */
-/** @typedef {import("./Cache").Etag} Etag */
-/** @typedef {import("./WebpackError")} WebpackError */
-/** @typedef {import("./cache/getLazyHashedEtag").HashableObject} HashableObject */
-// /** @typedef {typeof import("./util/Hash")} HashConstructor */
-/** @typedef {any} HashConstructor */
+type CallbackNormalErrorCache<T> = (err?: Error | null, result?: T) => void;
 
-/**
- * @template T
- * @callback CallbackCache
- * @param {(WebpackError | null)=} err
- * @param {T=} result
- * @returns {void}
- */
+abstract class BaseCache {
+	abstract get<T>(callback: CallbackCache<T>): void;
+	abstract getPromise<T>(): Promise<T | undefined>;
+	abstract store<T>(data: T, callback: CallbackCache<void>): void;
+	abstract storePromise<T>(data: T): Promise<void>;
+}
 
-/**
- * @template T
- * @callback CallbackNormalErrorCache
- * @param {(Error | null)=} err
- * @param {T=} result
- * @returns {void}
- */
+export class MultiItemCache implements BaseCache {
+	_items: ItemCacheFacade[];
 
-class MultiItemCache {
 	/**
-	 * @param {ItemCacheFacade[]} items item caches
+	 * @param items item caches
+	 * @returns
 	 */
 	constructor(items: ItemCacheFacade[]) {
 		this._items = items;
-		if (items.length === 1) return /** @type {any} */ items[0];
+		if (items.length === 1) return items[0] as any;
 	}
 
 	/**
-	 * @template T
-	 * @param {CallbackCache<T>} callback signals when the value is retrieved
-	 * @returns {void}
+	 * @param callback signals when the value is retrieved
+	 * @returns
 	 */
-	get<T>(callback: CallbackCache<T>): void {
-		// @ts-expect-error
-		forEachBail(this._items, (item, callback) => item.get(callback), callback);
+	get<T>(callback: CallbackCache<T>) {
+		forEachBail(
+			this._items,
+			(item: ItemCacheFacade, callback: any) => item.get(callback),
+			callback
+		);
 	}
 
 	/**
-	 * @template T
-	 * @returns {Promise<T>} promise with the data
+	 * @returns promise with the data
 	 */
-	getPromise<T>(): Promise<T> {
-		// @ts-expect-error
-		const next = i => {
-			// @ts-ignore if your typescript version >= 5.5, this line will throw an error
-			return this._items[i].getPromise().then(result => {
-				if (result !== undefined) return result;
-				if (++i < this._items.length) return next(i);
-			});
+	getPromise<T>(): Promise<T | undefined> {
+		const next = async (i: number): Promise<T | undefined> => {
+			const result_1 = await this._items[i].getPromise<T>();
+			if (result_1 !== undefined) return result_1;
+			if (++i < this._items.length) return next(i);
 		};
 		return next(0);
 	}
 
 	/**
-	 * @template T
-	 * @param {T} data the value to store
-	 * @param {CallbackCache<void>} callback signals when the value is stored
-	 * @returns {void}
+	 * @param data the value to store
+	 * @param callback signals when the value is stored
+	 * @returns
 	 */
 	store<T>(data: T, callback: CallbackCache<void>): void {
 		asyncLib.each(
@@ -128,22 +112,24 @@ class MultiItemCache {
 	}
 
 	/**
-	 * @template T
-	 * @param {T} data the value to store
-	 * @returns {Promise<void>} promise signals when the value is stored
+	 * @param data the value to store
+	 * @returns promise signals when the value is stored
 	 */
-	storePromise<T>(data: T): Promise<void> {
-		return Promise.all(this._items.map(item => item.storePromise(data))).then(
-			() => {}
-		);
+	async storePromise<T>(data: T): Promise<void> {
+		await Promise.all(this._items.map(item => item.storePromise(data)));
 	}
 }
 
-class ItemCacheFacade {
+export class ItemCacheFacade implements BaseCache {
+	_cache: Cache;
+	_name: string;
+	_etag: Etag | null;
+
 	/**
-	 * @param {Cache} cache the root cache
-	 * @param {string} name the child cache item name
-	 * @param {Etag | null} etag the etag
+	 * @param cache the root cache
+	 * @param name the child cache item name
+	 * @param etag the etag
+	 * @returns
 	 */
 	constructor(cache: Cache, name: string, etag: Etag | null) {
 		this._cache = cache;
@@ -152,21 +138,19 @@ class ItemCacheFacade {
 	}
 
 	/**
-	 * @template T
-	 * @param {CallbackCache<T>} callback signals when the value is retrieved
-	 * @returns {void}
+	 * @param callback signals when the value is retrieved
+	 * @returns
 	 */
 	get<T>(callback: CallbackCache<T>): void {
 		this._cache.get(this._name, this._etag, callback);
 	}
 
 	/**
-	 * @template T
-	 * @returns {Promise<T>} promise with the data
+	 * @returns promise with the data
 	 */
-	getPromise<T>(): Promise<T> {
+	getPromise<T>(): Promise<T | undefined> {
 		return new Promise((resolve, reject) => {
-			this._cache.get(this._name, this._etag, (err, data) => {
+			this._cache.get<T>(this._name, this._etag, (err, data) => {
 				if (err) {
 					reject(err);
 				} else {
@@ -177,19 +161,17 @@ class ItemCacheFacade {
 	}
 
 	/**
-	 * @template T
-	 * @param {T} data the value to store
-	 * @param {CallbackCache<void>} callback signals when the value is stored
-	 * @returns {void}
+	 * @param data the value to store
+	 * @param callback signals when the value is stored
+	 * @returns
 	 */
 	store<T>(data: T, callback: CallbackCache<void>): void {
 		this._cache.store(this._name, this._etag, data, callback);
 	}
 
 	/**
-	 * @template T
-	 * @param {T} data the value to store
-	 * @returns {Promise<void>} promise signals when the value is stored
+	 * @param data the value to store
+	 * @returns promise signals when the value is stored
 	 */
 	storePromise<T>(data: T): Promise<void> {
 		return new Promise((resolve, reject) => {
@@ -204,15 +186,14 @@ class ItemCacheFacade {
 	}
 
 	/**
-	 * @template T
-	 * @param {function(CallbackNormalErrorCache<T>): void} computer function to compute the value if not cached
-	 * @param {CallbackNormalErrorCache<T>} callback signals when the value is retrieved
-	 * @returns {void}
+	 * @param computer function to compute the value if not cached
+	 * @param callback signals when the value is retrieved
+	 * @returns
 	 */
 	provide<T>(
-		computer: (arg0: CallbackNormalErrorCache<T>) => void,
+		computer: (callback: CallbackNormalErrorCache<T>) => void,
 		callback: CallbackNormalErrorCache<T>
-	): void {
+	) {
 		this.get((err, cacheEntry) => {
 			if (err) return callback(err);
 			if (cacheEntry !== undefined) return cacheEntry;
@@ -227,12 +208,11 @@ class ItemCacheFacade {
 	}
 
 	/**
-	 * @template T
-	 * @param {function(): Promise<T> | T} computer function to compute the value if not cached
-	 * @returns {Promise<T>} promise with the data
+	 * @param computer function to compute the value if not cached
+	 * @returns promise with the data
 	 */
 	async providePromise<T>(computer: () => Promise<T> | T): Promise<T> {
-		const cacheEntry = await this.getPromise();
+		const cacheEntry = await this.getPromise<T>();
 		if (cacheEntry !== undefined) return cacheEntry;
 		const result = await computer();
 		await this.storePromise(result);
@@ -240,11 +220,15 @@ class ItemCacheFacade {
 	}
 }
 
-class CacheFacade {
+export class CacheFacade {
+	_name: string;
+	_cache: Cache;
+	_hashFunction: string | HashConstructor;
+
 	/**
-	 * @param {Cache} cache the root cache
-	 * @param {string} name the child cache name
-	 * @param {string | HashConstructor} hashFunction the hash function to use
+	 * @param cache the root cache
+	 * @param name the child cache name
+	 * @param hashFunction the hash function to use
 	 */
 	constructor(
 		cache: Cache,
@@ -257,8 +241,8 @@ class CacheFacade {
 	}
 
 	/**
-	 * @param {string} name the child cache name#
-	 * @returns {CacheFacade} child cache
+	 * @param name the child cache name#
+	 * @returns child cache
 	 */
 	getChildCache(name: string): CacheFacade {
 		return new CacheFacade(
@@ -269,9 +253,9 @@ class CacheFacade {
 	}
 
 	/**
-	 * @param {string} identifier the cache identifier
-	 * @param {Etag | null} etag the etag
-	 * @returns {ItemCacheFacade} item cache
+	 * @param identifier the cache identifier
+	 * @param  etag the etag
+	 * @returns item cache
 	 */
 	getItemCache(identifier: string, etag: Etag | null): ItemCacheFacade {
 		return new ItemCacheFacade(
@@ -282,28 +266,27 @@ class CacheFacade {
 	}
 
 	/**
-	 * @param {HashableObject} obj an hashable object
-	 * @returns {Etag} an etag that is lazy hashed
+	 * @param obj an hashable object
+	 * @returns an etag that is lazy hashed
 	 */
 	getLazyHashedEtag(obj: HashableObject): Etag {
 		return getLazyHashedEtag(obj, this._hashFunction);
 	}
 
 	/**
-	 * @param {Etag} a an etag
-	 * @param {Etag} b another etag
-	 * @returns {Etag} an etag that represents both
+	 * @param a an etag
+	 * @param b another etag
+	 * @returns an etag that represents both
 	 */
 	mergeEtags(a: Etag, b: Etag): Etag {
 		return mergeEtags(a, b);
 	}
 
 	/**
-	 * @template T
-	 * @param {string} identifier the cache identifier
-	 * @param {Etag | null} etag the etag
-	 * @param {CallbackCache<T>} callback signals when the value is retrieved
-	 * @returns {void}
+	 * @param identifier the cache identifier
+	 * @param etag the etag
+	 * @param callback signals when the value is retrieved
+	 * @returns
 	 */
 	get<T>(
 		identifier: string,
@@ -314,14 +297,13 @@ class CacheFacade {
 	}
 
 	/**
-	 * @template T
-	 * @param {string} identifier the cache identifier
-	 * @param {Etag | null} etag the etag
-	 * @returns {Promise<T>} promise with the data
+	 * @param identifier the cache identifier
+	 * @param etag the etag
+	 * @returns promise with the data
 	 */
-	getPromise<T>(identifier: string, etag: Etag | null): Promise<T> {
+	getPromise<T>(identifier: string, etag: Etag | null): Promise<T | undefined> {
 		return new Promise((resolve, reject) => {
-			this._cache.get(`${this._name}|${identifier}`, etag, (err, data) => {
+			this._cache.get<T>(`${this._name}|${identifier}`, etag, (err, data) => {
 				if (err) {
 					reject(err);
 				} else {
@@ -332,12 +314,11 @@ class CacheFacade {
 	}
 
 	/**
-	 * @template T
-	 * @param {string} identifier the cache identifier
-	 * @param {Etag | null} etag the etag
-	 * @param {T} data the value to store
-	 * @param {CallbackCache<void>} callback signals when the value is stored
-	 * @returns {void}
+	 * @param identifier the cache identifier
+	 * @param etag the etag
+	 * @param data the value to store
+	 * @param callback signals when the value is stored
+	 * @returns
 	 */
 	store<T>(
 		identifier: string,
@@ -349,11 +330,10 @@ class CacheFacade {
 	}
 
 	/**
-	 * @template T
-	 * @param {string} identifier the cache identifier
-	 * @param {Etag | null} etag the etag
-	 * @param {T} data the value to store
-	 * @returns {Promise<void>} promise signals when the value is stored
+	 * @param identifier the cache identifier
+	 * @param etag the etag
+	 * @param data the value to store
+	 * @returns promise signals when the value is stored
 	 */
 	storePromise<T>(
 		identifier: string,
@@ -361,7 +341,7 @@ class CacheFacade {
 		data: T
 	): Promise<void> {
 		return new Promise((resolve, reject) => {
-			this._cache.store(`${this._name}|${identifier}`, etag, data, err => {
+			this._cache.store<T>(`${this._name}|${identifier}`, etag, data, err => {
 				if (err) {
 					reject(err);
 				} else {
@@ -372,20 +352,19 @@ class CacheFacade {
 	}
 
 	/**
-	 * @template T
-	 * @param {string} identifier the cache identifier
-	 * @param {Etag | null} etag the etag
-	 * @param {function(CallbackNormalErrorCache<T>): void} computer function to compute the value if not cached
-	 * @param {CallbackNormalErrorCache<T>} callback signals when the value is retrieved
-	 * @returns {void}
+	 * @param identifier the cache identifier
+	 * @param etag the etag
+	 * @param computer function to compute the value if not cached
+	 * @param callback signals when the value is retrieved
+	 * @returns
 	 */
 	provide<T>(
 		identifier: string,
 		etag: Etag | null,
-		computer: (arg0: CallbackNormalErrorCache<T>) => void,
+		computer: (callback: CallbackNormalErrorCache<T>) => void,
 		callback: CallbackNormalErrorCache<T>
 	): void {
-		this.get(identifier, etag, (err, cacheEntry) => {
+		this.get<T>(identifier, etag, (err, cacheEntry) => {
 			if (err) return callback(err);
 			if (cacheEntry !== undefined) return cacheEntry;
 			computer((err, result) => {
@@ -399,17 +378,16 @@ class CacheFacade {
 	}
 
 	/**
-	 * @template T
-	 * @param {string} identifier the cache identifier
-	 * @param {Etag | null} etag the etag
-	 * @param {function(): Promise<T> | T} computer function to compute the value if not cached
-	 * @returns {Promise<T>} promise with the data
+	 * @param identifier the cache identifier
+	 * @param etag the etag
+	 * @param computer function to compute the value if not cached
+	 * @returns promise with the data
 	 */
 	async providePromise<T>(
 		identifier: string,
 		etag: Etag | null,
 		computer: () => Promise<T> | T
-	): Promise<T> {
+	) {
 		const cacheEntry = await this.getPromise(identifier, etag);
 		if (cacheEntry !== undefined) return cacheEntry;
 		const result = await computer();
@@ -418,6 +396,4 @@ class CacheFacade {
 	}
 }
 
-module.exports = CacheFacade;
-module.exports.ItemCacheFacade = ItemCacheFacade;
-module.exports.MultiItemCache = MultiItemCache;
+export default CacheFacade;

@@ -18,10 +18,18 @@ export default class IgnoreWarningsPlugin implements RspackPluginInstance {
 	_ignorePattern: IgnoreWarningsNormalized;
 	name = "IgnoreWarningsPlugin";
 
+	/**
+	 * @param ignoreWarnings conditions to ignore warnings
+	 */
 	constructor(ignorePattern: IgnoreWarningsNormalized) {
 		this._ignorePattern = ignorePattern;
 	}
 
+	/**
+	 * Apply the plugin
+	 * @param compiler the compiler instance
+	 * @returns
+	 */
 	apply(compiler: Compiler) {
 		compiler.hooks.compilation.tap(this.name, compilation => {
 			compilation.hooks.processWarnings.tap(this.name, warnings => {

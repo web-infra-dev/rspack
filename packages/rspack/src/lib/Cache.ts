@@ -21,7 +21,8 @@ export interface Etag {
 	toString(): string;
 }
 
-type CallbackCache<T> = (err?: WebpackError | null, result?: T) => void;
+export type CallbackCache<T> = (err?: WebpackError | null, result?: T) => void;
+
 type GotHandler<T = any> = (
 	result: any | null,
 	callback: (error: Error) => void
@@ -47,6 +48,7 @@ export class Cache {
 	static STAGE_MEMORY = -10;
 	static STAGE_DEFAULT = 0;
 	static STAGE_NETWORK = 20;
+
 	hooks: {
 		get: AsyncSeriesBailHook<[string, Etag | null, GotHandler[]], any>;
 		store: AsyncParallelHook<[string, Etag | null, any]>;
@@ -100,7 +102,6 @@ export class Cache {
 	}
 
 	/**
-	 * @template T
 	 * @param identifier the cache identifier
 	 * @param etag the etag
 	 * @param data the value to store
@@ -137,9 +138,6 @@ export class Cache {
 		);
 	}
 
-	/**
-	 * @returns
-	 */
 	beginIdle() {
 		this.hooks.beginIdle.call();
 	}

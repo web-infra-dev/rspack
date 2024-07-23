@@ -8,39 +8,28 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-"use strict";
+import type { Compiler } from "../Compiler";
+import NormalModule from "../NormalModule";
 
-const NormalModule = require("../NormalModule");
-
-// /** @typedef {import("./Compiler")} Compiler */
-/** @typedef {any} Compiler */
-
-class LoaderTargetPlugin {
+export class LoaderTargetPlugin {
 	/**
-	 * @param {string} target the target
+	 * @param target the target
 	 */
-	constructor(target) {
-		this.target = target;
-	}
+	constructor(public readonly target: string) {}
 
 	/**
 	 * Apply the plugin
-	 * @param {Compiler} compiler the compiler instance
-	 * @returns {void}
+	 * @param compiler the compiler instance
+	 * @returns
 	 */
-	apply(compiler) {
-		// @ts-expect-error
+	apply(compiler: Compiler): void {
 		compiler.hooks.compilation.tap("LoaderTargetPlugin", compilation => {
-			// @ts-expect-error
 			NormalModule.getCompilationHooks(compilation).loader.tap(
 				"LoaderTargetPlugin",
-				// @ts-expect-error
 				loaderContext => {
-					loaderContext.target = this.target;
+					loaderContext.target = this.target as any;
 				}
 			);
 		});
 	}
 }
-
-export { LoaderTargetPlugin };
