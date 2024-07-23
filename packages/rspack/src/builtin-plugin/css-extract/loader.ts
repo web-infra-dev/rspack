@@ -141,7 +141,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 			| Record<string, any>
 	) => {
 		/** @type {Locals | undefined} */
-		let locals: Record<string, string>;
+		let locals: Record<string, string> | undefined;
 		let namedExport;
 
 		const esModule =
@@ -160,7 +160,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 				(!originalExports.default || !("locals" in originalExports.default));
 
 			if (namedExport) {
-				Object.keys(originalExports).forEach(key => {
+				for (const key of Object.keys(originalExports)) {
 					if (key !== "default") {
 						if (!locals) {
 							locals = {};
@@ -170,7 +170,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 							originalExports as Record<string, string>
 						)[key];
 					}
-				});
+				}
 			} else {
 				locals = exports && exports.locals;
 			}
@@ -211,7 +211,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		}
 
 		const result = (function makeResult() {
-			if (locals!) {
+			if (locals) {
 				if (namedExport) {
 					const identifiers = Array.from(
 						(function* generateIdentifiers() {
@@ -229,7 +229,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 						.map(
 							([id, key]) =>
 								`\nvar ${id} = ${stringifyLocal(
-									/** @type {Locals} */ locals[key]
+									/** @type {Locals} */ locals![key]
 								)};`
 						)
 						.join("");

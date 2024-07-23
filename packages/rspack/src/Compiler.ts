@@ -891,9 +891,9 @@ class Compiler {
 								require: __webpack_require__
 							};
 
-							interceptModuleExecution.forEach(
-								(handler: (execOptions: any) => void) => handler(execOptions)
-							);
+							for (const handler of interceptModuleExecution) {
+								handler(execOptions);
+							}
 
 							const result = codegenResults.map[id]["build time"];
 							const moduleObject = execOptions.module;
@@ -921,12 +921,13 @@ class Compiler {
 								""
 							)
 						] = {});
-						const interceptModuleExecution = (__webpack_require__[
-							RuntimeGlobals.interceptModuleExecution.replace(
-								`${RuntimeGlobals.require}.`,
-								""
-							)
-						] = []);
+						const interceptModuleExecution: ((execOptions: any) => void)[] =
+							(__webpack_require__[
+								RuntimeGlobals.interceptModuleExecution.replace(
+									`${RuntimeGlobals.require}.`,
+									""
+								)
+							] = []);
 
 						for (const runtimeModule of runtimeModules) {
 							__webpack_require__(runtimeModule);
