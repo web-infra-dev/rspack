@@ -28,7 +28,6 @@ exports[`normalize options snapshot no options 1`] = `
   "host": undefined,
   "hot": true,
   "liveReload": true,
-  "magicHtml": true,
   "open": [],
   "server": {
     "options": {},
@@ -84,7 +83,6 @@ exports[`normalize options snapshot port string 1`] = `
   "host": undefined,
   "hot": true,
   "liveReload": true,
-  "magicHtml": true,
   "open": [],
   "server": {
     "options": {},
