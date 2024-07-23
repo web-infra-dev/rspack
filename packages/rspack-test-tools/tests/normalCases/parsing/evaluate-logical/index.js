@@ -48,7 +48,8 @@ it("should not parse when logical or with `unknown || true has side effects`", f
 it("nested `unknown || true = unknown truthy`", function () {
 	var unknown1 = "";
 	var unknown2 = "1";
-	const x = (unknown1 || "1") !== "1" || unknown2 !== "2" ? "yes" : "no";
+	// prettier-ignore
+	const x = ((unknown1 || "1") !== "1" || unknown2 !== "2") ? "yes" : "no";
 	expect(x).toBe("yes");
 });
 

@@ -158,7 +158,7 @@ fn handle_logical_or(
   match left.as_bool() {
     Some(true) => {
       // truthy || unknown = true
-      res.set_bool(true);
+      res.set_truthy();
       res.set_side_effects(left.could_have_side_effects());
       Some(res)
     }
@@ -167,7 +167,11 @@ fn handle_logical_or(
       // falsy || unknown = unknown
       right.as_bool().map(|b| {
         // falsy || right = right
-        res.set_bool(b);
+        if b {
+          res.set_truthy();
+        } else {
+          res.set_falsy();
+        }
         res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
         res
       })
@@ -206,7 +210,7 @@ fn handle_logical_and(
     }
     Some(false) => {
       // false && any = false
-      res.set_bool(false);
+      res.set_falsy();
       res.set_side_effects(left.could_have_side_effects());
       Some(res)
     }
