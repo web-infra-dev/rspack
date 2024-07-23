@@ -486,17 +486,17 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
       express:
-        specifier: ^4.17.3
+        specifier: ^4.19.2
         version: 4.19.2
       http-proxy-middleware:
-        specifier: ^2.0.3
+        specifier: ^2.0.6
         version: 2.0.6(@types/express@4.17.21)
       mime-types:
         specifier: ^2.1.35
         version: 2.1.35
       webpack-dev-middleware:
-        specifier: ^7.1.0
-        version: 7.2.1(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
+        specifier: ^7.3.0
+        version: 7.3.0(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
       webpack-dev-server:
         specifier: ^5.0.4
         version: 5.0.4(webpack-cli@5.1.4(webpack@5.92.0))(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
@@ -9280,6 +9280,15 @@ packages:
 
   webpack-dev-middleware@7.2.1:
     resolution: {integrity: sha512-hRLz+jPQXo999Nx9fXVdKlg/aehsw1ajA9skAneGmT03xwmyuhvF93p6HUKKbWhXdcERtGTzUCtIQr+2IQegrA==}
+    engines: {node: '>= 18.12.0'}
+    peerDependencies:
+      webpack: ^5.0.0
+    peerDependenciesMeta:
+      webpack:
+        optional: true
+
+  webpack-dev-middleware@7.3.0:
+    resolution: {integrity: sha512-xD2qnNew+F6KwOGZR7kWdbIou/ud7cVqLEXeK1q0nHcNsX/u7ul/fSdlOTX4ntSL5FNFy7ZJJXbf0piF591JYw==}
     engines: {node: '>= 18.12.0'}
     peerDependencies:
       webpack: ^5.0.0
@@ -19731,6 +19740,17 @@ snapshots:
       webpack: 5.92.0(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack-cli@5.1.4(webpack@5.92.0))
 
   webpack-dev-middleware@7.2.1(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0))):
+    dependencies:
+      colorette: 2.0.19
+      memfs: 4.8.1
+      mime-types: 2.1.35
+      on-finished: 2.4.1
+      range-parser: 1.2.1
+      schema-utils: 4.2.0
+    optionalDependencies:
+      webpack: 5.92.0(webpack-cli@5.1.4(webpack@5.92.0))
+
+  webpack-dev-middleware@7.3.0(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0))):
     dependencies:
       colorette: 2.0.19
       memfs: 4.8.1

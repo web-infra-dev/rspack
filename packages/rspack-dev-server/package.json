@@ -48,10 +48,10 @@
   "dependencies": {
     "chokidar": "^3.6.0",
     "connect-history-api-fallback": "^2.0.0",
-    "express": "^4.17.3",
-    "http-proxy-middleware": "^2.0.3",
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^2.0.6",
     "mime-types": "^2.1.35",
-    "webpack-dev-middleware": "^7.1.0",
+    "webpack-dev-middleware": "^7.3.0",
     "webpack-dev-server": "^5.0.4",
     "ws": "^8.16.0"
   },
