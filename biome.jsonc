@@ -44,7 +44,8 @@
 				"useNumberNamespace": "error",
 				"useConst": "error",
 				"useImportType": "error",
-				"useExportType": "error"
+				"useExportType": "error",
+				"useEnumInitializers": "error"
 			}
 		},
 		"ignore": [
