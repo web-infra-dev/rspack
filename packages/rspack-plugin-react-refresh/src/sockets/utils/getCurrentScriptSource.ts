@@ -7,16 +7,14 @@ export default function getCurrentScriptSource() {
 		// We should not fallback to the list-approach as it would not be safe.
 		if (document.currentScript == null) return;
 		return document.currentScript.getAttribute("src");
-	} else {
-		// Fallback to getting all scripts running in the document,
-		// and finding the last one injected.
-		const scriptElementsWithSrc = Array.prototype.filter.call(
-			(document as Document).scripts || [],
-			elem => elem.getAttribute("src")
-		);
-		if (!scriptElementsWithSrc.length) return;
-		const currentScript =
-			scriptElementsWithSrc[scriptElementsWithSrc.length - 1];
-		return currentScript.getAttribute("src");
 	}
+	// Fallback to getting all scripts running in the document,
+	// and finding the last one injected.
+	const scriptElementsWithSrc = Array.prototype.filter.call(
+		(document as Document).scripts || [],
+		elem => elem.getAttribute("src")
+	);
+	if (!scriptElementsWithSrc.length) return;
+	const currentScript = scriptElementsWithSrc[scriptElementsWithSrc.length - 1];
+	return currentScript.getAttribute("src");
 }

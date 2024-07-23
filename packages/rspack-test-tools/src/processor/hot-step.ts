@@ -268,7 +268,8 @@ export class HotSnapshotProcessor<
 						runtime
 					});
 					return `- Update: ${renderName}, size: ${content.length}`;
-				} else if (fileName.endsWith("hot-update.json")) {
+				}
+				if (fileName.endsWith("hot-update.json")) {
 					const manifest = JSON.parse(content);
 					manifest.c?.sort();
 					manifest.r?.sort();
@@ -278,7 +279,8 @@ export class HotSnapshotProcessor<
 						content: JSON.stringify(manifest)
 					});
 					return `- Manifest: ${renderName}, size: ${i.size}`;
-				} else if (fileName.endsWith(".js")) {
+				}
+				if (fileName.endsWith(".js")) {
 					return `- Bundle: ${renderName}`;
 				}
 			})

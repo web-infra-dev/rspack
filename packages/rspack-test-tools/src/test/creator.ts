@@ -109,15 +109,14 @@ export class BasicCaseCreator<T extends ECompilerType> {
 	protected createEnv(testConfig: TTestConfig<T>): ITestEnv {
 		if (typeof this._options.runner === "function" && !testConfig.noTest) {
 			return createLazyTestEnv(10000);
-		} else {
-			return {
-				expect,
-				it,
-				beforeEach,
-				afterEach,
-				jest
-			};
 		}
+		return {
+			expect,
+			it,
+			beforeEach,
+			afterEach,
+			jest
+		};
 	}
 
 	protected clean(folders: string[]) {

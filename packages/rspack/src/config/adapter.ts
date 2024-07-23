@@ -141,9 +141,8 @@ function getRawExtensionAlias(
 	const entries = Object.entries(alias).map(([key, value]) => {
 		if (Array.isArray(value)) {
 			return [key, value];
-		} else {
-			return [key, [value]];
 		}
+		return [key, [value]];
 	});
 	return Object.fromEntries(entries);
 }
@@ -486,7 +485,8 @@ const getRawModuleRule = (
 
 				if (rule.test && !tryMatch(path, rule.test)) {
 					return false;
-				} else if (rule.resource && !tryMatch(path, rule.resource)) {
+				}
+				if (rule.resource && !tryMatch(path, rule.resource)) {
 					return false;
 				}
 
@@ -590,35 +590,42 @@ function getRawParserOptions(
 			type: "asset",
 			asset: getRawAssetParserOptions(parser)
 		};
-	} else if (type === "javascript") {
+	}
+	if (type === "javascript") {
 		// Filter this out, since `parser["javascript"]` already merge into `parser["javascript/*"]` in default.ts
 		return;
-	} else if (type === "javascript/auto") {
+	}
+	if (type === "javascript/auto") {
 		return {
 			type: "javascript/auto",
 			javascript: getRawJavascriptParserOptions(parser)
 		};
-	} else if (type === "javascript/dynamic") {
+	}
+	if (type === "javascript/dynamic") {
 		return {
 			type: "javascript/dynamic",
 			javascript: getRawJavascriptParserOptions(parser)
 		};
-	} else if (type === "javascript/esm") {
+	}
+	if (type === "javascript/esm") {
 		return {
 			type: "javascript/esm",
 			javascript: getRawJavascriptParserOptions(parser)
 		};
-	} else if (type === "css") {
+	}
+	if (type === "css") {
 		return {
 			type: "css",
 			css: getRawCssParserOptions(parser)
 		};
-	} else if (type === "css/auto") {
+	}
+	if (type === "css/auto") {
 		return {
 			type: "css/auto",
 			cssAuto: getRawCssParserOptions(parser)
 		};
-	} else if (type === "css/module") {
+	}
+	if (type === "css/module") {
 		return {
 			type: "css/module",
 			cssModule: getRawCssParserOptions(parser)

@@ -104,9 +104,8 @@ export class Module {
 				this.#inner.originalSource
 			);
 			return this.#originalSource;
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	identifier(): string {
@@ -116,9 +115,8 @@ export class Module {
 	nameForCondition(): string | null {
 		if (typeof this.#inner.nameForCondition === "string") {
 			return this.#inner.nameForCondition;
-		} else {
-			return null;
 		}
+		return null;
 	}
 }
 

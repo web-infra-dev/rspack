@@ -134,25 +134,27 @@ export class FakeElement {
 	getAttribute(name) {
 		if (this._type === "link" && name === "href") {
 			return this.href;
-		} else {
-			return this._attributes[name];
 		}
+		return this._attributes[name];
 	}
 
 	_toRealUrl(value) {
 		if (/^\//.test(value)) {
 			return `https://test.cases${value}`;
-		} else if (/^\.\.\//.test(value)) {
-			return `https://test.cases${value.slice(2)}`;
-		} else if (/^\.\//.test(value)) {
-			return `https://test.cases/path${value.slice(1)}`;
-		} else if (/^\w+:\/\//.test(value)) {
-			return value;
-		} else if (/^\/\//.test(value)) {
-			return `https:${value}`;
-		} else {
-			return `https://test.cases/path/${value}`;
 		}
+		if (/^\.\.\//.test(value)) {
+			return `https://test.cases${value.slice(2)}`;
+		}
+		if (/^\.\//.test(value)) {
+			return `https://test.cases/path${value.slice(1)}`;
+		}
+		if (/^\w+:\/\//.test(value)) {
+			return value;
+		}
+		if (/^\/\//.test(value)) {
+			return `https:${value}`;
+		}
+		return `https://test.cases/path/${value}`;
 	}
 
 	set src(value) {

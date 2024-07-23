@@ -258,12 +258,15 @@ const VALUE_TYPE_DELETE = 4;
 const getValueType = (value: any) => {
 	if (value === undefined) {
 		return VALUE_TYPE_UNDEFINED;
-	} else if (value === DELETE) {
+	}
+	if (value === DELETE) {
 		return VALUE_TYPE_DELETE;
-	} else if (Array.isArray(value)) {
+	}
+	if (Array.isArray(value)) {
 		if (value.lastIndexOf("...") !== -1) return VALUE_TYPE_ARRAY_EXTEND;
 		return VALUE_TYPE_ATOM;
-	} else if (
+	}
+	if (
 		typeof value === "object" &&
 		value !== null &&
 		(!value.constructor || value.constructor === Object)
@@ -380,27 +383,27 @@ const mergeEntries = (
 					byProperty: secondEntry.byProperty,
 					byValues: secondEntry.byValues
 				};
-			} else if (firstEntry.byProperty !== secondEntry.byProperty) {
+			}
+			if (firstEntry.byProperty !== secondEntry.byProperty) {
 				throw new Error(
 					`${firstEntry.byProperty} and ${secondEntry.byProperty} for a single property is not supported`
 				);
-			} else {
-				// = first.base + (first.byProperty + second.byProperty)
-				// need to merge first and second byValues
-				const newByValues = new Map(firstEntry.byValues);
-				for (const [key, value] of secondEntry.byValues) {
-					const firstValue = getFromByValues(firstEntry.byValues, key);
-					newByValues.set(
-						key,
-						mergeSingleValue(firstValue, value, internalCaching)
-					);
-				}
-				return {
-					base: firstEntry.base,
-					byProperty: firstEntry.byProperty,
-					byValues: newByValues
-				};
 			}
+			// = first.base + (first.byProperty + second.byProperty)
+			// need to merge first and second byValues
+			const newByValues = new Map(firstEntry.byValues);
+			for (const [key, value] of secondEntry.byValues) {
+				const firstValue = getFromByValues(firstEntry.byValues, key);
+				newByValues.set(
+					key,
+					mergeSingleValue(firstValue, value, internalCaching)
+				);
+			}
+			return {
+				base: firstEntry.base,
+				byProperty: firstEntry.byProperty,
+				byValues: newByValues
+			};
 		default: {
 			if (!firstEntry.byProperty) {
 				// The simple case
@@ -448,7 +451,8 @@ const mergeEntries = (
 					byProperty: firstEntry.byProperty,
 					byValues: intermediateByValues
 				};
-			} else if (firstEntry.byProperty !== secondEntry.byProperty) {
+			}
+			if (firstEntry.byProperty !== secondEntry.byProperty) {
 				throw new Error(
 					`${firstEntry.byProperty} and ${secondEntry.byProperty} for a single property is not supported`
 				);
@@ -587,12 +591,13 @@ export const resolveByProperty = <O extends Obj | null, P extends PropertyKey>(
 		const key = values[0] as PropertyKey;
 		if (key in byValue) {
 			return cachedCleverMerge(remaining, byValue[key as keyof typeof byValue]);
-		} else if ("default" in byValue) {
-			return cachedCleverMerge(remaining, byValue.default);
-		} else {
-			return remaining;
 		}
-	} else if (typeof byValue === "function") {
+		if ("default" in byValue) {
+			return cachedCleverMerge(remaining, byValue.default);
+		}
+		return remaining;
+	}
+	if (typeof byValue === "function") {
 		const result = byValue.apply(null, values);
 		return cachedCleverMerge(
 			remaining,

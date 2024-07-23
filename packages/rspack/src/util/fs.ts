@@ -156,29 +156,31 @@ export function rmrf(
 const join = (fs: OutputFileSystem, rootPath: string, filename: string) => {
 	if (fs && fs.join) {
 		return fs.join(rootPath, filename);
-	} else if (path.posix.isAbsolute(rootPath)) {
-		return path.posix.join(rootPath, filename);
-	} else if (path.win32.isAbsolute(rootPath)) {
-		return path.win32.join(rootPath, filename);
-	} else {
-		throw new Error(
-			`${rootPath} is neither a posix nor a windows path, and there is no 'join' method defined in the file system`
-		);
 	}
+	if (path.posix.isAbsolute(rootPath)) {
+		return path.posix.join(rootPath, filename);
+	}
+	if (path.win32.isAbsolute(rootPath)) {
+		return path.win32.join(rootPath, filename);
+	}
+	throw new Error(
+		`${rootPath} is neither a posix nor a windows path, and there is no 'join' method defined in the file system`
+	);
 };
 
 const dirname = (fs: OutputFileSystem, absPath: string) => {
 	if (fs && fs.dirname) {
 		return fs.dirname(absPath);
-	} else if (path.posix.isAbsolute(absPath)) {
-		return path.posix.dirname(absPath);
-	} else if (path.win32.isAbsolute(absPath)) {
-		return path.win32.dirname(absPath);
-	} else {
-		throw new Error(
-			`${absPath} is neither a posix nor a windows path, and there is no 'dirname' method defined in the file system`
-		);
 	}
+	if (path.posix.isAbsolute(absPath)) {
+		return path.posix.dirname(absPath);
+	}
+	if (path.win32.isAbsolute(absPath)) {
+		return path.win32.dirname(absPath);
+	}
+	throw new Error(
+		`${absPath} is neither a posix nor a windows path, and there is no 'dirname' method defined in the file system`
+	);
 };
 
 export const mkdirp = (
@@ -212,7 +214,8 @@ export const mkdirp = (
 					});
 				});
 				return;
-			} else if (err.code === "EEXIST") {
+			}
+			if (err.code === "EEXIST") {
 				callback();
 				return;
 			}

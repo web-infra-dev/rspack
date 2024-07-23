@@ -215,9 +215,8 @@ export class RspackCLI {
 
 		if (Array.isArray(item)) {
 			return Promise.all(item.map(internalBuildConfig));
-		} else {
-			return internalBuildConfig(item as RspackOptions);
 		}
+		return internalBuildConfig(item as RspackOptions);
 	}
 
 	async loadConfig(

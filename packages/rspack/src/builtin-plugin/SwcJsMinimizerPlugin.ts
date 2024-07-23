@@ -230,40 +230,39 @@ function getRawExtractCommentsOptions(
 		if (typeof condition === "undefined" || condition === true) {
 			// copied from terser-webpack-plugin
 			return "@preserve|@lic|@cc_on|^\\**!";
-		} else if (condition === false) {
-			throw Error("unreachable");
-		} else {
-			// FIXME: flags
-			return condition.source;
 		}
+		if (condition === false) {
+			throw Error("unreachable");
+		}
+		// FIXME: flags
+		return condition.source;
 	};
 	if (typeof extractComments === "boolean") {
 		if (!extractComments) {
 			return undefined;
-		} else {
-			const res = {
-				condition: conditionStr(extractComments)
-			};
-			return res;
 		}
-	} else if (extractComments instanceof RegExp) {
+		const res = {
+			condition: conditionStr(extractComments)
+		};
+		return res;
+	}
+	if (extractComments instanceof RegExp) {
 		const res = {
 			condition: extractComments.source
 		};
 		return res;
-	} else if (isObject(extractComments)) {
+	}
+	if (isObject(extractComments)) {
 		if (extractComments.condition === false) {
 			return undefined;
-		} else {
-			const res = {
-				condition: conditionStr(extractComments.condition),
-				banner: extractComments.banner
-			};
-			return res;
 		}
-	} else {
-		return undefined;
+		const res = {
+			condition: conditionStr(extractComments.condition),
+			banner: extractComments.banner
+		};
+		return res;
 	}
+	return undefined;
 }
 
 export const SwcJsMinimizerRspackPlugin = create(

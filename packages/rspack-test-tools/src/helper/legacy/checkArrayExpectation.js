@@ -102,7 +102,8 @@ module.exports = function checkArrayExpectation(
 				),
 				true
 			);
-		} else if (expected.length > array.length) {
+		}
+		if (expected.length > array.length) {
 			return (
 				done(
 					new Error(

@@ -247,15 +247,14 @@ export class StatsFactory {
 	) {
 		if (this._inCreate) {
 			return this._create(type, data, baseContext);
-		} else {
-			try {
-				this._inCreate = true;
-				return this._create(type, data, baseContext);
-			} finally {
-				for (const key of Object.keys(this._caches) as CacheKey[])
-					this._caches[key].clear();
-				this._inCreate = false;
-			}
+		}
+		try {
+			this._inCreate = true;
+			return this._create(type, data, baseContext);
+		} finally {
+			for (const key of Object.keys(this._caches) as CacheKey[])
+				this._caches[key].clear();
+			this._inCreate = false;
 		}
 	}
 
@@ -390,22 +389,21 @@ export class StatsFactory {
 				result,
 				(h, r) => h.call(r, context)
 			);
-		} else {
-			const object = {};
-
-			// run extract on value
-			this._forEachLevel(this.hooks.extract, this._caches.extract, type, h =>
-				h.call(object, data, context)
-			);
-
-			// run result on extracted object
-			return this._forEachLevelWaterfall(
-				this.hooks.result,
-				this._caches.result,
-				type,
-				object,
-				(h, r) => h.call(r, context)
-			);
 		}
+		const object = {};
+
+		// run extract on value
+		this._forEachLevel(this.hooks.extract, this._caches.extract, type, h =>
+			h.call(object, data, context)
+		);
+
+		// run result on extracted object
+		return this._forEachLevelWaterfall(
+			this.hooks.result,
+			this._caches.result,
+			type,
+			object,
+			(h, r) => h.call(r, context)
+		);
 	}
 }

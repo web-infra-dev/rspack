@@ -177,14 +177,13 @@ const create = (
 		const old = instancesPool.pop() as WasmHash;
 		old.reset();
 		return old;
-	} else {
-		return new WasmHash(
-			new WebAssembly.Instance(wasmModule),
-			instancesPool,
-			chunkSize,
-			digestSize
-		);
 	}
+	return new WasmHash(
+		new WebAssembly.Instance(wasmModule),
+		instancesPool,
+		chunkSize,
+		digestSize
+	);
 };
 
 export default create;
