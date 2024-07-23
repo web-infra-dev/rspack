@@ -26,7 +26,7 @@ use crate::BoxJavascriptParserPlugin;
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
-  pub blocks: Vec<AsyncDependenciesBlock>,
+  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
   pub warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
 }

@@ -151,7 +151,7 @@ impl Module for ContainerEntryModule {
       block.set_group_options(GroupOptions::ChunkGroup(
         ChunkGroupOptions::default().name_optional(options.name.clone()),
       ));
-      blocks.push(block);
+      blocks.push(Box::new(block));
     }
     dependencies.push(Box::new(StaticExportsDependency::new(
       StaticExportsSpec::Array(vec!["get".into(), "init".into()]),

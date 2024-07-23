@@ -160,7 +160,7 @@ impl Module for ConsumeSharedModule {
         dependencies.push(dep as BoxDependency);
       } else {
         let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
-        blocks.push(block);
+        blocks.push(Box::new(block));
       }
     }
 

@@ -46,7 +46,7 @@ pub struct ModuleGraphPartial {
   dependencies: HashMap<DependencyId, Option<BoxDependency>>,
 
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
-  blocks: HashMap<AsyncDependenciesBlockIdentifier, Option<AsyncDependenciesBlock>>,
+  blocks: HashMap<AsyncDependenciesBlockIdentifier, Option<Box<AsyncDependenciesBlock>>>,
 
   /// ModuleGraphModule indexed by `ModuleIdentifier`.
   module_graph_modules: IdentifierMap<Option<ModuleGraphModule>>,
@@ -601,7 +601,7 @@ impl<'a> ModuleGraph<'a> {
     }
   }
 
-  pub fn add_block(&mut self, block: AsyncDependenciesBlock) {
+  pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {
     let Some(active_partial) = &mut self.active else {
       panic!("should have active partial");
     };
@@ -641,7 +641,10 @@ impl<'a> ModuleGraph<'a> {
     &self,
     block_id: &AsyncDependenciesBlockIdentifier,
   ) -> Option<&AsyncDependenciesBlock> {
-    self.loop_partials(|p| p.blocks.get(block_id))?.as_ref()
+    self
+      .loop_partials(|p| p.blocks.get(block_id))?
+      .as_ref()
+      .map(|b| &**b)
   }
 
   pub fn block_by_id_expect(

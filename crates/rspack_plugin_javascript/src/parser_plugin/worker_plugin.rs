@@ -120,7 +120,7 @@ fn add_dependencies(
     depend_on: None,
   })));
 
-  parser.blocks.push(block);
+  parser.blocks.push(Box::new(block));
   if let Some(range) = range {
     parser
       .presentational_dependencies

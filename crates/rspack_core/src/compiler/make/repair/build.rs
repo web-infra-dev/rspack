@@ -138,9 +138,9 @@ impl Task<MakeTaskContext> for BuildResultTask {
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
     let mut handle_block = |dependencies: Vec<BoxDependency>,
-                            blocks: Vec<AsyncDependenciesBlock>,
-                            current_block: Option<AsyncDependenciesBlock>|
-     -> Vec<AsyncDependenciesBlock> {
+                            blocks: Vec<Box<AsyncDependenciesBlock>>,
+                            current_block: Option<Box<AsyncDependenciesBlock>>|
+     -> Vec<Box<AsyncDependenciesBlock>> {
       for dependency in dependencies {
         let dependency_id = *dependency.id();
         if current_block.is_none() {
