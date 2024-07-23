@@ -53,6 +53,7 @@ import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import sources = require('../compiled/webpack-sources');
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
+import Template = require('./Template');
 import type * as webpackDevServer from 'webpack-dev-server';
 
 // @public (undocumented)
@@ -1032,7 +1033,7 @@ export class Compilation {
         Chunk,
         Set<string>
         ], void>;
-        runtimeModule: RuntimeModule;
+        runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
     }>;
     // (undocumented)
@@ -12837,12 +12838,6 @@ export const RuntimeGlobals: {
 };
 
 // @public (undocumented)
-type RuntimeModule = liteTapable.SyncHook<[
-JsRuntimeModule,
-Chunk
-], void>;
-
-// @public (undocumented)
 type RuntimePlugins = string[];
 
 // @public (undocumented)
@@ -13753,6 +13748,7 @@ interface Targets {
     samsung?: number;
 }
 
+<<<<<<< HEAD
 // @public
 export class Template {
     // (undocumented)
@@ -13780,6 +13776,9 @@ export class Template {
     // (undocumented)
     static toPath(str: string): string;
 }
+=======
+export { Template }
+>>>>>>> cf6da3a8d (chore: update package rspack etc/api.md)
 
 // @public (undocumented)
 interface TerserCompressOptions {
