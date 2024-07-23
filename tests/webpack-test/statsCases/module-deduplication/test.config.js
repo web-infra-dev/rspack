@@ -11,38 +11,31 @@ module.exports = {
 		- chunk (runtime: eXX, eXX) XX.js XX bytes [rendered]
 		- ./asyncXX.js XX bytes [built] [code generated]
 		- ./h.js XX bytes [dependent] [built] [code generated]
-		@@ -15,4 +12,6 @@
-		- chunk (runtime: eXX) XX.js XX bytes [rendered]
-		- ./asyncXX.js XX bytes [built] [code generated]
-		- chunk (runtime: eXX) XX.js XX bytes [rendered]
-		- ./asyncXX.js XX bytes [built] [code generated]
+		@@ -15,0 +12,12 @@
 		+ chunk (runtime: eXX) eXX.js (eXX) XX bytes (javascript) XX KiB (runtime) [entry] [rendered]
 		+ runtime modules XX KiB XX modules
 		+ cacheable modules XX bytes
 		+ ./b.js XX bytes [dependent] [built] [code generated]
 		+ ./eXX.js + XX modules XX bytes [built] [code generated]
 		+ ./f.js XX bytes [dependent] [built] [code generated]
-		@@ -20,0 +19,2 @@
+		+ chunk (runtime: eXX) eXX.js (eXX) XX bytes (javascript) XX KiB (runtime) [entry] [rendered]
 		+ runtime modules XX KiB XX modules
 		+ cacheable modules XX bytes
-		@@ -22,1 +23,6 @@
-		- ./eXX.js + XX modules XX bytes [code generated]
+		+ ./b.js XX bytes [dependent] [built] [code generated]
+		+ ./d.js XX bytes [dependent] [built] [code generated]
 		+ ./eXX.js + XX modules XX bytes [built] [code generated]
-		+ chunk (runtime: eXX) XX.js XX bytes [rendered]
-		+ ./asyncXX.js XX bytes [built] [code generated]
+		@@ -20,2 +29,2 @@
+		- chunk (runtime: eXX) eXX.js (eXX) XX bytes (javascript) XX KiB (runtime) [entry] [rendered]
+		- ./b.js XX bytes [dependent] [built] [code generated]
 		+ chunk (runtime: eXX, eXX) XX.js XX bytes [rendered]
 		+ ./asyncXX.js XX bytes [built] [code generated]
-		+ ./f.js XX bytes [dependent] [built] [code generated]
-		@@ -26,4 +32,0 @@
+		@@ -23,1 +32,0 @@
+		- ./eXX.js + XX modules XX bytes [code generated]
+		@@ -26,4 +34,0 @@
+		- ./d.js XX bytes [dependent] [built] [code generated]
 		- chunk (runtime: eXX) eXX.js (eXX) XX bytes (javascript) XX KiB (runtime) [entry] [rendered]
 		- ./b.js XX bytes [dependent] [built] [code generated]
 		- ./eXX.js + XX modules XX bytes [code generated]
-		- ./h.js XX bytes [dependent] [built] [code generated]
-		@@ -32,1 +34,3 @@
-		- ./f.js XX bytes [dependent] [built] [code generated]
-		+ ./h.js XX bytes [dependent] [built] [code generated]
-		+ chunk (runtime: eXX) XX.js XX bytes [rendered]
-		+ ./asyncXX.js XX bytes [built] [code generated]
 		@@ -34,0 +38,2 @@
 		+ runtime modules XX KiB XX modules
 		+ cacheable modules XX bytes
