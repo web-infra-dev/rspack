@@ -109,7 +109,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-refresh": "^0.14.0",
-    "sass-loader": "14.2.1",
+    "sass-loader": "15.0.0",
     "style-loader": "^3.3.3",
     "source-map-loader": "^5.0.0",
     "terser": "5.27.2",
