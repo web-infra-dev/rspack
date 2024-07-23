@@ -10,5 +10,5 @@ module.exports = {
 				filename: "[name].[hash].html"
 			}
 		]
-	}
+	},
 };

@@ -1759,7 +1759,7 @@ pub struct AssetInfo {
   /// whether the asset is minimized
   pub minimized: bool,
   /// the value(s) of the full hash used for this asset
-  // pub full_hash:
+  pub full_hash: HashSet<String>,
   /// the value(s) of the chunk hash used for this asset
   pub chunk_hash: HashSet<String>,
   /// the value(s) of the module hash used for this asset
@@ -1819,6 +1819,10 @@ impl AssetInfo {
   pub fn with_version(mut self, v: String) -> Self {
     self.version = v;
     self
+  }
+
+  pub fn set_full_hash(&mut self, v: String) {
+    self.full_hash.insert(v);
   }
 
   pub fn set_content_hash(&mut self, v: String) {

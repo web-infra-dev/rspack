@@ -98,6 +98,7 @@ impl Stats<'_> {
               auxiliary_chunk_names: Vec::new(),
               info: StatsAssetInfo {
                 related,
+                full_hash: asset.info.full_hash.iter().cloned().collect_vec(),
                 chunk_hash: asset.info.chunk_hash.iter().cloned().collect_vec(),
                 content_hash: asset.info.content_hash.iter().cloned().collect_vec(),
                 minimized: asset.info.minimized,
@@ -1322,6 +1323,7 @@ pub struct StatsAssetInfo {
   pub javascript_module: Option<bool>,
   pub chunk_hash: Vec<String>,
   pub content_hash: Vec<String>,
+  pub full_hash: Vec<String>,
   pub related: Vec<StatsAssetInfoRelated>,
 }
 

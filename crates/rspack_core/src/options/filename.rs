@@ -304,7 +304,7 @@ fn render_template(
           let hash = &hash[..hash_len(hash, caps)];
           if let Some(asset_info) = asset_info.as_mut() {
             asset_info.set_immutable(true);
-            asset_info.set_content_hash(hash.to_owned());
+            asset_info.set_full_hash(hash.to_owned());
           }
           hash
         })
