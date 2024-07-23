@@ -1,18 +1,24 @@
-/*
-	MIT License http://www.opensource.org/licenses/mit-license.php
-	Author Tobias Koppers @sokra
-*/
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3b/lib/cache/mergeEtags.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
 
-"use strict";
-
-/** @typedef {import("../Cache").Etag} Etag */
+import type { Etag } from "../Cache";
 
 class MergedEtag {
+	a: Etag;
+	b: Etag;
+
 	/**
-	 * @param {Etag} a first
-	 * @param {Etag} b second
+	 * @param a first
+	 * @param b second
 	 */
-	constructor(a, b) {
+	constructor(a: Etag, b: Etag) {
 		this.a = a;
 		this.b = b;
 	}
@@ -26,11 +32,11 @@ const dualObjectMap = new WeakMap();
 const objectStringMap = new WeakMap();
 
 /**
- * @param {Etag} a first
- * @param {Etag} b second
- * @returns {Etag} result
+ * @param a first
+ * @param b second
+ * @returns result
  */
-const mergeEtags = (a, b) => {
+export const mergeEtags = (a: Etag, b: Etag): Etag => {
 	if (typeof a === "string") {
 		if (typeof b === "string") {
 			return `${a}|${b}`;
@@ -68,4 +74,4 @@ const mergeEtags = (a, b) => {
 	return mergedEtag;
 };
 
-module.exports = mergeEtags;
+export default mergeEtags;

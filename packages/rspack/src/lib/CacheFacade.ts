@@ -1,13 +1,16 @@
-/*
-	MIT License http://www.opensource.org/licenses/mit-license.php
-	Author Tobias Koppers @sokra
-*/
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3b/lib/CacheFacade.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
 
-"use strict";
-
-const asyncLib = require("neo-async");
-const getLazyHashedEtag = require("./cache/getLazyHashedEtag.js");
-const mergeEtags = require("./cache/mergeEtags.js");
+import asyncLib from "neo-async";
+import { mergeEtags } from "./cache/mergeEtags.js";
+import { getter as getLazyHashedEtag } from "./cache/getLazyHashedEtag.js";
 
 /**
  * @template T
@@ -17,13 +20,24 @@ const mergeEtags = require("./cache/mergeEtags.js");
  * @param {(err?: null|Error, result?: null|Z, i?: number) => void} callback callback after all items are iterated
  * @returns {void}
  */
-function forEachBail(array, iterator, callback) {
-	if (array.length === 0) return callback();
+function forEachBail<T, Z>(
+	array: T[],
+	iterator: (
+		arg0: T,
+		arg1: (err?: null | Error, result?: null | Z) => void,
+		arg2: number
+	) => void,
+	callback: (err?: null | Error, result?: null | Z, i?: number) => void
+): void {
+	if (array.length === 0) {
+		callback();
+		return;
+	}
 
 	let i = 0;
 	const next = () => {
 		/** @type {boolean|undefined} */
-		let loop = undefined;
+		let loop: boolean | undefined = undefined;
 		iterator(
 			array[i++],
 			(err, result) => {
@@ -68,9 +82,9 @@ class MultiItemCache {
 	/**
 	 * @param {ItemCacheFacade[]} items item caches
 	 */
-	constructor(items) {
+	constructor(items: ItemCacheFacade[]) {
 		this._items = items;
-		if (items.length === 1) return /** @type {any} */ (items[0]);
+		if (items.length === 1) return /** @type {any} */ items[0];
 	}
 
 	/**
@@ -78,7 +92,7 @@ class MultiItemCache {
 	 * @param {CallbackCache<T>} callback signals when the value is retrieved
 	 * @returns {void}
 	 */
-	get(callback) {
+	get<T>(callback: CallbackCache<T>): void {
 		// @ts-expect-error
 		forEachBail(this._items, (item, callback) => item.get(callback), callback);
 	}
@@ -87,7 +101,7 @@ class MultiItemCache {
 	 * @template T
 	 * @returns {Promise<T>} promise with the data
 	 */
-	getPromise() {
+	getPromise<T>(): Promise<T> {
 		// @ts-expect-error
 		const next = i => {
 			// @ts-ignore if your typescript version >= 5.5, this line will throw an error
@@ -105,7 +119,7 @@ class MultiItemCache {
 	 * @param {CallbackCache<void>} callback signals when the value is stored
 	 * @returns {void}
 	 */
-	store(data, callback) {
+	store<T>(data: T, callback: CallbackCache<void>): void {
 		asyncLib.each(
 			this._items,
 			(item, callback) => item.store(data, callback),
@@ -118,7 +132,7 @@ class MultiItemCache {
 	 * @param {T} data the value to store
 	 * @returns {Promise<void>} promise signals when the value is stored
 	 */
-	storePromise(data) {
+	storePromise<T>(data: T): Promise<void> {
 		return Promise.all(this._items.map(item => item.storePromise(data))).then(
 			() => {}
 		);
@@ -131,7 +145,7 @@ class ItemCacheFacade {
 	 * @param {string} name the child cache item name
 	 * @param {Etag | null} etag the etag
 	 */
-	constructor(cache, name, etag) {
+	constructor(cache: Cache, name: string, etag: Etag | null) {
 		this._cache = cache;
 		this._name = name;
 		this._etag = etag;
@@ -142,7 +156,7 @@ class ItemCacheFacade {
 	 * @param {CallbackCache<T>} callback signals when the value is retrieved
 	 * @returns {void}
 	 */
-	get(callback) {
+	get<T>(callback: CallbackCache<T>): void {
 		this._cache.get(this._name, this._etag, callback);
 	}
 
@@ -150,7 +164,7 @@ class ItemCacheFacade {
 	 * @template T
 	 * @returns {Promise<T>} promise with the data
 	 */
-	getPromise() {
+	getPromise<T>(): Promise<T> {
 		return new Promise((resolve, reject) => {
 			this._cache.get(this._name, this._etag, (err, data) => {
 				if (err) {
@@ -168,7 +182,7 @@ class ItemCacheFacade {
 	 * @param {CallbackCache<void>} callback signals when the value is stored
 	 * @returns {void}
 	 */
-	store(data, callback) {
+	store<T>(data: T, callback: CallbackCache<void>): void {
 		this._cache.store(this._name, this._etag, data, callback);
 	}
 
@@ -177,7 +191,7 @@ class ItemCacheFacade {
 	 * @param {T} data the value to store
 	 * @returns {Promise<void>} promise signals when the value is stored
 	 */
-	storePromise(data) {
+	storePromise<T>(data: T): Promise<void> {
 		return new Promise((resolve, reject) => {
 			this._cache.store(this._name, this._etag, data, err => {
 				if (err) {
@@ -195,7 +209,10 @@ class ItemCacheFacade {
 	 * @param {CallbackNormalErrorCache<T>} callback signals when the value is retrieved
 	 * @returns {void}
 	 */
-	provide(computer, callback) {
+	provide<T>(
+		computer: (arg0: CallbackNormalErrorCache<T>) => void,
+		callback: CallbackNormalErrorCache<T>
+	): void {
 		this.get((err, cacheEntry) => {
 			if (err) return callback(err);
 			if (cacheEntry !== undefined) return cacheEntry;
@@ -214,7 +231,7 @@ class ItemCacheFacade {
 	 * @param {function(): Promise<T> | T} computer function to compute the value if not cached
 	 * @returns {Promise<T>} promise with the data
 	 */
-	async providePromise(computer) {
+	async providePromise<T>(computer: () => Promise<T> | T): Promise<T> {
 		const cacheEntry = await this.getPromise();
 		if (cacheEntry !== undefined) return cacheEntry;
 		const result = await computer();
@@ -229,7 +246,11 @@ class CacheFacade {
 	 * @param {string} name the child cache name
 	 * @param {string | HashConstructor} hashFunction the hash function to use
 	 */
-	constructor(cache, name, hashFunction) {
+	constructor(
+		cache: Cache,
+		name: string,
+		hashFunction: string | HashConstructor
+	) {
 		this._cache = cache;
 		this._name = name;
 		this._hashFunction = hashFunction;
@@ -239,7 +260,7 @@ class CacheFacade {
 	 * @param {string} name the child cache name#
 	 * @returns {CacheFacade} child cache
 	 */
-	getChildCache(name) {
+	getChildCache(name: string): CacheFacade {
 		return new CacheFacade(
 			this._cache,
 			`${this._name}|${name}`,
@@ -252,7 +273,7 @@ class CacheFacade {
 	 * @param {Etag | null} etag the etag
 	 * @returns {ItemCacheFacade} item cache
 	 */
-	getItemCache(identifier, etag) {
+	getItemCache(identifier: string, etag: Etag | null): ItemCacheFacade {
 		return new ItemCacheFacade(
 			this._cache,
 			`${this._name}|${identifier}`,
@@ -264,7 +285,7 @@ class CacheFacade {
 	 * @param {HashableObject} obj an hashable object
 	 * @returns {Etag} an etag that is lazy hashed
 	 */
-	getLazyHashedEtag(obj) {
+	getLazyHashedEtag(obj: HashableObject): Etag {
 		return getLazyHashedEtag(obj, this._hashFunction);
 	}
 
@@ -273,7 +294,7 @@ class CacheFacade {
 	 * @param {Etag} b another etag
 	 * @returns {Etag} an etag that represents both
 	 */
-	mergeEtags(a, b) {
+	mergeEtags(a: Etag, b: Etag): Etag {
 		return mergeEtags(a, b);
 	}
 
@@ -284,7 +305,11 @@ class CacheFacade {
 	 * @param {CallbackCache<T>} callback signals when the value is retrieved
 	 * @returns {void}
 	 */
-	get(identifier, etag, callback) {
+	get<T>(
+		identifier: string,
+		etag: Etag | null,
+		callback: CallbackCache<T>
+	): void {
 		this._cache.get(`${this._name}|${identifier}`, etag, callback);
 	}
 
@@ -294,7 +319,7 @@ class CacheFacade {
 	 * @param {Etag | null} etag the etag
 	 * @returns {Promise<T>} promise with the data
 	 */
-	getPromise(identifier, etag) {
+	getPromise<T>(identifier: string, etag: Etag | null): Promise<T> {
 		return new Promise((resolve, reject) => {
 			this._cache.get(`${this._name}|${identifier}`, etag, (err, data) => {
 				if (err) {
@@ -314,7 +339,12 @@ class CacheFacade {
 	 * @param {CallbackCache<void>} callback signals when the value is stored
 	 * @returns {void}
 	 */
-	store(identifier, etag, data, callback) {
+	store<T>(
+		identifier: string,
+		etag: Etag | null,
+		data: T,
+		callback: CallbackCache<void>
+	): void {
 		this._cache.store(`${this._name}|${identifier}`, etag, data, callback);
 	}
 
@@ -325,7 +355,11 @@ class CacheFacade {
 	 * @param {T} data the value to store
 	 * @returns {Promise<void>} promise signals when the value is stored
 	 */
-	storePromise(identifier, etag, data) {
+	storePromise<T>(
+		identifier: string,
+		etag: Etag | null,
+		data: T
+	): Promise<void> {
 		return new Promise((resolve, reject) => {
 			this._cache.store(`${this._name}|${identifier}`, etag, data, err => {
 				if (err) {
@@ -345,7 +379,12 @@ class CacheFacade {
 	 * @param {CallbackNormalErrorCache<T>} callback signals when the value is retrieved
 	 * @returns {void}
 	 */
-	provide(identifier, etag, computer, callback) {
+	provide<T>(
+		identifier: string,
+		etag: Etag | null,
+		computer: (arg0: CallbackNormalErrorCache<T>) => void,
+		callback: CallbackNormalErrorCache<T>
+	): void {
 		this.get(identifier, etag, (err, cacheEntry) => {
 			if (err) return callback(err);
 			if (cacheEntry !== undefined) return cacheEntry;
@@ -366,7 +405,11 @@ class CacheFacade {
 	 * @param {function(): Promise<T> | T} computer function to compute the value if not cached
 	 * @returns {Promise<T>} promise with the data
 	 */
-	async providePromise(identifier, etag, computer) {
+	async providePromise<T>(
+		identifier: string,
+		etag: Etag | null,
+		computer: () => Promise<T> | T
+	): Promise<T> {
 		const cacheEntry = await this.getPromise(identifier, etag);
 		if (cacheEntry !== undefined) return cacheEntry;
 		const result = await computer();

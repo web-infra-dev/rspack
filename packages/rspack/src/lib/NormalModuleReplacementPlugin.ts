@@ -1,7 +1,11 @@
 /**
- * Based on [webpack/lib/NormalModuleReplacementPlugin.js]{@link https://github.com/webpack/webpack/blob/29cc4ead7eb6aafc3a5f6d0b10ce41d33d1ad874/lib/NormalModuleReplacementPlugin.js}
- * Licensed with [MIT License]{@link http://www.opensource.org/licenses/mit-license.php}
- * Original Author Tobias Koppers @sokra
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3b/lib/NormalModuleReplacementPlugin.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
 import * as NodePath from "node:path";

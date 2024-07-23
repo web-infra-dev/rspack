@@ -1,85 +1,81 @@
-/*
-	MIT License http://www.opensource.org/licenses/mit-license.php
-	Author Tobias Koppers @sokra
-*/
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3b/lib/Cache.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
 
-"use strict";
-
-const {
+import {
 	AsyncParallelHook,
 	AsyncSeriesBailHook,
 	SyncHook
-} = require("@rspack/lite-tapable");
-const {
-	makeWebpackError,
-	makeWebpackErrorCallback
-} = require("./HookWebpackError.js");
+} from "@rspack/lite-tapable";
 
-/** @typedef {import("./WebpackError")} WebpackError */
+import { makeWebpackError, makeWebpackErrorCallback } from "./HookWebpackError";
+import type { WebpackError } from "./WebpackError";
 
-/**
- * @typedef {Object} Etag
- * @property {function(): string} toString
- */
+export interface Etag {
+	toString(): string;
+}
 
-/**
- * @template T
- * @callback CallbackCache
- * @param {(WebpackError | null)=} err
- * @param {T=} result
- * @returns {void}
- */
+type CallbackCache<T> = (err?: WebpackError | null, result?: T) => void;
+type GotHandler<T = any> = (
+	result: any | null,
+	callback: (error: Error) => void
+) => void;
 
-/**
- * @callback GotHandler
- * @param {any} result
- * @param {function(Error=): void} callback
- * @returns {void}
- */
-
-// @ts-expect-error
-const needCalls = (times, callback) => {
-	// @ts-expect-error
+const needCalls = (
+	times: number,
+	callback: () => void
+): ((error: Error) => void) => {
 	return err => {
 		if (--times === 0) {
-			return callback(err);
+			return callback();
 		}
 		if (err && times > 0) {
 			times = 0;
-			return callback(err);
+			return callback();
 		}
 	};
 };
 
-class Cache {
+export class Cache {
+	static STAGE_DISK = 10;
+	static STAGE_MEMORY = -10;
+	static STAGE_DEFAULT = 0;
+	static STAGE_NETWORK = 20;
+	hooks: {
+		get: AsyncSeriesBailHook<[string, Etag | null, GotHandler[]], any>;
+		store: AsyncParallelHook<[string, Etag | null, any]>;
+		storeBuildDependencies: AsyncParallelHook<[Iterable<string>]>;
+		beginIdle: SyncHook<[]>;
+		endIdle: AsyncParallelHook<[]>;
+		shutdown: AsyncParallelHook<[]>;
+	};
+
 	constructor() {
 		this.hooks = {
-			/** @type {AsyncSeriesBailHook<[string, Etag | null, GotHandler[]], any>} */
 			get: new AsyncSeriesBailHook(["identifier", "etag", "gotHandlers"]),
-			/** @type {AsyncParallelHook<[string, Etag | null, any]>} */
 			store: new AsyncParallelHook(["identifier", "etag", "data"]),
-			/** @type {AsyncParallelHook<[Iterable<string>]>} */
 			storeBuildDependencies: new AsyncParallelHook(["dependencies"]),
-			/** @type {SyncHook<[]>} */
 			beginIdle: new SyncHook([]),
-			/** @type {AsyncParallelHook<[]>} */
 			endIdle: new AsyncParallelHook([]),
-			/** @type {AsyncParallelHook<[]>} */
 			shutdown: new AsyncParallelHook([])
 		};
 	}
 
 	/**
-	 * @template T
-	 * @param {string} identifier the cache identifier
-	 * @param {Etag | null} etag the etag
-	 * @param {CallbackCache<T>} callback signals when the value is retrieved
-	 * @returns {void}
+	 * @param identifier the cache identifier
+	 * @param etag the etag
+	 * @param callback signals when the value is retrieved
+	 * @returns
 	 */
-	get(identifier, etag, callback) {
-		// @ts-expect-error
-		const gotHandlers = [];
-		// @ts-expect-error
+	get<T>(identifier: string, etag: Etag | null, callback: CallbackCache<T>) {
+		const gotHandlers: GotHandler<any>[] = [];
+
 		this.hooks.get.callAsync(identifier, etag, gotHandlers, (err, result) => {
 			if (err) {
 				callback(makeWebpackError(err, "Cache.hooks.get"));
@@ -92,12 +88,10 @@ class Cache {
 				const innerCallback = needCalls(gotHandlers.length, () =>
 					callback(null, result)
 				);
-				// @ts-expect-error
 				for (const gotHandler of gotHandlers) {
 					gotHandler(result, innerCallback);
 				}
 			} else if (gotHandlers.length === 1) {
-				// @ts-expect-error
 				gotHandlers[0](result, () => callback(null, result));
 			} else {
 				callback(null, result);
@@ -107,69 +101,68 @@ class Cache {
 
 	/**
 	 * @template T
-	 * @param {string} identifier the cache identifier
-	 * @param {Etag | null} etag the etag
-	 * @param {T} data the value to store
-	 * @param {CallbackCache<void>} callback signals when the value is stored
-	 * @returns {void}
+	 * @param identifier the cache identifier
+	 * @param etag the etag
+	 * @param data the value to store
+	 * @param callback signals when the value is stored
+	 * @returns
 	 */
-	store(identifier, etag, data, callback) {
+	store<T>(
+		identifier: string,
+		etag: Etag | null,
+		data: T,
+		callback: CallbackCache<void>
+	) {
 		this.hooks.store.callAsync(
 			identifier,
 			etag,
 			data,
-			// @ts-expect-error
 			makeWebpackErrorCallback(callback, "Cache.hooks.store")
 		);
 	}
 
 	/**
 	 * After this method has succeeded the cache can only be restored when build dependencies are
-	 * @param {Iterable<string>} dependencies list of all build dependencies
-	 * @param {CallbackCache<void>} callback signals when the dependencies are stored
-	 * @returns {void}
+	 * @param dependencies list of all build dependencies
+	 * @param callback signals when the dependencies are stored
+	 * @returns
 	 */
-	storeBuildDependencies(dependencies, callback) {
+	storeBuildDependencies(
+		dependencies: Iterable<string>,
+		callback: CallbackCache<void>
+	) {
 		this.hooks.storeBuildDependencies.callAsync(
 			dependencies,
-			// @ts-expect-error
 			makeWebpackErrorCallback(callback, "Cache.hooks.storeBuildDependencies")
 		);
 	}
 
 	/**
-	 * @returns {void}
+	 * @returns
 	 */
 	beginIdle() {
 		this.hooks.beginIdle.call();
 	}
 
 	/**
-	 * @param {CallbackCache<void>} callback signals when the call finishes
-	 * @returns {void}
+	 * @param callback signals when the call finishes
+	 * @returns
 	 */
-	endIdle(callback) {
+	endIdle(callback: CallbackCache<void>) {
 		this.hooks.endIdle.callAsync(
-			// @ts-expect-error
 			makeWebpackErrorCallback(callback, "Cache.hooks.endIdle")
 		);
 	}
 
 	/**
-	 * @param {CallbackCache<void>} callback signals when the call finishes
-	 * @returns {void}
+	 * @param callback signals when the call finishes
+	 * @returns
 	 */
-	shutdown(callback) {
+	shutdown(callback: CallbackCache<void>) {
 		this.hooks.shutdown.callAsync(
-			// @ts-expect-error
 			makeWebpackErrorCallback(callback, "Cache.hooks.shutdown")
 		);
 	}
 }
 
-Cache.STAGE_MEMORY = -10;
-Cache.STAGE_DEFAULT = 0;
-Cache.STAGE_DISK = 10;
-Cache.STAGE_NETWORK = 20;
-
-module.exports = Cache;
+export default Cache;

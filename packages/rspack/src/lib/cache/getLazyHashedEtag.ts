@@ -1,59 +1,72 @@
-/*
-	MIT License http://www.opensource.org/licenses/mit-license.php
-	Author Tobias Koppers @sokra
-*/
-
-"use strict";
-
-const createHash = require("../../util/createHash");
-
-// /** @typedef {import("../util/Hash")} Hash */
-// /** @typedef {typeof import("../util/Hash")} HashConstructor */
-/** @typedef {any} Hash */
-/** @typedef {any} HashConstructor */
-
 /**
- * @typedef {Object} HashableObject
- * @property {function(Hash): void} updateHash
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3b/lib/cache/getLazyHashedEtag.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { createHash } from "../../util/createHash";
+import type Hash from "../../util/hash";
+
+type HashConstructor = typeof Hash;
+
+interface HashableObject {
+	updateHash(hash: Hash): void;
+}
+
 class LazyHashedEtag {
+	_obj: HashableObject;
+	_hash?: string;
+	_hashFunction: string | HashConstructor;
+
 	/**
-	 * @param {HashableObject} obj object with updateHash method
-	 * @param {string | HashConstructor} hashFunction the hash function to use
+	 * @param obj object with updateHash method
+	 * @param hashFunction the hash function to use
 	 */
-	constructor(obj, hashFunction = "md4") {
+	constructor(
+		obj: HashableObject,
+		hashFunction: string | HashConstructor = "md4"
+	) {
 		this._obj = obj;
 		this._hash = undefined;
 		this._hashFunction = hashFunction;
 	}
 
 	/**
-	 * @returns {string} hash of object
+	 * @returns hash of object
 	 */
-	toString() {
+	toString(): string {
 		if (this._hash === undefined) {
-			// @ts-expect-error
 			const hash = createHash(this._hashFunction);
 			this._obj.updateHash(hash);
-			this._hash = /** @type {string} */ (hash.digest("base64"));
+			this._hash = hash.digest("base64") as string;
 		}
 		return this._hash;
 	}
 }
 
-/** @type {Map<string | HashConstructor, WeakMap<HashableObject, LazyHashedEtag>>} */
-const mapStrings = new Map();
+const mapStrings = new Map<
+	string | HashConstructor,
+	WeakMap<HashableObject, LazyHashedEtag>
+>();
 
-/** @type {WeakMap<HashConstructor, WeakMap<HashableObject, LazyHashedEtag>>} */
-const mapObjects = new WeakMap();
+const mapObjects = new WeakMap<
+	HashConstructor,
+	WeakMap<HashableObject, LazyHashedEtag>
+>();
 
 /**
- * @param {HashableObject} obj object with updateHash method
- * @param {string | HashConstructor} hashFunction the hash function to use
- * @returns {LazyHashedEtag} etag
+ * @param obj object with updateHash method
+ * @param ashFunction the hash function to use
+ * @returns etag
  */
-const getter = (obj, hashFunction = "md4") => {
+export const getter = (
+	obj: HashableObject,
+	hashFunction: string | HashConstructor = "md4"
+): LazyHashedEtag => {
 	let innerMap;
 	if (typeof hashFunction === "string") {
 		innerMap = mapStrings.get(hashFunction);
@@ -81,4 +94,4 @@ const getter = (obj, hashFunction = "md4") => {
 	return newHash;
 };
 
-module.exports = getter;
+export default getter;

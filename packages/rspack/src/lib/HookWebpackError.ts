@@ -1,30 +1,26 @@
-/*
-	MIT License http://www.opensource.org/licenses/mit-license.php
-	Author Sean Larkin @thelarkinn
-*/
-
-"use strict";
-
-const WebpackError = require("./WebpackError.js");
-
-// /** @typedef {import("./Module")} Module */
-/** @typedef {any} Module */
-
 /**
- * @template T
- * @callback Callback
- * @param {Error=} err
- * @param {T=} stats
- * @returns {void}
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3b/lib/HookWebpackError.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-class HookWebpackError extends WebpackError {
+import WebpackError from "./WebpackError";
+import type { Callback } from "@rspack/lite-tapable";
+
+export class HookWebpackError extends WebpackError {
+	hook: string;
+	error: Error;
+
 	/**
 	 * Creates an instance of HookWebpackError.
-	 * @param {Error} error inner error
-	 * @param {string} hook name of hook
+	 * @param error inner error
+	 * @param hook name of hook
 	 */
-	constructor(error, hook) {
+	constructor(error: Error, hook: string) {
 		super(error.message);
 
 		this.name = "HookWebpackError";
@@ -37,26 +33,27 @@ class HookWebpackError extends WebpackError {
 	}
 }
 
-module.exports = HookWebpackError;
+export default HookWebpackError;
 
 /**
- * @param {Error} error an error
- * @param {string} hook name of the hook
- * @returns {WebpackError} a webpack error
+ * @param error an error
+ * @param hook name of the hook
+ * @returns a webpack error
  */
-const makeWebpackError = (error, hook) => {
+export const makeWebpackError = (error: Error, hook: string): WebpackError => {
 	if (error instanceof WebpackError) return error;
 	return new HookWebpackError(error, hook);
 };
-module.exports.makeWebpackError = makeWebpackError;
 
 /**
- * @template T
- * @param {function((WebpackError | null)=, T=): void} callback webpack error callback
- * @param {string} hook name of hook
- * @returns {Callback<T>} generic callback
+ * @param callback webpack error callback
+ * @param hook name of hook
+ * @returns generic callback
  */
-const makeWebpackErrorCallback = (callback, hook) => {
+export const makeWebpackErrorCallback = <T>(
+	callback: (error?: WebpackError | null, result?: T) => void,
+	hook: string
+): Callback<Error, T> => {
 	return (err, result) => {
 		if (err) {
 			if (err instanceof WebpackError) {
@@ -70,15 +67,12 @@ const makeWebpackErrorCallback = (callback, hook) => {
 	};
 };
 
-module.exports.makeWebpackErrorCallback = makeWebpackErrorCallback;
-
 /**
- * @template T
- * @param {function(): T} fn function which will be wrapping in try catch
- * @param {string} hook name of hook
- * @returns {T} the result
+ * @param fn function which will be wrapping in try catch
+ * @param hook name of hook
+ * @returns the result
  */
-const tryRunOrWebpackError = (fn, hook) => {
+export const tryRunOrWebpackError = <T>(fn: () => T, hook: string): T => {
 	let r;
 	try {
 		r = fn();
@@ -86,10 +80,7 @@ const tryRunOrWebpackError = (fn, hook) => {
 		if (err instanceof WebpackError) {
 			throw err;
 		}
-		// @ts-expect-error
-		throw new HookWebpackError(err, hook);
+		throw new HookWebpackError(err as Error, hook);
 	}
 	return r;
 };
-
-module.exports.tryRunOrWebpackError = tryRunOrWebpackError;
