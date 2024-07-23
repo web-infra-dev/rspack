@@ -11,6 +11,12 @@ pub struct ChunkUkey(Ukey, std::marker::PhantomData<Chunk>);
 
 impl_item_ukey!(ChunkUkey);
 
+impl Default for ChunkUkey {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl ChunkUkey {
   pub fn new() -> Self {
     Self(
@@ -38,6 +44,12 @@ static NEXT_CHUNK_GROUP_UKEY: AtomicU32 = AtomicU32::new(0);
 pub struct ChunkGroupUkey(Ukey, std::marker::PhantomData<ChunkGroup>);
 
 impl_item_ukey!(ChunkGroupUkey);
+
+impl Default for ChunkGroupUkey {
+  fn default() -> Self {
+    Self::new()
+  }
+}
 
 impl ChunkGroupUkey {
   pub fn new() -> Self {

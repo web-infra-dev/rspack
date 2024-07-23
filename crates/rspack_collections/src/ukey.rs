@@ -1,25 +1,9 @@
-use std::{any::TypeId, hash::Hash, sync::atomic::AtomicU32};
+use std::collections::HashSet;
+use std::hash::Hash;
 use std::{collections::HashMap, fmt::Debug, hash::BuildHasherDefault};
 
+use indexmap::{IndexMap, IndexSet};
 use rayon::prelude::*;
-
-macro_rules! impl_deref_and_deref_mut {
-  ($type:ty, $target:ty) => {
-    impl<K: $crate::ItemUkey, V> std::ops::Deref for $type {
-      type Target = $target;
-
-      fn deref(&self) -> &Self::Target {
-        &self.0
-      }
-    }
-
-    impl<K: $crate::ItemUkey, V> std::ops::DerefMut for $type {
-      fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-      }
-    }
-  };
-}
 
 #[macro_export]
 macro_rules! impl_item_ukey {
@@ -32,9 +16,11 @@ macro_rules! impl_item_ukey {
   };
 }
 
-pub struct UkeyMap<K: ItemUkey, V>(HashMap<K, V, UkeyHasher>);
+pub type UkeyMap<K, V> = HashMap<K, V, BuildHasherDefault<UkeyHasher>>;
+pub type UkeyIndexMap<K, V> = IndexMap<K, V, BuildHasherDefault<UkeyHasher>>;
 
-impl_deref_and_deref_mut!(UkeyMap<K, V>, HashMap<K, V, UkeyHasher>);
+pub type UkeySet<K> = HashSet<K, BuildHasherDefault<UkeyHasher>>;
+pub type UkeyIndexSet<K> = IndexSet<K, BuildHasherDefault<UkeyHasher>>;
 
 pub trait ItemUkey {
   fn ukey(&self) -> Ukey;

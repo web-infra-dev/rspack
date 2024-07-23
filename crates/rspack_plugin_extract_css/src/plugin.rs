@@ -2,7 +2,7 @@ use std::{borrow::Cow, cmp::max, hash::Hash, path::PathBuf, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
   ApplyContext, AssetInfo, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
@@ -18,7 +18,7 @@ use rspack_plugin_javascript::{
   parser_and_generator::JavaScriptParserAndGenerator, BoxJavascriptParserPlugin,
 };
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use ustr::Ustr;
 
 use crate::{
@@ -128,7 +128,7 @@ impl PluginCssExtract {
     compilation: &'comp Compilation,
     module_graph: &'comp ModuleGraph<'comp>,
   ) -> (Vec<&'comp dyn Module>, Option<Vec<CssOrderConflicts>>) {
-    let mut module_deps_reasons: IdentifierMap<IdentifierMap<FxHashSet<ChunkGroupUkey>>> = modules
+    let mut module_deps_reasons: IdentifierMap<IdentifierMap<UkeySet<ChunkGroupUkey>>> = modules
       .iter()
       .map(|m| (m.identifier(), Default::default()))
       .collect();

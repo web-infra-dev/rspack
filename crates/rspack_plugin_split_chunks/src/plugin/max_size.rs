@@ -3,13 +3,13 @@ use std::borrow::Cow;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use regex::Regex;
+use rspack_collections::UkeyMap;
 use rspack_core::{
   ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, DEFAULT_DELIMITER,
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::{ext::DynHash, identifier::make_paths_relative};
-use rustc_hash::FxHashMap;
 
 use super::MaxSizeSetting;
 use crate::{SplitChunkSizes, SplitChunksPlugin};
@@ -207,7 +207,7 @@ impl SplitChunksPlugin {
   pub(super) fn ensure_max_size_fit(
     &self,
     compilation: &mut Compilation,
-    max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting>,
+    max_size_setting_map: UkeyMap<ChunkUkey, MaxSizeSetting>,
   ) -> Result<()> {
     let fallback_cache_group = &self.fallback_cache_group;
     let chunk_group_db = &compilation.chunk_group_by_ukey;

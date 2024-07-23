@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use rspack_collections::IdentifierLinkedMap;
+use rspack_collections::{IdentifierLinkedMap, UkeySet};
 use rspack_core::{
   get_chunk_from_ukey, get_chunk_group_from_ukey, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -56,14 +56,14 @@ pub fn get_all_chunks(
   exclude_chunk1: &ChunkUkey,
   exclude_chunk2: Option<&ChunkUkey>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-) -> HashSet<ChunkUkey> {
+) -> UkeySet<ChunkUkey> {
   fn add_chunks(
     chunk_group_by_ukey: &ChunkGroupByUkey,
-    chunks: &mut HashSet<ChunkUkey>,
+    chunks: &mut UkeySet<ChunkUkey>,
     entrypoint_ukey: &ChunkGroupUkey,
     exclude_chunk1: &ChunkUkey,
     exclude_chunk2: Option<&ChunkUkey>,
-    visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
+    visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
   ) {
     if let Some(entrypoint) = get_chunk_group_from_ukey(entrypoint_ukey, chunk_group_by_ukey) {
       for chunk in &entrypoint.chunks {
@@ -99,8 +99,8 @@ pub fn get_all_chunks(
     }
   }
 
-  let mut chunks: HashSet<ChunkUkey> = HashSet::default();
-  let mut visit_chunk_groups = HashSet::default();
+  let mut chunks: UkeySet<ChunkUkey> = UkeySet::default();
+  let mut visit_chunk_groups = UkeySet::default();
 
   add_chunks(
     chunk_group_by_ukey,

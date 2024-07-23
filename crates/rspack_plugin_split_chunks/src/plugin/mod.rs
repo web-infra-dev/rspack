@@ -6,6 +6,7 @@ mod module_group;
 
 use std::{borrow::Cow, fmt::Debug};
 
+use rspack_collections::UkeyMap;
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -53,7 +54,7 @@ impl SplitChunksPlugin {
     logger.time_end(start);
 
     let start = logger.time("process module group map");
-    let mut max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting> = Default::default();
+    let mut max_size_setting_map: UkeyMap<ChunkUkey, MaxSizeSetting> = Default::default();
 
     while !module_group_map.is_empty() {
       let (module_group_key, mut module_group) = self.find_best_module_group(&mut module_group_map);

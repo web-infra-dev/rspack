@@ -1,7 +1,6 @@
 use derivative::Derivative;
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierSet, UkeySet};
 use rspack_core::{ChunkUkey, Compilation, Module};
-use rustc_hash::FxHashSet;
 
 use crate::{common::SplitChunkSizes, CacheGroup};
 
@@ -29,7 +28,7 @@ pub(crate) struct ModuleGroup {
   pub sizes: SplitChunkSizes,
   /// `Chunk`s which `Module`s in this ModuleGroup belong to
   #[derivative(Debug = "ignore")]
-  pub chunks: FxHashSet<ChunkUkey>,
+  pub chunks: UkeySet<ChunkUkey>,
 }
 
 impl ModuleGroup {

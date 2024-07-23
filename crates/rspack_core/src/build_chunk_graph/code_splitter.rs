@@ -6,7 +6,9 @@ use std::sync::Arc;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use num_bigint::BigUint;
-use rspack_collections::{impl_item_ukey, Database, DatabaseItem, ItemUkey, Ukey, UkeyHasher};
+use rspack_collections::{
+  impl_item_ukey, Database, DatabaseItem, Ukey, UkeyIndexMap, UkeyIndexSet, UkeyMap,
+};
 use rspack_collections::{IdentifierIndexSet, IdentifierMap};
 use rspack_error::{error, Diagnostic, Error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -35,11 +37,11 @@ pub struct ChunkGroupInfo {
   pub skipped_module_connections:
     IndexSet<(ModuleIdentifier, Vec<ConnectionId>), BuildHasherDefault<FxHasher>>,
   // set of children chunk groups, that will be revisited when available_modules shrink
-  pub children: IndexSet<CgiUkey>,
+  pub children: UkeyIndexSet<CgiUkey>,
   // set of chunk groups that are the source for min_available_modules
-  pub available_sources: IndexSet<CgiUkey>,
+  pub available_sources: UkeyIndexSet<CgiUkey>,
   // set of chunk groups which depend on the this chunk group as available_source
-  pub available_children: IndexSet<CgiUkey>,
+  pub available_children: UkeyIndexSet<CgiUkey>,
 
   // set of modules available including modules from this chunk group
   // A derived attribute, therefore utilizing interior mutability to manage updates
@@ -82,7 +84,7 @@ impl ChunkGroupInfo {
   fn calculate_resulting_available_modules(
     &self,
     compilation: &Compilation,
-    mask_by_chunk: &std::collections::HashMap<ChunkUkey, BigUint, BuildHasherDefault<UkeyHasher>>,
+    mask_by_chunk: &UkeyMap<ChunkUkey, BigUint>,
   ) -> BigUint {
     let mut resulting_available_modules = self.resulting_available_modules.borrow_mut();
     if let Some(resulting_available_modules) = resulting_available_modules.clone() {
@@ -214,26 +216,26 @@ type BlockModulesRuntimeMap = IndexMap<
 // }
 
 pub(super) struct CodeSplitter<'me> {
-  chunk_group_info_map: HashMap<ChunkGroupUkey, CgiUkey>,
+  chunk_group_info_map: UkeyMap<ChunkGroupUkey, CgiUkey>,
   chunk_group_infos: Database<ChunkGroupInfo>,
   outdated_order_index_chunk_groups: HashSet<CgiUkey>,
-  block_by_cgi: HashMap<CgiUkey, AsyncDependenciesBlockIdentifier>,
+  block_by_cgi: UkeyMap<CgiUkey, AsyncDependenciesBlockIdentifier>,
   pub(super) compilation: &'me mut Compilation,
   next_free_module_pre_order_index: u32,
   next_free_module_post_order_index: u32,
   next_chunk_group_index: u32,
   queue: Vec<QueueAction>,
   queue_delayed: Vec<QueueAction>,
-  queue_connect: IndexMap<CgiUkey, IndexSet<CgiUkey>>,
-  chunk_groups_for_combining: IndexSet<CgiUkey>,
-  outdated_chunk_group_info: IndexSet<CgiUkey>,
-  chunk_groups_for_merging: IndexSet<CgiUkey>,
+  queue_connect: UkeyIndexMap<CgiUkey, UkeyIndexSet<CgiUkey>>,
+  chunk_groups_for_combining: UkeyIndexSet<CgiUkey>,
+  outdated_chunk_group_info: UkeyIndexSet<CgiUkey>,
+  chunk_groups_for_merging: UkeyIndexSet<CgiUkey>,
   block_chunk_groups: HashMap<AsyncDependenciesBlockIdentifier, CgiUkey>,
   named_chunk_groups: HashMap<String, CgiUkey>,
   named_async_entrypoints: HashMap<String, CgiUkey>,
   block_modules_runtime_map: BlockModulesRuntimeMap,
   ordinal_by_module: IdentifierMap<u64>,
-  mask_by_chunk: std::collections::HashMap<ChunkUkey, BigUint, BuildHasherDefault<UkeyHasher>>,
+  mask_by_chunk: UkeyMap<ChunkUkey, BigUint>,
 
   stat_processed_queue_items: u32,
   stat_processed_blocks: u32,
@@ -306,7 +308,7 @@ impl<'me> CodeSplitter<'me> {
     }
 
     let module_graph = compilation.get_module_graph();
-    let mut mask_by_chunk = std::collections::HashMap::default();
+    let mut mask_by_chunk = UkeyMap::default();
     for chunk in compilation.chunk_by_ukey.keys() {
       let mut mask = BigUint::from(0u32);
       for module in compilation
@@ -359,9 +361,9 @@ impl<'me> CodeSplitter<'me> {
 
   fn prepare_input_entrypoints_and_modules(
     &mut self,
-  ) -> Result<IndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
-    let mut input_entrypoints_and_modules: IndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
-      IndexMap::default();
+  ) -> Result<UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
+    let mut input_entrypoints_and_modules: UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
+      UkeyIndexMap::default();
     let mut assign_depths_map = IdentifierMap::default();
 
     let entries = self.compilation.entries.clone();

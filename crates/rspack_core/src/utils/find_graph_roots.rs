@@ -2,7 +2,7 @@
 
 use std::{hash::Hash, sync::atomic::AtomicU32};
 
-use rspack_collections::{impl_item_ukey, Database, DatabaseItem, ItemUkey, Ukey};
+use rspack_collections::{Database, DatabaseItem, ItemUkey, Ukey, UkeySet};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 #[allow(clippy::enum_variant_names)]
@@ -132,12 +132,12 @@ pub fn find_graph_roots<
 
   let item_to_node_ukey = db
     .values()
-    .map(|node| (node.item.clone(), node.ukey))
+    .map(|node| (node.item, node.ukey))
     .collect::<FxHashMap<_, _>>();
 
   // grab all the dependencies
   db.par_values_mut().for_each(|node| {
-    node.dependencies = get_dependencies(node.item.clone())
+    node.dependencies = get_dependencies(node.item)
       .into_iter()
       .filter_map(|item| item_to_node_ukey.get(&item))
       .cloned()
@@ -146,12 +146,12 @@ pub fn find_graph_roots<
 
   // Set of current root modules
   // items will be removed if a new reference to it has been found
-  let mut roots: FxHashSet<NodeUkey<Item>> = FxHashSet::default();
+  let mut roots: UkeySet<NodeUkey<Item>> = UkeySet::default();
 
   // Set of current cycles without references to it
   // cycles will be removed if a new reference to it has been found
   // that is not part of the cycle
-  let mut root_cycles: FxHashSet<CycleUkey<NodeUkey<Item>>> = FxHashSet::default();
+  let mut root_cycles: UkeySet<CycleUkey<NodeUkey<Item>>> = UkeySet::default();
 
   let mut keys = db.keys().cloned().collect::<Vec<_>>();
   keys.sort_by(|a, b| db.expect_get(a).item.cmp(&db.expect_get(b).item));
@@ -170,7 +170,7 @@ pub fn find_graph_roots<
         node: select_node,
         open_edges: {
           let mut v: Vec<_> = db.expect_get(&select_node).dependencies.to_vec();
-          v.sort_by(|a, b| db.expect_get(&a).item.cmp(&db.expect_get(&b).item));
+          v.sort_by(|a, b| db.expect_get(a).item.cmp(&db.expect_get(b).item));
           v
         },
       }];
@@ -283,7 +283,7 @@ pub fn find_graph_roots<
   for cycle in root_cycles {
     let mut max = 0;
 
-    let mut cycle_roots: FxHashSet<NodeUkey<Item>> = Default::default();
+    let mut cycle_roots: UkeySet<NodeUkey<Item>> = Default::default();
     let nodes = &cycle_db.expect_get(&cycle).nodes;
     for node in nodes.iter() {
       for dep in db.expect_get(node).dependencies.clone().into_iter() {

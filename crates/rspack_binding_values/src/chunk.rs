@@ -60,11 +60,7 @@ impl JsChunk {
 
     Self {
       inner_ukey: chunk.ukey.as_u32(),
-      inner_groups: chunk
-        .groups
-        .iter()
-        .map(|ukey| ukey.as_u32() as u32)
-        .collect(),
+      inner_groups: chunk.groups.iter().map(|ukey| ukey.as_u32()).collect(),
       name: name.clone(),
       id: id.clone(),
       ids: ids.clone(),

@@ -2,7 +2,7 @@
 
 use std::hash::Hasher;
 
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, UkeySet};
 use rspack_util::ext::DynHash;
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 
@@ -17,10 +17,10 @@ use crate::{
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphModule {
   pub id: Option<String>,
-  pub(crate) entry_in_chunks: HashSet<ChunkUkey>,
-  pub chunks: HashSet<ChunkUkey>,
+  pub(crate) entry_in_chunks: UkeySet<ChunkUkey>,
+  pub chunks: UkeySet<ChunkUkey>,
   pub(crate) runtime_requirements: Option<RuntimeSpecMap<RuntimeGlobals>>,
-  pub(crate) runtime_in_chunks: HashSet<ChunkUkey>,
+  pub(crate) runtime_in_chunks: UkeySet<ChunkUkey>,
   // pub(crate) hashes: Option<RuntimeSpecMap<u64>>,
 }
 
@@ -74,7 +74,7 @@ impl ChunkGraph {
       .unwrap_or_else(|| panic!("Module({}) should be added before using", module_identifier))
   }
 
-  pub fn get_module_chunks(&self, module_identifier: ModuleIdentifier) -> &HashSet<ChunkUkey> {
+  pub fn get_module_chunks(&self, module_identifier: ModuleIdentifier) -> &UkeySet<ChunkUkey> {
     let chunk_graph_module = self
       .chunk_graph_module_by_module_identifier
       .get(&module_identifier)

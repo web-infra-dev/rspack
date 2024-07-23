@@ -1,8 +1,8 @@
 use std::{cmp::Ordering, fmt};
 
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use itertools::Itertools;
-use rspack_collections::Identifier;
+use rspack_collections::{Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   get_chunk_from_ukey, get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -10,7 +10,7 @@ use rspack_core::{
   RuntimeModule, SourceType,
 };
 use rspack_util::infallible::ResultInfallibleExt;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::FxHashMap;
 
 use super::create_fake_chunk;
 use super::stringify_dynamic_chunk_map;
@@ -117,8 +117,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     let mut dynamic_filename: Option<String> = None;
     let mut max_chunk_set_size = 0;
     let mut chunk_filenames = Vec::<(Filename, &ChunkUkey)>::new();
-    let mut chunk_set_sizes_by_filenames = HashMap::<String, usize>::default();
-    let mut chunk_map = IndexMap::new();
+    let mut chunk_set_sizes_by_filenames = FxHashMap::<String, usize>::default();
+    let mut chunk_map = UkeyIndexMap::default();
 
     if let Some(chunks) = chunks {
       chunks
@@ -172,7 +172,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             None
           }
         })
-        .collect::<IndexSet<&ChunkUkey>>();
+        .collect::<UkeyIndexSet<&ChunkUkey>>();
       let (fake_filename, hash_len_map) =
         get_filename_without_hash_length(&FilenameTemplate::from(dynamic_filename.to_string()));
       let fake_chunk = create_fake_chunk(

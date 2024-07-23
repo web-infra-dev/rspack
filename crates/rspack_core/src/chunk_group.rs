@@ -2,10 +2,10 @@ use std::cmp::Ordering;
 use std::fmt::{self, Display};
 
 use itertools::Itertools;
-use rspack_collections::DatabaseItem;
 use rspack_collections::IdentifierMap;
+use rspack_collections::{DatabaseItem, UkeySet};
 use rspack_error::{error, Result};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   compare_chunk_group, get_chunk_from_ukey, get_chunk_group_from_ukey, Chunk, ChunkByUkey,
@@ -47,11 +47,11 @@ pub struct ChunkGroup {
   pub kind: ChunkGroupKind,
   pub chunks: Vec<ChunkUkey>,
   pub index: Option<u32>,
-  pub parents: HashSet<ChunkGroupUkey>,
+  pub parents: UkeySet<ChunkGroupUkey>,
   pub(crate) module_pre_order_indices: IdentifierMap<usize>,
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
-  pub(crate) children: HashSet<ChunkGroupUkey>,
-  async_entrypoints: HashSet<ChunkGroupUkey>,
+  pub(crate) children: UkeySet<ChunkGroupUkey>,
+  async_entrypoints: UkeySet<ChunkGroupUkey>,
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: usize,
   pub(crate) next_post_order_index: usize,
@@ -173,9 +173,9 @@ impl ChunkGroup {
     self.async_entrypoints.iter()
   }
 
-  pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> HashSet<ChunkGroupUkey> {
+  pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> UkeySet<ChunkGroupUkey> {
     let mut queue = vec![];
-    let mut ancestors = HashSet::default();
+    let mut ancestors = UkeySet::default();
 
     queue.extend(self.parents.iter().copied());
 

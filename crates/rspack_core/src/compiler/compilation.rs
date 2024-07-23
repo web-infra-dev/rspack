@@ -11,7 +11,7 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_collections::{
-  Identifiable, Identifier, IdentifierDashMap, IdentifierMap, IdentifierSet,
+  Identifiable, Identifier, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeySet,
 };
 use rspack_error::{error, Diagnostic, Result, Severity};
 use rspack_futures::FuturesResults;
@@ -1231,7 +1231,7 @@ impl Compilation {
     }
   }
 
-  pub fn get_chunk_graph_entries(&self) -> HashSet<ChunkUkey> {
+  pub fn get_chunk_graph_entries(&self) -> UkeySet<ChunkUkey> {
     let entries = self.entrypoints.values().map(|entrypoint_ukey| {
       let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
       entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
@@ -1240,7 +1240,7 @@ impl Compilation {
       let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
       entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
     });
-    HashSet::from_iter(entries.chain(async_entries))
+    UkeySet::from_iter(entries.chain(async_entries))
   }
 
   #[allow(clippy::unwrap_in_result)]
