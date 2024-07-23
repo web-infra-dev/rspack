@@ -27,7 +27,7 @@ const CompatibleCardItem = ({
         >
           {name}
         </a>
-        <div className="component-card-space"></div>
+        <div className="component-card-space" />
         <div className="component-card-status">{rspackMinVersion}</div>
       </div>
       {remark && <div>{remark}</div>}
@@ -65,7 +65,7 @@ export const CompatibleCardList = () => {
   }, []);
 
   if (loading) {
-    return <div></div>;
+    return <div />;
   }
 
   const prefix = 'https://github.com/web-infra-dev/rspack-compat/tree/main';
