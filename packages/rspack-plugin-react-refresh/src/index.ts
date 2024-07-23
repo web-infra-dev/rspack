@@ -56,16 +56,18 @@ class ReactRefreshRspackPlugin {
 			options: this.options
 		});
 
-		addEntries.prependEntries.forEach(entry => {
+		for (const entry of addEntries.prependEntries) {
 			new compiler.webpack.EntryPlugin(compiler.context, entry, {
 				name: undefined
 			}).apply(compiler);
-		});
-		addEntries.overlayEntries.forEach(entry => {
+		}
+
+		for (const entry of addEntries.overlayEntries) {
 			new compiler.webpack.EntryPlugin(compiler.context, entry, {
 				name: undefined
 			}).apply(compiler);
-		});
+		}
+
 		new compiler.webpack.ProvidePlugin({
 			$ReactRefreshRuntime$: reactRefreshPath
 		}).apply(compiler);

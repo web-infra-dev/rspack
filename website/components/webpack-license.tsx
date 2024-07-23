@@ -3,7 +3,7 @@ import { useLang } from 'rspress/runtime';
 
 const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {
   const links = Array.isArray(from) ? from : [from];
-  const isEn = useLang() == 'en';
+  const isEn = useLang() === 'en';
   if (isEn) {
     return (
       <details>

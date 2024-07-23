@@ -132,7 +132,7 @@ export function rmrf(
 				if (count === 0) {
 					fs.rmdir(p, callback);
 				} else {
-					files!.forEach(file => {
+					for (const file of files!) {
 						assert(typeof file === "string");
 						const fullPath = join(fs, p, file);
 						rmrf(fs, fullPath, err => {
@@ -144,7 +144,7 @@ export function rmrf(
 								fs.rmdir(p, callback);
 							}
 						});
-					});
+					}
 				}
 			});
 		} else {

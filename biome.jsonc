@@ -39,7 +39,8 @@
 			},
 			"complexity": {
 				"useArrowFunction": "error",
-				"useLiteralKeys": "error"
+				"useLiteralKeys": "error",
+				"noForEach": "error"
 			},
 			"style": {
 				"noUnusedTemplateLiteral": "error",
@@ -51,6 +52,9 @@
 				"useExportType": "error",
 				"useEnumInitializers": "error",
 				"useSelfClosingElements": "error"
+			},
+			"suspicious": {
+				"noDoubleEquals": "error"
 			}
 		},
 		"ignore": [

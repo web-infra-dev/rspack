@@ -178,8 +178,8 @@ function getRawTsConfig(
 	return {
 		configFile,
 		referencesType:
-			references == "auto" ? "auto" : references ? "manual" : "disabled",
-		references: references == "auto" ? undefined : references
+			references === "auto" ? "auto" : references ? "manual" : "disabled",
+		references: references === "auto" ? undefined : references
 	};
 }
 

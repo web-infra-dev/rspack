@@ -738,12 +738,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				}
 			}
 		];
-		proxyMethod.forEach(item => {
+
+		for (const item of proxyMethod) {
 			const proxyedMethod = new Proxy(errors[item.method as any], {
 				apply: item.handler as any
 			});
 			errors[item.method as any] = proxyedMethod;
-		});
+		}
 		return errors;
 	}
 
@@ -822,12 +823,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				}
 			}
 		];
-		proxyMethod.forEach(item => {
+
+		for (const item of proxyMethod) {
 			const proxyedMethod = new Proxy(warnings[item.method as any], {
 				apply: item.handler as any
 			});
 			warnings[item.method as any] = proxyedMethod;
-		});
+		}
 		return warnings;
 	}
 
