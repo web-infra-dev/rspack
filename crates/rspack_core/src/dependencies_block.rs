@@ -92,7 +92,10 @@ impl From<String> for AsyncDependenciesBlockIdentifier {
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
   group_options: Option<GroupOptions>,
-  blocks: Vec<AsyncDependenciesBlock>,
+  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
+  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
+  #[allow(clippy::vec_box)]
+  blocks: Vec<Box<AsyncDependenciesBlock>>,
   block_ids: Vec<AsyncDependenciesBlockIdentifier>,
   dependency_ids: Vec<DependencyId>,
   dependencies: Vec<BoxDependency>,
@@ -164,7 +167,7 @@ impl AsyncDependenciesBlock {
     // self.blocks.push(block);
   }
 
-  pub fn take_blocks(&mut self) -> Vec<AsyncDependenciesBlock> {
+  pub fn take_blocks(&mut self) -> Vec<Box<AsyncDependenciesBlock>> {
     std::mem::take(&mut self.blocks)
   }
 

@@ -157,7 +157,7 @@ pub struct BuildResult {
   pub build_meta: BuildMeta,
   pub build_info: BuildInfo,
   pub dependencies: Vec<BoxDependency>,
-  pub blocks: Vec<AsyncDependenciesBlock>,
+  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub optimization_bailouts: Vec<String>,
 }
 

@@ -142,7 +142,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         chunk_prefetch,
         fetch_priority,
       )));
-      parser.blocks.push(block);
+      parser.blocks.push(Box::new(block));
       Some(true)
     } else {
       let ContextModuleScanResult {

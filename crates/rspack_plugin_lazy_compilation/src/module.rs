@@ -161,13 +161,13 @@ impl Module for LazyCompilationProxyModule {
     if self.active {
       let dep = LazyCompilationDependency::new(self.create_data.clone());
 
-      blocks.push(AsyncDependenciesBlock::new(
+      blocks.push(Box::new(AsyncDependenciesBlock::new(
         self.identifier,
         None,
         None,
         vec![Box::new(dep)],
         None,
-      ));
+      )));
     }
 
     let mut files = FxHashSet::default();

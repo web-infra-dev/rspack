@@ -142,7 +142,7 @@ impl Module for ProvideSharedModule {
       dependencies.push(dep as BoxDependency);
     } else {
       let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
-      blocks.push(block);
+      blocks.push(Box::new(block));
     }
 
     Ok(BuildResult {
