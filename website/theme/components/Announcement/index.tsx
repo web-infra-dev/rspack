@@ -26,7 +26,7 @@ export function Announcement() {
       }}
     >
       <a
-        href={`${lang == 'en' ? '' : `/${lang}`}/misc/join-us.html`}
+        href={`${lang === 'en' ? '' : `/${lang}`}/misc/join-us.html`}
         className="hover:underline text-gray-700 font-bold"
       >
         {t('recruit')}

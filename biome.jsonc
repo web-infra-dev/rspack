@@ -50,6 +50,9 @@
 				"useImportType": "error",
 				"useExportType": "error",
 				"useEnumInitializers": "error"
+			},
+			"suspicious": {
+				"noDoubleEquals": "error"
 			}
 		},
 		"ignore": [

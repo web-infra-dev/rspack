@@ -191,7 +191,7 @@ function checkConfigsDocumentationCoverage() {
 					let level;
 					for (let j = 0; j < line.length; j++) {
 						if (level === undefined) {
-							if (line[j] != "#") {
+							if (line[j] !== "#") {
 								level = j;
 							}
 						} else {
