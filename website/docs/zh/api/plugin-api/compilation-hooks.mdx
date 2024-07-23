@@ -198,8 +198,11 @@ type RuntimeModule = {
 在产物输出之前进行修改产物。
 
 - **类型：** `AsyncSeriesHook<Assets>`
+- **hook 参数：**
+  - `name: string` — 插件的名称
+  - `stage: Stage` — 要处理的阶段（参考 [Process assets stages](#process-assets-stages)）
 - **参数：**
-  - `Assets`：产物资源映射表
+  - `assets: Assets`: 一个对象，其中 key 是 asset 的路径名，值是由 [Source](https://github.com/webpack/webpack-sources#source) 表示的 asset 数据。
 
 ```ts
 type Assets = Record<
@@ -213,6 +216,91 @@ type Assets = Record<
   }
 >;
 ```
+
+### Process assets 示例
+
+- 在 `PROCESS_ASSETS_STAGE_ADDITIONAL` 阶段输出一个新的 asset：
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap(
+    {
+      name: 'MyPlugin',
+      stage: compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+    },
+    assets => {
+      const { RawSource } = compiler.webpack.sources;
+      const source = new RawSource('This is a new asset!');
+      compilation.emitAsset('new-asset.txt', source);
+    },
+  );
+});
+```
+
+- 更新一个已经存在的 asset：
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap(
+    {
+      name: 'MyPlugin',
+      stage: compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
+    },
+    assets => {
+      const asset = assets['foo.js'];
+      if (!asset) {
+        return;
+      }
+
+      const { RawSource } = compiler.webpack.sources;
+      const oldContent = asset.source();
+      const newContent = oldContent + '\nconsole.log("hello world!")';
+      const source = new RawSource(newContent);
+
+      compilation.updateAsset(assetName, source);
+    },
+  );
+});
+```
+
+- 移除一个 asset：
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap(
+    {
+      name: 'MyPlugin',
+      stage: compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
+    },
+    assets => {
+      const assetName = 'unwanted-script.js';
+      if (assets[assetName]) {
+        compilation.deleteAsset(assetName);
+      }
+    },
+  );
+});
+```
+
+### Process assets stages
+
+下面是支持的 stage 列表，Rspack 会按由上至下的顺序依次执行这些 stages，请根据你需要进行的操作来选择合适的 stage。
+
+- `PROCESS_ASSETS_STAGE_ADDITIONAL` — 在编译中添加额外的 asset。
+- `PROCESS_ASSETS_STAGE_PRE_PROCESS` — asset 进行了基础的预处理。
+- `PROCESS_ASSETS_STAGE_DERIVED` — 从现有 asset 中派生新的 asset。
+- `PROCESS_ASSETS_STAGE_ADDITIONS` — 为现有的 asset 添加额外的内容，例如 banner 或初始代码。
+- `PROCESS_ASSETS_STAGE_OPTIMIZE` — 以通用的方式优化现有 asset。
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT` — 优化现有 asset 的数量，例如，进行合并操作。
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY` — 优化现有 asset 的兼容性，例如添加 polyfills 或者 vendor prefixes。
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE` — 优化现有 asset 的大小，例如进行压缩或者删除空格。
+- `PROCESS_ASSETS_STAGE_DEV_TOOLING` — 为 asset 添加开发者工具，例如，提取 source map。
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE` — 将 asset 内联到其他 asset 中来优化现有 asset 数量。
+- `PROCESS_ASSETS_STAGE_SUMMARIZE` — 整理现有 asset 列表。
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_HASH` — 优化 asset 的 hash 值，例如，生成基于 asset 内容的真实 hash 值。
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER` — 优化已有 asset 的转换操作，例如对 asset 进行压缩，并作为独立的 asset。
+- `PROCESS_ASSETS_STAGE_ANALYSE` — 分析已有 asset。
+- `PROCESS_ASSETS_STAGE_REPORT` — 创建用于上报的 asset。
 
 ## `afterProcessAssets`
 

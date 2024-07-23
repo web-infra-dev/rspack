@@ -198,8 +198,11 @@ type RuntimeModule = {
 Process the assets before emit.
 
 - **Type:** `AsyncSeriesHook<Assets>`
+- **Hook parameters:**
+  - `name: string` — a name of the plugin
+  - `stage: Stage` — a stage to tap into (see the [process assets stages](#process-assets-stages) below)
 - **Arguments:**
-  - `Assets`: list of asset instances
+  - `assets: Assets`: a plain object, where key is the asset's pathname, and the value is data of the asset represented by the [Source](https://github.com/webpack/webpack-sources#source).
 
 ```ts
 type Assets = Record<
@@ -213,6 +216,91 @@ type Assets = Record<
   }
 >;
 ```
+
+### Process assets examples
+
+- Emit a new asset in the `PROCESS_ASSETS_STAGE_ADDITIONAL` stage:
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap(
+    {
+      name: 'MyPlugin',
+      stage: compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+    },
+    assets => {
+      const { RawSource } = compiler.webpack.sources;
+      const source = new RawSource('This is a new asset!');
+      compilation.emitAsset('new-asset.txt', source);
+    },
+  );
+});
+```
+
+- Updating an existing asset:
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap(
+    {
+      name: 'MyPlugin',
+      stage: compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
+    },
+    assets => {
+      const asset = assets['foo.js'];
+      if (!asset) {
+        return;
+      }
+
+      const { RawSource } = compiler.webpack.sources;
+      const oldContent = asset.source();
+      const newContent = oldContent + '\nconsole.log("hello world!")';
+      const source = new RawSource(newContent);
+
+      compilation.updateAsset(assetName, source);
+    },
+  );
+});
+```
+
+- Removing an asset:
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap(
+    {
+      name: 'MyPlugin',
+      stage: compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
+    },
+    assets => {
+      const assetName = 'unwanted-script.js';
+      if (assets[assetName]) {
+        compilation.deleteAsset(assetName);
+      }
+    },
+  );
+});
+```
+
+### Process assets stages
+
+Here's the list of supported stages. Rspack will execute these stages sequentially from top to bottom. Please select the appropriate stage based on the operation you need to perform.
+
+- `PROCESS_ASSETS_STAGE_ADDITIONAL` — add additional assets to the compilation.
+- `PROCESS_ASSETS_STAGE_PRE_PROCESS` — basic preprocessing of the assets.
+- `PROCESS_ASSETS_STAGE_DERIVED` — derive new assets from the existing assets.
+- `PROCESS_ASSETS_STAGE_ADDITIONS` — add additional sections to the existing assets e.g. banner or initialization code.
+- `PROCESS_ASSETS_STAGE_OPTIMIZE` — optimize existing assets in a general way.
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT` — optimize the count of existing assets, e.g. by merging them.
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY` — optimize the compatibility of existing assets, e.g. add polyfills or vendor prefixes.
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE` — optimize the size of existing assets, e.g. by minimizing or omitting whitespace.
+- `PROCESS_ASSETS_STAGE_DEV_TOOLING` — add development tooling to the assets, e.g. by extracting a source map.
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE` — optimize the numbers of existing assets by inlining assets into other assets.
+- `PROCESS_ASSETS_STAGE_SUMMARIZE` — summarize the list of existing assets.
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_HASH` — optimize the hashes of the assets, e.g. by generating real hashes of the asset content.
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER` — optimize the transfer of existing assets, e.g. by preparing a compressed (gzip) file as separate asset.
+- `PROCESS_ASSETS_STAGE_ANALYSE` — analyze the existing assets.
+- `PROCESS_ASSETS_STAGE_REPORT` — creating assets for the reporting purposes.
 
 ## `afterProcessAssets`
 
