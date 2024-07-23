@@ -3007,7 +3007,6 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "derivative",
- "glob",
  "napi-derive",
  "napi-h",
  "rspack_binding_values",

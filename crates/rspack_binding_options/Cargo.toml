@@ -15,7 +15,6 @@ ignored = ["tracing"]
 [dependencies]
 async-trait                           = { workspace = true }
 derivative                            = { workspace = true }
-glob                                  = { workspace = true }
 napi                                  = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive                           = { workspace = true }
 rspack_binding_values                 = { path = "../rspack_binding_values" }

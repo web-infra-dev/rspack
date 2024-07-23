@@ -17,7 +17,6 @@ dashmap            = { version = "5.5.3" }
 derivative         = { version = "2.2.0" }
 fast-glob          = "0.3.2"
 futures            = { version = "0.3.30" }
-glob               = { version = "0.3.1" }
 hashlink           = { version = "0.9.0" }
 heck               = { version = "0.5.0" }
 hex                = { version = "0.4.3" }
