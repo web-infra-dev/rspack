@@ -45,7 +45,9 @@ export class StatsProcessor<
 	async compiler(context: ITestContext) {
 		await super.compiler(context);
 		const instance = this.getCompiler(context).getCompiler()! as any;
-		const compilers = instance.compilers ? instance.compilers : [instance];
+		const compilers: Compiler[] = instance.compilers
+			? instance.compilers
+			: [instance];
 		for (const compiler of compilers) {
 			const ifs = compiler.inputFileSystem;
 			compiler.inputFileSystem = Object.create(ifs);
