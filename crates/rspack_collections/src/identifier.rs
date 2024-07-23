@@ -2,7 +2,9 @@ use std::collections::{HashMap, HashSet};
 use std::hash::BuildHasherDefault;
 use std::{convert::From, fmt, ops::Deref};
 
+use dashmap::{DashMap, DashSet};
 use hashlink::{LinkedHashMap, LinkedHashSet};
+use indexmap::{IndexMap, IndexSet};
 use serde::Serialize;
 use ustr::Ustr;
 
@@ -15,12 +17,16 @@ pub type IdentifierHasher = ustr::IdentityHasher;
 /// A standard `HashMap` using `Ustr` as the key type with a custom `Hasher` that
 /// just uses the precomputed hash for speed instead of calculating it
 pub type IdentifierMap<V> = HashMap<Identifier, V, BuildHasherDefault<IdentifierHasher>>;
+pub type IdentifierIndexMap<V> = IndexMap<Identifier, V, BuildHasherDefault<IdentifierHasher>>;
+pub type IdentifierDashMap<V> = DashMap<Identifier, V, BuildHasherDefault<IdentifierHasher>>;
 pub type IdentifierLinkedMap<V> =
   LinkedHashMap<Identifier, V, BuildHasherDefault<IdentifierHasher>>;
 
 /// A standard `HashSet` using `Ustr` as the key type with a custom `Hasher` that
 /// just uses the precomputed hash for speed instead of calculating it
 pub type IdentifierSet = HashSet<Identifier, BuildHasherDefault<IdentifierHasher>>;
+pub type IdentifierIndexSet = IndexSet<Identifier, BuildHasherDefault<IdentifierHasher>>;
+pub type IdentifierDashSet = DashSet<Identifier, BuildHasherDefault<IdentifierHasher>>;
 pub type IdentifierLinkedSet = LinkedHashSet<Identifier, BuildHasherDefault<IdentifierHasher>>;
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]

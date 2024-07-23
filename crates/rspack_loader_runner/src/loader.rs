@@ -12,8 +12,8 @@ use async_trait::async_trait;
 use derivative::Derivative;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_error::Result;
-use rspack_identifier::{Identifiable, Identifier};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
 use super::LoaderContext;
@@ -229,7 +229,7 @@ static PATH_QUERY_FRAGMENT_REGEXP: Lazy<Regex> = Lazy::new(|| {
 pub(crate) mod test {
   use std::{path::PathBuf, sync::Arc};
 
-  use rspack_identifier::{Identifiable, Identifier};
+  use rspack_collections::{Identifiable, Identifier};
 
   use super::{Loader, LoaderItem};
 

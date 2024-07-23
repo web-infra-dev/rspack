@@ -2,6 +2,7 @@ use std::{borrow::Cow, cmp::max, hash::Hash, path::PathBuf, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
   ApplyContext, AssetInfo, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
@@ -127,17 +128,14 @@ impl PluginCssExtract {
     compilation: &'comp Compilation,
     module_graph: &'comp ModuleGraph<'comp>,
   ) -> (Vec<&'comp dyn Module>, Option<Vec<CssOrderConflicts>>) {
-    let mut module_deps_reasons: FxHashMap<
-      ModuleIdentifier,
-      FxHashMap<ModuleIdentifier, FxHashSet<ChunkGroupUkey>>,
-    > = modules
+    let mut module_deps_reasons: IdentifierMap<IdentifierMap<FxHashSet<ChunkGroupUkey>>> = modules
       .iter()
       .map(|m| (m.identifier(), Default::default()))
       .collect();
 
-    let mut module_dependencies: FxHashMap<ModuleIdentifier, FxHashSet<ModuleIdentifier>> = modules
+    let mut module_dependencies: IdentifierMap<IdentifierSet> = modules
       .iter()
-      .map(|module| (module.identifier(), FxHashSet::default()))
+      .map(|module| (module.identifier(), IdentifierSet::default()))
       .collect();
 
     let mut groups = chunk.groups.iter().cloned().collect::<Vec<_>>();
@@ -183,7 +181,7 @@ impl PluginCssExtract {
       })
       .collect::<Vec<Vec<(ModuleIdentifier, usize)>>>();
 
-    let mut used_modules: FxHashSet<ModuleIdentifier> = Default::default();
+    let mut used_modules: IdentifierSet = Default::default();
     let mut result: Vec<&dyn Module> = Default::default();
     let mut conflicts: Option<Vec<CssOrderConflicts>> = None;
 
@@ -646,7 +644,7 @@ despite it was not able to fulfill desired ordering with these modules:\n{}",
         ),
       )
       .with_file(Some(PathBuf::from(render_result.filename())))
-      .with_chunk(Some(chunk_ukey.as_usize()))
+      .with_chunk(Some(chunk_ukey.as_u32()))
     }));
   }
   manifest.push(render_result);

@@ -59,11 +59,11 @@ impl JsChunk {
     runtime.sort_unstable();
 
     Self {
-      inner_ukey: usize::from(chunk.ukey) as u32,
+      inner_ukey: chunk.ukey.as_u32(),
       inner_groups: chunk
         .groups
         .iter()
-        .map(|ukey| ukey.as_usize() as u32)
+        .map(|ukey| ukey.as_u32() as u32)
         .collect(),
       name: name.clone(),
       id: id.clone(),
@@ -90,7 +90,7 @@ impl JsChunk {
 }
 
 fn chunk(ukey: u32, compilation: &Compilation) -> &Chunk {
-  let ukey = ChunkUkey::from(ukey as usize);
+  let ukey = ChunkUkey::from(ukey);
   compilation.chunk_by_ukey.expect_get(&ukey)
 }
 

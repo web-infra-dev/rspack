@@ -19,7 +19,7 @@ impl SplitChunksPlugin {
     let chunk_group_db = &compilation.chunk_group_by_ukey;
     let invalided_chunks = used_chunks
       .iter()
-      .map(|c| c.as_ref(chunk_db))
+      .map(|c| chunk_db.expect_get(c))
       .filter_map(|chunk| {
         let allowed_max_request = if chunk.is_only_initial(chunk_group_db) {
           cache_group.max_initial_requests
@@ -48,7 +48,7 @@ impl SplitChunksPlugin {
         let actually_requests = chunk
           .groups
           .iter()
-          .map(|g| g.as_ref(chunk_group_db))
+          .map(|g| chunk_group_db.expect_get(g))
           .map(|group| group.chunks.len())
           .reduce(usize::max)
           .map(|requests| requests as u32)

@@ -2,13 +2,13 @@ use std::{cmp::Ordering, fmt};
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use rspack_collections::Identifier;
 use rspack_core::{
   get_chunk_from_ukey, get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Chunk, ChunkUkey, Compilation, Filename, FilenameTemplate, PathData, RuntimeGlobals,
   RuntimeModule, SourceType,
 };
-use rspack_identifier::Identifier;
 use rspack_util::infallible::ResultInfallibleExt;
 use rustc_hash::FxHashMap as HashMap;
 

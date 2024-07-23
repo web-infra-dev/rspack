@@ -4,8 +4,8 @@ use std::ops::{Deref, DerefMut};
 use std::sync::atomic::AtomicU32;
 
 use anymap::CloneAny;
+use rspack_collections::IdentifierMap;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
-use rspack_identifier::IdentifierMap;
 use rspack_sources::BoxSource;
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};

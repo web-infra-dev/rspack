@@ -6,11 +6,11 @@ use std::{
 };
 
 use derivative::Derivative;
+use rspack_collections::Identifier;
 use rspack_error::{
   miette::{self, Diagnostic},
   thiserror::{self, Error},
 };
-use rspack_identifier::Identifier;
 use swc_core::common::{source_map::Pos, BytePos, SourceMap};
 
 use crate::{

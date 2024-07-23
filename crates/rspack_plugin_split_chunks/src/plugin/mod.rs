@@ -76,7 +76,7 @@ impl SplitChunksPlugin {
         &mut is_reuse_existing_chunk_with_all_modules,
       );
 
-      let new_chunk_mut = new_chunk.as_mut(&mut compilation.chunk_by_ukey);
+      let new_chunk_mut = compilation.chunk_by_ukey.expect_get_mut(&new_chunk);
       tracing::trace!("{module_group_key}, get Chunk {:?} with is_reuse_existing_chunk: {is_reuse_existing_chunk:?} and {is_reuse_existing_chunk_with_all_modules:?}", new_chunk_mut.chunk_reason);
 
       if let Some(chunk_reason) = &mut new_chunk_mut.chunk_reason {

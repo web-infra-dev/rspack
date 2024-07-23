@@ -3,6 +3,7 @@ mod fix_build_meta;
 mod fix_issuers;
 mod has_module_graph_change;
 
+use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{
@@ -27,7 +28,7 @@ impl Cutout {
     params: Vec<MakeParam>,
   ) -> HashSet<BuildDependency> {
     let mut entry_dependencies = std::mem::take(&mut artifact.entry_dependencies);
-    let mut force_build_modules = HashSet::default();
+    let mut force_build_modules = IdentifierSet::default();
     let mut force_build_deps = HashSet::default();
     let mut remove_entry_deps = HashSet::default();
 

@@ -12,7 +12,7 @@ pub use content::{AdditionalData, Content, DescriptionData, ResourceData};
 pub use context::{LoaderContext, State};
 pub use loader::{parse_resource, DisplayWithSuffix, Loader, LoaderItem, ResourceParsedData};
 pub use plugin::LoaderRunnerPlugin;
-pub use rspack_identifier::{Identifiable, Identifier};
+pub use rspack_collections::{Identifiable, Identifier};
 pub use runner::run_loaders;
 pub use scheme::{get_scheme, Scheme};
 

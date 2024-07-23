@@ -1,4 +1,6 @@
-use rspack_identifier::IdentifierMap;
+use std::hash::BuildHasherDefault;
+
+use rspack_collections::{IdentifierMap, UkeyHasher};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{AsyncDependenciesBlockIdentifier, ModuleIdentifier};
@@ -18,7 +20,8 @@ pub struct ChunkGraph {
   pub(crate) block_to_chunk_group_ukey: HashMap<AsyncDependenciesBlockIdentifier, ChunkGroupUkey>,
 
   pub chunk_graph_module_by_module_identifier: IdentifierMap<ChunkGraphModule>,
-  chunk_graph_chunk_by_chunk_ukey: HashMap<ChunkUkey, ChunkGraphChunk>,
+  chunk_graph_chunk_by_chunk_ukey:
+    std::collections::HashMap<ChunkUkey, ChunkGraphChunk, BuildHasherDefault<UkeyHasher>>,
 
   runtime_ids: HashMap<String, Option<String>>,
 }

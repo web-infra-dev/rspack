@@ -4,6 +4,7 @@ use std::ops::DerefMut;
 use std::path::PathBuf;
 
 use napi_derive::napi;
+use rspack_collections::IdentifierSet;
 use rspack_core::get_chunk_from_ukey;
 use rspack_core::get_chunk_group_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
@@ -488,9 +489,7 @@ impl JsCompilation {
       let modules = self
         .0
         .rebuild_module(
-          rustc_hash::FxHashSet::from_iter(
-            module_identifiers.into_iter().map(ModuleIdentifier::from),
-          ),
+          IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
           |modules| {
             modules
               .into_iter()

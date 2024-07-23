@@ -1,3 +1,4 @@
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
   DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
@@ -52,7 +53,7 @@ impl Dependency for HarmonyExportSpecifierDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
-    _module_chain: &mut rustc_hash::FxHashSet<rspack_core::ModuleIdentifier>,
+    _module_chain: &mut IdentifierSet,
   ) -> rspack_core::ConnectionState {
     rspack_core::ConnectionState::Bool(false)
   }

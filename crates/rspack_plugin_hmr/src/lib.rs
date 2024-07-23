@@ -4,6 +4,7 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   collect_changed_modules,
   rspack_sources::{RawSource, SourceExt},
@@ -16,7 +17,6 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_identifier::IdentifierSet;
 use rspack_util::infallible::ResultInfallibleExt as _;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 

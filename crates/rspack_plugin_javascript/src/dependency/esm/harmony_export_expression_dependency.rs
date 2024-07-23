@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use rspack_collections::{Identifier, IdentifierSet};
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
   DependencyLocation, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
@@ -6,7 +7,6 @@ use rspack_core::{
 };
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
-use rspack_identifier::Identifier;
 use swc_core::atoms::Atom;
 
 use crate::parser_plugin::JS_DEFAULT_KEYWORD;
@@ -73,7 +73,7 @@ impl Dependency for HarmonyExportExpressionDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
-    _module_chain: &mut rustc_hash::FxHashSet<rspack_core::ModuleIdentifier>,
+    _module_chain: &mut IdentifierSet,
   ) -> rspack_core::ConnectionState {
     rspack_core::ConnectionState::Bool(false)
   }

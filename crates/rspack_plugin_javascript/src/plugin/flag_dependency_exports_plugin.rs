@@ -2,6 +2,7 @@ use std::collections::hash_map::Entry;
 
 use indexmap::IndexMap;
 use itertools::Itertools;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
   DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId,
@@ -10,7 +11,6 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
 use crate::utils::queue::Queue;
@@ -19,7 +19,7 @@ struct FlagDependencyExportsProxy<'a> {
   mg: &'a mut ModuleGraph<'a>,
   changed: bool,
   current_module_id: ModuleIdentifier,
-  dependencies: HashMap<ModuleIdentifier, HashSet<ModuleIdentifier>>,
+  dependencies: IdentifierMap<IdentifierSet>,
 }
 
 impl<'a> FlagDependencyExportsProxy<'a> {
@@ -28,7 +28,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       mg,
       changed: false,
       current_module_id: ModuleIdentifier::default(),
-      dependencies: HashMap::default(),
+      dependencies: IdentifierMap::default(),
     }
   }
 
@@ -215,7 +215,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
             occ.get_mut().insert(self.current_module_id);
           }
           Entry::Vacant(vac) => {
-            vac.insert(HashSet::from_iter([self.current_module_id]));
+            vac.insert(IdentifierSet::from_iter([self.current_module_id]));
           }
         }
       }
@@ -336,7 +336,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
             occ.get_mut().insert(self.current_module_id);
           }
           Entry::Vacant(vac) => {
-            vac.insert(HashSet::from_iter([self.current_module_id]));
+            vac.insert(IdentifierSet::from_iter([self.current_module_id]));
           }
         }
       }

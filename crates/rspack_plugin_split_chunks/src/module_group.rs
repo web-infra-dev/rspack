@@ -1,6 +1,6 @@
 use derivative::Derivative;
+use rspack_collections::IdentifierSet;
 use rspack_core::{ChunkUkey, Compilation, Module};
-use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet;
 
 use crate::{common::SplitChunkSizes, CacheGroup};

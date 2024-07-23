@@ -1,11 +1,13 @@
 use std::cell::RefCell;
 use std::hash::{BuildHasherDefault, Hash};
+use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use num_bigint::BigUint;
-use rspack_database::{Database, Ukey};
+use rspack_collections::{impl_item_ukey, Database, DatabaseItem, ItemUkey, Ukey, UkeyHasher};
+use rspack_collections::{IdentifierIndexSet, IdentifierMap};
 use rspack_error::{error, Diagnostic, Error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
@@ -29,7 +31,7 @@ pub struct ChunkGroupInfo {
   pub min_available_modules_init: bool,
   pub available_modules_to_be_merged: Vec<BigUint>,
 
-  pub skipped_items: IndexSet<ModuleIdentifier>,
+  pub skipped_items: IdentifierIndexSet,
   pub skipped_module_connections:
     IndexSet<(ModuleIdentifier, Vec<ConnectionId>), BuildHasherDefault<FxHasher>>,
   // set of children chunk groups, that will be revisited when available_modules shrink
@@ -42,6 +44,14 @@ pub struct ChunkGroupInfo {
   // set of modules available including modules from this chunk group
   // A derived attribute, therefore utilizing interior mutability to manage updates
   resulting_available_modules: RefCell<Option<BigUint>>,
+}
+
+impl DatabaseItem for ChunkGroupInfo {
+  type ItemUkey = CgiUkey;
+
+  fn ukey(&self) -> Self::ItemUkey {
+    self.ukey
+  }
 }
 
 impl ChunkGroupInfo {
@@ -72,7 +82,7 @@ impl ChunkGroupInfo {
   fn calculate_resulting_available_modules(
     &self,
     compilation: &Compilation,
-    mask_by_chunk: &HashMap<ChunkUkey, BigUint>,
+    mask_by_chunk: &std::collections::HashMap<ChunkUkey, BigUint, BuildHasherDefault<UkeyHasher>>,
   ) -> BigUint {
     let mut resulting_available_modules = self.resulting_available_modules.borrow_mut();
     if let Some(resulting_available_modules) = resulting_available_modules.clone() {
@@ -113,7 +123,23 @@ impl From<Option<RuntimeSpec>> for OptionalRuntimeSpec {
   }
 }
 
-type CgiUkey = Ukey<ChunkGroupInfo>;
+static NEXT_CGI_UKEY: AtomicU32 = AtomicU32::new(0);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CgiUkey(Ukey, std::marker::PhantomData<ChunkGroupInfo>);
+
+impl_item_ukey!(CgiUkey);
+
+impl CgiUkey {
+  pub fn new() -> Self {
+    Self(
+      NEXT_CGI_UKEY
+        .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        .into(),
+      std::marker::PhantomData,
+    )
+  }
+}
 
 type BlockModulesRuntimeMap = IndexMap<
   OptionalRuntimeSpec,
@@ -206,8 +232,8 @@ pub(super) struct CodeSplitter<'me> {
   named_chunk_groups: HashMap<String, CgiUkey>,
   named_async_entrypoints: HashMap<String, CgiUkey>,
   block_modules_runtime_map: BlockModulesRuntimeMap,
-  ordinal_by_module: HashMap<ModuleIdentifier, u64>,
-  mask_by_chunk: HashMap<ChunkUkey, BigUint>,
+  ordinal_by_module: IdentifierMap<u64>,
+  mask_by_chunk: std::collections::HashMap<ChunkUkey, BigUint, BuildHasherDefault<UkeyHasher>>,
 
   stat_processed_queue_items: u32,
   stat_processed_blocks: u32,
@@ -274,13 +300,13 @@ impl<'me> CodeSplitter<'me> {
   pub fn new(compilation: &'me mut Compilation) -> Self {
     // This optimization is inspired from  https://github.com/webpack/webpack/pull/18090 by https://github.com/dmichon-msft
     // Thanks!
-    let mut ordinal_by_module = HashMap::default();
+    let mut ordinal_by_module = IdentifierMap::default();
     for (index, m) in compilation.get_module_graph().modules().keys().enumerate() {
       ordinal_by_module.insert(*m, index as u64);
     }
 
     let module_graph = compilation.get_module_graph();
-    let mut mask_by_chunk = HashMap::default();
+    let mut mask_by_chunk = std::collections::HashMap::default();
     for chunk in compilation.chunk_by_ukey.keys() {
       let mut mask = BigUint::from(0u32);
       for module in compilation
@@ -336,11 +362,7 @@ impl<'me> CodeSplitter<'me> {
   ) -> Result<IndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
     let mut input_entrypoints_and_modules: IndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
       IndexMap::default();
-    let mut assign_depths_map: std::collections::HashMap<
-      rspack_identifier::Identifier,
-      usize,
-      BuildHasherDefault<FxHasher>,
-    > = HashMap::default();
+    let mut assign_depths_map = IdentifierMap::default();
 
     let entries = self.compilation.entries.clone();
     for (name, entry_data) in entries {
@@ -648,7 +670,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       if let Some(err) = err {
         self
           .compilation
-          .push_diagnostic(Diagnostic::from(err).with_chunk(chunk_ukey.map(|x| x.as_usize())));
+          .push_diagnostic(Diagnostic::from(err).with_chunk(chunk_ukey.map(|x| x.as_u32())));
       }
     }
 
@@ -855,7 +877,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     &mut self,
     module_identifier: ModuleIdentifier,
     runtime: &RuntimeSpec,
-    visited: &mut IndexSet<ModuleIdentifier>,
+    visited: &mut IdentifierIndexSet,
     ctx: &mut (usize, usize, IndexMap<ModuleIdentifier, (usize, usize)>),
   ) {
     let block_modules = self.get_block_modules(module_identifier.into(), Some(runtime));

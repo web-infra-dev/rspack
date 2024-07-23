@@ -1,10 +1,10 @@
 use itertools::Itertools;
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
-use rspack_identifier::Identifier;
 
 #[impl_runtime_module]
 #[derive(Debug)]

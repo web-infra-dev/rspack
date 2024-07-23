@@ -3,6 +3,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
 use indexmap::IndexMap;
+use rspack_collections::Identifier;
 use rspack_core::rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
@@ -12,7 +13,6 @@ use rspack_core::{
   StaticExportsSpec, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_identifier::Identifier;
 use rspack_util::infallible::ResultInfallibleExt as _;
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};

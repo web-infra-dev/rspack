@@ -1,9 +1,9 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, RuntimeModule, RuntimeModuleStage, SourceType,
 };
-use rspack_identifier::Identifier;
 
 use super::container_entry_module::CodeGenerationDataExpose;
 use crate::utils::json_stringify;

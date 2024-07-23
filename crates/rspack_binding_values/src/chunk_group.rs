@@ -26,19 +26,15 @@ impl JsChunkGroup {
         .map(|k| JsChunk::from(compilation.chunk_by_ukey.expect_get(k)))
         .collect(),
       index: cg.index,
-      inner_parents: cg
-        .parents
-        .iter()
-        .map(|ukey| ukey.as_usize() as u32)
-        .collect(),
-      inner_ukey: cg.ukey.as_usize() as u32,
+      inner_parents: cg.parents.iter().map(|ukey| ukey.as_u32()).collect(),
+      inner_ukey: cg.ukey.as_u32(),
       name: cg.name().map(|name| name.to_string()),
     }
   }
 }
 
 fn chunk_group(ukey: u32, compilation: &Compilation) -> &ChunkGroup {
-  let ukey = ChunkGroupUkey::from(ukey as usize);
+  let ukey = ChunkGroupUkey::from(ukey);
   compilation.chunk_group_by_ukey.expect_get(&ukey)
 }
 

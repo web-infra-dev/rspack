@@ -33,7 +33,7 @@ impl SplitChunksPlugin {
     module_group: &mut ModuleGroup,
   ) -> Option<ChunkUkey> {
     let candidates = module_group.chunks.iter().filter_map(|chunk| {
-      let chunk = chunk.as_ref(&compilation.chunk_by_ukey);
+      let chunk = compilation.chunk_by_ukey.expect_get(chunk);
 
       if compilation
         .chunk_graph

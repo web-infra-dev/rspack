@@ -227,8 +227,8 @@ mod test {
   use std::{cell::RefCell, sync::Arc};
 
   use once_cell::sync::OnceCell;
+  use rspack_collections::{Identifiable, Identifier};
   use rspack_error::Result;
-  use rspack_identifier::{Identifiable, Identifier};
 
   use super::{run_loaders, Loader, LoaderContext, ResourceData};
   use crate::{content::Content, plugin::LoaderRunnerPlugin};

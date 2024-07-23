@@ -3011,10 +3011,10 @@ dependencies = [
  "napi-derive",
  "napi-h",
  "rspack_binding_values",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rspack_identifier",
  "rspack_ids",
  "rspack_loader_lightningcss",
  "rspack_loader_preact_refresh",
@@ -3077,6 +3077,7 @@ dependencies = [
  "napi-derive",
  "napi-h",
  "once_cell",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_napi",
@@ -3085,6 +3086,20 @@ dependencies = [
  "rustc-hash 1.1.0",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "rspack_collections"
+version = "0.1.0"
+dependencies = [
+ "dashmap 5.5.3",
+ "hashlink",
+ "indexmap 2.2.6",
+ "once_cell",
+ "rayon",
+ "rustc-hash 1.1.0",
+ "serde",
+ "ustr-fxhash",
 ]
 
 [[package]]
@@ -3114,13 +3129,12 @@ dependencies = [
  "rayon",
  "regex",
  "rspack_ast",
- "rspack_database",
+ "rspack_collections",
  "rspack_error",
  "rspack_fs",
  "rspack_futures",
  "rspack_hash",
  "rspack_hook",
- "rspack_identifier",
  "rspack_loader_runner",
  "rspack_macros",
  "rspack_regex",
@@ -3140,16 +3154,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_database"
-version = "0.1.0"
-dependencies = [
- "dashmap 5.5.3",
- "once_cell",
- "rayon",
- "rustc-hash 1.1.0",
-]
-
-[[package]]
 name = "rspack_error"
 version = "0.1.0"
 dependencies = [
@@ -3159,7 +3163,7 @@ dependencies = [
  "miette 5.10.0",
  "once_cell",
  "owo-colors 3.5.0",
- "rspack_identifier",
+ "rspack_collections",
  "swc_core",
  "termcolor",
  "textwrap 0.15.2",
@@ -3214,15 +3218,6 @@ dependencies = [
  "rspack_error",
  "rspack_macros",
  "rustc-hash 1.1.0",
-]
-
-[[package]]
-name = "rspack_identifier"
-version = "0.1.0"
-dependencies = [
- "hashlink",
- "serde",
- "ustr-fxhash",
 ]
 
 [[package]]
@@ -3284,8 +3279,8 @@ dependencies = [
  "derivative",
  "once_cell",
  "regex",
+ "rspack_collections",
  "rspack_error",
- "rspack_identifier",
  "rspack_sources",
  "rspack_util",
  "rustc-hash 1.1.0",
@@ -3343,10 +3338,10 @@ dependencies = [
 name = "rspack_macros_test"
 version = "0.1.0"
 dependencies = [
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rspack_identifier",
  "rspack_macros",
  "rspack_util",
  "tokio",
@@ -3387,12 +3382,12 @@ dependencies = [
  "rspack_allocator",
  "rspack_binding_options",
  "rspack_binding_values",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_fs_node",
  "rspack_hash",
  "rspack_hook",
- "rspack_identifier",
  "rspack_napi",
  "rspack_plugin_javascript",
  "rspack_tracing",
@@ -3468,11 +3463,11 @@ dependencies = [
  "once_cell",
  "rayon",
  "regex",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
- "rspack_identifier",
  "rspack_plugin_runtime",
  "rspack_util",
  "rustc-hash 1.1.0",
@@ -3561,11 +3556,11 @@ dependencies = [
  "async-trait",
  "once_cell",
  "regex",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
- "rspack_identifier",
  "rspack_plugin_css",
  "rspack_plugin_javascript",
  "rspack_plugin_runtime",
@@ -3581,11 +3576,11 @@ name = "rspack_plugin_hmr"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
- "rspack_identifier",
  "rspack_util",
  "rustc-hash 1.1.0",
  "serde_json",
@@ -3650,11 +3645,11 @@ dependencies = [
  "regex",
  "ropey",
  "rspack_ast",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
- "rspack_identifier",
  "rspack_ids",
  "rspack_regex",
  "rspack_util",
@@ -3684,10 +3679,10 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "once_cell",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rspack_identifier",
  "rspack_plugin_javascript",
  "rspack_regex",
  "rspack_util",
@@ -3703,11 +3698,11 @@ dependencies = [
  "async-trait",
  "once_cell",
  "regex",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
- "rspack_identifier",
  "rspack_plugin_javascript",
  "rspack_util",
  "serde_json",
@@ -3734,8 +3729,8 @@ dependencies = [
 name = "rspack_plugin_limit_chunk_count"
 version = "0.1.0"
 dependencies = [
+ "rspack_collections",
  "rspack_core",
- "rspack_database",
  "rspack_error",
  "rspack_hook",
  "tracing",
@@ -3761,11 +3756,11 @@ dependencies = [
  "itertools 0.12.1",
  "once_cell",
  "regex",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
- "rspack_identifier",
  "rspack_loader_runner",
  "rspack_plugin_runtime",
  "rspack_util",
@@ -3783,6 +3778,7 @@ dependencies = [
  "async-trait",
  "indicatif",
  "linked-hash-map",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
@@ -3824,11 +3820,11 @@ dependencies = [
  "indexmap 2.2.6",
  "itertools 0.12.1",
  "once_cell",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
- "rspack_identifier",
  "rspack_plugin_javascript",
  "rspack_util",
  "rustc-hash 1.1.0",
@@ -3885,11 +3881,11 @@ dependencies = [
  "once_cell",
  "rayon",
  "regex",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
- "rspack_identifier",
  "rspack_regex",
  "rspack_util",
  "rustc-hash 1.1.0",
@@ -3951,10 +3947,10 @@ dependencies = [
  "dashmap 5.5.3",
  "indexmap 2.2.6",
  "rayon",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rspack_identifier",
  "rspack_util",
  "serde_json",
  "swc_core",

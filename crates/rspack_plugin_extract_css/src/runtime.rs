@@ -58,7 +58,7 @@ impl CssLoadingRuntimeModule {
 }
 
 impl RuntimeModule for CssLoadingRuntimeModule {
-  fn name(&self) -> rspack_identifier::Identifier {
+  fn name(&self) -> rspack_collections::Identifier {
     "webpack/runtime/css loading".into()
   }
 

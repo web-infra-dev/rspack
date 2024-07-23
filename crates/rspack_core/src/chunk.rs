@@ -4,7 +4,7 @@ use std::{fmt::Debug, hash::Hash, sync::Arc};
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use rspack_database::{DatabaseItem, Ukey};
+use rspack_collections::{DatabaseItem, Ukey};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
@@ -49,7 +49,9 @@ pub struct Chunk {
 }
 
 impl DatabaseItem for Chunk {
-  fn ukey(&self) -> rspack_database::Ukey<Self> {
+  type ItemUkey = ChunkUkey;
+
+  fn ukey(&self) -> Self::ItemUkey {
     self.ukey
   }
 }
@@ -81,7 +83,7 @@ impl Chunk {
   pub fn get_sorted_groups_iter(
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
-  ) -> impl Iterator<Item = &Ukey<ChunkGroup>> {
+  ) -> impl Iterator<Item = &ChunkGroupUkey> {
     self
       .groups
       .iter()
@@ -299,7 +301,7 @@ impl Chunk {
     let initial_chunks = self
       .groups
       .iter()
-      .map(|chunk_group| chunk_group.as_ref(chunk_group_by_ukey))
+      .map(|chunk_group| chunk_group_by_ukey.expect_get(chunk_group))
       .map(|group| group.chunks.iter().copied().collect::<FxHashSet<_>>())
       .reduce(|acc, prev| acc.intersection(&prev).copied().collect::<FxHashSet<_>>())
       .unwrap_or_default();

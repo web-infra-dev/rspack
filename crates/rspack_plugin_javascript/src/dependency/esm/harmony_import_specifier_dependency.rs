@@ -1,10 +1,10 @@
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
   get_exports_type, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
   DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportPresenceMode,
   ExportsType, ExtendedReferencedExport, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsedByExports,
+  ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
 use rspack_error::Diagnostic;
@@ -246,7 +246,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
+    _module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     ConnectionState::Bool(false)
   }

@@ -21,11 +21,11 @@ rayon = { workspace = true }
 regex = { workspace = true }
 ropey = "1.6.1"
 rspack_ast = { path = "../rspack_ast" }
+rspack_collections = { path = "../rspack_collections" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_hash = { path = "../rspack_hash" }
 rspack_hook = { path = "../rspack_hook" }
-rspack_identifier = { path = "../rspack_identifier" }
 rspack_ids = { path = "../rspack_ids/" }
 rspack_regex = { path = "../rspack_regex" }
 rspack_util = { path = "../rspack_util" }

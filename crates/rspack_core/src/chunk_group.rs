@@ -2,9 +2,9 @@ use std::cmp::Ordering;
 use std::fmt::{self, Display};
 
 use itertools::Itertools;
-use rspack_database::DatabaseItem;
+use rspack_collections::DatabaseItem;
+use rspack_collections::IdentifierMap;
 use rspack_error::{error, Result};
-use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -34,7 +34,9 @@ pub struct OriginRecord {
 }
 
 impl DatabaseItem for ChunkGroup {
-  fn ukey(&self) -> rspack_database::Ukey<Self> {
+  type ItemUkey = ChunkGroupUkey;
+
+  fn ukey(&self) -> Self::ItemUkey {
     self.ukey
   }
 }

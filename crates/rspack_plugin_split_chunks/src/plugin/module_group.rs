@@ -390,7 +390,7 @@ impl SplitChunksPlugin {
     let mut sorted_chunk_ukeys = chunks
       .map(|chunk| {
         // Increment each usize by 1 to avoid hashing the value 0 with FxHasher, which would always return a hash of 0
-        chunk.as_usize() + 1
+        chunk.as_u32() + 1
       })
       .collect::<Vec<_>>();
     sorted_chunk_ukeys.sort_unstable();

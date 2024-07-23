@@ -1,6 +1,7 @@
 use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   basic_function, block_promise, impl_module_meta_info, impl_source_map_config, module_raw,
   returning_function,
@@ -14,7 +15,6 @@ use rspack_core::{
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_identifier::{Identifiable, Identifier};
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
 

@@ -3,8 +3,8 @@
 use hashlink::LinkedHashMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use rspack_database::Database;
-use rspack_identifier::{IdentifierLinkedMap, IdentifierMap, IdentifierSet};
+use rspack_collections::Database;
+use rspack_collections::{IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{

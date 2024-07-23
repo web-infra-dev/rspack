@@ -1,9 +1,9 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   get_chunk_from_ukey, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
-use rspack_identifier::Identifier;
 
 #[impl_runtime_module]
 #[derive(Debug)]

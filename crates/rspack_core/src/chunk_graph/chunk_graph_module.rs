@@ -1,11 +1,10 @@
 //!  There are methods whose verb is `ChunkGraphModule`
-use std::collections::hash_map::DefaultHasher;
-use std::collections::HashMap;
+
 use std::hash::Hasher;
 
-use rspack_identifier::Identifier;
+use rspack_collections::IdentifierMap;
 use rspack_util::ext::DynHash;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashSet as HashSet, FxHasher};
 
 use crate::update_hash::{UpdateHashContext, UpdateRspackHash};
 use crate::ChunkGraph;
@@ -173,12 +172,12 @@ impl ChunkGraph {
     runtime: Option<&RuntimeSpec>,
     with_connections: bool,
   ) -> String {
-    let mut hasher = DefaultHasher::new();
-    let mut connection_hash_cache: HashMap<Identifier, u64> = HashMap::new();
+    let mut hasher = FxHasher::default();
+    let mut connection_hash_cache: IdentifierMap<u64> = IdentifierMap::default();
     let module_graph = &compilation.get_module_graph();
 
     let process_module_graph_module = |module: &BoxModule, strict: Option<bool>| -> u64 {
-      let mut hasher = DefaultHasher::new();
+      let mut hasher = FxHasher::default();
       module.identifier().dyn_hash(&mut hasher);
       module.source_types().dyn_hash(&mut hasher);
       module_graph

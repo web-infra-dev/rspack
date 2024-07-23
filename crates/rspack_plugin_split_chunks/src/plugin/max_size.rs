@@ -326,7 +326,7 @@ impl SplitChunksPlugin {
         } else {
           index.to_string()
         };
-        let chunk = info.chunk.as_mut(&mut compilation.chunk_by_ukey);
+        let chunk = compilation.chunk_by_ukey.expect_get_mut(&info.chunk);
         let delimiter = max_size_setting_map
           .get(&chunk.ukey)
           .map(|s| s.automatic_name_delimiter.as_str())
