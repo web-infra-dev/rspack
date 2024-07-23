@@ -152,15 +152,12 @@ async function getAdditionEntries(
 	const entries = compiler.__internal__builtinPlugins
 		.filter(p => p.name === "EntryPlugin")
 		.map(p => p.options)
-		.reduce<Object>((acc, cur: any) => {
+		.reduce<Object>((acc: any, cur: any) => {
 			const name = cur.options.name;
 			const request = cur.entry;
-			// @ts-expect-error
 			if (acc[name]) {
-				// @ts-expect-error
 				acc[name].import.push(request);
 			} else {
-				// @ts-expect-error
 				acc[name] = { import: [request] };
 			}
 			return acc;
