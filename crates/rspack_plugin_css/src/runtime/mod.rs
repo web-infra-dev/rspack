@@ -1,6 +1,8 @@
+use std::borrow::Cow;
+
 use rspack_collections::Identifier;
 use rspack_core::{
-  compile_boolean_matcher, impl_runtime_module,
+  basic_function, compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   BooleanMatcher, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage,
@@ -95,6 +97,101 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       };
 
       let chunk_load_timeout = compilation.options.output.chunk_load_timeout.to_string();
+      let environment = &compilation.options.output.environment;
+      let with_compression = compilation.options.output.css_head_data_compression;
+
+      let load_css_chunk_data = basic_function(
+        environment,
+        "target, link, chunkId",
+        &format!(
+          r#"var data, token = "", token2 = "", token3 = "", exports = {{}}, composes = [], {}name = "--webpack-" + uniqueName + "-" + chunkId, i, cc = 1, composes = {{}};
+try {{
+  if(!link) link = loadStylesheet(chunkId);
+  var cssRules = link.sheet.cssRules || link.sheet.rules;
+  var j = cssRules.length - 1;
+  while(j > -1 && !data) {{
+    var style = cssRules[j--].style;
+    if(!style) continue;
+    data = style.getPropertyValue(name);
+  }}
+}} catch(_) {{}}
+if(!data) {{
+  data = getComputedStyle(document.head).getPropertyValue(name);
+}}
+if(!data) return [];
+{}
+for(i = 0; cc; i++) {{
+  cc = data.charCodeAt(i);
+  if(cc == 58) {{ token2 = token; token = ""; }}
+  else if(cc == 47) {{ token = token.replace(/^_/, ""); token2 = token2.replace(/^_/, ""); if (token3) {{ composes.push(token2, token3, token) }} else {{ exports[token2] = token }} token = ""; token2 = ""; token3 = "" }}
+  else if(cc == 38) {{ {} }}
+  else if(!cc || cc == 44) {{ token = token.replace(/^_/, ""); target[token] = ({}).bind(null, exports, composes); {}token = ""; token2 = ""; exports = {{}}; composes = [] }}
+  else if(cc == 92) {{ token += data[++i] }}
+  else if(cc == 64) {{ token3 = token; token = ""; }}
+  else {{ token += data[i]; }}
+}}
+{}installedChunks[chunkId] = 0;
+{}
+"#,
+          with_hmr.then(|| "moduleIds = [], ").unwrap_or_default(),
+          if with_compression {
+            r#"var map = {}, char = data[0], oldPhrase = char, decoded = char, code = 256, maxCode = "\uffff".charCodeAt(0), phrase;
+              for (i = 1; i < data.length; i++) {
+                cc = data[i].charCodeAt(0);
+                if (cc < 256) phrase = data[i]; else phrase = map[cc] ? map[cc] : (oldPhrase + char);
+                decoded += phrase;
+                char = phrase.charAt(0);
+                map[code] = oldPhrase + char;
+                if (++code > maxCode) { code = 256; map = {}; }
+                oldPhrase = phrase;
+              }
+              data = decoded;"#
+          } else {
+            "// css head data compression is disabled"
+          },
+          RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+          basic_function(
+            environment,
+            "exports, composes, module",
+            "handleCssComposes(exports, composes)\nmodule.exports = exports;"
+          ),
+          with_hmr
+            .then(|| "moduleIds.push(token); ")
+            .unwrap_or_default(),
+          with_hmr
+            .then(|| format!("if(target == {})", RuntimeGlobals::MODULE_FACTORIES))
+            .unwrap_or_default(),
+          with_hmr.then(|| "return moduleIds;").unwrap_or_default()
+        ),
+      );
+      let load_initial_chunk_data = if initial_chunk_ids_with_css.len() > 2 {
+        Cow::Owned(format!(
+          "[{}].forEach(loadCssChunkData.bind(null, {}, 0));",
+          initial_chunk_ids_with_css
+            .iter()
+            .map(|id| serde_json::to_string(id).expect("should ok to convert to string"))
+            .collect::<Vec<_>>()
+            .join(","),
+          RuntimeGlobals::MODULE_FACTORIES
+        ))
+      } else if initial_chunk_ids_with_css.len() > 0 {
+        Cow::Owned(
+          initial_chunk_ids_with_css
+            .iter()
+            .map(|id| {
+              let id = serde_json::to_string(id).expect("should ok to convert to string");
+              format!(
+                "loadCssChunkData({}, 0, {});",
+                RuntimeGlobals::MODULE_FACTORIES,
+                id
+              )
+            })
+            .collect::<Vec<_>>()
+            .join(""),
+        )
+      } else {
+        Cow::Borrowed("// no initial css")
+      };
 
       source.add(RawSource::from(
         include_str!("./css_loading.js")
@@ -102,8 +199,10 @@ impl RuntimeModule for CssLoadingRuntimeModule {
             "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
             &cross_origin_content,
           )
+          .replace("__CSS_CHUNK_DATA__", &load_css_chunk_data)
           .replace("__CHUNK_LOAD_TIMEOUT_PLACEHOLDER__", &chunk_load_timeout)
-          .replace("__UNIQUE_NAME__", unique_name),
+          .replace("__UNIQUE_NAME__", unique_name)
+          .replace("__INITIAL_CSS_CHUNK_DATA__", &load_initial_chunk_data),
       ));
 
       if with_loading {

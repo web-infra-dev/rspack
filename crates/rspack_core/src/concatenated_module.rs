@@ -13,7 +13,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_ast::javascript::Ast;
 use rspack_collections::{
-  Identifiable, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
+  Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableError};
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
@@ -1601,7 +1601,9 @@ impl ConcatenatedModule {
       if matches!(runtime_condition, RuntimeCondition::Boolean(false)) {
         continue;
       }
-      let module = reference.connection.module_identifier();
+
+      let module: &Identifier = reference.connection.module_identifier();
+
       match references_map.entry(*module) {
         indexmap::map::Entry::Occupied(mut occ) => {
           let entry: &ConnectionWithRuntimeCondition = occ.get();

@@ -14,18 +14,18 @@ module.exports = [
 			css: true
 		}
 	},
-	{
-		target: "node",
-		mode: "development",
-		module: {
-			generator: {
-				"css/auto": {
-					esModule: false
-				}
-			}
-		},
-		experiments: {
-			css: true
-		}
-	}
+	// {
+	// 	target: "node",
+	// 	mode: "development",
+	// 	module: {
+	// 		generator: {
+	// 			"css/auto": {
+	// 				esModule: false
+	// 			}
+	// 		}
+	// 	},
+	// 	experiments: {
+	// 		css: true
+	// 	}
+	// }
 ];

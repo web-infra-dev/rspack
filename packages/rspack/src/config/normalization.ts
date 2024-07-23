@@ -139,6 +139,7 @@ export const getNormalizedRspackOptions = (
 				chunkLoading: output.chunkLoading,
 				chunkFilename: output.chunkFilename,
 				crossOriginLoading: output.crossOriginLoading,
+				cssHeadDataCompression: output.cssHeadDataCompression,
 				cssFilename: output.cssFilename,
 				cssChunkFilename: output.cssChunkFilename,
 				hotUpdateMainFilename: output.hotUpdateMainFilename,
@@ -498,6 +499,7 @@ export interface OutputNormalized {
 	environment?: Environment;
 	charset?: boolean;
 	chunkLoadTimeout?: number;
+	cssHeadDataCompression?: boolean;
 }
 
 export interface ModuleOptionsNormalized {

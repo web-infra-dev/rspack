@@ -1,13 +1,12 @@
-// @ts-nocheck
-const fs = require("node:fs");
-const path = require("node:path");
+const fs = require("fs");
+const path = require("path");
 
 const getPropertyValue = function (property) {
 	return this[property];
 };
 
-export default class FakeDocument {
-	constructor(basePath, options = {}) {
+module.exports = class FakeDocument {
+	constructor(basePath) {
 		this.head = this.createElement("head");
 		this.body = this.createElement("body");
 		this.baseURI = "https://test.cases/path/index.html";
@@ -16,8 +15,6 @@ export default class FakeDocument {
 			["body", [this.body]]
 		]);
 		this._basePath = basePath;
-		this.currentScript = undefined;
-		this._options = options || {};
 	}
 
 	createElement(type) {
@@ -36,7 +33,7 @@ export default class FakeDocument {
 
 	_onElementRemoved(element) {
 		const type = element._type;
-		const list = this._elementsByTagName.get(type);
+		let list = this._elementsByTagName.get(type);
 		const idx = list.indexOf(element);
 		list.splice(idx, 1);
 	}
@@ -57,9 +54,9 @@ export default class FakeDocument {
 		}
 		return style;
 	}
-}
+};
 
-export class FakeElement {
+class FakeElement {
 	constructor(document, type, basePath) {
 		this._document = document;
 		this._type = type;
@@ -67,20 +64,8 @@ export class FakeElement {
 		this._attributes = Object.create(null);
 		this._src = undefined;
 		this._href = undefined;
-		this.rel = undefined;
 		this.parentNode = undefined;
 		this.sheet = type === "link" ? new FakeSheet(this, basePath) : undefined;
-	}
-
-	insertBefore(node, before) {
-		this._document._onElementAttached(node);
-		node.parentNode = this;
-		this._children.unshift(node);
-		Promise.resolve().then(() => {
-			if (node.onload) {
-				node.onload({ type: "load", target: node });
-			}
-		});
 	}
 
 	appendChild(node) {
@@ -91,22 +76,6 @@ export class FakeElement {
 			setTimeout(() => {
 				if (node.onload) node.onload({ type: "load", target: node });
 			}, 100);
-		} else if (node._type === "script") {
-			Promise.resolve().then(() => {
-				if (typeof this._document._options.onScript === "function") {
-					this._document._options.onScript(node);
-				}
-				if (node.onload) {
-					node.onload({
-						type: "load",
-						target: node
-					});
-				}
-			});
-		} else {
-			if (node.onload) {
-				node.onload({ type: "load", target: node });
-			}
 		}
 	}
 
@@ -134,37 +103,31 @@ export class FakeElement {
 	getAttribute(name) {
 		if (this._type === "link" && name === "href") {
 			return this.href;
+		} else {
+			return this._attributes[name];
 		}
-		return this._attributes[name];
 	}
 
 	_toRealUrl(value) {
 		if (/^\//.test(value)) {
 			return `https://test.cases${value}`;
-		}
-		if (/^\.\.\//.test(value)) {
+		} else if (/^\.\.\//.test(value)) {
 			return `https://test.cases${value.slice(2)}`;
-		}
-		if (/^\.\//.test(value)) {
+		} else if (/^\.\//.test(value)) {
 			return `https://test.cases/path${value.slice(1)}`;
-		}
-		if (/^\w+:\/\//.test(value)) {
+		} else if (/^\w+:\/\//.test(value)) {
 			return value;
-		}
-		if (/^\/\//.test(value)) {
+		} else if (/^\/\//.test(value)) {
 			return `https:${value}`;
+		} else {
+			return `https://test.cases/path/${value}`;
 		}
-		return `https://test.cases/path/${value}`;
 	}
 
 	set src(value) {
 		if (this._type === "script") {
 			this._src = this._toRealUrl(value);
 		}
-	}
-
-	get children() {
-		return this._children;
 	}
 
 	get src() {
@@ -182,7 +145,7 @@ export class FakeElement {
 	}
 }
 
-export class FakeSheet {
+class FakeSheet {
 	constructor(element, basePath) {
 		this._element = element;
 		this._basePath = basePath;
@@ -221,7 +184,7 @@ export class FakeSheet {
 	}
 
 	get cssRules() {
-		const walkCssTokens = require("../../lib/css/walkCssTokens");
+		const walkCssTokens = require("./walkCssTokens");
 		const rules = [];
 		let currentRule = { getPropertyValue };
 		let selector = undefined;
@@ -234,32 +197,36 @@ export class FakeSheet {
 				currentRule[property] = value;
 			}
 		};
-		let css = fs.readFileSync(
-			path.resolve(
-				this._basePath,
-				this._element.href
-					.replace(/^https:\/\/test\.cases\/path\//, "")
-					.replace(/^https:\/\/example\.com\//, "")
-			),
-			"utf-8"
-		);
-		css = css.replace(/@import url\("([^"]+)"\);/g, (match, url) => {
-			if (!/^https:\/\/test\.cases\/path\//.test(url)) {
-				return url;
-			}
-
-			if (url.startsWith("#")) {
-				return url;
-			}
-
-			return fs.readFileSync(
-				path.resolve(
+		const filepath = /file:\/\//.test(this._element.href)
+			? new URL(this._element.href)
+			: path.resolve(
 					this._basePath,
-					url.replace(/^https:\/\/test\.cases\/path\//, "")
-				),
-				"utf-8"
-			);
-		});
+					this._element.href
+						.replace(/^https:\/\/test\.cases\/path\//, "")
+						.replace(/^https:\/\/example\.com\/public\/path\//, "")
+						.replace(/^https:\/\/example\.com\//, "")
+				);
+		let css = fs.readFileSync(filepath, "utf-8");
+		css = css
+			.replace(/@import url\("([^"]+)"\);/g, (match, url) => {
+				if (!/^https:\/\/test\.cases\/path\//.test(url)) {
+					return url;
+				}
+
+				if (url.startsWith("#")) {
+					return url;
+				}
+
+				return fs.readFileSync(
+					path.resolve(
+						this._basePath,
+						url.replace(/^https:\/\/test\.cases\/path\//, "")
+					),
+					"utf-8"
+				);
+			})
+			.replace(/\/\*[\s\S]*\*\//g, "")
+			.replace("//", "");
 		walkCssTokens(css, {
 			isSelector() {
 				return selector === undefined;

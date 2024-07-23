@@ -464,6 +464,7 @@ const describeCases = config => {
 											) {
 												baseModuleScope.window = globalContext;
 												baseModuleScope.self = globalContext;
+												baseModuleScope.document = globalContext.document;
 												baseModuleScope.URL = URL;
 												baseModuleScope.Worker =
 													require("./helpers/createFakeWorker")({
@@ -472,6 +473,7 @@ const describeCases = config => {
 												runInNewContext = true;
 											}
 											if (testConfig.moduleScope) {
+												debugger
 												testConfig.moduleScope(baseModuleScope);
 											}
 											const esmContext = vm.createContext(baseModuleScope, {

@@ -1,5 +1,14 @@
 var uniqueName = "__UNIQUE_NAME__";
-// loadCssChunkData is unnecessary
+function handleCssComposes(exports, composes) {
+  for (var i = 0; i < composes.length; i += 3) {
+    var moduleId = composes[i];
+    var composeFrom = composes[i + 1];
+    var composeVar = composes[i + 2];
+    var composedId = __webpack_require__(composeFrom)[composeVar];
+    exports[moduleId] = exports[moduleId] + " " + composedId
+  }
+}
+var loadCssChunkData = __CSS_CHUNK_DATA__
 var loadingAttribute = "data-webpack-loading";
 var loadStylesheet = function (chunkId, url, done, hmr, fetchPriority) {
 	var link,
@@ -60,3 +69,4 @@ var loadStylesheet = function (chunkId, url, done, hmr, fetchPriority) {
 	hmr ? document.head.insertBefore(link, hmr) : needAttach && document.head.appendChild(link);
 	return link;
 };
+__INITIAL_CSS_CHUNK_DATA__
