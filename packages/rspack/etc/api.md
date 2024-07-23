@@ -13753,7 +13753,7 @@ interface Targets {
     samsung?: number;
 }
 
-// @public (undocumented)
+// @public
 export class Template {
     // (undocumented)
     static asString(str: string | string[]): string;
