@@ -62,7 +62,6 @@
 		"ignore": [
 			"tests/**/*",
 			"crates/**/*",
-			"website/doc_build",
 			"packages/rspack-test-tools/template",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
