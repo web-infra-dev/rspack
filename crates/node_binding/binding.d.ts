@@ -310,10 +310,9 @@ export interface JsAssetInfo {
   immutable: boolean
   /** whether the asset is minimized */
   minimized: boolean
-  /**
-   * the value(s) of the full hash used for this asset
-   * the value(s) of the chunk hash used for this asset
-   */
+  /** the value(s) of the full hash used for this asset */
+  fullhash: Array<string>
+  /** the value(s) of the chunk hash used for this asset */
   chunkhash: Array<string>
   /**
    * the value(s) of the module hash used for this asset
@@ -611,6 +610,7 @@ export interface JsStatsAssetInfo {
   javascriptModule?: boolean
   chunkhash: Array<string>
   contenthash: Array<string>
+  fullhash: Array<string>
   related: Array<JsStatsAssetInfoRelated>
 }
 

@@ -46,10 +46,11 @@ module.exports = {
 		    "filteredRelated": 0,
 		    "info": Object {
 		      "chunkhash": Array [],
-		      "contenthash": Array [
+		      "contenthash": Array [],
+		      "development": false,
+		      "fullhash": Array [
 		        "89a353e9c515885abd8e",
 		      ],
-		      "development": false,
 		      "hotModuleReplacement": false,
 		      "immutable": true,
 		      "minimized": false,
@@ -78,6 +79,7 @@ module.exports = {
 		      "chunkhash": Array [],
 		      "contenthash": Array [],
 		      "development": false,
+		      "fullhash": Array [],
 		      "hotModuleReplacement": false,
 		      "immutable": false,
 		      "javascriptModule": false,

@@ -393,10 +393,10 @@ exports[`config config/schemes/data-imports exported tests data imports 1`] = `
 
 
 .class {
-  a: url(c3f864b412159dc8e5d9.svg);
-  b: url(c3f864b412159dc8e5d9.svg);
-  c: url(c3f864b412159dc8e5d9);
-  d: url(c3f864b412159dc8e5d9);
+  a: url(26a611d6d05cbb01e459.svg);
+  b: url(26a611d6d05cbb01e459.svg);
+  c: url(26a611d6d05cbb01e459);
+  d: url(26a611d6d05cbb01e459);
 }
 
 "
