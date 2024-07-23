@@ -26,6 +26,7 @@ export function MenuGroup({ children, defaultLabel }: MenuGroupProps) {
       onMouseLeave={() => setIsOpen(false)}
     >
       <button
+        type="button"
         onMouseEnter={() => setIsOpen(true)}
         className="flex-center text-sm text-1 hover:text-text-2 font-medium transition-colors duration-200"
       >
