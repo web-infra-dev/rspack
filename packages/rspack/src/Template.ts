@@ -2,7 +2,6 @@
 	MIT License http://www.opensource.org/licenses/mit-license.php
 	Author Tobias Koppers @sokra
 */
-"use strict";
 
 const START_LOWERCASE_ALPHABET_CODE = "a".charCodeAt(0);
 const START_UPPERCASE_ALPHABET_CODE = "A".charCodeAt(0);
