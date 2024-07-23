@@ -370,7 +370,7 @@ impl CopyRspackPlugin {
     })
   }
 
-  fn run_patter(
+  fn run_pattern(
     compilation: &Compilation,
     pattern: &CopyPattern,
     _index: usize,
@@ -620,7 +620,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .iter()
     .enumerate()
     .map(|(index, pattern)| {
-      CopyRspackPlugin::run_patter(
+      CopyRspackPlugin::run_pattern(
         compilation,
         pattern,
         index,
