@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 6383
+- Update: main.LAST_HASH.hot-update.js, size: 6945
 
 ## Manifest
 
@@ -24,6 +24,7 @@
 
 #### Changed Modules
 - ../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js
+- ../../../../../rspack/dist/builtin-plugin/css-extract/hmr/normalizeUrl.js
 - ./index.css?8047
 
 #### Changed Runtime Modules
@@ -33,39 +34,11 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]('main', {
-"../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js": (function (module) {
+"../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 
-/* eslint-env browser */
-/*
-  eslint-disable
-  no-console,
-  func-names
-*/
-function normalizeUrl(urlString) {
-    urlString = urlString.trim();
-    if (/^data:/i.test(urlString)) {
-        return urlString;
-    }
-    var protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
-    var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
-    var host = components[0].toLowerCase().replace(//.$/, "");
-    components[0] = "";
-    var path = components
-        .reduce(function (accumulator, item) {
-        switch (item) {
-            case "..":
-                accumulator.pop();
-                break;
-            case ".":
-                break;
-            default:
-                accumulator.push(item);
-        }
-        return accumulator;
-    }, [])
-        .join("/");
-    return protocol + host + path;
-}
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.cssReload = void 0;
+const normalizeUrl_1 = __webpack_require__(/*! ./normalizeUrl */ "../../../../../rspack/dist/builtin-plugin/css-extract/hmr/normalizeUrl.js");
 const srcByModuleId = Object.create(null);
 const noDocument = typeof document === "undefined";
 const { forEach } = Array.prototype;
@@ -112,7 +85,7 @@ function getCurrentScriptUrl(moduleId) {
         }
         return fileMap.split(",").map(mapRule => {
             const reg = new RegExp(`${filename}/.js$`, "g");
-            return normalizeUrl(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
+            return (0, normalizeUrl_1.normalizeUrl)(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
         });
     };
 }
@@ -161,7 +134,7 @@ function updateCss(el, url) {
 }
 function getReloadUrl(href, src) {
     let ret = "";
-    href = normalizeUrl(href);
+    href = (0, normalizeUrl_1.normalizeUrl)(href);
     src.some(url => {
         if (href.indexOf(src) > -1) {
             ret = url;
@@ -210,7 +183,7 @@ function isUrlRequest(url) {
     }
     return true;
 }
-module.exports = function (moduleId, options) {
+function cssReload(moduleId, options) {
     if (noDocument) {
         console.log("no window.document found, will not HMR CSS");
         return noop;
@@ -233,7 +206,41 @@ module.exports = function (moduleId, options) {
         }
     }
     return debounce(update, 50);
-};
+}
+exports.cssReload = cssReload;
+
+
+}),
+"../../../../../rspack/dist/builtin-plugin/css-extract/hmr/normalizeUrl.js": (function (__unused_webpack_module, exports) {
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.normalizeUrl = void 0;
+function normalizeUrl(urlString) {
+    urlString = urlString.trim();
+    if (/^data:/i.test(urlString)) {
+        return urlString;
+    }
+    var protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
+    var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
+    var host = components[0].toLowerCase().replace(//.$/, "");
+    components[0] = "";
+    var path = components
+        .reduce(function (accumulator, item) {
+        switch (item) {
+            case "..":
+                accumulator.pop();
+                break;
+            case ".":
+                break;
+            default:
+                accumulator.push(item);
+        }
+        return accumulator;
+    }, [])
+        .join("/");
+    return protocol + host + path;
+}
+exports.normalizeUrl = normalizeUrl;
 
 
 }),
@@ -242,7 +249,7 @@ __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
     if(true) {
-      var cssReload = __webpack_require__(/*! ../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")(module.id, {"locals":false});
+      var cssReload = (__webpack_require__(/*! ../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")/* .cssReload */.cssReload)(module.id, {"locals":false});
       module.hot.dispose(cssReload);
       module.hot.accept(undefined, function(__WEBPACK_OUTDATED_DEPENDENCIES__) {
 (cssReload)(__WEBPACK_OUTDATED_DEPENDENCIES__); }.bind(this));
