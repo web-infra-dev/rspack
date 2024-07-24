@@ -53,7 +53,7 @@ function hotLoader(
       var cssReload = require(${stringifyRequest(
 				context.loaderContext,
 				path.join(__dirname, "./hmr/hotModuleReplacement.js")
-			)})(module.id, ${JSON.stringify({
+			)}).cssReload(module.id, ${JSON.stringify({
 				...context.options,
 				locals: !!context.locals
 			})});

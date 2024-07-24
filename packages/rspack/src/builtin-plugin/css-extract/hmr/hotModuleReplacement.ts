@@ -1,57 +1,45 @@
-/* eslint-env browser */
-/*
-  eslint-disable
-  no-console,
-  func-names
-*/
+import { normalizeUrl } from "./normalizeUrl";
 
-/** @typedef {any} TODO */
+type Option<T> = T | null | undefined;
+type DebouncedFunction<T extends (...args: any[]) => any> = (
+	...args: Parameters<T>
+) => void;
 
-const normalizeUrl = require("./normalize-url");
-
-const srcByModuleId = Object.create(null);
+const srcByModuleId: Record<string, any> = Object.create(null);
 
 const noDocument = typeof document === "undefined";
 
 const { forEach } = Array.prototype;
 
-/**
- * @param {function} fn
- * @param {number} time
- * @returns {(function(): void)|*}
- */
-function debounce(fn, time) {
-	let timeout = 0;
+function debounce<T extends (...args: any[]) => any>(
+	fn: T,
+	time: number
+): DebouncedFunction<T> {
+	let timeout: NodeJS.Timeout | number = 0;
 
 	return function () {
 		// @ts-ignore
 		const self = this;
-		// eslint-disable-next-line prefer-rest-params
 		const args = arguments;
 
 		const functionCall = function functionCall() {
-			return fn.apply(self, args);
+			return fn.apply(self, args as unknown as Parameters<T>);
 		};
 
 		clearTimeout(timeout);
 
-		// @ts-ignore
 		timeout = setTimeout(functionCall, time);
 	};
 }
 
 function noop() {}
 
-/**
- * @param {TODO} moduleId
- * @returns {TODO}
- */
-function getCurrentScriptUrl(moduleId) {
+function getCurrentScriptUrl(moduleId: string) {
 	let src = srcByModuleId[moduleId];
 
 	if (!src) {
 		if (document.currentScript) {
-			({ src } = /** @type {HTMLScriptElement} */ (document.currentScript));
+			({ src } = document.currentScript as HTMLScriptElement);
 		} else {
 			const scripts = document.getElementsByTagName("script");
 			const lastScriptTag = scripts[scripts.length - 1];
@@ -64,11 +52,7 @@ function getCurrentScriptUrl(moduleId) {
 		srcByModuleId[moduleId] = src;
 	}
 
-	/**
-	 * @param {string} fileMap
-	 * @returns {null | string[]}
-	 */
-	return function (fileMap) {
+	return function (fileMap: string): Option<Array<string>> {
 		if (!src) {
 			return null;
 		}
@@ -94,21 +78,16 @@ function getCurrentScriptUrl(moduleId) {
 	};
 }
 
-/**
- * @param {TODO} el
- * @param {string} [url]
- */
-function updateCss(el, url) {
+function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 	if (!url) {
 		if (!el.href) {
 			return;
 		}
 
-		// eslint-disable-next-line
 		url = el.href.split("?")[0];
 	}
 
-	if (!isUrlRequest(/** @type {string} */ (url))) {
+	if (!isUrlRequest(url)) {
 		return;
 	}
 
@@ -122,10 +101,9 @@ function updateCss(el, url) {
 		return;
 	}
 
-	// eslint-disable-next-line no-param-reassign
 	el.visited = true;
 
-	const newEl = el.cloneNode();
+	const newEl = el.cloneNode() as Node & Record<string, any>;
 
 	newEl.isLoaded = false;
 
@@ -135,7 +113,7 @@ function updateCss(el, url) {
 		}
 
 		newEl.isLoaded = true;
-		el.parentNode.removeChild(el);
+		el.parentNode?.removeChild(el);
 	});
 
 	newEl.addEventListener("error", () => {
@@ -144,49 +122,33 @@ function updateCss(el, url) {
 		}
 
 		newEl.isLoaded = true;
-		el.parentNode.removeChild(el);
+		el.parentNode?.removeChild(el);
 	});
 
 	newEl.href = `${url}?${Date.now()}`;
 
 	if (el.nextSibling) {
-		el.parentNode.insertBefore(newEl, el.nextSibling);
+		el.parentNode?.insertBefore(newEl, el.nextSibling);
 	} else {
-		el.parentNode.appendChild(newEl);
+		el.parentNode?.appendChild(newEl);
 	}
 }
 
-/**
- * @param {string} href
- * @param {TODO} src
- * @returns {TODO}
- */
-function getReloadUrl(href, src) {
-	let ret;
+function getReloadUrl(href: string, src: Array<string>): string {
+	let ret = "";
 
-	// eslint-disable-next-line no-param-reassign
 	href = normalizeUrl(href);
 
-	src.some(
-		/**
-		 * @param {string} url
-		 */
-		// eslint-disable-next-line array-callback-return
-		url => {
-			if (href.indexOf(src) > -1) {
-				ret = url;
-			}
+	src.some(url => {
+		if (href.indexOf(src as unknown as string) > -1) {
+			ret = url;
 		}
-	);
+	});
 
 	return ret;
 }
 
-/**
- * @param {string} [src]
- * @returns {boolean}
- */
-function reloadStyle(src) {
+function reloadStyle(src: Option<Array<string>>): boolean {
 	if (!src) {
 		return false;
 	}
@@ -231,11 +193,7 @@ function reloadAll() {
 	});
 }
 
-/**
- * @param {string} url
- * @returns {boolean}
- */
-function isUrlRequest(url) {
+function isUrlRequest(url: string): boolean {
 	// An URL is not an request if
 
 	// It is not http or https
@@ -246,12 +204,7 @@ function isUrlRequest(url) {
 	return true;
 }
 
-/**
- * @param {TODO} moduleId
- * @param {TODO} options
- * @returns {TODO}
- */
-module.exports = function (moduleId, options) {
+function cssReload(moduleId: string, options: Record<string, any>) {
 	if (noDocument) {
 		console.log("no window.document found, will not HMR CSS");
 
@@ -273,7 +226,7 @@ module.exports = function (moduleId, options) {
 		}
 
 		if (reloaded) {
-			console.log("[HMR] css reload %s", src.join(" "));
+			console.log("[HMR] css reload %s", src?.join(" "));
 		} else {
 			console.log("[HMR] Reload all css");
 
@@ -282,4 +235,6 @@ module.exports = function (moduleId, options) {
 	}
 
 	return debounce(update, 50);
-};
+}
+
+export { cssReload };
