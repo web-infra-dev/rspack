@@ -2,7 +2,6 @@ use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
 use rspack_error::{Diagnostic, Result};
 use rustc_hash::FxHashSet as HashSet;
-use sugar_path::SugarPath;
 
 use crate::{BoxDependency, BoxModule, CompilerOptions, Context, ModuleIdentifier, Resolve};
 
@@ -32,34 +31,28 @@ impl ModuleFactoryCreateData {
 
   pub fn add_file_dependency(&mut self, file: PathBuf) {
     if file.is_absolute() {
-      self.file_dependencies.insert(file.normalize());
+      self.file_dependencies.insert(file);
     }
   }
 
   pub fn add_file_dependencies(&mut self, files: impl IntoIterator<Item = PathBuf>) {
-    self
-      .file_dependencies
-      .extend(files.into_iter().map(|x| x.normalize()));
+    self.file_dependencies.extend(files.into_iter());
   }
 
   pub fn add_context_dependency(&mut self, context: PathBuf) {
-    self.context_dependencies.insert(context.normalize());
+    self.context_dependencies.insert(context);
   }
 
   pub fn add_context_dependencies(&mut self, contexts: impl IntoIterator<Item = PathBuf>) {
-    self
-      .context_dependencies
-      .extend(contexts.into_iter().map(|x| x.normalize()));
+    self.context_dependencies.extend(contexts.into_iter());
   }
 
   pub fn add_missing_dependency(&mut self, missing: PathBuf) {
-    self.missing_dependencies.insert(missing.normalize());
+    self.missing_dependencies.insert(missing);
   }
 
   pub fn add_missing_dependencies(&mut self, missing: impl IntoIterator<Item = PathBuf>) {
-    self
-      .missing_dependencies
-      .extend(missing.into_iter().map(|x| x.normalize()));
+    self.missing_dependencies.extend(missing);
   }
 }
 
