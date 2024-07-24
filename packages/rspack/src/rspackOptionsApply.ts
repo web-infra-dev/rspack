@@ -67,7 +67,7 @@ import {
 	WorkerPlugin
 } from "./builtin-plugin";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
-import IgnoreWarningsPlugin from "./lib/IgnoreWarningsPlugin";
+import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
 import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPresetPlugin } from "./stats/DefaultStatsPresetPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";

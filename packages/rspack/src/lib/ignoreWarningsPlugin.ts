@@ -14,7 +14,7 @@ import type {
 	RspackPluginInstance
 } from "..";
 
-export default class IgnoreWarningsPlugin implements RspackPluginInstance {
+export class IgnoreWarningsPlugin implements RspackPluginInstance {
 	_ignorePattern: IgnoreWarningsNormalized;
 	name = "IgnoreWarningsPlugin";
 
@@ -42,3 +42,5 @@ export default class IgnoreWarningsPlugin implements RspackPluginInstance {
 		});
 	}
 }
+
+export default IgnoreWarningsPlugin;
