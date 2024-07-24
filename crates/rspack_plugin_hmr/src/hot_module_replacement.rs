@@ -1,9 +1,9 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Compilation, RuntimeModule,
 };
-use rspack_identifier::Identifier;
 use rspack_util::test::{HOT_TEST_DEFINE_GLOBAL, HOT_TEST_STATUS_CHANGE};
 
 #[impl_runtime_module]

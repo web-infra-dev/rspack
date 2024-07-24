@@ -28,12 +28,11 @@ export class EsmRunner<
 					...context,
 					file
 				});
-			} else {
-				return this.requirers.get("cjs")!(currentDirectory, modulePath, {
-					...context,
-					file
-				});
 			}
+			return this.requirers.get("cjs")!(currentDirectory, modulePath, {
+				...context,
+				file
+			});
 		});
 	}
 
@@ -100,12 +99,11 @@ export class EsmRunner<
 				await esm.evaluate();
 				if (context.esmMode === EEsmMode.Evaluated) {
 					return esm;
-				} else {
-					const ns = esm.namespace as {
-						default: unknown;
-					};
-					return ns.default && ns.default instanceof Promise ? ns.default : ns;
 				}
+				const ns = esm.namespace as {
+					default: unknown;
+				};
+				return ns.default && ns.default instanceof Promise ? ns.default : ns;
 			})();
 		};
 	}

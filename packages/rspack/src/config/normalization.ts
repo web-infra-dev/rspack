@@ -93,11 +93,10 @@ export const getNormalizedRspackOptions = (
 				? config.ignoreWarnings.map(ignore => {
 						if (typeof ignore === "function") {
 							return ignore;
-						} else {
-							return (warning: Error) => {
-								return ignore.test(warning.message);
-							};
 						}
+						return (warning: Error) => {
+							return ignore.test(warning.message);
+						};
 					})
 				: undefined,
 		name: config.name,

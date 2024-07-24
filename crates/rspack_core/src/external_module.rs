@@ -2,9 +2,9 @@ use std::borrow::Cow;
 use std::hash::Hash;
 use std::iter;
 
+use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_identifier::{Identifiable, Identifier};
 use rspack_macros::impl_source_map_config;
 use rspack_util::{json_stringify, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};

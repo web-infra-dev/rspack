@@ -5,10 +5,10 @@ use std::path::PathBuf;
 use either::Either;
 use itertools::Itertools;
 use rayon::prelude::*;
+use rspack_collections::{Identifier, IdentifierSet};
 use rspack_error::emitter::{DiagnosticDisplay, DiagnosticDisplayer};
 use rspack_error::emitter::{StdioDiagnosticDisplay, StringDiagnosticDisplay};
 use rspack_error::Result;
-use rspack_identifier::Identifier;
 use rspack_sources::Source;
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -316,7 +316,7 @@ impl Stats<'_> {
         let root_modules = chunk_graph
           .get_chunk_root_modules(&c.ukey, &module_graph)
           .into_iter()
-          .collect::<HashSet<Identifier>>();
+          .collect::<IdentifierSet>();
 
         let mut auxiliary_files = Vec::from_iter(c.auxiliary_files.iter().cloned());
         auxiliary_files.sort_unstable();
@@ -714,7 +714,7 @@ impl Stats<'_> {
     used_exports: bool,
     provided_exports: bool,
     executed: bool,
-    root_modules: Option<&HashSet<Identifier>>,
+    root_modules: Option<&IdentifierSet>,
   ) -> Result<StatsModule<'a>> {
     let identifier = module.identifier();
     let mgm = module_graph

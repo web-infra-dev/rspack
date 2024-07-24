@@ -12,10 +12,12 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_ast::javascript::Ast;
+use rspack_collections::{
+  Identifiable, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
+};
 use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableError};
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
 use rspack_hook::define_hook;
-use rspack_identifier::Identifiable;
 use rspack_sources::{CachedSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt};
 use rspack_util::{source_map::SourceMapKind, swc::join_atom};
 use rustc_hash::FxHasher;
@@ -650,13 +652,13 @@ impl Module for ConcatenatedModule {
       self.get_modules_with_info(&compilation.get_module_graph(), runtime);
 
     // Set with modules that need a generated namespace object
-    let mut needed_namespace_objects: IndexSet<ModuleIdentifier> = IndexSet::default();
+    let mut needed_namespace_objects = IdentifierIndexSet::default();
 
     // Generate source code and analyze scopes
     // Prepare a ReplaceSource for the final source
     //
     let arc_map = Arc::new(module_to_info_map);
-    let tmp: Vec<rspack_error::Result<(rspack_identifier::Identifier, ModuleInfo)>> = arc_map
+    let tmp: Vec<rspack_error::Result<(rspack_collections::Identifier, ModuleInfo)>> = arc_map
       .par_iter()
       .map(|(id, info)| {
         let updated_module_info = self.analyze_module(
@@ -851,7 +853,7 @@ impl Module for ConcatenatedModule {
     }
 
     let module_graph = compilation.get_module_graph();
-    let mut info_map: IndexMap<rspack_identifier::Identifier, Vec<_>> = IndexMap::default();
+    let mut info_map: IdentifierIndexMap<Vec<_>> = IdentifierIndexMap::default();
     // Find and replace references to modules
     // Splitting read and write to avoid violating rustc borrow rules
     for info in module_to_info_map.values() {
@@ -1059,7 +1061,7 @@ impl Module for ConcatenatedModule {
       )));
     }
 
-    let mut namespace_object_sources: HashMap<ModuleIdentifier, String> = HashMap::default();
+    let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
 
     let mut visited = HashSet::default();
     // webpack require iterate the needed_namespace_objects and mutate `needed_namespace_objects`
@@ -1252,7 +1254,7 @@ impl Module for ConcatenatedModule {
           }
 
           result.add(RawSource::from(format!(
-            "let {} = {}({});",
+            "var {} = {}({});",
             info.name.as_ref().expect("should have name"),
             RuntimeGlobals::REQUIRE,
             serde_json::to_string(compilation.chunk_graph.get_module_id(info.module))
@@ -1266,7 +1268,7 @@ impl Module for ConcatenatedModule {
       if info.get_interop_namespace_object_used() {
         runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
         result.add(RawSource::from(format!(
-          "\nlet {} = /*#__PURE__*/{}({}, 2);",
+          "\nvar {} = /*#__PURE__*/{}({}, 2);",
           info
             .get_interop_namespace_object_name()
             .expect("should have interop_namespace_object_name"),
@@ -1278,7 +1280,7 @@ impl Module for ConcatenatedModule {
       if info.get_interop_namespace_object2_used() {
         runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
         result.add(RawSource::from(format!(
-          "\nlet {} = /*#__PURE__*/{}({});",
+          "\nvar {} = /*#__PURE__*/{}({});",
           info
             .get_interop_namespace_object2_name()
             .expect("should have interop_namespace_object2_name"),
@@ -1290,7 +1292,7 @@ impl Module for ConcatenatedModule {
       if info.get_interop_default_access_used() {
         runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
         result.add(RawSource::from(format!(
-          "\nlet {} = /*#__PURE__*/{}({});",
+          "\nvar {} = /*#__PURE__*/{}({});",
           info
             .get_interop_default_access_name()
             .expect("should have interop_default_access_name"),
@@ -1370,7 +1372,7 @@ impl Module for ConcatenatedModule {
   fn get_side_effects_connection_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
+    _module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     self.root_module_ctxt.side_effect_connection_state
   }
@@ -1426,10 +1428,7 @@ impl ConcatenatedModule {
     &self,
     mg: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
-  ) -> (
-    Vec<ModuleInfoOrReference>,
-    IndexMap<ModuleIdentifier, ModuleInfo>,
-  ) {
+  ) -> (Vec<ModuleInfoOrReference>, IdentifierIndexMap<ModuleInfo>) {
     let ordered_concatenation_list = self.create_concatenation_list(
       self.root_module_ctxt.id,
       IndexSet::from_iter(self.modules.iter().map(|item| item.id)),
@@ -1437,7 +1436,7 @@ impl ConcatenatedModule {
       mg,
     );
     let mut list = vec![];
-    let mut map: IndexMap<rspack_identifier::Identifier, ModuleInfo> = IndexMap::default();
+    let mut map = IdentifierIndexMap::default();
     for (i, concatenation_entry) in ordered_concatenation_list.into_iter().enumerate() {
       let module_id = concatenation_entry
         .connection_or_module_id
@@ -1486,12 +1485,12 @@ impl ConcatenatedModule {
   fn create_concatenation_list(
     &self,
     root_module: ModuleIdentifier,
-    mut module_set: IndexSet<ModuleIdentifier>,
+    mut module_set: IdentifierIndexSet,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
   ) -> Vec<ConcatenationEntry> {
     let mut list = vec![];
-    let mut exists_entries = HashMap::default();
+    let mut exists_entries = IdentifierMap::default();
     exists_entries.insert(root_module, RuntimeCondition::Boolean(true));
 
     let imports = self.get_concatenated_imports(&root_module, &root_module, runtime, mg);
@@ -1519,12 +1518,12 @@ impl ConcatenatedModule {
   fn enter_module(
     &self,
     root_module: ModuleIdentifier,
-    module_set: &mut IndexSet<ModuleIdentifier>,
+    module_set: &mut IdentifierIndexSet,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     con: ModuleGraphConnection,
     runtime_condition: RuntimeCondition,
-    exists_entry: &mut HashMap<ModuleIdentifier, RuntimeCondition>,
+    exists_entry: &mut IdentifierMap<RuntimeCondition>,
     list: &mut Vec<ConcatenationEntry>,
   ) {
     let module = con.module_identifier();
@@ -1683,7 +1682,7 @@ impl ConcatenatedModule {
   fn analyze_module(
     &self,
     compilation: &Compilation,
-    module_info_map: Arc<IndexMap<ModuleIdentifier, ModuleInfo>>,
+    module_info_map: Arc<IdentifierIndexMap<ModuleInfo>>,
     info: ModuleInfo,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<ModuleInfo> {
@@ -1782,9 +1781,9 @@ impl ConcatenatedModule {
     module_graph: &ModuleGraph,
     info: &ModuleIdentifier,
     export_name: Vec<Atom>,
-    module_to_info_map: &mut IndexMap<ModuleIdentifier, ModuleInfo>,
+    module_to_info_map: &mut IdentifierIndexMap<ModuleInfo>,
     runtime: Option<&RuntimeSpec>,
-    needed_namespace_objects: &mut IndexSet<ModuleIdentifier>,
+    needed_namespace_objects: &mut IdentifierIndexSet,
     as_call: bool,
     call_context: bool,
     strict_harmony_module: bool,
@@ -1869,9 +1868,9 @@ impl ConcatenatedModule {
     mg: &ModuleGraph,
     info_id: &ModuleIdentifier,
     mut export_name: Vec<Atom>,
-    module_to_info_map: &mut IndexMap<ModuleIdentifier, ModuleInfo>,
+    module_to_info_map: &mut IdentifierIndexMap<ModuleInfo>,
     runtime: Option<&RuntimeSpec>,
-    needed_namespace_objects: &mut IndexSet<ModuleIdentifier>,
+    needed_namespace_objects: &mut IdentifierIndexSet,
     as_call: bool,
     strict_harmony_module: bool,
     asi_safe: Option<bool>,

@@ -158,12 +158,11 @@ function checkConfigsDocumentationCoverage() {
 					const next = (() => {
 						if (key.includes("/")) {
 							return path + `["${key}"]`;
-						} else {
-							if (path) {
-								return path + "." + key;
-							}
-							return key;
 						}
+						if (path) {
+							return path + "." + key;
+						}
+						return key;
 					})();
 					implementedConfigs.push(next);
 					visit(schema, next);

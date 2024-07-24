@@ -46,6 +46,7 @@
 			"style": {
 				"noUnusedTemplateLiteral": "error",
 				"useNodejsImportProtocol": "error",
+				"noUselessElse": "error",
 				"noNonNullAssertion": "off",
 				"useNumberNamespace": "error",
 				"useConst": "error",

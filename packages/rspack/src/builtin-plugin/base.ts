@@ -18,9 +18,8 @@ export function canInherentFromParent(affectedHooks?: AffectedHooks): boolean {
 	if (typeof affectedHooks === "undefined") {
 		// this arm should be removed
 		return false;
-	} else {
-		return !HOOKS_CAN_NOT_INHERENT_FROM_PARENT.includes(affectedHooks);
 	}
+	return !HOOKS_CAN_NOT_INHERENT_FROM_PARENT.includes(affectedHooks);
 }
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {

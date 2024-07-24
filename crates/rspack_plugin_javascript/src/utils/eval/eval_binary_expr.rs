@@ -149,43 +149,59 @@ fn handle_abstract_equality_comparison(
 }
 
 #[inline(always)]
+fn handle_nullish_coalescing(
+  left: BasicEvaluatedExpression,
+  expr: &BinExpr,
+  scanner: &mut JavascriptParser,
+) -> Option<BasicEvaluatedExpression> {
+  let left_nullish = left.as_nullish();
+  match left_nullish {
+    Some(true) => {
+      let mut right = scanner.evaluate_expression(&expr.right);
+      if left.could_have_side_effects() {
+        right.set_side_effects(true)
+      }
+      right.set_range(expr.span.real_lo(), expr.span.hi().0);
+      Some(right)
+    }
+    Some(false) => {
+      let mut res = left.clone();
+      res.set_range(expr.span.real_lo(), expr.span.hi().0);
+      Some(res)
+    }
+    _ => None,
+  }
+}
+
+#[inline(always)]
 fn handle_logical_or(
   left: BasicEvaluatedExpression,
   expr: &BinExpr,
   scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression> {
-  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
-  match left.as_bool() {
+  let left_bool = left.as_bool();
+  match left_bool {
     Some(true) => {
-      // truthy || unknown = true
-      res.set_truthy();
-      res.set_side_effects(left.could_have_side_effects());
+      let mut res = left.clone();
+      res.set_range(expr.span.real_lo(), expr.span.hi().0);
       Some(res)
     }
     Some(false) => {
-      let right = scanner.evaluate_expression(&expr.right);
-      // falsy || unknown = unknown
-      right.as_bool().map(|b| {
-        // falsy || right = right
-        if b {
-          res.set_truthy();
-        } else {
-          res.set_falsy();
-        }
-        res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
-        res
-      })
+      let mut right = scanner.evaluate_expression(&expr.right);
+      if left.could_have_side_effects() {
+        right.set_side_effects(true)
+      }
+      right.set_range(expr.span.real_lo(), expr.span.hi().0);
+      Some(right)
     }
-    None => {
-      let right = scanner.evaluate_expression(&expr.right);
-      match right.as_bool() {
-        // unknown || truthy = unknown truthy
-        Some(true) => {
-          res.set_truthy();
-          Some(res)
-        }
-        // unknown || falsy/unknown = undetermined
-        _ => None,
+    _ => {
+      let right_bool = scanner.evaluate_expression(&expr.right).as_bool();
+      if right_bool.is_some_and(|x| x) {
+        let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        res.set_truthy();
+        Some(res)
+      } else {
+        None
       }
     }
   }
@@ -197,34 +213,29 @@ fn handle_logical_and(
   expr: &BinExpr,
   scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression> {
-  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
-  match left.as_bool() {
+  let left_bool = left.as_bool();
+  match left_bool {
     Some(true) => {
-      // true && unknown = unknown
       let mut right = scanner.evaluate_expression(&expr.right);
       if left.could_have_side_effects() {
         right.set_side_effects(true)
       }
-      right.set_range(expr.span.real_lo(), expr.span.hi.0);
+      right.set_range(expr.span.real_lo(), expr.span.hi().0);
       Some(right)
     }
     Some(false) => {
-      // false && any = false
-      res.set_falsy();
-      res.set_side_effects(left.could_have_side_effects());
+      let mut res = left.clone();
+      res.set_range(expr.span.real_lo(), expr.span.hi().0);
       Some(res)
     }
     None => {
-      let right = scanner.evaluate_expression(&expr.right);
-      match right.as_bool() {
-        // unknown && false = false
-        Some(false) => {
-          res.set_bool(false);
-          res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
-          Some(res)
-        }
-        // unknown && true/unknown = unknown
-        _ => None,
+      let right_bool = scanner.evaluate_expression(&expr.right).as_bool();
+      if right_bool.is_some_and(|x| !x) {
+        let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        res.set_falsy();
+        Some(res)
+      } else {
+        None
       }
     }
   }
@@ -486,6 +497,7 @@ pub fn eval_binary_expression(
       BinaryOp::NotEqEq => handle_strict_equality_comparison(false, left, expr, scanner),
       BinaryOp::LogicalAnd => handle_logical_and(left, expr, scanner),
       BinaryOp::LogicalOr => handle_logical_or(left, expr, scanner),
+      BinaryOp::NullishCoalescing => handle_nullish_coalescing(left, expr, scanner),
       BinaryOp::Add => handle_add(left, expr, scanner),
       _ => handle_const_operation(left, expr, scanner),
     }

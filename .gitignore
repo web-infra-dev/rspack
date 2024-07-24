@@ -231,3 +231,6 @@ diff_output
 
 # api-extractor temp folder (https://api-extractor.com/pages/configs/api-extractor_json/#apireportreporttempfolder)
 /packages/*/temp
+
+# rspress build output
+/website/doc_build

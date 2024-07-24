@@ -156,13 +156,12 @@ export class FakeDocumentWebRunner<
 					modulePath,
 					context
 				);
-			} else {
-				return this.requirers.get("cjs")!(
-					this._options.dist,
-					modulePath,
-					context
-				);
 			}
+			return this.requirers.get("cjs")!(
+				this._options.dist,
+				modulePath,
+				context
+			);
 		});
 	}
 

@@ -1,8 +1,8 @@
+use rspack_collections::Identifiable;
 use rspack_core::{
   to_identifier, ChunkUkey, Compilation, ExternalModule, ExternalRequest, LibraryOptions,
 };
 use rspack_error::{error, Result};
-use rspack_identifier::Identifiable;
 
 pub fn externals_dep_array(modules: &[&ExternalModule]) -> Result<String> {
   let value = modules

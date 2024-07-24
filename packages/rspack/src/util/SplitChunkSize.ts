@@ -6,7 +6,8 @@ class JsSplitChunkSizes {
 	): number | RawSplitChunkSizes | undefined {
 		if (typeof sizes === "number") {
 			return sizes;
-		} else if (sizes && typeof sizes === "object") {
+		}
+		if (sizes && typeof sizes === "object") {
 			const chunkSizes: RawSplitChunkSizes = {
 				sizes: sizes
 			};

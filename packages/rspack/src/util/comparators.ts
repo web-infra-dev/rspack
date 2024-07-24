@@ -117,12 +117,11 @@ export const compareSelect = <T, R>(
 				return comparator(aValue, bValue);
 			}
 			return -1;
-		} else {
-			if (bValue !== undefined && bValue !== null) {
-				return 1;
-			}
-			return 0;
 		}
+		if (bValue !== undefined && bValue !== null) {
+			return 1;
+		}
+		return 0;
 	};
 	compareSelectCache.set(getter, comparator, result);
 	return result;

@@ -104,9 +104,8 @@ for (const { root, match, comment } of [
 			const line = content.slice(prevLineStart, index - 1);
 			if (line.includes("*/")) {
 				continue;
-			} else {
-				content = `${content.slice(0, index - 1)}\n${comment}\n${content.slice(index)}`;
 			}
+			content = `${content.slice(0, index - 1)}\n${comment}\n${content.slice(index)}`;
 		}
 		fs.writeFileSync(absolutePath, content, "utf-8");
 	}

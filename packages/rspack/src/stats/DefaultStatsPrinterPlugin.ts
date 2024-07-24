@@ -26,7 +26,8 @@ const printSizes = (
 	const keys = Object.keys(sizes);
 	if (keys.length > 1) {
 		return keys.map(key => `${formatSize(sizes[key])} (${key})`).join(" ");
-	} else if (keys.length === 1) {
+	}
+	if (keys.length === 1) {
 		return formatSize(sizes[keys[0]]);
 	}
 };
@@ -410,11 +411,10 @@ const SIMPLE_PRINTERS: Record<
 					providedExportsCount === usedExports.length
 				) {
 					return cyan(formatFlag("all exports used"));
-				} else {
-					return cyan(
-						formatFlag(`only some exports used: ${usedExports.join(", ")}`)
-					);
 				}
+				return cyan(
+					formatFlag(`only some exports used: ${usedExports.join(", ")}`)
+				);
 			}
 		}
 	},
@@ -1267,18 +1267,17 @@ const AVAILABLE_FORMATS: Pick_FORMAT<
 				timeReference / 16
 			];
 			if (time < times[3]) return `${time}${unit}`;
-			else if (time < times[2]) return bold(`${time}${unit}`);
-			else if (time < times[1]) return green(`${time}${unit}`);
-			else if (time < times[0]) return yellow(`${time}${unit}`);
-			else return red(`${time}${unit}`);
-		} else {
-			let timeStr = time.toString();
-			if (time > 1000) {
-				timeStr = `${(time / 1000).toFixed(2)}`;
-				unit = " s";
-			}
-			return `${boldQuantity ? bold(timeStr) : timeStr}${unit}`;
+			if (time < times[2]) return bold(`${time}${unit}`);
+			if (time < times[1]) return green(`${time}${unit}`);
+			if (time < times[0]) return yellow(`${time}${unit}`);
+			return red(`${time}${unit}`);
 		}
+		let timeStr = time.toString();
+		if (time > 1000) {
+			timeStr = `${(time / 1000).toFixed(2)}`;
+			unit = " s";
+		}
+		return `${boldQuantity ? bold(timeStr) : timeStr}${unit}`;
 	},
 	formatError: (msg, { green, yellow, red }) => {
 		let message = msg as string;

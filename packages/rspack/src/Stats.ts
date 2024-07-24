@@ -127,12 +127,11 @@ export class Stats {
 export function normalizeStatsPreset(options?: StatsValue): StatsOptions {
 	if (typeof options === "boolean" || typeof options === "string")
 		return presetToOptions(options);
-	else if (!options) return {};
-	else {
-		const obj = { ...presetToOptions(options.preset), ...options };
-		delete obj.preset;
-		return obj;
-	}
+	if (!options) return {};
+
+	const obj = { ...presetToOptions(options.preset), ...options };
+	delete obj.preset;
+	return obj;
 }
 
 function presetToOptions(name?: boolean | string): StatsOptions {

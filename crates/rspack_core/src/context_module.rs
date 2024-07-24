@@ -11,9 +11,9 @@ use indoc::formatdoc;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
+use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_identifier::{Identifiable, Identifier};
 use rspack_macros::impl_source_map_config;
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
@@ -1085,7 +1085,10 @@ impl ContextModule {
     Ok(())
   }
 
-  fn resolve_dependencies(&self) -> Result<(Vec<BoxDependency>, Vec<AsyncDependenciesBlock>)> {
+  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
+  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
+  #[allow(clippy::vec_box)]
+  fn resolve_dependencies(&self) -> Result<(Vec<BoxDependency>, Vec<Box<AsyncDependenciesBlock>>)> {
     tracing::trace!("resolving context module path {}", self.options.resource);
 
     let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
@@ -1133,7 +1136,7 @@ impl ContextModule {
       if let Some(group_options) = &self.options.context_options.group_options {
         block.set_group_options(group_options.clone());
       }
-      blocks.push(block);
+      blocks.push(Box::new(block));
     } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
       let mut index = 0;
       for context_element_dependency in context_element_dependencies {
@@ -1175,7 +1178,7 @@ impl ContextModule {
           prefetch_order,
           fetch_priority,
         )));
-        blocks.push(block);
+        blocks.push(Box::new(block));
       }
     } else {
       dependencies = context_element_dependencies

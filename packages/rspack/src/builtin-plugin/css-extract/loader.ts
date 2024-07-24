@@ -252,7 +252,8 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 				return `\n${
 					esModule ? "export default" : "module.exports = "
 				} ${JSON.stringify(locals)};`;
-			} else if (esModule) {
+			}
+			if (esModule) {
 				return "\nexport {};";
 			}
 			return "";

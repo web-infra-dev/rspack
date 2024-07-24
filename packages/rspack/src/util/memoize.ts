@@ -6,15 +6,14 @@ export const memoize = <T>(fn: () => T): (() => T) => {
 		if (cache) {
 			// @ts-expect-error
 			return result;
-		} else {
-			result = fn();
-			cache = true;
-			// Allow to clean up memory for fn
-			// and all dependent resources
-			// @ts-expect-error
-			fn = undefined;
-			return result;
 		}
+		result = fn();
+		cache = true;
+		// Allow to clean up memory for fn
+		// and all dependent resources
+		// @ts-expect-error
+		fn = undefined;
+		return result;
 	};
 };
 
