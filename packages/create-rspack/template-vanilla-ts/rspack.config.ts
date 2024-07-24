@@ -5,7 +5,10 @@ const targets = ["chrome >= 87", "edge >= 88", "firefox >= 78", "safari >= 14"];
 
 export default defineConfig({
 	entry: {
-		main: "./src/index.js"
+		main: "./src/index.ts"
+	},
+	resolve: {
+		extensions: ["...", ".ts"]
 	},
 	module: {
 		rules: [
@@ -22,6 +25,22 @@ export default defineConfig({
 							jsc: {
 								parser: {
 									syntax: "ecmascript"
+								}
+							},
+							env: { targets }
+						}
+					}
+				]
+			},
+			{
+				test: /\.ts$/,
+				use: [
+					{
+						loader: "builtin:swc-loader",
+						options: {
+							jsc: {
+								parser: {
+									syntax: "typescript"
 								}
 							},
 							env: { targets }

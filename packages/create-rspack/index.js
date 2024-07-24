@@ -57,6 +57,8 @@ yargs(hideBin(process.argv))
 					name: "template",
 					message: "Project template",
 					choices: [
+						{ title: "vanilla", value: "vanilla" },
+						{ title: "vanilla-ts", value: "vanilla-ts" },
 						{ title: "react", value: "react" },
 						{ title: "react-ts", value: "react-ts" },
 						{ title: "vue", value: "vue" },
