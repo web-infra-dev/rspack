@@ -69,7 +69,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-          clean: false
+          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+
+      - name: Git Clean
+        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        shell: bash
+        run: |
+          git clean -ffdx -e node_modules target
+          git reset --hard HEAD
 
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
