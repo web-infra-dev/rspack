@@ -1254,7 +1254,7 @@ impl Module for ConcatenatedModule {
           }
 
           result.add(RawSource::from(format!(
-            "let {} = {}({});",
+            "var {} = {}({});",
             info.name.as_ref().expect("should have name"),
             RuntimeGlobals::REQUIRE,
             serde_json::to_string(compilation.chunk_graph.get_module_id(info.module))
@@ -1268,7 +1268,7 @@ impl Module for ConcatenatedModule {
       if info.get_interop_namespace_object_used() {
         runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
         result.add(RawSource::from(format!(
-          "\nlet {} = /*#__PURE__*/{}({}, 2);",
+          "\nvar {} = /*#__PURE__*/{}({}, 2);",
           info
             .get_interop_namespace_object_name()
             .expect("should have interop_namespace_object_name"),
@@ -1280,7 +1280,7 @@ impl Module for ConcatenatedModule {
       if info.get_interop_namespace_object2_used() {
         runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
         result.add(RawSource::from(format!(
-          "\nlet {} = /*#__PURE__*/{}({});",
+          "\nvar {} = /*#__PURE__*/{}({});",
           info
             .get_interop_namespace_object2_name()
             .expect("should have interop_namespace_object2_name"),
@@ -1292,7 +1292,7 @@ impl Module for ConcatenatedModule {
       if info.get_interop_default_access_used() {
         runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
         result.add(RawSource::from(format!(
-          "\nlet {} = /*#__PURE__*/{}({});",
+          "\nvar {} = /*#__PURE__*/{}({});",
           info
             .get_interop_default_access_name()
             .expect("should have interop_default_access_name"),
