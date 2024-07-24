@@ -17,7 +17,7 @@ use sugar_path::SugarPath;
 use crate::utils::decl::{
   ClientRef, ClientReferenceManifest, ReactRoute, ServerRef, ServerReferenceManifest,
 };
-use crate::utils::file::is_same_asset;
+use crate::utils::file::generate_asset_version;
 use crate::utils::has_client_directive;
 use crate::utils::shared_data::{SHARED_CLIENT_IMPORTS, SHARED_DATA};
 
@@ -267,18 +267,17 @@ impl RSCClientReferenceManifest {
     match content {
       Ok(content) => {
         // TODO: outputPath should be configable
-        if !is_same_asset("client-reference-manifest.json", &content).await {
-          compilation.emit_asset(
-            String::from("../server/client-reference-manifest.json"),
-            CompilationAsset {
-              source: Some(RawSource::from(content).boxed()),
-              info: AssetInfo {
-                immutable: false,
-                ..AssetInfo::default()
-              },
+        compilation.emit_asset(
+          String::from("../server/client-reference-manifest.json"),
+          CompilationAsset {
+            source: Some(RawSource::from(content.as_str()).boxed()),
+            info: AssetInfo {
+              immutable: false,
+              version: generate_asset_version(&content),
+              ..AssetInfo::default()
             },
-          )
-        }
+          },
+        )
       }
       Err(_) => (),
     }

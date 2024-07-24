@@ -11,8 +11,9 @@ use serde_json::to_string;
 use super::server_action::generate_action_id;
 use crate::utils::constants::RSC_SERVER_ACTION_ENTRY_RE;
 use crate::utils::decl::{ServerActionRef, ServerActions, ServerRef, ServerReferenceManifest};
+use crate::utils::file::generate_asset_version;
 use crate::utils::shared_data::{SHARED_CLIENT_IMPORTS, SHARED_DATA, SHARED_SERVER_IMPORTS};
-use crate::utils::{has_client_directive, has_server_directive, is_same_asset};
+use crate::utils::{has_client_directive, has_server_directive};
 
 #[derive(Debug, Default, Clone)]
 pub struct RSCServerReferenceManifest {}
@@ -200,18 +201,17 @@ impl RSCServerReferenceManifest {
     let content = to_string(&shim_server_manifest);
     match content {
       Ok(content) => {
-        if !is_same_asset("server-reference-manifest.json", &content).await {
-          let asset = CompilationAsset {
-            source: Some(RawSource::from(content).boxed()),
-            info: AssetInfo {
-              immutable: false,
-              ..AssetInfo::default()
-            },
-          };
-          let filename = String::from("server-reference-manifest.json");
-          // TODO: outputPath should be configable
-          compilation.assets_mut().insert(filename, asset);
-        }
+        let asset = CompilationAsset {
+          source: Some(RawSource::from(content.as_str()).boxed()),
+          info: AssetInfo {
+            immutable: false,
+            version: generate_asset_version(&content),
+            ..AssetInfo::default()
+          },
+        };
+        let filename = String::from("server-reference-manifest.json");
+        // TODO: outputPath should be configable
+        compilation.assets_mut().insert(filename, asset);
       }
       Err(_) => (),
     }

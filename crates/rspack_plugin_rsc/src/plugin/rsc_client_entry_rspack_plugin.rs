@@ -16,9 +16,10 @@ use rspack_hook::{plugin, plugin_hook};
 use serde_json::to_string;
 
 use crate::utils::decl::{ClientImports, ReactRoute};
+use crate::utils::file::generate_asset_version;
 use crate::utils::sever_reference::RSCServerReferenceManifest;
 use crate::utils::shared_data::{SHARED_CLIENT_IMPORTS, SHARED_SERVER_IMPORTS};
-use crate::utils::{has_client_directive, has_server_directive, is_same_asset};
+use crate::utils::{has_client_directive, has_server_directive};
 
 #[derive(Debug, Default, Clone)]
 pub struct RSCClientEntryRspackPluginOptions {
@@ -269,18 +270,17 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 
     match content {
       Ok(content) => {
-        if !is_same_asset(&output_file, &content).await {
-          compilation.assets_mut().insert(
-            output_file,
-            CompilationAsset {
-              source: Some(RawSource::from(content).boxed()),
-              info: AssetInfo {
-                immutable: false,
-                ..AssetInfo::default()
-              },
+        compilation.assets_mut().insert(
+          output_file,
+          CompilationAsset {
+            source: Some(RawSource::from(content.as_str()).boxed()),
+            info: AssetInfo {
+              immutable: false,
+              version: generate_asset_version(&content),
+              ..AssetInfo::default()
             },
-          );
-        }
+          },
+        );
       }
       Err(_) => (),
     }
@@ -292,18 +292,17 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     let content = to_string(&value);
     match content {
       Ok(content) => {
-        if !is_same_asset(&output_file, &content).await {
-          compilation.assets_mut().insert(
-            format!("[{}]_server_imports.json", name),
-            CompilationAsset {
-              source: Some(RawSource::from(content).boxed()),
-              info: AssetInfo {
-                immutable: false,
-                ..AssetInfo::default()
-              },
+        compilation.assets_mut().insert(
+          output_file,
+          CompilationAsset {
+            source: Some(RawSource::from(content.as_str()).boxed()),
+            info: AssetInfo {
+              immutable: false,
+              version: generate_asset_version(&content),
+              ..AssetInfo::default()
             },
-          );
-        }
+          },
+        );
       }
       Err(_) => (),
     }
