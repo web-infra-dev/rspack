@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
@@ -8,6 +10,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_fs::{AsyncFileSystem, AsyncReadableFileSystem};
 use rspack_hook::{plugin, plugin_hook};
+use tokio::sync::Mutex;
 
 use crate::http_cache::{fetch_content, FetchResultType};
 
@@ -34,7 +37,7 @@ pub struct HttpUriPluginOptions {
   pub lockfile_location: Option<String>,
   pub proxy: Option<String>,
   pub upgrade: Option<bool>,
-  pub filesystem: Box<dyn AsyncFileSystem>,
+  pub filesystem: Arc<Mutex<dyn AsyncFileSystem>>,
 }
 
 #[plugin_hook(NormalModuleFactoryResolveForScheme for HttpUriPlugin)]
