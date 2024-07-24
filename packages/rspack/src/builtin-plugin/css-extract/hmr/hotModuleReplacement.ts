@@ -1,42 +1,4 @@
-/* eslint-env browser */
-/*
-  eslint-disable
-  no-console,
-  func-names
-*/
-
-function normalizeUrl(urlString: string): string {
-	urlString = urlString.trim();
-
-	if (/^data:/i.test(urlString)) {
-		return urlString;
-	}
-
-	var protocol =
-		urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
-	var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
-	var host = components[0].toLowerCase().replace(/\.$/, "");
-
-	components[0] = "";
-
-	var path = components
-		.reduce(function (accumulator: string[], item) {
-			switch (item) {
-				case "..":
-					accumulator.pop();
-					break;
-				case ".":
-					break;
-				default:
-					accumulator.push(item);
-			}
-
-			return accumulator;
-		}, [])
-		.join("/");
-
-	return protocol + host + path;
-}
+import { normalizeUrl } from "./normalizeUrl";
 
 type Option<T> = T | null | undefined;
 type DebouncedFunction<T extends (...args: any[]) => any> = (
@@ -242,7 +204,7 @@ function isUrlRequest(url: string): boolean {
 	return true;
 }
 
-module.exports = function (moduleId: string, options: Record<string, any>) {
+export default function (moduleId: string, options: Record<string, any>) {
 	if (noDocument) {
 		console.log("no window.document found, will not HMR CSS");
 
@@ -273,4 +235,4 @@ module.exports = function (moduleId: string, options: Record<string, any>) {
 	}
 
 	return debounce(update, 50);
-};
+}

@@ -1,39 +1,10 @@
 (() => { // webpackBootstrap
 "use strict";
 var __webpack_modules__ = ({
-"../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js": (function (module) {
+"../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 
-/* eslint-env browser */
-/*
-  eslint-disable
-  no-console,
-  func-names
-*/
-function normalizeUrl(urlString) {
-    urlString = urlString.trim();
-    if (/^data:/i.test(urlString)) {
-        return urlString;
-    }
-    var protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
-    var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
-    var host = components[0].toLowerCase().replace(/\.$/, "");
-    components[0] = "";
-    var path = components
-        .reduce(function (accumulator, item) {
-        switch (item) {
-            case "..":
-                accumulator.pop();
-                break;
-            case ".":
-                break;
-            default:
-                accumulator.push(item);
-        }
-        return accumulator;
-    }, [])
-        .join("/");
-    return protocol + host + path;
-}
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const normalizeUrl_1 = __webpack_require__(/*! ./normalizeUrl */ "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/normalizeUrl.js");
 const srcByModuleId = Object.create(null);
 const noDocument = typeof document === "undefined";
 const { forEach } = Array.prototype;
@@ -80,7 +51,7 @@ function getCurrentScriptUrl(moduleId) {
         }
         return fileMap.split(",").map(mapRule => {
             const reg = new RegExp(`${filename}\\.js$`, "g");
-            return normalizeUrl(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
+            return (0, normalizeUrl_1.normalizeUrl)(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
         });
     };
 }
@@ -129,7 +100,7 @@ function updateCss(el, url) {
 }
 function getReloadUrl(href, src) {
     let ret = "";
-    href = normalizeUrl(href);
+    href = (0, normalizeUrl_1.normalizeUrl)(href);
     src.some(url => {
         if (href.indexOf(src) > -1) {
             ret = url;
@@ -178,7 +149,7 @@ function isUrlRequest(url) {
     }
     return true;
 }
-module.exports = function (moduleId, options) {
+function default_1(moduleId, options) {
     if (noDocument) {
         console.log("no window.document found, will not HMR CSS");
         return noop;
@@ -201,7 +172,41 @@ module.exports = function (moduleId, options) {
         }
     }
     return debounce(update, 50);
-};
+}
+exports["default"] = default_1;
+
+
+}),
+"../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/normalizeUrl.js": (function (__unused_webpack_module, exports) {
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.normalizeUrl = void 0;
+function normalizeUrl(urlString) {
+    urlString = urlString.trim();
+    if (/^data:/i.test(urlString)) {
+        return urlString;
+    }
+    var protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
+    var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
+    var host = components[0].toLowerCase().replace(/\.$/, "");
+    components[0] = "";
+    var path = components
+        .reduce(function (accumulator, item) {
+        switch (item) {
+            case "..":
+                accumulator.pop();
+                break;
+            case ".":
+                break;
+            default:
+                accumulator.push(item);
+        }
+        return accumulator;
+    }, [])
+        .join("/");
+    return protocol + host + path;
+}
+exports.normalizeUrl = normalizeUrl;
 
 
 }),

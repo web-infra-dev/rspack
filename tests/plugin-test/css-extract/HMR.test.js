@@ -4,7 +4,7 @@
 /* eslint-env browser */
 /* eslint-disable no-console */
 
-const hotModuleReplacement = require("../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement");
+const hotModuleReplacement = require("../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement").default;
 
 function getLoadEvent() {
 	const event = document.createEvent("Event");
