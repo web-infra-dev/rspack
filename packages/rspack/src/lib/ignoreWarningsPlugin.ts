@@ -12,9 +12,9 @@ import type {
 	Compiler,
 	IgnoreWarningsNormalized,
 	RspackPluginInstance
-} from "..";
+} from "../";
 
-export class IgnoreWarningsPlugin implements RspackPluginInstance {
+class IgnoreWarningsPlugin implements RspackPluginInstance {
 	_ignorePattern: IgnoreWarningsNormalized;
 	name = "IgnoreWarningsPlugin";
 
