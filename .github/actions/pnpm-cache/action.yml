@@ -60,9 +60,9 @@ runs:
       shell: bash
       run: |
         if [[ "${{ inputs.frozen-lockfile}}" == 'true' ]]; then
-          pnpm install --frozen-lockfile
+          pnpm install --frozen-lockfile --prefer-offline
         else
-          pnpm install --no-frozen-lockfile
+          pnpm install --no-frozen-lockfile --prefer-offline
         fi
 
     - name: Save pnpm cache
