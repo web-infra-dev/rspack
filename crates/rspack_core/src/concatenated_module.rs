@@ -2285,7 +2285,15 @@ pub fn find_new_name(
 
   let mut splitted_info: Vec<&str> = extra_info.split('/').collect();
   while let Some(info_part) = splitted_info.pop() {
-    name = Cow::Owned(format!("{}_{}", info_part, name));
+    name = Cow::Owned(format!(
+      "{}{}",
+      info_part,
+      if name.is_empty() {
+        "".to_string()
+      } else {
+        format!("_{name}")
+      }
+    ));
     let name_ident = to_identifier(&name).into();
     if !used_names1.contains(&name_ident)
       && (used_names2.is_none()

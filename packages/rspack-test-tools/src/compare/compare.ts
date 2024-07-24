@@ -62,10 +62,12 @@ export function compareFile(
 	result.type = ECompareResultType.Different;
 
 	const sourceModules = parseModules(sourceContent, {
-		bootstrap: compareOptions.bootstrap
+		bootstrap: compareOptions.bootstrap,
+		renameModule: compareOptions.renameModule
 	});
 	const distModules = parseModules(distContent, {
-		bootstrap: compareOptions.bootstrap
+		bootstrap: compareOptions.bootstrap,
+		renameModule: compareOptions.renameModule
 	});
 
 	for (const type of ["modules", "runtimeModules"]) {
@@ -80,9 +82,6 @@ export function compareFile(
 			moduleList = compareOptions[t] as string[];
 		} else {
 			continue;
-		}
-		if (typeof compareOptions.renameModule === "function") {
-			moduleList = moduleList.map(compareOptions.renameModule);
 		}
 		result.modules[t] = compareModules(
 			moduleList,

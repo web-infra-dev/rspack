@@ -653,6 +653,8 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
     // (undocumented)
     onCompareRuntimeModules?: (file: string, results: TModuleCompareResult[]) => void;
     // (undocumented)
+    renameModule?: (file: string) => string;
+    // (undocumented)
     replacements?: IFormatCodeReplacement[];
     // (undocumented)
     rspackPath: string;
@@ -1097,6 +1099,7 @@ export class NormalRunnerFactory<T extends ECompilerType> extends BasicRunnerFac
 // @public (undocumented)
 export function parseModules(content: string, options?: {
     bootstrap?: boolean;
+    renameModule?: (name: string) => string;
 }): {
     modules: Map<string, string>;
     runtimeModules: Map<string, string>;
