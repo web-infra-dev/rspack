@@ -1,5 +1,5 @@
 {
-  "name": "rspack-vanilla-starter",
+  "name": "rspack-vanilla-ts-starter",
   "private": true,
   "version": "1.0.0",
   "scripts": {
@@ -9,6 +9,8 @@
   "devDependencies": {
     "cross-env": "^7.0.3",
     "@rspack/cli": "workspace:*",
-    "@rspack/core": "workspace:*"
+    "@rspack/core": "workspace:*",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   }
 }
