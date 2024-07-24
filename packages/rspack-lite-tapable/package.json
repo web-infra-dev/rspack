@@ -20,7 +20,7 @@
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "build:force": "tsc -b ./tsconfig.build.json --force",
-    "test": "jest --runInBand --colors",
+    "test": "jest --colors",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },
