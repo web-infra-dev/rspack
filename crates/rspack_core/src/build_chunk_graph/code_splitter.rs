@@ -408,7 +408,7 @@ impl<'me> CodeSplitter<'me> {
       let runtime = get_entry_runtime(&name, options, &self.compilation.entries);
       let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
       if let Some(filename) = &entry_data.options.filename {
-        chunk.filename_template = Some(filename.clone().into());
+        chunk.filename_template = Some(filename.clone());
       }
 
       self.compilation.chunk_graph.add_chunk(chunk.ukey);
@@ -1264,7 +1264,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             let entry_options = entry_options.clone();
             let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
             if let Some(filename) = &entry_options.filename {
-              chunk.filename_template = Some(filename.clone().into());
+              chunk.filename_template = Some(filename.clone());
             }
             let mut entrypoint = ChunkGroup::new(ChunkGroupKind::new_entrypoint(
               false,

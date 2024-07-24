@@ -151,7 +151,7 @@ export type LibraryOptions = z.infer<typeof libraryOptions>;
 const library = libraryName.or(libraryOptions).optional();
 export type Library = z.infer<typeof library>;
 
-const entryFilename = filenameTemplate;
+const entryFilename = filename;
 export type EntryFilename = z.infer<typeof entryFilename>;
 
 const entryRuntime = z.literal(false).or(z.string());
