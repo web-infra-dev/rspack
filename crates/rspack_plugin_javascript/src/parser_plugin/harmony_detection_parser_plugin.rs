@@ -1,7 +1,6 @@
 use std::ops::Add;
 
 use rspack_core::{BuildMetaExportsType, ExportsArgument, ModuleArgument, ModuleType, SpanExt};
-use swc_core::common::source_map::Pos;
 use swc_core::common::{BytePos, Span, Spanned};
 use swc_core::ecma::ast::{Ident, ModuleItem, Program, UnaryExpr};
 
@@ -75,8 +74,8 @@ impl JavascriptParserPlugin for HarmonyDetectionParserPlugin {
     expr: &swc_core::ecma::ast::AwaitExpr,
   ) {
     let lo = expr.span_lo();
-    let hi = lo.add(BytePos::from_u32(AWAIT_LEN));
-    let span = Span::new(lo, hi, expr.span.ctxt);
+    let hi = lo.add(BytePos(AWAIT_LEN));
+    let span = Span::new(lo, hi);
     parser.handle_top_level_await(self.top_level_await, span);
   }
 
@@ -86,9 +85,9 @@ impl JavascriptParserPlugin for HarmonyDetectionParserPlugin {
     stmt: &swc_core::ecma::ast::ForOfStmt,
   ) {
     let offset = 4; // "for ".len();
-    let lo = stmt.span_lo().add(BytePos::from_u32(offset));
-    let hi = lo.add(BytePos::from_u32(AWAIT_LEN));
-    let span = Span::new(lo, hi, stmt.span.ctxt);
+    let lo = stmt.span_lo().add(BytePos(offset));
+    let hi = lo.add(BytePos(AWAIT_LEN));
+    let span = Span::new(lo, hi);
     parser.handle_top_level_await(self.top_level_await, span);
   }
 

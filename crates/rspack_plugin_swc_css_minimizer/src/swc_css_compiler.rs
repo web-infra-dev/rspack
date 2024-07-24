@@ -21,7 +21,7 @@ impl SwcCssCompiler {
   pub fn parse_file(&self, path: &str, source: String, config: ParserConfig) -> Result<Stylesheet> {
     let fm = self
       .cm
-      .new_source_file(FileName::Custom(path.to_string()), source);
+      .new_source_file(Arc::new(FileName::Custom(path.to_string())), source);
 
     let lexer = Lexer::new(SourceFileInput::from(&*fm), None, config);
     let mut parser = Parser::new(lexer, config);

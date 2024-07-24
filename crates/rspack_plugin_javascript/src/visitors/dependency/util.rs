@@ -159,7 +159,7 @@ pub(crate) mod expr_matcher {
             static TARGET: Lazy<Box<dyn ExprLike>> = Lazy::new(|| {
               let mut errors = vec![];
               let fm =
-                 PARSED_MEMBER_EXPR_CM.new_source_file(swc_core::common::FileName::Anon, $first.to_string());
+                 PARSED_MEMBER_EXPR_CM.new_source_file(Arc::new(swc_core::common::FileName::Anon), $first.to_string());
                  let expr = parse_file_as_expr(
                   &fm,
                   Default::default(),
@@ -419,17 +419,22 @@ mod test {
       span: DUMMY_SP,
       obj: Box::new(
         Ident {
+          ctxt: Default::default(),
           span: DUMMY_SP,
           sym: "module".into(),
           optional: false,
         }
         .into(),
       ),
-      prop: MemberProp::Ident(Ident {
-        span: DUMMY_SP,
-        sym: "exports".into(),
-        optional: false,
-      }),
+      prop: MemberProp::Ident(
+        Ident {
+          ctxt: Default::default(),
+          span: DUMMY_SP,
+          sym: "exports".into(),
+          optional: false,
+        }
+        .into(),
+      ),
     };
     assert!(
       expr_matcher::is_module_exports(&e),
@@ -441,6 +446,7 @@ mod test {
     );
 
     let e = Ident {
+      ctxt: Default::default(),
       span: DUMMY_SP,
       sym: "module".into(),
       optional: false,

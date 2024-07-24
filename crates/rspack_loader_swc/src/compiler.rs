@@ -307,7 +307,7 @@ impl SwcCompiler {
       options.unresolved_mark = Some(unresolved_mark);
     });
 
-    let fm = cm.new_source_file(FileName::Real(resource_path), source);
+    let fm = cm.new_source_file(Arc::new(FileName::Real(resource_path)), source);
     let comments = SingleThreadedComments::default();
     let config = read_config(&options, &fm.name)?
       .ok_or_else(|| anyhow!("cannot process file because it's ignored by .swcrc"))?;
@@ -439,7 +439,7 @@ impl SwcCompiler {
 
     let read_file_sourcemap =
       |data_url: Option<&str>| -> Result<Option<sourcemap::SourceMap>, Error> {
-        match &name {
+        match name.as_ref() {
           FileName::Real(filename) => {
             let dir = match filename.parent() {
               Some(v) => v,

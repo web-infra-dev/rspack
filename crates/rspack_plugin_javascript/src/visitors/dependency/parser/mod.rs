@@ -958,6 +958,7 @@ impl<'parser> JavascriptParser<'parser> {
           eval::eval_call_expression(
             parser,
             &CallExpr {
+              ctxt: call.ctxt,
               span: call.span,
               callee: call.callee.clone().as_callee(),
               args: call.args.clone(),
