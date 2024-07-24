@@ -9,7 +9,6 @@ use rspack_base64::encode_to_string;
 use rspack_fs::AsyncFileSystem;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
-use tokio::sync::Mutex;
 
 use crate::{
   http_uri::HttpUriPluginOptions,
@@ -52,21 +51,21 @@ pub enum FetchResultType {
 pub struct HttpCache {
   cache_location: Option<PathBuf>,
   lockfile_cache: LockfileCache,
-  filesystem: Arc<dyn AsyncFileSystem>,
+  filesystem: Arc<dyn AsyncFileSystem + Send + Sync>,
 }
 
 impl HttpCache {
   pub fn new(
     cache_location: Option<String>,
     lockfile_location: Option<String>,
-    filesystem: Arc<dyn AsyncFileSystem>,
+    filesystem: Arc<dyn AsyncFileSystem + Send + Sync>,
   ) -> Self {
     let cache_location = cache_location.map(PathBuf::from);
     let lockfile_path = lockfile_location.map(PathBuf::from);
     HttpCache {
       cache_location,
-      lockfile_cache: LockfileCache::new(lockfile_path, filesystem),
-      filesystem,
+      lockfile_cache: LockfileCache::new(lockfile_path, filesystem.clone()),
+      filesystem: filesystem.clone(),
     }
   }
 
@@ -265,7 +264,7 @@ pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> Result<
   let http_cache = HttpCache::new(
     options.cache_location.clone(),
     options.lockfile_location.clone(),
-    Arc::new(*options.filesystem),
+    options.filesystem.clone(),
   );
 
   http_cache.fetch_content(url, options).await

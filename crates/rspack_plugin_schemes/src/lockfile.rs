@@ -1,14 +1,13 @@
 use std::collections::HashMap;
-use std::error::Error as StdError;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use derivative::Derivative;
 use rspack_fs::AsyncFileSystem;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LockfileEntry {
   pub resolved: String,
@@ -99,11 +98,11 @@ impl Lockfile {
 
 #[async_trait]
 pub trait LockfileAsync {
-  async fn read_from_file_async<P: AsRef<Path> + Send, F: AsyncFileSystem + ?Sized>(
+  async fn read_from_file_async<P: AsRef<Path> + Send, F: AsyncFileSystem + Send + Sync + ?Sized>(
     path: P,
     filesystem: &F,
   ) -> io::Result<Lockfile>;
-  async fn write_to_file_async<P: AsRef<Path> + Send, F: AsyncFileSystem + ?Sized>(
+  async fn write_to_file_async<P: AsRef<Path> + Send, F: AsyncFileSystem + Send + Sync + ?Sized>(
     &self,
     path: P,
     filesystem: &F,
@@ -112,31 +111,42 @@ pub trait LockfileAsync {
 
 #[async_trait]
 impl LockfileAsync for Lockfile {
-  async fn read_from_file_async<P: AsRef<Path> + Send, F: AsyncFileSystem + ?Sized>(
+  async fn read_from_file_async<
+    P: AsRef<Path> + Send,
+    F: AsyncFileSystem + Send + Sync + ?Sized,
+  >(
     path: P,
     filesystem: &F,
   ) -> io::Result<Lockfile> {
-    let content = filesystem.read(path.as_ref()).await?;
+    let content = filesystem
+      .read(path.as_ref())
+      .await
+      .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", e)))?;
     let content_str =
       String::from_utf8(content).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
     Lockfile::parse(&content_str).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
   }
 
-  async fn write_to_file_async<P: AsRef<Path> + Send, F: AsyncFileSystem + ?Sized>(
+  async fn write_to_file_async<P: AsRef<Path> + Send, F: AsyncFileSystem + Send + Sync + ?Sized>(
     &self,
     path: P,
     filesystem: &F,
   ) -> io::Result<()> {
     let content = self.to_json_string();
-    filesystem.write(path.as_ref(), content.as_bytes()).await?;
+    filesystem
+      .write(path.as_ref(), content.as_bytes())
+      .await
+      .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", e)))?;
     Ok(())
   }
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct LockfileCache {
   lockfile: Arc<Mutex<Lockfile>>,
   lockfile_path: Option<PathBuf>,
+  #[derivative(Debug = "ignore")]
   filesystem: Arc<dyn AsyncFileSystem + Send + Sync>,
 }
 
@@ -164,7 +174,6 @@ impl LockfileCache {
           // File doesn't exist, use the default empty lockfile
         }
         Err(e) => {
-          // Log the error or handle it as needed
           dbg!("Error reading lockfile: {:?}", e);
         }
       }
@@ -193,15 +202,5 @@ impl LockfileCache {
     }
 
     Ok(())
-  }
-}
-
-impl Default for LockfileCache {
-  fn default() -> Self {
-    LockfileCache {
-      lockfile: Arc::new(Mutex::new(Lockfile::new())),
-      lockfile_path: None,
-      filesystem: Arc::new(rspack_fs::AsyncFileSystem::default()),
-    }
   }
 }

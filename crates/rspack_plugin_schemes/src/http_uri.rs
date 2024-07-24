@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use derivative::Derivative;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
@@ -8,9 +9,8 @@ use rspack_core::{
   NormalModuleReadResource, Plugin, PluginContext, ResourceData, Scheme,
 };
 use rspack_error::Result;
-use rspack_fs::{AsyncFileSystem, AsyncReadableFileSystem};
+use rspack_fs::AsyncFileSystem;
 use rspack_hook::{plugin, plugin_hook};
-use tokio::sync::Mutex;
 
 use crate::http_cache::{fetch_content, FetchResultType};
 
@@ -18,7 +18,7 @@ static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
 
 #[plugin]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct HttpUriPlugin {
   options: HttpUriPluginOptions,
 }
@@ -29,7 +29,8 @@ impl HttpUriPlugin {
   }
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct HttpUriPluginOptions {
   pub allowed_uris: HttpUriOptionsAllowedUris,
   pub cache_location: Option<String>,
@@ -37,7 +38,8 @@ pub struct HttpUriPluginOptions {
   pub lockfile_location: Option<String>,
   pub proxy: Option<String>,
   pub upgrade: Option<bool>,
-  pub filesystem: Arc<Mutex<dyn AsyncFileSystem>>,
+  #[derivative(Debug = "ignore")]
+  pub filesystem: Arc<dyn AsyncFileSystem + Send + Sync>,
 }
 
 #[plugin_hook(NormalModuleFactoryResolveForScheme for HttpUriPlugin)]
