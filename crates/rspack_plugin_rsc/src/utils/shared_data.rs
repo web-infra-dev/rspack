@@ -12,5 +12,3 @@ pub static SHARED_CLIENT_IMPORTS: Lazy<Arc<RwLock<ClientImports>>> =
   Lazy::new(|| Arc::new(RwLock::default()));
 pub static SHARED_SERVER_IMPORTS: Lazy<Arc<RwLock<ClientImports>>> =
   Lazy::new(|| Arc::new(RwLock::default()));
-pub static ASSETS_HASH: Lazy<Arc<RwLock<HashMap<String, String>>>> =
-  Lazy::new(|| Arc::new(RwLock::default()));
