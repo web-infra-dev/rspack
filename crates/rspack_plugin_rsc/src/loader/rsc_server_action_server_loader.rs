@@ -42,15 +42,15 @@ impl RSCServerActionServerLoader {
     }
   }
 
-  fn get_server_imports_by_name(&self, chunk_name: &str) -> Option<IndexSet<String>> {
-    let all_server_imports = &SHARED_SERVER_IMPORTS.lock().unwrap();
+  async fn get_server_imports_by_name(&self, chunk_name: &str) -> Option<IndexSet<String>> {
+    let all_server_imports = &SHARED_SERVER_IMPORTS.read().await;
     let server_imports: Option<_> = all_server_imports.get(&String::from(chunk_name)).cloned();
     server_imports
   }
 
-  pub fn get_server_refs_by_name(&self, chunk_name: &str) -> Vec<Vec<String>> {
-    let server_imports = self.get_server_imports_by_name(chunk_name);
-    let all_server_refs = &SHARED_DATA.lock().unwrap();
+  pub async fn get_server_refs_by_name(&self, chunk_name: &str) -> Vec<Vec<String>> {
+    let server_imports = self.get_server_imports_by_name(chunk_name).await;
+    let all_server_refs = &SHARED_DATA.read().await;
     let mut actions = vec![];
     if let Some(server_imports) = server_imports {
       for file_path in server_imports.iter() {
@@ -124,7 +124,7 @@ impl Loader<RunnerContext> for RSCServerActionServerLoader {
       loader_context
         .missing_dependencies
         .insert(server_ref_path.clone());
-      let server_refs = self.get_server_refs_by_name(&chunk_name);
+      let server_refs = self.get_server_refs_by_name(&chunk_name).await;
       let actions = server_refs
         .iter()
         .map(|f| {

@@ -45,5 +45,6 @@ swc_core = { workspace = true, features = [
   "ecma_quote",
 ] }
 swc_node_comments = { workspace = true }
+tokio = { workspace = true, features = ["rt"] }
 tracing = { workspace = true }
 url = { workspace = true }
