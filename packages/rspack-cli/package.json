@@ -15,7 +15,7 @@
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -b -w",
-    "test": "cross-env jest --runInBand --colors"
+    "test": "cross-env jest --colors"
   },
   "files": [
     "bin",
