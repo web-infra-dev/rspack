@@ -81,7 +81,7 @@ pub struct RSCClientReferenceManifest;
 #[plugin_hook(CompilationProcessAssets for RSCClientReferenceManifestRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let plugin = RSCClientReferenceManifest {};
-  plugin.process_assets_stage_optimize_hash(compilation)
+  plugin.process_assets_stage_optimize_hash(compilation).await
 }
 
 #[plugin_hook(CompilerFinishMake for RSCClientReferenceManifestRspackPlugin)]
@@ -106,8 +106,8 @@ impl RSCClientReferenceManifest {
       format!("{}#{}", filepath, name)
     }
   }
-  fn is_client_request(&self, resource_path: &str) -> bool {
-    let client_imports = SHARED_CLIENT_IMPORTS.lock().unwrap();
+  async fn is_client_request(&self, resource_path: &str) -> bool {
+    let client_imports = SHARED_CLIENT_IMPORTS.read().await;
     return client_imports.values().any(|f| f.contains(resource_path));
   }
   fn add_server_ref(
@@ -153,10 +153,10 @@ impl RSCClientReferenceManifest {
       },
     );
   }
-  fn process_assets_stage_optimize_hash(&self, compilation: &mut Compilation) -> Result<()> {
+  async fn process_assets_stage_optimize_hash(&self, compilation: &mut Compilation) -> Result<()> {
     let now = Instant::now();
     let mut client_manifest = ClientReferenceManifest::default();
-    let shared_server_manifest = SHARED_DATA.lock().unwrap();
+    let shared_server_manifest = SHARED_DATA.read().await;
     let mut server_manifest = ServerReferenceManifest::default();
     let mg = compilation.get_module_graph();
     let context = &compilation.options.context;
@@ -194,7 +194,7 @@ impl RSCClientReferenceManifest {
             .resource_path
             .to_str()
             .expect("TODO:");
-          if !self.is_client_request(&resource) {
+          if !self.is_client_request(&resource).await {
             continue;
           }
           if let Some(module_id) = module_id {
@@ -267,7 +267,7 @@ impl RSCClientReferenceManifest {
     match content {
       Ok(content) => {
         // TODO: outputPath should be configable
-        if !is_same_asset("client-reference-manifest.json", &content) {
+        if !is_same_asset("client-reference-manifest.json", &content).await {
           compilation.emit_asset(
             String::from("../server/client-reference-manifest.json"),
             CompilationAsset {

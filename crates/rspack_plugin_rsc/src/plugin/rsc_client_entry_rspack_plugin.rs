@@ -248,8 +248,10 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     client_imports.insert(String::from(name), entry_client_imports);
     server_imports.insert(String::from(name), entry_server_imports);
   }
-  *SHARED_CLIENT_IMPORTS.lock().unwrap() = client_imports.clone();
-  *SHARED_SERVER_IMPORTS.lock().unwrap() = server_imports.clone();
+  let mut shared_client_imports_guard = SHARED_CLIENT_IMPORTS.write().await;
+  *shared_client_imports_guard = client_imports.clone();
+  let mut shared_server_imports_guard = SHARED_SERVER_IMPORTS.write().await;
+  *shared_server_imports_guard = server_imports.clone();
   // TODO: custom main entry name, all other entries depend on this entry
   // let main_name = "server-entry";
   // let cc = client_imports.clone();
@@ -267,7 +269,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 
     match content {
       Ok(content) => {
-        if !is_same_asset(&output_file, &content) {
+        if !is_same_asset(&output_file, &content).await {
           compilation.assets_mut().insert(
             output_file,
             CompilationAsset {
@@ -290,7 +292,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     let content = to_string(&value);
     match content {
       Ok(content) => {
-        if !is_same_asset(&output_file, &content) {
+        if !is_same_asset(&output_file, &content).await {
           compilation.assets_mut().insert(
             format!("[{}]_server_imports.json", name),
             CompilationAsset {
@@ -317,7 +319,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 #[plugin_hook(CompilationProcessAssets for RSCClientEntryRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let plugin: RSCServerReferenceManifest = RSCServerReferenceManifest {};
-  plugin.process_assets_stage_optimize_hash(compilation)
+  plugin.process_assets_stage_optimize_hash(compilation).await
 }
 
 #[async_trait]

@@ -65,15 +65,19 @@ impl RSCServerReferenceManifest {
       server_actions_ref.insert(chunk_group_name.to_string(), server_action_module_mapping);
     }
   }
-  fn is_client_request(&self, resource_path: &str) -> bool {
-    let client_imports = SHARED_CLIENT_IMPORTS.lock().unwrap();
+  async fn is_client_request(&self, resource_path: &str) -> bool {
+    let client_imports = SHARED_CLIENT_IMPORTS.read().await;
     return client_imports.values().any(|f| f.contains(resource_path));
   }
-  fn is_server_request(&self, resource_path: &str) -> bool {
-    let server_imports = SHARED_SERVER_IMPORTS.lock().unwrap();
+  async fn is_server_request(&self, resource_path: &str) -> bool {
+    let server_imports = SHARED_SERVER_IMPORTS.read().await;
     return server_imports.values().any(|f| f.contains(resource_path));
   }
-  pub fn process_assets_stage_optimize_hash(&self, compilation: &mut Compilation) -> Result<()> {
+  pub async fn process_assets_stage_optimize_hash(
+    &self,
+    compilation: &mut Compilation,
+  ) -> Result<()> {
+    println!("guard");
     let now = Instant::now();
     let mut server_manifest = ServerReferenceManifest {
       // client components module map used in server bundler manifest
@@ -125,7 +129,7 @@ impl RSCServerReferenceManifest {
               self.add_server_action_ref(module_id, chunk_group.name().unwrap(), &mut mapping);
             }
           }
-          if !self.is_client_request(&resource) && !self.is_server_request(&resource) {
+          if !self.is_client_request(&resource).await && !self.is_server_request(&resource).await {
             continue;
           }
           if let Some(module_id) = module_id {
@@ -186,7 +190,8 @@ impl RSCServerReferenceManifest {
           .server_actions
           .insert(f.to_string(), mapping.clone());
       });
-    *SHARED_DATA.lock().unwrap() = server_manifest.clone();
+    let mut shared_data_guard = SHARED_DATA.write().await;
+    *shared_data_guard = server_manifest.clone();
     let mut shim_server_manifest: HashMap<String, ServerActions> = HashMap::default();
     shim_server_manifest.insert(
       String::from("serverActions"),
@@ -195,7 +200,7 @@ impl RSCServerReferenceManifest {
     let content = to_string(&shim_server_manifest);
     match content {
       Ok(content) => {
-        if !is_same_asset("server-reference-manifest.json", &content) {
+        if !is_same_asset("server-reference-manifest.json", &content).await {
           let asset = CompilationAsset {
             source: Some(RawSource::from(content).boxed()),
             info: AssetInfo {

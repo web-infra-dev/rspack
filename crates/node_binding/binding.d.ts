@@ -1869,11 +1869,6 @@ export interface RawReactRoute {
   import: RoutePath
 }
 
-export interface RawRegex {
-  source: string
-  flags: string
-}
-
 export interface RawRelated {
   sourceMap?: string
 }

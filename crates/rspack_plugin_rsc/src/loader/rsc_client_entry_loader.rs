@@ -44,8 +44,8 @@ impl RSCClientEntryLoader {
     }
   }
 
-  pub fn get_client_imports_by_name(&self, chunk_name: &str) -> Option<IndexSet<String>> {
-    let all_client_imports = &SHARED_CLIENT_IMPORTS.lock().unwrap();
+  pub async fn get_client_imports_by_name(&self, chunk_name: &str) -> Option<IndexSet<String>> {
+    let all_client_imports = &SHARED_CLIENT_IMPORTS.read().await;
     let client_imports = all_client_imports.get(&String::from(chunk_name)).cloned();
     client_imports
   }
@@ -129,7 +129,7 @@ impl Loader<RunnerContext> for RSCClientEntryLoader {
       }
       // Entrypoint
       if is_client_entry {
-        let client_imports = self.get_client_imports_by_name(&chunk_name);
+        let client_imports = self.get_client_imports_by_name(&chunk_name).await;
         if let Some(client_imports) = client_imports {
           let code = client_imports
             .iter()
@@ -142,7 +142,7 @@ impl Loader<RunnerContext> for RSCClientEntryLoader {
 
       // Route
       if is_route_entry {
-        let client_imports = self.get_client_imports_by_name(&chunk_name);
+        let client_imports = self.get_client_imports_by_name(&chunk_name).await;
         if let Some(client_imports) = client_imports {
           let code = client_imports
             .iter()
