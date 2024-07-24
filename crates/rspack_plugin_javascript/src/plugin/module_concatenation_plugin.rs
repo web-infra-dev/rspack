@@ -5,9 +5,7 @@ use std::collections::VecDeque;
 use std::hash::Hasher;
 
 use rayon::prelude::*;
-use rspack_collections::{
-  IdentifierDashMap, IdentifierIndexSet, IdentifierLinkedSet, IdentifierMap, IdentifierSet,
-};
+use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
@@ -36,13 +34,13 @@ enum Warning {
 struct ConcatConfiguration {
   pub root_module: ModuleIdentifier,
   runtime: Option<RuntimeSpec>,
-  modules: IdentifierLinkedSet,
+  modules: IdentifierIndexSet,
   warnings: IdentifierMap<Warning>,
 }
 
 impl ConcatConfiguration {
   fn new(root_module: ModuleIdentifier, runtime: Option<RuntimeSpec>) -> Self {
-    let mut modules = IdentifierLinkedSet::default();
+    let mut modules = IdentifierIndexSet::default();
     modules.insert(root_module);
 
     ConcatConfiguration {
@@ -75,7 +73,7 @@ impl ConcatConfiguration {
     sorted_warnings.into_iter().collect()
   }
 
-  fn get_modules(&self) -> &IdentifierLinkedSet {
+  fn get_modules(&self) -> &IdentifierIndexSet {
     &self.modules
   }
 
@@ -86,12 +84,8 @@ impl ConcatConfiguration {
   fn rollback(&mut self, snapshot: usize) {
     let modules = &mut self.modules;
     let len = modules.len();
-    let mut i = 0;
-    while i < len {
-      if i >= snapshot {
-        modules.pop_back();
-      }
-      i += 1;
+    for _ in snapshot..len {
+      modules.pop();
     }
   }
 }
@@ -225,7 +219,7 @@ impl ModuleConcatenationPlugin {
     let module = module_graph
       .module_by_identifier(module_id)
       .expect("should have module");
-    let module_readable_identifier = module.readable_identifier(&options.context).to_string();
+    let module_readable_identifier = module.readable_identifier(&options.context);
 
     if !possible_modules.contains(module_id) {
       statistics.invalid_module += 1;
@@ -769,13 +763,14 @@ impl ModuleConcatenationPlugin {
         candidates.push_back(import);
       }
 
+      let mut import_candidates = IdentifierSet::default();
       while let Some(imp) = candidates.pop_front() {
         if candidates_visited.contains(&imp) {
           continue;
         } else {
           candidates_visited.insert(imp);
         }
-        let mut import_candidates = IdentifierSet::default();
+        import_candidates.clear();
         match Self::try_to_add(
           compilation,
           &mut current_configuration,

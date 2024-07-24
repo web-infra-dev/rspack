@@ -335,29 +335,6 @@ impl ModuleInfo {
   }
 }
 
-#[derive(Debug)]
-pub enum ModuleInfoOrReference {
-  External(ExternalModuleInfo),
-  Concatenated(ConcatenatedModuleInfo),
-  Reference {
-    /// target in webpack https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1818
-    module_info_id: ModuleIdentifier,
-    runtime_condition: RuntimeCondition,
-  },
-}
-
-impl ModuleInfoOrReference {
-  pub fn runtime_condition(&self) -> Option<&RuntimeCondition> {
-    match self {
-      ModuleInfoOrReference::External(info) => Some(&info.runtime_condition),
-      ModuleInfoOrReference::Concatenated(_) => None,
-      ModuleInfoOrReference::Reference {
-        runtime_condition, ..
-      } => Some(runtime_condition),
-    }
-  }
-}
-
 impl ModuleInfo {
   pub fn index(&self) -> usize {
     match self {
@@ -430,7 +407,7 @@ impl ConcatenatedModule {
   ) -> String {
     let mut identifiers = vec![];
     for m in modules {
-      identifiers.push(m.shorten_id.clone());
+      identifiers.push(m.shorten_id.as_str());
     }
     identifiers.sort();
     let mut hash = RspackHash::new(&hash_function.unwrap_or(HashFunction::MD4));
@@ -449,8 +426,8 @@ impl ConcatenatedModule {
     self.id
   }
 
-  pub fn get_modules(&self) -> Vec<ConcatenatedInnerModule> {
-    self.modules.clone()
+  pub fn get_modules(&self) -> &[ConcatenatedInnerModule] {
+    self.modules.as_slice()
   }
 }
 
@@ -574,6 +551,11 @@ impl Module for ConcatenatedModule {
     build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
 
     let module_graph = compilation.get_module_graph();
+    let modules = self
+      .modules
+      .iter()
+      .map(|item| Some(&item.id))
+      .collect::<HashSet<_>>();
     for m in self.modules.iter() {
       let module = module_graph
         .module_by_identifier(&m.id)
@@ -586,17 +568,12 @@ impl Module for ConcatenatedModule {
       }
 
       // populate dependencies
-      for dep_id in module.get_dependencies() {
+      for dep_id in module.get_dependencies().iter() {
         let dep = module_graph
           .dependency_by_id(dep_id)
           .expect("should have dependency");
         let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
-        if !is_harmony_dep_like(dep)
-          || !self
-            .modules
-            .iter()
-            .any(|item| Some(&item.id) == module_id_of_dep)
-        {
+        if !is_harmony_dep_like(dep) || !modules.contains(&module_id_of_dep) {
           self.dependencies.push(*dep_id);
         }
       }
@@ -607,9 +584,7 @@ impl Module for ConcatenatedModule {
       }
       let mut diagnostics_guard = self.diagnostics.lock().expect("should have diagnostics");
       // populate diagnostic
-      for d in module.get_diagnostics() {
-        diagnostics_guard.push(d.clone());
-      }
+      diagnostics_guard.extend(module.get_diagnostics());
 
       // release guard ASAP
       drop(diagnostics_guard);
@@ -685,14 +660,10 @@ impl Module for ConcatenatedModule {
     let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|s| Atom::new(*s)));
     let mut top_level_declarations: HashSet<Atom> = HashSet::default();
 
-    for module in modules_with_info.iter() {
-      let ModuleInfoOrReference::Concatenated(m) = module else {
+    for module_info_id in modules_with_info.iter() {
+      let Some(ModuleInfo::Concatenated(info)) = module_to_info_map.get_mut(module_info_id) else {
         continue;
       };
-      let info = module_to_info_map
-        .get_mut(&m.module)
-        .and_then(|info| info.try_as_concatenated_mut())
-        .expect("should have concatenate info");
       if let Some(ref ast) = info.ast {
         let mut collector = IdentCollector::default();
         ast.visit(|program, _ctxt| {
@@ -867,14 +838,7 @@ impl Module for ConcatenatedModule {
           let name = &reference.id.sym;
           let match_result = ConcatenationScope::match_module_reference(name.as_str());
           if let Some(match_info) = match_result {
-            let referenced_info = &modules_with_info[match_info.index];
-            let referenced_info_id = match referenced_info {
-              ModuleInfoOrReference::External(info) => info.module,
-              ModuleInfoOrReference::Concatenated(info) => info.module,
-              ModuleInfoOrReference::Reference { .. } => {
-                panic!("Module reference can't point to a reference");
-              }
-            };
+            let referenced_info_id = &modules_with_info[match_info.index];
             refs.push((
               reference.clone(),
               referenced_info_id,
@@ -907,7 +871,7 @@ impl Module for ConcatenatedModule {
       {
         let final_name = Self::get_final_name(
           &compilation.get_module_graph(),
-          &referenced_info_id,
+          referenced_info_id,
           export_name,
           &mut module_to_info_map,
           runtime,
@@ -1166,8 +1130,8 @@ impl Module for ConcatenatedModule {
     }
 
     // Define required namespace objects (must be before evaluation modules)
-    for info in modules_with_info.iter() {
-      let ModuleInfoOrReference::Concatenated(info) = info else {
+    for info in module_to_info_map.values() {
+      let Some(info) = info.try_as_concatenated() else {
         continue;
       };
 
@@ -1180,35 +1144,14 @@ impl Module for ConcatenatedModule {
 
     // Evaluate modules in order
     let module_graph = compilation.get_module_graph();
-    for raw_info in modules_with_info {
+    for module_info_id in modules_with_info {
       let name;
       let mut is_conditional = false;
-      let info = match raw_info {
-        ModuleInfoOrReference::Reference {
-          module_info_id,
-          runtime_condition: _,
-        } => {
-          let module_info = module_to_info_map
-            .get(&module_info_id)
-            .expect("should have module info ");
-          module_info
-        }
-        ModuleInfoOrReference::External(info) => {
-          let module_info = module_to_info_map
-            .get(&info.module)
-            .expect("should have module info ");
-          module_info
-        }
-        ModuleInfoOrReference::Concatenated(info) => {
-          let module_info = module_to_info_map
-            .get(&info.module)
-            .expect("should have module info ");
-          module_info
-        }
-      };
-
+      let info = module_to_info_map
+        .get(&module_info_id)
+        .expect("should have module info");
       let box_module = module_graph
-        .module_by_identifier(&info.id())
+        .module_by_identifier(&module_info_id)
         .expect("should have box module");
       let module_readable_identifier = box_module.readable_identifier(&context);
 
@@ -1428,7 +1371,7 @@ impl ConcatenatedModule {
     &self,
     mg: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
-  ) -> (Vec<ModuleInfoOrReference>, IdentifierIndexMap<ModuleInfo>) {
+  ) -> (Vec<ModuleIdentifier>, IdentifierIndexMap<ModuleInfo>) {
     let ordered_concatenation_list = self.create_concatenation_list(
       self.root_module_ctxt.id,
       IndexSet::from_iter(self.modules.iter().map(|item| item.id)),
@@ -1443,10 +1386,7 @@ impl ConcatenatedModule {
         .get_module_id(mg);
       match map.entry(module_id) {
         indexmap::map::Entry::Occupied(_) => {
-          list.push(ModuleInfoOrReference::Reference {
-            module_info_id: module_id,
-            runtime_condition: concatenation_entry.runtime_condition,
-          });
+          list.push(module_id);
         }
         indexmap::map::Entry::Vacant(vac) => {
           match concatenation_entry.ty {
@@ -1456,8 +1396,8 @@ impl ConcatenatedModule {
                 module: module_id,
                 ..Default::default()
               };
-              vac.insert(ModuleInfo::Concatenated(info.clone()));
-              list.push(ModuleInfoOrReference::Concatenated(info));
+              vac.insert(ModuleInfo::Concatenated(info));
+              list.push(module_id);
             }
             ConcatenationEntryType::External => {
               let info = ExternalModuleInfo {
@@ -1472,8 +1412,8 @@ impl ConcatenatedModule {
                 interop_default_access_name: None,
                 name: None,
               };
-              vac.insert(ModuleInfo::External(info.clone()));
-              list.push(ModuleInfoOrReference::External(info));
+              vac.insert(ModuleInfo::External(info));
+              list.push(module_id)
             }
           };
         }
