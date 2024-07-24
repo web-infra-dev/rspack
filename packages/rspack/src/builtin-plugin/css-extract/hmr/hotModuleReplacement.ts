@@ -204,7 +204,7 @@ function isUrlRequest(url: string): boolean {
 	return true;
 }
 
-export default function (moduleId: string, options: Record<string, any>) {
+function cssReload(moduleId: string, options: Record<string, any>) {
 	if (noDocument) {
 		console.log("no window.document found, will not HMR CSS");
 
@@ -236,3 +236,5 @@ export default function (moduleId: string, options: Record<string, any>) {
 
 	return debounce(update, 50);
 }
+
+export { cssReload };

@@ -4,6 +4,7 @@ var __webpack_modules__ = ({
 "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.cssReload = void 0;
 const normalizeUrl_1 = __webpack_require__(/*! ./normalizeUrl */ "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/normalizeUrl.js");
 const srcByModuleId = Object.create(null);
 const noDocument = typeof document === "undefined";
@@ -149,7 +150,7 @@ function isUrlRequest(url) {
     }
     return true;
 }
-function default_1(moduleId, options) {
+function cssReload(moduleId, options) {
     if (noDocument) {
         console.log("no window.document found, will not HMR CSS");
         return noop;
@@ -173,7 +174,7 @@ function default_1(moduleId, options) {
     }
     return debounce(update, 50);
 }
-exports["default"] = default_1;
+exports.cssReload = cssReload;
 
 
 }),
@@ -216,7 +217,7 @@ __webpack_require__.r(__webpack_exports__);
 
     if(true) {
       // 
-      var cssReload = __webpack_require__(/*! ../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")(module.id, {"locals":false});
+      var cssReload = (__webpack_require__(/*! ../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")/* .cssReload */.cssReload)(module.id, {"locals":false});
       module.hot.dispose(cssReload);
       module.hot.accept(undefined, function(__WEBPACK_OUTDATED_DEPENDENCIES__) {
 (cssReload)(__WEBPACK_OUTDATED_DEPENDENCIES__); }.bind(this));
