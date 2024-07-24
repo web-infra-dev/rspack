@@ -76,11 +76,11 @@ __webpack_require__.o = function (obj, prop) {
 "use strict";
 
 // EXTERNAL MODULE: ../../normalModuleFactory​#afterResolve/resource/a.js
-var a_ = __webpack_require__("../../normalModuleFactory​#afterResolve/resource/a.js");
-var a_default = /*#__PURE__*/__webpack_require__.n(a_);
+var a = __webpack_require__("../../normalModuleFactory​#afterResolve/resource/a.js");
+var a_default = /*#__PURE__*/__webpack_require__.n(a);
 // EXTERNAL MODULE: ../../normalModuleFactory​#afterResolve/resource/b.js
-var b_ = __webpack_require__("../../normalModuleFactory​#afterResolve/resource/b.js");
-var b_default = /*#__PURE__*/__webpack_require__.n(b_);
+var b = __webpack_require__("../../normalModuleFactory​#afterResolve/resource/b.js");
+var b_default = /*#__PURE__*/__webpack_require__.n(b);
 ;// CONCATENATED MODULE: external "fs"
 var external_fs_namespaceObject = require("fs");
 var external_fs_default = /*#__PURE__*/__webpack_require__.n(external_fs_namespaceObject);
